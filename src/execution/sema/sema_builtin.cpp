@@ -1577,6 +1577,7 @@ void Sema::CheckBuiltinIndexIteratorPRCall(ast::CallExpr *call, ast::Builtin bui
       break;
     case ast::Builtin::IndexIteratorGetSlot:
       call->SetType(GetBuiltinType(ast::BuiltinType::TupleSlot));
+      break;
     default:
       UNREACHABLE("Impossible Index PR call!");
   }
@@ -1677,147 +1678,22 @@ void Sema::CheckBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin) {
   }
 }
 
-void Sema::CheckBuiltinDeleterCall(ast::CallExpr *call, ast::Builtin builtin) {
+void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin builtin) {
   const auto &call_args = call->Arguments();
 
-  const auto deleter_kind = ast::BuiltinType::Deleter;
+  const auto storage_interface_kind = ast::BuiltinType::StorageInterface;
   const auto int32_kind = ast::BuiltinType::Int32;
 
   if (!CheckArgCountAtLeast(call, 1)) {
     return;
   }
-  if (!IsPointerToSpecificBuiltin(call_args[0]->GetType(), deleter_kind)) {
-    ReportIncorrectCallArg(call, 0, GetBuiltinType(deleter_kind)->PointerTo());
+  if (!IsPointerToSpecificBuiltin(call_args[0]->GetType(), storage_interface_kind)) {
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(storage_interface_kind)->PointerTo());
     return;
   }
 
   switch (builtin) {
-    case ast::Builtin::DeleterInit: {
-      if (!CheckArgCount(call, 3)) {
-        return;
-      }
-
-      // exec_ctx
-      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), exec_ctx_kind)) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
-        return;
-      }
-
-      // table_oid
-      if (!call_args[2]->IsIntegerLiteral()) {
-        ReportIncorrectCallArg(call, 2, GetBuiltinType(int32_kind));
-        return;
-      }
-
-      // void
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
-      break;
-    }
-    case ast::Builtin::DeleterInitBind: {
-      if (!CheckArgCount(call, 3)) {
-        return;
-      }
-
-      // exec_ctx
-      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), exec_ctx_kind)) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
-        return;
-      }
-
-      // table_name
-      if (!call_args[2]->IsStringLiteral()) {
-        ReportIncorrectCallArg(call, 2, ast::StringType::Get(GetContext()));
-        return;
-      }
-
-      // void
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
-      break;
-    }
-    case ast::Builtin::DeleterTableDelete: {
-      if (!CheckArgCount(call, 2)) {
-        return;
-      }
-
-      auto tuple_slot_type = ast::BuiltinType::TupleSlot;
-      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), tuple_slot_type)) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(tuple_slot_type)->PointerTo());
-        return;
-      }
-
-      call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
-      break;
-    }
-    case ast::Builtin::DeleterGetIndexPR: {
-      if (!CheckArgCount(call, 2)) {
-        return;
-      }
-
-      if (!call_args[1]->IsIntegerLiteral()) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(int32_kind));
-        return;
-      }
-
-      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
-      break;
-    }
-    case ast::Builtin::DeleterGetIndexPRBind: {
-      if (!CheckArgCount(call, 2)) {
-        return;
-      }
-
-      if (!call_args[1]->IsStringLiteral()) {
-        ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
-        return;
-      }
-
-      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
-      break;
-    }
-    case ast::Builtin::DeleterIndexDelete: {
-      if (!CheckArgCount(call, 2)) {
-        return;
-      }
-      // Second argument is a tuple slot
-      auto tuple_slot_type = ast::BuiltinType::TupleSlot;
-      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), tuple_slot_type)) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(tuple_slot_type)->PointerTo());
-        return;
-      }
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
-      break;
-    }
-    case ast::Builtin::DeleterFree: {
-      if (!CheckArgCount(call, 1)) {
-        return;
-      }
-      // Return nothing
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
-      break;
-    }
-    default:
-      UNREACHABLE("Undefined deleter call!");
-  }
-}
-
-void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
-  const auto &call_args = call->Arguments();
-
-  const auto updater_kind = ast::BuiltinType::Updater;
-  const auto int32_kind = ast::BuiltinType::Int32;
-
-  if (!CheckArgCountAtLeast(call, 1)) {
-    return;
-  }
-  if (!IsPointerToSpecificBuiltin(call_args[0]->GetType(), updater_kind)) {
-    ReportIncorrectCallArg(call, 0, GetBuiltinType(updater_kind)->PointerTo());
-    return;
-  }
-
-  switch (builtin) {
-    case ast::Builtin::UpdaterInit: {
+    case ast::Builtin::StorageInterfaceInit: {
       if (!CheckArgCount(call, 5)) {
         return;
       }
@@ -1846,7 +1722,7 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
         ReportIncorrectCallArg(call, 3, "Third argument should be a fixed length uint32 array");
       }
 
-      // is_index_key_update
+      // needs_indexes for non-indexed updates
       if (!call_args[4]->GetType()->IsBoolType()) {
         ReportIncorrectCallArg(call, 4, GetBuiltinType(ast::BuiltinType::Bool));
         return;
@@ -1856,7 +1732,7 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
-    case ast::Builtin::UpdaterInitBind: {
+    case ast::Builtin::StorageInterfaceInitBind: {
       if (!CheckArgCount(call, 5)) {
         return;
       }
@@ -1885,7 +1761,7 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
         ReportIncorrectCallArg(call, 3, "Fourth argument should be a fixed length uint32 array");
       }
 
-      // is_index_key_update
+      // needs indexes
       if (!call_args[4]->GetType()->IsBoolType()) {
         ReportIncorrectCallArg(call, 4, GetBuiltinType(ast::BuiltinType::Bool));
         return;
@@ -1895,14 +1771,14 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
-    case ast::Builtin::UpdaterGetTablePR: {
+    case ast::Builtin::GetTablePR: {
       if (!CheckArgCount(call, 1)) {
         return;
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
       break;
     }
-    case ast::Builtin::UpdaterTableInsert: {
+    case ast::Builtin::TableInsert: {
       if (!CheckArgCount(call, 1)) {
         return;
       }
@@ -1911,7 +1787,7 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(tuple_slot_type));
       break;
     }
-    case ast::Builtin::UpdaterTableDelete: {
+    case ast::Builtin::TableDelete: {
       if (!CheckArgCount(call, 2)) {
         return;
       }
@@ -1925,7 +1801,7 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
       break;
     }
-    case ast::Builtin::UpdaterTableUpdate: {
+    case ast::Builtin::TableUpdate: {
       if (!CheckArgCount(call, 2)) {
         return;
       }
@@ -1939,7 +1815,7 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
       break;
     }
-    case ast::Builtin::UpdaterGetIndexPR: {
+    case ast::Builtin::GetIndexPR: {
       if (!CheckArgCount(call, 2)) {
         return;
       }
@@ -1952,7 +1828,7 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
       break;
     }
-    case ast::Builtin::UpdaterGetIndexPRBind: {
+    case ast::Builtin::GetIndexPRBind: {
       if (!CheckArgCount(call, 2)) {
         return;
       }
@@ -1965,14 +1841,14 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
       break;
     }
-    case ast::Builtin::UpdaterIndexInsert: {
+    case ast::Builtin::IndexInsert: {
       if (!CheckArgCount(call, 1)) {
         return;
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
       break;
     }
-    case ast::Builtin::UpdaterIndexDelete: {
+    case ast::Builtin::IndexDelete: {
       if (!CheckArgCount(call, 2)) {
         return;
       }
@@ -1985,7 +1861,7 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
-    case ast::Builtin::UpdaterFree: {
+    case ast::Builtin::StorageInterfaceFree: {
       if (!CheckArgCount(call, 1)) {
         return;
       }
@@ -1995,119 +1871,6 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
     }
     default:
       UNREACHABLE("Undefined updater call!");
-  }
-}
-
-void Sema::CheckBuiltinInserterCall(ast::CallExpr *call, ast::Builtin builtin) {
-  const auto &call_args = call->Arguments();
-
-  const auto inserter_kind = ast::BuiltinType::Inserter;
-  const auto int32_kind = ast::BuiltinType::Int32;
-
-  if (!CheckArgCountAtLeast(call, 1)) {
-    return;
-  }
-  if (!IsPointerToSpecificBuiltin(call_args[0]->GetType(), inserter_kind)) {
-    ReportIncorrectCallArg(call, 0, GetBuiltinType(inserter_kind)->PointerTo());
-    return;
-  }
-
-  switch (builtin) {
-    case ast::Builtin::InserterInit: {
-      if (!CheckArgCount(call, 3)) {
-        return;
-      }
-      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), exec_ctx_kind)) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
-        return;
-      }
-
-      // table_oid
-      if (!call_args[2]->IsIntegerLiteral()) {
-        ReportIncorrectCallArg(call, 2, GetBuiltinType(int32_kind));
-        return;
-      }
-
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
-      break;
-    }
-    case ast::Builtin::InserterInitBind: {
-      if (!CheckArgCount(call, 3)) {
-        return;
-      }
-      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), exec_ctx_kind)) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
-        return;
-      }
-
-      // table_name
-      if (!call_args[2]->IsStringLiteral()) {
-        ReportIncorrectCallArg(call, 2, ast::StringType::Get(GetContext()));
-        return;
-      }
-
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
-      break;
-    }
-    case ast::Builtin::InserterGetTablePR: {
-      if (!CheckArgCount(call, 1)) {
-        return;
-      }
-      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
-      break;
-    }
-    case ast::Builtin::InserterTableInsert: {
-      if (!CheckArgCount(call, 1)) {
-        return;
-      }
-      call->SetType(GetBuiltinType(ast::BuiltinType::TupleSlot));
-      break;
-    }
-    case ast::Builtin::InserterIndexInsert: {
-      if (!CheckArgCount(call, 1)) {
-        return;
-      }
-      call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
-      break;
-    }
-    case ast::Builtin::InserterGetIndexPR: {
-      if (!CheckArgCount(call, 2)) {
-        return;
-      }
-
-      if (!call_args[1]->IsIntegerLiteral()) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(int32_kind));
-        return;
-      }
-
-      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
-      break;
-    }
-    case ast::Builtin::InserterGetIndexPRBind: {
-      if (!CheckArgCount(call, 2)) {
-        return;
-      }
-
-      if (!call_args[1]->IsStringLiteral()) {
-        ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
-        return;
-      }
-
-      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
-      break;
-    }
-    case ast::Builtin::InserterFree: {
-      if (!CheckArgCount(call, 1)) {
-        return;
-      }
-      // Return nothing
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
-      break;
-    }
-    default:
-      UNREACHABLE("Undefined inserter call!");
   }
 }
 
@@ -2393,39 +2156,18 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinPRCall(call, builtin);
       break;
     }
-    case ast::Builtin::InserterInit:
-    case ast::Builtin::InserterInitBind:
-    case ast::Builtin::InserterGetTablePR:
-    case ast::Builtin::InserterTableInsert:
-    case ast::Builtin::InserterGetIndexPR:
-    case ast::Builtin::InserterGetIndexPRBind:
-    case ast::Builtin::InserterIndexInsert:
-    case ast::Builtin::InserterFree: {
-      CheckBuiltinInserterCall(call, builtin);
-      break;
-    }
-    case ast::Builtin::DeleterInit:
-    case ast::Builtin::DeleterInitBind:
-    case ast::Builtin::DeleterTableDelete:
-    case ast::Builtin::DeleterGetIndexPR:
-    case ast::Builtin::DeleterGetIndexPRBind:
-    case ast::Builtin::DeleterIndexDelete:
-    case ast::Builtin::DeleterFree: {
-      CheckBuiltinDeleterCall(call, builtin);
-      break;
-    }
-    case ast::Builtin::UpdaterInit:
-    case ast::Builtin::UpdaterInitBind:
-    case ast::Builtin::UpdaterGetTablePR:
-    case ast::Builtin::UpdaterTableInsert:
-    case ast::Builtin::UpdaterTableDelete:
-    case ast::Builtin::UpdaterTableUpdate:
-    case ast::Builtin::UpdaterGetIndexPR:
-    case ast::Builtin::UpdaterGetIndexPRBind:
-    case ast::Builtin::UpdaterIndexInsert:
-    case ast::Builtin::UpdaterIndexDelete:
-    case ast::Builtin::UpdaterFree: {
-      CheckBuiltinUpdaterCall(call, builtin);
+    case ast::Builtin::StorageInterfaceInit:
+    case ast::Builtin::StorageInterfaceInitBind:
+    case ast::Builtin::GetTablePR:
+    case ast::Builtin::TableInsert:
+    case ast::Builtin::TableDelete:
+    case ast::Builtin::TableUpdate:
+    case ast::Builtin::GetIndexPR:
+    case ast::Builtin::GetIndexPRBind:
+    case ast::Builtin::IndexInsert:
+    case ast::Builtin::IndexDelete:
+    case ast::Builtin::StorageInterfaceFree: {
+      CheckBuiltinStorageInterfaceCall(call, builtin);
       break;
     }
     default: {

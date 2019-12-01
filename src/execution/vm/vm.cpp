@@ -1517,177 +1517,81 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
 #undef GEN_PR_SET
 
   /////////////////////////////////
-  //// Inserter Calls
+  //// StorageInterface Calls
   /////////////////////////////////
 
-  OP(InserterInit) : {
-    auto *inserter = frame->LocalAt<sql::Inserter *>(READ_LOCAL_ID());
-    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto table_oid = READ_UIMM4();
-
-    OpInserterInit(inserter, exec_ctx, table_oid);
-    DISPATCH_NEXT();
-  }
-
-  OP(InserterGetTablePR) : {
-    auto *pr_result = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID());
-    auto *inserter = frame->LocalAt<sql::Inserter *>(READ_LOCAL_ID());
-
-    OpInserterGetTablePR(pr_result, inserter);
-    DISPATCH_NEXT();
-  }
-
-  OP(InserterTableInsert) : {
-    auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
-    auto *inserter = frame->LocalAt<sql::Inserter *>(READ_LOCAL_ID());
-
-    OpInserterTableInsert(tuple_slot, inserter);
-    DISPATCH_NEXT();
-  }
-
-  OP(InserterGetIndexPR) : {
-    auto *pr_result = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID());
-    auto *inserter = frame->LocalAt<sql::Inserter *>(READ_LOCAL_ID());
-    auto index_oid = READ_UIMM4();
-
-    OpInserterGetIndexPR(pr_result, inserter, index_oid);
-    DISPATCH_NEXT();
-  }
-
-  OP(InserterIndexInsert) : {
-    auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
-    auto *inserter = frame->LocalAt<sql::Inserter *>(READ_LOCAL_ID());
-    OpInserterIndexInsert(result, inserter);
-    DISPATCH_NEXT();
-  }
-
-  OP(InserterFree) : {
-    auto *inserter = frame->LocalAt<sql::Inserter *>(READ_LOCAL_ID());
-    OpInserterFree(inserter);
-    DISPATCH_NEXT();
-  }
-
-  /////////////////////////////////
-  //// Deleter Calls
-  /////////////////////////////////
-
-  OP(DeleterInit) : {
-    auto *deleter = frame->LocalAt<sql::Deleter *>(READ_LOCAL_ID());
-    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto table_oid = READ_UIMM4();
-
-    OpDeleterInit(deleter, exec_ctx, table_oid);
-    DISPATCH_NEXT();
-  }
-
-  OP(DeleterTableDelete) : {
-    auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
-    auto *deleter = frame->LocalAt<sql::Deleter *>(READ_LOCAL_ID());
-    auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
-
-    OpDeleterTableDelete(result, deleter, tuple_slot);
-    DISPATCH_NEXT();
-  }
-
-  OP(DeleterGetIndexPR) : {
-    auto *pr_result = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID());
-    auto *deleter = frame->LocalAt<sql::Deleter *>(READ_LOCAL_ID());
-    auto index_oid = READ_UIMM4();
-
-    OpDeleterGetIndexPR(pr_result, deleter, index_oid);
-    DISPATCH_NEXT();
-  }
-
-  OP(DeleterIndexDelete) : {
-    auto *deleter = frame->LocalAt<sql::Deleter *>(READ_LOCAL_ID());
-    auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
-
-    OpDeleterIndexDelete(deleter, tuple_slot);
-    DISPATCH_NEXT();
-  }
-
-  OP(DeleterFree) : {
-    auto *deleter = frame->LocalAt<sql::Deleter *>(READ_LOCAL_ID());
-    OpDeleterFree(deleter);
-    DISPATCH_NEXT();
-  }
-
-  /////////////////////////////////
-  //// Updater Calls
-  /////////////////////////////////
-
-  OP(UpdaterInit) : {
-    auto *updater = frame->LocalAt<sql::Updater *>(READ_LOCAL_ID());
+  OP(StorageInterfaceInit) : {
+    auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto table_oid = READ_UIMM4();
     auto *col_oids = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto num_oids = READ_UIMM4();
-    auto is_index_key_update = frame->LocalAt<bool>(READ_LOCAL_ID());
+    auto need_indexes = frame->LocalAt<bool>(READ_LOCAL_ID());
 
-    OpUpdaterInit(updater, exec_ctx, table_oid, col_oids, num_oids, is_index_key_update);
+    OpStorageInterfaceInit(storage_interface, exec_ctx, table_oid, col_oids, num_oids, need_indexes);
     DISPATCH_NEXT();
   }
 
-  OP(UpdaterGetTablePR) : {
+  OP(StorageInterfaceGetTablePR) : {
     auto *pr_result = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID());
-    auto *updater = frame->LocalAt<sql::Updater *>(READ_LOCAL_ID());
+    auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
 
-    OpUpdaterGetTablePR(pr_result, updater);
+    OpStorageInterfaceGetTablePR(pr_result, storage_interface);
     DISPATCH_NEXT();
   }
 
-  OP(UpdaterTableInsert) : {
+  OP(StorageInterfaceTableInsert) : {
     auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
-    auto *updater = frame->LocalAt<sql::Updater *>(READ_LOCAL_ID());
+    auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
 
-    OpUpdaterTableInsert(tuple_slot, updater);
+    OpStorageInterfaceTableInsert(tuple_slot, storage_interface);
     DISPATCH_NEXT();
   }
 
-  OP(UpdaterTableDelete) : {
+  OP(StorageInterfaceTableDelete) : {
     auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
-    auto *updater = frame->LocalAt<sql::Updater *>(READ_LOCAL_ID());
+    auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
     auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
 
-    OpUpdaterTableDelete(result, updater, tuple_slot);
+    OpStorageInterfaceTableDelete(result, storage_interface, tuple_slot);
     DISPATCH_NEXT();
   }
 
-  OP(UpdaterTableUpdate) : {
+  OP(StorageInterfaceTableUpdate) : {
     auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
-    auto *updater = frame->LocalAt<sql::Updater *>(READ_LOCAL_ID());
+    auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
     auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
 
-    OpUpdaterTableUpdate(result, updater, tuple_slot);
+    OpStorageInterfaceTableUpdate(result, storage_interface, tuple_slot);
     DISPATCH_NEXT();
   }
 
-  OP(UpdaterGetIndexPR) : {
+  OP(StorageInterfaceGetIndexPR) : {
     auto *pr_result = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID());
-    auto *updater = frame->LocalAt<sql::Updater *>(READ_LOCAL_ID());
+    auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
     auto index_oid = READ_UIMM4();
 
-    OpUpdaterGetIndexPR(pr_result, updater, index_oid);
+    OpStorageInterfaceGetIndexPR(pr_result, storage_interface, index_oid);
     DISPATCH_NEXT();
   }
 
-  OP(UpdaterIndexInsert) : {
+  OP(StorageInterfaceIndexInsert) : {
     auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
-    auto *updater = frame->LocalAt<sql::Updater *>(READ_LOCAL_ID());
-    OpUpdaterIndexInsert(result, updater);
+    auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
+    OpStorageInterfaceIndexInsert(result, storage_interface);
     DISPATCH_NEXT();
   }
 
-  OP(UpdaterIndexDelete) : {
-    auto *updater = frame->LocalAt<sql::Updater *>(READ_LOCAL_ID());
+  OP(StorageInterfaceIndexDelete) : {
+    auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
     auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
-    OpUpdaterIndexDelete(updater, tuple_slot);
+    OpStorageInterfaceIndexDelete(storage_interface, tuple_slot);
     DISPATCH_NEXT();
   }
 
-  OP(UpdaterFree) : {
-    auto *updater = frame->LocalAt<sql::Updater *>(READ_LOCAL_ID());
-    OpUpdaterFree(updater);
+  OP(StorageInterfaceFree) : {
+    auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
+    OpStorageInterfaceFree(storage_interface);
     DISPATCH_NEXT();
   }
 

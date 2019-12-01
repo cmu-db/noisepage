@@ -1490,66 +1490,35 @@ VM_OP_HOT void OpPRGetVarlenNull(terrier::execution::sql::StringVal *out,
   }
 }
 
-// Inserter Calls
+// StorageInterface Calls
 // ---------------------------------------------------------------
 
-VM_OP void OpInserterInit(terrier::execution::sql::Inserter *inserter,
-                          terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid);
+VM_OP void OpStorageInterfaceInit(terrier::execution::sql::StorageInterface *storage_interface,
+                                  terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
+                                  uint32_t *col_oids, uint32_t num_oids, bool need_indexes);
 
-VM_OP void OpInserterGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
-                                terrier::execution::sql::Inserter *inserter);
+VM_OP void OpStorageInterfaceGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
+                                        terrier::execution::sql::StorageInterface *storage_interface);
 
-VM_OP void OpInserterTableInsert(terrier::storage::TupleSlot *tuple_slot, terrier::execution::sql::Inserter *inserter);
+VM_OP void OpStorageInterfaceTableUpdate(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
+                                         terrier::storage::TupleSlot *tuple_slot);
 
-VM_OP void OpInserterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
-                                terrier::execution::sql::Inserter *inserter, uint32_t index_oid);
+VM_OP void OpStorageInterfaceTableDelete(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
+                                         terrier::storage::TupleSlot *tuple_slot);
 
-VM_OP void OpInserterIndexInsert(bool *result, terrier::execution::sql::Inserter *inserter);
+VM_OP void OpStorageInterfaceTableInsert(terrier::storage::TupleSlot *tuple_slot,
+                                         terrier::execution::sql::StorageInterface *storage_interface);
 
-VM_OP void OpInserterFree(terrier::execution::sql::Inserter *inserter);
+VM_OP void OpStorageInterfaceGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
+                                        terrier::execution::sql::StorageInterface *storage_interface,
+                                        uint32_t index_oid);
 
-// Deleter Calls
-// ---------------------------------------------------------------
+VM_OP void OpStorageInterfaceIndexInsert(bool *result, terrier::execution::sql::StorageInterface *storage_interface);
 
-VM_OP void OpDeleterInit(terrier::execution::sql::Deleter *deleter,
-                         terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid);
+VM_OP void OpStorageInterfaceIndexDelete(terrier::execution::sql::StorageInterface *storage_interface,
+                                         terrier::storage::TupleSlot *tuple_slot);
 
-VM_OP void OpDeleterTableDelete(bool *result, terrier::execution::sql::Deleter *deleter,
-                                terrier::storage::TupleSlot *tuple_slot);
-
-VM_OP void OpDeleterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
-                               terrier::execution::sql::Deleter *deleter, uint32_t index_oid);
-
-VM_OP void OpDeleterIndexDelete(terrier::execution::sql::Deleter *deleter, terrier::storage::TupleSlot *tuple_slot);
-
-VM_OP void OpDeleterFree(terrier::execution::sql::Deleter *deleter);
-
-// Updater Calls
-// ---------------------------------------------------------------
-
-VM_OP void OpUpdaterInit(terrier::execution::sql::Updater *updater,
-                         terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *col_oids,
-                         uint32_t num_oids, bool is_index_key_update);
-
-VM_OP void OpUpdaterGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
-                               terrier::execution::sql::Updater *updater);
-
-VM_OP void OpUpdaterTableUpdate(bool *result, terrier::execution::sql::Updater *updater,
-                                terrier::storage::TupleSlot *tuple_slot);
-
-VM_OP void OpUpdaterTableDelete(bool *result, terrier::execution::sql::Updater *updater,
-                                terrier::storage::TupleSlot *tuple_slot);
-
-VM_OP void OpUpdaterTableInsert(terrier::storage::TupleSlot *tuple_slot, terrier::execution::sql::Updater *updater);
-
-VM_OP void OpUpdaterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
-                               terrier::execution::sql::Updater *updater, uint32_t index_oid);
-
-VM_OP void OpUpdaterIndexInsert(bool *result, terrier::execution::sql::Updater *updater);
-
-VM_OP void OpUpdaterIndexDelete(terrier::execution::sql::Updater *updater, terrier::storage::TupleSlot *tuple_slot);
-
-VM_OP void OpUpdaterFree(terrier::execution::sql::Updater *updater);
+VM_OP void OpStorageInterfaceFree(terrier::execution::sql::StorageInterface *storage_interface);
 
 // Output Calls
 // ---------------------------------------------------------------

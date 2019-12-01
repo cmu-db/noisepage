@@ -335,28 +335,14 @@ void BytecodeEmitter::EmitPRSet(Bytecode bytecode, LocalVar pr, uint16_t col_idx
   EmitAll(bytecode, pr, col_idx, val);
 }
 
-void BytecodeEmitter::EmitInserterInit(Bytecode bytecode, LocalVar inserter, LocalVar exec_ctx, uint32_t table_oid) {
-  EmitAll(bytecode, inserter, exec_ctx, table_oid);
+void BytecodeEmitter::EmitStorageInterfaceInit(Bytecode bytecode, LocalVar storage_interface, LocalVar exec_ctx,
+                                               uint32_t table_oid, LocalVar col_oids, uint32_t num_oids,
+                                               LocalVar need_indexes) {
+  EmitAll(bytecode, storage_interface, exec_ctx, table_oid, col_oids, num_oids, need_indexes);
 }
 
-void BytecodeEmitter::EmitInserterGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar inserter, uint32_t index_oid) {
-  EmitAll(bytecode, pr, inserter, index_oid);
-}
-
-void BytecodeEmitter::EmitDeleterInit(Bytecode bytecode, LocalVar deleter, LocalVar exec_ctx, uint32_t table_oid) {
-  EmitAll(bytecode, deleter, exec_ctx, table_oid);
-}
-
-void BytecodeEmitter::EmitDeleterGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar deleter, uint32_t index_oid) {
-  EmitAll(bytecode, pr, deleter, index_oid);
-}
-
-void BytecodeEmitter::EmitUpdaterInit(Bytecode bytecode, LocalVar updater, LocalVar exec_ctx, uint32_t table_oid,
-                                      LocalVar col_oids, uint32_t num_oids, LocalVar is_index_key_update) {
-  EmitAll(bytecode, updater, exec_ctx, table_oid, col_oids, num_oids, is_index_key_update);
-}
-
-void BytecodeEmitter::EmitUpdaterGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar updater, uint32_t index_oid) {
-  EmitAll(bytecode, pr, updater, index_oid);
+void BytecodeEmitter::EmitStorageInterfaceGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar storage_interface,
+                                                     uint32_t index_oid) {
+  EmitAll(bytecode, pr, storage_interface, index_oid);
 }
 }  // namespace terrier::execution::vm

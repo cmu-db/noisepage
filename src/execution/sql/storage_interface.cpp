@@ -5,12 +5,15 @@
 #include "execution/util/execution_common.h"
 
 namespace terrier::execution::sql {
-StorageInterface::StorageInterface(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid, bool use_indexes)
+StorageInterface::StorageInterface(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid, uint32_t *col_oids,
+                                   uint32_t num_oids, bool need_indexes)
     : table_oid_{table_oid},
       table_(exec_ctx->GetAccessor()->GetTable(table_oid)),
       exec_ctx_(exec_ctx),
-      use_indexes_(use_indexes) {
-  if (use_indexes_) {
+      col_oids_(col_oids, col_oids + num_oids),
+      need_indexes_(need_indexes) {
+  // Initialize the index projected row if needed.
+  if (need_indexes_) {
     // Get index pr size
     max_pr_size_ = 0;
     auto index_oids = exec_ctx->GetAccessor()->GetIndexOids(table_oid);
@@ -24,7 +27,7 @@ StorageInterface::StorageInterface(exec::ExecutionContext *exec_ctx, catalog::ta
 }
 
 StorageInterface::~StorageInterface() {
-  if (use_indexes_) exec_ctx_->GetMemoryPool()->Deallocate(index_pr_buffer_, max_pr_size_);
+  if (need_indexes_) exec_ctx_->GetMemoryPool()->Deallocate(index_pr_buffer_, max_pr_size_);
 }
 
 storage::ProjectedRow *StorageInterface::GetTablePR() {
@@ -55,28 +58,12 @@ bool StorageInterface::TableUpdate(storage::TupleSlot table_tuple_slot) {
 }
 
 bool StorageInterface::IndexInsert() {
-  TERRIER_ASSERT(use_indexes_, "Index PR not allocated!");
+  TERRIER_ASSERT(need_indexes_, "Index PR not allocated!");
   return curr_index_->Insert(exec_ctx_->GetTxn(), *index_pr_, table_redo_->GetTupleSlot());
 }
 
 void StorageInterface::IndexDelete(storage::TupleSlot table_tuple_slot) {
-  TERRIER_ASSERT(use_indexes_, "Index PR not allocated!");
+  TERRIER_ASSERT(need_indexes_, "Index PR not allocated!");
   curr_index_->Delete(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot);
-}
-
-Updater::Updater(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid, uint32_t *col_oids,
-                 uint32_t num_oids, bool is_index_key_update)
-    : StorageInterface(exec_ctx, table_oid, is_index_key_update) {
-  for (uint32_t i = 0; i < num_oids; i++) {
-    col_oids_.emplace_back(col_oids[i]);
-  }
-}
-
-Inserter::Inserter(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid)
-    : StorageInterface(exec_ctx, table_oid, true) {
-  auto columns = exec_ctx_->GetAccessor()->GetSchema(table_oid_).GetColumns();
-  for (const auto &col : columns) {
-    col_oids_.push_back(col.Oid());
-  }
 }
 }  // namespace terrier::execution::sql

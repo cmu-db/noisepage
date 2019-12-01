@@ -371,32 +371,17 @@ namespace terrier::execution::vm {
   F(PRSetDateNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                        \
   F(PRSetVarlenNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                      \
                                                                                                                       \
-  /* Inserter */                                                                                                      \
-  F(InserterInit, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
-  F(InserterGetTablePR, OperandType::Local, OperandType::Local)                                                       \
-  F(InserterTableInsert, OperandType::Local, OperandType::Local)                                                      \
-  F(InserterGetIndexPR, OperandType::Local, OperandType::Local, OperandType::UImm4)                                   \
-  F(InserterIndexInsert, OperandType::Local, OperandType::Local)                                                      \
-  F(InserterFree, OperandType::Local)                                                                                 \
-                                                                                                                      \
-  /* Deleter */                                                                                                       \
-  F(DeleterInit, OperandType::Local, OperandType::Local, OperandType::UImm4)                                          \
-  F(DeleterTableDelete, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
-  F(DeleterGetIndexPR, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
-  F(DeleterIndexDelete, OperandType::Local, OperandType::Local)                                                       \
-  F(DeleterFree, OperandType::Local)                                                                                  \
-                                                                                                                      \
-  /* Updater */                                                                                                       \
-  F(UpdaterInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local, OperandType::UImm4,  \
-    OperandType::Local)                                                                                               \
-  F(UpdaterGetTablePR, OperandType::Local, OperandType::Local)                                                        \
-  F(UpdaterTableUpdate, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
-  F(UpdaterTableInsert, OperandType::Local, OperandType::Local)                                                       \
-  F(UpdaterTableDelete, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
-  F(UpdaterGetIndexPR, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
-  F(UpdaterIndexInsert, OperandType::Local, OperandType::Local)                                                       \
-  F(UpdaterIndexDelete, OperandType::Local, OperandType::Local)                                                       \
-  F(UpdaterFree, OperandType::Local)                                                                                  \
+  /* StorageInterface */                                                                                              \
+  F(StorageInterfaceInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,             \
+    OperandType::UImm4, OperandType::Local)                                                                           \
+  F(StorageInterfaceGetTablePR, OperandType::Local, OperandType::Local)                                               \
+  F(StorageInterfaceTableUpdate, OperandType::Local, OperandType::Local, OperandType::Local)                          \
+  F(StorageInterfaceTableInsert, OperandType::Local, OperandType::Local)                                              \
+  F(StorageInterfaceTableDelete, OperandType::Local, OperandType::Local, OperandType::Local)                          \
+  F(StorageInterfaceGetIndexPR, OperandType::Local, OperandType::Local, OperandType::UImm4)                           \
+  F(StorageInterfaceIndexInsert, OperandType::Local, OperandType::Local)                                              \
+  F(StorageInterfaceIndexDelete, OperandType::Local, OperandType::Local)                                              \
+  F(StorageInterfaceFree, OperandType::Local)                                                                         \
                                                                                                                       \
   /* Trig functions */                                                                                                \
   F(Pi, OperandType::Local)                                                                                           \

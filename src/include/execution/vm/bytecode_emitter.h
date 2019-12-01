@@ -440,35 +440,15 @@ class BytecodeEmitter {
   void EmitPRGet(Bytecode bytecode, LocalVar out, LocalVar pr, uint16_t col_idx);
 
   /**
-   * Emit bytecode to init an Inserter.
+   * Emit bytecode to init an Storage Interface
    */
-  void EmitInserterInit(Bytecode bytecode, LocalVar inserter, LocalVar exec_ctx, uint32_t table_oid);
+  void EmitStorageInterfaceInit(Bytecode bytecode, LocalVar storage_interface, LocalVar exec_ctx, uint32_t table_oid,
+                                LocalVar col_oids, uint32_t num_oids, LocalVar need_indexes);
 
   /**
-   * Emit bytecode to get an index's PR for the inserter.
+   * Emit bytecode to get an index PR for the storage_interface.
    */
-  void EmitInserterGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar inserter, uint32_t index_oid);
-
-  /**
-   * Emit bytecode to init a Deleter.
-   */
-  void EmitDeleterInit(Bytecode bytecode, LocalVar deleter, LocalVar exec_ctx, uint32_t table_oid);
-
-  /**
-   * Emit bytecode to get an index's PR for the deleter.
-   */
-  void EmitDeleterGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar deleter, uint32_t index_oid);
-
-  /**
-   * Emit bytecode to init an Updater
-   */
-  void EmitUpdaterInit(Bytecode bytecode, LocalVar updater, LocalVar exec_ctx, uint32_t table_oid, LocalVar col_oids,
-                       uint32_t num_oids, LocalVar is_index_key_update);
-
-  /**
-   * Emit bytecode to get an index PR for the updater.
-   */
-  void EmitUpdaterGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar updater, uint32_t index_oid);
+  void EmitStorageInterfaceGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar storage_interface, uint32_t index_oid);
 
   /**
    * Copy a scalar immediate value into the bytecode stream

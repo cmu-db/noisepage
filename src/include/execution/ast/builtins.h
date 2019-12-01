@@ -190,37 +190,18 @@ namespace terrier::execution::ast {
   F(PRGetDateNull, prGetDateNull)                                       \
   F(PRGetVarlenNull, prGetVarlenNull)                                   \
                                                                         \
-  /* Inserter Calls */                                                  \
-  F(InserterInit, inserterInit)                                         \
-  F(InserterInitBind, inserterInitBind)                                 \
-  F(InserterGetTablePR, inserterGetTablePR)                             \
-  F(InserterTableInsert, inserterTableInsert)                           \
-  F(InserterGetIndexPR, inserterGetIndexPR)                             \
-  F(InserterGetIndexPRBind, inserterGetIndexPRBind)                     \
-  F(InserterIndexInsert, inserterIndexInsert)                           \
-  F(InserterFree, inserterFree)                                         \
-                                                                        \
-  /* Deleter Calls */                                                   \
-  F(DeleterInit, deleterInit)                                           \
-  F(DeleterInitBind, deleterInitBind)                                   \
-  F(DeleterTableDelete, deleterTableDelete)                             \
-  F(DeleterGetIndexPR, deleterGetIndexPR)                               \
-  F(DeleterGetIndexPRBind, deleterGetIndexPRBind)                       \
-  F(DeleterIndexDelete, deleterIndexDelete)                             \
-  F(DeleterFree, deleterFree)                                           \
-                                                                        \
-  /* Updater Calls */                                                   \
-  F(UpdaterInit, updaterInit)                                           \
-  F(UpdaterInitBind, updaterInitBind)                                   \
-  F(UpdaterGetTablePR, updaterGetTablePR)                               \
-  F(UpdaterTableInsert, updaterTableInsert)                             \
-  F(UpdaterTableDelete, updaterTableDelete)                             \
-  F(UpdaterTableUpdate, updaterTableUpdate)                             \
-  F(UpdaterGetIndexPR, updaterGetIndexPR)                               \
-  F(UpdaterGetIndexPRBind, updaterGetIndexPRBind)                       \
-  F(UpdaterIndexInsert, updaterIndexInsert)                             \
-  F(UpdaterIndexDelete, updaterIndexDelete)                             \
-  F(UpdaterFree, updaterFree)
+  /* SQL Table Calls */                                                 \
+  F(StorageInterfaceInit, storageInterfaceInit)                         \
+  F(StorageInterfaceInitBind, storageInterfaceInitBind)                 \
+  F(GetTablePR, getTablePR)                                             \
+  F(TableInsert, tableInsert)                                           \
+  F(TableDelete, tableDelete)                                           \
+  F(TableUpdate, tableUpdate)                                           \
+  F(GetIndexPR, getIndexPR)                                             \
+  F(GetIndexPRBind, getIndexPRBind)                                     \
+  F(IndexInsert, indexInsert)                                           \
+  F(IndexDelete, indexDelete)                                           \
+  F(StorageInterfaceFree, storageInterfaceFree)
 
 /**
  * Enum of builtins

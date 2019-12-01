@@ -8,22 +8,24 @@ namespace terrier::execution::sql {
 
 /**
  * Base class to interact with the storage layer (tables and indexes).
- * This class will be override by the inserter, deleter and updater.
  */
 class EXPORT StorageInterface {
  public:
   /**
-   * Construct
-   * @param exec_ctx The current execution context.
-   * @param table_oid The oid of the table to access.
-   * @param use_indexes Whether indexes of the table are accessed.
+   * Constructor
+   * @param exec_ctx The execution context.
+   * @param table_oid Oid of the table
+   * @param col_oids Col oids to updated.
+   * @param num_oids Number of column oids.
+   * @param need_indexes Whether this will use indexes.
    */
-  StorageInterface(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid, bool use_indexes);
+  explicit StorageInterface(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid, uint32_t *col_oids,
+                            uint32_t num_oids, bool need_indexes);
 
   /**
-   * Destructor to be overriden.
+   * Destructor.
    */
-  virtual ~StorageInterface();
+  ~StorageInterface();
 
   /**
    * @return The table's projected row.
@@ -96,7 +98,7 @@ class EXPORT StorageInterface {
   /**
    * Whether indexes will be accessed (used to avoid unnecessary allocation).
    */
-  bool use_indexes_;
+  bool need_indexes_;
   /**
    * Maximum size of index projected rows.
    */
@@ -113,49 +115,5 @@ class EXPORT StorageInterface {
    * Current index being accessed.
    */
   common::ManagedPointer<storage::index::Index> curr_index_{nullptr};
-};
-
-/**
- * Helper class to perform updates in SQL Tables.
- */
-class EXPORT Updater : public StorageInterface {
- public:
-  /**
-   * Constructor
-   * @param exec_ctx The execution context.
-   * @param table_oid Oid of the table
-   * @param col_oids Col oids to updated.
-   * @param num_oids Number of column oids.
-   * @param is_index_key_update Whether this will update indexed keys.
-   */
-  explicit Updater(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid, uint32_t *col_oids,
-                   uint32_t num_oids, bool is_index_key_update);
-};
-
-/**
- * Helper class to perform deletes in SQL Tables.
- */
-class EXPORT Deleter : public StorageInterface {
- public:
-  /**
-   * Constructor
-   * @param exec_ctx The execution context.
-   * @param table_oid Oid of the table
-   */
-  Deleter(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid)
-      : StorageInterface(exec_ctx, table_oid, true) {}
-};
-
-/**
- * Allows insertion from TPL.
- */
-class EXPORT Inserter : public StorageInterface {
- public:
-  /**
-   * Constructor
-   * @param exec_ctx The execution context
-   * @param table_oid The oid of the table to insert into
-   */
-  explicit Inserter(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid);
 };
 }  // namespace terrier::execution::sql
