@@ -1166,4 +1166,94 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
   for (auto entry : raw_values_2) delete entry.Get();
 }
 
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalCreateTableTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalCreateTable
+  //===--------------------------------------------------------------------===//
+  auto col_def =
+      new parser::ColumnDefinition("col_1", parser::ColumnDefinition::DataType::INTEGER, true, true, true,
+                                   common::ManagedPointer<parser::AbstractExpression>(
+                                       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9))),
+                                   nullptr, 4);
+  Operator op1 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_1",
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
+                                              common::ManagedPointer<parser::ColumnDefinition>(col_def)},
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALCREATETABLE);
+  EXPECT_EQ(op1.GetName(), "LogicalCreateTable");
+  EXPECT_EQ(op1.As<LogicalCreateTable>()->GetTableName(), "Table_1");
+  EXPECT_EQ(op1.As<LogicalCreateTable>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.As<LogicalCreateTable>()->GetForeignKeys(),
+            std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+  EXPECT_EQ(op1.As<LogicalCreateTable>()->GetColumns().size(), 1);
+  EXPECT_EQ(*op1.As<LogicalCreateTable>()->GetColumns().at(0), *col_def);
+
+  Operator op2 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_1",
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
+                                              common::ManagedPointer<parser::ColumnDefinition>(col_def)},
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 = LogicalCreateTable::Make(catalog::namespace_oid_t(2), "Table_1",
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
+                                              common::ManagedPointer<parser::ColumnDefinition>(col_def)},
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_2",
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
+                                              common::ManagedPointer<parser::ColumnDefinition>(col_def)},
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op1.Hash(), op4.Hash());
+
+  Operator op5 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_1",
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
+                                              common::ManagedPointer<parser::ColumnDefinition>(col_def),
+                                              common::ManagedPointer<parser::ColumnDefinition>(col_def)},
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  Operator op6 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_1",
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{},
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+
+  auto col_def_2 = new parser::ColumnDefinition(
+      "col_1", parser::ColumnDefinition::DataType::VARCHAR, true, true, true,
+      common::ManagedPointer<parser::AbstractExpression>(
+          new parser::ConstantValueExpression(type::TransientValueFactory::GetVarChar("col"))),
+      nullptr, 20);
+  Operator op7 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_2",
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
+                                              common::ManagedPointer<parser::ColumnDefinition>(col_def_2)},
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+  EXPECT_FALSE(op1 == op7);
+  EXPECT_NE(op1.Hash(), op7.Hash());
+
+  auto foreign_def =
+      new parser::ColumnDefinition({"foreign_col_1"}, {"col_1"}, "foreign", parser::FKConstrActionType::SETNULL,
+                                   parser::FKConstrActionType::CASCADE, parser::FKConstrMatchType::FULL);
+  Operator op8 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_1",
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
+                                              common::ManagedPointer<parser::ColumnDefinition>(col_def)},
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
+                                              common::ManagedPointer<parser::ColumnDefinition>(foreign_def)});
+  EXPECT_FALSE(op1 == op8);
+  EXPECT_NE(op1.Hash(), op8.Hash());
+  EXPECT_EQ(op8.As<LogicalCreateTable>()->GetForeignKeys().size(), 1);
+  EXPECT_EQ(*op8.As<LogicalCreateTable>()->GetForeignKeys().at(0), *foreign_def);
+
+  delete col_def->GetDefaultExpression().Get();
+  delete col_def;
+  delete col_def_2->GetDefaultExpression().Get();
+  delete col_def_2;
+  delete foreign_def;
+}
+
 }  // namespace terrier::optimizer

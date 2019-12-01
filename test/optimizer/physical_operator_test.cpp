@@ -11,6 +11,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/update_statement.h"
+#include "test_util/storage_test_util.h"
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
 
@@ -1302,6 +1303,176 @@ TEST(OperatorTests, CreateIndexTest) {
       CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_5));
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
+
+  auto idx_schema_6 = std::make_unique<catalog::IndexSchema>(
+      std::vector<catalog::IndexSchema::Column>{
+          catalog::IndexSchema::Column("col_1", type::TypeId::INTEGER, true,
+                                       parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(1))),
+          catalog::IndexSchema::Column("col_2", type::TypeId::TINYINT, true,
+                                       parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(1)))},
+      storage::index::IndexType::BWTREE, true, true, true, true);
+  Operator op6 =
+      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_6));
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, CreateTableTest) {
+  //===--------------------------------------------------------------------===//
+  // CreateTable
+  //===--------------------------------------------------------------------===//
+  // PRIMARY KEY
+  auto get_pk_info = []() {
+    planner::PrimaryKeyInfo pk = {.primary_key_cols_ = {"a"}, .constraint_name_ = "pk_a"};
+    return pk;
+  };
+  auto get_pk_info_2 = []() {
+    planner::PrimaryKeyInfo pk = {.primary_key_cols_ = {}, .constraint_name_ = ""};
+    return pk;
+  };
+  auto get_pk_info_3 = []() {
+    planner::PrimaryKeyInfo pk = {.primary_key_cols_ = {"b"}, .constraint_name_ = "pk_b"};
+    return pk;
+  };
+
+  // FOREIGN KEY
+  auto get_fk_info = []() {
+    std::vector<planner::ForeignKeyInfo> checks;
+    planner::ForeignKeyInfo fk = {.foreign_key_sources_ = {"b"},
+                                  .foreign_key_sinks_ = {"b"},
+                                  .sink_table_name_ = {"tbl2"},
+                                  .constraint_name_ = "fk_b",
+                                  .upd_action_ = parser::FKConstrActionType::CASCADE,
+                                  .del_action_ = parser::FKConstrActionType::CASCADE};
+    checks.emplace_back(fk);
+    return checks;
+  };
+  auto get_fk_info_2 = []() {
+    std::vector<planner::ForeignKeyInfo> checks;
+    planner::ForeignKeyInfo fk = {.foreign_key_sources_ = {"b"},
+                                  .foreign_key_sinks_ = {"b"},
+                                  .sink_table_name_ = {"tbl2"},
+                                  .constraint_name_ = "fk_b",
+                                  .upd_action_ = parser::FKConstrActionType::CASCADE,
+                                  .del_action_ = parser::FKConstrActionType::SETNULL};
+    checks.emplace_back(fk);
+    return checks;
+  };
+
+  // UNIQUE CONSTRAINT
+  auto get_unique_info = []() {
+    std::vector<planner::UniqueInfo> checks;
+    planner::UniqueInfo uk = {.unique_cols_ = {"u_a", "u_b"}, .constraint_name_ = "uk_a_b"};
+    checks.emplace_back(uk);
+    return checks;
+  };
+  auto get_unique_info_2 = []() {
+    std::vector<planner::UniqueInfo> checks;
+    planner::UniqueInfo uk = {.unique_cols_ = {"u_a"}, .constraint_name_ = "uk_a"};
+    checks.emplace_back(uk);
+    return checks;
+  };
+
+  // CHECK CONSTRAINT
+  auto get_check_info = []() {
+    type::TransientValue val = type::TransientValueFactory::GetInteger(1);
+    std::vector<planner::CheckInfo> checks;
+    std::vector<std::string> cks = {"ck_a"};
+    checks.emplace_back(cks, "ck_a", parser::ExpressionType::COMPARE_GREATER_THAN, std::move(val));
+    return checks;
+  };
+  auto get_check_info_2 = []() {
+    type::TransientValue val = type::TransientValueFactory::GetBigInt(1);
+    std::vector<planner::CheckInfo> checks;
+    std::vector<std::string> cks = {};
+    checks.emplace_back(cks, "ck_a", parser::ExpressionType::COMPARE_GREATER_THAN, std::move(val));
+    return checks;
+  };
+
+  // Columns
+  auto get_schema = []() {
+    std::vector<catalog::Schema::Column> columns = {
+        catalog::Schema::Column(
+            "a", type::TypeId::INTEGER, false,
+            parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER))),
+        catalog::Schema::Column(
+            "u_a", type::TypeId::DECIMAL, false,
+            parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL))),
+        catalog::Schema::Column(
+            "u_b", type::TypeId::DATE, true,
+            parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DATE)))};
+    StorageTestUtil::ForceOid(&(columns[0]), catalog::col_oid_t(1));
+    StorageTestUtil::ForceOid(&(columns[1]), catalog::col_oid_t(2));
+    StorageTestUtil::ForceOid(&(columns[2]), catalog::col_oid_t(3));
+    return std::make_unique<catalog::Schema>(columns);
+  };
+  auto get_schema_2 = []() {
+    std::vector<catalog::Schema::Column> columns = {catalog::Schema::Column(
+        "u_a", type::TypeId::DECIMAL, false,
+        parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)))};
+    StorageTestUtil::ForceOid(&(columns[0]), catalog::col_oid_t(1));
+    return std::make_unique<catalog::Schema>(columns);
+  };
+
+  Operator op1 = CreateTable::Make(catalog::namespace_oid_t(2), "test_tbl", get_schema(), nullptr, true, get_pk_info(),
+                                   get_fk_info(), get_unique_info(), get_check_info());
+  EXPECT_EQ(op1.GetType(), OpType::CREATETABLE);
+  EXPECT_EQ(op1.GetName(), "CreateTable");
+  EXPECT_EQ(op1.As<CreateTable>()->GetTableName(), "test_tbl");
+  EXPECT_EQ(op1.As<CreateTable>()->GetNamespaceOid(), catalog::namespace_oid_t(2));
+  EXPECT_EQ(op1.As<CreateTable>()->GetForeignKeys(), get_fk_info());
+  EXPECT_EQ(op1.As<CreateTable>()->GetBlockStore(), nullptr);
+  EXPECT_EQ(*op1.As<CreateTable>()->GetSchema(), *get_schema());
+  EXPECT_EQ(op1.As<CreateTable>()->HasPrimaryKey(), true);
+  EXPECT_EQ(op1.As<CreateTable>()->GetPrimaryKey(), get_pk_info());
+  EXPECT_EQ(op1.As<CreateTable>()->GetUniqueConstraints(), get_unique_info());
+  EXPECT_EQ(op1.As<CreateTable>()->GetCheckConstraints(), get_check_info());
+
+  Operator op2 = CreateTable::Make(catalog::namespace_oid_t(2), "test_tbl", get_schema(), nullptr, true, get_pk_info(),
+                                   get_fk_info(), get_unique_info(), get_check_info());
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 = CreateTable::Make(catalog::namespace_oid_t(1), "test_tbl", get_schema(), nullptr, true, get_pk_info(),
+                                   get_fk_info(), get_unique_info(), get_check_info());
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 = CreateTable::Make(catalog::namespace_oid_t(2), "test_tbl_2", get_schema(), nullptr, true,
+                                   get_pk_info(), get_fk_info(), get_unique_info(), get_check_info());
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op1.Hash(), op4.Hash());
+
+  Operator op5 = CreateTable::Make(catalog::namespace_oid_t(2), "test_tbl", get_schema(), nullptr, false,
+                                   get_pk_info_2(), get_fk_info(), get_unique_info(), get_check_info());
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  Operator op6 = CreateTable::Make(catalog::namespace_oid_t(2), "test_tbl", get_schema(), nullptr, true, get_pk_info(),
+                                   get_fk_info(), get_unique_info(), get_check_info_2());
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+
+  Operator op7 = CreateTable::Make(catalog::namespace_oid_t(2), "test_tbl", get_schema_2(), nullptr, true,
+                                   get_pk_info(), get_fk_info(), get_unique_info(), get_check_info());
+  EXPECT_FALSE(op1 == op7);
+  EXPECT_NE(op1.Hash(), op7.Hash());
+
+  Operator op8 = CreateTable::Make(catalog::namespace_oid_t(2), "test_tbl", get_schema(), nullptr, true,
+                                   get_pk_info_3(), get_fk_info(), get_unique_info(), get_check_info());
+  EXPECT_FALSE(op1 == op8);
+  EXPECT_NE(op1.Hash(), op8.Hash());
+
+  Operator op9 = CreateTable::Make(catalog::namespace_oid_t(2), "test_tbl", get_schema(), nullptr, true, get_pk_info(),
+                                   get_fk_info(), get_unique_info_2(), get_check_info());
+  EXPECT_FALSE(op1 == op9);
+  EXPECT_NE(op1.Hash(), op9.Hash());
+
+  Operator op10 = CreateTable::Make(catalog::namespace_oid_t(2), "test_tbl", get_schema(), nullptr, true, get_pk_info(),
+                                    get_fk_info_2(), get_unique_info(), get_check_info());
+  EXPECT_FALSE(op1 == op10);
+  EXPECT_NE(op1.Hash(), op10.Hash());
 }
 
 }  // namespace terrier::optimizer

@@ -271,7 +271,7 @@ struct ColumnDefinition {
   void SetPrimary(bool b) { is_primary_ = b; }
 
   /**
-   * Hashes the current column Defination
+   * Hashes the current column Definition
    */
   common::hash_t Hash() const {
     common::hash_t hash = common::HashUtil::Hash(name_);
@@ -280,10 +280,10 @@ struct ColumnDefinition {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(static_cast<char>(is_primary_)));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(static_cast<char>(is_not_null_)));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(static_cast<char>(is_unique_)));
-    if (default_expr_) hash = common::HashUtil::CombineHashes(hash, default_expr_->Hash());
-    if (check_expr_) hash = common::HashUtil::CombineHashes(hash, check_expr_->Hash());
+    if (default_expr_ != nullptr) hash = common::HashUtil::CombineHashes(hash, default_expr_->Hash());
+    if (check_expr_ != nullptr) hash = common::HashUtil::CombineHashes(hash, check_expr_->Hash());
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(varlen_));
-    hash = common::HashUtil::CombineHashInRange(hash, fk_sources_.begin(), fk_sinks_.end());
+    hash = common::HashUtil::CombineHashInRange(hash, fk_sources_.begin(), fk_sources_.end());
     hash = common::HashUtil::CombineHashInRange(hash, fk_sinks_.begin(), fk_sinks_.end());
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(fk_sink_table_name_));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(fk_delete_action_));
@@ -333,8 +333,8 @@ struct ColumnDefinition {
   bool is_primary_ = false;  // not const because of how the parser returns us columns and primary key info separately
   const bool is_not_null_ = false;
   const bool is_unique_ = false;
-  common::ManagedPointer<AbstractExpression> default_expr_;
-  common::ManagedPointer<AbstractExpression> check_expr_;
+  common::ManagedPointer<AbstractExpression> default_expr_ = nullptr;
+  common::ManagedPointer<AbstractExpression> check_expr_ = nullptr;
   const size_t varlen_ = 0;
 
   const std::vector<std::string> fk_sources_;

@@ -161,7 +161,10 @@ class Schema {
       common::hash_t hash = common::HashUtil::Hash(name_);
       hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(type_));
       hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(attr_size_));
-      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(max_varlen_size_));
+      if (attr_size_ == VARLEN_COLUMN)
+        hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(max_varlen_size_));
+      else
+        hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(0));
       hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(nullable_));
       hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(oid_));
       if (default_value_ != nullptr) hash = common::HashUtil::CombineHashes(hash, default_value_->Hash());
@@ -177,7 +180,7 @@ class Schema {
       if (name_ != rhs.name_) return false;
       if (type_ != rhs.type_) return false;
       if (attr_size_ != rhs.attr_size_) return false;
-      if (max_varlen_size_ != rhs.max_varlen_size_) return false;
+      if (attr_size_ == VARLEN_COLUMN && max_varlen_size_ != rhs.max_varlen_size_) return false;
       if (nullable_ != rhs.nullable_) return false;
       if (oid_ != rhs.oid_) return false;
       if (default_value_ == nullptr) return rhs.default_value_ == nullptr;
@@ -347,7 +350,7 @@ class Schema {
    */
   bool operator==(const Schema &rhs) const {
     // TODO(Ling): Does column order matter for compare equal?
-    return columns_ != rhs.columns_;
+    return columns_ == rhs.columns_;
   }
 
   /**
