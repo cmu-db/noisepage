@@ -312,26 +312,71 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentScan)(benchmark::State &state) 
   state.SetItemsProcessed(state.iterations() * num_reads_ * num_threads_);
 }
 
-BENCHMARK_REGISTER_F(DataTableBenchmark, SimpleInsert)->Unit(benchmark::kMillisecond)->UseManualTime();
+// Iterate the num_reads_ of tuples in the sequential  order from a DataTable concurrently
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentIterators)(benchmark::State &state) {
+  storage::DataTable read_table(&block_store_, layout_, storage::layout_version_t(0));
 
-BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentInsert)
+  // populate read_table_ by inserting tuples
+  // We can use dummy timestamps here since we're not invoking concurrency control
+  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
+                                      DISABLED);
+  std::vector<storage::TupleSlot> read_order;
+  for (uint32_t i = 0; i < num_reads_; ++i) {
+    read_table.Insert(&txn, *redo_);
+  }
+
+  auto workload = [&]() {
+    auto it = read_table.begin();
+    uint32_t num_reads = 0;
+    while (it != read_table.end()) {
+      num_reads++;
+      it++;
+    }
+    EXPECT_EQ(num_reads, num_reads_);
+  };
+
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    common::WorkerPool thread_pool(num_threads_, {});
+    uint64_t elapsed_ms;
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      for (uint32_t j = 0; j < num_threads_; j++) {
+        thread_pool.SubmitTask([&workload] { workload(); });
+      }
+      thread_pool.WaitUntilAllFinished();
+    }
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+  }
+  state.SetItemsProcessed(state.iterations() * num_reads_ * num_threads_);
+}
+
+// BENCHMARK_REGISTER_F(DataTableBenchmark, SimpleInsert)->Unit(benchmark::kMillisecond)->UseManualTime();
+//
+// BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentInsert)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseRealTime()
+//    ->UseManualTime();
+//
+// BENCHMARK_REGISTER_F(DataTableBenchmark, SelectSequential)->Unit(benchmark::kMillisecond);
+//
+// BENCHMARK_REGISTER_F(DataTableBenchmark, SelectRandom)->Unit(benchmark::kMillisecond);
+//
+// BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentSelectRandom)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseRealTime()
+//    ->UseManualTime();
+//
+// BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentSelectSequential)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseRealTime()
+//    ->UseManualTime();
+
+//BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentScan)->Unit(benchmark::kMillisecond)->UseRealTime()->UseManualTime();
+
+BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentIterators)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime()
     ->UseManualTime();
-
-BENCHMARK_REGISTER_F(DataTableBenchmark, SelectSequential)->Unit(benchmark::kMillisecond);
-
-BENCHMARK_REGISTER_F(DataTableBenchmark, SelectRandom)->Unit(benchmark::kMillisecond);
-
-BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentSelectRandom)
-    ->Unit(benchmark::kMillisecond)
-    ->UseRealTime()
-    ->UseManualTime();
-
-BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentSelectSequential)
-    ->Unit(benchmark::kMillisecond)
-    ->UseRealTime()
-    ->UseManualTime();
-
-BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentScan)->Unit(benchmark::kMillisecond)->UseRealTime()->UseManualTime();
 }  // namespace terrier
