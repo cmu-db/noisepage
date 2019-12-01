@@ -1276,4 +1276,100 @@ TEST(OperatorTests, LogicalCreateSchemaTest) {
   EXPECT_NE(op1.Hash(), op3.Hash());
 }
 
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalCreateTriggerTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalCreateTrigger
+  //===--------------------------------------------------------------------===//
+  auto when = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
+  Operator op1 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                            "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALCREATETRIGGER);
+  EXPECT_EQ(op1.GetName(), "LogicalCreateTrigger");
+  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetTriggerName(), "Trigger_1");
+  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetTableOid(), catalog::table_oid_t(1));
+  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetDatabaseOid(), catalog::db_oid_t(1));
+  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetTriggerType(), 0);
+  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetTriggerFuncName(), std::vector<std::string>{});
+  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetTriggerArgs(), std::vector<std::string>{});
+  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetTriggerColumns(),
+            std::vector<catalog::col_oid_t>{catalog::col_oid_t(1)});
+
+  Operator op2 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                            "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 = LogicalCreateTrigger::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                            "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_FALSE(op3 == op1);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(1),
+                                            "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op4.Hash(), op3.Hash());
+
+  Operator op5 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(2),
+                                            "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  Operator op6 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                            "Trigger_2", {}, {}, {catalog::col_oid_t(1)},
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+
+  Operator op7 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                            "Trigger_1", {"func_name"}, {"func_arg"}, {catalog::col_oid_t(1)},
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_FALSE(op1 == op7);
+  EXPECT_NE(op1.Hash(), op7.Hash());
+
+  Operator op8 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                            "Trigger_1", {"func_name"}, {"func_arg"}, {catalog::col_oid_t(1)},
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_TRUE(op7 == op8);
+  EXPECT_EQ(op7.Hash(), op8.Hash());
+
+  Operator op9 =
+      LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                 "Trigger_1", {"func_name", "func_name"}, {"func_arg", "func_arg"},
+                                 {catalog::col_oid_t(1)}, common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_FALSE(op1 == op9);
+  EXPECT_FALSE(op7 == op9);
+  EXPECT_NE(op1.Hash(), op9.Hash());
+  EXPECT_NE(op7.Hash(), op9.Hash());
+
+  Operator op10 =
+      LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                 "Trigger_1", {}, {}, {}, common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_FALSE(op10 == op1);
+  EXPECT_NE(op1.Hash(), op10.Hash());
+
+  auto when_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(2));
+  Operator op11 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                             "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
+                                             common::ManagedPointer<parser::AbstractExpression>(when_2), 0);
+  EXPECT_FALSE(op11 == op1);
+  EXPECT_NE(op1.Hash(), op11.Hash());
+
+  Operator op12 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                             "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
+                                             common::ManagedPointer<parser::AbstractExpression>(when), 9);
+  EXPECT_FALSE(op12 == op1);
+  EXPECT_NE(op1.Hash(), op12.Hash());
+
+  delete when;
+  delete when_2;
+}
+
 }  // namespace terrier::optimizer
