@@ -16,7 +16,7 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
   storage::BlockStore block_store_{5000, 5000};
   std::default_random_engine generator_;
   storage::RecordBufferSegmentPool buffer_pool_{100000, 100000};
-  storage::BlockLayout layout_{{8, 8, VARLEN_COLUMN}};
+  storage::BlockLayout layout_{{8, 8, storage::VARLEN_COLUMN}};
   storage::TupleAccessStrategy accessor_{layout_};
 
   storage::DataTable table_{&block_store_, layout_, storage::layout_version_t(0)};

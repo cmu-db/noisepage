@@ -14,7 +14,7 @@ class LoggingBenchmark : public benchmark::Fixture {
  public:
   void TearDown(const benchmark::State &state) final { unlink(LOG_FILE_NAME); }
 
-  const std::vector<uint8_t> attr_sizes_ = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
+  const std::vector<uint16_t> attr_sizes_ = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
   const uint32_t initial_table_size_ = 1000000;
   const uint32_t num_txns_ = 100000;
   storage::BlockStore block_store_{1000, 1000};

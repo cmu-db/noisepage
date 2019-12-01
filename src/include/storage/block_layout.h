@@ -3,13 +3,19 @@
 #include <functional>
 #include <utility>
 #include <vector>
+
 #include "storage/storage_defs.h"
 
 namespace terrier::storage {
 // Internally we use the sign bit to represent if a column is varlen or not. Down to the implementation detail though,
 // we always allocate 16 bytes for a varlen entry, with the first 8 bytes being the pointer to the value and following
 // 4 bytes be the size of the varlen. There are 4 bytes of padding for alignment purposes.
-#define VARLEN_COLUMN static_cast<uint8_t>(0x90)  // 16 with the first (most significant) bit set to 1
+constexpr uint16_t VARLEN_COLUMN = static_cast<uint16_t>(0x8010);  // 16 with the first (most significant) bit set to 1
+// Used to retrieve the number of bytes an attribute actually occupies in memory. The size value stored in
+// BlockLayout also has a bit denoting whether the attribute is variable-length and thus should be treated
+// differently by the rest of the system.
+constexpr uint16_t AttrSizeBytes(const uint16_t size) { return static_cast<uint16_t>((size)&INT16_MAX); }
+
 /**
  * Stores metadata about the layout of a block.
  */
@@ -25,7 +31,7 @@ class BlockLayout {
    *
    * @param attr_sizes vector of attribute sizes.
    */
-  explicit BlockLayout(std::vector<uint8_t> attr_sizes);
+  explicit BlockLayout(std::vector<uint16_t> attr_sizes);
 
   /**
    * @return number of columns.
@@ -37,16 +43,16 @@ class BlockLayout {
    * @param col_id the column id to check for
    * @return attribute size at given col_id.
    */
-  uint8_t AttrSize(col_id_t col_id) const {
+  uint16_t AttrSize(col_id_t col_id) const {
     // mask off the first bit as we use that to check for varlen
-    return static_cast<uint8_t>(INT8_MAX & attr_sizes_.at(!col_id));
+    return AttrSizeBytes(attr_sizes_.at(!col_id));
   }
 
   /**
    * @param col_id the column id to check for
    * @return if the given column id is varlen or not
    */
-  bool IsVarlen(col_id_t col_id) const { return static_cast<int8_t>(attr_sizes_.at(!col_id)) < 0; }
+  bool IsVarlen(col_id_t col_id) const { return static_cast<int16_t>(attr_sizes_.at(!col_id)) < 0; }
 
   /**
    * @return all the varlen columns in the layout
@@ -81,7 +87,7 @@ class BlockLayout {
   uint32_t NumSlots() const { return num_slots_; }
 
  private:
-  std::vector<uint8_t> attr_sizes_;
+  std::vector<uint16_t> attr_sizes_;
   // keeps track of all the varlens to make iteration through all varlen columns faster
   std::vector<col_id_t> varlens_;
   // These fields below should be declared const but then that deletes the assignment operator for BlockLayout. With
