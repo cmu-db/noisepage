@@ -1590,4 +1590,42 @@ TEST(OperatorTests, CreateTriggerTest) {
   delete when_2;
 }
 
+// NOLINTNEXTLINE
+TEST(OperatorTests, CreateViewTest) {
+  //===--------------------------------------------------------------------===//
+  // CreateView
+  //===--------------------------------------------------------------------===//
+  Operator op1 = CreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view", nullptr);
+
+  EXPECT_EQ(op1.GetType(), OpType::CREATEVIEW);
+  EXPECT_EQ(op1.GetName(), "CreateView");
+  EXPECT_EQ(op1.As<CreateView>()->GetViewName(), "test_view");
+  EXPECT_EQ(op1.As<CreateView>()->GetViewQuery(), nullptr);
+
+  Operator op2 = CreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view", nullptr);
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 = CreateView::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), "test_view", nullptr);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 = CreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), "test_view", nullptr);
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op1.Hash(), op4.Hash());
+
+  Operator op5 = CreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view_2", nullptr);
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  auto stmt = new parser::SelectStatement(std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, true,
+                                          nullptr, nullptr, nullptr, nullptr, nullptr);
+  Operator op6 = CreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view",
+                                         common::ManagedPointer<parser::SelectStatement>(stmt));
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+  delete stmt;
+}
+
+
 }  // namespace terrier::optimizer

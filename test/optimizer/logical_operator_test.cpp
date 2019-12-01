@@ -967,19 +967,19 @@ TEST(OperatorTests, LogicalCreateDatabaseTest) {
   //===--------------------------------------------------------------------===//
   // LogicalCreateDatabase
   //===--------------------------------------------------------------------===//
-  Operator logical_create_db_1 = LogicalCreateDatabase::Make("testdb");
-  Operator logical_create_db_2 = LogicalCreateDatabase::Make("testdb");
-  Operator logical_create_db_3 = LogicalCreateDatabase::Make("another_testdb");
+  Operator op1 = LogicalCreateDatabase::Make("testdb");
+  Operator op2 = LogicalCreateDatabase::Make("testdb");
+  Operator op3 = LogicalCreateDatabase::Make("another_testdb");
 
-  EXPECT_EQ(logical_create_db_1.GetType(), OpType::LOGICALCREATEDATABASE);
-  EXPECT_EQ(logical_create_db_3.GetType(), OpType::LOGICALCREATEDATABASE);
-  EXPECT_EQ(logical_create_db_1.GetName(), "LogicalCreateDatabase");
-  EXPECT_EQ(logical_create_db_1.As<LogicalCreateDatabase>()->GetDatabaseName(), "testdb");
-  EXPECT_EQ(logical_create_db_3.As<LogicalCreateDatabase>()->GetDatabaseName(), "another_testdb");
-  EXPECT_TRUE(logical_create_db_1 == logical_create_db_2);
-  EXPECT_FALSE(logical_create_db_1 == logical_create_db_3);
-  EXPECT_EQ(logical_create_db_1.Hash(), logical_create_db_2.Hash());
-  EXPECT_NE(logical_create_db_1.Hash(), logical_create_db_3.Hash());
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALCREATEDATABASE);
+  EXPECT_EQ(op3.GetType(), OpType::LOGICALCREATEDATABASE);
+  EXPECT_EQ(op1.GetName(), "LogicalCreateDatabase");
+  EXPECT_EQ(op1.As<LogicalCreateDatabase>()->GetDatabaseName(), "testdb");
+  EXPECT_EQ(op3.As<LogicalCreateDatabase>()->GetDatabaseName(), "another_testdb");
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+  EXPECT_NE(op1.Hash(), op3.Hash());
 }
 
 // NOLINTNEXTLINE
@@ -1331,6 +1331,8 @@ TEST(OperatorTests, LogicalCreateTriggerTest) {
   Operator op7 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                             "Trigger_1", {"func_name"}, {"func_arg"}, {catalog::col_oid_t(1)},
                                             common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_EQ(op7.As<LogicalCreateTrigger>()->GetTriggerFuncName(), std::vector<std::string>{"func_name"});
+  EXPECT_EQ(op7.As<LogicalCreateTrigger>()->GetTriggerArgs(), std::vector<std::string>{"func_arg"});
   EXPECT_FALSE(op1 == op7);
   EXPECT_NE(op1.Hash(), op7.Hash());
 
@@ -1344,6 +1346,8 @@ TEST(OperatorTests, LogicalCreateTriggerTest) {
       LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                  "Trigger_1", {"func_name", "func_name"}, {"func_arg", "func_arg"},
                                  {catalog::col_oid_t(1)}, common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_EQ(op9.As<LogicalCreateTrigger>()->GetTriggerFuncName(), std::vector<std::string>({"func_name", "func_name"}));
+  EXPECT_EQ(op9.As<LogicalCreateTrigger>()->GetTriggerArgs(), std::vector<std::string>({"func_arg", "func_arg"}));
   EXPECT_FALSE(op1 == op9);
   EXPECT_FALSE(op7 == op9);
   EXPECT_NE(op1.Hash(), op9.Hash());
@@ -1370,6 +1374,43 @@ TEST(OperatorTests, LogicalCreateTriggerTest) {
 
   delete when;
   delete when_2;
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalCreateViewTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalCreateView
+  //===--------------------------------------------------------------------===//
+  Operator op1 = LogicalCreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view", nullptr);
+
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALCREATEVIEW);
+  EXPECT_EQ(op1.GetName(), "LogicalCreateView");
+  EXPECT_EQ(op1.As<LogicalCreateView>()->GetViewName(), "test_view");
+  EXPECT_EQ(op1.As<LogicalCreateView>()->GetViewQuery(), nullptr);
+
+  Operator op2 = LogicalCreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view", nullptr);
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 = LogicalCreateView::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), "test_view", nullptr);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 = LogicalCreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), "test_view", nullptr);
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op1.Hash(), op4.Hash());
+
+  Operator op5 = LogicalCreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view_2", nullptr);
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  auto stmt = new parser::SelectStatement(std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, true,
+                                          nullptr, nullptr, nullptr, nullptr, nullptr);
+  Operator op6 = LogicalCreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view",
+                                         common::ManagedPointer<parser::SelectStatement>(stmt));
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+  delete stmt;
 }
 
 }  // namespace terrier::optimizer
