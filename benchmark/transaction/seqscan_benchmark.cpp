@@ -113,29 +113,33 @@ BENCHMARK_DEFINE_F(SeqscanBenchmark, SequentialScan)(benchmark::State &state) {
     // Iterator over projection
     execution::sql::ProjectedColumnsIterator *pci = iter.GetProjectedColumnsIterator();
 
-    // timer for iteration
+    // Initialize timer for iteration
     uint64_t elapsed_ms = 0;
-    common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
 
-    // count number of tuples read
-    uint32_t num_tuples = 0;
-    int32_t prev_val{0};
+    {
+      // Create timer for iteration time
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
 
-    // Iterate through tuples in iterator
-    while (iter.Advance()) {
-      for (; pci->HasNext(); pci->Advance()) {
-        auto *val = pci->Get<int32_t, false>(0, nullptr);
-        if (num_tuples > 0) {
-          ASSERT_EQ(*val, prev_val + 1);
+      // count number of tuples read
+      uint32_t num_tuples = 0;
+      int32_t prev_val{0};
+
+      // Iterate through tuples in iterator
+      while (iter.Advance()) {
+        for (; pci->HasNext(); pci->Advance()) {
+          auto *val = pci->Get<int32_t, false>(0, nullptr);
+          if (num_tuples > 0) {
+            ASSERT_EQ(*val, prev_val + 1);
+          }
+          prev_val = *val;
+          num_tuples++;
         }
-        prev_val = *val;
-        num_tuples++;
+        pci->Reset();
       }
-      pci->Reset();
-    }
 
-    // Expect number of tuples to match size
-    EXPECT_EQ(execution::sql::TEST1_SIZE, num_tuples);
+      // Expect number of tuples to match size
+      EXPECT_EQ(execution::sql::TEST1_SIZE, num_tuples);
+    }
 
     // Set iteration time
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
