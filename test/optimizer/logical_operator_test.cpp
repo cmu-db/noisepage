@@ -1493,4 +1493,85 @@ TEST(OperatorTests, LogicalDropSchemaTest) {
   EXPECT_NE(op1.Hash(), op3.Hash());
 }
 
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalDropTriggerTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalDropTrigger
+  //===--------------------------------------------------------------------===//
+  Operator op1 =
+      LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false);
+
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALDROPTRIGGER);
+  EXPECT_EQ(op1.GetName(), "LogicalDropTrigger");
+  EXPECT_EQ(op1.As<LogicalDropTrigger>()->GetDatabaseOid(), catalog::db_oid_t(1));
+  EXPECT_EQ(op1.As<LogicalDropTrigger>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.As<LogicalDropTrigger>()->GetTriggerOid(), catalog::trigger_oid_t(1));
+  EXPECT_FALSE(op1.As<LogicalDropTrigger>()->IsIfExists());
+
+  Operator op2 =
+      LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false);
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 =
+      LogicalDropTrigger::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false);
+  EXPECT_TRUE(op1 != op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 =
+      LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::trigger_oid_t(1), false);
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op1.Hash(), op4.Hash());
+
+  Operator op5 =
+      LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(2), false);
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  Operator op6 =
+      LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), true);
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalDropViewTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalDropView
+  //===--------------------------------------------------------------------===//
+  Operator op1 =
+      LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false);
+
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALDROPVIEW);
+  EXPECT_EQ(op1.GetName(), "LogicalDropView");
+  EXPECT_EQ(op1.As<LogicalDropView>()->GetDatabaseOid(), catalog::db_oid_t(1));
+  EXPECT_EQ(op1.As<LogicalDropView>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.As<LogicalDropView>()->GetViewOid(), catalog::view_oid_t(1));
+  EXPECT_FALSE(op1.As<LogicalDropView>()->IsIfExists());
+
+  Operator op2 =
+      LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false);
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 =
+      LogicalDropView::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false);
+  EXPECT_TRUE(op1 != op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 =
+      LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::view_oid_t(1), false);
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op1.Hash(), op4.Hash());
+
+  Operator op5 =
+      LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(2), false);
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  Operator op6 = LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), true);
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+}
+
 }  // namespace terrier::optimizer

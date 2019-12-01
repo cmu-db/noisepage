@@ -1621,7 +1621,7 @@ TEST(OperatorTests, CreateViewTest) {
   auto stmt = new parser::SelectStatement(std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, true,
                                           nullptr, nullptr, nullptr, nullptr, nullptr);
   Operator op6 = CreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view",
-                                         common::ManagedPointer<parser::SelectStatement>(stmt));
+                                  common::ManagedPointer<parser::SelectStatement>(stmt));
   EXPECT_FALSE(op1 == op6);
   EXPECT_NE(op1.Hash(), op6.Hash());
   delete stmt;
@@ -1706,4 +1706,75 @@ TEST(OperatorTests, DropSchemaTest) {
   EXPECT_EQ(op1.Hash(), op2.Hash());
   EXPECT_NE(op1.Hash(), op3.Hash());
 }
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, DropTriggerTest) {
+  //===--------------------------------------------------------------------===//
+  // DropTrigger
+  //===--------------------------------------------------------------------===//
+  Operator op1 = DropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false);
+
+  EXPECT_EQ(op1.GetType(), OpType::DROPTRIGGER);
+  EXPECT_EQ(op1.GetName(), "DropTrigger");
+  EXPECT_EQ(op1.As<DropTrigger>()->GetDatabaseOid(), catalog::db_oid_t(1));
+  EXPECT_EQ(op1.As<DropTrigger>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.As<DropTrigger>()->GetTriggerOid(), catalog::trigger_oid_t(1));
+  EXPECT_FALSE(op1.As<DropTrigger>()->IsIfExists());
+
+  Operator op2 = DropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false);
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 = DropTrigger::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false);
+  EXPECT_TRUE(op1 != op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 = DropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::trigger_oid_t(1), false);
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op1.Hash(), op4.Hash());
+
+  Operator op5 = DropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(2), false);
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  Operator op6 = DropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), true);
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, DropViewTest) {
+  //===--------------------------------------------------------------------===//
+  // DropView
+  //===--------------------------------------------------------------------===//
+  Operator op1 = DropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false);
+
+  EXPECT_EQ(op1.GetType(), OpType::DROPVIEW);
+  EXPECT_EQ(op1.GetName(), "DropView");
+  EXPECT_EQ(op1.As<DropView>()->GetDatabaseOid(), catalog::db_oid_t(1));
+  EXPECT_EQ(op1.As<DropView>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.As<DropView>()->GetViewOid(), catalog::view_oid_t(1));
+  EXPECT_FALSE(op1.As<DropView>()->IsIfExists());
+
+  Operator op2 = DropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false);
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 = DropView::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false);
+  EXPECT_TRUE(op1 != op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 = DropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::view_oid_t(1), false);
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op1.Hash(), op4.Hash());
+
+  Operator op5 = DropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(2), false);
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  Operator op6 = DropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), true);
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+}
+
 }  // namespace terrier::optimizer
