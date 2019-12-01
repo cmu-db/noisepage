@@ -69,6 +69,8 @@ class ColumnValueExpression : public AbstractExpression {
         column_oid_(column_oid) {}
 
   /**
+   * @param table_name table name
+   * @param col_name column name
    * @param database_oid database OID
    * @param table_oid table OID
    * @param column_oid column OID
