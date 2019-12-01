@@ -93,7 +93,7 @@ void DBMain::Run() {
     server_->RunningCV().wait(lock, [=] { return !(server_->Running()); });
   }
 
-  // server loop exited, begin cleaning up
+  // Server loop exited, begin cleaning up
   CleanUp();
 }
 
