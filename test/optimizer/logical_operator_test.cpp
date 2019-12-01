@@ -1256,4 +1256,24 @@ TEST(OperatorTests, LogicalCreateTableTest) {
   delete foreign_def;
 }
 
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalCreateSchemaTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalCreateSchema
+  //===--------------------------------------------------------------------===//
+  Operator op1 = LogicalCreateSchema::Make("testns");
+  Operator op2 = LogicalCreateSchema::Make("testns");
+  Operator op3 = LogicalCreateSchema::Make("another_testns");
+
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALCREATESCHEMA);
+  EXPECT_EQ(op3.GetType(), OpType::LOGICALCREATESCHEMA);
+  EXPECT_EQ(op1.GetName(), "LogicalCreateSchema");
+  EXPECT_EQ(op1.As<LogicalCreateSchema>()->GetNamespaceName(), "testns");
+  EXPECT_EQ(op3.As<LogicalCreateSchema>()->GetNamespaceName(), "another_testns");
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
 }  // namespace terrier::optimizer

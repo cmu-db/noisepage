@@ -1475,4 +1475,24 @@ TEST(OperatorTests, CreateTableTest) {
   EXPECT_NE(op1.Hash(), op10.Hash());
 }
 
+// NOLINTNEXTLINE
+TEST(OperatorTests, CreateSchemaTest) {
+  //===--------------------------------------------------------------------===//
+  // CreateSchema
+  //===--------------------------------------------------------------------===//
+  Operator op1 = CreateSchema::Make("testns");
+  Operator op2 = CreateSchema::Make("testns");
+  Operator op3 = CreateSchema::Make("another_testns");
+
+  EXPECT_EQ(op1.GetType(), OpType::CREATESCHEMA);
+  EXPECT_EQ(op3.GetType(), OpType::CREATESCHEMA);
+  EXPECT_EQ(op1.GetName(), "CreateSchema");
+  EXPECT_EQ(op1.As<CreateSchema>()->GetNamespaceName(), "testns");
+  EXPECT_EQ(op3.As<CreateSchema>()->GetNamespaceName(), "another_testns");
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
 }  // namespace terrier::optimizer
