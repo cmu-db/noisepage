@@ -17,7 +17,7 @@ namespace terrier {
 // required for a complete search through the table. We simulate a table with random initialization to mirror
 // realistic transaction behavior.
 
- class SeqscanBenchmark : public benchmark::Fixture {
+class SeqscanBenchmark : public benchmark::Fixture {
  public:
   // Function to create execution context for database
   std::unique_ptr<execution::exec::ExecutionContext> MakeExecCtx(execution::exec::OutputCallback &&callback = nullptr,
