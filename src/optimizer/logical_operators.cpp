@@ -1074,7 +1074,7 @@ common::hash_t LogicalDropSchema::Hash() const {
 }
 
 bool LogicalDropSchema::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::LOGICALDROPNAMESPACE) return false;
+  if (r.GetType() != OpType::LOGICALDROPSCHEMA) return false;
   const LogicalDropSchema &node = *dynamic_cast<const LogicalDropSchema *>(&r);
   return node.namespace_oid_ == namespace_oid_;
 }
@@ -1283,7 +1283,7 @@ OpType OperatorNode<LogicalDropTable>::type = OpType::LOGICALDROPTABLE;
 template <>
 OpType OperatorNode<LogicalDropIndex>::type = OpType::LOGICALDROPINDEX;
 template <>
-OpType OperatorNode<LogicalDropSchema>::type = OpType::LOGICALDROPNAMESPACE;
+OpType OperatorNode<LogicalDropSchema>::type = OpType::LOGICALDROPSCHEMA;
 template <>
 OpType OperatorNode<LogicalDropTrigger>::type = OpType::LOGICALDROPTRIGGER;
 template <>

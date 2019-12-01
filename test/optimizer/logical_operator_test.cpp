@@ -1413,4 +1413,84 @@ TEST(OperatorTests, LogicalCreateViewTest) {
   delete stmt;
 }
 
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalDropDatabaseTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalDropDatabase
+  //===--------------------------------------------------------------------===//
+  Operator op1 = LogicalDropDatabase::Make(catalog::db_oid_t(1));
+  Operator op2 = LogicalDropDatabase::Make(catalog::db_oid_t(1));
+  Operator op3 = LogicalDropDatabase::Make(catalog::db_oid_t(2));
+
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALDROPDATABASE);
+  EXPECT_EQ(op3.GetType(), OpType::LOGICALDROPDATABASE);
+  EXPECT_EQ(op1.GetName(), "LogicalDropDatabase");
+  EXPECT_EQ(op1.As<LogicalDropDatabase>()->GetDatabaseOID(), catalog::db_oid_t(1));
+  EXPECT_EQ(op3.As<LogicalDropDatabase>()->GetDatabaseOID(), catalog::db_oid_t(2));
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalDropTableTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalDropTable
+  //===--------------------------------------------------------------------===//
+  Operator op1 = LogicalDropTable::Make(catalog::table_oid_t(1));
+  Operator op2 = LogicalDropTable::Make(catalog::table_oid_t(1));
+  Operator op3 = LogicalDropTable::Make(catalog::table_oid_t(2));
+
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALDROPTABLE);
+  EXPECT_EQ(op3.GetType(), OpType::LOGICALDROPTABLE);
+  EXPECT_EQ(op1.GetName(), "LogicalDropTable");
+  EXPECT_EQ(op1.As<LogicalDropTable>()->GetTableOID(), catalog::table_oid_t(1));
+  EXPECT_EQ(op3.As<LogicalDropTable>()->GetTableOID(), catalog::table_oid_t(2));
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalDropIndexTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalDropIndex
+  //===--------------------------------------------------------------------===//
+  Operator op1 = LogicalDropIndex::Make(catalog::index_oid_t(1));
+  Operator op2 = LogicalDropIndex::Make(catalog::index_oid_t(1));
+  Operator op3 = LogicalDropIndex::Make(catalog::index_oid_t(2));
+
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALDROPINDEX);
+  EXPECT_EQ(op3.GetType(), OpType::LOGICALDROPINDEX);
+  EXPECT_EQ(op1.GetName(), "LogicalDropIndex");
+  EXPECT_EQ(op1.As<LogicalDropIndex>()->GetIndexOID(), catalog::index_oid_t(1));
+  EXPECT_EQ(op3.As<LogicalDropIndex>()->GetIndexOID(), catalog::index_oid_t(2));
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalDropSchemaTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalDropSchema
+  //===--------------------------------------------------------------------===//
+  Operator op1 = LogicalDropSchema::Make(catalog::namespace_oid_t(1));
+  Operator op2 = LogicalDropSchema::Make(catalog::namespace_oid_t(1));
+  Operator op3 = LogicalDropSchema::Make(catalog::namespace_oid_t(2));
+
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALDROPSCHEMA);
+  EXPECT_EQ(op3.GetType(), OpType::LOGICALDROPSCHEMA);
+  EXPECT_EQ(op1.GetName(), "LogicalDropSchema");
+  EXPECT_EQ(op1.As<LogicalDropSchema>()->GetNamespaceOID(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op3.As<LogicalDropSchema>()->GetNamespaceOID(), catalog::namespace_oid_t(2));
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
 }  // namespace terrier::optimizer

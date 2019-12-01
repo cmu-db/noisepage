@@ -1098,7 +1098,7 @@ common::hash_t DropSchema::Hash() const {
 }
 
 bool DropSchema::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::DROPNAMESPACE) return false;
+  if (r.GetType() != OpType::DROPSCHEMA) return false;
   const DropSchema &node = *dynamic_cast<const DropSchema *>(&r);
   return node.namespace_oid_ == namespace_oid_;
 }
@@ -1319,7 +1319,7 @@ OpType OperatorNode<DropTable>::type = OpType::DROPTABLE;
 template <>
 OpType OperatorNode<DropIndex>::type = OpType::DROPINDEX;
 template <>
-OpType OperatorNode<DropSchema>::type = OpType::DROPNAMESPACE;
+OpType OperatorNode<DropSchema>::type = OpType::DROPSCHEMA;
 template <>
 OpType OperatorNode<DropTrigger>::type = OpType::DROPTRIGGER;
 template <>
