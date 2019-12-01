@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "common/constants.h"
 #include "common/container/bitmap.h"
@@ -19,10 +20,6 @@
 #include "transaction/transaction_defs.h"
 
 namespace terrier::storage {
-// All tuples potentially visible to txns should have a non-null attribute of version vector.
-// This is not to be confused with a non-null version vector that has value nullptr (0).
-#define VERSION_POINTER_COLUMN_ID ::terrier::storage::col_id_t(0)
-#define NUM_RESERVED_COLUMNS 1U
 
 // In type_util.h there are a total of 5 possible inlined attribute sizes:
 // 1, 2, 4, 8, and 16-bytes (16 byte is the structure portion of varlen).
@@ -30,10 +27,16 @@ namespace terrier::storage {
 // columns size by tracking the locations of the attribute size boundaries.
 // Therefore, we only need to track 4 locations because the exterior bounds
 // are implicit.
-#define NUM_ATTR_BOUNDARIES 4
+constexpr uint8_t NUM_ATTR_BOUNDARIES = 4;
 
 STRONG_TYPEDEF(col_id_t, uint16_t);
 STRONG_TYPEDEF(layout_version_t, uint16_t);
+
+// All tuples potentially visible to txns should have a non-null attribute of version vector.
+// This is not to be confused with a non-null version vector that has value nullptr (0).
+
+constexpr col_id_t VERSION_POINTER_COLUMN_ID = col_id_t(0);
+constexpr uint8_t NUM_RESERVED_COLUMNS = 1;
 
 class DataTable;
 

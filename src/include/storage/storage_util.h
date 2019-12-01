@@ -33,7 +33,7 @@ class StorageUtil {
    * @param projection_list_index the projection_list_index to copy to
    */
   template <class RowType>
-  static void CopyWithNullCheck(const byte *from, RowType *to, uint8_t size, uint16_t projection_list_index);
+  static void CopyWithNullCheck(const byte *from, RowType *to, uint16_t size, uint16_t projection_list_index);
 
   /**
    * Copy from pointer location into the tuple slot at given column id. If the pointer location is null,
@@ -128,7 +128,7 @@ class StorageUtil {
    *
    * @return {offset_varlen, offset_8, offset_4, offset_2, offset_1}
    */
-  static std::vector<uint16_t> ComputeBaseAttributeOffsets(const std::vector<uint8_t> &attr_sizes,
+  static std::vector<uint16_t> ComputeBaseAttributeOffsets(const std::vector<uint16_t> &attr_sizes,
                                                            uint16_t num_reserved_columns);
 
   /**
