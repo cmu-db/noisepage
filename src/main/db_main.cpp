@@ -66,7 +66,7 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
   catalog_->CreateDatabase(bootstrap_txn, catalog::DEFAULT_DATABASE, true);
   txn_manager_->Commit(bootstrap_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  // Run the GC to flush it down to a clean system
+  // Run the GC to get a clean system
   garbage_collector_->PerformGarbageCollection();
   garbage_collector_->PerformGarbageCollection();
 
