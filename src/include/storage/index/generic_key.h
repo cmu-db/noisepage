@@ -76,7 +76,8 @@ class GenericKey {
       TERRIER_ASSERT(
           reinterpret_cast<uintptr_t>(GetProjectedRow()) + from.Size() <= reinterpret_cast<uintptr_t>(this) + KeySize,
           "ProjectedRow will access out of bounds.");
-      std::memcpy(GetProjectedRow(), &from, from.Size());
+      // We recast GetProjectedRow() as a workaround for -Wclass-memaccess
+      std::memcpy(static_cast<void *>(GetProjectedRow()), &from, from.Size());
     }
   }
 
@@ -203,6 +204,10 @@ class GenericKey {
   byte key_data_[KeySize];
   const IndexMetadata *metadata_ = nullptr;
 };
+
+extern template class GenericKey<64>;
+extern template class GenericKey<128>;
+extern template class GenericKey<256>;
 
 }  // namespace terrier::storage::index
 

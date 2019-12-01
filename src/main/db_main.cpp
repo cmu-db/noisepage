@@ -17,7 +17,7 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
   LoggersUtil::Initialize(false);
 
   // initialize stat registry
-  main_stat_reg_ = std::make_shared<common::StatisticsRegistry>();
+  main_stat_reg_ = std::make_unique<common::StatisticsRegistry>();
 
   // create the global transaction mgr
   buffer_segment_pool_ = new storage::RecordBufferSegmentPool(

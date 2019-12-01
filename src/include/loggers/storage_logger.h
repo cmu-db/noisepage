@@ -6,7 +6,7 @@
 #include "spdlog/spdlog.h"
 
 namespace terrier::storage {
-extern std::shared_ptr<spdlog::logger> storage_logger;
+extern std::shared_ptr<spdlog::logger> storage_logger;  // NOLINT
 
 void InitStorageLogger();
 }  // namespace terrier::storage

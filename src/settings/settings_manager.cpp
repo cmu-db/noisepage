@@ -69,7 +69,7 @@ std::string SettingsManager::GetString(Param param) {
   return std::string(ValuePeeker::PeekVarChar(GetValue(param)));
 }
 
-void SettingsManager::SetInt(Param param, int32_t value, const std::shared_ptr<ActionContext> &action_context,
+void SettingsManager::SetInt(Param param, int32_t value, common::ManagedPointer<ActionContext> action_context,
                              setter_callback_fn setter_callback) {
   // The ActionContext state must be set to INITIATED to prevent
   // somebody from reusing it for multiple invocations
@@ -103,7 +103,7 @@ void SettingsManager::SetInt(Param param, int32_t value, const std::shared_ptr<A
   setter_callback(action_context);
 }
 
-void SettingsManager::SetDouble(Param param, double value, const std::shared_ptr<ActionContext> &action_context,
+void SettingsManager::SetDouble(Param param, double value, common::ManagedPointer<ActionContext> action_context,
                                 setter_callback_fn setter_callback) {
   // The ActionContext state must be set to INITIATED to prevent
   // somebody from reusing it for multiple invocations
@@ -137,7 +137,7 @@ void SettingsManager::SetDouble(Param param, double value, const std::shared_ptr
   setter_callback(action_context);
 }
 
-void SettingsManager::SetBool(Param param, bool value, const std::shared_ptr<ActionContext> &action_context,
+void SettingsManager::SetBool(Param param, bool value, common::ManagedPointer<ActionContext> action_context,
                               setter_callback_fn setter_callback) {
   // The ActionContext state must be set to INITIATED to prevent
   // somebody from reusing it for multiple invocations
@@ -166,7 +166,7 @@ void SettingsManager::SetBool(Param param, bool value, const std::shared_ptr<Act
 }
 
 void SettingsManager::SetString(Param param, const std::string_view &value,
-                                const std::shared_ptr<ActionContext> &action_context,
+                                common::ManagedPointer<ActionContext> action_context,
                                 setter_callback_fn setter_callback) {
   // The ActionContext state must be set to INITIATED to prevent
   // somebody from reusing it for multiple invocations
@@ -224,7 +224,7 @@ bool SettingsManager::ValidateValue(const type::TransientValue &value, const typ
 }
 
 common::ActionState SettingsManager::InvokeCallback(Param param, void *old_value, void *new_value,
-                                                    const std::shared_ptr<common::ActionContext> &action_context) {
+                                                    common::ManagedPointer<common::ActionContext> action_context) {
   callback_fn callback = db_->param_map_.find(param)->second.callback_;
   (callback)(old_value, new_value, db_, action_context);
   ActionState action_state = action_context->GetState();

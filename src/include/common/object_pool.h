@@ -4,7 +4,6 @@
 #include <string>
 #include <utility>
 #include "common/allocator.h"
-#include "common/container/concurrent_queue.h"
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
 

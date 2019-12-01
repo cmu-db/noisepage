@@ -1276,13 +1276,13 @@ TEST_F(ParserTestBase, OldCreateIndexTest) {
   EXPECT_EQ(create_stmt->GetIndexAttributes()[0].GetName(), "o_w_id");
   EXPECT_EQ(create_stmt->GetIndexAttributes()[1].GetName(), "o_d_id");
 
-  query = "CREATE INDEX ii ON t USING SKIPLIST (col);";
+  query = "CREATE INDEX ii ON t USING HASH (col);";
   result = pgparser_.BuildParseTree(query);
   create_stmt = result.GetStatement(0).CastManagedPointerTo<CreateStatement>();
 
   // Check attributes
   EXPECT_EQ(create_stmt->GetCreateType(), CreateStatement::kIndex);
-  EXPECT_EQ(create_stmt->GetIndexType(), IndexType::SKIPLIST);
+  EXPECT_EQ(create_stmt->GetIndexType(), IndexType::HASH);
   EXPECT_EQ(create_stmt->GetIndexName(), "ii");
   EXPECT_EQ(create_stmt->GetTableName(), "t");
 

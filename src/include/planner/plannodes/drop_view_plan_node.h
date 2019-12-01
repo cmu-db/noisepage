@@ -63,17 +63,6 @@ class DropViewPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param drop_stmt the SQL DROP statement
-     * @return builder object
-     */
-    Builder &SetFromDropStatement(parser::DropStatement *drop_stmt) {
-      if (drop_stmt->GetDropType() == parser::DropStatement::DropType::kDatabase) {
-        if_exists_ = drop_stmt->IsIfExists();
-      }
-      return *this;
-    }
-
-    /**
      * Build the drop view plan node
      * @return plan node
      */
