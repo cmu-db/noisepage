@@ -83,7 +83,6 @@ class FunctionBuilder {
 
  private:
   CodeGen *codegen_;
-  FunctionBuilder *prev_fn_;
 
   ast::Identifier fn_name_;
   util::RegionVector<ast::FieldDecl *> fn_params_;

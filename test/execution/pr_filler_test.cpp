@@ -92,7 +92,9 @@ TEST_F(PRFillerTest, SimpleIndexFillerTest) {
 
   // Create pr filler
   CodeGen codegen(accessor);
-  PRFiller filler(&codegen, table_schema, table_pm);
+
+  auto table_pr_name = codegen.NewIdentifier("table_pr");
+  PRFiller filler(&codegen, table_schema, table_pm, table_pr_name);
 
   // Get the index
   auto index_oid = accessor->GetIndexOid(NSOid(), "index_1");
@@ -100,13 +102,26 @@ TEST_F(PRFillerTest, SimpleIndexFillerTest) {
   const auto &index_pm = index->GetKeyOidToOffsetMap();
   auto index_schema = accessor->GetIndexSchema(index_oid);
 
+  ast::Identifier fn_name = codegen.NewIdentifier("indexFiller");
+  ast::Expr *ret_type = codegen.BuiltinType(ast::BuiltinType::Nil);
+
+  ast::Expr *pr_type = codegen.PointerType(codegen.BuiltinType(ast::BuiltinType::ProjectedRow));
+  ast::FieldDecl *param1 = codegen.MakeField(table_pr_name, pr_type);
+  // Second param
+  ast::Identifier index_pr_name = codegen.NewIdentifier("index_pr");
+  ast::FieldDecl *param2 = codegen.MakeField(index_pr_name, pr_type);
+  util::RegionVector<ast::FieldDecl *> params{{param1, param2}, codegen.Region()};
+
+  FunctionBuilder builder{&codegen, fn_name, std::move(params), ret_type};
   // Compile the function
-  auto [root, fn_name]= filler.GenFiller(index_pm, index_schema);
+  filler.GenFiller(index_pm, index_schema, index_pr_name, &builder);
+  util::RegionVector<ast::Decl *> top_level({builder.Finish()}, codegen.Region());
+  auto root = codegen.Compile(std::move(top_level));
   auto module = MakeModule(&codegen, root, exec_ctx.get());
 
   // Now get the compiled function
   std::function<void(sql::ProjectedRowWrapper*, sql::ProjectedRowWrapper*)> filler_fn;
-  ASSERT_TRUE(module->GetFunction(fn_name, vm::ExecutionMode::Compiled, &filler_fn));
+  ASSERT_TRUE(module->GetFunction(fn_name.Data(), vm::ExecutionMode::Interpret, &filler_fn));
 
   // Try it out.
   auto table_init = table->InitializerForProjectedRow(col_oids);
