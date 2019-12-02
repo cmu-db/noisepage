@@ -402,8 +402,8 @@ TEST_F(CatalogTests, CascadingDropNamespaceTest) {
 }
 
 /*
- * Create a user table in one namespace and an index on that table in another namespace. Verify that index gets dropped
- * correctly in second namespace.
+ * Create a user table in default namespace and an index on that table in a user namespace. Verify that index gets
+ * dropped correctly when dropping the user namespace, but the table remains.
  */
 // NOLINTNEXTLINE
 TEST_F(CatalogTests, CascadingDropNamespaceWithIndexOnOtherNamespaceTest) {
@@ -458,15 +458,19 @@ TEST_F(CatalogTests, CascadingDropNamespaceWithIndexOnOtherNamespaceTest) {
   accessor = catalog_->GetAccessor(txn, db_);
   EXPECT_NE(accessor, nullptr);
 
+  // Table is in default namespace, index is in user namespace
   VerifyTablePresent(*accessor, accessor->GetDefaultNamespace(), "test_table");
   idx_oid = accessor->GetIndexOid(ns_oid, "test_index");
   EXPECT_NE(idx_oid, catalog::INVALID_INDEX_OID);
 
+  // Table is not in user namespace (obvious), index is not in user namespace
   VerifyTableAbsent(*accessor, ns_oid, "test_table");
   idx_oid = accessor->GetIndexOid(accessor->GetDefaultNamespace(), "test_index");
   EXPECT_EQ(idx_oid, catalog::INVALID_INDEX_OID);
 
   EXPECT_TRUE(accessor->DropNamespace(ns_oid));
+
+  // Table is in default namespace, index is not in user namespace
   VerifyTablePresent(*accessor, accessor->GetDefaultNamespace(), "test_table");
   idx_oid = accessor->GetIndexOid(ns_oid, "test_index");
   EXPECT_EQ(idx_oid, catalog::INVALID_INDEX_OID);
