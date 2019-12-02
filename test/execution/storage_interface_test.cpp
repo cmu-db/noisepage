@@ -224,11 +224,17 @@ TEST_F(StorageInterfaceTest, SimpleIndexedUpdateTest) {
     ProjectedRowWrapper table_pr(index_iter.TablePR());
     storage::TupleSlot slot(index_iter.CurrentSlot());
     auto *curr_val = table_pr.Get<int32_t, false>(0, nullptr);
+    auto *val_b = table_pr.Get<int32_t, false>(1, nullptr);
+    auto *val_c = table_pr.Get<int32_t, false>(2, nullptr);
+    auto *val_d = table_pr.Get<int32_t, false>(3, nullptr);
     old_vals.emplace_back(*curr_val);
     // Delete + Insert in Table
     ASSERT_TRUE(updater.TableDelete(slot));
     ProjectedRowWrapper update_pr(updater.GetTablePR());
     update_pr.Set<int32_t, false>(0, *curr_val + TEST1_SIZE, false);
+    update_pr.Set<int32_t, false>(1, *val_b, false);
+    update_pr.Set<int32_t, false>(2, *val_c, false);
+    update_pr.Set<int32_t, false>(3, *val_d, false);
     auto new_slot UNUSED_ATTRIBUTE = updater.TableInsert();
 
     // Delete + Insert in Index
@@ -264,8 +270,10 @@ TEST_F(StorageInterfaceTest, MultiIndexedUpdateTest) {
   auto index_oid2 = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_2_multi");
   // Select all columns for insert
   std::array<uint32_t, 4> col_oids{1, 2, 3, 4};
-  uint16_t idxA = 3;
-  uint16_t idxB = 1;
+  uint16_t idx_a = 3;
+  uint16_t idx_b = 1;
+  uint16_t idx_c = 0;
+  uint16_t idx_d = 2;
 
   // The index iterator gives us the slots to update.
   IndexIterator index_iter1{exec_ctx_.get(), !table_oid, !index_oid1, col_oids.data(),
@@ -294,15 +302,22 @@ TEST_F(StorageInterfaceTest, MultiIndexedUpdateTest) {
     // Get tuple at the current slot
     ProjectedRowWrapper table_pr(index_iter1.TablePR());
     storage::TupleSlot slot(index_iter1.CurrentSlot());
-    auto *curr_val_a = table_pr.Get<int16_t, false>(idxA, nullptr);
+    // Read table values
+    auto *curr_val_a = table_pr.Get<int16_t, false>(idx_a, nullptr);
     bool null_b;
-    auto *curr_val_b = table_pr.Get<int32_t, true>(idxB, &null_b);
+    auto *curr_val_b = table_pr.Get<int32_t, true>(idx_b, &null_b);
+    auto val_c = table_pr.Get<int64_t, false>(idx_c, nullptr);
+    bool null_d;
+    auto val_d = table_pr.Get<int32_t, true>(idx_d, &null_d);
+
     old_vals.emplace_back(*curr_val_a);
     // Delete + Insert in Table
     ASSERT_TRUE(updater.TableDelete(slot));
     ProjectedRowWrapper update_pr(updater.GetTablePR());
-    update_pr.Set<int16_t, false>(idxA, *curr_val_a + update_val, false);
-    update_pr.Set<int32_t, true>(idxB, 0, false);
+    update_pr.Set<int16_t, false>(idx_a, *curr_val_a + update_val, false);
+    update_pr.Set<int32_t, true>(idx_b, 0, false);
+    update_pr.Set<int64_t, false>(idx_c, *val_c, false);
+    update_pr.Set<int32_t, true>(idx_d, null_d ? 0 : *val_d, null_d);
     auto new_slot UNUSED_ATTRIBUTE = updater.TableInsert();
 
     // Delete + Insert in Indexes
@@ -338,9 +353,9 @@ TEST_F(StorageInterfaceTest, MultiIndexedUpdateTest) {
     uint32_t num_matches = 0;
     while (index_iter1.Advance()) {
       ProjectedRowWrapper table_pr(index_iter1.TablePR());
-      auto *val_a = table_pr.Get<int16_t, false>(idxA, nullptr);
+      auto *val_a = table_pr.Get<int16_t, false>(idx_a, nullptr);
       bool null_b = true;
-      auto *val_b = table_pr.Get<int32_t, true>(idxB, &null_b);
+      auto *val_b = table_pr.Get<int32_t, true>(idx_b, &null_b);
       EXPECT_EQ(*val_a, old_vals[num_matches] + update_val);
       ASSERT_FALSE(null_b);
       EXPECT_EQ(*val_b, 0);
@@ -361,9 +376,9 @@ TEST_F(StorageInterfaceTest, MultiIndexedUpdateTest) {
     uint32_t num_matches = 0;
     while (index_iter2.Advance()) {
       ProjectedRowWrapper table_pr(index_iter2.TablePR());
-      auto *val_a = table_pr.Get<int16_t, false>(idxA, nullptr);
+      auto *val_a = table_pr.Get<int16_t, false>(idx_a, nullptr);
       bool null_b = true;
-      auto *val_b = table_pr.Get<int32_t, true>(idxB, &null_b);
+      auto *val_b = table_pr.Get<int32_t, true>(idx_b, &null_b);
       EXPECT_EQ(*val_a, old_vals[num_matches] + update_val);
       ASSERT_FALSE(null_b);
       EXPECT_EQ(*val_b, 0);
