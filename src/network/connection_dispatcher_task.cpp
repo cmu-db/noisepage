@@ -19,12 +19,14 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(
       thread_registry_(thread_registry),
       interpreter_provider_(interpreter_provider),
       next_handler_(0) {
-  RegisterEvent(listen_fd, EV_READ | EV_PERSIST,
-                METHOD_AS_CALLBACK(ConnectionDispatcherTask, DispatchPostgresConnection), this);
+  RegisterEvent(listen_fd, EV_READ | EV_PERSIST, METHOD_AS_CALLBACK(ConnectionDispatcherTask, DispatchConnection),
+                this);
   RegisterSignalEvent(SIGHUP, METHOD_AS_CALLBACK(NotifiableTask, ExitLoop), this);
 }
 
-void ConnectionDispatcherTask::DispatchPostgresConnection(int fd, int16_t) {  // NOLINT
+// TODO(Gus): DispatchConnection will also need to take an argument telling it which interpreter
+// to use for the connection.
+void ConnectionDispatcherTask::DispatchConnection(int fd, int16_t) {  // NOLINT
   struct sockaddr_storage addr;
   socklen_t addrlen = sizeof(addr);
 

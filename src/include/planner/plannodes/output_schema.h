@@ -39,8 +39,8 @@ class OutputSchema {
      * @param nullable is column nullable
      * @param expr the expression used to generate this column
      */
-    Column(const type::TypeId type, const bool nullable, std::shared_ptr<parser::AbstractExpression> expr)
-        : type_(type), nullable_(nullable), expr_(std::move(expr)) {
+    Column(const type::TypeId type, const bool nullable, common::ManagedPointer<parser::AbstractExpression> expr)
+        : type_(type), nullable_(nullable), expr_(expr) {
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
     }
 
@@ -69,7 +69,7 @@ class OutputSchema {
       return hash;
     }
 
-    const parser::AbstractExpression *GetExpr() const { return expr_.get(); }
+    const parser::AbstractExpression *GetExpr() const { return expr_.Get(); }
 
     /**
      * @return whether the two columns are equal
@@ -97,25 +97,28 @@ class OutputSchema {
       nlohmann::json j;
       j["type"] = type_;
       j["nullable"] = nullable_;
-      j["expr"] = expr_;
+      j["expr"] = *expr_;
       return j;
     }
 
     /**
      * @param j json to deserialize
      */
-    void FromJson(const nlohmann::json &j) {
+    std::unique_ptr<parser::AbstractExpression> FromJson(const nlohmann::json &j) {
       type_ = j.at("type").get<type::TypeId>();
       nullable_ = j.at("nullable").get<bool>();
       if (!j.at("expr").is_null()) {
-        expr_ = parser::DeserializeExpression(j.at("expr"));
+        auto deserialized = parser::DeserializeExpression(j.at("expr"));
+        expr_ = common::ManagedPointer(deserialized.result_);
+        return std::move(deserialized.result_);
       }
+      return nullptr;
     }
 
    private:
     type::TypeId type_;
     bool nullable_;
-    std::shared_ptr<parser::AbstractExpression> expr_;
+    common::ManagedPointer<parser::AbstractExpression> expr_;
   };
 
   /**
@@ -155,7 +158,13 @@ class OutputSchema {
    * Make a copy of this OutputSchema
    * @return shared pointer to the copy
    */
-  std::shared_ptr<OutputSchema> Copy() const { return std::make_shared<OutputSchema>(*this); }
+  std::unique_ptr<OutputSchema> Copy() const {
+    std::vector<Column> columns;
+    for (const auto &col : GetColumns()) {
+      columns.emplace_back(col);
+    }
+    return std::make_unique<OutputSchema>(std::move(columns));
+  }
 
   /**
    * Hash the current OutputSchema.
@@ -194,7 +203,18 @@ class OutputSchema {
   /**
    * @param j json to deserialize
    */
-  void FromJson(const nlohmann::json &j) { columns_ = j.at("columns").get<std::vector<Column>>(); }
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) {
+    std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+
+    std::vector<nlohmann::json> columns_json = j.at("columns");
+    for (const auto &col_json : columns_json) {
+      Column c{};
+      auto res = c.FromJson(col_json);
+      columns_.emplace_back(c);
+      if (res != nullptr) exprs.emplace_back(std::move(res));
+    }
+    return exprs;
+  }
 
  private:
   std::vector<Column> columns_;

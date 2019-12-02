@@ -76,7 +76,8 @@ bool BlockCompactor::EliminateGaps(CompactionGroup *cg) {
   for (auto &entry : cg->blocks_to_compact_) {
     RawBlock *block = entry.first;
     std::vector<uint32_t> &empty_slots = entry.second;
-    TERRIER_ASSERT(block->insert_head_ == layout.NumSlots(), "The block should be full to stop inserts from coming in");
+    TERRIER_ASSERT(block->GetInsertHead() == layout.NumSlots(),
+                   "The block should be full to stop inserts from coming in");
 
     // We will loop through each block and figure out if we are safe to proceed with compaction and identify
     // any gaps
@@ -158,7 +159,8 @@ bool BlockCompactor::MoveTuple(CompactionGroup *cg, TupleSlot from, TupleSlot to
   // own special operators that takes physical locations instead of predicates, but it should share logic with the rest
   // of the system when it comes to index updates and such.
   RedoRecord *record = cg->txn_->StageWrite(catalog::db_oid_t(0), catalog::table_oid_t(0), cg->all_cols_initializer_);
-  std::memcpy(record->Delta(), cg->read_buffer_, cg->all_cols_initializer_.ProjectedRowSize());
+  // We recast record->Delta() as a workaround for -Wclass-memaccess
+  std::memcpy(static_cast<void *>(record->Delta()), cg->read_buffer_, cg->all_cols_initializer_.ProjectedRowSize());
 
   // Because the GC will assume all varlen pointers are unique and deallocate the same underlying
   // varlen for every update record, we need to mark subsequent records that reference the same

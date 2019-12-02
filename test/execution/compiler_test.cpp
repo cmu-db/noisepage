@@ -92,6 +92,7 @@ class CompilerTest : public SqlBasedTest {
     terrier::execution::vm::LLVMEngine::Shutdown();
     terrier::LoggersUtil::ShutDown();
   }
+
 };
 
 // NOLINTNEXTLINE
@@ -100,27 +101,28 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
   auto accessor = MakeAccessor();
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
   auto table_schema = accessor->GetSchema(table_oid);
-  std::shared_ptr<AbstractPlanNode> seq_scan;
-  OutputSchemaHelper seq_scan_out{0};
+  ExpressionMaker expr_maker;
+  std::unique_ptr<AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     // Get Table columns
-    auto col1 = ExpressionUtil::CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = ExpressionUtil::CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
     // Make New Column
-    auto col3 = ExpressionUtil::OpMul(col1, col2);
-    auto col4 = ExpressionUtil::ComparisonGe(col1, ExpressionUtil::OpMul(ExpressionUtil::Constant(100), col2));
-    seq_scan_out.AddOutput("col1", col1);
-    seq_scan_out.AddOutput("col2", col2);
-    seq_scan_out.AddOutput("col3", col3);
-    seq_scan_out.AddOutput("col4", col4);
+    auto col3 = expr_maker.OpMul(col1, col2);
+    auto col4 = expr_maker.ComparisonGe(col1, expr_maker.OpMul(expr_maker.Constant(100), col2));
+    seq_scan_out.AddOutput("col1", common::ManagedPointer(col1));
+    seq_scan_out.AddOutput("col2", common::ManagedPointer(col2));
+    seq_scan_out.AddOutput("col3", common::ManagedPointer(col3));
+    seq_scan_out.AddOutput("col4", common::ManagedPointer(col4));
     auto schema = seq_scan_out.MakeSchema();
     // Make predicate
-    auto comp1 = ExpressionUtil::ComparisonLt(col1, ExpressionUtil::Constant(500));
-    auto comp2 = ExpressionUtil::ComparisonGe(col2, ExpressionUtil::Constant(3));
-    auto predicate = ExpressionUtil::ConjunctionAnd(comp1, comp2);
+    auto comp1 = expr_maker.ComparisonLt(col1, expr_maker.Constant(500));
+    auto comp2 = expr_maker.ComparisonGe(col2, expr_maker.Constant(3));
+    auto predicate = expr_maker.ConjunctionAnd(comp1, comp2);
     // Build
     SeqScanPlanNode::Builder builder;
-    seq_scan = builder.SetOutputSchema(schema)
+    seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(predicate)
                    .SetIsParallelFlag(false)
                    .SetIsForUpdateFlag(false)
@@ -136,10 +138,10 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
   MultiChecker multi_checker{std::vector<OutputChecker *>{&col1_checker, &col2_checker}};
 
   // Create the execution context
-  OutputStore store{&multi_checker, seq_scan->GetOutputSchema().get()};
-  exec::OutputPrinter printer(seq_scan->GetOutputSchema().get());
-  MultiOutputCallback callack{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callack), seq_scan->GetOutputSchema().get());
+  OutputStore store{&multi_checker, seq_scan->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
 
   // Run & Check
   CompileAndRun(seq_scan.get(), exec_ctx.get());
@@ -151,16 +153,17 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
 TEST_F(CompilerTest, SimpleIndexScanTest) {
   // SELECT colA, colB FROM test_1 WHERE colA = 500;
   auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
   auto index_oid = accessor->GetIndexOid(NSOid(), "index_1");
   auto table_schema = accessor->GetSchema(table_oid);
-  std::shared_ptr<AbstractPlanNode> index_scan;
-  OutputSchemaHelper index_scan_out{0};
+  std::unique_ptr<AbstractPlanNode> index_scan;
+  OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
     // Get Table columns
-    auto col1 = ExpressionUtil::CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = ExpressionUtil::CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
-    auto const_500 = ExpressionUtil::Constant(500);
+    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto const_500 = expr_maker.Constant(500);
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     auto schema = index_scan_out.MakeSchema();
@@ -168,16 +171,17 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
     index_scan = builder.SetTableOid(table_oid).SetIndexOid(index_oid)
                   .AddIndexColum(catalog::indexkeycol_oid_t(1), const_500)
                   .SetNamespaceOid(NSOid())
-                  .SetOutputSchema(schema).Build();
+                  .SetOutputSchema(std::move(schema))
+                  .Build();
   }
   NumChecker num_checker(1);
   SingleIntComparisonChecker col1_checker(std::equal_to<int64_t>(), 0, 500);
   MultiChecker multi_checker{std::vector<OutputChecker *>{&col1_checker, &num_checker}};
   // Create the execution context
-  OutputStore store{&multi_checker, index_scan->GetOutputSchema().get()};
-  exec::OutputPrinter printer(index_scan->GetOutputSchema().get());
-  MultiOutputCallback callack{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callack), index_scan->GetOutputSchema().get());
+  OutputStore store{&multi_checker, index_scan->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
 
   // Run & Check
   CompileAndRun(index_scan.get(), exec_ctx.get());
@@ -190,22 +194,23 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
   // SELECT col2, SUM(col1) FROM test_1 WHERE col1 < 1000 GROUP BY col2;
   // Get accessor
   auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
   auto table_schema = accessor->GetSchema(table_oid);
-  std::shared_ptr<AbstractPlanNode> seq_scan;
-  OutputSchemaHelper seq_scan_out{0};
+  std::unique_ptr<AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     // Get Table columns
-    auto col1 = ExpressionUtil::CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = ExpressionUtil::CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
     // Make predicate
-    auto predicate = ExpressionUtil::ComparisonLt(col1, ExpressionUtil::Constant(1000));
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(1000));
     // Build
     SeqScanPlanNode::Builder builder;
-    seq_scan = builder.SetOutputSchema(schema)
+    seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(predicate)
                    .SetIsParallelFlag(false)
                    .SetIsForUpdateFlag(false)
@@ -214,8 +219,8 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
                    .Build();
   }
   // Make the aggregate
-  std::shared_ptr<AbstractPlanNode> agg;
-  OutputSchemaHelper agg_out{0};
+  std::unique_ptr<AbstractPlanNode> agg;
+  OutputSchemaHelper agg_out{0, &expr_maker};
   {
     // Read previous output
     auto col1 = seq_scan_out.GetOutput("col1");
@@ -223,18 +228,18 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
     // Add group by term
     agg_out.AddGroupByTerm("col2", col2);
     // Add aggregates
-    auto sum_col1 = ExpressionUtil::AggSum(col1);
-    agg_out.AddAggTerm("sum_col1", ExpressionUtil::AggSum(col1));
+    auto sum_col1 = expr_maker.AggSum(col1);
+    agg_out.AddAggTerm("sum_col1", sum_col1);
     // Make the output expressions
     agg_out.AddOutput("col2", agg_out.GetGroupByTermForOutput("col2"));
     agg_out.AddOutput("sum_col1", agg_out.GetAggTermForOutput("sum_col1"));
     auto schema = agg_out.MakeSchema();
     // Build
     AggregatePlanNode::Builder builder;
-    agg = builder.SetOutputSchema(schema)
+    agg = builder.SetOutputSchema(std::move(schema))
               .AddGroupByTerm(agg_out.GetGroupByTerm("col2"))
               .AddAggregateTerm(agg_out.GetAggTerm("col1"))
-              .AddChild(seq_scan)
+              .AddChild(std::move(seq_scan))
               .SetAggregateStrategyType(AggregateStrategyType::HASH)
               .SetHavingClausePredicate(nullptr)
               .Build();
@@ -245,37 +250,39 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
   MultiChecker multi_checker{std::vector<OutputChecker *>{&num_checker, &sum_checker}};
 
   // Compile and Run
-  OutputStore store{&multi_checker, agg->GetOutputSchema().get()};
-  exec::OutputPrinter printer(agg->GetOutputSchema().get());
-  MultiOutputCallback callack{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callack), agg->GetOutputSchema().get());
+  OutputStore store{&multi_checker, agg->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(agg->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
 
   // Run & Check
   CompileAndRun(agg.get(), exec_ctx.get());
   multi_checker.CheckCorrectness();
 }
 
+
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleAggregateHavingTest) {
   // SELECT col2, SUM(col1) FROM test_1 WHERE col1 < 1000 GROUP BY col2 HAVING col2 >= 3 AND SUM(col1) < 50000;
   // Get accessor
   auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
   auto table_schema = accessor->GetSchema(table_oid);
-  std::shared_ptr<AbstractPlanNode> seq_scan;
-  OutputSchemaHelper seq_scan_out{0};
+  std::unique_ptr<AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     // Get Table columns
-    auto col1 = ExpressionUtil::CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = ExpressionUtil::CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
     // Make predicate
-    auto predicate = ExpressionUtil::ComparisonLt(col1, ExpressionUtil::Constant(1000));
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(1000));
     // Build
     SeqScanPlanNode::Builder builder;
-    seq_scan = builder.SetOutputSchema(schema)
+    seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(predicate)
                    .SetIsParallelFlag(false)
                    .SetIsForUpdateFlag(false)
@@ -284,8 +291,8 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
                    .Build();
   }
   // Make the aggregate
-  std::shared_ptr<AbstractPlanNode> agg;
-  OutputSchemaHelper agg_out{0};
+  std::unique_ptr<AbstractPlanNode> agg;
+  OutputSchemaHelper agg_out{0, &expr_maker};
   {
     // Read previous output
     auto col1 = seq_scan_out.GetOutput("col1");
@@ -293,23 +300,23 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
     // Add group by term
     agg_out.AddGroupByTerm("col2", col2);
     // Add aggregates
-    auto sum_col1 = ExpressionUtil::AggSum(col1);
-    agg_out.AddAggTerm("sum_col1", ExpressionUtil::AggSum(col1));
+    auto sum_col1 = expr_maker.AggSum(col1);
+    agg_out.AddAggTerm("sum_col1", sum_col1);
     // Make the output expressions
     agg_out.AddOutput("col2", agg_out.GetGroupByTermForOutput("col2"));
     agg_out.AddOutput("sum_col1", agg_out.GetAggTermForOutput("sum_col1"));
     auto schema = agg_out.MakeSchema();
     // Make the having clause
-    auto having1 = ExpressionUtil::ComparisonGe(agg_out.GetGroupByTermForOutput("col2"), ExpressionUtil::Constant(3));
+    auto having1 = expr_maker.ComparisonGe(agg_out.GetGroupByTermForOutput("col2"), expr_maker.Constant(3));
     auto having2 =
-        ExpressionUtil::ComparisonLt(agg_out.GetAggTermForOutput("sum_col1"), ExpressionUtil::Constant(50000));
-    auto having = ExpressionUtil::ConjunctionAnd(having1, having2);
+        expr_maker.ComparisonLt(agg_out.GetAggTermForOutput("sum_col1"), expr_maker.Constant(50000));
+    auto having = expr_maker.ConjunctionAnd(having1, having2);
     // Build
     AggregatePlanNode::Builder builder;
-    agg = builder.SetOutputSchema(schema)
+    agg = builder.SetOutputSchema(std::move(schema))
               .AddGroupByTerm(agg_out.GetGroupByTerm("col2"))
               .AddAggregateTerm(agg_out.GetAggTerm("col1"))
-              .AddChild(seq_scan)
+              .AddChild(std::move(seq_scan))
               .SetAggregateStrategyType(AggregateStrategyType::HASH)
               .SetHavingClausePredicate(having)
               .Build();
@@ -329,15 +336,16 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
   GenericChecker checker(row_checker, correcteness_fn);
 
   // Compile and Run
-  OutputStore store{&checker, agg->GetOutputSchema().get()};
-  exec::OutputPrinter printer(agg->GetOutputSchema().get());
-  MultiOutputCallback callack{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callack), agg->GetOutputSchema().get());
+  OutputStore store{&checker, agg->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(agg->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
 
   // Run & Check
   CompileAndRun(agg.get(), exec_ctx.get());
   checker.CheckCorrectness();
 }
+
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleHashJoinTest) {
@@ -346,25 +354,26 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
   // TODO(Amadou): Simple join tests are very similar. Some refactoring is possible.
   // Get accessor
   auto accessor = MakeAccessor();
-  auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
+   ExpressionMaker expr_maker;
+ auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
   auto table_oid2 = accessor->GetTableOid(NSOid(), "test_2");
   auto table_schema1 = accessor->GetSchema(table_oid1);
   auto table_schema2 = accessor->GetSchema(table_oid2);
 
-  std::shared_ptr<AbstractPlanNode> seq_scan1;
-  OutputSchemaHelper seq_scan_out1{0};
+  std::unique_ptr<AbstractPlanNode> seq_scan1;
+  OutputSchemaHelper seq_scan_out1{0, &expr_maker};
   {
     // Get Table columns
-    auto col1 = ExpressionUtil::CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = ExpressionUtil::CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
     seq_scan_out1.AddOutput("col1", col1);
     seq_scan_out1.AddOutput("col2", col2);
     auto schema = seq_scan_out1.MakeSchema();
     // Make predicate
-    auto predicate = ExpressionUtil::ComparisonLt(col1, ExpressionUtil::Constant(1000));
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(1000));
     // Build
     SeqScanPlanNode::Builder builder;
-    seq_scan1 = builder.SetOutputSchema(schema)
+    seq_scan1 = builder.SetOutputSchema(std::move(schema))
                     .SetScanPredicate(predicate)
                     .SetIsParallelFlag(false)
                     .SetIsForUpdateFlag(false)
@@ -373,19 +382,19 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
                     .Build();
   }
   // Make the second seq scan
-  std::shared_ptr<AbstractPlanNode> seq_scan2;
-  OutputSchemaHelper seq_scan_out2{1};
+  std::unique_ptr<AbstractPlanNode> seq_scan2;
+  OutputSchemaHelper seq_scan_out2{1, &expr_maker};
   {
     // Get Table columns
-    auto col1 = ExpressionUtil::CVE(table_schema2.GetColumn("col1").Oid(), type::TypeId::SMALLINT);
-    auto col2 = ExpressionUtil::CVE(table_schema2.GetColumn("col2").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(table_schema2.GetColumn("col1").Oid(), type::TypeId::SMALLINT);
+    auto col2 = expr_maker.CVE(table_schema2.GetColumn("col2").Oid(), type::TypeId::INTEGER);
     seq_scan_out2.AddOutput("col1", col1);
     seq_scan_out2.AddOutput("col2", col2);
     auto schema = seq_scan_out2.MakeSchema();
-    auto predicate = ExpressionUtil::ComparisonLt(col1, ExpressionUtil::Constant(80));
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(80));
     // Build
     SeqScanPlanNode::Builder builder;
-    seq_scan2 = builder.SetOutputSchema(schema)
+    seq_scan2 = builder.SetOutputSchema(std::move(schema))
                     .SetScanPredicate(predicate)
                     .SetIsParallelFlag(false)
                     .SetIsForUpdateFlag(false)
@@ -394,17 +403,16 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
                     .Build();
   }
   // Make hash join
-  std::shared_ptr<AbstractPlanNode> hash_join;
-  OutputSchemaHelper hash_join_out{0};
+  std::unique_ptr<AbstractPlanNode> hash_join;
+  OutputSchemaHelper hash_join_out{0, &expr_maker};
   {
     // t1.col1, and t1.col2
     auto t1_col1 = seq_scan_out1.GetOutput("col1");
-    auto t1_col2 = seq_scan_out1.GetOutput("col2");
     // t2.col1 and t2.col2
     auto t2_col1 = seq_scan_out2.GetOutput("col1");
     auto t2_col2 = seq_scan_out2.GetOutput("col2");
     // t1.col2 + t2.col2
-    auto sum = ExpressionUtil::OpSum(t1_col1, t2_col2);
+    auto sum = expr_maker.OpSum(t1_col1, t2_col2);
     // Output Schema
     hash_join_out.AddOutput("t1.col1", t1_col1);
     hash_join_out.AddOutput("t2.col1", t2_col1);
@@ -412,12 +420,12 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
     hash_join_out.AddOutput("sum", sum);
     auto schema = hash_join_out.MakeSchema();
     // Predicate
-    auto predicate = ExpressionUtil::ComparisonEq(t1_col1, t2_col1);
+    auto predicate = expr_maker.ComparisonEq(t1_col1, t2_col1);
     // Build
     HashJoinPlanNode::Builder builder;
-    hash_join = builder.AddChild(seq_scan1)
-                    .AddChild(seq_scan2)
-                    .SetOutputSchema(schema)
+    hash_join = builder.AddChild(std::move(seq_scan1))
+                    .AddChild(std::move(seq_scan2))
+                    .SetOutputSchema(std::move(schema))
                     .AddLeftHashKey(t1_col1)
                     .AddRightHashKey(t2_col1)
                     .SetJoinType(LogicalJoinType::INNER)
@@ -451,37 +459,39 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
 
   GenericChecker checker(row_checker, correcteness_fn);
 
-  OutputStore store{&checker, hash_join->GetOutputSchema().get()};
-  exec::OutputPrinter printer(hash_join->GetOutputSchema().get());
-  MultiOutputCallback callack{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callack), hash_join->GetOutputSchema().get());
+  OutputStore store{&checker, hash_join->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(hash_join->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), hash_join->GetOutputSchema().Get());
 
   // Run & Check
   CompileAndRun(hash_join.get(), exec_ctx.get());
   checker.CheckCorrectness();
 }
 
+
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleSortTest) {
   // SELECT col1, col2, col1 + col2 FROM test_1 WHERE col1 < 500 ORDER BY col2 ASC, col1 - col2 DESC
   // Get accessor
   auto accessor = MakeAccessor();
-  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+    ExpressionMaker expr_maker;
+auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
   auto table_schema = accessor->GetSchema(table_oid);
-  std::shared_ptr<AbstractPlanNode> seq_scan;
-  OutputSchemaHelper seq_scan_out{0};
+  std::unique_ptr<AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     // Get Table columns
-    auto col1 = ExpressionUtil::CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = ExpressionUtil::CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
     // Make predicate
-    auto predicate = ExpressionUtil::ComparisonLt(col1, ExpressionUtil::Constant(500));
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(500));
     // Build
     SeqScanPlanNode::Builder builder;
-    seq_scan = builder.SetOutputSchema(schema)
+    seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(predicate)
                    .SetIsParallelFlag(false)
                    .SetIsForUpdateFlag(false)
@@ -490,27 +500,27 @@ TEST_F(CompilerTest, SimpleSortTest) {
                    .Build();
   }
   // Order By
-  std::shared_ptr<AbstractPlanNode> order_by;
-  OutputSchemaHelper order_by_out{0};
+  std::unique_ptr<AbstractPlanNode> order_by;
+  OutputSchemaHelper order_by_out{0, &expr_maker};
   {
     // Output Colums col1, col2, col1 + col2
     auto col1 = seq_scan_out.GetOutput("col1");
     auto col2 = seq_scan_out.GetOutput("col2");
-    auto sum = ExpressionUtil::OpSum(col1, col2);
+    auto sum = expr_maker.OpSum(col1, col2);
     order_by_out.AddOutput("col1", col1);
     order_by_out.AddOutput("col2", col2);
     order_by_out.AddOutput("sum", sum);
     auto schema = order_by_out.MakeSchema();
     // Order By Clause
-    SortKey clause1{col2, OrderByOrderingType::ASC};
-    auto diff = ExpressionUtil::OpMin(col1, col2);
-    SortKey clause2{diff, OrderByOrderingType::DESC};
+    SortKey clause1{col2, optimizer::OrderByOrderingType::ASC};
+    auto diff = expr_maker.OpMin(col1, col2);
+    SortKey clause2{diff, optimizer::OrderByOrderingType::DESC};
     // Build
     OrderByPlanNode::Builder builder;
-    order_by = builder.SetOutputSchema(schema)
-                   .AddChild(seq_scan)
-                   .AddSortKey(clause1.first, clause1.second)
-                   .AddSortKey(clause2.first, clause2.second)
+    order_by = builder.SetOutputSchema(std::move(schema))
+                   .AddChild(std::move(seq_scan))
+                   .AddSortKey(clause1.Expr(), clause1.SortType())
+                   .AddSortKey(clause2.Expr(), clause2.SortType())
                    .Build();
   }
   // Checkers:
@@ -545,10 +555,10 @@ TEST_F(CompilerTest, SimpleSortTest) {
   GenericChecker checker(row_checker, correcteness_fn);
 
   // Create exec ctx
-  OutputStore store{&checker, order_by->GetOutputSchema().get()};
-  exec::OutputPrinter printer(order_by->GetOutputSchema().get());
-  MultiOutputCallback callack{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callack), order_by->GetOutputSchema().get());
+  OutputStore store{&checker, order_by->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(order_by->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), order_by->GetOutputSchema().Get());
 
   // Run & Check
   CompileAndRun(order_by.get(), exec_ctx.get());
@@ -561,25 +571,26 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
   // WHERE t1.col1 < 500 AND t2.col1 < 80
   // Get accessor
   auto accessor = MakeAccessor();
-  auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
+    ExpressionMaker expr_maker;
+auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
   auto table_oid2 = accessor->GetTableOid(NSOid(), "test_2");
   auto table_schema1 = accessor->GetSchema(table_oid1);
   auto table_schema2 = accessor->GetSchema(table_oid2);
 
-  std::shared_ptr<AbstractPlanNode> seq_scan1;
-  OutputSchemaHelper seq_scan_out1{0};
+  std::unique_ptr<AbstractPlanNode> seq_scan1;
+  OutputSchemaHelper seq_scan_out1{0, &expr_maker};
   {
     // Get Table columns
-    auto col1 = ExpressionUtil::CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = ExpressionUtil::CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
     seq_scan_out1.AddOutput("col1", col1);
     seq_scan_out1.AddOutput("col2", col2);
     auto schema = seq_scan_out1.MakeSchema();
     // Make predicate
-    auto predicate = ExpressionUtil::ComparisonLt(col1, ExpressionUtil::Constant(1000));
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(1000));
     // Build
     SeqScanPlanNode::Builder builder;
-    seq_scan1 = builder.SetOutputSchema(schema)
+    seq_scan1 = builder.SetOutputSchema(std::move(schema))
                     .SetScanPredicate(predicate)
                     .SetIsParallelFlag(false)
                     .SetIsForUpdateFlag(false)
@@ -588,19 +599,19 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
                     .Build();
   }
   // Make the second seq scan
-  std::shared_ptr<AbstractPlanNode> seq_scan2;
-  OutputSchemaHelper seq_scan_out2{1};
+  std::unique_ptr<AbstractPlanNode> seq_scan2;
+  OutputSchemaHelper seq_scan_out2{1, &expr_maker};
   {
     // Get Table columns
-    auto col1 = ExpressionUtil::CVE(table_schema2.GetColumn("col1").Oid(), type::TypeId::SMALLINT);
-    auto col2 = ExpressionUtil::CVE(table_schema2.GetColumn("col2").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(table_schema2.GetColumn("col1").Oid(), type::TypeId::SMALLINT);
+    auto col2 = expr_maker.CVE(table_schema2.GetColumn("col2").Oid(), type::TypeId::INTEGER);
     seq_scan_out2.AddOutput("col1", col1);
     seq_scan_out2.AddOutput("col2", col2);
     auto schema = seq_scan_out2.MakeSchema();
-    auto predicate = ExpressionUtil::ComparisonLt(col1, ExpressionUtil::Constant(80));
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(80));
     // Build
     SeqScanPlanNode::Builder builder;
-    seq_scan2 = builder.SetOutputSchema(schema)
+    seq_scan2 = builder.SetOutputSchema(std::move(schema))
                     .SetScanPredicate(predicate)
                     .SetIsParallelFlag(false)
                     .SetIsForUpdateFlag(false)
@@ -609,17 +620,16 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
                     .Build();
   }
   // Make nested loop join
-  std::shared_ptr<AbstractPlanNode> nl_join;
-  OutputSchemaHelper nl_join_out{0};
+  std::unique_ptr<AbstractPlanNode> nl_join;
+  OutputSchemaHelper nl_join_out{0, &expr_maker};
   {
     // t1.col1, and t1.col2
     auto t1_col1 = seq_scan_out1.GetOutput("col1");
-    auto t1_col2 = seq_scan_out1.GetOutput("col2");
     // t2.col1 and t2.col2
     auto t2_col1 = seq_scan_out2.GetOutput("col1");
     auto t2_col2 = seq_scan_out2.GetOutput("col2");
     // t1.col2 + t2.col2
-    auto sum = ExpressionUtil::OpSum(t1_col1, t2_col2);
+    auto sum = expr_maker.OpSum(t1_col1, t2_col2);
     // Output Schema
     nl_join_out.AddOutput("t1.col1", t1_col1);
     nl_join_out.AddOutput("t2.col1", t2_col1);
@@ -627,13 +637,13 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
     nl_join_out.AddOutput("sum", sum);
     auto schema = nl_join_out.MakeSchema();
     // Predicate
-    auto predicate = ExpressionUtil::ComparisonEq(t1_col1, t2_col1);
+    auto predicate = expr_maker.ComparisonEq(t1_col1, t2_col1);
     // Build
 
     NestedLoopJoinPlanNode::Builder builder;
-    nl_join = builder.AddChild(seq_scan1)
-                  .AddChild(seq_scan2)
-                  .SetOutputSchema(schema)
+    nl_join = builder.AddChild(std::move(seq_scan1))
+                  .AddChild(std::move(seq_scan2))
+                  .SetOutputSchema(std::move(schema))
                   .SetJoinType(LogicalJoinType::INNER)
                   .SetJoinPredicate(predicate)
                   .Build();
@@ -665,10 +675,10 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
   GenericChecker checker(row_checker, correcteness_fn);
 
   // Make Exec Ctx
-  OutputStore store{&checker, nl_join->GetOutputSchema().get()};
-  exec::OutputPrinter printer(nl_join->GetOutputSchema().get());
-  MultiOutputCallback callack{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callack), nl_join->GetOutputSchema().get());
+  OutputStore store{&checker, nl_join->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(nl_join->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), nl_join->GetOutputSchema().Get());
 
   // Run & Check
   CompileAndRun(nl_join.get(), exec_ctx.get());
@@ -681,24 +691,25 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
   // WHERE t1.col1 < 500 AND t2.col1 < 80
   // Get accessor
   auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
 
   // Make the seq scan: Here test_2 is the outer table
-  std::shared_ptr<AbstractPlanNode> seq_scan;
-  OutputSchemaHelper seq_scan_out{0};
+  std::unique_ptr<AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     auto table_oid2 = accessor->GetTableOid(NSOid(), "test_2");
     auto table_schema2 = accessor->GetSchema(table_oid2);
     // Get Table columns
-    auto col1 = ExpressionUtil::CVE(table_schema2.GetColumn("col1").Oid(), type::TypeId::SMALLINT);
-    auto col2 = ExpressionUtil::CVE(table_schema2.GetColumn("col2").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(table_schema2.GetColumn("col1").Oid(), type::TypeId::SMALLINT);
+    auto col2 = expr_maker.CVE(table_schema2.GetColumn("col2").Oid(), type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
     // Make predicate
-    auto predicate = ExpressionUtil::ComparisonLt(col1, ExpressionUtil::Constant(80));
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(80));
     // Build
     SeqScanPlanNode::Builder builder;
-    seq_scan = builder.SetOutputSchema(schema)
+    seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(predicate)
                    .SetIsParallelFlag(false)
                    .SetIsForUpdateFlag(false)
@@ -707,21 +718,20 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
                    .Build();
   }
   // Make index join
-  std::shared_ptr<AbstractPlanNode> index_join;
-  OutputSchemaHelper index_join_out{0};
+  std::unique_ptr<AbstractPlanNode> index_join;
+  OutputSchemaHelper index_join_out{0, &expr_maker};
   {
     // Retrieve table and index
     auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
     auto table_schema1 = accessor->GetSchema(table_oid1);
     auto index_oid1 = accessor->GetIndexOid(NSOid(), "index_1");
     // t1.col1, and t1.col2
-    auto t1_col1 = ExpressionUtil::CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto t1_col2 = ExpressionUtil::CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto t1_col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
     // t2.col1, and t2.col2
     auto t2_col1 = seq_scan_out.GetOutput("col1");
     auto t2_col2 = seq_scan_out.GetOutput("col2");
     // t1.col2 + t2.col2
-    auto sum = ExpressionUtil::OpSum(t1_col1, t2_col2);
+    auto sum = expr_maker.OpSum(t1_col1, t2_col2);
     // Output Schema
     index_join_out.AddOutput("t1.col1", t1_col1);
     index_join_out.AddOutput("t2.col1", t2_col1);
@@ -729,14 +739,14 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
     index_join_out.AddOutput("sum", sum);
     auto schema = index_join_out.MakeSchema();
     // Predicate
-    auto predicate = ExpressionUtil::ComparisonEq(t1_col1, t2_col1);
+    auto predicate = expr_maker.ComparisonEq(t1_col1, t2_col1);
     // Build
     IndexJoinPlanNode::Builder builder;
-    index_join = builder.AddChild(seq_scan)
+    index_join = builder.AddChild(std::move(seq_scan))
                      .SetIndexOid(index_oid1)
                      .SetTableOid(table_oid1)
                      .AddIndexColum(catalog::indexkeycol_oid_t(1), t2_col1)
-                     .SetOutputSchema(schema)
+                     .SetOutputSchema(std::move(schema))
                      .SetJoinType(LogicalJoinType::INNER)
                      .SetJoinPredicate(predicate)
                      .Build();
@@ -768,10 +778,10 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
   GenericChecker checker(row_checker, correcteness_fn);
 
   // Make Exec Ctx
-  OutputStore store{&checker, index_join->GetOutputSchema().get()};
-  exec::OutputPrinter printer(index_join->GetOutputSchema().get());
+  OutputStore store{&checker, index_join->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(index_join->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), index_join->GetOutputSchema().get());
+  auto exec_ctx = MakeExecCtx(std::move(callback), index_join->GetOutputSchema().Get());
 
   // Run & Check
   CompileAndRun(index_join.get(), exec_ctx.get());
@@ -783,22 +793,23 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
   // SELECT t1.col1, t2.col1, t2.col2, t1.col2 + t2.col2 FROM test_1 AS t1 INNER JOIN test_2 AS t2 ON t1.col1=t2.col1
   // AND t1.col2 = t2.col2 Get accessor
   auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
 
   // Make the seq scan: Here test_1 is the outer table
-  std::shared_ptr<AbstractPlanNode> seq_scan;
-  OutputSchemaHelper seq_scan_out{0};
+  std::unique_ptr<AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
     auto table_schema1 = accessor->GetSchema(table_oid1);
     // Get Table columns
-    auto col1 = ExpressionUtil::CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = ExpressionUtil::CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
     // Build
     SeqScanPlanNode::Builder builder;
-    seq_scan = builder.SetOutputSchema(schema)
+    seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(nullptr)
                    .SetIsParallelFlag(false)
                    .SetIsForUpdateFlag(false)
@@ -807,21 +818,21 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
                    .Build();
   }
   // Make index join
-  std::shared_ptr<AbstractPlanNode> index_join;
-  OutputSchemaHelper index_join_out{0};
+  std::unique_ptr<AbstractPlanNode> index_join;
+  OutputSchemaHelper index_join_out{0, &expr_maker};
   {
     // Retrieve table and index
     auto table_oid2 = accessor->GetTableOid(NSOid(), "test_2");
     auto table_schema2 = accessor->GetSchema(table_oid2);
     auto index_oid2 = accessor->GetIndexOid(NSOid(), "index_2_multi");
     // t2.col1, and t2.col2
-    auto t2_col1 = ExpressionUtil::CVE(table_schema2.GetColumn("col1").Oid(), type::TypeId::INTEGER);
-    auto t2_col2 = ExpressionUtil::CVE(table_schema2.GetColumn("col2").Oid(), type::TypeId::INTEGER);
+    auto t2_col1 = expr_maker.CVE(table_schema2.GetColumn("col1").Oid(), type::TypeId::INTEGER);
+    auto t2_col2 = expr_maker.CVE(table_schema2.GetColumn("col2").Oid(), type::TypeId::INTEGER);
     // t1.col1, and t1.col2
     auto t1_col1 = seq_scan_out.GetOutput("col1");
     auto t1_col2 = seq_scan_out.GetOutput("col2");
     // t1.col2 + t2.col2
-    auto sum = ExpressionUtil::OpSum(t1_col1, t2_col2);
+    auto sum = expr_maker.OpSum(t1_col1, t2_col2);
     // Output Schema
     index_join_out.AddOutput("t1.col1", t1_col1);
     index_join_out.AddOutput("t2.col1", t2_col1);
@@ -830,12 +841,12 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
     auto schema = index_join_out.MakeSchema();
     // Build
     IndexJoinPlanNode::Builder builder;
-    index_join = builder.AddChild(seq_scan)
+    index_join = builder.AddChild(std::move(seq_scan))
                      .SetIndexOid(index_oid2)
                      .SetTableOid(table_oid2)
                      .AddIndexColum(catalog::indexkeycol_oid_t(1), t1_col1)
                      .AddIndexColum(catalog::indexkeycol_oid_t(2), t1_col2)
-                     .SetOutputSchema(schema)
+                     .SetOutputSchema(std::move(schema))
                      .SetJoinType(LogicalJoinType::INNER)
                      .SetJoinPredicate(nullptr)
                      .Build();
@@ -864,10 +875,10 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
   GenericChecker checker(row_checker, correcteness_fn);
 
   // Make Exec Ctx
-  OutputStore store{&checker, index_join->GetOutputSchema().get()};
-  exec::OutputPrinter printer(index_join->GetOutputSchema().get());
+  OutputStore store{&checker, index_join->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(index_join->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), index_join->GetOutputSchema().get());
+  auto exec_ctx = MakeExecCtx(std::move(callback), index_join->GetOutputSchema().Get());
 
   // Run & Check
   CompileAndRun(index_join.get(), exec_ctx.get());
@@ -1125,6 +1136,7 @@ TEST_F(CompilerTest, TPCHQ1Test) {
   // TODO: This should be in the benchmarks
   // Find a cleaner way to create these tables
   auto exec_ctx = MakeExecCtx();
+  ExpressionMaker expr_maker;
   sql::TableGenerator generator(exec_ctx.get());
   generator.GenerateTableFromFile("../sample_tpl/tables/lineitem.schema", "../sample_tpl/tables/lineitem.data");
 
@@ -1132,17 +1144,17 @@ TEST_F(CompilerTest, TPCHQ1Test) {
   auto accessor = MakeAccessor();
   auto * catalog_table = accessor->GetUserTable("lineitem");
   // Scan the table
-  std::shared_ptr<AbstractPlanNode> seq_scan;
-  OutputSchemaHelper seq_scan_out{0};
+  std::unique_ptr<AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     // Read all needed columns
-    auto l_returnflag = ExpressionUtil::TVE(0, catalog_table->ColNumToOffset(8), terrier::type::TypeId::VARCHAR);
-    auto l_linestatus = ExpressionUtil::TVE(0, catalog_table->ColNumToOffset(9), terrier::type::TypeId::VARCHAR);
-    auto l_extendedprice = ExpressionUtil::TVE(0, catalog_table->ColNumToOffset(5), terrier::type::TypeId::DECIMAL);
-    auto l_discount = ExpressionUtil::TVE(0, catalog_table->ColNumToOffset(6), terrier::type::TypeId::DECIMAL);
-    auto l_tax = ExpressionUtil::TVE(0, catalog_table->ColNumToOffset(7), terrier::type::TypeId::DECIMAL);
-    auto l_quantity = ExpressionUtil::TVE(0, catalog_table->ColNumToOffset(4), terrier::type::TypeId::DECIMAL);
-    auto l_shipdate = ExpressionUtil::TVE(0, catalog_table->ColNumToOffset(10), terrier::type::TypeId::DATE);
+    auto l_returnflag = expr_maker.TVE(0, catalog_table->ColNumToOffset(8), terrier::type::TypeId::VARCHAR);
+    auto l_linestatus = expr_maker.TVE(0, catalog_table->ColNumToOffset(9), terrier::type::TypeId::VARCHAR);
+    auto l_extendedprice = expr_maker.TVE(0, catalog_table->ColNumToOffset(5), terrier::type::TypeId::DECIMAL);
+    auto l_discount = expr_maker.TVE(0, catalog_table->ColNumToOffset(6), terrier::type::TypeId::DECIMAL);
+    auto l_tax = expr_maker.TVE(0, catalog_table->ColNumToOffset(7), terrier::type::TypeId::DECIMAL);
+    auto l_quantity = expr_maker.TVE(0, catalog_table->ColNumToOffset(4), terrier::type::TypeId::DECIMAL);
+    auto l_shipdate = expr_maker.TVE(0, catalog_table->ColNumToOffset(10), terrier::type::TypeId::DATE);
     // Make the output schema
     seq_scan_out.AddOutput("l_returnflag", l_returnflag);
     seq_scan_out.AddOutput("l_linestatus", l_linestatus);
@@ -1155,13 +1167,13 @@ TEST_F(CompilerTest, TPCHQ1Test) {
     // Make the predicate
     seq_scan_out.AddOutput("l_shipdate", l_shipdate);
     auto date_val = (date::sys_days(date::year(1998)/12/01)) - date::days(90);
-    auto date_const = ExpressionUtil::Constant(date::year_month_day(date_val));
-    auto predicate = ExpressionUtil::ComparisonLt(l_shipdate, date_const);
+    auto date_const = expr_maker.Constant(date::year_month_day(date_val));
+    auto predicate = expr_maker.ComparisonLt(l_shipdate, date_const);
 
     // Build
     SeqScanPlanNode::Builder builder;
     seq_scan =
-        builder.SetOutputSchema(schema)
+        builder.SetOutputSchema(std::move(schema))
             .SetScanPredicate(nullptr)
             .SetIsParallelFlag(false)
             .SetIsForUpdateFlag(false)
@@ -1171,8 +1183,8 @@ TEST_F(CompilerTest, TPCHQ1Test) {
             .Build();
   }
   // Make the aggregate
-  std::shared_ptr<AbstractPlanNode> agg;
-  OutputSchemaHelper agg_out{0};
+  std::unique_ptr<AbstractPlanNode> agg;
+  OutputSchemaHelper agg_out{0, &expr_maker};
   {
     // Read previous layer's output
     auto l_returnflag = seq_scan_out.GetOutput("l_returnflag");
@@ -1182,17 +1194,17 @@ TEST_F(CompilerTest, TPCHQ1Test) {
     auto l_discount = seq_scan_out.GetOutput("l_discount");
     auto l_tax = seq_scan_out.GetOutput("l_tax");
     // Make the aggregate expressions
-    auto sum_qty = ExpressionUtil::AggSum(l_quantity);
-    auto sum_base_price = ExpressionUtil::AggSum(l_extendedprice);
-    auto one_const = ExpressionUtil::Constant(1.0);
-    auto disc_price = ExpressionUtil::OpMul(l_extendedprice, ExpressionUtil::OpSum(one_const, l_discount));
-    auto sum_disc_price = ExpressionUtil::AggSum(disc_price);
-    auto charge = ExpressionUtil::OpMul(disc_price, ExpressionUtil::OpSum(one_const, l_tax));
-    auto sum_charge = ExpressionUtil::AggSum(charge);
-    auto avg_qty = ExpressionUtil::AggAvg(l_quantity);
-    auto avg_price = ExpressionUtil::AggAvg(l_extendedprice);
-    auto avg_disc = ExpressionUtil::AggAvg(l_discount);
-    auto count_order = ExpressionUtil::AggCountStar();
+    auto sum_qty = expr_maker.AggSum(l_quantity);
+    auto sum_base_price = expr_maker.AggSum(l_extendedprice);
+    auto one_const = expr_maker.Constant(1.0);
+    auto disc_price = expr_maker.OpMul(l_extendedprice, expr_maker.OpSum(one_const, l_discount));
+    auto sum_disc_price = expr_maker.AggSum(disc_price);
+    auto charge = expr_maker.OpMul(disc_price, expr_maker.OpSum(one_const, l_tax));
+    auto sum_charge = expr_maker.AggSum(charge);
+    auto avg_qty = expr_maker.AggAvg(l_quantity);
+    auto avg_price = expr_maker.AggAvg(l_extendedprice);
+    auto avg_disc = expr_maker.AggAvg(l_discount);
+    auto count_order = expr_maker.AggCountStar();
     // Add them to the helper.
     agg_out.AddGroupByTerm("l_returnflag", l_returnflag);
     agg_out.AddGroupByTerm("l_linestatus", l_linestatus);
@@ -1219,7 +1231,7 @@ TEST_F(CompilerTest, TPCHQ1Test) {
     // Build
     AggregatePlanNode::Builder builder;
     agg =
-        builder.SetOutputSchema(schema)
+        builder.SetOutputSchema(std::move(schema))
             .AddGroupByTerm(l_returnflag)
             .AddGroupByTerm(l_linestatus)
             .AddAggregateTerm(sum_qty)
@@ -1230,7 +1242,7 @@ TEST_F(CompilerTest, TPCHQ1Test) {
             .AddAggregateTerm(avg_price)
             .AddAggregateTerm(avg_disc)
             .AddAggregateTerm(count_order)
-            .AddChild(seq_scan)
+            .AddChild(std::move(seq_scan))
             .SetAggregateStrategyType(AggregateStrategyType::HASH)
             .SetHavingClausePredicate(nullptr)
             .Build();
@@ -1241,10 +1253,10 @@ TEST_F(CompilerTest, TPCHQ1Test) {
   RowChecker row_checker;
   GenericChecker checker(row_checker, correcteness_fn);
   // Make Exec Ctx
-  OutputStore store{&checker, agg->GetOutputSchema().get()};
-  exec::OutputPrinter printer(agg->GetOutputSchema().get());
-  MultiOutputCallback callack{std::vector<exec::OutputCallback>{store, printer}};
-  exec_ctx = MakeExecCtx(std::move(callack), agg->GetOutputSchema().get());
+  OutputStore store{&checker, agg->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(agg->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
 
   // Run & Check
   CompileAndRun(agg.get(), exec_ctx.get());

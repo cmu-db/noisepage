@@ -1,4 +1,5 @@
 #pragma once
+#include <transaction/timestamp_manager.h>
 #include "storage/data_table.h"
 #include "storage/projected_row.h"
 #include "transaction/transaction_defs.h"
@@ -68,6 +69,7 @@ class LogRecord {
   }
 
  private:
+  friend class transaction::TransactionContext;
   /* Header common to all log records */
   LogRecordType type_;
   uint32_t size_;
@@ -277,23 +279,29 @@ class CommitRecord {
    * @param head pointer location to initialize, this is also the returned address (reinterpreted)
    * @param txn_begin begin timestamp of the transaction that generated this log record
    * @param txn_commit the commit timestamp of the transaction that generated this log record
-   * @param callback function pointer of the callback to invoke when commit is
-   * @param callback_arg a void * argument that can be passed to the callback function when invoked
+   * @param commit_callback function pointer of the callback to invoke when commit is
+   * @param commit_callback_arg a void * argument that can be passed to the callback function when invoked
+   * @param oldest_active_txn start timestamp of the oldest active txn at the time of this commit
    * @param is_read_only indicates whether the transaction generating this log record is read-only or not
    * @param txn pointer to the committing transaction
+   * @param timestamp_manager pointer to timestamp manager who provided timestamp to txn. Used to notify of
+   * serialization
    * @return pointer to the initialized log record, always equal in value to the given head
    */
   // TODO(Tianyu): txn should contain a lot of the information here. Maybe we can simplify the function.
   // Note that however when reading log records back in we will not have a proper transaction.
   static LogRecord *Initialize(byte *const head, const transaction::timestamp_t txn_begin,
-                               const transaction::timestamp_t txn_commit, transaction::callback_fn callback,
-                               void *callback_arg, const bool is_read_only,
-                               transaction::TransactionContext *const txn) {
+                               const transaction::timestamp_t txn_commit, transaction::callback_fn commit_callback,
+                               void *commit_callback_arg, const transaction::timestamp_t oldest_active_txn,
+                               const bool is_read_only, transaction::TransactionContext *const txn,
+                               transaction::TimestampManager *const timestamp_manager) {
     auto *result = LogRecord::InitializeHeader(head, LogRecordType::COMMIT, Size(), txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<CommitRecord>();
     body->txn_commit_ = txn_commit;
-    body->callback_ = callback;
-    body->callback_arg_ = callback_arg;
+    body->commit_callback_ = commit_callback;
+    body->commit_callback_arg_ = commit_callback_arg;
+    body->oldest_active_txn_ = oldest_active_txn;
+    body->timestamp_manager_ = timestamp_manager;
     body->txn_ = txn;
     body->is_read_only_ = is_read_only;
     return result;
@@ -305,9 +313,19 @@ class CommitRecord {
   transaction::timestamp_t CommitTime() const { return txn_commit_; }
 
   /**
-   * @return function pointer of the transaction callback. Not necessarily populated if read back in from disk.
+   * @return the start time of the oldest active transaction at the time that this txn committed
    */
-  transaction::callback_fn Callback() const { return callback_; }
+  transaction::timestamp_t OldestActiveTxn() const { return oldest_active_txn_; }
+
+  /**
+   * @return function pointer of the transaction commit callback. Not necessarily populated if read back in from disk.
+   */
+  transaction::callback_fn CommitCallback() const { return commit_callback_; }
+
+  /**
+   * @return pointer to timestamp manager who manages committing txn
+   */
+  transaction::TimestampManager *TimestampManager() const { return timestamp_manager_; }
 
   /**
    * @return pointer to the committing transaction.
@@ -317,7 +335,7 @@ class CommitRecord {
   /**
    * @return argument to the transaction callback
    */
-  void *CallbackArg() const { return callback_arg_; }
+  void *CommitCallbackArg() const { return commit_callback_arg_; }
 
   /**
    * @return true if and only if the transaction generating this commit record was read-only
@@ -326,11 +344,13 @@ class CommitRecord {
 
  private:
   transaction::timestamp_t txn_commit_;
-  transaction::callback_fn callback_;
-  void *callback_arg_;
+  transaction::callback_fn commit_callback_;
+  void *commit_callback_arg_;
+  transaction::timestamp_t oldest_active_txn_;
   // TODO(TIanyu): Can replace the other arguments
   // More specifically, commit timestamp and read_only can be inferred from looking inside the transaction context
   transaction::TransactionContext *txn_;
+  transaction::TimestampManager *timestamp_manager_;
   bool is_read_only_;
 };
 
@@ -360,12 +380,16 @@ class AbortRecord {
    * @param head pointer location to initialize, this is also the returned address (reinterpreted)
    * @param txn_begin begin timestamp of the transaction that generated this log record
    * @param txn transaction that is aborted
+   * @param timestamp_manager pointer to timestamp manager who provided timestamp to txn. Used to notify of
+   * serialization
    * @return pointer to the initialized log record, always equal in value to the given head
    */
   static LogRecord *Initialize(byte *const head, const transaction::timestamp_t txn_begin,
-                               transaction::TransactionContext *txn) {
+                               transaction::TransactionContext *txn,
+                               transaction::TimestampManager *const timestamp_manager) {
     auto *result = LogRecord::InitializeHeader(head, LogRecordType::ABORT, Size(), txn_begin);
     auto *body = result->GetUnderlyingRecordBodyAs<AbortRecord>();
+    body->timestamp_manager_ = timestamp_manager;
     body->txn_ = txn;
     return result;
   }
@@ -375,7 +399,13 @@ class AbortRecord {
    */
   transaction::TransactionContext *Txn() const { return txn_; }
 
+  /**
+   * @return pointer to timestamp manager who manages aborting txn
+   */
+  transaction::TimestampManager *TimestampManager() const { return timestamp_manager_; }
+
  private:
+  transaction::TimestampManager *timestamp_manager_;
   transaction::TransactionContext *txn_;
 };
 }  // namespace terrier::storage

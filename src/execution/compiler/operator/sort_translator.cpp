@@ -116,13 +116,13 @@ void SortBottomTranslator::GenComparisons(FunctionBuilder *builder) {
   int32_t ret_value;
   uint32_t attr_idx = 0;
   for (const auto &order : op_->GetSortKeys()) {
-    if (order.second == terrier::planner::OrderByOrderingType::ASC) {
+    if (order.SortType() == optimizer::OrderByOrderingType::ASC) {
       ret_value = -1;
     } else {
       ret_value = 1;
     }
     std::unique_ptr<ExpressionTranslator> key_translator =
-        TranslatorFactory::CreateExpressionTranslator(order.first.get(), codegen_);
+        TranslatorFactory::CreateExpressionTranslator(order.Expr().Get(), codegen_);
     for (const auto tok : {parsing::Token::Type::LESS, parsing::Token::Type::GREATER}) {
       // Get lhs.col_i
       current_row_ = CurrentRow::Lhs;

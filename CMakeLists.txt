@@ -165,18 +165,6 @@ enable_testing()
 
 include(ThirdpartyToolchain)
 
-# Add common flags
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_COMMON_FLAGS}")
-
-# For any C code, use the same flags.
-set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS}")
-
-# Remove --std=c++17 to avoid errors from C compilers
-string(REPLACE "-std=c++17" "" CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
-
-# Add C++-only flags, like -std=c++17
-set(CMAKE_CXX_FLAGS "${CXX_ONLY_FLAGS} ${CMAKE_CXX_FLAGS}")
-
 # ASAN / TSAN / UBSAN
 include(san-config)
 
@@ -193,11 +181,24 @@ if (TERRIER_GENERATE_COVERAGE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
 endif ()
 
+# Add common flags
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_COMMON_FLAGS}")
+
+# For any C code, use the same flags.
+set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS}")
+
+# Remove --std=c++17 to avoid errors from C compilers
+string(REPLACE "-std=c++17" "" CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
+
+# Add C++-only flags, like -std=c++17
+set(CMAKE_CXX_FLAGS "${CXX_ONLY_FLAGS} ${CMAKE_CXX_FLAGS}")
+
 # CMAKE_CXX_FLAGS now fully assembled
-#message(STATUS "CXX_ONLY_FLAGS: ${CXX_ONLY_FLAGS}")
-#message(STATUS "CXX_COMMON_FLAGS: ${CXX_COMMON_FLAGS}")
-#message(STATUS "CXX_OPTIMIZATION_FLAGS: ${CXX_OPTIMIZATION_FLAGS}")
+message(STATUS "CXX_ONLY_FLAGS: ${CXX_ONLY_FLAGS}")
+message(STATUS "CXX_COMMON_FLAGS: ${CXX_COMMON_FLAGS}")
+message(STATUS "CXX_OPTIMIZATION_FLAGS: ${CXX_OPTIMIZATION_FLAGS}")
 message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
+message(STATUS "CMAKE_C_FLAGS: ${CMAKE_C_FLAGS}")
 
 ###########################################################
 # "make check-lint" and "make check-censored" targets
@@ -266,6 +267,11 @@ if (UNIX)
 
             # Description: This one is a false positive on the macro Op##AGG_TYPE##Free
             | grep --invert-match -e 'src/execution/vm/vm.cpp:.*Free\(.*'
+
+            # Description: We're allowing shared_ptr and make_shared in testing folders.
+            # I don't actually remember the justification.
+            | grep --invert-match -e '${CMAKE_SOURCE_DIR}/test/.*shared_ptr'
+            | grep --invert-match -e '${CMAKE_SOURCE_DIR}/test/.*make_shared'
 
             # whitelist-end
             || exit 0                                                     # if nothing found, return 0

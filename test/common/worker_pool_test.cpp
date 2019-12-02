@@ -4,8 +4,8 @@
 
 #include "common/worker_pool.h"
 #include "gtest/gtest.h"
-#include "util/multithread_test_util.h"
-#include "util/random_test_util.h"
+#include "test_util/multithread_test_util.h"
+#include "test_util/random_test_util.h"
 
 namespace terrier {
 

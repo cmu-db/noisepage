@@ -1443,6 +1443,24 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
       Emitter()->Emit(Bytecode::IndexIteratorScanKey, iterator);
       break;
     }
+    case ast::Builtin::IndexIteratorScanAscending: {
+      Emitter()->Emit(Bytecode::IndexIteratorScanAscending, iterator);
+      break;
+    }
+    case ast::Builtin::IndexIteratorScanDescending: {
+      Emitter()->Emit(Bytecode::IndexIteratorScanDescending, iterator);
+      break;
+    }
+    case ast::Builtin::IndexIteratorScanLimitAscending: {
+      auto limit = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::IndexIteratorScanLimitAscending, iterator, limit);
+      break;
+    }
+    case ast::Builtin::IndexIteratorScanLimitDescending: {
+      auto limit = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::IndexIteratorScanLimitDescending, iterator, limit);
+      break;
+    }
     case ast::Builtin::IndexIteratorAdvance: {
       LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
       Emitter()->Emit(Bytecode::IndexIteratorAdvance, cond, iterator);
@@ -1457,6 +1475,18 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
       ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
       LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
       Emitter()->Emit(Bytecode::IndexIteratorGetPR, pr, iterator);
+      break;
+    }
+    case ast::Builtin::IndexIteratorGetLoPR: {
+      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+      Emitter()->Emit(Bytecode::IndexIteratorGetLoPR, pr, iterator);
+      break;
+    }
+    case ast::Builtin::IndexIteratorGetHiPR: {
+      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+      Emitter()->Emit(Bytecode::IndexIteratorGetHiPR, pr, iterator);
       break;
     }
     case ast::Builtin::IndexIteratorGetTablePR: {
@@ -1682,71 +1712,94 @@ void BytecodeGenerator::VisitBuiltinPRCall(ast::CallExpr *call, ast::Builtin bui
   }
 }
 
-void BytecodeGenerator::VisitBuiltinInserterCall(ast::CallExpr *call, ast::Builtin builtin) {
+void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin builtin) {
   ast::Context *ctx = call->GetType()->GetContext();
-  LocalVar inserter = VisitExpressionForRValue(call->Arguments()[0]);
+  LocalVar storage_interface = VisitExpressionForRValue(call->Arguments()[0]);
 
   switch (builtin) {
-    case ast::Builtin::InserterInit: {
+    case ast::Builtin::StorageInterfaceInit: {
       LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
       auto table_oid = static_cast<uint32_t>(call->Arguments()[2]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitInserterInit(Bytecode::InserterInit, inserter, exec_ctx, table_oid);
+      auto *arr_type = call->Arguments()[3]->GetType()->As<ast::ArrayType>();
+      auto num_oids = static_cast<uint32_t>(arr_type->Length());
+      LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[3]);
+      LocalVar is_index_key_update = VisitExpressionForRValue(call->Arguments()[4]);
+      Emitter()->EmitStorageInterfaceInit(Bytecode::StorageInterfaceInit, storage_interface, exec_ctx, table_oid,
+                                          col_oids, num_oids, is_index_key_update);
       break;
     }
-    case ast::Builtin::InserterInitBind: {
+    case ast::Builtin::StorageInterfaceInitBind: {
       LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
       ast::Identifier table_name = call->Arguments()[2]->As<ast::LitExpr>()->RawStringVal();
       auto ns_oid = exec_ctx_->GetAccessor()->GetDefaultNamespace();
       auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(ns_oid, table_name.Data());
-      Emitter()->EmitInserterInit(Bytecode::InserterInit, inserter, exec_ctx, !table_oid);
+      auto *arr_type = call->Arguments()[3]->GetType()->As<ast::ArrayType>();
+      auto num_oids = static_cast<uint32_t>(arr_type->Length());
+      LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[3]);
+      LocalVar is_index_key_update = VisitExpressionForRValue(call->Arguments()[4]);
+      Emitter()->EmitStorageInterfaceInit(Bytecode::StorageInterfaceInit, storage_interface, exec_ctx, !table_oid,
+                                          col_oids, num_oids, is_index_key_update);
       break;
     }
-    case ast::Builtin::InserterGetTablePR: {
-      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
-      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
-      Emitter()->Emit(Bytecode::InserterGetTablePR, pr, inserter);
+    case ast::Builtin::GetTablePR: {
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
+      Emitter()->Emit(Bytecode::StorageInterfaceGetTablePR, pr, storage_interface);
       break;
     }
-    case ast::Builtin::InserterTableInsert: {
+    case ast::Builtin::TableInsert: {
       ast::Type *tuple_slot_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::TupleSlot);
-      LocalVar ts = ExecutionResult()->GetOrCreateDestination(tuple_slot_type);
-      Emitter()->Emit(Bytecode::InserterTableInsert, ts, inserter);
+      LocalVar tuple_slot = ExecutionResult()->GetOrCreateDestination(tuple_slot_type);
+      Emitter()->Emit(Bytecode::StorageInterfaceTableInsert, tuple_slot, storage_interface);
       break;
     }
-    case ast::Builtin::InserterGetIndexPR: {
-      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
-      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+    case ast::Builtin::TableDelete: {
+      LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::StorageInterfaceTableDelete, cond, storage_interface, tuple_slot);
+      ExecutionResult()->SetDestination(cond.ValueOf());
+      break;
+    }
+    case ast::Builtin::TableUpdate: {
+      LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::StorageInterfaceTableUpdate, cond, storage_interface, tuple_slot);
+      ExecutionResult()->SetDestination(cond.ValueOf());
+      break;
+    }
+    case ast::Builtin::GetIndexPR: {
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
       auto index_oid = static_cast<uint32_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitInserterGetIndexPR(Bytecode::InserterGetIndexPR, pr, inserter, index_oid);
+      Emitter()->EmitStorageInterfaceGetIndexPR(Bytecode::StorageInterfaceGetIndexPR, pr, storage_interface, index_oid);
       break;
     }
-    case ast::Builtin::InserterGetIndexPRBind: {
-      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
-      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+    case ast::Builtin::GetIndexPRBind: {
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
       ast::Identifier index_name = call->Arguments()[1]->As<ast::LitExpr>()->RawStringVal();
       auto ns_oid = exec_ctx_->GetAccessor()->GetDefaultNamespace();
       auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(ns_oid, index_name.Data());
+      Emitter()->EmitStorageInterfaceGetIndexPR(Bytecode::StorageInterfaceGetIndexPR, pr, storage_interface,
+                                                !index_oid);
+      break;
+    }
+    case ast::Builtin::IndexInsert: {
+      LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      Emitter()->Emit(Bytecode::StorageInterfaceIndexInsert, cond, storage_interface);
+      ExecutionResult()->SetDestination(cond.ValueOf());
+      break;
+    }
+    case ast::Builtin::IndexDelete: {
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::StorageInterfaceIndexDelete, storage_interface, tuple_slot);
+      break;
+    }
 
-      Emitter()->EmitInserterGetIndexPR(Bytecode::InserterGetIndexPR, pr, inserter, !index_oid);
+    case ast::Builtin::StorageInterfaceFree: {
+      Emitter()->Emit(Bytecode::StorageInterfaceFree, storage_interface);
       break;
     }
-    case ast::Builtin::InserterIndexInsert: {
-      auto index_oid = static_cast<uint32_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitInserterIndexInsert(Bytecode::InserterIndexInsert, inserter, index_oid);
-      break;
-    }
-    case ast::Builtin::InserterIndexInsertBind: {
-      ast::Identifier index_name = call->Arguments()[1]->As<ast::LitExpr>()->RawStringVal();
-      auto ns_oid = exec_ctx_->GetAccessor()->GetDefaultNamespace();
-      auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(ns_oid, index_name.Data());
-
-      Emitter()->EmitInserterIndexInsert(Bytecode::InserterIndexInsert, inserter, !index_oid);
-      break;
-    }
-    default: {
-      UNREACHABLE("Impossible bytecode");
-    }
-  };
+    default:
+      UNREACHABLE("Undefined storage_interface call!");
+  }
 }
 
 void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
@@ -1926,9 +1979,15 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::IndexIteratorInit:
     case ast::Builtin::IndexIteratorInitBind:
     case ast::Builtin::IndexIteratorScanKey:
+    case ast::Builtin::IndexIteratorScanAscending:
+    case ast::Builtin::IndexIteratorScanDescending:
+    case ast::Builtin::IndexIteratorScanLimitAscending:
+    case ast::Builtin::IndexIteratorScanLimitDescending:
     case ast::Builtin::IndexIteratorAdvance:
     case ast::Builtin::IndexIteratorFree:
     case ast::Builtin::IndexIteratorGetPR:
+    case ast::Builtin::IndexIteratorGetLoPR:
+    case ast::Builtin::IndexIteratorGetHiPR:
     case ast::Builtin::IndexIteratorGetTablePR:
     case ast::Builtin::IndexIteratorGetSlot:
       VisitBuiltinIndexIteratorCall(call, builtin);
@@ -1968,16 +2027,18 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinPRCall(call, builtin);
       break;
     }
-
-    case ast::Builtin::InserterInit:
-    case ast::Builtin::InserterInitBind:
-    case ast::Builtin::InserterGetTablePR:
-    case ast::Builtin::InserterTableInsert:
-    case ast::Builtin::InserterGetIndexPR:
-    case ast::Builtin::InserterGetIndexPRBind:
-    case ast::Builtin::InserterIndexInsert:
-    case ast::Builtin::InserterIndexInsertBind: {
-      VisitBuiltinInserterCall(call, builtin);
+    case ast::Builtin::StorageInterfaceInit:
+    case ast::Builtin::StorageInterfaceInitBind:
+    case ast::Builtin::GetTablePR:
+    case ast::Builtin::TableInsert:
+    case ast::Builtin::TableDelete:
+    case ast::Builtin::TableUpdate:
+    case ast::Builtin::GetIndexPR:
+    case ast::Builtin::GetIndexPRBind:
+    case ast::Builtin::IndexInsert:
+    case ast::Builtin::IndexDelete:
+    case ast::Builtin::StorageInterfaceFree: {
+      VisitBuiltinStorageInterfaceCall(call, builtin);
       break;
     }
     default: {

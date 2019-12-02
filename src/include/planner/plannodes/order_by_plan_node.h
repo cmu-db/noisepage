@@ -5,11 +5,76 @@
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
+#include "optimizer/optimizer_defs.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
 namespace terrier::planner {
 
-using SortKey = std::pair<std::shared_ptr<parser::AbstractExpression>, OrderByOrderingType>;
+class SortKey {
+ public:
+  /**
+   * Constructor
+   * @param expr expression to sort by
+   * @param sort_type order of the sort
+   */
+  SortKey(common::ManagedPointer<parser::AbstractExpression> expr, optimizer::OrderByOrderingType sort_type)
+  : expr_{expr}
+  , sort_type_{sort_type} {}
+
+  /**
+   * Default constructor for json.
+   */
+  SortKey() = default;
+
+  /**
+   * @return The expression to sort by
+   */
+  common::ManagedPointer<parser::AbstractExpression> Expr() const {
+    return expr_;
+  }
+
+  bool operator==(const SortKey& other) const {
+    return expr_ == other.expr_ && sort_type_ == other.sort_type_;
+  }
+
+  bool operator!=(const SortKey& other) const {
+    return !(*this == other);
+  }
+
+  /**
+     * @return column serialized to json
+     */
+  nlohmann::json ToJson() const {
+    nlohmann::json j;
+    j["expr"] = *expr_;
+    j["sort_type"] = sort_type_;
+    return j;
+  }
+
+  /**
+   * @param j json to deserialize
+   */
+  std::unique_ptr<parser::AbstractExpression> FromJson(const nlohmann::json &j) {
+    sort_type_ = j.at("sort_type").get<optimizer::OrderByOrderingType>();
+    if (!j.at("expr").is_null()) {
+      auto deserialized = parser::DeserializeExpression(j.at("expr"));
+      expr_ = common::ManagedPointer(deserialized.result_);
+      return std::move(deserialized.result_);
+    }
+    return nullptr;
+  }
+
+  /**
+   * @return The order of the sort
+   */
+  optimizer::OrderByOrderingType SortType() const {
+    return sort_type_;
+  }
+ private:
+  common::ManagedPointer<parser::AbstractExpression> expr_{nullptr};
+  optimizer::OrderByOrderingType sort_type_{};
+};
+
 
 /**
  * Plan node for order by operator
@@ -33,7 +98,7 @@ class OrderByPlanNode : public AbstractPlanNode {
      * @param ordering ordering (ASC or DESC) for key
      * @return builder object
      */
-    Builder &AddSortKey(std::shared_ptr<parser::AbstractExpression> key, OrderByOrderingType ordering) {
+    Builder &AddSortKey(common::ManagedPointer<parser::AbstractExpression> key, optimizer::OrderByOrderingType ordering) {
       sort_keys_.emplace_back(key, ordering);
       return *this;
     }
@@ -61,8 +126,8 @@ class OrderByPlanNode : public AbstractPlanNode {
      * Build the order by plan node
      * @return plan node
      */
-    std::shared_ptr<OrderByPlanNode> Build() {
-      return std::shared_ptr<OrderByPlanNode>(new OrderByPlanNode(std::move(children_), std::move(output_schema_),
+    std::unique_ptr<OrderByPlanNode> Build() {
+      return std::unique_ptr<OrderByPlanNode>(new OrderByPlanNode(std::move(children_), std::move(output_schema_),
                                                                   std::move(sort_keys_), has_limit_, limit_, offset_));
     }
 
@@ -95,8 +160,8 @@ class OrderByPlanNode : public AbstractPlanNode {
    * @param limit number of tuples to limit output to
    * @param offset offset in sort from where to limit from
    */
-  OrderByPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                  std::shared_ptr<OutputSchema> output_schema, std::vector<SortKey> sort_keys, bool has_limit,
+  OrderByPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                  std::unique_ptr<OutputSchema> output_schema, std::vector<SortKey> sort_keys, bool has_limit,
                   size_t limit, size_t offset)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         sort_keys_(std::move(sort_keys)),
@@ -153,7 +218,7 @@ class OrderByPlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   /* Column Ids and ordering type ([ASC] or [DESC]) used (in order) to sort input tuples */
@@ -169,6 +234,7 @@ class OrderByPlanNode : public AbstractPlanNode {
   size_t offset_;
 };
 
+DEFINE_JSON_DECLARATIONS(SortKey);
 DEFINE_JSON_DECLARATIONS(OrderByPlanNode);
 
 }  // namespace terrier::planner

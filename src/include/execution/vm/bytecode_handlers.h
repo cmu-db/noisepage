@@ -16,10 +16,10 @@
 #include "execution/sql/functions/is_null_predicate.h"
 #include "execution/sql/functions/string_functions.h"
 #include "execution/sql/index_iterator.h"
-#include "execution/sql/inserter.h"
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/projected_row_wrapper.h"
 #include "execution/sql/sorter.h"
+#include "execution/sql/storage_interface.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/hash.h"
@@ -1325,6 +1325,18 @@ VM_OP void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *it
 
 VM_OP_HOT void OpIndexIteratorScanKey(terrier::execution::sql::IndexIterator *iter) { iter->ScanKey(); }
 
+VM_OP_HOT void OpIndexIteratorScanAscending(terrier::execution::sql::IndexIterator *iter) { iter->ScanAscending(); }
+
+VM_OP_HOT void OpIndexIteratorScanDescending(terrier::execution::sql::IndexIterator *iter) { iter->ScanDescending(); }
+
+VM_OP_HOT void OpIndexIteratorScanLimitAscending(terrier::execution::sql::IndexIterator *iter, uint32_t limit) {
+  iter->ScanLimitAscending(limit);
+}
+
+VM_OP_HOT void OpIndexIteratorScanLimitDescending(terrier::execution::sql::IndexIterator *iter, uint32_t limit) {
+  iter->ScanLimitDescending(limit);
+}
+
 VM_OP_HOT void OpIndexIteratorAdvance(bool *has_more, terrier::execution::sql::IndexIterator *iter) {
   *has_more = iter->Advance();
 }
@@ -1332,6 +1344,16 @@ VM_OP_HOT void OpIndexIteratorAdvance(bool *has_more, terrier::execution::sql::I
 VM_OP_HOT void OpIndexIteratorGetPR(terrier::execution::sql::ProjectedRowWrapper *pr,
                                     terrier::execution::sql::IndexIterator *iter) {
   *pr = terrier::execution::sql::ProjectedRowWrapper(iter->PR());
+}
+
+VM_OP_HOT void OpIndexIteratorGetLoPR(terrier::execution::sql::ProjectedRowWrapper *pr,
+                                      terrier::execution::sql::IndexIterator *iter) {
+  *pr = terrier::execution::sql::ProjectedRowWrapper(iter->LoPR());
+}
+
+VM_OP_HOT void OpIndexIteratorGetHiPR(terrier::execution::sql::ProjectedRowWrapper *pr,
+                                      terrier::execution::sql::IndexIterator *iter) {
+  *pr = terrier::execution::sql::ProjectedRowWrapper(iter->HiPR());
 }
 
 VM_OP_HOT void OpIndexIteratorGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr,
@@ -1470,21 +1492,35 @@ VM_OP_HOT void OpPRGetVarlenNull(terrier::execution::sql::StringVal *out,
   }
 }
 
-// Inserter Calls
+// StorageInterface Calls
 // ---------------------------------------------------------------
 
-VM_OP void OpInserterInit(terrier::execution::sql::Inserter *inserter,
-                          terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid);
+VM_OP void OpStorageInterfaceInit(terrier::execution::sql::StorageInterface *storage_interface,
+                                  terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
+                                  uint32_t *col_oids, uint32_t num_oids, bool need_indexes);
 
-VM_OP void OpInserterGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
-                                terrier::execution::sql::Inserter *inserter);
+VM_OP void OpStorageInterfaceGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
+                                        terrier::execution::sql::StorageInterface *storage_interface);
 
-VM_OP void OpInserterTableInsert(terrier::storage::TupleSlot *tuple_slot, terrier::execution::sql::Inserter *inserter);
+VM_OP void OpStorageInterfaceTableUpdate(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
+                                         terrier::storage::TupleSlot *tuple_slot);
 
-VM_OP void OpInserterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
-                                terrier::execution::sql::Inserter *inserter, uint32_t index_oid);
+VM_OP void OpStorageInterfaceTableDelete(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
+                                         terrier::storage::TupleSlot *tuple_slot);
 
-VM_OP void OpInserterIndexInsert(terrier::execution::sql::Inserter *inserter, uint32_t index_oid);
+VM_OP void OpStorageInterfaceTableInsert(terrier::storage::TupleSlot *tuple_slot,
+                                         terrier::execution::sql::StorageInterface *storage_interface);
+
+VM_OP void OpStorageInterfaceGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
+                                        terrier::execution::sql::StorageInterface *storage_interface,
+                                        uint32_t index_oid);
+
+VM_OP void OpStorageInterfaceIndexInsert(bool *result, terrier::execution::sql::StorageInterface *storage_interface);
+
+VM_OP void OpStorageInterfaceIndexDelete(terrier::execution::sql::StorageInterface *storage_interface,
+                                         terrier::storage::TupleSlot *tuple_slot);
+
+VM_OP void OpStorageInterfaceFree(terrier::execution::sql::StorageInterface *storage_interface);
 
 // Output Calls
 // ---------------------------------------------------------------

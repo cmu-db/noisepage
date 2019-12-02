@@ -17,6 +17,12 @@ class DeferredActionManager {
    */
   explicit DeferredActionManager(TimestampManager *timestamp_manager) : timestamp_manager_(timestamp_manager) {}
 
+  ~DeferredActionManager() {
+    common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
+    TERRIER_ASSERT(back_log_.empty(), "Backlog is not empty");
+    TERRIER_ASSERT(new_deferred_actions_.empty(), "Some deferred actions remaining at time of destruction");
+  }
+
   /**
    * Adds the action to a buffered list of deferred actions.  This action will
    * be triggered no sooner than when the epoch (timestamp of oldest running
@@ -24,11 +30,12 @@ class DeferredActionManager {
    * @param a functional implementation of the action that is deferred. @see DeferredAction
    */
   timestamp_t RegisterDeferredAction(const DeferredAction &a) {
+    common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
+    // Timestamp needs to be fetched inside the critical section such that actions in the
+    // deferred action queue is in order. This simplifies the interleavings we need to deal
+    // with in the face of DDL changes.
     timestamp_t result = timestamp_manager_->CurrentTime();
-    {
-      common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
-      new_deferred_actions_.emplace(result, a);
-    }
+    new_deferred_actions_.emplace(result, a);
     return result;
   }
 
@@ -48,12 +55,16 @@ class DeferredActionManager {
    * Clear the queue and apply as many actions as possible
    * @return numbers of deferred actions processed
    */
-  uint32_t Process() {
-    uint32_t processed = 0;
+  uint32_t Process(transaction::timestamp_t oldest_txn) {
     // Check out a timestamp from the transaction manager to determine the progress of
     // running transactions in the system.
-    timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
-    processed += ClearBacklog(oldest_txn);
+    const auto backlog_size = static_cast<uint32_t>(back_log_.size());
+    uint32_t processed = ClearBacklog(oldest_txn);
+    // There is no point in draining new actions if we haven't cleared the backlog.
+    // This leaves some mechanisms for the rest of the system to detect congestion
+    // at the deferred action manager and potentially backoff
+    if (backlog_size != processed) return processed;
+    // Otherwise, ingest all the new actions
     processed += ProcessNewActions(oldest_txn);
     return processed;
   }

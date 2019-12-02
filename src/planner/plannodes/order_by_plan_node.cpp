@@ -1,4 +1,6 @@
 #include "planner/plannodes/order_by_plan_node.h"
+
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -9,8 +11,8 @@ common::hash_t OrderByPlanNode::Hash() const {
 
   // Sort Keys
   for (const auto &sort_key : sort_keys_) {
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sort_key.first));
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sort_key.second));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sort_key.Expr()));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sort_key.SortType()));
   }
 
   // Inlined Limit Stuff
@@ -53,12 +55,23 @@ nlohmann::json OrderByPlanNode::ToJson() const {
   return j;
 }
 
-void OrderByPlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
-  sort_keys_ = j.at("sort_keys").get<std::vector<SortKey>>();
+std::vector<std::unique_ptr<parser::AbstractExpression>> OrderByPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
+  std::vector<nlohmann::json> sort_exprs_json = j.at("sort_keys");
+  for (const nlohmann::json &expr_json : sort_exprs_json) {
+    SortKey sort_key;
+    auto res = sort_key.FromJson(expr_json);
+    sort_keys_.emplace_back(sort_key);
+    if (res != nullptr) {
+      exprs.emplace_back(std::move(res));
+    }
+  }
   has_limit_ = j.at("has_limit").get<bool>();
   limit_ = j.at("limit").get<size_t>();
   offset_ = j.at("offset").get<size_t>();
+  return exprs;
 }
 
 }  // namespace terrier::planner

@@ -247,7 +247,7 @@ class TransientValue {
     // clear internal buffer
     data_ = 0;
     type_ = type;
-    const auto num_bytes = std::min(static_cast<uint8_t>(static_cast<uint8_t>(TypeUtil::GetTypeSize(type)) & 0x7F),
+    const auto num_bytes = std::min(static_cast<uint8_t>(static_cast<uint8_t>(TypeUtil::GetTypeSize(type)) & INT8_MAX),
                                     static_cast<uint8_t>(sizeof(uintptr_t)));
     std::memcpy(&data_, &data, num_bytes);
   }

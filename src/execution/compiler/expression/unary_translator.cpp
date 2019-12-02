@@ -5,7 +5,7 @@ namespace terrier::execution::compiler {
 
 UnaryTranslator::UnaryTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen)
     : ExpressionTranslator(expression, codegen),
-      child_(TranslatorFactory::CreateExpressionTranslator(expression->GetChild(0).get(), codegen)) {}
+      child_(TranslatorFactory::CreateExpressionTranslator(expression->GetChild(0).Get(), codegen)) {}
 
 ast::Expr *UnaryTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
   auto *child_expr = child_->DeriveExpr(evaluator);

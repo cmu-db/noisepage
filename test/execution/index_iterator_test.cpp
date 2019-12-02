@@ -71,4 +71,124 @@ TEST_F(IndexIteratorTest, SimpleIndexIteratorTest) {
   }
 }
 
+// NOLINTNEXTLINE
+TEST_F(IndexIteratorTest, SimpleAscendingScanTest) {
+  //
+  // Perform an ascending scan
+  //
+
+  auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
+  auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_1");
+  std::array<uint32_t, 1> col_oids{1};
+  IndexIterator index_iter{exec_ctx_.get(), !table_oid, !index_oid, col_oids.data(),
+                           static_cast<uint32_t>(col_oids.size())};
+  index_iter.Init();
+  ProjectedRowWrapper lo_pr(index_iter.LoPR());
+  ProjectedRowWrapper hi_pr(index_iter.HiPR());
+  lo_pr.Set<int32_t, false>(0, 495, false);
+  hi_pr.Set<int32_t, false>(0, 505, false);
+  index_iter.ScanAscending();
+  int32_t curr_match = 495;
+  uint32_t num_matches = 0;
+  while (index_iter.Advance()) {
+    ProjectedRowWrapper table_pr(index_iter.TablePR());
+    auto *val = table_pr.Get<int32_t, false>(0, nullptr);
+    EXPECT_EQ(*val, curr_match);
+    curr_match++;
+    num_matches++;
+  }
+  ASSERT_EQ(num_matches, 11);
+}
+
+// NOLINTNEXTLINE
+TEST_F(IndexIteratorTest, SimpleLimitAscendingScanTest) {
+  //
+  // Perform an ascending scan
+  //
+
+  auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
+  auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_1");
+  std::array<uint32_t, 1> col_oids{1};
+  IndexIterator index_iter{exec_ctx_.get(), !table_oid, !index_oid, col_oids.data(),
+                           static_cast<uint32_t>(col_oids.size())};
+  index_iter.Init();
+  ProjectedRowWrapper lo_pr(index_iter.LoPR());
+  ProjectedRowWrapper hi_pr(index_iter.HiPR());
+  lo_pr.Set<int32_t, false>(0, 495, false);
+  hi_pr.Set<int32_t, false>(0, 505, false);
+  index_iter.ScanLimitAscending(5);
+  int32_t curr_match = 495;
+  uint32_t num_matches = 0;
+  while (index_iter.Advance()) {
+    ProjectedRowWrapper table_pr(index_iter.TablePR());
+    auto *val = table_pr.Get<int32_t, false>(0, nullptr);
+    EXPECT_EQ(*val, curr_match);
+    curr_match++;
+    num_matches++;
+  }
+  ASSERT_EQ(num_matches, 5);
+}
+
+// NOLINTNEXTLINE
+TEST_F(IndexIteratorTest, SimpleDescendingScanTest) {
+  //
+  // Perform an descending scan
+  //
+
+  auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
+  auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_1");
+  std::array<uint32_t, 1> col_oids{1};
+  IndexIterator index_iter{exec_ctx_.get(), !table_oid, !index_oid, col_oids.data(),
+                           static_cast<uint32_t>(col_oids.size())};
+  index_iter.Init();
+
+  // Iterate through the table.
+  ProjectedRowWrapper lo_pr(index_iter.LoPR());
+  ProjectedRowWrapper hi_pr(index_iter.HiPR());
+  lo_pr.Set<int32_t, false>(0, 495, false);
+  hi_pr.Set<int32_t, false>(0, 505, false);
+  index_iter.ScanDescending();
+  int32_t curr_match = 505;
+  uint32_t num_matches = 0;
+  while (index_iter.Advance()) {
+    ProjectedRowWrapper table_pr(index_iter.TablePR());
+    auto *val = table_pr.Get<int32_t, false>(0, nullptr);
+    ASSERT_EQ(*val, curr_match);
+    curr_match--;
+    num_matches++;
+  }
+  ASSERT_EQ(num_matches, 11);
+}
+
+// NOLINTNEXTLINE
+TEST_F(IndexIteratorTest, SimpleLimitDescendingScanTest) {
+  //
+  // Perform an descending scan
+  //
+
+  auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
+  auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_1");
+  std::array<uint32_t, 1> col_oids{1};
+  IndexIterator index_iter{exec_ctx_.get(), !table_oid, !index_oid, col_oids.data(),
+                           static_cast<uint32_t>(col_oids.size())};
+  index_iter.Init();
+
+  // Iterate through the table.
+  ProjectedRowWrapper lo_pr(index_iter.LoPR());
+  ProjectedRowWrapper hi_pr(index_iter.HiPR());
+  lo_pr.Set<int32_t, false>(0, 495, false);
+  hi_pr.Set<int32_t, false>(0, 505, false);
+  index_iter.ScanLimitDescending(5);
+  int32_t curr_match = 505;
+  uint32_t num_matches = 0;
+  while (index_iter.Advance()) {
+    ProjectedRowWrapper table_pr(index_iter.TablePR());
+    auto *val = table_pr.Get<int32_t, false>(0, nullptr);
+    ASSERT_EQ(*val, curr_match);
+    curr_match--;
+    num_matches++;
+  }
+  ASSERT_EQ(num_matches, 5);
+}
+
 }  // namespace terrier::execution::sql::test

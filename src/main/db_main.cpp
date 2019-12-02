@@ -17,7 +17,7 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
   LoggersUtil::Initialize(false);
 
   // initialize stat registry
-  main_stat_reg_ = std::make_shared<common::StatisticsRegistry>();
+  main_stat_reg_ = std::make_unique<common::StatisticsRegistry>();
 
   // create the global transaction mgr
   buffer_segment_pool_ = new storage::RecordBufferSegmentPool(
@@ -26,7 +26,8 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
       type::TransientValuePeeker::PeekInteger(
           param_map_.find(settings::Param::record_buffer_segment_reuse)->second.value_));
   settings_manager_ = new settings::SettingsManager(this);
-  thread_registry_ = new common::DedicatedThreadRegistry;
+  metrics_manager_ = new metrics::MetricsManager;
+  thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager_));
 
   // Create LogManager
   log_manager_ = new storage::LogManager(
@@ -39,7 +40,8 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
   log_manager_->Start();
 
   timestamp_manager_ = new transaction::TimestampManager;
-  txn_manager_ = new transaction::TransactionManager(timestamp_manager_, DISABLED, buffer_segment_pool_, true, nullptr);
+  txn_manager_ =
+      new transaction::TransactionManager(timestamp_manager_, DISABLED, buffer_segment_pool_, true, log_manager_);
   garbage_collector_ = new storage::GarbageCollector(timestamp_manager_, DISABLED, txn_manager_, DISABLED);
   gc_thread_ = new storage::GarbageCollectorThread(garbage_collector_,
                                                    std::chrono::milliseconds{type::TransientValuePeeker::PeekInteger(
@@ -50,9 +52,9 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
   thread_pool_->Startup();
 
   t_cop_ = new trafficcop::TrafficCop;
-  command_factory_ = new network::PostgresCommandFactory;
-
   connection_handle_factory_ = new network::ConnectionHandleFactory(common::ManagedPointer(t_cop_));
+
+  command_factory_ = new network::PostgresCommandFactory;
   provider_ = new network::PostgresProtocolInterpreter::Provider(common::ManagedPointer(command_factory_));
   server_ =
       new network::TerrierServer(common::ManagedPointer(provider_), common::ManagedPointer(connection_handle_factory_),
