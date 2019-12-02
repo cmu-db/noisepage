@@ -1,17 +1,18 @@
 #pragma once
 
+#include "../../../planner/plannodes/update_plan_node.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/storage/pr_filler.h"
-#include "planner/plannodes/insert_plan_node.h"
+#include "planner/plannodes/update_plan_node.h"
 
 namespace terrier::execution::compiler {
 
 /**
- * Insert Translator
+ * Update Translator
  */
-class InsertTranslator : public OperatorTranslator {
+class UpdateTranslator : public OperatorTranslator {
  public:
-  InsertTranslator(const terrier::planner::InsertPlanNode *op, CodeGen *codegen);
+  UpdateTranslator(const terrier::planner::UpdatePlanNode *op, CodeGen *codegen);
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
@@ -36,46 +37,51 @@ class InsertTranslator : public OperatorTranslator {
   // This is not a materializer
   bool IsMaterializer(bool *is_ptr) override { return false; }
 
-  ast::Expr *GetOutput(uint32_t attr_idx) override { UNREACHABLE("Inserts don't output anything"); };
+  ast::Expr *GetOutput(uint32_t attr_idx) override { UNREACHABLE("Updates don't output anything"); };
 
   const planner::AbstractPlanNode *Op() override { return op_; }
 
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
 
  private:
-  // Declare the inserter
-  void DeclareInserter(FunctionBuilder *builder);
-  void GenInserterFree(FunctionBuilder *builder);
+  // Declare the updater
+  void DeclareUpdater(FunctionBuilder *builder);
+  void GenUpdaterFree(FunctionBuilder *builder);
   // Set the oids variable
   void SetOids(FunctionBuilder *builder);
-  // Declare the insert PR
-  void DeclareInsertPR(FunctionBuilder *builder);
-  // Get the pr to insert
-  void GetInsertPR(FunctionBuilder *builder);
-  // Fill the insert PR from the child's output
+  // Declare the update PR
+  void DeclareUpdatePR(FunctionBuilder *builder);
+  // Get the pr to update
+  void GetUpdatePR(FunctionBuilder *builder);
+  // Fill the update PR from the child's output
   void FillPRFromChild(FunctionBuilder *builder);
-  // Set the table PR from raw values
-  void GenSetTablePR(FunctionBuilder *builder, uint32_t tuple);
+  // Update on table.
+  void GenTableUpdate(FunctionBuilder *builder);
   // Insert into table.
   void GenTableInsert(FunctionBuilder *builder);
   // Insert into index.
   void GenIndexInsert(FunctionBuilder *builder, const catalog::index_oid_t &index_oid);
+  // Delete from table.
+  void GenTableDelete(FunctionBuilder *builder);
+  // Delete from index.
+  void GenIndexDelete(FunctionBuilder *builder, const catalog::index_oid_t &index_oid);
+
   // Get all columns oids.
-  static std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema_) {
+  static std::vector<catalog::col_oid_t> CollectOids(const planner::UpdatePlanNode *node) {
     std::vector<catalog::col_oid_t> oids;
-    for (const auto &col : table_schema_.GetColumns()) {
-      oids.emplace_back(col.Oid());
+    for (const auto &clause : node->GetSetClauses()) {
+      oids.emplace_back(clause.first);
     }
     return oids;
   }
 
  private:
-  const planner::InsertPlanNode *op_;
-  static constexpr const char *inserter_name_ = "inserter";
-  static constexpr const char *insert_pr_name_ = "insert_pr";
+  const planner::UpdatePlanNode *op_;
+  static constexpr const char *updater_name_ = "updater";
+  static constexpr const char *update_pr_name_ = "update_pr";
   static constexpr const char *col_oids_name_ = "col_oids";
-  ast::Identifier inserter_;
-  ast::Identifier insert_pr_;
+  ast::Identifier updater_;
+  ast::Identifier update_pr_;
   ast::Identifier col_oids_;
 
   const catalog::Schema &table_schema_;

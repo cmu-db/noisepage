@@ -24,6 +24,8 @@
 #include "planner/plannodes/index_join_plan_node.h"
 #include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/insert_plan_node.h"
+#include "planner/plannodes/delete_plan_node.h"
+#include "planner/plannodes/update_plan_node.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
 #include "planner/plannodes/output_schema.h"
@@ -92,9 +94,9 @@ class CompilerTest : public SqlBasedTest {
     terrier::execution::vm::LLVMEngine::Shutdown();
     terrier::LoggersUtil::ShutDown();
   }
-
 };
 
+/*
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleSeqScanTest) {
   // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1 WHERE col1 < 500 AND col2 >= 3;
@@ -147,7 +149,7 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
   CompileAndRun(seq_scan.get(), exec_ctx.get());
   multi_checker.CheckCorrectness();
 }
-
+*/
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleIndexScanTest) {
@@ -172,7 +174,10 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
                   .AddIndexColum(catalog::indexkeycol_oid_t(1), const_500)
                   .SetNamespaceOid(NSOid())
                   .SetOutputSchema(std::move(schema))
-                  .Build();
+        .SetScanType(planner::IndexScanType::Exact)
+        .SetScanLimit(0)
+        .SetScanPredicate(nullptr)
+        .Build();
   }
   NumChecker num_checker(1);
   SingleIntComparisonChecker col1_checker(std::equal_to<int64_t>(), 0, 500);
@@ -188,7 +193,265 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
   multi_checker.CheckCorrectness();
 }
 
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
+  // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505;
+  auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
+  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+  auto index_oid = accessor->GetIndexOid(NSOid(), "index_1");
+  auto table_schema = accessor->GetSchema(table_oid);
+  std::unique_ptr<AbstractPlanNode> index_scan;
+  OutputSchemaHelper index_scan_out{0, &expr_maker};
+  {
+    // Get Table columns
+    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    index_scan_out.AddOutput("col1", col1);
+    index_scan_out.AddOutput("col2", col2);
+    auto schema = index_scan_out.MakeSchema();
+    IndexScanPlanNode::Builder builder;
+    index_scan = builder.SetTableOid(table_oid).SetIndexOid(index_oid)
+        .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
+        .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
+        .SetNamespaceOid(NSOid())
+        .SetOutputSchema(std::move(schema))
+        .SetScanType(planner::IndexScanType::Ascending)
+        .SetScanLimit(0)
+        .SetScanPredicate(nullptr)
 
+        .Build();
+  }
+
+  // Make the checker
+  uint32_t num_output_rows = 0;
+  uint32_t num_expected_rows = 11;
+  int64_t curr_col1{std::numeric_limits<int64_t>::min()};
+  RowChecker row_checker = [&num_output_rows, num_expected_rows, &curr_col1](const std::vector<sql::Val *> vals) {
+    // Read cols
+    auto col1 = static_cast<sql::Integer *>(vals[0]);
+    auto col2 = static_cast<sql::Integer *>(vals[1]);
+    ASSERT_FALSE(col1->is_null_ || col2->is_null_);
+    // Check col1 and number of outputs
+    int32_t col1_val = 495 + num_output_rows;
+    ASSERT_EQ(col1->val_, col1_val);
+    num_output_rows++;
+    ASSERT_LE(num_output_rows, num_expected_rows);
+
+    // Check that output is sorted by col1 ASC
+    ASSERT_LE(curr_col1, col1->val_);
+    curr_col1 = col1->val_;
+  };
+  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+    ASSERT_EQ(num_output_rows, num_expected_rows);
+  };
+
+  GenericChecker checker(row_checker, correcteness_fn);
+  // Create the execution context
+  OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
+
+  // Run & Check
+  CompileAndRun(index_scan.get(), exec_ctx.get());
+  checker.CheckCorrectness();
+}
+
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
+  // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505;
+  auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
+  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+  auto index_oid = accessor->GetIndexOid(NSOid(), "index_1");
+  auto table_schema = accessor->GetSchema(table_oid);
+  std::unique_ptr<AbstractPlanNode> index_scan;
+  OutputSchemaHelper index_scan_out{0, &expr_maker};
+  {
+    // Get Table columns
+    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    index_scan_out.AddOutput("col1", col1);
+    index_scan_out.AddOutput("col2", col2);
+    auto schema = index_scan_out.MakeSchema();
+    IndexScanPlanNode::Builder builder;
+    index_scan = builder.SetTableOid(table_oid).SetIndexOid(index_oid)
+        .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
+        .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
+        .SetNamespaceOid(NSOid())
+        .SetOutputSchema(std::move(schema))
+        .SetScanType(planner::IndexScanType::AscendingLimit)
+        .SetScanLimit(5)
+        .SetScanPredicate(nullptr)
+        .Build();
+  }
+
+  // Make the checker
+  uint32_t num_output_rows = 0;
+  uint32_t num_expected_rows = 5;
+  int64_t curr_col1{std::numeric_limits<int64_t>::min()};
+  RowChecker row_checker = [&num_output_rows, num_expected_rows, &curr_col1](const std::vector<sql::Val *> vals) {
+    // Read cols
+    auto col1 = static_cast<sql::Integer *>(vals[0]);
+    auto col2 = static_cast<sql::Integer *>(vals[1]);
+    ASSERT_FALSE(col1->is_null_ || col2->is_null_);
+    // Check col1 and number of outputs
+    int32_t col1_val = 495 + num_output_rows;
+    ASSERT_EQ(col1->val_, col1_val);
+    num_output_rows++;
+    ASSERT_LE(num_output_rows, num_expected_rows);
+
+    // Check that output is sorted by col1 ASC
+    ASSERT_LE(curr_col1, col1->val_);
+    curr_col1 = col1->val_;
+  };
+  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+    ASSERT_EQ(num_output_rows, num_expected_rows);
+  };
+
+  GenericChecker checker(row_checker, correcteness_fn);
+  // Create the execution context
+  OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
+
+  // Run & Check
+  CompileAndRun(index_scan.get(), exec_ctx.get());
+  checker.CheckCorrectness();
+}
+
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
+  // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505;
+  auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
+  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+  auto index_oid = accessor->GetIndexOid(NSOid(), "index_1");
+  auto table_schema = accessor->GetSchema(table_oid);
+  std::unique_ptr<AbstractPlanNode> index_scan;
+  OutputSchemaHelper index_scan_out{0, &expr_maker};
+  {
+    // Get Table columns
+    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    index_scan_out.AddOutput("col1", col1);
+    index_scan_out.AddOutput("col2", col2);
+    auto schema = index_scan_out.MakeSchema();
+    IndexScanPlanNode::Builder builder;
+    index_scan = builder.SetTableOid(table_oid).SetIndexOid(index_oid)
+        .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
+        .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
+        .SetNamespaceOid(NSOid())
+        .SetOutputSchema(std::move(schema))
+        .SetScanType(planner::IndexScanType::Descending)
+        .SetScanLimit(0)
+        .SetScanPredicate(nullptr)
+        .Build();
+  }
+
+  // Make the checker
+  uint32_t num_output_rows = 0;
+  uint32_t num_expected_rows = 11;
+  int64_t curr_col1{std::numeric_limits<int64_t>::max()};
+  RowChecker row_checker = [&num_output_rows, num_expected_rows, &curr_col1](const std::vector<sql::Val *> vals) {
+    // Read cols
+    auto col1 = static_cast<sql::Integer *>(vals[0]);
+    auto col2 = static_cast<sql::Integer *>(vals[1]);
+    ASSERT_FALSE(col1->is_null_ || col2->is_null_);
+    // Check col1 and number of outputs
+    int32_t col1_val = 505 - num_output_rows;
+    ASSERT_EQ(col1->val_, col1_val);
+    num_output_rows++;
+    ASSERT_LE(num_output_rows, num_expected_rows);
+
+    // Check that output is sorted by col1 DESC
+    ASSERT_GE(curr_col1, col1->val_);
+    curr_col1 = col1->val_;
+  };
+  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+    ASSERT_EQ(num_output_rows, num_expected_rows);
+  };
+
+  GenericChecker checker(row_checker, correcteness_fn);
+  // Create the execution context
+  OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
+
+  // Run & Check
+  CompileAndRun(index_scan.get(), exec_ctx.get());
+  checker.CheckCorrectness();
+}
+
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
+  // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505;
+  auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
+  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+  auto index_oid = accessor->GetIndexOid(NSOid(), "index_1");
+  auto table_schema = accessor->GetSchema(table_oid);
+  std::unique_ptr<AbstractPlanNode> index_scan;
+  OutputSchemaHelper index_scan_out{0, &expr_maker};
+  {
+    // Get Table columns
+    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    index_scan_out.AddOutput("col1", col1);
+    index_scan_out.AddOutput("col2", col2);
+    auto schema = index_scan_out.MakeSchema();
+    IndexScanPlanNode::Builder builder;
+    index_scan = builder.SetTableOid(table_oid).SetIndexOid(index_oid)
+        .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
+        .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
+        .SetNamespaceOid(NSOid())
+        .SetOutputSchema(std::move(schema))
+        .SetScanType(planner::IndexScanType::DescendingLimit)
+        .SetScanLimit(5)
+        .SetScanPredicate(nullptr)
+        .Build();
+  }
+
+  // Make the checker
+  uint32_t num_output_rows = 0;
+  uint32_t num_expected_rows = 5;
+  int64_t curr_col1{std::numeric_limits<int64_t>::max()};
+  RowChecker row_checker = [&num_output_rows, num_expected_rows, &curr_col1](const std::vector<sql::Val *> vals) {
+    // Read cols
+    auto col1 = static_cast<sql::Integer *>(vals[0]);
+    auto col2 = static_cast<sql::Integer *>(vals[1]);
+    ASSERT_FALSE(col1->is_null_ || col2->is_null_);
+    // Check col1 and number of outputs
+    int32_t col1_val = 505 - num_output_rows;
+    ASSERT_EQ(col1->val_, col1_val);
+    num_output_rows++;
+    ASSERT_LE(num_output_rows, num_expected_rows);
+
+    // Check that output is sorted by col1 DESC
+    ASSERT_GE(curr_col1, col1->val_);
+    curr_col1 = col1->val_;
+  };
+  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+    ASSERT_EQ(num_output_rows, num_expected_rows);
+  };
+
+  GenericChecker checker(row_checker, correcteness_fn);
+  // Create the execution context
+  OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
+
+  // Run & Check
+  CompileAndRun(index_scan.get(), exec_ctx.get());
+  checker.CheckCorrectness();
+}
+
+
+/*
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleAggregateTest) {
   // SELECT col2, SUM(col1) FROM test_1 WHERE col1 < 1000 GROUP BY col2;
@@ -884,32 +1147,358 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
   CompileAndRun(index_join.get(), exec_ctx.get());
   checker.CheckCorrectness();
 }
+*/
+
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, SimpleDeleteTest) {
+  // DELETE FROM test_1 WHERE colA BETWEEN 495 AND 505
+  // Then check that the following finds the no tuples:
+  // SELECT * FROM test_1 WHERE colA BETWEEN 495 AND 505.
+  auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
+  auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
+  auto index_oid1 = accessor->GetIndexOid(NSOid(), "index_1");
+  auto table_schema1 = accessor->GetSchema(table_oid1);
+
+  // SeqScan for delete
+  std::unique_ptr<AbstractPlanNode> seq_scan1;
+  OutputSchemaHelper seq_scan_out1{0, &expr_maker};
+  {
+    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    seq_scan_out1.AddOutput("col1", col1);
+    auto schema = seq_scan_out1.MakeSchema();
+
+    auto pred1 = expr_maker.ComparisonGe(col1, expr_maker.Constant(495));
+    auto pred2 = expr_maker.ComparisonLe(col1, expr_maker.Constant(505));
+    auto predicate = expr_maker.ConjunctionAnd(pred1, pred2);
+    // Build
+    SeqScanPlanNode::Builder builder;
+    seq_scan1 = builder.SetOutputSchema(std::move(schema))
+        .SetScanPredicate(predicate)
+        .SetIsParallelFlag(false)
+        .SetIsForUpdateFlag(false)
+        .SetNamespaceOid(NSOid())
+        .SetTableOid(table_oid1)
+        .Build();
+  }
+
+
+  // make DeletePlanNode
+  std::unique_ptr<AbstractPlanNode> delete_node;
+  {
+    DeletePlanNode::Builder builder;
+    delete_node = builder
+        .SetTableOid(table_oid1)
+        .AddChild(std::move(seq_scan1))
+        .Build();
+  }
+  // Execute delete
+  {
+    // Make Exec Ctx
+    MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
+    auto exec_ctx = MakeExecCtx(std::move(callback), delete_node->GetOutputSchema().Get());
+    CompileAndRun(delete_node.get(), exec_ctx.get());
+  }
+
+  // Now scan through table to check content.
+  std::unique_ptr<AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
+  {
+    // Get Table columns
+    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    seq_scan_out.AddOutput("col1", col1);
+    // Make predicate
+    auto pred1 = expr_maker.ComparisonGe(col1, expr_maker.Constant(495));
+    auto pred2 = expr_maker.ComparisonLe(col1, expr_maker.Constant(505));
+    auto predicate = expr_maker.ConjunctionAnd(pred1, pred2);
+    auto schema = seq_scan_out.MakeSchema();
+    // Build
+    SeqScanPlanNode::Builder builder;
+    seq_scan = builder.SetOutputSchema(std::move(schema))
+        .SetScanPredicate(predicate)
+        .SetIsParallelFlag(false)
+        .SetIsForUpdateFlag(false)
+        .SetNamespaceOid(NSOid())
+        .SetTableOid(table_oid1)
+        .Build();
+  }
+  // Execute Table Scan
+  {
+    NumChecker checker{0};
+    OutputStore store{&checker, seq_scan->GetOutputSchema().Get()};
+    exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
+    MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+    auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
+    CompileAndRun(seq_scan.get(), exec_ctx.get());
+    checker.CheckCorrectness();
+  }
+
+  // Do an index scan to look a deleted value
+  std::unique_ptr<AbstractPlanNode> index_scan;
+  OutputSchemaHelper index_scan_out{0, &expr_maker};
+  {
+    // Get Table columns
+    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+
+    index_scan_out.AddOutput("col1", col1);
+    auto schema = index_scan_out.MakeSchema();
+    IndexScanPlanNode::Builder builder;
+    index_scan = builder.SetTableOid(table_oid1).SetIndexOid(index_oid1)
+        .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
+        .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
+        .SetScanPredicate(nullptr)
+        .SetNamespaceOid(NSOid())
+        .SetOutputSchema(std::move(schema))
+        .SetScanType(planner::IndexScanType::Ascending)
+        .SetScanLimit(0)
+        .Build();
+  }
+
+  // Execute index scan
+  {
+    NumChecker checker{0};
+    OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
+    exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
+    MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+    auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
+    CompileAndRun(index_scan.get(), exec_ctx.get());
+    checker.CheckCorrectness();
+  }
+}
+
+
+
+TEST_F(CompilerTest, SimpleUpdateTest) {
+  // UPDATE test_1 SET colA = -colA, colB = 500 WHERE colA BETWEEN 495 AND 505
+  // Then check that the following finds the tuples:
+  // SELECT * FROM test_1 WHERE colA BETWEEN -505 AND -495.
+  auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
+  auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
+  auto index_oid1 = accessor->GetIndexOid(NSOid(), "index_1");
+  auto table_schema1 = accessor->GetSchema(table_oid1);
+
+  // SeqScan for delete
+  std::unique_ptr<AbstractPlanNode> seq_scan1;
+  OutputSchemaHelper seq_scan_out1{0, &expr_maker};
+  {
+    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col3 = expr_maker.CVE(table_schema1.GetColumn("colC").Oid(), type::TypeId::INTEGER);
+    auto col4 = expr_maker.CVE(table_schema1.GetColumn("colD").Oid(), type::TypeId::INTEGER);
+    seq_scan_out1.AddOutput("col1", col1);
+    seq_scan_out1.AddOutput("col2", col2);
+    seq_scan_out1.AddOutput("col3", col3);
+    seq_scan_out1.AddOutput("col4", col4);
+    auto schema = seq_scan_out1.MakeSchema();
+
+    auto pred1 = expr_maker.ComparisonGe(col1, expr_maker.Constant(495));
+    auto pred2 = expr_maker.ComparisonLe(col1, expr_maker.Constant(505));
+    auto predicate = expr_maker.ConjunctionAnd(pred1, pred2);
+    // Build
+    SeqScanPlanNode::Builder builder;
+    seq_scan1 = builder.SetOutputSchema(std::move(schema))
+        .SetScanPredicate(predicate)
+        .SetIsParallelFlag(false)
+        .SetIsForUpdateFlag(false)
+        .SetNamespaceOid(NSOid())
+        .SetTableOid(table_oid1)
+        .Build();
+  }
+
+
+  // make DeletePlanNode
+  std::unique_ptr<AbstractPlanNode> update_node;
+  {
+    UpdatePlanNode::Builder builder;
+    auto col1 = seq_scan_out1.GetOutput("col1");
+    auto col3 = seq_scan_out1.GetOutput("col3");
+    auto col4 = seq_scan_out1.GetOutput("col4");
+    auto neg_col1 = expr_maker.OpMul(expr_maker.Constant(-1), col1);
+    auto const_500 = expr_maker.Constant(500);
+    planner::SetClause clause1{table_schema1.GetColumn("colA").Oid(), neg_col1};
+    planner::SetClause clause2{table_schema1.GetColumn("colB").Oid(), const_500};
+    planner::SetClause clause3{table_schema1.GetColumn("colC").Oid(), col3};
+    planner::SetClause clause4{table_schema1.GetColumn("colD").Oid(), col4};
+
+    update_node = builder
+        .SetTableOid(table_oid1)
+        .AddChild(std::move(seq_scan1))
+        .AddSetClause(clause1)
+        .AddSetClause(clause2)
+        .AddSetClause(clause3)
+        .AddSetClause(clause4)
+        .SetIndexedUpdate(true)
+        .Build();
+  }
+  // Execute delete
+  {
+    // Make Exec Ctx
+    MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
+    auto exec_ctx = MakeExecCtx(std::move(callback), update_node->GetOutputSchema().Get());
+    CompileAndRun(update_node.get(), exec_ctx.get());
+  }
+
+  // Now scan through table to check content.
+  std::unique_ptr<AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
+  {
+    // Get Table columns
+    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    seq_scan_out.AddOutput("col1", col1);
+    seq_scan_out.AddOutput("col2", col2);
+    // Make predicate
+    auto pred1 = expr_maker.ComparisonLe(col1, expr_maker.Constant(-495));
+    auto pred2 = expr_maker.ComparisonGe(col1, expr_maker.Constant(-505));
+    auto predicate = expr_maker.ConjunctionAnd(pred1, pred2);
+    auto schema = seq_scan_out.MakeSchema();
+    // Build
+    SeqScanPlanNode::Builder builder;
+    seq_scan = builder.SetOutputSchema(std::move(schema))
+        .SetScanPredicate(predicate)
+        .SetIsParallelFlag(false)
+        .SetIsForUpdateFlag(false)
+        .SetNamespaceOid(NSOid())
+        .SetTableOid(table_oid1)
+        .Build();
+  }
+
+  // Make checker
+  // Create the checkers
+  uint32_t num_output_rows{0};
+  uint32_t num_expected_rows{11};
+  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> vals) {
+    // Read cols
+    auto col1 = static_cast<sql::Integer *>(vals[0]);
+    auto col2 = static_cast<sql::Integer *>(vals[1]);
+    ASSERT_FALSE(col1->is_null_ || col2->is_null_);
+    int32_t col1_val = -495 - static_cast<int32_t>(num_output_rows);
+    ASSERT_EQ(col1->val_, col1_val);
+    ASSERT_EQ(col2->val_, 500);
+
+    num_output_rows++;
+    ASSERT_LE(num_output_rows, num_expected_rows);
+  };
+  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+    ASSERT_EQ(num_output_rows, num_expected_rows);
+  };
+
+  // Execute Table Scan
+  {
+    GenericChecker checker(row_checker, correcteness_fn);
+    OutputStore store{&checker, seq_scan->GetOutputSchema().Get()};
+    exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
+    MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+    auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
+    CompileAndRun(seq_scan.get(), exec_ctx.get());
+    checker.CheckCorrectness();
+  }
+
+  // Do an index scan to look an updated value
+  // TODO(Amadou): Replace with directional scan.
+  std::unique_ptr<AbstractPlanNode> index_scan;
+  OutputSchemaHelper index_scan_out{0, &expr_maker};
+  {
+    // Get Table columns
+    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+
+    index_scan_out.AddOutput("col1", col1);
+    index_scan_out.AddOutput("col2", col2);
+    auto schema = index_scan_out.MakeSchema();
+    IndexScanPlanNode::Builder builder;
+    index_scan = builder.SetTableOid(table_oid1).SetIndexOid(index_oid1)
+        .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-505))
+        .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-495))
+        .SetScanPredicate(nullptr)
+        .SetNamespaceOid(NSOid())
+        .SetOutputSchema(std::move(schema))
+        .SetScanType(planner::IndexScanType::Descending)
+        .SetScanLimit(0)
+        .Build();
+  }
+
+  // Execute index scan
+  {
+    num_output_rows = 0;
+    GenericChecker checker(row_checker, correcteness_fn);
+    OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
+    exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
+    MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+    auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
+    CompileAndRun(index_scan.get(), exec_ctx.get());
+    checker.CheckCorrectness();
+  }
+}
+
+
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleInsertTest) {
-  // SELECT COUNT(*) FROM test_1 WHERE test_1.colB == 23
-  // INSERT INTO test_1 (colA, colB, colC, colD) VALUES (0,23,2,3)
-  // SELECT COUNT(*) FROM test_1 WHERE test_1.colB == 23,
+  // INSERT INTO test_1 (colA, colB, colC, colD) VALUES (-1, 1, 2, 3), (-2, 1, 2, 3)
+  // Then check that the following finds the new tuples:
+  // SELECT colA, colB, colC, colD FROM test_1 WHERE test_1.colA < 0.
   auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
   auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
   auto index_oid1 = accessor->GetIndexOid(NSOid(), "index_1");
   auto table_schema1 = accessor->GetSchema(table_oid1);
-  auto col_oid_0 = table_schema1.GetColumn("colA").Oid();
-  auto col_oid_1 = table_schema1.GetColumn("colB").Oid();
-  auto col_oid_2 = table_schema1.GetColumn("colC").Oid();
-  auto col_oid_3 = table_schema1.GetColumn("colD").Oid();
-  // Get original count
-  std::shared_ptr<AbstractPlanNode> seq_scan1;
-  OutputSchemaHelper seq_scan_out1{0};
-  {
-    auto col1 = ExpressionUtil::CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
-    seq_scan_out1.AddOutput("col1", col1);
-    auto schema = seq_scan_out1.MakeSchema();
 
-    auto predicate = ExpressionUtil::ComparisonEq(col1, ExpressionUtil::Constant(23));
+  // make InsertPlanNode
+  std::unique_ptr<AbstractPlanNode> insert;
+  {
+    std::vector<type::TransientValue> values1;
+    std::vector<type::TransientValue> values2;
+
+    values1.push_back(type::TransientValueFactory::GetInteger(-1));
+    values1.push_back(type::TransientValueFactory::GetInteger(1));
+    values1.push_back(type::TransientValueFactory::GetInteger(2));
+    values1.push_back(type::TransientValueFactory::GetInteger(3));
+    values2.push_back(type::TransientValueFactory::GetInteger(-2));
+    values2.push_back(type::TransientValueFactory::GetInteger(1));
+    values2.push_back(type::TransientValueFactory::GetInteger(2));
+    values2.push_back(type::TransientValueFactory::GetInteger(3));
+    InsertPlanNode::Builder builder;
+    insert = builder
+        .AddParameterInfo(table_schema1.GetColumn("colA").Oid())
+        .AddParameterInfo(table_schema1.GetColumn("colB").Oid())
+        .AddParameterInfo(table_schema1.GetColumn("colC").Oid())
+        .AddParameterInfo(table_schema1.GetColumn("colD").Oid())
+        .SetIndexOids({index_oid1})
+        .AddValues(std::move(values1))
+        .AddValues(std::move(values2))
+        .SetNamespaceOid(NSOid())
+        .SetTableOid(table_oid1)
+        .Build();
+  }
+  // Execute insert
+  {
+    // Make Exec Ctx
+    MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
+    auto exec_ctx = MakeExecCtx(std::move(callback), insert->GetOutputSchema().Get());
+    CompileAndRun(insert.get(), exec_ctx.get());
+  }
+
+  // Now scan through table to check content.
+  std::unique_ptr<AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
+  {
+    // Get Table columns
+    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col3 = expr_maker.CVE(table_schema1.GetColumn("colC").Oid(), type::TypeId::INTEGER);
+    auto col4 = expr_maker.CVE(table_schema1.GetColumn("colD").Oid(), type::TypeId::INTEGER);
+    seq_scan_out.AddOutput("col1", col1);
+    seq_scan_out.AddOutput("col2", col2);
+    seq_scan_out.AddOutput("col3", col3);
+    seq_scan_out.AddOutput("col4", col4);
+    // Make predicate
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(0));
+    auto schema = seq_scan_out.MakeSchema();
     // Build
     SeqScanPlanNode::Builder builder;
-    seq_scan1 = builder.SetOutputSchema(schema)
+    seq_scan = builder.SetOutputSchema(std::move(schema))
         .SetScanPredicate(predicate)
         .SetIsParallelFlag(false)
         .SetIsForUpdateFlag(false)
@@ -917,105 +1506,114 @@ TEST_F(CompilerTest, SimpleInsertTest) {
         .SetTableOid(table_oid1)
         .Build();
   }
+  // Create the checkers
+  uint32_t num_output_rows{0};
+  uint32_t num_expected_rows{2};
+  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> vals) {
+    // Read cols
+    auto col1 = static_cast<sql::Integer *>(vals[0]);
+    auto col2 = static_cast<sql::Integer *>(vals[1]);
+    auto col3 = static_cast<sql::Integer *>(vals[2]);
+    auto col4 = static_cast<sql::Integer *>(vals[3]);
+    ASSERT_FALSE(col1->is_null_ || col2->is_null_ || col3->is_null_ || col4->is_null_);
+    int32_t col1_val = -1 - static_cast<int32_t>(num_output_rows);
+    ASSERT_EQ(col1->val_, col1_val);
+    ASSERT_EQ(col2->val_, 1);
+    ASSERT_EQ(col3->val_, 2);
+    ASSERT_EQ(col4->val_, 3);
 
-
-
-  uint32_t num_rows_count{0};
-
-  exec::OutputCallback counter = [&num_rows_count](byte *data,
-      uint32_t num_tuples, uint32_t size){
-    num_rows_count = num_tuples;
+    num_output_rows++;
+    ASSERT_LE(num_output_rows, num_expected_rows);
+  };
+  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+    ASSERT_EQ(num_output_rows, num_expected_rows);
   };
 
-  uint32_t orig_num_rows = num_rows_count;
+  // Execute Table Scan
+  {
+    GenericChecker checker(row_checker, correcteness_fn);
+    OutputStore store{&checker, seq_scan->GetOutputSchema().Get()};
+    exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
+    MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+    auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
+    CompileAndRun(seq_scan.get(), exec_ctx.get());
+    checker.CheckCorrectness();
+  }
 
-  MultiOutputCallback count_callback{std::vector<exec::OutputCallback>{counter}};
-  auto count_exec_ctx = MakeExecCtx(std::move(count_callback),
-      seq_scan1->GetOutputSchema().get());
-  CompileAndRun(seq_scan1.get(), count_exec_ctx.get());
-
-  std::shared_ptr<AbstractPlanNode> index_scan;
-  OutputSchemaHelper index_scan_out{0};
+  // Do an index scan to look for inserted value
+  std::unique_ptr<AbstractPlanNode> index_scan;
+  OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
     // Get Table columns
-    auto col1 = ExpressionUtil::CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto const_0 = ExpressionUtil::Constant(0);
+    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col3 = expr_maker.CVE(table_schema1.GetColumn("colC").Oid(), type::TypeId::INTEGER);
+    auto col4 = expr_maker.CVE(table_schema1.GetColumn("colD").Oid(), type::TypeId::INTEGER);
+
     index_scan_out.AddOutput("col1", col1);
+    index_scan_out.AddOutput("col2", col2);
+    index_scan_out.AddOutput("col3", col3);
+    index_scan_out.AddOutput("col4", col4);
     auto schema = index_scan_out.MakeSchema();
     IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid1).SetIndexOid(index_oid1)
-        .AddIndexColum(catalog::indexkeycol_oid_t(1), const_0)
+        .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-10000))
+        .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1))
+        .SetScanPredicate(nullptr)
         .SetNamespaceOid(NSOid())
-        .SetOutputSchema(schema).Build();
-  }
-  num_rows_count = 0;
-
-  CompileAndRun(index_scan.get(), count_exec_ctx.get());
-
-  uint32_t orig_index_count = num_rows_count;
-
-  // make InsertPlanNode
-  std::shared_ptr<AbstractPlanNode> insert;
-  {
-    std::vector<type::TransientValue> values;
-
-    values.push_back(type::TransientValueFactory::GetInteger(0));
-    values.push_back(type::TransientValueFactory::GetInteger(23));
-    values.push_back(type::TransientValueFactory::GetInteger(2));
-    values.push_back(type::TransientValueFactory::GetInteger(3));
-    InsertPlanNode::Builder builder;
-    insert = builder
-        .AddParameterInfo(col_oid_0)
-        .AddParameterInfo(col_oid_1)
-        .AddParameterInfo(col_oid_2)
-        .AddParameterInfo(col_oid_3)
-        .SetIndexOids({index_oid1})
-        .AddValues(std::move(values))
-        .SetNamespaceOid(NSOid())
-        .SetTableOid(table_oid1)
+        .SetOutputSchema(std::move(schema))
+        .SetScanType(planner::IndexScanType::Descending)
+        .SetScanLimit(0)
         .Build();
   }
 
-  MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), insert->GetOutputSchema().get());
-  // Run & Check
-  CompileAndRun(insert.get(), exec_ctx.get());
-
-  num_rows_count = 0;
-  CompileAndRun(seq_scan1.get(), count_exec_ctx.get());
-  ASSERT_EQ(num_rows_count, orig_num_rows + 1);
-
-  num_rows_count= 0;
-  CompileAndRun(index_scan.get(), count_exec_ctx.get());
-  ASSERT_EQ(num_rows_count, orig_index_count + 1);
+  // Execute index scan
+  {
+    num_output_rows = 0;
+    GenericChecker checker(row_checker, correcteness_fn);
+    OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
+    exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
+    MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+    auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
+    CompileAndRun(index_scan.get(), exec_ctx.get());
+    checker.CheckCorrectness();
+  }
 }
+
+
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, InsertIntoSelectTest) {
-  // SELECT COUNT(*) FROM test_1 WHERE test_1.colB == 5
-  // INSERT INTO test_1 (colA, colB, colC, colD)
-  //  SELECT col2, col2, col2, col2 FROM test_2 WHERE col2 == 5
-  // SELECT COUNT(*) FROM test_1 WHERE test_1.colB == 5,
+  // INSERT INTO test_1
+  //  SELECT -colA, col2, col3, col4 FROM test_1 WHERE colA BETWEEN 495 AND 505
+  // The do the following to check inserts:
+  // SELECT * FROM test_1 WHERE colA < 0.
   auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
   auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
   auto index_oid1 = accessor->GetIndexOid(NSOid(), "index_1");
   auto table_schema1 = accessor->GetSchema(table_oid1);
-  auto col_oid_0 = table_schema1.GetColumn("colA").Oid();
-  auto col_oid_1 = table_schema1.GetColumn("colB").Oid();
-  auto col_oid_2 = table_schema1.GetColumn("colC").Oid();
-  auto col_oid_3 = table_schema1.GetColumn("colD").Oid();
-  // Get original count
-  std::shared_ptr<AbstractPlanNode> seq_scan1;
-  OutputSchemaHelper seq_scan_out1{0};
+  // SeqScan for insert
+  std::unique_ptr<AbstractPlanNode> seq_scan1;
+  OutputSchemaHelper seq_scan_out1{0, &expr_maker};
   {
-    auto col1 = ExpressionUtil::CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
-    seq_scan_out1.AddOutput("col1", col1);
+    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto neg_col1 = expr_maker.OpMul(expr_maker.Constant(-1), col1);
+    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col3 = expr_maker.CVE(table_schema1.GetColumn("colC").Oid(), type::TypeId::INTEGER);
+    auto col4 = expr_maker.CVE(table_schema1.GetColumn("colD").Oid(), type::TypeId::INTEGER);
+    seq_scan_out1.AddOutput("col1", neg_col1);
+    seq_scan_out1.AddOutput("col2", col2);
+    seq_scan_out1.AddOutput("col3", col3);
+    seq_scan_out1.AddOutput("col4", col4);
     auto schema = seq_scan_out1.MakeSchema();
 
-    auto predicate = ExpressionUtil::ComparisonEq(col1, ExpressionUtil::Constant(5));
+    auto pred1 = expr_maker.ComparisonGe(col1, expr_maker.Constant(495));
+    auto pred2 = expr_maker.ComparisonLe(col1, expr_maker.Constant(505));
+    auto predicate = expr_maker.ConjunctionAnd(pred1, pred2);
     // Build
     SeqScanPlanNode::Builder builder;
-    seq_scan1 = builder.SetOutputSchema(schema)
+    seq_scan1 = builder.SetOutputSchema(std::move(schema))
         .SetScanPredicate(predicate)
         .SetIsParallelFlag(false)
         .SetIsForUpdateFlag(false)
@@ -1024,111 +1622,129 @@ TEST_F(CompilerTest, InsertIntoSelectTest) {
         .Build();
   }
 
-
-
-  uint32_t num_rows_count{0};
-
-  exec::OutputCallback counter = [&num_rows_count](byte *data,
-                                                   uint32_t num_tuples, uint32_t size){
-    num_rows_count = num_tuples;
-  };
-
-
-  MultiOutputCallback count_callback{std::vector<exec::OutputCallback>{counter}};
-  auto count_exec_ctx = MakeExecCtx(std::move(count_callback),
-                                    seq_scan1->GetOutputSchema().get());
-  CompileAndRun(seq_scan1.get(), count_exec_ctx.get());
-  uint32_t orig_num_rows = num_rows_count;
-
-  std::shared_ptr<AbstractPlanNode> index_scan;
-  OutputSchemaHelper index_scan_out{0};
+  // Insertion node
+  std::unique_ptr<AbstractPlanNode> insert;
   {
-    // Get Table columns
-    auto col1 = ExpressionUtil::CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto const_0 = ExpressionUtil::Constant(5);
-    index_scan_out.AddOutput("col1", col1);
-    auto schema = index_scan_out.MakeSchema();
-    IndexScanPlanNode::Builder builder;
-    index_scan = builder.SetTableOid(table_oid1).SetIndexOid(index_oid1)
-        .AddIndexColum(catalog::indexkeycol_oid_t(1), const_0)
-        .SetNamespaceOid(NSOid())
-        .SetOutputSchema(schema).Build();
-  }
-  num_rows_count = 0;
-
-  CompileAndRun(index_scan.get(), count_exec_ctx.get());
-
-  uint32_t orig_index_count = num_rows_count;
-
-  // scan node for SELECT part of INSERT INTO SELECT
-
-  auto table_oid2 = accessor->GetTableOid(NSOid(), "test_2");
-  auto table_schema2 = accessor->GetSchema(table_oid2);
-  std::shared_ptr<AbstractPlanNode> insert_seq_scan;
-
-  OutputSchemaHelper insert_seq_scan1{0};
-  {
-    auto col1 = ExpressionUtil::CVE(table_schema2.GetColumn("col2").Oid(), type::TypeId::INTEGER);
-    insert_seq_scan1.AddOutput("colA", col1);
-    insert_seq_scan1.AddOutput("colB", col1);
-    insert_seq_scan1.AddOutput("colC", col1);
-    insert_seq_scan1.AddOutput("colD", col1);
-    auto schema = insert_seq_scan1.MakeSchema();
-
-    auto predicate = ExpressionUtil::ComparisonEq(col1, ExpressionUtil::Constant(5));
-    // Build
-    SeqScanPlanNode::Builder builder;
-    insert_seq_scan = builder.SetOutputSchema(schema)
-        .SetScanPredicate(predicate)
-        .SetIsParallelFlag(false)
-        .SetIsForUpdateFlag(false)
-        .SetNamespaceOid(NSOid())
-        .SetTableOid(table_oid2)
-        .Build();
-  }
-
-  // make InsertPlanNode
-  std::shared_ptr<AbstractPlanNode> insert;
-  {
-    std::vector<type::TransientValue> values;
-
     InsertPlanNode::Builder builder;
     insert = builder
-        .AddParameterInfo(col_oid_0)
-        .AddParameterInfo(col_oid_1)
-        .AddParameterInfo(col_oid_2)
-        .AddParameterInfo(col_oid_3)
+        .AddParameterInfo(table_schema1.GetColumn("colA").Oid())
+        .AddParameterInfo(table_schema1.GetColumn("colB").Oid())
+        .AddParameterInfo(table_schema1.GetColumn("colC").Oid())
+        .AddParameterInfo(table_schema1.GetColumn("colD").Oid())
         .SetIndexOids({index_oid1})
         .SetNamespaceOid(NSOid())
         .SetTableOid(table_oid1)
-        .AddChild(insert_seq_scan)
+        .AddChild(std::move(seq_scan1))
         .Build();
   }
 
-  MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), insert->GetOutputSchema().get());
-  // Run & Check
-  CompileAndRun(insert.get(), exec_ctx.get());
+  // Execute insert
+  {
+    // Make Exec Ctx
+    MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
+    auto exec_ctx = MakeExecCtx(std::move(callback), insert->GetOutputSchema().Get());
+    CompileAndRun(insert.get(), exec_ctx.get());
+  }
 
-  size_t num_rows_inserted = 0;
-  exec::OutputCallback new_counter = [&num_rows_inserted](byte *data,
-                                                   uint32_t num_tuples, uint32_t size){
-    num_rows_inserted = num_tuples;
+
+
+  // Now scan through table to check content.
+  std::unique_ptr<AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
+  {
+    // Get Table columns
+    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col3 = expr_maker.CVE(table_schema1.GetColumn("colC").Oid(), type::TypeId::INTEGER);
+    auto col4 = expr_maker.CVE(table_schema1.GetColumn("colD").Oid(), type::TypeId::INTEGER);
+    seq_scan_out.AddOutput("col1", col1);
+    seq_scan_out.AddOutput("col2", col2);
+    seq_scan_out.AddOutput("col3", col3);
+    seq_scan_out.AddOutput("col4", col4);
+    // Make predicate
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(0));
+    auto schema = seq_scan_out.MakeSchema();
+    // Build
+    SeqScanPlanNode::Builder builder;
+    seq_scan = builder.SetOutputSchema(std::move(schema))
+        .SetScanPredicate(predicate)
+        .SetIsParallelFlag(false)
+        .SetIsForUpdateFlag(false)
+        .SetNamespaceOid(NSOid())
+        .SetTableOid(table_oid1)
+        .Build();
+  }
+  // Create the checkers
+  uint32_t num_output_rows{0};
+  uint32_t num_expected_rows{11};
+  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> vals) {
+    // Read cols
+    auto col1 = static_cast<sql::Integer *>(vals[0]);
+    auto col2 = static_cast<sql::Integer *>(vals[1]);
+    auto col3 = static_cast<sql::Integer *>(vals[2]);
+    auto col4 = static_cast<sql::Integer *>(vals[3]);
+    ASSERT_FALSE(col1->is_null_ || col2->is_null_ || col3->is_null_ || col4->is_null_);
+    int32_t col1_val = (-495 - num_output_rows) * 1;
+    ASSERT_EQ(col1->val_, col1_val);
+
+    num_output_rows++;
+    ASSERT_LE(num_output_rows, num_expected_rows);
+  };
+  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+    ASSERT_EQ(num_output_rows, num_expected_rows);
   };
 
-  MultiOutputCallback n_count_callback{std::vector<exec::OutputCallback>{new_counter}};
-  auto n_count_exec_ctx = MakeExecCtx(std::move(n_count_callback),
-                                    insert_seq_scan->GetOutputSchema().get());
-  CompileAndRun(insert_seq_scan.get(), n_count_exec_ctx.get());
+  // Execute Table Scan
+  {
+    num_output_rows = 0;
+    GenericChecker checker(row_checker, correcteness_fn);
+    OutputStore store{&checker, seq_scan->GetOutputSchema().Get()};
+    exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
+    MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+    auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
+    CompileAndRun(seq_scan.get(), exec_ctx.get());
+    checker.CheckCorrectness();
+  }
 
-  num_rows_count = 0;
-  CompileAndRun(seq_scan1.get(), count_exec_ctx.get());
-  ASSERT_EQ(num_rows_count, orig_num_rows + num_rows_inserted);
+  // Do an index scan to look for inserted value
+  std::unique_ptr<AbstractPlanNode> index_scan;
+  OutputSchemaHelper index_scan_out{0, &expr_maker};
+  {
+    // Get Table columns
+    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col3 = expr_maker.CVE(table_schema1.GetColumn("colC").Oid(), type::TypeId::INTEGER);
+    auto col4 = expr_maker.CVE(table_schema1.GetColumn("colD").Oid(), type::TypeId::INTEGER);
 
-  num_rows_count= 0;
-  CompileAndRun(index_scan.get(), count_exec_ctx.get());
-  ASSERT_EQ(num_rows_count, orig_index_count + num_rows_inserted);
+    index_scan_out.AddOutput("col1", col1);
+    index_scan_out.AddOutput("col2", col2);
+    index_scan_out.AddOutput("col3", col3);
+    index_scan_out.AddOutput("col4", col4);
+    auto schema = index_scan_out.MakeSchema();
+    IndexScanPlanNode::Builder builder;
+    index_scan = builder.SetTableOid(table_oid1).SetIndexOid(index_oid1)
+        .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1000))
+        .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1))
+        .SetScanPredicate(nullptr)
+        .SetNamespaceOid(NSOid())
+        .SetOutputSchema(std::move(schema))
+        .SetScanType(planner::IndexScanType::Descending)
+        .SetScanLimit(0)
+        .Build();
+  }
+  // Execute index scan
+  {
+    num_output_rows = 0;
+    GenericChecker checker(row_checker, correcteness_fn);
+    OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
+    exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
+    MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+    auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
+    CompileAndRun(index_scan.get(), exec_ctx.get());
+    checker.CheckCorrectness();
+  }
 }
+
 
 /*
 // NOLINTNEXTLINE

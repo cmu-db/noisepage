@@ -18,8 +18,7 @@ class SortKey {
    * @param sort_type order of the sort
    */
   SortKey(common::ManagedPointer<parser::AbstractExpression> expr, optimizer::OrderByOrderingType sort_type)
-  : expr_{expr}
-  , sort_type_{sort_type} {}
+      : expr_{expr}, sort_type_{sort_type} {}
 
   /**
    * Default constructor for json.
@@ -29,21 +28,15 @@ class SortKey {
   /**
    * @return The expression to sort by
    */
-  common::ManagedPointer<parser::AbstractExpression> Expr() const {
-    return expr_;
-  }
+  common::ManagedPointer<parser::AbstractExpression> Expr() const { return expr_; }
 
-  bool operator==(const SortKey& other) const {
-    return expr_ == other.expr_ && sort_type_ == other.sort_type_;
-  }
+  bool operator==(const SortKey &other) const { return expr_ == other.expr_ && sort_type_ == other.sort_type_; }
 
-  bool operator!=(const SortKey& other) const {
-    return !(*this == other);
-  }
+  bool operator!=(const SortKey &other) const { return !(*this == other); }
 
   /**
-     * @return column serialized to json
-     */
+   * @return column serialized to json
+   */
   nlohmann::json ToJson() const {
     nlohmann::json j;
     j["expr"] = *expr_;
@@ -67,14 +60,12 @@ class SortKey {
   /**
    * @return The order of the sort
    */
-  optimizer::OrderByOrderingType SortType() const {
-    return sort_type_;
-  }
+  optimizer::OrderByOrderingType SortType() const { return sort_type_; }
+
  private:
   common::ManagedPointer<parser::AbstractExpression> expr_{nullptr};
   optimizer::OrderByOrderingType sort_type_{};
 };
-
 
 /**
  * Plan node for order by operator
@@ -98,7 +89,8 @@ class OrderByPlanNode : public AbstractPlanNode {
      * @param ordering ordering (ASC or DESC) for key
      * @return builder object
      */
-    Builder &AddSortKey(common::ManagedPointer<parser::AbstractExpression> key, optimizer::OrderByOrderingType ordering) {
+    Builder &AddSortKey(common::ManagedPointer<parser::AbstractExpression> key,
+                        optimizer::OrderByOrderingType ordering) {
       sort_keys_.emplace_back(key, ordering);
       return *this;
     }

@@ -22,7 +22,7 @@ SeqScanTranslator::SeqScanTranslator(const terrier::planner::SeqScanPlanNode *op
       tvi_(codegen->NewIdentifier(tvi_name_)),
       col_oids_(codegen->NewIdentifier(col_oids_name_)),
       pci_(codegen->NewIdentifier(pci_name_)),
-      row_(codegen->NewIdentifier(row_name_)),
+      slot_(codegen->NewIdentifier(slot_name_)),
       table_struct_(codegen->NewIdentifier(table_struct_name_)),
       pci_type_{codegen->Context()->GetIdentifier(pci_type_name_)} {}
 
@@ -44,6 +44,12 @@ void SeqScanTranslator::Produce(FunctionBuilder *builder) {
   GenTVIClose(builder);
 }
 
+void SeqScanTranslator::Abort(FunctionBuilder *builder) {
+  // Close iterator
+  GenTVIClose(builder);
+  if (child_translator_ != nullptr) child_translator_->Abort(builder);
+}
+
 void SeqScanTranslator::Consume(FunctionBuilder *builder) {
   GenTVILoop(builder);
   DeclarePCI(builder);
@@ -61,6 +67,8 @@ void SeqScanTranslator::Consume(FunctionBuilder *builder) {
       has_if_stmt = true;
     }
   }
+  // Declare Slot
+  DeclareSlot(builder);
   parent_translator_->Consume(builder);
   // Close predicate if statement
   if (has_if_stmt) {
@@ -127,6 +135,12 @@ void SeqScanTranslator::DeclarePCI(FunctionBuilder *builder) {
   builder->Append(codegen_->DeclareVariable(pci_, nullptr, get_pci_call));
 }
 
+void SeqScanTranslator::DeclareSlot(FunctionBuilder *builder) {
+  // Get var slot = @pciGetSlot(&pci)
+  ast::Expr *get_slot_call = codegen_->PCIGetSlot(pci_);
+  builder->Append(codegen_->DeclareVariable(slot_, nullptr, get_slot_call));
+}
+
 void SeqScanTranslator::GenPCILoop(FunctionBuilder *builder) {
   // Generate for(; @pciHasNext(pci); @pciAdvance()) {...} or the Filtered version
   // The @pciHasNext(pci) call
@@ -159,20 +173,8 @@ void SeqScanTranslator::GenTVIReset(execution::compiler::FunctionBuilder *builde
 }
 
 bool SeqScanTranslator::IsVectorizable(const terrier::parser::AbstractExpression *predicate) {
-  if (predicate == nullptr) return true;
-
-  if (predicate->GetExpressionType() == terrier::parser::ExpressionType::CONJUNCTION_AND) {
-    return IsVectorizable(predicate->GetChild(0).Get()) && IsVectorizable(predicate->GetChild(1).Get());
-  }
-  if (COMPARISON_OP(predicate->GetExpressionType())) {
-    // left is TVE and right is constant integer.
-    // TODO(Amadou): Add support for floats here and in the SIMD code.
-    // TODO(Amadou): Support right TVE and left constant integers. Be sure to flip inequalities while codegening.
-    return predicate->GetChild(0)->GetExpressionType() == terrier::parser::ExpressionType::COLUMN_VALUE &&
-           predicate->GetChild(1)->GetExpressionType() == terrier::parser::ExpressionType::VALUE_CONSTANT &&
-           (predicate->GetChild(1)->GetReturnValueType() >= terrier::type::TypeId::TINYINT &&
-            predicate->GetChild(1)->GetReturnValueType() <= terrier::type::TypeId::BIGINT);
-  }
+  // TODO(Amadou): Does not currently work with negative numbers.
+  // Implement once that's fixed.
   return false;
 }
 

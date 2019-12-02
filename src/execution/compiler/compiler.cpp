@@ -6,7 +6,7 @@
 
 namespace terrier::execution::compiler {
 
-Compiler::Compiler(CodeGen* codegen, const planner::AbstractPlanNode* plan) : codegen_(codegen), plan_(plan) {
+Compiler::Compiler(CodeGen *codegen, const planner::AbstractPlanNode *plan) : codegen_(codegen), plan_(plan) {
   // Make the pipelines
   auto main_pipeline = std::make_unique<Pipeline>(codegen_);
   MakePipelines(*plan, main_pipeline.get());
@@ -20,7 +20,7 @@ Compiler::Compiler(CodeGen* codegen, const planner::AbstractPlanNode* plan) : co
   EXECUTION_LOG_INFO("Made {} pipelines", pipelines_.size());
 }
 
-ast::File* Compiler::Compile() {
+ast::File *Compiler::Compile() {
   // Step 1: Generate state, structs, helper functions
   util::RegionVector<ast::Decl *> decls(codegen_->Region());
   util::RegionVector<ast::FieldDecl *> state_fields(codegen_->Region());

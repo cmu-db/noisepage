@@ -50,6 +50,8 @@ void AggregateBottomTranslator::InitializeTeardown(util::RegionVector<ast::Stmt 
 
 void AggregateBottomTranslator::Produce(FunctionBuilder *builder) { child_translator_->Produce(builder); }
 
+void AggregateBottomTranslator::Abort(FunctionBuilder *builder) { child_translator_->Abort(builder); }
+
 void AggregateBottomTranslator::Consume(FunctionBuilder *builder) {
   // Generate values to aggregate
   FillValues(builder);
@@ -321,6 +323,12 @@ void AggregateTopTranslator::Consume(FunctionBuilder *builder) {
   builder->FinishBlockStmt();
   // Close iterator
   CloseIterator(builder);
+}
+
+void AggregateTopTranslator::Abort(FunctionBuilder *builder) {
+  // Close iterator
+  CloseIterator(builder);
+  if (child_translator_ != nullptr) child_translator_->Abort(builder);
 }
 
 ast::Expr *AggregateTopTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) {

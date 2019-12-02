@@ -20,6 +20,8 @@ void HashJoinLeftTranslator::Produce(FunctionBuilder *builder) {
   GenBuildCall(builder);
 }
 
+void HashJoinLeftTranslator::Abort(FunctionBuilder *builder) { child_translator_->Abort(builder); }
+
 void HashJoinLeftTranslator::Consume(FunctionBuilder *builder) {
   // First create the left hash_value.
   GenHashCall(builder);
@@ -130,6 +132,12 @@ void HashJoinRightTranslator::Produce(FunctionBuilder *builder) {
   DeclareIterator(builder);
   // Let right child produce its code
   child_translator_->Produce(builder);
+  // Close iterator
+  GenIteratorClose(builder);
+}
+
+void HashJoinRightTranslator::Abort(FunctionBuilder *builder) {
+  child_translator_->Abort(builder);
   // Close iterator
   GenIteratorClose(builder);
 }

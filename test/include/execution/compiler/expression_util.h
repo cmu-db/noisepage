@@ -22,17 +22,15 @@ class ExpressionMaker {
   using ManagedExpression = common::ManagedPointer<parser::AbstractExpression>;
   using ManagedAggExpression = common::ManagedPointer<parser::AggregateExpression>;
 
-
-  ManagedExpression MakeManaged(OwnedExpression && expr) {
+  ManagedExpression MakeManaged(OwnedExpression &&expr) {
     owned_exprs_.emplace_back(std::move(expr));
     return ManagedExpression(owned_exprs_.back());
   }
 
-  ManagedAggExpression MakeAggManaged(OwnedAggExpression && expr) {
+  ManagedAggExpression MakeAggManaged(OwnedAggExpression &&expr) {
     owned_agg_exprs_.emplace_back(std::move(expr));
     return ManagedAggExpression(owned_agg_exprs_.back());
   }
-
 
   /**
    * Create an integer constant expression
@@ -54,7 +52,8 @@ class ExpressionMaker {
   ManagedExpression Constant(int16_t year, uint8_t month, uint8_t day) {
     sql::Date date(year, month, day);
     type::date_t int_val_(date.int_val_);
-    return MakeManaged(std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetDate(int_val_)));
+    return MakeManaged(
+        std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetDate(int_val_)));
   }
 
   /**
@@ -63,15 +62,15 @@ class ExpressionMaker {
   ManagedExpression Constant(date::year_month_day ymd) {
     sql::Date date(ymd.year(), ymd.month(), ymd.day());
     type::date_t int_val_(date.int_val_);
-    return MakeManaged(std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetDate(int_val_)));
+    return MakeManaged(
+        std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetDate(int_val_)));
   }
 
   /**
    * Create a column value expression
    */
   ManagedExpression CVE(catalog::col_oid_t column_oid, type::TypeId type) {
-    return MakeManaged(std::make_unique<parser::ColumnValueExpression>(catalog::table_oid_t(0), column_oid,
-                                                           type));
+    return MakeManaged(std::make_unique<parser::ColumnValueExpression>(catalog::table_oid_t(0), column_oid, type));
   }
 
   /**
@@ -182,6 +181,13 @@ class ExpressionMaker {
   }
 
   /**
+   * create expression for -child
+   */
+  ManagedExpression OpNeg(ManagedExpression child) {
+    return Operator(parser::ExpressionType::OPERATOR_UNARY_MINUS, child->GetReturnValueType(), child);
+  }
+
+  /**
    * Create expression for child1 AND/OR child2
    */
   ManagedExpression Conjunction(parser::ExpressionType op_type, ManagedExpression child1, ManagedExpression child2) {
@@ -217,12 +223,16 @@ class ExpressionMaker {
   /**
    * Create a sum aggregate expression
    */
-  ManagedAggExpression AggSum(ManagedExpression child) { return AggregateTerm(parser::ExpressionType::AGGREGATE_SUM, child); }
+  ManagedAggExpression AggSum(ManagedExpression child) {
+    return AggregateTerm(parser::ExpressionType::AGGREGATE_SUM, child);
+  }
 
   /**
    * Create a avg aggregate expression
    */
-  ManagedAggExpression AggAvg(ManagedExpression child) { return AggregateTerm(parser::ExpressionType::AGGREGATE_AVG, child); }
+  ManagedAggExpression AggAvg(ManagedExpression child) {
+    return AggregateTerm(parser::ExpressionType::AGGREGATE_AVG, child);
+  }
 
   /**
    * Create a count aggregate expression

@@ -1,18 +1,19 @@
 #pragma once
 
 #include <string>
+#include "catalog/catalog_accessor.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
 #include "execution/compiler/compiler_defs.h"
+#include "execution/sema/error_reporter.h"
 #include "execution/util/region.h"
 #include "parser/expression_defs.h"
 #include "type/transient_value.h"
-#include "type/type_id.h"
 #include "type/transient_value_peeker.h"
-#include "execution/sema/error_reporter.h"
-#include "catalog/catalog_accessor.h"
+#include "planner/plannodes/index_scan_plan_node.h"
+#include "type/type_id.h"
 
 namespace terrier::execution::compiler {
 
@@ -56,9 +57,7 @@ class CodeGen {
   /**
    * @return the error reporter
    */
-  sema::ErrorReporter * Reporter() {
-    return &error_reporter_;
-  }
+  sema::ErrorReporter *Reporter() { return &error_reporter_; }
 
   /**
    * @return the state's identifier
@@ -395,6 +394,14 @@ class CodeGen {
   ast::Expr *PCIAdvance(ast::Identifier pci, bool filtered);
 
   /**
+ * Call pciGetSlot(pci)
+ */
+  ast::Expr *PCIGetSlot(ast::Identifier pci) {
+    return OneArgCall(ast::Builtin::PCIGetSlot, pci, false);
+  }
+
+
+  /**
    * Call pciGetTypeNullable(pci, idx)
    */
   ast::Expr *PCIGet(ast::Identifier pci, terrier::type::TypeId type, bool nullable, uint32_t idx);
@@ -581,19 +588,28 @@ class CodeGen {
   ast::Expr *IndexIteratorInit(ast::Identifier iter, uint32_t table_oid, uint32_t index_oid, ast::Identifier col_oids);
 
   /**
-   * Call IndexIteratorScanKey(&iter)
+   * Call IndexIteratorScanType(&iter[, limit])
    */
-  ast::Expr *IndexIteratorScanKey(ast::Identifier iter);
+  ast::Expr *IndexIteratorScan(ast::Identifier iter, planner::IndexScanType scan_type, uint32_t limit);
 
   /**
    * Call IndexIteratorGetIndexPR(&iter)
    */
   ast::Expr *IndexIteratorGetIndexPR(ast::Identifier iter);
+  ast::Expr *IndexIteratorGetIndexLoPR(ast::Identifier iter);
+  ast::Expr *IndexIteratorGetIndexHiPR(ast::Identifier iter);
 
   /**
    * Call IndexIteratorGetTablePR(&iter)
    */
   ast::Expr *IndexIteratorGetTablePR(ast::Identifier iter);
+
+  /**
+   * Call IndexIteratorGetSlot(&iter)
+   */
+  ast::Expr *IndexIteratorGetTableSlot(ast::Identifier iter) {
+    return OneArgCall(ast::Builtin::IndexIteratorGetSlot, iter, true);
+  }
 
   /**
    * Call IndexIteratorAdvance(&iter)
@@ -605,42 +621,52 @@ class CodeGen {
    */
   ast::Expr *IndexIteratorFree(ast::Identifier iter);
 
+
+
   /**
    * Call PrGet(&iter, attr_idx)
    */
-  ast::Expr *PRGet(ast::Expr* iter_ptr, terrier::type::TypeId type, bool nullable, uint32_t attr_idx);
+  ast::Expr *PRGet(ast::Expr *iter_ptr, terrier::type::TypeId type, bool nullable, uint32_t attr_idx);
   ast::Expr *PRGet(ast::Identifier iter, terrier::type::TypeId type, bool nullable, uint32_t attr_idx);
 
   /**
    * Call PrSet(&iter, attr_idx, val)
    */
-  ast::Expr *PRSet(ast::Expr* iter_ptr, terrier::type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val);
+  ast::Expr *PRSet(ast::Expr *iter_ptr, terrier::type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val);
   ast::Expr *PRSet(ast::Identifier iter, terrier::type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val);
 
   /**
-   * Call InserterInit(&inserter(&inserter, table_oid)
+   * Call storageInterfaceInit(&storage_interface, table_oid)
    */
-  ast::Expr *InserterInit(ast::Identifier inserter, uint32_t table_oid);
+  ast::Expr *StorageInterfaceInit(ast::Identifier si, uint32_t table_oid, ast::Identifier col_oids, bool need_indexes);
 
   /**
-   * Call InserterGetTablePR(&inserter)
+   * Call storageInterfaceFree(&storage_interface)
    */
-  ast::Expr *InserterGetTablePR(ast::Identifier inserter);
+  ast::Expr *StorageInterfaceFree(ast::Identifier si);
 
   /**
-   * Call InserterTableInsert(&inserter)
+   * Call getTablePR(&storage_interface)
    */
-   ast::Expr *InserterTableInsert(ast::Identifier inserter);
-
-   /**
-    * Call InserterGetIndexPR(&inserter, index_oid)
-    */
-   ast::Expr *InserterGetIndexPR(ast::Identifier inserter, uint32_t index_oid);
+  ast::Expr *GetTablePR(ast::Identifier si);
 
   /**
-   * Call InserterIndexInsert(&inserter)
+   * Call tableInsert(&storage_interface)
    */
-  ast::Expr *InserterIndexInsert(ast::Identifier inserter, uint32_t index_oid);
+  ast::Expr *TableInsert(ast::Identifier si);
+  ast::Expr *TableDelete(ast::Identifier si, ast::Expr *slot);
+  ast::Expr *TableUpdate(ast::Identifier si);
+
+  /**
+   * Call getIndexPR(&storage_interface, index_oid)
+   */
+  ast::Expr *GetIndexPR(ast::Identifier si, uint32_t index_oid);
+
+  /**
+   * Call indexInsert(&storage_interface)
+   */
+  ast::Expr *IndexInsert(ast::Identifier si);
+  ast::Expr *IndexDelete(ast::Identifier si, ast::Expr *slot);
 
  private:
   /**
@@ -673,7 +699,7 @@ class CodeGen {
   sema::ErrorReporter error_reporter_;
   ast::Context ast_ctx_;
   ast::AstNodeFactory factory_;
-  catalog::CatalogAccessor * accessor_;
+  catalog::CatalogAccessor *accessor_;
 
   // Identifiers that are always needed
   ast::Identifier state_struct_;

@@ -254,6 +254,9 @@ VM_OP_HOT void OpPCIReset(terrier::execution::sql::ProjectedColumnsIterator *pci
 
 VM_OP_HOT void OpPCIResetFiltered(terrier::execution::sql::ProjectedColumnsIterator *pci) { pci->ResetFiltered(); }
 
+VM_OP_HOT void OpPCIGetSlot(terrier::storage::TupleSlot* slot, terrier::execution::sql::ProjectedColumnsIterator *pci) { *slot = pci->CurrentSlot(); }
+
+
 VM_OP_HOT void OpPCIGetTinyInt(terrier::execution::sql::Integer *out,
                                terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
   // Read

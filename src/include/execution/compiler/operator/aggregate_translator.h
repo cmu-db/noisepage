@@ -37,6 +37,7 @@ class AggregateBottomTranslator : public OperatorTranslator {
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override;
 
   void Produce(FunctionBuilder *builder) override;
+  void Abort(FunctionBuilder *builder) override;
 
   void Consume(FunctionBuilder *builder) override;
 
@@ -57,9 +58,7 @@ class AggregateBottomTranslator : public OperatorTranslator {
     return {&agg_payload_, &payload_struct_};
   }
 
-  const planner::AbstractPlanNode* Op() override {
-    return op_;
-  }
+  const planner::AbstractPlanNode *Op() override { return op_; }
 
  private:
   /**
@@ -128,7 +127,7 @@ class AggregateBottomTranslator : public OperatorTranslator {
  private:
   // The number of group by terms.
   uint32_t num_group_by_terms{0};
-  const planner::AggregatePlanNode* op_;
+  const planner::AggregatePlanNode *op_;
 
   // Structs, Functions, and local variables needed.
   // TODO(Amadou): This list is blowing up. Figure out a different to manage local variable names.
@@ -189,6 +188,7 @@ class AggregateTopTranslator : public OperatorTranslator {
    * Close the iterator after the loop
    */
   void Produce(FunctionBuilder *builder) override;
+  void Abort(FunctionBuilder *builder) override;
 
   // Pass through
   void Consume(FunctionBuilder *builder) override;
@@ -208,9 +208,7 @@ class AggregateTopTranslator : public OperatorTranslator {
     return bottom_->GetMaterializedTuple();
   }
 
-  const planner::AbstractPlanNode* Op() override {
-    return op_;
-  }
+  const planner::AbstractPlanNode *Op() override { return op_; }
 
  private:
   // Declare var agg_iterator: *AggregationHashTableIterator
@@ -229,7 +227,7 @@ class AggregateTopTranslator : public OperatorTranslator {
   // Return true if if there is a having clause
   bool GenHaving(FunctionBuilder *builder);
 
-  const planner::AggregatePlanNode* op_;
+  const planner::AggregatePlanNode *op_;
   // Used to access member of the resulting aggregate
   AggregateBottomTranslator *bottom_;
 

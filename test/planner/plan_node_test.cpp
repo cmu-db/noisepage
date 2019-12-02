@@ -38,10 +38,10 @@ TEST(PlanNodeTest, AnalyzePlanTest) {
 
   AnalyzePlanNode::Builder builder;
   auto plan = builder.SetDatabaseOid(db_oid)
-      .SetNamespaceOid(ns_oid)
-      .SetTableOid(table_oid)
-      .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
-      .Build();
+                  .SetNamespaceOid(ns_oid)
+                  .SetTableOid(table_oid)
+                  .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
+                  .Build();
 
   EXPECT_TRUE(plan != nullptr);
   EXPECT_EQ(PlanNodeType::ANALYZE, plan->GetPlanNodeType());
@@ -52,10 +52,10 @@ TEST(PlanNodeTest, AnalyzePlanTest) {
   // Make sure that the hash and equality function works correctly
   AnalyzePlanNode::Builder builder2;
   auto plan2 = builder2.SetDatabaseOid(catalog::db_oid_t(db_oid))
-      .SetNamespaceOid(catalog::namespace_oid_t(2))
-      .SetTableOid(table_oid)
-      .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
-      .Build();
+                   .SetNamespaceOid(catalog::namespace_oid_t(2))
+                   .SetTableOid(table_oid)
+                   .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
+                   .Build();
   EXPECT_EQ(plan->GetDatabaseOid(), plan2->GetDatabaseOid());
   EXPECT_EQ(plan->GetNamespaceOid(), plan2->GetNamespaceOid());
   EXPECT_EQ(plan->GetTableOid(), plan2->GetTableOid());
@@ -87,10 +87,10 @@ TEST(PlanNodeTest, AnalyzePlanTest) {
 
     AnalyzePlanNode::Builder builder3;
     auto plan3 = builder3.SetDatabaseOid(other_db_oid)
-        .SetNamespaceOid(other_ns_oid)
-        .SetTableOid(other_table_oid)
-        .SetOutputSchema(std::move(other_schema))
-        .Build();
+                     .SetNamespaceOid(other_ns_oid)
+                     .SetTableOid(other_table_oid)
+                     .SetOutputSchema(std::move(other_schema))
+                     .Build();
     EXPECT_NE(*plan, *plan3);
     EXPECT_NE(plan->Hash(), plan3->Hash());
   }
@@ -231,11 +231,11 @@ TEST(PlanNodeTest, AggregatePlanTest) {
 
     planner::AggregatePlanNode::Builder builder3;
     auto plan3 = builder3.AddAggregateTerm(common::ManagedPointer(other_aggr))
-        .AddGroupByTerm(common::ManagedPointer(dve_copy))
-        .SetHavingClausePredicate(common::ManagedPointer(other_predicate))
-        .SetAggregateStrategyType(other_strategy)
-        .SetOutputSchema(std::move(other_schema))
-        .Build();
+                     .AddGroupByTerm(common::ManagedPointer(dve_copy))
+                     .SetHavingClausePredicate(common::ManagedPointer(other_predicate))
+                     .SetAggregateStrategyType(other_strategy)
+                     .SetOutputSchema(std::move(other_schema))
+                     .Build();
     EXPECT_NE(*plan, *plan3);
     EXPECT_NE(plan->Hash(), plan3->Hash());
     delete other_aggr;
@@ -258,16 +258,16 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
 
   planner::CSVScanPlanNode::Builder builder;
   auto plan = builder.SetDatabaseOid(db_oid)
-      .SetNamespaceOid(ns_oid)
-      .SetIsParallelFlag(true)
-      .SetIsForUpdateFlag(false)
-      .SetFileName(file_name)
-      .SetDelimiter(delimiter)
-      .SetQuote(quote)
-      .SetEscape(escape)
-      .SetValueTypes(value_types)
-      .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
-      .Build();
+                  .SetNamespaceOid(ns_oid)
+                  .SetIsParallelFlag(true)
+                  .SetIsForUpdateFlag(false)
+                  .SetFileName(file_name)
+                  .SetDelimiter(delimiter)
+                  .SetQuote(quote)
+                  .SetEscape(escape)
+                  .SetValueTypes(value_types)
+                  .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
+                  .Build();
 
   EXPECT_TRUE(plan != nullptr);
   EXPECT_EQ(PlanNodeType::CSVSCAN, plan->GetPlanNodeType());
@@ -283,16 +283,16 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
 
   planner::CSVScanPlanNode::Builder builder2;
   auto plan2 = builder2.SetDatabaseOid(db_oid)
-      .SetNamespaceOid(ns_oid)
-      .SetIsParallelFlag(true)
-      .SetIsForUpdateFlag(false)
-      .SetFileName(file_name)
-      .SetDelimiter(delimiter)
-      .SetQuote(quote)
-      .SetEscape(escape)
-      .SetValueTypes(value_types)
-      .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
-      .Build();
+                   .SetNamespaceOid(ns_oid)
+                   .SetIsParallelFlag(true)
+                   .SetIsForUpdateFlag(false)
+                   .SetFileName(file_name)
+                   .SetDelimiter(delimiter)
+                   .SetQuote(quote)
+                   .SetEscape(escape)
+                   .SetValueTypes(value_types)
+                   .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
+                   .Build();
   EXPECT_EQ(*plan, *plan2);
   EXPECT_EQ(plan->Hash(), plan2->Hash());
 
@@ -345,16 +345,16 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
 
     planner::CSVScanPlanNode::Builder builder3;
     auto plan3 = builder3.SetDatabaseOid(o_db_oid)
-        .SetNamespaceOid(o_ns_oid)
-        .SetIsParallelFlag(o_parallel)
-        .SetIsForUpdateFlag(o_update)
-        .SetFileName(o_file_name)
-        .SetDelimiter(o_delimiter)
-        .SetQuote(o_quote)
-        .SetEscape(o_escape)
-        .SetValueTypes(o_value_types)
-        .SetOutputSchema(std::move(o_schema))
-        .Build();
+                     .SetNamespaceOid(o_ns_oid)
+                     .SetIsParallelFlag(o_parallel)
+                     .SetIsForUpdateFlag(o_update)
+                     .SetFileName(o_file_name)
+                     .SetDelimiter(o_delimiter)
+                     .SetQuote(o_quote)
+                     .SetEscape(o_escape)
+                     .SetValueTypes(o_value_types)
+                     .SetOutputSchema(std::move(o_schema))
+                     .Build();
     EXPECT_NE(*plan, *plan3);
     EXPECT_NE(plan->Hash(), plan3->Hash());
   }

@@ -24,6 +24,7 @@ class HashJoinLeftTranslator : public OperatorTranslator {
 
   // Insert tuples into the hash table
   void Produce(FunctionBuilder *builder) override;
+  void Abort(FunctionBuilder *builder) override;
 
   void Consume(FunctionBuilder *builder) override;
 
@@ -46,9 +47,7 @@ class HashJoinLeftTranslator : public OperatorTranslator {
 
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
 
-  const planner::AbstractPlanNode* Op() override {
-    return op_;
-  }
+  const planner::AbstractPlanNode *Op() override { return op_; }
 
  private:
   friend class HashJoinRightTranslator;
@@ -69,7 +68,7 @@ class HashJoinLeftTranslator : public OperatorTranslator {
   void GenBuildCall(FunctionBuilder *builder);
 
   // The hash join plan node
-  const planner::HashJoinPlanNode* op_;
+  const planner::HashJoinPlanNode *op_;
 
   // Structs, functions, and locals
   static constexpr const char *hash_val_name_ = "hash_val";
@@ -91,6 +90,7 @@ class HashJoinRightTranslator : public OperatorTranslator {
   HashJoinRightTranslator(const terrier::planner::HashJoinPlanNode *op, CodeGen *codegen, OperatorTranslator *left);
 
   void Produce(FunctionBuilder *builder) override;
+  void Abort(FunctionBuilder *builder) override;
 
   void Consume(FunctionBuilder *builder) override;
 
@@ -121,9 +121,7 @@ class HashJoinRightTranslator : public OperatorTranslator {
     return false;
   }
 
-  const planner::AbstractPlanNode* Op() override {
-    return op_;
-  }
+  const planner::AbstractPlanNode *Op() override { return op_; }
 
  private:
   // Returns a probe value
@@ -151,7 +149,7 @@ class HashJoinRightTranslator : public OperatorTranslator {
   void GenKeyCheck(FunctionBuilder *builder);
 
   // The hash join plan node
-  const planner::HashJoinPlanNode* op_;
+  const planner::HashJoinPlanNode *op_;
   // The left translator
   HashJoinLeftTranslator *left_;
 

@@ -17,8 +17,7 @@ class NestedLoopRightTranslator;
 class NestedLoopLeftTransaltor : public OperatorTranslator {
  public:
   NestedLoopLeftTransaltor(const terrier::planner::NestedLoopJoinPlanNode *op, CodeGen *codegen)
-      : OperatorTranslator(codegen),
-        op_(op){}
+      : OperatorTranslator(codegen), op_(op) {}
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
@@ -37,6 +36,7 @@ class NestedLoopLeftTransaltor : public OperatorTranslator {
 
   // Pass through
   void Produce(FunctionBuilder *builder) override { child_translator_->Produce(builder); }
+  void Abort(FunctionBuilder *builder) override { child_translator_->Abort(builder); }
 
   // Pass through
   void Consume(FunctionBuilder *builder) override { parent_translator_->Consume(builder); }
@@ -49,9 +49,7 @@ class NestedLoopLeftTransaltor : public OperatorTranslator {
     return nullptr;
   }
 
-  const planner::AbstractPlanNode* Op() override {
-    return op_;
-  }
+  const planner::AbstractPlanNode *Op() override { return op_; }
 
  private:
   const planner::NestedLoopJoinPlanNode *op_;
@@ -64,10 +62,9 @@ class NestedLoopLeftTransaltor : public OperatorTranslator {
  */
 class NestedLoopRightTransaltor : public OperatorTranslator {
  public:
-  NestedLoopRightTransaltor(const terrier::planner::NestedLoopJoinPlanNode *op, CodeGen *codegen, OperatorTranslator *left)
-      : OperatorTranslator(codegen),
-      op_(op),
-      left_(dynamic_cast<NestedLoopLeftTransaltor *>(left)) {}
+  NestedLoopRightTransaltor(const terrier::planner::NestedLoopJoinPlanNode *op, CodeGen *codegen,
+                            OperatorTranslator *left)
+      : OperatorTranslator(codegen), op_(op), left_(dynamic_cast<NestedLoopLeftTransaltor *>(left)) {}
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
@@ -86,6 +83,7 @@ class NestedLoopRightTransaltor : public OperatorTranslator {
 
   // Pass through
   void Produce(FunctionBuilder *builder) override { child_translator_->Produce(builder); }
+  void Abort(FunctionBuilder *builder) override { child_translator_->Abort(builder); }
 
   // Generator if statement
   void Consume(FunctionBuilder *builder) override {
@@ -120,9 +118,7 @@ class NestedLoopRightTransaltor : public OperatorTranslator {
     return child_translator_->GetOutput(attr_idx);
   }
 
-  const planner::AbstractPlanNode* Op() override {
-    return op_;
-  }
+  const planner::AbstractPlanNode *Op() override { return op_; }
 
  private:
   const planner::NestedLoopJoinPlanNode *op_;

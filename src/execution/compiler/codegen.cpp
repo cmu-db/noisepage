@@ -1,14 +1,14 @@
 #include "execution/compiler/codegen.h"
 
+#include <execution/compiler/codegen.h>
 #include <string>
 #include <utility>
-#include <execution/compiler/codegen.h>
 
 #include "type/transient_value_peeker.h"
 
 namespace terrier::execution::compiler {
 
-CodeGen::CodeGen(catalog::CatalogAccessor * accessor)
+CodeGen::CodeGen(catalog::CatalogAccessor *accessor)
     : region_("QueryRegion"),
       error_reporter_(&region_),
       ast_ctx_(&region_, &error_reporter_),
@@ -455,9 +455,39 @@ ast::Expr *CodeGen::IndexIteratorInit(ast::Identifier iter, uint32_t table_oid, 
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::IndexIteratorScanKey(ast::Identifier iter) {
+ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanType scan_type, uint32_t limit) {
   // @indexIteratorScanKey(&iter)
-  return OneArgCall(ast::Builtin::IndexIteratorScanKey, iter, true);
+  ast::Builtin builtin;
+  bool use_limit = false;
+  switch (scan_type) {
+    case planner::IndexScanType::Exact:
+      builtin = ast::Builtin::IndexIteratorScanKey;
+      break;
+    case planner::IndexScanType::Ascending:
+      builtin = ast::Builtin::IndexIteratorScanAscending;
+      break;
+    case planner::IndexScanType::Descending:
+      builtin = ast::Builtin::IndexIteratorScanDescending;
+      break;
+    case planner::IndexScanType::AscendingLimit:
+      use_limit = true;
+      builtin = ast::Builtin::IndexIteratorScanLimitAscending;
+      break;
+    case planner::IndexScanType::DescendingLimit:
+      use_limit = true;
+      builtin = ast::Builtin::IndexIteratorScanLimitDescending;
+      break;
+  }
+  // Non limited scan
+  if (!use_limit) return OneArgCall(builtin, iter, true);
+  // Limited scan
+  ast::Expr *fun = BuiltinFunction(builtin);
+  ast::Expr *iter_ptr = PointerTo(iter);
+  ast::Expr *limit_expr = IntLiteral(limit);
+  util::RegionVector<ast::Expr *> args{{iter_ptr, limit_expr},
+                                       Region()};
+
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
 ast::Expr *CodeGen::IndexIteratorAdvance(ast::Identifier iter) {
@@ -468,6 +498,14 @@ ast::Expr *CodeGen::IndexIteratorAdvance(ast::Identifier iter) {
 ast::Expr *CodeGen::IndexIteratorGetIndexPR(ast::Identifier iter) {
   // @indexIteratorGetPR(&iter)
   return OneArgCall(ast::Builtin::IndexIteratorGetPR, iter, true);
+}
+
+ast::Expr *CodeGen::IndexIteratorGetIndexLoPR(ast::Identifier iter) {
+  return OneArgCall(ast::Builtin::IndexIteratorGetLoPR, iter, true);
+}
+
+ast::Expr *CodeGen::IndexIteratorGetIndexHiPR(ast::Identifier iter) {
+  return OneArgCall(ast::Builtin::IndexIteratorGetHiPR, iter, true);
 }
 
 ast::Expr *CodeGen::IndexIteratorGetTablePR(ast::Identifier iter) {
@@ -517,7 +555,7 @@ ast::Expr *CodeGen::PRGet(ast::Identifier iter, type::TypeId type, bool nullable
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::PRGet(ast::Expr* iter_ptr, type::TypeId type, bool nullable, uint32_t attr_idx) {
+ast::Expr *CodeGen::PRGet(ast::Expr *iter_ptr, type::TypeId type, bool nullable, uint32_t attr_idx) {
   // @indexIteratorGetTypeNull(&iter, attr_idx)
   ast::Builtin builtin;
   switch (type) {
@@ -551,7 +589,6 @@ ast::Expr *CodeGen::PRGet(ast::Expr* iter_ptr, type::TypeId type, bool nullable,
   util::RegionVector<ast::Expr *> args{{iter_ptr, idx_expr}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
-
 
 ast::Expr *CodeGen::PRSet(ast::Identifier iter, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val) {
   ast::Builtin builtin;
@@ -588,7 +625,7 @@ ast::Expr *CodeGen::PRSet(ast::Identifier iter, type::TypeId type, bool nullable
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::PRSet(ast::Expr* iter_ptr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val) {
+ast::Expr *CodeGen::PRSet(ast::Expr *iter_ptr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val) {
   ast::Builtin builtin;
   switch (type) {
     case type::TypeId::INTEGER:
@@ -782,48 +819,66 @@ ast::Expr *CodeGen::StringToSql(std::string_view str) {
   ast::Expr *str_lit = Factory()->NewStringLiteral(DUMMY_POS, str_ident);
   return OneArgCall(ast::Builtin::StringToSql, str_lit);
 }
-ast::Expr *CodeGen::InserterInit(ast::Identifier inserter, uint32_t table_oid) {
-  ast::Expr *fun = BuiltinFunction(ast::Builtin::InserterInit);
-  ast::Expr *inserter_ptr = GetStateMemberPtr(inserter);
-  ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
+
+ast::Expr *CodeGen::StorageInterfaceInit(ast::Identifier si, uint32_t table_oid, ast::Identifier col_oids,
+                                         bool need_indexes) {
+  ast::Expr *fun = BuiltinFunction(ast::Builtin::StorageInterfaceInit);
+  ast::Expr *si_ptr = PointerTo(si);
   ast::Expr *table_oid_expr = IntLiteral(static_cast<int64_t>(table_oid));
+  ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
+  ast::Expr *col_oids_expr = MakeExpr(col_oids);
+  ast::Expr *need_indexes_expr = BoolLiteral(need_indexes);
 
-  util::RegionVector<ast::Expr *> args{{inserter_ptr, exec_ctx_expr, table_oid_expr}, Region()};
+  util::RegionVector<ast::Expr *> args{{si_ptr, exec_ctx_expr, table_oid_expr, col_oids_expr, need_indexes_expr},
+                                       Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::InserterGetTablePR(ast::Identifier inserter) {
-  ast::Expr *fun = BuiltinFunction(ast::Builtin::InserterGetTablePR);
-  ast::Expr *inserter_ptr = GetStateMemberPtr(inserter);
+ast::Expr *CodeGen::StorageInterfaceFree(ast::Identifier si) {
+  return OneArgCall(ast::Builtin::StorageInterfaceFree, si, true);
+}
 
-  util::RegionVector<ast::Expr *> args{{inserter_ptr}, Region()};
+ast::Expr *CodeGen::GetTablePR(ast::Identifier si) {
+  ast::Expr *fun = BuiltinFunction(ast::Builtin::GetTablePR);
+  ast::Expr *si_ptr = PointerTo(si);
+
+  util::RegionVector<ast::Expr *> args{{si_ptr}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::InserterTableInsert(ast::Identifier inserter) {
-  ast::Expr *fun = BuiltinFunction(ast::Builtin::InserterTableInsert);
-  ast::Expr *inserter_ptr = GetStateMemberPtr(inserter);
+ast::Expr *CodeGen::TableInsert(ast::Identifier si) {
+  return OneArgCall(ast::Builtin::TableInsert, si, true);
+}
 
-  util::RegionVector<ast::Expr *> args{{inserter_ptr}, Region()};
+ast::Expr *CodeGen::TableUpdate(ast::Identifier si) {
+  return OneArgCall(ast::Builtin::TableUpdate, si, true);
+}
+
+ast::Expr *CodeGen::TableDelete(ast::Identifier si, ast::Expr* slot) {
+  ast::Expr *fun = BuiltinFunction(ast::Builtin::TableDelete);
+  ast::Expr *si_ptr = PointerTo(si);
+  util::RegionVector<ast::Expr *> args{{si_ptr, slot}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::InserterGetIndexPR(ast::Identifier inserter, uint32_t index_oid) {
-  ast::Expr *fun = BuiltinFunction(ast::Builtin::InserterGetIndexPR);
-  ast::Expr *inserter_ptr = GetStateMemberPtr(inserter);
+ast::Expr *CodeGen::GetIndexPR(ast::Identifier si, uint32_t index_oid) {
+  ast::Expr *fun = BuiltinFunction(ast::Builtin::GetIndexPR);
+  ast::Expr *si_ptr = PointerTo(si);
   ast::Expr *index_oid_expr = IntLiteral(static_cast<int64_t>(index_oid));
 
-  util::RegionVector<ast::Expr *> args{{inserter_ptr, index_oid_expr}, Region()};
+  util::RegionVector<ast::Expr *> args{{si_ptr, index_oid_expr}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::InserterIndexInsert(ast::Identifier inserter, uint32_t index_oid) {
-  ast::Expr *fun = BuiltinFunction(ast::Builtin::InserterIndexInsert);
-  ast::Expr *inserter_ptr = GetStateMemberPtr(inserter);
-  ast::Expr *index_oid_expr = IntLiteral(static_cast<int64_t>(index_oid));
-
-  util::RegionVector<ast::Expr *> args{{inserter_ptr, index_oid_expr}, Region()};
-  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+ast::Expr *CodeGen::IndexInsert(ast::Identifier si) {
+  return OneArgCall(ast::Builtin::IndexInsert, si, true);
 }
 
+
+ast::Expr *CodeGen::IndexDelete(ast::Identifier si, ast::Expr* slot) {
+  ast::Expr *fun = BuiltinFunction(ast::Builtin::IndexDelete);
+  ast::Expr *si_ptr = PointerTo(si);
+  util::RegionVector<ast::Expr *> args{{si_ptr, slot}, Region()};
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+}
 }  // namespace terrier::execution::compiler

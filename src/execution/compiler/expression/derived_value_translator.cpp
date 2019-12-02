@@ -10,6 +10,6 @@ DerivedValueTranslator::DerivedValueTranslator(const terrier::parser::AbstractEx
 ast::Expr *DerivedValueTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
   auto derived_val = GetExpressionAs<terrier::parser::DerivedValueExpression>();
   return evaluator->GetChildOutput(derived_val->GetTupleIdx(), derived_val->GetValueIdx(),
-                                    derived_val->GetReturnValueType());
+                                   derived_val->GetReturnValueType());
 }
 };  // namespace terrier::execution::compiler

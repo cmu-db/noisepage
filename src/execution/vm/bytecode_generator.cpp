@@ -603,6 +603,11 @@ void BytecodeGenerator::VisitBuiltinPCICall(ast::CallExpr *call, ast::Builtin bu
       Emitter()->Emit(bytecode, pci);
       break;
     }
+    case ast::Builtin::PCIGetSlot: {
+      LocalVar res = ExecutionResult()->GetOrCreateDestination(call->GetType());
+      Emitter()->Emit(Bytecode::PCIGetSlot, res, pci);
+      break;
+    }
     case ast::Builtin::PCIGetTinyInt: {
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
@@ -1496,9 +1501,8 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
       break;
     }
     case ast::Builtin::IndexIteratorGetSlot: {
-      ast::Type *slot_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::TupleSlot);
-      LocalVar pr = ExecutionResult()->GetOrCreateDestination(slot_type);
-      Emitter()->Emit(Bytecode::IndexIteratorGetSlot, pr, iterator);
+      LocalVar slot = ExecutionResult()->GetOrCreateDestination(call->GetType());
+      Emitter()->Emit(Bytecode::IndexIteratorGetSlot, slot, iterator);
       break;
     }
     default: {
@@ -1860,6 +1864,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::PCIMatch:
     case ast::Builtin::PCIReset:
     case ast::Builtin::PCIResetFiltered:
+    case ast::Builtin::PCIGetSlot:
     case ast::Builtin::PCIGetTinyInt:
     case ast::Builtin::PCIGetTinyIntNull:
     case ast::Builtin::PCIGetSmallInt:

@@ -1,17 +1,16 @@
 #pragma once
 
 #include "execution/compiler/operator/operator_translator.h"
-#include "execution/compiler/storage/pr_filler.h"
-#include "planner/plannodes/insert_plan_node.h"
+#include "planner/plannodes/delete_plan_node.h"
 
 namespace terrier::execution::compiler {
 
 /**
- * Insert Translator
+ * Delete Translator
  */
-class InsertTranslator : public OperatorTranslator {
+class DeleteTranslator : public OperatorTranslator {
  public:
-  InsertTranslator(const terrier::planner::InsertPlanNode *op, CodeGen *codegen);
+  DeleteTranslator(const terrier::planner::DeletePlanNode *op, CodeGen *codegen);
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
@@ -36,30 +35,22 @@ class InsertTranslator : public OperatorTranslator {
   // This is not a materializer
   bool IsMaterializer(bool *is_ptr) override { return false; }
 
-  ast::Expr *GetOutput(uint32_t attr_idx) override { UNREACHABLE("Inserts don't output anything"); };
+  ast::Expr *GetOutput(uint32_t attr_idx) override { UNREACHABLE("Deletes don't output anything"); };
 
   const planner::AbstractPlanNode *Op() override { return op_; }
 
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
 
  private:
-  // Declare the inserter
-  void DeclareInserter(FunctionBuilder *builder);
-  void GenInserterFree(FunctionBuilder *builder);
+  // Declare the updater
+  void DeclareDeleter(FunctionBuilder *builder);
+  void GenDeleterFree(FunctionBuilder *builder);
   // Set the oids variable
   void SetOids(FunctionBuilder *builder);
-  // Declare the insert PR
-  void DeclareInsertPR(FunctionBuilder *builder);
-  // Get the pr to insert
-  void GetInsertPR(FunctionBuilder *builder);
-  // Fill the insert PR from the child's output
-  void FillPRFromChild(FunctionBuilder *builder);
-  // Set the table PR from raw values
-  void GenSetTablePR(FunctionBuilder *builder, uint32_t tuple);
-  // Insert into table.
-  void GenTableInsert(FunctionBuilder *builder);
-  // Insert into index.
-  void GenIndexInsert(FunctionBuilder *builder, const catalog::index_oid_t &index_oid);
+  // Delete from table.
+  void GenTableDelete(FunctionBuilder *builder);
+  // Delete from index.
+  void GenIndexDelete(FunctionBuilder *builder, const catalog::index_oid_t &index_oid);
   // Get all columns oids.
   static std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema_) {
     std::vector<catalog::col_oid_t> oids;
@@ -70,18 +61,14 @@ class InsertTranslator : public OperatorTranslator {
   }
 
  private:
-  const planner::InsertPlanNode *op_;
-  static constexpr const char *inserter_name_ = "inserter";
-  static constexpr const char *insert_pr_name_ = "insert_pr";
+  const planner::DeletePlanNode *op_;
+  static constexpr const char *deleter_name_ = "deleter";
   static constexpr const char *col_oids_name_ = "col_oids";
-  ast::Identifier inserter_;
-  ast::Identifier insert_pr_;
+  ast::Identifier deleter_;
   ast::Identifier col_oids_;
 
-  const catalog::Schema &table_schema_;
-  std::vector<catalog::col_oid_t> all_oids_;
-  storage::ProjectionMap table_pm_;
-  PRFiller pr_filler_;
+  // TODO(Amadou): If tpl supports null arrays, leave this empty. Otherwise, put a dummy value of 1 inside.
+  std::vector<catalog::col_oid_t> oids_;
 };
 
 }  // namespace terrier::execution::compiler

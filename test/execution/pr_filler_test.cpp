@@ -25,7 +25,6 @@
 #include "execution/compiler/output_checker.h"
 #include "execution/compiler/output_schema_util.h"
 
-
 namespace terrier::execution::compiler::test {
 
 class PRFillerTest : public SqlBasedTest {
@@ -38,8 +37,7 @@ class PRFillerTest : public SqlBasedTest {
     table_generator.GenerateTestTables();
   }
 
-
-  static std::unique_ptr<vm::Module> MakeModule(CodeGen *codegen, ast::File* root, exec::ExecutionContext *exec_ctx) {
+  static std::unique_ptr<vm::Module> MakeModule(CodeGen *codegen, ast::File *root, exec::ExecutionContext *exec_ctx) {
     // Create the query object, whose region must outlive all the processing.
     // Compile and check for errors
     EXECUTION_LOG_INFO("Generated File");
@@ -50,7 +48,6 @@ class PRFillerTest : public SqlBasedTest {
     }
 
     EXECUTION_LOG_INFO("Converted: \n {}", execution::ast::AstDump::Dump(root));
-
 
     // Convert to bytecode
 
@@ -85,7 +82,7 @@ TEST_F(PRFillerTest, SimpleIndexFillerTest) {
   auto table = accessor->GetTable(table_oid);
   auto table_schema = accessor->GetSchema(table_oid);
   std::vector<catalog::col_oid_t> col_oids;
-  for (const auto & col : table_schema.GetColumns()) {
+  for (const auto &col : table_schema.GetColumns()) {
     col_oids.emplace_back(col.Oid());
   }
   storage::ProjectionMap table_pm(table->ProjectionMapForOids(col_oids));
@@ -120,7 +117,7 @@ TEST_F(PRFillerTest, SimpleIndexFillerTest) {
   auto module = MakeModule(&codegen, root, exec_ctx.get());
 
   // Now get the compiled function
-  std::function<void(sql::ProjectedRowWrapper*, sql::ProjectedRowWrapper*)> filler_fn;
+  std::function<void(sql::ProjectedRowWrapper *, sql::ProjectedRowWrapper *)> filler_fn;
   ASSERT_TRUE(module->GetFunction(fn_name.Data(), vm::ExecutionMode::Interpret, &filler_fn));
 
   // Try it out.
@@ -141,12 +138,11 @@ TEST_F(PRFillerTest, SimpleIndexFillerTest) {
   val = index_pr.Get<int32_t, false>(0, nullptr);
   ASSERT_EQ(*val, 651);
 
-
-  delete [] table_buffer;
-  delete [] index_buffer;
+  delete[] table_buffer;
+  delete[] index_buffer;
 }
 
-}
+}  // namespace terrier::execution::compiler::test
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
@@ -155,4 +151,3 @@ int main(int argc, char **argv) {
   terrier::execution::compiler::test::PRFillerTest::ShutdownTPL();
   return ret;
 }
-

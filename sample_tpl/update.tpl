@@ -50,7 +50,7 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   @indexIteratorFree(&index)
   @storageInterfaceFree(&updater)
 
-  // Count the number of updated tables
+  // Count the number of updated tuples
   var tvi: TableVectorIterator
   @tableIterInitBind(&tvi, execCtx, "test_1", col_oids)
   for (@tableIterAdvance(&tvi)) {

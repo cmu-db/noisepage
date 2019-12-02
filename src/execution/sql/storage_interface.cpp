@@ -44,7 +44,11 @@ storage::ProjectedRow *StorageInterface::GetIndexPR(catalog::index_oid_t index_o
   return index_pr_;
 }
 
-storage::TupleSlot StorageInterface::TableInsert() { return table_->Insert(exec_ctx_->GetTxn(), table_redo_); }
+uint32_t count = 0;
+storage::TupleSlot StorageInterface::TableInsert() {
+  count++;
+  return table_->Insert(exec_ctx_->GetTxn(), table_redo_);
+}
 
 bool StorageInterface::TableDelete(storage::TupleSlot table_tuple_slot) {
   auto txn = exec_ctx_->GetTxn();

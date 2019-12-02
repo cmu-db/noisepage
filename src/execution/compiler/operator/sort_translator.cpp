@@ -20,6 +20,8 @@ void SortBottomTranslator::Produce(FunctionBuilder *builder) {
   GenSorterSort(builder);
 }
 
+void SortBottomTranslator::Abort(FunctionBuilder *builder) { child_translator_->Abort(builder); }
+
 void SortBottomTranslator::Consume(FunctionBuilder *builder) {
   // First call sorterInsert
   GenSorterInsert(builder);
@@ -162,6 +164,11 @@ void SortTopTranslator::Produce(FunctionBuilder *builder) {
     // Otherwise directly consume the bottom's output
     Consume(builder);
   }
+}
+
+void SortTopTranslator::Abort(FunctionBuilder *builder) {
+  CloseIterator(builder);
+  if (child_translator_ != nullptr) child_translator_->Abort(builder);
 }
 
 void SortTopTranslator::Consume(FunctionBuilder *builder) {

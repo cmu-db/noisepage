@@ -31,6 +31,7 @@ class SortBottomTranslator : public OperatorTranslator {
 
   // Let child produce and sort
   void Produce(FunctionBuilder *builder) override;
+  void Abort(FunctionBuilder *builder) override;
 
   // Generate sorter insert code
   void Consume(FunctionBuilder *builder) override;
@@ -51,9 +52,7 @@ class SortBottomTranslator : public OperatorTranslator {
     return {&sorter_row_, &sorter_struct_};
   }
 
-  const planner::AbstractPlanNode* Op() override {
-    return op_;
-  }
+  const planner::AbstractPlanNode *Op() override { return op_; }
 
  private:
   friend class SortTopTranslator;
@@ -73,7 +72,7 @@ class SortBottomTranslator : public OperatorTranslator {
   void GenComparisons(FunctionBuilder *builder);
 
   // The sort plan node
-  const planner::OrderByPlanNode * op_;
+  const planner::OrderByPlanNode *op_;
 
   /**
    * GetChildOutput will need to return different results depending on the calling function.
@@ -126,6 +125,7 @@ class SortTopTranslator : public OperatorTranslator {
 
   // Generate iteration code
   void Produce(FunctionBuilder *builder) override;
+  void Abort(FunctionBuilder *builder) override;
 
   // Pass through
   void Consume(FunctionBuilder *builder) override;
@@ -146,9 +146,7 @@ class SortTopTranslator : public OperatorTranslator {
     return {&bottom_->sorter_row_, &bottom_->sorter_struct_};
   }
 
-  const planner::AbstractPlanNode* Op() override {
-    return op_;
-  }
+  const planner::AbstractPlanNode *Op() override { return op_; }
 
  private:
   void DeclareIterator(FunctionBuilder *builder);
@@ -157,7 +155,7 @@ class SortTopTranslator : public OperatorTranslator {
   void DeclareResult(FunctionBuilder *builder);
 
   // The sort plan node
-  const planner::OrderByPlanNode * op_;
+  const planner::OrderByPlanNode *op_;
 
   // The bottom translator
   SortBottomTranslator *bottom_;

@@ -16,7 +16,7 @@ using IndexExpression = common::ManagedPointer<parser::AbstractExpression>;
 /**
  * Plan node for nested loop joins
  * TODO(Amadou): This class is fairly similar to the IndexScan plan node. However, the translators are diffrerent.
- * Refactor if possible.
+ * Make it can be replaced by a combination of IndexScan and NLJoin?
  */
 class IndexJoinPlanNode : public AbstractJoinPlanNode {
  public:

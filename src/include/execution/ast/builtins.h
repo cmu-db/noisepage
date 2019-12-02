@@ -37,7 +37,7 @@ namespace terrier::execution::ast {
   F(TableIterAdvance, tableIterAdvance)                                 \
   F(TableIterGetPCI, tableIterGetPCI)                                   \
   F(TableIterClose, tableIterClose)                                     \
-  F(TableIterReset, tableIterReset)                             \
+  F(TableIterReset, tableIterReset)                                     \
   F(TableIterParallel, iterateTableParallel)                            \
                                                                         \
   /* PCI */                                                             \
@@ -46,6 +46,7 @@ namespace terrier::execution::ast {
   F(PCIHasNextFiltered, pciHasNextFiltered)                             \
   F(PCIAdvance, pciAdvance)                                             \
   F(PCIAdvanceFiltered, pciAdvanceFiltered)                             \
+  F(PCIGetSlot, pciGetSlot)                             \
   F(PCIMatch, pciMatch)                                                 \
   F(PCIReset, pciReset)                                                 \
   F(PCIResetFiltered, pciResetFiltered)                                 \

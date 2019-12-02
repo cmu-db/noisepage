@@ -7,9 +7,9 @@
 #include <vector>
 #include "execution/util/bit_util.h"
 #include "loggers/execution_logger.h"
+#include "parser/expression/column_value_expression.h"
 #include "storage/index/bwtree_index.h"
 #include "storage/index/index_builder.h"
-#include "parser/expression/column_value_expression.h"
 
 namespace terrier::execution::sql {
 

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "execution/compiler/codegen.h"
-#include "planner/plannodes/abstract_plan_node.h"
 #include "execution/compiler/expression/expression_translator.h"
+#include "planner/plannodes/abstract_plan_node.h"
 
 namespace terrier::execution::compiler {
 
@@ -62,6 +62,12 @@ class OperatorTranslator : public ExpressionEvaluator {
   virtual void Produce(FunctionBuilder *builder) = 0;
 
   /**
+   * Do cleanup for abort
+   * @param builder builder of the pipeline function
+   */
+  virtual void Abort(FunctionBuilder *builder) = 0;
+
+  /**
    * Consume code for the operator
    * @param builder builder of the pipeline function
    */
@@ -116,6 +122,11 @@ class OperatorTranslator : public ExpressionEvaluator {
   }
 
   /**
+   * @return The current tuple slot.
+   */
+  virtual ast::Expr *GetSlot() { UNREACHABLE("This operator does not interact with tables"); }
+
+  /**
    * Return the identifiers of the materialized tuple if this a materializer.
    * The first element is the identifer of the local variable.
    * The second element is the identifier of its type.
@@ -145,7 +156,7 @@ class OperatorTranslator : public ExpressionEvaluator {
     }
   }
 
-  virtual const planner::AbstractPlanNode* Op() = 0;
+  virtual const planner::AbstractPlanNode *Op() = 0;
 
  protected:
   /**

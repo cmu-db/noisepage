@@ -600,6 +600,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
+  OP(PCIGetSlot) : {
+    auto *slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID());
+    OpPCIGetSlot(slot, iter);
+    DISPATCH_NEXT();
+  }
+
   // -------------------------------------------------------
   // PCI element access
   // -------------------------------------------------------

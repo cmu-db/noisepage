@@ -21,6 +21,7 @@ class OutputTranslator : public OperatorTranslator {
   explicit OutputTranslator(CodeGen *codegen);
 
   void Produce(FunctionBuilder *builder) override;
+  void Abort(FunctionBuilder *builder) override {}
 
   void Consume(FunctionBuilder *builder) override;
 
@@ -48,9 +49,7 @@ class OutputTranslator : public OperatorTranslator {
     return nullptr;
   }
 
-  const planner::AbstractPlanNode* Op() override {
-    UNREACHABLE("Should not be called on this translator");
-  }
+  const planner::AbstractPlanNode *Op() override { UNREACHABLE("Should not be called on this translator"); }
 
  private:
   // Return the output field at the given index

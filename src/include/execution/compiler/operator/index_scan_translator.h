@@ -1,7 +1,7 @@
 #pragma once
+#include "catalog/index_schema.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/index_scan_plan_node.h"
-#include "catalog/index_schema.h"
 
 namespace terrier::execution::compiler {
 
@@ -28,6 +28,7 @@ class IndexScanTranslator : public OperatorTranslator {
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
 
   void Produce(FunctionBuilder *builder) override;
+  void Abort(FunctionBuilder *builder) override;
 
   void Consume(FunctionBuilder *builder) override;
 
@@ -38,9 +39,12 @@ class IndexScanTranslator : public OperatorTranslator {
 
   ast::Expr *GetTableColumn(const catalog::col_oid_t &col_oid) override;
 
-  const planner::AbstractPlanNode* Op() override {
-    return op_;
+  ast::Expr *GetSlot() override {
+    return codegen_->PointerTo(slot_);
   }
+
+
+  const planner::AbstractPlanNode *Op() override { return op_; }
 
  private:
   // Declare the index iterator
@@ -48,7 +52,7 @@ class IndexScanTranslator : public OperatorTranslator {
   // Set the column oids to scan
   void SetOids(FunctionBuilder *builder);
   // Fill the key with table data
-  void FillKey(FunctionBuilder *builder);
+  void FillKey(FunctionBuilder *builder, ast::Identifier pr, const std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression>& index_exprs);
   // Generate the index iteration loop
   void GenForLoop(FunctionBuilder *builder);
   // Generate the join predicate's if statement
@@ -59,6 +63,8 @@ class IndexScanTranslator : public OperatorTranslator {
   void DeclareIndexPR(FunctionBuilder *builder);
   // Get Table PR
   void DeclareTablePR(FunctionBuilder *builder);
+  // Get Slot
+  void DeclareSlot(FunctionBuilder *builder);
 
  private:
   const planner::IndexScanPlanNode *op_;
@@ -72,9 +78,13 @@ class IndexScanTranslator : public OperatorTranslator {
   static constexpr const char *col_oids_name_ = "col_oids";
   static constexpr const char *index_pr_name_ = "index_pr";
   static constexpr const char *table_pr_name_ = "table_pr";
+  static constexpr const char *slot_name_ = "slot";
   ast::Identifier index_iter_;
   ast::Identifier col_oids_;
   ast::Identifier index_pr_;
+  ast::Identifier lo_index_pr_;
+  ast::Identifier hi_index_pr_;
   ast::Identifier table_pr_;
+  ast::Identifier slot_;
 };
 }  // namespace terrier::execution::compiler
