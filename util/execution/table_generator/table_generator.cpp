@@ -1,10 +1,12 @@
 #include "execution/table_generator/table_generator.h"
+
 #include <algorithm>
 #include <memory>
 #include <random>
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "execution/util/bit_util.h"
 #include "loggers/execution_logger.h"
 #include "storage/index/bwtree_index.h"
@@ -234,7 +236,7 @@ void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> ind
         index_pr->SetNull(index_offset);
       } else {
         byte *index_data = index_pr->AccessForceNotNull(index_offset);
-        uint8_t type_size = type::TypeUtil::GetTypeSize(index_col.Type()) & static_cast<uint8_t>(0x7f);
+        auto type_size = storage::AttrSizeBytes(type::TypeUtil::GetTypeSize(index_col.Type()));
         std::memcpy(index_data, table_pr->AccessForceNotNull(table_offset), type_size);
       }
     }

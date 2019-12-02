@@ -109,7 +109,7 @@ class WriteAheadLoggingTests : public TerrierTest {
     }
 
     // Compute attr sizes
-    std::vector<uint8_t> attr_sizes;
+    std::vector<uint16_t> attr_sizes;
     attr_sizes.reserve(num_cols);
     for (uint16_t attr_idx = 0; attr_idx < num_cols; attr_idx++) {
       attr_sizes.push_back(storage::StorageUtil::AttrSizeFromBoundaries(attr_size_boundaries, attr_idx));
@@ -138,7 +138,7 @@ class WriteAheadLoggingTests : public TerrierTest {
 
       // The column is not null, so set the bitmap accordingly and get access to the column value.
       auto *column_value_address = delta->AccessForceNotNull(i);
-      if (attr_sizes[i] == (VARLEN_COLUMN & INT8_MAX)) {
+      if (attr_sizes[i] == AttrSizeBytes(VARLEN_COLUMN)) {
         // Read how many bytes this varlen actually is.
         const auto varlen_attribute_size = in->ReadValue<uint32_t>();
         // Allocate a varlen buffer of this many bytes.
