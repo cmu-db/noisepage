@@ -1,9 +1,11 @@
 #include "catalog/catalog.h"
+
 #include <algorithm>
 #include <random>
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "catalog/postgres/pg_namespace.h"

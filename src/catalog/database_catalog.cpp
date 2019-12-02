@@ -1,10 +1,11 @@
+#include "catalog/database_catalog.h"
+
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "catalog/database_catalog.h"
 #include "catalog/index_schema.h"
 #include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_attribute.h"
@@ -373,7 +374,7 @@ bool DatabaseCatalog::DeleteNamespace(transaction::TransactionContext *const txn
 
   // Step 4: Cascading deletes
   // Get the objects in this namespace
-  auto ns_objects = GetNamespaceObjectOids(txn, ns_oid);
+  auto ns_objects = GetNamespaceClassOids(txn, ns_oid);
   for (const auto object : ns_objects) {
     // Delete all of the tables. This should get most of the indexes
     if (object.second == postgres::ClassKind::REGULAR_TABLE) {
@@ -390,7 +391,7 @@ bool DatabaseCatalog::DeleteNamespace(transaction::TransactionContext *const txn
   // namespace. We could do all of this cascading cleanup with a more complex single index scan, but we're taking
   // advantage of existing PRIs and indexes and expecting that deleting a namespace isn't that common of an operation,
   // so we can be slightly less efficient than optimal.
-  ns_objects = GetNamespaceObjectOids(txn, ns_oid);
+  ns_objects = GetNamespaceClassOids(txn, ns_oid);
   for (const auto object : ns_objects) {
     // Delete all of the straggler indexes that may have been built on tables in other namespaces. We shouldn't get any
     // double-deletions because indexes on tables will already be invisible to us (logically deleted already).
@@ -403,6 +404,7 @@ bool DatabaseCatalog::DeleteNamespace(transaction::TransactionContext *const txn
       }
     }
   }
+  TERRIER_ASSERT(GetNamespaceClassOids(txn, ns_oid).empty(), "Failed to drop all of the namespace objects.");
 
   // Step 5: Delete from oid index
   pr = oid_pri.InitializeRow(buffer);
@@ -1712,7 +1714,7 @@ bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const tx
   return true;
 }
 
-std::vector<std::pair<uint32_t, postgres::ClassKind>> DatabaseCatalog::GetNamespaceObjectOids(
+std::vector<std::pair<uint32_t, postgres::ClassKind>> DatabaseCatalog::GetNamespaceClassOids(
     transaction::TransactionContext *const txn, const namespace_oid_t ns_oid) {
   std::vector<storage::TupleSlot> index_scan_results;
 
