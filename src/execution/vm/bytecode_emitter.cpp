@@ -102,7 +102,7 @@ void BytecodeEmitter::EmitJump(BytecodeLabel *label) {
                    "Label for backwards jump cannot be beyond current bytecode position");
     std::size_t delta = curr_offset - label->Offset();
     TERRIER_ASSERT(delta < static_cast<size_t>(std::numeric_limits<int32_t>::max()),
-            "Jump delta exceeds 32-bit value for jump offsets!");
+                   "Jump delta exceeds 32-bit value for jump offsets!");
 
     // Immediately emit the delta
     EmitScalarValue(-static_cast<int32_t>(delta));
