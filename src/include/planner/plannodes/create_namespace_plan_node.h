@@ -28,15 +28,6 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
-     * @param database_oid  of the database
-     * @return builder object
-     */
-    Builder &SetDatabaseOid(catalog::db_oid_t database_oid) {
-      database_oid_ = database_oid;
-      return *this;
-    }
-
-    /**
      * @param namespace_name name of the namespace
      * @return builder object
      */
@@ -46,31 +37,15 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param create_stmt the SQL CREATE statement
-     * @return builder object
-     */
-    Builder &SetFromCreateStatement(parser::CreateStatement *create_stmt) {
-      if (create_stmt->GetCreateType() == parser::CreateStatement::CreateType::kSchema) {
-        namespace_name_ = std::string(create_stmt->GetSchemaName());
-      }
-      return *this;
-    }
-
-    /**
      * Build the create namespace plan node
      * @return plan node
      */
-    std::shared_ptr<CreateNamespacePlanNode> Build() {
-      return std::shared_ptr<CreateNamespacePlanNode>(new CreateNamespacePlanNode(
-          std::move(children_), std::move(output_schema_), database_oid_, std::move(namespace_name_)));
+    std::unique_ptr<CreateNamespacePlanNode> Build() {
+      return std::unique_ptr<CreateNamespacePlanNode>(
+          new CreateNamespacePlanNode(std::move(children_), std::move(output_schema_), std::move(namespace_name_)));
     }
 
    protected:
-    /**
-     * OID of the database
-     */
-    catalog::db_oid_t database_oid_;
-
     /**
      * Namespace name
      */
@@ -84,9 +59,8 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
    * @param database_oid OID of the database
    * @param namespace_name name of the namespace
    */
-  CreateNamespacePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                          std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
-                          std::string namespace_name)
+  CreateNamespacePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                          std::unique_ptr<OutputSchema> output_schema, std::string namespace_name)
       : AbstractPlanNode(std::move(children), std::move(output_schema)), namespace_name_(std::move(namespace_name)) {}
 
  public:
@@ -103,11 +77,6 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::CREATE_NAMESPACE; }
 
   /**
-   * @return OID of the database
-   */
-  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
-
-  /**
    * @return name of the namespace
    */
   const std::string &GetNamespaceName() const { return namespace_name_; }
@@ -120,14 +89,9 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
-  /**
-   * OID of the database
-   */
-  catalog::db_oid_t database_oid_;
-
   /**
    * Namespace name
    */

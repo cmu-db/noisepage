@@ -1,7 +1,6 @@
 #include "execution/sql/value.h"
 #include "planner/plannodes/output_schema.h"
 #include "type/type_id.h"
-#include "util/test_harness.h"
 
 // TODO(Amadou): Currently all checker only work on single integer columns. Ideally, we want them to work on arbitrary
 // expressions, but this is no simple task. We would basically need an expression evaluator on output rows.

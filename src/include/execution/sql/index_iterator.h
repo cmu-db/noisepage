@@ -40,15 +40,55 @@ class EXPORT IndexIterator {
   void ScanKey();
 
   /**
+   * Perform an ascending scan
+   */
+  void ScanAscending();
+
+  /**
+   * Perfrom a descending scan
+   */
+  void ScanDescending();
+
+  /**
+   * Perform an ascending scan with a limit
+   */
+  void ScanLimitAscending(uint32_t limit);
+
+  /**
+   * Perform an descending scan with a limit
+   */
+  void ScanLimitDescending(uint32_t limit);
+
+  /**
    * Advances the iterator. Return true if successful
    * @return whether the iterator was advanced or not.
    */
   bool Advance();
 
+  /**
+   * Return the index PR
+   */
   storage::ProjectedRow *PR() { return index_pr_; }
 
+  /**
+   * Return the lower bound PR
+   */
+  storage::ProjectedRow *LoPR() { return index_pr_; }
+
+  /**
+   * Return the upper bound PR
+   */
+  storage::ProjectedRow *HiPR() { return hi_index_pr_; }
+
+  /**
+   * Perform a select.
+   * @return The resulting projected row.
+   */
   storage::ProjectedRow *TablePR();
 
+  /**
+   * @return The current tuple slot of the iterator.
+   */
   storage::TupleSlot CurrentSlot() { return tuples_[curr_index_ - 1]; }
 
  private:
@@ -59,8 +99,10 @@ class EXPORT IndexIterator {
 
   uint32_t curr_index_ = 0;
   void *index_buffer_;
+  void *hi_index_buffer_;
   void *table_buffer_;
   storage::ProjectedRow *index_pr_;
+  storage::ProjectedRow *hi_index_pr_;
   storage::ProjectedRow *table_pr_;
   std::vector<storage::TupleSlot> tuples_{};
 };

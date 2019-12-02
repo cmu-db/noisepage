@@ -4,7 +4,9 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "catalog/schema.h"
+#include "common/managed_pointer.h"
 #include "parser/create_statement.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
@@ -393,15 +395,6 @@ class CreateTablePlanNode : public AbstractPlanNode {
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
-     * @param database_oid  OID of the database
-     * @return builder object
-     */
-    Builder &SetDatabaseOid(catalog::db_oid_t database_oid) {
-      database_oid_ = database_oid;
-      return *this;
-    }
-
-    /**
      * @param namespace_oid OID of the namespace
      * @return builder object
      */
@@ -423,8 +416,17 @@ class CreateTablePlanNode : public AbstractPlanNode {
      * @param table_schema the schema of the table
      * @return builder object
      */
-    Builder &SetTableSchema(std::shared_ptr<catalog::Schema> table_schema) {
+    Builder &SetTableSchema(std::unique_ptr<catalog::Schema> table_schema) {
       table_schema_ = std::move(table_schema);
+      return *this;
+    }
+
+    /**
+     * @param block_store the BlockStore to associate with this table
+     * @return builder object
+     */
+    Builder &SetBlockStore(common::ManagedPointer<storage::BlockStore> block_store) {
+      block_store_ = block_store;
       return *this;
     }
 
@@ -474,81 +476,13 @@ class CreateTablePlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param create_stmt the SQL CREATE statement
-     * @return builder object
-     */
-    Builder &SetFromCreateStatement(parser::CreateStatement *create_stmt) {
-      if (create_stmt->GetCreateType() == parser::CreateStatement::CreateType::kTable) {
-        table_name_ = std::string(create_stmt->GetTableName());
-        std::vector<catalog::Schema::Column> columns;
-        std::vector<std::string> pri_cols;
-
-        for (auto &col : create_stmt->GetColumns()) {
-          type::TypeId val = col->GetValueType();
-
-          // Create column
-          // TODO(John) The default value expressions in the column definitions are currently shared pointers.
-          // The dereferences below are completely unsafe (there is no safe way to do it), but not fatal at the
-          // moment because we don't actually use them yet... Fixing this requires overhauling the plannodes to strip
-          // away shared pointers.
-          if (col->GetVarlenSize() != 0) {
-            TERRIER_ASSERT(val == type::TypeId::VARCHAR || val == type::TypeId::VARBINARY,
-                           "Variable length types should have a non-zero max varlen size");
-            columns.emplace_back(std::string(col->GetColumnName()), val, col->GetVarlenSize(), false,
-                                 *col->GetDefaultExpression());
-          } else {
-            TERRIER_ASSERT(val != type::TypeId::VARCHAR && val != type::TypeId::VARBINARY,
-                           "Fixed length types should have max varlen of size 0");
-            columns.emplace_back(std::string(col->GetColumnName()), val, false, *col->GetDefaultExpression());
-          }
-
-          // Collect Multi-column constraints information
-
-          // Primary key
-          if (col->IsPrimaryKey()) {
-            pri_cols.push_back(col->GetColumnName());
-          }
-
-          // Unique constraint
-          // Currently only supports for single column
-          if (col->IsUnique()) {
-            ProcessUniqueConstraint(col);
-          }
-
-          // Check expression constraint
-          // Currently only supports simple boolean forms like (a > 0)
-          if (col->GetCheckExpression() != nullptr) {
-            ProcessCheckConstraint(col);
-          }
-        }
-
-        // The parser puts the multi-column constraint information
-        // into an artificial ColumnDefinition.
-        // primary key constraint
-        if (!pri_cols.empty()) {
-          primary_key_.primary_key_cols_ = pri_cols;
-          primary_key_.constraint_name_ = "con_primary";
-          has_primary_key_ = true;
-        }
-
-        // foreign key
-        for (auto &fk : create_stmt->GetForeignKeys()) {
-          ProcessForeignKeyConstraint(table_name_, fk);
-        }
-
-        table_schema_ = std::make_shared<catalog::Schema>(columns);
-      }
-      return *this;
-    }
-
-    /**
      * Extract foreign key constraints from column definition
      * @param table_name name of the table to get foreign key constraints
      * @param col multi-column constraint definition
      * @return builder object
      */
     Builder &ProcessForeignKeyConstraint(const std::string &table_name,
-                                         const std::shared_ptr<parser::ColumnDefinition> &col) {
+                                         const common::ManagedPointer<parser::ColumnDefinition> col) {
       ForeignKeyInfo fkey_info;
 
       fkey_info.foreign_key_sources_ = std::vector<std::string>();
@@ -580,7 +514,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
      * @param col multi-column constraint definition
      * @return builder object
      */
-    Builder &ProcessUniqueConstraint(const std::shared_ptr<parser::ColumnDefinition> &col) {
+    Builder &ProcessUniqueConstraint(const common::ManagedPointer<parser::ColumnDefinition> col) {
       UniqueInfo unique_info;
 
       unique_info.unique_cols_ = {col->GetColumnName()};
@@ -595,15 +529,15 @@ class CreateTablePlanNode : public AbstractPlanNode {
      * @param col multi-column constraint definition
      * @return builder object
      */
-    Builder &ProcessCheckConstraint(const std::shared_ptr<parser::ColumnDefinition> &col) {
+    Builder &ProcessCheckConstraint(const common::ManagedPointer<parser::ColumnDefinition> col) {
       auto check_cols = std::vector<std::string>();
 
       // TODO(Gus,Wen) more expression types need to be supported
       if (col->GetCheckExpression()->GetReturnValueType() == type::TypeId::BOOLEAN) {
         check_cols.push_back(col->GetColumnName());
 
-        parser::ConstantValueExpression *const_expr_elem =
-            dynamic_cast<parser::ConstantValueExpression *>(col->GetCheckExpression()->GetChild(1).get());
+        common::ManagedPointer<parser::ConstantValueExpression> const_expr_elem =
+            (col->GetCheckExpression()->GetChild(1)).CastManagedPointerTo<parser::ConstantValueExpression>();
         type::TransientValue tmp_value = const_expr_elem->GetValue();
 
         CheckInfo check_info(check_cols, "con_check", col->GetCheckExpression()->GetExpressionType(),
@@ -617,19 +551,14 @@ class CreateTablePlanNode : public AbstractPlanNode {
      * Build the create table plan node
      * @return plan node
      */
-    std::shared_ptr<CreateTablePlanNode> Build() {
-      return std::shared_ptr<CreateTablePlanNode>(new CreateTablePlanNode(
-          std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, std::move(table_name_),
-          std::move(table_schema_), has_primary_key_, std::move(primary_key_), std::move(foreign_keys_),
+    std::unique_ptr<CreateTablePlanNode> Build() {
+      return std::unique_ptr<CreateTablePlanNode>(new CreateTablePlanNode(
+          std::move(children_), std::move(output_schema_), namespace_oid_, std::move(table_name_),
+          std::move(table_schema_), block_store_, has_primary_key_, std::move(primary_key_), std::move(foreign_keys_),
           std::move(con_uniques_), std::move(con_checks_)));
     }
 
    protected:
-    /**
-     * OID of the database
-     */
-    catalog::db_oid_t database_oid_;
-
     /**
      * OID of the schema/namespace
      */
@@ -643,7 +572,12 @@ class CreateTablePlanNode : public AbstractPlanNode {
     /**
      * Table Schema
      */
-    std::shared_ptr<catalog::Schema> table_schema_;
+    std::unique_ptr<catalog::Schema> table_schema_;
+
+    /**
+     * block store to be used when constructing this table
+     */
+    common::ManagedPointer<storage::BlockStore> block_store_;
 
     /**
      * ColumnDefinition for multi-column constraints (including foreign key)
@@ -686,17 +620,17 @@ class CreateTablePlanNode : public AbstractPlanNode {
    * @param con_uniques unique constraints
    * @param con_checks check constraints
    */
-  CreateTablePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                      std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
-                      catalog::namespace_oid_t namespace_oid, std::string table_name,
-                      std::shared_ptr<catalog::Schema> table_schema, bool has_primary_key, PrimaryKeyInfo primary_key,
-                      std::vector<ForeignKeyInfo> &&foreign_keys, std::vector<UniqueInfo> &&con_uniques,
-                      std::vector<CheckInfo> &&con_checks)
+  CreateTablePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                      std::unique_ptr<OutputSchema> output_schema, catalog::namespace_oid_t namespace_oid,
+                      std::string table_name, std::unique_ptr<catalog::Schema> table_schema,
+                      common::ManagedPointer<storage::BlockStore> block_store, bool has_primary_key,
+                      PrimaryKeyInfo primary_key, std::vector<ForeignKeyInfo> &&foreign_keys,
+                      std::vector<UniqueInfo> &&con_uniques, std::vector<CheckInfo> &&con_checks)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        database_oid_(database_oid),
         namespace_oid_(namespace_oid),
         table_name_(std::move(table_name)),
         table_schema_(std::move(table_schema)),
+        block_store_(block_store),
         has_primary_key_(has_primary_key),
         primary_key_(std::move(primary_key)),
         foreign_keys_(std::move(foreign_keys)),
@@ -717,11 +651,6 @@ class CreateTablePlanNode : public AbstractPlanNode {
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::CREATE_TABLE; }
 
   /**
-   * @return OID of the database
-   */
-  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
-
-  /**
    * @return OID of the namespace to create index on
    */
   catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
@@ -732,9 +661,14 @@ class CreateTablePlanNode : public AbstractPlanNode {
   const std::string &GetTableName() const { return table_name_; }
 
   /**
+   * @return block store to be used when constructing this table
+   */
+  common::ManagedPointer<storage::BlockStore> GetBlockStore() const { return block_store_; }
+
+  /**
    * @return pointer to the schema
    */
-  std::shared_ptr<catalog::Schema> GetTableSchema() const { return table_schema_; }
+  common::ManagedPointer<catalog::Schema> GetSchema() const { return common::ManagedPointer(table_schema_); }
 
   /**
    * @return true if index/table has primary key
@@ -744,7 +678,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
   /**
    * @return primary key meta-data
    */
-  PrimaryKeyInfo GetPrimaryKey() const { return primary_key_; }
+  const PrimaryKeyInfo &GetPrimaryKey() const { return primary_key_; }
 
   /**
    * @return foreign keys meta-data
@@ -769,14 +703,9 @@ class CreateTablePlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
-  /**
-   * OID of the database
-   */
-  catalog::db_oid_t database_oid_;
-
   /**
    * OID of the namespace
    */
@@ -790,7 +719,9 @@ class CreateTablePlanNode : public AbstractPlanNode {
   /**
    * Table Schema
    */
-  std::shared_ptr<catalog::Schema> table_schema_;
+  std::unique_ptr<catalog::Schema> table_schema_;
+
+  common::ManagedPointer<storage::BlockStore> block_store_;
 
   /**
    * ColumnDefinition for multi-column constraints (including foreign key)

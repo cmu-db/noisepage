@@ -3,15 +3,11 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "parser/parser_defs.h"
 
 namespace terrier::planner {
 
 common::hash_t CreateTablePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
-
-  // Database OID
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
 
   // Namespace OI
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
@@ -52,9 +48,6 @@ bool CreateTablePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   auto &other = dynamic_cast<const CreateTablePlanNode &>(rhs);
 
-  // Database OID
-  if (database_oid_ != other.database_oid_) return false;
-
   // Namespace OID
   if (namespace_oid_ != other.namespace_oid_) return false;
 
@@ -83,10 +76,9 @@ bool CreateTablePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
 nlohmann::json CreateTablePlanNode::ToJson() const {
   nlohmann::json j = AbstractPlanNode::ToJson();
-  j["database_oid"] = database_oid_;
   j["namespace_oid"] = namespace_oid_;
   j["table_name"] = table_name_;
-  j["table_schema"] = table_schema_;
+  j["table_schema"] = table_schema_->ToJson();
 
   j["has_primary_key"] = has_primary_key_;
   if (has_primary_key_) {
@@ -99,9 +91,10 @@ nlohmann::json CreateTablePlanNode::ToJson() const {
   return j;
 }
 
-void CreateTablePlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
-  database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
+std::vector<std::unique_ptr<parser::AbstractExpression>> CreateTablePlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
   table_name_ = j.at("table_name").get<std::string>();
 
@@ -117,6 +110,8 @@ void CreateTablePlanNode::FromJson(const nlohmann::json &j) {
   foreign_keys_ = j.at("foreign_keys").get<std::vector<ForeignKeyInfo>>();
   con_uniques_ = j.at("con_uniques").get<std::vector<UniqueInfo>>();
   con_checks_ = j.at("con_checks").get<std::vector<CheckInfo>>();
+
+  return exprs;
 }
 
 }  // namespace terrier::planner

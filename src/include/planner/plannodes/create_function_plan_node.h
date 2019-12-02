@@ -118,32 +118,11 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param create_func_stmt the SQL CREATE FUNCTION statement
-     * @return builder object
-     */
-    Builder &SetFromCreateFuncStatement(parser::CreateFunctionStatement *create_func_stmt) {
-      language_ = create_func_stmt->GetPLType();
-      function_body_ = create_func_stmt->GetFuncBody();
-      is_replace_ = create_func_stmt->ShouldReplace();
-      function_name_ = create_func_stmt->GetFuncName();
-
-      for (const auto &col : create_func_stmt->GetFuncParameters()) {
-        function_param_names_.push_back(col->GetParamName());
-        param_count_++;
-        function_param_types_.push_back(col->GetDataType());
-      }
-
-      auto ret_type_obj = *(create_func_stmt->GetFuncReturnType());
-      return_type_ = ret_type_obj.GetDataType();
-      return *this;
-    }
-
-    /**
      * Build the create function plan node
      * @return plan node
      */
-    std::shared_ptr<CreateFunctionPlanNode> Build() {
-      return std::shared_ptr<CreateFunctionPlanNode>(new CreateFunctionPlanNode(
+    std::unique_ptr<CreateFunctionPlanNode> Build() {
+      return std::unique_ptr<CreateFunctionPlanNode>(new CreateFunctionPlanNode(
           std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, language_,
           std::move(function_param_names_), std::move(function_param_types_), std::move(function_body_), is_replace_,
           std::move(function_name_), return_type_, param_count_));
@@ -216,8 +195,8 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
    * @param return_type return type of the UDF
    * @param param_count number of parameter of UDF
    */
-  CreateFunctionPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                         std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+  CreateFunctionPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                         std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                          catalog::namespace_oid_t namespace_oid, parser::PLType language,
                          std::vector<std::string> &&function_param_names,
                          std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
@@ -308,7 +287,7 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   /**

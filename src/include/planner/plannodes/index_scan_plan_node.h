@@ -21,7 +21,7 @@
 
 namespace terrier::planner {
 
-using IndexExpression = std::shared_ptr<parser::AbstractExpression>;
+using IndexExpression = common::ManagedPointer<parser::AbstractExpression>;
 
 /**
  * Plan node for an index scan
@@ -44,10 +44,9 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
      * Build the nested loop join plan node
      * @return plan node
      */
-    std::shared_ptr<IndexScanPlanNode> Build() {
-      return std::shared_ptr<IndexScanPlanNode>(
-          new IndexScanPlanNode(std::move(children_), output_schema_, scan_predicate_, is_for_update_,
-                                is_parallel_, database_oid_, namespace_oid_, index_oid_, table_oid_, std::move(index_cols_)));
+    std::unique_ptr<IndexScanPlanNode> Build() {
+      return std::make_unique<IndexScanPlanNode>(std::move(children_), std::move(output_schema_), scan_predicate_, is_for_update_,
+                                is_parallel_, database_oid_, namespace_oid_, index_oid_, table_oid_, std::move(index_cols_));
     }
 
     /**
@@ -77,21 +76,12 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
     }
 
    private:
-    /**
-     * OID of the index
-     */
     catalog::index_oid_t index_oid_;
-    /**
-     * OID of the corresponding table
-     */
     catalog::table_oid_t table_oid_;
-    /**
-     * Index Cols
-     */
     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> index_cols_{};
   };
 
- private:
+ public:
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
@@ -101,8 +91,8 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
    * @param database_oid database oid for scan
    * @param index_oid OID of index to be used in index scan
    */
-  IndexScanPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                    std::shared_ptr<OutputSchema> output_schema, std::shared_ptr<parser::AbstractExpression> predicate,
+  IndexScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                    std::unique_ptr<OutputSchema> output_schema, common::ManagedPointer<parser::AbstractExpression> predicate,
                     bool is_for_update, bool is_parallel, catalog::db_oid_t database_oid,
                     catalog::namespace_oid_t namespace_oid, catalog::index_oid_t index_oid,
                     catalog::table_oid_t table_oid,
@@ -113,7 +103,6 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
         table_oid_(table_oid),
         index_cols_(std::move(index_cols)) {}
 
- public:
   /**
    * Default constructor used for deserialization
    */
@@ -148,7 +137,8 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
+
 
   /**
    * Collect all column oids in this expression
@@ -173,22 +163,13 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
       result->emplace_back(column_val->GetColumnOid());
     } else {
       for (const auto &child : expr->GetChildren()) {
-        CollectOids(result, child.get());
+        CollectOids(result, child.Get());
       }
     }
   }
 
-  /**
-   * OID of the index
-   */
   catalog::index_oid_t index_oid_;
-  /**
-   * OID of the corresponding table
-   */
   catalog::table_oid_t table_oid_;
-  /**
-   * Index columns
-   */
   std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> index_cols_{};
 };
 

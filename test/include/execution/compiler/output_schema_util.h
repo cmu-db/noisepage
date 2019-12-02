@@ -7,65 +7,66 @@ using OutputColumn = planner::OutputSchema::Column;
 
 class OutputSchemaHelper {
  public:
-  OutputSchemaHelper(uint32_t child_idx) : child_idx_{child_idx} {}
+  OutputSchemaHelper(uint32_t child_idx, ExpressionMaker* expr_maker) : child_idx_{child_idx}, expr_maker_{expr_maker} {}
 
-  ExpressionUtil::Expression GetOutput(uint32_t attr_idx) {
-    return ExpressionUtil::DVE(cols_[attr_idx].GetType(), child_idx_, attr_idx);
+  ExpressionMaker::ManagedExpression GetOutput(uint32_t attr_idx) {
+    return expr_maker_->DVE(cols_[attr_idx].GetType(), child_idx_, attr_idx);
   }
 
-  ExpressionUtil::Expression GetOutput(std::string col_name) { return GetOutput(name_to_idx_[col_name]); }
+  ExpressionMaker::ManagedExpression GetOutput(const std::string& col_name) { return GetOutput(name_to_idx_[col_name]); }
 
-  void AddOutput(const std::string &col_name, ExpressionUtil::Expression expr) {
-    uint32_t idx = uint32_t(cols_.size());
+  void AddOutput(const std::string &col_name, ExpressionMaker::ManagedExpression expr) {
+    auto idx = uint32_t(cols_.size());
     name_to_idx_.emplace(col_name, idx);
     cols_.emplace_back(expr->GetReturnValueType(), true, expr);
   }
 
-  void AddOutput(const std::string &col_name, ExpressionUtil::Expression expr, type::TypeId col_type) {
-    uint32_t idx = uint32_t(cols_.size());
+  void AddOutput(const std::string &col_name, ExpressionMaker::ManagedExpression expr, type::TypeId col_type) {
+    auto idx = uint32_t(cols_.size());
     name_to_idx_.emplace(col_name, idx);
     cols_.emplace_back(col_type, true, expr);
   }
 
-  ExpressionUtil::Expression GetAggTermForOutput(const std::string &agg_name) {
-    auto agg = aggs[name_to_agg[agg_name]];
+  ExpressionMaker::ManagedExpression GetAggTermForOutput(const std::string &agg_name) {
+    const auto& agg = aggs[name_to_agg[agg_name]];
     auto ret_type = agg->GetChild(0)->GetReturnValueType();
     auto tve_idx = name_to_agg[agg_name] + uint32_t(gbys.size());
-    return ExpressionUtil::DVE(ret_type, 0, tve_idx);
+    return expr_maker_->DVE(ret_type, 0, tve_idx);
   }
 
-  ExpressionUtil::Expression GetGroupByTermForOutput(const std::string &gby_name) {
-    auto gby = gbys[name_to_gby[gby_name]];
+  ExpressionMaker::ManagedExpression GetGroupByTermForOutput(const std::string &gby_name) {
+    const auto& gby = gbys[name_to_gby[gby_name]];
     auto ret_type = gby->GetReturnValueType();
     auto tve_idx = name_to_gby[gby_name];
-    return ExpressionUtil::DVE(ret_type, 0, tve_idx);
+    return expr_maker_->DVE(ret_type, 0, tve_idx);
   }
 
-  void AddGroupByTerm(const std::string &col_name, ExpressionUtil::Expression expr) {
-    uint32_t idx = uint32_t(gbys.size());
+  void AddGroupByTerm(const std::string &col_name, ExpressionMaker::ManagedExpression expr) {
+    auto idx = uint32_t(gbys.size());
     name_to_gby.emplace(col_name, idx);
     gbys.emplace_back(expr);
   }
 
-  ExpressionUtil::Expression GetGroupByTerm(const std::string &col_name) { return gbys[name_to_gby[col_name]]; }
+  const ExpressionMaker::ManagedExpression GetGroupByTerm(const std::string &col_name) { return gbys[name_to_gby[col_name]]; }
 
-  void AddAggTerm(const std::string &agg_name, ExpressionUtil::AggExpression expr) {
-    uint32_t idx = uint32_t(aggs.size());
+  void AddAggTerm(const std::string &agg_name, ExpressionMaker::ManagedAggExpression expr) {
+    auto idx = uint32_t(aggs.size());
     name_to_agg.emplace(agg_name, idx);
     aggs.emplace_back(expr);
   }
 
-  ExpressionUtil::AggExpression GetAggTerm(const std::string &agg_name) { return aggs[name_to_agg[agg_name]]; }
+  const ExpressionMaker::ManagedAggExpression GetAggTerm(const std::string &agg_name) { return aggs[name_to_agg[agg_name]]; }
 
-  std::shared_ptr<planner::OutputSchema> MakeSchema() { return std::make_shared<planner::OutputSchema>(cols_); }
+  std::unique_ptr<planner::OutputSchema> MakeSchema() { return std::make_unique<planner::OutputSchema>(cols_); }
 
  private:
   std::unordered_map<std::string, uint32_t> name_to_idx_;
   std::vector<OutputColumn> cols_;
   uint32_t child_idx_;
   std::unordered_map<std::string, uint32_t> name_to_gby;
-  std::vector<ExpressionUtil::Expression> gbys;
+  std::vector<ExpressionMaker::ManagedExpression> gbys;
   std::unordered_map<std::string, uint32_t> name_to_agg;
-  std::vector<ExpressionUtil::AggExpression> aggs;
+  std::vector<ExpressionMaker::ManagedAggExpression> aggs;
+  ExpressionMaker *expr_maker_;
 };
 }  // namespace terrier::execution::compiler

@@ -5,8 +5,8 @@ namespace terrier::execution::compiler {
 
 ArithmeticTranslator::ArithmeticTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen)
     : ExpressionTranslator(expression, codegen),
-      left_(TranslatorFactory::CreateExpressionTranslator(expression_->GetChild(0).get(), codegen_)),
-      right_(TranslatorFactory::CreateExpressionTranslator(expression_->GetChild(1).get(), codegen_)) {}
+      left_(TranslatorFactory::CreateExpressionTranslator(expression_->GetChild(0).Get(), codegen_)),
+      right_(TranslatorFactory::CreateExpressionTranslator(expression_->GetChild(1).Get(), codegen_)) {}
 
 ast::Expr *ArithmeticTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
   auto *left_expr = left_->DeriveExpr(evaluator);

@@ -117,7 +117,8 @@ class ProjectedColumnsIteratorTest : public SqlBasedTest {
       projected_columns_->SetNumTuples(num_tuples);
       if (nulls != nullptr) {
         // Fill up the null bitmap.
-        std::memcpy(projected_columns_->ColumnNullBitmap(col_offset), nulls.get(),
+        // We recast ColumnNullBitmap as a workaround for -Wclass-memaccess
+        std::memcpy(static_cast<void *>(projected_columns_->ColumnNullBitmap(col_offset)), nulls.get(),
                     num_tuples / common::Constants::K_BITS_PER_BYTE);
         // Because the storage layer treats 1 as non-null, we have to flip the
         // bits.
@@ -126,7 +127,8 @@ class ProjectedColumnsIteratorTest : public SqlBasedTest {
         }
       } else {
         // Set all rows to non-null.
-        std::memset(projected_columns_->ColumnNullBitmap(col_offset), 0,
+        // Recast ColumnNullBitmap again as a -Wclass-memaccess workaround
+        std::memset(static_cast<void *>(projected_columns_->ColumnNullBitmap(col_offset)), 0,
                     num_tuples / common::Constants::K_BITS_PER_BYTE);
       }
       // Fill up the values.

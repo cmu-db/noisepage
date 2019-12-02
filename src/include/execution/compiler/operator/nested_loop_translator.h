@@ -92,7 +92,7 @@ class NestedLoopRightTransaltor : public OperatorTranslator {
     auto join_op = static_cast<const terrier::planner::NestedLoopJoinPlanNode *>(op_);
     if (join_op->GetJoinPredicate() != nullptr) {
       // if (join_predicate) {...}
-      auto translator = TranslatorFactory::CreateExpressionTranslator(join_op->GetJoinPredicate().get(), codegen_);
+      auto translator = TranslatorFactory::CreateExpressionTranslator(join_op->GetJoinPredicate().Get(), codegen_);
       ast::Expr *predicate = translator->DeriveExpr(this);
       builder->StartIfStmt(predicate);
       // Let parent consume

@@ -18,10 +18,6 @@
 
 namespace terrier {
 
-namespace catalog {
-class TableCatalogEntry;
-}  // namespace catalog
-
 namespace parser {
 class AbstractExpression;
 class UpdateClause;
@@ -47,6 +43,12 @@ class LogicalGet : public OperatorNode<LogicalGet> {
                        catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> predicates,
                        std::string table_alias, bool is_for_update);
 
+  /**
+   * For select statement without a from table
+   * @return
+   */
+  static Operator Make();
+
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
@@ -54,17 +56,17 @@ class LogicalGet : public OperatorNode<LogicalGet> {
   /**
    * @return the OID of the database
    */
-  const catalog::db_oid_t &GetDatabaseOID() const { return database_oid_; }
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
 
   /**
    * @return the OID of the namespace
    */
-  const catalog::namespace_oid_t &GetNamespaceOID() const { return namespace_oid_; }
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
 
   /**
    * @return the OID of the table
    */
-  const catalog::table_oid_t &GetTableOID() const { return table_oid_; }
+  const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
 
   /**
    * @return the vector of predicates for get
@@ -293,10 +295,10 @@ class LogicalDependentJoin : public OperatorNode<LogicalDependentJoin> {
   static Operator Make();
 
   /**
-   * @param conditions condition of the join
+   * @param join_predicates conditions of the join
    * @return a DependentJoin operator
    */
-  static Operator Make(std::vector<AnnotatedExpression> &&conditions);
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -325,10 +327,10 @@ class LogicalMarkJoin : public OperatorNode<LogicalMarkJoin> {
   static Operator Make();
 
   /**
-   * @param conditions conditions of the join
+   * @param join_predicates conditions of the join
    * @return a MarkJoin operator
    */
-  static Operator Make(std::vector<AnnotatedExpression> &&conditions);
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -357,10 +359,10 @@ class LogicalSingleJoin : public OperatorNode<LogicalSingleJoin> {
   static Operator Make();
 
   /**
-   * @param conditions conditions of the join
+   * @param join_predicates conditions of the join
    * @return a SingleJoin operator
    */
-  static Operator Make(std::vector<AnnotatedExpression> &&conditions);
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -389,10 +391,10 @@ class LogicalInnerJoin : public OperatorNode<LogicalInnerJoin> {
   static Operator Make();
 
   /**
-   * @param conditions conditions of the join
+   * @param join_predicates conditions of the join
    * @return an InnerJoin operator
    */
-  static Operator Make(std::vector<AnnotatedExpression> &&conditions);
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -416,25 +418,30 @@ class LogicalInnerJoin : public OperatorNode<LogicalInnerJoin> {
 class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
  public:
   /**
-   * @param join_predicate condition of the join
    * @return a LeftJoin operator
    */
-  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+  static Operator Make();
+
+  /**
+   * @param join_predicates conditions of the join
+   * @return a LeftJoin operator
+   */
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
 
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
 
   /**
-   * @return pointer to the join predicate expression
+   * @return vector of join predicates
    */
-  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
+  const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
 
  private:
   /**
-   * Join predicate
+   * Join predicates
    */
-  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
+  std::vector<AnnotatedExpression> join_predicates_;
 };
 
 /**
@@ -443,25 +450,30 @@ class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
 class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
  public:
   /**
-   * @param join_predicate condition of the join
    * @return a RightJoin operator
    */
-  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+  static Operator Make();
+
+  /**
+   * @param join_predicates conditions of the join
+   * @return a RightJoin operator
+   */
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
 
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
 
   /**
-   * @return pointer to the join predicate expression
+   * @return vector of join predicates
    */
-  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
+  const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
 
  private:
   /**
-   * Join predicate
+   * Join predicates
    */
-  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
+  std::vector<AnnotatedExpression> join_predicates_;
 };
 
 /**
@@ -470,25 +482,30 @@ class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
 class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
  public:
   /**
-   * @param join_predicate condition of the join
    * @return an OuterJoin operator
    */
-  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+  static Operator Make();
+
+  /**
+   * @param join_predicates conditions of the join
+   * @return an OuterJoin operator
+   */
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
 
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
 
   /**
-   * @return pointer to the join predicate expression
+   * @return vector of join predicates
    */
-  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
+  const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
 
  private:
   /**
-   * Join predicate
+   * Join predicates
    */
-  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
+  std::vector<AnnotatedExpression> join_predicates_;
 };
 
 /**
@@ -497,25 +514,30 @@ class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
 class LogicalSemiJoin : public OperatorNode<LogicalSemiJoin> {
  public:
   /**
-   * @param join_predicate condition of the join
    * @return a SemiJoin operator
    */
-  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+  static Operator Make();
+
+  /**
+   * @param join_predicates conditions of the join
+   * @return a SemiJoin operator
+   */
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
 
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
 
   /**
-   * @return pointer to the join predicate expression
+   * @return vector of join predicates
    */
-  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
+  const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
 
  private:
   /**
-   * Join predicate
+   * Join predicates
    */
-  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
+  std::vector<AnnotatedExpression> join_predicates_;
 };
 
 /**
@@ -581,9 +603,10 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
    * @param values list of expressions that provide the values to insert into columns
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
-                       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values);
+  static Operator Make(
+      catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+      std::vector<catalog::col_oid_t> &&columns,
+      common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -611,7 +634,8 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
   /**
    * @return The expression objects to insert
    */
-  const std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &GetValues() const {
+  const common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>
+      &GetValues() const {
     return values_;
   }
 
@@ -640,7 +664,7 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
    * The expression objects to insert.
    * The offset of an entry in this list corresponds to the offset in the columns_ list.
    */
-  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> values_;
+  common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values_;
 };
 
 /**
@@ -723,7 +747,7 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
    */
   static Operator Make(size_t offset, size_t limit,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
-                       std::vector<planner::OrderByOrderingType> &&sort_directions);
+                       std::vector<optimizer::OrderByOrderingType> &&sort_directions);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -748,7 +772,7 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
   /**
    * @return inlined sort directions (can be empty)
    */
-  const std::vector<planner::OrderByOrderingType> &GetSortDirections() const { return sort_directions_; }
+  const std::vector<optimizer::OrderByOrderingType> &GetSortDirections() const { return sort_directions_; }
 
  private:
   /**
@@ -772,7 +796,7 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
   /**
    * The sort direction of sort expressions
    */
-  std::vector<planner::OrderByOrderingType> sort_directions_;
+  std::vector<optimizer::OrderByOrderingType> sort_directions_;
 };
 
 /**

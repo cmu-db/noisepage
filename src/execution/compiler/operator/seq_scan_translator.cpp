@@ -18,7 +18,7 @@ SeqScanTranslator::SeqScanTranslator(const terrier::planner::SeqScanPlanNode *op
       input_oids_(op_->CollectInputOids()),
       pm_(codegen->Accessor()->GetTable(op_->GetTableOid())->ProjectionMapForOids(input_oids_)),
       has_predicate_(op_->GetScanPredicate() != nullptr),
-      is_vectorizable_{IsVectorizable(op_->GetScanPredicate().get())},
+      is_vectorizable_{IsVectorizable(op_->GetScanPredicate().Get())},
       tvi_(codegen->NewIdentifier(tvi_name_)),
       col_oids_(codegen->NewIdentifier(col_oids_name_)),
       pci_(codegen->NewIdentifier(pci_name_)),
@@ -52,7 +52,7 @@ void SeqScanTranslator::Consume(FunctionBuilder *builder) {
   // TODO(Amadou): This logic will more complex if the whole pipeline is vectorized. Move it to a function.
   bool has_if_stmt = false;
   if (is_vectorizable_) {
-    if (has_predicate_) GenVectorizedPredicate(builder, op_->GetScanPredicate().get());
+    if (has_predicate_) GenVectorizedPredicate(builder, op_->GetScanPredicate().Get());
     GenPCILoop(builder);
   } else {
     GenPCILoop(builder);
@@ -141,7 +141,7 @@ void SeqScanTranslator::GenPCILoop(FunctionBuilder *builder) {
 void SeqScanTranslator::GenScanCondition(FunctionBuilder *builder) {
   auto predicate = op_->GetScanPredicate();
   // Regular codegen
-  auto cond_translator = TranslatorFactory::CreateExpressionTranslator(predicate.get(), codegen_);
+  auto cond_translator = TranslatorFactory::CreateExpressionTranslator(predicate.Get(), codegen_);
   ast::Expr *cond = cond_translator->DeriveExpr(this);
   builder->StartIfStmt(cond);
 }
@@ -162,7 +162,7 @@ bool SeqScanTranslator::IsVectorizable(const terrier::parser::AbstractExpression
   if (predicate == nullptr) return true;
 
   if (predicate->GetExpressionType() == terrier::parser::ExpressionType::CONJUNCTION_AND) {
-    return IsVectorizable(predicate->GetChild(0).get()) && IsVectorizable(predicate->GetChild(1).get());
+    return IsVectorizable(predicate->GetChild(0).Get()) && IsVectorizable(predicate->GetChild(1).Get());
   }
   if (COMPARISON_OP(predicate->GetExpressionType())) {
     // left is TVE and right is constant integer.
@@ -179,13 +179,13 @@ bool SeqScanTranslator::IsVectorizable(const terrier::parser::AbstractExpression
 void SeqScanTranslator::GenVectorizedPredicate(FunctionBuilder *builder,
                                                const terrier::parser::AbstractExpression *predicate) {
   if (predicate->GetExpressionType() == terrier::parser::ExpressionType::CONJUNCTION_AND) {
-    GenVectorizedPredicate(builder, predicate->GetChild(0).get());
-    GenVectorizedPredicate(builder, predicate->GetChild(1).get());
+    GenVectorizedPredicate(builder, predicate->GetChild(0).Get());
+    GenVectorizedPredicate(builder, predicate->GetChild(1).Get());
   } else if (COMPARISON_OP(predicate->GetExpressionType())) {
-    auto left_cve = dynamic_cast<const terrier::parser::ColumnValueExpression *>(predicate->GetChild(0).get());
+    auto left_cve = dynamic_cast<const terrier::parser::ColumnValueExpression *>(predicate->GetChild(0).Get());
     auto col_idx = pm_[left_cve->GetColumnOid()];
     auto col_type = schema_.GetColumn(left_cve->GetColumnOid()).Type();
-    auto const_val = dynamic_cast<const terrier::parser::ConstantValueExpression *>(predicate->GetChild(1).get());
+    auto const_val = dynamic_cast<const terrier::parser::ConstantValueExpression *>(predicate->GetChild(1).Get());
     auto trans_val = const_val->GetValue();
     auto type = trans_val.Type();
     ast::Expr *filter_val;

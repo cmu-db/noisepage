@@ -88,6 +88,10 @@ class TableGenerator {
      */
     Dist dist_;
     /**
+     * Serial Counter
+     */
+    uint64_t counter_{0};
+    /**
      * Min value of the column
      */
     uint64_t min_;
@@ -188,14 +192,14 @@ class TableGenerator {
 
   // Create integer data with the given distribution
   template <typename T>
-  T *CreateNumberColumnData(Dist dist, uint32_t num_vals, uint64_t serial_counter, uint64_t min, uint64_t max);
+  T *CreateNumberColumnData(ColumnInsertMeta *col_meta, uint32_t num_vals);
 
   // Generate column data
-  std::pair<byte *, uint32_t *> GenerateColumnData(const ColumnInsertMeta &col_meta, uint32_t num_rows);
+  std::pair<byte *, uint32_t *> GenerateColumnData(ColumnInsertMeta *col_meta, uint32_t num_rows);
 
   // Fill a given table according to its metadata
   void FillTable(catalog::table_oid_t table_oid, common::ManagedPointer<storage::SqlTable> table,
-                 const catalog::Schema &schema, const TableInsertMeta &table_meta);
+                 const catalog::Schema &schema, TableInsertMeta *table_meta);
 
   void FillIndex(common::ManagedPointer<storage::index::Index> index, const catalog::IndexSchema &index_schema,
                  const IndexInsertMeta &index_meta, common::ManagedPointer<storage::SqlTable> table,

@@ -83,13 +83,11 @@ void TableReader::CreateIndexes(TableInfo *info, catalog::table_oid_t table_oid)
   storage::index::IndexBuilder index_builder;
   for (auto &index_info : info->indexes) {
     // Create index in catalog
-    catalog::IndexSchema tmp_schema{index_info->cols, false, false, false, false};
+    catalog::IndexSchema tmp_schema{index_info->cols, storage::index::IndexType::BWTREE, false, false, false, false};
     auto index_oid = exec_ctx_->GetAccessor()->CreateIndex(ns_oid_, table_oid, index_info->index_name, tmp_schema);
     auto &schema = exec_ctx_->GetAccessor()->GetIndexSchema(index_oid);
 
     // Build Index
-    index_builder.SetOid(index_oid);
-    index_builder.SetConstraintType(storage::index::ConstraintType::DEFAULT);
     index_builder.SetKeySchema(schema);
     auto *index = index_builder.Build();
     exec_ctx_->GetAccessor()->SetIndexPointer(index_oid, index);

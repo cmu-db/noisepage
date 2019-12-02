@@ -11,7 +11,6 @@
 #include "common/managed_pointer.h"
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
-#include "di/di_help.h"
 #include "settings/settings_manager.h"
 #include "storage/record_buffer.h"
 #include "storage/write_ahead_log/disk_log_consumer_task.h"
@@ -41,12 +40,6 @@ namespace terrier::storage {
  */
 class LogManager : public common::DedicatedThreadOwner {
  public:
-  DECLARE_ANNOTATION(LOG_FILE_PATH)
-  DECLARE_ANNOTATION(NUM_BUFFERS)
-  DECLARE_ANNOTATION(SERIALIZATION_INTERVAL)
-  DECLARE_ANNOTATION(PERSIST_INTERVAL)
-  DECLARE_ANNOTATION(PERSIST_THRESHOLD)
-
   /**
    * Constructs a new LogManager, writing its logs out to the given file.
    *
@@ -60,12 +53,10 @@ class LogManager : public common::DedicatedThreadOwner {
    *                    buffers from
    * @param thread_registry DedicatedThreadRegistry dependency injection
    */
-  BOOST_DI_INJECT(LogManager, (named = LOG_FILE_PATH) std::string log_file_path,
-                  (named = NUM_BUFFERS) uint64_t num_buffers,
-                  (named = SERIALIZATION_INTERVAL) std::chrono::milliseconds serialization_interval,
-                  (named = PERSIST_INTERVAL) std::chrono::milliseconds persist_interval,
-                  (named = PERSIST_THRESHOLD) uint64_t persist_threshold, RecordBufferSegmentPool *buffer_pool,
-                  common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry)
+  LogManager(std::string log_file_path, uint64_t num_buffers, std::chrono::microseconds serialization_interval,
+             std::chrono::milliseconds persist_interval, uint64_t persist_threshold,
+             RecordBufferSegmentPool *buffer_pool,
+             common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry)
       : DedicatedThreadOwner(thread_registry),
         run_log_manager_(false),
         log_file_path_(std::move(log_file_path)),
@@ -84,7 +75,7 @@ class LogManager : public common::DedicatedThreadOwner {
   void Start();
 
   /**
-   * Flush the logs to make sure all serialized records before this invocation are persistent. Callbacks from committed
+   * Serialize and flush the logs to make sure all serialized records are persistent. Callbacks from committed
    * transactions are invoked by log consumers when the commit records are persisted on disk.
    * @warning This method should only be called from a dedicated flushing thread or during testing
    * @warning Beware the performance consequences of calling flush too frequently
@@ -160,7 +151,7 @@ class LogManager : public common::DedicatedThreadOwner {
   // Log serializer task that processes buffers handed over by transactions and serializes them into consumer buffers
   common::ManagedPointer<LogSerializerTask> log_serializer_task_ = common::ManagedPointer<LogSerializerTask>(nullptr);
   // Interval used by log serialization task
-  const std::chrono::milliseconds serialization_interval_;
+  const std::chrono::microseconds serialization_interval_;
 
   // The log consumer task which flushes filled buffers to the disk
   common::ManagedPointer<DiskLogConsumerTask> disk_log_writer_task_ =

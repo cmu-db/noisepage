@@ -71,7 +71,7 @@ void HashJoinLeftTranslator::GenHashCall(FunctionBuilder *builder) {
   util::RegionVector<ast::Expr *> hash_args{codegen_->Region()};
   for (const auto &key : op_->GetLeftHashKeys()) {
     std::unique_ptr<ExpressionTranslator> key_translator =
-        TranslatorFactory::CreateExpressionTranslator(key.get(), codegen_);
+        TranslatorFactory::CreateExpressionTranslator(key.Get(), codegen_);
     hash_args.emplace_back(key_translator->DeriveExpr(this));
   }
   ast::Expr *hash_call = codegen_->Hash(std::move(hash_args));
@@ -230,7 +230,7 @@ void HashJoinRightTranslator::GenKeyCheck(FunctionBuilder *builder) {
   if (op_->GetJoinPredicate() != nullptr) {
     // Case 1: There is a join predicate
     // Generated code: if (predicate) return true; else return false
-    auto pred_translator = TranslatorFactory::CreateExpressionTranslator(op_->GetJoinPredicate().get(), codegen_);
+    auto pred_translator = TranslatorFactory::CreateExpressionTranslator(op_->GetJoinPredicate().Get(), codegen_);
     builder->StartIfStmt(pred_translator->DeriveExpr(this));
     builder->Append(codegen_->ReturnStmt(codegen_->BoolLiteral(true)));
     builder->FinishBlockStmt();
@@ -248,7 +248,7 @@ void HashJoinRightTranslator::GenHashValue(FunctionBuilder *builder) {
   util::RegionVector<ast::Expr *> hash_args{codegen_->Region()};
   for (const auto &key : op_->GetRightHashKeys()) {
     std::unique_ptr<ExpressionTranslator> key_translator =
-        TranslatorFactory::CreateExpressionTranslator(key.get(), codegen_);
+        TranslatorFactory::CreateExpressionTranslator(key.Get(), codegen_);
     hash_args.emplace_back(key_translator->DeriveExpr(this));
   }
   ast::Expr *hash_call = codegen_->Hash(std::move(hash_args));

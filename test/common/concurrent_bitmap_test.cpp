@@ -7,8 +7,8 @@
 
 #include "common/container/concurrent_bitmap.h"
 #include "gtest/gtest.h"
-#include "util/container_test_util.h"
-#include "util/multithread_test_util.h"
+#include "test_util/container_test_util.h"
+#include "test_util/multithread_test_util.h"
 
 namespace terrier {
 

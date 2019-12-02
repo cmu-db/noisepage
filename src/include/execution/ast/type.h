@@ -7,10 +7,8 @@
 
 #include "common/strong_typedef.h"
 #include "execution/ast/identifier.h"
-#include "execution/sql/deleter.h"
-#include "execution/sql/inserter.h"
 #include "execution/sql/projected_row_wrapper.h"
-#include "execution/sql/updater.h"
+#include "execution/sql/storage_interface.h"
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
 
@@ -91,9 +89,7 @@ class Context;
   /* SQL Table operations */                                                                    \
   NON_PRIM(ProjectedRow, terrier::execution::sql::ProjectedRowWrapper)                          \
   NON_PRIM(TupleSlot, terrier::storage::TupleSlot)                                              \
-  NON_PRIM(Inserter, terrier::execution::sql::Inserter)                                         \
-  NON_PRIM(Deleter, terrier::execution::sql::Deleter)                                           \
-  NON_PRIM(Updater, terrier::execution::sql::Updater)                                           \
+  NON_PRIM(StorageInterface, terrier::execution::sql::StorageInterface)                         \
                                                                                                 \
   /* Non-primitive SQL Runtime Values */                                                        \
   SQL(Boolean, terrier::execution::sql::BoolVal)                                                \

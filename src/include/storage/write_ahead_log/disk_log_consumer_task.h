@@ -3,6 +3,7 @@
 #include <utility>
 #include <vector>
 #include "common/container/concurrent_blocking_queue.h"
+#include "common/container/concurrent_queue.h"
 #include "common/dedicated_thread_registry.h"
 #include "storage/storage_defs.h"
 #include "storage/write_ahead_log/log_io.h"
@@ -90,7 +91,8 @@ class DiskLogConsumerTask : public common::DedicatedThreadTask {
   /*
    * Persists the log file on disk by calling fsync, as well as calling callbacks for all committed transactions that
    * were persisted
+   * @return number of buffers persisted, used for metrics
    */
-  void PersistLogFile();
+  uint64_t PersistLogFile();
 };
 }  // namespace terrier::storage

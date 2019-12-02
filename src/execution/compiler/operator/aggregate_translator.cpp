@@ -184,7 +184,7 @@ void AggregateBottomTranslator::FillValues(FunctionBuilder *builder) {
   for (const auto &term : op_->GetGroupByTerms()) {
     // Set agg_values.term_i = group_term_i
     ast::Expr *lhs = GetGroupByTerm(agg_values_, term_idx);
-    auto term_translator = TranslatorFactory::CreateExpressionTranslator(term.get(), codegen_);
+    auto term_translator = TranslatorFactory::CreateExpressionTranslator(term.Get(), codegen_);
     ast::Expr *rhs = term_translator->DeriveExpr(this);
     builder->Append(codegen_->Assign(lhs, rhs));
     term_idx++;
@@ -194,7 +194,7 @@ void AggregateBottomTranslator::FillValues(FunctionBuilder *builder) {
   for (const auto &term : op_->GetAggregateTerms()) {
     // Set agg_values.expr_i = agg_expr_i
     ast::Expr *lhs = GetAggTerm(agg_values_, term_idx, false);
-    auto term_translator = TranslatorFactory::CreateExpressionTranslator(term->GetChild(0).get(), codegen_);
+    auto term_translator = TranslatorFactory::CreateExpressionTranslator(term->GetChild(0).Get(), codegen_);
     ast::Expr *rhs = term_translator->DeriveExpr(this);
     builder->Append(codegen_->Assign(lhs, rhs));
     term_idx++;
@@ -374,7 +374,7 @@ void AggregateTopTranslator::CloseIterator(FunctionBuilder *builder) {
 
 bool AggregateTopTranslator::GenHaving(execution::compiler::FunctionBuilder *builder) {
   if (op_->GetHavingClausePredicate() != nullptr) {
-    auto predicate = op_->GetHavingClausePredicate().get();
+    auto predicate = op_->GetHavingClausePredicate().Get();
     auto translator = TranslatorFactory::CreateExpressionTranslator(predicate, codegen_);
     ast::Expr *cond = translator->DeriveExpr(this);
     builder->StartIfStmt(cond);

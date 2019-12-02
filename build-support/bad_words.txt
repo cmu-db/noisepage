@@ -4,7 +4,11 @@
 \bmalloc(
 \bfree(
 \bstd::cout\b
+\bstd::cerr\b
 \bcout\b
+\bcerr\b
 \bprintf(
-\bstd::weak_ptr\b
+\bshared_ptr\b
+\bmake_shared\b
+\bweak_ptr\b
 namespace .*_.* {

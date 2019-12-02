@@ -113,10 +113,10 @@ void IndexJoinTranslator::DeclareTablePR(terrier::execution::compiler::FunctionB
 void IndexJoinTranslator::FillKey(FunctionBuilder *builder) {
   // Set key.attr_i = expr_i for each key attribute
   for (const auto &key : op_->GetIndexColumns()) {
-    auto translator = TranslatorFactory::CreateExpressionTranslator(key.second.get(), codegen_);
+    auto translator = TranslatorFactory::CreateExpressionTranslator(key.second.Get(), codegen_);
     uint16_t attr_offset = index_pm_.at(key.first);
-    type::TypeId attr_type = index_schema_.GetColumn(key.first).Type();
-    bool nullable = index_schema_.GetColumn(key.first).Nullable();
+    type::TypeId attr_type = index_schema_.GetColumn(!key.first - 1).Type();
+    bool nullable = index_schema_.GetColumn(!key.first - 1).Nullable();
     auto set_key_call = codegen_->PRSet(index_pr_, attr_type, nullable, attr_offset, translator->DeriveExpr(this));
     builder->Append(codegen_->MakeStmt(set_key_call));
   }
@@ -134,7 +134,7 @@ void IndexJoinTranslator::GenForLoop(FunctionBuilder *builder) {
 }
 
 void IndexJoinTranslator::GenPredicate(FunctionBuilder *builder) {
-  auto translator = TranslatorFactory::CreateExpressionTranslator(op_->GetJoinPredicate().get(), codegen_);
+  auto translator = TranslatorFactory::CreateExpressionTranslator(op_->GetJoinPredicate().Get(), codegen_);
   ast::Expr *cond = translator->DeriveExpr(this);
   builder->StartIfStmt(cond);
 }

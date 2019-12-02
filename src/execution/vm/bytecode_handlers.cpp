@@ -184,30 +184,53 @@ void OpSorterIteratorInit(terrier::execution::sql::SorterIterator *iter, terrier
 void OpSorterIteratorFree(terrier::execution::sql::SorterIterator *iter) { iter->~SorterIterator(); }
 
 // -------------------------------------------------------------
-// Inserter
+// StorageInterface Calls
 // -------------------------------------------------------------
-void OpInserterInit(terrier::execution::sql::Inserter *inserter, terrier::execution::exec::ExecutionContext *exec_ctx,
-                    uint32_t table_oid) {
-  new (inserter) terrier::execution::sql::Inserter(exec_ctx, terrier::catalog::table_oid_t(table_oid));
+
+void OpStorageInterfaceInit(terrier::execution::sql::StorageInterface *storage_interface,
+                            terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
+                            uint32_t *col_oids, uint32_t num_oids, bool need_indexes) {
+  new (storage_interface) terrier::execution::sql::StorageInterface(exec_ctx, terrier::catalog::table_oid_t(table_oid),
+                                                                    col_oids, num_oids, need_indexes);
 }
 
-void OpInserterGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
-                          terrier::execution::sql::Inserter *inserter) {
-  *pr_result = terrier::execution::sql::ProjectedRowWrapper(inserter->GetTablePR());
+void OpStorageInterfaceGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
+                                  terrier::execution::sql::StorageInterface *storage_interface) {
+  *pr_result = terrier::execution::sql::ProjectedRowWrapper(storage_interface->GetTablePR());
 }
 
-void OpInserterTableInsert(terrier::storage::TupleSlot *tuple_slot, terrier::execution::sql::Inserter *inserter) {
-  *tuple_slot = inserter->TableInsert();
+void OpStorageInterfaceTableUpdate(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
+                                   terrier::storage::TupleSlot *tuple_slot) {
+  *result = storage_interface->TableUpdate(*tuple_slot);
 }
 
-void OpInserterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
-                          terrier::execution::sql::Inserter *inserter, uint32_t index_oid) {
-  *pr_result =
-      terrier::execution::sql::ProjectedRowWrapper(inserter->GetIndexPR(terrier::catalog::index_oid_t(index_oid)));
+void OpStorageInterfaceTableDelete(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
+                                   terrier::storage::TupleSlot *tuple_slot) {
+  *result = storage_interface->TableDelete(*tuple_slot);
 }
 
-void OpInserterIndexInsert(terrier::execution::sql::Inserter *inserter, uint32_t index_oid) {
-  inserter->IndexInsert(terrier::catalog::index_oid_t(index_oid));
+void OpStorageInterfaceTableInsert(terrier::storage::TupleSlot *tuple_slot,
+                                   terrier::execution::sql::StorageInterface *storage_interface) {
+  *tuple_slot = storage_interface->TableInsert();
+}
+
+void OpStorageInterfaceGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
+                                  terrier::execution::sql::StorageInterface *storage_interface, uint32_t index_oid) {
+  *pr_result = terrier::execution::sql::ProjectedRowWrapper(
+      storage_interface->GetIndexPR(terrier::catalog::index_oid_t(index_oid)));
+}
+
+void OpStorageInterfaceIndexInsert(bool *result, terrier::execution::sql::StorageInterface *storage_interface) {
+  *result = storage_interface->IndexInsert();
+}
+
+void OpStorageInterfaceIndexDelete(terrier::execution::sql::StorageInterface *storage_interface,
+                                   terrier::storage::TupleSlot *tuple_slot) {
+  storage_interface->IndexDelete(*tuple_slot);
+}
+
+void OpStorageInterfaceFree(terrier::execution::sql::StorageInterface *storage_interface) {
+  storage_interface->~StorageInterface();
 }
 
 // -------------------------------------------------------------

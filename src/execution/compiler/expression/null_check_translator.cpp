@@ -4,7 +4,7 @@
 namespace terrier::execution::compiler {
 NullCheckTranslator::NullCheckTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen)
     : ExpressionTranslator(expression, codegen),
-      child_{TranslatorFactory::CreateExpressionTranslator(expression->GetChild(0).get(), codegen)} {}
+      child_{TranslatorFactory::CreateExpressionTranslator(expression->GetChild(0).Get(), codegen)} {}
 
 ast::Expr *NullCheckTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
   auto type = expression_->GetExpressionType();

@@ -32,7 +32,7 @@ class SqliteEngine {
    * @param stmt
    * @param p_params
    */
-  void Bind(sqlite3_stmt *stmt, const std::shared_ptr<std::vector<type::TransientValue>> &p_params);
+  void Bind(sqlite3_stmt *stmt, common::ManagedPointer<std::vector<type::TransientValue>> p_params);
 
   /**
    * Return the description of the columns.
@@ -47,6 +47,12 @@ class SqliteEngine {
    * @return
    */
   ResultSet Execute(sqlite3_stmt *stmt);
+
+  /**
+   * Get the number of affected rows by the most recent query
+   * @return the number of affected rows
+   */
+  int32_t GetAffected();
 
  private:
   // SQLite database

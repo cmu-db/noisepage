@@ -7,7 +7,7 @@
 #include "main/db_main.h"
 #include "settings/settings_callbacks.h"
 #include "settings/settings_manager.h"
-#include "util/test_harness.h"
+#include "test_util/test_harness.h"
 
 #define __SETTING_GFLAGS_DEFINE__      // NOLINT
 #include "settings/settings_common.h"  // NOLINT
@@ -39,7 +39,7 @@ class SettingsTests : public TerrierTest {
 
   void TearDown() override { delete db_main_; }
 
-  static void EmptySetterCallback(const std::shared_ptr<common::ActionContext> &action_context UNUSED_ATTRIBUTE) {}
+  static void EmptySetterCallback(common::ManagedPointer<common::ActionContext> action_context UNUSED_ATTRIBUTE) {}
 
   /**
    * This is a hacky placeholder variable that we can use in lambda callbacks
@@ -53,12 +53,13 @@ class SettingsTests : public TerrierTest {
 TEST_F(SettingsTests, BasicTest) {
   const common::action_id_t action_id(1);
   setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
-  std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(action_id);
+  auto action_context = std::make_unique<common::ActionContext>(action_id);
 
   // Integer
   auto record_buffer_segment_size = static_cast<uint16_t>(settings_manager_->GetInt(Param::record_buffer_segment_size));
   EXPECT_GE(record_buffer_segment_size, 0);
-  settings_manager_->SetInt(Param::record_buffer_segment_size, 9999, action_context, setter_callback);
+  settings_manager_->SetInt(Param::record_buffer_segment_size, 9999, common::ManagedPointer(action_context),
+                            setter_callback);
   EXPECT_EQ(common::ActionState::SUCCESS, action_context->GetState());
   EXPECT_EQ(static_cast<uint16_t>(settings_manager_->GetInt(Param::record_buffer_segment_size)), 9999);
 
@@ -80,12 +81,12 @@ TEST_F(SettingsTests, BasicTest) {
 TEST_F(SettingsTests, ImmutableValueTest) {
   const common::action_id_t action_id(1);
   setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
-  std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(action_id);
+  auto action_context = std::make_unique<common::ActionContext>(action_id);
 
   // Test immutable parameters.
   auto port = static_cast<uint16_t>(settings_manager_->GetInt(Param::port));
   EXPECT_EQ(port, 15721);
-  settings_manager_->SetInt(Param::port, 23333, action_context, setter_callback);
+  settings_manager_->SetInt(Param::port, 23333, common::ManagedPointer(action_context), setter_callback);
   EXPECT_EQ(common::ActionState::FAILURE, action_context->GetState());
   port = static_cast<uint16_t>(settings_manager_->GetInt(Param::port));
   EXPECT_EQ(port, 15721);
@@ -95,12 +96,12 @@ TEST_F(SettingsTests, ImmutableValueTest) {
 TEST_F(SettingsTests, InvalidValueTest) {
   const common::action_id_t action_id(1);
   setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
-  std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(action_id);
+  auto action_context = std::make_unique<common::ActionContext>(action_id);
 
   // Test setting an invalid parameter using the set API
   auto gc_interval = static_cast<uint32_t>(settings_manager_->GetInt(Param::gc_interval));
   EXPECT_GE(gc_interval, 0);
-  settings_manager_->SetInt(Param::gc_interval, -1, action_context, setter_callback);
+  settings_manager_->SetInt(Param::gc_interval, -1, common::ManagedPointer(action_context), setter_callback);
   EXPECT_EQ(common::ActionState::FAILURE, action_context->GetState());
 }
 
@@ -114,26 +115,26 @@ TEST_F(SettingsTests, SetterCallbackTest) {
   const common::action_id_t action_id(1);
 
   // SUCCESS
-  std::shared_ptr<common::ActionContext> context0 = std::make_shared<common::ActionContext>(action_id);
+  auto context0 = std::make_unique<common::ActionContext>(action_id);
   EXPECT_EQ(context0->GetState(), common::ActionState::INITIATED);
   SettingsTests::invoked_ = false;
-  auto callback0 = +[](const std::shared_ptr<common::ActionContext> &action_context) -> void {
+  auto callback0 = +[](common::ManagedPointer<common::ActionContext> action_context) -> void {
     EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
     SettingsTests::invoked_ = true;
   };
-  settings_manager_->SetInt(Param::record_buffer_segment_reuse, 10, context0, callback0);
+  settings_manager_->SetInt(Param::record_buffer_segment_reuse, 10, common::ManagedPointer(context0), callback0);
   EXPECT_EQ(context0->GetState(), common::ActionState::SUCCESS);
   EXPECT_TRUE(SettingsTests::invoked_);
 
   // FAILURE
-  std::shared_ptr<common::ActionContext> context1 = std::make_shared<common::ActionContext>(action_id);
+  auto context1 = std::make_unique<common::ActionContext>(action_id);
   EXPECT_EQ(context1->GetState(), common::ActionState::INITIATED);
   SettingsTests::invoked_ = false;
-  auto callback1 = +[](const std::shared_ptr<common::ActionContext> &action_context) -> void {
+  auto callback1 = +[](common::ManagedPointer<common::ActionContext> action_context) -> void {
     EXPECT_EQ(action_context->GetState(), common::ActionState::FAILURE);
     SettingsTests::invoked_ = true;
   };
-  settings_manager_->SetInt(Param::port, 9999, context1, callback1);
+  settings_manager_->SetInt(Param::port, 9999, common::ManagedPointer(context1), callback1);
   EXPECT_EQ(context1->GetState(), common::ActionState::FAILURE);
   EXPECT_TRUE(SettingsTests::invoked_);
 }
@@ -150,12 +151,12 @@ TEST_F(SettingsTests, ParamCallbackTest) {
 
   const common::action_id_t action_id(1);
   setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
-  std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(action_id);
+  auto action_context = std::make_unique<common::ActionContext>(action_id);
 
   // Setting new value should invoke callback.
   const int64_t new_buffer_pool_size = default_buffer_pool_size_ + 1;
   settings_manager_->SetInt(Param::record_buffer_segment_size, static_cast<int32_t>(new_buffer_pool_size),
-                            action_context, setter_callback);
+                            common::ManagedPointer(action_context), setter_callback);
   buffer_pool_size = static_cast<int64_t>(settings_manager_->GetInt(Param::record_buffer_segment_size));
   EXPECT_EQ(buffer_pool_size, new_buffer_pool_size);
 
@@ -174,9 +175,10 @@ TEST_F(SettingsTests, LogManagerSettingsTest) {
   // Change value
   auto new_num_buffers = num_buffers + 1;
 
-  std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(action_id);
+  auto action_context = std::make_unique<common::ActionContext>(action_id);
   setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
-  settings_manager_->SetInt(Param::num_log_manager_buffers, new_num_buffers, action_context, setter_callback);
+  settings_manager_->SetInt(Param::num_log_manager_buffers, new_num_buffers, common::ManagedPointer(action_context),
+                            setter_callback);
 
   // Check new value is propagated
   EXPECT_EQ(new_num_buffers, settings_manager_->GetInt(Param::num_log_manager_buffers));
@@ -194,8 +196,9 @@ TEST_F(SettingsTests, ConcurrentModifyTest) {
   for (int i = 0; i < nthreads; i++) {
     threads[i] = std::thread(
         [&](int new_size) {
-          std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(action_id);
-          settings_manager_->SetInt(Param::record_buffer_segment_size, new_size, action_context, setter_callback);
+          auto action_context = std::make_unique<common::ActionContext>(action_id);
+          settings_manager_->SetInt(Param::record_buffer_segment_size, new_size, common::ManagedPointer(action_context),
+                                    setter_callback);
           EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
         },
         i + 1000);
