@@ -10,6 +10,9 @@ namespace terrier::network {
 
 /**
  * A ConnectionContext stores the state of a connection.
+ * @warning Members of this struct should only be modified when establishing a
+ * new connection @see ConnectionHandle::StartUp. Once the connection is
+ * established, nothing should be changed.
  */
 
 struct ConnectionContext {

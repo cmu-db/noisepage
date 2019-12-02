@@ -67,8 +67,7 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
   txn_manager_->Commit(bootstrap_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Run the GC to get a clean system
-  garbage_collector_->PerformGarbageCollection();
-  garbage_collector_->PerformGarbageCollection();
+  deferred_action_manager_->FullyPerformGC();
 
   t_cop_ = new trafficcop::TrafficCop(common::ManagedPointer(txn_manager_), common::ManagedPointer(catalog_));
   connection_handle_factory_ = new network::ConnectionHandleFactory(common::ManagedPointer(t_cop_));
