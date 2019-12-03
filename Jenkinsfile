@@ -22,6 +22,7 @@ pipeline {
                         sh 'cd build && timeout 1h make check-censored'
                         sh 'cd build && make -j4'
                         sh 'cd build && make clean'
+                        sh 'sudo halt -qn'
                     }
                 }
 
@@ -89,6 +90,7 @@ pipeline {
                         sh 'cd build && gtimeout 1h make check-tpl'
                         sh 'cd build && python ../script/testing/junit/run_junit.py'
                         sh 'cd build && make clean'
+                        sh 'sudo halt -qn'
                     }
                 }
 
@@ -170,7 +172,7 @@ pipeline {
                     }
                 }
 
-                stage('macOS-10.14/AppleClang-1001.0.46.4 (Release/unittest)') {
+                stage('macos-10.14/AppleClang-1001.0.46.4 (Release/unittest)') {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
@@ -185,6 +187,7 @@ pipeline {
                         sh 'cd build && gtimeout 1h make check-tpl'
                         sh 'cd build && python ../script/testing/junit/run_junit.py --build_type=release'
                         sh 'cd build && make clean'
+                        sh 'sudo halt -qn'
                     }
                 }
 
