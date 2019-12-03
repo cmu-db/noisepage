@@ -44,9 +44,6 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
                                                      true, log_manager_);
   garbage_collector_ =
       new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, DISABLED);
-  gc_thread_ = new storage::GarbageCollectorThread(garbage_collector_,
-                                                   std::chrono::milliseconds{type::TransientValuePeeker::PeekInteger(
-                                                       param_map_.find(settings::Param::gc_interval)->second.value_)});
 
   thread_pool_ = new common::WorkerPool(static_cast<uint32_t>(type::TransientValuePeeker::PeekInteger(
                                             param_map_.find(settings::Param::num_worker_threads)->second.value_)),
@@ -66,8 +63,13 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
   catalog_->CreateDatabase(bootstrap_txn, catalog::DEFAULT_DATABASE, true);
   txn_manager_->Commit(bootstrap_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  // Run the GC to get a clean system
+  // Run the GC to get a clean system. This needs to be done before instantiating the GC thread
+  // because the GC is not thread-safe
   deferred_action_manager_->FullyPerformGC(garbage_collector_, log_manager_);
+
+  gc_thread_ = new storage::GarbageCollectorThread(garbage_collector_,
+                                                   std::chrono::milliseconds{type::TransientValuePeeker::PeekInteger(
+                                                       param_map_.find(settings::Param::gc_interval)->second.value_)});
 
   t_cop_ = new trafficcop::TrafficCop(common::ManagedPointer(txn_manager_), common::ManagedPointer(catalog_));
   connection_handle_factory_ = new network::ConnectionHandleFactory(common::ManagedPointer(t_cop_));
