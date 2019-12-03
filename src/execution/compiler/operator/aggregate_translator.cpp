@@ -1,4 +1,6 @@
 #include "execution/compiler/operator/aggregate_translator.h"
+#include <utility>
+#include <vector>
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/operator/seq_scan_translator.h"
 #include "execution/compiler/translator_factory.h"
@@ -6,14 +8,15 @@
 namespace terrier::execution::compiler {
 AggregateBottomTranslator::AggregateBottomTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen)
     : OperatorTranslator(codegen),
+      num_group_by_terms_{static_cast<uint32_t>(op->GetGroupByTerms().size())},
       op_(op),
-      hash_val_(codegen->NewIdentifier(hash_val_name)),
-      agg_values_(codegen->NewIdentifier(agg_values_name)),
-      values_struct_(codegen->NewIdentifier(values_struct_name)),
-      payload_struct_(codegen->NewIdentifier(payload_struct_name)),
-      agg_payload_(codegen->NewIdentifier(agg_payload_name)),
-      key_check_(codegen->NewIdentifier(key_check_name)),
-      agg_ht_(codegen->NewIdentifier(agg_ht_name)) {}
+      hash_val_(codegen->NewIdentifier("hash_val")),
+      agg_values_(codegen->NewIdentifier("agg_value")),
+      values_struct_(codegen->NewIdentifier("AggValues")),
+      payload_struct_(codegen->NewIdentifier("AggPayload")),
+      agg_payload_(codegen->NewIdentifier("agg_payload")),
+      key_check_(codegen->NewIdentifier("aggKeyCheckFn")),
+      agg_ht_(codegen->NewIdentifier("agg_ht")) {}
 
 // Declare the hash table
 void AggregateBottomTranslator::InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) {
@@ -36,15 +39,14 @@ void AggregateBottomTranslator::InitializeHelperFunctions(util::RegionVector<ast
 // Call @aggHTInit on the hash table
 void AggregateBottomTranslator::InitializeSetup(util::RegionVector<ast::Stmt *> *setup_stmts) {
   // @aggHTInit(&state.agg_hash_table, @execCtxGetMem(execCtx), @sizeOf(AggPayload))
-  ast::Expr *init_call = codegen_->AggHashTableInit(agg_ht_, payload_struct_);
-
+  ast::Expr *init_call = codegen_->HTInitCall(ast::Builtin::AggHashTableInit, agg_ht_, payload_struct_);
   // Add it the setup statements
   setup_stmts->emplace_back(codegen_->MakeStmt(init_call));
 }
 
 // Call @aggHTFree
 void AggregateBottomTranslator::InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) {
-  ast::Expr *free_call = codegen_->AggHashTableFree(agg_ht_);
+  ast::Expr *free_call = codegen_->OneArgStateCall(ast::Builtin::AggHashTableFree, agg_ht_);
   teardown_stmts->emplace_back(codegen_->MakeStmt(free_call));
 }
 
@@ -67,13 +69,13 @@ void AggregateBottomTranslator::Consume(FunctionBuilder *builder) {
 
 ast::Expr *AggregateBottomTranslator::GetOutput(uint32_t attr_idx) {
   // Either access a scalar group by term
-  if (attr_idx < num_group_by_terms) {
+  if (attr_idx < num_group_by_terms_) {
     return GetGroupByTerm(agg_payload_, attr_idx);
   }
   // Or access an aggregate
   // Here, we need to call @aggResult(&agg_payload.expr_i)
-  ast::Expr *agg_term = GetAggTerm(agg_payload_, attr_idx - num_group_by_terms, true);
-  return codegen_->AggResult(agg_term);
+  ast::Expr *agg_term = GetAggTerm(agg_payload_, attr_idx - num_group_by_terms_, true);
+  return codegen_->BuiltinCall(ast::Builtin::AggResult, {agg_term});
 }
 
 ast::Expr *AggregateBottomTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx,
@@ -82,12 +84,12 @@ ast::Expr *AggregateBottomTranslator::GetChildOutput(uint32_t child_idx, uint32_
 }
 
 ast::Expr *AggregateBottomTranslator::GetGroupByTerm(ast::Identifier object, uint32_t idx) {
-  ast::Identifier member = codegen_->Context()->GetIdentifier(group_by_term_names + std::to_string(idx));
+  ast::Identifier member = codegen_->Context()->GetIdentifier(GROUP_BY_TERM_NAMES + std::to_string(idx));
   return codegen_->MemberExpr(object, member);
 }
 
 ast::Expr *AggregateBottomTranslator::GetAggTerm(ast::Identifier object, uint32_t idx, bool ptr) {
-  ast::Identifier member = codegen_->Context()->GetIdentifier(agg_term_names + std::to_string(idx));
+  ast::Identifier member = codegen_->Context()->GetIdentifier(AGG_TERM_NAMES + std::to_string(idx));
   ast::Expr *agg_term = codegen_->MemberExpr(object, member);
   if (ptr) {
     // Return a pointer to the term
@@ -105,18 +107,16 @@ void AggregateBottomTranslator::GenPayloadStruct(util::RegionVector<ast::Decl *>
   // Create a field for every group by term
   uint32_t term_idx = 0;
   for (const auto &term : op_->GetGroupByTerms()) {
-    ast::Identifier field_name = codegen_->Context()->GetIdentifier(group_by_term_names + std::to_string(term_idx));
+    ast::Identifier field_name = codegen_->Context()->GetIdentifier(GROUP_BY_TERM_NAMES + std::to_string(term_idx));
     ast::Expr *type = codegen_->TplType(term->GetReturnValueType());
     fields.emplace_back(codegen_->MakeField(field_name, type));
     term_idx++;
   }
-  // Set the number of group_by_terms
-  num_group_by_terms = term_idx;
 
   // Create a field for every aggregate term
   term_idx = 0;
   for (const auto &term : op_->GetAggregateTerms()) {
-    ast::Identifier field_name = codegen_->Context()->GetIdentifier(agg_term_names + std::to_string(term_idx));
+    ast::Identifier field_name = codegen_->Context()->GetIdentifier(AGG_TERM_NAMES + std::to_string(term_idx));
     ast::Expr *type = codegen_->AggregateType(term->GetExpressionType(), term->GetChild(0)->GetReturnValueType());
     fields.emplace_back(codegen_->MakeField(field_name, type));
     term_idx++;
@@ -132,10 +132,9 @@ void AggregateBottomTranslator::GenPayloadStruct(util::RegionVector<ast::Decl *>
 void AggregateBottomTranslator::GenValuesStruct(util::RegionVector<ast::Decl *> *decls) {
   util::RegionVector<ast::FieldDecl *> fields{codegen_->Region()};
   // Create a field for every group by term
-  // TODO(Amadou): same as payload, so dedup code.
   uint32_t term_idx = 0;
   for (const auto &term : op_->GetGroupByTerms()) {
-    ast::Identifier field_name = codegen_->Context()->GetIdentifier(group_by_term_names + std::to_string(term_idx));
+    ast::Identifier field_name = codegen_->Context()->GetIdentifier(GROUP_BY_TERM_NAMES + std::to_string(term_idx));
     ast::Expr *type = codegen_->TplType(term->GetReturnValueType());
     fields.emplace_back(codegen_->MakeField(field_name, type));
     term_idx++;
@@ -145,7 +144,7 @@ void AggregateBottomTranslator::GenValuesStruct(util::RegionVector<ast::Decl *> 
   // Unlike the payload, these are scalar types, not aggregate types
   term_idx = 0;
   for (const auto &term : op_->GetAggregateTerms()) {
-    ast::Identifier field_name = codegen_->Context()->GetIdentifier(agg_term_names + std::to_string(term_idx));
+    ast::Identifier field_name = codegen_->Context()->GetIdentifier(AGG_TERM_NAMES + std::to_string(term_idx));
     ast::Expr *type = codegen_->TplType(term->GetChild(0)->GetReturnValueType());
     fields.emplace_back(codegen_->MakeField(field_name, type));
     term_idx++;
@@ -206,7 +205,9 @@ void AggregateBottomTranslator::FillValues(FunctionBuilder *builder) {
 // Generate var agg_payload = @ptrCast(*AggPayload, @aggHTLookup(&state.agg_ht, agg_hash_val, keyCheck, &agg_values))
 void AggregateBottomTranslator::GenLookupCall(FunctionBuilder *builder) {
   // First create @aggHTLookup((&state.agg_ht, agg_hash_val, keyCheck, &agg_values)
-  ast::Expr *lookup_call = codegen_->AggHashTableLookup(agg_ht_, hash_val_, key_check_, agg_values_);
+  std::vector<ast::Expr *> lookup_args{codegen_->GetStateMemberPtr(agg_ht_), codegen_->MakeExpr(hash_val_),
+                                       codegen_->MakeExpr(key_check_), codegen_->PointerTo(agg_values_)};
+  ast::Expr *lookup_call = codegen_->BuiltinCall(ast::Builtin::AggHashTableLookup, std::move(lookup_args));
 
   // Gen create @ptrcast(*AggPayload, ...)
   ast::Expr *cast_call = codegen_->PtrCast(payload_struct_, lookup_call);
@@ -228,7 +229,8 @@ void AggregateBottomTranslator::GenConstruct(FunctionBuilder *builder) {
   builder->StartIfStmt(cond);
 
   // Set agg_payload = @ptrCast(*AggPayload, @aggHTInsert(&state.agg_table, agg_hash_val))
-  ast::Expr *insert_call = codegen_->AggHashTableInsert(agg_ht_, hash_val_);
+  std::vector<ast::Expr *> insert_args{codegen_->GetStateMemberPtr(agg_ht_), codegen_->MakeExpr(hash_val_)};
+  ast::Expr *insert_call = codegen_->BuiltinCall(ast::Builtin::AggHashTableInsert, std::move(insert_args));
   ast::Expr *cast_call = codegen_->PtrCast(payload_struct_, insert_call);
   builder->Append(codegen_->Assign(codegen_->MakeExpr(agg_payload_), cast_call));
 
@@ -240,7 +242,7 @@ void AggregateBottomTranslator::GenConstruct(FunctionBuilder *builder) {
   }
   // Call @aggInit(&agg_payload.expr_i) for each expression
   for (uint32_t term_idx = 0; term_idx < op_->GetAggregateTerms().size(); term_idx++) {
-    ast::Expr *init_call = codegen_->AggInit(GetAggTerm(agg_payload_, term_idx, true));
+    ast::Expr *init_call = codegen_->BuiltinCall(ast::Builtin::AggInit, {GetAggTerm(agg_payload_, term_idx, true)});
     builder->Append(codegen_->MakeStmt(init_call));
   }
   // Finish the if stmt
@@ -255,7 +257,7 @@ void AggregateBottomTranslator::GenAdvance(FunctionBuilder *builder) {
   for (uint32_t term_idx = 0; term_idx < op_->GetAggregateTerms().size(); term_idx++) {
     ast::Expr *arg1 = GetAggTerm(agg_payload_, term_idx, true);
     ast::Expr *arg2 = GetAggTerm(agg_values_, term_idx, true);
-    ast::Expr *advance_call = codegen_->AggAdvance(arg1, arg2);
+    ast::Expr *advance_call = codegen_->BuiltinCall(ast::Builtin::AggAdvance, {arg1, arg2});
     builder->Append(codegen_->MakeStmt(advance_call));
   }
 }
@@ -263,11 +265,11 @@ void AggregateBottomTranslator::GenAdvance(FunctionBuilder *builder) {
 // Generate var agg_hash_val = @hash(groub_by_term1, group_by_term2, ...)
 void AggregateBottomTranslator::GenHashCall(FunctionBuilder *builder) {
   // Create the @hash(group_by_term1, group_by_term2, ...) call
-  util::RegionVector<ast::Expr *> hash_args{codegen_->Region()};
+  std::vector<ast::Expr *> hash_args{};
   for (uint32_t term_idx = 0; term_idx < op_->GetGroupByTerms().size(); term_idx++) {
     hash_args.emplace_back(GetGroupByTerm(agg_values_, term_idx));
   }
-  ast::Expr *hash_call = codegen_->Hash(std::move(hash_args));
+  ast::Expr *hash_call = codegen_->BuiltinCall(ast::Builtin::Hash, std::move(hash_args));
 
   // Create the variable declaration
   builder->Append(codegen_->DeclareVariable(hash_val_, nullptr, hash_call));
@@ -338,7 +340,7 @@ ast::Expr *AggregateTopTranslator::GetChildOutput(uint32_t child_idx, uint32_t a
 // Let the bottom translator handle this call
 ast::Expr *AggregateTopTranslator::GetOutput(uint32_t attr_idx) {
   auto output_expr = op_->GetOutputSchema()->GetColumn(attr_idx).GetExpr();
-  auto translator = TranslatorFactory::CreateExpressionTranslator(output_expr, codegen_);
+  auto translator = TranslatorFactory::CreateExpressionTranslator(output_expr.Get(), codegen_);
   return translator->DeriveExpr(this);
 }
 
@@ -351,21 +353,22 @@ void AggregateTopTranslator::DeclareIterator(FunctionBuilder *builder) {
 // for (@aggHTIterInit(&agg_iter, &state.table); @aggHTIterHasNext(&agg_iter); @aggHTIterNext(&agg_iter)) {...}
 void AggregateTopTranslator::GenHTLoop(FunctionBuilder *builder) {
   // Loop Initialization
-  ast::Expr *init_call = codegen_->AggHashTableIterInit(agg_iterator_, bottom_->agg_ht_);
+  std::vector<ast::Expr *> init_args{codegen_->PointerTo(agg_iterator_), codegen_->GetStateMemberPtr(bottom_->agg_ht_)};
+  ast::Expr *init_call = codegen_->BuiltinCall(ast::Builtin::AggHashTableIterInit, std::move(init_args));
   ast::Stmt *loop_init = codegen_->MakeStmt(init_call);
   // Loop condition
-  ast::Expr *has_next_call = codegen_->AggHashTableIterHasNext(agg_iterator_);
+  ast::Expr *has_next_call = codegen_->OneArgCall(ast::Builtin::AggHashTableIterHasNext, agg_iterator_, true);
   // Loop update
-  ast::Expr *next_call = codegen_->AggHashTableIterNext(agg_iterator_);
+  ast::Expr *next_call = codegen_->OneArgCall(ast::Builtin::AggHashTableIterNext, agg_iterator_, true);
   ast::Stmt *loop_update = codegen_->MakeStmt(next_call);
   // Make the loop
   builder->StartForStmt(loop_init, has_next_call, loop_update);
-};
+}
 
 // Declare var agg_payload = @ptrCast(*AggPayload, @aggHTIterGetRow(&agg_iter))
 void AggregateTopTranslator::DeclareResult(FunctionBuilder *builder) {
-  // @aggHTIterGetRow(agg_iter)
-  ast::Expr *get_row_call = codegen_->AggHashTableIterGetRow(agg_iterator_);
+  // @aggHTIterGetRow(&agg_iter)
+  ast::Expr *get_row_call = codegen_->OneArgCall(ast::Builtin::AggHashTableIterGetRow, agg_iterator_, true);
 
   // @ptrcast(*AggPayload, ...)
   ast::Expr *cast_call = codegen_->PtrCast(bottom_->payload_struct_, get_row_call);
@@ -376,7 +379,7 @@ void AggregateTopTranslator::DeclareResult(FunctionBuilder *builder) {
 
 void AggregateTopTranslator::CloseIterator(FunctionBuilder *builder) {
   // Call @aggHTIterCLose(agg_iter)
-  ast::Expr *close_call = codegen_->AggHashTableIterClose(agg_iterator_);
+  ast::Expr *close_call = codegen_->OneArgCall(ast::Builtin::AggHashTableIterClose, agg_iterator_, true);
   builder->Append(codegen_->MakeStmt(close_call));
 }
 

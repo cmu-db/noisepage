@@ -1,5 +1,7 @@
 #include "execution/compiler/translator_factory.h"
 
+#include <memory>
+
 #include "common/macros.h"
 #include "execution/compiler/expression/arithmetic_translator.h"
 #include "execution/compiler/expression/column_value_translator.h"
@@ -11,15 +13,15 @@
 #include "execution/compiler/expression/tuple_value_translator.h"
 #include "execution/compiler/expression/unary_translator.h"
 #include "execution/compiler/operator/aggregate_translator.h"
+#include "execution/compiler/operator/delete_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
 #include "execution/compiler/operator/index_join_translator.h"
 #include "execution/compiler/operator/index_scan_translator.h"
 #include "execution/compiler/operator/insert_translator.h"
-#include "execution/compiler/operator/delete_translator.h"
-#include "execution/compiler/operator/update_translator.h"
 #include "execution/compiler/operator/nested_loop_translator.h"
 #include "execution/compiler/operator/seq_scan_translator.h"
 #include "execution/compiler/operator/sort_translator.h"
+#include "execution/compiler/operator/update_translator.h"
 #include "execution/compiler/pipeline.h"
 
 namespace terrier::execution::compiler {
@@ -108,28 +110,28 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateRightTranslator(
 std::unique_ptr<ExpressionTranslator> TranslatorFactory::CreateExpressionTranslator(
     const terrier::parser::AbstractExpression *expression, CodeGen *codegen) {
   auto type = expression->GetExpressionType();
-  if (COMPARISON_OP(type)) {
+  if (IsComparisonOp(type)) {
     return std::make_unique<ComparisonTranslator>(expression, codegen);
   }
-  if (ARITHMETIC_OP(type)) {
+  if (IsArithmeticOp(type)) {
     return std::make_unique<ArithmeticTranslator>(expression, codegen);
   }
-  if (UNARY_OP(type)) {
+  if (IsUnaryOp(type)) {
     return std::make_unique<UnaryTranslator>(expression, codegen);
   }
-  if (CONJUNCTION_OP(type)) {
+  if (IsConjunctionOp(type)) {
     return std::make_unique<ConjunctionTranslator>(expression, codegen);
   }
-  if (CONSTANT_VAL(type)) {
+  if (IsConstantVal(type)) {
     return std::make_unique<ConstantTranslator>(expression, codegen);
   }
-  if (COLUMN_VAL(type)) {
+  if (IsColumnVal(type)) {
     return std::make_unique<ColumnValueTranslator>(expression, codegen);
   }
-  if (DERIVED_VAL(type)) {
+  if (IsDerivedVal(type)) {
     return std::make_unique<DerivedValueTranslator>(expression, codegen);
   }
-  if (NULL_OP(type)) {
+  if (IsNullOp(type)) {
     return std::make_unique<NullCheckTranslator>(expression, codegen);
   }
   UNREACHABLE("Unsupported expression");

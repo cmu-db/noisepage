@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/delete_plan_node.h"
 
@@ -10,6 +11,11 @@ namespace terrier::execution::compiler {
  */
 class DeleteTranslator : public OperatorTranslator {
  public:
+  /**
+   * Constructor
+   * @param op The plan node
+   * @param codegen The code generator
+   */
   DeleteTranslator(const terrier::planner::DeletePlanNode *op, CodeGen *codegen);
 
   // Does nothing
@@ -42,8 +48,9 @@ class DeleteTranslator : public OperatorTranslator {
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
 
  private:
-  // Declare the updater
+  // Declare the deleter
   void DeclareDeleter(FunctionBuilder *builder);
+  // Free the deleter
   void GenDeleterFree(FunctionBuilder *builder);
   // Set the oids variable
   void SetOids(FunctionBuilder *builder);
@@ -62,8 +69,6 @@ class DeleteTranslator : public OperatorTranslator {
 
  private:
   const planner::DeletePlanNode *op_;
-  static constexpr const char *deleter_name_ = "deleter";
-  static constexpr const char *col_oids_name_ = "col_oids";
   ast::Identifier deleter_;
   ast::Identifier col_oids_;
 

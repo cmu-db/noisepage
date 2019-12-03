@@ -1,4 +1,6 @@
 #include "execution/compiler/compiler.h"
+#include <memory>
+#include <utility>
 #include "execution/ast/ast_dump.h"
 #include "execution/compiler/translator_factory.h"
 #include "execution/sema/sema.h"
@@ -10,7 +12,7 @@ Compiler::Compiler(CodeGen *codegen, const planner::AbstractPlanNode *plan) : co
   // Make the pipelines
   auto main_pipeline = std::make_unique<Pipeline>(codegen_);
   MakePipelines(*plan, main_pipeline.get());
-  // The query has an ouput
+  // If the query has an ouput, make an output translator
   if (plan_->GetOutputSchema() != nullptr) {
     auto output_translator = std::make_unique<OutputTranslator>(codegen_);
     main_pipeline->Add(std::move(output_translator));
@@ -59,7 +61,7 @@ ast::File *Compiler::Compile() {
 
 void Compiler::GenStateStruct(execution::util::RegionVector<execution::ast::Decl *> *top_level,
                               execution::util::RegionVector<execution::ast::FieldDecl *> &&fields) {
-  // Make a dummy fields in case no operator has a state
+  // Make a dummy fields in case no operator has a state. This can be remove once the empty struct bug is fixed.
   ast::Identifier dummy_name = codegen_->Context()->GetIdentifier("DUMMY");
   ast::Expr *dummy_type = codegen_->BuiltinType(ast::BuiltinType::Kind::Int32);
   fields.emplace_back(codegen_->MakeField(dummy_name, dummy_type));
@@ -122,6 +124,7 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipel
   switch (op.GetPlanNodeType()) {
     case terrier::planner::PlanNodeType::AGGREGATE:
     case terrier::planner::PlanNodeType::ORDERBY: {
+      // These nodes split in two parts: A "build" side (called bottom) and an "iterate" side (called top).
       auto bottom_translator = TranslatorFactory::CreateBottomTranslator(&op, codegen_);
       auto top_translator = TranslatorFactory::CreateTopTranslator(&op, bottom_translator.get(), codegen_);
       curr_pipeline->Add(std::move(top_translator));

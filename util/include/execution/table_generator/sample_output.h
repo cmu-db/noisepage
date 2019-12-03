@@ -1,8 +1,11 @@
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
+#include "parser/expression/constant_value_expression.h"
 #include "planner/plannodes/output_schema.h"
+#include "type/transient_value_factory.h"
 
 namespace terrier::execution::exec {
 /**
@@ -20,25 +23,29 @@ class SampleOutput {
    */
   void InitTestOutput() {
     // Sample output formats
-    planner::OutputSchema::Column int_col{type::TypeId::INTEGER, true, nullptr};
-    planner::OutputSchema::Column real_col{type::TypeId::DECIMAL, true, nullptr};
-    planner::OutputSchema::Column date_col{type::TypeId::DATE, true, nullptr};
-    planner::OutputSchema::Column string_col{type::TypeId::VARCHAR, true, nullptr};
+    terrier::parser::ConstantValueExpression constant(type::TransientValueFactory::GetInteger(0));
+    planner::OutputSchema::Column int_col{"dummy", type::TypeId::INTEGER, constant.Copy()};
+    planner::OutputSchema::Column real_col{"dummy", type::TypeId::DECIMAL, constant.Copy()};
+    planner::OutputSchema::Column date_col{"dummy", type::TypeId::DATE, constant.Copy()};
+    planner::OutputSchema::Column string_col{"dummy", type::TypeId::VARCHAR, constant.Copy()};
 
     // Create schemas with up to 10 integer columns.
     for (uint32_t i = 0; i < 10; i++) {
-      std::vector<planner::OutputSchema::Column> cols(i + 1, int_col);
-      schemas_.emplace("schema" + std::to_string(i + 1), planner::OutputSchema(cols));
+      std::vector<planner::OutputSchema::Column> cols;
+      for (uint32_t j = 0; j < i + 1; j++) {
+        cols.emplace_back(int_col.Copy());
+      }
+      schemas_.emplace("schema" + std::to_string(i + 1), planner::OutputSchema(std::move(cols)));
     }
 
     // Create a schema that has all types
     {
       std::vector<planner::OutputSchema::Column> cols;
-      cols.emplace_back(int_col);
-      cols.emplace_back(real_col);
-      cols.emplace_back(date_col);
-      cols.emplace_back(string_col);
-      schemas_.emplace("all_types", planner::OutputSchema(cols));
+      cols.emplace_back(int_col.Copy());
+      cols.emplace_back(real_col.Copy());
+      cols.emplace_back(date_col.Copy());
+      cols.emplace_back(string_col.Copy());
+      schemas_.emplace("all_types", planner::OutputSchema(std::move(cols)));
     }
 
     InitTPCHOutput();
@@ -52,38 +59,44 @@ class SampleOutput {
 
  private:
   void InitTPCHOutput() {
-    planner::OutputSchema::Column int_col{type::TypeId::INTEGER, true, nullptr};
-    planner::OutputSchema::Column real_col{type::TypeId::DECIMAL, true, nullptr};
-    planner::OutputSchema::Column date_col{type::TypeId::DATE, true, nullptr};
-    planner::OutputSchema::Column string_col{type::TypeId::VARCHAR, true, nullptr};
+    terrier::parser::ConstantValueExpression constant(type::TransientValueFactory::GetInteger(0));
+    planner::OutputSchema::Column int_col{"dummy", type::TypeId::INTEGER, constant.Copy()};
+    planner::OutputSchema::Column real_col{"dummy", type::TypeId::DECIMAL, constant.Copy()};
+    planner::OutputSchema::Column date_col{"dummy", type::TypeId::DATE, constant.Copy()};
+    planner::OutputSchema::Column string_col{"dummy", type::TypeId::VARCHAR, constant.Copy()};
     // Q1 (two strings, 7 reals, 1 int)
     {
       std::vector<planner::OutputSchema::Column> cols{};
       for (uint32_t i = 0; i < uint32_t(2); i++) {
-        cols.emplace_back(string_col);
+        cols.emplace_back(string_col.Copy());
       }
       for (uint32_t i = 0; i < uint32_t(7); i++) {
-        cols.emplace_back(real_col);
+        cols.emplace_back(real_col.Copy());
       }
-      cols.emplace_back(int_col);
-      schemas_.emplace("tpch_q1", planner::OutputSchema(cols));
+      cols.emplace_back(int_col.Copy());
+      schemas_.emplace("tpch_q1", planner::OutputSchema(std::move(cols)));
     }
 
     // Q6 (one real)
     {
-      std::vector<planner::OutputSchema::Column> cols{real_col};
-      schemas_.emplace("tpch_q6", planner::OutputSchema(cols));
+      std::vector<planner::OutputSchema::Column> cols;
+      cols.emplace_back(real_col.Copy());
+      schemas_.emplace("tpch_q6", planner::OutputSchema(std::move(cols)));
     }
     // Q4 (one string, one int)
     {
-      std::vector<planner::OutputSchema::Column> cols{string_col, int_col};
-      schemas_.emplace("tpch_q4", planner::OutputSchema(cols));
+      std::vector<planner::OutputSchema::Column> cols;
+      cols.emplace_back(string_col.Copy());
+      cols.emplace_back(int_col.Copy());
+      schemas_.emplace("tpch_q4", planner::OutputSchema(std::move(cols)));
     }
 
     // Q5 (one string, one real)
     {
-      std::vector<planner::OutputSchema::Column> cols{string_col, real_col};
-      schemas_.emplace("tpch_q5", planner::OutputSchema(cols));
+      std::vector<planner::OutputSchema::Column> cols;
+      cols.emplace_back(string_col.Copy());
+      cols.emplace_back(real_col.Copy());
+      schemas_.emplace("tpch_q5", planner::OutputSchema(std::move(cols)));
     }
   }
 

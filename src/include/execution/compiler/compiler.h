@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+#include <vector>
 #include "execution/compiler/expression/expression_translator.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/operator/output_translator.h"
@@ -16,8 +18,8 @@ class Compiler {
  public:
   /**
    * Constructor
-   * @param query query to compiler
-   * @param consumer consumer for upper layers
+   * @param codegen The code generator
+   * @param plan The plan node to execute
    */
   Compiler(CodeGen *codegen, const planner::AbstractPlanNode *plan);
 
@@ -27,12 +29,17 @@ class Compiler {
   ast::File *Compile();
 
  private:
+  // Create the pipelines
   void MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipeline *curr_pipeline);
+  // Generate the state struct
   void GenStateStruct(util::RegionVector<ast::Decl *> *top_level, util::RegionVector<ast::FieldDecl *> &&fields);
+  // Generate the top level helpers
   void GenHelperStructsAndFunctions(util::RegionVector<ast::Decl *> *top_level,
                                     util::RegionVector<ast::Decl *> &&decls);
+  // Generate the global functions (setup, teardown, ...)
   void GenFunction(util::RegionVector<ast::Decl *> *top_level, ast::Identifier fn_name,
                    util::RegionVector<ast::Stmt *> &&stmts);
+  // Generate main.
   ast::Decl *GenMainFunction();
   CodeGen *codegen_;
   const planner::AbstractPlanNode *plan_;

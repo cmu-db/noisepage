@@ -1,29 +1,26 @@
-#include "execution/compiler/storage/pr_filler.h"
-#include "catalog/catalog_defs.h"
-
 #include <functional>
 #include <limits>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
-#include "execution/ast/ast_dump.h"
 
+#include "catalog/catalog_defs.h"
+#include "execution/ast/ast_dump.h"
 #include "execution/compiler/compiler.h"
+#include "execution/compiler/expression_util.h"
+#include "execution/compiler/output_checker.h"
+#include "execution/compiler/output_schema_util.h"
+#include "execution/compiler/storage/pr_filler.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
 #include "execution/sema/sema.h"
 #include "execution/sql/value.h"
 #include "execution/sql_test.h"  // NOLINT
-
 #include "execution/vm/bytecode_generator.h"
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/llvm_engine.h"
 #include "execution/vm/module.h"
-
-#include "execution/compiler/expression_util.h"
-#include "execution/compiler/output_checker.h"
-#include "execution/compiler/output_schema_util.h"
 
 namespace terrier::execution::compiler::test {
 
@@ -52,7 +49,9 @@ class PRFillerTest : public SqlBasedTest {
     // Convert to bytecode
 
     auto bytecode_module = vm::BytecodeGenerator::Compile(root, exec_ctx, "tmp-tpl");
-    bytecode_module->PrettyPrint(&std::cout);
+    std::stringstream ss;
+    bytecode_module->PrettyPrint(&ss);
+    EXECUTION_LOG_INFO("Got Bytecodes: \n {}", ss.str());
     return std::make_unique<vm::Module>(std::move(bytecode_module));
   }
 
@@ -89,9 +88,7 @@ TEST_F(PRFillerTest, SimpleIndexFillerTest) {
 
   // Create pr filler
   CodeGen codegen(accessor);
-
-  auto table_pr_name = codegen.NewIdentifier("table_pr");
-  PRFiller filler(&codegen, table_schema, table_pm, table_pr_name);
+  PRFiller filler(&codegen, table_schema, table_pm);
 
   // Get the index
   auto index_oid = accessor->GetIndexOid(NSOid(), "index_1");
@@ -99,26 +96,13 @@ TEST_F(PRFillerTest, SimpleIndexFillerTest) {
   const auto &index_pm = index->GetKeyOidToOffsetMap();
   auto index_schema = accessor->GetIndexSchema(index_oid);
 
-  ast::Identifier fn_name = codegen.NewIdentifier("indexFiller");
-  ast::Expr *ret_type = codegen.BuiltinType(ast::BuiltinType::Nil);
-
-  ast::Expr *pr_type = codegen.PointerType(codegen.BuiltinType(ast::BuiltinType::ProjectedRow));
-  ast::FieldDecl *param1 = codegen.MakeField(table_pr_name, pr_type);
-  // Second param
-  ast::Identifier index_pr_name = codegen.NewIdentifier("index_pr");
-  ast::FieldDecl *param2 = codegen.MakeField(index_pr_name, pr_type);
-  util::RegionVector<ast::FieldDecl *> params{{param1, param2}, codegen.Region()};
-
-  FunctionBuilder builder{&codegen, fn_name, std::move(params), ret_type};
   // Compile the function
-  filler.GenFiller(index_pm, index_schema, index_pr_name, &builder);
-  util::RegionVector<ast::Decl *> top_level({builder.Finish()}, codegen.Region());
-  auto root = codegen.Compile(std::move(top_level));
+  auto [root, fn_name] = filler.GenFiller(index_pm, index_schema);  // NOLINT
   auto module = MakeModule(&codegen, root, exec_ctx.get());
 
   // Now get the compiled function
   std::function<void(sql::ProjectedRowWrapper *, sql::ProjectedRowWrapper *)> filler_fn;
-  ASSERT_TRUE(module->GetFunction(fn_name.Data(), vm::ExecutionMode::Interpret, &filler_fn));
+  ASSERT_TRUE(module->GetFunction(fn_name, vm::ExecutionMode::Interpret, &filler_fn));
 
   // Try it out.
   auto table_init = table->InitializerForProjectedRow(col_oids);

@@ -19,25 +19,23 @@ SeqScanTranslator::SeqScanTranslator(const terrier::planner::SeqScanPlanNode *op
       pm_(codegen->Accessor()->GetTable(op_->GetTableOid())->ProjectionMapForOids(input_oids_)),
       has_predicate_(op_->GetScanPredicate() != nullptr),
       is_vectorizable_{IsVectorizable(op_->GetScanPredicate().Get())},
-      tvi_(codegen->NewIdentifier(tvi_name_)),
-      col_oids_(codegen->NewIdentifier(col_oids_name_)),
-      pci_(codegen->NewIdentifier(pci_name_)),
-      slot_(codegen->NewIdentifier(slot_name_)),
-      table_struct_(codegen->NewIdentifier(table_struct_name_)),
-      pci_type_{codegen->Context()->GetIdentifier(pci_type_name_)} {}
+      tvi_(codegen->NewIdentifier("tvi")),
+      col_oids_(codegen->NewIdentifier("col_oids")),
+      pci_(codegen->NewIdentifier("pci")),
+      slot_(codegen->NewIdentifier("slot")),
+      pci_type_{codegen->Context()->GetIdentifier("ProjectedColumnsIterator")} {}
 
 void SeqScanTranslator::Produce(FunctionBuilder *builder) {
   SetOids(builder);
   DeclareTVI(builder);
 
-  // Right now, there is a child translator only for nested loop joins.
+  // There may be a child translator in nested loop joins.
   if (child_translator_ != nullptr) {
     // Let it produce
     child_translator_->Produce(builder);
   } else {
-    // Otherwise the consume code should be called directly here
-    // TODO(Amadou): It's weird to have consume in the sequential scan node.
-    Consume(builder);
+    // Directly do table scan
+    DoTableScan(builder);
   }
 
   // Close iterator
@@ -50,12 +48,11 @@ void SeqScanTranslator::Abort(FunctionBuilder *builder) {
   if (child_translator_ != nullptr) child_translator_->Abort(builder);
 }
 
-void SeqScanTranslator::Consume(FunctionBuilder *builder) {
+void SeqScanTranslator::DoTableScan(FunctionBuilder *builder) {
+  // Start looping over the table
   GenTVILoop(builder);
   DeclarePCI(builder);
-
-  // Generate predicate and loop depending on whether we can vectorize or not
-  // TODO(Amadou): This logic will more complex if the whole pipeline is vectorized. Move it to a function.
+  // The PCI loop depends on whether we vectorize or not.
   bool has_if_stmt = false;
   if (is_vectorizable_) {
     if (has_predicate_) GenVectorizedPredicate(builder, op_->GetScanPredicate().Get());
@@ -67,8 +64,9 @@ void SeqScanTranslator::Consume(FunctionBuilder *builder) {
       has_if_stmt = true;
     }
   }
-  // Declare Slot
+  // Declare Slot.
   DeclareSlot(builder);
+  // Let parent consume.
   parent_translator_->Consume(builder);
   // Close predicate if statement
   if (has_if_stmt) {
@@ -78,15 +76,18 @@ void SeqScanTranslator::Consume(FunctionBuilder *builder) {
   builder->FinishBlockStmt();
   // Close TVI loop
   builder->FinishBlockStmt();
-  // May need to reset the iterator if this is a nested loop join
-  if (child_translator_ != nullptr) {
-    GenTVIReset(builder);
-  }
+}
+
+void SeqScanTranslator::Consume(FunctionBuilder *builder) {
+  // This is called in nested loop joins
+  DoTableScan(builder);
+  // Reset TVI for next iteration.
+  GenTVIReset(builder);
 }
 
 ast::Expr *SeqScanTranslator::GetOutput(uint32_t attr_idx) {
   auto output_expr = op_->GetOutputSchema()->GetColumn(attr_idx).GetExpr();
-  auto translator = TranslatorFactory::CreateExpressionTranslator(output_expr, codegen_);
+  auto translator = TranslatorFactory::CreateExpressionTranslator(output_expr.Get(), codegen_);
   return translator->DeriveExpr(this);
 }
 
@@ -124,52 +125,55 @@ void SeqScanTranslator::SetOids(FunctionBuilder *builder) {
 // Generate for(@tableIterAdvance(&tvi)) {...}
 void SeqScanTranslator::GenTVILoop(FunctionBuilder *builder) {
   // The advance call
-  ast::Expr *advance_call = codegen_->TableIterAdvance(tvi_);
-  // Make the for loop
+  ast::Expr *advance_call = codegen_->OneArgCall(ast::Builtin::TableIterAdvance, tvi_, true);
   builder->StartForStmt(nullptr, advance_call, nullptr);
 }
 
 void SeqScanTranslator::DeclarePCI(FunctionBuilder *builder) {
   // Assign var pci = @tableIterGetPCI(&tvi)
-  ast::Expr *get_pci_call = codegen_->TableIterGetPCI(tvi_);
+  ast::Expr *get_pci_call = codegen_->OneArgCall(ast::Builtin::TableIterGetPCI, tvi_, true);
   builder->Append(codegen_->DeclareVariable(pci_, nullptr, get_pci_call));
 }
 
 void SeqScanTranslator::DeclareSlot(FunctionBuilder *builder) {
-  // Get var slot = @pciGetSlot(&pci)
-  ast::Expr *get_slot_call = codegen_->PCIGetSlot(pci_);
+  // Get var slot = @pciGetSlot(pci)
+  ast::Expr *get_slot_call = codegen_->OneArgCall(ast::Builtin::PCIGetSlot, pci_, false);
   builder->Append(codegen_->DeclareVariable(slot_, nullptr, get_slot_call));
 }
 
 void SeqScanTranslator::GenPCILoop(FunctionBuilder *builder) {
-  // Generate for(; @pciHasNext(pci); @pciAdvance()) {...} or the Filtered version
-  // The @pciHasNext(pci) call
-  ast::Expr *has_next_call = codegen_->PCIHasNext(pci_, is_vectorizable_ && has_predicate_);
-  // The @pciAdvance(pci) call
-  ast::Expr *advance_call = codegen_->PCIAdvance(pci_, is_vectorizable_ && has_predicate_);
+  // Generate for(; @pciHasNext(pci); @pciAdvance(pci)) {...} or the Filtered version
+  // The HasNext call
+  ast::Builtin has_next_fn =
+      (is_vectorizable_ && has_predicate_) ? ast::Builtin::PCIHasNextFiltered : ast::Builtin::PCIHasNext;
+  ast::Expr *has_next_call = codegen_->OneArgCall(has_next_fn, pci_, false);
+  // The Advance call
+  ast::Builtin advance_fn =
+      (is_vectorizable_ && has_predicate_) ? ast::Builtin::PCIAdvanceFiltered : ast::Builtin::PCIAdvance;
+  ast::Expr *advance_call = codegen_->OneArgCall(advance_fn, pci_, false);
   ast::Stmt *loop_advance = codegen_->MakeStmt(advance_call);
   // Make the for loop.
   builder->StartForStmt(nullptr, has_next_call, loop_advance);
 }
 
 void SeqScanTranslator::GenScanCondition(FunctionBuilder *builder) {
+  // Generate tuple at a time scan condition
   auto predicate = op_->GetScanPredicate();
-  // Regular codegen
   auto cond_translator = TranslatorFactory::CreateExpressionTranslator(predicate.Get(), codegen_);
   ast::Expr *cond = cond_translator->DeriveExpr(this);
   builder->StartIfStmt(cond);
 }
 
 void SeqScanTranslator::GenTVIClose(execution::compiler::FunctionBuilder *builder) {
-  // Generate @tableIterClose(&tvi)
-  ast::Expr *close_call = codegen_->TableIterClose(tvi_);
+  // Close iterator
+  ast::Expr *close_call = codegen_->OneArgCall(ast::Builtin::TableIterClose, tvi_, true);
   builder->Append(codegen_->MakeStmt(close_call));
 }
 
 void SeqScanTranslator::GenTVIReset(execution::compiler::FunctionBuilder *builder) {
-  // Generate @tableIterClose(&tvi)
-  ast::Expr *close_call = codegen_->TableIterReset(tvi_);
-  builder->Append(codegen_->MakeStmt(close_call));
+  // Reset iterator
+  ast::Expr *reset_call = codegen_->OneArgCall(ast::Builtin::TableIterReset, tvi_, true);
+  builder->Append(codegen_->MakeStmt(reset_call));
 }
 
 bool SeqScanTranslator::IsVectorizable(const terrier::parser::AbstractExpression *predicate) {
@@ -183,7 +187,7 @@ void SeqScanTranslator::GenVectorizedPredicate(FunctionBuilder *builder,
   if (predicate->GetExpressionType() == terrier::parser::ExpressionType::CONJUNCTION_AND) {
     GenVectorizedPredicate(builder, predicate->GetChild(0).Get());
     GenVectorizedPredicate(builder, predicate->GetChild(1).Get());
-  } else if (COMPARISON_OP(predicate->GetExpressionType())) {
+  } else if (TranslatorFactory::IsComparisonOp(predicate->GetExpressionType())) {
     auto left_cve = dynamic_cast<const terrier::parser::ColumnValueExpression *>(predicate->GetChild(0).Get());
     auto col_idx = pm_[left_cve->GetColumnOid()];
     auto col_type = schema_.GetColumn(left_cve->GetColumnOid()).Type();

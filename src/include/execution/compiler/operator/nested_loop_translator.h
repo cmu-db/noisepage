@@ -16,6 +16,11 @@ class NestedLoopRightTranslator;
  */
 class NestedLoopLeftTransaltor : public OperatorTranslator {
  public:
+  /**
+   * Constructor
+   * @param op The plan node
+   * @param codegen The code generator
+   */
   NestedLoopLeftTransaltor(const terrier::planner::NestedLoopJoinPlanNode *op, CodeGen *codegen)
       : OperatorTranslator(codegen), op_(op) {}
 
@@ -62,6 +67,12 @@ class NestedLoopLeftTransaltor : public OperatorTranslator {
  */
 class NestedLoopRightTransaltor : public OperatorTranslator {
  public:
+  /**
+   * Constructor
+   * @param op The plan node
+   * @param codegen The code generator
+   * @param left The corresponding left translator
+   */
   NestedLoopRightTransaltor(const terrier::planner::NestedLoopJoinPlanNode *op, CodeGen *codegen,
                             OperatorTranslator *left)
       : OperatorTranslator(codegen), op_(op), left_(dynamic_cast<NestedLoopLeftTransaltor *>(left)) {}
@@ -106,7 +117,7 @@ class NestedLoopRightTransaltor : public OperatorTranslator {
   // Return the output at the given index
   ast::Expr *GetOutput(uint32_t attr_idx) override {
     auto output_expr = op_->GetOutputSchema()->GetColumn(attr_idx).GetExpr();
-    auto translator = TranslatorFactory::CreateExpressionTranslator(output_expr, codegen_);
+    auto translator = TranslatorFactory::CreateExpressionTranslator(output_expr.Get(), codegen_);
     return translator->DeriveExpr(this);
   }
 

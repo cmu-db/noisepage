@@ -10,7 +10,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
-// TODO(Gus, Wen): Replace Perform Binding in AggregateTerm and AggregatePlanNode
+// TODO(Gus, Wen): Replace Perform Binding in parser::AggregateExpression* and AggregatePlanNode
 // TODO(Gus, Wen): Replace VisitParameters
 // TODO(Gus, Wen): figure out global aggregates
 
@@ -68,7 +68,7 @@ class AggregatePlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &AddGroupByTerm(GroupByTerm term) {
-      group_by_terms_.emplace_back(term);
+      groupby_terms_.emplace_back(term);
       return *this;
     }
 
@@ -78,11 +78,15 @@ class AggregatePlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<AggregatePlanNode> Build() {
       return std::unique_ptr<AggregatePlanNode>(
-          new AggregatePlanNode(std::move(children_), std::move(output_schema_), having_clause_predicate_,
-                                std::move(aggregate_terms_), aggregate_strategy_, std::move(group_by_terms_)));
+          new AggregatePlanNode(std::move(children_), std::move(output_schema_), std::move(groupby_terms_),
+                                having_clause_predicate_, std::move(aggregate_terms_), aggregate_strategy_));
     }
 
    protected:
+    /**
+     * Group By Expressions
+     */
+    std::vector<GroupByTerm> groupby_terms_;
     /**
      * Predicate for having clause if it exists
      */
@@ -95,32 +99,26 @@ class AggregatePlanNode : public AbstractPlanNode {
      * Strategy to use for aggregation
      */
     AggregateStrategyType aggregate_strategy_;
-
-    /**
-     * List of group by terms
-     */
-    std::vector<GroupByTerm> group_by_terms_;
   };
 
  private:
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
+   * @param groupby_terms Group By terms
    * @param having_clause_predicate unique pointer to possible having clause predicate
    * @param aggregate_terms vector of aggregate terms for the aggregation
    * @param aggregate_strategy aggregation strategy to be used
-   * @param group_by_terms vector of group by terms
    */
   AggregatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                    std::unique_ptr<OutputSchema> output_schema,
+                    std::unique_ptr<OutputSchema> output_schema, std::vector<GroupByTerm> groupby_terms,
                     common::ManagedPointer<parser::AbstractExpression> having_clause_predicate,
-                    std::vector<AggregateTerm> &&aggregate_terms, AggregateStrategyType aggregate_strategy,
-                    std::vector<GroupByTerm> &&group_by_terms)
+                    std::vector<AggregateTerm> aggregate_terms, AggregateStrategyType aggregate_strategy)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        having_clause_predicate_(std::move(having_clause_predicate)),
+        groupby_terms_(std::move(groupby_terms)),
+        having_clause_predicate_(having_clause_predicate),
         aggregate_terms_(std::move(aggregate_terms)),
-        aggregate_strategy_(aggregate_strategy),
-        group_by_terms_(std::move(group_by_terms)) {}
+        aggregate_strategy_(aggregate_strategy) {}
 
  public:
   /**
@@ -135,6 +133,11 @@ class AggregatePlanNode : public AbstractPlanNode {
   //===--------------------------------------------------------------------===//
 
   /**
+   * @return vector of group by terms
+   */
+  const std::vector<GroupByTerm> &GetGroupByTerms() const { return groupby_terms_; }
+
+  /**
    * @return pointer to predicate for having clause
    */
   common::ManagedPointer<parser::AbstractExpression> GetHavingClausePredicate() const {
@@ -145,11 +148,6 @@ class AggregatePlanNode : public AbstractPlanNode {
    * @return vector of aggregate terms
    */
   const std::vector<AggregateTerm> &GetAggregateTerms() const { return aggregate_terms_; }
-
-  /**
-   * @return vector of group by terms
-   */
-  const std::vector<GroupByTerm> &GetGroupByTerms() const { return group_by_terms_; }
 
   /**
    * @return aggregation strategy
@@ -172,10 +170,10 @@ class AggregatePlanNode : public AbstractPlanNode {
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
+  std::vector<GroupByTerm> groupby_terms_;
   common::ManagedPointer<parser::AbstractExpression> having_clause_predicate_;
   std::vector<AggregateTerm> aggregate_terms_;
   AggregateStrategyType aggregate_strategy_;
-  std::vector<GroupByTerm> group_by_terms_;
 };
 DEFINE_JSON_DECLARATIONS(AggregatePlanNode);
 }  // namespace terrier::planner

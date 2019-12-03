@@ -1,4 +1,5 @@
 #pragma once
+#include <utility>
 #include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/order_by_plan_node.h"
 
@@ -12,6 +13,11 @@ class SortTopTranslator;
  */
 class SortBottomTranslator : public OperatorTranslator {
  public:
+  /**
+   * Constructor
+   * @param op The plan node
+   * @param codegen The code generator
+   */
   SortBottomTranslator(const terrier::planner::OrderByPlanNode *op, CodeGen *codegen);
 
   // Declare the Sorter
@@ -29,16 +35,11 @@ class SortBottomTranslator : public OperatorTranslator {
   // Call @asorterFree on the Sorter
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override;
 
-  // Let child produce and sort
   void Produce(FunctionBuilder *builder) override;
   void Abort(FunctionBuilder *builder) override;
-
-  // Generate sorter insert code
   void Consume(FunctionBuilder *builder) override;
 
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
-
-  // Return the attribute at idx
   ast::Expr *GetOutput(uint32_t attr_idx) override;
 
   // This is materializer
@@ -57,18 +58,15 @@ class SortBottomTranslator : public OperatorTranslator {
  private:
   friend class SortTopTranslator;
 
-  /**
-   * Return the member of the object at the given index
-   */
+  // Return the member of the object at the given index
   ast::Expr *GetAttribute(ast::Identifier object, uint32_t attr_idx);
-
+  // Insert into sorter
   void GenSorterInsert(FunctionBuilder *builder);
+  // Fill the sorter row
   void FillSorterRow(FunctionBuilder *builder);
+  // Call Sort()
   void GenSorterSort(FunctionBuilder *builder);
-
-  /*
-   * Generate the comparisons in the comparison function
-   */
+  // Generate the comparisons in the comparison function
   void GenComparisons(FunctionBuilder *builder);
 
   // The sort plan node
@@ -86,13 +84,7 @@ class SortBottomTranslator : public OperatorTranslator {
   CurrentRow current_row_{CurrentRow::Child};
 
   // Structs, Functions, and local variables needed.
-  static constexpr const char *sorter_name_ = "sorter";
-  static constexpr const char *sorter_row_name_ = "sorter_row";
-  static constexpr const char *sorter_struct_name_ = "SorterRow";
-  static constexpr const char *sorter_attr_prefix_ = "sorter_attr";
-  static constexpr const char *comp_fn_name_ = "sorterCompare";
-  static constexpr const char *comp_lhs_name_ = "sorter_lhs";
-  static constexpr const char *comp_rhs_name_ = "sorter_rhs";
+  static constexpr const char *SORTER_ATTR_PREFIX = "sorter_attr";
   ast::Identifier sorter_;
   ast::Identifier sorter_row_;
   ast::Identifier sorter_struct_;
@@ -106,6 +98,12 @@ class SortBottomTranslator : public OperatorTranslator {
  */
 class SortTopTranslator : public OperatorTranslator {
  public:
+  /**
+   * Constructor
+   * @param op The plan node
+   * @param codegen The code generator
+   * @param bottom The corresponding bottom translator
+   */
   SortTopTranslator(const terrier::planner::OrderByPlanNode *op, CodeGen *codegen, OperatorTranslator *bottom);
 
   // Does nothing
@@ -123,16 +121,11 @@ class SortTopTranslator : public OperatorTranslator {
   // Does nothing
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
 
-  // Generate iteration code
   void Produce(FunctionBuilder *builder) override;
   void Abort(FunctionBuilder *builder) override;
-
-  // Pass through
   void Consume(FunctionBuilder *builder) override;
 
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
-
-  // Return the output at the given index
   ast::Expr *GetOutput(uint32_t attr_idx) override;
 
   // This is materializer
@@ -149,9 +142,13 @@ class SortTopTranslator : public OperatorTranslator {
   const planner::AbstractPlanNode *Op() override { return op_; }
 
  private:
+  // Declare the iterator
   void DeclareIterator(FunctionBuilder *builder);
+  // Generate the iteration loop
   void GenForLoop(FunctionBuilder *builder);
+  // Close the iterator
   void CloseIterator(FunctionBuilder *builder);
+  // Get the next tuple of the sorter
   void DeclareResult(FunctionBuilder *builder);
 
   // The sort plan node
@@ -161,7 +158,6 @@ class SortTopTranslator : public OperatorTranslator {
   SortBottomTranslator *bottom_;
 
   // Local variables
-  static constexpr const char *iter_name_ = "sorter_iter";
   ast::Identifier sort_iter_;
 };
 

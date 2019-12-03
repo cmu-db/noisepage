@@ -54,9 +54,10 @@ class EXPORT ProjectedColumnsIterator {
   // Tuple-at-a-time API
   // -------------------------------------------------------
 
-  storage::TupleSlot CurrentSlot() {
-    return projected_column_->TupleSlots()[curr_idx_];
-  }
+  /**
+   * @return The current tuple slot
+   */
+  storage::TupleSlot CurrentSlot() { return projected_column_->TupleSlots()[curr_idx_]; }
 
   /**
    * Get a pointer to the value in the column at index @em col_idx

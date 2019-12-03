@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string>
+#include <utility>
+#include <vector>
 #include "catalog/catalog_accessor.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_node_factory.h"
@@ -10,9 +12,9 @@
 #include "execution/sema/error_reporter.h"
 #include "execution/util/region.h"
 #include "parser/expression_defs.h"
+#include "planner/plannodes/index_scan_plan_node.h"
 #include "type/transient_value.h"
 #include "type/transient_value_peeker.h"
-#include "planner/plannodes/index_scan_plan_node.h"
 #include "type/type_id.h"
 
 namespace terrier::execution::compiler {
@@ -30,7 +32,8 @@ class CodeGen {
  public:
   /**
    * Constructor
-   * @param ctx code context to use
+   * TODO(Amadou): This implicitly ties this object to a transaction. May not be what we want.
+   * @param accessor The catalog accessor
    */
   explicit CodeGen(catalog::CatalogAccessor *accessor);
 
@@ -328,9 +331,9 @@ class CodeGen {
   ast::BlockStmt *EmptyBlock();
 
   /////////////////////////////////////////////////////////////////
-  /// Builtin functions
-  /// Implement one function for each builtin. It makes
-  /// the translators easier to write.
+  /// Convenience builtin functions
+  /// Only add the complex ones or the oft called ones here.
+  /// The other builtins can be handled by the translators.
   /////////////////////////////////////////////////////////////////
 
   /**
@@ -349,57 +352,9 @@ class CodeGen {
   ast::Expr *PtrCast(ast::Expr *base, ast::Expr *arg);
 
   /**
-   * Call outputAlloc(execCtx)
-   */
-  ast::Expr *OutputAlloc();
-
-  /**
-   * Call outputFinalize(execCtx)
-   */
-  ast::Expr *OutputFinalize();
-
-  /**
    * Call tableIterInit(&tvi, execCtx, table_oid, col_oids)
    */
   ast::Expr *TableIterInit(ast::Identifier tvi, uint32_t table_oid, ast::Identifier col_oids);
-
-  /**
-   * Call tableIterAdvance(&tvi)
-   */
-  ast::Expr *TableIterAdvance(ast::Identifier tvi);
-
-  /**
-   * Call tableIterGetPCI(&tvi)
-   */
-  ast::Expr *TableIterGetPCI(ast::Identifier tvi);
-
-  /**
-   * Call tableIterClose(&tvi)
-   */
-  ast::Expr *TableIterClose(ast::Identifier tvi);
-
-  /**
-   * Call tableIterReset(&tvi)
-   */
-  ast::Expr *TableIterReset(ast::Identifier tvi);
-
-  /**
-   * Call pciHasNext(pci) or pciHasNextFiltered(pci)
-   */
-  ast::Expr *PCIHasNext(ast::Identifier pci, bool filtered);
-
-  /**
-   * Call pciAdvance(pci) or pciAdvanceFiltered(pci)
-   */
-  ast::Expr *PCIAdvance(ast::Identifier pci, bool filtered);
-
-  /**
- * Call pciGetSlot(pci)
- */
-  ast::Expr *PCIGetSlot(ast::Identifier pci) {
-    return OneArgCall(ast::Builtin::PCIGetSlot, pci, false);
-  }
-
 
   /**
    * Call pciGetTypeNullable(pci, idx)
@@ -407,20 +362,10 @@ class CodeGen {
   ast::Expr *PCIGet(ast::Identifier pci, terrier::type::TypeId type, bool nullable, uint32_t idx);
 
   /**
-   * Call pciSetPosition(pci, idx) or pciSetPositionFiltered(pci, idx)
-   */
-  // ast::Expr *PCISetPosition(ast::Identifier pci, uint32_t idx, bool filtered);
-
-  /**
    * Call filterCompType(pci, col_idx, col_type, filter_val)
    */
   ast::Expr *PCIFilter(ast::Identifier pci, terrier::parser::ExpressionType comp_type, uint32_t col_idx,
                        terrier::type::TypeId col_type, ast::Expr *filter_val);
-
-  /**
-   * Call hash(arg1, ..., argN)
-   */
-  ast::Expr *Hash(util::RegionVector<ast::Expr *> &&args);
 
   /**
    * Call execCtxGetMem(execCtx)
@@ -433,156 +378,6 @@ class CodeGen {
   ast::Expr *SizeOf(ast::Identifier type_name);
 
   /**
-   * Call aggHTInit(&state.ht, execCtxGetMem(execCtx), sizeOf(payload_struct))
-   */
-  ast::Expr *AggHashTableInit(ast::Identifier ht, ast::Identifier payload_struct);
-
-  /**
-   * Call aggHTLookup(&state.ht, hash_val, keyCheck, &values)
-   */
-  ast::Expr *AggHashTableLookup(ast::Identifier ht, ast::Identifier hash_val, ast::Identifier key_check,
-                                ast::Identifier values);
-
-  /**
-   * Call aggHTInsert(&state.ht, hash_val)
-   */
-  ast::Expr *AggHashTableInsert(ast::Identifier ht, ast::Identifier hash_val);
-
-  /**
-   * Call aggHTFree(&state.ht)
-   */
-  ast::Expr *AggHashTableFree(ast::Identifier ht);
-
-  /**
-   * Call aggHTIterInit(&iter, &state.ht)
-   */
-  ast::Expr *AggHashTableIterInit(ast::Identifier iter, ast::Identifier ht);
-
-  /**
-   * Call aggHTIterHasNext(&iter)
-   */
-  ast::Expr *AggHashTableIterHasNext(ast::Identifier iter);
-
-  /**
-   * Call aggHTIterNext(&iter)
-   */
-  ast::Expr *AggHashTableIterNext(ast::Identifier iter);
-
-  /**
-   * Call aggHTIterGetRow(&iter)
-   */
-  ast::Expr *AggHashTableIterGetRow(ast::Identifier iter);
-
-  /**
-   * Call aggHTIterClose(&iter)
-   */
-  ast::Expr *AggHashTableIterClose(ast::Identifier iter);
-
-  /**
-   * Call aggInit(agg)
-   */
-  ast::Expr *AggInit(ast::Expr *agg);
-
-  /**
-   * Call aggAdvance(agg, val)
-   */
-  ast::Expr *AggAdvance(ast::Expr *agg, ast::Expr *val);
-
-  /**
-   * Call aggResult(agg)
-   */
-  ast::Expr *AggResult(ast::Expr *agg);
-
-  /**
-   * Call joinHTInit(&ht, execCtxGetMem(execCtx), &build_struct)
-   */
-  ast::Expr *JoinHashTableInit(ast::Identifier ht, ast::Identifier build_struct);
-
-  /**
-   * Call joinHTInsert(&ht, hash_val)
-   */
-  ast::Expr *JoinHashTableInsert(ast::Identifier ht, ast::Identifier hash_val);
-
-  /**
-   * Call joinHTIterInit(&iter, &state.ht, hash_val)
-   */
-  ast::Expr *JoinHashTableIterInit(ast::Identifier iter, ast::Identifier ht, ast::Identifier hash_val);
-
-  /**
-   * joinHTIterHasNext(&iter, checkKey, state, probe_row) if is_probe_ptr is true.
-   * Otherwise calls joinHTIterHasNext(&iter, checkKey, state, &probe_row).
-   * This is needed because the previous operator in the pipeline may return a pointer type.
-   * We don't want to pass a double pointer into the keyCheck function because it will complicate the logic.
-   */
-  ast::Expr *JoinHashTableIterHasNext(ast::Identifier iter, ast::Identifier check_key, ast::Identifier probe_row,
-                                      bool is_probe_ptr);
-
-  /**
-   * Call joinHTIterGetRow(&iter)
-   */
-  ast::Expr *JoinHashTableIterGetRow(ast::Identifier iter);
-
-  /**
-   * Call joinHTIterClose(&iter)
-   */
-  ast::Expr *JoinHashTableIterClose(ast::Identifier iter);
-
-  /**
-   * Call joinHTIBuild(&state.ht)
-   */
-  ast::Expr *JoinHashTableBuild(ast::Identifier ht);
-
-  /**
-   * Call joinHTFree(&state.ht)
-   */
-  ast::Expr *JoinHashTableFree(ast::Identifier iter);
-
-  /**
-   * Call sorterInit(&state.sorter, execCtxGetMem(execCtx), comp_fn, sizeOf(sorter_struct))
-   */
-  ast::Expr *SorterInit(ast::Identifier sorter, ast::Identifier comp_fn, ast::Identifier sorter_struct);
-
-  /**
-   * Call sorterInsert(&state.sorter)
-   */
-  ast::Expr *SorterInsert(ast::Identifier sorter);
-
-  /**
-   * Call sorterSort(&state.sorter)
-   */
-  ast::Expr *SorterSort(ast::Identifier sorter);
-
-  /**
-   * Call sorterFree(&state.sorter)
-   */
-  ast::Expr *SorterFree(ast::Identifier sorter);
-
-  /**
-   * Call sorterIterInit(&iter, &state.sorter)
-   */
-  ast::Expr *SorterIterInit(ast::Identifier iter, ast::Identifier sorter);
-
-  /**
-   * Call sorterIterHasNext(&iter)
-   */
-  ast::Expr *SorterIterHasNext(ast::Identifier iter);
-
-  /**
-   * Call sorterIterNext(&iter)
-   */
-  ast::Expr *SorterIterNext(ast::Identifier iter);
-
-  /**
-   * Call sorterIterGet(&iter)
-   */
-  ast::Expr *SorterIterGetRow(ast::Identifier iter);
-
-  /**
-   * Call sorterIterClose(&iter)
-   */
-  ast::Expr *SorterIterClose(ast::Identifier iter);
-
-  /**
    * Call indexIteratorInit(&iter, execCtx, table_oid, index_oid, col_oids)
    */
   ast::Expr *IndexIteratorInit(ast::Identifier iter, uint32_t table_oid, uint32_t index_oid, ast::Identifier col_oids);
@@ -593,85 +388,37 @@ class CodeGen {
   ast::Expr *IndexIteratorScan(ast::Identifier iter, planner::IndexScanType scan_type, uint32_t limit);
 
   /**
-   * Call IndexIteratorGetIndexPR(&iter)
-   */
-  ast::Expr *IndexIteratorGetIndexPR(ast::Identifier iter);
-  ast::Expr *IndexIteratorGetIndexLoPR(ast::Identifier iter);
-  ast::Expr *IndexIteratorGetIndexHiPR(ast::Identifier iter);
-
-  /**
-   * Call IndexIteratorGetTablePR(&iter)
-   */
-  ast::Expr *IndexIteratorGetTablePR(ast::Identifier iter);
-
-  /**
-   * Call IndexIteratorGetSlot(&iter)
-   */
-  ast::Expr *IndexIteratorGetTableSlot(ast::Identifier iter) {
-    return OneArgCall(ast::Builtin::IndexIteratorGetSlot, iter, true);
-  }
-
-  /**
-   * Call IndexIteratorAdvance(&iter)
-   */
-  ast::Expr *IndexIteratorAdvance(ast::Identifier iter);
-
-  /**
-   * Call IndexIteratorFree(&iter)
-   */
-  ast::Expr *IndexIteratorFree(ast::Identifier iter);
-
-
-
-  /**
    * Call PrGet(&iter, attr_idx)
    */
   ast::Expr *PRGet(ast::Expr *iter_ptr, terrier::type::TypeId type, bool nullable, uint32_t attr_idx);
+
+  /**
+   * Same as above, but use an identifier instead of a raw expression.
+   */
   ast::Expr *PRGet(ast::Identifier iter, terrier::type::TypeId type, bool nullable, uint32_t attr_idx);
 
   /**
    * Call PrSet(&iter, attr_idx, val)
    */
   ast::Expr *PRSet(ast::Expr *iter_ptr, terrier::type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val);
+
+  /**
+   * Same as above, but use an identifier instead of a raw expression.
+   */
   ast::Expr *PRSet(ast::Identifier iter, terrier::type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val);
 
   /**
-   * Call storageInterfaceInit(&storage_interface, table_oid)
+   * Call storageInterfaceInit(&storage_interface, execCtx, table_oid, col_oids, need_indexes)
    */
   ast::Expr *StorageInterfaceInit(ast::Identifier si, uint32_t table_oid, ast::Identifier col_oids, bool need_indexes);
 
   /**
-   * Call storageInterfaceFree(&storage_interface)
+   * Make a generic builtin call with the given arguments.
    */
-  ast::Expr *StorageInterfaceFree(ast::Identifier si);
+  ast::Expr *BuiltinCall(ast::Builtin builtin, std::vector<ast::Expr *> &&params);
 
   /**
-   * Call getTablePR(&storage_interface)
-   */
-  ast::Expr *GetTablePR(ast::Identifier si);
-
-  /**
-   * Call tableInsert(&storage_interface)
-   */
-  ast::Expr *TableInsert(ast::Identifier si);
-  ast::Expr *TableDelete(ast::Identifier si, ast::Expr *slot);
-  ast::Expr *TableUpdate(ast::Identifier si);
-
-  /**
-   * Call getIndexPR(&storage_interface, index_oid)
-   */
-  ast::Expr *GetIndexPR(ast::Identifier si, uint32_t index_oid);
-
-  /**
-   * Call indexInsert(&storage_interface)
-   */
-  ast::Expr *IndexInsert(ast::Identifier si);
-  ast::Expr *IndexDelete(ast::Identifier si, ast::Expr *slot);
-
- private:
-  /**
-   * Many functions take a pointer to an identifier as their argument.
-   * This function helps avoid code repetition
+   * This is for functions that take one identifier or a pointer to an identifier as their argument.
    * @param builtin builtin function to call
    * @param ident argument to the function
    * @param take_ptr whether to take the pointer to the identifier (for example, pci calls will set this to false)
@@ -679,18 +426,20 @@ class CodeGen {
    */
   ast::Expr *OneArgCall(ast::Builtin builtin, ast::Identifier ident, bool take_ptr = true);
 
-  // Same as above, but the argument is part of the state object.
-  // This used by join build & free, sorter sort & free, and aggregator free methods.
-  ast::Expr *OneArgStateCall(ast::Builtin builtin, ast::Identifier ident);
-
-  // Same as above, but the argument expression is directly passed in.
-  ast::Expr *OneArgCall(ast::Builtin builtin, ast::Expr *arg);
-
   /**
    * JoinHT and AggHT are initialized the same way.
    * The function dedups the code.
    */
-  ast::Expr *InitCall(ast::Builtin builtin, ast::Identifier object, ast::Identifier struct_type);
+  ast::Expr *HTInitCall(ast::Builtin builtin, ast::Identifier object, ast::Identifier struct_type);
+
+  /**
+   * This is for function this take one state argument.
+   */
+  ast::Expr *OneArgStateCall(ast::Builtin builtin, ast::Identifier ident);
+
+ private:
+  // Same as above, but the argument expression is directly passed in.
+  ast::Expr *OneArgCall(ast::Builtin builtin, ast::Expr *arg);
 
   uint64_t id_count_{0};
 

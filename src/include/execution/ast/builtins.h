@@ -46,7 +46,7 @@ namespace terrier::execution::ast {
   F(PCIHasNextFiltered, pciHasNextFiltered)                             \
   F(PCIAdvance, pciAdvance)                                             \
   F(PCIAdvanceFiltered, pciAdvanceFiltered)                             \
-  F(PCIGetSlot, pciGetSlot)                             \
+  F(PCIGetSlot, pciGetSlot)                                             \
   F(PCIMatch, pciMatch)                                                 \
   F(PCIReset, pciReset)                                                 \
   F(PCIResetFiltered, pciResetFiltered)                                 \

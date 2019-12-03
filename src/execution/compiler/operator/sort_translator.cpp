@@ -1,4 +1,7 @@
 #include "execution/compiler/operator/sort_translator.h"
+#include <memory>
+#include <utility>
+#include <vector>
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/translator_factory.h"
 #include "planner/plannodes/order_by_plan_node.h"
@@ -7,12 +10,12 @@ namespace terrier::execution::compiler {
 SortBottomTranslator::SortBottomTranslator(const terrier::planner::OrderByPlanNode *op, CodeGen *codegen)
     : OperatorTranslator(codegen),
       op_(op),
-      sorter_(codegen_->NewIdentifier(sorter_name_)),
-      sorter_row_(codegen_->NewIdentifier(sorter_row_name_)),
-      sorter_struct_(codegen_->NewIdentifier(sorter_struct_name_)),
-      comp_fn_(codegen_->NewIdentifier(comp_fn_name_)),
-      comp_lhs_(codegen_->NewIdentifier(comp_lhs_name_)),
-      comp_rhs_(codegen_->NewIdentifier(comp_rhs_name_)) {}
+      sorter_(codegen_->NewIdentifier("sorter")),
+      sorter_row_(codegen_->NewIdentifier("sorter_row")),
+      sorter_struct_(codegen_->NewIdentifier("SorterRow")),
+      comp_fn_(codegen_->NewIdentifier("sorterCompFn")),
+      comp_lhs_(codegen_->NewIdentifier("lhs")),
+      comp_rhs_(codegen_->NewIdentifier("rhs")) {}
 
 void SortBottomTranslator::Produce(FunctionBuilder *builder) {
   child_translator_->Produce(builder);
@@ -31,7 +34,7 @@ void SortBottomTranslator::Consume(FunctionBuilder *builder) {
 
 void SortBottomTranslator::GenSorterInsert(FunctionBuilder *builder) {
   // var sorter_row = @ptrCast(*SorterStruct, @sorterInsert(&state.sorter))
-  ast::Expr *insert_call = codegen_->SorterInsert(sorter_);
+  ast::Expr *insert_call = codegen_->OneArgStateCall(ast::Builtin::SorterInsert, sorter_);
 
   // Gen create @ptrcast(*SorterStruct, ...)
   ast::Expr *cast_call = codegen_->PtrCast(sorter_struct_, insert_call);
@@ -50,7 +53,7 @@ void SortBottomTranslator::FillSorterRow(FunctionBuilder *builder) {
 }
 
 void SortBottomTranslator::GenSorterSort(FunctionBuilder *builder) {
-  ast::Expr *sort_call = codegen_->SorterSort(sorter_);
+  ast::Expr *sort_call = codegen_->OneArgStateCall(ast::Builtin::SorterSort, sorter_);
   builder->Append(codegen_->MakeStmt(sort_call));
 }
 
@@ -63,7 +66,7 @@ void SortBottomTranslator::InitializeStateFields(
 
 void SortBottomTranslator::InitializeStructs(execution::util::RegionVector<execution::ast::Decl *> *decls) {
   util::RegionVector<execution::ast::FieldDecl *> fields{codegen_->Region()};
-  GetChildOutputFields(&fields, sorter_attr_prefix_);
+  GetChildOutputFields(&fields, SORTER_ATTR_PREFIX);
   decls->emplace_back(codegen_->MakeStruct(sorter_struct_, std::move(fields)));
 }
 
@@ -80,7 +83,10 @@ void SortBottomTranslator::InitializeHelperFunctions(execution::util::RegionVect
 
 void SortBottomTranslator::InitializeSetup(execution::util::RegionVector<execution::ast::Stmt *> *setup_stmts) {
   // @sorterInit(&state.sorter, @execCtxGetMem(execCtx), sorterCompare, @sizeOf(SorterStruct))
-  ast::Expr *init_call = codegen_->SorterInit(sorter_, comp_fn_, sorter_struct_);
+  ast::Expr *sizeof_call = codegen_->SizeOf(sorter_struct_);
+  std::vector<ast::Expr *> init_args{codegen_->GetStateMemberPtr(sorter_), codegen_->ExecCtxGetMem(),
+                                     codegen_->MakeExpr(comp_fn_), sizeof_call};
+  ast::Expr *init_call = codegen_->BuiltinCall(ast::Builtin::SorterInit, std::move(init_args));
 
   // Add it the setup statements
   setup_stmts->emplace_back(codegen_->MakeStmt(init_call));
@@ -88,7 +94,7 @@ void SortBottomTranslator::InitializeSetup(execution::util::RegionVector<executi
 
 void SortBottomTranslator::InitializeTeardown(execution::util::RegionVector<execution::ast::Stmt *> *teardown_stmts) {
   // @sorterFree(&state.sorter)
-  ast::Expr *free_call = codegen_->SorterFree(sorter_);
+  ast::Expr *free_call = codegen_->OneArgStateCall(ast::Builtin::SorterFree, sorter_);
   teardown_stmts->emplace_back(codegen_->MakeStmt(free_call));
 }
 
@@ -104,7 +110,7 @@ ast::Expr *SortBottomTranslator::GetChildOutput(uint32_t child_idx, uint32_t att
 ast::Expr *SortBottomTranslator::GetOutput(uint32_t attr_idx) { return GetAttribute(sorter_row_, attr_idx); }
 
 ast::Expr *SortBottomTranslator::GetAttribute(execution::ast::Identifier object, uint32_t attr_idx) {
-  ast::Identifier member = codegen_->Context()->GetIdentifier(sorter_attr_prefix_ + std::to_string(attr_idx));
+  ast::Identifier member = codegen_->Context()->GetIdentifier(SORTER_ATTR_PREFIX + std::to_string(attr_idx));
   return codegen_->MemberExpr(object, member);
 }
 
@@ -118,13 +124,13 @@ void SortBottomTranslator::GenComparisons(FunctionBuilder *builder) {
   int32_t ret_value;
   uint32_t attr_idx = 0;
   for (const auto &order : op_->GetSortKeys()) {
-    if (order.SortType() == optimizer::OrderByOrderingType::ASC) {
+    if (order.second == optimizer::OrderByOrderingType::ASC) {
       ret_value = -1;
     } else {
       ret_value = 1;
     }
     std::unique_ptr<ExpressionTranslator> key_translator =
-        TranslatorFactory::CreateExpressionTranslator(order.Expr().Get(), codegen_);
+        TranslatorFactory::CreateExpressionTranslator(order.first.Get(), codegen_);
     for (const auto tok : {parsing::Token::Type::LESS, parsing::Token::Type::GREATER}) {
       // Get lhs.col_i
       current_row_ = CurrentRow::Lhs;
@@ -152,7 +158,7 @@ SortTopTranslator::SortTopTranslator(const terrier::planner::OrderByPlanNode *op
     : OperatorTranslator(codegen),
       op_(op),
       bottom_(dynamic_cast<SortBottomTranslator *>(bottom)),
-      sort_iter_(codegen_->NewIdentifier(iter_name_)) {}
+      sort_iter_(codegen_->NewIdentifier("sort_iter")) {}
 
 void SortTopTranslator::Produce(FunctionBuilder *builder) {
   // Declare the iterator
@@ -188,16 +194,17 @@ void SortTopTranslator::DeclareIterator(FunctionBuilder *builder) {
   ast::Expr *iter_type = codegen_->BuiltinType(ast::BuiltinType::SorterIterator);
   builder->Append(codegen_->DeclareVariable(sort_iter_, iter_type, nullptr));
   // @sorterIterInit(&sort_iter, &state.sorter)
-  ast::Expr *init_call = codegen_->SorterIterInit(sort_iter_, bottom_->sorter_);
+  std::vector<ast::Expr *> init_args{codegen_->PointerTo(sort_iter_), codegen_->GetStateMemberPtr(bottom_->sorter_)};
+  ast::Expr *init_call = codegen_->BuiltinCall(ast::Builtin::SorterIterInit, std::move(init_args));
   builder->Append(codegen_->MakeStmt(init_call));
 }
 
 void SortTopTranslator::GenForLoop(FunctionBuilder *builder) {
   // for (; @sorterIterHasNext(&sort_iter); @sorterIterNext(&sort_iter))
   // Loop condition
-  ast::Expr *has_next_call = codegen_->SorterIterHasNext(sort_iter_);
+  ast::Expr *has_next_call = codegen_->OneArgCall(ast::Builtin::SorterIterHasNext, sort_iter_, true);
   // Loop update
-  ast::Expr *next_call = codegen_->SorterIterNext(sort_iter_);
+  ast::Expr *next_call = codegen_->OneArgCall(ast::Builtin::SorterIterNext, sort_iter_, true);
   ast::Stmt *loop_update = codegen_->MakeStmt(next_call);
   // Make the loop
   builder->StartForStmt(nullptr, has_next_call, loop_update);
@@ -205,14 +212,14 @@ void SortTopTranslator::GenForLoop(FunctionBuilder *builder) {
 
 void SortTopTranslator::CloseIterator(FunctionBuilder *builder) {
   // Call @sorterIterClose(&sort_iter)
-  ast::Expr *close_call = codegen_->SorterIterClose(sort_iter_);
+  ast::Expr *close_call = codegen_->OneArgCall(ast::Builtin::SorterIterClose, sort_iter_, true);
   builder->Append(codegen_->MakeStmt(close_call));
 }
 
 void SortTopTranslator::DeclareResult(FunctionBuilder *builder) {
   // var sorter_row = @ptrCast(*SorterRow, @sorterIterGetRow(&sort_iter))
   // @sorterIterGetRow(&sort_iter)
-  ast::Expr *get_row_call = codegen_->SorterIterGetRow(sort_iter_);
+  ast::Expr *get_row_call = codegen_->OneArgCall(ast::Builtin::SorterIterGetRow, sort_iter_, true);
 
   // @ptrcast(*SorterRow, ...)
   ast::Expr *cast_call = codegen_->PtrCast(bottom_->sorter_struct_, get_row_call);
@@ -228,7 +235,7 @@ ast::Expr *SortTopTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_i
 ast::Expr *SortTopTranslator::GetOutput(uint32_t attr_idx) {
   auto output_expr = op_->GetOutputSchema()->GetColumn(attr_idx).GetExpr();
   std::unique_ptr<ExpressionTranslator> translator =
-      TranslatorFactory::CreateExpressionTranslator(output_expr, codegen_);
+      TranslatorFactory::CreateExpressionTranslator(output_expr.Get(), codegen_);
   return translator->DeriveExpr(this);
 }
 }  // namespace terrier::execution::compiler

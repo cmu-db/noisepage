@@ -1,5 +1,6 @@
 #pragma once
-
+#include <string>
+#include <utility>
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/expression/expression_translator.h"
 #include "planner/plannodes/abstract_plan_node.h"
@@ -10,7 +11,7 @@ namespace terrier::execution::compiler {
  * Generic Operator Translator
  * TODO(Amadou): Only a few operations need all of these methods at once (sorting, aggregations, hash joins).
  * Other operations need just a few of them. So we could add a default implementation.
- * For now, I am leaving it like this so that the compiler will force me to think about all methods.
+ * Default implementations make it easier to forget about something though, so I am leaving it like this for now.
  */
 class OperatorTranslator : public ExpressionEvaluator {
  public:
@@ -89,20 +90,6 @@ class OperatorTranslator : public ExpressionEvaluator {
   }
 
   /**
-   * Whether this operator materializes structs.
-   * Currently, this is used to simplify the probe phase of hash joins. The right side of the join does not have
-   * to materialize a tuple if the right child already materialized it.
-   * But I suspect it can simplify sorters, and perhaps other things.
-   * Currently, SeqScan, Agg, and Sort are the materializers.
-   * Most operators should return false here.
-   * @param is_ptr[out] whether the function outputs a pointer.
-   */
-  virtual bool IsMaterializer(bool *is_ptr) {
-    *is_ptr = false;
-    return false;
-  }
-
-  /**
    * @return Whether this operator is vectorizable
    */
   virtual bool IsVectorizable() { return false; }
@@ -127,18 +114,32 @@ class OperatorTranslator : public ExpressionEvaluator {
   virtual ast::Expr *GetSlot() { UNREACHABLE("This operator does not interact with tables"); }
 
   /**
-   * Return the identifiers of the materialized tuple if this a materializer.
+   * @param attr_idx index into the output schema
+   * @return the output at the given index
+   */
+  virtual ast::Expr *GetOutput(uint32_t attr_idx) = 0;
+
+  /**
+   * Whether this operator materializes structs.
+   * Currently, this is used to simplify the probe phase of hash joins. The right side of the join does not have
+   * to materialize a tuple if the right child already materialized it.
+   * But I suspect it can simplify sorters, and perhaps other things.
+   * Currently, SeqScan, Agg, and Sort are the materializers.
+   * Most operators should return false here.
+   * @param is_ptr whether the function outputs a pointer.
+   */
+  virtual bool IsMaterializer(bool *is_ptr) {
+    *is_ptr = false;
+    return false;
+  }
+
+  /**
+   *   Return the identifiers of the materialized tuple if this a materializer.
    * The first element is the identifer of the local variable.
    * The second element is the identifier of its type.
    * Most operators should not be materializers.
    */
   virtual std::pair<ast::Identifier *, ast::Identifier *> GetMaterializedTuple() { return {nullptr, nullptr}; }
-
-  /**
-   * @param attr_idx index into the output schema
-   * @return the output at the given index
-   */
-  virtual ast::Expr *GetOutput(uint32_t attr_idx) = 0;
 
   /**
    * Used by operators when they need to generate a struct containing a child's output.
@@ -156,6 +157,9 @@ class OperatorTranslator : public ExpressionEvaluator {
     }
   }
 
+  /**
+   * @return the plan node as a generic nodeq
+   */
   virtual const planner::AbstractPlanNode *Op() = 0;
 
  protected:

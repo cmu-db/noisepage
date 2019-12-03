@@ -1,4 +1,6 @@
 #pragma once
+#include <unordered_map>
+#include <vector>
 #include "catalog/index_schema.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/index_join_plan_node.h"
@@ -10,6 +12,11 @@ namespace terrier::execution::compiler {
  */
 class IndexJoinTranslator : public OperatorTranslator {
  public:
+  /**
+   * Constructor
+   * @param op The plan node
+   * @param codegen The code generator
+   */
   IndexJoinTranslator(const terrier::planner::IndexJoinPlanNode *op, CodeGen *codegen);
 
   // Does nothing
@@ -29,19 +36,13 @@ class IndexJoinTranslator : public OperatorTranslator {
 
   void Produce(FunctionBuilder *builder) override;
   void Abort(FunctionBuilder *builder) override;
-
   void Consume(FunctionBuilder *builder) override;
 
-  // Pass Through
   ast::Expr *GetOutput(uint32_t attr_idx) override;
-
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
-
   ast::Expr *GetTableColumn(const catalog::col_oid_t &col_oid) override;
 
-  ast::Expr *GetSlot() override {
-    return codegen_->PointerTo(slot_);
-  }
+  ast::Expr *GetSlot() override { return codegen_->PointerTo(slot_); }
 
   const planner::AbstractPlanNode *Op() override { return op_; }
 
@@ -73,17 +74,10 @@ class IndexJoinTranslator : public OperatorTranslator {
   const catalog::IndexSchema &index_schema_;
   const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &index_pm_;
   // Structs and local variables
-  static constexpr const char *iter_name_ = "index_iter";
-  static constexpr const char *col_oids_name_ = "col_oids";
-  static constexpr const char *index_pr_name_ = "index_pr";
-  static constexpr const char *table_pr_name_ = "table_pr";
-  static constexpr const char *slot_name_ = "slot";
-
   ast::Identifier index_iter_;
   ast::Identifier col_oids_;
   ast::Identifier index_pr_;
   ast::Identifier table_pr_;
   ast::Identifier slot_;
-
 };
 }  // namespace terrier::execution::compiler

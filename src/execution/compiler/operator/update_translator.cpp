@@ -1,17 +1,16 @@
-
 #include "execution/compiler/operator/update_translator.h"
-#include "execution/compiler/translator_factory.h"
-
+#include <utility>
+#include <vector>
 #include "execution/compiler/function_builder.h"
-#include "execution/compiler/operator/update_translator.h"
+#include "execution/compiler/translator_factory.h"
 
 namespace terrier::execution::compiler {
 UpdateTranslator::UpdateTranslator(const terrier::planner::UpdatePlanNode *op, CodeGen *codegen)
     : OperatorTranslator(codegen),
       op_(op),
-      updater_(codegen->NewIdentifier(updater_name_)),
-      update_pr_(codegen->NewIdentifier(update_pr_name_)),
-      col_oids_(codegen->NewIdentifier(col_oids_name_)),
+      updater_(codegen->NewIdentifier("updater")),
+      update_pr_(codegen->NewIdentifier("update_pr")),
+      col_oids_(codegen->NewIdentifier("col_oids")),
       table_schema_(codegen->Accessor()->GetSchema(op_->GetTableOid())),
       all_oids_(CollectOids(op)),
       table_pm_(codegen->Accessor()->GetTable(op_->GetTableOid())->ProjectionMapForOids(all_oids_)),
@@ -66,7 +65,7 @@ void UpdateTranslator::DeclareUpdater(terrier::execution::compiler::FunctionBuil
 
 void UpdateTranslator::GenUpdaterFree(terrier::execution::compiler::FunctionBuilder *builder) {
   // Call @storageInterfaceFree
-  ast::Expr *updater_free = codegen_->StorageInterfaceFree(updater_);
+  ast::Expr *updater_free = codegen_->OneArgCall(ast::Builtin::StorageInterfaceFree, updater_, true);
   builder->Append(codegen_->MakeStmt(updater_free));
 }
 
@@ -96,7 +95,7 @@ void UpdateTranslator::DeclareUpdatePR(terrier::execution::compiler::FunctionBui
 
 void UpdateTranslator::GetUpdatePR(terrier::execution::compiler::FunctionBuilder *builder) {
   // var update_pr = ProjectedRow
-  auto get_pr_call = codegen_->GetTablePR(updater_);
+  auto get_pr_call = codegen_->OneArgCall(ast::Builtin::GetTablePR, updater_, true);
   builder->Append(codegen_->Assign(codegen_->MakeExpr(update_pr_), get_pr_call));
 }
 
@@ -116,7 +115,8 @@ void UpdateTranslator::FillPRFromChild(terrier::execution::compiler::FunctionBui
 
 void UpdateTranslator::GenTableUpdate(FunctionBuilder *builder) {
   // if (update fails) { Abort(); }
-  auto update_call = codegen_->TableUpdate(updater_);
+  auto update_call = codegen_->OneArgCall(ast::Builtin::TableInsert, updater_, true);
+
   auto cond = codegen_->UnaryOp(parsing::Token::Type::BANG, update_call);
   builder->StartIfStmt(cond);
   Abort(builder);
@@ -126,14 +126,16 @@ void UpdateTranslator::GenTableUpdate(FunctionBuilder *builder) {
 void UpdateTranslator::GenTableInsert(FunctionBuilder *builder) {
   // var insert_slot = @tableInsert(&updater_)
   auto insert_slot = codegen_->NewIdentifier("insert_slot");
-  auto insert_call = codegen_->TableInsert(updater_);
+  auto insert_call = codegen_->OneArgCall(ast::Builtin::TableInsert, updater_, true);
+
   builder->Append(codegen_->DeclareVariable(insert_slot, nullptr, insert_call));
 }
 
 void UpdateTranslator::GenIndexInsert(FunctionBuilder *builder, const catalog::index_oid_t &index_oid) {
   // var insert_index_pr = @getIndexPR(&inserter, oid)
   auto insert_index_pr = codegen_->NewIdentifier("insert_index_pr");
-  auto get_index_pr_call = codegen_->GetIndexPR(updater_, !index_oid);
+  std::vector<ast::Expr *> pr_call_args{codegen_->PointerTo(updater_), codegen_->IntLiteral(!index_oid)};
+  auto get_index_pr_call = codegen_->BuiltinCall(ast::Builtin::GetIndexPR, std::move(pr_call_args));
   builder->Append(codegen_->DeclareVariable(insert_index_pr, nullptr, get_index_pr_call));
 
   // Fill up the index pr from the update_pr
@@ -144,7 +146,7 @@ void UpdateTranslator::GenIndexInsert(FunctionBuilder *builder, const catalog::i
 
   // Insert into index
   // if (insert not successfull) { Abort(); }
-  auto index_insert_call = codegen_->IndexInsert(updater_);
+  auto index_insert_call = codegen_->OneArgCall(ast::Builtin::IndexInsert, updater_, true);
   auto cond = codegen_->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
   builder->StartIfStmt(cond);
   Abort(builder);
@@ -155,7 +157,8 @@ void UpdateTranslator::GenTableDelete(FunctionBuilder *builder) {
   // Delete from table
   // if (delete not successfull) { Abort(); }
   auto delete_slot = child_translator_->GetSlot();
-  auto delete_call = codegen_->TableDelete(updater_, delete_slot);
+  std::vector<ast::Expr *> delete_args{codegen_->PointerTo(updater_), delete_slot};
+  auto delete_call = codegen_->BuiltinCall(ast::Builtin::TableDelete, std::move(delete_args));
   auto cond = codegen_->UnaryOp(parsing::Token::Type::BANG, delete_call);
   builder->StartIfStmt(cond);
   Abort(builder);
@@ -165,7 +168,9 @@ void UpdateTranslator::GenTableDelete(FunctionBuilder *builder) {
 void UpdateTranslator::GenIndexDelete(FunctionBuilder *builder, const catalog::index_oid_t &index_oid) {
   // var delete_index_pr = @getIndexPR(&deleter, oid)
   auto delete_index_pr = codegen_->NewIdentifier("delete_index_pr");
-  auto get_index_pr_call = codegen_->GetIndexPR(updater_, !index_oid);
+  std::vector<ast::Expr *> pr_call_args{codegen_->PointerTo(updater_), codegen_->IntLiteral(!index_oid)};
+  auto get_index_pr_call = codegen_->BuiltinCall(ast::Builtin::GetIndexPR, std::move(pr_call_args));
+
   builder->Append(codegen_->DeclareVariable(delete_index_pr, nullptr, get_index_pr_call));
 
   // Fill up the index pr
@@ -184,7 +189,8 @@ void UpdateTranslator::GenIndexDelete(FunctionBuilder *builder, const catalog::i
   }
 
   // Delete from index
-  auto index_delete_call = codegen_->IndexDelete(updater_, child_translator_->GetSlot());
+  std::vector<ast::Expr *> delete_args{codegen_->PointerTo(updater_), child_translator_->GetSlot()};
+  auto index_delete_call = codegen_->BuiltinCall(ast::Builtin::IndexDelete, std::move(delete_args));
   builder->Append(codegen_->MakeStmt(index_delete_call));
 }
 

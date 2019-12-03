@@ -1,63 +1,20 @@
-
 #include "execution/compiler/operator/insert_translator.h"
-#include "execution/compiler/translator_factory.h"
-
+#include <utility>
+#include <vector>
 #include "execution/compiler/function_builder.h"
-#include "execution/compiler/operator/insert_translator.h"
+#include "execution/compiler/translator_factory.h"
 
 namespace terrier::execution::compiler {
 InsertTranslator::InsertTranslator(const terrier::planner::InsertPlanNode *op, CodeGen *codegen)
     : OperatorTranslator(codegen),
       op_(op),
-      inserter_(codegen->NewIdentifier(inserter_name_)),
-      insert_pr_(codegen->NewIdentifier(insert_pr_name_)),
-      col_oids_(codegen->NewIdentifier(col_oids_name_)),
+      inserter_(codegen->NewIdentifier("inserter")),
+      insert_pr_(codegen->NewIdentifier("insert_pr")),
+      col_oids_(codegen->NewIdentifier("col_oids")),
       table_schema_(codegen->Accessor()->GetSchema(op_->GetTableOid())),
       all_oids_(AllColOids(table_schema_)),
       table_pm_(codegen->Accessor()->GetTable(op_->GetTableOid())->ProjectionMapForOids(all_oids_)),
       pr_filler_(codegen_, table_schema_, table_pm_, insert_pr_, true) {}
-
-void InsertTranslator::GenSetTablePR(FunctionBuilder *builder, uint32_t tuple) {
-  const auto &node_vals = op_->GetValues(tuple);
-  for (size_t i = 0; i < node_vals.size(); i++) {
-    auto &val = node_vals[i];
-    auto *src = codegen_->PeekValue(val);
-    auto table_col_oid = all_oids_[i];
-    const auto &table_col = table_schema_.GetColumn(table_col_oid);
-    auto pr_set_call = codegen_->PRSet(codegen_->PointerTo(insert_pr_), val.Type(), table_col.Nullable(),
-                                       table_pm_[table_col_oid], src);
-    builder->Append(codegen_->MakeStmt(pr_set_call));
-  }
-}
-
-void InsertTranslator::GenTableInsert(FunctionBuilder *builder) {
-  // var insert_slot = @tableInsert(&inserter_)
-  auto insert_slot = codegen_->NewIdentifier("insert_slot");
-  auto insert_call = codegen_->TableInsert(inserter_);
-  builder->Append(codegen_->DeclareVariable(insert_slot, nullptr, insert_call));
-}
-
-void InsertTranslator::GenIndexInsert(FunctionBuilder *builder, const catalog::index_oid_t &index_oid) {
-  // var insert_index_pr = @getIndexPR(&inserter, oid)
-  auto insert_index_pr = codegen_->NewIdentifier("insert_index_pr");
-  auto get_index_pr_call = codegen_->GetIndexPR(inserter_, !index_oid);
-  builder->Append(codegen_->DeclareVariable(insert_index_pr, nullptr, get_index_pr_call));
-
-  // Fill up the index pr
-  auto index = codegen_->Accessor()->GetIndex(index_oid);
-  const auto &index_pm = index->GetKeyOidToOffsetMap();
-  const auto &index_schema = codegen_->Accessor()->GetIndexSchema(index_oid);
-
-  pr_filler_.GenFiller(index_pm, index_schema, codegen_->PointerTo(insert_index_pr), builder);
-
-  // Insert into index
-  // if (insert not successfull) { Abort(); }
-  auto index_insert_call = codegen_->IndexInsert(inserter_);
-  auto cond = codegen_->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
-  builder->StartIfStmt(cond);
-  Abort(builder);
-  builder->FinishBlockStmt();
-}
 
 void InsertTranslator::Produce(FunctionBuilder *builder) {
   DeclareInserter(builder);
@@ -72,15 +29,15 @@ void InsertTranslator::Produce(FunctionBuilder *builder) {
   // Otherwise, this is a raw insert.
   DeclareInsertPR(builder);
   // For each set of values, insert into table and indexes
-  for (uint32_t tuple = 0; tuple < op_->GetBulkInsertCount(); tuple++) {
+  for (uint32_t idx = 0; idx < op_->GetBulkInsertCount(); idx++) {
     // Get the table PR
     GetInsertPR(builder);
     // Set the table PR
-    GenSetTablePR(builder, tuple);
+    GenSetTablePR(builder, idx);
     // Insert into Table
     GenTableInsert(builder);
     // Insert into each index.
-    const auto &indexes = op_->GetIndexOids();
+    const auto &indexes = codegen_->Accessor()->GetIndexOids(op_->GetTableOid());
     for (auto &index_oid : indexes) {
       GenIndexInsert(builder, index_oid);
     }
@@ -105,7 +62,7 @@ void InsertTranslator::Consume(FunctionBuilder *builder) {
   GenTableInsert(builder);
 
   // Insert into every index
-  const auto &indexes = op_->GetIndexOids();
+  const auto &indexes = codegen_->Accessor()->GetIndexOids(op_->GetTableOid());
   for (auto &index_oid : indexes) {
     GenIndexInsert(builder, index_oid);
   }
@@ -124,7 +81,7 @@ void InsertTranslator::DeclareInserter(terrier::execution::compiler::FunctionBui
 
 void InsertTranslator::GenInserterFree(terrier::execution::compiler::FunctionBuilder *builder) {
   // Call @storageInterfaceFree
-  ast::Expr *inserter_free = codegen_->StorageInterfaceFree(inserter_);
+  ast::Expr *inserter_free = codegen_->OneArgCall(ast::Builtin::StorageInterfaceFree, inserter_, true);
   builder->Append(codegen_->MakeStmt(inserter_free));
 }
 
@@ -154,8 +111,53 @@ void InsertTranslator::DeclareInsertPR(terrier::execution::compiler::FunctionBui
 
 void InsertTranslator::GetInsertPR(terrier::execution::compiler::FunctionBuilder *builder) {
   // var insert_pr = ProjectedRow
-  auto get_pr_call = codegen_->GetTablePR(inserter_);
+  auto get_pr_call = codegen_->OneArgCall(ast::Builtin::GetTablePR, inserter_, true);
   builder->Append(codegen_->Assign(codegen_->MakeExpr(insert_pr_), get_pr_call));
+}
+
+void InsertTranslator::GenSetTablePR(FunctionBuilder *builder, uint32_t idx) {
+  const auto &node_vals = op_->GetValues(idx);
+  for (size_t i = 0; i < node_vals.size(); i++) {
+    auto &val = node_vals[i];
+    auto translator = TranslatorFactory::CreateExpressionTranslator(val.Get(), codegen_);
+
+    auto *src = translator->DeriveExpr(this);
+    auto table_col_oid = all_oids_[i];
+    const auto &table_col = table_schema_.GetColumn(table_col_oid);
+    auto pr_set_call = codegen_->PRSet(codegen_->PointerTo(insert_pr_), val->GetReturnValueType(), table_col.Nullable(),
+                                       table_pm_[table_col_oid], src);
+    builder->Append(codegen_->MakeStmt(pr_set_call));
+  }
+}
+
+void InsertTranslator::GenTableInsert(FunctionBuilder *builder) {
+  // var insert_slot = @tableInsert(&inserter_)
+  auto insert_slot = codegen_->NewIdentifier("insert_slot");
+  auto insert_call = codegen_->OneArgCall(ast::Builtin::TableInsert, inserter_, true);
+  builder->Append(codegen_->DeclareVariable(insert_slot, nullptr, insert_call));
+}
+
+void InsertTranslator::GenIndexInsert(FunctionBuilder *builder, const catalog::index_oid_t &index_oid) {
+  // var insert_index_pr = @getIndexPR(&inserter, oid)
+  auto insert_index_pr = codegen_->NewIdentifier("insert_index_pr");
+  std::vector<ast::Expr *> pr_call_args{codegen_->PointerTo(inserter_), codegen_->IntLiteral(!index_oid)};
+  auto get_index_pr_call = codegen_->BuiltinCall(ast::Builtin::GetIndexPR, std::move(pr_call_args));
+  builder->Append(codegen_->DeclareVariable(insert_index_pr, nullptr, get_index_pr_call));
+
+  // Fill up the index pr
+  auto index = codegen_->Accessor()->GetIndex(index_oid);
+  const auto &index_pm = index->GetKeyOidToOffsetMap();
+  const auto &index_schema = codegen_->Accessor()->GetIndexSchema(index_oid);
+
+  pr_filler_.GenFiller(index_pm, index_schema, codegen_->PointerTo(insert_index_pr), builder);
+
+  // Insert into index
+  // if (insert not successfull) { Abort(); }
+  auto index_insert_call = codegen_->OneArgCall(ast::Builtin::IndexInsert, inserter_, true);
+  auto cond = codegen_->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
+  builder->StartIfStmt(cond);
+  Abort(builder);
+  builder->FinishBlockStmt();
 }
 
 void InsertTranslator::FillPRFromChild(terrier::execution::compiler::FunctionBuilder *builder) {

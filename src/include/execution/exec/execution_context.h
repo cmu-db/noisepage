@@ -115,8 +115,6 @@ class EXPORT ExecutionContext {
    */
   void SetAccessor(std::unique_ptr<terrier::catalog::CatalogAccessor> &&accessor) { accessor_ = std::move(accessor); }
 
-  void SetOutputCallback() {}
-
  private:
   catalog::db_oid_t db_oid_;
   transaction::TransactionContext *txn_;

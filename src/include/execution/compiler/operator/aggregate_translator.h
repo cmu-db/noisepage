@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utility>
 #include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 
@@ -38,7 +39,6 @@ class AggregateBottomTranslator : public OperatorTranslator {
 
   void Produce(FunctionBuilder *builder) override;
   void Abort(FunctionBuilder *builder) override;
-
   void Consume(FunctionBuilder *builder) override;
 
   // Pass through to the child
@@ -126,20 +126,13 @@ class AggregateBottomTranslator : public OperatorTranslator {
 
  private:
   // The number of group by terms.
-  uint32_t num_group_by_terms{0};
+  uint32_t num_group_by_terms_;
   const planner::AggregatePlanNode *op_;
 
   // Structs, Functions, and local variables needed.
   // TODO(Amadou): This list is blowing up. Figure out a different to manage local variable names.
-  static constexpr const char *hash_val_name = "agg_hash_val";
-  static constexpr const char *agg_payload_name = "agg_payload";
-  static constexpr const char *agg_values_name = "agg_values";
-  static constexpr const char *payload_struct_name = "AggPayload";
-  static constexpr const char *values_struct_name = "AggValues";
-  static constexpr const char *key_check_name = "aggKeyCheckFn";
-  static constexpr const char *agg_ht_name = "agg_hash_table";
-  static constexpr const char *group_by_term_names = "group_by_term";
-  static constexpr const char *agg_term_names = "agg_term";
+  static constexpr const char *GROUP_BY_TERM_NAMES = "group_by_term";
+  static constexpr const char *AGG_TERM_NAMES = "agg_term";
   ast::Identifier hash_val_;
   ast::Identifier agg_values_;
   ast::Identifier values_struct_;
@@ -158,13 +151,14 @@ class AggregateTopTranslator : public OperatorTranslator {
   /**
    * Constructor
    * @param op plan node
-   * @param pipeline current pipeline
+   * @param codegen The code generator
+   * @param bottom The corresponding bottom translator
    */
   AggregateTopTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen, OperatorTranslator *bottom)
       : OperatorTranslator(codegen),
         op_(op),
         bottom_(dynamic_cast<AggregateBottomTranslator *>(bottom)),
-        agg_iterator_(agg_iterator_name) {}
+        agg_iterator_("agg_iter") {}
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
@@ -181,16 +175,8 @@ class AggregateTopTranslator : public OperatorTranslator {
   // Does nothing
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
 
-  /**
-   * First declare the HT iterator
-   * For generate the HT loop
-   * Finally declare the result of the aggregate.
-   * Close the iterator after the loop
-   */
   void Produce(FunctionBuilder *builder) override;
   void Abort(FunctionBuilder *builder) override;
-
-  // Pass through
   void Consume(FunctionBuilder *builder) override;
 
   // Let the bottom translator handle these call
@@ -214,13 +200,13 @@ class AggregateTopTranslator : public OperatorTranslator {
   // Declare var agg_iterator: *AggregationHashTableIterator
   void DeclareIterator(FunctionBuilder *builder);
 
-  // for (@aggHTIterInit(agg_iter, &state.table); @aggHTIterHasNext(agg_iter); @aggHTIterNext(agg_iter)) {...}
+  // for (@aggHTIterInit(agg_iter, &state.table); @aggHTIterHasNext(&agg_iter); @aggHTIterNext(agg_iter)) {...}
   void GenHTLoop(FunctionBuilder *builder);
 
-  // Declare var agg_payload = @ptrCast(*AggPayload, @aggHTIterGetRow(agg_iter))
+  // Declare var agg_payload = @ptrCast(*AggPayload, @aggHTIterGetRow(&agg_iter))
   void DeclareResult(FunctionBuilder *builder);
 
-  // Call @aggHTIterClose(agg_iter)
+  // Call @aggHTIterClose(&agg_iter)
   void CloseIterator(FunctionBuilder *builder);
 
   // Generate an if statement for the having clause
@@ -232,7 +218,6 @@ class AggregateTopTranslator : public OperatorTranslator {
   AggregateBottomTranslator *bottom_;
 
   // Structs, Functions, and local variables needed.
-  static constexpr const char *agg_iterator_name = "agg_iterator";
   ast::Identifier agg_iterator_;
 };
 }  // namespace terrier::execution::compiler

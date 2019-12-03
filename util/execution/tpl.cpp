@@ -194,7 +194,6 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
     }
   }
 
-  /*
   //
   // Adaptive
   //
@@ -244,7 +243,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       }
       EXECUTION_LOG_INFO("JIT main() returned: {}", main());
     }
-  }*/
+  }
 
   // Dump stats
   EXECUTION_LOG_INFO(

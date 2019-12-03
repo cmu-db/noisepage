@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "execution/exec/execution_context.h"
-#include "schema_reader.h"
+#include "execution/table_generator/schema_reader.h"
 #include "transaction/transaction_context.h"
 #include "type/type_id.h"
 
@@ -54,7 +54,7 @@ class TableReader {
 
  private:
   // Postgres NULL string
-  static constexpr const char *null_string = "\\N";
+  static constexpr const char *NULL_STRING = "\\N";
   exec::ExecutionContext *exec_ctx_;
   storage::BlockStore *store_;
   catalog::namespace_oid_t ns_oid_;

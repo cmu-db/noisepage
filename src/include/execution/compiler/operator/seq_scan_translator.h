@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+#include <vector>
 #include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 
@@ -12,15 +14,13 @@ class SeqScanTranslator : public OperatorTranslator {
  public:
   /**
    * Constructor
-   * @param op plan node
-   * @param pipeline current pipeline
+   * @param op The plan node
+   * @param codegen The code generator
    */
   SeqScanTranslator(const terrier::planner::SeqScanPlanNode *op, CodeGen *codegen);
 
   void Produce(FunctionBuilder *builder) override;
   void Abort(FunctionBuilder *builder) override;
-
-  // Pass through
   void Consume(FunctionBuilder *builder) override;
 
   // Does nothing
@@ -60,15 +60,16 @@ class SeqScanTranslator : public OperatorTranslator {
   // Used by column value expression to get a column.
   ast::Expr *GetTableColumn(const catalog::col_oid_t &col_oid) override;
 
-  ast::Expr* GetSlot() override {
-    return codegen_->PointerTo(slot_);
-  }
+  // Return the current slot.
+  ast::Expr *GetSlot() override { return codegen_->PointerTo(slot_); }
 
  private:
   // var tvi : TableVectorIterator
   void DeclareTVI(FunctionBuilder *builder);
 
   void SetOids(FunctionBuilder *builder);
+
+  void DoTableScan(FunctionBuilder *builder);
 
   // for (@tableIterInit(&tvi, ...); @tableIterAdvance(&tvi);) {...}
   void GenTVILoop(FunctionBuilder *builder);
@@ -106,17 +107,10 @@ class SeqScanTranslator : public OperatorTranslator {
   bool is_vectorizable_;
 
   // Structs, functions and locals
-  static constexpr const char *tvi_name_ = "tvi";
-  static constexpr const char *col_oids_name_ = "col_oids";
-  static constexpr const char *pci_name_ = "pci";
-  static constexpr const char *slot_name_ = "slot";
-  static constexpr const char *table_struct_name_ = "TableRow";
-  static constexpr const char *pci_type_name_ = "ProjectedColumnsIterator";
   ast::Identifier tvi_;
   ast::Identifier col_oids_;
   ast::Identifier pci_;
   ast::Identifier slot_;
-  ast::Identifier table_struct_;
   ast::Identifier pci_type_;
 };
 

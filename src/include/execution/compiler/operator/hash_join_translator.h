@@ -6,12 +6,6 @@
 
 namespace terrier::execution::compiler {
 
-/*
- * TODO(Amadou): These two classes have a lot in common. The only difference between several of their methods
- * is one index value (0 vs 1), or one function call (GetRightJoinKeys vs GetLeftJoinKeys) so refactoring is possible.
- * For now, I am keeping them separate to simplify things until I am sure the code works.
- */
-
 // Forward declare for friendship
 class HashJoinRightTranslator;
 
@@ -20,12 +14,16 @@ class HashJoinRightTranslator;
  */
 class HashJoinLeftTranslator : public OperatorTranslator {
  public:
+  /**
+   * Constructor
+   * @param op The plan node
+   * @param codegen The code generator
+   */
   HashJoinLeftTranslator(const terrier::planner::HashJoinPlanNode *op, CodeGen *codegen);
 
   // Insert tuples into the hash table
   void Produce(FunctionBuilder *builder) override;
   void Abort(FunctionBuilder *builder) override;
-
   void Consume(FunctionBuilder *builder) override;
 
   // Add the join hash table
@@ -52,7 +50,7 @@ class HashJoinLeftTranslator : public OperatorTranslator {
  private:
   friend class HashJoinRightTranslator;
 
-  // Iterator through the left join keys and hash them
+  // Iterate through the left join keys and hash them
   void GenHashCall(FunctionBuilder *builder);
 
   // Generate the join hash table insertion code
@@ -71,11 +69,7 @@ class HashJoinLeftTranslator : public OperatorTranslator {
   const planner::HashJoinPlanNode *op_;
 
   // Structs, functions, and locals
-  static constexpr const char *hash_val_name_ = "hash_val";
-  static constexpr const char *build_struct_name_ = "JoinBuild";
-  static constexpr const char *build_row_name_ = "build_row";
-  static constexpr const char *join_ht_name_ = "join_hash_table";
-  static constexpr const char *left_attr_name_ = "left_attr";
+  static constexpr const char *LEFT_ATTR_NAME = "left_attr";
   ast::Identifier hash_val_;
   ast::Identifier build_struct_;
   ast::Identifier build_row_;
@@ -87,11 +81,16 @@ class HashJoinLeftTranslator : public OperatorTranslator {
  */
 class HashJoinRightTranslator : public OperatorTranslator {
  public:
+  /**
+   * Constructor
+   * @param op The plan node
+   * @param codegen The code generator
+   * @param left The corresponding left translator
+   */
   HashJoinRightTranslator(const terrier::planner::HashJoinPlanNode *op, CodeGen *codegen, OperatorTranslator *left);
 
   void Produce(FunctionBuilder *builder) override;
   void Abort(FunctionBuilder *builder) override;
-
   void Consume(FunctionBuilder *builder) override;
 
   // Does nothing
@@ -160,12 +159,7 @@ class HashJoinRightTranslator : public OperatorTranslator {
   bool is_child_ptr_{false};
 
   // Structs, functions, and locals
-  static constexpr const char *hash_val_name_ = "hash_val";
-  static constexpr const char *probe_struct_name_ = "JoinProbe";
-  static constexpr const char *probe_row_name_ = "probe_row";
-  static constexpr const char *key_check_name_ = "joinKeyCheck";
-  static constexpr const char *iterator_name_ = "join_iterator";
-  static constexpr const char *right_attr_name_ = "right_attr";
+  static constexpr const char *RIGHT_ATTR_NAME = "right_attr";
   ast::Identifier hash_val_;
   ast::Identifier probe_struct_;
   ast::Identifier probe_row_;

@@ -1,4 +1,7 @@
 #pragma once
+#include <memory>
+#include <utility>
+#include <vector>
 #include "execution/sql/value.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
@@ -51,9 +54,9 @@ class ExpressionMaker {
    */
   ManagedExpression Constant(int16_t year, uint8_t month, uint8_t day) {
     sql::Date date(year, month, day);
-    type::date_t int_val_(date.int_val_);
+    type::date_t int_val(date.int_val_);
     return MakeManaged(
-        std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetDate(int_val_)));
+        std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetDate(int_val)));
   }
 
   /**
@@ -61,9 +64,9 @@ class ExpressionMaker {
    */
   ManagedExpression Constant(date::year_month_day ymd) {
     sql::Date date(ymd.year(), ymd.month(), ymd.day());
-    type::date_t int_val_(date.int_val_);
+    type::date_t int_val(date.int_val_);
     return MakeManaged(
-        std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetDate(int_val_)));
+        std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetDate(int_val)));
   }
 
   /**

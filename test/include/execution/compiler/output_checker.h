@@ -1,5 +1,9 @@
+#include <unordered_map>
+#include <utility>
+#include <vector>
 #include "execution/sql/value.h"
 #include "planner/plannodes/output_schema.h"
+#include "test_util/test_harness.h"
 #include "type/type_id.h"
 
 // TODO(Amadou): Currently all checker only work on single integer columns. Ideally, we want them to work on arbitrary
@@ -24,7 +28,7 @@ class MultiChecker : public OutputChecker {
    * Constructor
    * @param checkers list of output checkers
    */
-  MultiChecker(std::vector<OutputChecker *> &&checkers) : checkers_{std::move(checkers)} {}
+  explicit MultiChecker(std::vector<OutputChecker *> &&checkers) : checkers_{std::move(checkers)} {}
 
   /**
    * Call checkCorrectness on all output checkers
@@ -55,14 +59,14 @@ using CorrectnessFn = std::function<void()>;
 class GenericChecker : public OutputChecker {
  public:
   GenericChecker(RowChecker row_checker, CorrectnessFn correctness_fn)
-      : row_checker_{row_checker}, correctness_fn_(correctness_fn) {}
+      : row_checker_{std::move(row_checker)}, correctness_fn_(std::move(correctness_fn)) {}
 
   void CheckCorrectness() override {
-    if (bool(correctness_fn_)) correctness_fn_();
+    if (correctness_fn_) correctness_fn_();
   }
 
   void ProcessBatch(const std::vector<std::vector<sql::Val *>> &output) override {
-    if (!bool(row_checker_)) return;
+    if (!row_checker_) return;
     for (const auto &vals : output) {
       row_checker_(vals);
     }
@@ -82,7 +86,7 @@ class NumChecker : public OutputChecker {
    * Constructor
    * @param expected_count the expected number of output tuples
    */
-  NumChecker(int64_t expected_count) : expected_count_{expected_count} {}
+  explicit NumChecker(int64_t expected_count) : expected_count_{expected_count} {}
 
   /**
    * Checks if the expected number and the received number are the same
@@ -109,7 +113,7 @@ class NumChecker : public OutputChecker {
 class SingleIntComparisonChecker : public OutputChecker {
  public:
   SingleIntComparisonChecker(std::function<bool(int64_t, int64_t)> fn, uint32_t col_idx, int64_t rhs)
-      : comp_fn_(fn), col_idx_{col_idx}, rhs_{rhs} {}
+      : comp_fn_(std::move(fn)), col_idx_{col_idx}, rhs_{rhs} {}
 
   void CheckCorrectness() override {}
 
@@ -203,7 +207,7 @@ class SingleIntSortChecker : public OutputChecker {
    * Constructor
    * @param col_idx column to check
    */
-  SingleIntSortChecker(uint32_t col_idx) : col_idx_{0} {}
+  explicit SingleIntSortChecker(uint32_t col_idx) : col_idx_{0} {}
 
   /**
    * Does nothing. All the checking is done in ProcessBatch.
@@ -241,7 +245,7 @@ class MultiOutputCallback {
    * Constructor
    * @param callbacks list of output callbacks
    */
-  MultiOutputCallback(std::vector<exec::OutputCallback> callbacks) : callbacks_{std::move(callbacks)} {}
+  explicit MultiOutputCallback(std::vector<exec::OutputCallback> callbacks) : callbacks_{std::move(callbacks)} {}
 
   /**
    * OutputCallback function
@@ -276,9 +280,9 @@ class OutputStore {
     for (uint32_t row = 0; row < num_tuples; row++) {
       uint32_t curr_offset = 0;
       std::vector<sql::Val *> vals;
-      for (uint16_t col = 0; col < schema_->GetColumns().size(); col++) {
+      for (const auto &col : schema_->GetColumns()) {
         // TODO(Amadou): Figure out to print other types.
-        switch (schema_->GetColumns()[col].GetType()) {
+        switch (col.GetType()) {
           case terrier::type::TypeId::TINYINT:
           case terrier::type::TypeId::SMALLINT:
           case terrier::type::TypeId::BIGINT:
@@ -310,17 +314,17 @@ class OutputStore {
           default:
             UNREACHABLE("Cannot output unsupported type!!!");
         }
-        curr_offset += sql::ValUtil::GetSqlSize(schema_->GetColumns()[col].GetType());
+        curr_offset += sql::ValUtil::GetSqlSize(col.GetType());
       }
-      output.emplace_back(vals);
+      output_.emplace_back(vals);
     }
-    checker_->ProcessBatch(output);
-    output.clear();
+    checker_->ProcessBatch(output_);
+    output_.clear();
   }
 
  private:
   // Current output batch
-  std::vector<std::vector<sql::Val *>> output;
+  std::vector<std::vector<sql::Val *>> output_;
   // output schema
   const terrier::planner::OutputSchema *schema_;
   // checker to run

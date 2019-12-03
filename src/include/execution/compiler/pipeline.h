@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+#include <utility>
 #include <vector>
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/function_builder.h"
@@ -22,7 +24,6 @@ class Pipeline {
   /**
    * Add an operator translator to the pipeline
    * @param translator translator to add
-   * @param parallelism parallelism level
    */
   void Add(std::unique_ptr<OperatorTranslator> &&translator) {
     is_vectorizable_ = is_vectorizable_ && translator->IsVectorizable();

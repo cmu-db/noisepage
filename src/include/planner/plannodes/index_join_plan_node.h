@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -96,7 +97,7 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
                     common::ManagedPointer<parser::AbstractExpression> predicate, catalog::index_oid_t index_oid,
                     catalog::table_oid_t table_oid,
                     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&index_cols)
-      : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, std::move(predicate)),
+      : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate),
         index_oid_(index_oid),
         table_oid_(table_oid),
         index_cols_(std::move(index_cols)) {}
@@ -149,7 +150,7 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
     if (GetJoinPredicate() != nullptr) CollectOids(&result, GetJoinPredicate().Get());
     // Output expressions
     for (const auto &col : GetOutputSchema()->GetColumns()) {
-      CollectOids(&result, col.GetExpr());
+      CollectOids(&result, col.GetExpr().Get());
     }
     // Remove duplicates
     std::unordered_set<catalog::col_oid_t> s(result.begin(), result.end());

@@ -18,29 +18,25 @@
 namespace terrier::planner {
 
 /**
- * TODO(Amadou): I modified this object to make more convenient for the execution engine.
- * Technically, all we need to execute a query is a list of columns type along with the expressions used to
- * generate them.
- * The col_oids, col_names are not that useful, and may not even exist for intermediate columns.
- * Also this makes it easier to make columns that are functions of multiple other columns.
- * The optimizer might need to change it though.
+ * Internal object for representing output columns of a plan node. This object is to be differentiated from
+ * catalog::Schema, which contains all columns of a table. This object can contain a subset of columns of a table.
+ * This class is also meant to provide mapping information from a set of input columns to a set of output columns.
  */
 class OutputSchema {
  public:
   /**
-   * This object contains output columns of a plan node which a type along with an expression to generate the column.
+   * Describes a column output by a plan
    */
   class Column {
    public:
     /**
-     * Instantiates a Column object.
-     * TODO(Amadou): Given that the expressions already have a return type, passing in a type may be redundant.
+     * Instantiates a Column object, primary to be used for building a Schema object
+     * @param name column name
      * @param type SQL type for this column
-     * @param nullable is column nullable
-     * @param expr the expression used to generate this column
+     * @param expr Expression
      */
-    Column(const type::TypeId type, const bool nullable, common::ManagedPointer<parser::AbstractExpression> expr)
-        : type_(type), nullable_(nullable), expr_(expr) {
+    Column(std::string name, const type::TypeId type, std::unique_ptr<parser::AbstractExpression> expr)
+        : name_(std::move(name)), type_(type), expr_(std::move(expr)) {
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
     }
 
@@ -50,39 +46,48 @@ class OutputSchema {
     Column() = default;
 
     /**
+     * Creates a copy of this column.
+     */
+    Column Copy() const { return Column(GetName(), GetType(), expr_->Copy()); }
+
+    /**
+     * @return column name
+     */
+    const std::string &GetName() const { return name_; }
+
+    /**
      * @return SQL type for this column
      */
     type::TypeId GetType() const { return type_; }
+
     /**
-     * @return true if the column is nullable, false otherwise
+     * @return expr
      */
-    bool GetNullable() const { return nullable_; }
+    common::ManagedPointer<parser::AbstractExpression> GetExpr() const { return common::ManagedPointer(expr_.get()); }
+
     /**
-     * @return the hashed value for this column.
+     * @return the hashed value for this column based on name and OID
      */
     common::hash_t Hash() const {
-      common::hash_t hash = common::HashUtil::Hash(type_);
-      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(nullable_));
-      if (expr_ != nullptr) {
-        hash = common::HashUtil::CombineHashes(hash, expr_->Hash());
-      }
+      common::hash_t hash = common::HashUtil::Hash(name_);
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(type_));
+      hash = common::HashUtil::CombineHashes(hash, expr_->Hash());
       return hash;
     }
-
-    const parser::AbstractExpression *GetExpr() const { return expr_.Get(); }
 
     /**
      * @return whether the two columns are equal
      */
     bool operator==(const Column &rhs) const {
-      if ((expr_ == nullptr && rhs.expr_ != nullptr) || (expr_ != nullptr && rhs.expr_ == nullptr)) {
-        return false;
-      }
-      if (expr_ != nullptr && *expr_ != *rhs.expr_) {
-        return false;
-      }
-      return type_ == rhs.type_ && nullable_ == rhs.nullable_;
+      // Name
+      if (name_ != rhs.name_) return false;
+
+      // Type
+      if (type_ != rhs.type_) return false;
+
+      return *expr_ == *rhs.expr_;
     }
+
     /**
      * Inequality check
      * @param rhs other
@@ -95,46 +100,39 @@ class OutputSchema {
      */
     nlohmann::json ToJson() const {
       nlohmann::json j;
+      j["name"] = name_;
       j["type"] = type_;
-      j["nullable"] = nullable_;
-      j["expr"] = *expr_;
+      j["expr"] = expr_->ToJson();
       return j;
     }
 
     /**
      * @param j json to deserialize
      */
-    std::unique_ptr<parser::AbstractExpression> FromJson(const nlohmann::json &j) {
+    std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) {
+      name_ = j.at("name").get<std::string>();
       type_ = j.at("type").get<type::TypeId>();
-      nullable_ = j.at("nullable").get<bool>();
+
       if (!j.at("expr").is_null()) {
         auto deserialized = parser::DeserializeExpression(j.at("expr"));
-        expr_ = common::ManagedPointer(deserialized.result_);
-        return std::move(deserialized.result_);
+        expr_ = std::move(deserialized.result_);
+        return std::move(deserialized.non_owned_exprs_);
       }
-      return nullptr;
+
+      return {};
     }
 
    private:
+    std::string name_;
     type::TypeId type_;
-    bool nullable_;
-    common::ManagedPointer<parser::AbstractExpression> expr_;
+    std::unique_ptr<parser::AbstractExpression> expr_;
   };
 
   /**
-   * Instantiates a OutputSchema.
+   * Instantiates a OutputSchema object from a vector of previously-defined Columns
    * @param columns collection of columns
    */
-  explicit OutputSchema(std::vector<Column> columns) : columns_(std::move(columns)) {
-    TERRIER_ASSERT(!columns_.empty() && columns_.size() <= common::Constants::MAX_COL,
-                   "Number of columns must be between 1 and MAX_COL.");
-  }
-
-  /**
-   * Copy constructs an OutputSchema.
-   * @param other the OutputSchema to be copied
-   */
-  OutputSchema(const OutputSchema &other) = default;
+  explicit OutputSchema(std::vector<Column> &&columns) : columns_(std::move(columns)) {}
 
   /**
    * Default constructor for deserialization
@@ -142,13 +140,14 @@ class OutputSchema {
   OutputSchema() = default;
 
   /**
-   * @param col_idx offset into the schema specifying which Column to access
+   * @param col_id offset into the schema specifying which Column to access
    * @return description of the schema for a specific column
    */
-  Column GetColumn(const uint32_t col_idx) const {
-    TERRIER_ASSERT(col_idx < columns_.size(), "column id is out of bounds for this Schema");
-    return columns_[col_idx];
+  const Column &GetColumn(size_t col_id) const {
+    TERRIER_ASSERT(col_id < columns_.size(), "column id is out of bounds for this Schema");
+    return columns_[col_id];
   }
+
   /**
    * @return the vector of columns that are part of this schema
    */
@@ -156,12 +155,12 @@ class OutputSchema {
 
   /**
    * Make a copy of this OutputSchema
-   * @return shared pointer to the copy
+   * @return unique pointer to the copy
    */
   std::unique_ptr<OutputSchema> Copy() const {
     std::vector<Column> columns;
     for (const auto &col : GetColumns()) {
-      columns.emplace_back(col);
+      columns.emplace_back(col.Copy());
     }
     return std::make_unique<OutputSchema>(std::move(columns));
   }
@@ -182,7 +181,7 @@ class OutputSchema {
    * @param rhs other
    * @return true if the two OutputSchema are the same
    */
-  bool operator==(const OutputSchema &rhs) const { return (columns_ == rhs.columns_); }
+  bool operator==(const OutputSchema &rhs) const { return columns_ == rhs.columns_; }
 
   /**
    * Inequality check
@@ -196,7 +195,11 @@ class OutputSchema {
    */
   nlohmann::json ToJson() const {
     nlohmann::json j;
-    j["columns"] = columns_;
+    std::vector<nlohmann::json> columns;
+    for (const auto &col : columns_) {
+      columns.emplace_back(col.ToJson());
+    }
+    j["columns"] = columns;
     return j;
   }
 
@@ -207,12 +210,13 @@ class OutputSchema {
     std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
 
     std::vector<nlohmann::json> columns_json = j.at("columns");
-    for (const auto &col_json : columns_json) {
-      Column c{};
-      auto res = c.FromJson(col_json);
-      columns_.emplace_back(c);
-      if (res != nullptr) exprs.emplace_back(std::move(res));
+    for (const auto &j : columns_json) {
+      Column c;
+      auto nonowned = c.FromJson(j);
+      columns_.emplace_back(std::move(c));
+      exprs.insert(exprs.end(), std::make_move_iterator(nonowned.begin()), std::make_move_iterator(nonowned.end()));
     }
+
     return exprs;
   }
 

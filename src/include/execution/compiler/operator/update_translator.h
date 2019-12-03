@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../../planner/plannodes/update_plan_node.h"
+#include <vector>
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/storage/pr_filler.h"
 #include "planner/plannodes/update_plan_node.h"
@@ -12,6 +12,11 @@ namespace terrier::execution::compiler {
  */
 class UpdateTranslator : public OperatorTranslator {
  public:
+  /**
+   * Constructor
+   * @param op The plan node
+   * @param codegen The code generator
+   */
   UpdateTranslator(const terrier::planner::UpdatePlanNode *op, CodeGen *codegen);
 
   // Does nothing
@@ -29,7 +34,6 @@ class UpdateTranslator : public OperatorTranslator {
   // Does nothing
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override{};
 
-  // Produce and consume logic
   void Produce(FunctionBuilder *builder) override;
   void Abort(FunctionBuilder *builder) override;
   void Consume(FunctionBuilder *builder) override;
@@ -38,14 +42,14 @@ class UpdateTranslator : public OperatorTranslator {
   bool IsMaterializer(bool *is_ptr) override { return false; }
 
   ast::Expr *GetOutput(uint32_t attr_idx) override { UNREACHABLE("Updates don't output anything"); };
+  ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
 
   const planner::AbstractPlanNode *Op() override { return op_; }
-
-  ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
 
  private:
   // Declare the updater
   void DeclareUpdater(FunctionBuilder *builder);
+  // Free the updater
   void GenUpdaterFree(FunctionBuilder *builder);
   // Set the oids variable
   void SetOids(FunctionBuilder *builder);
@@ -77,9 +81,6 @@ class UpdateTranslator : public OperatorTranslator {
 
  private:
   const planner::UpdatePlanNode *op_;
-  static constexpr const char *updater_name_ = "updater";
-  static constexpr const char *update_pr_name_ = "update_pr";
-  static constexpr const char *col_oids_name_ = "col_oids";
   ast::Identifier updater_;
   ast::Identifier update_pr_;
   ast::Identifier col_oids_;

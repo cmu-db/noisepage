@@ -10,62 +10,7 @@
 
 namespace terrier::planner {
 
-class SortKey {
- public:
-  /**
-   * Constructor
-   * @param expr expression to sort by
-   * @param sort_type order of the sort
-   */
-  SortKey(common::ManagedPointer<parser::AbstractExpression> expr, optimizer::OrderByOrderingType sort_type)
-      : expr_{expr}, sort_type_{sort_type} {}
-
-  /**
-   * Default constructor for json.
-   */
-  SortKey() = default;
-
-  /**
-   * @return The expression to sort by
-   */
-  common::ManagedPointer<parser::AbstractExpression> Expr() const { return expr_; }
-
-  bool operator==(const SortKey &other) const { return expr_ == other.expr_ && sort_type_ == other.sort_type_; }
-
-  bool operator!=(const SortKey &other) const { return !(*this == other); }
-
-  /**
-   * @return column serialized to json
-   */
-  nlohmann::json ToJson() const {
-    nlohmann::json j;
-    j["expr"] = *expr_;
-    j["sort_type"] = sort_type_;
-    return j;
-  }
-
-  /**
-   * @param j json to deserialize
-   */
-  std::unique_ptr<parser::AbstractExpression> FromJson(const nlohmann::json &j) {
-    sort_type_ = j.at("sort_type").get<optimizer::OrderByOrderingType>();
-    if (!j.at("expr").is_null()) {
-      auto deserialized = parser::DeserializeExpression(j.at("expr"));
-      expr_ = common::ManagedPointer(deserialized.result_);
-      return std::move(deserialized.result_);
-    }
-    return nullptr;
-  }
-
-  /**
-   * @return The order of the sort
-   */
-  optimizer::OrderByOrderingType SortType() const { return sort_type_; }
-
- private:
-  common::ManagedPointer<parser::AbstractExpression> expr_{nullptr};
-  optimizer::OrderByOrderingType sort_type_{};
-};
+using SortKey = std::pair<common::ManagedPointer<parser::AbstractExpression>, optimizer::OrderByOrderingType>;
 
 /**
  * Plan node for order by operator
@@ -85,7 +30,12 @@ class OrderByPlanNode : public AbstractPlanNode {
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
-     * @param key column id for key to sort
+     * A sort key needs to be an expression because with a ORDER BY [clause],
+     * the [clause] doesn't have to refer to a base column. It can refer to a
+     * derived column or be a computed expression that the execution engine
+     * will need to evaluate.
+     *
+     * @param key expression to OrderBy
      * @param ordering ordering (ASC or DESC) for key
      * @return builder object
      */
@@ -226,7 +176,6 @@ class OrderByPlanNode : public AbstractPlanNode {
   size_t offset_;
 };
 
-DEFINE_JSON_DECLARATIONS(SortKey);
 DEFINE_JSON_DECLARATIONS(OrderByPlanNode);
 
 }  // namespace terrier::planner

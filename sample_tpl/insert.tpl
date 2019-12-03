@@ -1,47 +1,43 @@
-struct output_struct {
-  col1: Integer
-}
-
 // INSERT INTO empty_table SELECT colA FROM test_1 WHERE colA BETWEEN 495 AND 505
 // Returns the number of tuples inserted (11)
 fun main(execCtx: *ExecutionContext) -> int64 {
-  var ret = 0
-  // OIDs.
-  var oids: [4]uint32
-  oids[0] = 1 // colA
-  oids[1] = 2 // colB
-  oids[2] = 3 // colC
-  oids[3] = 4 // colD
-
+  var count = 0 // output count
   // Init inserter
+  var col_oids: [1]uint32
+  col_oids[0] = 1 // colA
   var inserter: StorageInterface
-  @storageInterfaceInitBind(&inserter, execCtx, "test_1", oids, true)
+  @storageInterfaceInitBind(&inserter, execCtx, "empty_table", col_oids, true)
+  // Iterate through rows with colA between 495 and 505
+  // Init index iterator
+  var index : IndexIterator
+  @indexIteratorInitBind(&index, execCtx, "test_1", "index_1", col_oids)
+  // Set iteration bounds
+  var lo_index_pr = @indexIteratorGetLoPR(&index)
+  var hi_index_pr = @indexIteratorGetHiPR(&index)
+  @prSetInt(&lo_index_pr, 0, @intToSql(495)) // Set colA in lo
+  @prSetInt(&hi_index_pr, 0, @intToSql(505)) // Set colA in hi
+  for (@indexIteratorScanAscending(&index); @indexIteratorAdvance(&index);) {
+    // Materialize the current match.
+    var table_pr = @indexIteratorGetTablePR(&index)
+    var colA = @prGetInt(&table_pr, 0)
+    var slot = @indexIteratorGetSlot(&index)
 
-  // Init TVI
-  var tvi: TableVectorIterator
-  @tableIterInitBind(&tvi, execCtx, "test_1", oids)
+    // Insert into empty_table
+    var insert_pr = @getTablePR(&inserter)
+    @prSetInt(&insert_pr, 0, colA)
+    var insert_slot = @tableInsert(&inserter)
 
-  // Iterate
-  for (@tableIterAdvance(&tvi)) {
-    var pci = @tableIterGetPCI(&tvi)
-    @filterGe(pci, 0, 4, 495)
-    @filterLe(pci, 0, 4, 505)
-    for (; @pciHasNext(pci); @pciAdvance(pci)) {
-      var colA = @pciGetInt(pci, 0)
-      if (colA >= 495 and colA <= 505) {
-        // Insert into table
-        var insert_pr = @getTablePR(&inserter)
-        @prSetInt(&insert_pr, 0, @intToSql(-502))
-        var insert_slot = @tableInsert(&inserter)
-        ret = ret + 1
-        var out = @ptrCast(*output_struct, @outputAlloc(execCtx))
-        out.col1 = colA
-      }
+    // Insert into index
+    var index_pr = @getIndexPRBind(&inserter, "index_empty")
+    @prSetInt(&index_pr, 0, colA)
+    if (!@indexInsert(&inserter)) {
+      @indexIteratorFree(&index)
+      @storageInterfaceFree(&inserter)
+      return 37
     }
-    @pciReset(pci)
+    count = count + 1
   }
-  @outputFinalize(execCtx)
-  @tableIterClose(&tvi)
+  @indexIteratorFree(&index)
   @storageInterfaceFree(&inserter)
-  return ret
+  return count
 }

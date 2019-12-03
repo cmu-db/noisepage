@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -26,9 +27,7 @@ using IndexExpression = common::ManagedPointer<parser::AbstractExpression>;
 /**
  * Type of the index scan.
  */
-enum class IndexScanType: uint8_t {
-  Exact, Ascending, Descending, AscendingLimit, DescendingLimit
-};
+enum class IndexScanType : uint8_t { Exact, Ascending, Descending, AscendingLimit, DescendingLimit };
 
 /**
  * Plan node for an index scan
@@ -54,7 +53,8 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
     std::unique_ptr<IndexScanPlanNode> Build() {
       return std::make_unique<IndexScanPlanNode>(std::move(children_), std::move(output_schema_), scan_predicate_,
                                                  is_for_update_, is_parallel_, database_oid_, namespace_oid_,
-                                                 index_oid_, table_oid_, scan_type_, std::move(lo_index_cols_), std::move(hi_index_cols_), scan_limit_);
+                                                 index_oid_, table_oid_, scan_type_, std::move(lo_index_cols_),
+                                                 std::move(hi_index_cols_), scan_limit_);
     }
 
     /**
@@ -75,16 +75,16 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
     }
 
     /**
-    * Sets the lower bound index cols.
-    */
+     * Sets the lower bound index cols.
+     */
     Builder &AddLoIndexColum(catalog::indexkeycol_oid_t col_oid, const IndexExpression &expr) {
       lo_index_cols_.emplace(col_oid, expr);
       return *this;
     }
 
     /**
-    * Sets the index upper bound cols.
-    */
+     * Sets the index upper bound cols.
+     */
     Builder &AddHiIndexColum(catalog::indexkeycol_oid_t col_oid, const IndexExpression &expr) {
       hi_index_cols_.emplace(col_oid, expr);
       return *this;
@@ -99,11 +99,17 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
       return *this;
     }
 
+    /**
+     * Sets the scan type
+     */
     Builder &SetScanType(IndexScanType scan_type) {
       scan_type_ = scan_type;
       return *this;
     }
 
+    /**
+     * Sets the scan limit
+     */
     Builder &SetScanLimit(uint32_t limit) {
       scan_limit_ = limit;
       return *this;
@@ -126,26 +132,30 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
    * @param is_for_update scan is used for an update
    * @param is_parallel parallel scan flag
    * @param database_oid database oid for scan
+   * @param namespace_oid namespace oid for scan
    * @param index_oid OID of index to be used in index scan
+   * @param table_oid OID of the table
+   * @param scan_type Type of the scan
+   * @param lo_index_cols lower bound of the scan (or exact key when scan type = Exact).
+   * @param hi_index_cols upper bound of the scan
+   * @param scan_limit limit of the scan if any
    */
   IndexScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                     std::unique_ptr<OutputSchema> output_schema,
                     common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
                     catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                    catalog::index_oid_t index_oid, catalog::table_oid_t table_oid,
-                    IndexScanType scan_type,
+                    catalog::index_oid_t index_oid, catalog::table_oid_t table_oid, IndexScanType scan_type,
                     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&lo_index_cols,
                     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&hi_index_cols,
                     uint32_t scan_limit)
-      : AbstractScanPlanNode(std::move(children), std::move(output_schema), std::move(predicate), is_for_update,
-                             is_parallel, database_oid, namespace_oid),
+      : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, is_parallel,
+                             database_oid, namespace_oid),
         scan_type_(scan_type),
         index_oid_(index_oid),
         table_oid_(table_oid),
         lo_index_cols_(std::move(lo_index_cols)),
         hi_index_cols_(std::move(hi_index_cols)),
-        scan_limit_(scan_limit)
-        {}
+        scan_limit_(scan_limit) {}
 
   /**
    * Default constructor used for deserialization
@@ -167,26 +177,33 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   /**
    * @return the index columns
    */
-  const std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &GetIndexColumns() const { return lo_index_cols_; }
+  const std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &GetIndexColumns() const {
+    return lo_index_cols_;
+  }
 
   /**
    * @return the lower bound index columns
    */
-  const std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &GetLoIndexColumns() const { return lo_index_cols_; }
+  const std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &GetLoIndexColumns() const {
+    return lo_index_cols_;
+  }
 
   /**
    * @return the upper bound index columns
    */
-  const std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &GetHiIndexColumns() const { return hi_index_cols_; }
-
-
-  IndexScanType GetScanType() const {
-    return scan_type_;
+  const std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &GetHiIndexColumns() const {
+    return hi_index_cols_;
   }
 
-  uint32_t ScanLimit() const {
-    return scan_limit_;
-  }
+  /**
+   * @return The scan type
+   */
+  IndexScanType GetScanType() const { return scan_type_; }
+
+  /**
+   * @return The scan limit
+   */
+  uint32_t ScanLimit() const { return scan_limit_; }
 
   /**
    * @return the type of this plan node
@@ -210,7 +227,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
     std::vector<catalog::col_oid_t> result;
     // Output expressions
     for (const auto &col : GetOutputSchema()->GetColumns()) {
-      CollectOids(&result, col.GetExpr());
+      CollectOids(&result, col.GetExpr().Get());
     }
     // Remove duplicates
     std::unordered_set<catalog::col_oid_t> s(result.begin(), result.end());

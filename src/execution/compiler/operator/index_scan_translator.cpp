@@ -1,4 +1,6 @@
 #include "execution/compiler/operator/index_scan_translator.h"
+#include <memory>
+#include <unordered_map>
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/translator_factory.h"
@@ -14,13 +16,13 @@ IndexScanTranslator::IndexScanTranslator(const planner::IndexScanPlanNode *op, C
       table_pm_(codegen_->Accessor()->GetTable(op_->GetTableOid())->ProjectionMapForOids(input_oids_)),
       index_schema_(codegen_->Accessor()->GetIndexSchema(op_->GetIndexOid())),
       index_pm_(codegen_->Accessor()->GetIndex(op_->GetIndexOid())->GetKeyOidToOffsetMap()),
-      index_iter_(codegen_->NewIdentifier(iter_name_)),
-      col_oids_(codegen->NewIdentifier(col_oids_name_)),
-      index_pr_(codegen->NewIdentifier(index_pr_name_)),
+      index_iter_(codegen_->NewIdentifier("index_iter")),
+      col_oids_(codegen->NewIdentifier("col_oids")),
+      index_pr_(codegen->NewIdentifier("index_pr")),
       lo_index_pr_(codegen->NewIdentifier("lo_index_pr")),
       hi_index_pr_(codegen->NewIdentifier("hi_index_pr")),
-      table_pr_(codegen->NewIdentifier(table_pr_name_)),
-      slot_(codegen->NewIdentifier(slot_name_)) {}
+      table_pr_(codegen->NewIdentifier("table_pr")),
+      slot_(codegen->NewIdentifier("slot")) {}
 
 void IndexScanTranslator::Produce(FunctionBuilder *builder) {
   // Create the col_oid array
@@ -71,7 +73,7 @@ void IndexScanTranslator::Consume(FunctionBuilder *builder) {
 ast::Expr *IndexScanTranslator::GetOutput(uint32_t attr_idx) {
   auto output_expr = op_->GetOutputSchema()->GetColumn(attr_idx).GetExpr();
   std::unique_ptr<ExpressionTranslator> translator =
-      TranslatorFactory::CreateExpressionTranslator(output_expr, codegen_);
+      TranslatorFactory::CreateExpressionTranslator(output_expr.Get(), codegen_);
   return translator->DeriveExpr(this);
 }
 
@@ -103,34 +105,36 @@ void IndexScanTranslator::DeclareIterator(FunctionBuilder *builder) {
   // Declare: var index_iter : IndexIterator
   ast::Expr *iter_type = codegen_->BuiltinType(ast::BuiltinType::IndexIterator);
   builder->Append(codegen_->DeclareVariable(index_iter_, iter_type, nullptr));
-  // Initialize: @indexIteratorInit(&index_iter, table_oid, index_oid, execCtx)
+  // Initialize: @indexIteratorInit(&index_iter, table_oid, index_oid, execCtx, col_oids_)
   ast::Expr *init_call = codegen_->IndexIteratorInit(index_iter_, !op_->GetTableOid(), !op_->GetIndexOid(), col_oids_);
   builder->Append(codegen_->MakeStmt(init_call));
 }
 
 void IndexScanTranslator::DeclareIndexPR(terrier::execution::compiler::FunctionBuilder *builder) {
   if (op_->GetScanType() == planner::IndexScanType::Exact) {
-    ast::Expr *get_pr_call = codegen_->IndexIteratorGetIndexPR(index_iter_);
+    ast::Expr *get_pr_call = codegen_->OneArgCall(ast::Builtin::IndexIteratorGetPR, index_iter_, true);
     builder->Append(codegen_->DeclareVariable(index_pr_, nullptr, get_pr_call));
   } else {
-    ast::Expr *lo_pr_call = codegen_->IndexIteratorGetIndexLoPR(index_iter_);
-    ast::Expr *hi_pr_call = codegen_->IndexIteratorGetIndexHiPR(index_iter_);
+    ast::Expr *lo_pr_call = codegen_->OneArgCall(ast::Builtin::IndexIteratorGetLoPR, index_iter_, true);
+    ast::Expr *hi_pr_call = codegen_->OneArgCall(ast::Builtin::IndexIteratorGetHiPR, index_iter_, true);
     builder->Append(codegen_->DeclareVariable(lo_index_pr_, nullptr, lo_pr_call));
     builder->Append(codegen_->DeclareVariable(hi_index_pr_, nullptr, hi_pr_call));
   }
 }
 
 void IndexScanTranslator::DeclareTablePR(terrier::execution::compiler::FunctionBuilder *builder) {
-  ast::Expr *get_pr_call = codegen_->IndexIteratorGetTablePR(index_iter_);
+  ast::Expr *get_pr_call = codegen_->OneArgCall(ast::Builtin::IndexIteratorGetTablePR, index_iter_, true);
   builder->Append(codegen_->DeclareVariable(table_pr_, nullptr, get_pr_call));
 }
 
 void IndexScanTranslator::DeclareSlot(terrier::execution::compiler::FunctionBuilder *builder) {
-  ast::Expr *get_slot_call = codegen_->IndexIteratorGetTableSlot(index_iter_);
+  ast::Expr *get_slot_call = codegen_->OneArgCall(ast::Builtin::IndexIteratorGetSlot, index_iter_, true);
   builder->Append(codegen_->DeclareVariable(slot_, nullptr, get_slot_call));
 }
 
-void IndexScanTranslator::FillKey(FunctionBuilder *builder, ast::Identifier pr, const std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression>& index_exprs) {
+void IndexScanTranslator::FillKey(
+    FunctionBuilder *builder, ast::Identifier pr,
+    const std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> &index_exprs) {
   // Set key.attr_i = expr_i for each key attribute
   for (const auto &key : index_exprs) {
     auto translator = TranslatorFactory::CreateExpressionTranslator(key.second.Get(), codegen_);
@@ -149,9 +153,9 @@ void IndexScanTranslator::GenForLoop(FunctionBuilder *builder) {
 
   ast::Stmt *loop_init = codegen_->MakeStmt(scan_call);
   // Loop condition
-  ast::Expr *has_next_call = codegen_->IndexIteratorAdvance(index_iter_);
+  ast::Expr *advance_call = codegen_->OneArgCall(ast::Builtin::IndexIteratorAdvance, index_iter_, true);
   // Make the loop
-  builder->StartForStmt(loop_init, has_next_call, nullptr);
+  builder->StartForStmt(loop_init, advance_call, nullptr);
 }
 
 void IndexScanTranslator::GenPredicate(FunctionBuilder *builder) {
@@ -162,7 +166,7 @@ void IndexScanTranslator::GenPredicate(FunctionBuilder *builder) {
 
 void IndexScanTranslator::FreeIterator(FunctionBuilder *builder) {
   // @indexIteratorFree(&index_iter_)
-  ast::Expr *free_call = codegen_->IndexIteratorFree(index_iter_);
+  ast::Expr *free_call = codegen_->OneArgCall(ast::Builtin::IndexIteratorFree, index_iter_, true);
   builder->Append(codegen_->MakeStmt(free_call));
 }
 }  // namespace terrier::execution::compiler

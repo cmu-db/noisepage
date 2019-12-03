@@ -114,7 +114,7 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
     if (GetScanPredicate() != nullptr) CollectOids(&result, GetScanPredicate().Get());
     // Output expressions
     for (const auto &col : GetOutputSchema()->GetColumns()) {
-      CollectOids(&result, col.GetExpr());
+      CollectOids(&result, col.GetExpr().Get());
     }
     // Remove duplicates
     std::unordered_set<catalog::col_oid_t> s(result.begin(), result.end());

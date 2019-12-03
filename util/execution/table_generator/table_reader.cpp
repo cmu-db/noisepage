@@ -27,7 +27,7 @@ uint32_t TableReader::ReadTable(const std::string &schema_file, const std::strin
   // Set table column offsets
   auto offset_map = table->ProjectionMapForOids(table_cols);
   std::vector<uint16_t> table_offsets;
-  for (const auto &col_info : table_info->cols) {
+  for (const auto &col_info : table_info->cols_) {
     const auto &col = table_schema.GetColumn(col_info.Name());
     table_offsets.emplace_back(offset_map[col.Oid()]);
   }
@@ -37,7 +37,7 @@ uint32_t TableReader::ReadTable(const std::string &schema_file, const std::strin
 
   // Iterate through CSV file
   std::vector<std::string> col_names;
-  for (const auto &col : table_info->cols) {
+  for (const auto &col : table_info->cols_) {
     col_names.emplace_back(col.Name());
   }
   csv::CSVReader reader(data_file);
@@ -47,7 +47,7 @@ uint32_t TableReader::ReadTable(const std::string &schema_file, const std::strin
     uint16_t col_idx = 0;
     for (csv::CSVField &field : row) {
       auto col_offset = table_offsets[col_idx];
-      auto col_type = table_info->cols[col_idx].Type();
+      auto col_type = table_info->cols_[col_idx].Type();
       WriteTableCol(redo->Delta(), col_offset, col_type, &field);
       col_idx++;
     }
@@ -56,14 +56,14 @@ uint32_t TableReader::ReadTable(const std::string &schema_file, const std::strin
     val_written++;
 
     // Write index data
-    for (auto &index_info : table_info->indexes) {
+    for (auto &index_info : table_info->indexes_) {
       WriteIndexEntry(index_info.get(), redo->Delta(), table_offsets, slot);
     }
   }
 
   // Deallocate
-  for (auto &index_info : table_info->indexes) {
-    delete[] reinterpret_cast<byte *>(index_info->index_pr);
+  for (auto &index_info : table_info->indexes_) {
+    delete[] reinterpret_cast<byte *>(index_info->index_pr_);
   }
 
   // Return
@@ -71,8 +71,8 @@ uint32_t TableReader::ReadTable(const std::string &schema_file, const std::strin
 }
 
 catalog::table_oid_t TableReader::CreateTable(TableInfo *info) {
-  catalog::Schema tmp_schema{info->cols};
-  auto table_oid = exec_ctx_->GetAccessor()->CreateTable(ns_oid_, info->table_name, tmp_schema);
+  catalog::Schema tmp_schema{info->cols_};
+  auto table_oid = exec_ctx_->GetAccessor()->CreateTable(ns_oid_, info->table_name_, tmp_schema);
   auto &schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
   auto sql_table = new storage::SqlTable(store_, schema);
   exec_ctx_->GetAccessor()->SetTablePointer(table_oid, sql_table);
@@ -81,59 +81,58 @@ catalog::table_oid_t TableReader::CreateTable(TableInfo *info) {
 
 void TableReader::CreateIndexes(TableInfo *info, catalog::table_oid_t table_oid) {
   storage::index::IndexBuilder index_builder;
-  for (auto &index_info : info->indexes) {
+  for (auto &index_info : info->indexes_) {
     // Create index in catalog
-    catalog::IndexSchema tmp_schema{index_info->cols, storage::index::IndexType::BWTREE, false, false, false, false};
-    auto index_oid = exec_ctx_->GetAccessor()->CreateIndex(ns_oid_, table_oid, index_info->index_name, tmp_schema);
+    catalog::IndexSchema tmp_schema{index_info->cols_, storage::index::IndexType::BWTREE, false, false, false, false};
+    auto index_oid = exec_ctx_->GetAccessor()->CreateIndex(ns_oid_, table_oid, index_info->index_name_, tmp_schema);
     auto &schema = exec_ctx_->GetAccessor()->GetIndexSchema(index_oid);
 
     // Build Index
     index_builder.SetKeySchema(schema);
     auto *index = index_builder.Build();
     exec_ctx_->GetAccessor()->SetIndexPointer(index_oid, index);
-    index_info->index_ptr = exec_ctx_->GetAccessor()->GetIndex(index_oid);
+    index_info->index_ptr_ = exec_ctx_->GetAccessor()->GetIndex(index_oid);
 
     // Precompute offsets
     for (uint32_t i = 0; i < schema.GetColumns().size(); i++) {
-      const auto &index_col_name = index_info->cols[i].Name();
+      const auto &index_col_name = index_info->cols_[i].Name();
       auto &index_col = schema.GetColumn(index_col_name);
-      index_info->offsets.emplace_back(index->GetKeyOidToOffsetMap().at(index_col.Oid()));
+      index_info->offsets_.emplace_back(index->GetKeyOidToOffsetMap().at(index_col.Oid()));
     }
 
     // Create Projected Row
     auto &index_pri = index->GetProjectedRowInitializer();
     byte *index_buffer = common::AllocationUtil::AllocateAligned(index_pri.ProjectedRowSize());
-    index_info->index_pr = index_pri.InitializeRow(index_buffer);
+    index_info->index_pr_ = index_pri.InitializeRow(index_buffer);
   }
 }
 
 void TableReader::WriteIndexEntry(IndexInfo *index_info, storage::ProjectedRow *table_pr,
                                   const std::vector<uint16_t> &table_offsets, const storage::TupleSlot &slot) {
-  for (uint32_t index_col_idx = 0; index_col_idx < index_info->offsets.size(); index_col_idx++) {
+  for (uint32_t index_col_idx = 0; index_col_idx < index_info->offsets_.size(); index_col_idx++) {
     // Get the offset of this column in the table
-    uint16_t table_col_idx = index_info->index_map[index_col_idx];
+    uint16_t table_col_idx = index_info->index_map_[index_col_idx];
     uint16_t table_offset = table_offsets[table_col_idx];
     // Get the offset of this column in the index
-    uint16_t index_offset = index_info->offsets[index_col_idx];
+    uint16_t index_offset = index_info->offsets_[index_col_idx];
     // Check null and write bytes.
-    if (index_info->cols[index_col_idx].Nullable() && table_pr->IsNull(table_offset)) {
-      index_info->index_pr->SetNull(index_offset);
+    if (index_info->cols_[index_col_idx].Nullable() && table_pr->IsNull(table_offset)) {
+      index_info->index_pr_->SetNull(index_offset);
     } else {
-      byte *index_data = index_info->index_pr->AccessForceNotNull(index_offset);
+      byte *index_data = index_info->index_pr_->AccessForceNotNull(index_offset);
       uint8_t type_size =
-          type::TypeUtil::GetTypeSize(index_info->cols[index_col_idx].Type()) & static_cast<uint8_t>(0x7f);
+          type::TypeUtil::GetTypeSize(index_info->cols_[index_col_idx].Type()) & static_cast<uint8_t>(0x7f);
       std::memcpy(index_data, table_pr->AccessForceNotNull(table_offset), type_size);
     }
   }
   // Insert into index
-  index_info->index_ptr->Insert(exec_ctx_->GetTxn(), *index_info->index_pr, slot);
+  index_info->index_ptr_->Insert(exec_ctx_->GetTxn(), *index_info->index_pr_, slot);
 }
 
 void TableReader::WriteTableCol(storage::ProjectedRow *insert_pr, uint16_t col_offset, type::TypeId type,
                                 csv::CSVField *field) {
-  if (*field == null_string) {
+  if (*field == NULL_STRING) {
     insert_pr->SetNull(col_offset);
-    std::cout << "setting null" << std::endl;
     return;
   }
   byte *insert_offset = insert_pr->AccessForceNotNull(col_offset);

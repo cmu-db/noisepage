@@ -1,4 +1,7 @@
 #pragma once
+#include <string>
+#include <unordered_map>
+#include <utility>
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/translator_factory.h"
@@ -14,11 +17,17 @@ class PRFiller : public ExpressionEvaluator {
    * @param codegen code generator
    * @param table_schema schema of the table
    * @param table_pm projection map of the table
+   * @param table_pr identifier of the table's projected row
+   * @param take_ptr whether to take the pointer to this identifier
    */
   PRFiller(CodeGen *codegen, const catalog::Schema &table_schema, const storage::ProjectionMap &table_pm,
            ast::Identifier table_pr, bool take_ptr)
       : codegen_(codegen), table_schema_(table_schema), table_pm_(table_pm), table_pr_(table_pr), take_ptr_(take_ptr) {}
 
+  /**
+   * Same as above, but generate the table projected row.
+   * This constructor should be used when a standalone function is needed.
+   */
   PRFiller(CodeGen *codegen, const catalog::Schema &table_schema, const storage::ProjectionMap &table_pm)
       : PRFiller(codegen, table_schema, table_pm, codegen->NewIdentifier("table_pr"), false) {}
 
@@ -26,6 +35,7 @@ class PRFiller : public ExpressionEvaluator {
    * Generate ast to fill the index PR.
    * @param index_pm projection map of the index
    * @param index_schema schema of the index
+   * @param index_pr projected row of the index
    * @param builder the function builder to append to
    */
   void GenFiller(const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &index_pm,

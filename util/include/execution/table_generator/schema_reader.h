@@ -8,6 +8,7 @@
 #include <vector>
 #include "catalog/catalog_accessor.h"
 #include "catalog/schema.h"
+#include "loggers/execution_logger.h"
 #include "parser/expression/constant_value_expression.h"
 #include "transaction/transaction_context.h"
 #include "type/transient_value_factory.h"
@@ -30,31 +31,31 @@ struct IndexInfo {
   /**
    * Index Name
    */
-  std::string index_name;
+  std::string index_name_;
   /**
    * Index Schema
    */
-  std::vector<catalog::IndexSchema::Column> cols;
+  std::vector<catalog::IndexSchema::Column> cols_;
 
   /**
    * Mapping from index column to table column
    */
-  IndexTableMap index_map;
+  IndexTableMap index_map_;
 
   /**
    * Physical Index
    */
-  common::ManagedPointer<storage::index::Index> index_ptr{nullptr};
+  common::ManagedPointer<storage::index::Index> index_ptr_{nullptr};
 
   /**
    * Precomputed offsets into the projected row
    */
-  std::vector<uint16_t> offsets{};
+  std::vector<uint16_t> offsets_{};
 
   /**
    * Projected row to use for inserts
    */
-  storage::ProjectedRow *index_pr;
+  storage::ProjectedRow *index_pr_;
 };
 
 /**
@@ -69,16 +70,16 @@ struct TableInfo {
   /**
    * Table Name
    */
-  std::string table_name;
+  std::string table_name_;
   /**
    * Table Schema
    */
-  std::vector<catalog::Schema::Column> cols;
+  std::vector<catalog::Schema::Column> cols_;
 
   /**
    * indexes
    */
-  std::vector<std::unique_ptr<IndexInfo>> indexes;
+  std::vector<std::unique_ptr<IndexInfo>> indexes_;
 };
 
 /**
@@ -121,10 +122,10 @@ class SchemaReader {
     schema_file.open(filename);
     // Read Table name and num_cols
     uint32_t num_cols;
-    schema_file >> table_info->table_name >> num_cols;
-    std::cout << "Reading table " << table_info->table_name << " with " << num_cols << " columns." << std::endl;
+    schema_file >> table_info->table_name_ >> num_cols;
+    EXECUTION_LOG_INFO("Reading table {} with {} columns", table_info->table_name_, num_cols);
     // Read columns & create table schema
-    table_info->cols = ReadColumns(&schema_file, num_cols);
+    table_info->cols_ = ReadColumns(&schema_file, num_cols);
     // Read num_indexes & create index information
     uint32_t num_indexes;
     schema_file >> num_indexes;
@@ -139,19 +140,19 @@ class SchemaReader {
     for (uint32_t i = 0; i < num_indexes; i++) {
       auto index_info = std::make_unique<IndexInfo>();
       // Read index name and num_index_cols
-      *in >> index_info->index_name >> num_index_cols;
+      *in >> index_info->index_name_ >> num_index_cols;
       // Read each index column
       std::vector<catalog::IndexSchema::Column> index_cols;
       uint16_t col_idx;
       for (uint32_t j = 0; j < num_index_cols; j++) {
         *in >> col_idx;
-        index_info->index_map.emplace_back(col_idx);
-        const auto &table_column = table_info->cols[col_idx];
-        index_info->cols.emplace_back("index_col" + std::to_string(col_idx), table_column.Type(),
-                                      table_column.Nullable(), DummyCVE());
+        index_info->index_map_.emplace_back(col_idx);
+        const auto &table_column = table_info->cols_[col_idx];
+        index_info->cols_.emplace_back("index_col" + std::to_string(col_idx), table_column.Type(),
+                                       table_column.Nullable(), DummyCVE());
       }
       // Update list of indexes
-      table_info->indexes.emplace_back(std::move(index_info));
+      table_info->indexes_.emplace_back(std::move(index_info));
     }
   }
 

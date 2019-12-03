@@ -1,4 +1,5 @@
 #include "execution/compiler/operator/index_join_translator.h"
+#include <memory>
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/translator_factory.h"
@@ -14,12 +15,11 @@ IndexJoinTranslator::IndexJoinTranslator(const planner::IndexJoinPlanNode *op, C
       table_pm_(codegen_->Accessor()->GetTable(op_->GetTableOid())->ProjectionMapForOids(input_oids_)),
       index_schema_(codegen_->Accessor()->GetIndexSchema(op_->GetIndexOid())),
       index_pm_(codegen_->Accessor()->GetIndex(op_->GetIndexOid())->GetKeyOidToOffsetMap()),
-      index_iter_(codegen_->NewIdentifier(iter_name_)),
-      col_oids_(codegen->NewIdentifier(col_oids_name_)),
-      index_pr_(codegen->NewIdentifier(index_pr_name_)),
-      table_pr_(codegen->NewIdentifier(table_pr_name_)),
-      slot_(codegen->NewIdentifier(slot_name_)) {}
-
+      index_iter_(codegen_->NewIdentifier("index_iter")),
+      col_oids_(codegen->NewIdentifier("col_oids")),
+      index_pr_(codegen->NewIdentifier("index_pr")),
+      table_pr_(codegen->NewIdentifier("table_pr")),
+      slot_(codegen->NewIdentifier("slot")) {}
 
 void IndexJoinTranslator::Produce(FunctionBuilder *builder) {
   // Create the col_oid array
@@ -66,7 +66,7 @@ void IndexJoinTranslator::Consume(FunctionBuilder *builder) {
 ast::Expr *IndexJoinTranslator::GetOutput(uint32_t attr_idx) {
   auto output_expr = op_->GetOutputSchema()->GetColumn(attr_idx).GetExpr();
   std::unique_ptr<ExpressionTranslator> translator =
-      TranslatorFactory::CreateExpressionTranslator(output_expr, codegen_);
+      TranslatorFactory::CreateExpressionTranslator(output_expr.Get(), codegen_);
   return translator->DeriveExpr(this);
 }
 
@@ -109,19 +109,17 @@ void IndexJoinTranslator::DeclareIterator(FunctionBuilder *builder) {
 
 void IndexJoinTranslator::DeclareIndexPR(terrier::execution::compiler::FunctionBuilder *builder) {
   ast::Expr *pr_type = codegen_->BuiltinType(ast::BuiltinType::ProjectedRow);
-  ast::Expr *get_pr_call = codegen_->IndexIteratorGetIndexPR(index_iter_);
+  ast::Expr *get_pr_call = codegen_->OneArgCall(ast::Builtin::IndexIteratorGetPR, index_iter_, true);
   builder->Append(codegen_->DeclareVariable(index_pr_, pr_type, get_pr_call));
 }
 
 void IndexJoinTranslator::DeclareTablePR(terrier::execution::compiler::FunctionBuilder *builder) {
-  ast::Expr *pr_type = codegen_->BuiltinType(ast::BuiltinType::ProjectedRow);
-  ast::Expr *get_pr_call = codegen_->IndexIteratorGetTablePR(index_iter_);
-  builder->Append(codegen_->DeclareVariable(table_pr_, pr_type, get_pr_call));
+  ast::Expr *get_pr_call = codegen_->OneArgCall(ast::Builtin::IndexIteratorGetTablePR, index_iter_, true);
+  builder->Append(codegen_->DeclareVariable(table_pr_, nullptr, get_pr_call));
 }
 
-
 void IndexJoinTranslator::DeclareSlot(terrier::execution::compiler::FunctionBuilder *builder) {
-  ast::Expr *get_slot_call = codegen_->IndexIteratorGetTableSlot(index_iter_);
+  ast::Expr *get_slot_call = codegen_->OneArgCall(ast::Builtin::IndexIteratorGetSlot, index_iter_, true);
   builder->Append(codegen_->DeclareVariable(slot_, nullptr, get_slot_call));
 }
 
@@ -143,9 +141,9 @@ void IndexJoinTranslator::GenForLoop(FunctionBuilder *builder) {
   ast::Expr *scan_call = codegen_->IndexIteratorScan(index_iter_, planner::IndexScanType::Exact, 0);
   ast::Stmt *loop_init = codegen_->MakeStmt(scan_call);
   // Loop condition
-  ast::Expr *has_next_call = codegen_->IndexIteratorAdvance(index_iter_);
+  ast::Expr *advance_call = codegen_->OneArgCall(ast::Builtin::IndexIteratorAdvance, index_iter_, true);
   // Make the loop
-  builder->StartForStmt(loop_init, has_next_call, nullptr);
+  builder->StartForStmt(loop_init, advance_call, nullptr);
 }
 
 void IndexJoinTranslator::GenPredicate(FunctionBuilder *builder) {
@@ -156,7 +154,7 @@ void IndexJoinTranslator::GenPredicate(FunctionBuilder *builder) {
 
 void IndexJoinTranslator::FreeIterator(FunctionBuilder *builder) {
   // @indexIteratorFree(&index_iter_)
-  ast::Expr *free_call = codegen_->IndexIteratorFree(index_iter_);
+  ast::Expr *free_call = codegen_->OneArgCall(ast::Builtin::IndexIteratorFree, index_iter_, true);
   builder->Append(codegen_->MakeStmt(free_call));
 }
 }  // namespace terrier::execution::compiler

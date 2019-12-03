@@ -237,7 +237,7 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
           // Invoke and finish
           VM::InvokeFunction(this, func_info->Id(), arg_buffer);
           return;
-        } else {
+        } else {  // NOLINT
           // The return value
           Ret rv{};
 

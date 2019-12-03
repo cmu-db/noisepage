@@ -369,9 +369,9 @@ TEST_F(StorageInterfaceTest, MultiIndexedUpdateTest) {
     lo_pr = ProjectedRowWrapper(index_iter2.LoPR());
     hi_pr = ProjectedRowWrapper(index_iter2.HiPR());
     lo_pr.Set<int16_t, false>(1, lo_match + update_val, false);
-    lo_pr.Set<int32_t, false>(0, 0, false);
+    lo_pr.Set<int32_t, true>(0, 0, false);
     hi_pr.Set<int16_t, false>(1, hi_match + update_val, false);
-    hi_pr.Set<int32_t, false>(0, 0, false);
+    hi_pr.Set<int32_t, true>(0, 0, false);
     index_iter2.ScanAscending();
     uint32_t num_matches = 0;
     while (index_iter2.Advance()) {

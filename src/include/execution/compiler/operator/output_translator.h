@@ -16,13 +16,12 @@ class OutputTranslator : public OperatorTranslator {
  public:
   /**
    * Construction
-   * @param schema final schema returned to the upper layers
+   * @param codegen The code generator
    */
   explicit OutputTranslator(CodeGen *codegen);
 
   void Produce(FunctionBuilder *builder) override;
   void Abort(FunctionBuilder *builder) override {}
-
   void Consume(FunctionBuilder *builder) override;
 
   // Does nothing
@@ -41,12 +40,11 @@ class OutputTranslator : public OperatorTranslator {
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
 
   // Should never called since this the last layer.
-  // TODO(Amadou): throw an exception?
-  ast::Expr *GetOutput(uint32_t attr_idx) override { return nullptr; }
+  ast::Expr *GetOutput(uint32_t attr_idx) override { UNREACHABLE("Should not be called on this translator"); }
 
   // Should never be called for the same reasons.
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {
-    return nullptr;
+    UNREACHABLE("Should not be called on this translator");
   }
 
   const planner::AbstractPlanNode *Op() override { UNREACHABLE("Should not be called on this translator"); }
@@ -61,15 +59,12 @@ class OutputTranslator : public OperatorTranslator {
   // Fills the output slot
   void FillOutput(FunctionBuilder *builder);
 
-  // Register @outputFinalize(execCtx) at the end of the pipeline
+  // Call @outputFinalize(execCtx) at the end of the pipeline
   void FinalizeOutput(FunctionBuilder *builder);
 
   // Number of output fields;
   uint32_t num_output_fields_{0};
   // Structs and local variables
-  static constexpr const char *output_struct_name_ = "Output";
-  static constexpr const char *output_var_name_ = "out";
-  static constexpr const char *output_field_prefix_ = "col";
   ast::Identifier output_struct_;
   ast::Identifier output_var_;
 };

@@ -1,20 +1,22 @@
 #include "execution/compiler/operator/output_translator.h"
+#include <utility>
+#include <vector>
 
 namespace terrier::execution::compiler {
 OutputTranslator::OutputTranslator(execution::compiler::CodeGen *codegen)
     : OperatorTranslator(codegen),
-      output_struct_(codegen->NewIdentifier(output_struct_name_)),
-      output_var_(codegen->NewIdentifier(output_var_name_)) {}
+      output_struct_(codegen->NewIdentifier("Output")),
+      output_var_(codegen->NewIdentifier("out")) {}
 
 void OutputTranslator::InitializeStructs(execution::util::RegionVector<execution::ast::Decl *> *decls) {
   util::RegionVector<ast::FieldDecl *> fields(codegen_->Region());
-  GetChildOutputFields(&fields, output_field_prefix_);
+  GetChildOutputFields(&fields, "col");
   num_output_fields_ = static_cast<uint32_t>(fields.size());
   decls->emplace_back(codegen_->MakeStruct(output_struct_, std::move(fields)));
 }
 
 ast::Expr *OutputTranslator::GetField(uint32_t attr_idx) {
-  ast::Identifier member = codegen_->Context()->GetIdentifier(output_field_prefix_ + std::to_string(attr_idx));
+  ast::Identifier member = codegen_->Context()->GetIdentifier("col" + std::to_string(attr_idx));
   return codegen_->MemberExpr(output_var_, member);
 }
 
@@ -35,7 +37,7 @@ void OutputTranslator::Consume(terrier::execution::compiler::FunctionBuilder *bu
 
 void OutputTranslator::DeclareOutputVariable(execution::compiler::FunctionBuilder *builder) {
   // First generate the call @outputAlloc(execCtx)
-  ast::Expr *alloc_call = codegen_->OutputAlloc();
+  ast::Expr *alloc_call = codegen_->OneArgCall(ast::Builtin::OutputAlloc, codegen_->GetExecCtxVar(), false);
   // The make the @ptrCast call
   ast::Expr *cast_call = codegen_->PtrCast(output_struct_, alloc_call);
   // Finally, declare the variable
@@ -52,7 +54,7 @@ void OutputTranslator::FillOutput(execution::compiler::FunctionBuilder *builder)
 }
 
 void OutputTranslator::FinalizeOutput(execution::compiler::FunctionBuilder *builder) {
-  ast::Expr *finalize_call = codegen_->OutputFinalize();
+  ast::Expr *finalize_call = codegen_->OneArgCall(ast::Builtin::OutputFinalize, codegen_->GetExecCtxVar(), false);
   builder->Append(codegen_->MakeStmt(finalize_call));
 }
 

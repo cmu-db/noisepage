@@ -1,14 +1,16 @@
-#include "catalog/catalog_defs.h"
-
 #include <functional>
 #include <limits>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
-#include "execution/ast/ast_dump.h"
 
+#include "catalog/catalog_defs.h"
+#include "execution/ast/ast_dump.h"
 #include "execution/compiler/compiler.h"
+#include "execution/compiler/expression_util.h"
+#include "execution/compiler/output_checker.h"
+#include "execution/compiler/output_schema_util.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
 #include "execution/sema/sema.h"
@@ -18,30 +20,22 @@
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/llvm_engine.h"
 #include "execution/vm/module.h"
-
 #include "planner/plannodes/aggregate_plan_node.h"
+#include "planner/plannodes/delete_plan_node.h"
 #include "planner/plannodes/hash_join_plan_node.h"
 #include "planner/plannodes/index_join_plan_node.h"
 #include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/insert_plan_node.h"
-#include "planner/plannodes/delete_plan_node.h"
-#include "planner/plannodes/update_plan_node.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
 #include "planner/plannodes/output_schema.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
+#include "planner/plannodes/update_plan_node.h"
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
 
-#include "execution/compiler/expression_util.h"
-#include "execution/compiler/output_checker.h"
-#include "execution/compiler/output_schema_util.h"
-
 namespace terrier::execution::compiler::test {
-using namespace terrier::planner;
-using namespace terrier::parser;
-
 class CompilerTest : public SqlBasedTest {
  public:
   void SetUp() override {
@@ -52,7 +46,7 @@ class CompilerTest : public SqlBasedTest {
     table_generator.GenerateTestTables();
   }
 
-  static void CompileAndRun(terrier::planner::AbstractPlanNode *node, exec::ExecutionContext *exec_ctx) {
+  static void CompileAndRun(planner::AbstractPlanNode *node, exec::ExecutionContext *exec_ctx) {
     // Create the query object, whose region must outlive all the processing.
     // Compile and check for errors
     CodeGen codegen(exec_ctx->GetAccessor());
@@ -96,7 +90,6 @@ class CompilerTest : public SqlBasedTest {
   }
 };
 
-/*
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleSeqScanTest) {
   // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1 WHERE col1 < 500 AND col2 >= 3;
@@ -104,7 +97,7 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
   auto table_schema = accessor->GetSchema(table_oid);
   ExpressionMaker expr_maker;
-  std::unique_ptr<AbstractPlanNode> seq_scan;
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     // Get Table columns
@@ -123,7 +116,7 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
     auto comp2 = expr_maker.ComparisonGe(col2, expr_maker.Constant(3));
     auto predicate = expr_maker.ConjunctionAnd(comp1, comp2);
     // Build
-    SeqScanPlanNode::Builder builder;
+    planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(predicate)
                    .SetIsParallelFlag(false)
@@ -134,8 +127,8 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
   }
 
   // Make the output checkers
-  SingleIntComparisonChecker col1_checker(std::less<int64_t>(), 0, 500);
-  SingleIntComparisonChecker col2_checker(std::greater_equal<int64_t>(), 1, 3);
+  SingleIntComparisonChecker col1_checker(std::less<>(), 0, 500);
+  SingleIntComparisonChecker col2_checker(std::greater_equal<>(), 1, 3);
 
   MultiChecker multi_checker{std::vector<OutputChecker *>{&col1_checker, &col2_checker}};
 
@@ -149,7 +142,6 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
   CompileAndRun(seq_scan.get(), exec_ctx.get());
   multi_checker.CheckCorrectness();
 }
-*/
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleIndexScanTest) {
@@ -159,7 +151,7 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
   auto index_oid = accessor->GetIndexOid(NSOid(), "index_1");
   auto table_schema = accessor->GetSchema(table_oid);
-  std::unique_ptr<AbstractPlanNode> index_scan;
+  std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
     // Get Table columns
@@ -169,18 +161,19 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     auto schema = index_scan_out.MakeSchema();
-    IndexScanPlanNode::Builder builder;
-    index_scan = builder.SetTableOid(table_oid).SetIndexOid(index_oid)
-                  .AddIndexColum(catalog::indexkeycol_oid_t(1), const_500)
-                  .SetNamespaceOid(NSOid())
-                  .SetOutputSchema(std::move(schema))
-        .SetScanType(planner::IndexScanType::Exact)
-        .SetScanLimit(0)
-        .SetScanPredicate(nullptr)
-        .Build();
+    planner::IndexScanPlanNode::Builder builder;
+    index_scan = builder.SetTableOid(table_oid)
+                     .SetIndexOid(index_oid)
+                     .AddIndexColum(catalog::indexkeycol_oid_t(1), const_500)
+                     .SetNamespaceOid(NSOid())
+                     .SetOutputSchema(std::move(schema))
+                     .SetScanType(planner::IndexScanType::Exact)
+                     .SetScanLimit(0)
+                     .SetScanPredicate(nullptr)
+                     .Build();
   }
   NumChecker num_checker(1);
-  SingleIntComparisonChecker col1_checker(std::equal_to<int64_t>(), 0, 500);
+  SingleIntComparisonChecker col1_checker(std::equal_to<>(), 0, 500);
   MultiChecker multi_checker{std::vector<OutputChecker *>{&col1_checker, &num_checker}};
   // Create the execution context
   OutputStore store{&multi_checker, index_scan->GetOutputSchema().Get()};
@@ -201,7 +194,7 @@ TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
   auto index_oid = accessor->GetIndexOid(NSOid(), "index_1");
   auto table_schema = accessor->GetSchema(table_oid);
-  std::unique_ptr<AbstractPlanNode> index_scan;
+  std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
     // Get Table columns
@@ -210,24 +203,25 @@ TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     auto schema = index_scan_out.MakeSchema();
-    IndexScanPlanNode::Builder builder;
-    index_scan = builder.SetTableOid(table_oid).SetIndexOid(index_oid)
-        .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
-        .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
-        .SetNamespaceOid(NSOid())
-        .SetOutputSchema(std::move(schema))
-        .SetScanType(planner::IndexScanType::Ascending)
-        .SetScanLimit(0)
-        .SetScanPredicate(nullptr)
+    planner::IndexScanPlanNode::Builder builder;
+    index_scan = builder.SetTableOid(table_oid)
+                     .SetIndexOid(index_oid)
+                     .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
+                     .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
+                     .SetNamespaceOid(NSOid())
+                     .SetOutputSchema(std::move(schema))
+                     .SetScanType(planner::IndexScanType::Ascending)
+                     .SetScanLimit(0)
+                     .SetScanPredicate(nullptr)
 
-        .Build();
+                     .Build();
   }
 
   // Make the checker
   uint32_t num_output_rows = 0;
   uint32_t num_expected_rows = 11;
   int64_t curr_col1{std::numeric_limits<int64_t>::min()};
-  RowChecker row_checker = [&num_output_rows, num_expected_rows, &curr_col1](const std::vector<sql::Val *> vals) {
+  RowChecker row_checker = [&num_output_rows, num_expected_rows, &curr_col1](const std::vector<sql::Val *> &vals) {
     // Read cols
     auto col1 = static_cast<sql::Integer *>(vals[0]);
     auto col2 = static_cast<sql::Integer *>(vals[1]);
@@ -266,7 +260,7 @@ TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
   auto index_oid = accessor->GetIndexOid(NSOid(), "index_1");
   auto table_schema = accessor->GetSchema(table_oid);
-  std::unique_ptr<AbstractPlanNode> index_scan;
+  std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
     // Get Table columns
@@ -275,23 +269,24 @@ TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     auto schema = index_scan_out.MakeSchema();
-    IndexScanPlanNode::Builder builder;
-    index_scan = builder.SetTableOid(table_oid).SetIndexOid(index_oid)
-        .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
-        .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
-        .SetNamespaceOid(NSOid())
-        .SetOutputSchema(std::move(schema))
-        .SetScanType(planner::IndexScanType::AscendingLimit)
-        .SetScanLimit(5)
-        .SetScanPredicate(nullptr)
-        .Build();
+    planner::IndexScanPlanNode::Builder builder;
+    index_scan = builder.SetTableOid(table_oid)
+                     .SetIndexOid(index_oid)
+                     .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
+                     .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
+                     .SetNamespaceOid(NSOid())
+                     .SetOutputSchema(std::move(schema))
+                     .SetScanType(planner::IndexScanType::AscendingLimit)
+                     .SetScanLimit(5)
+                     .SetScanPredicate(nullptr)
+                     .Build();
   }
 
   // Make the checker
   uint32_t num_output_rows = 0;
   uint32_t num_expected_rows = 5;
   int64_t curr_col1{std::numeric_limits<int64_t>::min()};
-  RowChecker row_checker = [&num_output_rows, num_expected_rows, &curr_col1](const std::vector<sql::Val *> vals) {
+  RowChecker row_checker = [&num_output_rows, num_expected_rows, &curr_col1](const std::vector<sql::Val *> &vals) {
     // Read cols
     auto col1 = static_cast<sql::Integer *>(vals[0]);
     auto col2 = static_cast<sql::Integer *>(vals[1]);
@@ -330,7 +325,7 @@ TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
   auto index_oid = accessor->GetIndexOid(NSOid(), "index_1");
   auto table_schema = accessor->GetSchema(table_oid);
-  std::unique_ptr<AbstractPlanNode> index_scan;
+  std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
     // Get Table columns
@@ -339,23 +334,24 @@ TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     auto schema = index_scan_out.MakeSchema();
-    IndexScanPlanNode::Builder builder;
-    index_scan = builder.SetTableOid(table_oid).SetIndexOid(index_oid)
-        .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
-        .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
-        .SetNamespaceOid(NSOid())
-        .SetOutputSchema(std::move(schema))
-        .SetScanType(planner::IndexScanType::Descending)
-        .SetScanLimit(0)
-        .SetScanPredicate(nullptr)
-        .Build();
+    planner::IndexScanPlanNode::Builder builder;
+    index_scan = builder.SetTableOid(table_oid)
+                     .SetIndexOid(index_oid)
+                     .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
+                     .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
+                     .SetNamespaceOid(NSOid())
+                     .SetOutputSchema(std::move(schema))
+                     .SetScanType(planner::IndexScanType::Descending)
+                     .SetScanLimit(0)
+                     .SetScanPredicate(nullptr)
+                     .Build();
   }
 
   // Make the checker
   uint32_t num_output_rows = 0;
   uint32_t num_expected_rows = 11;
   int64_t curr_col1{std::numeric_limits<int64_t>::max()};
-  RowChecker row_checker = [&num_output_rows, num_expected_rows, &curr_col1](const std::vector<sql::Val *> vals) {
+  RowChecker row_checker = [&num_output_rows, num_expected_rows, &curr_col1](const std::vector<sql::Val *> &vals) {
     // Read cols
     auto col1 = static_cast<sql::Integer *>(vals[0]);
     auto col2 = static_cast<sql::Integer *>(vals[1]);
@@ -394,7 +390,7 @@ TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
   auto index_oid = accessor->GetIndexOid(NSOid(), "index_1");
   auto table_schema = accessor->GetSchema(table_oid);
-  std::unique_ptr<AbstractPlanNode> index_scan;
+  std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
     // Get Table columns
@@ -403,23 +399,24 @@ TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     auto schema = index_scan_out.MakeSchema();
-    IndexScanPlanNode::Builder builder;
-    index_scan = builder.SetTableOid(table_oid).SetIndexOid(index_oid)
-        .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
-        .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
-        .SetNamespaceOid(NSOid())
-        .SetOutputSchema(std::move(schema))
-        .SetScanType(planner::IndexScanType::DescendingLimit)
-        .SetScanLimit(5)
-        .SetScanPredicate(nullptr)
-        .Build();
+    planner::IndexScanPlanNode::Builder builder;
+    index_scan = builder.SetTableOid(table_oid)
+                     .SetIndexOid(index_oid)
+                     .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
+                     .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
+                     .SetNamespaceOid(NSOid())
+                     .SetOutputSchema(std::move(schema))
+                     .SetScanType(planner::IndexScanType::DescendingLimit)
+                     .SetScanLimit(5)
+                     .SetScanPredicate(nullptr)
+                     .Build();
   }
 
   // Make the checker
   uint32_t num_output_rows = 0;
   uint32_t num_expected_rows = 5;
   int64_t curr_col1{std::numeric_limits<int64_t>::max()};
-  RowChecker row_checker = [&num_output_rows, num_expected_rows, &curr_col1](const std::vector<sql::Val *> vals) {
+  RowChecker row_checker = [&num_output_rows, num_expected_rows, &curr_col1](const std::vector<sql::Val *> &vals) {
     // Read cols
     auto col1 = static_cast<sql::Integer *>(vals[0]);
     auto col2 = static_cast<sql::Integer *>(vals[1]);
@@ -450,8 +447,6 @@ TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
   checker.CheckCorrectness();
 }
 
-
-/*
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleAggregateTest) {
   // SELECT col2, SUM(col1) FROM test_1 WHERE col1 < 1000 GROUP BY col2;
@@ -460,7 +455,7 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
   ExpressionMaker expr_maker;
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
   auto table_schema = accessor->GetSchema(table_oid);
-  std::unique_ptr<AbstractPlanNode> seq_scan;
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     // Get Table columns
@@ -472,7 +467,7 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
     // Make predicate
     auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(1000));
     // Build
-    SeqScanPlanNode::Builder builder;
+    planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(predicate)
                    .SetIsParallelFlag(false)
@@ -482,7 +477,7 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
                    .Build();
   }
   // Make the aggregate
-  std::unique_ptr<AbstractPlanNode> agg;
+  std::unique_ptr<planner::AbstractPlanNode> agg;
   OutputSchemaHelper agg_out{0, &expr_maker};
   {
     // Read previous output
@@ -498,12 +493,12 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
     agg_out.AddOutput("sum_col1", agg_out.GetAggTermForOutput("sum_col1"));
     auto schema = agg_out.MakeSchema();
     // Build
-    AggregatePlanNode::Builder builder;
+    planner::AggregatePlanNode::Builder builder;
     agg = builder.SetOutputSchema(std::move(schema))
               .AddGroupByTerm(agg_out.GetGroupByTerm("col2"))
               .AddAggregateTerm(agg_out.GetAggTerm("col1"))
               .AddChild(std::move(seq_scan))
-              .SetAggregateStrategyType(AggregateStrategyType::HASH)
+              .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
               .SetHavingClausePredicate(nullptr)
               .Build();
   }
@@ -523,7 +518,6 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
   multi_checker.CheckCorrectness();
 }
 
-
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleAggregateHavingTest) {
   // SELECT col2, SUM(col1) FROM test_1 WHERE col1 < 1000 GROUP BY col2 HAVING col2 >= 3 AND SUM(col1) < 50000;
@@ -532,7 +526,7 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
   ExpressionMaker expr_maker;
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
   auto table_schema = accessor->GetSchema(table_oid);
-  std::unique_ptr<AbstractPlanNode> seq_scan;
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     // Get Table columns
@@ -544,7 +538,7 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
     // Make predicate
     auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(1000));
     // Build
-    SeqScanPlanNode::Builder builder;
+    planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(predicate)
                    .SetIsParallelFlag(false)
@@ -554,7 +548,7 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
                    .Build();
   }
   // Make the aggregate
-  std::unique_ptr<AbstractPlanNode> agg;
+  std::unique_ptr<planner::AbstractPlanNode> agg;
   OutputSchemaHelper agg_out{0, &expr_maker};
   {
     // Read previous output
@@ -571,21 +565,20 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
     auto schema = agg_out.MakeSchema();
     // Make the having clause
     auto having1 = expr_maker.ComparisonGe(agg_out.GetGroupByTermForOutput("col2"), expr_maker.Constant(3));
-    auto having2 =
-        expr_maker.ComparisonLt(agg_out.GetAggTermForOutput("sum_col1"), expr_maker.Constant(50000));
+    auto having2 = expr_maker.ComparisonLt(agg_out.GetAggTermForOutput("sum_col1"), expr_maker.Constant(50000));
     auto having = expr_maker.ConjunctionAnd(having1, having2);
     // Build
-    AggregatePlanNode::Builder builder;
+    planner::AggregatePlanNode::Builder builder;
     agg = builder.SetOutputSchema(std::move(schema))
               .AddGroupByTerm(agg_out.GetGroupByTerm("col2"))
               .AddAggregateTerm(agg_out.GetAggTerm("col1"))
               .AddChild(std::move(seq_scan))
-              .SetAggregateStrategyType(AggregateStrategyType::HASH)
+              .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
               .SetHavingClausePredicate(having)
               .Build();
   }
   // Make the checkers
-  RowChecker row_checker = [](const std::vector<sql::Val *> vals) {
+  RowChecker row_checker = [](const std::vector<sql::Val *> &vals) {
     // Read cols
     auto col2 = static_cast<sql::Integer *>(vals[0]);
     auto sum_col1 = static_cast<sql::Integer *>(vals[1]);
@@ -609,7 +602,6 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
   checker.CheckCorrectness();
 }
 
-
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleHashJoinTest) {
   // SELECT t1.col1, t2.col1, t2.col2, t1.col1 + t2.col2 FROM t1 INNER JOIN t2 ON t1.col1=t2.col1
@@ -617,13 +609,13 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
   // TODO(Amadou): Simple join tests are very similar. Some refactoring is possible.
   // Get accessor
   auto accessor = MakeAccessor();
-   ExpressionMaker expr_maker;
- auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
+  ExpressionMaker expr_maker;
+  auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
   auto table_oid2 = accessor->GetTableOid(NSOid(), "test_2");
   auto table_schema1 = accessor->GetSchema(table_oid1);
   auto table_schema2 = accessor->GetSchema(table_oid2);
 
-  std::unique_ptr<AbstractPlanNode> seq_scan1;
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan1;
   OutputSchemaHelper seq_scan_out1{0, &expr_maker};
   {
     // Get Table columns
@@ -635,7 +627,7 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
     // Make predicate
     auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(1000));
     // Build
-    SeqScanPlanNode::Builder builder;
+    planner::SeqScanPlanNode::Builder builder;
     seq_scan1 = builder.SetOutputSchema(std::move(schema))
                     .SetScanPredicate(predicate)
                     .SetIsParallelFlag(false)
@@ -645,7 +637,7 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
                     .Build();
   }
   // Make the second seq scan
-  std::unique_ptr<AbstractPlanNode> seq_scan2;
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan2;
   OutputSchemaHelper seq_scan_out2{1, &expr_maker};
   {
     // Get Table columns
@@ -656,7 +648,7 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
     auto schema = seq_scan_out2.MakeSchema();
     auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(80));
     // Build
-    SeqScanPlanNode::Builder builder;
+    planner::SeqScanPlanNode::Builder builder;
     seq_scan2 = builder.SetOutputSchema(std::move(schema))
                     .SetScanPredicate(predicate)
                     .SetIsParallelFlag(false)
@@ -666,7 +658,7 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
                     .Build();
   }
   // Make hash join
-  std::unique_ptr<AbstractPlanNode> hash_join;
+  std::unique_ptr<planner::AbstractPlanNode> hash_join;
   OutputSchemaHelper hash_join_out{0, &expr_maker};
   {
     // t1.col1, and t1.col2
@@ -685,13 +677,13 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
     // Predicate
     auto predicate = expr_maker.ComparisonEq(t1_col1, t2_col1);
     // Build
-    HashJoinPlanNode::Builder builder;
+    planner::HashJoinPlanNode::Builder builder;
     hash_join = builder.AddChild(std::move(seq_scan1))
                     .AddChild(std::move(seq_scan2))
                     .SetOutputSchema(std::move(schema))
                     .AddLeftHashKey(t1_col1)
                     .AddRightHashKey(t2_col1)
-                    .SetJoinType(LogicalJoinType::INNER)
+                    .SetJoinType(planner::LogicalJoinType::INNER)
                     .SetJoinPredicate(predicate)
                     .Build();
   }
@@ -701,7 +693,7 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
   // The 4th column is the sum of the 1nd and 3rd columns
   uint32_t num_output_rows{0};
   uint32_t num_expected_rows{80};
-  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> vals) {
+  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> &vals) {
     // Read cols
     auto col1 = static_cast<sql::Integer *>(vals[0]);
     auto col2 = static_cast<sql::Integer *>(vals[1]);
@@ -732,16 +724,15 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
   checker.CheckCorrectness();
 }
 
-
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleSortTest) {
   // SELECT col1, col2, col1 + col2 FROM test_1 WHERE col1 < 500 ORDER BY col2 ASC, col1 - col2 DESC
   // Get accessor
   auto accessor = MakeAccessor();
-    ExpressionMaker expr_maker;
-auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+  ExpressionMaker expr_maker;
+  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
   auto table_schema = accessor->GetSchema(table_oid);
-  std::unique_ptr<AbstractPlanNode> seq_scan;
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     // Get Table columns
@@ -753,7 +744,7 @@ auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
     // Make predicate
     auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(500));
     // Build
-    SeqScanPlanNode::Builder builder;
+    planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(predicate)
                    .SetIsParallelFlag(false)
@@ -763,7 +754,7 @@ auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
                    .Build();
   }
   // Order By
-  std::unique_ptr<AbstractPlanNode> order_by;
+  std::unique_ptr<planner::AbstractPlanNode> order_by;
   OutputSchemaHelper order_by_out{0, &expr_maker};
   {
     // Output Colums col1, col2, col1 + col2
@@ -775,15 +766,15 @@ auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
     order_by_out.AddOutput("sum", sum);
     auto schema = order_by_out.MakeSchema();
     // Order By Clause
-    SortKey clause1{col2, optimizer::OrderByOrderingType::ASC};
+    planner::SortKey clause1{col2, optimizer::OrderByOrderingType::ASC};
     auto diff = expr_maker.OpMin(col1, col2);
-    SortKey clause2{diff, optimizer::OrderByOrderingType::DESC};
+    planner::SortKey clause2{diff, optimizer::OrderByOrderingType::DESC};
     // Build
-    OrderByPlanNode::Builder builder;
+    planner::OrderByPlanNode::Builder builder;
     order_by = builder.SetOutputSchema(std::move(schema))
                    .AddChild(std::move(seq_scan))
-                   .AddSortKey(clause1.Expr(), clause1.SortType())
-                   .AddSortKey(clause2.Expr(), clause2.SortType())
+                   .AddSortKey(clause1.first, clause1.second)
+                   .AddSortKey(clause2.first, clause2.second)
                    .Build();
   }
   // Checkers:
@@ -794,7 +785,7 @@ auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
   int64_t curr_col1{std::numeric_limits<int64_t>::max()};
   int64_t curr_col2{std::numeric_limits<int64_t>::min()};
   RowChecker row_checker = [&num_output_rows, &curr_col1, &curr_col2,
-                            num_expected_rows](const std::vector<sql::Val *> vals) {
+                            num_expected_rows](const std::vector<sql::Val *> &vals) {
     // Read cols
     auto col1 = static_cast<sql::Integer *>(vals[0]);
     auto col2 = static_cast<sql::Integer *>(vals[1]);
@@ -834,13 +825,13 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
   // WHERE t1.col1 < 500 AND t2.col1 < 80
   // Get accessor
   auto accessor = MakeAccessor();
-    ExpressionMaker expr_maker;
-auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
+  ExpressionMaker expr_maker;
+  auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
   auto table_oid2 = accessor->GetTableOid(NSOid(), "test_2");
   auto table_schema1 = accessor->GetSchema(table_oid1);
   auto table_schema2 = accessor->GetSchema(table_oid2);
 
-  std::unique_ptr<AbstractPlanNode> seq_scan1;
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan1;
   OutputSchemaHelper seq_scan_out1{0, &expr_maker};
   {
     // Get Table columns
@@ -852,7 +843,7 @@ auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
     // Make predicate
     auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(1000));
     // Build
-    SeqScanPlanNode::Builder builder;
+    planner::SeqScanPlanNode::Builder builder;
     seq_scan1 = builder.SetOutputSchema(std::move(schema))
                     .SetScanPredicate(predicate)
                     .SetIsParallelFlag(false)
@@ -862,7 +853,7 @@ auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
                     .Build();
   }
   // Make the second seq scan
-  std::unique_ptr<AbstractPlanNode> seq_scan2;
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan2;
   OutputSchemaHelper seq_scan_out2{1, &expr_maker};
   {
     // Get Table columns
@@ -873,7 +864,7 @@ auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
     auto schema = seq_scan_out2.MakeSchema();
     auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(80));
     // Build
-    SeqScanPlanNode::Builder builder;
+    planner::SeqScanPlanNode::Builder builder;
     seq_scan2 = builder.SetOutputSchema(std::move(schema))
                     .SetScanPredicate(predicate)
                     .SetIsParallelFlag(false)
@@ -883,7 +874,7 @@ auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
                     .Build();
   }
   // Make nested loop join
-  std::unique_ptr<AbstractPlanNode> nl_join;
+  std::unique_ptr<planner::AbstractPlanNode> nl_join;
   OutputSchemaHelper nl_join_out{0, &expr_maker};
   {
     // t1.col1, and t1.col2
@@ -903,11 +894,11 @@ auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
     auto predicate = expr_maker.ComparisonEq(t1_col1, t2_col1);
     // Build
 
-    NestedLoopJoinPlanNode::Builder builder;
+    planner::NestedLoopJoinPlanNode::Builder builder;
     nl_join = builder.AddChild(std::move(seq_scan1))
                   .AddChild(std::move(seq_scan2))
                   .SetOutputSchema(std::move(schema))
-                  .SetJoinType(LogicalJoinType::INNER)
+                  .SetJoinType(planner::LogicalJoinType::INNER)
                   .SetJoinPredicate(predicate)
                   .Build();
   }
@@ -917,7 +908,7 @@ auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
   // The 4th column is the sum of the 1nd and 3rd columns
   uint32_t num_output_rows{0};
   uint32_t num_expected_rows{80};
-  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> vals) {
+  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> &vals) {
     // Read cols
     auto col1 = static_cast<sql::Integer *>(vals[0]);
     auto col2 = static_cast<sql::Integer *>(vals[1]);
@@ -957,7 +948,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
   ExpressionMaker expr_maker;
 
   // Make the seq scan: Here test_2 is the outer table
-  std::unique_ptr<AbstractPlanNode> seq_scan;
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     auto table_oid2 = accessor->GetTableOid(NSOid(), "test_2");
@@ -971,7 +962,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
     // Make predicate
     auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(80));
     // Build
-    SeqScanPlanNode::Builder builder;
+    planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(predicate)
                    .SetIsParallelFlag(false)
@@ -981,7 +972,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
                    .Build();
   }
   // Make index join
-  std::unique_ptr<AbstractPlanNode> index_join;
+  std::unique_ptr<planner::AbstractPlanNode> index_join;
   OutputSchemaHelper index_join_out{0, &expr_maker};
   {
     // Retrieve table and index
@@ -1004,13 +995,13 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
     // Predicate
     auto predicate = expr_maker.ComparisonEq(t1_col1, t2_col1);
     // Build
-    IndexJoinPlanNode::Builder builder;
+    planner::IndexJoinPlanNode::Builder builder;
     index_join = builder.AddChild(std::move(seq_scan))
                      .SetIndexOid(index_oid1)
                      .SetTableOid(table_oid1)
                      .AddIndexColum(catalog::indexkeycol_oid_t(1), t2_col1)
                      .SetOutputSchema(std::move(schema))
-                     .SetJoinType(LogicalJoinType::INNER)
+                     .SetJoinType(planner::LogicalJoinType::INNER)
                      .SetJoinPredicate(predicate)
                      .Build();
   }
@@ -1020,7 +1011,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
   // The 4th column is the sum of the 1nd and 3rd columns
   uint32_t num_output_rows{0};
   uint32_t num_expected_rows{80};
-  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> vals) {
+  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> &vals) {
     // Read cols
     auto col1 = static_cast<sql::Integer *>(vals[0]);
     auto col2 = static_cast<sql::Integer *>(vals[1]);
@@ -1059,7 +1050,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
   ExpressionMaker expr_maker;
 
   // Make the seq scan: Here test_1 is the outer table
-  std::unique_ptr<AbstractPlanNode> seq_scan;
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
@@ -1071,7 +1062,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
     // Build
-    SeqScanPlanNode::Builder builder;
+    planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(nullptr)
                    .SetIsParallelFlag(false)
@@ -1081,7 +1072,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
                    .Build();
   }
   // Make index join
-  std::unique_ptr<AbstractPlanNode> index_join;
+  std::unique_ptr<planner::AbstractPlanNode> index_join;
   OutputSchemaHelper index_join_out{0, &expr_maker};
   {
     // Retrieve table and index
@@ -1103,14 +1094,14 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
     index_join_out.AddOutput("sum", sum);
     auto schema = index_join_out.MakeSchema();
     // Build
-    IndexJoinPlanNode::Builder builder;
+    planner::IndexJoinPlanNode::Builder builder;
     index_join = builder.AddChild(std::move(seq_scan))
                      .SetIndexOid(index_oid2)
                      .SetTableOid(table_oid2)
                      .AddIndexColum(catalog::indexkeycol_oid_t(1), t1_col1)
                      .AddIndexColum(catalog::indexkeycol_oid_t(2), t1_col2)
                      .SetOutputSchema(std::move(schema))
-                     .SetJoinType(LogicalJoinType::INNER)
+                     .SetJoinType(planner::LogicalJoinType::INNER)
                      .SetJoinPredicate(nullptr)
                      .Build();
   }
@@ -1120,7 +1111,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
   // With very high probababilty, there should be less 1000 columns outputted due to NULLs.
   uint32_t max_output_rows{1000};
   uint32_t num_output_rows{0};
-  RowChecker row_checker = [&num_output_rows, &max_output_rows](const std::vector<sql::Val *> vals) {
+  RowChecker row_checker = [&num_output_rows, &max_output_rows](const std::vector<sql::Val *> &vals) {
     // Read cols
     auto col1 = static_cast<sql::Integer *>(vals[0]);
     auto col2 = static_cast<sql::Integer *>(vals[1]);
@@ -1147,7 +1138,6 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
   CompileAndRun(index_join.get(), exec_ctx.get());
   checker.CheckCorrectness();
 }
-*/
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleDeleteTest) {
@@ -1161,7 +1151,7 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
   auto table_schema1 = accessor->GetSchema(table_oid1);
 
   // SeqScan for delete
-  std::unique_ptr<AbstractPlanNode> seq_scan1;
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan1;
   OutputSchemaHelper seq_scan_out1{0, &expr_maker};
   {
     auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
@@ -1172,25 +1162,21 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     auto pred2 = expr_maker.ComparisonLe(col1, expr_maker.Constant(505));
     auto predicate = expr_maker.ConjunctionAnd(pred1, pred2);
     // Build
-    SeqScanPlanNode::Builder builder;
+    planner::SeqScanPlanNode::Builder builder;
     seq_scan1 = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(predicate)
-        .SetIsParallelFlag(false)
-        .SetIsForUpdateFlag(false)
-        .SetNamespaceOid(NSOid())
-        .SetTableOid(table_oid1)
-        .Build();
+                    .SetScanPredicate(predicate)
+                    .SetIsParallelFlag(false)
+                    .SetIsForUpdateFlag(false)
+                    .SetNamespaceOid(NSOid())
+                    .SetTableOid(table_oid1)
+                    .Build();
   }
 
-
   // make DeletePlanNode
-  std::unique_ptr<AbstractPlanNode> delete_node;
+  std::unique_ptr<planner::AbstractPlanNode> delete_node;
   {
-    DeletePlanNode::Builder builder;
-    delete_node = builder
-        .SetTableOid(table_oid1)
-        .AddChild(std::move(seq_scan1))
-        .Build();
+    planner::DeletePlanNode::Builder builder;
+    delete_node = builder.SetTableOid(table_oid1).AddChild(std::move(seq_scan1)).Build();
   }
   // Execute delete
   {
@@ -1201,7 +1187,7 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
   }
 
   // Now scan through table to check content.
-  std::unique_ptr<AbstractPlanNode> seq_scan;
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     // Get Table columns
@@ -1213,14 +1199,14 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     auto predicate = expr_maker.ConjunctionAnd(pred1, pred2);
     auto schema = seq_scan_out.MakeSchema();
     // Build
-    SeqScanPlanNode::Builder builder;
+    planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(predicate)
-        .SetIsParallelFlag(false)
-        .SetIsForUpdateFlag(false)
-        .SetNamespaceOid(NSOid())
-        .SetTableOid(table_oid1)
-        .Build();
+                   .SetScanPredicate(predicate)
+                   .SetIsParallelFlag(false)
+                   .SetIsForUpdateFlag(false)
+                   .SetNamespaceOid(NSOid())
+                   .SetTableOid(table_oid1)
+                   .Build();
   }
   // Execute Table Scan
   {
@@ -1234,7 +1220,7 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
   }
 
   // Do an index scan to look a deleted value
-  std::unique_ptr<AbstractPlanNode> index_scan;
+  std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
     // Get Table columns
@@ -1242,16 +1228,17 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
 
     index_scan_out.AddOutput("col1", col1);
     auto schema = index_scan_out.MakeSchema();
-    IndexScanPlanNode::Builder builder;
-    index_scan = builder.SetTableOid(table_oid1).SetIndexOid(index_oid1)
-        .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
-        .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
-        .SetScanPredicate(nullptr)
-        .SetNamespaceOid(NSOid())
-        .SetOutputSchema(std::move(schema))
-        .SetScanType(planner::IndexScanType::Ascending)
-        .SetScanLimit(0)
-        .Build();
+    planner::IndexScanPlanNode::Builder builder;
+    index_scan = builder.SetTableOid(table_oid1)
+                     .SetIndexOid(index_oid1)
+                     .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
+                     .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
+                     .SetScanPredicate(nullptr)
+                     .SetNamespaceOid(NSOid())
+                     .SetOutputSchema(std::move(schema))
+                     .SetScanType(planner::IndexScanType::Ascending)
+                     .SetScanLimit(0)
+                     .Build();
   }
 
   // Execute index scan
@@ -1266,8 +1253,6 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
   }
 }
 
-
-
 TEST_F(CompilerTest, SimpleUpdateTest) {
   // UPDATE test_1 SET colA = -colA, colB = 500 WHERE colA BETWEEN 495 AND 505
   // Then check that the following finds the tuples:
@@ -1279,7 +1264,7 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
   auto table_schema1 = accessor->GetSchema(table_oid1);
 
   // SeqScan for delete
-  std::unique_ptr<AbstractPlanNode> seq_scan1;
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan1;
   OutputSchemaHelper seq_scan_out1{0, &expr_maker};
   {
     auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
@@ -1296,21 +1281,20 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     auto pred2 = expr_maker.ComparisonLe(col1, expr_maker.Constant(505));
     auto predicate = expr_maker.ConjunctionAnd(pred1, pred2);
     // Build
-    SeqScanPlanNode::Builder builder;
+    planner::SeqScanPlanNode::Builder builder;
     seq_scan1 = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(predicate)
-        .SetIsParallelFlag(false)
-        .SetIsForUpdateFlag(false)
-        .SetNamespaceOid(NSOid())
-        .SetTableOid(table_oid1)
-        .Build();
+                    .SetScanPredicate(predicate)
+                    .SetIsParallelFlag(false)
+                    .SetIsForUpdateFlag(false)
+                    .SetNamespaceOid(NSOid())
+                    .SetTableOid(table_oid1)
+                    .Build();
   }
 
-
   // make DeletePlanNode
-  std::unique_ptr<AbstractPlanNode> update_node;
+  std::unique_ptr<planner::AbstractPlanNode> update_node;
   {
-    UpdatePlanNode::Builder builder;
+    planner::UpdatePlanNode::Builder builder;
     auto col1 = seq_scan_out1.GetOutput("col1");
     auto col3 = seq_scan_out1.GetOutput("col3");
     auto col4 = seq_scan_out1.GetOutput("col4");
@@ -1321,15 +1305,14 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     planner::SetClause clause3{table_schema1.GetColumn("colC").Oid(), col3};
     planner::SetClause clause4{table_schema1.GetColumn("colD").Oid(), col4};
 
-    update_node = builder
-        .SetTableOid(table_oid1)
-        .AddChild(std::move(seq_scan1))
-        .AddSetClause(clause1)
-        .AddSetClause(clause2)
-        .AddSetClause(clause3)
-        .AddSetClause(clause4)
-        .SetIndexedUpdate(true)
-        .Build();
+    update_node = builder.SetTableOid(table_oid1)
+                      .AddChild(std::move(seq_scan1))
+                      .AddSetClause(clause1)
+                      .AddSetClause(clause2)
+                      .AddSetClause(clause3)
+                      .AddSetClause(clause4)
+                      .SetIndexedUpdate(true)
+                      .Build();
   }
   // Execute delete
   {
@@ -1340,7 +1323,7 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
   }
 
   // Now scan through table to check content.
-  std::unique_ptr<AbstractPlanNode> seq_scan;
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     // Get Table columns
@@ -1354,21 +1337,21 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     auto predicate = expr_maker.ConjunctionAnd(pred1, pred2);
     auto schema = seq_scan_out.MakeSchema();
     // Build
-    SeqScanPlanNode::Builder builder;
+    planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(predicate)
-        .SetIsParallelFlag(false)
-        .SetIsForUpdateFlag(false)
-        .SetNamespaceOid(NSOid())
-        .SetTableOid(table_oid1)
-        .Build();
+                   .SetScanPredicate(predicate)
+                   .SetIsParallelFlag(false)
+                   .SetIsForUpdateFlag(false)
+                   .SetNamespaceOid(NSOid())
+                   .SetTableOid(table_oid1)
+                   .Build();
   }
 
   // Make checker
   // Create the checkers
   uint32_t num_output_rows{0};
   uint32_t num_expected_rows{11};
-  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> vals) {
+  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> &vals) {
     // Read cols
     auto col1 = static_cast<sql::Integer *>(vals[0]);
     auto col2 = static_cast<sql::Integer *>(vals[1]);
@@ -1397,7 +1380,7 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
 
   // Do an index scan to look an updated value
   // TODO(Amadou): Replace with directional scan.
-  std::unique_ptr<AbstractPlanNode> index_scan;
+  std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
     // Get Table columns
@@ -1407,16 +1390,17 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     auto schema = index_scan_out.MakeSchema();
-    IndexScanPlanNode::Builder builder;
-    index_scan = builder.SetTableOid(table_oid1).SetIndexOid(index_oid1)
-        .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-505))
-        .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-495))
-        .SetScanPredicate(nullptr)
-        .SetNamespaceOid(NSOid())
-        .SetOutputSchema(std::move(schema))
-        .SetScanType(planner::IndexScanType::Descending)
-        .SetScanLimit(0)
-        .Build();
+    planner::IndexScanPlanNode::Builder builder;
+    index_scan = builder.SetTableOid(table_oid1)
+                     .SetIndexOid(index_oid1)
+                     .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-505))
+                     .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-495))
+                     .SetScanPredicate(nullptr)
+                     .SetNamespaceOid(NSOid())
+                     .SetOutputSchema(std::move(schema))
+                     .SetScanType(planner::IndexScanType::Descending)
+                     .SetScanLimit(0)
+                     .Build();
   }
 
   // Execute index scan
@@ -1432,8 +1416,6 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
   }
 }
 
-
-
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleInsertTest) {
   // INSERT INTO test_1 (colA, colB, colC, colD) VALUES (-1, 1, 2, 3), (-2, 1, 2, 3)
@@ -1446,31 +1428,30 @@ TEST_F(CompilerTest, SimpleInsertTest) {
   auto table_schema1 = accessor->GetSchema(table_oid1);
 
   // make InsertPlanNode
-  std::unique_ptr<AbstractPlanNode> insert;
+  std::unique_ptr<planner::AbstractPlanNode> insert;
   {
-    std::vector<type::TransientValue> values1;
-    std::vector<type::TransientValue> values2;
+    std::vector<ExpressionMaker::ManagedExpression> values1;
+    std::vector<ExpressionMaker::ManagedExpression> values2;
 
-    values1.push_back(type::TransientValueFactory::GetInteger(-1));
-    values1.push_back(type::TransientValueFactory::GetInteger(1));
-    values1.push_back(type::TransientValueFactory::GetInteger(2));
-    values1.push_back(type::TransientValueFactory::GetInteger(3));
-    values2.push_back(type::TransientValueFactory::GetInteger(-2));
-    values2.push_back(type::TransientValueFactory::GetInteger(1));
-    values2.push_back(type::TransientValueFactory::GetInteger(2));
-    values2.push_back(type::TransientValueFactory::GetInteger(3));
-    InsertPlanNode::Builder builder;
-    insert = builder
-        .AddParameterInfo(table_schema1.GetColumn("colA").Oid())
-        .AddParameterInfo(table_schema1.GetColumn("colB").Oid())
-        .AddParameterInfo(table_schema1.GetColumn("colC").Oid())
-        .AddParameterInfo(table_schema1.GetColumn("colD").Oid())
-        .SetIndexOids({index_oid1})
-        .AddValues(std::move(values1))
-        .AddValues(std::move(values2))
-        .SetNamespaceOid(NSOid())
-        .SetTableOid(table_oid1)
-        .Build();
+    values1.push_back(expr_maker.Constant(-1));
+    values1.push_back(expr_maker.Constant(1));
+    values1.push_back(expr_maker.Constant(2));
+    values1.push_back(expr_maker.Constant(3));
+    values2.push_back(expr_maker.Constant(-2));
+    values2.push_back(expr_maker.Constant(1));
+    values2.push_back(expr_maker.Constant(2));
+    values2.push_back(expr_maker.Constant(3));
+    planner::InsertPlanNode::Builder builder;
+    insert = builder.AddParameterInfo(table_schema1.GetColumn("colA").Oid())
+                 .AddParameterInfo(table_schema1.GetColumn("colB").Oid())
+                 .AddParameterInfo(table_schema1.GetColumn("colC").Oid())
+                 .AddParameterInfo(table_schema1.GetColumn("colD").Oid())
+                 .SetIndexOids({index_oid1})
+                 .AddValues(std::move(values1))
+                 .AddValues(std::move(values2))
+                 .SetNamespaceOid(NSOid())
+                 .SetTableOid(table_oid1)
+                 .Build();
   }
   // Execute insert
   {
@@ -1481,7 +1462,7 @@ TEST_F(CompilerTest, SimpleInsertTest) {
   }
 
   // Now scan through table to check content.
-  std::unique_ptr<AbstractPlanNode> seq_scan;
+  /*std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     // Get Table columns
@@ -1497,19 +1478,19 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(0));
     auto schema = seq_scan_out.MakeSchema();
     // Build
-    SeqScanPlanNode::Builder builder;
+    planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(predicate)
-        .SetIsParallelFlag(false)
-        .SetIsForUpdateFlag(false)
-        .SetNamespaceOid(NSOid())
-        .SetTableOid(table_oid1)
-        .Build();
-  }
+                   .SetScanPredicate(predicate)
+                   .SetIsParallelFlag(false)
+                   .SetIsForUpdateFlag(false)
+                   .SetNamespaceOid(NSOid())
+                   .SetTableOid(table_oid1)
+                   .Build();
+  }*/
   // Create the checkers
   uint32_t num_output_rows{0};
   uint32_t num_expected_rows{2};
-  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> vals) {
+  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> &vals) {
     // Read cols
     auto col1 = static_cast<sql::Integer *>(vals[0]);
     auto col2 = static_cast<sql::Integer *>(vals[1]);
@@ -1529,7 +1510,7 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
 
-  // Execute Table Scan
+  /*// Execute Table Scan
   {
     GenericChecker checker(row_checker, correcteness_fn);
     OutputStore store{&checker, seq_scan->GetOutputSchema().Get()};
@@ -1538,10 +1519,10 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
     CompileAndRun(seq_scan.get(), exec_ctx.get());
     checker.CheckCorrectness();
-  }
+  }*/
 
   // Do an index scan to look for inserted value
-  std::unique_ptr<AbstractPlanNode> index_scan;
+  std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
     // Get Table columns
@@ -1555,16 +1536,17 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     index_scan_out.AddOutput("col3", col3);
     index_scan_out.AddOutput("col4", col4);
     auto schema = index_scan_out.MakeSchema();
-    IndexScanPlanNode::Builder builder;
-    index_scan = builder.SetTableOid(table_oid1).SetIndexOid(index_oid1)
-        .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-10000))
-        .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1))
-        .SetScanPredicate(nullptr)
-        .SetNamespaceOid(NSOid())
-        .SetOutputSchema(std::move(schema))
-        .SetScanType(planner::IndexScanType::Descending)
-        .SetScanLimit(0)
-        .Build();
+    planner::IndexScanPlanNode::Builder builder;
+    index_scan = builder.SetTableOid(table_oid1)
+                     .SetIndexOid(index_oid1)
+                     .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-10000))
+                     .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1))
+                     .SetScanPredicate(nullptr)
+                     .SetNamespaceOid(NSOid())
+                     .SetOutputSchema(std::move(schema))
+                     .SetScanType(planner::IndexScanType::Descending)
+                     .SetScanLimit(0)
+                     .Build();
   }
 
   // Execute index scan
@@ -1580,8 +1562,6 @@ TEST_F(CompilerTest, SimpleInsertTest) {
   }
 }
 
-
-
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, InsertIntoSelectTest) {
   // INSERT INTO test_1
@@ -1594,7 +1574,7 @@ TEST_F(CompilerTest, InsertIntoSelectTest) {
   auto index_oid1 = accessor->GetIndexOid(NSOid(), "index_1");
   auto table_schema1 = accessor->GetSchema(table_oid1);
   // SeqScan for insert
-  std::unique_ptr<AbstractPlanNode> seq_scan1;
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan1;
   OutputSchemaHelper seq_scan_out1{0, &expr_maker};
   {
     auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
@@ -1612,30 +1592,29 @@ TEST_F(CompilerTest, InsertIntoSelectTest) {
     auto pred2 = expr_maker.ComparisonLe(col1, expr_maker.Constant(505));
     auto predicate = expr_maker.ConjunctionAnd(pred1, pred2);
     // Build
-    SeqScanPlanNode::Builder builder;
+    planner::SeqScanPlanNode::Builder builder;
     seq_scan1 = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(predicate)
-        .SetIsParallelFlag(false)
-        .SetIsForUpdateFlag(false)
-        .SetNamespaceOid(NSOid())
-        .SetTableOid(table_oid1)
-        .Build();
+                    .SetScanPredicate(predicate)
+                    .SetIsParallelFlag(false)
+                    .SetIsForUpdateFlag(false)
+                    .SetNamespaceOid(NSOid())
+                    .SetTableOid(table_oid1)
+                    .Build();
   }
 
   // Insertion node
-  std::unique_ptr<AbstractPlanNode> insert;
+  std::unique_ptr<planner::AbstractPlanNode> insert;
   {
-    InsertPlanNode::Builder builder;
-    insert = builder
-        .AddParameterInfo(table_schema1.GetColumn("colA").Oid())
-        .AddParameterInfo(table_schema1.GetColumn("colB").Oid())
-        .AddParameterInfo(table_schema1.GetColumn("colC").Oid())
-        .AddParameterInfo(table_schema1.GetColumn("colD").Oid())
-        .SetIndexOids({index_oid1})
-        .SetNamespaceOid(NSOid())
-        .SetTableOid(table_oid1)
-        .AddChild(std::move(seq_scan1))
-        .Build();
+    planner::InsertPlanNode::Builder builder;
+    insert = builder.AddParameterInfo(table_schema1.GetColumn("colA").Oid())
+                 .AddParameterInfo(table_schema1.GetColumn("colB").Oid())
+                 .AddParameterInfo(table_schema1.GetColumn("colC").Oid())
+                 .AddParameterInfo(table_schema1.GetColumn("colD").Oid())
+                 .SetIndexOids({index_oid1})
+                 .SetNamespaceOid(NSOid())
+                 .SetTableOid(table_oid1)
+                 .AddChild(std::move(seq_scan1))
+                 .Build();
   }
 
   // Execute insert
@@ -1646,10 +1625,8 @@ TEST_F(CompilerTest, InsertIntoSelectTest) {
     CompileAndRun(insert.get(), exec_ctx.get());
   }
 
-
-
   // Now scan through table to check content.
-  std::unique_ptr<AbstractPlanNode> seq_scan;
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     // Get Table columns
@@ -1665,19 +1642,19 @@ TEST_F(CompilerTest, InsertIntoSelectTest) {
     auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(0));
     auto schema = seq_scan_out.MakeSchema();
     // Build
-    SeqScanPlanNode::Builder builder;
+    planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(predicate)
-        .SetIsParallelFlag(false)
-        .SetIsForUpdateFlag(false)
-        .SetNamespaceOid(NSOid())
-        .SetTableOid(table_oid1)
-        .Build();
+                   .SetScanPredicate(predicate)
+                   .SetIsParallelFlag(false)
+                   .SetIsForUpdateFlag(false)
+                   .SetNamespaceOid(NSOid())
+                   .SetTableOid(table_oid1)
+                   .Build();
   }
   // Create the checkers
   uint32_t num_output_rows{0};
   uint32_t num_expected_rows{11};
-  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> vals) {
+  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> &vals) {
     // Read cols
     auto col1 = static_cast<sql::Integer *>(vals[0]);
     auto col2 = static_cast<sql::Integer *>(vals[1]);
@@ -1707,7 +1684,7 @@ TEST_F(CompilerTest, InsertIntoSelectTest) {
   }
 
   // Do an index scan to look for inserted value
-  std::unique_ptr<AbstractPlanNode> index_scan;
+  std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
     // Get Table columns
@@ -1721,16 +1698,17 @@ TEST_F(CompilerTest, InsertIntoSelectTest) {
     index_scan_out.AddOutput("col3", col3);
     index_scan_out.AddOutput("col4", col4);
     auto schema = index_scan_out.MakeSchema();
-    IndexScanPlanNode::Builder builder;
-    index_scan = builder.SetTableOid(table_oid1).SetIndexOid(index_oid1)
-        .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1000))
-        .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1))
-        .SetScanPredicate(nullptr)
-        .SetNamespaceOid(NSOid())
-        .SetOutputSchema(std::move(schema))
-        .SetScanType(planner::IndexScanType::Descending)
-        .SetScanLimit(0)
-        .Build();
+    planner::IndexScanPlanNode::Builder builder;
+    index_scan = builder.SetTableOid(table_oid1)
+                     .SetIndexOid(index_oid1)
+                     .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1000))
+                     .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1))
+                     .SetScanPredicate(nullptr)
+                     .SetNamespaceOid(NSOid())
+                     .SetOutputSchema(std::move(schema))
+                     .SetScanType(planner::IndexScanType::Descending)
+                     .SetScanLimit(0)
+                     .Build();
   }
   // Execute index scan
   {
@@ -1744,7 +1722,6 @@ TEST_F(CompilerTest, InsertIntoSelectTest) {
     checker.CheckCorrectness();
   }
 }
-
 
 /*
 // NOLINTNEXTLINE
@@ -1760,7 +1737,7 @@ TEST_F(CompilerTest, TPCHQ1Test) {
   auto accessor = MakeAccessor();
   auto * catalog_table = accessor->GetUserTable("lineitem");
   // Scan the table
-  std::unique_ptr<AbstractPlanNode> seq_scan;
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     // Read all needed columns
@@ -1787,7 +1764,7 @@ TEST_F(CompilerTest, TPCHQ1Test) {
     auto predicate = expr_maker.ComparisonLt(l_shipdate, date_const);
 
     // Build
-    SeqScanPlanNode::Builder builder;
+    planner::SeqScanPlanNode::Builder builder;
     seq_scan =
         builder.SetOutputSchema(std::move(schema))
             .SetScanPredicate(nullptr)
@@ -1799,7 +1776,7 @@ TEST_F(CompilerTest, TPCHQ1Test) {
             .Build();
   }
   // Make the aggregate
-  std::unique_ptr<AbstractPlanNode> agg;
+  std::unique_ptr<planner::AbstractPlanNode> agg;
   OutputSchemaHelper agg_out{0, &expr_maker};
   {
     // Read previous layer's output
@@ -1845,7 +1822,7 @@ TEST_F(CompilerTest, TPCHQ1Test) {
     agg_out.AddOutput("count_order", agg_out.GetAggTermForOutput("count_order"));
     auto schema = agg_out.MakeSchema();
     // Build
-    AggregatePlanNode::Builder builder;
+    planner::AggregatePlanNode::Builder builder;
     agg =
         builder.SetOutputSchema(std::move(schema))
             .AddGroupByTerm(l_returnflag)

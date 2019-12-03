@@ -1,5 +1,5 @@
 #pragma once
-
+#include <vector>
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/storage/pr_filler.h"
 #include "planner/plannodes/insert_plan_node.h"
@@ -11,6 +11,11 @@ namespace terrier::execution::compiler {
  */
 class InsertTranslator : public OperatorTranslator {
  public:
+  /**
+   * Constructor
+   * @param op The plan node
+   * @param codegen The code generator
+   */
   InsertTranslator(const terrier::planner::InsertPlanNode *op, CodeGen *codegen);
 
   // Does nothing
@@ -35,11 +40,8 @@ class InsertTranslator : public OperatorTranslator {
 
   // This is not a materializer
   bool IsMaterializer(bool *is_ptr) override { return false; }
-
   ast::Expr *GetOutput(uint32_t attr_idx) override { UNREACHABLE("Inserts don't output anything"); };
-
   const planner::AbstractPlanNode *Op() override { return op_; }
-
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
 
  private:
@@ -55,7 +57,7 @@ class InsertTranslator : public OperatorTranslator {
   // Fill the insert PR from the child's output
   void FillPRFromChild(FunctionBuilder *builder);
   // Set the table PR from raw values
-  void GenSetTablePR(FunctionBuilder *builder, uint32_t tuple);
+  void GenSetTablePR(FunctionBuilder *builder, uint32_t idx);
   // Insert into table.
   void GenTableInsert(FunctionBuilder *builder);
   // Insert into index.
@@ -71,9 +73,6 @@ class InsertTranslator : public OperatorTranslator {
 
  private:
   const planner::InsertPlanNode *op_;
-  static constexpr const char *inserter_name_ = "inserter";
-  static constexpr const char *insert_pr_name_ = "insert_pr";
-  static constexpr const char *col_oids_name_ = "col_oids";
   ast::Identifier inserter_;
   ast::Identifier insert_pr_;
   ast::Identifier col_oids_;

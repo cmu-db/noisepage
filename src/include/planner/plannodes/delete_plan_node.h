@@ -39,7 +39,8 @@ class DeletePlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::unique_ptr<DeletePlanNode> Build() {
-      return std::unique_ptr<DeletePlanNode>(new DeletePlanNode(std::move(children_), std::move(output_schema_), table_oid_));
+      return std::unique_ptr<DeletePlanNode>(
+          new DeletePlanNode(std::move(children_), std::move(output_schema_), table_oid_));
     }
 
    protected:
@@ -55,9 +56,9 @@ class DeletePlanNode : public AbstractPlanNode {
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param table_oid the OID of the target SQL table
    */
-  DeletePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema, catalog::table_oid_t table_oid)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        table_oid_(table_oid) {}
+  DeletePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
+                 catalog::table_oid_t table_oid)
+      : AbstractPlanNode(std::move(children), std::move(output_schema)), table_oid_(table_oid) {}
 
  public:
   /**
