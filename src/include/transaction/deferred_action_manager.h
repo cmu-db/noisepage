@@ -2,8 +2,12 @@
 #include <queue>
 #include <utility>
 #include <vector>
+#include "storage/garbage_collector.h"
+#include "storage/write_ahead_log/log_manager.h"
 #include "transaction/timestamp_manager.h"
 #include "transaction/transaction_defs.h"
+
+#define MIN_GC_INVOCATIONS (3)
 
 namespace terrier::transaction {
 /**
@@ -67,6 +71,20 @@ class DeferredActionManager {
     // Otherwise, ingest all the new actions
     processed += ProcessNewActions(oldest_txn);
     return processed;
+  }
+
+  /**
+   * Invokes GC and log manager enough times to fully GC any outstanding transactions and process deferred events.
+   * Currently, this must be done 3 times. The log manager must be called because transactions can only be GC'd once
+   * their logs are persisted.
+   * @param gc gc to use for garbage collection
+   * @param log_manager log manager to use for flushing logs
+   */
+  void FullyPerformGC(storage::GarbageCollector *const gc, storage::LogManager *const log_manager) {
+    for (int i = 0; i < MIN_GC_INVOCATIONS; i++) {
+      if (log_manager != DISABLED) log_manager->ForceFlush();
+      gc->PerformGarbageCollection();
+    }
   }
 
  private:
