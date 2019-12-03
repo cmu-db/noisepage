@@ -156,7 +156,7 @@ class IndexKeyTests : public TerrierTest {
       auto pr_offset = static_cast<uint16_t>(oid_offset_map.at(key_oid));
       auto attr = pr->AccessForceNotNull(pr_offset);
       WriteRandomAttribute(key, attr, reference + offset, generator);
-      offset += type::TypeUtil::GetTypeSize(key_type) & INT8_MAX;
+      offset += AttrSizeBytes(type::TypeUtil::GetTypeSize(key_type));
     }
     return reference;
   }
@@ -774,8 +774,8 @@ TEST_F(IndexKeyTests, RandomCompactIntsKeyTest) {
       float probabilities[] = {0.0, 0.5, 1.0};
 
       for (float prob : probabilities) {
-        // have B copy A
-        std::memcpy(pr_b, pr_a, initializer.ProjectedRowSize());
+        // have B copy A. Recast pr_b to workaround -Wclass-memaccess.
+        std::memcpy(static_cast<void *>(pr_b), pr_a, initializer.ProjectedRowSize());
         auto *data_b = new byte[key_size];
         std::memcpy(data_b, data_a, key_size);
 

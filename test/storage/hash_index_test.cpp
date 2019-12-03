@@ -56,7 +56,7 @@ class HashIndexTests : public TerrierTest {
   // SqlTable
   storage::SqlTable *sql_table_;
   storage::ProjectedRowInitializer tuple_initializer_ =
-      storage::ProjectedRowInitializer::Create(std::vector<uint8_t>{1}, std::vector<uint16_t>{1});
+      storage::ProjectedRowInitializer::Create(std::vector<uint16_t>{1}, std::vector<uint16_t>{1});
 
   // HashIndex
   Index *default_index_, *unique_index_;

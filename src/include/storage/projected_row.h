@@ -208,12 +208,10 @@ class ProjectedRowInitializer {
    * bitmap, and potential padding, and the offsets to jump to for each value. This information is cached for repeated
    * initialization.
    *
-   * @tparam AttrType datatype of attribute sizes
    * @param real_attr_sizes unsorted REAL attribute sizes, e.g. they shouldn't use MSB to indicate varlen.
    * @param pr_offsets pr_offsets[i] = projection list offset of attr_sizes[i] after it gets sorted
    */
-  template <typename AttrType>
-  static ProjectedRowInitializer Create(std::vector<AttrType> real_attr_sizes, const std::vector<uint16_t> &pr_offsets);
+  static ProjectedRowInitializer Create(std::vector<uint16_t> real_attr_sizes, const std::vector<uint16_t> &pr_offsets);
 
  private:
   friend class catalog::Catalog;          // access to the PRI default constructor
@@ -226,12 +224,11 @@ class ProjectedRowInitializer {
    * bitmap, and potential padding, and the offsets to jump to for each value. This information is cached for repeated
    * initialization.
    *
-   * @tparam AttrType datatype of attribute sizes
    * @param real_attr_sizes unsorted REAL attribute sizes, e.g. they shouldn't use MSB to indicate varlen.
    * @param col_ids column ids
    */
-  template <typename AttrType>
-  static ProjectedRowInitializer Create(std::vector<AttrType> real_attr_sizes, const std::vector<col_id_t> &col_ids);
+  static ProjectedRowInitializer Create(const std::vector<uint16_t> &real_attr_sizes,
+                                        const std::vector<col_id_t> &col_ids);
 
   /**
    * Constructs a ProjectedRowInitializer. Calculates the size of this ProjectedRow, including all members, values,
@@ -242,8 +239,7 @@ class ProjectedRowInitializer {
    * @param attr_sizes sorted attribute sizes
    * @param col_ids column ids
    */
-  template <typename AttrType>
-  ProjectedRowInitializer(const std::vector<AttrType> &attr_sizes, std::vector<col_id_t> col_ids);
+  ProjectedRowInitializer(const std::vector<uint16_t> &attr_sizes, std::vector<col_id_t> col_ids);
 
   /**
    * This exists for classes that need a PRI as a member, but their arguments aren't known at construction. This allows

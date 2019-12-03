@@ -27,7 +27,7 @@ Transition PostgresProtocolInterpreter::Process(common::ManagedPointer<ReadBuffe
     // Always flush startup packet response
     out->ForceFlush();
     curr_input_packet_.Clear();
-    return ProcessStartup(in, out);
+    return ProcessStartup(in, out, context);
   }
   auto command = command_factory_->PacketToCommand(common::ManagedPointer<InputPacket>(&curr_input_packet_));
   PostgresPacketWriter writer(out);
@@ -39,7 +39,8 @@ Transition PostgresProtocolInterpreter::Process(common::ManagedPointer<ReadBuffe
 }
 
 Transition PostgresProtocolInterpreter::ProcessStartup(const common::ManagedPointer<ReadBuffer> in,
-                                                       const common::ManagedPointer<WriteQueue> out) {
+                                                       const common::ManagedPointer<WriteQueue> out,
+                                                       common::ManagedPointer<ConnectionContext> context) {
   PostgresPacketWriter writer(out);
   auto proto_version = in->ReadValue<uint32_t>();
   NETWORK_LOG_TRACE("protocol version: {0}", proto_version);
@@ -63,16 +64,16 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const common::ManagedPoin
     // TODO(Tianyu): We don't seem to really handle the other flags?
     std::string key = in->ReadString(), value = in->ReadString();
     NETWORK_LOG_TRACE("Option key {0}, value {1}", key.c_str(), value.c_str());
-    if (key == std::string("database"))
-      // state_.db_name_ = value;
-      cmdline_options_[key] = std::move(value);
+    if (key == std::string("database")) {
+      context->cmdline_args_[key] = std::move(value);
+    }
   }
   // skip the last nul byte
   in->Skip(1);
   // TODO(Tianyu): Implement authentication. For now we always send AuthOK
   writer.WriteStartupResponse();
   startup_ = false;
-  return Transition::PROCEED;
+  return Transition::STARTUP;
 }
 
 size_t PostgresProtocolInterpreter::GetPacketHeaderSize() { return startup_ ? sizeof(uint32_t) : 1 + sizeof(uint32_t); }

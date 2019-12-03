@@ -32,10 +32,10 @@ class PerfMonitorTests : public TerrierTest {
     catalog::Catalog catalog(&txn_manager, &block_store);
 
     storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
-    StorageTestUtil::FullyPerformGC(&gc, DISABLED);
+    deferred_action_manager.FullyPerformGC(&gc, DISABLED);
 
     catalog.TearDown();
-    StorageTestUtil::FullyPerformGC(&gc, DISABLED);
+    deferred_action_manager.FullyPerformGC(&gc, DISABLED);
     monitor.Stop();
     *counters = monitor.Counters();
   }
