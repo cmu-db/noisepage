@@ -2,7 +2,6 @@
 #
 # start the Jenkins swarm client
 #
-# this script belongs on the VMware Fusion HOST and should be invoked
 # invoke with the following arguments:
 # -executors ${EXECUTORS} -labels "${LABELS}" -disableClientsUniqueId
 #
