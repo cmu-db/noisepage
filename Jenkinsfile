@@ -22,7 +22,7 @@ pipeline {
                         sh 'cd build && timeout 1h make check-censored'
                         sh 'cd build && make -j4'
                         sh 'cd build && make clean'
-                        sh 'sudo halt -qn'
+                        sh 'sudo /sbin/halt -qn'
                     }
                 }
 
@@ -90,7 +90,7 @@ pipeline {
                         sh 'cd build && gtimeout 1h make check-tpl'
                         sh 'cd build && python ../script/testing/junit/run_junit.py'
                         sh 'cd build && make clean'
-                        sh 'sudo halt -qn'
+                        sh 'sudo /sbin/halt -qn'
                     }
                 }
 
@@ -187,7 +187,7 @@ pipeline {
                         sh 'cd build && gtimeout 1h make check-tpl'
                         sh 'cd build && python ../script/testing/junit/run_junit.py --build_type=release'
                         sh 'cd build && make clean'
-                        sh 'sudo halt -qn'
+                        sh 'sudo /sbin/halt -qn'
                     }
                 }
 
