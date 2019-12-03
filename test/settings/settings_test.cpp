@@ -169,7 +169,7 @@ TEST_F(SettingsTests, LogManagerSettingsTest) {
   const common::action_id_t action_id(1);
 
   // Check default value is correctly passed to log manager
-  auto num_buffers = settings_manager_->GetInt(Param::num_log_manager_buffers);
+  auto num_buffers = settings_manager_->GetInt64(Param::num_log_manager_buffers);
   EXPECT_EQ(num_buffers, log_manager_->TestGetNumBuffers());
 
   // Change value
@@ -177,11 +177,11 @@ TEST_F(SettingsTests, LogManagerSettingsTest) {
 
   auto action_context = std::make_unique<common::ActionContext>(action_id);
   setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
-  settings_manager_->SetInt(Param::num_log_manager_buffers, new_num_buffers, common::ManagedPointer(action_context),
-                            setter_callback);
+  settings_manager_->SetInt64(Param::num_log_manager_buffers, new_num_buffers, common::ManagedPointer(action_context),
+                              setter_callback);
 
   // Check new value is propagated
-  EXPECT_EQ(new_num_buffers, settings_manager_->GetInt(Param::num_log_manager_buffers));
+  EXPECT_EQ(new_num_buffers, settings_manager_->GetInt64(Param::num_log_manager_buffers));
   EXPECT_EQ(new_num_buffers, log_manager_->TestGetNumBuffers());
 }
 
