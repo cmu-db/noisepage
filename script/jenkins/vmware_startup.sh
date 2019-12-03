@@ -12,6 +12,9 @@
 
 PATH=$PATH:/Applications/VMware\ Fusion.app/Contents/Public
 template="/Users/cmudb/Documents/VMs/jenkins-mac-worker.vmwarevm/jenkins-mac-worker.vmx"
+# we are only permitted to run two copies of macOS in VMs per section
+# 2.B.iii of the macOS EULA:
+# https://www.apple.com/legal/sla/docs/macOS1014.pdf
 workers="worker1 worker2"
 
 while : ; do
