@@ -2,7 +2,7 @@
 
 #include "common/managed_pointer.h"
 #include "gtest/gtest.h"
-#include "storage/garbage_collector_thread.h"
+#include "main/db_main.h"
 #include "test_util/data_table_test_util.h"
 #include "transaction/deferred_action_manager.h"
 
@@ -12,23 +12,19 @@ class LargeGCTests : public TerrierTest {
   void RunTest(const LargeDataTableTestConfiguration &config) {
     for (uint32_t iteration = 0; iteration < config.NumIterations(); iteration++) {
       std::default_random_engine generator;
-      storage::BlockStore store(10000, 1000);
-      storage::RecordBufferSegmentPool buffer_pool(10000, 10000);
-      transaction::TimestampManager timestamp_manager;
-      transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
-      transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager),
-                                                  common::ManagedPointer(&deferred_action_manager),
-                                                  common::ManagedPointer(&buffer_pool), true, DISABLED);
-      storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
-      LargeDataTableTestObject tested(config, &store, &txn_manager, &generator, DISABLED);
-      storage::GarbageCollectorThread gc_thread(&gc, std::chrono::milliseconds(10));
+
+      auto db_main = DBMain::Builder().Build();
+      LargeDataTableTestObject tested(config, db_main->GetStorageLayer()->GetBlockStore().Get(),
+                                      db_main->GetTransactionLayer()->GetTransactionManager().Get(), &generator,
+                                      DISABLED);
+
       for (uint32_t batch = 0; batch * config.BatchSize() < config.NumTxns(); batch++) {
         auto result = tested.SimulateOltp(config.BatchSize(), config.NumConcurrentTxns());
-        gc_thread.PauseGC();
+        db_main->GetGarbageCollectorThread()->PauseGC();
         tested.CheckReadsCorrect(&result.first);
         for (auto w : result.first) delete w;
         for (auto w : result.second) delete w;
-        gc_thread.ResumeGC();
+        db_main->GetGarbageCollectorThread()->ResumeGC();
       }
     }
   }
