@@ -48,7 +48,7 @@ class GarbageCollectorThread {
   /**
    * @return the underlying GC object, mostly to register indexes currently.
    */
-  GarbageCollector &GetGarbageCollector() { return *gc_; }
+  const common::ManagedPointer<GarbageCollector> GetGarbageCollector() { return gc_; }
 
  private:
   const common::ManagedPointer<storage::GarbageCollector> gc_;
