@@ -1,4 +1,6 @@
 #include <random>
+
+#include "common/managed_pointer.h"
 #include "gtest/gtest.h"
 #include "storage/garbage_collector_thread.h"
 #include "test_util/data_table_test_util.h"
@@ -13,9 +15,10 @@ class LargeGCTests : public TerrierTest {
       storage::BlockStore store(10000, 1000);
       storage::RecordBufferSegmentPool buffer_pool(10000, 10000);
       transaction::TimestampManager timestamp_manager;
-      transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
-      transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool, true,
-                                                  DISABLED);
+      transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
+      transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager),
+                                                  common::ManagedPointer(&deferred_action_manager),
+                                                  common::ManagedPointer(&buffer_pool), true, DISABLED);
       storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
       LargeDataTableTestObject tested(config, &store, &txn_manager, &generator, DISABLED);
       storage::GarbageCollectorThread gc_thread(&gc, std::chrono::milliseconds(10));
