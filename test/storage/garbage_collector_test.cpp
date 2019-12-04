@@ -1,8 +1,10 @@
 #include "storage/garbage_collector.h"
+
 #include <cstring>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "common/object_pool.h"
 #include "storage/data_table.h"
 #include "storage/storage_util.h"
@@ -92,9 +94,11 @@ struct GarbageCollectorTests : public ::terrier::TerrierTest {
 TEST_F(GarbageCollectorTests, SingleInsert) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TimestampManager timestamp_manager;
-    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, true, DISABLED);
+    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
+                                                common::ManagedPointer(&buffer_pool_), true, DISABLED);
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
-    storage::GarbageCollector gc(&timestamp_manager, DISABLED, &txn_manager, DISABLED);
+    storage::GarbageCollector gc(common::ManagedPointer(&timestamp_manager), DISABLED,
+                                 common::ManagedPointer(&txn_manager), DISABLED);
 
     auto *txn0 = txn_manager.BeginTransaction();
 
@@ -121,9 +125,11 @@ TEST_F(GarbageCollectorTests, SingleInsert) {
 TEST_F(GarbageCollectorTests, ReadOnly) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TimestampManager timestamp_manager;
-    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, true, DISABLED);
+    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
+                                                common::ManagedPointer(&buffer_pool_), true, DISABLED);
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
-    storage::GarbageCollector gc(&timestamp_manager, DISABLED, &txn_manager, DISABLED);
+    storage::GarbageCollector gc(common::ManagedPointer(&timestamp_manager), DISABLED,
+                                 common::ManagedPointer(&txn_manager), DISABLED);
 
     auto *txn0 = txn_manager.BeginTransaction();
     txn_manager.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -139,9 +145,11 @@ TEST_F(GarbageCollectorTests, ReadOnly) {
 TEST_F(GarbageCollectorTests, CommitInsert1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TimestampManager timestamp_manager;
-    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, true, DISABLED);
+    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
+                                                common::ManagedPointer(&buffer_pool_), true, DISABLED);
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
-    storage::GarbageCollector gc(&timestamp_manager, DISABLED, &txn_manager, DISABLED);
+    storage::GarbageCollector gc(common::ManagedPointer(&timestamp_manager), DISABLED,
+                                 common::ManagedPointer(&txn_manager), DISABLED);
 
     auto *txn0 = txn_manager.BeginTransaction();
 
@@ -192,9 +200,11 @@ TEST_F(GarbageCollectorTests, CommitInsert1) {
 TEST_F(GarbageCollectorTests, CommitInsert2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TimestampManager timestamp_manager;
-    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, true, DISABLED);
+    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
+                                                common::ManagedPointer(&buffer_pool_), true, DISABLED);
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
-    storage::GarbageCollector gc(&timestamp_manager, DISABLED, &txn_manager, DISABLED);
+    storage::GarbageCollector gc(common::ManagedPointer(&timestamp_manager), DISABLED,
+                                 common::ManagedPointer(&txn_manager), DISABLED);
 
     auto *txn0 = txn_manager.BeginTransaction();
 
@@ -246,9 +256,11 @@ TEST_F(GarbageCollectorTests, CommitInsert2) {
 TEST_F(GarbageCollectorTests, AbortInsert1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TimestampManager timestamp_manager;
-    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, true, DISABLED);
+    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
+                                                common::ManagedPointer(&buffer_pool_), true, DISABLED);
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
-    storage::GarbageCollector gc(&timestamp_manager, DISABLED, &txn_manager, DISABLED);
+    storage::GarbageCollector gc(common::ManagedPointer(&timestamp_manager), DISABLED,
+                                 common::ManagedPointer(&txn_manager), DISABLED);
 
     auto *txn0 = txn_manager.BeginTransaction();
 
@@ -300,9 +312,11 @@ TEST_F(GarbageCollectorTests, AbortInsert1) {
 TEST_F(GarbageCollectorTests, AbortInsert2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TimestampManager timestamp_manager;
-    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, true, DISABLED);
+    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
+                                                common::ManagedPointer(&buffer_pool_), true, DISABLED);
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
-    storage::GarbageCollector gc(&timestamp_manager, DISABLED, &txn_manager, DISABLED);
+    storage::GarbageCollector gc(common::ManagedPointer(&timestamp_manager), DISABLED,
+                                 common::ManagedPointer(&txn_manager), DISABLED);
 
     auto *txn0 = txn_manager.BeginTransaction();
 
@@ -354,9 +368,11 @@ TEST_F(GarbageCollectorTests, AbortInsert2) {
 TEST_F(GarbageCollectorTests, CommitUpdate1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TimestampManager timestamp_manager;
-    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, true, DISABLED);
+    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
+                                                common::ManagedPointer(&buffer_pool_), true, DISABLED);
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
-    storage::GarbageCollector gc(&timestamp_manager, DISABLED, &txn_manager, DISABLED);
+    storage::GarbageCollector gc(common::ManagedPointer(&timestamp_manager), DISABLED,
+                                 common::ManagedPointer(&txn_manager), DISABLED);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
 
@@ -425,9 +441,11 @@ TEST_F(GarbageCollectorTests, CommitUpdate1) {
 TEST_F(GarbageCollectorTests, CommitUpdate2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TimestampManager timestamp_manager;
-    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, true, DISABLED);
+    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
+                                                common::ManagedPointer(&buffer_pool_), true, DISABLED);
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
-    storage::GarbageCollector gc(&timestamp_manager, DISABLED, &txn_manager, DISABLED);
+    storage::GarbageCollector gc(common::ManagedPointer(&timestamp_manager), DISABLED,
+                                 common::ManagedPointer(&txn_manager), DISABLED);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
 
@@ -496,9 +514,11 @@ TEST_F(GarbageCollectorTests, CommitUpdate2) {
 TEST_F(GarbageCollectorTests, AbortUpdate1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TimestampManager timestamp_manager;
-    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, true, DISABLED);
+    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
+                                                common::ManagedPointer(&buffer_pool_), true, DISABLED);
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
-    storage::GarbageCollector gc(&timestamp_manager, DISABLED, &txn_manager, DISABLED);
+    storage::GarbageCollector gc(common::ManagedPointer(&timestamp_manager), DISABLED,
+                                 common::ManagedPointer(&txn_manager), DISABLED);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
 
@@ -567,9 +587,11 @@ TEST_F(GarbageCollectorTests, AbortUpdate1) {
 TEST_F(GarbageCollectorTests, AbortUpdate2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TimestampManager timestamp_manager;
-    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, true, DISABLED);
+    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
+                                                common::ManagedPointer(&buffer_pool_), true, DISABLED);
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
-    storage::GarbageCollector gc(&timestamp_manager, DISABLED, &txn_manager, DISABLED);
+    storage::GarbageCollector gc(common::ManagedPointer(&timestamp_manager), DISABLED,
+                                 common::ManagedPointer(&txn_manager), DISABLED);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
 
@@ -638,9 +660,11 @@ TEST_F(GarbageCollectorTests, AbortUpdate2) {
 TEST_F(GarbageCollectorTests, InsertUpdate1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     transaction::TimestampManager timestamp_manager;
-    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, true, DISABLED);
+    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
+                                                common::ManagedPointer(&buffer_pool_), true, DISABLED);
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
-    storage::GarbageCollector gc(&timestamp_manager, DISABLED, &txn_manager, DISABLED);
+    storage::GarbageCollector gc(common::ManagedPointer(&timestamp_manager), DISABLED,
+                                 common::ManagedPointer(&txn_manager), DISABLED);
 
     auto *txn0 = txn_manager.BeginTransaction();
 
