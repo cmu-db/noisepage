@@ -1,3 +1,5 @@
+#include "loggers/execution_logger.h"
+
 #include <memory>
 
 #include "loggers/main_logger.h"
