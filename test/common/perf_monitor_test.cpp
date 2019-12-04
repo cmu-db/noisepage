@@ -34,14 +34,16 @@ class PerfMonitorTests : public TerrierTest {
                                                 common::ManagedPointer(&deferred_action_manager),
                                                 common::ManagedPointer(&buffer_pool), true, DISABLED);
 
-    catalog::Catalog catalog((common::ManagedPointer<transaction::TransactionManager>(&txn_manager),
-                              common::ManagedPointer<storage::BlockStore>(&block_store)));
+    catalog::Catalog catalog{common::ManagedPointer<transaction::TransactionManager>(&txn_manager),
+                             common::ManagedPointer<storage::BlockStore>(&block_store)};
 
-    storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
-    deferred_action_manager.FullyPerformGC(&gc, DISABLED);
+    storage::GarbageCollector gc{common::ManagedPointer(&timestamp_manager),
+                                 common::ManagedPointer(&deferred_action_manager),
+                                 common::ManagedPointer<transaction::TransactionManager>(&txn_manager), DISABLED};
+    deferred_action_manager.FullyPerformGC(common::ManagedPointer(&gc), DISABLED);
 
     catalog.TearDown();
-    deferred_action_manager.FullyPerformGC(&gc, DISABLED);
+    deferred_action_manager.FullyPerformGC(common::ManagedPointer(&gc), DISABLED);
     monitor.Stop();
     *counters = monitor.Counters();
   }

@@ -34,7 +34,7 @@ SETTING_int(
 )
 
 // BlockStore for catalog size limit
-SETTING_int64(
+SETTING_int(
     block_store_size,
     "The maximum number of storage blocks for the catalog. (default: 100000)",
     100000,
@@ -45,7 +45,7 @@ SETTING_int64(
 )
 
 // BlockStore for catalog reuse limit
-SETTING_int64(
+SETTING_int(
     block_store_reuse,
     "The minimum number of storage blocks for the catalog to keep allocated (default: 1000)",
     1000,
@@ -78,7 +78,7 @@ SETTING_string(
 // Number of buffers log manager can use to buffer logs
 SETTING_int64(
     num_log_manager_buffers,
-    "The number of buffers the log manager uses to buffer logs to hand off to log consumer(s) (default: 4)",
+    "The number of buffers the log manager uses to buffer logs to hand off to log consumer(s) (default: 100)",
     100,
     2,
     10000,

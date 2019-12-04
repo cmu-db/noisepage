@@ -1,9 +1,11 @@
 #include "main/db_main.h"
 
-namespace terrier {
+#define __SETTING_GFLAGS_DEFINE__      // NOLINT
+#include "settings/settings_common.h"  // NOLINT
+#include "settings/settings_defs.h"    // NOLINT
+#undef __SETTING_GFLAGS_DEFINE__       // NOLINT
 
-DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_map)
-    : param_map_(std::move(param_map)) {}
+namespace terrier {
 
 void DBMain::Run() {
   running_ = true;

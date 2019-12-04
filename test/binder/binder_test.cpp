@@ -2,10 +2,12 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "benchmark_util/data_table_benchmark_util.h"
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
 #include "loggers/binder_logger.h"
+#include "main/db_main.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/operator_expression.h"
@@ -26,10 +28,7 @@ namespace terrier {
 
 class BinderCorrectnessTest : public TerrierTest {
  private:
-  storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
-  storage::BlockStore block_store_{1000, 1000};
-  catalog::Catalog *catalog_;
-  storage::GarbageCollector *gc_;
+  common::ManagedPointer<catalog::Catalog> catalog_;
 
  protected:
   std::string default_database_name_ = "test_db";
@@ -37,24 +36,16 @@ class BinderCorrectnessTest : public TerrierTest {
   catalog::table_oid_t table_a_oid_;
   catalog::table_oid_t table_b_oid_;
   parser::PostgresParser parser_;
-  transaction::TimestampManager *timestamp_manager_;
-  transaction::DeferredActionManager *deferred_action_manager_;
-  transaction::TransactionManager *txn_manager_;
+  //  transaction::TimestampManager *timestamp_manager_;
+  //  transaction::DeferredActionManager *deferred_action_manager_;
+  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   transaction::TransactionContext *txn_;
   std::unique_ptr<catalog::CatalogAccessor> accessor_;
   binder::BindNodeVisitor *binder_;
 
+  std::unique_ptr<DBMain> db_main_;
+
   void SetUpTables() {
-    // Initialize the transaction manager and GC
-    timestamp_manager_ = new transaction::TimestampManager;
-    deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
-    txn_manager_ = new transaction::TransactionManager(timestamp_manager_, deferred_action_manager_, &buffer_pool_,
-                                                       true, DISABLED);
-    gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, nullptr);
-
-    // new catalog requires txn_manage and block_store as parameters
-    catalog_ = new catalog::Catalog(txn_manager_, &block_store_);
-
     // create database
     txn_ = txn_manager_->BeginTransaction();
     BINDER_LOG_DEBUG("Creating database %s", default_database_name_.c_str());
@@ -79,7 +70,7 @@ class BinderCorrectnessTest : public TerrierTest {
     auto schema_a = catalog::Schema(cols_a);
 
     table_a_oid_ = accessor_->CreateTable(accessor_->GetDefaultNamespace(), "a", schema_a);
-    auto table_a = new storage::SqlTable(&block_store_, schema_a);
+    auto table_a = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), schema_a);
     EXPECT_TRUE(accessor_->SetTablePointer(table_a_oid_, table_a));
 
     txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
@@ -96,27 +87,28 @@ class BinderCorrectnessTest : public TerrierTest {
 
     auto schema_b = catalog::Schema(cols_b);
     table_b_oid_ = accessor_->CreateTable(accessor_->GetDefaultNamespace(), "b", schema_b);
-    auto table_b = new storage::SqlTable(&block_store_, schema_b);
+    auto table_b = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), schema_b);
     EXPECT_TRUE(accessor_->SetTablePointer(table_b_oid_, table_b));
     txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
     accessor_.reset(nullptr);
   }
 
-  void TearDownTables() {
-    catalog_->TearDown();
-    // Run the GC to flush it down to a clean system
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
-    delete catalog_;
-    delete gc_;
-    delete txn_manager_;
-    delete deferred_action_manager_;
-    delete timestamp_manager_;
-  }
+  void TearDownTables() { db_main_.reset(); }
 
   void SetUp() override {
     TerrierTest::SetUp();
+
+    std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> param_map;
+    terrier::settings::SettingsManager::ConstructParamMap(param_map);
+
+    db_main_ = terrier::DBMain::Builder()
+                   .SetSettingsParameterMap(std::move(param_map))
+                   .SetUseSettingsManager(true)
+                   .SetUseMetricsManager(true)
+                   .SetUseLogging(true)
+                   .SetUseGC(true)
+                   .SetUseCatalog(true)
+                   .Build();
     SetUpTables();
     // prepare for testing
     txn_ = txn_manager_->BeginTransaction();

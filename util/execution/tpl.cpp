@@ -83,15 +83,18 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
                      .SetUseGCThread(true)
                      .Build();
 
-  auto *txn = db_main->->GetTransactionManager()->BeginTransaction();
-
   // Get the correct output format for this test
   exec::SampleOutput sample_output;
   sample_output.InitTestOutput();
   auto output_schema = sample_output.GetSchema(output_name.data());
 
-  auto db_oid = catalog.CreateDatabase(txn, "test_db", true);
-  auto accessor = std::unique_ptr<catalog::CatalogAccessor>(catalog.GetAccessor(txn, db_oid));
+  auto catalog = db_main->GetCatalogLayer()->GetCatalog();
+  auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+
+  auto *txn = txn_manager->BeginTransaction();
+
+  auto db_oid = catalog->CreateDatabase(txn, "test_db", true);
+  auto accessor = std::unique_ptr<catalog::CatalogAccessor>(catalog->GetAccessor(txn, db_oid));
   auto ns_oid = accessor->GetDefaultNamespace();
 
   // Make the execution context
@@ -100,7 +103,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
 
   // Generate test tables
   // TODO(Amadou): Read this in from a directory. That would require boost or experimental C++ though
-  sql::TableGenerator table_generator{&exec_ctx, &block_store, ns_oid};
+  sql::TableGenerator table_generator{&exec_ctx, db_main->GetStorageLayer()->GetBlockStore().Get(), ns_oid};
   table_generator.GenerateTestTables();
   // Comment out to make more tables available at runtime
   // table_generator.GenerateTPCHTables(<path_to_tpch_dir>);
@@ -254,10 +257,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       "Parse: {} ms, Type-check: {} ms, Code-gen: {} ms, Interp. Exec.: {} ms, "
       "Adaptive Exec.: {} ms, Jit+Exec.: {} ms",
       parse_ms, typecheck_ms, codegen_ms, interp_exec_ms, adaptive_exec_ms, jit_exec_ms);
-  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  catalog.TearDown();
-  gc.PerformGarbageCollection();
-  gc.PerformGarbageCollection();
+  txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 /**
@@ -305,7 +305,7 @@ static void RunFile(const std::string &filename) {
 void InitTPL() {
   execution::CpuInfo::Instance();
 
-  terrier::LoggersUtil::Initialize(false);
+  terrier::LoggersUtil::Initialize();
 
   execution::vm::LLVMEngine::Initialize();
 

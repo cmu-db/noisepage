@@ -49,7 +49,7 @@ class DedicatedThreadRegistry;
  */
 class DBMain {
  public:
-  explicit DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_map);
+  DBMain() = default;
   ~DBMain();
 
   /**
@@ -208,9 +208,33 @@ class DBMain {
     std::unique_ptr<DBMain> Build() {
       LoggersUtil::Initialize();
 
-      auto db_main = std::make_unique<DBMain>(std::move(param_map_));
+      auto db_main = std::make_unique<DBMain>();
 
-      auto settings_manager = std::make_unique<settings::SettingsManager>(common::ManagedPointer(db_main));
+      std::unique_ptr<settings::SettingsManager> settings_manager = nullptr;
+      if (use_settings_manager_) {
+        TERRIER_ASSERT(!param_map_.empty(), "Settings parameter map was never set.");
+        settings_manager =
+            std::make_unique<settings::SettingsManager>(common::ManagedPointer(db_main), std::move(param_map_));
+
+        record_buffer_segment_size_ =
+            static_cast<uint64_t>(settings_manager->GetInt(settings::Param::record_buffer_segment_size));
+        record_buffer_segment_reuse_ =
+            static_cast<uint64_t>(settings_manager->GetInt(settings::Param::record_buffer_segment_reuse));
+        block_store_size_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::block_store_size));
+        block_store_reuse_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::block_store_reuse));
+
+        log_file_path_ = settings_manager->GetString(settings::Param::log_file_path);
+        num_log_manager_buffers_ =
+            static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::num_log_manager_buffers));
+        log_serialization_interval_ = settings_manager->GetInt(settings::Param::log_serialization_interval);
+        log_persist_interval_ = settings_manager->GetInt(settings::Param::log_persist_interval);
+        log_persist_threshold_ =
+            static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::log_persist_threshold));
+
+        gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
+
+        network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
+      }
 
       std::unique_ptr<metrics::MetricsManager> metrics_manager = DISABLED;
       if (use_metrics_manager_) metrics_manager = std::make_unique<metrics::MetricsManager>();
@@ -219,18 +243,14 @@ class DBMain {
       if (use_logging_ || use_network_)
         thread_registry = std::make_unique<common::DedicatedThreadRegistry>(common::ManagedPointer(metrics_manager));
 
-      auto buffer_segment_pool = std::make_unique<storage::RecordBufferSegmentPool>(
-          static_cast<uint64_t>(settings_manager->GetInt(settings::Param::record_buffer_segment_size)),
-          static_cast<uint64_t>(settings_manager->GetInt(settings::Param::record_buffer_segment_reuse)));
+      auto buffer_segment_pool =
+          std::make_unique<storage::RecordBufferSegmentPool>(record_buffer_segment_size_, record_buffer_segment_reuse_);
 
       std::unique_ptr<storage::LogManager> log_manager = DISABLED;
       if (use_logging_) {
         log_manager = std::make_unique<storage::LogManager>(
-            settings_manager->GetString(settings::Param::log_file_path),
-            static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::num_log_manager_buffers)),
-            std::chrono::milliseconds{settings_manager->GetInt(settings::Param::log_serialization_interval)},
-            std::chrono::milliseconds{settings_manager->GetInt(settings::Param::log_persist_interval)},
-            static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::log_persist_threshold)),
+            log_file_path_, num_log_manager_buffers_, std::chrono::milliseconds{log_serialization_interval_},
+            std::chrono::milliseconds{log_persist_interval_}, log_persist_threshold_,
             common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(thread_registry));
         log_manager->Start();
       }
@@ -238,10 +258,8 @@ class DBMain {
       auto txn_layer = std::make_unique<TransactionLayer>(common::ManagedPointer(buffer_segment_pool), use_gc_,
                                                           common::ManagedPointer(log_manager));
 
-      auto storage_layer = std::make_unique<StorageLayer>(
-          common::ManagedPointer(txn_layer),
-          static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::block_store_size)),
-          static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::block_store_reuse)), use_gc_);
+      auto storage_layer = std::make_unique<StorageLayer>(common::ManagedPointer(txn_layer), block_store_size_,
+                                                          block_store_reuse_, use_gc_);
 
       std::unique_ptr<CatalogLayer> catalog_layer = DISABLED;
       if (use_catalog_) {
@@ -254,9 +272,8 @@ class DBMain {
       std::unique_ptr<storage::GarbageCollectorThread> gc_thread = DISABLED;
       if (use_gc_thread_) {
         TERRIER_ASSERT(use_gc_, "GarbageCollectorThread needs GarbageCollector.");
-        gc_thread = std::make_unique<storage::GarbageCollectorThread>(
-            storage_layer->GetGarbageCollector(),
-            std::chrono::milliseconds{settings_manager->GetInt(settings::Param::gc_interval)});
+        gc_thread = std::make_unique<storage::GarbageCollectorThread>(storage_layer->GetGarbageCollector(),
+                                                                      std::chrono::milliseconds{gc_interval_});
       }
 
       std::unique_ptr<TrafficCopLayer> traffic_cop_layer = DISABLED;
@@ -269,9 +286,8 @@ class DBMain {
       std::unique_ptr<NetworkLayer> network_layer = DISABLED;
       if (use_network_) {
         TERRIER_ASSERT(use_traffic_cop_, "NetworkLayer needs TrafficCopLayer.");
-        const auto port = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
         network_layer = std::make_unique<NetworkLayer>(common::ManagedPointer(thread_registry),
-                                                       traffic_cop_layer->GetTrafficCop(), port);
+                                                       traffic_cop_layer->GetTrafficCop(), network_port_);
       }
 
       db_main->settings_manager_ = std::move(settings_manager);
@@ -338,13 +354,25 @@ class DBMain {
     std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
     bool use_settings_manager_ = false;
     bool use_metrics_manager_ = false;
+    uint64_t record_buffer_segment_size_ = 1e5;  // TODO(Matt): setters
+    uint64_t record_buffer_segment_reuse_ = 1e4;
+
+    std::string log_file_path_ = "wal.log";
+    uint64_t num_log_manager_buffers_ = 100;
+    int32_t log_serialization_interval_ = 10;
+    int32_t log_persist_interval_ = 10;
+    uint64_t log_persist_threshold_ = static_cast<uint64_t>(1 << 20);
     bool use_logging_ = false;
     bool use_gc_ = false;
     bool use_catalog_ = false;
+    uint64_t block_store_size_ = 1e5;  // TODO(Matt): setters
+    uint64_t block_store_reuse_ = 1e3;
+    int32_t gc_interval_ = 10;
     bool use_gc_thread_ = false;
     bool use_traffic_cop_ = false;
+    uint16_t network_port_ = 15721;
     bool use_network_ = false;
-  };
+  };  // namespace terrier
 
   common::ManagedPointer<settings::SettingsManager> GetSettingsManager() const {
     return common::ManagedPointer(settings_manager_);
@@ -382,7 +410,6 @@ class DBMain {
 
  private:
   bool running_ = false;
-  std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
   std::unique_ptr<settings::SettingsManager> settings_manager_;
   std::unique_ptr<metrics::MetricsManager> metrics_manager_;
   std::unique_ptr<common::DedicatedThreadRegistry> thread_registry_;
@@ -394,6 +421,6 @@ class DBMain {
   std::unique_ptr<storage::GarbageCollectorThread> gc_thread_;
   std::unique_ptr<TrafficCopLayer> traffic_cop_layer_;
   std::unique_ptr<NetworkLayer> network_layer_;
-};
+};  // namespace terrier
 
 }  // namespace terrier

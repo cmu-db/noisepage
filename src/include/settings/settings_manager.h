@@ -26,14 +26,14 @@ using setter_callback_fn = void (*)(common::ManagedPointer<common::ActionContext
 
 class SettingsManager {
  public:
-  SettingsManager() = delete;
-  SettingsManager(const SettingsManager &) = delete;
+  DISALLOW_COPY_AND_MOVE(SettingsManager);
 
   /**
    * The constructor of settings manager
    * @param db a pointer to the DBMain
    */
-  explicit SettingsManager(common::ManagedPointer<DBMain> db_main);
+  explicit SettingsManager(common::ManagedPointer<DBMain> db_main,
+                           std::unordered_map<settings::Param, settings::ParamInfo> &&param_map);
 
   /**
    * Get the value of an integer setting
@@ -134,6 +134,7 @@ class SettingsManager {
 
  private:
   common::ManagedPointer<DBMain> db_main_;
+  std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
   common::SharedLatch latch_;
 
   void ValidateSetting(Param param, const type::TransientValue &min_value, const type::TransientValue &max_value);

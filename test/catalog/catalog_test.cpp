@@ -28,13 +28,16 @@ struct CatalogTests : public TerrierTest {
 
     // Initialize the transaction manager and GC
     timestamp_manager_ = new transaction::TimestampManager;
-    deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
-    txn_manager_ = new transaction::TransactionManager(timestamp_manager_, deferred_action_manager_, &buffer_pool_,
-                                                       true, DISABLED);
-    gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, nullptr);
+    deferred_action_manager_ = new transaction::DeferredActionManager(common::ManagedPointer(timestamp_manager_));
+    txn_manager_ = new transaction::TransactionManager(common::ManagedPointer(timestamp_manager_),
+                                                       common::ManagedPointer(deferred_action_manager_),
+                                                       common::ManagedPointer(&buffer_pool_), true, DISABLED);
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(timestamp_manager_),
+                                        common::ManagedPointer(deferred_action_manager_),
+                                        common::ManagedPointer(txn_manager_), DISABLED);
 
     // Build out the catalog and commit so that it is visible to other transactions
-    catalog_ = new catalog::Catalog(txn_manager_, &block_store_);
+    catalog_ = new catalog::Catalog(common::ManagedPointer(txn_manager_), common::ManagedPointer(&block_store_));
 
     auto txn = txn_manager_->BeginTransaction();
     db_ = catalog_->CreateDatabase(txn, "terrier", true);
