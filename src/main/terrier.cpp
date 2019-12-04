@@ -1,8 +1,10 @@
 #include <gflags/gflags.h>
+
 #include <memory>
 #include <random>
 #include <unordered_map>
 #include <utility>
+
 #include "main/db_main.h"
 #include "settings/settings_manager.h"
 
@@ -27,6 +29,18 @@ int main(int argc, char *argv[]) {
   auto main_stat_reg = std::make_unique<terrier::common::StatisticsRegistry>();
 
   terrier::settings::SettingsManager::ConstructParamMap(param_map);
-  terrier::DBMain db(std::move(param_map));
-  db.Run();
+
+  auto db_main = terrier::DBMain::Builder()
+                     .SetSettingsParameterMap(std::move(param_map))
+                     .SetUseSettingsManager(true)
+                     .SetUseMetricsManager(true)
+                     .SetUseLogging(true)
+                     .SetUseGC(true)
+                     .SetUseCatalog(true)
+                     .SetUseGCThread(true)
+                     .SetUseTrafficCop(true)
+                     .SetUseNetwork(true)
+                     .Build();
+
+  db_main->Run();
 }

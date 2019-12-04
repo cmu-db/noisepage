@@ -1,10 +1,12 @@
 #pragma once
 
 #include <gflags/gflags.h>
+
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <utility>
+
 #include "common/action_context.h"
 #include "common/exception.h"
 #include "common/shared_latch.h"
@@ -31,7 +33,7 @@ class SettingsManager {
    * The constructor of settings manager
    * @param db a pointer to the DBMain
    */
-  explicit SettingsManager(DBMain *db);
+  explicit SettingsManager(common::ManagedPointer<DBMain> db_main);
 
   /**
    * Get the value of an integer setting
@@ -131,7 +133,7 @@ class SettingsManager {
       std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> &param_map);  // NOLINT
 
  private:
-  DBMain *db_;
+  common::ManagedPointer<DBMain> db_main_;
   common::SharedLatch latch_;
 
   void ValidateSetting(Param param, const type::TransientValue &min_value, const type::TransientValue &max_value);
