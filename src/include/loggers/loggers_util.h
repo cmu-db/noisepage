@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+
 #include "loggers/binder_logger.h"
 #include "loggers/catalog_logger.h"
 #include "loggers/execution_logger.h"
@@ -27,7 +28,7 @@ class LoggersUtil {
    * Initialize all of the debug loggers in the system.
    * @param testing true if the test logger should be initialized
    */
-  static void Initialize(const bool testing) {
+  static void Initialize() {
     try {
       InitMainLogger();
       // initialize namespace specific loggers
@@ -42,10 +43,6 @@ class LoggersUtil {
       network::InitNetworkLogger();
       execution::InitExecutionLogger();
 
-      if (testing) {
-        InitTestLogger();
-      }
-
       // Flush all *registered* loggers using a worker thread. Registered loggers must be thread safe for this to work
       // correctly
       spdlog::flush_every(std::chrono::seconds(DEBUG_LOG_FLUSH_INTERVAL));
@@ -53,8 +50,6 @@ class LoggersUtil {
       std::cerr << "Debug logging initialization failed for " << ex.what() << std::endl;  // NOLINT
       throw ex;
     }
-    // log init now complete
-    LOG_TRACE("Debug logging initialization complete.");
   }
 
   /**

@@ -1,14 +1,18 @@
 #include "loggers/parser_logger.h"
+
 #include <memory>
+
 #include "loggers/main_logger.h"
 
 namespace terrier::parser {
 
-std::shared_ptr<spdlog::logger> parser_logger;  // NOLINT
+std::shared_ptr<spdlog::logger> parser_logger = nullptr;  // NOLINT
 
 void InitParserLogger() {
-  parser_logger = std::make_shared<spdlog::logger>("parser_logger", ::default_sink);  // NOLINT
-  spdlog::register_logger(parser_logger);
+  if (parser_logger == nullptr) {
+    parser_logger = std::make_shared<spdlog::logger>("parser_logger", ::default_sink);  // NOLINT
+    spdlog::register_logger(parser_logger);
+  }
 }
 
 }  // namespace terrier::parser

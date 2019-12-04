@@ -1,6 +1,8 @@
 #include "network/terrier_server.h"
+
 #include <fstream>
 #include <memory>
+
 #include "common/dedicated_thread_registry.h"
 #include "common/settings.h"
 #include "common/utility.h"
@@ -13,10 +15,11 @@ namespace terrier::network {
 
 TerrierServer::TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provider> protocol_provider,
                              common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
-                             common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry)
+                             common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
+                             const uint16_t port)
     : DedicatedThreadOwner(thread_registry),
       running_(false),
-      port_(common::Settings::SERVER_PORT),
+      port_(port),
       max_connections_(CONNECTION_THREAD_COUNT),
       connection_handle_factory_(connection_handle_factory),
       provider_(protocol_provider) {

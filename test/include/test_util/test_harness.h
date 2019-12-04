@@ -8,7 +8,7 @@ namespace terrier {
 
 class TerrierTest : public ::testing::Test {
  protected:
-  void SetUp() override { LoggersUtil::Initialize(true); }
+  void SetUp() override { LoggersUtil::Initialize(); }
 
   void TearDown() override { LoggersUtil::ShutDown(); }
 };

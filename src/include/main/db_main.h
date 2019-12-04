@@ -9,6 +9,7 @@
 #include "common/managed_pointer.h"
 #include "common/stat_registry.h"
 #include "common/worker_pool.h"
+#include "loggers/loggers_util.h"
 #include "metrics/metrics_manager.h"
 #include "network/terrier_server.h"
 #include "settings/settings_manager.h"
@@ -183,13 +184,13 @@ class DBMain {
   class NetworkLayer {
    public:
     NetworkLayer(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
-                 const common::ManagedPointer<trafficcop::TrafficCop> traffic_cop) {
+                 const common::ManagedPointer<trafficcop::TrafficCop> traffic_cop, const uint16_t port) {
       connection_handle_factory_ = std::make_unique<network::ConnectionHandleFactory>(traffic_cop);
       command_factory_ = std::make_unique<network::PostgresCommandFactory>();
       provider_ =
           std::make_unique<network::PostgresProtocolInterpreter::Provider>(common::ManagedPointer(command_factory_));
       server_ = std::make_unique<network::TerrierServer>(
-          common::ManagedPointer(provider_), common::ManagedPointer(connection_handle_factory_), thread_registry);
+          common::ManagedPointer(provider_), common::ManagedPointer(connection_handle_factory_), thread_registry, port);
     }
 
     common::ManagedPointer<network::TerrierServer> GetServer() const { return common::ManagedPointer(server_); }
@@ -205,6 +206,8 @@ class DBMain {
   class Builder {
    public:
     std::unique_ptr<DBMain> Build() {
+      LoggersUtil::Initialize();
+
       auto db_main = std::make_unique<DBMain>(std::move(param_map_));
 
       auto settings_manager = std::make_unique<settings::SettingsManager>(common::ManagedPointer(db_main));
@@ -266,8 +269,9 @@ class DBMain {
       std::unique_ptr<NetworkLayer> network_layer = DISABLED;
       if (use_network_) {
         TERRIER_ASSERT(use_traffic_cop_, "NetworkLayer needs TrafficCopLayer.");
-        network_layer =
-            std::make_unique<NetworkLayer>(common::ManagedPointer(thread_registry), traffic_cop_layer->GetTrafficCop());
+        const auto port = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
+        network_layer = std::make_unique<NetworkLayer>(common::ManagedPointer(thread_registry),
+                                                       traffic_cop_layer->GetTrafficCop(), port);
       }
 
       db_main->settings_manager_ = std::move(settings_manager);

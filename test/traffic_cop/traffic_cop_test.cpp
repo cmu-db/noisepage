@@ -1,6 +1,7 @@
-#include <pqxx/pqxx> /* libpqxx is used to instantiate C++ client */
+#include "traffic_cop/traffic_cop.h"
 
 #include <memory>
+#include <pqxx/pqxx> /* libpqxx is used to instantiate C++ client */
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -15,7 +16,6 @@
 #include "storage/garbage_collector.h"
 #include "test_util/manual_packet_util.h"
 #include "test_util/test_harness.h"
-#include "traffic_cop/traffic_cop.h"
 #include "traffic_cop/traffic_cop_defs.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
@@ -29,30 +29,34 @@ namespace terrier::trafficcop {
 
 class TrafficCopTests : public TerrierTest {
  protected:
-  uint16_t port_ = common::Settings::SERVER_PORT;
-
-  DBMain *db_main_;
-  common::ManagedPointer<network::TerrierServer> server_;
-  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
-  common::ManagedPointer<catalog::Catalog> catalog_;
-
   void SetUp() override {
     std::unordered_map<settings::Param, settings::ParamInfo> param_map;
     terrier::settings::SettingsManager::ConstructParamMap(param_map);
 
-    db_main_ = new DBMain(std::move(param_map));
-    txn_manager_ = common::ManagedPointer(db_main_->txn_manager_);
-    catalog_ = common::ManagedPointer(db_main_->catalog_);
-    server_ = common::ManagedPointer(db_main_->server_);
+    db_main_ = terrier::DBMain::Builder()
+                       .SetSettingsParameterMap(std::move(param_map))
+                       .SetUseSettingsManager(true)
+                       .SetUseMetricsManager(false)
+                       .SetUseLogging(false)
+                       .SetUseGC(true)
+                       .SetUseCatalog(true)
+                       .SetUseGCThread(true)
+                       .SetUseTrafficCop(true)
+                       .SetUseNetwork(true)
+                       .Build();
+
     db_main_->running_ = true;
-    server_->SetPort(port_);
-    server_->RunServer();
+    db_main_->network_layer_->GetServer()->RunServer();
+
+    port_ = static_cast<uint16_t>(db_main_->settings_manager_->GetInt(settings::Param::port));
+    catalog_ = db_main_->catalog_layer_->GetCatalog();
+    txn_manager_ = db_main_->txn_layer_->GetTransactionManager();
   }
 
-  void TearDown() override { delete db_main_; }
-
-  // The port used to connect a Postgres backend. Useful for debugging.
-  const int postgres_port_ = 5432;
+  std::unique_ptr<DBMain> db_main_;
+  uint16_t port_;
+  common::ManagedPointer<catalog::Catalog> catalog_;
+  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
 };
 
 // NOLINTNEXTLINE
