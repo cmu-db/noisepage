@@ -36,8 +36,6 @@ class BinderCorrectnessTest : public TerrierTest {
   catalog::table_oid_t table_a_oid_;
   catalog::table_oid_t table_b_oid_;
   parser::PostgresParser parser_;
-  //  transaction::TimestampManager *timestamp_manager_;
-  //  transaction::DeferredActionManager *deferred_action_manager_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   transaction::TransactionContext *txn_;
   std::unique_ptr<catalog::CatalogAccessor> accessor_;
@@ -98,10 +96,10 @@ class BinderCorrectnessTest : public TerrierTest {
   void SetUp() override {
     TerrierTest::SetUp();
 
-    std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> param_map;
-    terrier::settings::SettingsManager::ConstructParamMap(param_map);
-
     db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
+    txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
+    catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
+
     SetUpTables();
     // prepare for testing
     txn_ = txn_manager_->BeginTransaction();
