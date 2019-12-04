@@ -32,8 +32,8 @@ class TerrierServer : public common::DedicatedThreadOwner {
    * @brief Constructs a new TerrierServer instance.
    */
   TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provider> protocol_provider,
-                         common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
-                         common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry, uint16_t port);
+                common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
+                common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry, uint16_t port);
 
   ~TerrierServer() override = default;
 

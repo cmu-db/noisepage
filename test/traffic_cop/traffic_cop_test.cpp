@@ -20,7 +20,6 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
-
 namespace terrier::trafficcop {
 
 class TrafficCopTests : public TerrierTest {
