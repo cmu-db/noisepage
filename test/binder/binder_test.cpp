@@ -27,9 +27,6 @@ using std::vector;
 namespace terrier {
 
 class BinderCorrectnessTest : public TerrierTest {
- private:
-  common::ManagedPointer<catalog::Catalog> catalog_;
-
  protected:
   std::string default_database_name_ = "test_db";
   catalog::db_oid_t db_oid_;
@@ -37,6 +34,7 @@ class BinderCorrectnessTest : public TerrierTest {
   catalog::table_oid_t table_b_oid_;
   parser::PostgresParser parser_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
+  common::ManagedPointer<catalog::Catalog> catalog_;
   transaction::TransactionContext *txn_;
   std::unique_ptr<catalog::CatalogAccessor> accessor_;
   binder::BindNodeVisitor *binder_;
