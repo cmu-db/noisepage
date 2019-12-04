@@ -73,6 +73,7 @@ class DBMain {
   friend class metrics::MetricsTests;
   friend class trafficcop::TrafficCopTests;
 
+ public:
   class TransactionLayer {
    public:
     TransactionLayer(const common::ManagedPointer<storage::RecordBufferSegmentPool> buffer_segment_pool,
@@ -202,7 +203,6 @@ class DBMain {
     std::unique_ptr<network::TerrierServer> server_;
   };
 
- public:
   class Builder {
    public:
     std::unique_ptr<DBMain> Build() {
@@ -345,6 +345,40 @@ class DBMain {
     bool use_traffic_cop_ = false;
     bool use_network_ = false;
   };
+
+  common::ManagedPointer<settings::SettingsManager> GetSettingsManager() const {
+    return common::ManagedPointer(settings_manager_);
+  }
+
+  common::ManagedPointer<metrics::MetricsManager> GetMetricsManager() const {
+    return common::ManagedPointer(metrics_manager_);
+  }
+
+  common::ManagedPointer<common::DedicatedThreadRegistry> GetThreadRegistry() const {
+    return common::ManagedPointer(thread_registry_);
+  }
+
+  common::ManagedPointer<storage::RecordBufferSegmentPool> GetBufferSegmentPool() const {
+    return common::ManagedPointer(buffer_segment_pool_);
+  }
+
+  common::ManagedPointer<storage::LogManager> GetLogManager() const { return common::ManagedPointer(log_manager_); }
+
+  common::ManagedPointer<TransactionLayer> GetTransactionLayer() const { return common::ManagedPointer(txn_layer_); }
+
+  common::ManagedPointer<StorageLayer> GetStorageLayer() const { return common::ManagedPointer(storage_layer_); }
+
+  common::ManagedPointer<CatalogLayer> GetCatalogLayer() const { return common::ManagedPointer(catalog_layer_); }
+
+  common::ManagedPointer<storage::GarbageCollectorThread> GetGarbageCollectorThread() const {
+    return common::ManagedPointer(gc_thread_);
+  }
+
+  common::ManagedPointer<TrafficCopLayer> GetTrafficCopLayer() const {
+    return common::ManagedPointer(traffic_cop_layer_);
+  }
+
+  common::ManagedPointer<NetworkLayer> GetNetworkLayer() const { return common::ManagedPointer(network_layer_); }
 
  private:
   bool running_ = false;

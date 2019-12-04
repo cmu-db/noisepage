@@ -1,5 +1,8 @@
+#include "execution/tpl.h"
+
 #include <gflags/gflags.h>
 #include <unistd.h>
+
 #include <algorithm>
 #include <csignal>
 #include <cstdio>
@@ -7,7 +10,6 @@
 #include <memory>
 #include <string>
 #include <utility>
-#include "tbb/task_scheduler_init.h"
 
 #include "execution/ast/ast_dump.h"
 #include "execution/exec/execution_context.h"
@@ -19,7 +21,6 @@
 #include "execution/sql/memory_pool.h"
 #include "execution/table_generator/sample_output.h"
 #include "execution/table_generator/table_generator.h"
-#include "execution/tpl.h"
 #include "execution/util/cpu_info.h"
 #include "execution/util/timer.h"
 #include "execution/vm/bytecode_generator.h"
@@ -30,8 +31,10 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "loggers/loggers_util.h"
+#include "main/db_main.h"
 #include "settings/settings_manager.h"
 #include "storage/garbage_collector.h"
+#include "tbb/task_scheduler_init.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/timestamp_manager.h"
 
@@ -70,21 +73,22 @@ static constexpr const char *K_EXIT_KEYWORD = ".exit";
  */
 static void CompileAndRun(const std::string &source, const std::string &name = "tmp-tpl") {
   // Initialize terrier objects
-  storage::BlockStore block_store(1000, 1000);
-  storage::RecordBufferSegmentPool buffer_pool(100000, 100000);
-  transaction::TimestampManager tm_manager{};
-  transaction::DeferredActionManager da_manager{&tm_manager};
-  transaction::TransactionManager txn_manager(&tm_manager, &da_manager, &buffer_pool, true, nullptr);
-  storage::GarbageCollector gc(&tm_manager, &da_manager, &txn_manager, nullptr);
-  auto *txn = txn_manager.BeginTransaction();
+  std::unordered_map<settings::Param, settings::ParamInfo> param_map;
+  terrier::settings::SettingsManager::ConstructParamMap(param_map);
+  auto db_main = terrier::DBMain::Builder()
+                     .SetSettingsParameterMap(std::move(param_map))
+                     .SetUseSettingsManager(true)
+                     .SetUseGC(true)
+                     .SetUseCatalog(true)
+                     .SetUseGCThread(true)
+                     .Build();
+
+  auto *txn = db_main->->GetTransactionManager()->BeginTransaction();
 
   // Get the correct output format for this test
   exec::SampleOutput sample_output;
   sample_output.InitTestOutput();
   auto output_schema = sample_output.GetSchema(output_name.data());
-
-  // Make the catalog accessor
-  catalog::Catalog catalog(&txn_manager, &block_store);
 
   auto db_oid = catalog.CreateDatabase(txn, "test_db", true);
   auto accessor = std::unique_ptr<catalog::CatalogAccessor>(catalog.GetAccessor(txn, db_oid));

@@ -34,23 +34,23 @@ class TrafficCopTests : public TerrierTest {
     terrier::settings::SettingsManager::ConstructParamMap(param_map);
 
     db_main_ = terrier::DBMain::Builder()
-                       .SetSettingsParameterMap(std::move(param_map))
-                       .SetUseSettingsManager(true)
-                       .SetUseMetricsManager(false)
-                       .SetUseLogging(false)
-                       .SetUseGC(true)
-                       .SetUseCatalog(true)
-                       .SetUseGCThread(true)
-                       .SetUseTrafficCop(true)
-                       .SetUseNetwork(true)
-                       .Build();
+                   .SetSettingsParameterMap(std::move(param_map))
+                   .SetUseSettingsManager(true)
+                   .SetUseMetricsManager(false)
+                   .SetUseLogging(false)
+                   .SetUseGC(true)
+                   .SetUseCatalog(true)
+                   .SetUseGCThread(true)
+                   .SetUseTrafficCop(true)
+                   .SetUseNetwork(true)
+                   .Build();
 
     db_main_->running_ = true;
-    db_main_->network_layer_->GetServer()->RunServer();
+    db_main_->GetNetworkLayer()->GetServer()->RunServer();
 
-    port_ = static_cast<uint16_t>(db_main_->settings_manager_->GetInt(settings::Param::port));
-    catalog_ = db_main_->catalog_layer_->GetCatalog();
-    txn_manager_ = db_main_->txn_layer_->GetTransactionManager();
+    port_ = static_cast<uint16_t>(db_main_->GetSettingsManager()->GetInt(settings::Param::port));
+    catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
+    txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
   }
 
   std::unique_ptr<DBMain> db_main_;
