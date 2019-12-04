@@ -1,7 +1,9 @@
 #include "main/db_main.h"
+
 #include <memory>
 #include <unordered_map>
 #include <utility>
+
 #include "loggers/loggers_util.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
@@ -15,104 +17,77 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
     : param_map_(std::move(param_map)) {
   LoggersUtil::Initialize(false);
 
-  // initialize stat registry
-  main_stat_reg_ = std::make_unique<common::StatisticsRegistry>();
+  settings_manager_ = std::make_unique<settings::SettingsManager>(this);
 
-  // create the global transaction mgr
-  buffer_segment_pool_ = new storage::RecordBufferSegmentPool(
+  metrics_manager_ = std::make_unique<metrics::MetricsManager>();
+
+  thread_registry_ = std::make_unique<common::DedicatedThreadRegistry>(common::ManagedPointer(metrics_manager_));
+
+  buffer_segment_pool_ = std::make_unique<storage::RecordBufferSegmentPool>(
       type::TransientValuePeeker::PeekInteger(
           param_map_.find(settings::Param::record_buffer_segment_size)->second.value_),
       type::TransientValuePeeker::PeekInteger(
           param_map_.find(settings::Param::record_buffer_segment_reuse)->second.value_));
-  settings_manager_ = new settings::SettingsManager(this);
-  metrics_manager_ = new metrics::MetricsManager;
-  thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager_));
 
-  // Create LogManager
-  log_manager_ = new storage::LogManager(
+  log_manager_ = std::make_unique<storage::LogManager>(
       settings_manager_->GetString(settings::Param::log_file_path),
       static_cast<uint64_t>(settings_manager_->GetInt64(settings::Param::num_log_manager_buffers)),
       std::chrono::milliseconds{settings_manager_->GetInt(settings::Param::log_serialization_interval)},
       std::chrono::milliseconds{settings_manager_->GetInt(settings::Param::log_persist_interval)},
-      static_cast<uint64_t>(settings_manager_->GetInt64(settings::Param::log_persist_threshold)), buffer_segment_pool_,
-      common::ManagedPointer(thread_registry_));
+      static_cast<uint64_t>(settings_manager_->GetInt64(settings::Param::log_persist_threshold)),
+      common::ManagedPointer(buffer_segment_pool_), common::ManagedPointer(thread_registry_));
   log_manager_->Start();
 
-  timestamp_manager_ = new transaction::TimestampManager;
-  deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
-  txn_manager_ = new transaction::TransactionManager(timestamp_manager_, deferred_action_manager_, buffer_segment_pool_,
-                                                     true, log_manager_);
-  garbage_collector_ =
-      new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, DISABLED);
+  txn_layer_ = std::make_unique<TransactionLayer>(common::ManagedPointer(buffer_segment_pool_), true,
+                                                  common::ManagedPointer(log_manager_));
 
-  thread_pool_ = new common::WorkerPool(static_cast<uint32_t>(type::TransientValuePeeker::PeekInteger(
-                                            param_map_.find(settings::Param::num_worker_threads)->second.value_)),
-                                        {});
-  thread_pool_->Startup();
+  garbage_collector_ = std::make_unique<storage::GarbageCollector>(txn_layer_->GetTimestampManager(),
+                                                                   txn_layer_->GetDeferredActionManager(),
+                                                                   txn_layer_->GetTransactionManager(), DISABLED);
 
-  block_store_ = new storage::BlockStore(static_cast<uint64_t>(type::TransientValuePeeker::PeekBigInt(
-                                             param_map_.find(settings::Param::block_store_size)->second.value_)),
-                                         static_cast<uint64_t>(type::TransientValuePeeker::PeekBigInt(
-                                             param_map_.find(settings::Param::block_store_size)->second.value_)));
+  block_store_ = std::make_unique<storage::BlockStore>(
+      static_cast<uint64_t>(
+          type::TransientValuePeeker::PeekBigInt(param_map_.find(settings::Param::block_store_size)->second.value_)),
+      static_cast<uint64_t>(
+          type::TransientValuePeeker::PeekBigInt(param_map_.find(settings::Param::block_store_size)->second.value_)));
 
-  // Initialize the catalog, depends on transaction manager, block store.
-  catalog_ = std::make_unique<catalog::Catalog>(txn_manager_, block_store_);
+  catalog_layer_ =
+      std::make_unique<CatalogLayer>(common::ManagedPointer(txn_layer_), common::ManagedPointer(block_store_),
+                                     common::ManagedPointer(garbage_collector_), common::ManagedPointer(log_manager_));
 
-  // Bootstrap the default database in the catalog.
-  auto *bootstrap_txn = txn_manager_->BeginTransaction();
-  catalog_->CreateDatabase(bootstrap_txn, catalog::DEFAULT_DATABASE, true);
-  txn_manager_->Commit(bootstrap_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  gc_thread_ = std::make_unique<storage::GarbageCollectorThread>(
+      common::ManagedPointer(garbage_collector_), std::chrono::milliseconds{type::TransientValuePeeker::PeekInteger(
+                                                      param_map_.find(settings::Param::gc_interval)->second.value_)});
 
-  // Run the GC to get a clean system. This needs to be done before instantiating the GC thread
-  // because the GC is not thread-safe
-  deferred_action_manager_->FullyPerformGC(garbage_collector_, log_manager_);
+  traffic_cop_layer_ =
+      std::make_unique<TrafficCopLayer>(common::ManagedPointer(txn_layer_), common::ManagedPointer(catalog_layer_));
 
-  gc_thread_ = new storage::GarbageCollectorThread(garbage_collector_,
-                                                   std::chrono::milliseconds{type::TransientValuePeeker::PeekInteger(
-                                                       param_map_.find(settings::Param::gc_interval)->second.value_)});
-
-  t_cop_ = new trafficcop::TrafficCop(common::ManagedPointer(txn_manager_), common::ManagedPointer(catalog_));
-  connection_handle_factory_ = new network::ConnectionHandleFactory(common::ManagedPointer(t_cop_));
-
-  command_factory_ = new network::PostgresCommandFactory;
-  provider_ = new network::PostgresProtocolInterpreter::Provider(common::ManagedPointer(command_factory_));
-  server_ =
-      new network::TerrierServer(common::ManagedPointer(provider_), common::ManagedPointer(connection_handle_factory_),
-                                 common::ManagedPointer(thread_registry_));
+  network_layer_ =
+      std::make_unique<NetworkLayer>(common::ManagedPointer(thread_registry_), traffic_cop_layer_->GetTrafficCop());
 
   LOG_INFO("Initialization complete");
 }
 
 void DBMain::Run() {
   running_ = true;
-  server_->SetPort(static_cast<uint16_t>(
+  network_layer_->GetServer()->SetPort(static_cast<uint16_t>(
       type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::port)->second.value_)));
-  server_->RunServer();
+  network_layer_->GetServer()->RunServer();
 
   {
-    std::unique_lock<std::mutex> lock(server_->RunningMutex());
-    server_->RunningCV().wait(lock, [=] { return !(server_->Running()); });
+    std::unique_lock<std::mutex> lock(network_layer_->GetServer()->RunningMutex());
+    network_layer_->GetServer()->RunningCV().wait(lock, [=] { return !(network_layer_->GetServer()->Running()); });
   }
-
-  // Server loop exited, begin cleaning up
-  CleanUp();
 }
 
 void DBMain::ForceShutdown() {
   if (running_) {
-    server_->StopServer();
+    network_layer_->GetServer()->StopServer();
   }
-  CleanUp();
 }
 
-void DBMain::CleanUp() {
-  catalog_->TearDown();
-  delete gc_thread_;
-  deferred_action_manager_->FullyPerformGC(garbage_collector_, log_manager_);
-  main_stat_reg_->Shutdown(false);
-  log_manager_->PersistAndStop();
-  thread_pool_->Shutdown();
-  LOG_INFO("Terrier has shut down.");
+DBMain::~DBMain() {
+  ForceShutdown();
   LoggersUtil::ShutDown();
 }
 

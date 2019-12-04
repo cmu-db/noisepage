@@ -1,7 +1,10 @@
 #include "common/perf_monitor.h"
+
 #include <thread>  //NOLINT
+
 #include "catalog/catalog.h"
 #include "common/macros.h"
+#include "common/managed_pointer.h"
 #include "common/scoped_timer.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/storage_defs.h"
@@ -26,10 +29,13 @@ class PerfMonitorTests : public TerrierTest {
     storage::RecordBufferSegmentPool buffer_pool{1000000, 1000000};
 
     transaction::TimestampManager timestamp_manager;
-    transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
-    transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool, true,
-                                                DISABLED);
-    catalog::Catalog catalog(&txn_manager, &block_store);
+    transaction::DeferredActionManager deferred_action_manager((common::ManagedPointer(&timestamp_manager)));
+    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager),
+                                                common::ManagedPointer(&deferred_action_manager),
+                                                common::ManagedPointer(&buffer_pool), true, DISABLED);
+
+    catalog::Catalog catalog((common::ManagedPointer<transaction::TransactionManager>(&txn_manager),
+                              common::ManagedPointer<storage::BlockStore>(&block_store)));
 
     storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
     deferred_action_manager.FullyPerformGC(&gc, DISABLED);

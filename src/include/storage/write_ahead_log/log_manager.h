@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "common/container/concurrent_blocking_queue.h"
 #include "common/dedicated_thread_owner.h"
 #include "common/managed_pointer.h"
@@ -55,16 +56,18 @@ class LogManager : public common::DedicatedThreadOwner {
    */
   LogManager(std::string log_file_path, uint64_t num_buffers, std::chrono::microseconds serialization_interval,
              std::chrono::milliseconds persist_interval, uint64_t persist_threshold,
-             RecordBufferSegmentPool *buffer_pool,
+             common::ManagedPointer<RecordBufferSegmentPool> buffer_pool,
              common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry)
       : DedicatedThreadOwner(thread_registry),
         run_log_manager_(false),
         log_file_path_(std::move(log_file_path)),
         num_buffers_(num_buffers),
-        buffer_pool_(buffer_pool),
+        buffer_pool_(buffer_pool.Get()),
         serialization_interval_(serialization_interval),
         persist_interval_(persist_interval),
         persist_threshold_(persist_threshold) {}
+
+  ~LogManager() { PersistAndStop(); }
 
   /**
    * Starts log manager. Does the following in order:

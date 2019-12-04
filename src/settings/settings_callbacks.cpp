@@ -47,14 +47,6 @@ void Callbacks::BlockStoreReuseLimit(void *const old_value, void *const new_valu
   action_context->SetState(common::ActionState::SUCCESS);
 }
 
-void Callbacks::WorkerPoolThreads(void *const old_value, void *const new_value, DBMain *const db_main,
-                                  common::ManagedPointer<common::ActionContext> action_context) {
-  action_context->SetState(common::ActionState::IN_PROGRESS);
-  int num_threads = *static_cast<int *>(new_value);
-  db_main->thread_pool_->SetNumWorkers(num_threads);
-  action_context->SetState(common::ActionState::SUCCESS);
-}
-
 void Callbacks::NumLogManagerBuffers(void *const old_value, void *const new_value, DBMain *const db_main,
                                      common::ManagedPointer<common::ActionContext> action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);

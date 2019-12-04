@@ -1,7 +1,10 @@
 #pragma once
 
+#include <transaction/deferred_action_manager.h>
+
 #include <chrono>  //NOLINT
 #include <thread>  //NOLINT
+
 #include "storage/garbage_collector.h"
 
 namespace terrier::storage {
@@ -16,16 +19,14 @@ class GarbageCollectorThread {
    * @param gc pointer to the garbage collector object to be run on this thread
    * @param gc_period sleep time between GC invocations
    */
-  GarbageCollectorThread(GarbageCollector *gc, std::chrono::milliseconds gc_period);
+  GarbageCollectorThread(common::ManagedPointer<GarbageCollector> gc, std::chrono::milliseconds gc_period);
 
   ~GarbageCollectorThread() {
     run_gc_ = false;
     gc_thread_.join();
-    // Make sure all garbage is collected. This takes 3 runs for unlink and deallocate, as well as catalog deallocations
-    // TODO(Matt): these semantics may change as the GC becomes a more general deferred event framework
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
+    for (uint8_t i = 0; i < transaction::MIN_GC_INVOCATIONS; i++) {
+      gc_->PerformGarbageCollection();
+    }
   }
 
   /**
@@ -50,7 +51,7 @@ class GarbageCollectorThread {
   GarbageCollector &GetGarbageCollector() { return *gc_; }
 
  private:
-  storage::GarbageCollector *gc_;
+  const common::ManagedPointer<storage::GarbageCollector> gc_;
   volatile bool run_gc_;
   volatile bool gc_paused_;
   std::chrono::milliseconds gc_period_;

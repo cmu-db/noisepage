@@ -66,17 +66,6 @@ SETTING_int(
     terrier::settings::Callbacks::NoOp
 )
 
-// Number of worker pool threads
-SETTING_int(
-    num_worker_threads,
-    "The number of worker pool threads (default: 4)",
-    4,
-    1,
-    1000,
-    true,
-    terrier::settings::Callbacks::WorkerPoolThreads
-)
-
 // Path to log file for WAL
 SETTING_string(
     log_file_path,
