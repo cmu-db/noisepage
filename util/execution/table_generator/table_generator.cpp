@@ -6,7 +6,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <bitset>
 #include "execution/util/bit_util.h"
 #include "loggers/execution_logger.h"
 #include "storage/index/bwtree_index.h"
@@ -60,6 +59,7 @@ bool *TableGenerator::CreateBooleanColumnData(Dist dist, uint32_t num_vals) {
       uint32_t half = num_vals / 2;
       for (uint32_t i = 0; i < num_vals; i++) {
         val[i] = (i >= half);
+        // TODO(pavlo): Remove
         std::cout << "GENERATE: [" << i << "] => " << val[i] << "\n";
       }
       break;
@@ -165,9 +165,10 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
           uint32_t elem_size = type::TypeUtil::GetTypeSize(table_meta.col_meta_[k].type_);
           std::memcpy(data, column_data[k].first + j * elem_size, elem_size);
 
-//          if (terrier::util::StringUtil::Contains(table_meta.name_, "all_types") && k == 0) {
-//            std::cout << "INSERT: [" << j << "] => " << static_cast<bool>(*data) << "\n";
-//          }
+          // TODO(pavlo): Remove
+          if (terrier::util::StringUtil::Contains(table_meta.name_, "all_types") && k == 0) {
+            std::cout << "INSERT: [" << j << "] => " << static_cast<bool>(*data) << "\n";
+          }
 
         }
       }
@@ -175,7 +176,8 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
       vals_written++;
     }
 
-    // Dump Table
+    // TODO(pavlo): This should be removed once we figure out
+    // why we can't read booleans back correctly.
     if (terrier::util::StringUtil::Contains(table_meta.name_, "all_types")) {
       std::vector<catalog::col_oid_t> col_oids;
       for (const auto &col : schema.GetColumns()) {
@@ -189,13 +191,11 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
       table->Scan(exec_ctx_->GetTxn(), &iterator, pc);
       auto col0 = reinterpret_cast<bool*>(pc->ColumnStart(0));
 
-      auto bits = std::bitset<80>(reinterpret_cast<const char*>(pc->ColumnStart(0)));
-      std::cout << "BITS: " << bits << "\n\n";
-
+      // This code just scans the first column from the 'all_types' table
+      // and then prints out the result. It should match "INSERT" debug
+      // code up above.
       for (uint tuple_idx = 0; tuple_idx < pc->NumTuples(); tuple_idx++) {
         std::cout << "SCAN: [" << tuple_idx << "] => " << col0[tuple_idx] << "\n";
-
-        // auto raw = pc->ColumnStart(0)[tuple_idx];
       }
     }
 
