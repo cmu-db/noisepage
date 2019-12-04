@@ -63,6 +63,11 @@ class TPCCTests : public TerrierTest {
                        .SetUseGCThread(true)
                        .Build();
 
+    if (metrics_enabled) {
+      db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::LOGGING);
+      db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::TRANSACTION);
+    }
+
     auto block_store = db_main->GetStorageLayer()->GetBlockStore();
     auto catalog = db_main->GetCatalogLayer()->GetCatalog();
     auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();

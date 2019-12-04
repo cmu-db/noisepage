@@ -31,8 +31,6 @@ class TrafficCopTests : public TerrierTest {
     db_main_ = terrier::DBMain::Builder()
                    .SetSettingsParameterMap(std::move(param_map))
                    .SetUseSettingsManager(true)
-                   .SetUseMetricsManager(false)
-                   .SetUseLogging(false)
                    .SetUseGC(true)
                    .SetUseCatalog(true)
                    .SetUseGCThread(true)
