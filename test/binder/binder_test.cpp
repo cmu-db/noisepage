@@ -101,14 +101,7 @@ class BinderCorrectnessTest : public TerrierTest {
     std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> param_map;
     terrier::settings::SettingsManager::ConstructParamMap(param_map);
 
-    db_main_ = terrier::DBMain::Builder()
-                   .SetSettingsParameterMap(std::move(param_map))
-                   .SetUseSettingsManager(true)
-                   .SetUseMetricsManager(true)
-                   .SetUseLogging(true)
-                   .SetUseGC(true)
-                   .SetUseCatalog(true)
-                   .Build();
+    db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
     SetUpTables();
     // prepare for testing
     txn_ = txn_manager_->BeginTransaction();

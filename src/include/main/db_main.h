@@ -319,6 +319,11 @@ class DBMain {
       return *this;
     }
 
+    Builder &SetUseMetrics(const bool value) {
+      use_metrics_ = value;
+      return *this;
+    }
+
     Builder &SetUseMetricsThread(const bool value) {
       use_metrics_thread_ = value;
       return *this;
@@ -383,6 +388,10 @@ class DBMain {
 
   common::ManagedPointer<settings::SettingsManager> GetSettingsManager() const {
     return common::ManagedPointer(settings_manager_);
+  }
+
+  common::ManagedPointer<metrics::MetricsManager> GetMetricsManager() const {
+    return common::ManagedPointer(metrics_manager_);
   }
 
   common::ManagedPointer<metrics::MetricsThread> GetMetricsThread() const {
