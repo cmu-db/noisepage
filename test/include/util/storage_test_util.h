@@ -388,8 +388,10 @@ class StorageTestUtil {
 
     // Select each tuple for both tables and perform equality
     bool result = true;
+    int count = 0;
     for (auto &tuple : table_one_tuples) {
       TERRIER_ASSERT(tuple_slot_map.find(tuple) != tuple_slot_map.end(), "No mapping for this tuple slot");
+      printf("Column %d \n", count++);
       table_one->Select(txn_one, tuple, row_one);
       table_two->Select(txn_two, tuple_slot_map.at(tuple), row_two);
       if (!ProjectionListEqualDeep(layout, row_one, row_two)) {
@@ -397,6 +399,8 @@ class StorageTestUtil {
         break;
       }
     }
+
+    printf("Done selecting columns from tables \n");
 
     txn_manager_one->Commit(txn_one, transaction::TransactionUtil::EmptyCallback, nullptr);
     txn_manager_two->Commit(txn_two, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -571,6 +575,8 @@ class StorageTestUtil {
   static void FullyPerformGC(transaction::DeferredActionManager *const dam, storage::LogManager *const log_manager) {
     for (int i = 0; i < MIN_GC_INVOCATIONS; i++) {
       if (log_manager != DISABLED) log_manager->ForceFlush();
+      dam->Process();
+      dam->Process();
       dam->Process();
     }
   }

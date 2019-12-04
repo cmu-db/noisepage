@@ -97,6 +97,7 @@ uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn) {
     back_log_.push(new_actions_local.front());
     new_actions_local.pop();
   }
+
   return processed;
 }
 

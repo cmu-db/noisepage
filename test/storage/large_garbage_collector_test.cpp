@@ -1,4 +1,4 @@
-#include <memory>
+/*#include <memory>
 #include <random>
 #include <vector>
 #include "di/di_help.h"
@@ -182,3 +182,5 @@ TEST_F(LargeGCTests, TPCCishHighThreadWithGC) {
   RunTest(config);
 }
 }  // namespace terrier
+
+*/

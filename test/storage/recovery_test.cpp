@@ -208,8 +208,13 @@ class RecoveryTests : public TerrierTest {
   void RunTest(const LargeSqlTableTestConfiguration &config) {
     // Run workload
     auto *tested = new LargeSqlTableTestObject(config, txn_manager_, catalog_, &block_store_, &generator_);
+    da_thread_->PauseDeferredActions();
+    //sleep(10);
+    StorageTestUtil::FullyPerformGC(deferred_action_manager_, log_manager_);
     tested->SimulateOltp(100, 4);
 
+    //sleep(10);
+    da_thread_->ResumeDeferredActions();
     ShutdownAndRestartSystem();
 
     // Instantiate recovery manager, and recover the tables.
@@ -244,6 +249,7 @@ class RecoveryTests : public TerrierTest {
         recovery_txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
     }
+    ShutdownAndRestartSystem();
     delete tested;
   }
 };

@@ -265,9 +265,9 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
   UndoRecord *version_ptr;
   bool visible;
   do {
-    //printf("%d dc", 4);
+    // printf("%d dc", 4);
     version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
-    //printf("%d dd", 4);
+    //printf("Version Pointer %llx dd \n", (uint64_t) version_ptr);
     // Copy the current (most recent) tuple into the output buffer. These operations don't need to be atomic,
     // because so long as we set the version ptr before updating in place, the reader will know if a conflict
     // can potentially happen, and chase the version chain before returning anyway,
@@ -332,7 +332,8 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
         visible = true;
         break;
       default:
-        throw std::runtime_error("unexpected delta record type");
+        fprintf(stderr, "Record type: %hhu \n", version_ptr->Type());
+        throw std::runtime_error("DataTable: unexpected delta record type");
     }
     //printf("Equal? %d \n", (version_ptr == version_ptr->Next()));
     version_ptr = version_ptr->Next();

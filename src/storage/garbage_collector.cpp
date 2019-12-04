@@ -31,7 +31,8 @@ void GarbageCollector::UnlinkTransaction(transaction::timestamp_t oldest_txn, tr
     // Each version chain needs to be traversed and truncated at most once every GC period. Check
     // if we have already visited this tuple slot; if not, proceed to prune the version chain.
     //TODO(Yash): check where table pointer in an undo record is set to null. I don't think it can be null.
-    if (!undo_record.IsUnlinked() && table != nullptr) TruncateVersionChain(table, undo_record.Slot(), oldest_txn);
+    //ERROR HERE?????: Threads are marked as unlinked wrong? truncate version chain needs to be
+    if (!undo_record.IsUnlinked()) { TruncateVersionChain(table, undo_record.Slot(), oldest_txn); }
     // Regardless of the version chain we will need to reclaim deleted slots and any dangling pointers to varlens,
     // unless the transaction is aborted, and the record holds a version that is still visible.
     if (!txn->Aborted()) {
@@ -45,7 +46,7 @@ void GarbageCollector::UnlinkTransaction(transaction::timestamp_t oldest_txn, tr
 void GarbageCollector::TruncateVersionChain(DataTable *const table, const TupleSlot slot,
                                             const transaction::timestamp_t oldest) const {
   const TupleAccessStrategy &accessor = table->accessor_;
-  UndoRecord *const version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
+  UndoRecord * version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
   // This is a legitimate case where we truncated the version chain but had to restart because the previous head
   // was aborted.
   if (version_ptr == nullptr) return;
@@ -53,23 +54,22 @@ void GarbageCollector::TruncateVersionChain(DataTable *const table, const TupleS
   // We need to special case the head of the version chain because contention with running transactions can happen
   // here. Instead of a blind update we will need to CAS and prune the entire version chain if the head of the version
   // chain can be GCed.
-  if (transaction::TransactionUtil::NewerThan(oldest, version_ptr->Timestamp().load())) {
-    if (!table->CompareAndSwapVersionPtr(slot, accessor, version_ptr, nullptr)) {
-      // Keep retrying while there are conflicts, since we only invoke truncate once per GC period for every
-      // version chain.
-      TruncateVersionChain(table, slot, oldest);
-    }
-
-    // Set the rest to unlinked 
-    UndoRecord *curr = version_ptr;
-    while(curr) {
-      curr->SetUnlinked();
-      curr = curr->Next();
-    }
-
-    return;
+  while(version_ptr != nullptr && 
+        transaction::TransactionUtil::NewerThan(oldest, version_ptr->Timestamp().load()) &&
+        !table->CompareAndSwapVersionPtr(slot, accessor, version_ptr, nullptr)) {
+    version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
   }
 
+  if(table->AtomicallyReadVersionPtr(slot, accessor) == nullptr && version_ptr != nullptr) {
+    version_ptr->SetUnlinked();
+  }
+  if(version_ptr == nullptr) { return; }
+
+  // TODO fix unlinked_head 
+  //unlinked_head = true;
+
+  UndoRecord *unlinked = version_ptr;
+  // TODO(Yash): This assumption is broken when deferred actions becomes multi threaded
   // a version chain is guaranteed to not change when not at the head (assuming single-threaded GC), so we are safe
   // to traverse and update pointers without CAS
   UndoRecord *curr = version_ptr;
@@ -79,25 +79,20 @@ void GarbageCollector::TruncateVersionChain(DataTable *const table, const TupleS
     next = curr->Next();
     // This is a legitimate case where we truncated the version chain but had to restart because the previous head
     // was aborted.
-    if (next == nullptr) return;
-    if (transaction::TransactionUtil::NewerThan(oldest, next->Timestamp().load())) break;
+    if (next == nullptr){break;}
+    if (transaction::TransactionUtil::NewerThan(oldest, next->Timestamp().load())) { break; }
     curr = next;
   }
   // The rest of the version chain must also be invisible to any running transactions since our version
   // is newest-to-oldest sorted.
-  next = curr->Next();
   curr->Next().store(nullptr);
+  unlinked = next; 
 
   // Set all undo records to be unlinked
-  while (next) {
-    next->SetUnlinked();
-    next = next->Next();
+  while (unlinked) {
+    unlinked->SetUnlinked();
+    unlinked = unlinked->Next();
   }
-
-  // If the head of the version chain was not committed, it could have been aborted and requires a retry.
-  if (curr == version_ptr && !transaction::TransactionUtil::Committed(version_ptr->Timestamp().load()) &&
-      table->AtomicallyReadVersionPtr(slot, accessor) != version_ptr)
-    TruncateVersionChain(table, slot, oldest);
 }
 
 void GarbageCollector::ReclaimSlotIfDeleted(UndoRecord *const undo_record) const {
@@ -133,7 +128,7 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *co
       }
       break;
     default:
-      throw std::runtime_error("unexpected delta record type");
+      throw std::runtime_error("GarbageCollector: unexpected delta record type");
   }
 }
 }  // namespace terrier::storage

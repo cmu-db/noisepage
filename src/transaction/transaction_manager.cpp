@@ -255,7 +255,7 @@ void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRe
         accessor.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
         break;
       default:
-        throw std::runtime_error("unexpected delta record type");
+        throw std::runtime_error("Transaction Manager: unexpected delta record type");
     }
     undo_record = undo_record->Next();
   }
