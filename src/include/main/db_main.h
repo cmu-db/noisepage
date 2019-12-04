@@ -10,7 +10,7 @@
 #include "common/stat_registry.h"
 #include "common/worker_pool.h"
 #include "loggers/loggers_util.h"
-#include "metrics/metrics_manager.h"
+#include "metrics/metrics_thread.h"
 #include "network/terrier_server.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
@@ -49,7 +49,6 @@ class DedicatedThreadRegistry;
  */
 class DBMain {
  public:
-  DBMain() = default;
   ~DBMain();
 
   /**
@@ -68,10 +67,7 @@ class DBMain {
 
  private:
   friend class settings::SettingsManager;
-  friend class settings::SettingsTests;
   friend class settings::Callbacks;
-  friend class metrics::MetricsTests;
-  friend class trafficcop::TrafficCopTests;
 
  public:
   class TransactionLayer {
@@ -237,7 +233,14 @@ class DBMain {
       }
 
       std::unique_ptr<metrics::MetricsManager> metrics_manager = DISABLED;
-      if (use_metrics_manager_) metrics_manager = std::make_unique<metrics::MetricsManager>();
+      if (use_metrics_) metrics_manager = std::make_unique<metrics::MetricsManager>();
+
+      std::unique_ptr<metrics::MetricsThread> metrics_thread = DISABLED;
+      if (use_metrics_thread_) {
+        TERRIER_ASSERT(use_metrics_, "Can't have a metrics thread without a MetricsManager.");
+        metrics_thread = std::make_unique<metrics::MetricsThread>(common::ManagedPointer(metrics_manager),
+                                                                  std::chrono::milliseconds{metrics_interval_});
+      }
 
       std::unique_ptr<common::DedicatedThreadRegistry> thread_registry = DISABLED;
       if (use_logging_ || use_network_)
@@ -292,6 +295,7 @@ class DBMain {
 
       db_main->settings_manager_ = std::move(settings_manager);
       db_main->metrics_manager_ = std::move(metrics_manager);
+      db_main->metrics_thread_ = std::move(metrics_thread);
       db_main->thread_registry_ = std::move(thread_registry);
       db_main->buffer_segment_pool_ = std::move(buffer_segment_pool);
       db_main->log_manager_ = std::move(log_manager);
@@ -315,8 +319,8 @@ class DBMain {
       return *this;
     }
 
-    Builder &SetUseMetricsManager(const bool value) {
-      use_metrics_manager_ = value;
+    Builder &SetUseMetricsThread(const bool value) {
+      use_metrics_thread_ = value;
       return *this;
     }
 
@@ -353,7 +357,10 @@ class DBMain {
    private:
     std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
     bool use_settings_manager_ = false;
-    bool use_metrics_manager_ = false;
+
+    bool use_metrics_ = false;
+    uint32_t metrics_interval_ = 100;  // TODO(Matt): setters
+    bool use_metrics_thread_ = false;
     uint64_t record_buffer_segment_size_ = 1e5;  // TODO(Matt): setters
     uint64_t record_buffer_segment_reuse_ = 1e4;
 
@@ -378,8 +385,8 @@ class DBMain {
     return common::ManagedPointer(settings_manager_);
   }
 
-  common::ManagedPointer<metrics::MetricsManager> GetMetricsManager() const {
-    return common::ManagedPointer(metrics_manager_);
+  common::ManagedPointer<metrics::MetricsThread> GetMetricsThread() const {
+    return common::ManagedPointer(metrics_thread_);
   }
 
   common::ManagedPointer<common::DedicatedThreadRegistry> GetThreadRegistry() const {
@@ -412,6 +419,7 @@ class DBMain {
   bool running_ = false;
   std::unique_ptr<settings::SettingsManager> settings_manager_;
   std::unique_ptr<metrics::MetricsManager> metrics_manager_;
+  std::unique_ptr<metrics::MetricsThread> metrics_thread_;
   std::unique_ptr<common::DedicatedThreadRegistry> thread_registry_;
   std::unique_ptr<storage::RecordBufferSegmentPool> buffer_segment_pool_;
   std::unique_ptr<storage::LogManager> log_manager_;
