@@ -150,6 +150,7 @@ class DBMain {
     ~CatalogLayer() {
       catalog_->TearDown();
       deferred_action_manager_->FullyPerformGC(garbage_collector_, log_manager_);
+      if (log_manager_ != DISABLED) log_manager_->PersistAndStop();
     }
 
     common::ManagedPointer<catalog::Catalog> GetCatalog() const { return common::ManagedPointer(catalog_); }
@@ -445,6 +446,7 @@ class DBMain {
   common::ManagedPointer<NetworkLayer> GetNetworkLayer() const { return common::ManagedPointer(network_layer_); }
 
  private:
+  friend class trafficcop::TrafficCopTests;
   bool running_ = false;
   std::unique_ptr<settings::SettingsManager> settings_manager_;
   std::unique_ptr<metrics::MetricsManager> metrics_manager_;

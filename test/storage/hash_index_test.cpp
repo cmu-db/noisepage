@@ -3,6 +3,7 @@
 #include <limits>
 #include <random>
 #include <vector>
+
 #include "parser/expression/column_value_expression.h"
 #include "portable_endian/portable_endian.h"
 #include "storage/garbage_collector_thread.h"
@@ -73,11 +74,14 @@ class HashIndexTests : public TerrierTest {
     TerrierTest::SetUp();
 
     timestamp_manager_ = new transaction::TimestampManager;
-    deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
-    txn_manager_ = new transaction::TransactionManager(timestamp_manager_, deferred_action_manager_, &buffer_pool_,
-                                                       true, DISABLED);
-    gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
+    deferred_action_manager_ = new transaction::DeferredActionManager(common::ManagedPointer(timestamp_manager_));
+    txn_manager_ = new transaction::TransactionManager(common::ManagedPointer(timestamp_manager_),
+                                                       common::ManagedPointer(deferred_action_manager_),
+                                                       common::ManagedPointer(&buffer_pool_), true, DISABLED);
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(timestamp_manager_),
+                                        common::ManagedPointer(deferred_action_manager_),
+                                        common::ManagedPointer(txn_manager_), DISABLED);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
 
     unique_index_ = (IndexBuilder().SetKeySchema(unique_schema_)).Build();
     default_index_ = (IndexBuilder().SetKeySchema(default_schema_)).Build();

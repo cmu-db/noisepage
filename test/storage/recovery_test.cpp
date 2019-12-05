@@ -1,6 +1,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+
 #include "catalog/catalog.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "gtest/gtest.h"
@@ -63,24 +64,33 @@ class RecoveryTests : public TerrierTest {
     unlink(LOG_FILE_NAME);
     thread_registry_ = new common::DedicatedThreadRegistry(DISABLED);
     log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                                  log_persist_threshold_, &buffer_pool_, common::ManagedPointer(thread_registry_));
+                                  log_persist_threshold_, common::ManagedPointer(&buffer_pool_),
+                                  common::ManagedPointer(thread_registry_));
     log_manager_->Start();
     timestamp_manager_ = new transaction::TimestampManager;
-    deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
-    txn_manager_ = new transaction::TransactionManager(timestamp_manager_, deferred_action_manager_, &buffer_pool_,
-                                                       true, log_manager_);
-    catalog_ = new catalog::Catalog(txn_manager_, &block_store_);
-    gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);  // Enable background GC
+    deferred_action_manager_ = new transaction::DeferredActionManager(common::ManagedPointer(timestamp_manager_));
+    txn_manager_ = new transaction::TransactionManager(
+        common::ManagedPointer(timestamp_manager_), common::ManagedPointer(deferred_action_manager_),
+        common::ManagedPointer(&buffer_pool_), true, common::ManagedPointer(log_manager_));
+    catalog_ = new catalog::Catalog(common::ManagedPointer(txn_manager_), common::ManagedPointer(&block_store_));
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(timestamp_manager_),
+                                        common::ManagedPointer(deferred_action_manager_),
+                                        common::ManagedPointer(txn_manager_), DISABLED);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);  // Enable background GC
 
     recovery_timestamp_manager_ = new transaction::TimestampManager;
-    recovery_deferred_action_manager_ = new transaction::DeferredActionManager(recovery_timestamp_manager_);
+    recovery_deferred_action_manager_ =
+        new transaction::DeferredActionManager(common::ManagedPointer(recovery_timestamp_manager_));
     recovery_txn_manager_ = new transaction::TransactionManager(
-        recovery_timestamp_manager_, recovery_deferred_action_manager_, &buffer_pool_, true, DISABLED);
-    recovery_catalog_ = new catalog::Catalog(recovery_txn_manager_, &block_store_);
-    recovery_gc_ = new storage::GarbageCollector(recovery_timestamp_manager_, recovery_deferred_action_manager_,
-                                                 recovery_txn_manager_, DISABLED);
-    recovery_gc_thread_ = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);  // Enable background GC
+        common::ManagedPointer(recovery_timestamp_manager_), common::ManagedPointer(recovery_deferred_action_manager_),
+        common::ManagedPointer(&buffer_pool_), true, DISABLED);
+    recovery_catalog_ =
+        new catalog::Catalog(common::ManagedPointer(recovery_txn_manager_), common::ManagedPointer(&block_store_));
+    recovery_gc_ = new storage::GarbageCollector(common::ManagedPointer(recovery_timestamp_manager_),
+                                                 common::ManagedPointer(recovery_deferred_action_manager_),
+                                                 common::ManagedPointer(recovery_txn_manager_), DISABLED);
+    recovery_gc_thread_ =
+        new storage::GarbageCollectorThread(common::ManagedPointer(recovery_gc_), gc_period_);  // Enable background GC
   }
 
   void TearDown() override {
@@ -92,14 +102,14 @@ class RecoveryTests : public TerrierTest {
     if (recovery_catalog_ != nullptr) {
       recovery_catalog_->TearDown();
       delete recovery_gc_thread_;
-      deferred_action_manager_->FullyPerformGC(recovery_gc_, DISABLED);
+      deferred_action_manager_->FullyPerformGC(common::ManagedPointer(recovery_gc_), DISABLED);
     }
 
     // Destroy original catalog. We need to manually call GC followed by a ForceFlush because catalog deletion can defer
     // events that create new transactions, which then need to be flushed before they can be GC'd.
     catalog_->TearDown();
     delete gc_thread_;
-    deferred_action_manager_->FullyPerformGC(gc_, log_manager_);
+    deferred_action_manager_->FullyPerformGC(common::ManagedPointer(gc_), common::ManagedPointer(log_manager_));
     log_manager_->PersistAndStop();
 
     delete recovery_gc_;
@@ -197,12 +207,12 @@ class RecoveryTests : public TerrierTest {
   void ShutdownAndRestartSystem() {
     // Simulate the system "shutting down". Guarantee persist of log records
     delete gc_thread_;
-    deferred_action_manager_->FullyPerformGC(gc_, log_manager_);
+    deferred_action_manager_->FullyPerformGC(common::ManagedPointer(gc_), common::ManagedPointer(log_manager_));
     log_manager_->PersistAndStop();
 
     // We now "boot up" up the system
     log_manager_->Start();
-    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
   }
 
   void RunTest(const LargeSqlTableTestConfiguration &config) {
@@ -687,23 +697,26 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
 
   // We create a new log manager to log the changes replayed during recovery
   LogManager secondary_log_manager(secondary_log_file, num_log_buffers_, log_serialization_interval_,
-                                   log_persist_interval_, log_persist_threshold_, &buffer_pool_,
+                                   log_persist_interval_, log_persist_threshold_, common::ManagedPointer(&buffer_pool_),
                                    common::ManagedPointer(thread_registry_));
   secondary_log_manager.Start();
 
   // Override the recovery txn manager to now log out
   recovery_catalog_->TearDown();
   delete recovery_gc_thread_;
-  deferred_action_manager_->FullyPerformGC(recovery_gc_, DISABLED);
+  deferred_action_manager_->FullyPerformGC(common::ManagedPointer(recovery_gc_), DISABLED);
   delete recovery_gc_;
   delete recovery_catalog_;
   delete recovery_txn_manager_;
   recovery_txn_manager_ = new transaction::TransactionManager(
-      recovery_timestamp_manager_, recovery_deferred_action_manager_, &buffer_pool_, true, &secondary_log_manager);
-  recovery_catalog_ = new catalog::Catalog(recovery_txn_manager_, &block_store_);
-  recovery_gc_ = new storage::GarbageCollector(recovery_timestamp_manager_, recovery_deferred_action_manager_,
-                                               recovery_txn_manager_, DISABLED);
-  recovery_gc_thread_ = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
+      common::ManagedPointer(recovery_timestamp_manager_), common::ManagedPointer(recovery_deferred_action_manager_),
+      common::ManagedPointer(&buffer_pool_), true, common::ManagedPointer(&secondary_log_manager));
+  recovery_catalog_ =
+      new catalog::Catalog(common::ManagedPointer(recovery_txn_manager_), common::ManagedPointer(&block_store_));
+  recovery_gc_ = new storage::GarbageCollector(common::ManagedPointer(recovery_timestamp_manager_),
+                                               common::ManagedPointer(recovery_deferred_action_manager_),
+                                               common::ManagedPointer(recovery_txn_manager_), DISABLED);
+  recovery_gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(recovery_gc_), gc_period_);
 
   //--------------------------------
   // Do recovery for the first time
@@ -746,7 +759,8 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   // local object. Setting the appropriate variables to nullptr will allow the TearDown code to run normally.
   recovery_catalog_->TearDown();
   delete recovery_gc_thread_;
-  deferred_action_manager_->FullyPerformGC(recovery_gc_, &secondary_log_manager);
+  deferred_action_manager_->FullyPerformGC(common::ManagedPointer(recovery_gc_),
+                                           common::ManagedPointer(&secondary_log_manager));
   delete recovery_catalog_;
   recovery_gc_thread_ = nullptr;
   recovery_catalog_ = nullptr;
@@ -760,17 +774,21 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
 
   // Create a new txn manager with logging disabled
   transaction::TimestampManager secondary_recovery_timestamp_manager;
-  transaction::DeferredActionManager secondary_recovery_deferred_action_manager{&secondary_recovery_timestamp_manager};
-  transaction::TransactionManager secondary_recovery_txn_manager{&secondary_recovery_timestamp_manager,
-                                                                 &secondary_recovery_deferred_action_manager,
-                                                                 &buffer_pool_, true, DISABLED};
-  storage::GarbageCollector secondary_recovery_gc{&secondary_recovery_timestamp_manager,
-                                                  &secondary_recovery_deferred_action_manager,
-                                                  &secondary_recovery_txn_manager, DISABLED};
-  auto secondary_recovery_gc_thread = new storage::GarbageCollectorThread(&secondary_recovery_gc, gc_period_);
+  transaction::DeferredActionManager secondary_recovery_deferred_action_manager{
+      common::ManagedPointer(&secondary_recovery_timestamp_manager)};
+  transaction::TransactionManager secondary_recovery_txn_manager{
+      common::ManagedPointer(&secondary_recovery_timestamp_manager),
+      common::ManagedPointer(&secondary_recovery_deferred_action_manager), common::ManagedPointer(&buffer_pool_), true,
+      DISABLED};
+  storage::GarbageCollector secondary_recovery_gc{common::ManagedPointer(&secondary_recovery_timestamp_manager),
+                                                  common::ManagedPointer(&secondary_recovery_deferred_action_manager),
+                                                  common::ManagedPointer(&secondary_recovery_txn_manager), DISABLED};
+  auto secondary_recovery_gc_thread =
+      new storage::GarbageCollectorThread(common::ManagedPointer(&secondary_recovery_gc), gc_period_);
 
   // Create a new catalog for this second recovery
-  catalog::Catalog secondary_recovery_catalog{&secondary_recovery_txn_manager, &block_store_};
+  catalog::Catalog secondary_recovery_catalog{common::ManagedPointer(&secondary_recovery_txn_manager),
+                                              common::ManagedPointer(&block_store_)};
 
   // Instantiate a new recovery manager, and recover the tables.
   DiskLogProvider secondary_log_provider(secondary_log_file);
@@ -814,7 +832,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   delete tested;
   secondary_recovery_catalog.TearDown();
   delete secondary_recovery_gc_thread;
-  deferred_action_manager_->FullyPerformGC(&secondary_recovery_gc, DISABLED);
+  deferred_action_manager_->FullyPerformGC(common::ManagedPointer(&secondary_recovery_gc), DISABLED);
   unlink(secondary_log_file.c_str());
 }
 }  // namespace terrier::storage

@@ -5,6 +5,7 @@
 #include <map>
 #include <random>
 #include <vector>
+
 #include "catalog/index_schema.h"
 #include "portable_endian/portable_endian.h"
 #include "storage/garbage_collector.h"
@@ -224,10 +225,13 @@ class IndexKeyTests : public TerrierTest {
     const auto &tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)});
 
     transaction::TimestampManager timestamp_manager;
-    transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
-    transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool, true,
-                                                DISABLED);
-    storage::GarbageCollector gc_manager(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
+    transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
+    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager),
+                                                common::ManagedPointer(&deferred_action_manager),
+                                                common::ManagedPointer(&buffer_pool), true, DISABLED);
+    storage::GarbageCollector gc_manager(common::ManagedPointer(&timestamp_manager),
+                                         common::ManagedPointer(&deferred_action_manager),
+                                         common::ManagedPointer(&txn_manager), DISABLED);
 
     auto *const txn = txn_manager.BeginTransaction();
 

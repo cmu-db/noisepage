@@ -2,6 +2,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+
 #include "common/dedicated_thread_registry.h"
 #include "common/managed_pointer.h"
 #include "gtest/gtest.h"
@@ -34,18 +35,21 @@ class WriteAheadLoggingTests : public TerrierTest {
   storage::BlockStore store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{10000, 10000};
   transaction::TimestampManager timestamp_manager_;
-  transaction::DeferredActionManager deferred_action_manager_{&timestamp_manager_};
+  transaction::DeferredActionManager deferred_action_manager_{common::ManagedPointer(&timestamp_manager_)};
   common::DedicatedThreadRegistry thread_registry_{DISABLED};
   storage::LogManager log_manager_{LOG_FILE_NAME,
                                    100,
                                    std::chrono::microseconds(10),
                                    std::chrono::milliseconds(20),
                                    static_cast<uint64_t>((1U << 20U)),
-                                   &buffer_pool_,
+                                   common::ManagedPointer(&buffer_pool_),
                                    common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry_)};
-  transaction::TransactionManager txn_manager_{&timestamp_manager_, &deferred_action_manager_, &buffer_pool_, true,
-                                               &log_manager_};
-  storage::GarbageCollector gc_{&timestamp_manager_, &deferred_action_manager_, &txn_manager_, DISABLED};
+  transaction::TransactionManager txn_manager_{
+      common::ManagedPointer(&timestamp_manager_), common::ManagedPointer(&deferred_action_manager_),
+      common::ManagedPointer(&buffer_pool_), true, common::ManagedPointer(&log_manager_)};
+  storage::GarbageCollector gc_{common::ManagedPointer(&timestamp_manager_),
+                                common::ManagedPointer(&deferred_action_manager_),
+                                common::ManagedPointer(&txn_manager_), DISABLED};
 
   void SetUp() override {
     // Unlink log file incase one exists from previous test iteration
