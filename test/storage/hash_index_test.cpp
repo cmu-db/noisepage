@@ -4,6 +4,7 @@
 #include <random>
 #include <vector>
 
+#include "main/db_main.h"
 #include "parser/expression/column_value_expression.h"
 #include "portable_endian/portable_endian.h"
 #include "storage/garbage_collector_thread.h"
@@ -22,37 +23,16 @@ namespace terrier::storage::index {
 
 class HashIndexTests : public TerrierTest {
  private:
-  const std::chrono::milliseconds gc_period_{10};
-  storage::GarbageCollector *gc_;
-  storage::GarbageCollectorThread *gc_thread_;
-
-  storage::BlockStore block_store_{1000, 1000};
-  storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   catalog::Schema table_schema_;
   catalog::IndexSchema unique_schema_;
   catalog::IndexSchema default_schema_;
 
  public:
-  HashIndexTests() {
-    auto col = catalog::Schema::Column(
-        "attribute", type::TypeId::INTEGER, false,
-        parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-    StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(1));
-    table_schema_ = catalog::Schema({col});
-    sql_table_ = new storage::SqlTable(&block_store_, table_schema_);
-    tuple_initializer_ = sql_table_->InitializerForProjectedRow({catalog::col_oid_t(1)});
-
-    std::vector<catalog::IndexSchema::Column> keycols;
-    keycols.emplace_back("", type::TypeId::INTEGER, false,
-                         parser::ColumnValueExpression(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID,
-                                                       catalog::col_oid_t(1)));
-    StorageTestUtil::ForceOid(&(keycols[0]), catalog::indexkeycol_oid_t(1));
-    unique_schema_ = catalog::IndexSchema(keycols, storage::index::IndexType::HASHMAP, true, true, false, true);
-    default_schema_ = catalog::IndexSchema(keycols, storage::index::IndexType::HASHMAP, false, false, false, true);
-  }
-
   std::default_random_engine generator_;
   const uint32_t num_threads_ = 4;
+
+  std::unique_ptr<DBMain> db_main_;
+  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
 
   // SqlTable
   storage::SqlTable *sql_table_;
@@ -61,9 +41,6 @@ class HashIndexTests : public TerrierTest {
 
   // HashIndex
   Index *default_index_, *unique_index_;
-  transaction::TimestampManager *timestamp_manager_;
-  transaction::DeferredActionManager *deferred_action_manager_;
-  transaction::TransactionManager *txn_manager_;
 
   byte *key_buffer_1_, *key_buffer_2_;
 
@@ -73,15 +50,24 @@ class HashIndexTests : public TerrierTest {
   void SetUp() override {
     TerrierTest::SetUp();
 
-    timestamp_manager_ = new transaction::TimestampManager;
-    deferred_action_manager_ = new transaction::DeferredActionManager(common::ManagedPointer(timestamp_manager_));
-    txn_manager_ = new transaction::TransactionManager(common::ManagedPointer(timestamp_manager_),
-                                                       common::ManagedPointer(deferred_action_manager_),
-                                                       common::ManagedPointer(&buffer_pool_), true, DISABLED);
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(timestamp_manager_),
-                                        common::ManagedPointer(deferred_action_manager_),
-                                        common::ManagedPointer(txn_manager_), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseGCThread(true).Build();
+    txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
+
+    auto col = catalog::Schema::Column(
+        "attribute", type::TypeId::INTEGER, false,
+        parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+    StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(1));
+    table_schema_ = catalog::Schema({col});
+    sql_table_ = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), table_schema_);
+    tuple_initializer_ = sql_table_->InitializerForProjectedRow({catalog::col_oid_t(1)});
+
+    std::vector<catalog::IndexSchema::Column> keycols;
+    keycols.emplace_back("", type::TypeId::INTEGER, false,
+                         parser::ColumnValueExpression(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID,
+                                                       catalog::col_oid_t(1)));
+    StorageTestUtil::ForceOid(&(keycols[0]), catalog::indexkeycol_oid_t(1));
+    unique_schema_ = catalog::IndexSchema(keycols, storage::index::IndexType::HASHMAP, true, true, false, true);
+    default_schema_ = catalog::IndexSchema(keycols, storage::index::IndexType::HASHMAP, false, false, false, true);
 
     unique_index_ = (IndexBuilder().SetKeySchema(unique_schema_)).Build();
     default_index_ = (IndexBuilder().SetKeySchema(default_schema_)).Build();
@@ -92,16 +78,14 @@ class HashIndexTests : public TerrierTest {
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
   }
   void TearDown() override {
-    delete gc_thread_;
-    delete gc_;
-    delete sql_table_;
-    delete default_index_;
-    delete unique_index_;
+    db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() {
+      delete sql_table_;
+      delete default_index_;
+      delete unique_index_;
+    });
+
     delete[] key_buffer_1_;
     delete[] key_buffer_2_;
-    delete txn_manager_;
-    delete deferred_action_manager_;
-    delete timestamp_manager_;
     TerrierTest::TearDown();
   }
 };
