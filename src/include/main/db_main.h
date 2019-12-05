@@ -104,13 +104,19 @@ class DBMain {
   class StorageLayer {
    public:
     StorageLayer(const common::ManagedPointer<TransactionLayer> txn_layer, const uint64_t block_store_size_limit,
-                 const uint64_t block_store_reuse_limit, const bool use_gc) {
+                 const uint64_t block_store_reuse_limit, const bool use_gc,
+                 const common::ManagedPointer<storage::LogManager> log_manager)
+        : deferred_action_manager_(txn_layer->GetDeferredActionManager()), log_manager_(log_manager) {
       garbage_collector_ = use_gc ? std::make_unique<storage::GarbageCollector>(
                                         txn_layer->GetTimestampManager(), txn_layer->GetDeferredActionManager(),
                                         txn_layer->GetTransactionManager(), DISABLED)
                                   : DISABLED;
 
       block_store_ = std::make_unique<storage::BlockStore>(block_store_size_limit, block_store_reuse_limit);
+    }
+
+    ~StorageLayer() {
+      deferred_action_manager_->FullyPerformGC(common::ManagedPointer(garbage_collector_), log_manager_);
     }
 
     common::ManagedPointer<storage::GarbageCollector> GetGarbageCollector() const {
@@ -120,6 +126,9 @@ class DBMain {
     common::ManagedPointer<storage::BlockStore> GetBlockStore() const { return common::ManagedPointer(block_store_); }
 
    private:
+    const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;
+    const common::ManagedPointer<storage::LogManager> log_manager_;
+
     std::unique_ptr<storage::GarbageCollector> garbage_collector_;
     std::unique_ptr<storage::BlockStore> block_store_;
   };
@@ -147,11 +156,7 @@ class DBMain {
       deferred_action_manager_->FullyPerformGC(garbage_collector_, log_manager_);
     }
 
-    ~CatalogLayer() {
-      catalog_->TearDown();
-      deferred_action_manager_->FullyPerformGC(garbage_collector_, log_manager_);
-      if (log_manager_ != DISABLED) log_manager_->PersistAndStop();
-    }
+    ~CatalogLayer() { catalog_->TearDown(); }
 
     common::ManagedPointer<catalog::Catalog> GetCatalog() const { return common::ManagedPointer(catalog_); }
 
@@ -262,8 +267,9 @@ class DBMain {
       auto txn_layer = std::make_unique<TransactionLayer>(common::ManagedPointer(buffer_segment_pool), use_gc_,
                                                           common::ManagedPointer(log_manager));
 
-      auto storage_layer = std::make_unique<StorageLayer>(common::ManagedPointer(txn_layer), block_store_size_,
-                                                          block_store_reuse_, use_gc_);
+      auto storage_layer =
+          std::make_unique<StorageLayer>(common::ManagedPointer(txn_layer), block_store_size_, block_store_reuse_,
+                                         use_gc_, common::ManagedPointer(log_manager));
 
       std::unique_ptr<CatalogLayer> catalog_layer = DISABLED;
       if (use_catalog_) {
