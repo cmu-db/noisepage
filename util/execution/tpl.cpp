@@ -68,15 +68,7 @@ static constexpr const char *K_EXIT_KEYWORD = ".exit";
  */
 static void CompileAndRun(const std::string &source, const std::string &name = "tmp-tpl") {
   // Initialize terrier objects
-  std::unordered_map<settings::Param, settings::ParamInfo> param_map;
-  terrier::settings::SettingsManager::ConstructParamMap(param_map);
-  auto db_main = terrier::DBMain::Builder()
-                     .SetSettingsParameterMap(std::move(param_map))
-                     .SetUseSettingsManager(true)
-                     .SetUseGC(true)
-                     .SetUseCatalog(true)
-                     .SetUseGCThread(true)
-                     .Build();
+  auto db_main = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).SetUseGCThread(true).Build();
 
   // Get the correct output format for this test
   exec::SampleOutput sample_output;
