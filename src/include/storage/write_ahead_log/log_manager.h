@@ -67,7 +67,9 @@ class LogManager : public common::DedicatedThreadOwner {
         persist_interval_(persist_interval),
         persist_threshold_(persist_threshold) {}
 
-  ~LogManager() final { PersistAndStop(); }
+  ~LogManager() final {
+    if (!run_log_manager_) PersistAndStop();
+  }
 
   /**
    * Starts log manager. Does the following in order:
