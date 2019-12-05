@@ -304,7 +304,8 @@ TEST_F(DataTableTests, InsertNoWrap) {
     storage::RawBlock *block = nullptr;
     // fill the block. bypass the test object to be more efficient with buffers
     transaction::timestamp_t timestamp(0);
-    auto *txn = new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(&buffer_pool_), DISABLED);
+    auto *txn =
+        new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(&buffer_pool_), DISABLED);
     for (uint32_t i = 0; i < tested.Layout().NumSlots(); i++) {
       storage::RawBlock *inserted_block = tested.InsertRandomTuple(txn, &generator_, &buffer_pool_).GetBlock();
       if (block == nullptr) block = inserted_block;

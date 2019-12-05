@@ -1,8 +1,10 @@
 #include "benchmark_util/data_table_benchmark_util.h"
+
 #include <algorithm>
 #include <cstring>
 #include <utility>
 #include <vector>
+
 #include "common/allocator.h"
 #include "common/scoped_timer.h"
 #include "metrics/metrics_thread.h"
@@ -79,7 +81,8 @@ LargeDataTableBenchmarkObject::LargeDataTableBenchmarkObject(const std::vector<u
       generator_(generator),
       layout_({attr_sizes}),
       table_(block_store, layout_, storage::layout_version_t(0)),
-      txn_manager_(&timestamp_manager_, DISABLED, buffer_pool, gc_on, log_manager),
+      txn_manager_(common::ManagedPointer(&timestamp_manager_), DISABLED, common::ManagedPointer(buffer_pool), gc_on,
+                   common::ManagedPointer(log_manager)),
       gc_on_(gc_on),
       abort_count_(0) {
   // Bootstrap the table to have the specified number of tuples
@@ -100,7 +103,7 @@ std::pair<uint64_t, uint64_t> LargeDataTableBenchmarkObject::SimulateOltp(
   if (gc_on_) {
     // Then there is no need to keep track of RandomWorkloadTransaction objects
     workload = [&](uint32_t /*unused*/) {
-      if (metrics_thread != DISABLED) metrics_thread->GetMetricsManager().RegisterThread();
+      if (metrics_thread != DISABLED) metrics_thread->GetMetricsManager()->RegisterThread();
       for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
         RandomDataTableTransaction txn(this);
         SimulateOneTransaction(&txn, txn_id);
@@ -111,7 +114,7 @@ std::pair<uint64_t, uint64_t> LargeDataTableBenchmarkObject::SimulateOltp(
     // Either for correctness checking, or to cleanup memory afterwards, we need to retain these
     // test objects
     workload = [&](uint32_t /*unused*/) {
-      if (metrics_thread != DISABLED) metrics_thread->GetMetricsManager().RegisterThread();
+      if (metrics_thread != DISABLED) metrics_thread->GetMetricsManager()->RegisterThread();
       for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
         txns[txn_id] = new RandomDataTableTransaction(this);
         SimulateOneTransaction(txns[txn_id], txn_id);

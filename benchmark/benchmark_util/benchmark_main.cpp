@@ -21,7 +21,7 @@
 #include "loggers/loggers_util.h"
 
 int main(int argc, char **argv) {
-  terrier::LoggersUtil::Initialize(true);
+  terrier::LoggersUtil::Initialize();
 
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();

@@ -1,4 +1,5 @@
 #include <vector>
+
 #include "storage/garbage_collector.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
@@ -24,10 +25,13 @@ class DeferredActionsTest : public TerrierTest {
 
   storage::RecordBufferSegmentPool buffer_pool_ = {100, 100};
   transaction::TimestampManager timestamp_manager_;
-  transaction::DeferredActionManager deferred_action_manager_{&timestamp_manager_};
-  transaction::TransactionManager txn_mgr_{&timestamp_manager_, &deferred_action_manager_, &buffer_pool_, true,
-                                           DISABLED};
-  storage::GarbageCollector gc_{&timestamp_manager_, &deferred_action_manager_, &txn_mgr_, DISABLED};
+  transaction::DeferredActionManager deferred_action_manager_{common::ManagedPointer(&timestamp_manager_)};
+  transaction::TransactionManager txn_mgr_{common::ManagedPointer(&timestamp_manager_),
+                                           common::ManagedPointer(&deferred_action_manager_),
+                                           common::ManagedPointer(&buffer_pool_), true, DISABLED};
+  storage::GarbageCollector gc_{common::ManagedPointer(&timestamp_manager_),
+                                common::ManagedPointer(&deferred_action_manager_), common::ManagedPointer(&txn_mgr_),
+                                DISABLED};
 };
 
 // Test that abort actions do not execute before the transaction aborts and that
