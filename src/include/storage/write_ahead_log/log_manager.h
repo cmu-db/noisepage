@@ -66,9 +66,6 @@ class LogManager : public common::DedicatedThreadOwner {
         serialization_interval_(serialization_interval),
         persist_interval_(persist_interval),
         persist_threshold_(persist_threshold) {}
-
-  ~LogManager() final { PersistAndStop(); }
-
   /**
    * Starts log manager. Does the following in order:
    *    1. Initialize buffers to pass serialized logs to log consumers
