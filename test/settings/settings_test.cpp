@@ -3,26 +3,22 @@
 #include <thread>  // NOLINT
 #include <unordered_map>
 #include <utility>
+
 #include "gtest/gtest.h"
 #include "main/db_main.h"
 #include "settings/settings_callbacks.h"
 #include "settings/settings_manager.h"
 #include "test_util/test_harness.h"
 
-#define __SETTING_GFLAGS_DEFINE__      // NOLINT
-#include "settings/settings_common.h"  // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_GFLAGS_DEFINE__       // NOLINT
-
 namespace terrier::settings {
 
 class SettingsTests : public TerrierTest {
  protected:
-  DBMain *db_main_;
-  SettingsManager *settings_manager_;
-  storage::LogManager *log_manager_;
-  transaction::TransactionManager *txn_manager_;
-  storage::RecordBufferSegmentPool *buffer_segment_pool_;
+  std::unique_ptr<DBMain> db_main_;
+  common::ManagedPointer<SettingsManager> settings_manager_;
+  common::ManagedPointer<storage::LogManager> log_manager_;
+  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
+  common::ManagedPointer<storage::RecordBufferSegmentPool> buffer_segment_pool_;
 
   const uint64_t default_buffer_pool_size_ = 100000;
 
@@ -30,14 +26,17 @@ class SettingsTests : public TerrierTest {
     std::unordered_map<Param, ParamInfo> param_map;
     terrier::settings::SettingsManager::ConstructParamMap(param_map);
 
-    db_main_ = new DBMain(std::move(param_map));
-    settings_manager_ = db_main_->settings_manager_;
-    log_manager_ = db_main_->log_manager_;
-    txn_manager_ = db_main_->txn_manager_;
-    buffer_segment_pool_ = db_main_->buffer_segment_pool_;
-  }
+    db_main_ = DBMain::Builder()
+                   .SetSettingsParameterMap(std::move(param_map))
+                   .SetUseSettingsManager(true)
+                   .SetUseLogging(true)
+                   .Build();
 
-  void TearDown() override { delete db_main_; }
+    settings_manager_ = db_main_->GetSettingsManager();
+    log_manager_ = db_main_->GetLogManager();
+    txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
+    buffer_segment_pool_ = db_main_->GetBufferSegmentPool();
+  }
 
   static void EmptySetterCallback(common::ManagedPointer<common::ActionContext> action_context UNUSED_ATTRIBUTE) {}
 

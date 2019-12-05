@@ -359,6 +359,26 @@ class DBMain {
       return *this;
     }
 
+    Builder &SetRecordBufferSegmentSize(const uint64_t value) {
+      record_buffer_segment_size_ = value;
+      return *this;
+    }
+
+    Builder &SetRecordBufferSegmentReuse(const uint64_t value) {
+      record_buffer_segment_reuse_ = value;
+      return *this;
+    }
+
+    Builder &SetBlockStoreSize(const uint64_t value) {
+      block_store_size_ = value;
+      return *this;
+    }
+
+    Builder &SetBlockStoreReuse(const uint64_t value) {
+      block_store_reuse_ = value;
+      return *this;
+    }
+
    private:
     std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
     bool use_settings_manager_ = false;
@@ -366,7 +386,7 @@ class DBMain {
     bool use_metrics_ = false;
     uint32_t metrics_interval_ = 100;  // TODO(Matt): setters
     bool use_metrics_thread_ = false;
-    uint64_t record_buffer_segment_size_ = 1e5;  // TODO(Matt): setters
+    uint64_t record_buffer_segment_size_ = 1e5;
     uint64_t record_buffer_segment_reuse_ = 1e4;
 
     std::string log_file_path_ = "wal.log";
