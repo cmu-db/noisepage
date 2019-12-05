@@ -116,7 +116,9 @@ class DBMain {
     }
 
     ~StorageLayer() {
-      deferred_action_manager_->FullyPerformGC(common::ManagedPointer(garbage_collector_), log_manager_);
+      if (garbage_collector_ != DISABLED) {
+        deferred_action_manager_->FullyPerformGC(common::ManagedPointer(garbage_collector_), log_manager_);
+      }
     }
 
     common::ManagedPointer<storage::GarbageCollector> GetGarbageCollector() const {
@@ -126,11 +128,10 @@ class DBMain {
     common::ManagedPointer<storage::BlockStore> GetBlockStore() const { return common::ManagedPointer(block_store_); }
 
    private:
-    const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;
-    const common::ManagedPointer<storage::LogManager> log_manager_;
-
     std::unique_ptr<storage::GarbageCollector> garbage_collector_;
     std::unique_ptr<storage::BlockStore> block_store_;
+    const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;
+    const common::ManagedPointer<storage::LogManager> log_manager_;
   };
 
   class CatalogLayer {
@@ -141,8 +142,8 @@ class DBMain {
         : deferred_action_manager_(txn_layer->GetDeferredActionManager()),
           garbage_collector_(storage_layer->GetGarbageCollector()),
           log_manager_(log_manager) {
-      TERRIER_ASSERT(deferred_action_manager_ != nullptr, "Catalog::TearDown() needs DeferredActionManager.");
-      TERRIER_ASSERT(garbage_collector_ != nullptr, "Catalog::TearDown() needs GarbageCollector.");
+      TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "Catalog::TearDown() needs DeferredActionManager.");
+      TERRIER_ASSERT(garbage_collector_ != DISABLED, "Catalog::TearDown() needs GarbageCollector.");
 
       catalog_ = std::make_unique<catalog::Catalog>(txn_layer->GetTransactionManager(), storage_layer->GetBlockStore());
 
