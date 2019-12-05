@@ -156,7 +156,10 @@ class DBMain {
       deferred_action_manager_->FullyPerformGC(garbage_collector_, log_manager_);
     }
 
-    ~CatalogLayer() { catalog_->TearDown(); }
+    ~CatalogLayer() {
+      catalog_->TearDown();
+      deferred_action_manager_->FullyPerformGC(common::ManagedPointer(garbage_collector_), log_manager_);
+    }
 
     common::ManagedPointer<catalog::Catalog> GetCatalog() const { return common::ManagedPointer(catalog_); }
 
