@@ -34,10 +34,8 @@ class DDLExecutorsTests : public TerrierTest {
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     block_store_ = db_main_->GetStorageLayer()->GetBlockStore();
-
     auto *txn = txn_manager_->BeginTransaction();
-    db_ = catalog_->CreateDatabase(txn, "terrier", true);
-    EXPECT_NE(db_, catalog::INVALID_DATABASE_OID);
+    db_ = catalog_->GetDatabaseOid(txn, catalog::DEFAULT_DATABASE);
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     auto col = catalog::Schema::Column(
