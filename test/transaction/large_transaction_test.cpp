@@ -1,6 +1,5 @@
 #include <random>
 
-#include "gtest/gtest.h"
 #include "main/db_main.h"
 #include "test_util/data_table_test_util.h"
 #include "transaction/deferred_action_manager.h"

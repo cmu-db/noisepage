@@ -2,22 +2,17 @@
 
 #include "benchmark/benchmark.h"
 #include "benchmark_util/data_table_benchmark_util.h"
-#include "storage/garbage_collector_thread.h"
+#include "main/db_main.h"
 
 namespace terrier {
 
 class LargeTransactionBenchmark : public benchmark::Fixture {
  public:
   const std::vector<uint16_t> attr_sizes_ = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
-  const uint32_t initial_table_size_ = 1000000;
-  const uint32_t num_txns_ = 100000;
-  storage::BlockStore block_store_{1000, 1000};
-  storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
+  const uint32_t initial_table_size_ = 1e6;
+  const uint32_t num_txns_ = 1e5;
   std::default_random_engine generator_;
   const uint32_t num_concurrent_txns_ = 4;
-  storage::GarbageCollector *gc_;
-  storage::GarbageCollectorThread *gc_thread_ = nullptr;
-  const std::chrono::milliseconds gc_period_{10};
 };
 
 /**
@@ -30,16 +25,19 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, TPCCish)(benchmark::State &state) 
   const std::vector<double> insert_update_select_ratio = {0.1, 0.4, 0.5};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
-                                         &block_store_, &buffer_pool_, &generator_, true);
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
-                                        common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    auto db_main = DBMain::Builder()
+                       .SetUseGC(true)
+                       .SetUseGCThread(true)
+                       .SetRecordBufferSegmentSize(1e6)
+                       .SetRecordBufferSegmentReuse(1e6)
+                       .Build();
+    auto *const tested = new LargeDataTableBenchmarkObject(
+        attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
+        db_main->GetStorageLayer()->GetBlockStore().Get(), db_main->GetBufferSegmentPool().Get(), &generator_, true);
+    const auto result = tested->SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
-    delete gc_thread_;
-    delete gc_;
+    db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; });
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -54,17 +52,20 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, HighAbortRate)(benchmark::State &s
   const std::vector<double> insert_update_select_ratio = {0.0, 0.8, 0.2};
   // NOLINTNEXTLINE
   for (auto _ : state) {
+    auto db_main = DBMain::Builder()
+                       .SetUseGC(true)
+                       .SetUseGCThread(true)
+                       .SetRecordBufferSegmentSize(1e6)
+                       .SetRecordBufferSegmentReuse(1e6)
+                       .Build();
     // use a smaller table to make aborts more likely
-    LargeDataTableBenchmarkObject tested(attr_sizes_, 1000, txn_length, insert_update_select_ratio, &block_store_,
-                                         &buffer_pool_, &generator_, true);
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
-                                        common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    auto *const tested = new LargeDataTableBenchmarkObject(attr_sizes_, 1000, txn_length, insert_update_select_ratio,
+                                                           db_main->GetStorageLayer()->GetBlockStore().Get(),
+                                                           db_main->GetBufferSegmentPool().Get(), &generator_, true);
+    const auto result = tested->SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
-    delete gc_thread_;
-    delete gc_;
+    db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; });
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -79,17 +80,20 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementInsert)(benchmark::
   const std::vector<double> insert_update_select_ratio = {1, 0, 0};
   // NOLINTNEXTLINE
   for (auto _ : state) {
+    auto db_main = DBMain::Builder()
+                       .SetUseGC(true)
+                       .SetUseGCThread(true)
+                       .SetRecordBufferSegmentSize(1e6)
+                       .SetRecordBufferSegmentReuse(1e6)
+                       .Build();
     // don't need any initial tuples
-    LargeDataTableBenchmarkObject tested(attr_sizes_, 0, txn_length, insert_update_select_ratio, &block_store_,
-                                         &buffer_pool_, &generator_, true);
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
-                                        common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    auto *const tested = new LargeDataTableBenchmarkObject(attr_sizes_, 0, txn_length, insert_update_select_ratio,
+                                                           db_main->GetStorageLayer()->GetBlockStore().Get(),
+                                                           db_main->GetBufferSegmentPool().Get(), &generator_, true);
+    const auto result = tested->SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
-    delete gc_thread_;
-    delete gc_;
+    db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; });
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -104,16 +108,19 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementUpdate)(benchmark::
   const std::vector<double> insert_update_select_ratio = {0, 1, 0};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
-                                         &block_store_, &buffer_pool_, &generator_, true);
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
-                                        common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    auto db_main = DBMain::Builder()
+                       .SetUseGC(true)
+                       .SetUseGCThread(true)
+                       .SetRecordBufferSegmentSize(1e6)
+                       .SetRecordBufferSegmentReuse(1e6)
+                       .Build();
+    auto *const tested = new LargeDataTableBenchmarkObject(
+        attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
+        db_main->GetStorageLayer()->GetBlockStore().Get(), db_main->GetBufferSegmentPool().Get(), &generator_, true);
+    const auto result = tested->SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
-    delete gc_thread_;
-    delete gc_;
+    db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; });
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -128,17 +135,19 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementSelect)(benchmark::
   const std::vector<double> insert_update_select_ratio = {0, 0, 1};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
-                                         &block_store_, &buffer_pool_, &generator_, true);
-
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
-                                        common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    auto db_main = DBMain::Builder()
+                       .SetUseGC(true)
+                       .SetUseGCThread(true)
+                       .SetRecordBufferSegmentSize(1e6)
+                       .SetRecordBufferSegmentReuse(1e6)
+                       .Build();
+    auto *const tested = new LargeDataTableBenchmarkObject(
+        attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
+        db_main->GetStorageLayer()->GetBlockStore().Get(), db_main->GetBufferSegmentPool().Get(), &generator_, true);
+    const auto result = tested->SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
-    delete gc_thread_;
-    delete gc_;
+    db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; });
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
