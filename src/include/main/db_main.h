@@ -119,6 +119,9 @@ class DBMain {
       if (garbage_collector_ != DISABLED) {
         deferred_action_manager_->FullyPerformGC(common::ManagedPointer(garbage_collector_), log_manager_);
       }
+      if (log_manager_ != DISABLED) {
+        log_manager_->PersistAndStop();
+      }
     }
 
     common::ManagedPointer<storage::GarbageCollector> GetGarbageCollector() const {
