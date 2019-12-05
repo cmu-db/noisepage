@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "common/object_pool.h"
+#include "main/db_main.h"
 #include "storage/data_table.h"
 #include "storage/storage_util.h"
 #include "test_util/data_table_test_util.h"
@@ -113,12 +114,11 @@ class MVCCTests : public ::terrier::TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, CommitInsert1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TimestampManager timestamp_manager;
-    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
-                                                common::ManagedPointer(&buffer_pool_), false, DISABLED);
-    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    auto db_main = DBMain::Builder().Build();
+    auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+    MVCCDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_, &generator_);
 
-    auto *txn0 = txn_manager.BeginTransaction();
+    auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
@@ -128,26 +128,26 @@ TEST_F(MVCCTests, CommitInsert1) {
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    auto *txn1 = txn_manager.BeginTransaction();
+    auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
     tested.SelectIntoBuffer(txn1, slot);
     EXPECT_FALSE(tested.select_result_);
 
-    txn_manager.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     tested.SelectIntoBuffer(txn1, slot);
     EXPECT_FALSE(tested.select_result_);
 
-    txn_manager.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto *txn2 = txn_manager.BeginTransaction();
+    auto *txn2 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn2);
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
-    txn_manager.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 }
 
@@ -173,15 +173,14 @@ TEST_F(MVCCTests, CommitInsert1) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, CommitInsert2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TimestampManager timestamp_manager;
-    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
-                                                common::ManagedPointer(&buffer_pool_), false, DISABLED);
-    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    auto db_main = DBMain::Builder().Build();
+    auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+    MVCCDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_, &generator_);
 
-    auto *txn0 = txn_manager.BeginTransaction();
+    auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
-    auto *txn1 = txn_manager.BeginTransaction();
+    auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
@@ -194,21 +193,21 @@ TEST_F(MVCCTests, CommitInsert2) {
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    txn_manager.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     tested.SelectIntoBuffer(txn0, slot);
 
     EXPECT_FALSE(tested.select_result_);
 
-    txn_manager.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto *txn2 = txn_manager.BeginTransaction();
+    auto *txn2 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn2);
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
-    txn_manager.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 }
 
@@ -234,12 +233,11 @@ TEST_F(MVCCTests, CommitInsert2) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, AbortInsert1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TimestampManager timestamp_manager;
-    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
-                                                common::ManagedPointer(&buffer_pool_), false, DISABLED);
-    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    auto db_main = DBMain::Builder().Build();
+    auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+    MVCCDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_, &generator_);
 
-    auto *txn0 = txn_manager.BeginTransaction();
+    auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
@@ -249,25 +247,25 @@ TEST_F(MVCCTests, AbortInsert1) {
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    auto *txn1 = txn_manager.BeginTransaction();
+    auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
     tested.SelectIntoBuffer(txn1, slot);
     EXPECT_FALSE(tested.select_result_);
 
-    txn_manager.Abort(txn0);
+    txn_manager->Abort(txn0);
 
     tested.SelectIntoBuffer(txn1, slot);
     EXPECT_FALSE(tested.select_result_);
 
-    txn_manager.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto *txn2 = txn_manager.BeginTransaction();
+    auto *txn2 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn2);
 
     tested.SelectIntoBuffer(txn2, slot);
     EXPECT_FALSE(tested.select_result_);
-    txn_manager.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 }
 
@@ -293,15 +291,14 @@ TEST_F(MVCCTests, AbortInsert1) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, AbortInsert2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TimestampManager timestamp_manager;
-    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
-                                                common::ManagedPointer(&buffer_pool_), false, DISABLED);
-    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    auto db_main = DBMain::Builder().Build();
+    auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+    MVCCDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_, &generator_);
 
-    auto *txn0 = txn_manager.BeginTransaction();
+    auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
-    auto *txn1 = txn_manager.BeginTransaction();
+    auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
@@ -314,19 +311,19 @@ TEST_F(MVCCTests, AbortInsert2) {
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    txn_manager.Abort(txn1);
+    txn_manager->Abort(txn1);
 
     tested.SelectIntoBuffer(txn0, slot);
     EXPECT_FALSE(tested.select_result_);
 
-    txn_manager.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto *txn2 = txn_manager.BeginTransaction();
+    auto *txn2 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn2);
 
     tested.SelectIntoBuffer(txn2, slot);
     EXPECT_FALSE(tested.select_result_);
-    txn_manager.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 }
 
@@ -352,22 +349,21 @@ TEST_F(MVCCTests, AbortInsert2) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, CommitUpdate1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TimestampManager timestamp_manager;
-    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
-                                                common::ManagedPointer(&buffer_pool_), false, DISABLED);
-    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    auto db_main = DBMain::Builder().Build();
+    auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+    MVCCDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
 
     // insert the tuple to be Updated later
-    auto *txn = txn_manager.BeginTransaction();
+    auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
     storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
-    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
 
-    auto *txn0 = txn_manager.BeginTransaction();
+    auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
     EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
@@ -378,28 +374,28 @@ TEST_F(MVCCTests, CommitUpdate1) {
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
-    auto *txn1 = txn_manager.BeginTransaction();
+    auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    txn_manager.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    txn_manager.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto *txn2 = txn_manager.BeginTransaction();
+    auto *txn2 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn2);
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
-    txn_manager.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 }
 
@@ -425,25 +421,24 @@ TEST_F(MVCCTests, CommitUpdate1) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, CommitUpdate2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TimestampManager timestamp_manager;
-    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
-                                                common::ManagedPointer(&buffer_pool_), false, DISABLED);
-    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    auto db_main = DBMain::Builder().Build();
+    auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+    MVCCDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
 
     // insert the tuple to be Updated later
-    auto *txn = txn_manager.BeginTransaction();
+    auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
     storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
-    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
 
-    auto *txn0 = txn_manager.BeginTransaction();
+    auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
-    auto *txn1 = txn_manager.BeginTransaction();
+    auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
     EXPECT_TRUE(tested.table_.Update(txn1, slot, *update));
@@ -457,21 +452,21 @@ TEST_F(MVCCTests, CommitUpdate2) {
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
-    txn_manager.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    txn_manager.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto *txn2 = txn_manager.BeginTransaction();
+    auto *txn2 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn2);
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
-    txn_manager.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 }
 
@@ -497,22 +492,21 @@ TEST_F(MVCCTests, CommitUpdate2) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, AbortUpdate1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TimestampManager timestamp_manager;
-    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
-                                                common::ManagedPointer(&buffer_pool_), false, DISABLED);
-    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    auto db_main = DBMain::Builder().Build();
+    auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+    MVCCDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
 
     // insert the tuple to be Updated later
-    auto *txn = txn_manager.BeginTransaction();
+    auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
     storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
-    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
 
-    auto *txn0 = txn_manager.BeginTransaction();
+    auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
     EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
@@ -523,28 +517,28 @@ TEST_F(MVCCTests, AbortUpdate1) {
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
-    auto *txn1 = txn_manager.BeginTransaction();
+    auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    txn_manager.Abort(txn0);
+    txn_manager->Abort(txn0);
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    txn_manager.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto *txn2 = txn_manager.BeginTransaction();
+    auto *txn2 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn2);
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
-    txn_manager.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 }
 
@@ -570,25 +564,24 @@ TEST_F(MVCCTests, AbortUpdate1) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, AbortUpdate2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TimestampManager timestamp_manager;
-    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
-                                                common::ManagedPointer(&buffer_pool_), false, DISABLED);
-    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    auto db_main = DBMain::Builder().Build();
+    auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+    MVCCDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
 
     // insert the tuple to be Updated later
-    auto *txn = txn_manager.BeginTransaction();
+    auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
     storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
-    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
 
-    auto *txn0 = txn_manager.BeginTransaction();
+    auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
-    auto *txn1 = txn_manager.BeginTransaction();
+    auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
     EXPECT_TRUE(tested.table_.Update(txn1, slot, *update));
@@ -603,21 +596,21 @@ TEST_F(MVCCTests, AbortUpdate2) {
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
-    txn_manager.Abort(txn1);
+    txn_manager->Abort(txn1);
 
     select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    txn_manager.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto *txn2 = txn_manager.BeginTransaction();
+    auto *txn2 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn2);
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
-    txn_manager.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 }
 
@@ -639,15 +632,14 @@ TEST_F(MVCCTests, AbortUpdate2) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, InsertUpdate1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TimestampManager timestamp_manager;
-    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
-                                                common::ManagedPointer(&buffer_pool_), false, DISABLED);
-    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    auto db_main = DBMain::Builder().Build();
+    auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+    MVCCDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_, &generator_);
 
-    auto *txn0 = txn_manager.BeginTransaction();
+    auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
-    auto *txn1 = txn_manager.BeginTransaction();
+    auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
@@ -656,7 +648,7 @@ TEST_F(MVCCTests, InsertUpdate1) {
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
-    txn_manager.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
     EXPECT_FALSE(tested.table_.Update(txn0, slot, *update));
@@ -664,7 +656,7 @@ TEST_F(MVCCTests, InsertUpdate1) {
     tested.SelectIntoBuffer(txn0, slot);
     EXPECT_FALSE(tested.select_result_);
 
-    txn_manager.Abort(txn0);
+    txn_manager->Abort(txn0);
   }
 }
 
@@ -690,20 +682,19 @@ TEST_F(MVCCTests, InsertUpdate1) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, CommitDelete1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TimestampManager timestamp_manager;
-    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
-                                                common::ManagedPointer(&buffer_pool_), false, DISABLED);
-    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    auto db_main = DBMain::Builder().Build();
+    auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+    MVCCDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
 
     // insert the tuple to be Deleted later
-    auto *txn = txn_manager.BeginTransaction();
+    auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
     storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
-    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto *txn0 = txn_manager.BeginTransaction();
+    auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
     EXPECT_TRUE(tested.table_.Delete(txn0, slot));
@@ -711,27 +702,27 @@ TEST_F(MVCCTests, CommitDelete1) {
     tested.SelectIntoBuffer(txn0, slot);
     EXPECT_FALSE(tested.select_result_);
 
-    auto *txn1 = txn_manager.BeginTransaction();
+    auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    txn_manager.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    txn_manager.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto *txn2 = txn_manager.BeginTransaction();
+    auto *txn2 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn2);
 
     tested.SelectIntoBuffer(txn2, slot);
     EXPECT_FALSE(tested.select_result_);
-    txn_manager.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 }
 
@@ -757,23 +748,22 @@ TEST_F(MVCCTests, CommitDelete1) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, CommitDelete2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TimestampManager timestamp_manager;
-    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
-                                                common::ManagedPointer(&buffer_pool_), false, DISABLED);
-    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    auto db_main = DBMain::Builder().Build();
+    auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+    MVCCDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
 
     // insert the tuple to be Deleted later
-    auto *txn = txn_manager.BeginTransaction();
+    auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
     storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
-    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto *txn0 = txn_manager.BeginTransaction();
+    auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
-    auto *txn1 = txn_manager.BeginTransaction();
+    auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
     EXPECT_TRUE(tested.table_.Delete(txn1, slot));
@@ -785,20 +775,20 @@ TEST_F(MVCCTests, CommitDelete2) {
     tested.SelectIntoBuffer(txn1, slot);
     EXPECT_FALSE(tested.select_result_);
 
-    txn_manager.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    txn_manager.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto *txn2 = txn_manager.BeginTransaction();
+    auto *txn2 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn2);
 
     tested.SelectIntoBuffer(txn2, slot);
     EXPECT_FALSE(tested.select_result_);
-    txn_manager.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 }
 
@@ -824,20 +814,19 @@ TEST_F(MVCCTests, CommitDelete2) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, AbortDelete1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TimestampManager timestamp_manager;
-    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
-                                                common::ManagedPointer(&buffer_pool_), false, DISABLED);
-    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    auto db_main = DBMain::Builder().Build();
+    auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+    MVCCDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
 
     // insert the tuple to be Updated later
-    auto *txn = txn_manager.BeginTransaction();
+    auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
     storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
-    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto *txn0 = txn_manager.BeginTransaction();
+    auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
     EXPECT_TRUE(tested.table_.Delete(txn0, slot));
@@ -845,28 +834,28 @@ TEST_F(MVCCTests, AbortDelete1) {
     tested.SelectIntoBuffer(txn0, slot);
     EXPECT_FALSE(tested.select_result_);
 
-    auto *txn1 = txn_manager.BeginTransaction();
+    auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    txn_manager.Abort(txn0);
+    txn_manager->Abort(txn0);
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    txn_manager.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto *txn2 = txn_manager.BeginTransaction();
+    auto *txn2 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn2);
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
-    txn_manager.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 }
 
@@ -892,24 +881,22 @@ TEST_F(MVCCTests, AbortDelete1) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, AbortDelete2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TimestampManager timestamp_manager;
-
-    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
-                                                common::ManagedPointer(&buffer_pool_), false, DISABLED);
-    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    auto db_main = DBMain::Builder().Build();
+    auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+    MVCCDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
 
     // insert the tuple to be Updated later
-    auto *txn = txn_manager.BeginTransaction();
+    auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
     storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
-    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto *txn0 = txn_manager.BeginTransaction();
+    auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
-    auto *txn1 = txn_manager.BeginTransaction();
+    auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
     EXPECT_TRUE(tested.table_.Delete(txn1, slot));
@@ -921,21 +908,21 @@ TEST_F(MVCCTests, AbortDelete2) {
     tested.SelectIntoBuffer(txn1, slot);
     EXPECT_FALSE(tested.select_result_);
 
-    txn_manager.Abort(txn1);
+    txn_manager->Abort(txn1);
 
     select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    txn_manager.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto *txn2 = txn_manager.BeginTransaction();
+    auto *txn2 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn2);
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
-    txn_manager.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 }
 
@@ -963,23 +950,21 @@ TEST_F(MVCCTests, AbortDelete2) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, CommitUpdateDelete1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TimestampManager timestamp_manager;
-
-    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
-                                                common::ManagedPointer(&buffer_pool_), false, DISABLED);
-    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    auto db_main = DBMain::Builder().Build();
+    auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+    MVCCDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
 
     // insert the tuple to be Updated later
-    auto *txn = txn_manager.BeginTransaction();
+    auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
     storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
-    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
 
-    auto *txn0 = txn_manager.BeginTransaction();
+    auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
     EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
@@ -990,7 +975,7 @@ TEST_F(MVCCTests, CommitUpdateDelete1) {
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
-    auto *txn1 = txn_manager.BeginTransaction();
+    auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
     EXPECT_TRUE(tested.table_.Delete(txn0, slot));
@@ -1002,20 +987,20 @@ TEST_F(MVCCTests, CommitUpdateDelete1) {
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    txn_manager.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    txn_manager.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto *txn2 = txn_manager.BeginTransaction();
+    auto *txn2 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn2);
 
     tested.SelectIntoBuffer(txn2, slot);
     EXPECT_FALSE(tested.select_result_);
-    txn_manager.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 }
 
@@ -1043,26 +1028,24 @@ TEST_F(MVCCTests, CommitUpdateDelete1) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, CommitUpdateDelete2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TimestampManager timestamp_manager;
-
-    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
-                                                common::ManagedPointer(&buffer_pool_), false, DISABLED);
-    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    auto db_main = DBMain::Builder().Build();
+    auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+    MVCCDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
 
     // insert the tuple to be Updated later
-    auto *txn = txn_manager.BeginTransaction();
+    auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
     storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
-    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
 
-    auto *txn0 = txn_manager.BeginTransaction();
+    auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
-    auto *txn1 = txn_manager.BeginTransaction();
+    auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
     EXPECT_TRUE(tested.table_.Update(txn1, slot, *update));
@@ -1081,20 +1064,20 @@ TEST_F(MVCCTests, CommitUpdateDelete2) {
     tested.SelectIntoBuffer(txn1, slot);
     EXPECT_FALSE(tested.select_result_);
 
-    txn_manager.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    txn_manager.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto *txn2 = txn_manager.BeginTransaction();
+    auto *txn2 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn2);
 
     tested.SelectIntoBuffer(txn2, slot);
     EXPECT_FALSE(tested.select_result_);
-    txn_manager.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 }
 
@@ -1122,23 +1105,21 @@ TEST_F(MVCCTests, CommitUpdateDelete2) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, AbortUpdateDelete1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TimestampManager timestamp_manager;
-
-    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
-                                                common::ManagedPointer(&buffer_pool_), false, DISABLED);
-    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    auto db_main = DBMain::Builder().Build();
+    auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+    MVCCDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
 
     // insert the tuple to be Updated later
-    auto *txn = txn_manager.BeginTransaction();
+    auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
     storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
-    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
 
-    auto *txn0 = txn_manager.BeginTransaction();
+    auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
     EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
@@ -1149,7 +1130,7 @@ TEST_F(MVCCTests, AbortUpdateDelete1) {
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
-    auto *txn1 = txn_manager.BeginTransaction();
+    auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
@@ -1161,21 +1142,21 @@ TEST_F(MVCCTests, AbortUpdateDelete1) {
     tested.SelectIntoBuffer(txn0, slot);
     EXPECT_FALSE(tested.select_result_);
 
-    txn_manager.Abort(txn0);
+    txn_manager->Abort(txn0);
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    txn_manager.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto *txn2 = txn_manager.BeginTransaction();
+    auto *txn2 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn2);
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
-    txn_manager.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 }
 
@@ -1203,26 +1184,24 @@ TEST_F(MVCCTests, AbortUpdateDelete1) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, AbortUpdateDelete2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TimestampManager timestamp_manager;
-
-    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
-                                                common::ManagedPointer(&buffer_pool_), false, DISABLED);
-    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    auto db_main = DBMain::Builder().Build();
+    auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+    MVCCDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
 
     // insert the tuple to be Updated later
-    auto *txn = txn_manager.BeginTransaction();
+    auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
     storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
-    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
 
-    auto *txn0 = txn_manager.BeginTransaction();
+    auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
-    auto *txn1 = txn_manager.BeginTransaction();
+    auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
     EXPECT_TRUE(tested.table_.Update(txn1, slot, *update));
@@ -1242,21 +1221,21 @@ TEST_F(MVCCTests, AbortUpdateDelete2) {
     tested.SelectIntoBuffer(txn1, slot);
     EXPECT_FALSE(tested.select_result_);
 
-    txn_manager.Abort(txn1);
+    txn_manager->Abort(txn1);
 
     select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    txn_manager.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto *txn2 = txn_manager.BeginTransaction();
+    auto *txn2 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn2);
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
-    txn_manager.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 }
 
@@ -1277,23 +1256,21 @@ TEST_F(MVCCTests, AbortUpdateDelete2) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, SimpleDelete1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TimestampManager timestamp_manager;
-
-    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
-                                                common::ManagedPointer(&buffer_pool_), false, DISABLED);
-    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    auto db_main = DBMain::Builder().Build();
+    auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+    MVCCDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
 
     // insert the tuple to be Updated later
-    auto *txn = txn_manager.BeginTransaction();
+    auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
     storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
-    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
 
-    auto *txn0 = txn_manager.BeginTransaction();
+    auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
@@ -1316,14 +1293,14 @@ TEST_F(MVCCTests, SimpleDelete1) {
     update = tested.GenerateRandomUpdate(&generator_);
     EXPECT_FALSE(tested.table_.Update(txn0, slot, *update));
 
-    txn_manager.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto *txn1 = txn_manager.BeginTransaction();
+    auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
     tested.SelectIntoBuffer(txn1, slot);
     EXPECT_FALSE(tested.select_result_);
-    txn_manager.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 }
 
@@ -1344,23 +1321,21 @@ TEST_F(MVCCTests, SimpleDelete1) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, SimpleDelete2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TimestampManager timestamp_manager;
-
-    transaction::TransactionManager txn_manager(common::ManagedPointer(&timestamp_manager), DISABLED,
-                                                common::ManagedPointer(&buffer_pool_), false, DISABLED);
-    MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
+    auto db_main = DBMain::Builder().Build();
+    auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+    MVCCDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
 
     // insert the tuple to be Updated later
-    auto *txn = txn_manager.BeginTransaction();
+    auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
     storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
-    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
 
-    auto *txn0 = txn_manager.BeginTransaction();
+    auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
@@ -1383,15 +1358,15 @@ TEST_F(MVCCTests, SimpleDelete2) {
     update = tested.GenerateRandomUpdate(&generator_);
     EXPECT_FALSE(tested.table_.Update(txn0, slot, *update));
 
-    txn_manager.Abort(txn0);
+    txn_manager->Abort(txn0);
 
-    auto *txn1 = txn_manager.BeginTransaction();
+    auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
-    txn_manager.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 }
 }  // namespace terrier
