@@ -1,4 +1,5 @@
 #include <vector>
+
 #include "benchmark/benchmark.h"
 #include "catalog/catalog_accessor.h"
 #include "common/scoped_timer.h"
@@ -46,18 +47,26 @@ class RecoveryBenchmark : public benchmark::Fixture {
       unlink(LOG_FILE_NAME);
       // Initialize table and run workload with logging enabled
       thread_registry_ = new common::DedicatedThreadRegistry(DISABLED);
-      storage::LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
-                                      log_persist_interval_, log_persist_threshold_, &buffer_pool_,
-                                      common::ManagedPointer(thread_registry_));
+      storage::LogManager log_manager{LOG_FILE_NAME,
+                                      num_log_buffers_,
+                                      log_serialization_interval_,
+                                      log_persist_interval_,
+                                      log_persist_threshold_,
+                                      common::ManagedPointer(&buffer_pool_),
+                                      common::ManagedPointer(thread_registry_)};
       log_manager.Start();
 
       transaction::TimestampManager timestamp_manager;
-      transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
-      transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
-                                                  &log_manager);
-      catalog::Catalog catalog(&txn_manager, &block_store_);
-      storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
-      auto gc_thread = new storage::GarbageCollectorThread(&gc, gc_period_);  // Enable background GC
+      transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
+      transaction::TransactionManager txn_manager(
+          common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
+          common::ManagedPointer(&buffer_pool_), true, common::ManagedPointer(&log_manager));
+      catalog::Catalog catalog{common::ManagedPointer(&txn_manager), common::ManagedPointer(&block_store_)};
+      storage::GarbageCollector gc{common::ManagedPointer(&timestamp_manager),
+                                   common::ManagedPointer(&deferred_action_manager),
+                                   common::ManagedPointer(&txn_manager), DISABLED};
+      auto gc_thread =
+          new storage::GarbageCollectorThread{common::ManagedPointer(&gc), gc_period_};  // Enable background GC
 
       // Run the test object and log all transactions
       auto *tested = new LargeSqlTableTestObject(config, &txn_manager, &catalog, &block_store_, &generator_);
@@ -66,15 +75,20 @@ class RecoveryBenchmark : public benchmark::Fixture {
 
       // Start a new components with logging disabled, we don't want to log the log replaying
       transaction::TimestampManager recovery_timestamp_manager;
-      transaction::DeferredActionManager recovery_deferred_action_manager(&recovery_timestamp_manager);
-      transaction::TransactionManager recovery_txn_manager{
-          &recovery_timestamp_manager, &recovery_deferred_action_manager, &buffer_pool_, true, DISABLED};
-      storage::GarbageCollector recovery_gc(&recovery_timestamp_manager, &recovery_deferred_action_manager,
-                                            &recovery_txn_manager, DISABLED);
-      auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_gc, gc_period_);  // Enable background GC
+      transaction::DeferredActionManager recovery_deferred_action_manager{
+          common::ManagedPointer(&recovery_timestamp_manager)};
+      transaction::TransactionManager recovery_txn_manager{common::ManagedPointer(&recovery_timestamp_manager),
+                                                           common::ManagedPointer(&recovery_deferred_action_manager),
+                                                           common::ManagedPointer(&buffer_pool_), true, DISABLED};
+      storage::GarbageCollector recovery_gc(common::ManagedPointer(&recovery_timestamp_manager),
+                                            common::ManagedPointer(&recovery_deferred_action_manager),
+                                            common::ManagedPointer(&recovery_txn_manager), DISABLED);
+      auto recovery_gc_thread = new storage::GarbageCollectorThread(common::ManagedPointer(&recovery_gc),
+                                                                    gc_period_);  // Enable background GC
 
       // Create catalog for recovery
-      catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
+      catalog::Catalog recovered_catalog{common::ManagedPointer(&recovery_txn_manager),
+                                         common::ManagedPointer(&block_store_)};
 
       // Instantiate recovery manager, and recover the tables.
       storage::DiskLogProvider log_provider(LOG_FILE_NAME);
@@ -94,13 +108,13 @@ class RecoveryBenchmark : public benchmark::Fixture {
       // Clean up recovered data
       recovered_catalog.TearDown();
       delete recovery_gc_thread;
-      deferred_action_manager.FullyPerformGC(&recovery_gc, DISABLED);
+      deferred_action_manager.FullyPerformGC(common::ManagedPointer(&recovery_gc), DISABLED);
 
       // Clean up test data
       catalog.TearDown();
       delete tested;
       delete gc_thread;
-      deferred_action_manager.FullyPerformGC(&gc, &log_manager);
+      deferred_action_manager.FullyPerformGC(common::ManagedPointer(&gc), common::ManagedPointer(&log_manager));
       log_manager.PersistAndStop();
       delete thread_registry_;
     }
@@ -162,16 +176,21 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     // Initialize table and run workload with logging enabled
     thread_registry_ = new common::DedicatedThreadRegistry(DISABLED);
     storage::LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                                    log_persist_threshold_, &buffer_pool_, common::ManagedPointer(thread_registry_));
+                                    log_persist_threshold_, common::ManagedPointer(&buffer_pool_),
+                                    common::ManagedPointer(thread_registry_));
     log_manager.Start();
 
     transaction::TimestampManager timestamp_manager;
-    transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
-    transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
-                                                &log_manager);
-    catalog::Catalog catalog(&txn_manager, &block_store_);
-    storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
-    auto gc_thread = new storage::GarbageCollectorThread(&gc, gc_period_);  // Enable background GC
+    transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
+    transaction::TransactionManager txn_manager(
+        common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
+        common::ManagedPointer(&buffer_pool_), true, common::ManagedPointer(&log_manager));
+    catalog::Catalog catalog{common::ManagedPointer(&txn_manager), common::ManagedPointer(&block_store_)};
+    storage::GarbageCollector gc{common::ManagedPointer(&timestamp_manager),
+                                 common::ManagedPointer(&deferred_action_manager), common::ManagedPointer(&txn_manager),
+                                 DISABLED};
+    auto gc_thread =
+        new storage::GarbageCollectorThread{common::ManagedPointer(&gc), gc_period_};  // Enable background GC
 
     // Create database, namespace, and table
     auto *txn = txn_manager.BeginTransaction();
@@ -223,15 +242,20 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
 
     // Start a new components with logging disabled, we don't want to log the log replaying
     transaction::TimestampManager recovery_timestamp_manager;
-    transaction::DeferredActionManager recovery_deferred_action_manager(&recovery_timestamp_manager);
-    transaction::TransactionManager recovery_txn_manager{&recovery_timestamp_manager, &recovery_deferred_action_manager,
-                                                         &buffer_pool_, true, DISABLED};
-    storage::GarbageCollector recovery_gc(&recovery_timestamp_manager, &recovery_deferred_action_manager,
-                                          &recovery_txn_manager, DISABLED);
-    auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_gc, gc_period_);  // Enable background GC
+    transaction::DeferredActionManager recovery_deferred_action_manager{
+        common::ManagedPointer(&recovery_timestamp_manager)};
+    transaction::TransactionManager recovery_txn_manager{common::ManagedPointer(&recovery_timestamp_manager),
+                                                         common::ManagedPointer(&recovery_deferred_action_manager),
+                                                         common::ManagedPointer(&buffer_pool_), true, DISABLED};
+    storage::GarbageCollector recovery_gc(common::ManagedPointer(&recovery_timestamp_manager),
+                                          common::ManagedPointer(&recovery_deferred_action_manager),
+                                          common::ManagedPointer(&recovery_txn_manager), DISABLED);
+    auto recovery_gc_thread = new storage::GarbageCollectorThread(common::ManagedPointer(&recovery_gc),
+                                                                  gc_period_);  // Enable background GC
 
     // Create catalog for recovery
-    catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
+    catalog::Catalog recovered_catalog{common::ManagedPointer(&recovery_txn_manager),
+                                       common::ManagedPointer(&block_store_)};
 
     // Instantiate recovery manager, and recover the tables.
     storage::DiskLogProvider log_provider(LOG_FILE_NAME);
@@ -251,12 +275,12 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     // Clean up recovered data
     recovered_catalog.TearDown();
     delete recovery_gc_thread;
-    deferred_action_manager.FullyPerformGC(&recovery_gc, DISABLED);
+    deferred_action_manager.FullyPerformGC(common::ManagedPointer(&recovery_gc), DISABLED);
 
     // Clean up test data
     catalog.TearDown();
     delete gc_thread;
-    deferred_action_manager.FullyPerformGC(&gc, &log_manager);
+    deferred_action_manager.FullyPerformGC(common::ManagedPointer(&gc), common::ManagedPointer(&log_manager));
     log_manager.PersistAndStop();
     delete thread_registry_;
   }
