@@ -1,3 +1,4 @@
+#include <memory>
 #include <vector>
 
 #include "main/db_main.h"

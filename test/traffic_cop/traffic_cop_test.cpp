@@ -1,7 +1,7 @@
 #include "traffic_cop/traffic_cop.h"
 
 #include <memory>
-#include <pqxx/pqxx> /* libpqxx is used to instantiate C++ client */
+#include <pqxx/pqxx>  // NOLINT
 #include <string>
 #include <unordered_map>
 #include <utility>
