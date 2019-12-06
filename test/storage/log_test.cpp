@@ -19,7 +19,7 @@
 #include "transaction/transaction_manager.h"
 #include "type/transient_value_factory.h"
 
-static const std::string LOG_FILE_NAME = "./test.log";
+#define LOG_FILE_NAME "./test.log"
 
 namespace terrier::storage {
 class WriteAheadLoggingTests : public TerrierTest {
@@ -32,7 +32,7 @@ class WriteAheadLoggingTests : public TerrierTest {
 
   void SetUp() override {
     // Unlink log file incase one exists from previous test iteration
-    unlink(LOG_FILE_NAME.c_str());
+    unlink(LOG_FILE_NAME);
     TerrierTest::SetUp();
 
     db_main_ = terrier::DBMain::Builder().SetLogFilePath(LOG_FILE_NAME).SetUseLogging(true).SetUseGC(true).Build();
@@ -48,7 +48,7 @@ class WriteAheadLoggingTests : public TerrierTest {
 
     TerrierTest::TearDown();
     // Delete log file
-    unlink(LOG_FILE_NAME.c_str());
+    unlink(LOG_FILE_NAME);
   }
 
   /**
@@ -186,7 +186,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   std::unordered_map<transaction::timestamp_t, RandomDataTableTransaction *> txns_map;
   for (auto *txn : result.first) txns_map[txn->BeginTimestamp()] = txn;
   // At this point all the log records should have been written out, we can start reading stuff back in.
-  storage::BufferedLogReader in(LOG_FILE_NAME.c_str());
+  storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
     storage::LogRecord *log_record = ReadNextRecord(&in);
     if (log_record->TxnBegin() == transaction::INITIAL_TXN_TIMESTAMP) {
@@ -264,7 +264,7 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   // Read-only workload has completed. Read the log file back in to check that no records were produced for these
   // transactions.
   int log_records_count = 0;
-  storage::BufferedLogReader in(LOG_FILE_NAME.c_str());
+  storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
     storage::LogRecord *log_record = ReadNextRecord(&in);
     if (log_record->TxnBegin() == transaction::INITIAL_TXN_TIMESTAMP) {
@@ -342,7 +342,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
 
   // Read records, look for the abort record
   bool found_abort_record = false;
-  storage::BufferedLogReader in(LOG_FILE_NAME.c_str());
+  storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
     storage::LogRecord *log_record = ReadNextRecord(&in);
     if (log_record->RecordType() == LogRecordType::ABORT) {
@@ -402,7 +402,7 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
 
   // Read records, make sure we don't see an abort record
   bool found_abort_record = false;
-  storage::BufferedLogReader in(LOG_FILE_NAME.c_str());
+  storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
     storage::LogRecord *log_record = ReadNextRecord(&in);
     if (log_record->RecordType() == LogRecordType::ABORT) {

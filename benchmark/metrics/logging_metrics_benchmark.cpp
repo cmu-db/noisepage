@@ -4,10 +4,9 @@
 #include "benchmark/benchmark.h"
 #include "benchmark_util/data_table_benchmark_util.h"
 #include "common/scoped_timer.h"
-#include "metrics/metrics_thread.h"
-#include "storage/garbage_collector_thread.h"
+#include "main/db_main.h"
+#include "metrics/metrics_manager.h"
 #include "storage/storage_defs.h"
-#include "storage/write_ahead_log/log_manager.h"
 
 #define LOG_FILE_NAME "/mnt/ramdisk/benchmark.txt"
 
@@ -15,27 +14,14 @@ namespace terrier {
 
 class LoggingMetricsBenchmark : public benchmark::Fixture {
  public:
+  void SetUp(const benchmark::State &state) final { unlink(LOG_FILE_NAME); }
   void TearDown(const benchmark::State &state) final { unlink(LOG_FILE_NAME); }
 
   const std::vector<uint16_t> attr_sizes_ = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
   const uint32_t initial_table_size_ = 1000000;
   const uint32_t num_txns_ = 100000;
-  storage::BlockStore block_store_{1000, 1000};
-  storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   std::default_random_engine generator_;
   const uint32_t num_concurrent_txns_ = 4;
-  storage::LogManager *log_manager_ = nullptr;
-  storage::GarbageCollector *gc_ = nullptr;
-  storage::GarbageCollectorThread *gc_thread_ = nullptr;
-  const std::chrono::milliseconds gc_period_{10};
-  const std::chrono::milliseconds metrics_period_{100};
-  common::DedicatedThreadRegistry *thread_registry_ = nullptr;
-
-  // Settings for log manager
-  const uint64_t num_log_buffers_ = 100;
-  const std::chrono::milliseconds log_serialization_interval_{5};
-  const std::chrono::milliseconds log_persist_interval_{10};
-  const uint64_t log_persist_threshold_ = (1 << 20);  // 1MB
 };
 
 /**
@@ -50,37 +36,41 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, TPCCish)(benchmark::State &state) {
   for (auto _ : state) {
     unlink(LOG_FILE_NAME);
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
-    metrics::MetricsManager metrics_manager;
-    auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(&metrics_manager), metrics_period_);
-    metrics_thread->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::LOGGING);
-    thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(&metrics_manager));
 
-    log_manager_ = new storage::LogManager(
-        LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
-        common::ManagedPointer(&buffer_pool_), common::ManagedPointer(thread_registry_));
-    log_manager_->Start();
-    LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
-                                         &block_store_, &buffer_pool_, &generator_, true, log_manager_);
+    // Initialize table and run workload with logging enabled
+    auto db_main = terrier::DBMain::Builder()
+                       .SetLogFilePath(LOG_FILE_NAME)
+                       .SetUseLogging(true)
+                       .SetUseMetrics(true)
+                       .SetUseMetricsThread(true)
+                       .SetUseGC(true)
+                       .SetUseGCThread(true)
+                       .SetRecordBufferSegmentSize(1e6)
+                       .SetRecordBufferSegmentReuse(1e6)
+                       .Build();
+    auto log_manager = db_main->GetLogManager();
+    auto block_store = db_main->GetStorageLayer()->GetBlockStore();
+
+    db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::LOGGING);
+
+    auto *const tested = new LargeDataTableBenchmarkObject(
+        attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio, block_store.Get(),
+        db_main->GetBufferSegmentPool().Get(), &generator_, true, log_manager.Get());
     // log all of the Inserts from table creation
-    log_manager_->ForceFlush();
+    log_manager->ForceFlush();
 
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
-                                        common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    const auto result = tested->SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      log_manager_->ForceFlush();
+      log_manager->ForceFlush();
     }
     state.SetIterationTime(static_cast<double>(result.second + elapsed_ms) / 1000.0);
-    log_manager_->PersistAndStop();
-    delete log_manager_;
-    delete gc_thread_;
-    delete thread_registry_;
-    delete metrics_thread;
-    unlink(LOG_FILE_NAME);
+    db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() {
+      delete tested;
+      unlink(LOG_FILE_NAME);
+    });
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -97,37 +87,41 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, HighAbortRate)(benchmark::State &sta
   for (auto _ : state) {
     unlink(LOG_FILE_NAME);
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
-    metrics::MetricsManager metrics_manager;
-    auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(&metrics_manager), metrics_period_);
-    metrics_thread->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::LOGGING);
-    thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(&metrics_manager));
 
-    log_manager_ = new storage::LogManager(
-        LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
-        common::ManagedPointer(&buffer_pool_), common::ManagedPointer(thread_registry_));
-    log_manager_->Start();
-    LargeDataTableBenchmarkObject tested(attr_sizes_, 1000, txn_length, insert_update_select_ratio, &block_store_,
-                                         &buffer_pool_, &generator_, true, log_manager_);
+    // Initialize table and run workload with logging enabled
+    auto db_main = terrier::DBMain::Builder()
+                       .SetLogFilePath(LOG_FILE_NAME)
+                       .SetUseLogging(true)
+                       .SetUseMetrics(true)
+                       .SetUseMetricsThread(true)
+                       .SetUseGC(true)
+                       .SetUseGCThread(true)
+                       .SetRecordBufferSegmentSize(1e6)
+                       .SetRecordBufferSegmentReuse(1e6)
+                       .Build();
+    auto log_manager = db_main->GetLogManager();
+    auto block_store = db_main->GetStorageLayer()->GetBlockStore();
+
+    db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::LOGGING);
+
+    auto *const tested =
+        new LargeDataTableBenchmarkObject(attr_sizes_, 1000, txn_length, insert_update_select_ratio, block_store.Get(),
+                                          db_main->GetBufferSegmentPool().Get(), &generator_, true, log_manager.Get());
     // log all of the Inserts from table creation
-    log_manager_->ForceFlush();
+    log_manager->ForceFlush();
 
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
-                                        common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    const auto result = tested->SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      log_manager_->ForceFlush();
+      log_manager->ForceFlush();
     }
     state.SetIterationTime(static_cast<double>(result.second + elapsed_ms) / 1000.0);
-    log_manager_->PersistAndStop();
-    delete log_manager_;
-    delete gc_thread_;
-    delete thread_registry_;
-    delete metrics_thread;
-    unlink(LOG_FILE_NAME);
+    db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() {
+      delete tested;
+      unlink(LOG_FILE_NAME);
+    });
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -144,37 +138,41 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementInsert)(benchmark::St
   for (auto _ : state) {
     unlink(LOG_FILE_NAME);
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
-    metrics::MetricsManager metrics_manager;
-    auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(&metrics_manager), metrics_period_);
-    metrics_thread->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::LOGGING);
-    thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(&metrics_manager));
 
-    log_manager_ = new storage::LogManager(
-        LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
-        common::ManagedPointer(&buffer_pool_), common::ManagedPointer(thread_registry_));
-    log_manager_->Start();
-    LargeDataTableBenchmarkObject tested(attr_sizes_, 0, txn_length, insert_update_select_ratio, &block_store_,
-                                         &buffer_pool_, &generator_, true, log_manager_);
+    // Initialize table and run workload with logging enabled
+    auto db_main = terrier::DBMain::Builder()
+                       .SetLogFilePath(LOG_FILE_NAME)
+                       .SetUseLogging(true)
+                       .SetUseMetrics(true)
+                       .SetUseMetricsThread(true)
+                       .SetUseGC(true)
+                       .SetUseGCThread(true)
+                       .SetRecordBufferSegmentSize(1e6)
+                       .SetRecordBufferSegmentReuse(1e6)
+                       .Build();
+    auto log_manager = db_main->GetLogManager();
+    auto block_store = db_main->GetStorageLayer()->GetBlockStore();
+
+    db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::LOGGING);
+
+    auto *const tested = new LargeDataTableBenchmarkObject(
+        attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio, block_store.Get(),
+        db_main->GetBufferSegmentPool().Get(), &generator_, true, log_manager.Get());
     // log all of the Inserts from table creation
-    log_manager_->ForceFlush();
+    log_manager->ForceFlush();
 
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
-                                        common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    const auto result = tested->SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      log_manager_->ForceFlush();
+      log_manager->ForceFlush();
     }
     state.SetIterationTime(static_cast<double>(result.second + elapsed_ms) / 1000.0);
-    log_manager_->PersistAndStop();
-    delete log_manager_;
-    delete gc_thread_;
-    delete thread_registry_;
-    delete metrics_thread;
-    unlink(LOG_FILE_NAME);
+    db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() {
+      delete tested;
+      unlink(LOG_FILE_NAME);
+    });
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -191,37 +189,41 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementUpdate)(benchmark::St
   for (auto _ : state) {
     unlink(LOG_FILE_NAME);
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
-    metrics::MetricsManager metrics_manager;
-    auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(&metrics_manager), metrics_period_);
-    metrics_thread->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::LOGGING);
-    thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(&metrics_manager));
 
-    log_manager_ = new storage::LogManager(
-        LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
-        common::ManagedPointer(&buffer_pool_), common::ManagedPointer(thread_registry_));
-    log_manager_->Start();
-    LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
-                                         &block_store_, &buffer_pool_, &generator_, true, log_manager_);
+    // Initialize table and run workload with logging enabled
+    auto db_main = terrier::DBMain::Builder()
+                       .SetLogFilePath(LOG_FILE_NAME)
+                       .SetUseLogging(true)
+                       .SetUseMetrics(true)
+                       .SetUseMetricsThread(true)
+                       .SetUseGC(true)
+                       .SetUseGCThread(true)
+                       .SetRecordBufferSegmentSize(1e6)
+                       .SetRecordBufferSegmentReuse(1e6)
+                       .Build();
+    auto log_manager = db_main->GetLogManager();
+    auto block_store = db_main->GetStorageLayer()->GetBlockStore();
+
+    db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::LOGGING);
+
+    auto *const tested = new LargeDataTableBenchmarkObject(
+        attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio, block_store.Get(),
+        db_main->GetBufferSegmentPool().Get(), &generator_, true, log_manager.Get());
     // log all of the Inserts from table creation
-    log_manager_->ForceFlush();
+    log_manager->ForceFlush();
 
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
-                                        common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    const auto result = tested->SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      log_manager_->ForceFlush();
+      log_manager->ForceFlush();
     }
     state.SetIterationTime(static_cast<double>(result.second + elapsed_ms) / 1000.0);
-    log_manager_->PersistAndStop();
-    delete log_manager_;
-    delete gc_thread_;
-    delete thread_registry_;
-    delete metrics_thread;
-    unlink(LOG_FILE_NAME);
+    db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() {
+      delete tested;
+      unlink(LOG_FILE_NAME);
+    });
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -238,37 +240,41 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementSelect)(benchmark::St
   for (auto _ : state) {
     unlink(LOG_FILE_NAME);
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
-    metrics::MetricsManager metrics_manager;
-    auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(&metrics_manager), metrics_period_);
-    metrics_thread->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::LOGGING);
-    thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(&metrics_manager));
 
-    log_manager_ = new storage::LogManager(
-        LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
-        common::ManagedPointer(&buffer_pool_), common::ManagedPointer(thread_registry_));
-    log_manager_->Start();
-    LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
-                                         &block_store_, &buffer_pool_, &generator_, true, log_manager_);
+    // Initialize table and run workload with logging enabled
+    auto db_main = terrier::DBMain::Builder()
+                       .SetLogFilePath(LOG_FILE_NAME)
+                       .SetUseLogging(true)
+                       .SetUseMetrics(true)
+                       .SetUseMetricsThread(true)
+                       .SetUseGC(true)
+                       .SetUseGCThread(true)
+                       .SetRecordBufferSegmentSize(1e6)
+                       .SetRecordBufferSegmentReuse(1e6)
+                       .Build();
+    auto log_manager = db_main->GetLogManager();
+    auto block_store = db_main->GetStorageLayer()->GetBlockStore();
+
+    db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::LOGGING);
+
+    auto *const tested = new LargeDataTableBenchmarkObject(
+        attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio, block_store.Get(),
+        db_main->GetBufferSegmentPool().Get(), &generator_, true, log_manager.Get());
     // log all of the Inserts from table creation
-    log_manager_->ForceFlush();
+    log_manager->ForceFlush();
 
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
-                                        common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    const auto result = tested->SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      log_manager_->ForceFlush();
+      log_manager->ForceFlush();
     }
     state.SetIterationTime(static_cast<double>(result.second + elapsed_ms) / 1000.0);
-    log_manager_->PersistAndStop();
-    delete log_manager_;
-    delete gc_thread_;
-    delete thread_registry_;
-    delete metrics_thread;
-    unlink(LOG_FILE_NAME);
+    db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() {
+      delete tested;
+      unlink(LOG_FILE_NAME);
+    });
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }

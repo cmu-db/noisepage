@@ -1,3 +1,4 @@
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -22,7 +23,7 @@
 // Make sure that if you create additional files, you call unlink on them after the test finishes. Otherwise, repeated
 // executions will read old test's data, and the cause of the errors will be hard to identify. Trust me it will drive
 // you nuts...
-static const std::string LOG_FILE_NAME = "./test.log";
+#define LOG_FILE_NAME "./test.log"
 
 namespace terrier::storage {
 class RecoveryTests : public TerrierTest {
@@ -46,7 +47,7 @@ class RecoveryTests : public TerrierTest {
 
   void SetUp() override {
     // Unlink log file incase one exists from previous test iteration
-    unlink(LOG_FILE_NAME.c_str());
+    unlink(LOG_FILE_NAME);
     TerrierTest::SetUp();
 
     db_main_ = terrier::DBMain::Builder()
@@ -78,7 +79,7 @@ class RecoveryTests : public TerrierTest {
   void TearDown() override {
     TerrierTest::TearDown();
     // Delete log file
-    unlink(LOG_FILE_NAME.c_str());
+    unlink(LOG_FILE_NAME);
   }
 
   catalog::IndexSchema DummyIndexSchema() {

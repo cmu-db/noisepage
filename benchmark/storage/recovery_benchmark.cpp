@@ -9,14 +9,14 @@
 #include "storage/storage_defs.h"
 #include "test_util/sql_table_test_util.h"
 
-static const std::string LOG_FILE_NAME = "/mnt/ramdisk/benchmark.txt";
+#define LOG_FILE_NAME "/mnt/ramdisk/benchmark.txt"
 
 namespace terrier {
 
 class RecoveryBenchmark : public benchmark::Fixture {
  public:
-  void SetUp(const benchmark::State &state) final { unlink(LOG_FILE_NAME.c_str()); }
-  void TearDown(const benchmark::State &state) final { unlink(LOG_FILE_NAME.c_str()); }
+  void SetUp(const benchmark::State &state) final { unlink(LOG_FILE_NAME); }
+  void TearDown(const benchmark::State &state) final { unlink(LOG_FILE_NAME); }
 
   const uint32_t initial_table_size_ = 1000000;
   const uint32_t num_txns_ = 100000;
@@ -33,7 +33,7 @@ class RecoveryBenchmark : public benchmark::Fixture {
     // NOLINTNEXTLINE
     for (auto _ : *state) {
       // Blow away log file after every benchmark iteration
-      unlink(LOG_FILE_NAME.c_str());
+      unlink(LOG_FILE_NAME);
       // Initialize table and run workload with logging enabled
       auto db_main = terrier::DBMain::Builder()
                          .SetLogFilePath(LOG_FILE_NAME)
@@ -142,7 +142,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
     // Blow away log file after every benchmark iteration
-    unlink(LOG_FILE_NAME.c_str());
+    unlink(LOG_FILE_NAME);
     // Initialize table and run workload with logging enabled
     auto db_main = terrier::DBMain::Builder()
                        .SetLogFilePath(LOG_FILE_NAME)
