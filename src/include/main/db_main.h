@@ -142,7 +142,7 @@ class DBMain {
    public:
     CatalogLayer(const common::ManagedPointer<TransactionLayer> txn_layer,
                  const common::ManagedPointer<StorageLayer> storage_layer,
-                 const common::ManagedPointer<storage::LogManager> log_manager)
+                 const common::ManagedPointer<storage::LogManager> log_manager, const bool create_default_database)
         : deferred_action_manager_(txn_layer->GetDeferredActionManager()),
           garbage_collector_(storage_layer->GetGarbageCollector()),
           log_manager_(log_manager) {
@@ -152,9 +152,11 @@ class DBMain {
       catalog_ = std::make_unique<catalog::Catalog>(txn_layer->GetTransactionManager(), storage_layer->GetBlockStore());
 
       // Bootstrap the default database in the catalog.
-      auto *bootstrap_txn = txn_layer->GetTransactionManager()->BeginTransaction();
-      catalog_->CreateDatabase(bootstrap_txn, catalog::DEFAULT_DATABASE, true);
-      txn_layer->GetTransactionManager()->Commit(bootstrap_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+      if (create_default_database) {
+        auto *bootstrap_txn = txn_layer->GetTransactionManager()->BeginTransaction();
+        catalog_->CreateDatabase(bootstrap_txn, catalog::DEFAULT_DATABASE, true);
+        txn_layer->GetTransactionManager()->Commit(bootstrap_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+      }
 
       // Run the GC to get a clean system. This needs to be done before instantiating the GC thread
       // because the GC is not thread-safe
@@ -257,7 +259,7 @@ class DBMain {
       }
 
       std::unique_ptr<common::DedicatedThreadRegistry> thread_registry = DISABLED;
-      if (use_logging_ || use_network_)
+      if (use_thread_registry_ || use_logging_ || use_network_)
         thread_registry = std::make_unique<common::DedicatedThreadRegistry>(common::ManagedPointer(metrics_manager));
 
       auto buffer_segment_pool =
@@ -284,7 +286,7 @@ class DBMain {
         TERRIER_ASSERT(use_gc_, "Catalog needs GarbageCollector.");
         catalog_layer =
             std::make_unique<CatalogLayer>(common::ManagedPointer(txn_layer), common::ManagedPointer(storage_layer),
-                                           common::ManagedPointer(log_manager));
+                                           common::ManagedPointer(log_manager), create_default_database_);
       }
 
       std::unique_ptr<storage::GarbageCollectorThread> gc_thread = DISABLED;
@@ -334,6 +336,11 @@ class DBMain {
       return *this;
     }
 
+    Builder &SetUseThreadRegistry(const bool value) {
+      use_thread_registry_ = value;
+      return *this;
+    }
+
     Builder &SetUseSettingsManager(const bool value) {
       use_settings_manager_ = value;
       return *this;
@@ -361,6 +368,11 @@ class DBMain {
 
     Builder &SetUseCatalog(const bool value) {
       use_catalog_ = value;
+      return *this;
+    }
+
+    Builder &SetCreateDefaultDatabase(const bool value) {
+      create_default_database_ = value;
       return *this;
     }
 
@@ -403,6 +415,8 @@ class DBMain {
     std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
     bool use_settings_manager_ = false;
 
+    bool use_thread_registry_ = false;
+
     bool use_metrics_ = false;
     uint32_t metrics_interval_ = 100;  // TODO(Matt): setters
     bool use_metrics_thread_ = false;
@@ -417,6 +431,7 @@ class DBMain {
     bool use_logging_ = false;
     bool use_gc_ = false;
     bool use_catalog_ = false;
+    bool create_default_database_ = true;
     uint64_t block_store_size_ = 1e5;  // TODO(Matt): setters
     uint64_t block_store_reuse_ = 1e3;
     int32_t gc_interval_ = 10;

@@ -22,108 +22,106 @@
 // Make sure that if you create additional files, you call unlink on them after the test finishes. Otherwise, repeated
 // executions will read old test's data, and the cause of the errors will be hard to identify. Trust me it will drive
 // you nuts...
-#define LOG_FILE_NAME "./test.log"
+static const std::string LOG_FILE_NAME = "./test.log";
 
 namespace terrier::storage {
 class RecoveryTests : public TerrierTest {
  protected:
-  // Settings for log manager
-  const uint64_t num_log_buffers_ = 100;
-  const std::chrono::microseconds log_serialization_interval_{10};
-  const std::chrono::milliseconds log_persist_interval_{20};
-  const uint64_t log_persist_threshold_ = (1 << 20);  // 1MB
-
   std::default_random_engine generator_;
-  storage::RecordBufferSegmentPool buffer_pool_{2000, 100};
-  storage::BlockStore block_store_{100, 100};
-
-  // Settings for gc
-  const std::chrono::milliseconds gc_period_{10};
 
   // Original Components
-  common::DedicatedThreadRegistry *thread_registry_;
-  LogManager *log_manager_;
-  transaction::TimestampManager *timestamp_manager_;
-  transaction::DeferredActionManager *deferred_action_manager_;
-  transaction::TransactionManager *txn_manager_;
-  catalog::Catalog *catalog_;
-  storage::GarbageCollector *gc_;
-  storage::GarbageCollectorThread *gc_thread_;
+  //  common::DedicatedThreadRegistry *thread_registry_;
+  //  LogManager *log_manager_;
+  //  transaction::TimestampManager *timestamp_manager_;
+  //  transaction::DeferredActionManager *deferred_action_manager_;
+  //  transaction::TransactionManager *txn_manager_;
+  //  catalog::Catalog *catalog_;
+  //  storage::GarbageCollector *gc_;
+  //  storage::GarbageCollectorThread *gc_thread_;
+  std::unique_ptr<DBMain> db_main_;
+  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
+  common::ManagedPointer<storage::LogManager> log_manager_;
+  common::ManagedPointer<storage::BlockStore> block_store_;
+  common::ManagedPointer<catalog::Catalog> catalog_;
+  //  common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry_;
 
   // Recovery Components
-  transaction::TimestampManager *recovery_timestamp_manager_;
-  transaction::DeferredActionManager *recovery_deferred_action_manager_;
-  transaction::TransactionManager *recovery_txn_manager_;
-  catalog::Catalog *recovery_catalog_;
-  storage::GarbageCollector *recovery_gc_;
-  storage::GarbageCollectorThread *recovery_gc_thread_;
+  //  transaction::TimestampManager *recovery_timestamp_manager_;
+  //  transaction::DeferredActionManager *recovery_deferred_action_manager_;
+  //  transaction::TransactionManager *recovery_txn_manager_;
+  //  catalog::Catalog *recovery_catalog_;
+  //  storage::GarbageCollector *recovery_gc_;
+  //  storage::GarbageCollectorThread *recovery_gc_thread_;
+  std::unique_ptr<DBMain> recovery_db_main_;
+  common::ManagedPointer<transaction::TransactionManager> recovery_txn_manager_;
+  common::ManagedPointer<transaction::DeferredActionManager> recovery_deferred_action_manager_;
+  common::ManagedPointer<storage::BlockStore> recovery_block_store_;
+  common::ManagedPointer<catalog::Catalog> recovery_catalog_;
+  common::ManagedPointer<common::DedicatedThreadRegistry> recovery_thread_registry_;
 
   void SetUp() override {
-    TerrierTest::SetUp();
     // Unlink log file incase one exists from previous test iteration
-    unlink(LOG_FILE_NAME);
-    thread_registry_ = new common::DedicatedThreadRegistry(DISABLED);
-    log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                                  log_persist_threshold_, common::ManagedPointer(&buffer_pool_),
-                                  common::ManagedPointer(thread_registry_));
-    log_manager_->Start();
-    timestamp_manager_ = new transaction::TimestampManager;
-    deferred_action_manager_ = new transaction::DeferredActionManager(common::ManagedPointer(timestamp_manager_));
-    txn_manager_ = new transaction::TransactionManager(
-        common::ManagedPointer(timestamp_manager_), common::ManagedPointer(deferred_action_manager_),
-        common::ManagedPointer(&buffer_pool_), true, common::ManagedPointer(log_manager_));
-    catalog_ = new catalog::Catalog(common::ManagedPointer(txn_manager_), common::ManagedPointer(&block_store_));
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(timestamp_manager_),
-                                        common::ManagedPointer(deferred_action_manager_),
-                                        common::ManagedPointer(txn_manager_), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);  // Enable background GC
+    unlink(LOG_FILE_NAME.c_str());
+    TerrierTest::SetUp();
 
-    recovery_timestamp_manager_ = new transaction::TimestampManager;
-    recovery_deferred_action_manager_ =
-        new transaction::DeferredActionManager(common::ManagedPointer(recovery_timestamp_manager_));
-    recovery_txn_manager_ = new transaction::TransactionManager(
-        common::ManagedPointer(recovery_timestamp_manager_), common::ManagedPointer(recovery_deferred_action_manager_),
-        common::ManagedPointer(&buffer_pool_), true, DISABLED);
-    recovery_catalog_ =
-        new catalog::Catalog(common::ManagedPointer(recovery_txn_manager_), common::ManagedPointer(&block_store_));
-    recovery_gc_ = new storage::GarbageCollector(common::ManagedPointer(recovery_timestamp_manager_),
-                                                 common::ManagedPointer(recovery_deferred_action_manager_),
-                                                 common::ManagedPointer(recovery_txn_manager_), DISABLED);
-    recovery_gc_thread_ =
-        new storage::GarbageCollectorThread(common::ManagedPointer(recovery_gc_), gc_period_);  // Enable background GC
+    db_main_ = terrier::DBMain::Builder()
+                   .SetLogFilePath(LOG_FILE_NAME)
+                   .SetUseLogging(true)
+                   .SetUseGC(true)
+                   .SetUseGCThread(true)
+                   .SetUseCatalog(true)
+                   .Build();
+    txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
+    log_manager_ = db_main_->GetLogManager();
+    block_store_ = db_main_->GetStorageLayer()->GetBlockStore();
+    catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
+    //    thread_registry_ = db_main_->GetThreadRegistry();
+
+    recovery_db_main_ = terrier::DBMain::Builder()
+                            .SetUseThreadRegistry(true)
+                            .SetUseGC(true)
+                            .SetUseGCThread(true)
+                            .SetUseCatalog(true)
+                            .SetCreateDefaultDatabase(false)
+                            .Build();
+    recovery_txn_manager_ = recovery_db_main_->GetTransactionLayer()->GetTransactionManager();
+    recovery_deferred_action_manager_ = recovery_db_main_->GetTransactionLayer()->GetDeferredActionManager();
+    recovery_block_store_ = recovery_db_main_->GetStorageLayer()->GetBlockStore();
+    recovery_catalog_ = recovery_db_main_->GetCatalogLayer()->GetCatalog();
+    recovery_thread_registry_ = recovery_db_main_->GetThreadRegistry();
   }
 
   void TearDown() override {
-    // Delete log file
-    unlink(LOG_FILE_NAME);
-    TerrierTest::TearDown();
-
     // Destroy recovered catalog if the test has not cleaned it up already
-    if (recovery_catalog_ != nullptr) {
-      recovery_catalog_->TearDown();
-      delete recovery_gc_thread_;
-      deferred_action_manager_->FullyPerformGC(common::ManagedPointer(recovery_gc_), DISABLED);
-    }
+    //    if (recovery_catalog_ != nullptr) {
+    //      recovery_catalog_->TearDown();
+    //      delete recovery_gc_thread_;
+    //      deferred_action_manager_->FullyPerformGC(common::ManagedPointer(recovery_gc_), DISABLED);
+    //    }
 
     // Destroy original catalog. We need to manually call GC followed by a ForceFlush because catalog deletion can defer
     // events that create new transactions, which then need to be flushed before they can be GC'd.
-    catalog_->TearDown();
-    delete gc_thread_;
-    deferred_action_manager_->FullyPerformGC(common::ManagedPointer(gc_), common::ManagedPointer(log_manager_));
-    log_manager_->PersistAndStop();
+    //    catalog_->TearDown();
+    //    delete gc_thread_;
+    //    deferred_action_manager_->FullyPerformGC(common::ManagedPointer(gc_), common::ManagedPointer(log_manager_));
+    //    log_manager_->PersistAndStop();
+    //
+    //    delete recovery_gc_;
+    //    delete recovery_catalog_;
+    //    delete recovery_txn_manager_;
+    //    delete recovery_deferred_action_manager_;
+    //    delete recovery_timestamp_manager_;
+    //    delete gc_;
+    //    delete catalog_;
+    //    delete txn_manager_;
+    //    delete deferred_action_manager_;
+    //    delete timestamp_manager_;
+    //    delete log_manager_;
+    //    delete thread_registry_;
 
-    delete recovery_gc_;
-    delete recovery_catalog_;
-    delete recovery_txn_manager_;
-    delete recovery_deferred_action_manager_;
-    delete recovery_timestamp_manager_;
-    delete gc_;
-    delete catalog_;
-    delete txn_manager_;
-    delete deferred_action_manager_;
-    delete timestamp_manager_;
-    delete log_manager_;
-    delete thread_registry_;
+    TerrierTest::TearDown();
+    // Delete log file
+    unlink(LOG_FILE_NAME.c_str());
   }
 
   catalog::IndexSchema DummyIndexSchema() {
@@ -135,14 +133,15 @@ class RecoveryTests : public TerrierTest {
     return catalog::IndexSchema(keycols, storage::index::IndexType::BWTREE, true, true, false, true);
   }
 
-  catalog::db_oid_t CreateDatabase(transaction::TransactionContext *txn, catalog::Catalog *catalog,
-                                   const std::string &database_name) {
+  catalog::db_oid_t CreateDatabase(transaction::TransactionContext *txn,
+                                   common::ManagedPointer<catalog::Catalog> catalog, const std::string &database_name) {
     auto db_oid = catalog->CreateDatabase(txn, database_name, true /* bootstrap */);
     EXPECT_TRUE(db_oid != catalog::INVALID_DATABASE_OID);
     return db_oid;
   }
 
-  void DropDatabase(transaction::TransactionContext *txn, catalog::Catalog *catalog, const catalog::db_oid_t db_oid) {
+  void DropDatabase(transaction::TransactionContext *txn, common::ManagedPointer<catalog::Catalog> catalog,
+                    const catalog::db_oid_t db_oid) {
     EXPECT_TRUE(catalog->DeleteDatabase(txn, db_oid));
     EXPECT_FALSE(catalog->GetDatabaseCatalog(txn, db_oid));
   }
@@ -157,7 +156,7 @@ class RecoveryTests : public TerrierTest {
     auto table_oid = db_catalog->CreateTable(txn, ns_oid, table_name, table_schema);
     EXPECT_TRUE(table_oid != catalog::INVALID_TABLE_OID);
     const auto catalog_schema = db_catalog->GetSchema(txn, table_oid);
-    auto *table_ptr = new storage::SqlTable(&block_store_, catalog_schema);
+    auto *table_ptr = new storage::SqlTable(block_store_.Get(), catalog_schema);
     EXPECT_TRUE(db_catalog->SetTablePointer(txn, table_oid, table_ptr));
     return table_oid;
   }
@@ -206,27 +205,32 @@ class RecoveryTests : public TerrierTest {
   // Simulates the system shutting down and restarting
   void ShutdownAndRestartSystem() {
     // Simulate the system "shutting down". Guarantee persist of log records
-    delete gc_thread_;
-    deferred_action_manager_->FullyPerformGC(common::ManagedPointer(gc_), common::ManagedPointer(log_manager_));
+    db_main_->GetGarbageCollectorThread()->StopGC();
+    db_main_->GetTransactionLayer()->GetDeferredActionManager()->FullyPerformGC(
+        db_main_->GetStorageLayer()->GetGarbageCollector(), log_manager_);
     log_manager_->PersistAndStop();
 
     // We now "boot up" up the system
     log_manager_->Start();
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    db_main_->GetGarbageCollectorThread()->StartGC();
   }
 
   void RunTest(const LargeSqlTableTestConfiguration &config) {
     // Run workload
-    auto *tested = new LargeSqlTableTestObject(config, txn_manager_, catalog_, &block_store_, &generator_);
+    auto *tested =
+        new LargeSqlTableTestObject(config, txn_manager_.Get(), catalog_.Get(), block_store_.Get(), &generator_);
     tested->SimulateOltp(100, 4);
 
     ShutdownAndRestartSystem();
 
     // Instantiate recovery manager, and recover the tables.
-    DiskLogProvider log_provider(LOG_FILE_NAME);
-    RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
-                                     recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                     &block_store_);
+    DiskLogProvider log_provider{LOG_FILE_NAME};
+    RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
+                                     recovery_catalog_,
+                                     recovery_txn_manager_,
+                                     recovery_deferred_action_manager_,
+                                     recovery_thread_registry_,
+                                     recovery_block_store_};
     recovery_manager.StartRecovery();
     recovery_manager.WaitForRecoveryToFinish();
 
@@ -248,13 +252,15 @@ class RecoveryTests : public TerrierTest {
 
         EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
             original_sql_table->table_.layout_, original_sql_table, recovered_sql_table,
-            tested->GetTupleSlotsForTable(database_oid, table_oid), recovery_manager.tuple_slot_map_, txn_manager_,
-            recovery_txn_manager_));
+            tested->GetTupleSlotsForTable(database_oid, table_oid), recovery_manager.tuple_slot_map_,
+            txn_manager_.Get(), recovery_txn_manager_.Get()));
         txn_manager_->Commit(original_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
         recovery_txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
     }
-    delete tested;
+    // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
+    // DeferredAction
+    db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; });
   }
 };
 
@@ -323,9 +329,12 @@ TEST_F(RecoveryTests, DropDatabaseTest) {
 
   // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
-                                   recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_);
+  RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
+                                   recovery_catalog_,
+                                   recovery_txn_manager_,
+                                   recovery_deferred_action_manager_,
+                                   recovery_thread_registry_,
+                                   recovery_block_store_};
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -355,9 +364,12 @@ TEST_F(RecoveryTests, DropTableTest) {
 
   // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
-                                   recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_);
+  RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
+                                   recovery_catalog_,
+                                   recovery_txn_manager_,
+                                   recovery_deferred_action_manager_,
+                                   recovery_thread_registry_,
+                                   recovery_block_store_};
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -393,9 +405,12 @@ TEST_F(RecoveryTests, DropIndexTest) {
 
   // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
-                                   recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_);
+  RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
+                                   recovery_catalog_,
+                                   recovery_txn_manager_,
+                                   recovery_deferred_action_manager_,
+                                   recovery_thread_registry_,
+                                   recovery_block_store_};
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -432,9 +447,12 @@ TEST_F(RecoveryTests, DropNamespaceTest) {
 
   // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
-                                   recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_);
+  RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
+                                   recovery_catalog_,
+                                   recovery_txn_manager_,
+                                   recovery_deferred_action_manager_,
+                                   recovery_thread_registry_,
+                                   recovery_block_store_};
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -472,9 +490,12 @@ TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
 
   // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
-                                   recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_);
+  RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
+                                   recovery_catalog_,
+                                   recovery_txn_manager_,
+                                   recovery_deferred_action_manager_,
+                                   recovery_thread_registry_,
+                                   recovery_block_store_};
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -496,10 +517,11 @@ TEST_F(RecoveryTests, UnrecoverableTransactionsTest) {
   auto db_oid = CreateDatabase(txn, catalog_, database_name);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  // We insert a sleep in here so that GC has the opportunity to clean up the previous txn. Otherwise, the next txn will
+  // We insert a GC restart here so it has the opportunity to clean up the previous txn. Otherwise, the next txn will
   // prevent it from doing so since it never finishes, and by deleting the gc thread during "shutdown", the previous txn
   // will never get cleaned up.
-  std::this_thread::sleep_for(5 * gc_period_);
+  db_main_->GetGarbageCollectorThread()->StopGC();
+  db_main_->GetGarbageCollectorThread()->StartGC();
 
   // Create a ton of databases to make a transaction flush redo record buffers. In theory we could do any change, but a
   // create database call will generate a ton of records. Importantly, we don't commit the txn.
@@ -517,9 +539,12 @@ TEST_F(RecoveryTests, UnrecoverableTransactionsTest) {
 
   // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
-                                   recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_);
+  RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
+                                   recovery_catalog_,
+                                   recovery_txn_manager_,
+                                   recovery_deferred_action_manager_,
+                                   recovery_thread_registry_,
+                                   recovery_block_store_};
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -586,9 +611,12 @@ TEST_F(RecoveryTests, ConcurrentCatalogDDLChangesTest) {
 
   // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
-                                   recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_);
+  RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
+                                   recovery_catalog_,
+                                   recovery_txn_manager_,
+                                   recovery_deferred_action_manager_,
+                                   recovery_thread_registry_,
+                                   recovery_block_store_};
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -657,9 +685,12 @@ TEST_F(RecoveryTests, ConcurrentDDLChangesTest) {
 
   // Instantiate recovery manager, and recover the catalog
   DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
-                                   recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_);
+  RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
+                                   recovery_catalog_,
+                                   recovery_txn_manager_,
+                                   recovery_deferred_action_manager_,
+                                   recovery_thread_registry_,
+                                   recovery_block_store_};
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -673,6 +704,7 @@ TEST_F(RecoveryTests, ConcurrentDDLChangesTest) {
   recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
+/*
 // Tests that we can recover from a previous instance of recovery. We do this by recovering a workload, and then
 // recovering from the logs generated by the original workload's recovery.
 // NOLINTNEXTLINE
@@ -835,4 +867,6 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   deferred_action_manager_->FullyPerformGC(common::ManagedPointer(&secondary_recovery_gc), DISABLED);
   unlink(secondary_log_file.c_str());
 }
+*/
+
 }  // namespace terrier::storage

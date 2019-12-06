@@ -21,12 +21,22 @@ class GarbageCollectorThread {
    */
   GarbageCollectorThread(common::ManagedPointer<GarbageCollector> gc, std::chrono::milliseconds gc_period);
 
-  ~GarbageCollectorThread() {
+  ~GarbageCollectorThread() { StopGC(); }
+
+  void StopGC() {
+    TERRIER_ASSERT(run_gc_, "GC should already be running.");
     run_gc_ = false;
     gc_thread_.join();
     for (uint8_t i = 0; i < transaction::MIN_GC_INVOCATIONS; i++) {
       gc_->PerformGarbageCollection();
     }
+  }
+
+  void StartGC() {
+    TERRIER_ASSERT(!run_gc_, "GC should not already be running.");
+    run_gc_ = true;
+    gc_paused_ = false;
+    gc_thread_ = std::thread([this] { GCThreadLoop(); });
   }
 
   /**
