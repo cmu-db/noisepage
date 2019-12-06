@@ -32,7 +32,7 @@ class LeafOperator : public OperatorNode<LeafOperator> {
    * Make a LeafOperator
    * @param group Group to wrap
    */
-  static Operator Make(GroupID group);
+  static Operator Make(group_id_t group);
 
   /**
    * Copy
@@ -48,13 +48,13 @@ class LeafOperator : public OperatorNode<LeafOperator> {
    * Gets the original group (i.e group being wrapped)
    * @returns GroupID of wrapped group
    */
-  GroupID GetOriginGroup() const { return origin_group_; }
+  group_id_t GetOriginGroup() const { return origin_group_; }
 
  private:
   /**
    * Wrapped group's GroupID
    */
-  GroupID origin_group_;
+  group_id_t origin_group_;
 };
 
 /**

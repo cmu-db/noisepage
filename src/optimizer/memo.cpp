@@ -8,7 +8,7 @@
 
 namespace terrier::optimizer {
 
-GroupExpression *Memo::InsertExpression(GroupExpression *gexpr, GroupID target_group, bool enforced) {
+GroupExpression *Memo::InsertExpression(GroupExpression *gexpr, group_id_t target_group, bool enforced) {
   // If leaf, then just return
   if (gexpr->Op().GetType() == OpType::LEAF) {
     const auto leaf = gexpr->Op().As<LeafOperator>();
@@ -33,7 +33,7 @@ GroupExpression *Memo::InsertExpression(GroupExpression *gexpr, GroupID target_g
 
   // New expression, so try to insert into an existing group or
   // create a new group if none specified
-  GroupID group_id;
+  group_id_t group_id;
   if (target_group == UNDEFINED_GROUP) {
     group_id = AddNewGroup(gexpr);
   } else {
@@ -45,8 +45,8 @@ GroupExpression *Memo::InsertExpression(GroupExpression *gexpr, GroupID target_g
   return gexpr;
 }
 
-GroupID Memo::AddNewGroup(GroupExpression *gexpr) {
-  auto new_group_id = static_cast<GroupID>(groups_.size());
+group_id_t Memo::AddNewGroup(GroupExpression *gexpr) {
+  auto new_group_id = group_id_t(groups_.size());
 
   // Find out the table alias that this group represents
   std::unordered_set<std::string> table_aliases;

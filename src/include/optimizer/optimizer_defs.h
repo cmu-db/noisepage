@@ -9,6 +9,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
+#include "common/strong_typedef.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 
@@ -17,12 +18,12 @@ namespace terrier::optimizer {
 /**
  * typedef for GroupID
  */
-using GroupID = int32_t;
+STRONG_TYPEDEF(group_id_t, int32_t);
 
 /**
  * Definition for a UNDEFINED_GROUP
  */
-const GroupID UNDEFINED_GROUP = -1;
+const group_id_t UNDEFINED_GROUP = group_id_t(-1);
 
 /**
  * Enumeration defining external file formats

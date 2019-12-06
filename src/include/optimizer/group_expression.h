@@ -28,7 +28,7 @@ class GroupExpression {
    * @param op Operator
    * @param child_groups Vector of children groups
    */
-  GroupExpression(Operator op, std::vector<GroupID> &&child_groups)
+  GroupExpression(Operator op, std::vector<group_id_t> &&child_groups)
       : group_id_(UNDEFINED_GROUP), op_(std::move(op)), child_groups_(child_groups), stats_derived_(false) {}
 
   /**
@@ -50,26 +50,26 @@ class GroupExpression {
    * Gets the GroupExpression's GroupID
    * @returns GroupID of the group this expression belongs to
    */
-  GroupID GetGroupID() const { return group_id_; }
+  group_id_t GetGroupID() const { return group_id_; }
 
   /**
    * Sets this GroupExpression's GroupID
    * @param id GroupID of the expression
    */
-  void SetGroupID(GroupID id) { group_id_ = id; }
+  void SetGroupID(group_id_t id) { group_id_ = id; }
 
   /**
    * Gets the vector of child GroupIDs
    * @return child GroupIDs
    */
-  const std::vector<GroupID> &GetChildGroupIDs() const { return child_groups_; }
+  const std::vector<group_id_t> &GetChildGroupIDs() const { return child_groups_; }
 
   /**
    * Gets a specific child GroupID
    * @param child_idx Index of the child
    * @returns Child's GroupID
    */
-  GroupID GetChildGroupId(int child_idx) const {
+  group_id_t GetChildGroupId(int child_idx) const {
     TERRIER_ASSERT(child_idx >= 0 && static_cast<size_t>(child_idx) < child_groups_.size(),
                    "child_idx is out of bounds");
     return child_groups_[child_idx];
@@ -157,7 +157,7 @@ class GroupExpression {
   /**
    * Group's ID
    */
-  GroupID group_id_;
+  group_id_t group_id_;
 
   /**
    * Operator
@@ -167,7 +167,7 @@ class GroupExpression {
   /**
    * Vector of child groups
    */
-  std::vector<GroupID> child_groups_;
+  std::vector<group_id_t> child_groups_;
 
   /**
    * Mask of explored rules

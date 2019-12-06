@@ -35,8 +35,8 @@ void GroupExpression::SetLocalHashTable(PropertySet *output_properties,
 common::hash_t GroupExpression::Hash() const {
   size_t hash = op_.Hash();
 
-  for (int child_group : child_groups_) {
-    size_t child_hash = common::HashUtil::Hash<GroupID>(child_group);
+  for (group_id_t child_group : child_groups_) {
+    size_t child_hash = common::HashUtil::Hash<group_id_t>(child_group);
     hash = common::HashUtil::CombineHashes(hash, child_hash);
   }
 

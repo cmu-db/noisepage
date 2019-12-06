@@ -59,7 +59,7 @@ GroupExprBindingIterator::GroupExprBindingIterator(const Memo &memo, GroupExpres
     return;
   }
 
-  const std::vector<GroupID> &child_groups = gexpr->GetChildGroupIDs();
+  const std::vector<group_id_t> &child_groups = gexpr->GetChildGroupIDs();
   const std::vector<Pattern *> &child_patterns = pattern->Children();
 
   if (child_groups.size() != child_patterns.size()) {

@@ -64,7 +64,7 @@ class GroupBindingIterator : public BindingIterator {
    * @param id ID of the Group for binding
    * @param pattern Pattern to bind
    */
-  GroupBindingIterator(const Memo &memo, GroupID id, Pattern *pattern)
+  GroupBindingIterator(const Memo &memo, group_id_t id, Pattern *pattern)
       : BindingIterator(memo),
         group_id_(id),
         pattern_(pattern),
@@ -90,7 +90,7 @@ class GroupBindingIterator : public BindingIterator {
   /**
    * GroupID to try binding with
    */
-  GroupID group_id_;
+  group_id_t group_id_;
 
   /**
    * Pattern to try binding to

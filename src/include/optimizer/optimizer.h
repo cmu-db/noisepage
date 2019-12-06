@@ -76,7 +76,7 @@ class Optimizer : public AbstractOptimizer {
    * @param required_props Physical properties to enforce
    * @param settings SettingsManager to read settings from
    */
-  void OptimizeLoop(int root_group_id, PropertySet *required_props, settings::SettingsManager *settings);
+  void OptimizeLoop(group_id_t root_group_id, PropertySet *required_props, settings::SettingsManager *settings);
 
   /**
    * Reset the optimizer state
@@ -102,7 +102,7 @@ class Optimizer : public AbstractOptimizer {
    * @returns Lowest cost plan
    */
   std::unique_ptr<planner::AbstractPlanNode> ChooseBestPlan(
-      GroupID id, PropertySet *required_props,
+      group_id_t id, PropertySet *required_props,
       const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
       settings::SettingsManager *settings, catalog::CatalogAccessor *accessor, transaction::TransactionContext *txn);
 
@@ -116,7 +116,7 @@ class Optimizer : public AbstractOptimizer {
    * @param root_context OptimizerContext to use that maintains required properties
    * @param settings SettingsManager to read settings from
    */
-  void ExecuteTaskStack(OptimizerTaskStack *task_stack, int root_group_id, OptimizeContext *root_context,
+  void ExecuteTaskStack(OptimizerTaskStack *task_stack, group_id_t root_group_id, OptimizeContext *root_context,
                         settings::SettingsManager *settings);
 
   /**

@@ -392,7 +392,7 @@ class TopDownRewrite : public OptimizerTask {
    * @param context Current optimize context
    * @param rule_set_name RuleSet to execute
    */
-  TopDownRewrite(GroupID group_id, OptimizeContext *context, RewriteRuleSetName rule_set_name)
+  TopDownRewrite(group_id_t group_id, OptimizeContext *context, RewriteRuleSetName rule_set_name)
       : OptimizerTask(context, OptimizerTaskType::TOP_DOWN_REWRITE),
         group_id_(group_id),
         rule_set_name_(rule_set_name) {}
@@ -406,7 +406,7 @@ class TopDownRewrite : public OptimizerTask {
   /**
    * GroupID to do top-down rewriting for
    */
-  GroupID group_id_;
+  group_id_t group_id_;
 
   /**
    * Set of rules to apply
@@ -428,7 +428,7 @@ class BottomUpRewrite : public OptimizerTask {
    * @param rule_set_name RuleSet to execute
    * @param has_optimized_child Flag indicating whether children have been optimized
    */
-  BottomUpRewrite(GroupID group_id, OptimizeContext *context, RewriteRuleSetName rule_set_name,
+  BottomUpRewrite(group_id_t group_id, OptimizeContext *context, RewriteRuleSetName rule_set_name,
                   bool has_optimized_child)
       : OptimizerTask(context, OptimizerTaskType::BOTTOM_UP_REWRITE),
         group_id_(group_id),
@@ -444,7 +444,7 @@ class BottomUpRewrite : public OptimizerTask {
   /**
    * GroupID to do bottom-up rewriting for
    */
-  GroupID group_id_;
+  group_id_t group_id_;
 
   /**
    * Set of rules to apply

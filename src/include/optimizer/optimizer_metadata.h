@@ -140,7 +140,7 @@ class OptimizerMetadata {
    * @returns GroupExpression representing OperatorExpression
    */
   GroupExpression *MakeGroupExpression(common::ManagedPointer<OperatorExpression> expr) {
-    std::vector<GroupID> child_groups;
+    std::vector<group_id_t> child_groups;
     for (auto &child : expr->GetChildren()) {
       // Create a GroupExpression for the child
       auto gexpr = MakeGroupExpression(child);
@@ -185,7 +185,7 @@ class OptimizerMetadata {
    * @returns Whether the OperatorExpression already exists
    */
   bool RecordTransformedExpression(common::ManagedPointer<OperatorExpression> expr, GroupExpression **gexpr,
-                                   GroupID target_group) {
+                                   group_id_t target_group) {
     auto new_gexpr = MakeGroupExpression(expr);
     auto ptr = memo_.InsertExpression(new_gexpr, target_group, false);
     TERRIER_ASSERT(ptr, "Root of expr should not fail insertion");
@@ -204,7 +204,7 @@ class OptimizerMetadata {
    * @param expr OperatorExpression to store into the group
    * @param target_group ID of the Group to replace
    */
-  void ReplaceRewritedExpression(common::ManagedPointer<OperatorExpression> expr, GroupID target_group) {
+  void ReplaceRewritedExpression(common::ManagedPointer<OperatorExpression> expr, group_id_t target_group) {
     memo_.EraseExpression(target_group);
     UNUSED_ATTRIBUTE auto ret = memo_.InsertExpression(MakeGroupExpression(expr), target_group, false);
     TERRIER_ASSERT(ret, "Root expr should always be inserted");

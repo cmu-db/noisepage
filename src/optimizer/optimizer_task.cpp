@@ -159,7 +159,7 @@ void ApplyRule::Execute() {
     rule_->Transform(common::ManagedPointer(before.get()), &after, context_);
     for (const auto &new_expr : after) {
       GroupExpression *new_gexpr = nullptr;
-      GroupID g_id = group_expr_->GetGroupID();
+      auto g_id = group_expr_->GetGroupID();
       if (context_->GetMetadata()->RecordTransformedExpression(common::ManagedPointer(new_expr.get()), &new_gexpr,
                                                                g_id)) {
         // A new group expression is generated
@@ -403,7 +403,7 @@ void TopDownRewrite::Execute() {
   size_t size = cur_group_expr->GetChildrenGroupsSize();
   for (size_t child_group_idx = 0; child_group_idx < size; child_group_idx++) {
     // Need to rewrite all sub trees first
-    GroupID id = cur_group_expr->GetChildGroupId(static_cast<int>(child_group_idx));
+    auto id = cur_group_expr->GetChildGroupId(static_cast<int>(child_group_idx));
     auto task = new TopDownRewrite(id, context_, rule_set_name_);
     PushTask(task);
   }
@@ -421,7 +421,7 @@ void BottomUpRewrite::Execute() {
     size_t size = cur_group_expr->GetChildrenGroupsSize();
     for (size_t child_group_idx = 0; child_group_idx < size; child_group_idx++) {
       // Need to rewrite all sub trees first
-      GroupID id = cur_group_expr->GetChildGroupId(static_cast<int>(child_group_idx));
+      auto id = cur_group_expr->GetChildGroupId(static_cast<int>(child_group_idx));
       auto task = new BottomUpRewrite(id, context_, rule_set_name_, false);
       PushTask(task);
     }

@@ -31,7 +31,7 @@ class Group {
    * @param id ID of the Group
    * @param table_aliases Set of table aliases used by the Group
    */
-  Group(GroupID id, std::unordered_set<std::string> table_aliases)
+  Group(group_id_t id, std::unordered_set<std::string> table_aliases)
       : id_(id), table_aliases_(std::move(table_aliases)), has_explored_(false) {}
 
   /**
@@ -157,7 +157,7 @@ class Group {
    * Gets this Group's GroupID
    * @returns GroupID of this group
    */
-  GroupID GetID() const { return id_; }
+  group_id_t GetID() const { return id_; }
 
   /**
    * Erase the logical expression stored by this group.
@@ -179,7 +179,7 @@ class Group {
   /**
    * Group ID
    */
-  GroupID id_;
+  group_id_t id_;
 
   /**
    * All the table alias this group represents. This will not change once create

@@ -86,14 +86,18 @@ class Memo {
    * @returns Existing expression if found. Otherwise, return the new expr
    *          Returns nullptr if the gexpr is a placeholder (Wildcard)
    */
-  GroupExpression *InsertExpression(GroupExpression *gexpr, GroupID target_group, bool enforced);
+  GroupExpression *InsertExpression(GroupExpression *gexpr, group_id_t target_group, bool enforced);
 
   /**
    * Gets the group with certain ID
    * @param id ID of the group to get
    * @returns Group with specified ID
    */
-  Group *GetGroupByID(GroupID id) const { return groups_[id]; }
+  Group *GetGroupByID(group_id_t id) const {
+    auto idx = !id;
+    TERRIER_ASSERT(idx >= 0 && static_cast<size_t>(idx) < groups_.size(), "group_id out of bounds");
+    return groups_[idx];
+  }
 
   /**
    * When a rewrite rule is applied, first replace original gexpr
@@ -101,10 +105,13 @@ class Memo {
    *
    * @param group_id GroupID of Group to erase
    */
-  void EraseExpression(GroupID group_id) {
-    auto gexpr = groups_[group_id]->GetLogicalExpression();
+  void EraseExpression(group_id_t group_id) {
+    auto idx = !group_id;
+    TERRIER_ASSERT(idx >= 0 && static_cast<size_t>(idx) < groups_.size(), "group_id out of bounds");
+
+    auto gexpr = groups_[idx]->GetLogicalExpression();
     group_expressions_.erase(gexpr);
-    groups_[group_id]->EraseLogicalExpression();
+    groups_[idx]->EraseLogicalExpression();
   }
 
  private:
@@ -113,7 +120,7 @@ class Memo {
    * @param gexpr GroupExpression to collect metadata from
    * @returns GroupID of the new group
    */
-  GroupID AddNewGroup(GroupExpression *gexpr);
+  group_id_t AddNewGroup(GroupExpression *gexpr);
 
   /**
    * Vector of tracked GroupExpressions

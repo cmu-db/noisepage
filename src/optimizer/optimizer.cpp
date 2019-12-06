@@ -38,7 +38,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(
   UNUSED_ATTRIBUTE bool insert = metadata_->RecordTransformedExpression(common::ManagedPointer(op_tree), &gexpr);
   TERRIER_ASSERT(insert && gexpr, "Logical expression tree should insert");
 
-  GroupID root_id = gexpr->GetGroupID();
+  group_id_t root_id = gexpr->GetGroupID();
 
   // Physical properties
   PropertySet *phys_properties = query_info.GetPhysicalProperties();
@@ -68,7 +68,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(
 }
 
 std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
-    GroupID id, PropertySet *required_props,
+    group_id_t id, PropertySet *required_props,
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
     settings::SettingsManager *settings, catalog::CatalogAccessor *accessor, transaction::TransactionContext *txn) {
   Group *group = metadata_->GetMemo().GetGroupByID(id);
@@ -77,7 +77,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   OPTIMIZER_LOG_TRACE("Choosing best plan for group {0} with op {1}", gexpr->GetGroupID(),
                       gexpr->Op().GetName().c_str());
 
-  std::vector<GroupID> child_groups = gexpr->GetChildGroupIDs();
+  std::vector<group_id_t> child_groups = gexpr->GetChildGroupIDs();
 
   // required_input_props is owned by the GroupExpression
   auto required_input_props = gexpr->GetInputProperties(required_props);
@@ -121,7 +121,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   return plan;
 }
 
-void Optimizer::OptimizeLoop(int root_group_id, PropertySet *required_props, settings::SettingsManager *settings) {
+void Optimizer::OptimizeLoop(group_id_t root_group_id, PropertySet *required_props, settings::SettingsManager *settings) {
   auto root_context = new OptimizeContext(metadata_, required_props->Copy());
   auto task_stack = new OptimizerTaskStack();
   metadata_->SetTaskPool(task_stack);
@@ -141,7 +141,7 @@ void Optimizer::OptimizeLoop(int root_group_id, PropertySet *required_props, set
   ExecuteTaskStack(task_stack, root_group_id, root_context, settings);
 }
 
-void Optimizer::ExecuteTaskStack(OptimizerTaskStack *task_stack, int root_group_id, OptimizeContext *root_context,
+void Optimizer::ExecuteTaskStack(OptimizerTaskStack *task_stack, group_id_t root_group_id, OptimizeContext *root_context,
                                  settings::SettingsManager *settings) {
   auto root_group = metadata_->GetMemo().GetGroupByID(root_group_id);
   const auto timeout_limit = static_cast<uint64_t>(settings->GetInt(settings::Param::task_execution_timeout));

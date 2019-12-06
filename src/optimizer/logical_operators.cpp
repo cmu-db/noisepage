@@ -14,7 +14,7 @@ namespace terrier::optimizer {
 
 BaseOperatorNode *LeafOperator::Copy() const { return new LeafOperator(*this); }
 
-Operator LeafOperator::Make(GroupID group) {
+Operator LeafOperator::Make(group_id_t group) {
   auto leaf = std::make_unique<LeafOperator>();
   leaf->origin_group_ = group;
   return Operator(std::move(leaf));
