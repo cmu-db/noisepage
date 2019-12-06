@@ -324,6 +324,11 @@ class DBMain {
       return db_main;
     }
 
+    Builder &SetLogFilePath(const std::string &value) {
+      log_file_path_ = value;
+      return *this;
+    }
+
     Builder &SetSettingsParameterMap(std::unordered_map<settings::Param, settings::ParamInfo> &&param_map) {
       param_map_ = std::move(param_map);
       return *this;
