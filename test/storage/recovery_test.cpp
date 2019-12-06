@@ -172,6 +172,19 @@ class RecoveryTests : public TerrierTest {
     db_main_->GetGarbageCollectorThread()->StartGC();
   }
 
+  // Most tests do a single recovery pass into the recovery DBMain
+  void SingleRecovery() {
+    DiskLogProvider log_provider(LOG_FILE_NAME);
+    RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
+                                     recovery_catalog_,
+                                     recovery_txn_manager_,
+                                     recovery_deferred_action_manager_,
+                                     recovery_thread_registry_,
+                                     recovery_block_store_};
+    recovery_manager.StartRecovery();
+    recovery_manager.WaitForRecoveryToFinish();
+  }
+
   void RunTest(const LargeSqlTableTestConfiguration &config) {
     // Run workload
     auto *tested =
@@ -284,16 +297,8 @@ TEST_F(RecoveryTests, DropDatabaseTest) {
 
   ShutdownAndRestartSystem();
 
-  // Instantiate recovery manager, and recover the catalog_->
-  DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
-                                   recovery_catalog_,
-                                   recovery_txn_manager_,
-                                   recovery_deferred_action_manager_,
-                                   recovery_thread_registry_,
-                                   recovery_block_store_};
-  recovery_manager.StartRecovery();
-  recovery_manager.WaitForRecoveryToFinish();
+  // Instantiate recovery manager, and recover the catalog
+  SingleRecovery();
 
   // Assert the database we deleted doesn't exist
   txn = recovery_txn_manager_->BeginTransaction();
@@ -319,16 +324,8 @@ TEST_F(RecoveryTests, DropTableTest) {
 
   ShutdownAndRestartSystem();
 
-  // Instantiate recovery manager, and recover the catalog_->
-  DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
-                                   recovery_catalog_,
-                                   recovery_txn_manager_,
-                                   recovery_deferred_action_manager_,
-                                   recovery_thread_registry_,
-                                   recovery_block_store_};
-  recovery_manager.StartRecovery();
-  recovery_manager.WaitForRecoveryToFinish();
+  // Instantiate recovery manager, and recover the catalog
+  SingleRecovery();
 
   // Assert the database we created exists
   txn = recovery_txn_manager_->BeginTransaction();
@@ -360,16 +357,8 @@ TEST_F(RecoveryTests, DropIndexTest) {
 
   ShutdownAndRestartSystem();
 
-  // Instantiate recovery manager, and recover the catalog_->
-  DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
-                                   recovery_catalog_,
-                                   recovery_txn_manager_,
-                                   recovery_deferred_action_manager_,
-                                   recovery_thread_registry_,
-                                   recovery_block_store_};
-  recovery_manager.StartRecovery();
-  recovery_manager.WaitForRecoveryToFinish();
+  // Instantiate recovery manager, and recover the catalog
+  SingleRecovery();
 
   // Assert the database we created exists
   txn = recovery_txn_manager_->BeginTransaction();
@@ -402,16 +391,8 @@ TEST_F(RecoveryTests, DropNamespaceTest) {
 
   ShutdownAndRestartSystem();
 
-  // Instantiate recovery manager, and recover the catalog_->
-  DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
-                                   recovery_catalog_,
-                                   recovery_txn_manager_,
-                                   recovery_deferred_action_manager_,
-                                   recovery_thread_registry_,
-                                   recovery_block_store_};
-  recovery_manager.StartRecovery();
-  recovery_manager.WaitForRecoveryToFinish();
+  // Instantiate recovery manager, and recover the catalog
+  SingleRecovery();
 
   // Assert the database we created exists
   txn = recovery_txn_manager_->BeginTransaction();
@@ -445,16 +426,8 @@ TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
 
   ShutdownAndRestartSystem();
 
-  // Instantiate recovery manager, and recover the catalog_->
-  DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
-                                   recovery_catalog_,
-                                   recovery_txn_manager_,
-                                   recovery_deferred_action_manager_,
-                                   recovery_thread_registry_,
-                                   recovery_block_store_};
-  recovery_manager.StartRecovery();
-  recovery_manager.WaitForRecoveryToFinish();
+  // Instantiate recovery manager, and recover the catalog
+  SingleRecovery();
 
   // Assert the database does not exist
   txn = recovery_txn_manager_->BeginTransaction();
@@ -494,16 +467,8 @@ TEST_F(RecoveryTests, UnrecoverableTransactionsTest) {
   // because the purpose of the test is how we handle these unrecoverable records showing up during recovery
   ShutdownAndRestartSystem();
 
-  // Instantiate recovery manager, and recover the catalog_->
-  DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
-                                   recovery_catalog_,
-                                   recovery_txn_manager_,
-                                   recovery_deferred_action_manager_,
-                                   recovery_thread_registry_,
-                                   recovery_block_store_};
-  recovery_manager.StartRecovery();
-  recovery_manager.WaitForRecoveryToFinish();
+  // Instantiate recovery manager, and recover the catalog
+  SingleRecovery();
 
   // Assert the database creation we committed does exist
   txn = recovery_txn_manager_->BeginTransaction();
@@ -566,16 +531,8 @@ TEST_F(RecoveryTests, ConcurrentCatalogDDLChangesTest) {
 
   ShutdownAndRestartSystem();
 
-  // Instantiate recovery manager, and recover the catalog_->
-  DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
-                                   recovery_catalog_,
-                                   recovery_txn_manager_,
-                                   recovery_deferred_action_manager_,
-                                   recovery_thread_registry_,
-                                   recovery_block_store_};
-  recovery_manager.StartRecovery();
-  recovery_manager.WaitForRecoveryToFinish();
+  // Instantiate recovery manager, and recover the catalog
+  SingleRecovery();
 
   // Assert the database we created does not exists
   auto txn = recovery_txn_manager_->BeginTransaction();
@@ -641,15 +598,7 @@ TEST_F(RecoveryTests, ConcurrentDDLChangesTest) {
   ShutdownAndRestartSystem();
 
   // Instantiate recovery manager, and recover the catalog
-  DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
-                                   recovery_catalog_,
-                                   recovery_txn_manager_,
-                                   recovery_deferred_action_manager_,
-                                   recovery_thread_registry_,
-                                   recovery_block_store_};
-  recovery_manager.StartRecovery();
-  recovery_manager.WaitForRecoveryToFinish();
+  SingleRecovery();
 
   // Assert the database we created does not exists
   auto txn = recovery_txn_manager_->BeginTransaction();
@@ -758,16 +707,12 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
                                         .SetCreateDefaultDatabase(false)
                                         .Build();
 
-  common::ManagedPointer<transaction::TransactionManager> secondary_recovery_txn_manager =
-      secondary_recovery_db_main->GetTransactionLayer()->GetTransactionManager();
-  common::ManagedPointer<transaction::DeferredActionManager> secondary_recovery_deferred_action_manager =
+  auto secondary_recovery_txn_manager = secondary_recovery_db_main->GetTransactionLayer()->GetTransactionManager();
+  auto secondary_recovery_deferred_action_manager =
       secondary_recovery_db_main->GetTransactionLayer()->GetDeferredActionManager();
-  common::ManagedPointer<storage::BlockStore> secondary_recovery_block_store =
-      secondary_recovery_db_main->GetStorageLayer()->GetBlockStore();
-  common::ManagedPointer<catalog::Catalog> secondary_recovery_catalog =
-      secondary_recovery_db_main->GetCatalogLayer()->GetCatalog();
-  common::ManagedPointer<common::DedicatedThreadRegistry> secondary_recovery_thread_registry =
-      secondary_recovery_db_main->GetThreadRegistry();
+  auto secondary_recovery_block_store = secondary_recovery_db_main->GetStorageLayer()->GetBlockStore();
+  auto secondary_recovery_catalog = secondary_recovery_db_main->GetCatalogLayer()->GetCatalog();
+  auto secondary_recovery_thread_registry = secondary_recovery_db_main->GetThreadRegistry();
 
   // Instantiate a new recovery manager, and recover the tables.
   DiskLogProvider secondary_log_provider(secondary_log_file);
