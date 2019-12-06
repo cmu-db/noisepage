@@ -11,7 +11,7 @@ import static org.junit.Assert.assertEquals;
 public class PLTestBase {
 
     public static Connection makeDefaultConnection() throws SQLException {
-	return makeConnection("localhost", 15721, "postgres", "postgres");
+	return makeConnection("localhost", 15721, "terrier", "terrier");
     }
 
     public static Connection makeConnection(String host,

@@ -76,9 +76,11 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    *
    * @param in
    * @param out
+   * @param context
    * @return
    */
-  Transition ProcessStartup(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out);
+  Transition ProcessStartup(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out,
+                            common::ManagedPointer<ConnectionContext> context);
 
   /**
    *
@@ -117,7 +119,6 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
 
  private:
   bool startup_ = true;
-  std::unordered_map<std::string, std::string> cmdline_options_;
   common::ManagedPointer<PostgresCommandFactory> command_factory_;
 };
 
