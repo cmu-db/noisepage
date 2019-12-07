@@ -14,6 +14,7 @@ namespace terrier::metrics {
 class MetricsThread {
  public:
   /**
+   * @param metrics_manager pointer to the object to be run on this thread
    * @param metrics_period sleep time between metrics invocations
    */
   MetricsThread(common::ManagedPointer<MetricsManager> metrics_manager,

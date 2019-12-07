@@ -23,6 +23,9 @@ class GarbageCollectorThread {
 
   ~GarbageCollectorThread() { StopGC(); }
 
+  /**
+   * Kill the GC thread and run GC a few times to clean up the system.
+   */
   void StopGC() {
     TERRIER_ASSERT(run_gc_, "GC should already be running.");
     run_gc_ = false;
@@ -32,6 +35,9 @@ class GarbageCollectorThread {
     }
   }
 
+  /**
+   * Spawn the GC thread if it has been previously stopped.
+   */
   void StartGC() {
     TERRIER_ASSERT(!run_gc_, "GC should not already be running.");
     run_gc_ = true;

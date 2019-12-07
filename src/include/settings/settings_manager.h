@@ -26,11 +26,12 @@ using setter_callback_fn = void (*)(common::ManagedPointer<common::ActionContext
 
 class SettingsManager {
  public:
-  DISALLOW_COPY_AND_MOVE(SettingsManager);
+  DISALLOW_COPY_AND_MOVE(SettingsManager)
 
   /**
    * The constructor of settings manager
-   * @param db a pointer to the DBMain
+   * @param db_main a pointer to the DBMain
+   * @param param_map constructed parameter map to take ownership of
    */
   explicit SettingsManager(common::ManagedPointer<DBMain> db_main,
                            std::unordered_map<settings::Param, settings::ParamInfo> &&param_map);

@@ -25,7 +25,6 @@ class LoggersUtil {
 
   /**
    * Initialize all of the debug loggers in the system.
-   * @param testing true if the test logger should be initialized
    */
   static void Initialize() {
     try {
