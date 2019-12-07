@@ -17,14 +17,16 @@ namespace terrier::binder {
 
 void BinderContext::AddRegularTable(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                                     parser::TableRef *table_ref) {
-  AddRegularTable(accessor, table_ref->GetDatabaseName(), table_ref->GetTableName(), table_ref->GetAlias());
+  AddRegularTable(accessor, table_ref->GetDatabaseName(), table_ref->GetNamespaceName(), table_ref->GetTableName(),
+                  table_ref->GetAlias());
 }
 
 void BinderContext::AddRegularTable(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
-                                    const std::string &db_name, const std::string &table_name,
-                                    const std::string &table_alias) {
+                                    const std::string &db_name, const std::string &namespace_name,
+                                    const std::string &table_name, const std::string &table_alias) {
   auto db_id = accessor->GetDatabaseOid(db_name);
-  auto table_id = accessor->GetTableOid(table_name);
+  auto namespace_id = accessor->GetNamespaceOid(namespace_name);
+  auto table_id = accessor->GetTableOid(namespace_id, table_name);
   auto schema = accessor->GetSchema(table_id);
 
   if (nested_table_alias_map_.find(table_alias) != nested_table_alias_map_.end()) {
