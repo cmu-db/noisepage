@@ -60,7 +60,7 @@ class ManualPacketUtil {
     serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     serv_addr.sin_port = htons(port);
 
-    int64_t ret = connect(socket_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
+    int64_t ret UNUSED_ATTRIBUTE = connect(socket_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
     TERRIER_ASSERT(ret >= 0, "Connector Error");
 
     auto io_socket = std::make_unique<NetworkIoWrapper>(socket_fd);
