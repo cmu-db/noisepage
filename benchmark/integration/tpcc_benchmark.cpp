@@ -60,7 +60,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
                        .SetUseCatalog(true)
                        .SetUseGCThread(true)
                        .SetRecordBufferSegmentSize(1e6)
-                       .SetRecordBufferSegmentReuse(1e6)
                        .Build();
 
     auto block_store = db_main->GetStorageLayer()->GetBlockStore();

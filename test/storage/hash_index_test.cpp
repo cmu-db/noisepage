@@ -51,7 +51,7 @@ class HashIndexTests : public TerrierTest {
   void SetUp() override {
     TerrierTest::SetUp();
 
-    db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseGCThread(true).Build();
+    db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseGCThread(true).SetRecordBufferSegmentSize(1e6).Build();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
 
     auto col = catalog::Schema::Column(

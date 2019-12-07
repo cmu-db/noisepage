@@ -61,6 +61,7 @@ class TPCCTests : public TerrierTest {
                        .SetUseGC(true)
                        .SetUseCatalog(true)
                        .SetUseGCThread(true)
+                       .SetRecordBufferSegmentSize(1e6)
                        .Build();
 
     if (metrics_enabled) {
