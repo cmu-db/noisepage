@@ -77,7 +77,7 @@ struct TableInfo {
   std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) {
     std::vector<std::unique_ptr<AbstractExpression>> exprs;
     table_name_ = j.at("table_name").get<std::string>();
-    namespace_name_ = j.at("namespace_name_").get<std::string>();
+    namespace_name_ = j.at("namespace_name").get<std::string>();
     database_name_ = j.at("database_name").get<std::string>();
     return exprs;
   }
@@ -185,9 +185,9 @@ class TableRefStatement : public SQLStatement {
   virtual std::string GetTableName() const { return table_info_->GetTableName(); }
 
   /**
-   * @return table schema name (aka namespace)
+   * @return namespace name
    */
-  virtual std::string GetSchemaName() const { return table_info_->GetNamespaceName(); }
+  virtual std::string GetNamespaceName() const { return table_info_->GetNamespaceName(); }
 
   /**
    * @return database name
