@@ -182,8 +182,8 @@ class TableRef {
   /** @return table name */
   std::string GetTableName() { return table_info_->GetTableName(); }
 
-  /** @return schema name */
-  std::string GetSchemaName() { return table_info_->GetSchemaName(); }
+  /** @return namespace name */
+  std::string GetNamespaceName() { return table_info_->GetNamespaceName(); }
 
   /** @return database name */
   std::string GetDatabaseName() { return table_info_->GetDatabaseName(); }
