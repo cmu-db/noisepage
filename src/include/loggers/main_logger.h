@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+
 #include "spdlog/fmt/ostr.h"
 #include "spdlog/sinks/basic_file_sink.h"
 #include "spdlog/sinks/stdout_sinks.h"
@@ -13,6 +14,8 @@ extern std::shared_ptr<spdlog::sinks::stdout_sink_mt> default_sink;  // NOLINT
 extern std::shared_ptr<spdlog::logger> main_logger;                  // NOLINT
 
 void InitMainLogger();
+
+void ShutdownMainLogger();
 
 #define LOG_TRACE(...) ::main_logger->trace(__VA_ARGS__);
 

@@ -17,3 +17,10 @@ void InitMainLogger() {
     spdlog::register_logger(main_logger);
   }
 }
+
+void ShutdownMainLogger() {
+  if (default_sink != nullptr) {
+    spdlog::shutdown();
+    default_sink = nullptr;
+  }
+}

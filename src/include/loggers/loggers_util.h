@@ -53,6 +53,6 @@ class LoggersUtil {
   /**
    * Shut down all of the debug loggers in the system.
    */
-  static void ShutDown() { spdlog::shutdown(); }
+  static void ShutDown() { ShutdownMainLogger(); }
 };
 }  // namespace terrier
