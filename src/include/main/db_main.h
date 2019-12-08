@@ -431,6 +431,26 @@ class DBMain {
       return *this;
     }
 
+    Builder &SetNumLogBuffers(const uint64_t value) {
+      num_log_manager_buffers_ = value;
+      return *this;
+    }
+
+    Builder &SetLogSerializationInterval(const uint64_t value) {
+      log_serialization_interval_ = value;
+      return *this;
+    }
+
+    Builder &SetLogPersistInterval(const uint64_t value) {
+      log_persist_interval_ = value;
+      return *this;
+    }
+
+    Builder &SetLogPersistThreshold(const uint64_t value) {
+      log_persist_threshold_ = value;
+      return *this;
+    }
+
     /**
      * @param value use component
      * @return self reference for chaining

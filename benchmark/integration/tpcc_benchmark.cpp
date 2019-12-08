@@ -140,6 +140,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
                        .SetUseGCThread(true)
                        .SetRecordBufferSegmentSize(1e6)
                        .SetRecordBufferSegmentReuse(1e6)
+                       .SetLogSerializationInterval(5)
                        .SetUseLogging(true)
                        .Build();
 
@@ -227,6 +228,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
                        .SetRecordBufferSegmentSize(1e6)
                        .SetRecordBufferSegmentReuse(1e6)
                        .SetUseLogging(true)
+                       .SetLogSerializationInterval(5)
                        .SetUseMetrics(true)
                        .SetUseMetricsThread(true)
                        .Build();
