@@ -162,7 +162,7 @@ class Schema {
       common::hash_t hash = common::HashUtil::Hash(name_);
       hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(type_));
       hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(attr_size_));
-      if (attr_size_ == VARLEN_COLUMN)
+      if (attr_size_ == storage::VARLEN_COLUMN)
         hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(max_varlen_size_));
       else
         hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(0));
@@ -181,7 +181,7 @@ class Schema {
       if (name_ != rhs.name_) return false;
       if (type_ != rhs.type_) return false;
       if (attr_size_ != rhs.attr_size_) return false;
-      if (attr_size_ == VARLEN_COLUMN && max_varlen_size_ != rhs.max_varlen_size_) return false;
+      if (attr_size_ == storage::VARLEN_COLUMN && max_varlen_size_ != rhs.max_varlen_size_) return false;
       if (nullable_ != rhs.nullable_) return false;
       if (oid_ != rhs.oid_) return false;
       if (default_value_ == nullptr) return rhs.default_value_ == nullptr;
