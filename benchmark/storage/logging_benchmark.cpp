@@ -3,8 +3,9 @@
 #include "benchmark/benchmark.h"
 #include "benchmark_util/data_table_benchmark_util.h"
 #include "common/scoped_timer.h"
-#include "main/db_main.h"
+#include "storage/garbage_collector_thread.h"
 #include "storage/storage_defs.h"
+#include "storage/write_ahead_log/log_manager.h"
 
 #define LOG_FILE_NAME "/mnt/ramdisk/benchmark.txt"
 
@@ -12,14 +13,26 @@ namespace terrier {
 
 class LoggingBenchmark : public benchmark::Fixture {
  public:
-  void SetUp(const benchmark::State &state) final { unlink(LOG_FILE_NAME); }
   void TearDown(const benchmark::State &state) final { unlink(LOG_FILE_NAME); }
 
   const std::vector<uint16_t> attr_sizes_ = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
   const uint32_t initial_table_size_ = 1000000;
   const uint32_t num_txns_ = 100000;
+  storage::BlockStore block_store_{1000, 1000};
+  storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   std::default_random_engine generator_;
   const uint32_t num_concurrent_txns_ = 4;
+  storage::LogManager *log_manager_ = nullptr;
+  storage::GarbageCollector *gc_;
+  storage::GarbageCollectorThread *gc_thread_ = nullptr;
+  const std::chrono::milliseconds gc_period_{10};
+  common::DedicatedThreadRegistry thread_registry_ = common::DedicatedThreadRegistry(nullptr);
+
+  // Settings for log manager
+  const uint64_t num_log_buffers_ = 100;
+  const std::chrono::microseconds log_serialization_interval_{5};
+  const std::chrono::milliseconds log_persist_interval_{10};
+  const uint64_t log_persist_threshold_ = (1U << 20U);  // 1MB
 };
 
 /**
@@ -33,37 +46,32 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, TPCCish)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
     unlink(LOG_FILE_NAME);
-
-    // Initialize table and run workload with logging enabled
-    auto db_main = terrier::DBMain::Builder()
-                       .SetLogFilePath(LOG_FILE_NAME)
-                       .SetUseLogging(true)
-                       .SetUseGC(true)
-                       .SetUseGCThread(true)
-                       .SetRecordBufferSegmentSize(1e6)
-                       .SetRecordBufferSegmentReuse(1e6)
-                       .Build();
-    auto log_manager = db_main->GetLogManager();
-    auto block_store = db_main->GetStorageLayer()->GetBlockStore();
-
-    auto *const tested = new LargeDataTableBenchmarkObject(
-        attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio, block_store.Get(),
-        db_main->GetBufferSegmentPool().Get(), &generator_, true, log_manager.Get());
+    log_manager_ =
+        new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                                log_persist_threshold_, common::ManagedPointer(&buffer_pool_),
+                                common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry_));
+    log_manager_->Start();
+    LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
+                                         &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
-    log_manager->ForceFlush();
+    log_manager_->ForceFlush();
 
-    const auto result = tested->SimulateOltp(num_txns_, num_concurrent_txns_);
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
+                                        common::ManagedPointer(tested.GetTxnManager()), DISABLED);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      log_manager->ForceFlush();
+      log_manager_->ForceFlush();
     }
     state.SetIterationTime(static_cast<double>(result.second + elapsed_ms) / 1000.0);
-    db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() {
-      delete tested;
-      unlink(LOG_FILE_NAME);
-    });
+    log_manager_->PersistAndStop();
+    delete log_manager_;
+    delete gc_thread_;
+    delete gc_;
+    unlink(LOG_FILE_NAME);
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -79,37 +87,33 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, HighAbortRate)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
     unlink(LOG_FILE_NAME);
-
-    // Initialize table and run workload with logging enabled
-    auto db_main = terrier::DBMain::Builder()
-                       .SetLogFilePath(LOG_FILE_NAME)
-                       .SetUseLogging(true)
-                       .SetUseGC(true)
-                       .SetUseGCThread(true)
-                       .SetRecordBufferSegmentSize(1e6)
-                       .SetRecordBufferSegmentReuse(1e6)
-                       .Build();
-    auto log_manager = db_main->GetLogManager();
-    auto block_store = db_main->GetStorageLayer()->GetBlockStore();
-
-    auto *const tested =
-        new LargeDataTableBenchmarkObject(attr_sizes_, 1000, txn_length, insert_update_select_ratio, block_store.Get(),
-                                          db_main->GetBufferSegmentPool().Get(), &generator_, true, log_manager.Get());
+    // use a smaller table to make aborts more likely
+    log_manager_ =
+        new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                                log_persist_threshold_, common::ManagedPointer(&buffer_pool_),
+                                common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry_));
+    log_manager_->Start();
+    LargeDataTableBenchmarkObject tested(attr_sizes_, 1000, txn_length, insert_update_select_ratio, &block_store_,
+                                         &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
-    log_manager->ForceFlush();
+    log_manager_->ForceFlush();
 
-    const auto result = tested->SimulateOltp(num_txns_, num_concurrent_txns_);
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
+                                        common::ManagedPointer(tested.GetTxnManager()), DISABLED);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      log_manager->ForceFlush();
+      log_manager_->ForceFlush();
     }
     state.SetIterationTime(static_cast<double>(result.second + elapsed_ms) / 1000.0);
-    db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() {
-      delete tested;
-      unlink(LOG_FILE_NAME);
-    });
+    log_manager_->PersistAndStop();
+    delete log_manager_;
+    delete gc_thread_;
+    delete gc_;
+    unlink(LOG_FILE_NAME);
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -125,37 +129,32 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementInsert)(benchmark::State &st
   // NOLINTNEXTLINE
   for (auto _ : state) {
     unlink(LOG_FILE_NAME);
-
-    // Initialize table and run workload with logging enabled
-    auto db_main = terrier::DBMain::Builder()
-                       .SetLogFilePath(LOG_FILE_NAME)
-                       .SetUseLogging(true)
-                       .SetUseGC(true)
-                       .SetUseGCThread(true)
-                       .SetRecordBufferSegmentSize(1e6)
-                       .SetRecordBufferSegmentReuse(1e6)
-                       .Build();
-    auto log_manager = db_main->GetLogManager();
-    auto block_store = db_main->GetStorageLayer()->GetBlockStore();
-
-    auto *const tested = new LargeDataTableBenchmarkObject(
-        attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio, block_store.Get(),
-        db_main->GetBufferSegmentPool().Get(), &generator_, true, log_manager.Get());
+    log_manager_ =
+        new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                                log_persist_threshold_, common::ManagedPointer(&buffer_pool_),
+                                common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry_));
+    log_manager_->Start();
+    LargeDataTableBenchmarkObject tested(attr_sizes_, 0, txn_length, insert_update_select_ratio, &block_store_,
+                                         &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
-    log_manager->ForceFlush();
+    log_manager_->ForceFlush();
 
-    const auto result = tested->SimulateOltp(num_txns_, num_concurrent_txns_);
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
+                                        common::ManagedPointer(tested.GetTxnManager()), DISABLED);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      log_manager->ForceFlush();
+      log_manager_->ForceFlush();
     }
     state.SetIterationTime(static_cast<double>(result.second + elapsed_ms) / 1000.0);
-    db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() {
-      delete tested;
-      unlink(LOG_FILE_NAME);
-    });
+    log_manager_->PersistAndStop();
+    delete log_manager_;
+    delete gc_thread_;
+    delete gc_;
+    unlink(LOG_FILE_NAME);
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -171,37 +170,32 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementUpdate)(benchmark::State &st
   // NOLINTNEXTLINE
   for (auto _ : state) {
     unlink(LOG_FILE_NAME);
-
-    // Initialize table and run workload with logging enabled
-    auto db_main = terrier::DBMain::Builder()
-                       .SetLogFilePath(LOG_FILE_NAME)
-                       .SetUseLogging(true)
-                       .SetUseGC(true)
-                       .SetUseGCThread(true)
-                       .SetRecordBufferSegmentSize(1e6)
-                       .SetRecordBufferSegmentReuse(1e6)
-                       .Build();
-    auto log_manager = db_main->GetLogManager();
-    auto block_store = db_main->GetStorageLayer()->GetBlockStore();
-
-    auto *const tested = new LargeDataTableBenchmarkObject(
-        attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio, block_store.Get(),
-        db_main->GetBufferSegmentPool().Get(), &generator_, true, log_manager.Get());
+    log_manager_ =
+        new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                                log_persist_threshold_, common::ManagedPointer(&buffer_pool_),
+                                common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry_));
+    log_manager_->Start();
+    LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
+                                         &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
-    log_manager->ForceFlush();
+    log_manager_->ForceFlush();
 
-    const auto result = tested->SimulateOltp(num_txns_, num_concurrent_txns_);
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
+                                        common::ManagedPointer(tested.GetTxnManager()), DISABLED);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      log_manager->ForceFlush();
+      log_manager_->ForceFlush();
     }
     state.SetIterationTime(static_cast<double>(result.second + elapsed_ms) / 1000.0);
-    db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() {
-      delete tested;
-      unlink(LOG_FILE_NAME);
-    });
+    log_manager_->PersistAndStop();
+    delete log_manager_;
+    delete gc_thread_;
+    delete gc_;
+    unlink(LOG_FILE_NAME);
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -217,37 +211,32 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementSelect)(benchmark::State &st
   // NOLINTNEXTLINE
   for (auto _ : state) {
     unlink(LOG_FILE_NAME);
-
-    // Initialize table and run workload with logging enabled
-    auto db_main = terrier::DBMain::Builder()
-                       .SetLogFilePath(LOG_FILE_NAME)
-                       .SetUseLogging(true)
-                       .SetUseGC(true)
-                       .SetUseGCThread(true)
-                       .SetRecordBufferSegmentSize(1e6)
-                       .SetRecordBufferSegmentReuse(1e6)
-                       .Build();
-    auto log_manager = db_main->GetLogManager();
-    auto block_store = db_main->GetStorageLayer()->GetBlockStore();
-
-    auto *const tested = new LargeDataTableBenchmarkObject(
-        attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio, block_store.Get(),
-        db_main->GetBufferSegmentPool().Get(), &generator_, true, log_manager.Get());
+    log_manager_ =
+        new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                                log_persist_threshold_, common::ManagedPointer(&buffer_pool_),
+                                common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry_));
+    log_manager_->Start();
+    LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
+                                         &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
-    log_manager->ForceFlush();
+    log_manager_->ForceFlush();
 
-    const auto result = tested->SimulateOltp(num_txns_, num_concurrent_txns_);
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
+                                        common::ManagedPointer(tested.GetTxnManager()), DISABLED);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      log_manager->ForceFlush();
+      log_manager_->ForceFlush();
     }
     state.SetIterationTime(static_cast<double>(result.second + elapsed_ms) / 1000.0);
-    db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() {
-      delete tested;
-      unlink(LOG_FILE_NAME);
-    });
+    log_manager_->PersistAndStop();
+    delete log_manager_;
+    delete gc_thread_;
+    delete gc_;
+    unlink(LOG_FILE_NAME);
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
