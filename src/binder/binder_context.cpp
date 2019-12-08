@@ -25,8 +25,20 @@ void BinderContext::AddRegularTable(const std::unique_ptr<catalog::CatalogAccess
                                     const std::string &db_name, const std::string &namespace_name,
                                     const std::string &table_name, const std::string &table_alias) {
   auto db_id = accessor->GetDatabaseOid(db_name);
+  if (db_id == catalog::INVALID_DATABASE_OID) {
+    throw BINDER_EXCEPTION(("Unknown database name " + db_name).c_str());
+  }
+
   auto namespace_id = accessor->GetNamespaceOid(namespace_name);
+  if (namespace_id == catalog::INVALID_NAMESPACE_OID) {
+    throw BINDER_EXCEPTION(("Unknown namespace name " + namespace_name).c_str());
+  }
+
   auto table_id = accessor->GetTableOid(namespace_id, table_name);
+  if (table_id == catalog::INVALID_TABLE_OID) {
+    throw BINDER_EXCEPTION(("Unknown table name " + table_name).c_str());
+  }
+
   auto schema = accessor->GetSchema(table_id);
 
   if (nested_table_alias_map_.find(table_alias) != nested_table_alias_map_.end()) {
