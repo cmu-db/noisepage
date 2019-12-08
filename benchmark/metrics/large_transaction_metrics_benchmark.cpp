@@ -49,6 +49,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, TPCCish)(benchmark::State &
     delete gc_thread_;
     delete gc_;
     delete metrics_thread;
+    delete metrics_manager;
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -80,6 +81,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, HighAbortRate)(benchmark::S
     delete gc_thread_;
     delete gc_;
     delete metrics_thread;
+    delete metrics_manager;
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -111,6 +113,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, SingleStatementInsert)(benc
     delete gc_thread_;
     delete gc_;
     delete metrics_thread;
+    delete metrics_manager;
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -141,6 +144,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, SingleStatementUpdate)(benc
     delete gc_thread_;
     delete gc_;
     delete metrics_thread;
+    delete metrics_manager;
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -171,6 +175,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, SingleStatementSelect)(benc
     delete gc_thread_;
     delete gc_;
     delete metrics_thread;
+    delete metrics_manager;
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
