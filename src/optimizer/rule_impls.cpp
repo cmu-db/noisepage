@@ -129,7 +129,7 @@ void InnerJoinAssociativity::Transform(common::ManagedPointer<OperatorExpression
   std::vector<AnnotatedExpression> new_child_join_predicates;
   std::vector<AnnotatedExpression> new_parent_join_predicates;
   for (const auto &predicate : predicates) {
-    if (Util::IsSubset(right_join_aliases_set, predicate.GetTableAliasSet())) {
+    if (OptimizerUtil::IsSubset(right_join_aliases_set, predicate.GetTableAliasSet())) {
       new_child_join_predicates.emplace_back(predicate);
     } else {
       new_parent_join_predicates.emplace_back(predicate);
@@ -256,7 +256,7 @@ void GetToIndexScan::Transform(common::ManagedPointer<OperatorExpression> input,
     if (IndexUtil::CheckSortProperty(sort_prop)) {
       auto indexes = accessor->GetIndexOids(get->GetTableOid());
       for (auto index : indexes) {
-        if (IndexUtil::SatisfiesSortWithIndex(sort_prop, get->GetTableOid(), index, accessor)) {
+        if (IndexUtil::SatisfiesSortWithIndex(accessor, sort_prop, get->GetTableOid(), index)) {
           std::vector<AnnotatedExpression> preds = get->GetPredicates();
           std::string tbl_alias = std::string(get->GetTableAlias());
           std::vector<std::unique_ptr<OperatorExpression>> c;
@@ -277,7 +277,7 @@ void GetToIndexScan::Transform(common::ManagedPointer<OperatorExpression> input,
     auto indexes = accessor->GetIndexOids(get->GetTableOid());
     for (auto &index : indexes) {
       IndexUtilMetadata output;
-      if (IndexUtil::SatisfiesPredicateWithIndex(get->GetTableOid(), index, &metadata, &output, accessor)) {
+      if (IndexUtil::SatisfiesPredicateWithIndex(accessor, get->GetTableOid(), index, &metadata, &output)) {
         std::vector<AnnotatedExpression> preds = get->GetPredicates();
         std::string tbl_alias = std::string(get->GetTableAlias());
 
@@ -607,7 +607,7 @@ void InnerJoinToInnerNLJoin::Transform(common::ManagedPointer<OperatorExpression
   std::vector<common::ManagedPointer<parser::AbstractExpression>> right_keys;
 
   std::vector<AnnotatedExpression> join_preds = inner_join->GetJoinPredicates();
-  Util::ExtractEquiJoinKeys(join_preds, &left_keys, &right_keys, left_group_alias, right_group_alias);
+  OptimizerUtil::ExtractEquiJoinKeys(join_preds, &left_keys, &right_keys, left_group_alias, right_group_alias);
 
   TERRIER_ASSERT(right_keys.size() == left_keys.size(), "# left/right keys should equal");
   std::vector<std::unique_ptr<OperatorExpression>> child;
@@ -658,7 +658,7 @@ void InnerJoinToInnerHashJoin::Transform(common::ManagedPointer<OperatorExpressi
   std::vector<common::ManagedPointer<parser::AbstractExpression>> right_keys;
 
   std::vector<AnnotatedExpression> join_preds = inner_join->GetJoinPredicates();
-  Util::ExtractEquiJoinKeys(join_preds, &left_keys, &right_keys, left_group_alias, right_group_alias);
+  OptimizerUtil::ExtractEquiJoinKeys(join_preds, &left_keys, &right_keys, left_group_alias, right_group_alias);
 
   TERRIER_ASSERT(right_keys.size() == left_keys.size(), "# left/right keys should equal");
   std::vector<std::unique_ptr<OperatorExpression>> child;
@@ -786,9 +786,9 @@ void PushImplicitFilterThroughJoin::Transform(common::ManagedPointer<OperatorExp
   // E.g. An expression (test.a = test1.b and test.a = 5) would become
   // {test.a = test1.b, test.a = 5}
   for (auto &predicate : predicates) {
-    if (Util::IsSubset(left_group_aliases_set, predicate.GetTableAliasSet())) {
+    if (OptimizerUtil::IsSubset(left_group_aliases_set, predicate.GetTableAliasSet())) {
       left_predicates.emplace_back(predicate);
-    } else if (Util::IsSubset(right_group_aliases_set, predicate.GetTableAliasSet())) {
+    } else if (OptimizerUtil::IsSubset(right_group_aliases_set, predicate.GetTableAliasSet())) {
       right_predicates.emplace_back(predicate);
     } else {
       join_predicates.emplace_back(predicate);
@@ -881,18 +881,18 @@ void PushExplicitFilterThroughJoin::Transform(common::ManagedPointer<OperatorExp
   // E.g. An expression (test.a = test1.b and test.a = 5) would become
   // {test.a = test1.b, test.a = 5}
   for (auto &predicate : input_join_predicates) {
-    if (Util::IsSubset(left_group_aliases_set, predicate.GetTableAliasSet())) {
+    if (OptimizerUtil::IsSubset(left_group_aliases_set, predicate.GetTableAliasSet())) {
       left_predicates.emplace_back(predicate);
-    } else if (Util::IsSubset(right_group_aliases_set, predicate.GetTableAliasSet())) {
+    } else if (OptimizerUtil::IsSubset(right_group_aliases_set, predicate.GetTableAliasSet())) {
       right_predicates.emplace_back(predicate);
     } else {
       join_predicates.emplace_back(predicate);
     }
   }
   for (auto &predicate : filter_predicates) {
-    if (Util::IsSubset(left_group_aliases_set, predicate.GetTableAliasSet())) {
+    if (OptimizerUtil::IsSubset(left_group_aliases_set, predicate.GetTableAliasSet())) {
       left_predicates.emplace_back(predicate);
-    } else if (Util::IsSubset(right_group_aliases_set, predicate.GetTableAliasSet())) {
+    } else if (OptimizerUtil::IsSubset(right_group_aliases_set, predicate.GetTableAliasSet())) {
       right_predicates.emplace_back(predicate);
     } else {
       join_predicates.emplace_back(predicate);
@@ -1244,7 +1244,7 @@ void PullFilterThroughAggregation::Transform(common::ManagedPointer<OperatorExpr
   std::vector<AnnotatedExpression> normal_predicates;
   std::vector<common::ManagedPointer<parser::AbstractExpression>> new_groupby_cols;
   for (auto &predicate : predicates) {
-    if (Util::IsSubset(child_group_aliases_set, predicate.GetTableAliasSet())) {
+    if (OptimizerUtil::IsSubset(child_group_aliases_set, predicate.GetTableAliasSet())) {
       normal_predicates.emplace_back(predicate);
     } else {
       // Correlated predicate, already in the form of

@@ -34,15 +34,17 @@ class ChildPropertyDeriver : public OperatorVisitor {
    * possible input output properties pairs. All PropertySet pointers returned
    * by this function need to be freed by the caller.
    *
+   * @param accessor CatalogAccessor for use
+   * @param memo Memo
    * @param gexpr GroupExpression to generate property requirements for
    * @param requirements Required properties
-   * @param memo Memo
-   * @param accessor CatalogAccessor for use
    * @returns pair of possible input output properties pairs
    */
-  std::vector<std::pair<PropertySet *, std::vector<PropertySet *>>> GetProperties(GroupExpression *gexpr,
-                                                                                  PropertySet *requirements, Memo *memo,
-                                                                                  catalog::CatalogAccessor *accessor);
+  std::vector<std::pair<PropertySet *, std::vector<PropertySet *>>> GetProperties(
+      catalog::CatalogAccessor *accessor,
+      Memo *memo,
+      PropertySet *requirements,
+      GroupExpression *gexpr);
 
   /**
    * Visitor function for TableFreeScan

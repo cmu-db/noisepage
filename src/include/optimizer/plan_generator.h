@@ -42,24 +42,26 @@ class PlanGenerator : public OperatorVisitor {
   /**
    * Converts an operator expression into a plan node.
    *
+   * @param txn TransactionContext
+   * @param accessor CatalogAccessor
+   * @param settings SettingsManager
    * @param op OperatorExpression to convert
    * @param required_props Required properties
    * @param required_cols Columns that are required to be output
    * @param output_cols Columns output by the Operator
    * @param children_plans Children plan nodes
    * @param children_expr_map Vector of children expression -> col offset mapping
-   * @param settings SettingsManager
-   * @param accessor CatalogAccessor
-   * @param txn TransactionContext
    * @returns Output plan node
    */
   std::unique_ptr<planner::AbstractPlanNode> ConvertOpExpression(
+      transaction::TransactionContext *txn,
+      catalog::CatalogAccessor *accessor,
+      settings::SettingsManager *settings,
       OperatorExpression *op, PropertySet *required_props,
       const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
       const std::vector<common::ManagedPointer<parser::AbstractExpression>> &output_cols,
       std::vector<std::unique_ptr<planner::AbstractPlanNode>> &&children_plans,
-      std::vector<ExprMap> &&children_expr_map, settings::SettingsManager *settings, catalog::CatalogAccessor *accessor,
-      transaction::TransactionContext *txn);
+      std::vector<ExprMap> &&children_expr_map);
 
   /**
    * Visitor function for a TableFreeScan operator

@@ -165,7 +165,7 @@ void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const InsertSelect *op) { Passdo
 
 void InputColumnDeriver::InputBaseTableColumns(const std::string &alias, catalog::db_oid_t db,
                                                catalog::table_oid_t tbl) {
-  auto exprs = Util::GenerateTableColumnValueExprs(alias, db, tbl, accessor_);
+  auto exprs = OptimizerUtil::GenerateTableColumnValueExprs(accessor_, alias, db, tbl);
 
   std::vector<common::ManagedPointer<parser::AbstractExpression>> inputs(required_cols_);
   for (auto *expr : exprs) {

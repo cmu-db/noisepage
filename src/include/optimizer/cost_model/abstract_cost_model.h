@@ -22,10 +22,12 @@ class AbstractCostModel : public OperatorVisitor {
   /**
    * Costs a GroupExpression
    * @param txn TransactionContext that query is generated under
-   * @param gexpr GroupExpression to calculate cost for
    * @param memo Memo object containing all relevant groups
+   * @param gexpr GroupExpression to calculate cost for
    */
-  virtual double CalculateCost(transaction::TransactionContext *txn, GroupExpression *gexpr, Memo *memo) = 0;
+  virtual double CalculateCost(transaction::TransactionContext *txn,
+                               Memo *memo,
+                               GroupExpression *gexpr) = 0;
 };
 
 }  // namespace optimizer

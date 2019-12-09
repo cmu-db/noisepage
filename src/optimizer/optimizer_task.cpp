@@ -247,8 +247,9 @@ void OptimizeInputs::Execute() {
     // Derive output and input properties
     ChildPropertyDeriver prop_deriver;
     output_input_properties_ =
-        prop_deriver.GetProperties(group_expr_, context_->GetRequiredProperties(), &context_->GetMetadata()->GetMemo(),
-                                   context_->GetMetadata()->GetCatalogAccessor());
+        prop_deriver.GetProperties(context_->GetMetadata()->GetCatalogAccessor(),
+                                   &context_->GetMetadata()->GetMemo(),
+                                   context_->GetRequiredProperties(), group_expr_);
     cur_child_idx_ = 0;
 
     // TODO(patrick/boweic): If later on we support properties that may not be enforced in some
@@ -266,7 +267,9 @@ void OptimizeInputs::Execute() {
       // 1. Collect stats needed and cache them in the group
       // 2. Calculate cost based on children's stats
       cur_total_cost_ += context_->GetMetadata()->GetCostModel()->CalculateCost(
-          group_expr_, &context_->GetMetadata()->GetMemo(), context_->GetMetadata()->GetTxn());
+          context_->GetMetadata()->GetTxn(),
+          &context_->GetMetadata()->GetMemo(),
+          group_expr_);
     }
 
     for (; cur_child_idx_ < static_cast<int>(group_expr_->GetChildrenGroupsSize()); cur_child_idx_++) {
@@ -337,7 +340,7 @@ void OptimizeInputs::Execute() {
           auto extended_prop_set = output_prop->Copy();
           extended_prop_set->AddProperty(prop->Copy());
           cur_total_cost_ += context_->GetMetadata()->GetCostModel()->CalculateCost(
-              memo_enforced_expr, &context_->GetMetadata()->GetMemo(), context_->GetMetadata()->GetTxn());
+              context_->GetMetadata()->GetTxn(), &context_->GetMetadata()->GetMemo(), memo_enforced_expr);
 
           // Update hash tables for group and group expression
           memo_enforced_expr->SetLocalHashTable(extended_prop_set, {pre_output_prop_set}, cur_total_cost_);

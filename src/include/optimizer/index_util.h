@@ -131,7 +131,7 @@ class IndexUtil {
     }
 
     std::vector<catalog::col_oid_t> mapped_cols;
-    if (!GetIndexColOid(tbl_oid, index_schema, accessor, &mapped_cols)) {
+    if (!GetIndexColOid(accessor, tbl_oid, index_schema, &mapped_cols)) {
       // Unable to translate indexkeycol_oid_t -> col_oid_t
       // Translation uses the IndexSchema::Column expression
       return false;
@@ -246,7 +246,7 @@ class IndexUtil {
     }
 
     std::vector<catalog::col_oid_t> mapped_cols;
-    if (!GetIndexColOid(tbl_oid, index_schema, accessor, &mapped_cols)) {
+    if (!GetIndexColOid(accessor, tbl_oid, index_schema, &mapped_cols)) {
       // Unable to translate indexkeycol_oid_t -> col_oid_t
       // Translation uses the IndexSchema::Column expression
       return false;

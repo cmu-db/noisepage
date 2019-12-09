@@ -15,7 +15,7 @@
 namespace terrier::optimizer {
 
 std::vector<std::pair<PropertySet *, std::vector<PropertySet *>>> ChildPropertyDeriver::GetProperties(
-    GroupExpression *gexpr, PropertySet *requirements, Memo *memo, catalog::CatalogAccessor *accessor) {
+    catalog::CatalogAccessor *accessor, Memo *memo, PropertySet *requirements, GroupExpression *gexpr) {
   requirements_ = requirements;
   output_.clear();
   memo_ = memo;
@@ -45,7 +45,7 @@ void ChildPropertyDeriver::Visit(const IndexScan *op) {
       // Iterate through all the table indexes and check whether any
       // of the indexes can be used to satisfy the sort property.
       for (auto &index : tbl_indexes) {
-        if (IndexUtil::SatisfiesSortWithIndex(sort_prop, tbl_id, index, accessor_)) {
+        if (IndexUtil::SatisfiesSortWithIndex(accessor_, sort_prop, tbl_id, index)) {
           auto prop = requirements_->Copy();
           output_.emplace_back(prop, std::vector<PropertySet *>{});
           break;

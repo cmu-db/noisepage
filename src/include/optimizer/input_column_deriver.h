@@ -25,10 +25,10 @@ class InputColumnDeriver : public OperatorVisitor {
  public:
   /**
    * Constructor
-   * @param accessor CatalogAccessor
    * @param txn TransactionContext
+   * @param accessor CatalogAccessor
    */
-  InputColumnDeriver(catalog::CatalogAccessor *accessor, transaction::TransactionContext *txn)
+  InputColumnDeriver(transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor)
       : accessor_(accessor), txn_(txn) {}
 
   /**

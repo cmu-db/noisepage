@@ -27,10 +27,10 @@ class TrivialCostModel : public AbstractCostModel {
   /**
    * Costs a GroupExpression
    * @param txn TransactionContext that query is generated under
-   * @param gexpr GroupExpression to calculate cost for
    * @param memo Memo object containing all relevant groups
+   * @param gexpr GroupExpression to calculate cost for
    */
-  double CalculateCost(transaction::TransactionContext *txn, GroupExpression *gexpr, Memo *memo) override {
+  double CalculateCost(transaction::TransactionContext *txn, Memo *memo, GroupExpression *gexpr) override {
     gexpr_ = gexpr;
     memo_ = memo;
     txn_ = txn;

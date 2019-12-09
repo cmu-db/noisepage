@@ -35,11 +35,13 @@ namespace terrier::optimizer {
 PlanGenerator::PlanGenerator() = default;
 
 std::unique_ptr<planner::AbstractPlanNode> PlanGenerator::ConvertOpExpression(
+    transaction::TransactionContext *txn,
+    catalog::CatalogAccessor *accessor,
+    settings::SettingsManager *settings,
     OperatorExpression *op, PropertySet *required_props,
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &output_cols,
-    std::vector<std::unique_ptr<planner::AbstractPlanNode>> &&children_plans, std::vector<ExprMap> &&children_expr_map,
-    settings::SettingsManager *settings, catalog::CatalogAccessor *accessor, transaction::TransactionContext *txn) {
+    std::vector<std::unique_ptr<planner::AbstractPlanNode>> &&children_plans, std::vector<ExprMap> &&children_expr_map) {
   required_props_ = required_props;
   required_cols_ = required_cols;
   output_cols_ = output_cols;
@@ -165,7 +167,7 @@ std::unique_ptr<parser::AbstractExpression> PlanGenerator::GeneratePredicateForS
   }
 
   ExprMap table_expr_map;
-  auto exprs = Util::GenerateTableColumnValueExprs(alias, db_oid, tbl_oid, accessor_);
+  auto exprs = OptimizerUtil::GenerateTableColumnValueExprs(accessor_, alias, db_oid, tbl_oid);
   for (size_t idx = 0; idx < exprs.size(); idx++) {
     table_expr_map[common::ManagedPointer(exprs[idx])] = static_cast<int>(idx);
   }
@@ -714,7 +716,7 @@ void PlanGenerator::Visit(const Update *op) {
   auto tbl_schema = accessor_->GetSchema(tbl_oid);
 
   ExprMap table_expr_map;
-  auto exprs = Util::GenerateTableColumnValueExprs(alias, op->GetDatabaseOid(), tbl_oid, accessor_);
+  auto exprs = OptimizerUtil::GenerateTableColumnValueExprs(accessor_, alias, op->GetDatabaseOid(), tbl_oid);
   for (size_t idx = 0; idx < exprs.size(); idx++) {
     table_expr_map[common::ManagedPointer(exprs[idx])] = static_cast<int>(idx);
   }

@@ -2,6 +2,7 @@
 
 #include <memory>
 #include "nlohmann/json.hpp"
+#include "common/managed_pointer.h"
 
 namespace terrier::common {
 // TODO(WAN): I think we should be using the adt_serializable, not this hack..
