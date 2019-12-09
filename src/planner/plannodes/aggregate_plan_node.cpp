@@ -71,20 +71,8 @@ nlohmann::json AggregatePlanNode::ToJson() const {
     j["having_clause_predicate"] = having_clause_predicate_->ToJson();
   }
 
-  std::vector<nlohmann::json> gb_terms;
-  gb_terms.reserve(groupby_terms_.size());
-  for (const auto &g : groupby_terms_) {
-    gb_terms.emplace_back(g->ToJson());
-  }
-  j["groupby_terms"] = gb_terms;
-
-  std::vector<nlohmann::json> agg_terms;
-  agg_terms.reserve(aggregate_terms_.size());
-  for (const auto &agg : aggregate_terms_) {
-    agg_terms.emplace_back(agg->ToJson());
-  }
-  j["aggregate_terms"] = agg_terms;
-
+  j["groupby_terms"] = groupby_terms_;
+  j["aggregate_terms"] = aggregate_terms_;
   j["aggregate_strategy"] = aggregate_strategy_;
   return j;
 }

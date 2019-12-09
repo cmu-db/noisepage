@@ -78,18 +78,7 @@ nlohmann::json InsertPlanNode::ToJson() const {
   j["database_oid"] = database_oid_;
   j["namespace_oid"] = namespace_oid_;
   j["table_oid"] = table_oid_;
-
-  std::vector<std::vector<nlohmann::json>> values;
-  values.reserve(values_.size());
-  for (const auto &tuple : values_) {
-    std::vector<nlohmann::json> tuple_json;
-    tuple_json.reserve(tuple.size());
-    for (const auto &elem : tuple) {
-      tuple_json.emplace_back(elem->ToJson());
-    }
-    values.emplace_back(std::move(tuple_json));
-  }
-  j["values"] = values;
+  j["values"] = values_;
   j["parameter_info"] = parameter_info_;
   return j;
 }

@@ -24,18 +24,8 @@ bool NestedLoopJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
 nlohmann::json NestedLoopJoinPlanNode::ToJson() const {
   auto j = AbstractJoinPlanNode::ToJson();
-  std::vector<nlohmann::json> left_keys;
-  left_keys.reserve(left_keys_.size());
-  for (const auto &key : left_keys_) {
-    left_keys.emplace_back(key->ToJson());
-  }
-  j["left_keys"] = left_keys;
-  std::vector<nlohmann::json> right_keys;
-  right_keys.reserve(right_keys_.size());
-  for (const auto &key : right_keys_) {
-    right_keys.emplace_back(key->ToJson());
-  }
-  j["right_keys"] = right_keys;
+  j["left_keys"] = left_keys_;
+  j["right_keys"] = right_keys_;
   return j;
 }
 
