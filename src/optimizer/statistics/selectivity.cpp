@@ -1,6 +1,6 @@
 #include "optimizer/statistics/selectivity.h"
 #include "loggers/optimizer_logger.h"
-#include "optimizer/statistics/stats_util.h"
+#include "type/transient_value_util.h"
 #include "parser/expression_defs.h"
 
 namespace terrier::optimizer {
@@ -36,7 +36,7 @@ double Selectivity::ComputeSelectivity(common::ManagedPointer<TableStats> stats,
 
 double Selectivity::LessThan(common::ManagedPointer<TableStats> table_stats, const ValueCondition &condition) {
   // Convert peloton value type to raw value (double)
-  double v = StatsUtil::TransientValueToNumericValue(*condition.GetPointerToValue());
+  double v = TransientValueUtil::TransientValueToNumericValue(*condition.GetPointerToValue());
   if (std::isnan(v)) {
     OPTIMIZER_LOG_TRACE("Error computing less than for non-numeric type");
     return DEFAULT_SELECTIVITY;
@@ -62,7 +62,7 @@ double Selectivity::LessThan(common::ManagedPointer<TableStats> table_stats, con
 }
 
 double Selectivity::Equal(common::ManagedPointer<TableStats> table_stats, const ValueCondition &condition) {
-  double value = StatsUtil::TransientValueToNumericValue(*condition.GetPointerToValue());
+  double value = TransientValueUtil::TransientValueToNumericValue(*condition.GetPointerToValue());
   if (std::isnan(value) || !table_stats->HasColumnStats(condition.GetColumnID())) {
     OPTIMIZER_LOG_DEBUG("Calculate selectivity: return null");
     return DEFAULT_SELECTIVITY;

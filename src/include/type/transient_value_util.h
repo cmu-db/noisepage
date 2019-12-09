@@ -9,9 +9,9 @@
 namespace terrier::optimizer {
 
 /**
- * Statistics utilities for Selectivity
+ * TransientValue utility functions
  */
-class StatsUtil {
+class TransientValueUtil {
  public:
   /**
    * Converts numeric TransientValue type to primitive value
