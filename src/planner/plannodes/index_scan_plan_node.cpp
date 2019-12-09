@@ -12,7 +12,7 @@ common::hash_t IndexScanPlanNode::Hash() const {
   // Index Oid
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_oid_));
 
-  hash = common::HashUtil::CombineHashInRange(hash, column_ids_.begin(), column_ids_.end());
+  hash = common::HashUtil::CombineHashInRange(hash, column_oids_.begin(), column_oids_.end());
   hash = common::HashUtil::CombineHashes(hash, index_scan_desc_.Hash());
 
   return hash;
@@ -23,7 +23,7 @@ bool IndexScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   auto &other = static_cast<const IndexScanPlanNode &>(rhs);
 
-  if (column_ids_ != other.column_ids_) return false;
+  if (column_oids_ != other.column_oids_) return false;
   if (index_scan_desc_ != other.index_scan_desc_) return false;
 
   // Index Oid
@@ -33,7 +33,7 @@ bool IndexScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
 nlohmann::json IndexScanPlanNode::ToJson() const {
   nlohmann::json j = AbstractScanPlanNode::ToJson();
   j["index_oid"] = index_oid_;
-  j["column_ids"] = column_ids_;
+  j["column_oids"] = column_oids_;
   j["index_scan_desc"] = index_scan_desc_;
   return j;
 }
@@ -43,8 +43,8 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> IndexScanPlanNode::From
   auto e1 = AbstractScanPlanNode::FromJson(j);
   exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   index_oid_ = j.at("index_oid").get<catalog::index_oid_t>();
-  column_ids_ = j.at("column_ids").get<std::vector<catalog::col_oid_t>>();
-  index_scan_desc_ = j.at("index_scan_desc").get<IndexScanDesc>();
+  column_oids_ = j.at("column_oids").get<std::vector<catalog::col_oid_t>>();
+  index_scan_desc_ = j.at("index_scan_desc").get<IndexScanDescription>();
   return exprs;
 }
 

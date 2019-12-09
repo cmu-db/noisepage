@@ -19,9 +19,6 @@ common::hash_t HashJoinPlanNode::Hash() const {
     hash = common::HashUtil::CombineHashes(hash, right_hash_key->Hash());
   }
 
-  // Hash bloom filter enabled
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(build_bloomfilter_));
-
   return hash;
 }
 
@@ -29,9 +26,6 @@ bool HashJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (!AbstractJoinPlanNode::operator==(rhs)) return false;
 
   const auto &other = static_cast<const HashJoinPlanNode &>(rhs);
-
-  // Bloom Filter Flag
-  if (build_bloomfilter_ != other.build_bloomfilter_) return false;
 
   // Left hash keys
   if (left_hash_keys_.size() != other.left_hash_keys_.size()) return false;
@@ -62,7 +56,6 @@ nlohmann::json HashJoinPlanNode::ToJson() const {
     right_hash_keys.emplace_back(key->ToJson());
   }
   j["right_hash_keys"] = right_hash_keys;
-  j["build_bloom_filter"] = build_bloomfilter_;
   return j;
 }
 
@@ -95,7 +88,6 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> HashJoinPlanNode::FromJ
     }
   }
 
-  build_bloomfilter_ = j.at("build_bloom_filter").get<bool>();
   return exprs;
 }
 

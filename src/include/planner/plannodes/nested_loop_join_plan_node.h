@@ -72,6 +72,8 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param join_type logical join type
    * @param predicate join predicate
+   * @param left_keys Left keys (derived from child 0) to join on
+   * @param right_keys Right keys (derived from child 1) to join on
    */
   NestedLoopJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                          std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
@@ -117,12 +119,12 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
 
  private:
   /**
-   * Left keys
+   * Left keys (derived from child 0) to join on
    */
   std::vector<common::ManagedPointer<parser::AbstractExpression>> left_keys_;
 
   /**
-   * Right keys
+   * Right keys (derived from child 1) to join on
    */
   std::vector<common::ManagedPointer<parser::AbstractExpression>> right_keys_;
 };

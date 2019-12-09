@@ -27,7 +27,9 @@ common::hash_t UpdatePlanNode::Hash() const {
   // SET Clauses
   for (const auto &set : sets_) {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(set.first));
-    hash = common::HashUtil::CombineHashes(hash, set.second->Hash());
+    if (set.second != nullptr) {
+      hash = common::HashUtil::CombineHashes(hash, set.second->Hash());
+    }
   }
 
   return hash;
@@ -53,7 +55,11 @@ bool UpdatePlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (sets_.size() != other.sets_.size()) return false;
   for (size_t idx = 0; idx < sets_.size(); idx++) {
     if (sets_[idx].first != other.sets_[idx].first) return false;
-    if (*sets_[idx].second != *other.sets_[idx].second) return false;
+
+    if ((sets_[idx].second == nullptr && other.sets_[idx].second != nullptr) ||
+        (sets_[idx].second != nullptr && other.sets_[idx].second == nullptr))
+      return false;
+    if (sets_[idx].second != nullptr && *sets_[idx].second != *other.sets_[idx].second) return false;
   }
 
   return true;

@@ -19,8 +19,7 @@ bool NestedLoopJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (!AbstractJoinPlanNode::operator==(rhs)) return false;
 
   auto &other = reinterpret_cast<const NestedLoopJoinPlanNode &>(rhs);
-  if (left_keys_ != other.left_keys_) return false;
-  return right_keys_ == other.right_keys_;
+  return left_keys_ == other.left_keys_ && right_keys_ == other.right_keys_;
 }
 
 nlohmann::json NestedLoopJoinPlanNode::ToJson() const {

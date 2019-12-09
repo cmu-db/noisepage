@@ -184,7 +184,7 @@ class InsertPlanNode : public AbstractPlanNode {
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
 
   /**
-   * @param idx index of tuple in values vecor
+   * @param idx index of tuple in values vector
    * @return values to be inserted
    */
   const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetValues(uint32_t idx) const {

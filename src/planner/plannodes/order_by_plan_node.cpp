@@ -11,7 +11,9 @@ common::hash_t OrderByPlanNode::Hash() const {
 
   // Sort Keys
   for (const auto &sort_key : sort_keys_) {
-    hash = common::HashUtil::CombineHashes(hash, sort_key.first->Hash());
+    if (sort_key.first != nullptr) {
+      hash = common::HashUtil::CombineHashes(hash, sort_key.first->Hash());
+    }
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sort_key.second));
   }
 
@@ -37,6 +39,10 @@ bool OrderByPlanNode::operator==(const AbstractPlanNode &rhs) const {
     auto &other_sort_key = other.sort_keys_[i];
     if (sort_key.second != other_sort_key.second) return false;
     if (*sort_key.first != *other_sort_key.first) return false;
+    if ((sort_key.first == nullptr && other_sort_key.first != nullptr) ||
+        (sort_key.first != nullptr && other_sort_key.first == nullptr))
+      return false;
+    if (sort_key.first != nullptr && *sort_key.first != *other_sort_key.first) return false;
   }
 
   //  Inlined Limit Stuff

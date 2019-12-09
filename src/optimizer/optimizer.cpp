@@ -121,7 +121,8 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   return plan;
 }
 
-void Optimizer::OptimizeLoop(group_id_t root_group_id, PropertySet *required_props, settings::SettingsManager *settings) {
+void Optimizer::OptimizeLoop(group_id_t root_group_id, PropertySet *required_props,
+                             settings::SettingsManager *settings) {
   auto root_context = new OptimizeContext(metadata_, required_props->Copy());
   auto task_stack = new OptimizerTaskStack();
   metadata_->SetTaskPool(task_stack);
@@ -141,8 +142,8 @@ void Optimizer::OptimizeLoop(group_id_t root_group_id, PropertySet *required_pro
   ExecuteTaskStack(task_stack, root_group_id, root_context, settings);
 }
 
-void Optimizer::ExecuteTaskStack(OptimizerTaskStack *task_stack, group_id_t root_group_id, OptimizeContext *root_context,
-                                 settings::SettingsManager *settings) {
+void Optimizer::ExecuteTaskStack(OptimizerTaskStack *task_stack, group_id_t root_group_id,
+                                 OptimizeContext *root_context, settings::SettingsManager *settings) {
   auto root_group = metadata_->GetMemo().GetGroupByID(root_group_id);
   const auto timeout_limit = static_cast<uint64_t>(settings->GetInt(settings::Param::task_execution_timeout));
   const auto &required_props = root_context->GetRequiredProperties();

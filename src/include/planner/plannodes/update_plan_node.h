@@ -11,6 +11,12 @@
 
 namespace terrier::planner {
 
+/**
+ * Describes a single SET clause of an UPDATE query.
+ * For UPDATE tbl SET [$1] = $2:
+ * - $1 is SetClause.first which mentions the column OID to update
+ * - $2 is SetClause.second which describes the expression to set
+ */
 using SetClause = std::pair<catalog::col_oid_t, common::ManagedPointer<parser::AbstractExpression>>;
 
 /**

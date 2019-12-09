@@ -112,15 +112,6 @@ SETTING_bool(
     terrier::settings::Callbacks::NoOp
 )
 
-// Build bloom filter
-SETTING_bool(
-    build_bloom_filter,
-    "Whether bloom filter should be built",
-    true,
-    true,
-    terrier::settings::Callbacks::NoOp
-)
-
 // Log file persisting threshold
 SETTING_int(
     log_persist_threshold,

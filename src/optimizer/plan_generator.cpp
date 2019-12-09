@@ -189,9 +189,6 @@ void PlanGenerator::Visit(const SeqScan *op) {
                        .release();
   RegisterPointerCleanup<parser::AbstractExpression>(predicate, true, true);
 
-  // Check if we should do a parallel scan
-  bool parallel = settings_->GetBool(settings::Param::parallel_execution);
-
   // OutputSchema
   auto output_schema = GenerateScanOutputSchema(op->GetTableOID());
 
@@ -202,9 +199,8 @@ void PlanGenerator::Visit(const SeqScan *op) {
                      .SetNamespaceOid(op->GetNamespaceOID())
                      .SetTableOid(op->GetTableOID())
                      .SetScanPredicate(common::ManagedPointer(predicate))
-                     .SetColumnIds(std::move(column_ids))
+                     .SetColumnOids(std::move(column_ids))
                      .SetIsForUpdateFlag(op->GetIsForUpdate())
-                     .SetIsParallelFlag(parallel)
                      .Build();
 }
 
@@ -235,18 +231,17 @@ void PlanGenerator::Visit(const IndexScan *op) {
     value_list.push_back(std::move(val_copy));
   }
 
-  auto index_desc = planner::IndexScanDesc(std::move(tuple_oids), std::move(expr_list), std::move(value_list));
+  auto index_desc = planner::IndexScanDescription(std::move(tuple_oids), std::move(expr_list), std::move(value_list));
 
   output_plan_ = planner::IndexScanPlanNode::Builder()
                      .SetOutputSchema(std::move(output_schema))
                      .SetScanPredicate(common::ManagedPointer(predicate))
                      .SetIsForUpdateFlag(op->GetIsForUpdate())
-                     .SetIsParallelFlag(false)
                      .SetDatabaseOid(op->GetDatabaseOID())
                      .SetNamespaceOid(op->GetNamespaceOID())
                      .SetIndexOid(op->GetIndexOID())
                      .SetColumnOids(std::move(column_ids))
-                     .SetIndexScanDesc(std::move(index_desc))
+                     .SetIndexScanDescription(std::move(index_desc))
                      .Build();
 }
 
@@ -546,10 +541,8 @@ void PlanGenerator::Visit(const InnerHashJoin *op) {
     builder.AddRightHashKey(common::ManagedPointer(right_key));
   }
 
-  bool bloom = settings_->GetBool(settings::Param::build_bloom_filter);
   builder.AddChild(std::move(children_plans_[0]));
   builder.AddChild(std::move(children_plans_[1]));
-  builder.SetBuildBloomFilterFlag(bloom);
   output_plan_ = builder.Build();
 }
 
