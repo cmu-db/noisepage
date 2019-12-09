@@ -108,7 +108,6 @@ std::pair<uint64_t, uint64_t> LargeDataTableBenchmarkObject::SimulateOltp(
         RandomDataTableTransaction txn(this);
         SimulateOneTransaction(&txn, txn_id);
       }
-      if (metrics_manager != DISABLED) metrics_manager->UnregisterThread();
     };
   } else {
     txns.resize(num_transactions);
@@ -120,7 +119,6 @@ std::pair<uint64_t, uint64_t> LargeDataTableBenchmarkObject::SimulateOltp(
         txns[txn_id] = new RandomDataTableTransaction(this);
         SimulateOneTransaction(txns[txn_id], txn_id);
       }
-      if (metrics_manager != DISABLED) metrics_manager->UnregisterThread();
     };
   }
 
@@ -161,7 +159,7 @@ void LargeDataTableBenchmarkObject::PopulateInitialTable(uint32_t num_tuples, Ra
   for (uint32_t i = 0; i < num_tuples; i++) {
     auto *const redo =
         initial_txn_->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, row_initializer_);
-    StorageTestUtil::PopulateRandomRow(redo->Delta(), layout_, 0.0, generator);
+    //    StorageTestUtil::PopulateRandomRow(redo->Delta(), layout_, 0.0, generator);
     const storage::TupleSlot inserted = table_.Insert(initial_txn_, *(redo->Delta()));
     redo->SetTupleSlot(inserted);
     inserted_tuples_.emplace_back(inserted);
