@@ -8,36 +8,36 @@
 
 namespace terrier::optimizer {
 
-class OptimizerMetadata;
+class OptimizerContext;
 
 /**
- * OptimizeContext containing information for each optimization.
- * A new OptimizeContext is created when optimizing sub-groups.
+ * OptimizationContext containing information for each optimization.
+ * A new OptimizationContext is created when optimizing sub-groups.
  */
-class OptimizeContext {
+class OptimizationContext {
  public:
   /**
    * Constructor
-   * @param metadata OptimizerMetadata containing optimization metadata
+   * @param context OptimizerContext containing optimization context
    * @param required_prop Properties required to satisfy. acquires ownership
    * @param cost_upper_bound Upper cost bound
    */
-  OptimizeContext(OptimizerMetadata *metadata, PropertySet *required_prop,
+  OptimizationContext(OptimizerContext *context, PropertySet *required_prop,
                   double cost_upper_bound = std::numeric_limits<double>::max())
-      : metadata_(metadata), required_prop_(required_prop), cost_upper_bound_(cost_upper_bound) {}
+      : context_(context), required_prop_(required_prop), cost_upper_bound_(cost_upper_bound) {}
 
   /**
    * Destructor
    */
-  ~OptimizeContext() { delete required_prop_; }
+  ~OptimizationContext() { delete required_prop_; }
 
   /**
-   * @returns OptimizerMetadata
+   * @returns OptimizerContext
    */
-  OptimizerMetadata *GetMetadata() const { return metadata_; }
+  OptimizerContext *GetOptimizerContext() const { return context_; }
 
   /**
-   * @returns Properties to satisfy, owned by this OptimizeContext
+   * @returns Properties to satisfy, owned by this OptimizationContext
    */
   PropertySet *GetRequiredProperties() const { return required_prop_; }
 
@@ -54,9 +54,9 @@ class OptimizeContext {
 
  private:
   /**
-   * OptimizerMetadata
+   * OptimizerContext
    */
-  OptimizerMetadata *metadata_;
+  OptimizerContext *context_;
 
   /**
    * Required properties

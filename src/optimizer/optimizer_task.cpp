@@ -6,7 +6,7 @@
 #include "loggers/optimizer_logger.h"
 #include "optimizer/binding.h"
 #include "optimizer/child_property_deriver.h"
-#include "optimizer/optimizer_metadata.h"
+#include "optimizer/optimizer_context.h"
 #include "optimizer/optimizer_task.h"
 #include "optimizer/property_enforcer.h"
 #include "optimizer/statistics/child_stats_deriver.h"
@@ -17,7 +17,7 @@ namespace terrier::optimizer {
 //===--------------------------------------------------------------------===//
 // Base class
 //===--------------------------------------------------------------------===//
-void OptimizerTask::ConstructValidRules(GroupExpression *group_expr, OptimizeContext *context,
+void OptimizerTask::ConstructValidRules(GroupExpression *group_expr, OptimizationContext *context,
                                         const std::vector<Rule *> &rules, std::vector<RuleWithPromise> *valid_rules) {
   for (auto &rule : rules) {
     // Check if we can apply the rule
@@ -35,11 +35,11 @@ void OptimizerTask::ConstructValidRules(GroupExpression *group_expr, OptimizeCon
   }
 }
 
-void OptimizerTask::PushTask(OptimizerTask *task) { context_->GetMetadata()->PushTask(task); }
+void OptimizerTask::PushTask(OptimizerTask *task) { context_->GetOptimizerContext()->PushTask(task); }
 
-Memo &OptimizerTask::GetMemo() const { return context_->GetMetadata()->GetMemo(); }
+Memo &OptimizerTask::GetMemo() const { return context_->GetOptimizerContext()->GetMemo(); }
 
-RuleSet &OptimizerTask::GetRuleSet() const { return context_->GetMetadata()->GetRuleSet(); }
+RuleSet &OptimizerTask::GetRuleSet() const { return context_->GetOptimizerContext()->GetRuleSet(); }
 
 //===--------------------------------------------------------------------===//
 // OptimizeGroup
@@ -160,7 +160,7 @@ void ApplyRule::Execute() {
     for (const auto &new_expr : after) {
       GroupExpression *new_gexpr = nullptr;
       auto g_id = group_expr_->GetGroupID();
-      if (context_->GetMetadata()->RecordTransformedExpression(common::ManagedPointer(new_expr.get()), &new_gexpr,
+      if (context_->GetOptimizerContext()->RecordTransformedExpression(common::ManagedPointer(new_expr.get()), &new_gexpr,
                                                                g_id)) {
         // A new group expression is generated
         if (new_gexpr->Op().IsLogical()) {
@@ -191,7 +191,7 @@ void DeriveStats::Execute() {
   // First do a top-down pass to get stats for required columns, then do a
   // bottom-up pass to calculate the stats
   ChildStatsDeriver deriver;
-  auto children_required_stats = deriver.DeriveInputStats(gexpr_, required_cols_, &context_->GetMetadata()->GetMemo());
+  auto children_required_stats = deriver.DeriveInputStats(gexpr_, required_cols_, &context_->GetOptimizerContext()->GetMemo());
   bool derive_children = false;
   OPTIMIZER_LOG_TRACE("DeriveStats::Execute() group {0}", gexpr_->GetGroupID());
 
@@ -224,7 +224,7 @@ void DeriveStats::Execute() {
   }
 
   StatsCalculator calculator;
-  calculator.CalculateStats(gexpr_, required_cols_, context_->GetMetadata());
+  calculator.CalculateStats(gexpr_, required_cols_, context_->GetOptimizerContext());
   gexpr_->SetDerivedStats();
 }
 
@@ -247,8 +247,8 @@ void OptimizeInputs::Execute() {
     // Derive output and input properties
     ChildPropertyDeriver prop_deriver;
     output_input_properties_ =
-        prop_deriver.GetProperties(context_->GetMetadata()->GetCatalogAccessor(),
-                                   &context_->GetMetadata()->GetMemo(),
+        prop_deriver.GetProperties(context_->GetOptimizerContext()->GetCatalogAccessor(),
+                                   &context_->GetOptimizerContext()->GetMemo(),
                                    context_->GetRequiredProperties(), group_expr_);
     cur_child_idx_ = 0;
 
@@ -266,15 +266,15 @@ void OptimizeInputs::Execute() {
       // Compute the cost of the root operator
       // 1. Collect stats needed and cache them in the group
       // 2. Calculate cost based on children's stats
-      cur_total_cost_ += context_->GetMetadata()->GetCostModel()->CalculateCost(
-          context_->GetMetadata()->GetTxn(),
-          &context_->GetMetadata()->GetMemo(),
+      cur_total_cost_ += context_->GetOptimizerContext()->GetCostModel()->CalculateCost(
+          context_->GetOptimizerContext()->GetTxn(),
+          &context_->GetOptimizerContext()->GetMemo(),
           group_expr_);
     }
 
     for (; cur_child_idx_ < static_cast<int>(group_expr_->GetChildrenGroupsSize()); cur_child_idx_++) {
       auto &i_prop = input_props[cur_child_idx_];
-      auto child_group = context_->GetMetadata()->GetMemo().GetGroupByID(group_expr_->GetChildGroupId(cur_child_idx_));
+      auto child_group = context_->GetOptimizerContext()->GetMemo().GetGroupByID(group_expr_->GetChildGroupId(cur_child_idx_));
 
       // Check whether the child group is already optimized for the prop
       auto child_best_expr = child_group->GetBestExpression(i_prop);
@@ -286,9 +286,9 @@ void OptimizeInputs::Execute() {
         PushTask(new OptimizeInputs(this));
 
         auto cost_high = context_->GetCostUpperBound() - cur_total_cost_;
-        auto ctx = new OptimizeContext(context_->GetMetadata(), i_prop->Copy(), cost_high);
+        auto ctx = new OptimizationContext(context_->GetOptimizerContext(), i_prop->Copy(), cost_high);
         PushTask(new OptimizeGroup(child_group, ctx));
-        context_->GetMetadata()->AddOptimizeContext(ctx);
+        context_->GetOptimizerContext()->AddOptimizationContext(ctx);
         return;
       } else {  // If we return from OptimizeGroup, then there is no expr for the context
         break;
@@ -339,8 +339,8 @@ void OptimizeInputs::Execute() {
           // Cost the enforced expression
           auto extended_prop_set = output_prop->Copy();
           extended_prop_set->AddProperty(prop->Copy());
-          cur_total_cost_ += context_->GetMetadata()->GetCostModel()->CalculateCost(
-              context_->GetMetadata()->GetTxn(), &context_->GetMetadata()->GetMemo(), memo_enforced_expr);
+          cur_total_cost_ += context_->GetOptimizerContext()->GetCostModel()->CalculateCost(
+              context_->GetOptimizerContext()->GetTxn(), &context_->GetOptimizerContext()->GetMemo(), memo_enforced_expr);
 
           // Update hash tables for group and group expression
           memo_enforced_expr->SetLocalHashTable(extended_prop_set, {pre_output_prop_set}, cur_total_cost_);
@@ -394,7 +394,7 @@ void TopDownRewrite::Execute() {
       TERRIER_ASSERT(after.size() <= 1, "rule provided too many transformations");
       if (!after.empty()) {
         auto &new_expr = after[0];
-        context_->GetMetadata()->ReplaceRewritedExpression(common::ManagedPointer(new_expr.get()), group_id_);
+        context_->GetOptimizerContext()->ReplaceRewriteExpression(common::ManagedPointer(new_expr.get()), group_id_);
         PushTask(new TopDownRewrite(group_id_, context_, rule_set_name_));
         return;
       }
@@ -454,7 +454,7 @@ void BottomUpRewrite::Execute() {
       // saturated, also childs are already been rewritten
       if (!after.empty()) {
         auto &new_expr = after[0];
-        context_->GetMetadata()->ReplaceRewritedExpression(common::ManagedPointer(new_expr.get()), group_id_);
+        context_->GetOptimizerContext()->ReplaceRewriteExpression(common::ManagedPointer(new_expr.get()), group_id_);
         PushTask(new BottomUpRewrite(group_id_, context_, rule_set_name_, false));
         return;
       }

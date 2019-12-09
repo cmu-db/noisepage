@@ -8,7 +8,7 @@
 #include "optimizer/binding.h"
 #include "optimizer/input_column_deriver.h"
 #include "optimizer/operator_visitor.h"
-#include "optimizer/optimize_context.h"
+#include "optimizer/optimization_context.h"
 #include "optimizer/optimizer.h"
 #include "optimizer/optimizer_task_pool.h"
 #include "optimizer/plan_generator.h"
@@ -22,8 +22,8 @@ namespace terrier::optimizer {
 
 void Optimizer::Reset() {
   // cleanup any existing resources;
-  delete metadata_;
-  metadata_ = new OptimizerMetadata(cost_model_);
+  delete context_;
+  context_ = new OptimizerContext(cost_model_);
 }
 
 std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(
@@ -33,13 +33,13 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(
     StatsStorage *storage,
     QueryInfo query_info,
     std::unique_ptr<OperatorExpression> op_tree) {
-  metadata_->SetTxn(txn);
-  metadata_->SetCatalogAccessor(accessor);
-  metadata_->SetStatsStorage(storage);
+  context_->SetTxn(txn);
+  context_->SetCatalogAccessor(accessor);
+  context_->SetStatsStorage(storage);
 
   // Generate initial operator tree from query tree
   GroupExpression *gexpr = nullptr;
-  UNUSED_ATTRIBUTE bool insert = metadata_->RecordTransformedExpression(common::ManagedPointer(op_tree), &gexpr);
+  UNUSED_ATTRIBUTE bool insert = context_->RecordTransformedExpression(common::ManagedPointer(op_tree), &gexpr);
   TERRIER_ASSERT(insert && gexpr, "Logical expression tree should insert");
 
   group_id_t root_id = gexpr->GetGroupID();
@@ -77,7 +77,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
     settings::SettingsManager *settings,
     group_id_t id, PropertySet *required_props,
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols) {
-  Group *group = metadata_->GetMemo().GetGroupByID(id);
+  Group *group = context_->GetMemo().GetGroupByID(id);
   auto gexpr = group->GetBestExpression(required_props);
 
   OPTIMIZER_LOG_TRACE("Choosing best plan for group {0} with op {1}", gexpr->GetGroupID(),
@@ -91,7 +91,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
 
   // Firstly derive input/output columns
   InputColumnDeriver deriver(txn, accessor);
-  auto output_input_cols_pair = deriver.DeriveInputColumns(gexpr, required_props, required_cols, &metadata_->GetMemo());
+  auto output_input_cols_pair = deriver.DeriveInputColumns(gexpr, required_props, required_cols, &context_->GetMemo());
 
   auto &output_cols = output_input_cols_pair.first;
   auto &input_cols = output_input_cols_pair.second;
@@ -130,10 +130,10 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
 
 void Optimizer::OptimizeLoop(group_id_t root_group_id, PropertySet *required_props,
                              settings::SettingsManager *settings) {
-  auto root_context = new OptimizeContext(metadata_, required_props->Copy());
+  auto root_context = new OptimizationContext(context_, required_props->Copy());
   auto task_stack = new OptimizerTaskStack();
-  metadata_->SetTaskPool(task_stack);
-  metadata_->AddOptimizeContext(root_context);
+  context_->SetTaskPool(task_stack);
+  context_->AddOptimizationContext(root_context);
 
   // Perform rewrite first
   task_stack->Push(new TopDownRewrite(root_group_id, root_context, RewriteRuleSetName::PREDICATE_PUSH_DOWN));
@@ -141,7 +141,7 @@ void Optimizer::OptimizeLoop(group_id_t root_group_id, PropertySet *required_pro
   ExecuteTaskStack(task_stack, root_group_id, root_context, settings);
 
   // Perform optimization after the rewrite
-  Memo &memo = metadata_->GetMemo();
+  Memo &memo = context_->GetMemo();
   task_stack->Push(new OptimizeGroup(memo.GetGroupByID(root_group_id), root_context));
 
   // Derive stats for the only one logical expression before optimizing
@@ -150,8 +150,8 @@ void Optimizer::OptimizeLoop(group_id_t root_group_id, PropertySet *required_pro
 }
 
 void Optimizer::ExecuteTaskStack(OptimizerTaskStack *task_stack, group_id_t root_group_id,
-                                 OptimizeContext *root_context, settings::SettingsManager *settings) {
-  auto root_group = metadata_->GetMemo().GetGroupByID(root_group_id);
+                                 OptimizationContext *root_context, settings::SettingsManager *settings) {
+  auto root_group = context_->GetMemo().GetGroupByID(root_group_id);
   const auto timeout_limit = static_cast<uint64_t>(settings->GetInt(settings::Param::task_execution_timeout));
   const auto &required_props = root_context->GetRequiredProperties();
 

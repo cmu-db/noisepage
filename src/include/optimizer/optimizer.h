@@ -5,7 +5,7 @@
 
 #include "optimizer/abstract_optimizer.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
-#include "optimizer/optimizer_metadata.h"
+#include "optimizer/optimizer_context.h"
 #include "optimizer/property_set.h"
 
 namespace terrier {
@@ -41,7 +41,7 @@ class Optimizer : public AbstractOptimizer {
    * @param model Cost Model to use for the optimizer
    */
   explicit Optimizer(AbstractCostModel *model) {
-    metadata_ = new OptimizerMetadata(model);
+    context_ = new OptimizerContext(model);
     cost_model_ = model;
   }
 
@@ -50,7 +50,7 @@ class Optimizer : public AbstractOptimizer {
    */
   ~Optimizer() override {
     delete cost_model_;
-    delete metadata_;
+    delete context_;
   }
 
   /**
@@ -86,10 +86,10 @@ class Optimizer : public AbstractOptimizer {
   void Reset() override;
 
   /**
-   * Gets the OptimizerMetadata used and set by the optimizer
-   * @returns metadata_
+   * Gets the OptimizerContext used and set by the optimizer
+   * @returns context_
    */
-  OptimizerMetadata *GetMetadata() { return metadata_; }
+  OptimizerContext *GetMetadata() { return context_; }
 
  private:
   /**
@@ -120,13 +120,13 @@ class Optimizer : public AbstractOptimizer {
    * @param root_context OptimizerContext to use that maintains required properties
    * @param settings SettingsManager to read settings from
    */
-  void ExecuteTaskStack(OptimizerTaskStack *task_stack, group_id_t root_group_id, OptimizeContext *root_context,
+  void ExecuteTaskStack(OptimizerTaskStack *task_stack, group_id_t root_group_id, OptimizationContext *root_context,
                         settings::SettingsManager *settings);
 
   /**
    * Metadata
    */
-  OptimizerMetadata *metadata_;
+  OptimizerContext *context_;
 
   /**
    * Cost Model

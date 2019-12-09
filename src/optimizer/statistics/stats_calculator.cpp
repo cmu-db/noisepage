@@ -8,7 +8,7 @@
 
 #include "catalog/catalog_accessor.h"
 #include "optimizer/memo.h"
-#include "optimizer/optimizer_metadata.h"
+#include "optimizer/optimizer_context.h"
 #include "optimizer/statistics/column_stats.h"
 #include "optimizer/statistics/selectivity.h"
 #include "optimizer/statistics/stats_calculator.h"
@@ -21,10 +21,10 @@
 
 namespace terrier::optimizer {
 
-void StatsCalculator::CalculateStats(GroupExpression *gexpr, ExprSet required_cols, OptimizerMetadata *metadata) {
+void StatsCalculator::CalculateStats(GroupExpression *gexpr, ExprSet required_cols, OptimizerContext *context) {
   gexpr_ = gexpr;
   required_cols_ = std::move(required_cols);
-  metadata_ = metadata;
+  context_ = context;
   gexpr->Op().Accept(common::ManagedPointer<OperatorVisitor>(this));
 }
 
@@ -34,8 +34,8 @@ void StatsCalculator::Visit(const LogicalGet *op) {
     return;
   }
 
-  auto root_group = metadata_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
-  auto table_stats = metadata_->GetStatsStorage()->GetTableStats(op->GetDatabaseOid(), op->GetTableOid());
+  auto root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
+  auto table_stats = context_->GetStatsStorage()->GetTableStats(op->GetDatabaseOid(), op->GetTableOid());
   if (table_stats == nullptr) {
     // no table stats
     // Fill with defaults to prevent an infinite loop from above
@@ -86,7 +86,7 @@ void StatsCalculator::Visit(const LogicalGet *op) {
 
 void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalQueryDerivedGet *op) {
   // TODO(boweic): Implement stats calculation for logical query derive get
-  auto root_group = metadata_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
+  auto root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
   root_group->SetNumRows(0);
   for (auto &col : required_cols_) {
     TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
@@ -98,9 +98,9 @@ void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalQueryDerivedGet *op) {
 void StatsCalculator::Visit(const LogicalInnerJoin *op) {
   // Check if there's join condition
   TERRIER_ASSERT(gexpr_->GetChildrenGroupsSize() == 2, "Join must have two children");
-  auto left_child_group = metadata_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
-  auto right_child_group = metadata_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(1));
-  auto root_group = metadata_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
+  auto left_child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
+  auto right_child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(1));
+  auto root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
 
   // Calculate output num rows first
   if (root_group->GetNumRows() == -1) {
@@ -151,14 +151,14 @@ void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalAggregateAndGroupBy *o
   TERRIER_ASSERT(gexpr_->GetChildrenGroupsSize() == 1, "Aggregate must have 1 child");
 
   // First, set num rows
-  auto child_group = metadata_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
-  metadata_->GetMemo().GetGroupByID(gexpr_->GetGroupID())->SetNumRows(child_group->GetNumRows());
+  auto child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
+  context_->GetMemo().GetGroupByID(gexpr_->GetGroupID())->SetNumRows(child_group->GetNumRows());
   for (auto &col : required_cols_) {
     TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
     auto col_name = col.CastManagedPointerTo<parser::ColumnValueExpression>()->GetFullName();
 
     TERRIER_ASSERT(child_group->HasColumnStats(col_name), "Stats missing in child group");
-    metadata_->GetMemo()
+    context_->GetMemo()
         .GetGroupByID(gexpr_->GetGroupID())
         ->AddStats(col_name, std::make_unique<ColumnStats>(*child_group->GetStats(col_name)));
   }
@@ -166,8 +166,8 @@ void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalAggregateAndGroupBy *o
 
 void StatsCalculator::Visit(const LogicalLimit *op) {
   TERRIER_ASSERT(gexpr_->GetChildrenGroupsSize() == 1, "Limit must have 1 child");
-  auto child_group = metadata_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
-  auto group = metadata_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
+  auto child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
+  auto group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
   group->SetNumRows(std::min(static_cast<int>(op->GetLimit()), child_group->GetNumRows()));
   for (auto &col : required_cols_) {
     TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");

@@ -23,9 +23,9 @@ class StatsCalculator : public OperatorVisitor {
    * Calculates stats for a logical GroupExpression
    * @param gexpr GroupExpression
    * @param required_cols Required column statistics
-   * @param metadata OptimizerMetadata
+   * @param context OptimizerContext
    */
-  void CalculateStats(GroupExpression *gexpr, ExprSet required_cols, OptimizerMetadata *metadata);
+  void CalculateStats(GroupExpression *gexpr, ExprSet required_cols, OptimizerContext *context);
 
   /**
    * Visit a LogicalGet
@@ -112,7 +112,7 @@ class StatsCalculator : public OperatorVisitor {
   /**
    * Metadata
    */
-  OptimizerMetadata *metadata_;
+  OptimizerContext *context_;
 };
 
 }  // namespace terrier::optimizer

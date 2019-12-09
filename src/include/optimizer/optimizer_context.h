@@ -26,23 +26,23 @@ class OptimizerTaskPool;
 class RuleSet;
 
 /**
- * OptimizerMetadata is a class containing pointers to various objects
+ * OptimizerContext is a class containing pointers to various objects
  * that are required during the entire query optimization process.
  */
-class OptimizerMetadata {
+class OptimizerContext {
  public:
   /**
-   * Constructor for OptimizerMetadata
-   * @param cost_model Cost Model to be stored by OptimizerMetadata
+   * Constructor for OptimizerContext
+   * @param cost_model Cost Model to be stored by OptimizerContext
    */
-  explicit OptimizerMetadata(AbstractCostModel *cost_model) : cost_model_(cost_model), task_pool_(nullptr) {}
+  explicit OptimizerContext(AbstractCostModel *cost_model) : cost_model_(cost_model), task_pool_(nullptr) {}
 
   /**
    * Destructor
    *
    * Destroys cost_model and task_pool
    */
-  ~OptimizerMetadata() {
+  ~OptimizerContext() {
     delete task_pool_;
 
     for (auto *ctx : track_list_) {
@@ -75,10 +75,10 @@ class OptimizerMetadata {
   StatsStorage *GetStatsStorage() { return stats_storage_; }
 
   /**
-   * Adds a OptimizeContext to the tracking list
-   * @param ctx OptimizeContext to add to tracking
+   * Adds a OptimizationContext to the tracking list
+   * @param ctx OptimizationContext to add to tracking
    */
-  void AddOptimizeContext(OptimizeContext *ctx) { track_list_.push_back(ctx); }
+  void AddOptimizationContext(OptimizationContext *ctx) { track_list_.push_back(ctx); }
 
   /**
    * Pushes a task to the task pool managed
@@ -117,7 +117,7 @@ class OptimizerMetadata {
   void SetStatsStorage(StatsStorage *storage) { stats_storage_ = storage; }
 
   /**
-   * Set the task pool tracked by the OptimizerMetadata.
+   * Set the task pool tracked by the OptimizerContext.
    * Function passes ownership over task_pool
    * @param task_pool Pointer to OptimizerTaskPool
    */
@@ -172,10 +172,10 @@ class OptimizerMetadata {
   }
 
   /**
-   * Records a transformed OperatorExpression into a given group.
+   * Adds a transformed OperatorExpression into a given group.
    * A group contains all logical/physically equivalent OperatorExpressions.
-   *
-   * expr is not freed
+   * This function is invoked by tasks which explore the plan search space
+   * through rules (recording all "equivalent" expressions for cost/selection later).
    *
    * @param expr OperatorExpression to record into the group
    * @param gexpr Places the newly created GroupExpression
@@ -197,12 +197,10 @@ class OptimizerMetadata {
    * This is used primarily for the rewrite stage of the Optimizer
    * (i.e predicate push-down, query unnesting)
    *
-   * expr is not freed
-   *
    * @param expr OperatorExpression to store into the group
    * @param target_group ID of the Group to replace
    */
-  void ReplaceRewritedExpression(common::ManagedPointer<OperatorExpression> expr, group_id_t target_group) {
+  void ReplaceRewriteExpression(common::ManagedPointer<OperatorExpression> expr, group_id_t target_group) {
     memo_.EraseExpression(target_group);
     UNUSED_ATTRIBUTE auto ret = memo_.InsertExpression(MakeGroupExpression(expr), target_group, false);
     TERRIER_ASSERT(ret, "Root expr should always be inserted");
@@ -245,9 +243,9 @@ class OptimizerMetadata {
   transaction::TransactionContext *txn_;
 
   /**
-   * List to track OptimizeContext created
+   * List to track OptimizationContext created
    */
-  std::vector<OptimizeContext *> track_list_;
+  std::vector<OptimizationContext *> track_list_;
 };
 
 }  // namespace optimizer

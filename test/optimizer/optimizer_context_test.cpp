@@ -5,7 +5,7 @@
 
 #include "optimizer/binding.h"
 #include "optimizer/optimizer_defs.h"
-#include "optimizer/optimizer_metadata.h"
+#include "optimizer/optimizer_context.h"
 #include "optimizer/optimizer_task.h"
 #include "optimizer/optimizer_task_pool.h"
 #include "optimizer/pattern.h"
@@ -14,14 +14,14 @@
 
 namespace terrier::optimizer {
 
-struct OptimizerMetadataTest : public TerrierTest {
+struct OptimizerContextTest : public TerrierTest {
   void SetUp() override { TerrierTest::SetUp(); }
 
   void TearDown() override { TerrierTest::TearDown(); }
 };
 
 // NOLINTNEXTLINE
-TEST_F(OptimizerMetadataTest, PatternTest) {
+TEST_F(OptimizerContextTest, PatternTest) {
   // Creates a Pattern and makes sure everything is set correctly
   auto join = new Pattern(OpType::LOGICALINNERJOIN);
   auto left_child = new Pattern(OpType::LOGICALGET);
@@ -43,7 +43,7 @@ TEST_F(OptimizerMetadataTest, PatternTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(OptimizerMetadataTest, OptimizerTaskStackTest) {
+TEST_F(OptimizerContextTest, OptimizerTaskStackTest) {
   auto task_stack = new OptimizerTaskStack();
 
   std::stack<OptimizerTask *> track_stack;
@@ -68,7 +68,7 @@ TEST_F(OptimizerMetadataTest, OptimizerTaskStackTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(OptimizerMetadataTest, OptimizerTaskStackRemainTest) {
+TEST_F(OptimizerContextTest, OptimizerTaskStackRemainTest) {
   auto task_stack = new OptimizerTaskStack();
 
   for (size_t i = 0; i < 5; i++) {
@@ -82,36 +82,36 @@ TEST_F(OptimizerMetadataTest, OptimizerTaskStackRemainTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(OptimizerMetadataTest, OptimizerMetadataTaskStackTest) {
-  auto metadata = OptimizerMetadata(nullptr);
+TEST_F(OptimizerContextTest, OptimizerContextTaskStackTest) {
+  auto context = OptimizerContext(nullptr);
 
   auto task_stack = new OptimizerTaskStack();
   task_stack->Push(new OptimizeGroup(nullptr, nullptr));
-  metadata.SetTaskPool(task_stack);
+  context.SetTaskPool(task_stack);
 
   auto *pushed = new OptimizeGroup(nullptr, nullptr);
-  metadata.PushTask(pushed);
+  context.PushTask(pushed);
   EXPECT_EQ(task_stack->Pop(), pushed);
   EXPECT_TRUE(!task_stack->Empty());
   delete pushed;
 }
 
 // NOLINTNEXTLINE
-TEST_F(OptimizerMetadataTest, OptimizerMetadataTaskStackNullptrTest) {
-  auto metadata = OptimizerMetadata(nullptr);
-  metadata.SetTaskPool(nullptr);
+TEST_F(OptimizerContextTest, OptimizerContextTaskStackNullptrTest) {
+  auto context = OptimizerContext(nullptr);
+  context.SetTaskPool(nullptr);
 
   auto task_stack = new OptimizerTaskStack();
   task_stack->Push(new OptimizeGroup(nullptr, nullptr));
-  metadata.SetTaskPool(task_stack);
+  context.SetTaskPool(task_stack);
 
   // This should clean up memory
-  metadata.SetTaskPool(nullptr);
+  context.SetTaskPool(nullptr);
 }
 
 // NOLINTNEXTLINE
-TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateSingleLayer) {
-  auto metadata = OptimizerMetadata(nullptr);
+TEST_F(OptimizerContextTest, RecordTransformedExpressionDuplicateSingleLayer) {
+  auto context = OptimizerContext(nullptr);
 
   // Create OperatorExpression of JOIN <= (GET A, GET A)
   std::vector<std::unique_ptr<OperatorExpression>> c;
@@ -131,7 +131,7 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateSingleLayer) {
 
   // RecordTransformedExpression
   GroupExpression *join_gexpr;
-  EXPECT_TRUE(metadata.RecordTransformedExpression(common::ManagedPointer(join), &join_gexpr));
+  EXPECT_TRUE(context.RecordTransformedExpression(common::ManagedPointer(join), &join_gexpr));
   EXPECT_TRUE(join_gexpr != nullptr);
 
   EXPECT_EQ(join_gexpr->Op(), join->GetOp());
@@ -139,7 +139,7 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateSingleLayer) {
   EXPECT_EQ(join_gexpr->GetChildGroupId(0), join_gexpr->GetChildGroupId(1));
 
   auto child = join_gexpr->GetChildGroupId(0);
-  auto group = metadata.GetMemo().GetGroupByID(child);
+  auto group = context.GetMemo().GetGroupByID(child);
   EXPECT_EQ(group->GetLogicalExpressions().size(), 1);
 
   auto child_gexpr = group->GetLogicalExpressions()[0];
@@ -149,8 +149,8 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateSingleLayer) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateMultiLayer) {
-  auto metadata = OptimizerMetadata(nullptr);
+TEST_F(OptimizerContextTest, RecordTransformedExpressionDuplicateMultiLayer) {
+  auto context = OptimizerContext(nullptr);
 
   // Create OperatorExpression (A JOIN B) JOIN (A JOIN B)
   std::vector<std::unique_ptr<OperatorExpression>> c;
@@ -180,7 +180,7 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateMultiLayer) {
 
   // RecordTransformedExpression
   GroupExpression *join_g_expr;
-  EXPECT_TRUE(metadata.RecordTransformedExpression(common::ManagedPointer(join), &join_g_expr));
+  EXPECT_TRUE(context.RecordTransformedExpression(common::ManagedPointer(join), &join_g_expr));
   EXPECT_TRUE(join_g_expr != nullptr);
 
   EXPECT_EQ(join_g_expr->Op(), join->GetOp());
@@ -188,7 +188,7 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateMultiLayer) {
   EXPECT_EQ(join_g_expr->GetChildGroupId(0), join_g_expr->GetChildGroupId(1));
 
   auto join_child = join_g_expr->GetChildGroupId(0);
-  auto join_group = metadata.GetMemo().GetGroupByID(join_child);
+  auto join_group = context.GetMemo().GetGroupByID(join_child);
   EXPECT_EQ(join_group->GetLogicalExpressions().size(), 1);
 
   auto join_gexpr = join_group->GetLogicalExpressions()[0];
@@ -198,7 +198,7 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateMultiLayer) {
   EXPECT_EQ(join_gexpr->GetChildGroupId(0), join_gexpr->GetChildGroupId(1));
 
   auto child = join_gexpr->GetChildGroupId(0);
-  auto child_group = metadata.GetMemo().GetGroupByID(child);
+  auto child_group = context.GetMemo().GetGroupByID(child);
   EXPECT_EQ(child_group->GetLogicalExpressions().size(), 1);
 
   auto child_gexpr = child_group->GetLogicalExpressions()[0];
@@ -208,26 +208,26 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateMultiLayer) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicate) {
-  auto metadata = OptimizerMetadata(nullptr);
+TEST_F(OptimizerContextTest, RecordTransformedExpressionDuplicate) {
+  auto context = OptimizerContext(nullptr);
 
   std::vector<std::unique_ptr<OperatorExpression>> c;
   auto tbl_free = std::make_unique<OperatorExpression>(TableFreeScan::Make(), std::move(c));
 
   GroupExpression *tbl_free_gexpr;
-  EXPECT_TRUE(metadata.RecordTransformedExpression(common::ManagedPointer(tbl_free), &tbl_free_gexpr));
+  EXPECT_TRUE(context.RecordTransformedExpression(common::ManagedPointer(tbl_free), &tbl_free_gexpr));
   EXPECT_TRUE(tbl_free_gexpr != nullptr);
 
   // Duplicate should return false
   GroupExpression *dup_free_gexpr;
-  EXPECT_TRUE(!metadata.RecordTransformedExpression(common::ManagedPointer(tbl_free), &dup_free_gexpr));
+  EXPECT_TRUE(!context.RecordTransformedExpression(common::ManagedPointer(tbl_free), &dup_free_gexpr));
   EXPECT_TRUE(dup_free_gexpr != nullptr);
   EXPECT_EQ(tbl_free_gexpr, dup_free_gexpr);
 }
 
 // NOLINTNEXTLINE
-TEST_F(OptimizerMetadataTest, SimpleBindingTest) {
-  auto metadata = OptimizerMetadata(nullptr);
+TEST_F(OptimizerContextTest, SimpleBindingTest) {
+  auto context = OptimizerContext(nullptr);
 
   std::vector<std::unique_ptr<OperatorExpression>> c;
   auto left_get = std::make_unique<OperatorExpression>(
@@ -242,14 +242,14 @@ TEST_F(OptimizerMetadataTest, SimpleBindingTest) {
   auto join = std::make_unique<OperatorExpression>(LogicalInnerJoin::Make(), std::move(jc));
 
   GroupExpression *gexpr = nullptr;
-  EXPECT_TRUE(metadata.RecordTransformedExpression(common::ManagedPointer(join), &gexpr));
+  EXPECT_TRUE(context.RecordTransformedExpression(common::ManagedPointer(join), &gexpr));
   EXPECT_TRUE(gexpr != nullptr);
 
   auto *pattern = new Pattern(OpType::LOGICALINNERJOIN);
   pattern->AddChild(new Pattern(OpType::LOGICALGET));
   pattern->AddChild(new Pattern(OpType::LOGICALGET));
 
-  auto *binding_iterator = new GroupExprBindingIterator(metadata.GetMemo(), gexpr, pattern);
+  auto *binding_iterator = new GroupExprBindingIterator(context.GetMemo(), gexpr, pattern);
   EXPECT_TRUE(binding_iterator->HasNext());
 
   auto binding = binding_iterator->Next();
@@ -261,8 +261,8 @@ TEST_F(OptimizerMetadataTest, SimpleBindingTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(OptimizerMetadataTest, SingleWildcardTest) {
-  auto metadata = OptimizerMetadata(nullptr);
+TEST_F(OptimizerContextTest, SingleWildcardTest) {
+  auto context = OptimizerContext(nullptr);
 
   std::vector<std::unique_ptr<OperatorExpression>> c;
   auto left_get = std::make_unique<OperatorExpression>(
@@ -277,14 +277,14 @@ TEST_F(OptimizerMetadataTest, SingleWildcardTest) {
   auto join = std::make_unique<OperatorExpression>(LogicalInnerJoin::Make(), std::move(jc));
 
   GroupExpression *gexpr = nullptr;
-  EXPECT_TRUE(metadata.RecordTransformedExpression(common::ManagedPointer(join), &gexpr));
+  EXPECT_TRUE(context.RecordTransformedExpression(common::ManagedPointer(join), &gexpr));
   EXPECT_TRUE(gexpr != nullptr);
 
   auto *pattern = new Pattern(OpType::LOGICALINNERJOIN);
   pattern->AddChild(new Pattern(OpType::LEAF));
   pattern->AddChild(new Pattern(OpType::LEAF));
 
-  auto *binding_iterator = new GroupExprBindingIterator(metadata.GetMemo(), gexpr, pattern);
+  auto *binding_iterator = new GroupExprBindingIterator(context.GetMemo(), gexpr, pattern);
   EXPECT_TRUE(binding_iterator->HasNext());
 
   auto binding = binding_iterator->Next();

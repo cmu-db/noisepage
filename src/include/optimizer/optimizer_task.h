@@ -15,14 +15,14 @@ class AbstractExpression;
 
 namespace optimizer {
 
-class OptimizeContext;
+class OptimizationContext;
 class Memo;
 class Rule;
 struct RuleWithPromise;
 class RuleSet;
 class Group;
 class GroupExpression;
-class OptimizerMetadata;
+class OptimizerContext;
 enum class RewriteRuleSetName : uint32_t;
 
 /**
@@ -49,10 +49,10 @@ class OptimizerTask {
  public:
   /**
    * Constructor for OptimizerTask
-   * @param context OptimizeContext for current optimization
+   * @param context OptimizationContext for current optimization
    * @param type Type of the optimization task
    */
-  OptimizerTask(OptimizeContext *context, OptimizerTaskType type) : type_(type), context_(context) {}
+  OptimizerTask(OptimizationContext *context, OptimizerTaskType type) : type_(type), context_(context) {}
 
   /**
    * Construct valid rules with their promises for a group expression,
@@ -66,7 +66,7 @@ class OptimizerTask {
    * @param valid_rules The valid rules to apply in the current rule set will be
    *  append to valid_rules, with their promises
    */
-  static void ConstructValidRules(GroupExpression *group_expr, OptimizeContext *context,
+  static void ConstructValidRules(GroupExpression *group_expr, OptimizationContext *context,
                                   const std::vector<Rule *> &rules, std::vector<RuleWithPromise> *valid_rules);
 
   /**
@@ -104,14 +104,14 @@ class OptimizerTask {
   /**
    * Current optimize context
    */
-  OptimizeContext *context_;
+  OptimizationContext *context_;
 };
 
 /**
  * OptimizeGroup optimize a group within a given context.
  * OptimizeGroup will (1) generate all logically equivalent operator trees
  * if not already explored and (2) cost all physical operator trees given
- * the current OptimizeContext.
+ * the current OptimizationContext.
  */
 class OptimizeGroup : public OptimizerTask {
  public:
@@ -120,7 +120,7 @@ class OptimizeGroup : public OptimizerTask {
    * @param group Group to optimize
    * @param context Current optimize context
    */
-  OptimizeGroup(Group *group, OptimizeContext *context)
+  OptimizeGroup(Group *group, OptimizationContext *context)
       : OptimizerTask(context, OptimizerTaskType::OPTIMIZE_GROUP), group_(group) {}
 
   /**
@@ -148,7 +148,7 @@ class OptimizeExpression : public OptimizerTask {
    * @param group_expr GroupExpression to optimize
    * @param context Current optimize context
    */
-  OptimizeExpression(GroupExpression *group_expr, OptimizeContext *context)
+  OptimizeExpression(GroupExpression *group_expr, OptimizationContext *context)
       : OptimizerTask(context, OptimizerTaskType::OPTIMIZE_EXPR), group_expr_(group_expr) {}
 
   /**
@@ -174,7 +174,7 @@ class ExploreGroup : public OptimizerTask {
    * @param group Group to explore
    * @param context Current optimize context
    */
-  ExploreGroup(Group *group, OptimizeContext *context)
+  ExploreGroup(Group *group, OptimizationContext *context)
       : OptimizerTask(context, OptimizerTaskType::EXPLORE_GROUP), group_(group) {}
 
   /**
@@ -201,7 +201,7 @@ class ExploreExpression : public OptimizerTask {
    * @param group_expr GroupExpression to explore
    * @param context Current optimize context
    */
-  ExploreExpression(GroupExpression *group_expr, OptimizeContext *context)
+  ExploreExpression(GroupExpression *group_expr, OptimizationContext *context)
       : OptimizerTask(context, OptimizerTaskType::EXPLORE_EXPR), group_expr_(group_expr) {}
 
   /**
@@ -231,7 +231,7 @@ class ApplyRule : public OptimizerTask {
    * @param context Current optimize context
    * @param explore Flag indicating whether explore or optimize
    */
-  ApplyRule(GroupExpression *group_expr, Rule *rule, OptimizeContext *context, bool explore = false)
+  ApplyRule(GroupExpression *group_expr, Rule *rule, OptimizationContext *context, bool explore = false)
       : OptimizerTask(context, OptimizerTaskType::APPLY_RULE),
         group_expr_(group_expr),
         rule_(rule),
@@ -270,9 +270,9 @@ class OptimizeInputs : public OptimizerTask {
   /**
    * Constructor for OptimizeInputs
    * @param group_expr GroupExpression to cost/optimize
-   * @param context Current OptimizeContext
+   * @param context Current OptimizationContext
    */
-  OptimizeInputs(GroupExpression *group_expr, OptimizeContext *context)
+  OptimizeInputs(GroupExpression *group_expr, OptimizationContext *context)
       : OptimizerTask(context, OptimizerTaskType::OPTIMIZE_INPUTS), group_expr_(group_expr) {}
 
   /**
@@ -346,9 +346,9 @@ class DeriveStats : public OptimizerTask {
    * Constructor for DeriveStats
    * @param gexpr GroupExpression to derive stats for
    * @param required_cols Required expressions
-   * @param context Current OptimizeContext
+   * @param context Current OptimizationContext
    */
-  DeriveStats(GroupExpression *gexpr, ExprSet required_cols, OptimizeContext *context)
+  DeriveStats(GroupExpression *gexpr, ExprSet required_cols, OptimizationContext *context)
       : OptimizerTask(context, OptimizerTaskType::DERIVE_STATS),
         gexpr_(gexpr),
         required_cols_(std::move(required_cols)) {}
@@ -392,7 +392,7 @@ class TopDownRewrite : public OptimizerTask {
    * @param context Current optimize context
    * @param rule_set_name RuleSet to execute
    */
-  TopDownRewrite(group_id_t group_id, OptimizeContext *context, RewriteRuleSetName rule_set_name)
+  TopDownRewrite(group_id_t group_id, OptimizationContext *context, RewriteRuleSetName rule_set_name)
       : OptimizerTask(context, OptimizerTaskType::TOP_DOWN_REWRITE),
         group_id_(group_id),
         rule_set_name_(rule_set_name) {}
@@ -428,7 +428,7 @@ class BottomUpRewrite : public OptimizerTask {
    * @param rule_set_name RuleSet to execute
    * @param has_optimized_child Flag indicating whether children have been optimized
    */
-  BottomUpRewrite(group_id_t group_id, OptimizeContext *context, RewriteRuleSetName rule_set_name,
+  BottomUpRewrite(group_id_t group_id, OptimizationContext *context, RewriteRuleSetName rule_set_name,
                   bool has_optimized_child)
       : OptimizerTask(context, OptimizerTaskType::BOTTOM_UP_REWRITE),
         group_id_(group_id),

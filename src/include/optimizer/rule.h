@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "optimizer/operator_expression.h"
-#include "optimizer/optimize_context.h"
+#include "optimizer/optimization_context.h"
 #include "optimizer/pattern.h"
 
 namespace terrier::optimizer {
@@ -128,7 +128,7 @@ class Rule {
    *
    * @return The promise, the higher the promise, the rule should be applied sooner
    */
-  virtual int Promise(GroupExpression *group_expr, OptimizeContext *context) const;
+  virtual int Promise(GroupExpression *group_expr, OptimizationContext *context) const;
 
   /**
    * Check if the rule is applicable for the operator expression. The
@@ -141,7 +141,7 @@ class Rule {
    * @param context The current context for the optimization
    * @return If the rule is applicable, return true, otherwise return false
    */
-  virtual bool Check(common::ManagedPointer<OperatorExpression> expr, OptimizeContext *context) const = 0;
+  virtual bool Check(common::ManagedPointer<OperatorExpression> expr, OptimizationContext *context) const = 0;
 
   /**
    * Convert a "before" operator tree to an "after" operator tree
@@ -152,7 +152,7 @@ class Rule {
    */
   virtual void Transform(common::ManagedPointer<OperatorExpression> input,
                          std::vector<std::unique_ptr<OperatorExpression>> *transformed,
-                         OptimizeContext *context) const = 0;
+                         OptimizationContext *context) const = 0;
 
  protected:
   /**

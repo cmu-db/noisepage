@@ -3,7 +3,7 @@
 
 namespace terrier::optimizer {
 
-int Rule::Promise(GroupExpression *group_expr, OptimizeContext *context) const {
+int Rule::Promise(GroupExpression *group_expr, OptimizationContext *context) const {
   (void)context;
   auto root_type = match_pattern_->Type();
   // This rule is not applicable
