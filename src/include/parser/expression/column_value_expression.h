@@ -121,7 +121,6 @@ class ColumnValueExpression : public AbstractExpression {
   common::hash_t Hash() const override {
     common::hash_t hash = common::HashUtil::Hash(GetExpressionType());
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetReturnValueType()));
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_name_));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_name_));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(column_name_));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
