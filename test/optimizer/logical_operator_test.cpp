@@ -27,7 +27,7 @@ TEST(OperatorTests, LogicalInsertTest) {
   parser::AbstractExpression *raw_values[] = {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)),
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9))};
-  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> *values = new std::vector(
+  auto *values = new std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(
       {std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))});
 
   // Check that all of our GET methods work as expected
@@ -52,7 +52,7 @@ TEST(OperatorTests, LogicalInsertTest) {
 
   // For this last check, we are going to give it more rows to insert
   // This will make sure that our hash is going deep into the vectors
-  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> *other_values = new std::vector{
+  auto *other_values = new std::vector{
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values)),
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))};
   Operator op3 = LogicalInsert::Make(
@@ -70,7 +70,7 @@ TEST(OperatorTests, LogicalInsertTest) {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)),
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(2)),
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(3))};
-  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> *bad_values = new std::vector(
+  auto *bad_values = new std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(
       {std::vector<common::ManagedPointer<parser::AbstractExpression>>(bad_raw_values, std::end(bad_raw_values))});
   EXPECT_DEATH(LogicalInsert::Make(
                    database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),

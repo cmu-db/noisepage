@@ -3,6 +3,7 @@
 #include <memory>
 #include <unordered_map>
 #include <utility>
+#include "catalog/catalog.h"
 #include "common/action_context.h"
 #include "common/stat_registry.h"
 #include "common/worker_pool.h"
@@ -11,6 +12,7 @@
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
+#include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
 namespace terrier {
@@ -23,6 +25,10 @@ class Callbacks;
 
 namespace metrics {
 class MetricsTests;
+}
+
+namespace trafficcop {
+class TrafficCopTests;
 }
 
 namespace storage {
@@ -61,13 +67,14 @@ class DBMain {
     ForceShutdown();
     // TODO(Matt): might as well make these std::unique_ptr, but then will need to refactor other classes to take
     // ManagedPointers unless we want a bunch of .get()s, which sounds like a future PR
-    delete gc_thread_;
     delete metrics_manager_;
     delete garbage_collector_;
     delete settings_manager_;
     delete txn_manager_;
     delete timestamp_manager_;
+    delete deferred_action_manager_;
     delete buffer_segment_pool_;
+    delete block_store_;
     delete thread_pool_;
     delete log_manager_;
     delete connection_handle_factory_;
@@ -98,9 +105,11 @@ class DBMain {
   friend class settings::SettingsTests;
   friend class settings::Callbacks;
   friend class metrics::MetricsTests;
+  friend class trafficcop::TrafficCopTests;
   std::unique_ptr<common::StatisticsRegistry> main_stat_reg_;
   std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
   transaction::TimestampManager *timestamp_manager_;
+  transaction::DeferredActionManager *deferred_action_manager_;
   transaction::TransactionManager *txn_manager_;
   settings::SettingsManager *settings_manager_;
   storage::LogManager *log_manager_;
@@ -115,6 +124,8 @@ class DBMain {
   network::ProtocolInterpreter::Provider *provider_;
   metrics::MetricsManager *metrics_manager_;
   common::DedicatedThreadRegistry *thread_registry_;
+  std::unique_ptr<catalog::Catalog> catalog_;
+  storage::BlockStore *block_store_;
 
   bool running_ = false;
 
