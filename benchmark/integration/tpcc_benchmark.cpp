@@ -60,6 +60,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
                        .SetUseCatalog(true)
                        .SetUseGCThread(true)
                        .SetRecordBufferSegmentSize(1e6)
+                       .SetRecordBufferSegmentReuse(1e6)
                        .Build();
 
     auto block_store = db_main->GetStorageLayer()->GetBlockStore();
@@ -236,6 +237,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
     auto block_store = db_main->GetStorageLayer()->GetBlockStore();
     auto catalog = db_main->GetCatalogLayer()->GetCatalog();
     auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+    db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::LOGGING);
 
     Builder tpcc_builder(block_store, catalog, txn_manager);
 
@@ -321,6 +323,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
     auto block_store = db_main->GetStorageLayer()->GetBlockStore();
     auto catalog = db_main->GetCatalogLayer()->GetCatalog();
     auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+    db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::TRANSACTION);
 
     Builder tpcc_builder(block_store, catalog, txn_manager);
 
@@ -347,7 +350,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
         thread_pool_.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &workers, &db_main] {
           db_main->GetMetricsManager()->RegisterThread();
           Workload(i, tpcc_db, txn_manager.Get(), precomputed_args, &workers);
-          db_main->GetMetricsManager()->UnregisterThread();
         });
       }
       thread_pool_.WaitUntilAllFinished();
