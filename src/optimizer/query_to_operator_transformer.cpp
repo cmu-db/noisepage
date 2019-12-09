@@ -101,7 +101,6 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
   } else if (op->IsSelectDistinct()) {
     // SELECT DISTINCT a1 FROM A should be transformed to
     // SELECT a1 FROM A GROUP BY a1
-    // Assumption: SELECT DISTINCT on columns (not expressions)
     auto num_cols = op->GetSelectColumns().size();
     auto group_by_cols = std::vector<common::ManagedPointer<parser::AbstractExpression>>(num_cols);
     for (size_t i = 0; i < num_cols; i++) {
