@@ -19,6 +19,13 @@ using json = nlohmann::json;
       j = nullptr;                                                                             \
     }                                                                                          \
   }                                                                                            \
+  inline void to_json(nlohmann::json &j, common::ManagedPointer<ClassName> c) {                \
+    if (c != nullptr) {                                                                        \
+      j = c->ToJson();                                                                         \
+    } else {                                                                                   \
+      j = nullptr;                                                                             \
+    }                                                                                          \
+  }                                                                                            \
   inline void from_json(const nlohmann::json &j, ClassName &c) { c.FromJson(j); } /* NOLINT */ \
   inline void from_json(const nlohmann::json &j, std::unique_ptr<ClassName> c) {  /* NOLINT */ \
     if (c != nullptr) {                                                                        \

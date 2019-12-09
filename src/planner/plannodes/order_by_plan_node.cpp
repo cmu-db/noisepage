@@ -38,7 +38,6 @@ bool OrderByPlanNode::operator==(const AbstractPlanNode &rhs) const {
     auto &sort_key = sort_keys_[i];
     auto &other_sort_key = other.sort_keys_[i];
     if (sort_key.second != other_sort_key.second) return false;
-    if (*sort_key.first != *other_sort_key.first) return false;
     if ((sort_key.first == nullptr && other_sort_key.first != nullptr) ||
         (sort_key.first != nullptr && other_sort_key.first == nullptr))
       return false;
