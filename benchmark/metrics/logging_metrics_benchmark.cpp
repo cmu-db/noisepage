@@ -8,7 +8,7 @@
 #include "storage/storage_defs.h"
 #include "storage/write_ahead_log/log_manager.h"
 
-#define LOG_FILE_NAME "/mnt/ramdisk/benchmark.txt"
+#define LOG_FILE_NAME "benchmark.txt"
 
 namespace terrier {
 

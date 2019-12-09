@@ -23,7 +23,8 @@ void OpenFiles(std::vector<std::ofstream> *outfiles) {
     outfiles->emplace_back(file_name, std::ios_base::out | std::ios_base::app);
     if (!file_existed) {
       // write the column titles on the first line since we're creating a new csv file
-      outfiles->back() << abstract_raw_data::COLUMNS[file] << std::endl;
+      outfiles->back() << abstract_raw_data::FEATURE_COLUMNS[file] << ", " << common::ResourceTracker::Metrics::COLUMNS
+                       << std::endl;
     }
   }
 }

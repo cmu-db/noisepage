@@ -10,6 +10,7 @@
 #include "catalog/catalog_defs.h"
 #include "metrics/abstract_metric.h"
 #include "metrics/metrics_util.h"
+#include "common/resource_tracker.h"
 #include "transaction/transaction_defs.h"
 
 namespace terrier::metrics {
@@ -44,13 +45,17 @@ class LoggingMetricRawData : public AbstractRawData {
                                  [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
                    "Not all files are open.");
 
+    auto &serializer_outfile = (*outfiles)[0];
+    auto &consumer_outfile = (*outfiles)[1];
+
     for (const auto &data : serializer_data_) {
-      ((*outfiles)[0]) << data.now_ << "," << data.elapsed_us_ << "," << data.num_bytes_ << "," << data.num_records_
+      serializer_outfile << data.now_ << ", " << data.elapsed_us_ << ", " << data.num_bytes_ << ", " << data.num_records_
                        << std::endl;
     }
     for (const auto &data : consumer_data_) {
-      ((*outfiles)[1]) << data.now_ << "," << data.write_us_ << "," << data.persist_us_ << "," << data.num_bytes_ << ","
-                       << data.num_buffers_ << std::endl;
+      consumer_outfile << data.num_bytes_ << ", " << data.num_buffers_ << ", ";
+      data.resource_metrics_.ToCSV(consumer_outfile);
+      consumer_outfile << std::endl;
     }
     serializer_data_.clear();
     consumer_data_.clear();
@@ -63,9 +68,10 @@ class LoggingMetricRawData : public AbstractRawData {
                                                             "./disk_log_consumer_task.csv"};
   /**
    * Columns to use for writing to CSV.
+   * Note: This includes the columns for the input feature, but not the output (resource counters)
    */
-  static constexpr std::array<std::string_view, 2> COLUMNS = {"now,elapsed_us,num_bytes,num_records",
-                                                              "now,write_us,persist_us,num_bytes,num_buffers"};
+  static constexpr std::array<std::string_view, 2> FEATURE_COLUMNS = {"num_bytes, num_records", "num_bytes, "
+                                                                                               "num_buffers"};
 
  private:
   friend class LoggingMetric;
@@ -75,9 +81,9 @@ class LoggingMetricRawData : public AbstractRawData {
     serializer_data_.emplace_front(elapsed_us, num_bytes, num_records);
   }
 
-  void RecordConsumerData(const uint64_t write_us, const uint64_t persist_us, const uint64_t num_bytes,
-                          const uint64_t num_buffers) {
-    consumer_data_.emplace_front(write_us, persist_us, num_bytes, num_buffers);
+  void RecordConsumerData(const uint64_t num_bytes, const uint64_t num_buffers, const
+                          common::ResourceTracker::Metrics &resource_metrics) {
+    consumer_data_.emplace_front(num_bytes, num_buffers, resource_metrics);
   }
 
   struct SerializerData {
@@ -90,18 +96,14 @@ class LoggingMetricRawData : public AbstractRawData {
   };
 
   struct ConsumerData {
-    ConsumerData(const uint64_t write_us, const uint64_t persist_us, const uint64_t num_bytes,
-                 const uint64_t num_buffers)
-        : now_(MetricsUtil::Now()),
-          write_us_(write_us),
-          persist_us_(persist_us),
-          num_bytes_(num_bytes),
-          num_buffers_(num_buffers) {}
-    const uint64_t now_;
-    const uint64_t write_us_;
-    const uint64_t persist_us_;
+    ConsumerData(const uint64_t num_bytes, const uint64_t num_buffers, const common::ResourceTracker::Metrics
+                 &resource_metrics)
+        : num_bytes_(num_bytes),
+          num_buffers_(num_buffers),
+          resource_metrics_(resource_metrics) {}
     const uint64_t num_bytes_;
     const uint64_t num_buffers_;
+    const common::ResourceTracker::Metrics resource_metrics_;
   };
 
   std::list<SerializerData> serializer_data_;
@@ -119,9 +121,9 @@ class LoggingMetric : public AbstractMetric<LoggingMetricRawData> {
   void RecordSerializerData(const uint64_t elapsed_us, const uint64_t num_bytes, const uint64_t num_records) {
     GetRawData()->RecordSerializerData(elapsed_us, num_bytes, num_records);
   }
-  void RecordConsumerData(const uint64_t write_us, const uint64_t persist_us, const uint64_t num_bytes,
-                          const uint64_t num_buffers) {
-    GetRawData()->RecordConsumerData(write_us, persist_us, num_bytes, num_buffers);
+  void RecordConsumerData(const uint64_t num_bytes,
+                          const uint64_t num_buffers, const common::ResourceTracker::Metrics &resource_metrics) {
+    GetRawData()->RecordConsumerData(num_bytes, num_buffers, resource_metrics);
   }
 };
 }  // namespace terrier::metrics

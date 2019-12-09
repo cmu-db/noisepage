@@ -45,11 +45,11 @@ class MetricsStore {
    * @param num_bytes third entry of metrics datapoint
    * @param num_records fourth entry of metrics datapoint
    */
-  void RecordConsumerData(const uint64_t write_us, const uint64_t persist_us, const uint64_t num_bytes,
-                          const uint64_t num_records) {
+  void RecordConsumerData(const uint64_t num_bytes, const uint64_t num_records,
+                          const common::ResourceTracker::Metrics &resource_metrics) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::LOGGING), "LoggingMetric not enabled.");
     TERRIER_ASSERT(logging_metric_ != nullptr, "LoggingMetric not allocated. Check MetricsStore constructor.");
-    logging_metric_->RecordConsumerData(write_us, persist_us, num_bytes, num_records);
+    logging_metric_->RecordConsumerData(num_bytes, num_records, resource_metrics);
   }
 
   /**
