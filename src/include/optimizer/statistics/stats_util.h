@@ -22,7 +22,7 @@ class StatsUtil {
   static double TransientValueToNumericValue(const type::TransientValue &value) {
     double raw_value = std::numeric_limits<double>::quiet_NaN();
     if (value.Null()) {
-      OPTIMIZER_LOG_TRACE("Fail to convert Peloton NULL value to numeric value.");
+      OPTIMIZER_LOG_TRACE("Fail to convert terrier NULL value to numeric value.");
       return raw_value;
     }
 

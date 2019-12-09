@@ -163,8 +163,6 @@ class OptimizerMetadata {
    * Records a transformed OperatorExpression by creating a new group.
    * A new group will be created if expr does not already exist.
    *
-   * expr is not freed
-   *
    * @param expr OperatorExpression to record
    * @param gexpr Places the newly created GroupExpression
    * @returns Whether the OperatorExpression already exists

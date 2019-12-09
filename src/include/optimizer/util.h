@@ -17,7 +17,7 @@ namespace terrier::optimizer {
 /**
  * Collection of utility functions for the optimizer
  */
-class Util {
+class OptimizerUtil {
  public:
   /**
    * Check if a set is a subset of another set
@@ -54,17 +54,18 @@ class Util {
   /**
    * Generate all tuple value expressions of a base table
    *
+   * @param accessor CatalogAccessor
    * @param alias Table alias used in constructing ColumnValue
    * @param db_oid Database OID
    * @param tbl_oid Table OID for catalog lookup
-   * @param accessor CatalogAccessor
    * @return a vector of tuple value expression representing column name to
    * table column id mapping
    */
-  static std::vector<parser::AbstractExpression *> GenerateTableColumnValueExprs(const std::string &alias,
-                                                                                 catalog::db_oid_t db_oid,
-                                                                                 catalog::table_oid_t tbl_oid,
-                                                                                 catalog::CatalogAccessor *accessor);
+  static std::vector<parser::AbstractExpression *> GenerateTableColumnValueExprs(
+      catalog::CatalogAccessor *accessor,
+      const std::string &alias,
+      catalog::db_oid_t db_oid,
+      catalog::table_oid_t tbl_oid);
 };
 
 }  // namespace terrier::optimizer

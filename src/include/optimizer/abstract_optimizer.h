@@ -48,7 +48,7 @@ struct QueryInfo {
   /**
    * @returns StatementType
    */
-  parser::StatementType GetStmtType() const { return stmt_type_; }
+  parser::StatementType GetStatementType() const { return stmt_type_; }
 
   /**
    * @returns Output expressions of the query
@@ -96,17 +96,21 @@ class AbstractOptimizer {
 
   /**
    * Build the plan tree for query execution
-   * @param op_tree Logical operator tree for execution
-   * @param query_info Information about the query
    * @param txn TransactionContext
-   * @param settings SettingsManager to read settings from
    * @param accessor CatalogAccessor for catalog
+   * @param settings SettingsManager to read settings from
    * @param storage StatsStorage
+   * @param query_info Information about the query
+   * @param op_tree Logical operator tree for execution
    * @returns execution plan
    */
   virtual std::unique_ptr<planner::AbstractPlanNode> BuildPlanTree(
-      std::unique_ptr<OperatorExpression> op_tree, QueryInfo query_info, transaction::TransactionContext *txn,
-      settings::SettingsManager *settings, catalog::CatalogAccessor *accessor, StatsStorage *storage) = 0;
+      transaction::TransactionContext *txn,
+      catalog::CatalogAccessor *accessor,
+      settings::SettingsManager *settings,
+      StatsStorage *storage,
+      QueryInfo query_info,
+      std::unique_ptr<OperatorExpression> op_tree) = 0;
 
   /**
    * Reset the optimizer's internal state

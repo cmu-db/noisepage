@@ -115,14 +115,16 @@ class IndexUtil {
    * For an index to fulfill the sort property, the columns sorted
    * on must be in the same order and in the same direction.
    *
+   * @param accessor CatalogAccessor
    * @param prop PropertySort to satisfy
    * @param tbl_oid OID of the table that the index is built on
    * @param idx_oid OID of index to use to satisfy
-   * @param accessor CatalogAccessor
    * @returns TRUE if the specified index can fulfill sort property
    */
-  static bool SatisfiesSortWithIndex(const PropertySort *prop, catalog::table_oid_t tbl_oid,
-                                     catalog::index_oid_t idx_oid, catalog::CatalogAccessor *accessor) {
+  static bool SatisfiesSortWithIndex(catalog::CatalogAccessor *accessor,
+                                     const PropertySort *prop,
+                                     catalog::table_oid_t tbl_oid,
+                                     catalog::index_oid_t idx_oid) {
     auto &index_schema = accessor->GetIndexSchema(idx_oid);
     if (!SatisfiesBaseColumnRequirement(index_schema)) {
       return false;
@@ -228,16 +230,16 @@ class IndexUtil {
 
   /**
    * Checks whether a set of predicates can be satisfied with an index
+   * @param accessor CatalogAccessor
    * @param tbl_oid OID of the table
    * @param index_oid OID of an index to check
    * @param preds_metadata IndexUtilMetadata from PopulateMetadata on predicates
    * @param output_metadata Output IndexUtilMetadata for creating IndexScan
-   * @param accessor CatalogAccessor
    * @returns Whether index can be used
    */
-  static bool SatisfiesPredicateWithIndex(catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
-                                          IndexUtilMetadata *preds_metadata, IndexUtilMetadata *output_metadata,
-                                          catalog::CatalogAccessor *accessor) {
+  static bool SatisfiesPredicateWithIndex(catalog::CatalogAccessor *accessor,
+                                          catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
+                                          IndexUtilMetadata *preds_metadata, IndexUtilMetadata *output_metadata) {
     auto &index_schema = accessor->GetIndexSchema(index_oid);
     if (!SatisfiesBaseColumnRequirement(index_schema)) {
       return false;
@@ -306,14 +308,15 @@ class IndexUtil {
   /**
    * Retrieves the catalog::col_oid_t equivalent for the index
    * @requires SatisfiesBaseColumnRequirement(schema)
+   * @param accessor CatalogAccessor to use
    * @param tbl_oid Table the index belongs to
    * @param schema Schema
-   * @param accessor CatalogAccessor to use
    * @param col_oids Vector to place col_oid_t translations
    * @returns TRUE if conversion successful
    */
-  static bool GetIndexColOid(catalog::table_oid_t tbl_oid, const catalog::IndexSchema &schema,
-                             catalog::CatalogAccessor *accessor, std::vector<catalog::col_oid_t> *col_oids) {
+  static bool GetIndexColOid(catalog::CatalogAccessor *accessor,
+                             catalog::table_oid_t tbl_oid, const catalog::IndexSchema &schema,
+                             std::vector<catalog::col_oid_t> *col_oids) {
     TERRIER_ASSERT(SatisfiesBaseColumnRequirement(schema), "GetIndexColOid() pre-cond not satisfied");
     auto &tbl_schema = accessor->GetSchema(tbl_oid);
     if (tbl_schema.GetColumns().size() < schema.GetColumns().size()) {
@@ -335,10 +338,7 @@ class IndexUtil {
         }
 
         auto it = schema_col.find(tv_expr->GetColumnName());
-        if (it == schema_col.end()) {
-          return false;  // column not found???
-        }
-
+        TERRIER_ASSERT(it != schema_col.end(), "Inconsistency between IndexSchema and table schema");
         col_oids->push_back(it->second);
       }
     }

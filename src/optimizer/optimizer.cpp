@@ -27,8 +27,12 @@ void Optimizer::Reset() {
 }
 
 std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(
-    std::unique_ptr<OperatorExpression> op_tree, QueryInfo query_info, transaction::TransactionContext *txn,
-    settings::SettingsManager *settings, catalog::CatalogAccessor *accessor, StatsStorage *storage) {
+    transaction::TransactionContext *txn,
+    catalog::CatalogAccessor *accessor,
+    settings::SettingsManager *settings,
+    StatsStorage *storage,
+    QueryInfo query_info,
+    std::unique_ptr<OperatorExpression> op_tree) {
   metadata_->SetTxn(txn);
   metadata_->SetCatalogAccessor(accessor);
   metadata_->SetStatsStorage(storage);

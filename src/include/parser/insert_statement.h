@@ -69,7 +69,6 @@ class InsertStatement : public SQLStatement {
   }
 
  private:
-  // TODO(Gus): Get rid of shared pointers
   const InsertType type_;
   const std::unique_ptr<std::vector<std::string>> columns_;
   const std::unique_ptr<TableRef> table_ref_;

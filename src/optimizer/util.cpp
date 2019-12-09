@@ -9,11 +9,11 @@
 
 namespace terrier::optimizer {
 
-void Util::ExtractEquiJoinKeys(const std::vector<AnnotatedExpression> &join_predicates,
-                               std::vector<common::ManagedPointer<parser::AbstractExpression>> *left_keys,
-                               std::vector<common::ManagedPointer<parser::AbstractExpression>> *right_keys,
-                               const std::unordered_set<std::string> &left_alias,
-                               const std::unordered_set<std::string> &right_alias) {
+void OptimizerUtil::ExtractEquiJoinKeys(const std::vector<AnnotatedExpression> &join_predicates,
+                                        std::vector<common::ManagedPointer<parser::AbstractExpression>> *left_keys,
+                                        std::vector<common::ManagedPointer<parser::AbstractExpression>> *right_keys,
+                                        const std::unordered_set<std::string> &left_alias,
+                                        const std::unordered_set<std::string> &right_alias) {
   for (auto &expr_unit : join_predicates) {
     auto expr = expr_unit.GetExpr();
     if (expr->GetExpressionType() == parser::ExpressionType::COMPARE_EQUAL) {
@@ -44,10 +44,11 @@ void Util::ExtractEquiJoinKeys(const std::vector<AnnotatedExpression> &join_pred
   }
 }
 
-std::vector<parser::AbstractExpression *> Util::GenerateTableColumnValueExprs(const std::string &alias,
-                                                                              catalog::db_oid_t db_oid,
-                                                                              catalog::table_oid_t tbl_oid,
-                                                                              catalog::CatalogAccessor *accessor) {
+std::vector<parser::AbstractExpression *> OptimizerUtil::GenerateTableColumnValueExprs(
+    catalog::CatalogAccessor *accessor,
+    const std::string &alias,
+    catalog::db_oid_t db_oid,
+    catalog::table_oid_t tbl_oid) {
   // @note(boweic): we seems to provide all columns here, in case where there are
   // a lot of attributes and we're only visiting a few this is not efficient
   auto &schema = accessor->GetSchema(tbl_oid);

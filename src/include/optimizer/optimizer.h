@@ -55,19 +55,21 @@ class Optimizer : public AbstractOptimizer {
 
   /**
    * Build the plan tree for query execution
-   * @param op_tree Logical operator tree for execution
-   * @param query_info Information about the query
    * @param txn TransactionContext
-   * @param settings SettingsManager to read settings from
    * @param accessor CatalogAccessor for catalog
+   * @param settings SettingsManager to read settings from
    * @param storage StatsStorage
+   * @param query_info Information about the query
+   * @param op_tree Logical operator tree for execution
    * @returns execution plan
    */
-  std::unique_ptr<planner::AbstractPlanNode> BuildPlanTree(std::unique_ptr<OperatorExpression> op_tree,
-                                                           QueryInfo query_info, transaction::TransactionContext *txn,
-                                                           settings::SettingsManager *settings,
-                                                           catalog::CatalogAccessor *accessor,
-                                                           StatsStorage *storage) override;
+  std::unique_ptr<planner::AbstractPlanNode> BuildPlanTree(
+      transaction::TransactionContext *txn,
+      catalog::CatalogAccessor *accessor,
+      settings::SettingsManager *settings,
+      StatsStorage *storage,
+      QueryInfo query_info,
+      std::unique_ptr<OperatorExpression> op_tree);
 
   /**
    * Invoke a single optimization pass through the entire query.
@@ -93,18 +95,20 @@ class Optimizer : public AbstractOptimizer {
   /**
    * Retrieve the lowest cost execution plan with the given properties
    *
+   * @param txn TransactionContext
+   * @param accessor CatalogAccessor
+   * @param settings SettingsManager
    * @param id ID of the group to produce the best physical operator
    * @param requirements Set of properties produced operator tree must satisfy
    * @param required_cols AbstractExpression tree output columns group must generate
-   * @param settings SettingsManager
-   * @param accessor CatalogAccessor
-   * @param txn TransactionContext
    * @returns Lowest cost plan
    */
   std::unique_ptr<planner::AbstractPlanNode> ChooseBestPlan(
+      transaction::TransactionContext *txn,
+      catalog::CatalogAccessor *accessor,
+      settings::SettingsManager *settings,
       group_id_t id, PropertySet *required_props,
-      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
-      settings::SettingsManager *settings, catalog::CatalogAccessor *accessor, transaction::TransactionContext *txn);
+      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols);
 
   /**
    * Execute elements of given optimization task stack and ensure that we
