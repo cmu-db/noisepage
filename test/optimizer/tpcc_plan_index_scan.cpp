@@ -40,7 +40,6 @@ TEST_F(TpccPlanIndexScanTests, SimplePredicateIndexScan) {
     EXPECT_EQ(index_plan->GetColumnIds().size(), 1);
     EXPECT_EQ(index_plan->GetColumnIds()[0], schema.GetColumn("no_o_id").Oid());
     EXPECT_EQ(index_plan->IsForUpdate(), false);
-    EXPECT_EQ(index_plan->IsParallel(), false);
     EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(index_plan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 
@@ -90,7 +89,6 @@ TEST_F(TpccPlanIndexScanTests, SimplePredicateFlippedIndexScan) {
     EXPECT_EQ(index_plan->GetColumnIds().size(), 1);
     EXPECT_EQ(index_plan->GetColumnIds()[0], schema.GetColumn("no_o_id").Oid());
     EXPECT_EQ(index_plan->IsForUpdate(), false);
-    EXPECT_EQ(index_plan->IsParallel(), false);
     EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(index_plan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 
@@ -136,7 +134,6 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSort) {
     EXPECT_EQ(index_plan->GetColumnIds().size(), 1);
     EXPECT_EQ(index_plan->GetColumnIds()[0], schema.GetColumn("no_o_id").Oid());
     EXPECT_EQ(index_plan->IsForUpdate(), false);
-    EXPECT_EQ(index_plan->IsParallel(), false);
     EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(index_plan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 
@@ -187,7 +184,6 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicate) {
     EXPECT_EQ(index_plan->GetColumnIds().size(), 1);
     EXPECT_EQ(index_plan->GetColumnIds()[0], schema.GetColumn("no_o_id").Oid());
     EXPECT_EQ(index_plan->IsForUpdate(), false);
-    EXPECT_EQ(index_plan->IsParallel(), false);
     EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(index_plan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 
@@ -269,7 +265,6 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicateWithLimitOffset) {
     EXPECT_EQ(index_plan->GetColumnIds()[0], schema.GetColumn("no_w_id").Oid());
     EXPECT_EQ(index_plan->GetColumnIds()[1], schema.GetColumn("no_o_id").Oid());
     EXPECT_EQ(index_plan->IsForUpdate(), false);
-    EXPECT_EQ(index_plan->IsParallel(), false);
     EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(index_plan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 

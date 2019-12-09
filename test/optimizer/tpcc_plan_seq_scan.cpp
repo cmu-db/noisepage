@@ -29,7 +29,6 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelect) {
     auto seq = dynamic_cast<planner::SeqScanPlanNode *>(plan.get());
     EXPECT_EQ(seq->GetScanPredicate(), nullptr);
     EXPECT_EQ(seq->IsForUpdate(), false);
-    EXPECT_EQ(seq->IsParallel(), test->settings_manager_->GetBool(settings::Param::parallel_execution));
     EXPECT_EQ(seq->GetDatabaseOid(), test->db_);
     EXPECT_EQ(seq->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 
@@ -62,7 +61,6 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicate) {
 
     auto seq = dynamic_cast<planner::SeqScanPlanNode *>(plan.get());
     EXPECT_EQ(seq->IsForUpdate(), false);
-    EXPECT_EQ(seq->IsParallel(), test->settings_manager_->GetBool(settings::Param::parallel_execution));
     EXPECT_EQ(seq->GetDatabaseOid(), test->db_);
     EXPECT_EQ(seq->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
     EXPECT_EQ(seq->GetTableOid(), test->tbl_order_);
@@ -123,7 +121,6 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderBy) {
     // Check SeqScan
     auto seq = reinterpret_cast<const planner::SeqScanPlanNode *>(plans);
     EXPECT_EQ(seq->IsForUpdate(), false);
-    EXPECT_EQ(seq->IsParallel(), test->settings_manager_->GetBool(settings::Param::parallel_execution));
     EXPECT_EQ(seq->GetDatabaseOid(), test->db_);
     EXPECT_EQ(seq->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
     EXPECT_EQ(seq->GetTableOid(), test->tbl_order_);
@@ -172,7 +169,6 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateLimit) {
     EXPECT_EQ(plans->GetPlanNodeType(), planner::PlanNodeType::SEQSCAN);
     auto seq = reinterpret_cast<const planner::SeqScanPlanNode *>(plans);
     EXPECT_EQ(seq->IsForUpdate(), false);
-    EXPECT_EQ(seq->IsParallel(), test->settings_manager_->GetBool(settings::Param::parallel_execution));
     EXPECT_EQ(seq->GetDatabaseOid(), test->db_);
     EXPECT_EQ(seq->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
     EXPECT_EQ(seq->GetTableOid(), test->tbl_order_);
@@ -241,7 +237,6 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderByLimit) {
     EXPECT_EQ(plans->GetPlanNodeType(), planner::PlanNodeType::SEQSCAN);
     auto seq = reinterpret_cast<const planner::SeqScanPlanNode *>(plans);
     EXPECT_EQ(seq->IsForUpdate(), false);
-    EXPECT_EQ(seq->IsParallel(), test->settings_manager_->GetBool(settings::Param::parallel_execution));
     EXPECT_EQ(seq->GetDatabaseOid(), test->db_);
     EXPECT_EQ(seq->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
     EXPECT_EQ(seq->GetTableOid(), test->tbl_order_);
