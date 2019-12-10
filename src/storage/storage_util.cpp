@@ -10,7 +10,7 @@
 namespace terrier::storage {
 
 template <class RowType>
-void StorageUtil::CopyWithNullCheck(const byte *const from, RowType *const to, const uint8_t size,
+void StorageUtil::CopyWithNullCheck(const byte *const from, RowType *const to, const uint16_t size,
                                     const uint16_t projection_list_index) {
   if (from == nullptr)
     to->SetNull(projection_list_index);
@@ -18,9 +18,9 @@ void StorageUtil::CopyWithNullCheck(const byte *const from, RowType *const to, c
     std::memcpy(to->AccessForceNotNull(projection_list_index), from, size);
 }
 
-template void StorageUtil::CopyWithNullCheck<ProjectedRow>(const byte *, ProjectedRow *, uint8_t, uint16_t);
+template void StorageUtil::CopyWithNullCheck<ProjectedRow>(const byte *, ProjectedRow *, uint16_t, uint16_t);
 template void StorageUtil::CopyWithNullCheck<ProjectedColumns::RowView>(const byte *, ProjectedColumns::RowView *,
-                                                                        uint8_t, uint16_t);
+                                                                        uint16_t, uint16_t);
 
 void StorageUtil::CopyWithNullCheck(const byte *const from, const TupleAccessStrategy &accessor, const TupleSlot to,
                                     const col_id_t col_id) {
@@ -98,7 +98,7 @@ uint32_t StorageUtil::PadUpToSize(const uint8_t word_size, const uint32_t offset
   return (offset + mask) & (~mask);
 }
 
-std::vector<uint16_t> StorageUtil::ComputeBaseAttributeOffsets(const std::vector<uint8_t> &attr_sizes,
+std::vector<uint16_t> StorageUtil::ComputeBaseAttributeOffsets(const std::vector<uint16_t> &attr_sizes,
                                                                uint16_t num_reserved_columns) {
   // First compute {count_varlen, count_8, count_4, count_2, count_1}
   // Then {offset_varlen, offset_8, offset_4, offset_2, offset_1} is the inclusive scan of the counts

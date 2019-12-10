@@ -536,9 +536,9 @@ std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ParseResu
       }
 
       if (alias != nullptr)
-        result = std::make_unique<ColumnValueExpression>("", table_name, col_name, std::string(alias));
+        result = std::make_unique<ColumnValueExpression>(table_name, col_name, std::string(alias));
       else
-        result = std::make_unique<ColumnValueExpression>("", table_name, col_name);
+        result = std::make_unique<ColumnValueExpression>(table_name, col_name);
       break;
     }
     case T_A_Star: {
@@ -1314,10 +1314,6 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(ParseResult *
     index_type = IndexType::BWTREE;
   } else if (strcmp(access_method, "hash") == 0) {
     index_type = IndexType::HASH;
-  } else if (strcmp(access_method, "skiplist") == 0) {
-    index_type = IndexType::SKIPLIST;
-  } else if (strcmp(access_method, "art") == 0) {
-    index_type = IndexType::ART;
   } else {
     PARSER_LOG_DEBUG("CreateIndexTransform: IndexType {} not supported", access_method);
     throw NOT_IMPLEMENTED_EXCEPTION("CreateIndexTransform error");

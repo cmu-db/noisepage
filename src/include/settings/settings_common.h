@@ -15,6 +15,9 @@
 #ifdef SETTING_int
 #undef SETTING_int
 #endif
+#ifdef SETTING_int64
+#undef SETTING_int64
+#endif
 #ifdef SETTING_double
 #undef SETTING_double
 #endif
@@ -28,6 +31,15 @@
 #define VALIDATOR_int(name, default_value)                                      \
   static bool Validate##name(const char *setting_name, int value) {             \
     if (FLAGS_##name == static_cast<int>(default_value)) {                      \
+      return true;                                                              \
+    }                                                                           \
+    SETTINGS_LOG_ERROR("Value for {} has been set to {}", #name, FLAGS_##name); \
+    return false;                                                               \
+  }
+
+#define VALIDATOR_int64(name, default_value)                                    \
+  static bool Validate##name(const char *setting_name, int64_t value) {         \
+    if (FLAGS_##name == static_cast<int64_t>(default_value)) {                  \
       return true;                                                              \
     }                                                                           \
     SETTINGS_LOG_ERROR("Value for {} has been set to {}", #name, FLAGS_##name); \
@@ -48,6 +60,11 @@
   VALIDATOR_int(name, default_value);                                                                \
   DEFINE_validator(name, &Validate##name);
 
+#define SETTING_int64(name, description, default_value, min_value, max_value, is_mutable, callback_fn) \
+  DEFINE_int64(name, default_value, description);                                                      \
+  VALIDATOR_int64(name, default_value);                                                                \
+  DEFINE_validator(name, &Validate##name);
+
 #define SETTING_double(name, description, default_value, min_value, max_value, is_mutable, callback_fn) \
   DEFINE_double(name, default_value, description);                                                      \
   VALIDATOR_double(name, default_value);                                                                \
@@ -64,6 +81,9 @@
 #ifdef SETTING_int
 #undef SETTING_int
 #endif
+#ifdef SETTING_int64
+#undef SETTING_int64
+#endif
 #ifdef SETTING_double
 #undef SETTING_double
 #endif
@@ -77,6 +97,9 @@
 #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn) \
   DECLARE_int32(name);
 
+#define SETTING_int64(name, description, default_value, min_value, max_value, is_mutable, callback_fn) \
+  DECLARE_int64(name);
+
 #define SETTING_double(name, description, default_value, min_value, max_value, is_mutable, callback_fn) \
   DECLARE_double(name);
 
@@ -89,6 +112,9 @@
 #ifdef SETTING_int
 #undef SETTING_int
 #endif
+#ifdef SETTING_int64
+#undef SETTING_int64
+#endif
 #ifdef SETTING_double
 #undef SETTING_double
 #endif
@@ -100,6 +126,10 @@
 #endif
 #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn)  \
   ValidateSetting(terrier::settings::Param::name, type::TransientValueFactory::GetInteger(min_value), \
+                  type::TransientValueFactory::GetInteger(max_value));
+
+#define SETTING_int64(name, description, default_value, min_value, max_value, is_mutable, callback_fn) \
+  ValidateSetting(terrier::settings::Param::name, type::TransientValueFactory::GetBigInt(min_value),   \
                   type::TransientValueFactory::GetInteger(max_value));
 
 #define SETTING_double(name, description, default_value, min_value, max_value, is_mutable, callback_fn) \
@@ -119,6 +149,9 @@
 #ifdef SETTING_int
 #undef SETTING_int
 #endif
+#ifdef SETTING_int64
+#undef SETTING_int64
+#endif
 #ifdef SETTING_double
 #undef SETTING_double
 #endif
@@ -130,6 +163,8 @@
 #endif
 #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn) name,
 
+#define SETTING_int64(name, description, default_value, min_value, max_value, is_mutable, callback_fn) name,
+
 #define SETTING_double(name, description, default_value, min_value, max_value, is_mutable, callback_fn) name,
 
 #define SETTING_bool(name, description, default_value, is_mutable, callback_fn) name,
@@ -140,6 +175,9 @@
 #ifdef __SETTING_POPULATE__
 #ifdef SETTING_int
 #undef SETTING_int
+#endif
+#ifdef SETTING_int64
+#undef SETTING_int64
 #endif
 #ifdef SETTING_double
 #undef SETTING_double
@@ -155,6 +193,13 @@
       terrier::settings::Param::name,                                                                                  \
       terrier::settings::ParamInfo(#name, terrier::type::TransientValueFactory::GetInteger(FLAGS_##name), description, \
                                    terrier::type::TransientValueFactory::GetInteger(default_value), is_mutable,        \
+                                   min_value, max_value, &callback_fn));
+
+#define SETTING_int64(name, description, default_value, min_value, max_value, is_mutable, callback_fn)                \
+  param_map.emplace(                                                                                                  \
+      terrier::settings::Param::name,                                                                                 \
+      terrier::settings::ParamInfo(#name, terrier::type::TransientValueFactory::GetBigInt(FLAGS_##name), description, \
+                                   terrier::type::TransientValueFactory::GetBigInt(default_value), is_mutable,        \
                                    min_value, max_value, &callback_fn));
 
 #define SETTING_double(name, description, default_value, min_value, max_value, is_mutable, callback_fn)                \

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+
 #include "common/exception.h"
 #include "common/strong_typedef.h"
 #include "storage/block_layout.h"
@@ -23,7 +24,7 @@ class TypeUtil {
    * without this constraint, but it would likely incur a speed impact on creation of ProjectedColumns and RowViews.
    * @throw std::runtime_error if type is unknown
    */
-  static uint8_t GetTypeSize(const TypeId type_id) {
+  static uint16_t GetTypeSize(const TypeId type_id) {
     switch (type_id) {
       case TypeId::BOOLEAN:
       case TypeId::TINYINT:
@@ -39,7 +40,7 @@ class TypeUtil {
         return 8;
       case TypeId::VARCHAR:
       case TypeId::VARBINARY:
-        return VARLEN_COLUMN;
+        return storage::VARLEN_COLUMN;
       default:
         throw std::runtime_error("Unknown TypeId in terrier::type::TypeUtil::GetTypeSize().");
     }

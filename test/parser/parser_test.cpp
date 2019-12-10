@@ -296,7 +296,7 @@ TEST_F(ParserTestBase, DropSchemaTest) {
 
   auto drop_stmt = result.GetStatement(0).CastManagedPointerTo<DropStatement>();
   EXPECT_EQ(drop_stmt->GetDropType(), DropStatement::DropType::kSchema);
-  EXPECT_EQ(drop_stmt->GetSchemaName(), "foo");
+  EXPECT_EQ(drop_stmt->GetNamespaceName(), "foo");
   EXPECT_TRUE(drop_stmt->IsCascade());
   EXPECT_TRUE(drop_stmt->IsIfExists());
 }
@@ -1276,13 +1276,13 @@ TEST_F(ParserTestBase, OldCreateIndexTest) {
   EXPECT_EQ(create_stmt->GetIndexAttributes()[0].GetName(), "o_w_id");
   EXPECT_EQ(create_stmt->GetIndexAttributes()[1].GetName(), "o_d_id");
 
-  query = "CREATE INDEX ii ON t USING SKIPLIST (col);";
+  query = "CREATE INDEX ii ON t USING HASH (col);";
   result = pgparser_.BuildParseTree(query);
   create_stmt = result.GetStatement(0).CastManagedPointerTo<CreateStatement>();
 
   // Check attributes
   EXPECT_EQ(create_stmt->GetCreateType(), CreateStatement::kIndex);
-  EXPECT_EQ(create_stmt->GetIndexType(), IndexType::SKIPLIST);
+  EXPECT_EQ(create_stmt->GetIndexType(), IndexType::HASH);
   EXPECT_EQ(create_stmt->GetIndexName(), "ii");
   EXPECT_EQ(create_stmt->GetTableName(), "t");
 
@@ -1330,13 +1330,13 @@ TEST_F(ParserTestBase, OldCreateSchemaTest) {
   std::string query = "CREATE SCHEMA tt";
   auto result = pgparser_.BuildParseTree(query);
   auto create_stmt = result.GetStatement(0).CastManagedPointerTo<CreateStatement>();
-  EXPECT_EQ("tt", create_stmt->GetSchemaName());
+  EXPECT_EQ("tt", create_stmt->GetNamespaceName());
 
   // Test default schema name
   query = "CREATE SCHEMA AUTHORIZATION joe";
   result = pgparser_.BuildParseTree(query);
   create_stmt = result.GetStatement(0).CastManagedPointerTo<CreateStatement>();
-  EXPECT_EQ("joe", create_stmt->GetSchemaName());
+  EXPECT_EQ("joe", create_stmt->GetNamespaceName());
 }
 
 // NOLINTNEXTLINE

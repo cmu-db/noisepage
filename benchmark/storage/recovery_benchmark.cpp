@@ -94,13 +94,13 @@ class RecoveryBenchmark : public benchmark::Fixture {
       // Clean up recovered data
       recovered_catalog.TearDown();
       delete recovery_gc_thread;
-      StorageTestUtil::FullyPerformGC(&recovery_gc, DISABLED);
+      deferred_action_manager.FullyPerformGC(&recovery_gc, DISABLED);
 
       // Clean up test data
       catalog.TearDown();
       delete tested;
       delete gc_thread;
-      StorageTestUtil::FullyPerformGC(&gc, &log_manager);
+      deferred_action_manager.FullyPerformGC(&gc, &log_manager);
       log_manager.PersistAndStop();
       delete thread_registry_;
     }
@@ -251,12 +251,12 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     // Clean up recovered data
     recovered_catalog.TearDown();
     delete recovery_gc_thread;
-    StorageTestUtil::FullyPerformGC(&recovery_gc, DISABLED);
+    deferred_action_manager.FullyPerformGC(&recovery_gc, DISABLED);
 
     // Clean up test data
     catalog.TearDown();
     delete gc_thread;
-    StorageTestUtil::FullyPerformGC(&gc, &log_manager);
+    deferred_action_manager.FullyPerformGC(&gc, &log_manager);
     log_manager.PersistAndStop();
     delete thread_registry_;
   }

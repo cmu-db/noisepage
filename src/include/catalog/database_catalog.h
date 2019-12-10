@@ -270,6 +270,16 @@ class DatabaseCatalog {
   std::vector<Column> GetColumns(transaction::TransactionContext *txn, ClassOid class_oid);
 
   /**
+   * A list of all oids and their postgres::ClassKind from pg_class on the given namespace. This is currently designed
+   * as an internal function, though could be exposed via the CatalogAccessor if desired in the future.
+   * @param txn for the operation
+   * @param ns being queried
+   * @return vector of OIDs for all of the objects on this namespace
+   */
+  std::vector<std::pair<uint32_t, postgres::ClassKind>> GetNamespaceClassOids(transaction::TransactionContext *txn,
+                                                                              namespace_oid_t ns_oid);
+
+  /**
    * Delete entries from pg_attribute
    * @tparam Column type of columns
    * @param txn txn to use
@@ -335,10 +345,11 @@ class DatabaseCatalog {
   storage::index::Index *constraints_foreigntable_index_;
 
   std::atomic<uint32_t> next_oid_;
+  std::atomic<transaction::timestamp_t> write_lock_;
 
   const db_oid_t db_oid_;
 
-  explicit DatabaseCatalog(db_oid_t oid) : db_oid_(oid) {}
+  explicit DatabaseCatalog(db_oid_t oid) : write_lock_(transaction::INITIAL_TXN_TIMESTAMP), db_oid_(oid) {}
 
   void TearDown(transaction::TransactionContext *txn);
   bool CreateTableEntry(transaction::TransactionContext *txn, table_oid_t table_oid, namespace_oid_t ns_oid,
@@ -347,6 +358,18 @@ class DatabaseCatalog {
   friend class Catalog;
   friend class postgres::Builder;
   friend class storage::RecoveryManager;
+
+  /**
+   * Internal function to DatabaseCatalog to disallow concurrent DDL changes. This also disallows older txns to enact
+   * DDL changes after a newer transaction has committed one. This effectively follows the same timestamp ordering logic
+   * as the version pointer MVCC stuff in the storage layer. It also serializes all DDL within a database.
+   * @param txn Requesting txn. This is used to inspect the timestamp and register commit/abort events to release the
+   * lock if it is acquired.
+   * @return true if lock was acquired, false otherwise
+   * @warning this requires that commit actions be performed after the commit time is stored in the
+   * TransactionContext's FinishTime.
+   */
+  bool TryLock(transaction::TransactionContext *txn);
 
   /**
    * Atomically updates the next oid counter to the max of the current count and the provided next oid
@@ -372,6 +395,15 @@ class DatabaseCatalog {
    */
   bool CreateIndexEntry(transaction::TransactionContext *txn, namespace_oid_t ns_oid, table_oid_t table_oid,
                         index_oid_t index_oid, const std::string &name, const IndexSchema &schema);
+
+  /**
+   * Delete all of the indexes for a given table. This is currently designed as an internal function, though could be
+   * exposed via the CatalogAccessor if desired in the future.
+   * @param txn for the operation
+   * @param table to remove all indexes for
+   * @return true if the deletion succeeded, otherwise false.
+   */
+  bool DeleteIndexes(transaction::TransactionContext *txn, table_oid_t table);
 
   /**
    * Bootstraps the built-in types found in type::Type

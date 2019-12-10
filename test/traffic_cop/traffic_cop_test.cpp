@@ -3,140 +3,63 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "common/settings.h"
 #include "gtest/gtest.h"
 #include "loggers/main_logger.h"
+#include "main/db_main.h"
 #include "network/connection_handle_factory.h"
 #include "network/terrier_server.h"
+#include "storage/garbage_collector.h"
 #include "test_util/manual_packet_util.h"
 #include "test_util/test_harness.h"
 #include "traffic_cop/traffic_cop.h"
+#include "traffic_cop/traffic_cop_defs.h"
+#include "transaction/deferred_action_manager.h"
+#include "transaction/transaction_manager.h"
+
+#define __SETTING_GFLAGS_DEFINE__      // NOLINT
+#include "settings/settings_common.h"  // NOLINT
+#include "settings/settings_defs.h"    // NOLINT
+#undef __SETTING_GFLAGS_DEFINE__       // NOLINT
 
 namespace terrier::trafficcop {
+
 class TrafficCopTests : public TerrierTest {
  protected:
-  std::unique_ptr<network::TerrierServer> server_;
   uint16_t port_ = common::Settings::SERVER_PORT;
-  std::thread server_thread_;
 
-  TrafficCop tcop_;
-  network::PostgresCommandFactory command_factory_;
-  network::PostgresProtocolInterpreter::Provider interpreter_provider_{common::ManagedPointer(&command_factory_)};
-  std::unique_ptr<network::ConnectionHandleFactory> handle_factory_;
-  common::DedicatedThreadRegistry thread_registry_ = common::DedicatedThreadRegistry(DISABLED);
+  DBMain *db_main_;
+  common::ManagedPointer<network::TerrierServer> server_;
+  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
+  common::ManagedPointer<catalog::Catalog> catalog_;
 
   void SetUp() override {
-    TerrierTest::SetUp();
+    std::unordered_map<settings::Param, settings::ParamInfo> param_map;
+    terrier::settings::SettingsManager::ConstructParamMap(param_map);
 
-    network::network_logger->set_level(spdlog::level::trace);
-    test_logger->set_level(spdlog::level::debug);
-    spdlog::flush_every(std::chrono::seconds(1));
-
-    try {
-      handle_factory_ = std::make_unique<network::ConnectionHandleFactory>(common::ManagedPointer(&tcop_));
-      server_ = std::make_unique<network::TerrierServer>(
-          common::ManagedPointer<network::ProtocolInterpreter::Provider>(&interpreter_provider_),
-          common::ManagedPointer(handle_factory_.get()),
-          common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry_));
-      server_->SetPort(port_);
-      server_->RunServer();
-    } catch (NetworkProcessException &exception) {
-      TEST_LOG_ERROR("[LaunchServer] exception when launching server");
-      throw;
-    }
-    TEST_LOG_DEBUG("Server initialized");
+    db_main_ = new DBMain(std::move(param_map));
+    txn_manager_ = common::ManagedPointer(db_main_->txn_manager_);
+    catalog_ = common::ManagedPointer(db_main_->catalog_);
+    server_ = common::ManagedPointer(db_main_->server_);
+    db_main_->running_ = true;
+    server_->SetPort(port_);
+    server_->RunServer();
   }
 
-  void TearDown() override {
-    server_->StopServer();
-    TEST_LOG_DEBUG("Terrier has shut down");
-    TerrierTest::TearDown();
-  }
+  void TearDown() override { delete db_main_; }
 
   // The port used to connect a Postgres backend. Useful for debugging.
   const int postgres_port_ = 5432;
-
-  /**
-   * Read packet from the server (without parsing) until receiving ReadyForQuery or the connection is closed.
-   * @param io_socket
-   * @param expected_msg_type
-   * @return true if reads the expected type message, false for closed.
-   */
-  bool ReadUntilMessageOrClose(const std::shared_ptr<network::NetworkIoWrapper> &io_socket,
-                               const network::NetworkMessageType &expected_msg_type) {
-    while (true) {
-      io_socket->GetReadBuffer()->Reset();
-      network::Transition trans = io_socket->FillReadBuffer();
-      if (trans == network::Transition::TERMINATE) return false;
-
-      while (io_socket->GetReadBuffer()->HasMore()) {
-        auto type = io_socket->GetReadBuffer()->ReadValue<network::NetworkMessageType>();
-        auto size = io_socket->GetReadBuffer()->ReadValue<int32_t>();
-        if (size >= 4) io_socket->GetReadBuffer()->Skip(static_cast<size_t>(size - 4));
-
-        if (type == expected_msg_type) return true;
-      }
-    }
-  }
-
-  /**
-   * A wrapper for ReadUntilMessageOrClose since most of the times people expect PG_READY_FOR_QUERY.
-   * @param io_socket
-   * @return
-   */
-  bool ReadUntilReadyOrClose(const std::shared_ptr<network::NetworkIoWrapper> &io_socket) {
-    return ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_READY_FOR_QUERY);
-  }
-
-  std::shared_ptr<network::NetworkIoWrapper> StartConnection(uint16_t port) {
-    // Manually open a socket
-    int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-
-    struct sockaddr_in serv_addr;
-    memset(&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    serv_addr.sin_port = htons(port);
-
-    int64_t ret = connect(socket_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
-    if (ret < 0) TEST_LOG_ERROR("Connection Error");
-
-    auto io_socket = std::make_shared<network::NetworkIoWrapper>(socket_fd);
-    network::PostgresPacketWriter writer(io_socket->GetWriteQueue());
-
-    std::unordered_map<std::string, std::string> params{
-        {"user", "postgres"}, {"database", "postgres"}, {"application_name", "psql"}};
-
-    writer.WriteStartupRequest(params);
-    io_socket->FlushAllWrites();
-
-    ReadUntilReadyOrClose(io_socket);
-    return io_socket;
-  }
-
-/*
- * Read and write buffer size for the test
- */
-#define TEST_BUF_SIZE 1000
-
-  void TerminateConnection(int socket_fd) {
-    char out_buffer[TEST_BUF_SIZE] = {};
-    // Build a correct query message, "SELECT A FROM B"
-    memset(out_buffer, 0, sizeof(out_buffer));
-    out_buffer[0] = 'X';
-    int len = sizeof(int32_t) + sizeof(char);
-    reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(len);
-    write(socket_fd, nullptr, len + 1);
-  }
 };
 
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, RoundTripTest) {
   try {
-    pqxx::connection connection(
-        fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port_));
+    pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+                                            port_, catalog::DEFAULT_DATABASE));
 
     pqxx::work txn1(connection);
     txn1.exec("DROP TABLE IF EXISTS TableA");
@@ -144,19 +67,41 @@ TEST_F(TrafficCopTests, RoundTripTest) {
     txn1.exec("INSERT INTO TableA VALUES (1, 'abc');");
 
     pqxx::result r = txn1.exec("SELECT * FROM TableA");
-    for (const pqxx::row &row : r) {
-      std::string row_str;
-      for (const pqxx::field &col : row) {
-        row_str += col.c_str();
-        row_str += '\t';
-      }
-      TEST_LOG_INFO(row_str);
-    }
-    txn1.commit();
-
     EXPECT_EQ(r.size(), 1);
+    txn1.commit();
+    connection.disconnect();
   } catch (const std::exception &e) {
-    TEST_LOG_ERROR("Exception occurred: {0}", e.what());
+    EXPECT_TRUE(false);
+  }
+}
+
+/**
+ * Test whether a temporary namespace is created for a connection to the database
+ */
+// NOLINTNEXTLINE
+TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
+  try {
+    pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+                                            port_, catalog::DEFAULT_DATABASE));
+
+    pqxx::work txn1(connection);
+
+    // Create a new namespace and make sure that its OID is higher than the default start OID,
+    // which should have been assigned to the temporary namespace for this connection
+    catalog::namespace_oid_t new_namespace_oid = catalog::INVALID_NAMESPACE_OID;
+    do {
+      auto txn = txn_manager_->BeginTransaction();
+      auto db_oid = catalog_->GetDatabaseOid(txn, catalog::DEFAULT_DATABASE);
+      EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
+      auto db_accessor = catalog_->GetAccessor(txn, db_oid);
+      EXPECT_NE(db_accessor, nullptr);
+      new_namespace_oid = db_accessor->CreateNamespace(std::string(trafficcop::TEMP_NAMESPACE_PREFIX));
+      txn_manager_->Abort(txn);
+    } while (new_namespace_oid == catalog::INVALID_NAMESPACE_OID);
+    EXPECT_GT(static_cast<uint32_t>(new_namespace_oid), catalog::START_OID);
+    txn1.commit();
+    connection.disconnect();
+  } catch (const std::exception &e) {
     EXPECT_TRUE(false);
   }
 }
@@ -164,43 +109,44 @@ TEST_F(TrafficCopTests, RoundTripTest) {
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
   try {
-    auto io_socket = network::ManualPacketUtil::StartConnection(port_);
+    auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
+    auto io_socket = common::ManagedPointer(io_socket_unique_ptr);
     network::PostgresPacketWriter writer(io_socket->GetWriteQueue());
 
     writer.WriteSimpleQuery("DROP TABLE IF EXISTS TableA");
     io_socket->FlushAllWrites();
-    ReadUntilReadyOrClose(io_socket);
+    network::ManualPacketUtil::ReadUntilReadyOrClose(io_socket);
 
     writer.WriteSimpleQuery(
         "CREATE TABLE TableA (a_int INT PRIMARY KEY, a_dec DECIMAL, a_text TEXT, a_time TIMESTAMP, a_bigint BIGINT);");
     io_socket->FlushAllWrites();
-    ReadUntilReadyOrClose(io_socket);
+    network::ManualPacketUtil::ReadUntilReadyOrClose(io_socket);
 
     writer.WriteSimpleQuery("INSERT INTO TableA VALUES(100, 3.14, 'nico', 114514, 1234)");
     io_socket->FlushAllWrites();
-    ReadUntilReadyOrClose(io_socket);
+    network::ManualPacketUtil::ReadUntilReadyOrClose(io_socket);
 
     std::string stmt_name = "begin_statement";
     std::string query = "BEGIN";
 
     writer.WriteParseCommand(stmt_name, query, std::vector<int>());
     io_socket->FlushAllWrites();
-    ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_PARSE_COMPLETE);
+    network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_PARSE_COMPLETE);
 
     {
       std::string portal_name = "test_portal";
       // Use text format, don't care about result column formats
       writer.WriteBindCommand(portal_name, stmt_name, {}, {}, {});
       io_socket->FlushAllWrites();
-      ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_BIND_COMPLETE);
+      network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_BIND_COMPLETE);
 
       writer.WriteExecuteCommand(portal_name, 0);
       io_socket->FlushAllWrites();
-      ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_COMMAND_COMPLETE);
+      network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_COMMAND_COMPLETE);
 
       writer.WriteSyncCommand();
       io_socket->FlushAllWrites();
-      ReadUntilReadyOrClose(io_socket);
+      network::ManualPacketUtil::ReadUntilReadyOrClose(io_socket);
     }
 
     stmt_name = "test_statement";
@@ -213,7 +159,7 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
                                                static_cast<int32_t>(network::PostgresValueType::TIMESTAMPS),
                                                static_cast<int32_t>(network::PostgresValueType::BIGINT)}));
     io_socket->FlushAllWrites();
-    ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_PARSE_COMPLETE);
+    network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_PARSE_COMPLETE);
 
     // Bind, param = "100", "3.14", "nico", "114514" expressed in vector form
     auto param1 = std::vector<char>({'1', '0', '0'});
@@ -227,23 +173,24 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
       // Use text format, don't care about result column formats
       writer.WriteBindCommand(portal_name, stmt_name, {}, {&param1, &param2, &param3, &param4, &param5}, {});
       io_socket->FlushAllWrites();
-      ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_BIND_COMPLETE);
+      network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_BIND_COMPLETE);
 
       writer.WriteDescribeCommand(network::DescribeCommandObjectType::STATEMENT, stmt_name);
       io_socket->FlushAllWrites();
-      ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_PARAMETER_DESCRIPTION);
+      network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket,
+                                                         network::NetworkMessageType::PG_PARAMETER_DESCRIPTION);
 
       writer.WriteDescribeCommand(network::DescribeCommandObjectType::PORTAL, portal_name);
       io_socket->FlushAllWrites();
-      ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_ROW_DESCRIPTION);
+      network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_ROW_DESCRIPTION);
 
       writer.WriteExecuteCommand(portal_name, 0);
       io_socket->FlushAllWrites();
-      ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_DATA_ROW);
+      network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_DATA_ROW);
 
       writer.WriteSyncCommand();
       io_socket->FlushAllWrites();
-      ReadUntilReadyOrClose(io_socket);
+      network::ManualPacketUtil::ReadUntilReadyOrClose(io_socket);
     }
 
     {
@@ -254,19 +201,19 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
       // Use text format, don't care about result column formats, specify "0" for using text for all params
       writer.WriteBindCommand(portal_name, stmt_name, {0}, {&param1, &param2, &param3, &param4, &param5}, {});
       io_socket->FlushAllWrites();
-      ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_BIND_COMPLETE);
+      network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_BIND_COMPLETE);
 
       writer.WriteDescribeCommand(network::DescribeCommandObjectType::PORTAL, portal_name);
       io_socket->FlushAllWrites();
-      ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_ROW_DESCRIPTION);
+      network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_ROW_DESCRIPTION);
 
       writer.WriteExecuteCommand(portal_name, 0);
       io_socket->FlushAllWrites();
-      ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_DATA_ROW);
+      network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_DATA_ROW);
 
       writer.WriteSyncCommand();
       io_socket->FlushAllWrites();
-      ReadUntilReadyOrClose(io_socket);
+      network::ManualPacketUtil::ReadUntilReadyOrClose(io_socket);
     }
 
     {
@@ -277,19 +224,19 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
       writer.WriteBindCommand(portal_name, stmt_name, {0, 0, 0, 0, 0}, {&param1, &param2, &param3, &param4, &param5},
                               {});
       io_socket->FlushAllWrites();
-      ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_BIND_COMPLETE);
+      network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_BIND_COMPLETE);
 
       writer.WriteDescribeCommand(network::DescribeCommandObjectType::PORTAL, portal_name);
       io_socket->FlushAllWrites();
-      ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_ROW_DESCRIPTION);
+      network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_ROW_DESCRIPTION);
 
       writer.WriteExecuteCommand(portal_name, 0);
       io_socket->FlushAllWrites();
-      ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_DATA_ROW);
+      network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_DATA_ROW);
 
       writer.WriteSyncCommand();
       io_socket->FlushAllWrites();
-      ReadUntilReadyOrClose(io_socket);
+      network::ManualPacketUtil::ReadUntilReadyOrClose(io_socket);
     }
 
     // CloseCommand
@@ -301,90 +248,95 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
 
     writer.WriteParseCommand(stmt_name, query, std::vector<int>());
     io_socket->FlushAllWrites();
-    ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_PARSE_COMPLETE);
+    network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_PARSE_COMPLETE);
 
     {
       std::string portal_name = "test_portal";
       // Use text format, don't care about result column formats
       writer.WriteBindCommand(portal_name, stmt_name, {}, {}, {});
       io_socket->FlushAllWrites();
-      ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_BIND_COMPLETE);
+      network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_BIND_COMPLETE);
 
       writer.WriteExecuteCommand(portal_name, 0);
       io_socket->FlushAllWrites();
 
       writer.WriteSyncCommand();
       io_socket->FlushAllWrites();
-      ReadUntilReadyOrClose(io_socket);
+      network::ManualPacketUtil::ReadUntilReadyOrClose(io_socket);
     }
+
+    network::ManualPacketUtil::TerminateConnection(io_socket->GetSocketFd());
+    io_socket->Close();
   } catch (const std::exception &e) {
-    TEST_LOG_ERROR("Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
 }
 
 // -------------------------------------------------------------------------
 
-/*
+/**
  * The manual tests below are for debugging. They can be disabled when testing other components.
  * You can launch a Postgres backend and compare packets from terrier and from Postgres
  * to find if you have created correct packets.
  *
- * */
+ */
 
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, ManualRoundTripTest) {
   try {
-    auto io_socket = StartConnection(port_);
+    auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
+    auto io_socket = common::ManagedPointer(io_socket_unique_ptr);
     network::PostgresPacketWriter writer(io_socket->GetWriteQueue());
 
     writer.WriteSimpleQuery("DROP TABLE IF EXISTS TableA");
     io_socket->FlushAllWrites();
-    ReadUntilReadyOrClose(io_socket);
+    network::ManualPacketUtil::ReadUntilReadyOrClose(io_socket);
     writer.WriteSimpleQuery("CREATE TABLE TableA (id INT PRIMARY KEY, data TEXT);");
     io_socket->FlushAllWrites();
-    ReadUntilReadyOrClose(io_socket);
+    network::ManualPacketUtil::ReadUntilReadyOrClose(io_socket);
     writer.WriteSimpleQuery("INSERT INTO TableA VALUES (1, 'abc');");
     io_socket->FlushAllWrites();
-    ReadUntilReadyOrClose(io_socket);
+    network::ManualPacketUtil::ReadUntilReadyOrClose(io_socket);
 
     writer.WriteSimpleQuery("SELECT * FROM TableA");
     io_socket->FlushAllWrites();
-    ReadUntilReadyOrClose(io_socket);
+    network::ManualPacketUtil::ReadUntilReadyOrClose(io_socket);
+    network::ManualPacketUtil::TerminateConnection(io_socket->GetSocketFd());
+    io_socket->Close();
   } catch (const std::exception &e) {
-    TEST_LOG_ERROR("Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
 }
 
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, ErrorHandlingTest) {
-  auto io_socket = StartConnection(port_);
+  auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
+  auto io_socket = common::ManagedPointer(io_socket_unique_ptr);
   network::PostgresPacketWriter writer(io_socket->GetWriteQueue());
 
   writer.WriteSimpleQuery("DROP TABLE IF EXISTS TableA");
   io_socket->FlushAllWrites();
-  ReadUntilReadyOrClose(io_socket);
+  network::ManualPacketUtil::ReadUntilReadyOrClose(io_socket);
   writer.WriteSimpleQuery("CREATE TABLE TableA (id INT PRIMARY KEY, data TEXT);");
   io_socket->FlushAllWrites();
-  ReadUntilReadyOrClose(io_socket);
+  network::ManualPacketUtil::ReadUntilReadyOrClose(io_socket);
   writer.WriteSimpleQuery("INSERT INTO TableA VALUES (1, 'abc');");
   io_socket->FlushAllWrites();
-  ReadUntilReadyOrClose(io_socket);
+  network::ManualPacketUtil::ReadUntilReadyOrClose(io_socket);
 
   std::string stmt_name = "test_statement";
   std::string query = "SELECT * FROM TableA WHERE id = $1";
   writer.WriteParseCommand(stmt_name, query,
                            std::vector<int>({static_cast<int32_t>(network::PostgresValueType::INTEGER)}));
   io_socket->FlushAllWrites();
-  ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_PARSE_COMPLETE);
+  network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_PARSE_COMPLETE);
 
   {
     // Repeated statement name
     writer.WriteParseCommand(stmt_name, query,
                              std::vector<int>({static_cast<int32_t>(network::PostgresValueType::INTEGER)}));
     io_socket->FlushAllWrites();
-    ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_ERROR_RESPONSE);
+    network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_ERROR_RESPONSE);
   }
 
   std::string portal_name = "test_portal";
@@ -394,14 +346,14 @@ TEST_F(TrafficCopTests, ErrorHandlingTest) {
     // Binding a statement that doesn't exist
     writer.WriteBindCommand(portal_name, "FakeStatementName", {}, {&param1}, {});
     io_socket->FlushAllWrites();
-    ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_ERROR_RESPONSE);
+    network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_ERROR_RESPONSE);
   }
 
   {
     // Wrong number of format codes
     writer.WriteBindCommand(portal_name, stmt_name, {0, 0, 0, 0, 0}, {&param1}, {});
     io_socket->FlushAllWrites();
-    ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_ERROR_RESPONSE);
+    network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_ERROR_RESPONSE);
   }
 
   {
@@ -409,29 +361,29 @@ TEST_F(TrafficCopTests, ErrorHandlingTest) {
     auto param2 = std::vector<char>({'f', 'a', 'k', 'e'});
     writer.WriteBindCommand(portal_name, stmt_name, {}, {&param1, &param2}, {});
     io_socket->FlushAllWrites();
-    ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_ERROR_RESPONSE);
+    network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_ERROR_RESPONSE);
   }
 
   writer.WriteBindCommand(portal_name, stmt_name, {}, {&param1}, {});
   io_socket->FlushAllWrites();
-  ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_BIND_COMPLETE);
+  network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_BIND_COMPLETE);
 
   {
     // Describe a statement and a portal that doesn't exist
     writer.WriteDescribeCommand(network::DescribeCommandObjectType::STATEMENT, "FakeStatementName");
     io_socket->FlushAllWrites();
-    ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_ERROR_RESPONSE);
+    network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_ERROR_RESPONSE);
 
     writer.WriteDescribeCommand(network::DescribeCommandObjectType::PORTAL, "FakePortalName");
     io_socket->FlushAllWrites();
-    ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_ERROR_RESPONSE);
+    network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_ERROR_RESPONSE);
   }
 
   {
     // Execute a portal that doesn't exist
     writer.WriteExecuteCommand("FakePortal", 0);
     io_socket->FlushAllWrites();
-    ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_ERROR_RESPONSE);
+    network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_ERROR_RESPONSE);
   }
 
   {
@@ -441,50 +393,11 @@ TEST_F(TrafficCopTests, ErrorHandlingTest) {
         .AppendString(stmt_name)
         .EndPacket();
     io_socket->FlushAllWrites();
-    ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_ERROR_RESPONSE);
+    network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_ERROR_RESPONSE);
   }
-}
 
-/**
- * I disabled this test because pqxx sends PARSE query with num_params=0, but we are requiring the client to specify
- * all param types in the PARSE query.
- * Please use manual tests before this is supported.
- */
-// NOLINTNEXTLINE
-TEST_F(TrafficCopTests, DISABLED_ExtendedQueryTest) {
-  try {
-    pqxx::connection connection(
-        fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port_));
-
-    pqxx::work txn(connection);
-    pqxx::result res;
-    connection.prepare("DROP TABLE IF EXISTS TableA");
-    res = txn.exec_prepared("");
-    connection.prepare("CREATE TABLE TableA (a_int INT PRIMARY KEY)");
-    res = txn.exec_prepared("");
-
-    connection.prepare("INSERT INTO TableA VALUES(114)");
-    res = txn.exec_prepared("");
-
-    connection.prepare("SELECT * from TableA where a_int = $1");
-    res = txn.exec_prepared("", 114);
-    EXPECT_EQ(1, res.size());
-
-    txn.commit();
-
-    /*
-    connection.prepare("SELECT * from TableA where a_dec = $1");
-    res = txn.exec_prepared("", 1919.81);
-    EXPECT_EQ(1, res.size());
-
-    connection.prepare("SELECT * from TableA where a_text = $1");
-    res = txn.exec_prepared("", "blacktea");
-    EXPECT_EQ(1, res.size());
-    */
-  } catch (const std::exception &e) {
-    TEST_LOG_ERROR("Exception occurred: {0}", e.what());
-    EXPECT_TRUE(false);
-  }
+  network::ManualPacketUtil::TerminateConnection(io_socket->GetSocketFd());
+  io_socket->Close();
 }
 
 }  // namespace terrier::trafficcop
