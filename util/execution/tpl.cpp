@@ -95,12 +95,8 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   exec::ExecutionContext exec_ctx{db_oid, txn, printer, output_schema, std::move(accessor)};
 
   // Generate test tables
-  // TODO(Amadou): Read this in from a directory. That would require boost or experimental C++ though
   sql::TableGenerator table_generator{&exec_ctx, &block_store, ns_oid};
   table_generator.GenerateTestTables();
-  // Comment out to make more tables available at runtime
-  // table_generator.GenerateTPCHTables("../../tpl_tables/tables/");
-  // table_generator.GenerateTableFromFile(<path_to_schema>, <path_to_data>);
 
   // Let's scan the source
   util::Region region("repl-ast");
