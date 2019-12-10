@@ -1,3 +1,5 @@
+#include "execution/sql/storage_interface.h"
+
 #include <array>
 #include <memory>
 #include <vector>
@@ -5,7 +7,6 @@
 #include "catalog/catalog_defs.h"
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/projected_row_wrapper.h"
-#include "execution/sql/storage_interface.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql_test.h"
 #include "execution/util/timer.h"
@@ -348,7 +349,7 @@ TEST_F(StorageInterfaceTest, MultiIndexedUpdateTest) {
   // Check first index
   {
     lo_pr.Set<int16_t, false>(0, lo_match + update_val, false);
-    hi_pr.Set<int32_t, false>(0, hi_match + update_val, false);
+    hi_pr.Set<int16_t, false>(0, hi_match + update_val, false);
     index_iter1.ScanAscending();
     uint32_t num_matches = 0;
     while (index_iter1.Advance()) {
