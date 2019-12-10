@@ -125,6 +125,10 @@ TEST_F(MetricsTests, LoggingCSVTest) {
   metrics_manager_->ToCSV();
   EXPECT_EQ(aggregated_data->serializer_data_.size(), 0);
   EXPECT_EQ(aggregated_data->consumer_data_.size(), 0);
+
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(2));
+  settings_manager_->SetBool(settings::Param::metrics_logging, false, common::ManagedPointer(action_context),
+                             setter_callback);
 }
 
 /**
@@ -178,6 +182,10 @@ TEST_F(MetricsTests, TransactionCSVTest) {
   metrics_manager_->ToCSV();
   EXPECT_EQ(aggregated_data->begin_data_.size(), 0);
   EXPECT_EQ(aggregated_data->commit_data_.size(), 0);
+
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(2));
+  settings_manager_->SetBool(settings::Param::metrics_transaction, false, common::ManagedPointer(action_context),
+                             setter_callback);
 
   metrics_manager_->UnregisterThread();
 }
