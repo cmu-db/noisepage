@@ -55,11 +55,13 @@ class BinderContext {
    * Update the table alias map given a table reference (in the from clause)
    * @param accessor Pointer to the catalog accessor object
    * @param db_name Name of the database
+   * @param namespace_name Name of the namespace
    * @param table_name Name of the table
    * @param table_alias Alias of the table
    */
   void AddRegularTable(const std::unique_ptr<catalog::CatalogAccessor> &accessor, const std::string &db_name,
-                       const std::string &table_name, const std::string &table_alias);
+                       const std::string &namespace_name, const std::string &table_name,
+                       const std::string &table_alias);
 
   /**
    * Update the nested table alias map

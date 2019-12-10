@@ -143,7 +143,8 @@ void BindNodeVisitor::Visit(parser::DeleteStatement *node, parser::ParseResult *
   context_ = new BinderContext(nullptr);
   node->GetDeletionTable()->TryBindDatabaseName(default_database_name_);
   auto table = node->GetDeletionTable();
-  context_->AddRegularTable(catalog_accessor_, table->GetDatabaseName(), table->GetTableName(), table->GetTableName());
+  context_->AddRegularTable(catalog_accessor_, table->GetDatabaseName(), table->GetNamespaceName(),
+                            table->GetTableName(), table->GetTableName());
 
   if (node->GetDeleteCondition() != nullptr) {
     node->GetDeleteCondition()->Accept(this, parse_result);
@@ -193,7 +194,8 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
   node->GetInsertionTable()->TryBindDatabaseName(default_database_name_);
 
   auto table = node->GetInsertionTable();
-  context_->AddRegularTable(catalog_accessor_, table->GetDatabaseName(), table->GetTableName(), table->GetTableName());
+  context_->AddRegularTable(catalog_accessor_, table->GetDatabaseName(), table->GetNamespaceName(),
+                            table->GetTableName(), table->GetTableName());
   if (node->GetSelect() != nullptr) node->GetSelect()->Accept(this, parse_result);
 
   delete context_;
