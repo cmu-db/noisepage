@@ -33,6 +33,28 @@ SETTING_int(
     terrier::settings::Callbacks::BufferSegmentPoolReuseLimit
 )
 
+// BlockStore for catalog size limit
+SETTING_int64(
+    block_store_size,
+    "The maximum number of storage blocks for the catalog. (default: 100000)",
+    100000,
+    1,
+    1000000,
+    true,
+    terrier::settings::Callbacks::BlockStoreSizeLimit
+)
+
+// BlockStore for catalog reuse limit
+SETTING_int64(
+    block_store_reuse,
+    "The minimum number of storage blocks for the catalog to keep allocated (default: 1000)",
+    1000,
+    1,
+    1000000,
+    true,
+    terrier::settings::Callbacks::BlockStoreReuseLimit
+)
+
 // Garbage collector thread interval
 SETTING_int(
     gc_interval,
@@ -65,7 +87,7 @@ SETTING_string(
 )
 
 // Number of buffers log manager can use to buffer logs
-SETTING_int(
+SETTING_int64(
     num_log_manager_buffers,
     "The number of buffers the log manager uses to buffer logs to hand off to log consumer(s) (default: 4)",
     100,
@@ -98,7 +120,7 @@ SETTING_int(
 )
 
 // Log file persisting threshold
-SETTING_int(
+SETTING_int64(
     log_persist_threshold,
     "Log file persisting write threshold (bytes) (default: 1MB)",
     (1 << 20) /* 1MB */,

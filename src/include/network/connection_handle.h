@@ -15,6 +15,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -81,7 +82,7 @@ class ConnectionHandle {
   }
 
   /**
-   * Handles a libevent event. This simply delegates the the state machine.
+   * Handles a libevent event. This simply delegates to the state machine.
    */
   void HandleEvent(int fd, int16_t flags) {
     Transition t;
@@ -95,6 +96,27 @@ class ConnectionHandle {
   }
 
   /* State Machine Actions */
+  /**
+   * @brief Actions performed after receiving startup packet
+   * @return The transition to trigger in the state machine after
+   */
+  Transition StartUp() {
+    std::string db_name = catalog::DEFAULT_DATABASE;
+    if (context_.cmdline_args_.find("database") != context_.cmdline_args_.end()) {
+      if (!context_.cmdline_args_["database"].empty()) {
+        db_name = context_.cmdline_args_["database"];
+      }
+    }
+
+    auto oids = traffic_cop_->CreateTempNamespace(io_wrapper_->GetSocketFd(), db_name);
+    while (oids.first == catalog::INVALID_DATABASE_OID || oids.second == catalog::INVALID_NAMESPACE_OID) {
+      oids = traffic_cop_->CreateTempNamespace(io_wrapper_->GetSocketFd(), db_name);
+    }
+    context_.db_oid_ = oids.first;
+    context_.temp_namespace_oid_ = oids.second;
+    return Transition::PROCEED;
+  }
+
   /**
    * @brief Tries to read from the event port onto the read buffer
    * @return The transition to trigger in the state machine after
@@ -116,9 +138,18 @@ class ConnectionHandle {
    * @return The transition to trigger in the state machine after
    */
   Transition Process() {
-    return protocol_interpreter_->Process(io_wrapper_->GetReadBuffer(), io_wrapper_->GetWriteQueue(), traffic_cop_,
-                                          common::ManagedPointer(&context_),
-                                          [=] { event_active(workpool_event_, EV_WRITE, 0); });
+    auto transition = protocol_interpreter_->Process(io_wrapper_->GetReadBuffer(), io_wrapper_->GetWriteQueue(),
+                                                     traffic_cop_, common::ManagedPointer(&context_),
+                                                     [=] { event_active(workpool_event_, EV_WRITE, 0); });
+
+    /**
+     * Additional processing for starting up a new connection. This is an intermediate state that does not wait for
+     * an event from libevent
+     */
+    if (transition == Transition::STARTUP) {
+      transition = StartUp();
+    }
+    return transition;
   }
 
   /**

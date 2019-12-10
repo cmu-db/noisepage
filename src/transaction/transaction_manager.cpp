@@ -1,6 +1,8 @@
 #include "transaction/transaction_manager.h"
+
 #include <unordered_set>
 #include <utility>
+
 #include "common/scoped_timer.h"
 #include "common/thread_context.h"
 #include "metrics/metrics_store.h"
@@ -255,11 +257,11 @@ void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRe
       case storage::DeltaRecordType::INSERT:
         // Same as update, need to deallocate possible varlens.
         DeallocateInsertedTupleIfVarlen(txn, undo_record, accessor);
-        accessor.SetNull(slot, VERSION_POINTER_COLUMN_ID);
+        accessor.SetNull(slot, storage::VERSION_POINTER_COLUMN_ID);
         accessor.Deallocate(slot);
         break;
       case storage::DeltaRecordType::DELETE:
-        accessor.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
+        accessor.SetNotNull(slot, storage::VERSION_POINTER_COLUMN_ID);
         break;
       default:
         throw std::runtime_error("unexpected delta record type");
@@ -285,7 +287,7 @@ void TransactionManager::DeallocateColumnUpdateIfVarlen(TransactionContext *txn,
 void TransactionManager::DeallocateInsertedTupleIfVarlen(TransactionContext *txn, storage::UndoRecord *undo,
                                                          const storage::TupleAccessStrategy &accessor) const {
   const storage::BlockLayout &layout = accessor.GetBlockLayout();
-  for (uint16_t i = NUM_RESERVED_COLUMNS; i < layout.NumColumns(); i++) {
+  for (uint16_t i = storage::NUM_RESERVED_COLUMNS; i < layout.NumColumns(); i++) {
     storage::col_id_t col_id(i);
     if (layout.IsVarlen(col_id)) {
       auto *varlen = reinterpret_cast<storage::VarlenEntry *>(accessor.AccessWithNullCheck(undo->Slot(), col_id));
