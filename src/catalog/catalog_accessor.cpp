@@ -31,6 +31,7 @@ void CatalogAccessor::SetSearchPath(std::vector<namespace_oid_t> namespaces) {
 }
 
 namespace_oid_t CatalogAccessor::GetNamespaceOid(std::string name) const {
+  if (name.empty()) return catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID;
   NormalizeObjectName(&name);
   return dbc_->GetNamespaceOid(txn_, name);
 }
