@@ -135,6 +135,28 @@ class BinderCorrectnessTest : public TerrierTest {
 };
 
 // NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, SelectStatementInvalidTableTest) {
+  // Test regular table name
+  BINDER_LOG_DEBUG("Parsing sql query");
+  std::string select_sql = "SELECT a1 FROM c;";
+
+  auto parse_tree = parser_.BuildParseTree(select_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  EXPECT_THROW(binder_->BindNameToNode(statement, &parse_tree), BinderException);
+}
+
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, SelectStatementInvalidColumnTest) {
+  // Test regular table name
+  BINDER_LOG_DEBUG("Parsing sql query");
+  std::string select_sql = "SELECT a8 FROM a;";
+
+  auto parse_tree = parser_.BuildParseTree(select_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  EXPECT_THROW(binder_->BindNameToNode(statement, &parse_tree), BinderException);
+}
+
+// NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   // Test regular table name
   BINDER_LOG_DEBUG("Parsing sql query");

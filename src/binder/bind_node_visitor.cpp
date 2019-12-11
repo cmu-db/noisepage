@@ -108,6 +108,9 @@ void BindNodeVisitor::Visit(parser::TableRef *node, parser::ParseResult *parse_r
     for (auto &table : node->GetList()) table->Accept(this, parse_result);
   } else {
     // Single table
+    if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
+      throw BINDER_EXCEPTION("Accessing non-existing table.");
+    }
     context_->AddRegularTable(catalog_accessor_, node);
   }
 }
