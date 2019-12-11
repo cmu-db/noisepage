@@ -992,8 +992,8 @@ class LogicalPrepare : public OperatorNode<LogicalPrepare> {
    * @param parameters a vector of parameters in the dml_statement
    * @return a LogicalPrepare operator
    */
-  static Operator Make(std::string name, std::unique_ptr<parser::SQLStatement> dml_statement,
-                       std::vector<common::ManagedPointer<parser::ParameterValueExpression>> &&parameters);
+  static Operator Make(std::string name, common::ManagedPointer<parser::SQLStatement> dml_statement,
+                       common::ManagedPointer<std::vector<common::ManagedPointer<parser::ParameterValueExpression>>> parameters);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -1006,12 +1006,12 @@ class LogicalPrepare : public OperatorNode<LogicalPrepare> {
   /**
    * @return the underlying DML statement
    */
-  std::unique_ptr<parser::SQLStatement> GetDMLStatement() { return std::move(dml_statement_); }
+  const common::ManagedPointer<parser::SQLStatement> &GetDMLStatement() { return dml_statement_; }
 
   /**
    * @return the vector of parameters in the DML statement
    */
-  const std::vector<common::ManagedPointer<parser::ParameterValueExpression>> &GetParameters() const {
+  const common::ManagedPointer<std::vector<common::ManagedPointer<parser::ParameterValueExpression>>> &GetParameters() const {
     return parameters_;
   }
 
@@ -1020,8 +1020,8 @@ class LogicalPrepare : public OperatorNode<LogicalPrepare> {
    * The name of this Prepared Statement
    */
   std::string name_;
-  std::unique_ptr<parser::SQLStatement> dml_statement_;
-  std::vector<common::ManagedPointer<parser::ParameterValueExpression>> parameters_;
+  common::ManagedPointer<parser::SQLStatement> dml_statement_;
+  common::ManagedPointer<std::vector<common::ManagedPointer<parser::ParameterValueExpression>>> parameters_;
 };
 
 }  // namespace optimizer

@@ -721,12 +721,12 @@ common::hash_t LogicalAggregateAndGroupBy::Hash() const {
 // LogicalPrepare
 //===--------------------------------------------------------------------===//
 
-Operator LogicalPrepare::Make(std::string name, std::unique_ptr<parser::SQLStatement> dml_statement,
-                              std::vector<common::ManagedPointer<parser::ParameterValueExpression>> &&parameters) {
+Operator LogicalPrepare::Make(std::string name, common::ManagedPointer<parser::SQLStatement> dml_statement,
+                              common::ManagedPointer<std::vector<common::ManagedPointer<parser::ParameterValueExpression>>> parameters) {
   auto op = std::make_unique<LogicalPrepare>();
   op->name_ = name;
-  op->dml_statement_ = std::move(dml_statement);
-  op->parameters_ = std::move(parameters);
+  op->dml_statement_ = dml_statement;
+  op->parameters_ = parameters;
   return Operator(std::move(op));
 }
 
@@ -734,7 +734,7 @@ common::hash_t LogicalPrepare::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(name_));
   hash = common::HashUtil::CombineHashes(hash, dml_statement_->Hash());
-  for (const auto &parameter : parameters_) {
+  for (const auto &parameter : *parameters_) {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(parameter->Hash()));
   }
   return hash;
@@ -745,8 +745,8 @@ bool LogicalPrepare::operator==(const BaseOperatorNode &r) {
   const LogicalPrepare &node = *dynamic_cast<const LogicalPrepare *>(&r);
   if (name_ != node.name_) return false;
   if (*dml_statement_ != *node.dml_statement_) return false;
-  for (size_t i = 0; i < parameters_.size(); i++) {
-    if (*(parameters_[i]) != *(node.parameters_[i])) return false;
+  for (size_t i = 0; i < parameters_->size(); i++) {
+    if (*((*parameters_)[i]) != *((*node.parameters_)[i])) return false;
   }
   return (true);
 }
