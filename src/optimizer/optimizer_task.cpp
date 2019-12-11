@@ -31,7 +31,7 @@ void OptimizerTask::ConstructValidRules(GroupExpression *group_expr, Optimizatio
     }
 
     auto promise = rule->Promise(group_expr, context);
-    if (promise > 0) valid_rules->emplace_back(rule, promise);
+    if (promise != RewriteRulePromise::NO_PROMISE) valid_rules->emplace_back(rule, promise);
   }
 }
 
@@ -160,8 +160,8 @@ void ApplyRule::Execute() {
     for (const auto &new_expr : after) {
       GroupExpression *new_gexpr = nullptr;
       auto g_id = group_expr_->GetGroupID();
-      if (context_->GetOptimizerContext()->RecordTransformedExpression(common::ManagedPointer(new_expr.get()), &new_gexpr,
-                                                               g_id)) {
+      if (context_->GetOptimizerContext()->RecordTransformedExpression(common::ManagedPointer(new_expr.get()),
+                                                                       &new_gexpr, g_id)) {
         // A new group expression is generated
         if (new_gexpr->Op().IsLogical()) {
           // Derive stats for the *logical expression*
@@ -191,7 +191,8 @@ void DeriveStats::Execute() {
   // First do a top-down pass to get stats for required columns, then do a
   // bottom-up pass to calculate the stats
   ChildStatsDeriver deriver;
-  auto children_required_stats = deriver.DeriveInputStats(gexpr_, required_cols_, &context_->GetOptimizerContext()->GetMemo());
+  auto children_required_stats =
+      deriver.DeriveInputStats(gexpr_, required_cols_, &context_->GetOptimizerContext()->GetMemo());
   bool derive_children = false;
   OPTIMIZER_LOG_TRACE("DeriveStats::Execute() group {0}", gexpr_->GetGroupID());
 
@@ -246,10 +247,9 @@ void OptimizeInputs::Execute() {
 
     // Derive output and input properties
     ChildPropertyDeriver prop_deriver;
-    output_input_properties_ =
-        prop_deriver.GetProperties(context_->GetOptimizerContext()->GetCatalogAccessor(),
-                                   &context_->GetOptimizerContext()->GetMemo(),
-                                   context_->GetRequiredProperties(), group_expr_);
+    output_input_properties_ = prop_deriver.GetProperties(context_->GetOptimizerContext()->GetCatalogAccessor(),
+                                                          &context_->GetOptimizerContext()->GetMemo(),
+                                                          context_->GetRequiredProperties(), group_expr_);
     cur_child_idx_ = 0;
 
     // TODO(patrick/boweic): If later on we support properties that may not be enforced in some
@@ -267,14 +267,13 @@ void OptimizeInputs::Execute() {
       // 1. Collect stats needed and cache them in the group
       // 2. Calculate cost based on children's stats
       cur_total_cost_ += context_->GetOptimizerContext()->GetCostModel()->CalculateCost(
-          context_->GetOptimizerContext()->GetTxn(),
-          &context_->GetOptimizerContext()->GetMemo(),
-          group_expr_);
+          context_->GetOptimizerContext()->GetTxn(), &context_->GetOptimizerContext()->GetMemo(), group_expr_);
     }
 
     for (; cur_child_idx_ < static_cast<int>(group_expr_->GetChildrenGroupsSize()); cur_child_idx_++) {
       auto &i_prop = input_props[cur_child_idx_];
-      auto child_group = context_->GetOptimizerContext()->GetMemo().GetGroupByID(group_expr_->GetChildGroupId(cur_child_idx_));
+      auto child_group =
+          context_->GetOptimizerContext()->GetMemo().GetGroupByID(group_expr_->GetChildGroupId(cur_child_idx_));
 
       // Check whether the child group is already optimized for the prop
       auto child_best_expr = child_group->GetBestExpression(i_prop);
@@ -340,7 +339,8 @@ void OptimizeInputs::Execute() {
           auto extended_prop_set = output_prop->Copy();
           extended_prop_set->AddProperty(prop->Copy());
           cur_total_cost_ += context_->GetOptimizerContext()->GetCostModel()->CalculateCost(
-              context_->GetOptimizerContext()->GetTxn(), &context_->GetOptimizerContext()->GetMemo(), memo_enforced_expr);
+              context_->GetOptimizerContext()->GetTxn(), &context_->GetOptimizerContext()->GetMemo(),
+              memo_enforced_expr);
 
           // Update hash tables for group and group expression
           memo_enforced_expr->SetLocalHashTable(extended_prop_set, {pre_output_prop_set}, cur_total_cost_);

@@ -54,9 +54,7 @@ class PlanGenerator : public OperatorVisitor {
    * @returns Output plan node
    */
   std::unique_ptr<planner::AbstractPlanNode> ConvertOpExpression(
-      transaction::TransactionContext *txn,
-      catalog::CatalogAccessor *accessor,
-      settings::SettingsManager *settings,
+      transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, settings::SettingsManager *settings,
       OperatorExpression *op, PropertySet *required_props,
       const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
       const std::vector<common::ManagedPointer<parser::AbstractExpression>> &output_cols,

@@ -104,13 +104,11 @@ class AbstractOptimizer {
    * @param op_tree Logical operator tree for execution
    * @returns execution plan
    */
-  virtual std::unique_ptr<planner::AbstractPlanNode> BuildPlanTree(
-      transaction::TransactionContext *txn,
-      catalog::CatalogAccessor *accessor,
-      settings::SettingsManager *settings,
-      StatsStorage *storage,
-      QueryInfo query_info,
-      std::unique_ptr<OperatorExpression> op_tree) = 0;
+  virtual std::unique_ptr<planner::AbstractPlanNode> BuildPlanTree(transaction::TransactionContext *txn,
+                                                                   catalog::CatalogAccessor *accessor,
+                                                                   settings::SettingsManager *settings,
+                                                                   StatsStorage *storage, QueryInfo query_info,
+                                                                   std::unique_ptr<OperatorExpression> op_tree) = 0;
 
   /**
    * Reset the optimizer's internal state

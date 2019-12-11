@@ -23,7 +23,7 @@ class OptimizationContext {
    * @param cost_upper_bound Upper cost bound
    */
   OptimizationContext(OptimizerContext *context, PropertySet *required_prop,
-                  double cost_upper_bound = std::numeric_limits<double>::max())
+                      double cost_upper_bound = std::numeric_limits<double>::max())
       : context_(context), required_prop_(required_prop), cost_upper_bound_(cost_upper_bound) {}
 
   /**

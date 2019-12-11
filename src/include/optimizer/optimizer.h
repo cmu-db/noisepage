@@ -63,13 +63,11 @@ class Optimizer : public AbstractOptimizer {
    * @param op_tree Logical operator tree for execution
    * @returns execution plan
    */
-  std::unique_ptr<planner::AbstractPlanNode> BuildPlanTree(
-      transaction::TransactionContext *txn,
-      catalog::CatalogAccessor *accessor,
-      settings::SettingsManager *settings,
-      StatsStorage *storage,
-      QueryInfo query_info,
-      std::unique_ptr<OperatorExpression> op_tree);
+  std::unique_ptr<planner::AbstractPlanNode> BuildPlanTree(transaction::TransactionContext *txn,
+                                                           catalog::CatalogAccessor *accessor,
+                                                           settings::SettingsManager *settings, StatsStorage *storage,
+                                                           QueryInfo query_info,
+                                                           std::unique_ptr<OperatorExpression> op_tree);
 
   /**
    * Invoke a single optimization pass through the entire query.
@@ -104,9 +102,7 @@ class Optimizer : public AbstractOptimizer {
    * @returns Lowest cost plan
    */
   std::unique_ptr<planner::AbstractPlanNode> ChooseBestPlan(
-      transaction::TransactionContext *txn,
-      catalog::CatalogAccessor *accessor,
-      settings::SettingsManager *settings,
+      transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, settings::SettingsManager *settings,
       group_id_t id, PropertySet *required_props,
       const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols);
 

@@ -62,11 +62,31 @@ enum class RuleType : uint32_t {
  */
 enum class RewriteRuleSetName : uint32_t { PREDICATE_PUSH_DOWN = 0, UNNEST_SUBQUERY };
 
-/* Constant defining a physical rule's promise */
-static const uint32_t PHYS_PROMISE = 3;
+/**
+ * Enum defining rule promises
+ * LogicalPromise should be used for logical rules and/or low priority unnest
+ */
+enum class RewriteRulePromise : uint32_t {
+  /**
+   * NO promise. Rule cannot be used
+   */
+  NO_PROMISE = 0,
 
-/* Constant defining a logical rule's promise */
-static const uint32_t LOG_PROMISE = 1;
+  /**
+   * Logical rule/low priority unnest
+   */
+  LOGICAL_PROMISE = 1,
+
+  /**
+   * High priority unnest
+   */
+  UNNEST_PROMISE_HIGH = 2,
+
+  /**
+   * Physical rule
+   */
+  PHYSICAL_PROMISE = 3
+};
 
 /**
  * The base class of all rules
@@ -128,7 +148,7 @@ class Rule {
    *
    * @return The promise, the higher the promise, the rule should be applied sooner
    */
-  virtual int Promise(GroupExpression *group_expr, OptimizationContext *context) const;
+  virtual RewriteRulePromise Promise(GroupExpression *group_expr, OptimizationContext *context) const;
 
   /**
    * Check if the rule is applicable for the operator expression. The
@@ -177,7 +197,7 @@ struct RuleWithPromise {
    * @param rule Pointer to rule
    * @param promise Promise of the rule
    */
-  RuleWithPromise(Rule *rule, int promise) : rule_(rule), promise_(promise) {}
+  RuleWithPromise(Rule *rule, RewriteRulePromise promise) : rule_(rule), promise_(promise) {}
 
   /**
    * Gets the rule
@@ -189,7 +209,7 @@ struct RuleWithPromise {
    * Gets the promise
    * @returns Promise
    */
-  int GetPromise() { return promise_; }
+  RewriteRulePromise GetPromise() { return promise_; }
 
   /**
    * Checks whether this is less than another RuleWithPromise by comparing promise.
@@ -214,7 +234,7 @@ struct RuleWithPromise {
   /**
    * Promise
    */
-  int promise_;
+  RewriteRulePromise promise_;
 };
 
 /**

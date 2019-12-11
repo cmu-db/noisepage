@@ -121,10 +121,8 @@ class IndexUtil {
    * @param idx_oid OID of index to use to satisfy
    * @returns TRUE if the specified index can fulfill sort property
    */
-  static bool SatisfiesSortWithIndex(catalog::CatalogAccessor *accessor,
-                                     const PropertySort *prop,
-                                     catalog::table_oid_t tbl_oid,
-                                     catalog::index_oid_t idx_oid) {
+  static bool SatisfiesSortWithIndex(catalog::CatalogAccessor *accessor, const PropertySort *prop,
+                                     catalog::table_oid_t tbl_oid, catalog::index_oid_t idx_oid) {
     auto &index_schema = accessor->GetIndexSchema(idx_oid);
     if (!SatisfiesBaseColumnRequirement(index_schema)) {
       return false;
@@ -237,9 +235,9 @@ class IndexUtil {
    * @param output_metadata Output IndexUtilMetadata for creating IndexScan
    * @returns Whether index can be used
    */
-  static bool SatisfiesPredicateWithIndex(catalog::CatalogAccessor *accessor,
-                                          catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
-                                          IndexUtilMetadata *preds_metadata, IndexUtilMetadata *output_metadata) {
+  static bool SatisfiesPredicateWithIndex(catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid,
+                                          catalog::index_oid_t index_oid, IndexUtilMetadata *preds_metadata,
+                                          IndexUtilMetadata *output_metadata) {
     auto &index_schema = accessor->GetIndexSchema(index_oid);
     if (!SatisfiesBaseColumnRequirement(index_schema)) {
       return false;
@@ -314,9 +312,8 @@ class IndexUtil {
    * @param col_oids Vector to place col_oid_t translations
    * @returns TRUE if conversion successful
    */
-  static bool GetIndexColOid(catalog::CatalogAccessor *accessor,
-                             catalog::table_oid_t tbl_oid, const catalog::IndexSchema &schema,
-                             std::vector<catalog::col_oid_t> *col_oids) {
+  static bool GetIndexColOid(catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid,
+                             const catalog::IndexSchema &schema, std::vector<catalog::col_oid_t> *col_oids) {
     TERRIER_ASSERT(SatisfiesBaseColumnRequirement(schema), "GetIndexColOid() pre-cond not satisfied");
     auto &tbl_schema = accessor->GetSchema(tbl_oid);
     if (tbl_schema.GetColumns().size() < schema.GetColumns().size()) {

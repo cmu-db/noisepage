@@ -35,13 +35,12 @@ namespace terrier::optimizer {
 PlanGenerator::PlanGenerator() = default;
 
 std::unique_ptr<planner::AbstractPlanNode> PlanGenerator::ConvertOpExpression(
-    transaction::TransactionContext *txn,
-    catalog::CatalogAccessor *accessor,
-    settings::SettingsManager *settings,
+    transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, settings::SettingsManager *settings,
     OperatorExpression *op, PropertySet *required_props,
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &output_cols,
-    std::vector<std::unique_ptr<planner::AbstractPlanNode>> &&children_plans, std::vector<ExprMap> &&children_expr_map) {
+    std::vector<std::unique_ptr<planner::AbstractPlanNode>> &&children_plans,
+    std::vector<ExprMap> &&children_expr_map) {
   required_props_ = required_props;
   required_cols_ = required_cols;
   output_cols_ = output_cols;

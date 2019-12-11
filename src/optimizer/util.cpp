@@ -45,9 +45,7 @@ void OptimizerUtil::ExtractEquiJoinKeys(const std::vector<AnnotatedExpression> &
 }
 
 std::vector<parser::AbstractExpression *> OptimizerUtil::GenerateTableColumnValueExprs(
-    catalog::CatalogAccessor *accessor,
-    const std::string &alias,
-    catalog::db_oid_t db_oid,
+    catalog::CatalogAccessor *accessor, const std::string &alias, catalog::db_oid_t db_oid,
     catalog::table_oid_t tbl_oid) {
   // @note(boweic): we seems to provide all columns here, in case where there are
   // a lot of attributes and we're only visiting a few this is not efficient

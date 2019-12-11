@@ -68,7 +68,7 @@ class SubqueryExpression : public AbstractExpression {
    */
   int DeriveDepth() override {
     int current_depth = this->GetDepth();
-    for (auto select_elem : subselect_->GetSelectColumns()) {
+    for (auto &select_elem : subselect_->GetSelectColumns()) {
       int select_depth = select_elem->DeriveDepth();
       if (select_depth >= 0 && (current_depth == -1 || select_depth < current_depth)) {
         this->SetDepth(select_depth);
@@ -85,7 +85,7 @@ class SubqueryExpression : public AbstractExpression {
 
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();
-    for (auto select_elem : subselect_->GetSelectColumns()) {
+    for (auto &select_elem : subselect_->GetSelectColumns()) {
       hash = common::HashUtil::CombineHashes(hash, select_elem->Hash());
     }
 

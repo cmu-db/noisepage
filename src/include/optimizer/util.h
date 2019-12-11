@@ -61,11 +61,10 @@ class OptimizerUtil {
    * @return a vector of tuple value expression representing column name to
    * table column id mapping
    */
-  static std::vector<parser::AbstractExpression *> GenerateTableColumnValueExprs(
-      catalog::CatalogAccessor *accessor,
-      const std::string &alias,
-      catalog::db_oid_t db_oid,
-      catalog::table_oid_t tbl_oid);
+  static std::vector<parser::AbstractExpression *> GenerateTableColumnValueExprs(catalog::CatalogAccessor *accessor,
+                                                                                 const std::string &alias,
+                                                                                 catalog::db_oid_t db_oid,
+                                                                                 catalog::table_oid_t tbl_oid);
 };
 
 }  // namespace terrier::optimizer

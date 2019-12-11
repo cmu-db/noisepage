@@ -15,7 +15,6 @@
 #include "optimizer/properties.h"
 #include "optimizer/property_enforcer.h"
 #include "optimizer/rule.h"
-#include "optimizer/rule_impls.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
 namespace terrier::optimizer {
@@ -26,13 +25,11 @@ void Optimizer::Reset() {
   context_ = new OptimizerContext(cost_model_);
 }
 
-std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(
-    transaction::TransactionContext *txn,
-    catalog::CatalogAccessor *accessor,
-    settings::SettingsManager *settings,
-    StatsStorage *storage,
-    QueryInfo query_info,
-    std::unique_ptr<OperatorExpression> op_tree) {
+std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(transaction::TransactionContext *txn,
+                                                                    catalog::CatalogAccessor *accessor,
+                                                                    settings::SettingsManager *settings,
+                                                                    StatsStorage *storage, QueryInfo query_info,
+                                                                    std::unique_ptr<OperatorExpression> op_tree) {
   context_->SetTxn(txn);
   context_->SetCatalogAccessor(accessor);
   context_->SetStatsStorage(storage);
@@ -72,9 +69,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(
 }
 
 std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
-    transaction::TransactionContext *txn,
-    catalog::CatalogAccessor *accessor,
-    settings::SettingsManager *settings,
+    transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, settings::SettingsManager *settings,
     group_id_t id, PropertySet *required_props,
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols) {
   Group *group = context_->GetMemo().GetGroupByID(id);
@@ -119,9 +114,8 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   OperatorExpression *op = new OperatorExpression(Operator(gexpr->Op()), {});
 
   PlanGenerator generator;
-  auto plan = generator.ConvertOpExpression(txn, accessor, settings, op, required_props,
-                                            required_cols, output_cols, std::move(children_plans),
-                                            std::move(children_expr_map));
+  auto plan = generator.ConvertOpExpression(txn, accessor, settings, op, required_props, required_cols, output_cols,
+                                            std::move(children_plans), std::move(children_expr_map));
   OPTIMIZER_LOG_TRACE("Finish Choosing best plan for group {0}", id);
 
   delete op;
