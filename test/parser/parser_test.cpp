@@ -296,7 +296,7 @@ TEST_F(ParserTestBase, DropSchemaTest) {
 
   auto drop_stmt = result.GetStatement(0).CastManagedPointerTo<DropStatement>();
   EXPECT_EQ(drop_stmt->GetDropType(), DropStatement::DropType::kSchema);
-  EXPECT_EQ(drop_stmt->GetSchemaName(), "foo");
+  EXPECT_EQ(drop_stmt->GetNamespaceName(), "foo");
   EXPECT_TRUE(drop_stmt->IsCascade());
   EXPECT_TRUE(drop_stmt->IsIfExists());
 }
@@ -1338,13 +1338,13 @@ TEST_F(ParserTestBase, OldCreateSchemaTest) {
   std::string query = "CREATE SCHEMA tt";
   auto result = pgparser_.BuildParseTree(query);
   auto create_stmt = result.GetStatement(0).CastManagedPointerTo<CreateStatement>();
-  EXPECT_EQ("tt", create_stmt->GetSchemaName());
+  EXPECT_EQ("tt", create_stmt->GetNamespaceName());
 
   // Test default schema name
   query = "CREATE SCHEMA AUTHORIZATION joe";
   result = pgparser_.BuildParseTree(query);
   create_stmt = result.GetStatement(0).CastManagedPointerTo<CreateStatement>();
-  EXPECT_EQ("joe", create_stmt->GetSchemaName());
+  EXPECT_EQ("joe", create_stmt->GetNamespaceName());
 }
 
 // NOLINTNEXTLINE
