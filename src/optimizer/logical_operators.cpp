@@ -884,24 +884,24 @@ bool LogicalCreateTable::operator==(const BaseOperatorNode &r) {
 }
 
 //===--------------------------------------------------------------------===//
-// LogicalCreateSchema
+// LogicalCreateNamespace
 //===--------------------------------------------------------------------===//
 
-Operator LogicalCreateSchema::Make(std::string namespace_name) {
-  auto op = std::make_unique<LogicalCreateSchema>();
+Operator LogicalCreateNamespace::Make(std::string namespace_name) {
+  auto op = std::make_unique<LogicalCreateNamespace>();
   op->namespace_name_ = std::move(namespace_name);
   return Operator(std::move(op));
 }
 
-common::hash_t LogicalCreateSchema::Hash() const {
+common::hash_t LogicalCreateNamespace::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_name_));
   return hash;
 }
 
-bool LogicalCreateSchema::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::LOGICALCREATESCHEMA) return false;
-  const LogicalCreateSchema &node = *dynamic_cast<const LogicalCreateSchema *>(&r);
+bool LogicalCreateNamespace::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALCREATENAMESPACE) return false;
+  const LogicalCreateNamespace &node = *dynamic_cast<const LogicalCreateNamespace *>(&r);
   return node.namespace_name_ == namespace_name_;
 }
 
@@ -1058,24 +1058,24 @@ bool LogicalDropIndex::operator==(const BaseOperatorNode &r) {
 }
 
 //===--------------------------------------------------------------------===//
-// LogicalDropSchema
+// LogicalDropNamespace
 //===--------------------------------------------------------------------===//
 
-Operator LogicalDropSchema::Make(catalog::namespace_oid_t namespace_oid) {
-  auto op = std::make_unique<LogicalDropSchema>();
+Operator LogicalDropNamespace::Make(catalog::namespace_oid_t namespace_oid) {
+  auto op = std::make_unique<LogicalDropNamespace>();
   op->namespace_oid_ = namespace_oid;
   return Operator(std::move(op));
 }
 
-common::hash_t LogicalDropSchema::Hash() const {
+common::hash_t LogicalDropNamespace::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   return hash;
 }
 
-bool LogicalDropSchema::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::LOGICALDROPSCHEMA) return false;
-  const LogicalDropSchema &node = *dynamic_cast<const LogicalDropSchema *>(&r);
+bool LogicalDropNamespace::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALDROPNAMESPACE) return false;
+  const LogicalDropNamespace &node = *dynamic_cast<const LogicalDropNamespace *>(&r);
   return node.namespace_oid_ == namespace_oid_;
 }
 
@@ -1201,7 +1201,7 @@ const char *OperatorNode<LogicalCreateIndex>::name = "LogicalCreateIndex";
 template <>
 const char *OperatorNode<LogicalCreateFunction>::name = "LogicalCreateFunction";
 template <>
-const char *OperatorNode<LogicalCreateSchema>::name = "LogicalCreateSchema";
+const char *OperatorNode<LogicalCreateNamespace>::name = "LogicalCreateNamespace";
 template <>
 const char *OperatorNode<LogicalCreateTrigger>::name = "LogicalCreateTrigger";
 template <>
@@ -1213,7 +1213,7 @@ const char *OperatorNode<LogicalDropTable>::name = "LogicalDropTable";
 template <>
 const char *OperatorNode<LogicalDropIndex>::name = "LogicalDropIndex";
 template <>
-const char *OperatorNode<LogicalDropSchema>::name = "LogicalDropSchema";
+const char *OperatorNode<LogicalDropNamespace>::name = "LogicalDropNamespace";
 template <>
 const char *OperatorNode<LogicalDropTrigger>::name = "LogicalDropTrigger";
 template <>
@@ -1271,7 +1271,7 @@ OpType OperatorNode<LogicalCreateIndex>::type = OpType::LOGICALCREATEINDEX;
 template <>
 OpType OperatorNode<LogicalCreateFunction>::type = OpType::LOGICALCREATEFUNCTION;
 template <>
-OpType OperatorNode<LogicalCreateSchema>::type = OpType::LOGICALCREATESCHEMA;
+OpType OperatorNode<LogicalCreateNamespace>::type = OpType::LOGICALCREATENAMESPACE;
 template <>
 OpType OperatorNode<LogicalCreateTrigger>::type = OpType::LOGICALCREATETRIGGER;
 template <>
@@ -1283,7 +1283,7 @@ OpType OperatorNode<LogicalDropTable>::type = OpType::LOGICALDROPTABLE;
 template <>
 OpType OperatorNode<LogicalDropIndex>::type = OpType::LOGICALDROPINDEX;
 template <>
-OpType OperatorNode<LogicalDropSchema>::type = OpType::LOGICALDROPSCHEMA;
+OpType OperatorNode<LogicalDropNamespace>::type = OpType::LOGICALDROPNAMESPACE;
 template <>
 OpType OperatorNode<LogicalDropTrigger>::type = OpType::LOGICALDROPTRIGGER;
 template <>

@@ -181,10 +181,10 @@ class OperatorVisitor {
   virtual void Visit(const CreateTable *create_table) {}
 
   /**
-   * Visit a CreateSchema operator
+   * Visit a CreateNamespace operator
    * @param create_namespace operator
    */
-  virtual void Visit(const CreateSchema *create_namespace) {}
+  virtual void Visit(const CreateNamespace *create_namespace) {} // NOLINT
 
   /**
    * Visit a CreateTrigger operator
@@ -216,10 +216,10 @@ class OperatorVisitor {
   virtual void Visit(const DropIndex *drop_index) {}
 
   /**
-   * Visit a DropSchema operator
-   * @param drop_schema operator
+   * Visit a DropNamespace operator
+   * @param drop_namespace operator
    */
-  virtual void Visit(const DropSchema *drop_schema) {}
+  virtual void Visit(const DropNamespace *drop_namespace) {} // NOLINT
 
   /**
    * Visit a DropTrigger operator
@@ -384,10 +384,10 @@ class OperatorVisitor {
   virtual void Visit(const LogicalCreateTable *logical_create_table) {}
 
   /**
-   * Visit a LogicalCreateSchema operator
+   * Visit a LogicalCreateNamespace operator
    * @param logical_create_namespace operator
    */
-  virtual void Visit(const LogicalCreateSchema *logical_create_namespace) {}
+  virtual void Visit(const LogicalCreateNamespace *logical_create_namespace) {} // NOLINT
 
   /**
    * Visit a LogicalCreateTrigger operator
@@ -420,10 +420,10 @@ class OperatorVisitor {
   virtual void Visit(const LogicalDropIndex *logical_drop_index) {}
 
   /**
-   * Visit a LogicalDropSchema operator
-   * @param logical_drop_schema operator
+   * Visit a LogicalDropNamespace operator
+   * @param logical_drop_namespace operator
    */
-  virtual void Visit(const LogicalDropSchema *logical_drop_schema) {}
+  virtual void Visit(const LogicalDropNamespace *logical_drop_namespace) {} // NOLINT
 
   /**
    * Visit a LogicalDropTrigger operator

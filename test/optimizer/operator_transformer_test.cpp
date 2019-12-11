@@ -990,7 +990,7 @@ TEST_F(OperatorTransformerTest, CreateFunctionTest) {
 TEST_F(OperatorTransformerTest, CreateNamespaceTest) {
   std::string create_sql = "CREATE SCHEMA e";
 
-  std::string ref = R"({"Op":"LogicalCreateSchema",})";
+  std::string ref = R"({"Op":"LogicalCreateNamespace",})";
 
   auto parse_tree = parser_.BuildParseTree(create_sql);
   auto statement = parse_tree.GetStatements()[0];
@@ -1003,7 +1003,7 @@ TEST_F(OperatorTransformerTest, CreateNamespaceTest) {
   EXPECT_EQ(ref, info);
 
   // Test logical create
-  auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalCreateSchema>();
+  auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalCreateNamespace>();
   EXPECT_EQ("e", logical_create->GetNamespaceName());
 }
 
@@ -1138,9 +1138,9 @@ TEST_F(OperatorTransformerTest, DropIndexTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(OperatorTransformerTest, DropSchemaIfExistsTest) {
+TEST_F(OperatorTransformerTest, DropNamespaceIfExistsTest) {
   std::string drop_sql = "DROP SCHEMA IF EXISTS foo CASCADE;";
-  std::string ref = R"({"Op":"LogicalDropSchema",})";
+  std::string ref = R"({"Op":"LogicalDropNamespace",})";
 
   auto parse_tree = parser_.BuildParseTree(drop_sql);
   auto statement = parse_tree.GetStatements()[0];
@@ -1153,7 +1153,7 @@ TEST_F(OperatorTransformerTest, DropSchemaIfExistsTest) {
   EXPECT_EQ(ref, info);
 
   // Test logical drop table
-  auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalDropSchema>();
+  auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalDropNamespace>();
   EXPECT_EQ(logical_create->GetNamespaceOID(), catalog::INVALID_NAMESPACE_OID);
 }
 

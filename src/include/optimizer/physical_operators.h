@@ -1365,9 +1365,9 @@ class CreateIndex : public OperatorNode<CreateIndex> {
 };
 
 /**
- * Physical operator for CreateSchema/Namespace
+ * Physical operator for CreateNamespace/Namespace
  */
-class CreateSchema : public OperatorNode<CreateSchema> {
+class CreateNamespace : public OperatorNode<CreateNamespace> {
  public:
   /**
    * @param namespace_name Name of the namespace to be created
@@ -1779,9 +1779,9 @@ class DropIndex : public OperatorNode<DropIndex> {
 };
 
 /**
- * Physical operator for DropSchema
+ * Physical operator for DropNamespace
  */
-class DropSchema : public OperatorNode<DropSchema> {
+class DropNamespace : public OperatorNode<DropNamespace> {
  public:
   /**
    * @return

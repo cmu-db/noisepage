@@ -855,7 +855,7 @@ bool CreateIndex::operator==(const BaseOperatorNode &r) {
 }
 
 //===--------------------------------------------------------------------===//
-// CreateSchema
+// CreateNamespace
 //===--------------------------------------------------------------------===//
 
 Operator CreateSchema::Make(std::string namespace_name) {
@@ -871,7 +871,7 @@ common::hash_t CreateSchema::Hash() const {
 }
 
 bool CreateSchema::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::CREATESCHEMA) return false;
+  if (r.GetType() != OpType::CREATENAMESPACE) return false;
   const CreateSchema &node = *dynamic_cast<const CreateSchema *>(&r);
   return node.namespace_name_ == namespace_name_;
 }
@@ -1082,24 +1082,24 @@ bool DropIndex::operator==(const BaseOperatorNode &r) {
 }
 
 //===--------------------------------------------------------------------===//
-// DropSchema
+// DropNamespace
 //===--------------------------------------------------------------------===//
 
-Operator DropSchema::Make(catalog::namespace_oid_t namespace_oid) {
-  auto op = std::make_unique<DropSchema>();
+Operator DropNamespace::Make(catalog::namespace_oid_t namespace_oid) {
+  auto op = std::make_unique<DropNamespace>();
   op->namespace_oid_ = namespace_oid;
   return Operator(std::move(op));
 }
 
-common::hash_t DropSchema::Hash() const {
+common::hash_t DropNamespace::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   return hash;
 }
 
-bool DropSchema::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::DROPSCHEMA) return false;
-  const DropSchema &node = *dynamic_cast<const DropSchema *>(&r);
+bool DropNamespace::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::DROPNAMESPACE) return false;
+  const DropNamespace &node = *dynamic_cast<const DropNamespace *>(&r);
   return node.namespace_oid_ == namespace_oid_;
 }
 
@@ -1243,7 +1243,7 @@ const char *OperatorNode<DropTable>::name = "DropTable";
 template <>
 const char *OperatorNode<DropIndex>::name = "DropIndex";
 template <>
-const char *OperatorNode<DropSchema>::name = "DropSchema";
+const char *OperatorNode<DropNamespace>::name = "DropNamespace";
 template <>
 const char *OperatorNode<DropTrigger>::name = "DropTrigger";
 template <>
@@ -1307,7 +1307,7 @@ OpType OperatorNode<CreateIndex>::type = OpType::CREATEINDEX;
 template <>
 OpType OperatorNode<CreateFunction>::type = OpType::CREATEFUNCTION;
 template <>
-OpType OperatorNode<CreateSchema>::type = OpType::CREATESCHEMA;
+OpType OperatorNode<CreateSchema>::type = OpType::CREATENAMESPACE;
 template <>
 OpType OperatorNode<CreateTrigger>::type = OpType::CREATETRIGGER;
 template <>
@@ -1319,7 +1319,7 @@ OpType OperatorNode<DropTable>::type = OpType::DROPTABLE;
 template <>
 OpType OperatorNode<DropIndex>::type = OpType::DROPINDEX;
 template <>
-OpType OperatorNode<DropSchema>::type = OpType::DROPSCHEMA;
+OpType OperatorNode<DropNamespace>::type = OpType::DROPNAMESPACE;
 template <>
 OpType OperatorNode<DropTrigger>::type = OpType::DROPTRIGGER;
 template <>

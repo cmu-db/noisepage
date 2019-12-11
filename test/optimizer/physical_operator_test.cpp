@@ -1476,19 +1476,19 @@ TEST(OperatorTests, CreateTableTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, CreateSchemaTest) {
+TEST(OperatorTests, CreateNamespaceTest) {
   //===--------------------------------------------------------------------===//
-  // CreateSchema
+  // CreateNamespace
   //===--------------------------------------------------------------------===//
-  Operator op1 = CreateSchema::Make("testns");
-  Operator op2 = CreateSchema::Make("testns");
-  Operator op3 = CreateSchema::Make("another_testns");
+  Operator op1 = CreateNamespace::Make("testns");
+  Operator op2 = CreateNamespace::Make("testns");
+  Operator op3 = CreateNamespace::Make("another_testns");
 
-  EXPECT_EQ(op1.GetType(), OpType::CREATESCHEMA);
-  EXPECT_EQ(op3.GetType(), OpType::CREATESCHEMA);
-  EXPECT_EQ(op1.GetName(), "CreateSchema");
-  EXPECT_EQ(op1.As<CreateSchema>()->GetNamespaceName(), "testns");
-  EXPECT_EQ(op3.As<CreateSchema>()->GetNamespaceName(), "another_testns");
+  EXPECT_EQ(op1.GetType(), OpType::CREATENAMESPACE);
+  EXPECT_EQ(op3.GetType(), OpType::CREATENAMESPACE);
+  EXPECT_EQ(op1.GetName(), "CreateNamespace");
+  EXPECT_EQ(op1.As<CreateNamespace>()->GetNamespaceName(), "testns");
+  EXPECT_EQ(op3.As<CreateNamespace>()->GetNamespaceName(), "another_testns");
   EXPECT_TRUE(op1 == op2);
   EXPECT_FALSE(op1 == op3);
   EXPECT_EQ(op1.Hash(), op2.Hash());
@@ -1688,19 +1688,19 @@ TEST(OperatorTests, DropIndexTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, DropSchemaTest) {
+TEST(OperatorTests, DropNamespaceTest) {
   //===--------------------------------------------------------------------===//
-  // DropSchema
+  // DropNamespace
   //===--------------------------------------------------------------------===//
-  Operator op1 = DropSchema::Make(catalog::namespace_oid_t(1));
-  Operator op2 = DropSchema::Make(catalog::namespace_oid_t(1));
-  Operator op3 = DropSchema::Make(catalog::namespace_oid_t(2));
+  Operator op1 = DropNamespace::Make(catalog::namespace_oid_t(1));
+  Operator op2 = DropNamespace::Make(catalog::namespace_oid_t(1));
+  Operator op3 = DropNamespace::Make(catalog::namespace_oid_t(2));
 
-  EXPECT_EQ(op1.GetType(), OpType::DROPSCHEMA);
-  EXPECT_EQ(op3.GetType(), OpType::DROPSCHEMA);
-  EXPECT_EQ(op1.GetName(), "DropSchema");
-  EXPECT_EQ(op1.As<DropSchema>()->GetNamespaceOID(), catalog::namespace_oid_t(1));
-  EXPECT_EQ(op3.As<DropSchema>()->GetNamespaceOID(), catalog::namespace_oid_t(2));
+  EXPECT_EQ(op1.GetType(), OpType::DROPNAMESPACE);
+  EXPECT_EQ(op3.GetType(), OpType::DROPNAMESPACE);
+  EXPECT_EQ(op1.GetName(), "DropNamespace");
+  EXPECT_EQ(op1.As<DropNamespace>()->GetNamespaceOID(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op3.As<DropNamespace>()->GetNamespaceOID(), catalog::namespace_oid_t(2));
   EXPECT_TRUE(op1 == op2);
   EXPECT_FALSE(op1 == op3);
   EXPECT_EQ(op1.Hash(), op2.Hash());

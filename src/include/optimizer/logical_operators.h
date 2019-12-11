@@ -1282,9 +1282,9 @@ class LogicalCreateTable : public OperatorNode<LogicalCreateTable> {
 };
 
 /**
- * Logical operator for CreateSchema/Namespace
+ * Logical operator for CreateNamespace/Namespace
  */
-class LogicalCreateSchema : public OperatorNode<LogicalCreateSchema> {
+class LogicalCreateNamespace : public OperatorNode<LogicalCreateNamespace> {
  public:
   /**
    * @param namespace_name Name of the namespace to be created
@@ -1565,9 +1565,9 @@ class LogicalDropIndex : public OperatorNode<LogicalDropIndex> {
 };
 
 /**
- * Logical operator for DropSchema
+ * Logical operator for DropNamespace
  */
-class LogicalDropSchema : public OperatorNode<LogicalDropSchema> {
+class LogicalDropNamespace : public OperatorNode<LogicalDropNamespace> {
  public:
   /**
    * @param namespace_oid OID of the schema to be dropped
