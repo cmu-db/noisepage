@@ -92,14 +92,14 @@ class RecoveryTests : public TerrierTest {
     if (recovery_catalog_ != nullptr) {
       recovery_catalog_->TearDown();
       delete recovery_gc_thread_;
-      StorageTestUtil::FullyPerformGC(recovery_gc_, DISABLED);
+      deferred_action_manager_->FullyPerformGC(recovery_gc_, DISABLED);
     }
 
     // Destroy original catalog. We need to manually call GC followed by a ForceFlush because catalog deletion can defer
     // events that create new transactions, which then need to be flushed before they can be GC'd.
     catalog_->TearDown();
     delete gc_thread_;
-    StorageTestUtil::FullyPerformGC(gc_, log_manager_);
+    deferred_action_manager_->FullyPerformGC(gc_, log_manager_);
     log_manager_->PersistAndStop();
 
     delete recovery_gc_;
@@ -197,7 +197,7 @@ class RecoveryTests : public TerrierTest {
   void ShutdownAndRestartSystem() {
     // Simulate the system "shutting down". Guarantee persist of log records
     delete gc_thread_;
-    StorageTestUtil::FullyPerformGC(gc_, log_manager_);
+    deferred_action_manager_->FullyPerformGC(gc_, log_manager_);
     log_manager_->PersistAndStop();
 
     // We now "boot up" up the system
@@ -694,7 +694,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   // Override the recovery txn manager to now log out
   recovery_catalog_->TearDown();
   delete recovery_gc_thread_;
-  StorageTestUtil::FullyPerformGC(recovery_gc_, DISABLED);
+  deferred_action_manager_->FullyPerformGC(recovery_gc_, DISABLED);
   delete recovery_gc_;
   delete recovery_catalog_;
   delete recovery_txn_manager_;
@@ -746,7 +746,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   // local object. Setting the appropriate variables to nullptr will allow the TearDown code to run normally.
   recovery_catalog_->TearDown();
   delete recovery_gc_thread_;
-  StorageTestUtil::FullyPerformGC(recovery_gc_, &secondary_log_manager);
+  deferred_action_manager_->FullyPerformGC(recovery_gc_, &secondary_log_manager);
   delete recovery_catalog_;
   recovery_gc_thread_ = nullptr;
   recovery_catalog_ = nullptr;
@@ -814,7 +814,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   delete tested;
   secondary_recovery_catalog.TearDown();
   delete secondary_recovery_gc_thread;
-  StorageTestUtil::FullyPerformGC(&secondary_recovery_gc, DISABLED);
+  deferred_action_manager_->FullyPerformGC(&secondary_recovery_gc, DISABLED);
   unlink(secondary_log_file.c_str());
 }
 }  // namespace terrier::storage

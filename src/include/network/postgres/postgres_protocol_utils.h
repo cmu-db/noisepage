@@ -28,7 +28,7 @@ namespace terrier::network {
       {"is_superuser", "on"},
       {"server_encoding", "UTF8"},
       {"server_version", "9.5devel"},
-      {"session_authorization", "postgres"},
+      {"session_authorization", "terrier"},
       {"standard_conforming_strings", "on"},
       {"TimeZone", "US/Eastern"}
   };
