@@ -306,7 +306,7 @@ void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::Pars
   } else {
     // INSERT INTO table_name (col1, col2, ...) VALUES (val1, val2, ...), ...
     auto num_columns = op->GetInsertColumns()->size();
-    for (const auto &tuple : *(op->GetValues())) {  // check size of each tuple
+    for (const auto &tuple : (*op->GetValues())) {  // check size of each tuple
       if (tuple.size() > num_columns) {
         throw CATALOG_EXCEPTION("INSERT has more expressions than target columns");
       }
@@ -319,7 +319,7 @@ void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::Pars
     std::unordered_set<catalog::col_oid_t> specified;
     auto schema = accessor_->GetSchema(target_table_id);
 
-    for (const auto &col : *(op->GetInsertColumns())) {
+    for (const auto &col : (*op->GetInsertColumns())) {
       try {
         const auto &column_object = schema.GetColumn(col);
         specified.insert(column_object.Oid());

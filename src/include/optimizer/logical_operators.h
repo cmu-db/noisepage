@@ -601,12 +601,11 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
    * @param table_oid OID of the table
    * @param columns list of columns to insert into
    * @param values list of expressions that provide the values to insert into columns
-   * @return
+   * @return a LogicalInsert operator
    */
-  static Operator Make(
-      catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
-      std::vector<catalog::col_oid_t> &&columns,
-      common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values);
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
+                       common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -676,7 +675,7 @@ class LogicalInsertSelect : public OperatorNode<LogicalInsertSelect> {
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
-   * @return
+   * @return a LogicalInsertSelect operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid);
@@ -724,7 +723,7 @@ class LogicalDistinct : public OperatorNode<LogicalDistinct> {
   /**
    * This generates the LogicalDistinct.
    * It doesn't need to store any data. It is just a placeholder
-   * @return
+   * @return a LogicalDistinct operator
    */
   static Operator Make();
 
@@ -743,7 +742,7 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
    * @param limit the max # of tuples to produce
    * @param sort_exprs inlined ORDER BY expressions (can be empty)
    * @param sort_directions inlined sort directions (can be empty)
-   * @return
+   * @return a LogicalLimit operator
    */
   static Operator Make(size_t offset, size_t limit,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
@@ -808,7 +807,7 @@ class LogicalDelete : public OperatorNode<LogicalDelete> {
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
-   * @return
+   * @return a LogicalDelete operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid);
@@ -858,7 +857,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
    * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
    * @param updates the update clauses from the SET portion of the query
-   * @return
+   * @return a LogicalUpdate operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid,
@@ -920,7 +919,7 @@ class LogicalExportExternalFile : public OperatorNode<LogicalExportExternalFile>
    * @param delimiter the character to use to split each attribute
    * @param quote the character to use to 'quote' each value
    * @param escape the character to use to escape characters in values
-   * @return
+   * @return a LogicalExportExternalFile operator
    */
   static Operator Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
                        char escape);
@@ -977,9 +976,52 @@ class LogicalExportExternalFile : public OperatorNode<LogicalExportExternalFile>
 
   /**
    * The character to use to escape characters in values that are the same as
-   * either the delimiter or quote characeter.
+   * either the delimiter or quote character.
    */
   char escape_;
+};
+
+/**
+ * Logical operator for Prepare
+ */
+class LogicalPrepare : public OperatorNode<LogicalPrepare> {
+ public:
+  /**
+   * @param name name of the Prepared Statement
+   * @param dml_statement the underlying DML statement being prepared
+   * @param parameters a vector of parameters in the dml_statement
+   * @return a LogicalPrepare operator
+   */
+  static Operator Make(std::string name, std::unique_ptr<parser::SQLStatement> dml_statement,
+                       std::vector<common::ManagedPointer<parser::ParameterValueExpression>> &&parameters);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return name of the Prepared Statement
+   */
+  const std::string &GetPreparedName() const { return name_; }
+
+  /**
+   * @return the underlying DML statement
+   */
+  std::unique_ptr<parser::SQLStatement> GetDMLStatement() { return std::move(dml_statement_); }
+
+  /**
+   * @return the vector of parameters in the DML statement
+   */
+  const std::vector<common::ManagedPointer<parser::ParameterValueExpression>> &GetParameters() const {
+    return parameters_;
+  }
+
+ private:
+  /**
+   * The name of this Prepared Statement
+   */
+  std::string name_;
+  std::unique_ptr<parser::SQLStatement> dml_statement_;
+  std::vector<common::ManagedPointer<parser::ParameterValueExpression>> parameters_;
 };
 
 }  // namespace optimizer

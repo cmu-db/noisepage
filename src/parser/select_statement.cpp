@@ -104,4 +104,55 @@ std::unique_ptr<SelectStatement> SelectStatement::Copy() {
   return select;
 }
 
+common::hash_t SelectStatement::Hash() const {
+  common::hash_t hash = SQLStatement::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetType()));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(select_distinct_));
+  if (union_select_ != nullptr) hash = common::HashUtil::CombineHashes(hash, union_select_->Hash());
+  if (limit_ != nullptr) hash = common::HashUtil::CombineHashes(hash, limit_->Hash());
+  if (order_by_ != nullptr) hash = common::HashUtil::CombineHashes(hash, order_by_->Hash());
+  if (group_by_ != nullptr) hash = common::HashUtil::CombineHashes(hash, group_by_->Hash());
+  if (where_ != nullptr) hash = common::HashUtil::CombineHashes(hash, where_->Hash());
+  if (from_ != nullptr) hash = common::HashUtil::CombineHashes(hash, from_->Hash());
+  for (const auto &expr : select_) {
+    hash = common::HashUtil::CombineHashes(hash, expr->Hash());
+  }
+  return hash;
+}
+
+bool SelectStatement::operator==(const SQLStatement &rhs) const {
+  if (!SQLStatement::operator==(rhs)) return false;
+  auto const &select_stmt = dynamic_cast<const SelectStatement &>(rhs);
+  if (select_.size() != select_stmt.select_.size()) return false;
+  for (size_t i = 0; i < select_.size(); i++)
+    if (*(select_[i]) != *(select_stmt.select_[i])) return false;
+  if (select_distinct_ != select_stmt.select_distinct_) return false;
+
+  if (from_ != nullptr && select_stmt.from_ == nullptr) return false;
+  if (from_ == nullptr && select_stmt.from_ != nullptr) return false;
+  if (from_ != nullptr && select_stmt.from_ != nullptr && *(from_) != *(select_stmt.from_)) return false;
+
+  if (where_ != nullptr && select_stmt.where_ == nullptr) return false;
+  if (where_ == nullptr && select_stmt.where_ != nullptr) return false;
+  if (where_ != nullptr && select_stmt.where_ != nullptr && *(where_) != *(select_stmt.where_)) return false;
+
+  if (group_by_ != nullptr && select_stmt.group_by_ == nullptr) return false;
+  if (group_by_ == nullptr && select_stmt.group_by_ != nullptr) return false;
+  if (group_by_ != nullptr && select_stmt.group_by_ != nullptr && *(group_by_) != *(select_stmt.group_by_))
+    return false;
+
+  if (order_by_ != nullptr && select_stmt.order_by_ == nullptr) return false;
+  if (order_by_ == nullptr && select_stmt.order_by_ != nullptr) return false;
+  if (order_by_ != nullptr && select_stmt.order_by_ != nullptr && *(order_by_) != *(select_stmt.order_by_))
+    return false;
+
+  if (limit_ != nullptr && select_stmt.limit_ == nullptr) return false;
+  if (limit_ == nullptr && select_stmt.limit_ != nullptr) return false;
+  if (limit_ != nullptr && select_stmt.limit_ != nullptr && *(limit_) != *(select_stmt.limit_)) return false;
+
+  if (union_select_ != nullptr && select_stmt.union_select_ == nullptr) return false;
+  if (union_select_ == nullptr && select_stmt.union_select_ != nullptr) return false;
+  if (union_select_ == nullptr && select_stmt.union_select_ == nullptr) return true;
+  return *(union_select_) == *(select_stmt.union_select_);
+}
 }  // namespace terrier::parser

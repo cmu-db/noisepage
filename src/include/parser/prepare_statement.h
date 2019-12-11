@@ -27,7 +27,7 @@ class PrepareStatement : public SQLStatement {
    *
    * @param name - name to be given to the prepared statement
    * @param query - the parsed form of statement
-   * @param placeholders - placeholder values? (explain)
+   * @param placeholders - placeholder for parameters
    */
   PrepareStatement(std::string name, std::unique_ptr<SQLStatement> query,
                    std::vector<common::ManagedPointer<ParameterValueExpression>> placeholders)

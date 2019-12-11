@@ -39,6 +39,15 @@ class UpdateClause {
   common::ManagedPointer<AbstractExpression> GetUpdateValue() { return value_; }
 
   /**
+   * @return the hashed value of this UpdateClause
+   */
+  common::hash_t Hash() const {
+    common::hash_t hash = common::HashUtil::Hash(column_);
+    hash = common::HashUtil::CombineHashes(hash, value_->Hash());
+    return hash;
+  }
+
+  /**
    * Logical equality check
    * @param r Right hand side; the other update clause
    * @return true if the two update clause are logically equal
@@ -78,6 +87,40 @@ class UpdateStatement : public SQLStatement {
   UpdateStatement() : SQLStatement(StatementType::UPDATE), table_(nullptr), where_(nullptr) {}
 
   ~UpdateStatement() override = default;
+
+  /**
+   * @return the hashed value of this UpdateStatement
+   */
+  common::hash_t Hash() const override {
+    common::hash_t hash = SQLStatement::Hash();
+    if (table_ != nullptr) hash = common::HashUtil::CombineHashes(hash, table_->Hash());
+    for (size_t i = 0; i < updates_.size(); i++) hash = common::HashUtil::CombineHashes(hash, updates_[i]->Hash());
+    if (where_ != nullptr) hash = common::HashUtil::CombineHashes(hash, where_->Hash());
+    return hash;
+  }
+
+  /**
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two UpdateStatements are logically equal
+   */
+  bool operator==(const SQLStatement &rhs) const override {
+    if (!SQLStatement::operator==(rhs)) return false;
+    auto const &update_stmt = dynamic_cast<const UpdateStatement &>(rhs);
+
+    if (table_ != nullptr && update_stmt.table_ == nullptr) return false;
+    if (table_ == nullptr && update_stmt.table_ != nullptr) return false;
+    if (table_ != nullptr && update_stmt.table_ != nullptr && *(table_) != *(update_stmt.table_)) return false;
+
+    if (updates_.size() != update_stmt.updates_.size()) return false;
+    for (size_t i = 0; i < updates_.size(); i++)
+      if (*(updates_[i]) != *(update_stmt.updates_[i])) return false;
+
+    if (where_ != nullptr && update_stmt.where_ == nullptr) return false;
+    if (where_ == nullptr && update_stmt.where_ != nullptr) return false;
+    if (where_ != nullptr && update_stmt.where_ != nullptr && *(where_) != *(update_stmt.where_)) return false;
+    return true;
+  }
 
   void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
 

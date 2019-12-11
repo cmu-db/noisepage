@@ -28,28 +28,56 @@ class DeleteStatement : public SQLStatement {
    * @param expr condition for deletion
    */
   DeleteStatement(std::unique_ptr<TableRef> table, common::ManagedPointer<AbstractExpression> expr)
-      : SQLStatement(StatementType::DELETE), table_ref_(std::move(table)), expr_(expr) {}
+      : SQLStatement(StatementType::DELETE), from_(std::move(table)), where_(expr) {}
 
   /**
    * Delete all rows (truncate).
    * @param table deletion target
    */
   explicit DeleteStatement(std::unique_ptr<TableRef> table)
-      : SQLStatement(StatementType::DELETE), table_ref_(std::move(table)), expr_(nullptr) {}
+      : SQLStatement(StatementType::DELETE), from_(std::move(table)), where_(nullptr) {}
 
   ~DeleteStatement() override = default;
 
+  /**
+   * @return the hashed value of this DeleteStatement
+   */
+  common::hash_t Hash() const override {
+    common::hash_t hash = SQLStatement::Hash();
+    if (from_ != nullptr) hash = common::HashUtil::CombineHashes(hash, from_->Hash());
+    if (where_ != nullptr) hash = common::HashUtil::CombineHashes(hash, where_->Hash());
+    return hash;
+  }
+
+  /**
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two DeleteStatements are logically equal
+   */
+  bool operator==(const SQLStatement &rhs) const override {
+    if (!SQLStatement::operator==(rhs)) return false;
+    auto const &delete_stmt = dynamic_cast<const DeleteStatement &>(rhs);
+    if (from_ != nullptr && delete_stmt.from_ == nullptr) return false;
+    if (from_ == nullptr && delete_stmt.from_ != nullptr) return false;
+    if (from_ != nullptr && delete_stmt.from_ != nullptr && *(from_) != *(delete_stmt.from_)) return false;
+
+    if (where_ != nullptr && delete_stmt.where_ == nullptr) return false;
+    if (where_ == nullptr && delete_stmt.where_ != nullptr) return false;
+    if (where_ != nullptr && delete_stmt.where_ != nullptr && *(where_) != *(delete_stmt.where_)) return false;
+    return true;
+  }
+
   /** @return deletion target table */
-  common::ManagedPointer<TableRef> GetDeletionTable() const { return common::ManagedPointer(table_ref_); }
+  common::ManagedPointer<TableRef> GetDeletionTable() const { return common::ManagedPointer(from_); }
 
   /** @return expression that represents deletion condition */
-  common::ManagedPointer<AbstractExpression> GetDeleteCondition() { return expr_; }
+  common::ManagedPointer<AbstractExpression> GetDeleteCondition() { return where_; }
 
   void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
 
  private:
-  const std::unique_ptr<TableRef> table_ref_;
-  const common::ManagedPointer<AbstractExpression> expr_;
+  const std::unique_ptr<TableRef> from_;
+  const common::ManagedPointer<AbstractExpression> where_;
 };
 
 }  // namespace terrier::parser

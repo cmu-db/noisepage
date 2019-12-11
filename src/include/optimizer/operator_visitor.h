@@ -157,6 +157,12 @@ class OperatorVisitor {
   virtual void Visit(const ExportExternalFile *export_ext_file) {}
 
   /**
+   * Visit a Prepare operator
+   * @param prepare operator
+   */
+  virtual void Visit(const Prepare *prepare) {}
+
+  /**
    * Visit a LogicalGet operator
    * @param logical_get operator
    */
@@ -281,6 +287,12 @@ class OperatorVisitor {
    * @param logical_export_external_file operator
    */
   virtual void Visit(const LogicalExportExternalFile *logical_export_external_file) {}
+
+  /**
+   * Visit a LogicalPrepare operator
+   * @param logical_prepare operator
+   */
+  virtual void Visit(const LogicalPrepare *logical_prepare) {}
 };
 
 }  // namespace terrier::optimizer

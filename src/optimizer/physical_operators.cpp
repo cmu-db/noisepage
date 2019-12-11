@@ -7,6 +7,7 @@
 #include <vector>
 #include "optimizer/operator_visitor.h"
 #include "parser/expression/abstract_expression.h"
+#include "parser/expression/parameter_value_expression.h"
 
 namespace terrier::optimizer {
 
@@ -724,7 +725,7 @@ common::hash_t Aggregate::Hash() const {
 }
 
 //===--------------------------------------------------------------------===//
-// Hash
+// Distinct
 //===--------------------------------------------------------------------===//
 Operator Distinct::Make() { return Operator(std::make_unique<Distinct>()); }
 
@@ -737,6 +738,40 @@ common::hash_t Distinct::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   // I guess every Aggregate object hashes to the same thing?
   return hash;
+}
+
+//===--------------------------------------------------------------------===//
+// Prepare
+//===--------------------------------------------------------------------===//
+
+Operator Prepare::Make(std::string name, std::unique_ptr<parser::SQLStatement> dml_statement,
+                       std::vector<common::ManagedPointer<parser::ParameterValueExpression>> &&parameters) {
+  auto op = std::make_unique<Prepare>();
+  op->name_ = name;
+  op->dml_statement_ = std::move(dml_statement);
+  op->parameters_ = std::move(parameters);
+  return Operator(std::move(op));
+}
+
+common::hash_t Prepare::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(name_));
+  hash = common::HashUtil::CombineHashes(hash, dml_statement_->Hash());
+  for (const auto &parameter : parameters_) {
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(parameter->Hash()));
+  }
+  return hash;
+}
+
+bool Prepare::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALPREPARE) return false;
+  const Prepare &node = *dynamic_cast<const Prepare *>(&r);
+  if (name_ != node.name_) return false;
+  if (*dml_statement_ != *node.dml_statement_) return false;
+  for (size_t i = 0; i < parameters_.size(); i++) {
+    if (*(parameters_[i]) != *(node.parameters_[i])) return false;
+  }
+  return (true);
 }
 
 //===--------------------------------------------------------------------===//
@@ -794,6 +829,8 @@ template <>
 const char *OperatorNode<Aggregate>::name = "Aggregate";
 template <>
 const char *OperatorNode<ExportExternalFile>::name = "ExportExternalFile";
+template <>
+const char *OperatorNode<Prepare>::name = "Prepare";
 
 //===--------------------------------------------------------------------===//
 template <>
@@ -844,6 +881,8 @@ template <>
 OpType OperatorNode<Aggregate>::type = OpType::AGGREGATE;
 template <>
 OpType OperatorNode<ExportExternalFile>::type = OpType::EXPORTEXTERNALFILE;
+template <>
+OpType OperatorNode<Prepare>::type = OpType::PREPARE;
 
 template <typename T>
 bool OperatorNode<T>::IsLogical() const {
