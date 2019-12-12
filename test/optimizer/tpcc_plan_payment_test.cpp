@@ -47,7 +47,6 @@ TEST_F(TpccPlanPaymentTests, UpdateWarehouse) {
     // Check Child
     auto idx_scan = reinterpret_cast<const planner::IndexScanPlanNode *>(update->GetChild(0));
     EXPECT_EQ(idx_scan->IsForUpdate(), true);
-    EXPECT_EQ(idx_scan->IsParallel(), false);
     EXPECT_EQ(idx_scan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(idx_scan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 
@@ -124,7 +123,6 @@ TEST_F(TpccPlanPaymentTests, UpdateDistrict) {
     // Check Child
     auto idx_scan = reinterpret_cast<const planner::IndexScanPlanNode *>(update->GetChild(0));
     EXPECT_EQ(idx_scan->IsForUpdate(), true);
-    EXPECT_EQ(idx_scan->IsParallel(), false);
     EXPECT_EQ(idx_scan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(idx_scan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 
@@ -220,7 +218,6 @@ TEST_F(TpccPlanPaymentTests, UpdateCustomerBalance) {
     // Check Child
     auto idx_scan = reinterpret_cast<const planner::IndexScanPlanNode *>(update->GetChild(0));
     EXPECT_EQ(idx_scan->IsForUpdate(), true);
-    EXPECT_EQ(idx_scan->IsParallel(), false);
     EXPECT_EQ(idx_scan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(idx_scan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 

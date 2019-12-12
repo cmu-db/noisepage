@@ -753,7 +753,6 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   auto tve2 = new ColumnValueExpression("table_name", "column_name", "alias");
   auto tve3 = new ColumnValueExpression("table_name2", "column_name", "alias");
   auto tve4 = new ColumnValueExpression("table_name", "column_name2", "alias");
-  auto tve5 = new ColumnValueExpression("table_name", "column_name", "alias2");
   auto tve6 = new ColumnValueExpression("table_name", "column_name");
   auto tve7 = new ColumnValueExpression(catalog::db_oid_t(1), catalog::table_oid_t(2), catalog::col_oid_t(3));
   auto tve8 = new ColumnValueExpression(catalog::db_oid_t(1), catalog::table_oid_t(2), catalog::col_oid_t(3));
@@ -808,6 +807,7 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   delete tve2;
   delete tve3;
   delete tve4;
+  delete tve6;
   delete tve7;
   delete tve8;
   delete tve9;

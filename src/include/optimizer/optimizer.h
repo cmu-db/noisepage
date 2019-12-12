@@ -67,7 +67,7 @@ class Optimizer : public AbstractOptimizer {
                                                            catalog::CatalogAccessor *accessor,
                                                            settings::SettingsManager *settings, StatsStorage *storage,
                                                            QueryInfo query_info,
-                                                           std::unique_ptr<OperatorExpression> op_tree);
+                                                           std::unique_ptr<OperatorExpression> op_tree) override;
 
   /**
    * Invoke a single optimization pass through the entire query.
