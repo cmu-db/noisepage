@@ -1212,7 +1212,7 @@ class CreateTable : public OperatorNode<CreateTable> {
   common::hash_t Hash() const override;
 
   /**
-   * @return OID of the namespace to create index on
+   * @return OID of the namespace to create table in
    */
   catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
 

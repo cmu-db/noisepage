@@ -338,7 +338,6 @@ class Schema {
    * @return the hashed value of this schema
    */
   common::hash_t Hash() const {
-    // TODO(Ling): Does column order matter for hash?
     common::hash_t hash = common::HashUtil::Hash(col_oid_to_offset_.size());
     for (const auto &col : columns_) hash = common::HashUtil::CombineHashes(hash, col.Hash());
     return hash;
@@ -349,10 +348,7 @@ class Schema {
    * @param rhs other schema to compare against
    * @return true if the two schema are equal
    */
-  bool operator==(const Schema &rhs) const {
-    // TODO(Ling): Does column order matter for compare equal?
-    return columns_ == rhs.columns_;
-  }
+  bool operator==(const Schema &rhs) const { return columns_ == rhs.columns_; }
 
   /**
    * Perform a comparison of schema

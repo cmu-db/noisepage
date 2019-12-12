@@ -475,9 +475,9 @@ void QueryToOperatorTransformer::Visit(parser::DropStatement *op, parser::ParseR
                                                std::vector<std::unique_ptr<OperatorExpression>>{});
       break;
     case parser::DropStatement::DropType::kSchema:
-      drop_expr =
-          std::make_unique<OperatorExpression>(LogicalDropNamespace::Make(accessor_->GetNamespaceOid(op->GetNamespaceName())),
-                                               std::vector<std::unique_ptr<OperatorExpression>>{});
+      drop_expr = std::make_unique<OperatorExpression>(
+          LogicalDropNamespace::Make(accessor_->GetNamespaceOid(op->GetNamespaceName())),
+          std::vector<std::unique_ptr<OperatorExpression>>{});
       break;
     case parser::DropStatement::DropType::kTrigger:
     case parser::DropStatement::DropType::kView:

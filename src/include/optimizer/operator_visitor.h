@@ -184,7 +184,7 @@ class OperatorVisitor {
    * Visit a CreateNamespace operator
    * @param create_namespace operator
    */
-  virtual void Visit(const CreateNamespace *create_namespace) {} // NOLINT
+  virtual void Visit(const CreateNamespace *create_namespace) {}  // NOLINT
 
   /**
    * Visit a CreateTrigger operator
@@ -219,7 +219,7 @@ class OperatorVisitor {
    * Visit a DropNamespace operator
    * @param drop_namespace operator
    */
-  virtual void Visit(const DropNamespace *drop_namespace) {} // NOLINT
+  virtual void Visit(const DropNamespace *drop_namespace) {}  // NOLINT
 
   /**
    * Visit a DropTrigger operator
@@ -387,7 +387,7 @@ class OperatorVisitor {
    * Visit a LogicalCreateNamespace operator
    * @param logical_create_namespace operator
    */
-  virtual void Visit(const LogicalCreateNamespace *logical_create_namespace) {} // NOLINT
+  virtual void Visit(const LogicalCreateNamespace *logical_create_namespace) {}  // NOLINT
 
   /**
    * Visit a LogicalCreateTrigger operator
@@ -423,7 +423,7 @@ class OperatorVisitor {
    * Visit a LogicalDropNamespace operator
    * @param logical_drop_namespace operator
    */
-  virtual void Visit(const LogicalDropNamespace *logical_drop_namespace) {} // NOLINT
+  virtual void Visit(const LogicalDropNamespace *logical_drop_namespace) {}  // NOLINT
 
   /**
    * Visit a LogicalDropTrigger operator

@@ -1527,7 +1527,7 @@ class LogicalDropTable : public OperatorNode<LogicalDropTable> {
   common::hash_t Hash() const override;
 
   /**
-   * @return the OID of the database we want to drop
+   * @return the OID of the table we want to drop
    */
   const catalog::table_oid_t &GetTableOID() const { return table_oid_; }
 
