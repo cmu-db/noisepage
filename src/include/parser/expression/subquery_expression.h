@@ -85,7 +85,7 @@ class SubqueryExpression : public AbstractExpression {
 
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();
-    for (auto &select_elem : subselect_->GetSelectColumns()) {
+    for (auto select_elem : subselect_->GetSelectColumns()) {
       hash = common::HashUtil::CombineHashes(hash, select_elem->Hash());
     }
 
