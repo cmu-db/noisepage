@@ -39,7 +39,7 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
     }
 
     /**
-     * @param column_ids OIDs of columns to scan
+     * @param column_oids OIDs of columns to scan
      * @return builder object
      */
     Builder &SetColumnOids(std::vector<catalog::col_oid_t> &&column_oids) {
