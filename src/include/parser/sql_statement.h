@@ -66,7 +66,7 @@ struct TableInfo {
    */
   common::hash_t Hash() const {
     common::hash_t hash = common::HashUtil::Hash(table_name_);
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(schema_name_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_name_));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_name_));
     return hash;
   }
@@ -78,7 +78,7 @@ struct TableInfo {
    */
   bool operator==(const TableInfo &rhs) const {
     if (table_name_ != rhs.table_name_) return false;
-    if (schema_name_ != rhs.schema_name_) return false;
+    if (namespace_name_ != rhs.namespace_name_) return false;
     return database_name_ == rhs.database_name_;
   }
 

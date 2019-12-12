@@ -858,21 +858,21 @@ bool CreateIndex::operator==(const BaseOperatorNode &r) {
 // CreateNamespace
 //===--------------------------------------------------------------------===//
 
-Operator CreateSchema::Make(std::string namespace_name) {
-  auto op = std::make_unique<CreateSchema>();
+Operator CreateNamespace::Make(std::string namespace_name) {
+  auto op = std::make_unique<CreateNamespace>();
   op->namespace_name_ = std::move(namespace_name);
   return Operator(std::move(op));
 }
 
-common::hash_t CreateSchema::Hash() const {
+common::hash_t CreateNamespace::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_name_));
   return hash;
 }
 
-bool CreateSchema::operator==(const BaseOperatorNode &r) {
+bool CreateNamespace::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::CREATENAMESPACE) return false;
-  const CreateSchema &node = *dynamic_cast<const CreateSchema *>(&r);
+  const CreateNamespace &node = *dynamic_cast<const CreateNamespace *>(&r);
   return node.namespace_name_ == namespace_name_;
 }
 
@@ -1231,7 +1231,7 @@ const char *OperatorNode<CreateIndex>::name = "CreateIndex";
 template <>
 const char *OperatorNode<CreateFunction>::name = "CreateFunction";
 template <>
-const char *OperatorNode<CreateSchema>::name = "CreateSchema";
+const char *OperatorNode<CreateNamespace>::name = "CreateNamespace";
 template <>
 const char *OperatorNode<CreateTrigger>::name = "CreateTrigger";
 template <>
@@ -1307,7 +1307,7 @@ OpType OperatorNode<CreateIndex>::type = OpType::CREATEINDEX;
 template <>
 OpType OperatorNode<CreateFunction>::type = OpType::CREATEFUNCTION;
 template <>
-OpType OperatorNode<CreateSchema>::type = OpType::CREATENAMESPACE;
+OpType OperatorNode<CreateNamespace>::type = OpType::CREATENAMESPACE;
 template <>
 OpType OperatorNode<CreateTrigger>::type = OpType::CREATETRIGGER;
 template <>
