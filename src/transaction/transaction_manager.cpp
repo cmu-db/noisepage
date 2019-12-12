@@ -224,7 +224,7 @@ void TransactionManager::GCLastUpdateOnAbort(TransactionContext *const txn) {
 void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRecord &record) const {
   // No latch required for transaction-local operation
   storage::DataTable *const table = record.Table();
-  if (table == nullptr) {
+  if (record.IsAborted()) {
     // This UndoRecord was never installed in the version chain, so we can skip it
     return;
   }

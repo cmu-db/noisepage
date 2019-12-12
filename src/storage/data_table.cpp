@@ -104,8 +104,8 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
     if (HasConflict(*txn, version_ptr) || !Visible(slot, accessor_)) {
       // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
       // TransactionManager's Rollback() and GC's Unlink logic
-      undo->Table() = nullptr;
-      undo->SetUnlinked();
+      //undo->Table() = nullptr;
+      undo->SetAborted();
       return false;
     }
 
@@ -238,7 +238,8 @@ bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSl
     if (HasConflict(*txn, version_ptr) || !Visible(slot, accessor_)) {
       // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
       // TransactionManager's Rollback() and GC's Unlink logic
-      undo->Table() = nullptr;
+      //undo->Table() = nullptr;
+      undo->SetAborted();
       return false;
     }
 

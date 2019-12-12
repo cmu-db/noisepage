@@ -79,12 +79,17 @@ class UndoRecord {
   /**
    * Set the unlinked flag to indicate this undo record has been unlinked
    */
-  void SetUnlinked() { flags |= 0x10; }
+  void SetUnlinked() { flags |= 0x80; }
 
   /**
    * @return whether the undo record has been unlnked
    */
-  bool IsUnlinked() { return (bool)(flags & 0x10); }
+ bool IsUnlinked() const { return (bool)(flags & 0x80); }
+
+ void SetAborted() { flags |= 0x90; }
+
+ bool IsAborted() const { return flags & 0x90; }
+
 
   /**
    * @param redo the redo changes to be applied

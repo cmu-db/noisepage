@@ -32,7 +32,7 @@ void GarbageCollector::UnlinkTransaction(transaction::timestamp_t oldest_txn, tr
     // if we have already visited this tuple slot; if not, proceed to prune the version chain.
     //TODO(Yash): check where table pointer in an undo record is set to null. I don't think it can be null.
     //ERROR HERE?????: Threads are marked as unlinked wrong? truncate version chain needs to be
-    if (!undo_record.IsUnlinked()) { TruncateVersionChain(table, undo_record.Slot(), oldest_txn); }
+    if (!undo_record.IsUnlinked() && !undo_record.IsAborted()) { TruncateVersionChain(table, undo_record.Slot(), oldest_txn); }
     // Regardless of the version chain we will need to reclaim deleted slots and any dangling pointers to varlens,
     // unless the transaction is aborted, and the record holds a version that is still visible.
     if (!txn->Aborted()) {
