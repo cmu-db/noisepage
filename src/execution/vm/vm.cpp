@@ -3,8 +3,8 @@
 #include <numeric>
 #include <string>
 #include <vector>
-#include "execution/sql/projected_columns_iterator.h"
 
+#include "execution/sql/projected_columns_iterator.h"
 #include "execution/sql/value.h"
 #include "execution/util/execution_common.h"
 #include "execution/util/memory.h"
@@ -1462,9 +1462,9 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
-  /////////////////////////////////
-  //// PR Calls
-  /////////////////////////////////
+  // -------------------------------------------------------
+  // PR Calls
+  // -------------------------------------------------------
 
 #define GEN_PR_ACCESS(type_str, type)                                       \
   OP(PRGet##type_str) : {                                                   \
@@ -1516,9 +1516,9 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   GEN_PR_SET(Varlen, sql::StringVal)
 #undef GEN_PR_SET
 
-  /////////////////////////////////
-  //// StorageInterface Calls
-  /////////////////////////////////
+  // -------------------------------------------------------
+  // StorageInterface Calls
+  // -------------------------------------------------------
 
   OP(StorageInterfaceInit) : {
     auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
