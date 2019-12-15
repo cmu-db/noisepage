@@ -1,9 +1,9 @@
 #include <memory>
 #include <vector>
 
+#include "common/timer.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/table_vector_iterator.h"
-#include "common/timer.h"
 #include "tbb/blocked_range.h"
 #include "tbb/parallel_for.h"
 #include "tbb/task_scheduler_init.h"

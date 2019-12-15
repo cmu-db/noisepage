@@ -5,8 +5,8 @@
 #include "execution/sql_test.h"
 
 #include "catalog/catalog_defs.h"
-#include "execution/sql/table_vector_iterator.h"
 #include "common/timer.h"
+#include "execution/sql/table_vector_iterator.h"
 
 namespace terrier::execution::sql::test {
 

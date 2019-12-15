@@ -16,51 +16,51 @@ namespace terrier::common {
  */
 template <class resolution>
 class Timer {
-    using Clock = std::chrono::high_resolution_clock;
-    using TimePoint = std::chrono::time_point<Clock>;
+  using Clock = std::chrono::high_resolution_clock;
+  using TimePoint = std::chrono::time_point<Clock>;
 
-public:
-    Timer() noexcept { Start(); }
+ public:
+  Timer() noexcept { Start(); }
 
-    /**
-     * Start the timer
-     */
-    void Start() noexcept { start_ = Clock::now(); }
+  /**
+   * Start the timer
+   */
+  void Start() noexcept { start_ = Clock::now(); }
 
-    /**
-     * Stop the timer
-     */
-    void Stop() noexcept {
-        stop_ = Clock::now();
-        elapsed_ = static_cast<double>(std::chrono::duration_cast<resolution>(stop_ - start_).count());
-       // elapsed_ = std::chrono::duration_cast<std::chrono::duration<double, ResolutionRatio>>(stop_ - start_).count();
-    }
+  /**
+   * Stop the timer
+   */
+  void Stop() noexcept {
+    stop_ = Clock::now();
+    elapsed_ = static_cast<double>(std::chrono::duration_cast<resolution>(stop_ - start_).count());
+    // elapsed_ = std::chrono::duration_cast<std::chrono::duration<double, ResolutionRatio>>(stop_ - start_).count();
+  }
 
-    /**
-     * Return the total number of elapsed time units
-     */
-    double Elapsed() const noexcept { return elapsed_; }
+  /**
+   * Return the total number of elapsed time units
+   */
+  double Elapsed() const noexcept { return elapsed_; }
 
-    /**
-     * Time a function @em func
-     * @tparam F A no-arg void return functor-type
-     * @param fn The functor to time
-     * @return The elapsed time in whatever resolution ratio the caller wants
-     */
-    template <typename F>
-    static inline double TimeFunction(const F &fn) {
-        Timer<resolution> timer;
-        timer.Start();
-        fn();
-        timer.Stop();
-        return timer.elapsed();
-    }
+  /**
+   * Time a function @em func
+   * @tparam F A no-arg void return functor-type
+   * @param fn The functor to time
+   * @return The elapsed time in whatever resolution ratio the caller wants
+   */
+  template <typename F>
+  static double TimeFunction(const F &fn) {
+    Timer<resolution> timer;
+    timer.Start();
+    fn();
+    timer.Stop();
+    return timer.elapsed();
+  }
 
-private:
-    TimePoint start_;
-    TimePoint stop_;
+ private:
+  TimePoint start_;
+  TimePoint stop_;
 
-    double elapsed_{0};
+  double elapsed_{0};
 };
 
 /**
@@ -74,27 +74,26 @@ private:
  * std::chrono::milliseconds, std::chrono::seconds
  */
 
-
 template <class resolution>
 class ScopedTimer {
-public:
-    /**
-     * Constructor
-     * @param elapsed output variable of the elapsed time
-     */
-    explicit ScopedTimer(double *elapsed) noexcept : elapsed_(elapsed) {
-        *elapsed_ = 0;
-        timer_.Start();
-    }
+ public:
+  /**
+   * Constructor
+   * @param elapsed output variable of the elapsed time
+   */
+  explicit ScopedTimer(double *elapsed) noexcept : elapsed_(elapsed) {
+    *elapsed_ = 0;
+    timer_.Start();
+  }
 
-    ~ScopedTimer() {
-        timer_.Stop();
-        *elapsed_ = timer_.Elapsed();
-    }
+  ~ScopedTimer() {
+    timer_.Stop();
+    *elapsed_ = timer_.Elapsed();
+  }
 
-private:
-    Timer<resolution> timer_;
-    double *elapsed_;
+ private:
+  Timer<resolution> timer_;
+  double *elapsed_;
 };
 
 }  // namespace terrier::common

@@ -5,9 +5,9 @@
 
 #include "execution/tpl_test.h"
 
+#include "common/timer.h"
 #include "execution/sql/functions/arithmetic_functions.h"
 #include "execution/sql/value.h"
-#include "common/timer.h"
 
 namespace terrier::execution::sql::test {
 

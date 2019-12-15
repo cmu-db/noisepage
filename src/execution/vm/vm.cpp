@@ -5,10 +5,10 @@
 #include <vector>
 #include "execution/sql/projected_columns_iterator.h"
 
+#include "common/timer.h"
 #include "execution/sql/value.h"
 #include "execution/util/execution_common.h"
 #include "execution/util/memory.h"
-#include "common/timer.h"
 #include "execution/vm/bytecode_function_info.h"
 #include "execution/vm/bytecode_handlers.h"
 #include "execution/vm/module.h"

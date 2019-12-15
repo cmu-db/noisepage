@@ -1,8 +1,8 @@
 #include "transaction/transaction_manager.h"
 #include <unordered_set>
 #include <utility>
-#include "common/timer.h"
 #include "common/thread_context.h"
+#include "common/timer.h"
 #include "metrics/metrics_store.h"
 
 namespace terrier::transaction {

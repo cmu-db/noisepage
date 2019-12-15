@@ -2,8 +2,8 @@
 #include <vector>
 
 #include "benchmark/benchmark.h"
-#include "common/timer.h"
 #include "common/strong_typedef.h"
+#include "common/timer.h"
 #include "storage/data_table.h"
 #include "storage/storage_util.h"
 #include "test_util/multithread_test_util.h"

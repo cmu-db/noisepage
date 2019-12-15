@@ -9,6 +9,7 @@
 #include <utility>
 #include "tbb/task_scheduler_init.h"
 
+#include "common/timer.h"
 #include "execution/ast/ast_dump.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
@@ -21,7 +22,6 @@
 #include "execution/table_generator/table_generator.h"
 #include "execution/tpl.h"
 #include "execution/util/cpu_info.h"
-#include "common/timer.h"
 #include "execution/vm/bytecode_generator.h"
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/llvm_engine.h"

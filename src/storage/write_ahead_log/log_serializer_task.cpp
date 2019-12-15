@@ -3,8 +3,8 @@
 #include <queue>
 #include <utility>
 #include <vector>
-#include "common/timer.h"
 #include "common/thread_context.h"
+#include "common/timer.h"
 #include "metrics/metrics_store.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"

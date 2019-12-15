@@ -160,7 +160,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementInsert)(benchmark::St
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
-   double elapsed_ms;
+    double elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       log_manager_->ForceFlush();

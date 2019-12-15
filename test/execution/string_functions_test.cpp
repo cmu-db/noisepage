@@ -8,10 +8,10 @@
 
 #include "llvm/ADT/StringRef.h"
 
+#include "common/timer.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/functions/string_functions.h"
 #include "execution/sql/value.h"
-#include "common/timer.h"
 
 namespace terrier::execution::sql::test {
 

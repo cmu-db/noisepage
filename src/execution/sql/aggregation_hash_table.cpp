@@ -9,11 +9,11 @@
 #include "libcount/hll.h"
 
 #include "common/math_util.h"
+#include "common/timer.h"
 #include "execution/sql/projected_columns_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/bit_util.h"
 #include "execution/util/cpu_info.h"
-#include "common/timer.h"
 #include "execution/util/vector_util.h"
 #include "loggers/execution_logger.h"
 

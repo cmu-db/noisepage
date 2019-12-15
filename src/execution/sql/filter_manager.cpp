@@ -5,11 +5,11 @@
 #include <utility>
 #include <vector>
 
+#include "common/timer.h"
 #include "execution/bandit/agent.h"
 #include "execution/bandit/multi_armed_bandit.h"
 #include "execution/bandit/policy.h"
 #include "execution/sql/projected_columns_iterator.h"
-#include "common/timer.h"
 #include "loggers/execution_logger.h"
 
 namespace terrier::execution::sql {

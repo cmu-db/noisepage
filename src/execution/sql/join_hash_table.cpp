@@ -9,11 +9,11 @@
 
 #include "libcount/hll.h"
 
+#include "common/timer.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/cpu_info.h"
 #include "execution/util/memory.h"
-#include "common/timer.h"
 #include "loggers/execution_logger.h"
 
 namespace terrier::execution::sql {
