@@ -1507,8 +1507,6 @@ void BytecodeGenerator::VisitBuiltinPRCall(ast::CallExpr *call, ast::Builtin bui
   // First argument is always a projected row
   LocalVar pr = VisitExpressionForRValue(call->Arguments()[0]);
   ast::Context *ctx = call->GetType()->GetContext();
-  // TODO(Amadou): I am using VisitExpressionForLValue because it seems to involve one less copy.
-  // Change it if it causes issues.
   switch (builtin) {
     case ast::Builtin::PRSetTinyInt: {
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
