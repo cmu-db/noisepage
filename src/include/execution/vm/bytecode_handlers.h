@@ -1,9 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include "execution/sql/projected_columns_iterator.h"
-
-#include "execution/util/execution_common.h"
 
 #include "common/macros.h"
 #include "common/strong_typedef.h"
@@ -17,11 +14,13 @@
 #include "execution/sql/functions/string_functions.h"
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/join_hash_table.h"
+#include "execution/sql/projected_columns_iterator.h"
 #include "execution/sql/projected_row_wrapper.h"
 #include "execution/sql/sorter.h"
 #include "execution/sql/storage_interface.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
+#include "execution/util/execution_common.h"
 #include "execution/util/hash.h"
 
 // All VM terrier::bytecode op handlers must use this macro
@@ -1459,11 +1458,10 @@ VM_OP_HOT void OpPRGetDateNull(terrier::execution::sql::Date *out, terrier::exec
   // Read
   bool null = false;
   auto *ptr = pr->Get<uint32_t, true>(col_idx, &null);
-  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
 
   // Set
   out->is_null_ = null;
-  out->int_val_ = *ptr;
+  out->int_val_ = null ? 0 : *ptr;
 }
 
 VM_OP_HOT void OpPRGetVarlen(terrier::execution::sql::StringVal *out, terrier::execution::sql::ProjectedRowWrapper *pr,
