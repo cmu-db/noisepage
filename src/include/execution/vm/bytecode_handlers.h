@@ -1409,28 +1409,14 @@ GEN_PR_SCALAR_GET_CALLS(Double, Real, double);
 
 VM_OP_HOT void OpPRSetVarlen(terrier::execution::sql::ProjectedRowWrapper *pr, uint16_t col_idx,
                              terrier::execution::sql::StringVal *val) {
-  if (val->len_ <= terrier::storage::VarlenEntry::InlineThreshold()) {
-    terrier::storage::VarlenEntry varlen(terrier::storage::VarlenEntry::CreateInline(
-        reinterpret_cast<const terrier::byte *>(val->Content()), val->len_));
-    pr->Set<terrier::storage::VarlenEntry, false>(col_idx, varlen, val->is_null_);
-  } else {
-    terrier::storage::VarlenEntry varlen(terrier::storage::VarlenEntry::Create(
-        reinterpret_cast<const terrier::byte *>(val->Content()), val->len_, false));
-    pr->Set<terrier::storage::VarlenEntry, false>(col_idx, varlen, val->is_null_);
-  }
+  const auto varlen = terrier::execution::sql::StringVal::CreateVarlen(*val);
+  pr->Set<terrier::storage::VarlenEntry, false>(col_idx, varlen, val->is_null_);
 }
 
 VM_OP_HOT void OpPRSetVarlenNull(terrier::execution::sql::ProjectedRowWrapper *pr, uint16_t col_idx,
                                  terrier::execution::sql::StringVal *val) {
-  if (val->len_ <= terrier::storage::VarlenEntry::InlineThreshold()) {
-    terrier::storage::VarlenEntry varlen(terrier::storage::VarlenEntry::CreateInline(
-        reinterpret_cast<const terrier::byte *>(val->Content()), val->len_));
-    pr->Set<terrier::storage::VarlenEntry, true>(col_idx, varlen, val->is_null_);
-  } else {
-    terrier::storage::VarlenEntry varlen(terrier::storage::VarlenEntry::Create(
-        reinterpret_cast<const terrier::byte *>(val->Content()), val->len_, false));
-    pr->Set<terrier::storage::VarlenEntry, true>(col_idx, varlen, val->is_null_);
-  }
+  const auto varlen = terrier::execution::sql::StringVal::CreateVarlen(*val);
+  pr->Set<terrier::storage::VarlenEntry, true>(col_idx, varlen, val->is_null_);
 }
 
 VM_OP_HOT void OpPRSetDate(terrier::execution::sql::ProjectedRowWrapper *pr, uint16_t col_idx,

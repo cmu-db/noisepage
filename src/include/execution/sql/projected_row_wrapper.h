@@ -42,7 +42,7 @@ class EXPORT ProjectedRowWrapper {
    * @param null whether the value is null
    */
   template <typename T, bool Nullable>
-  void Set(uint16_t col_idx, T value, bool null) {
+  void Set(uint16_t col_idx, const T &value, bool null) {
     if constexpr (Nullable) {
       if (null) {
         pr_->SetNull(static_cast<uint16_t>(col_idx));

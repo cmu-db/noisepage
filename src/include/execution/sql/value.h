@@ -2,6 +2,7 @@
 
 #include <sstream>
 #include <string>
+
 #include "common/macros.h"
 #include "common/math_util.h"
 #include "date/date.h"
@@ -221,6 +222,21 @@ struct StringVal : public Val {
         ptr_ = str;
       }
     }
+  }
+
+  /**
+   * Helper method to turn a StringVal into a VarlenEntry. Note that the VarlenEntry does not take ownership of the
+   * buffer if it is not inlined. This merely wraps a StringVal with a VarlenEntry.
+   * @param str input to be turned into a VarlenEntry
+   * @return VarlenEntry representing StringVal
+   */
+  static storage::VarlenEntry CreateVarlen(const StringVal &str) {
+    if (str.len_ > storage::VarlenEntry::InlineThreshold()) {
+      return terrier::storage::VarlenEntry::Create(reinterpret_cast<const terrier::byte *>(str.Content()), str.len_,
+                                                   false);
+    }
+    return terrier::storage::VarlenEntry::CreateInline(reinterpret_cast<const terrier::byte *>(str.Content()),
+                                                       str.len_);
   }
 
   /**
