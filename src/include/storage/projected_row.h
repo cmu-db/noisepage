@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+
 #include "common/container/bitmap.h"
 #include "common/macros.h"
 #include "common/strong_typedef.h"
@@ -134,6 +135,50 @@ class PACKED ProjectedRow {
   bool IsNull(const uint16_t offset) const {
     TERRIER_ASSERT(offset < num_cols_, "Column offset out of bounds.");
     return !Bitmap().Test(offset);
+  }
+
+  /**
+   * Get a pointer to the value in the column at index @em col_idx
+   * @tparam T The desired data type stored in the vector projection
+   * @tparam Nullable Whether the column is NULLable
+   * @param col_idx The index of the column to read from
+   * @param[out] null null Whether the given column is null
+   * @return The typed value at the current iterator position in the column
+   */
+  template <typename T, bool Nullable>
+  const T *Get(const uint16_t col_idx, bool *const null) const {
+    const auto *result = reinterpret_cast<const T *>(AccessWithNullCheck(col_idx));
+    // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
+    if constexpr (Nullable) {
+      TERRIER_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
+      if (result == nullptr) {
+        *null = true;
+        return result;
+      }
+      *null = false;
+      return result;
+    }
+    return result;
+  }
+
+  /**
+   * Sets the index key value at the given index
+   * @tparam T type of value
+   * @param col_idx index of the key
+   * @param value value to write
+   * @param null whether the value is null
+   */
+  template <typename T, bool Nullable>
+  void Set(const uint16_t col_idx, const T &value, const bool null) {
+    if constexpr (Nullable) {
+      if (null) {
+        SetNull(static_cast<uint16_t>(col_idx));
+      } else {
+        *reinterpret_cast<T *>(AccessForceNotNull(col_idx)) = value;
+      }
+    } else {  // NOLINT
+      *reinterpret_cast<T *>(AccessForceNotNull(col_idx)) = value;
+    }
   }
 
  private:

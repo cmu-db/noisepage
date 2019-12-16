@@ -40,48 +40,56 @@ class EXPORT IndexIterator {
   void ScanKey();
 
   /**
+   * Perform an ascending scan
+   */
+  void ScanAscending();
+
+  /**
+   * Perfrom a descending scan
+   */
+  void ScanDescending();
+
+  /**
+   * Perform an ascending scan with a limit
+   */
+  void ScanLimitAscending(uint32_t limit);
+
+  /**
+   * Perform an descending scan with a limit
+   */
+  void ScanLimitDescending(uint32_t limit);
+
+  /**
    * Advances the iterator. Return true if successful
    * @return whether the iterator was advanced or not.
    */
   bool Advance();
 
   /**
-   * Get a pointer to the value in the column at index @em col_idx
-   * @tparam T The desired data type stored in the vector projection
-   * @tparam Nullable Whether the column is NULLable
-   * @param col_idx The index of the column to read from
-   * @param[out] null null Whether the given column is null
-   * @return The typed value at the current iterator position in the column
+   * Return the index PR
    */
-  template <typename T, bool Nullable>
-  const T *Get(uint16_t col_idx, bool *null) const {
-    // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
-    if constexpr (Nullable) {
-      TERRIER_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
-      *null = table_pr_->IsNull(col_idx);
-    }
-    return reinterpret_cast<T *>(table_pr_->AccessWithNullCheck(col_idx));
-  }
+  storage::ProjectedRow *PR() { return index_pr_; }
 
   /**
-   * Sets the index key value at the given index
-   * @tparam T type of value
-   * @param col_idx index of the key
-   * @param value value to write
-   * @param null whether the value is null
+   * Return the lower bound PR
    */
-  template <typename T, bool Nullable>
-  void SetKey(uint16_t col_idx, T value, bool null) {
-    if constexpr (Nullable) {
-      if (null) {
-        index_pr_->SetNull(static_cast<uint16_t>(col_idx));
-      } else {
-        *reinterpret_cast<T *>(index_pr_->AccessForceNotNull(col_idx)) = value;
-      }
-    } else {  // NOLINT
-      *reinterpret_cast<T *>(index_pr_->AccessForceNotNull(col_idx)) = value;
-    }
-  }
+  storage::ProjectedRow *LoPR() { return index_pr_; }
+
+  /**
+   * Return the upper bound PR
+   */
+  storage::ProjectedRow *HiPR() { return hi_index_pr_; }
+
+  /**
+   * Perform a select.
+   * @return The resulting projected row.
+   */
+  storage::ProjectedRow *TablePR();
+
+  /**
+   * @return The current tuple slot of the iterator.
+   */
+  storage::TupleSlot CurrentSlot() { return tuples_[curr_index_ - 1]; }
 
  private:
   exec::ExecutionContext *exec_ctx_;
@@ -91,8 +99,10 @@ class EXPORT IndexIterator {
 
   uint32_t curr_index_ = 0;
   void *index_buffer_;
+  void *hi_index_buffer_;
   void *table_buffer_;
   storage::ProjectedRow *index_pr_;
+  storage::ProjectedRow *hi_index_pr_;
   storage::ProjectedRow *table_pr_;
   std::vector<storage::TupleSlot> tuples_{};
 };
