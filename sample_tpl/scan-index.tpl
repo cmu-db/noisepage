@@ -22,7 +22,7 @@ fun main(execCtx: *ExecutionContext) -> int64 {
 
   // Next we fill up the index's projected row
   var index_pr = @indexIteratorGetPR(&index)
-  @prSetInt(&index_pr, 0, @intToSql(500)) // Set colA
+  @prSetInt(index_pr, 0, @intToSql(500)) // Set colA
 
   // Now we iterate through the matches
   for (@indexIteratorScanKey(&index); @indexIteratorAdvance(&index);) {
@@ -31,8 +31,8 @@ fun main(execCtx: *ExecutionContext) -> int64 {
 
     // Read out the matching tuple to the output buffer
     var out = @ptrCast(*output_struct, @outputAlloc(execCtx))
-    out.colA = @prGetInt(&table_pr, 0)
-    out.colB = @prGetInt(&table_pr, 1)
+    out.colA = @prGetInt(table_pr, 0)
+    out.colB = @prGetInt(table_pr, 1)
     count = count + 1
   }
   // Finalize output

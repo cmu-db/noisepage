@@ -1428,28 +1428,28 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   }
 
   OP(IndexIteratorGetPR) : {
-    auto *pr = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID());
+    auto *pr = frame->LocalAt<storage::ProjectedRow **>(READ_LOCAL_ID());
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
     OpIndexIteratorGetPR(pr, iter);
     DISPATCH_NEXT();
   }
 
   OP(IndexIteratorGetLoPR) : {
-    auto *pr = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID());
+    auto *pr = frame->LocalAt<storage::ProjectedRow **>(READ_LOCAL_ID());
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
     OpIndexIteratorGetLoPR(pr, iter);
     DISPATCH_NEXT();
   }
 
   OP(IndexIteratorGetHiPR) : {
-    auto *pr = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID());
+    auto *pr = frame->LocalAt<storage::ProjectedRow **>(READ_LOCAL_ID());
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
     OpIndexIteratorGetHiPR(pr, iter);
     DISPATCH_NEXT();
   }
 
   OP(IndexIteratorGetTablePR) : {
-    auto *pr = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID());
+    auto *pr = frame->LocalAt<storage::ProjectedRow **>(READ_LOCAL_ID());
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
     OpIndexIteratorGetTablePR(pr, iter);
     DISPATCH_NEXT();
@@ -1466,20 +1466,20 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   // PR Calls
   // -------------------------------------------------------
 
-#define GEN_PR_ACCESS(type_str, type)                                       \
-  OP(PRGet##type_str) : {                                                   \
-    auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());                 \
-    auto *pr = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID()); \
-    auto col_idx = READ_UIMM2();                                            \
-    OpPRGet##type_str(result, pr, col_idx);                                 \
-    DISPATCH_NEXT();                                                        \
-  }                                                                         \
-  OP(PRGet##type_str##Null) : {                                             \
-    auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());                 \
-    auto *pr = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID()); \
-    auto col_idx = READ_UIMM2();                                            \
-    OpPRGet##type_str##Null(result, pr, col_idx);                           \
-    DISPATCH_NEXT();                                                        \
+#define GEN_PR_ACCESS(type_str, type)                                    \
+  OP(PRGet##type_str) : {                                                \
+    auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());              \
+    auto *pr = frame->LocalAt<storage::ProjectedRow *>(READ_LOCAL_ID()); \
+    auto col_idx = READ_UIMM2();                                         \
+    OpPRGet##type_str(result, pr, col_idx);                              \
+    DISPATCH_NEXT();                                                     \
+  }                                                                      \
+  OP(PRGet##type_str##Null) : {                                          \
+    auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());              \
+    auto *pr = frame->LocalAt<storage::ProjectedRow *>(READ_LOCAL_ID()); \
+    auto col_idx = READ_UIMM2();                                         \
+    OpPRGet##type_str##Null(result, pr, col_idx);                        \
+    DISPATCH_NEXT();                                                     \
   }
   GEN_PR_ACCESS(TinyInt, sql::Integer)
   GEN_PR_ACCESS(SmallInt, sql::Integer)
@@ -1491,20 +1491,20 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   GEN_PR_ACCESS(Varlen, sql::StringVal)
 #undef GEN_PR_ACCESS
 
-#define GEN_PR_SET(type_str, type)                                          \
-  OP(PRSet##type_str) : {                                                   \
-    auto *pr = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID()); \
-    auto col_idx = READ_UIMM2();                                            \
-    auto val = frame->LocalAt<type *>(READ_LOCAL_ID());                     \
-    OpPRSet##type_str(pr, col_idx, val);                                    \
-    DISPATCH_NEXT();                                                        \
-  }                                                                         \
-  OP(PRSet##type_str##Null) : {                                             \
-    auto *pr = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID()); \
-    auto col_idx = READ_UIMM2();                                            \
-    auto val = frame->LocalAt<type *>(READ_LOCAL_ID());                     \
-    OpPRSet##type_str##Null(pr, col_idx, val);                              \
-    DISPATCH_NEXT();                                                        \
+#define GEN_PR_SET(type_str, type)                                       \
+  OP(PRSet##type_str) : {                                                \
+    auto *pr = frame->LocalAt<storage::ProjectedRow *>(READ_LOCAL_ID()); \
+    auto col_idx = READ_UIMM2();                                         \
+    auto val = frame->LocalAt<type *>(READ_LOCAL_ID());                  \
+    OpPRSet##type_str(pr, col_idx, val);                                 \
+    DISPATCH_NEXT();                                                     \
+  }                                                                      \
+  OP(PRSet##type_str##Null) : {                                          \
+    auto *pr = frame->LocalAt<storage::ProjectedRow *>(READ_LOCAL_ID()); \
+    auto col_idx = READ_UIMM2();                                         \
+    auto val = frame->LocalAt<type *>(READ_LOCAL_ID());                  \
+    OpPRSet##type_str##Null(pr, col_idx, val);                           \
+    DISPATCH_NEXT();                                                     \
   }
   GEN_PR_SET(TinyInt, sql::Integer)
   GEN_PR_SET(SmallInt, sql::Integer)
@@ -1533,7 +1533,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   }
 
   OP(StorageInterfaceGetTablePR) : {
-    auto *pr_result = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID());
+    auto *pr_result = frame->LocalAt<storage::ProjectedRow **>(READ_LOCAL_ID());
     auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
 
     OpStorageInterfaceGetTablePR(pr_result, storage_interface);
@@ -1567,7 +1567,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   }
 
   OP(StorageInterfaceGetIndexPR) : {
-    auto *pr_result = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID());
+    auto *pr_result = frame->LocalAt<storage::ProjectedRow **>(READ_LOCAL_ID());
     auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
     auto index_oid = READ_UIMM4();
 

@@ -1572,7 +1572,7 @@ void Sema::CheckBuiltinIndexIteratorPRCall(ast::CallExpr *call, ast::Builtin bui
     case ast::Builtin::IndexIteratorGetLoPR:
     case ast::Builtin::IndexIteratorGetHiPR:
     case ast::Builtin::IndexIteratorGetTablePR:
-      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
+      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
       break;
     case ast::Builtin::IndexIteratorGetSlot:
       call->SetType(GetBuiltinType(ast::BuiltinType::TupleSlot));
@@ -1782,7 +1782,7 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
       if (!CheckArgCount(call, 1)) {
         return;
       }
-      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
+      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
       break;
     }
     case ast::Builtin::TableInsert: {
@@ -1832,7 +1832,7 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
         return;
       }
 
-      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
+      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
       break;
     }
     case ast::Builtin::GetIndexPRBind: {
@@ -1845,7 +1845,7 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
         return;
       }
 
-      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
+      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
       break;
     }
     case ast::Builtin::IndexInsert: {

@@ -14,22 +14,22 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   // Set iteration bounds
   var lo_index_pr = @indexIteratorGetLoPR(&index)
   var hi_index_pr = @indexIteratorGetHiPR(&index)
-  @prSetInt(&lo_index_pr, 0, @intToSql(495)) // Set colA in lo
-  @prSetInt(&hi_index_pr, 0, @intToSql(505)) // Set colA in hi
+  @prSetInt(lo_index_pr, 0, @intToSql(495)) // Set colA in lo
+  @prSetInt(hi_index_pr, 0, @intToSql(505)) // Set colA in hi
   for (@indexIteratorScanAscending(&index); @indexIteratorAdvance(&index);) {
     // Materialize the current match.
     var table_pr = @indexIteratorGetTablePR(&index)
-    var colA = @prGetInt(&table_pr, 0)
+    var colA = @prGetInt(table_pr, 0)
     var slot = @indexIteratorGetSlot(&index)
 
     // Insert into empty_table
     var insert_pr = @getTablePR(&inserter)
-    @prSetInt(&insert_pr, 0, colA)
+    @prSetInt(insert_pr, 0, colA)
     var insert_slot = @tableInsert(&inserter)
 
     // Insert into index
     var index_pr = @getIndexPRBind(&inserter, "index_empty")
-    @prSetInt(&index_pr, 0, colA)
+    @prSetInt(index_pr, 0, colA)
     if (!@indexInsert(&inserter)) {
       @indexIteratorFree(&index)
       @storageInterfaceFree(&inserter)

@@ -1,12 +1,11 @@
+#include "execution/sql/index_iterator.h"
+
 #include <array>
 #include <memory>
 
-#include "execution/sql_test.h"
-
 #include "catalog/catalog_defs.h"
-#include "execution/sql/index_iterator.h"
-#include "execution/sql/projected_row_wrapper.h"
 #include "execution/sql/table_vector_iterator.h"
+#include "execution/sql_test.h"
 #include "execution/util/timer.h"
 
 namespace terrier::execution::sql::test {
@@ -48,20 +47,20 @@ TEST_F(IndexIteratorTest, SimpleIndexIteratorTest) {
     for (; pci->HasNext(); pci->Advance()) {
       auto *key = pci->Get<int32_t, false>(0, nullptr);
       // Check that the key can be recovered through the index
-      ProjectedRowWrapper index_pr(index_iter.PR());
-      index_pr.Set<int32_t, false>(0, *key, false);
+      auto *const index_pr(index_iter.PR());
+      index_pr->Set<int32_t, false>(0, *key, false);
       index_iter.ScanKey();
       // One entry should be found
       ASSERT_TRUE(index_iter.Advance());
       // Get directly from iterator
-      ProjectedRowWrapper table_pr(index_iter.TablePR());
-      auto *val = table_pr.Get<int32_t, false>(0, nullptr);
+      auto *const table_pr(index_iter.TablePR());
+      auto *val = table_pr->Get<int32_t, false>(0, nullptr);
       ASSERT_EQ(*key, *val);
       val = nullptr;
       // Get indirectly from tuple slot
       storage::TupleSlot slot(index_iter.CurrentSlot());
       ASSERT_TRUE(sql_table->Select(exec_ctx_->GetTxn(), slot, index_iter.TablePR()));
-      val = table_pr.Get<int32_t, false>(0, nullptr);
+      val = table_pr->Get<int32_t, false>(0, nullptr);
       ASSERT_EQ(*key, *val);
 
       // Check that there are no more entries.
@@ -83,16 +82,16 @@ TEST_F(IndexIteratorTest, SimpleAscendingScanTest) {
   IndexIterator index_iter{exec_ctx_.get(), !table_oid, !index_oid, col_oids.data(),
                            static_cast<uint32_t>(col_oids.size())};
   index_iter.Init();
-  ProjectedRowWrapper lo_pr(index_iter.LoPR());
-  ProjectedRowWrapper hi_pr(index_iter.HiPR());
-  lo_pr.Set<int32_t, false>(0, 495, false);
-  hi_pr.Set<int32_t, false>(0, 505, false);
+  auto *const lo_pr(index_iter.LoPR());
+  auto *const hi_pr(index_iter.HiPR());
+  lo_pr->Set<int32_t, false>(0, 495, false);
+  hi_pr->Set<int32_t, false>(0, 505, false);
   index_iter.ScanAscending();
   int32_t curr_match = 495;
   uint32_t num_matches = 0;
   while (index_iter.Advance()) {
-    ProjectedRowWrapper table_pr(index_iter.TablePR());
-    auto *val = table_pr.Get<int32_t, false>(0, nullptr);
+    auto *const table_pr(index_iter.TablePR());
+    auto *val = table_pr->Get<int32_t, false>(0, nullptr);
     EXPECT_EQ(*val, curr_match);
     curr_match++;
     num_matches++;
@@ -112,16 +111,16 @@ TEST_F(IndexIteratorTest, SimpleLimitAscendingScanTest) {
   IndexIterator index_iter{exec_ctx_.get(), !table_oid, !index_oid, col_oids.data(),
                            static_cast<uint32_t>(col_oids.size())};
   index_iter.Init();
-  ProjectedRowWrapper lo_pr(index_iter.LoPR());
-  ProjectedRowWrapper hi_pr(index_iter.HiPR());
-  lo_pr.Set<int32_t, false>(0, 495, false);
-  hi_pr.Set<int32_t, false>(0, 505, false);
+  auto *const lo_pr(index_iter.LoPR());
+  auto *const hi_pr(index_iter.HiPR());
+  lo_pr->Set<int32_t, false>(0, 495, false);
+  hi_pr->Set<int32_t, false>(0, 505, false);
   index_iter.ScanLimitAscending(5);
   int32_t curr_match = 495;
   uint32_t num_matches = 0;
   while (index_iter.Advance()) {
-    ProjectedRowWrapper table_pr(index_iter.TablePR());
-    auto *val = table_pr.Get<int32_t, false>(0, nullptr);
+    auto *const table_pr(index_iter.TablePR());
+    auto *val = table_pr->Get<int32_t, false>(0, nullptr);
     EXPECT_EQ(*val, curr_match);
     curr_match++;
     num_matches++;
@@ -143,16 +142,16 @@ TEST_F(IndexIteratorTest, SimpleDescendingScanTest) {
   index_iter.Init();
 
   // Iterate through the table.
-  ProjectedRowWrapper lo_pr(index_iter.LoPR());
-  ProjectedRowWrapper hi_pr(index_iter.HiPR());
-  lo_pr.Set<int32_t, false>(0, 495, false);
-  hi_pr.Set<int32_t, false>(0, 505, false);
+  auto *const lo_pr(index_iter.LoPR());
+  auto *const hi_pr(index_iter.HiPR());
+  lo_pr->Set<int32_t, false>(0, 495, false);
+  hi_pr->Set<int32_t, false>(0, 505, false);
   index_iter.ScanDescending();
   int32_t curr_match = 505;
   uint32_t num_matches = 0;
   while (index_iter.Advance()) {
-    ProjectedRowWrapper table_pr(index_iter.TablePR());
-    auto *val = table_pr.Get<int32_t, false>(0, nullptr);
+    auto *const table_pr(index_iter.TablePR());
+    auto *val = table_pr->Get<int32_t, false>(0, nullptr);
     ASSERT_EQ(*val, curr_match);
     curr_match--;
     num_matches++;
@@ -174,16 +173,16 @@ TEST_F(IndexIteratorTest, SimpleLimitDescendingScanTest) {
   index_iter.Init();
 
   // Iterate through the table.
-  ProjectedRowWrapper lo_pr(index_iter.LoPR());
-  ProjectedRowWrapper hi_pr(index_iter.HiPR());
-  lo_pr.Set<int32_t, false>(0, 495, false);
-  hi_pr.Set<int32_t, false>(0, 505, false);
+  auto *const lo_pr(index_iter.LoPR());
+  auto *const hi_pr(index_iter.HiPR());
+  lo_pr->Set<int32_t, false>(0, 495, false);
+  hi_pr->Set<int32_t, false>(0, 505, false);
   index_iter.ScanLimitDescending(5);
   int32_t curr_match = 505;
   uint32_t num_matches = 0;
   while (index_iter.Advance()) {
-    ProjectedRowWrapper table_pr(index_iter.TablePR());
-    auto *val = table_pr.Get<int32_t, false>(0, nullptr);
+    auto *const table_pr(index_iter.TablePR());
+    auto *val = table_pr->Get<int32_t, false>(0, nullptr);
     ASSERT_EQ(*val, curr_match);
     curr_match--;
     num_matches++;
