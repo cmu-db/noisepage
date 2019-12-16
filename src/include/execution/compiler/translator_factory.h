@@ -19,99 +19,93 @@ class TranslatorFactory {
   /**
    * Create a regular expression translator
    */
-  static std::unique_ptr<OperatorTranslator> CreateRegularTranslator(const terrier::planner::AbstractPlanNode *op,
+  static std::unique_ptr<OperatorTranslator> CreateRegularTranslator(const planner::AbstractPlanNode *op,
                                                                      CodeGen *codegen);
 
   /**
    * Create a bottom expression translator
    */
-  static std::unique_ptr<OperatorTranslator> CreateBottomTranslator(const terrier::planner::AbstractPlanNode *op,
+  static std::unique_ptr<OperatorTranslator> CreateBottomTranslator(const planner::AbstractPlanNode *op,
                                                                     CodeGen *codegen);
 
   /**
    * Create a top expression translator
    */
-  static std::unique_ptr<OperatorTranslator> CreateTopTranslator(const terrier::planner::AbstractPlanNode *op,
+  static std::unique_ptr<OperatorTranslator> CreateTopTranslator(const planner::AbstractPlanNode *op,
                                                                  OperatorTranslator *bottom, CodeGen *codegen);
 
   /**
    * Create a left expression translator
    */
-  static std::unique_ptr<OperatorTranslator> CreateLeftTranslator(const terrier::planner::AbstractPlanNode *op,
+  static std::unique_ptr<OperatorTranslator> CreateLeftTranslator(const planner::AbstractPlanNode *op,
                                                                   CodeGen *codegen);
 
   /**
    * Create a right expression translator
    */
-  static std::unique_ptr<OperatorTranslator> CreateRightTranslator(const terrier::planner::AbstractPlanNode *op,
+  static std::unique_ptr<OperatorTranslator> CreateRightTranslator(const planner::AbstractPlanNode *op,
                                                                    OperatorTranslator *left, CodeGen *codegen);
 
   /**
    * Creates an expression translator
    */
-  static std::unique_ptr<ExpressionTranslator> CreateExpressionTranslator(
-      const terrier::parser::AbstractExpression *expression, CodeGen *codegen);
+  static std::unique_ptr<ExpressionTranslator> CreateExpressionTranslator(const parser::AbstractExpression *expression,
+                                                                          CodeGen *codegen);
 
   /**
    * Whether this is a comparison operation
    */
-  static bool IsComparisonOp(terrier::parser::ExpressionType type) {
-    return ((type) <= terrier::parser::ExpressionType::COMPARE_IS_DISTINCT_FROM &&
-            (type) >= terrier::parser::ExpressionType::COMPARE_EQUAL);
+  static bool IsComparisonOp(parser::ExpressionType type) {
+    return type == parser::ExpressionType::COMPARE_EQUAL || type == parser::ExpressionType::COMPARE_NOT_EQUAL ||
+           type == parser::ExpressionType::COMPARE_LESS_THAN || type == parser::ExpressionType::COMPARE_GREATER_THAN ||
+           type == parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO ||
+           type == parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO;
   }
 
   /**
    * Whether this is an arithmetic operation
    */
-  static bool IsArithmeticOp(terrier::parser::ExpressionType type) {
-    return ((type) <= terrier::parser::ExpressionType::OPERATOR_MOD &&
-            (type) >= terrier::parser::ExpressionType::OPERATOR_PLUS);
+  static bool IsArithmeticOp(parser::ExpressionType type) {
+    return type == parser::ExpressionType::OPERATOR_PLUS || type == parser::ExpressionType::OPERATOR_MINUS ||
+           type == parser::ExpressionType::OPERATOR_MULTIPLY || type == parser::ExpressionType::OPERATOR_DIVIDE ||
+           type == parser::ExpressionType::OPERATOR_MOD;
   }
 
   /**
    * Whether this is a unary operation
    */
-  static bool IsUnaryOp(terrier::parser::ExpressionType type) {
-    return ((type) == terrier::parser::ExpressionType::OPERATOR_UNARY_MINUS ||
-            ((type) >= terrier::parser::ExpressionType::OPERATOR_CAST &&
-             (type) <= terrier::parser::ExpressionType::OPERATOR_EXISTS));
+  static bool IsUnaryOp(parser::ExpressionType type) {
+    // TODO(Amadou): Support other unary operators.
+    return type == parser::ExpressionType::OPERATOR_UNARY_MINUS;
   }
 
   /**
    * Whether this is a conjunction operation
    */
-  static bool IsConjunctionOp(terrier::parser::ExpressionType type) {
-    return ((type) <= terrier::parser::ExpressionType::CONJUNCTION_OR &&
-            (type) >= terrier::parser::ExpressionType::CONJUNCTION_AND);
+  static bool IsConjunctionOp(parser::ExpressionType type) {
+    return (type == parser::ExpressionType::CONJUNCTION_OR || type == parser::ExpressionType::CONJUNCTION_AND);
   }
 
   /**
    * Whether this is a constant value
    */
-  static bool IsConstantVal(terrier::parser::ExpressionType type) {
-    return ((type) == terrier::parser::ExpressionType::VALUE_CONSTANT);
-  }
+  static bool IsConstantVal(parser::ExpressionType type) { return ((type) == parser::ExpressionType::VALUE_CONSTANT); }
 
   /**
    * Whether this is a column value
    */
-  static bool IsColumnVal(terrier::parser::ExpressionType type) {
-    return ((type) == terrier::parser::ExpressionType::COLUMN_VALUE);
-  }
+  static bool IsColumnVal(parser::ExpressionType type) { return ((type) == parser::ExpressionType::COLUMN_VALUE); }
 
   /**
    * Whether this is a derived value
    */
-  static bool IsDerivedVal(terrier::parser::ExpressionType type) {
-    return ((type) == terrier::parser::ExpressionType::VALUE_TUPLE);
-  }
+  static bool IsDerivedVal(parser::ExpressionType type) { return ((type) == parser::ExpressionType::VALUE_TUPLE); }
 
   /**
    * Whether this is a null operation
    */
-  static bool IsNullOp(terrier::parser::ExpressionType type) {
-    return ((type) >= terrier::parser::ExpressionType::OPERATOR_IS_NULL &&
-            (type) <= terrier::parser::ExpressionType::OPERATOR_IS_NOT_NULL);
+  static bool IsNullOp(parser::ExpressionType type) {
+    return (type == parser::ExpressionType::OPERATOR_IS_NULL || type == parser::ExpressionType::OPERATOR_IS_NOT_NULL);
   }
 };
 

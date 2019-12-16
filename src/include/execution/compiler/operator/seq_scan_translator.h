@@ -69,6 +69,8 @@ class SeqScanTranslator : public OperatorTranslator {
   // Return the current slot.
   ast::Expr *GetSlot() override { return codegen_->PointerTo(slot_); }
 
+  const planner::AbstractPlanNode *Op() override { return op_; }
+
  private:
   // var tvi : TableVectorIterator
   void DeclareTVI(FunctionBuilder *builder);
@@ -98,8 +100,6 @@ class SeqScanTranslator : public OperatorTranslator {
 
   // Generated vectorized filters
   void GenVectorizedPredicate(FunctionBuilder *builder, const terrier::parser::AbstractExpression *predicate);
-
-  const planner::AbstractPlanNode *Op() override { return op_; }
 
  private:
   const planner::SeqScanPlanNode *op_;

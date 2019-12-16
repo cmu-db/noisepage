@@ -124,6 +124,7 @@ class OperatorTranslator : public ExpressionEvaluator {
    * Currently, this is used to simplify the probe phase of hash joins. The right side of the join does not have
    * to materialize a tuple if the right child already materialized it.
    * @param is_ptr whether the function outputs a pointer.
+   * @return Whether this operator is a materializer.
    */
   virtual bool IsMaterializer(bool *is_ptr) {
     *is_ptr = false;
