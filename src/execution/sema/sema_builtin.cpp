@@ -1564,8 +1564,7 @@ void Sema::CheckBuiltinIndexIteratorPRCall(ast::CallExpr *call, ast::Builtin bui
   // First argument must be a pointer to a IndexIterator
   auto *index_type = call->Arguments()[0]->GetType()->GetPointeeType();
   if (index_type == nullptr || !index_type->IsSpecificBuiltin(ast::BuiltinType::IndexIterator)) {
-    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadArgToIndexIteratorFree,
-                               call->Arguments()[0]->GetType(), 0);
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(ast::BuiltinType::IndexIterator)->PointerTo());
     return;
   }
   switch (builtin) {
