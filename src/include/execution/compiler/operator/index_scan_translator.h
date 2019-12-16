@@ -1,5 +1,6 @@
 #pragma once
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include "catalog/index_schema.h"
 #include "execution/compiler/operator/operator_translator.h"
@@ -37,6 +38,15 @@ class IndexScanTranslator : public OperatorTranslator {
   void Produce(FunctionBuilder *builder) override;
   void Abort(FunctionBuilder *builder) override;
   void Consume(FunctionBuilder *builder) override;
+
+  // This is a materializer
+  bool IsMaterializer(bool *is_ptr) override {
+    *is_ptr = false;
+    return true;
+  }
+
+  // Return the projected row and its type
+  std::pair<ast::Identifier *, ast::Identifier *> GetMaterializedTuple() override { return {&table_pr_, &pr_type_}; }
 
   ast::Expr *GetOutput(uint32_t attr_idx) override;
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
@@ -81,6 +91,7 @@ class IndexScanTranslator : public OperatorTranslator {
   ast::Identifier lo_index_pr_;
   ast::Identifier hi_index_pr_;
   ast::Identifier table_pr_;
+  ast::Identifier pr_type_;
   ast::Identifier slot_;
 };
 }  // namespace terrier::execution::compiler

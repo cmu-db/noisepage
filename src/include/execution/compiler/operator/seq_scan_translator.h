@@ -51,8 +51,14 @@ class SeqScanTranslator : public OperatorTranslator {
     return true;
   }
 
-  // This is vectorizable only if the scan is vectorizable
+  // This is vectorizable only if the predicate is vectorizable
   bool IsVectorizable() override { return is_vectorizable_; }
+  /**
+   * Recursively walk down the predicate tree to check if it is vectorizable.
+   * @param predicate The predicate to check
+   * @return Whether the predicate is vectorizable or not.
+   */
+  static bool IsVectorizable(const terrier::parser::AbstractExpression *predicate);
 
   // Return the pci and its type
   std::pair<ast::Identifier *, ast::Identifier *> GetMaterializedTuple() override { return {&pci_, &pci_type_}; }
@@ -89,9 +95,6 @@ class SeqScanTranslator : public OperatorTranslator {
 
   // @tableIterReset(&tvi)
   void GenTVIReset(FunctionBuilder *builder);
-
-  // Whether the seq scan can be vectorized
-  static bool IsVectorizable(const terrier::parser::AbstractExpression *predicate);
 
   // Generated vectorized filters
   void GenVectorizedPredicate(FunctionBuilder *builder, const terrier::parser::AbstractExpression *predicate);

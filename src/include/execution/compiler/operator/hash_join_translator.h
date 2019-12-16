@@ -114,12 +114,6 @@ class HashJoinRightTranslator : public OperatorTranslator {
   // Dispatch the call to the correct child
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
 
-  // This is not a materializer
-  bool IsMaterializer(bool *is_ptr) override {
-    *is_ptr = false;
-    return false;
-  }
-
   const planner::AbstractPlanNode *Op() override { return op_; }
 
  private:

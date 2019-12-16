@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
+#include "execution/compiler/expression/pr_filler.h"
 #include "execution/compiler/operator/operator_translator.h"
-#include "execution/compiler/storage/pr_filler.h"
 #include "planner/plannodes/insert_plan_node.h"
 
 namespace terrier::execution::compiler {
@@ -38,8 +38,6 @@ class InsertTranslator : public OperatorTranslator {
   void Abort(FunctionBuilder *builder) override;
   void Consume(FunctionBuilder *builder) override;
 
-  // This is not a materializer
-  bool IsMaterializer(bool *is_ptr) override { return false; }
   ast::Expr *GetOutput(uint32_t attr_idx) override { UNREACHABLE("Inserts don't output anything"); };
   const planner::AbstractPlanNode *Op() override { return op_; }
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;

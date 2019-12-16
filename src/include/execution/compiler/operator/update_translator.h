@@ -1,8 +1,8 @@
 #pragma once
 
 #include <vector>
+#include "execution/compiler/expression/pr_filler.h"
 #include "execution/compiler/operator/operator_translator.h"
-#include "execution/compiler/storage/pr_filler.h"
 #include "planner/plannodes/update_plan_node.h"
 
 namespace terrier::execution::compiler {
@@ -37,9 +37,6 @@ class UpdateTranslator : public OperatorTranslator {
   void Produce(FunctionBuilder *builder) override;
   void Abort(FunctionBuilder *builder) override;
   void Consume(FunctionBuilder *builder) override;
-
-  // This is not a materializer
-  bool IsMaterializer(bool *is_ptr) override { return false; }
 
   ast::Expr *GetOutput(uint32_t attr_idx) override { UNREACHABLE("Updates don't output anything"); };
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;

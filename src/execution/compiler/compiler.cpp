@@ -22,6 +22,14 @@ Compiler::Compiler(CodeGen *codegen, const planner::AbstractPlanNode *plan) : co
   EXECUTION_LOG_INFO("Made {} pipelines", pipelines_.size());
 }
 
+/*
+ * The generated tpl will have the following top level declarations:
+ * 1. Global state struct: struct State {...}
+ * 2. Helper structs & functions specific to each operation (e.g. join build struct or comparison function for sorting).
+ * 3. The setup and teardown function to initialize and free global state objects.
+ * 4. The functions that execute each pipeline.
+ * 5. The main function.
+ */
 ast::File *Compiler::Compile() {
   // Step 1: Generate state, structs, helper functions
   util::RegionVector<ast::Decl *> decls(codegen_->Region());
@@ -36,7 +44,7 @@ ast::File *Compiler::Compile() {
   // 1.2 Make the top level declarations
   util::RegionVector<ast::Decl *> top_level(codegen_->Region());
   GenStateStruct(&top_level, std::move(state_fields));
-  GenHelperStructsAndFunctions(&top_level, std::move(decls));
+  top_level.insert(top_level.end(), decls.begin(), decls.end());
   GenFunction(&top_level, codegen_->GetSetupFn(), std::move(setup_stmts));
   GenFunction(&top_level, codegen_->GetTeardownFn(), std::move(teardow_stmts));
 
@@ -59,6 +67,60 @@ ast::File *Compiler::Compile() {
   return compiled_file;
 }
 
+void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipeline *curr_pipeline) {
+  switch (op.GetPlanNodeType()) {
+    case terrier::planner::PlanNodeType::AGGREGATE:
+    case terrier::planner::PlanNodeType::ORDERBY: {
+      // These nodes split in two parts: A "build" side (called bottom) and an "iterate" side (called top).
+      auto bottom_translator = TranslatorFactory::CreateBottomTranslator(&op, codegen_);
+      auto top_translator = TranslatorFactory::CreateTopTranslator(&op, bottom_translator.get(), codegen_);
+      // The "build" side is a pipeline breaker. It belongs to a new pipeline.
+      auto next_pipeline = std::make_unique<Pipeline>(codegen_);
+      MakePipelines(*op.GetChild(0), next_pipeline.get());
+      next_pipeline->Add(std::move(bottom_translator));
+      pipelines_.emplace_back(std::move(next_pipeline));
+      // The "iterate" side terminates the current pipeline.
+      curr_pipeline->Add(std::move(top_translator));
+      return;
+    }
+    case terrier::planner::PlanNodeType::HASHJOIN: {
+      // The hash join splits also splits in a "build" side (called left) and an "iterate" side (called right).
+      auto left_translator = TranslatorFactory::CreateLeftTranslator(&op, codegen_);
+      auto right_translator = TranslatorFactory::CreateRightTranslator(&op, left_translator.get(), codegen_);
+
+      // The "build" side is a pipeline breaker. It belongs to a new pipeline.
+      auto next_pipeline = std::make_unique<Pipeline>(codegen_);
+      MakePipelines(*op.GetChild(0), next_pipeline.get());
+      next_pipeline->Add(std::move(left_translator));
+      pipelines_.emplace_back(std::move(next_pipeline));
+      // The "iterate" side belongs the current pipeline.
+      MakePipelines(*op.GetChild(1), curr_pipeline);
+      curr_pipeline->Add(std::move(right_translator));
+      return;
+    }
+    case terrier::planner::PlanNodeType::NESTLOOP: {
+      // The two sides of the nested loop join belong to the same pipeline. They are just concatenated together.
+      // These two translator glue the two sides together and ensure that expression evaluation is correctly done.
+      auto left_translator = TranslatorFactory::CreateLeftTranslator(&op, codegen_);
+      auto right_translator = TranslatorFactory::CreateRightTranslator(&op, left_translator.get(), codegen_);
+      // Outer loop
+      MakePipelines(*op.GetChild(1), curr_pipeline);
+      curr_pipeline->Add(std::move(left_translator));
+      // Inner loop
+      MakePipelines(*op.GetChild(0), curr_pipeline);
+      curr_pipeline->Add(std::move(right_translator));
+      return;
+    }
+    default: {
+      // Every other operation just adds itself to the current pipeline.
+      auto translator = TranslatorFactory::CreateRegularTranslator(&op, codegen_);
+      if (op.GetChildrenSize() != 0) MakePipelines(*op.GetChild(0), curr_pipeline);
+      curr_pipeline->Add(std::move(translator));
+      return;
+    }
+  }
+}
+
 void Compiler::GenStateStruct(execution::util::RegionVector<execution::ast::Decl *> *top_level,
                               execution::util::RegionVector<execution::ast::FieldDecl *> &&fields) {
   // Make a dummy fields in case no operator has a state. This can be remove once the empty struct bug is fixed.
@@ -66,11 +128,6 @@ void Compiler::GenStateStruct(execution::util::RegionVector<execution::ast::Decl
   ast::Expr *dummy_type = codegen_->BuiltinType(ast::BuiltinType::Kind::Int32);
   fields.emplace_back(codegen_->MakeField(dummy_name, dummy_type));
   top_level->emplace_back(codegen_->MakeStruct(codegen_->GetStateType(), std::move(fields)));
-}
-
-void Compiler::GenHelperStructsAndFunctions(execution::util::RegionVector<execution::ast::Decl *> *top_level,
-                                            execution::util::RegionVector<execution::ast::Decl *> &&decls) {
-  top_level->insert(top_level->end(), decls.begin(), decls.end());
 }
 
 void Compiler::GenFunction(execution::util::RegionVector<execution::ast::Decl *> *top_level, ast::Identifier fn_name,
@@ -118,55 +175,5 @@ ast::Decl *Compiler::GenMainFunction() {
   // Step 4: return a value of 0
   builder.Append(codegen_->ReturnStmt(codegen_->IntLiteral(37)));
   return builder.Finish();
-}
-
-void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipeline *curr_pipeline) {
-  switch (op.GetPlanNodeType()) {
-    case terrier::planner::PlanNodeType::AGGREGATE:
-    case terrier::planner::PlanNodeType::ORDERBY: {
-      // These nodes split in two parts: A "build" side (called bottom) and an "iterate" side (called top).
-      auto bottom_translator = TranslatorFactory::CreateBottomTranslator(&op, codegen_);
-      auto top_translator = TranslatorFactory::CreateTopTranslator(&op, bottom_translator.get(), codegen_);
-      curr_pipeline->Add(std::move(top_translator));
-      // Make the next pipeline
-      auto next_pipeline = std::make_unique<Pipeline>(codegen_);
-      MakePipelines(*op.GetChild(0), next_pipeline.get());
-      next_pipeline->Add(std::move(bottom_translator));
-      pipelines_.emplace_back(std::move(next_pipeline));
-      return;
-    }
-    case terrier::planner::PlanNodeType::HASHJOIN: {
-      // Create left and right translators
-      auto left_translator = TranslatorFactory::CreateLeftTranslator(&op, codegen_);
-      auto right_translator = TranslatorFactory::CreateRightTranslator(&op, left_translator.get(), codegen_);
-      // Generate left pipeline
-      auto next_pipeline = std::make_unique<Pipeline>(codegen_);
-      MakePipelines(*op.GetChild(0), next_pipeline.get());
-      next_pipeline->Add(std::move(left_translator));
-      pipelines_.emplace_back(std::move(next_pipeline));
-      // Continue right pipeline
-      MakePipelines(*op.GetChild(1), curr_pipeline);
-      curr_pipeline->Add(std::move(right_translator));
-      return;
-    }
-    case terrier::planner::PlanNodeType::NESTLOOP: {
-      // Create left and right translators
-      auto left_translator = TranslatorFactory::CreateLeftTranslator(&op, codegen_);
-      auto right_translator = TranslatorFactory::CreateRightTranslator(&op, left_translator.get(), codegen_);
-      // Outer loop
-      MakePipelines(*op.GetChild(1), curr_pipeline);
-      curr_pipeline->Add(std::move(left_translator));
-      // Inner loop
-      MakePipelines(*op.GetChild(0), curr_pipeline);
-      curr_pipeline->Add(std::move(right_translator));
-      return;
-    }
-    default: {
-      auto translator = TranslatorFactory::CreateRegularTranslator(&op, codegen_);
-      if (op.GetChildrenSize() != 0) MakePipelines(*op.GetChild(0), curr_pipeline);
-      curr_pipeline->Add(std::move(translator));
-      return;
-    }
-  }
 }
 }  // namespace terrier::execution::compiler

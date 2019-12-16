@@ -11,26 +11,26 @@ ComparisonTranslator::ComparisonTranslator(const terrier::parser::AbstractExpres
 ast::Expr *ComparisonTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
   auto *left_expr = left_->DeriveExpr(evaluator);
   auto *right_expr = right_->DeriveExpr(evaluator);
-  parsing::Token::Type type;
+  parsing::Token::Type op_token;
   switch (expression_->GetExpressionType()) {
     case terrier::parser::ExpressionType::COMPARE_EQUAL:
-      type = parsing::Token::Type::EQUAL_EQUAL;
+      op_token = parsing::Token::Type::EQUAL_EQUAL;
       break;
     case terrier::parser::ExpressionType::COMPARE_GREATER_THAN:
-      type = parsing::Token::Type::GREATER;
+      op_token = parsing::Token::Type::GREATER;
       break;
     case terrier::parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
-      type = parsing::Token::Type::GREATER_EQUAL;
+      op_token = parsing::Token::Type::GREATER_EQUAL;
       break;
     case terrier::parser::ExpressionType::COMPARE_LESS_THAN:
-      type = parsing::Token::Type::LESS;
+      op_token = parsing::Token::Type::LESS;
       break;
     case terrier::parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
-      type = parsing::Token::Type::LESS_EQUAL;
+      op_token = parsing::Token::Type::LESS_EQUAL;
       break;
     default:
       UNREACHABLE("Unsupported expression");
   }
-  return codegen_->Compare(type, left_expr, right_expr);
+  return codegen_->Compare(op_token, left_expr, right_expr);
 }
 }  // namespace terrier::execution::compiler

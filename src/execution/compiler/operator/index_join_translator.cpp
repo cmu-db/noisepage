@@ -82,7 +82,7 @@ ast::Expr *IndexJoinTranslator::GetTableColumn(const catalog::col_oid_t &col_oid
   auto type = table_schema_.GetColumn(col_oid).Type();
   auto nullable = table_schema_.GetColumn(col_oid).Nullable();
   uint16_t attr_idx = table_pm_[col_oid];
-  return codegen_->PRGet(table_pr_, type, nullable, attr_idx);
+  return codegen_->PRGet(codegen_->PointerTo(table_pr_), type, nullable, attr_idx);
 }
 
 void IndexJoinTranslator::SetOids(FunctionBuilder *builder) {
@@ -130,7 +130,8 @@ void IndexJoinTranslator::FillKey(FunctionBuilder *builder) {
     uint16_t attr_offset = index_pm_.at(key.first);
     type::TypeId attr_type = index_schema_.GetColumn(!key.first - 1).Type();
     bool nullable = index_schema_.GetColumn(!key.first - 1).Nullable();
-    auto set_key_call = codegen_->PRSet(index_pr_, attr_type, nullable, attr_offset, translator->DeriveExpr(this));
+    auto set_key_call =
+        codegen_->PRSet(codegen_->PointerTo(index_pr_), attr_type, nullable, attr_offset, translator->DeriveExpr(this));
     builder->Append(codegen_->MakeStmt(set_key_call));
   }
 }

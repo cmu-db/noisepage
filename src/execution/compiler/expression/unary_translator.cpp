@@ -9,17 +9,17 @@ UnaryTranslator::UnaryTranslator(const terrier::parser::AbstractExpression *expr
 
 ast::Expr *UnaryTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
   auto *child_expr = child_->DeriveExpr(evaluator);
-  parsing::Token::Type type;
+  parsing::Token::Type op_token;
   switch (expression_->GetExpressionType()) {
     case terrier::parser::ExpressionType::OPERATOR_UNARY_MINUS:
-      type = parsing::Token::Type::MINUS;
+      op_token = parsing::Token::Type::MINUS;
       break;
     case terrier::parser::ExpressionType::OPERATOR_NOT:
-      type = parsing::Token::Type::BANG;
+      op_token = parsing::Token::Type::BANG;
       break;
     default:
       UNREACHABLE("Unsupported expression");
   }
-  return codegen_->UnaryOp(type, child_expr);
+  return codegen_->UnaryOp(op_token, child_expr);
 }
 }  // namespace terrier::execution::compiler

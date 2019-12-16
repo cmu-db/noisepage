@@ -38,9 +38,6 @@ class DeleteTranslator : public OperatorTranslator {
   void Abort(FunctionBuilder *builder) override;
   void Consume(FunctionBuilder *builder) override;
 
-  // This is not a materializer
-  bool IsMaterializer(bool *is_ptr) override { return false; }
-
   ast::Expr *GetOutput(uint32_t attr_idx) override { UNREACHABLE("Deletes don't output anything"); };
 
   const planner::AbstractPlanNode *Op() override { return op_; }

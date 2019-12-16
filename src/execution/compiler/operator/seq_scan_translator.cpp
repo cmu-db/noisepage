@@ -177,8 +177,24 @@ void SeqScanTranslator::GenTVIReset(execution::compiler::FunctionBuilder *builde
 }
 
 bool SeqScanTranslator::IsVectorizable(const terrier::parser::AbstractExpression *predicate) {
-  // TODO(Amadou): Does not currently work with negative numbers.
-  // Implement once that's fixed.
+  // TODO(Amadou): Does not currently work with negative numbers so it's commented out.
+  // Once that bug is fixed, comment back in.
+  /*
+  // Recursively walks down the query plan to ensure that predicate has the form ((colX comp int) AND (colY comp int)
+  ...) if (predicate == nullptr) return true;
+
+  if (predicate->GetExpressionType() == terrier::parser::ExpressionType::CONJUNCTION_AND) {
+    return IsVectorizable(predicate->GetChild(0).Get()) && IsVectorizable(predicate->GetChild(1).Get());
+  }
+  if (TranslatorFactory::IsComparisonOp(predicate->GetExpressionType())) {
+    // left is TVE and right is constant integer.
+    // TODO(Amadou): Add support for floats here and in the SIMD code.
+    // TODO(Amadou): Support right TVE and left constant integers. Be sure to flip inequalities while codegening.
+    return predicate->GetChild(0)->GetExpressionType() == terrier::parser::ExpressionType::COLUMN_VALUE &&
+        predicate->GetChild(1)->GetExpressionType() == terrier::parser::ExpressionType::VALUE_CONSTANT &&
+        (predicate->GetChild(1)->GetReturnValueType() >= terrier::type::TypeId::TINYINT &&
+            predicate->GetChild(1)->GetReturnValueType() <= terrier::type::TypeId::BIGINT);
+  }*/
   return false;
 }
 
@@ -215,5 +231,6 @@ void SeqScanTranslator::GenVectorizedPredicate(FunctionBuilder *builder,
     ast::Expr *filter_call = codegen_->PCIFilter(pci_, predicate->GetExpressionType(), col_idx, col_type, filter_val);
     builder->Append(codegen_->MakeStmt(filter_call));
   }
+  UNREACHABLE("This function should not be called on non vectorized predicates!");
 }
 }  // namespace terrier::execution::compiler

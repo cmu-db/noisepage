@@ -312,7 +312,6 @@ void AggregateTopTranslator::Produce(FunctionBuilder *builder) {
 
 void AggregateTopTranslator::Consume(FunctionBuilder *builder) {
   GenHTLoop(builder);
-  // Close the iterator after the loop ends.
   DeclareResult(builder);
   bool has_having = GenHaving(builder);
   parent_translator_->Consume(builder);

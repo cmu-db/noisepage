@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "execution/compiler/codegen.h"
+#include "execution/sql/value.h"
 #include "type/transient_value_peeker.h"
 
 namespace terrier::execution::compiler {
@@ -59,8 +60,6 @@ ast::Stmt *CodeGen::ExecCall(ast::Identifier fn_name) {
 }
 
 ast::Expr *CodeGen::GetStateMemberPtr(ast::Identifier ident) { return PointerTo(MemberExpr(state_var_, ident)); }
-
-ast::Identifier CodeGen::NewIdentifier() { return NewIdentifier("id"); }
 
 ast::Identifier CodeGen::NewIdentifier(const std::string &prefix) {
   // Use the custom allocator because the id will outlive the std::string.
@@ -247,41 +246,6 @@ ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanTy
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::PRGet(ast::Identifier iter, type::TypeId type, bool nullable, uint32_t attr_idx) {
-  // @indexIteratorGetTypeNull(&iter, attr_idx)
-  ast::Builtin builtin;
-  switch (type) {
-    case type::TypeId::INTEGER:
-      builtin = nullable ? ast::Builtin::PRGetIntNull : ast::Builtin::PRGetInt;
-      break;
-    case type::TypeId::SMALLINT:
-      builtin = nullable ? ast::Builtin::PRGetSmallIntNull : ast::Builtin::PRGetSmallInt;
-      break;
-    case type::TypeId::TINYINT:
-      builtin = nullable ? ast::Builtin::PRGetTinyIntNull : ast::Builtin::PRGetTinyInt;
-      break;
-    case type::TypeId::BIGINT:
-      builtin = nullable ? ast::Builtin::PRGetBigIntNull : ast::Builtin::PRGetBigInt;
-      break;
-    case type::TypeId::DECIMAL:
-      builtin = nullable ? ast::Builtin::PRGetDoubleNull : ast::Builtin::PRGetDouble;
-      break;
-    case type::TypeId::DATE:
-      builtin = nullable ? ast::Builtin::PRGetDateNull : ast::Builtin::PRGetDate;
-      break;
-    case type::TypeId::VARCHAR:
-      builtin = nullable ? ast::Builtin::PRGetVarlenNull : ast::Builtin::PRGetVarlen;
-      break;
-    default:
-      UNREACHABLE("Unsupported index get type!");
-  }
-  ast::Expr *fun = BuiltinFunction(builtin);
-  ast::Expr *iter_ptr = PointerTo(iter);
-  ast::Expr *idx_expr = Factory()->NewIntLiteral(DUMMY_POS, attr_idx);
-  util::RegionVector<ast::Expr *> args{{iter_ptr, idx_expr}, Region()};
-  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
-}
-
 ast::Expr *CodeGen::PRGet(ast::Expr *iter_ptr, type::TypeId type, bool nullable, uint32_t attr_idx) {
   // @indexIteratorGetTypeNull(&iter, attr_idx)
   ast::Builtin builtin;
@@ -314,40 +278,6 @@ ast::Expr *CodeGen::PRGet(ast::Expr *iter_ptr, type::TypeId type, bool nullable,
   ast::Expr *fun = BuiltinFunction(builtin);
   ast::Expr *idx_expr = Factory()->NewIntLiteral(DUMMY_POS, attr_idx);
   util::RegionVector<ast::Expr *> args{{iter_ptr, idx_expr}, Region()};
-  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
-}
-
-ast::Expr *CodeGen::PRSet(ast::Identifier iter, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val) {
-  ast::Builtin builtin;
-  switch (type) {
-    case type::TypeId::INTEGER:
-      builtin = nullable ? ast::Builtin::PRSetIntNull : ast::Builtin::PRSetInt;
-      break;
-    case type::TypeId::SMALLINT:
-      builtin = nullable ? ast::Builtin::PRSetSmallIntNull : ast::Builtin::PRSetSmallInt;
-      break;
-    case type::TypeId::TINYINT:
-      builtin = nullable ? ast::Builtin::PRSetTinyIntNull : ast::Builtin::PRSetTinyInt;
-      break;
-    case type::TypeId::BIGINT:
-      builtin = nullable ? ast::Builtin::PRSetBigIntNull : ast::Builtin::PRSetBigInt;
-      break;
-    case type::TypeId::DECIMAL:
-      builtin = nullable ? ast::Builtin::PRSetDoubleNull : ast::Builtin::PRSetDouble;
-      break;
-    case type::TypeId::DATE:
-      builtin = nullable ? ast::Builtin::PRSetDateNull : ast::Builtin::PRSetDate;
-      break;
-    case type::TypeId::VARCHAR:
-      builtin = nullable ? ast::Builtin::PRSetVarlenNull : ast::Builtin::PRSetVarlen;
-      break;
-    default:
-      UNREACHABLE("Unsupported index set type!");
-  }
-  ast::Expr *fun = BuiltinFunction(builtin);
-  ast::Expr *iter_ptr = PointerTo(iter);
-  ast::Expr *idx_expr = Factory()->NewIntLiteral(DUMMY_POS, attr_idx);
-  util::RegionVector<ast::Expr *> args{{iter_ptr, idx_expr, val}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
@@ -388,30 +318,43 @@ ast::Expr *CodeGen::PeekValue(const type::TransientValue &transient_val) {
   switch (transient_val.Type()) {
     case type::TypeId::TINYINT: {
       auto val = type::TransientValuePeeker::PeekTinyInt(transient_val);
-      return Factory()->NewIntLiteral(DUMMY_POS, val);
+      return IntToSql(val);
     }
     case type::TypeId::SMALLINT: {
       auto val = type::TransientValuePeeker::PeekSmallInt(transient_val);
-      return Factory()->NewIntLiteral(DUMMY_POS, val);
+      return IntToSql(val);
     }
     case type::TypeId::INTEGER: {
       auto val = type::TransientValuePeeker::PeekInteger(transient_val);
-      return IntToSql(static_cast<int32_t>(val));
+      return IntToSql(val);
     }
     case type::TypeId::BIGINT: {
       auto val = type::TransientValuePeeker::PeekBigInt(transient_val);
-      return Factory()->NewIntLiteral(DUMMY_POS, val);
+      return IntToSql(val);
     }
     case type::TypeId::BOOLEAN: {
       auto val = type::TransientValuePeeker::PeekBoolean(transient_val);
-      return Factory()->NewBoolLiteral(DUMMY_POS, val);
+      return BoolLiteral(val);
     }
-    case type::TypeId::DATE:
+    case type::TypeId::DATE: {
+      sql::Date date(terrier::type::TransientValuePeeker::PeekDate(transient_val));
+      int16_t year = sql::ValUtil::ExtractYear(date);
+      uint8_t month = sql::ValUtil::ExtractMonth(date);
+      uint8_t day = sql::ValUtil::ExtractDay(date);
+      return DateToSql(year, month, day);
+    }
+    case type::TypeId::DECIMAL: {
+      auto val = type::TransientValuePeeker::PeekDecimal(transient_val);
+      return FloatToSql(val);
+    }
+    case type::TypeId::VARCHAR: {
+      auto val = terrier::type::TransientValuePeeker::PeekVarChar(transient_val);
+      return StringToSql(val);
+    }
     case type::TypeId::TIMESTAMP:
-    case type::TypeId::DECIMAL:
-    case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY:
     default:
+      // TODO(Amadou): Add support for these types.
       UNREACHABLE("Should not peek on given type!");
   }
 }
@@ -421,12 +364,10 @@ ast::Expr *CodeGen::TplType(type::TypeId type) {
     case type::TypeId::TINYINT:
     case type::TypeId::SMALLINT:
     case type::TypeId::INTEGER:
-    case type::TypeId::BIGINT: {
+    case type::TypeId::BIGINT:
       return BuiltinType(ast::BuiltinType::Kind::Integer);
-    }
-    case type::TypeId::BOOLEAN: {
+    case type::TypeId::BOOLEAN:
       return BuiltinType(ast::BuiltinType::Kind::Boolean);
-    }
     case type::TypeId::DATE:
       return BuiltinType(ast::BuiltinType::Kind::Date);
     case type::TypeId::DECIMAL:
@@ -495,8 +436,8 @@ ast::Expr *CodeGen::AggregateType(parser::ExpressionType agg_type, type::TypeId 
   }
 }
 
-ast::Stmt *CodeGen::DeclareVariable(ast::Identifier name, ast::Expr *typ, ast::Expr *init) {
-  ast::Decl *decl = Factory()->NewVariableDecl(DUMMY_POS, name, typ, init);
+ast::Stmt *CodeGen::DeclareVariable(ast::Identifier name, ast::Expr *type, ast::Expr *init) {
+  ast::Decl *decl = Factory()->NewVariableDecl(DUMMY_POS, name, type, init);
   return Factory()->NewDeclStmt(decl);
 }
 

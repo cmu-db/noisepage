@@ -12,20 +12,17 @@ ConjunctionTranslator::ConjunctionTranslator(const terrier::parser::AbstractExpr
 ast::Expr *ConjunctionTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
   auto *left_expr = left_->DeriveExpr(evaluator);
   auto *right_expr = right_->DeriveExpr(evaluator);
-  parsing::Token::Type type;
+  parsing::Token::Type op_token;
   switch (expression_->GetExpressionType()) {
     case terrier::parser::ExpressionType::CONJUNCTION_OR:
-      // @Wan so the issue here is that the factory takes in the argument for left and right child. This implies that
-      // either we recursively obtain those children and pass it to this Translate function via a vector or we edit the
-      // nodes to have setters/make ourselves friends
-      type = parsing::Token::Type::OR;
+      op_token = parsing::Token::Type::OR;
       break;
     case terrier::parser::ExpressionType::CONJUNCTION_AND:
-      type = parsing::Token::Type::AND;
+      op_token = parsing::Token::Type::AND;
       break;
     default:
       UNREACHABLE("Unsupported expression");
   }
-  return codegen_->BinaryOp(type, left_expr, right_expr);
+  return codegen_->BinaryOp(op_token, left_expr, right_expr);
 }
 }  // namespace terrier::execution::compiler

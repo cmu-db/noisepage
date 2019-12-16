@@ -123,9 +123,6 @@ class OperatorTranslator : public ExpressionEvaluator {
    * Whether this operator materializes structs.
    * Currently, this is used to simplify the probe phase of hash joins. The right side of the join does not have
    * to materialize a tuple if the right child already materialized it.
-   * But I suspect it can simplify sorters, and perhaps other things.
-   * Currently, SeqScan, Agg, and Sort are the materializers.
-   * Most operators should return false here.
    * @param is_ptr whether the function outputs a pointer.
    */
   virtual bool IsMaterializer(bool *is_ptr) {
@@ -134,10 +131,11 @@ class OperatorTranslator : public ExpressionEvaluator {
   }
 
   /**
-   *   Return the identifiers of the materialized tuple if this a materializer.
+   * Return the identifiers of the materialized tuple if this a materializer.
    * The first element is the identifer of the local variable.
    * The second element is the identifier of its type.
    * Most operators should not be materializers.
+   * @return a pair containing the identifiers of the output tuple and its type.
    */
   virtual std::pair<ast::Identifier *, ast::Identifier *> GetMaterializedTuple() { return {nullptr, nullptr}; }
 
@@ -158,7 +156,7 @@ class OperatorTranslator : public ExpressionEvaluator {
   }
 
   /**
-   * @return the plan node as a generic nodeq
+   * @return the plan node as a generic node
    */
   virtual const planner::AbstractPlanNode *Op() = 0;
 

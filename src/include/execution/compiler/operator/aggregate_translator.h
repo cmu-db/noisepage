@@ -210,7 +210,7 @@ class AggregateTopTranslator : public OperatorTranslator {
   void CloseIterator(FunctionBuilder *builder);
 
   // Generate an if statement for the having clause
-  // Return true if if there is a having clause
+  // Return true iff there is a having clause
   bool GenHaving(FunctionBuilder *builder);
 
   const planner::AggregatePlanNode *op_;

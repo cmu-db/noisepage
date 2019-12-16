@@ -30,32 +30,16 @@ class FunctionBuilder {
   DISALLOW_COPY_AND_MOVE(FunctionBuilder);
 
   /**
-   * Appends a stmt to the current block
-   * @param stmt sttm to append.
+   * Appends a statement to the current block
+   * @param stmt statement to append.
    */
   void Append(ast::Stmt *stmt) { blocks_.back()->AppendStmt(stmt); }
-
-  /**
-   * Appends a stmt after the current block.
-   * This function is used by operators that need to cleanup an iterator or free some structures.
-   * @param stmt stmt to append
-   */
-  void AppendAfter(ast::Stmt *stmt) {
-    auto iter = blocks_.rbegin();
-    iter++;
-    (*iter)->AppendStmt(stmt);
-  }
 
   /**
    * Begins an IfStmt
    * @param condition if condition
    */
   void StartIfStmt(ast::Expr *condition);
-
-  /**
-   * Finish a block statement.
-   */
-  void FinishBlockStmt();
 
   /**
    * Begins a ForStmt
@@ -66,15 +50,9 @@ class FunctionBuilder {
   void StartForStmt(ast::Stmt *init, ast::Expr *cond, ast::Stmt *next);
 
   /**
-   * @return the code generator used
+   * Finish an if or a for statement.
    */
-  CodeGen *GetCodeGen() { return codegen_; }
-
-  /**
-   * Allows an operator to register a statement that is executed at the end of the pipeline
-   * @param stmt statement to register
-   */
-  void RegisterFinalStmt(ast::Stmt *stmt) { final_stmts_.push_back(stmt); }
+  void FinishBlockStmt();
 
   /**
    * @return finalized FunctionDecl

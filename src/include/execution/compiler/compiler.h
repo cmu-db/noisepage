@@ -12,30 +12,34 @@
 
 namespace terrier::execution::compiler {
 /**
- * Compiler is the main class that performs compilation through GeneratePlan.
+ * Compiler is the main class that performs compilation Compile().
  */
 class Compiler {
  public:
   /**
    * Constructor
    * @param codegen The code generator
-   * @param plan The plan node to execute
+   * @param plan The plan node to compile
    */
   Compiler(CodeGen *codegen, const planner::AbstractPlanNode *plan);
 
   /**
    * Convert the plan to AST and type check it
+   * @result The generated top-level node.
    */
   ast::File *Compile();
 
  private:
-  // Create the pipelines
+  /**
+   * Recursively walks down the query tree to fill up the vector of pipelines.
+   * A pipeline is a sequence of operations that can be performed on a single tuple.
+   * @param op The current operation in the recursive calls.
+   * @param curr_pipeline The current pipeline being constructed.
+   */
   void MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipeline *curr_pipeline);
-  // Generate the state struct
+
+  // Generate the state struct.
   void GenStateStruct(util::RegionVector<ast::Decl *> *top_level, util::RegionVector<ast::FieldDecl *> &&fields);
-  // Generate the top level helpers
-  void GenHelperStructsAndFunctions(util::RegionVector<ast::Decl *> *top_level,
-                                    util::RegionVector<ast::Decl *> &&decls);
   // Generate the global functions (setup, teardown, ...)
   void GenFunction(util::RegionVector<ast::Decl *> *top_level, ast::Identifier fn_name,
                    util::RegionVector<ast::Stmt *> &&stmts);

@@ -49,9 +49,8 @@ class NestedLoopLeftTransaltor : public OperatorTranslator {
   // Pass Through
   ast::Expr *GetOutput(uint32_t attr_idx) override { return child_translator_->GetOutput(attr_idx); }
 
-  // TODO(Amadou): Confirm that this is never call, since DeriveExpr is not called here.
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {
-    return nullptr;
+    UNREACHABLE("This translator does not call DeriveExpr");
   }
 
   const planner::AbstractPlanNode *Op() override { return op_; }
