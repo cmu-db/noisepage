@@ -1468,32 +1468,27 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
       break;
     }
     case ast::Builtin::IndexIteratorGetPR: {
-      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
-      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
       Emitter()->Emit(Bytecode::IndexIteratorGetPR, pr, iterator);
       break;
     }
     case ast::Builtin::IndexIteratorGetLoPR: {
-      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
-      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
       Emitter()->Emit(Bytecode::IndexIteratorGetLoPR, pr, iterator);
       break;
     }
     case ast::Builtin::IndexIteratorGetHiPR: {
-      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
-      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
       Emitter()->Emit(Bytecode::IndexIteratorGetHiPR, pr, iterator);
       break;
     }
     case ast::Builtin::IndexIteratorGetTablePR: {
-      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
-      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
       Emitter()->Emit(Bytecode::IndexIteratorGetTablePR, pr, iterator);
       break;
     }
     case ast::Builtin::IndexIteratorGetSlot: {
-      ast::Type *slot_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::TupleSlot);
-      LocalVar pr = ExecutionResult()->GetOrCreateDestination(slot_type);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
       Emitter()->Emit(Bytecode::IndexIteratorGetSlot, pr, iterator);
       break;
     }
