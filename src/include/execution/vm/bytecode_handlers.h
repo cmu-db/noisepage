@@ -1320,45 +1320,46 @@ VM_OP void OpIndexIteratorFree(terrier::execution::sql::IndexIterator *iter);
 
 VM_OP void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *iter);
 
-VM_OP_HOT void OpIndexIteratorScanKey(terrier::execution::sql::IndexIterator *iter) { iter->ScanKey(); }
+VM_OP_WARM void OpIndexIteratorScanKey(terrier::execution::sql::IndexIterator *iter) { iter->ScanKey(); }
 
-VM_OP_HOT void OpIndexIteratorScanAscending(terrier::execution::sql::IndexIterator *iter) { iter->ScanAscending(); }
+VM_OP_WARM void OpIndexIteratorScanAscending(terrier::execution::sql::IndexIterator *iter) { iter->ScanAscending(); }
 
-VM_OP_HOT void OpIndexIteratorScanDescending(terrier::execution::sql::IndexIterator *iter) { iter->ScanDescending(); }
+VM_OP_WARM void OpIndexIteratorScanDescending(terrier::execution::sql::IndexIterator *iter) { iter->ScanDescending(); }
 
-VM_OP_HOT void OpIndexIteratorScanLimitAscending(terrier::execution::sql::IndexIterator *iter, uint32_t limit) {
+VM_OP_WARM void OpIndexIteratorScanLimitAscending(terrier::execution::sql::IndexIterator *iter, uint32_t limit) {
   iter->ScanLimitAscending(limit);
 }
 
-VM_OP_HOT void OpIndexIteratorScanLimitDescending(terrier::execution::sql::IndexIterator *iter, uint32_t limit) {
+VM_OP_WARM void OpIndexIteratorScanLimitDescending(terrier::execution::sql::IndexIterator *iter, uint32_t limit) {
   iter->ScanLimitDescending(limit);
 }
 
-VM_OP_HOT void OpIndexIteratorAdvance(bool *has_more, terrier::execution::sql::IndexIterator *iter) {
+VM_OP_WARM void OpIndexIteratorAdvance(bool *has_more, terrier::execution::sql::IndexIterator *iter) {
   *has_more = iter->Advance();
 }
 
-VM_OP_HOT void OpIndexIteratorGetPR(terrier::execution::sql::ProjectedRowWrapper *pr,
-                                    terrier::execution::sql::IndexIterator *iter) {
+VM_OP_WARM void OpIndexIteratorGetPR(terrier::execution::sql::ProjectedRowWrapper *pr,
+                                     terrier::execution::sql::IndexIterator *iter) {
   *pr = terrier::execution::sql::ProjectedRowWrapper(iter->PR());
 }
 
-VM_OP_HOT void OpIndexIteratorGetLoPR(terrier::execution::sql::ProjectedRowWrapper *pr,
-                                      terrier::execution::sql::IndexIterator *iter) {
+VM_OP_WARM void OpIndexIteratorGetLoPR(terrier::execution::sql::ProjectedRowWrapper *pr,
+                                       terrier::execution::sql::IndexIterator *iter) {
   *pr = terrier::execution::sql::ProjectedRowWrapper(iter->LoPR());
 }
 
-VM_OP_HOT void OpIndexIteratorGetHiPR(terrier::execution::sql::ProjectedRowWrapper *pr,
-                                      terrier::execution::sql::IndexIterator *iter) {
+VM_OP_WARM void OpIndexIteratorGetHiPR(terrier::execution::sql::ProjectedRowWrapper *pr,
+                                       terrier::execution::sql::IndexIterator *iter) {
   *pr = terrier::execution::sql::ProjectedRowWrapper(iter->HiPR());
 }
 
-VM_OP_HOT void OpIndexIteratorGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr,
-                                         terrier::execution::sql::IndexIterator *iter) {
+VM_OP_WARM void OpIndexIteratorGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr,
+                                          terrier::execution::sql::IndexIterator *iter) {
   *pr = terrier::execution::sql::ProjectedRowWrapper(iter->TablePR());
 }
 
-VM_OP_HOT void OpIndexIteratorGetSlot(terrier::storage::TupleSlot *slot, terrier::execution::sql::IndexIterator *iter) {
+VM_OP_WARM void OpIndexIteratorGetSlot(terrier::storage::TupleSlot *slot,
+                                       terrier::execution::sql::IndexIterator *iter) {
   *slot = iter->CurrentSlot();
 }
 
