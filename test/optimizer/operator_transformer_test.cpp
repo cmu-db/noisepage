@@ -839,8 +839,7 @@ TEST_F(OperatorTransformerTest, SubqueryComplexTest) {
 TEST_F(OperatorTransformerTest, PrepareStatementTest) {
   OPTIMIZER_LOG_DEBUG("Parsing sql query");
 
-  std::string prepare_sql =
-      "PREPARE insert_plan AS INSERT INTO table_name VALUES($1)";
+  std::string prepare_sql = "PREPARE insert_plan AS INSERT INTO table_name VALUES($1)";
 
   std::string ref = "{\"Op\":\"LogicalPrepare\",}";
 
