@@ -58,7 +58,7 @@ class PreparePlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param parameters the underlying storage space for the temporary table for storing Prepared Statements
+     * @param block_store the underlying storage space for the temporary table for storing Prepared Statements
      * @return builder object
      */
     Builder &SetBlockStore(common::ManagedPointer<storage::BlockStore> block_store) {
