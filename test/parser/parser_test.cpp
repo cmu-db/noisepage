@@ -387,8 +387,10 @@ TEST_F(ParserTestBase, PrepareTest) {
     EXPECT_EQ(select_stmt->GetSelectTable()->GetTableName(), "table_name");
     auto column_expr = select_stmt->GetSelectColumns()[0].CastManagedPointerTo<ColumnValueExpression>();
     EXPECT_EQ(column_expr->GetColumnName(), "column_name");
-    auto left_child_expr = select_stmt->GetSelectCondition()->GetChildren()[0].CastManagedPointerTo<ColumnValueExpression>();
-    auto right_child_expr = select_stmt->GetSelectCondition()->GetChildren()[1].CastManagedPointerTo<ParameterValueExpression>();
+    auto left_child_expr =
+        select_stmt->GetSelectCondition()->GetChildren()[0].CastManagedPointerTo<ColumnValueExpression>();
+    auto right_child_expr =
+        select_stmt->GetSelectCondition()->GetChildren()[1].CastManagedPointerTo<ParameterValueExpression>();
     EXPECT_EQ(left_child_expr->GetColumnName(), "id");
     EXPECT_EQ(right_child_expr->GetValueIdx(), 0);
   }

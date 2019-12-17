@@ -862,8 +862,7 @@ TEST(PlanNodeJsonTest, OrderByPlanNodeJsonTest) {
 TEST(PlanNodeJsonTest, PreparePlanNodeJsonTest) {
   // Construct PreparePlanNode
   PreparePlanNode::Builder builder;
-  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
-                       .Build();
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema()).Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();

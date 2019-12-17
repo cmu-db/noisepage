@@ -818,4 +818,20 @@ TEST_F(BinderCorrectnessTest, BindDepthTest) {
   EXPECT_EQ(1, exists_sub_expr_select_ele->GetDepth());
 }
 
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, PrepareStatementTest) {
+  BINDER_LOG_DEBUG("Parsing sql query");
+
+  std::string select_sql = "PREPARE insert_plan AS INSERT INTO table_name VALUES($1)";
+  auto parse_tree = parser_.BuildParseTree(select_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
+  auto prepare_stmt = statement.CastManagedPointerTo<parser::PrepareStatement>();
+  EXPECT_EQ(prepare_stmt->GetName(), "insert_plan");
+  auto insert_stmt = prepare_stmt->GetQuery().CastManagedPointerTo<parser::InsertStatement>();
+  EXPECT_EQ(insert_stmt->GetInsertionTable()->GetTableName(), "table_name");
+  auto param_value_expr = (*insert_stmt->GetValues())[0][0].CastManagedPointerTo<parser::ParameterValueExpression>();
+  EXPECT_EQ(param_value_expr->GetValueIdx(), 0);
+}
+
 }  // namespace terrier

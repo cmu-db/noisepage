@@ -835,4 +835,32 @@ TEST_F(OperatorTransformerTest, SubqueryComplexTest) {
   EXPECT_EQ(ref, info);
 }
 
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, PrepareStatementTest) {
+  OPTIMIZER_LOG_DEBUG("Parsing sql query");
+
+  std::string prepare_sql =
+      "PREPARE insert_plan AS INSERT INTO table_name VALUES($1)";
+
+  std::string ref = "{\"Op\":\"LogicalPrepare\",}";
+
+  auto parse_tree = parser_.BuildParseTree(prepare_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
+  accessor_ = binder_->GetCatalogAccessor();
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+
+  EXPECT_EQ(ref, info);
+
+  // Check the integrity of the prepared DML statement
+  auto prepare_stmt = statement.CastManagedPointerTo<parser::PrepareStatement>();
+  EXPECT_EQ(prepare_stmt->GetName(), "insert_plan");
+  auto insert_stmt = prepare_stmt->GetQuery().CastManagedPointerTo<parser::InsertStatement>();
+  EXPECT_EQ(insert_stmt->GetInsertionTable()->GetTableName(), "table_name");
+  auto param_value_expr = (*insert_stmt->GetValues())[0][0].CastManagedPointerTo<parser::ParameterValueExpression>();
+  EXPECT_EQ(param_value_expr->GetValueIdx(), 0);
+}
+
 }  // namespace terrier
