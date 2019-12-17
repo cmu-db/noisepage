@@ -62,8 +62,7 @@ class PRFiller : public ExpressionEvaluator {
     auto type = table_schema_.GetColumn(col_oid).Type();
     auto nullable = table_schema_.GetColumn(col_oid).Nullable();
     uint16_t attr_idx = table_pm_.at(col_oid);
-    return codegen_->PRGet(codegen_->MakeExpr(table_pr_), type, nullable,
-                           attr_idx);
+    return codegen_->PRGet(codegen_->MakeExpr(table_pr_), type, nullable, attr_idx);
   }
 
   /**
