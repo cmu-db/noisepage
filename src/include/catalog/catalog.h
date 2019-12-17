@@ -104,9 +104,11 @@ class Catalog {
    * Creates a new accessor into the catalog which will handle transactionality and sequencing of catalog operations.
    * @param txn for all subsequent catalog queries
    * @param database in which this transaction is scoped
+   * @param temp_namespace the OID of the temporary namespace associated with the connection
    * @return a CatalogAccessor object for use with this transaction
    */
-  std::unique_ptr<CatalogAccessor> GetAccessor(transaction::TransactionContext *txn, db_oid_t database);
+  std::unique_ptr<CatalogAccessor> GetAccessor(transaction::TransactionContext *txn, db_oid_t database,
+                                               namespace_oid_t temp_namespace);
 
  private:
   friend class storage::RecoveryManager;

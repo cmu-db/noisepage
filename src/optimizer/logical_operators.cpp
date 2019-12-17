@@ -185,9 +185,10 @@ common::hash_t LogicalProjection::Hash() const {
 // LogicalInsert
 //===--------------------------------------------------------------------===//
 
-Operator LogicalInsert::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                             catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
-                             common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values) {
+Operator LogicalInsert::Make(
+    catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+    std::vector<catalog::col_oid_t> &&columns,
+    common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values) {
 #ifndef NDEBUG
   // We need to check whether the number of values for each insert vector
   // matches the number of columns
@@ -201,7 +202,7 @@ Operator LogicalInsert::Make(catalog::db_oid_t database_oid, catalog::namespace_
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
   op->columns_ = std::move(columns);
-  op->values_ = values;
+  op->values_ = std::move(values);
   return Operator(std::move(op));
 }
 
@@ -721,21 +722,24 @@ common::hash_t LogicalAggregateAndGroupBy::Hash() const {
 // LogicalPrepare
 //===--------------------------------------------------------------------===//
 
-Operator LogicalPrepare::Make(std::string name, common::ManagedPointer<parser::SQLStatement> dml_statement,
-                              common::ManagedPointer<std::vector<common::ManagedPointer<parser::ParameterValueExpression>>> parameters) {
+Operator LogicalPrepare::Make(
+    std::string name, common::ManagedPointer<parser::SQLStatement> dml_statement,
+    common::ManagedPointer<std::vector<common::ManagedPointer<parser::ParameterValueExpression>>> parameters) {
   auto op = std::make_unique<LogicalPrepare>();
-  op->name_ = name;
-  op->dml_statement_ = dml_statement;
-  op->parameters_ = parameters;
+  op->name_ = std::move(name);
+  op->dml_statement_ = std::move(dml_statement);
+  op->parameters_ = std::move(parameters);
   return Operator(std::move(op));
 }
 
 common::hash_t LogicalPrepare::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(name_));
-  hash = common::HashUtil::CombineHashes(hash, dml_statement_->Hash());
-  for (const auto &parameter : *parameters_) {
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(parameter->Hash()));
+  if (dml_statement_ != nullptr) hash = common::HashUtil::CombineHashes(hash, dml_statement_->Hash());
+  if (parameters_ != nullptr) {
+    for (const auto &parameter : *parameters_) {
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(parameter->Hash()));
+    }
   }
   return hash;
 }
@@ -744,9 +748,19 @@ bool LogicalPrepare::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::LOGICALPREPARE) return false;
   const LogicalPrepare &node = *dynamic_cast<const LogicalPrepare *>(&r);
   if (name_ != node.name_) return false;
-  if (*dml_statement_ != *node.dml_statement_) return false;
-  for (size_t i = 0; i < parameters_->size(); i++) {
-    if (*((*parameters_)[i]) != *((*node.parameters_)[i])) return false;
+
+  if (dml_statement_ == nullptr && node.dml_statement_ != nullptr) return false;
+  if (dml_statement_ != nullptr && node.dml_statement_ == nullptr) return false;
+  if (dml_statement_ != nullptr && node.dml_statement_ != nullptr) {
+    if (*dml_statement_ != *node.dml_statement_) return false;
+  }
+
+  if (parameters_ == nullptr && node.parameters_ != nullptr) return false;
+  if (parameters_ != nullptr && node.parameters_ == nullptr) return false;
+  if (parameters_ != nullptr && node.parameters_ != nullptr) {
+    for (size_t i = 0; i < parameters_->size(); i++) {
+      if (*((*parameters_)[i]) != *((*node.parameters_)[i])) return false;
+    }
   }
   return (true);
 }

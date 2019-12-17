@@ -16,6 +16,7 @@
 #include "planner/plannodes/drop_table_plan_node.h"
 #include "storage/index/index_builder.h"
 #include "storage/sql_table.h"
+#include "type/transient_value_factory.h"
 
 namespace terrier::execution::sql {
 
@@ -114,6 +115,59 @@ bool DDLExecutors::DropIndexExecutor(const common::ManagedPointer<planner::DropI
   const bool result = accessor->DropIndex(node->GetIndexOid());
   // TODO(Matt): CASCADE?
   return result;
+}
+
+bool DDLExecutors::PrepareExecutor(const common::ManagedPointer<planner::PreparePlanNode> node,
+                                   const common::ManagedPointer<exec::ExecutionContext> context) {
+  auto *const accessor = context->GetAccessor();
+  auto temp_namespace = accessor->GetTempNamespace();
+
+  // Check if there is already a table for storing Prepared Statements in the temporary namespace
+  auto table_oid = accessor->GetTableOid(temp_namespace, "pg_prepare");
+  if (table_oid == catalog::INVALID_TABLE_OID) {
+    // Create the column definition for storing Prepared Statements
+    std::vector<catalog::Schema::Column> cols;
+    cols.emplace_back("name", type::TypeId::VARCHAR, false,
+                      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+    cols.emplace_back("prepare_plan", type::TypeId::BIGINT, false,
+                      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+    cols.emplace_back("execute_plan", type::TypeId::BIGINT, false,
+                      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+    cols.emplace_back("compiled_plan", type::TypeId::BIGINT, false,
+                      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+    auto schema = catalog::Schema(cols);
+
+    table_oid = accessor->CreateTable(temp_namespace, "pg_prepare", schema);
+    if (table_oid == catalog::INVALID_TABLE_OID) {
+      // Catalog wasn't able to proceed, txn must now abort
+      return false;
+    }
+
+    // Instantiate a SqlTable and update the pointer in the Catalog
+    auto *const table = new storage::SqlTable(node->GetBlockStore().Get(), schema);
+    bool result UNUSED_ATTRIBUTE = accessor->SetTablePointer(table_oid, table);
+  }
+
+  // Insert a new Prepared Statement into the table
+  auto table = accessor->GetTable(table_oid);
+  std::vector<catalog::col_oid_t> table_cols;
+  for (const auto &col : accessor->GetSchema(table_oid).GetColumns()) {
+    table_cols.emplace_back(col.Oid());
+  }
+  auto pri = table->InitializerForProjectedRow(table_cols);
+  const auto offsets = table->ProjectionMapForOids(table_cols);
+  auto *const insert_redo = context->GetTxn()->StageWrite(context->DBOid(), table_oid, pri);
+  auto *const insert_tuple = insert_redo->Delta();
+
+  const auto varlen_entry = storage::StorageUtil::CreateVarlen(node->GetPreparedName());
+  *reinterpret_cast<storage::VarlenEntry *>(insert_tuple->AccessForceNotNull(offsets.at(table_cols[0]))) = varlen_entry;
+  *reinterpret_cast<int64_t *>(insert_tuple->AccessForceNotNull(offsets.at(table_cols[1]))) =
+      reinterpret_cast<int64_t>(node.Get());
+  insert_tuple->SetNull(offsets.at(table_cols[2]));
+  insert_tuple->SetNull(offsets.at(table_cols[3]));
+
+  accessor->GetTable(table_oid)->Insert(context->GetTxn(), insert_redo);
+  return true;
 }
 
 bool DDLExecutors::CreateIndex(const common::ManagedPointer<exec::ExecutionContext> context,

@@ -50,6 +50,7 @@ enum class PlanNodeType {
   DROP_TRIGGER,
   DROP_VIEW,
   ANALYZE,
+  PREPARE,
 
   // Algebra Nodes
   AGGREGATE,

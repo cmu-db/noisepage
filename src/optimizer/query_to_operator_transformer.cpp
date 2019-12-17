@@ -382,9 +382,9 @@ void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::DropStatement *o
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::PrepareStatement *op,
                                        UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
   OPTIMIZER_LOG_DEBUG("Transforming PrepareStatement to operators ...");
-  auto prepare_expr = std::make_unique<OperatorExpression>(
-      LogicalPrepare::Make(op->GetName(), op->GetQuery(), op->GetPlaceholders()),
-      std::vector<std::unique_ptr<OperatorExpression>>{});
+  auto prepare_expr =
+      std::make_unique<OperatorExpression>(LogicalPrepare::Make(op->GetName(), op->GetQuery(), op->GetPlaceholders()),
+                                           std::vector<std::unique_ptr<OperatorExpression>>{});
   output_expr_ = std::move(prepare_expr);
 }
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::ExecuteStatement *op,

@@ -614,6 +614,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
    * @param namespace_oid OID of the namespace
    * @param table_name the name of the table
    * @param table_schema schema of the table to create
+   * @param block_store storage space for this table
    * @param has_primary_key true if index/table has primary key
    * @param primary_key primary_key of table
    * @param foreign_keys foreign keys meta-data

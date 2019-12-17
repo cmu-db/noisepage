@@ -603,9 +603,10 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
    * @param values list of expressions that provide the values to insert into columns
    * @return a LogicalInsert operator
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
-                       common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values);
+  static Operator Make(
+      catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+      std::vector<catalog::col_oid_t> &&columns,
+      common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -992,8 +993,9 @@ class LogicalPrepare : public OperatorNode<LogicalPrepare> {
    * @param parameters a vector of parameters in the dml_statement
    * @return a LogicalPrepare operator
    */
-  static Operator Make(std::string name, common::ManagedPointer<parser::SQLStatement> dml_statement,
-                       common::ManagedPointer<std::vector<common::ManagedPointer<parser::ParameterValueExpression>>> parameters);
+  static Operator Make(
+      std::string name, common::ManagedPointer<parser::SQLStatement> dml_statement,
+      common::ManagedPointer<std::vector<common::ManagedPointer<parser::ParameterValueExpression>>> parameters);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -1011,7 +1013,8 @@ class LogicalPrepare : public OperatorNode<LogicalPrepare> {
   /**
    * @return the vector of parameters in the DML statement
    */
-  const common::ManagedPointer<std::vector<common::ManagedPointer<parser::ParameterValueExpression>>> &GetParameters() const {
+  const common::ManagedPointer<std::vector<common::ManagedPointer<parser::ParameterValueExpression>>> &GetParameters()
+      const {
     return parameters_;
   }
 
@@ -1020,7 +1023,15 @@ class LogicalPrepare : public OperatorNode<LogicalPrepare> {
    * The name of this Prepared Statement
    */
   std::string name_;
+
+  /**
+   * The underlying DML statement
+   */
   common::ManagedPointer<parser::SQLStatement> dml_statement_;
+
+  /**
+   * The parameters in order of appearance in the DML statement
+   */
   common::ManagedPointer<std::vector<common::ManagedPointer<parser::ParameterValueExpression>>> parameters_;
 };
 

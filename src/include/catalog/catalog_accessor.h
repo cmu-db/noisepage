@@ -71,6 +71,11 @@ class CatalogAccessor {
   namespace_oid_t GetDefaultNamespace() const { return default_namespace_; }
 
   /**
+   * @return the OID of the temporary namespace associated with the connection
+   */
+  namespace_oid_t GetTempNamespace() const { return temp_namespace_; }
+
+  /**
    * Given a namespace name, resolve it to the corresponding OID
    * @param name of the namespace
    * @return OID of the namespace, INVALID_NAMESPACE_OID if the namespace was not found
@@ -269,15 +274,18 @@ class CatalogAccessor {
    * @param catalog pointer to the catalog being accessed
    * @param dbc pointer to the database catalog being accessed
    * @param txn the transaction context for this accessor
+   * @param temp_namespace the OID of the temporary namespace associated with the connection
    * @warning This constructor should never be called directly.  Instead you should get accessors from the catalog.
    */
   CatalogAccessor(common::ManagedPointer<Catalog> catalog, common::ManagedPointer<DatabaseCatalog> dbc,
-                  transaction::TransactionContext *txn)
+                  transaction::TransactionContext *txn, catalog::namespace_oid_t temp_namespace)
       : catalog_(catalog),
         dbc_(dbc),
         txn_(txn),
-        search_path_({postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID}),
-        default_namespace_(postgres::NAMESPACE_DEFAULT_NAMESPACE_OID) {}
+        search_path_(
+            {postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, temp_namespace}),
+        default_namespace_(postgres::NAMESPACE_DEFAULT_NAMESPACE_OID),
+        temp_namespace_(temp_namespace) {}
 
  private:
   const common::ManagedPointer<Catalog> catalog_;
@@ -285,6 +293,7 @@ class CatalogAccessor {
   transaction::TransactionContext *const txn_;
   std::vector<namespace_oid_t> search_path_;
   namespace_oid_t default_namespace_;
+  namespace_oid_t temp_namespace_;
 
   /**
    * A helper function to ensure that user-defined object names are standardized prior to doing catalog operations

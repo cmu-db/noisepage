@@ -57,8 +57,7 @@ class InsertStatement : public SQLStatement {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(type_));
     if (columns_ != nullptr) {
       for (auto &column : *columns_) {
-        hash = common::HashUtil::CombineHashes(hash,
-                                               common::HashUtil::Hash(column));
+        hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(column));
       }
     }
     if (table_ != nullptr) hash = common::HashUtil::CombineHashes(hash, table_->Hash());

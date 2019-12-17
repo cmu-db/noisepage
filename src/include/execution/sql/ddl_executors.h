@@ -1,5 +1,6 @@
 #pragma once
 
+#include <planner/plannodes/prepare_plan_node.h>
 #include <string>
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
@@ -94,6 +95,14 @@ class DDLExecutors {
    */
   static bool DropIndexExecutor(common::ManagedPointer<planner::DropIndexPlanNode> node,
                                 common::ManagedPointer<exec::ExecutionContext> context);
+
+  /**
+   * @param node node to executed
+   * @param context context to use for execution
+   * @return true if operation succeeded, false otherwise
+   */
+  static bool PrepareExecutor(common::ManagedPointer<planner::PreparePlanNode> node,
+                              common::ManagedPointer<exec::ExecutionContext> context);
 
  private:
   static bool CreateIndex(common::ManagedPointer<exec::ExecutionContext> context, catalog::namespace_oid_t ns,

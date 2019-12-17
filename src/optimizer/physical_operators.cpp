@@ -744,21 +744,24 @@ common::hash_t Distinct::Hash() const {
 // Prepare
 //===--------------------------------------------------------------------===//
 
-Operator Prepare::Make(std::string name, common::ManagedPointer<parser::SQLStatement> dml_statement,
-                       common::ManagedPointer<std::vector<common::ManagedPointer<parser::ParameterValueExpression>>> parameters) {
+Operator Prepare::Make(
+    std::string name, common::ManagedPointer<parser::SQLStatement> dml_statement,
+    common::ManagedPointer<std::vector<common::ManagedPointer<parser::ParameterValueExpression>>> parameters) {
   auto op = std::make_unique<Prepare>();
-  op->name_ = name;
-  op->dml_statement_ = dml_statement;
-  op->parameters_ = parameters;
+  op->name_ = std::move(name);
+  op->dml_statement_ = std::move(dml_statement);
+  op->parameters_ = std::move(parameters);
   return Operator(std::move(op));
 }
 
 common::hash_t Prepare::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(name_));
-  hash = common::HashUtil::CombineHashes(hash, dml_statement_->Hash());
-  for (const auto &parameter : *parameters_) {
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(parameter->Hash()));
+  if (dml_statement_ != nullptr) hash = common::HashUtil::CombineHashes(hash, dml_statement_->Hash());
+  if (parameters_ != nullptr) {
+    for (const auto &parameter : *parameters_) {
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(parameter->Hash()));
+    }
   }
   return hash;
 }
@@ -767,9 +770,19 @@ bool Prepare::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::PREPARE) return false;
   const Prepare &node = *dynamic_cast<const Prepare *>(&r);
   if (name_ != node.name_) return false;
-  if (*dml_statement_ != *node.dml_statement_) return false;
-  for (size_t i = 0; i < parameters_->size(); i++) {
-    if (*((*parameters_)[i]) != *((*node.parameters_)[i])) return false;
+
+  if (dml_statement_ == nullptr && node.dml_statement_ != nullptr) return false;
+  if (dml_statement_ != nullptr && node.dml_statement_ == nullptr) return false;
+  if (dml_statement_ != nullptr && node.dml_statement_ != nullptr) {
+    if (*dml_statement_ != *node.dml_statement_) return false;
+  }
+
+  if (parameters_ == nullptr && node.parameters_ != nullptr) return false;
+  if (parameters_ != nullptr && node.parameters_ == nullptr) return false;
+  if (parameters_ != nullptr && node.parameters_ != nullptr) {
+    for (size_t i = 0; i < parameters_->size(); i++) {
+      if (*((*parameters_)[i]) != *((*node.parameters_)[i])) return false;
+    }
   }
   return (true);
 }

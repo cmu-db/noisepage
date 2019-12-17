@@ -47,7 +47,9 @@ class PrepareStatement : public SQLStatement {
   common::ManagedPointer<SQLStatement> GetQuery() { return common::ManagedPointer(query_); }
 
   /** @return placeholders */
-  common::ManagedPointer<std::vector<common::ManagedPointer<ParameterValueExpression>>> GetPlaceholders() { return common::ManagedPointer(&placeholders_); }
+  common::ManagedPointer<std::vector<common::ManagedPointer<ParameterValueExpression>>> GetPlaceholders() {
+    return common::ManagedPointer(&placeholders_);
+  }
 
  private:
   std::string name_;
