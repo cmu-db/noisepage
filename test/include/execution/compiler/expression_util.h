@@ -10,6 +10,7 @@
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression/derived_value_expression.h"
+#include "parser/expression/parameter_value_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "type/transient_value_factory.h"
 
@@ -81,6 +82,13 @@ class ExpressionMaker {
    */
   ManagedExpression DVE(type::TypeId type, int tuple_idx, int value_idx) {
     return MakeManaged(std::make_unique<parser::DerivedValueExpression>(type, tuple_idx, value_idx));
+  }
+
+  /**
+   * Create a parameter value expression
+   */
+  ManagedExpression PVE(type::TypeId type, uint32_t param_idx) {
+    return MakeManaged(std::make_unique<parser::ParameterValueExpression>(param_idx, type));
   }
 
   /**

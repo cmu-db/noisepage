@@ -8,12 +8,12 @@
 
 namespace terrier::execution::compiler {
 
-CodeGen::CodeGen(catalog::CatalogAccessor *accessor)
+CodeGen::CodeGen(exec::ExecutionContext* exec_ctx)
     : region_("QueryRegion"),
       error_reporter_(&region_),
       ast_ctx_(&region_, &error_reporter_),
       factory_(&region_),
-      accessor_(accessor),
+      exec_ctx_(exec_ctx),
       state_struct_{Context()->GetIdentifier("State")},
       state_var_{Context()->GetIdentifier("state")},
       exec_ctx_var_(Context()->GetIdentifier("execCtx")),

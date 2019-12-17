@@ -87,7 +87,7 @@ TEST_F(PRFillerTest, SimpleIndexFillerTest) {
   storage::ProjectionMap table_pm(table->ProjectionMapForOids(col_oids));
 
   // Create pr filler
-  CodeGen codegen(accessor);
+  CodeGen codegen(exec_ctx.get());
   PRFiller filler(&codegen, table_schema, table_pm);
 
   // Get the index
