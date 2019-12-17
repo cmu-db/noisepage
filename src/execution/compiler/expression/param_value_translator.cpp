@@ -38,6 +38,7 @@ ast::Expr *ParamValueTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
       UNREACHABLE("Unsupported parameter type");
   }
 
-  return codegen_->BuiltinCall(builtin, {codegen_->MakeExpr(codegen_->GetExecCtxVar()), codegen_->IntLiteral(param_idx)});
+  return codegen_->BuiltinCall(builtin,
+                               {codegen_->MakeExpr(codegen_->GetExecCtxVar()), codegen_->IntLiteral(param_idx)});
 }
 };  // namespace terrier::execution::compiler

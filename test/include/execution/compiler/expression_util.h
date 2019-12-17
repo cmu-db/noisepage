@@ -10,8 +10,8 @@
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression/derived_value_expression.h"
-#include "parser/expression/parameter_value_expression.h"
 #include "parser/expression/operator_expression.h"
+#include "parser/expression/parameter_value_expression.h"
 #include "type/transient_value_factory.h"
 
 namespace terrier::execution::compiler {

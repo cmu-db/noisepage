@@ -1611,23 +1611,23 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   // ----------------------------
   // Parameter calls
   // -----------------------------
-#define GEN_PARAM_GET(Name, SqlType) \
-  OP(GetParam##Name) : { \
-    auto *ret = frame->LocalAt<sql::SqlType *>(READ_LOCAL_ID()); \
+#define GEN_PARAM_GET(Name, SqlType)                                            \
+  OP(GetParam##Name) : {                                                        \
+    auto *ret = frame->LocalAt<sql::SqlType *>(READ_LOCAL_ID());                \
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID()); \
-    auto param_idx = frame->LocalAt<uint32_t>(READ_LOCAL_ID()); \
-    OpGetParam##Name(ret, exec_ctx, param_idx); \
-    DISPATCH_NEXT(); \
+    auto param_idx = frame->LocalAt<uint32_t>(READ_LOCAL_ID());                 \
+    OpGetParam##Name(ret, exec_ctx, param_idx);                                 \
+    DISPATCH_NEXT();                                                            \
   }
 
-GEN_PARAM_GET(TinyInt, Integer)
-GEN_PARAM_GET(SmallInt, Integer)
-GEN_PARAM_GET(Int, Integer)
-GEN_PARAM_GET(BigInt, Integer)
-GEN_PARAM_GET(Real, Real)
-GEN_PARAM_GET(Double, Real)
-GEN_PARAM_GET(Date, Date)
-GEN_PARAM_GET(String, StringVal)
+  GEN_PARAM_GET(TinyInt, Integer)
+  GEN_PARAM_GET(SmallInt, Integer)
+  GEN_PARAM_GET(Int, Integer)
+  GEN_PARAM_GET(BigInt, Integer)
+  GEN_PARAM_GET(Real, Real)
+  GEN_PARAM_GET(Double, Real)
+  GEN_PARAM_GET(Date, Date)
+  GEN_PARAM_GET(String, StringVal)
 #undef GEN_PARAM_GET
 
   // -------------------------------------------------------

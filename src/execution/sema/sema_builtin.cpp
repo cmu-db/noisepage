@@ -1923,7 +1923,7 @@ void Sema::CheckBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin) {
       break;
     }
     case ast::Builtin::GetParamReal:
-    case ast::Builtin::GetParamDouble:{
+    case ast::Builtin::GetParamDouble: {
       sql_type = ast::BuiltinType::Real;
       break;
     }

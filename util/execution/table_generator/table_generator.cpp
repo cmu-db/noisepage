@@ -181,7 +181,6 @@ void TableGenerator::GenerateTestTables() {
         {"date_col", type::TypeId::DATE, false, Dist::Serial, 0, 0},
         {"real_col", type::TypeId::DECIMAL, false, Dist::Serial, 0, 0},
         {"int_col", type::TypeId::INTEGER, false, Dist::Uniform, 0, 0}}},
-
   };
   for (auto &table_meta : insert_meta) {
     // Create Schema.
@@ -280,8 +279,7 @@ void TableGenerator::InitTestIndexes() {
        {{"index_col1", type::TypeId::SMALLINT, false, "col1"}, {"index_col2", type::TypeId::INTEGER, true, "col2"}}},
 
       // Index on a varchar
-      {"varchar_index", "all_types_table", {{"index_varchar_col", type::TypeId::VARCHAR, false, "varchar_col"}}}
-  };
+      {"varchar_index", "all_types_table", {{"index_varchar_col", type::TypeId::VARCHAR, false, "varchar_col"}}}};
 
   storage::index::IndexBuilder index_builder;
   for (const auto &index_meta : index_metas) {

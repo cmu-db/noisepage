@@ -7,8 +7,9 @@
 #include <memory>
 #include <string>
 #include <utility>
-#include "tbb/task_scheduler_init.h"
+#include <vector>
 
+#include "tbb/task_scheduler_init.h"
 #include "execution/ast/ast_dump.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
@@ -102,7 +103,6 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date.int_val_)));
   params.emplace_back(type::TransientValueFactory::GetVarChar("37 Strings"));
   exec_ctx.SetParams(std::move(params));
-
 
   // Generate test tables
   sql::TableGenerator table_generator{&exec_ctx, &block_store, ns_oid};

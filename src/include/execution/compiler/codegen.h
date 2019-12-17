@@ -65,7 +65,7 @@ class CodeGen {
   /**
    * @return the execution context
    */
-  exec::ExecutionContext* ExecCtx() { return exec_ctx_; }
+  exec::ExecutionContext *ExecCtx() { return exec_ctx_; }
 
   /**
    * @return the error reporter

@@ -203,16 +203,16 @@ namespace terrier::execution::ast {
   F(GetIndexPRBind, getIndexPRBind)                                     \
   F(IndexInsert, indexInsert)                                           \
   F(IndexDelete, indexDelete)                                           \
-  F(StorageInterfaceFree, storageInterfaceFree)                                   \
+  F(StorageInterfaceFree, storageInterfaceFree)                         \
                                                                         \
   /* Parameter calls */                                                 \
-  F(GetParamTinyInt, getParamTinyInt)                         \
-  F(GetParamSmallInt, getParamSmallInt)                         \
-  F(GetParamInt, getParamInt)                         \
-  F(GetParamBigInt, getParamBigInt)                         \
-  F(GetParamReal, getParamReal)                         \
-  F(GetParamDouble, getParamDouble)                         \
-  F(GetParamDate, getParamDate)                         \
+  F(GetParamTinyInt, getParamTinyInt)                                   \
+  F(GetParamSmallInt, getParamSmallInt)                                 \
+  F(GetParamInt, getParamInt)                                           \
+  F(GetParamBigInt, getParamBigInt)                                     \
+  F(GetParamReal, getParamReal)                                         \
+  F(GetParamDouble, getParamDouble)                                     \
+  F(GetParamDate, getParamDate)                                         \
   F(GetParamString, getParamString)
 
 /**

@@ -8,7 +8,7 @@
 
 namespace terrier::execution::compiler {
 
-CodeGen::CodeGen(exec::ExecutionContext* exec_ctx)
+CodeGen::CodeGen(exec::ExecutionContext *exec_ctx)
     : region_("QueryRegion"),
       error_reporter_(&region_),
       ast_ctx_(&region_, &error_reporter_),

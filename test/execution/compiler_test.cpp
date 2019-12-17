@@ -1796,10 +1796,9 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
-  // INSERT INTO all_types_table (string_col, date_col, real_col, int_col) VALUES (param1, param2, param3, param4), (param5, param6, param7, param8)
-  // Where the parameter values are: ("37 Strings", 1937-3-7, 37.73, 37), (73 String, 1973-7-3, 73.37, 73)
-  // Then check that the following finds the new tuples:
-  // SELECT colA, colB, colC, colD FROM test_1.
+  // INSERT INTO all_types_table (string_col, date_col, real_col, int_col) VALUES (param1, param2, param3, param4),
+  // (param5, param6, param7, param8) Where the parameter values are: ("37 Strings", 1937-3-7, 37.73, 37), (73 String,
+  // 1973-7-3, 73.37, 73) Then check that the following finds the new tuples: SELECT colA, colB, colC, colD FROM test_1.
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
   auto table_oid1 = accessor->GetTableOid(NSOid(), "all_types_table");
@@ -1816,13 +1815,11 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
   int32_t int1 = 37;
   int32_t int2 = 73;
 
-
   // make InsertPlanNode
   std::unique_ptr<planner::AbstractPlanNode> insert;
   {
     std::vector<ExpressionMaker::ManagedExpression> values1;
     std::vector<ExpressionMaker::ManagedExpression> values2;
-
 
     values1.push_back(expr_maker.PVE(type::TypeId::VARCHAR, 0));
     values1.push_back(expr_maker.PVE(type::TypeId::DATE, 1));
@@ -1834,15 +1831,15 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     values2.push_back(expr_maker.PVE(type::TypeId::INTEGER, 7));
     planner::InsertPlanNode::Builder builder;
     insert = builder.AddParameterInfo(table_schema1.GetColumn("varchar_col").Oid())
-        .AddParameterInfo(table_schema1.GetColumn("date_col").Oid())
-        .AddParameterInfo(table_schema1.GetColumn("real_col").Oid())
-        .AddParameterInfo(table_schema1.GetColumn("int_col").Oid())
-        .SetIndexOids({index_oid1})
-        .AddValues(std::move(values1))
-        .AddValues(std::move(values2))
-        .SetNamespaceOid(NSOid())
-        .SetTableOid(table_oid1)
-        .Build();
+                 .AddParameterInfo(table_schema1.GetColumn("date_col").Oid())
+                 .AddParameterInfo(table_schema1.GetColumn("real_col").Oid())
+                 .AddParameterInfo(table_schema1.GetColumn("int_col").Oid())
+                 .SetIndexOids({index_oid1})
+                 .AddValues(std::move(values1))
+                 .AddValues(std::move(values2))
+                 .SetNamespaceOid(NSOid())
+                 .SetTableOid(table_oid1)
+                 .Build();
   }
   // Execute insert
   {
@@ -1862,7 +1859,6 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     CompileAndRun(insert.get(), exec_ctx.get());
   }
 
-
   // Now scan through table to check content.
   std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
@@ -1881,12 +1877,12 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(nullptr)
-        .SetIsParallelFlag(false)
-        .SetIsForUpdateFlag(false)
-        .SetNamespaceOid(NSOid())
-        .SetTableOid(table_oid1)
-        .Build();
+                   .SetScanPredicate(nullptr)
+                   .SetIsParallelFlag(false)
+                   .SetIsForUpdateFlag(false)
+                   .SetNamespaceOid(NSOid())
+                   .SetTableOid(table_oid1)
+                   .Build();
   }
   // Create the checkers
   uint32_t num_output_rows{0};
@@ -1900,17 +1896,16 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     ASSERT_FALSE(col1->is_null_ || col2->is_null_ || col3->is_null_ || col4->is_null_);
     if (num_output_rows == 0) {
       ASSERT_EQ(col1->len_, str1.size());
-      ASSERT_TRUE(std::memcmp(col1->Content(), str1.data(), col1->len_) == 0);
+      ASSERT_EQ(std::memcmp(col1->Content(), str1.data(), col1->len_), 0);
       ASSERT_EQ(col2->ymd_, date1.ymd_);
       ASSERT_EQ(col3->val_, real1);
       ASSERT_EQ(col4->val_, int1);
     } else {
       ASSERT_TRUE(col1->len_ == str2.size());
-      ASSERT_TRUE(std::memcmp(col1->Content(), str2.data(), col1->len_) == 0);
+      ASSERT_EQ(std::memcmp(col1->Content(), str2.data(), col1->len_), 0);
       ASSERT_EQ(col2->ymd_, date2.ymd_);
       ASSERT_EQ(col3->val_, real2);
       ASSERT_EQ(col4->val_, int2);
-
     }
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
@@ -1930,7 +1925,6 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     checker.CheckCorrectness();
   }
 
-
   // Do an index scan to look for inserted value
   std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
@@ -1948,15 +1942,15 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid1)
-        .SetIndexOid(index_oid1)
-        .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.PVE(type::TypeId::VARCHAR, 0))
-        .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.PVE(type::TypeId::VARCHAR, 1))
-        .SetScanPredicate(nullptr)
-        .SetNamespaceOid(NSOid())
-        .SetOutputSchema(std::move(schema))
-        .SetScanType(planner::IndexScanType::Ascending)
-        .SetScanLimit(0)
-        .Build();
+                     .SetIndexOid(index_oid1)
+                     .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.PVE(type::TypeId::VARCHAR, 0))
+                     .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.PVE(type::TypeId::VARCHAR, 1))
+                     .SetScanPredicate(nullptr)
+                     .SetNamespaceOid(NSOid())
+                     .SetOutputSchema(std::move(schema))
+                     .SetScanType(planner::IndexScanType::Ascending)
+                     .SetScanLimit(0)
+                     .Build();
   }
 
   // Execute index scan
@@ -1975,7 +1969,6 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     checker.CheckCorrectness();
   }
 }
-
 
 /*
 // NOLINTNEXTLINE
