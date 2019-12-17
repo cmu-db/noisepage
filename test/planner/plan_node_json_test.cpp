@@ -9,6 +9,7 @@
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/constant_value_expression.h"
+#include "parser/postgresparser.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/analyze_plan_node.h"
 #include "planner/plannodes/create_database_plan_node.h"
@@ -860,9 +861,18 @@ TEST(PlanNodeJsonTest, OrderByPlanNodeJsonTest) {
 
 // NOLINTNEXTLINE
 TEST(PlanNodeJsonTest, PreparePlanNodeJsonTest) {
+  parser::PostgresParser parser_;
+  std::string select_sql = "PREPARE insert_plan AS INSERT INTO table_name VALUES($1)";
+  auto parse_tree = parser_.BuildParseTree(select_sql);
+  auto prepare_statement = parse_tree.GetStatements()[0].CastManagedPointerTo<parser::PrepareStatement>();
+
   // Construct PreparePlanNode
   PreparePlanNode::Builder builder;
-  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema()).Build();
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+                       .SetName(prepare_statement->GetName())
+                       .SetDMLStatement(prepare_statement->GetQuery())
+                       .SetParameters(prepare_statement->GetPlaceholders())
+                       .Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -870,9 +880,9 @@ TEST(PlanNodeJsonTest, PreparePlanNodeJsonTest) {
 
   // Deserialize plan node
   auto deserialized = DeserializePlanNode(json);
-  auto deserialized_plan = common::ManagedPointer(deserialized.result_).CastManagedPointerTo<ProjectionPlanNode>();
+  auto deserialized_plan = common::ManagedPointer(deserialized.result_).CastManagedPointerTo<PreparePlanNode>();
   EXPECT_TRUE(deserialized_plan != nullptr);
-  EXPECT_EQ(PlanNodeType::PROJECTION, deserialized_plan->GetPlanNodeType());
+  EXPECT_EQ(PlanNodeType::PREPARE, deserialized_plan->GetPlanNodeType());
   EXPECT_EQ(*plan_node, *deserialized_plan);
   EXPECT_EQ(plan_node->Hash(), deserialized_plan->Hash());
 }

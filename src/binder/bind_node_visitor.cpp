@@ -206,18 +206,39 @@ void BindNodeVisitor::Visit(parser::DropStatement *node, UNUSED_ATTRIBUTE parser
   BINDER_LOG_DEBUG("Visiting DropStatement ...");
   node->TryBindDatabaseName(default_database_name_);
 }
-void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::PrepareStatement *node,
-                            UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
+
+void BindNodeVisitor::Visit(parser::PrepareStatement *node, parser::ParseResult *parse_result) {
   BINDER_LOG_DEBUG("Visiting PrepareStatement ...");
+  auto stmt_type = node->GetQuery()->GetType();
+  switch (stmt_type) {
+    case parser::StatementType::DELETE:
+      node->GetQuery().CastManagedPointerTo<parser::SelectStatement>().Get()->Accept(this, parse_result);
+      break;
+    case parser::StatementType::INSERT:
+      node->GetQuery().CastManagedPointerTo<parser::InsertStatement>().Get()->Accept(this, parse_result);
+      break;
+    case parser::StatementType::SELECT:
+      node->GetQuery().CastManagedPointerTo<parser::SelectStatement>().Get()->Accept(this, parse_result);
+      break;
+    case parser::StatementType::UPDATE:
+      node->GetQuery().CastManagedPointerTo<parser::UpdateStatement>().Get()->Accept(this, parse_result);
+      break;
+    default:
+      throw BINDER_EXCEPTION(
+          "Unsupported statement type in PREPARE. Expecting one of {DELETE, INSERT, SELECT, UPDATE}");
+  }
 }
+
 void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::ExecuteStatement *node,
                             UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
   BINDER_LOG_DEBUG("Visiting ExecuteStatement ...");
 }
+
 void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::TransactionStatement *node,
                             UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
   BINDER_LOG_DEBUG("Visiting TransactionStatement ...");
 }
+
 void BindNodeVisitor::Visit(parser::AnalyzeStatement *node, UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
   BINDER_LOG_DEBUG("Visiting AnalyzeStatement ...");
   node->GetAnalyzeTable()->TryBindDatabaseName(default_database_name_);

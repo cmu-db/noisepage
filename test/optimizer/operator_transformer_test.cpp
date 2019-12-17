@@ -841,7 +841,7 @@ TEST_F(OperatorTransformerTest, PrepareStatementTest) {
 
   std::string prepare_sql = "PREPARE insert_plan AS INSERT INTO table_name VALUES($1)";
 
-  std::string ref = "{\"Op\":\"LogicalPrepare\",}";
+  std::string ref = R"({"Op":"LogicalPrepare",})";
 
   auto parse_tree = parser_.BuildParseTree(prepare_sql);
   auto statement = parse_tree.GetStatements()[0];

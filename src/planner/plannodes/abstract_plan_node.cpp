@@ -29,6 +29,7 @@
 #include "planner/plannodes/limit_plan_node.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
+#include "planner/plannodes/prepare_plan_node.h"
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/result_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
@@ -197,6 +198,11 @@ JSONDeserializeNodeIntermediate DeserializePlanNode(const nlohmann::json &json) 
 
     case PlanNodeType::ORDERBY: {
       plan_node = std::make_unique<OrderByPlanNode>();
+      break;
+    }
+
+    case PlanNodeType::PREPARE: {
+      plan_node = std::make_unique<PreparePlanNode>();
       break;
     }
 
