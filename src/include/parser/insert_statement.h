@@ -64,8 +64,8 @@ class InsertStatement : public SQLStatement {
     if (select_ != nullptr) hash = common::HashUtil::CombineHashes(hash, select_->Hash());
     if (insert_values_ != nullptr) {
       for (size_t i = 0; i < insert_values_->size(); i++) {
-        for (size_t j = 0; j < (*insert_values_)[i].size(); j++) {
-          hash = common::HashUtil::CombineHashes(hash, (*insert_values_)[i][j]->Hash());
+        for (auto & insert_value : (*insert_values_)[i]) {
+          hash = common::HashUtil::CombineHashes(hash, insert_value->Hash());
         }
       }
     }
