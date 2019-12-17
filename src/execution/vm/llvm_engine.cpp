@@ -731,7 +731,6 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
             args[i] = ir_builder->CreateIntCast(args[i], expected_type, true);
           }
         } else if (expected_type->isPointerTy()) {
-          EXECUTION_LOG_INFO("AAAAA {}, {}", i, args.size());
           TERRIER_ASSERT(provided_type->isPointerTy(), "Mismatched types");
           args[i] = ir_builder->CreateBitCast(args[i], expected_type);
         }
@@ -761,11 +760,9 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
         if (FunctionHasDirectReturn(callee_func_info->FuncType())) {
           llvm::Value *dest = args[0];
           args.erase(args.begin());
-          EXECUTION_LOG_INFO("CALLING {}", callee_func_info->Name());
           llvm::Value *ret = issue_call(callee, args);
           ir_builder->CreateStore(ret, dest);
         } else {
-          EXECUTION_LOG_INFO("CALLING {}", callee_func_info->Name());
           issue_call(callee, args);
         }
 
