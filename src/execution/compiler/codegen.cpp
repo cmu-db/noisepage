@@ -246,7 +246,7 @@ ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanTy
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::PRGet(ast::Expr *iter_ptr, type::TypeId type, bool nullable, uint32_t attr_idx) {
+ast::Expr *CodeGen::PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx) {
   // @indexIteratorGetTypeNull(&iter, attr_idx)
   ast::Builtin builtin;
   switch (type) {
@@ -277,11 +277,11 @@ ast::Expr *CodeGen::PRGet(ast::Expr *iter_ptr, type::TypeId type, bool nullable,
   }
   ast::Expr *fun = BuiltinFunction(builtin);
   ast::Expr *idx_expr = Factory()->NewIntLiteral(DUMMY_POS, attr_idx);
-  util::RegionVector<ast::Expr *> args{{iter_ptr, idx_expr}, Region()};
+  util::RegionVector<ast::Expr *> args{{pr, idx_expr}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::PRSet(ast::Expr *iter_ptr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val) {
+ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val) {
   ast::Builtin builtin;
   switch (type) {
     case type::TypeId::INTEGER:
@@ -310,7 +310,7 @@ ast::Expr *CodeGen::PRSet(ast::Expr *iter_ptr, type::TypeId type, bool nullable,
   }
   ast::Expr *fun = BuiltinFunction(builtin);
   ast::Expr *idx_expr = Factory()->NewIntLiteral(DUMMY_POS, attr_idx);
-  util::RegionVector<ast::Expr *> args{{iter_ptr, idx_expr, val}, Region()};
+  util::RegionVector<ast::Expr *> args{{pr, idx_expr, val}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 

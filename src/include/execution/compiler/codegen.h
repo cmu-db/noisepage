@@ -438,7 +438,7 @@ class CodeGen {
   ast::Expr *IndexIteratorScan(ast::Identifier iter, planner::IndexScanType scan_type, uint32_t limit);
 
   /**
-   * Call PrGet(iter_ptr, attr_idx)
+   * Call PrGet(pr, attr_idx)
    * @param pr The projected row being accessed.
    * @param type The type of the column being accessed.
    * @param nullable Whether the column being accessed is nullable.
@@ -448,15 +448,15 @@ class CodeGen {
   ast::Expr *PRGet(ast::Expr *pr, terrier::type::TypeId type, bool nullable, uint32_t attr_idx);
 
   /**
-   * Call PrSet(iter_ptr, attr_idx, val)
-   * @param iter_ptr pointer to the projected column iterator
+   * Call PrSet(pr, attr_idx, val)
+   * @param pr The projected row being accessed.
    * @param type The type of the column being accessed.
    * @param nullable Whether the column being accessed is nullable.
    * @param attr_idx Index of the column being accessed.
    * @param val The value to set the column to.
    * @return The expression corresponding to the builtin call.
    */
-  ast::Expr *PRSet(ast::Expr *iter_ptr, terrier::type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val);
+  ast::Expr *PRSet(ast::Expr *pr, terrier::type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val);
 
   /**
    * Call storageInterfaceInit(&storage_interface, execCtx, table_oid, col_oids, need_indexes)
