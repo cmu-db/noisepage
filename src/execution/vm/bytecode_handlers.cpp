@@ -1,8 +1,8 @@
 #include "execution/vm/bytecode_handlers.h"
-#include "execution/sql/projected_columns_iterator.h"
 
 #include "catalog/catalog_defs.h"
 #include "execution/exec/execution_context.h"
+#include "execution/sql/projected_columns_iterator.h"
 
 extern "C" {
 
@@ -194,9 +194,9 @@ void OpStorageInterfaceInit(terrier::execution::sql::StorageInterface *storage_i
                                                                     col_oids, num_oids, need_indexes);
 }
 
-void OpStorageInterfaceGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
+void OpStorageInterfaceGetTablePR(terrier::storage::ProjectedRow **pr_result,
                                   terrier::execution::sql::StorageInterface *storage_interface) {
-  *pr_result = terrier::execution::sql::ProjectedRowWrapper(storage_interface->GetTablePR());
+  *pr_result = storage_interface->GetTablePR();
 }
 
 void OpStorageInterfaceTableUpdate(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
@@ -214,10 +214,9 @@ void OpStorageInterfaceTableInsert(terrier::storage::TupleSlot *tuple_slot,
   *tuple_slot = storage_interface->TableInsert();
 }
 
-void OpStorageInterfaceGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
+void OpStorageInterfaceGetIndexPR(terrier::storage::ProjectedRow **pr_result,
                                   terrier::execution::sql::StorageInterface *storage_interface, uint32_t index_oid) {
-  *pr_result = terrier::execution::sql::ProjectedRowWrapper(
-      storage_interface->GetIndexPR(terrier::catalog::index_oid_t(index_oid)));
+  *pr_result = storage_interface->GetIndexPR(terrier::catalog::index_oid_t(index_oid));
 }
 
 void OpStorageInterfaceIndexInsert(bool *result, terrier::execution::sql::StorageInterface *storage_interface) {

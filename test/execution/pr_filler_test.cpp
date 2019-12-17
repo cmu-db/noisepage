@@ -101,25 +101,25 @@ TEST_F(PRFillerTest, SimpleIndexFillerTest) {
   auto module = MakeModule(&codegen, root, exec_ctx.get());
 
   // Now get the compiled function
-  std::function<void(sql::ProjectedRowWrapper *, sql::ProjectedRowWrapper *)> filler_fn;
+  std::function<void(storage::ProjectedRow *, storage::ProjectedRow *)> filler_fn;
   ASSERT_TRUE(module->GetFunction(fn_name, vm::ExecutionMode::Interpret, &filler_fn));
 
   // Try it out.
   auto table_init = table->InitializerForProjectedRow(col_oids);
   auto table_buffer = common::AllocationUtil::AllocateAligned(table_init.ProjectedRowSize());
-  auto table_pr = sql::ProjectedRowWrapper(table_init.InitializeRow(table_buffer));
+  auto table_pr = table_init.InitializeRow(table_buffer);
   auto index_init = index->GetProjectedRowInitializer();
   auto index_buffer = common::AllocationUtil::AllocateAligned(index_init.ProjectedRowSize());
-  auto index_pr = sql::ProjectedRowWrapper(index_init.InitializeRow(index_buffer));
+  auto index_pr = index_init.InitializeRow(index_buffer);
 
-  table_pr.Set<int32_t, false>(0, 500, false);
-  filler_fn(&table_pr, &index_pr);
-  auto val = index_pr.Get<int32_t, false>(0, nullptr);
+  table_pr->Set<int32_t, false>(0, 500, false);
+  filler_fn(table_pr, index_pr);
+  auto val = index_pr->Get<int32_t, false>(0, nullptr);
   ASSERT_EQ(*val, 500);
 
-  table_pr.Set<int32_t, false>(0, 651, false);
-  filler_fn(&table_pr, &index_pr);
-  val = index_pr.Get<int32_t, false>(0, nullptr);
+  table_pr->Set<int32_t, false>(0, 651, false);
+  filler_fn(table_pr, index_pr);
+  val = index_pr->Get<int32_t, false>(0, nullptr);
   ASSERT_EQ(*val, 651);
 
   delete[] table_buffer;

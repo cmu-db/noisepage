@@ -18,11 +18,10 @@ class PRFiller : public ExpressionEvaluator {
    * @param table_schema schema of the table
    * @param table_pm projection map of the table
    * @param table_pr identifier of the table's projected row
-   * @param take_ptr whether to take the pointer to this identifier
    */
   PRFiller(CodeGen *codegen, const catalog::Schema &table_schema, const storage::ProjectionMap &table_pm,
-           ast::Identifier table_pr, bool take_ptr)
-      : codegen_(codegen), table_schema_(table_schema), table_pm_(table_pm), table_pr_(table_pr), take_ptr_(take_ptr) {}
+           ast::Identifier table_pr)
+      : codegen_(codegen), table_schema_(table_schema), table_pm_(table_pm), table_pr_(table_pr) {}
 
   /**
    * Same as above, but generate the table projected row.
@@ -32,7 +31,7 @@ class PRFiller : public ExpressionEvaluator {
    * @param table_pm projection map of the table
    */
   PRFiller(CodeGen *codegen, const catalog::Schema &table_schema, const storage::ProjectionMap &table_pm)
-      : PRFiller(codegen, table_schema, table_pm, codegen->NewIdentifier("table_pr"), false) {}
+      : PRFiller(codegen, table_schema, table_pm, codegen->NewIdentifier("table_pr")) {}
 
   /**
    * Generate statements to fill the index PR.
@@ -63,7 +62,7 @@ class PRFiller : public ExpressionEvaluator {
     auto type = table_schema_.GetColumn(col_oid).Type();
     auto nullable = table_schema_.GetColumn(col_oid).Nullable();
     uint16_t attr_idx = table_pm_.at(col_oid);
-    return codegen_->PRGet(take_ptr_ ? codegen_->PointerTo(table_pr_) : codegen_->MakeExpr(table_pr_), type, nullable,
+    return codegen_->PRGet(codegen_->MakeExpr(table_pr_), type, nullable,
                            attr_idx);
   }
 
@@ -79,6 +78,5 @@ class PRFiller : public ExpressionEvaluator {
   const catalog::Schema &table_schema_;
   const storage::ProjectionMap &table_pm_;
   ast::Identifier table_pr_;
-  bool take_ptr_;
 };
 }  // namespace terrier::execution::compiler

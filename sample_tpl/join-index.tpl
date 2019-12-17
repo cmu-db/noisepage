@@ -48,8 +48,8 @@ fun pipeline0(state : *State, execCtx : *ExecutionContext) -> nil {
       // Fill up the index PR using the current tuple
       // Note that the storage layer reorders columns in test_2
       var index_pr = @indexIteratorGetPR(&index)
-      @prSetSmallInt(&index_pr, 1, @pciGetInt(pci, 0))
-      @prSetIntNull(&index_pr, 0, @pciGetInt(pci, 1))
+      @prSetSmallInt(index_pr, 1, @pciGetInt(pci, 0))
+      @prSetIntNull(index_pr, 0, @pciGetInt(pci, 1))
 
       // Iterate through matching tuples
       for (@indexIteratorScanKey(&index); @indexIteratorAdvance(&index);) {
@@ -59,10 +59,10 @@ fun pipeline0(state : *State, execCtx : *ExecutionContext) -> nil {
         var out = @ptrCast(*Output, @outputAlloc(execCtx))
         out.test1_colA = @pciGetInt(pci, 0)
         out.test1_colB = @pciGetInt(pci, 1)
-        out.test2_col1 = @prGetSmallInt(&table_pr, 3)
-        out.test2_col2 = @prGetIntNull(&table_pr, 1)
-        out.test2_col3 = @prGetBigInt(&table_pr, 0)
-        out.test2_col4 = @prGetIntNull(&table_pr, 2)
+        out.test2_col1 = @prGetSmallInt(table_pr, 3)
+        out.test2_col2 = @prGetIntNull(table_pr, 1)
+        out.test2_col3 = @prGetBigInt(table_pr, 0)
+        out.test2_col4 = @prGetIntNull(table_pr, 2)
         if (out.test1_colA != out.test2_col1 or out.test1_colB != out.test2_col2) {
           state.correct = false
         }

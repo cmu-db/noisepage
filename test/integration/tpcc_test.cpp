@@ -133,7 +133,7 @@ class TPCCTests : public TerrierTest {
     Util::UnregisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
     delete gc_thread_;
     catalog.TearDown();
-    StorageTestUtil::FullyPerformGC(gc_, log_manager_);
+    deferred_action_manager.FullyPerformGC(gc_, log_manager_);
     thread_pool_.Shutdown();
     if (logging_enabled) {
       log_manager_->PersistAndStop();

@@ -18,12 +18,12 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   // Set iteration bounds
   var lo_index_pr = @indexIteratorGetLoPR(&index)
   var hi_index_pr = @indexIteratorGetHiPR(&index)
-  @prSetInt(&lo_index_pr, 0, @intToSql(495)) // Set colA in lo
-  @prSetInt(&hi_index_pr, 0, @intToSql(505)) // Set colA in hi
+  @prSetInt(lo_index_pr, 0, @intToSql(495)) // Set colA in lo
+  @prSetInt(hi_index_pr, 0, @intToSql(505)) // Set colA in hi
   for (@indexIteratorScanAscending(&index); @indexIteratorAdvance(&index);) {
     // Materialize the current match.
     var table_pr = @indexIteratorGetTablePR(&index)
-    var colA = @prGetInt(&table_pr, 0)
+    var colA = @prGetInt(table_pr, 0)
     var slot = @indexIteratorGetSlot(&index)
 
     // Delete + Insert on Table
@@ -33,14 +33,14 @@ fun main(execCtx: *ExecutionContext) -> int64 {
       return 37
     }
     var insert_pr = @getTablePR(&updater)
-    @prSetInt(&insert_pr, 0, colA + @intToSql(100000))
+    @prSetInt(insert_pr, 0, colA + @intToSql(100000))
     var insert_slot = @tableInsert(&updater)
 
     // Delete + Index on Index
     var index_pr = @getIndexPRBind(&updater, "index_1")
-    @prSetInt(&index_pr, 0, colA)
+    @prSetInt(index_pr, 0, colA)
     @indexDelete(&updater, &slot)
-    @prSetInt(&index_pr, 0, colA + @intToSql(100000))
+    @prSetInt(index_pr, 0, colA + @intToSql(100000))
     if (!@indexInsert(&updater)) {
       @indexIteratorFree(&index)
       @storageInterfaceFree(&updater)
@@ -50,7 +50,7 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   @indexIteratorFree(&index)
   @storageInterfaceFree(&updater)
 
-  // Count the number of updated tuples
+  // Count the number of updated tables
   var tvi: TableVectorIterator
   @tableIterInitBind(&tvi, execCtx, "test_1", col_oids)
   for (@tableIterAdvance(&tvi)) {

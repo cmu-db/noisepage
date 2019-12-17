@@ -1477,32 +1477,28 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
       break;
     }
     case ast::Builtin::IndexIteratorGetPR: {
-      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
-      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
       Emitter()->Emit(Bytecode::IndexIteratorGetPR, pr, iterator);
       break;
     }
     case ast::Builtin::IndexIteratorGetLoPR: {
-      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
-      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
       Emitter()->Emit(Bytecode::IndexIteratorGetLoPR, pr, iterator);
       break;
     }
     case ast::Builtin::IndexIteratorGetHiPR: {
-      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
-      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
       Emitter()->Emit(Bytecode::IndexIteratorGetHiPR, pr, iterator);
       break;
     }
     case ast::Builtin::IndexIteratorGetTablePR: {
-      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
-      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
       Emitter()->Emit(Bytecode::IndexIteratorGetTablePR, pr, iterator);
       break;
     }
     case ast::Builtin::IndexIteratorGetSlot: {
-      LocalVar slot = ExecutionResult()->GetOrCreateDestination(call->GetType());
-      Emitter()->Emit(Bytecode::IndexIteratorGetSlot, slot, iterator);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
+      Emitter()->Emit(Bytecode::IndexIteratorGetSlot, pr, iterator);
       break;
     }
     default: {
@@ -1515,8 +1511,6 @@ void BytecodeGenerator::VisitBuiltinPRCall(ast::CallExpr *call, ast::Builtin bui
   // First argument is always a projected row
   LocalVar pr = VisitExpressionForRValue(call->Arguments()[0]);
   ast::Context *ctx = call->GetType()->GetContext();
-  // TODO(Amadou): I am using VisitExpressionForLValue because it seems to involve one less copy.
-  // Change it if it causes issues.
   switch (builtin) {
     case ast::Builtin::PRSetTinyInt: {
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());

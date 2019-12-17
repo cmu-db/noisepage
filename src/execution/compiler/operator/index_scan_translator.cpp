@@ -86,7 +86,7 @@ ast::Expr *IndexScanTranslator::GetTableColumn(const catalog::col_oid_t &col_oid
   auto type = table_schema_.GetColumn(col_oid).Type();
   auto nullable = table_schema_.GetColumn(col_oid).Nullable();
   uint16_t attr_idx = table_pm_[col_oid];
-  return codegen_->PRGet(codegen_->PointerTo(table_pr_), type, nullable, attr_idx);
+  return codegen_->PRGet(codegen_->MakeExpr(table_pr_), type, nullable, attr_idx);
 }
 
 void IndexScanTranslator::SetOids(FunctionBuilder *builder) {
@@ -143,7 +143,7 @@ void IndexScanTranslator::FillKey(
     type::TypeId attr_type = index_schema_.GetColumn(!key.first - 1).Type();
     bool nullable = index_schema_.GetColumn(!key.first - 1).Nullable();
     auto set_key_call =
-        codegen_->PRSet(codegen_->PointerTo(pr), attr_type, nullable, attr_offset, translator->DeriveExpr(this));
+        codegen_->PRSet(codegen_->MakeExpr(pr), attr_type, nullable, attr_offset, translator->DeriveExpr(this));
     builder->Append(codegen_->MakeStmt(set_key_call));
   }
 }

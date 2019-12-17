@@ -21,7 +21,7 @@ fun main(execCtx: *ExecutionContext) -> int64 {
 
   // Fill up index PR
   var index_pr = @indexIteratorGetPR(&index)
-  @prSetSmallInt(&index_pr, 0, @intToSql(50)) // Set index_col1
+  @prSetSmallInt(index_pr, 0, @intToSql(50)) // Set index_col1
 
   // Iterate
   for (@indexIteratorScanKey(&index); @indexIteratorAdvance(&index);) {
@@ -30,8 +30,8 @@ fun main(execCtx: *ExecutionContext) -> int64 {
 
     // Output (note the reordering of the columns)
     var out = @ptrCast(*output_struct, @outputAlloc(execCtx))
-    out.col1 = @prGetSmallInt(&table_pr, 1)
-    out.col2 = @prGetIntNull(&table_pr, 0)
+    out.col1 = @prGetSmallInt(table_pr, 1)
+    out.col2 = @prGetIntNull(table_pr, 0)
     res = res + 1
   }
   // Finalize output

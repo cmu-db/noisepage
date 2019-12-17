@@ -14,7 +14,7 @@ InsertTranslator::InsertTranslator(const terrier::planner::InsertPlanNode *op, C
       table_schema_(codegen->Accessor()->GetSchema(op_->GetTableOid())),
       all_oids_(AllColOids(table_schema_)),
       table_pm_(codegen->Accessor()->GetTable(op_->GetTableOid())->ProjectionMapForOids(all_oids_)),
-      pr_filler_(codegen_, table_schema_, table_pm_, insert_pr_, true) {}
+      pr_filler_(codegen_, table_schema_, table_pm_, insert_pr_) {}
 
 void InsertTranslator::Produce(FunctionBuilder *builder) {
   DeclareInserter(builder);
@@ -104,13 +104,13 @@ void InsertTranslator::SetOids(FunctionBuilder *builder) {
 }
 
 void InsertTranslator::DeclareInsertPR(terrier::execution::compiler::FunctionBuilder *builder) {
-  // var insert_pr : ProjectedRow
+  // var insert_pr : *ProjectedRow
   auto pr_type = codegen_->BuiltinType(ast::BuiltinType::Kind::ProjectedRow);
-  builder->Append(codegen_->DeclareVariable(insert_pr_, pr_type, nullptr));
+  builder->Append(codegen_->DeclareVariable(insert_pr_, codegen_->PointerType(pr_type), nullptr));
 }
 
 void InsertTranslator::GetInsertPR(terrier::execution::compiler::FunctionBuilder *builder) {
-  // var insert_pr = ProjectedRow
+  // var insert_pr = getTablePR(...)
   auto get_pr_call = codegen_->OneArgCall(ast::Builtin::GetTablePR, inserter_, true);
   builder->Append(codegen_->Assign(codegen_->MakeExpr(insert_pr_), get_pr_call));
 }
@@ -124,7 +124,7 @@ void InsertTranslator::GenSetTablePR(FunctionBuilder *builder, uint32_t idx) {
     auto *src = translator->DeriveExpr(this);
     auto table_col_oid = all_oids_[i];
     const auto &table_col = table_schema_.GetColumn(table_col_oid);
-    auto pr_set_call = codegen_->PRSet(codegen_->PointerTo(insert_pr_), val->GetReturnValueType(), table_col.Nullable(),
+    auto pr_set_call = codegen_->PRSet(codegen_->MakeExpr(insert_pr_), val->GetReturnValueType(), table_col.Nullable(),
                                        table_pm_[table_col_oid], src);
     builder->Append(codegen_->MakeStmt(pr_set_call));
   }
@@ -149,7 +149,7 @@ void InsertTranslator::GenIndexInsert(FunctionBuilder *builder, const catalog::i
   const auto &index_pm = index->GetKeyOidToOffsetMap();
   const auto &index_schema = codegen_->Accessor()->GetIndexSchema(index_oid);
 
-  pr_filler_.GenFiller(index_pm, index_schema, codegen_->PointerTo(insert_index_pr), builder);
+  pr_filler_.GenFiller(index_pm, index_schema, codegen_->MakeExpr(insert_index_pr), builder);
 
   // Insert into index
   // if (insert not successfull) { Abort(); }
@@ -167,7 +167,7 @@ void InsertTranslator::FillPRFromChild(terrier::execution::compiler::FunctionBui
     const auto &table_col = cols[i];
     const auto &table_col_oid = all_oids_[i];
     auto val = GetChildOutput(0, i, table_col.Type());
-    auto pr_set_call = codegen_->PRSet(codegen_->PointerTo(insert_pr_), table_col.Type(), table_col.Nullable(),
+    auto pr_set_call = codegen_->PRSet(codegen_->MakeExpr(insert_pr_), table_col.Type(), table_col.Nullable(),
                                        table_pm_[table_col_oid], val);
     builder->Append(codegen_->MakeStmt(pr_set_call));
   }

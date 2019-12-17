@@ -85,7 +85,7 @@ void DeleteTranslator::GenIndexDelete(FunctionBuilder *builder, const catalog::i
     // For example, if the child is a seq scan, the index expressions would contain ColumnValueExpressions.
     auto translator = TranslatorFactory::CreateExpressionTranslator(index_col.StoredExpression().Get(), codegen_);
     auto val = translator->DeriveExpr(child_translator_);
-    auto pr_set_call = codegen_->PRSet(codegen_->PointerTo(delete_index_pr), index_col.Type(), index_col.Nullable(),
+    auto pr_set_call = codegen_->PRSet(codegen_->MakeExpr(delete_index_pr), index_col.Type(), index_col.Nullable(),
                                        index_pm.at(index_col.Oid()), val);
     builder->Append(codegen_->MakeStmt(pr_set_call));
   }

@@ -1,10 +1,13 @@
 #include "execution/sql/storage_interface.h"
+
 #include <algorithm>
 #include <vector>
+
 #include "execution/exec/execution_context.h"
 #include "execution/util/execution_common.h"
 
 namespace terrier::execution::sql {
+
 StorageInterface::StorageInterface(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid, uint32_t *col_oids,
                                    uint32_t num_oids, bool need_indexes)
     : table_oid_{table_oid},
@@ -44,11 +47,7 @@ storage::ProjectedRow *StorageInterface::GetIndexPR(catalog::index_oid_t index_o
   return index_pr_;
 }
 
-uint32_t count = 0;
-storage::TupleSlot StorageInterface::TableInsert() {
-  count++;
-  return table_->Insert(exec_ctx_->GetTxn(), table_redo_);
-}
+storage::TupleSlot StorageInterface::TableInsert() { return table_->Insert(exec_ctx_->GetTxn(), table_redo_); }
 
 bool StorageInterface::TableDelete(storage::TupleSlot table_tuple_slot) {
   auto txn = exec_ctx_->GetTxn();
@@ -70,4 +69,5 @@ void StorageInterface::IndexDelete(storage::TupleSlot table_tuple_slot) {
   TERRIER_ASSERT(need_indexes_, "Index PR not allocated!");
   curr_index_->Delete(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot);
 }
+
 }  // namespace terrier::execution::sql

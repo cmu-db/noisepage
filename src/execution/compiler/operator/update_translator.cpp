@@ -14,7 +14,7 @@ UpdateTranslator::UpdateTranslator(const terrier::planner::UpdatePlanNode *op, C
       table_schema_(codegen->Accessor()->GetSchema(op_->GetTableOid())),
       all_oids_(CollectOids(op)),
       table_pm_(codegen->Accessor()->GetTable(op_->GetTableOid())->ProjectionMapForOids(all_oids_)),
-      pr_filler_(codegen_, table_schema_, table_pm_, update_pr_, true) {}
+      pr_filler_(codegen_, table_schema_, table_pm_, update_pr_) {}
 
 void UpdateTranslator::Produce(FunctionBuilder *builder) {
   DeclareUpdater(builder);
@@ -88,9 +88,9 @@ void UpdateTranslator::SetOids(FunctionBuilder *builder) {
 }
 
 void UpdateTranslator::DeclareUpdatePR(terrier::execution::compiler::FunctionBuilder *builder) {
-  // var update_pr : ProjectedRow
+  // var update_pr : *ProjectedRow
   auto pr_type = codegen_->BuiltinType(ast::BuiltinType::Kind::ProjectedRow);
-  builder->Append(codegen_->DeclareVariable(update_pr_, pr_type, nullptr));
+  builder->Append(codegen_->DeclareVariable(update_pr_, codegen_->PointerType(pr_type), nullptr));
 }
 
 void UpdateTranslator::GetUpdatePR(terrier::execution::compiler::FunctionBuilder *builder) {
@@ -107,7 +107,7 @@ void UpdateTranslator::FillPRFromChild(terrier::execution::compiler::FunctionBui
     const auto &table_col = table_schema_.GetColumn(table_col_oid);
     auto translator = TranslatorFactory::CreateExpressionTranslator(clause.second.Get(), codegen_);
     auto clause_expr = translator->DeriveExpr(this);
-    auto pr_set_call = codegen_->PRSet(codegen_->PointerTo(update_pr_), table_col.Type(), table_col.Nullable(),
+    auto pr_set_call = codegen_->PRSet(codegen_->MakeExpr(update_pr_), table_col.Type(), table_col.Nullable(),
                                        table_pm_[table_col_oid], clause_expr);
     builder->Append(codegen_->MakeStmt(pr_set_call));
   }
@@ -142,7 +142,7 @@ void UpdateTranslator::GenIndexInsert(FunctionBuilder *builder, const catalog::i
   auto index = codegen_->Accessor()->GetIndex(index_oid);
   const auto &index_pm = index->GetKeyOidToOffsetMap();
   const auto &index_schema = codegen_->Accessor()->GetIndexSchema(index_oid);
-  pr_filler_.GenFiller(index_pm, index_schema, codegen_->PointerTo(insert_index_pr), builder);
+  pr_filler_.GenFiller(index_pm, index_schema, codegen_->MakeExpr(insert_index_pr), builder);
 
   // Insert into index
   // if (insert not successfull) { Abort(); }
@@ -179,11 +179,11 @@ void UpdateTranslator::GenIndexDelete(FunctionBuilder *builder, const catalog::i
   const auto &index_schema = codegen_->Accessor()->GetIndexSchema(index_oid);
   const auto &index_cols = index_schema.GetColumns();
   for (const auto &index_col : index_cols) {
-    // NOTE: index expressions in delete refer to columns in the child translator.
+    // NOTE: index expressions in delete refer to columns in the child translator (before any update is done).
     // For example, if the child is a seq scan, the index expressions could contain ColumnValueExpressions.
     auto translator = TranslatorFactory::CreateExpressionTranslator(index_col.StoredExpression().Get(), codegen_);
     auto val = translator->DeriveExpr(child_translator_);
-    auto pr_set_call = codegen_->PRSet(codegen_->PointerTo(delete_index_pr), index_col.Type(), index_col.Nullable(),
+    auto pr_set_call = codegen_->PRSet(codegen_->MakeExpr(delete_index_pr), index_col.Type(), index_col.Nullable(),
                                        index_pm.at(index_col.Oid()), val);
     builder->Append(codegen_->MakeStmt(pr_set_call));
   }

@@ -6,7 +6,6 @@
 
 #include "catalog/catalog_defs.h"
 #include "execution/sql/index_iterator.h"
-#include "execution/sql/projected_row_wrapper.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql_test.h"
 #include "execution/util/timer.h"
@@ -49,24 +48,24 @@ TEST_F(StorageInterfaceTest, SimpleInsertTest) {
   // Find the rows with colA BETWEEN 495 AND 505.
   int32_t lo_match = 495;
   int32_t hi_match = 505;
-  ProjectedRowWrapper lo_pr(index_iter1.LoPR());
-  ProjectedRowWrapper hi_pr(index_iter1.HiPR());
-  lo_pr.Set<int32_t, false>(0, lo_match, false);
-  hi_pr.Set<int32_t, false>(0, hi_match, false);
+  auto *const lo_pr(index_iter1.LoPR());
+  auto *const hi_pr(index_iter1.HiPR());
+  lo_pr->Set<int32_t, false>(0, lo_match, false);
+  hi_pr->Set<int32_t, false>(0, hi_match, false);
   index_iter1.ScanAscending();
   std::vector<uint32_t> inserted_vals;
   while (index_iter1.Advance()) {
     // Get tuple at the current slot
-    ProjectedRowWrapper table_pr(index_iter1.TablePR());
-    auto *val_a = table_pr.Get<int32_t, false>(0, nullptr);
+    auto *const table_pr(index_iter1.TablePR());
+    auto *val_a = table_pr->Get<int32_t, false>(0, nullptr);
     inserted_vals.emplace_back(*val_a);
     // Insert into table
-    ProjectedRowWrapper insert_pr(inserter.GetTablePR());
-    insert_pr.Set<int32_t, false>(0, *val_a, false);
+    auto *const insert_pr(inserter.GetTablePR());
+    insert_pr->Set<int32_t, false>(0, *val_a, false);
     inserter.TableInsert();
     // Insert into index
-    ProjectedRowWrapper index_pr(inserter.GetIndexPR(index_oid0));
-    index_pr.Set<int32_t, false>(0, *val_a, false);
+    auto *const index_pr(inserter.GetIndexPR(index_oid0));
+    index_pr->Set<int32_t, false>(0, *val_a, false);
     ASSERT_TRUE(inserter.IndexInsert());
   }
 
@@ -105,27 +104,27 @@ TEST_F(StorageInterfaceTest, SimpleDeleteTest) {
   // Find the rows with colA BETWEEN 495 AND 505.
   int32_t lo_match = 495;
   int32_t hi_match = 505;
-  ProjectedRowWrapper lo_pr(index_iter.LoPR());
-  ProjectedRowWrapper hi_pr(index_iter.HiPR());
-  lo_pr.Set<int32_t, false>(0, lo_match, false);
-  hi_pr.Set<int32_t, false>(0, hi_match, false);
+  auto *const lo_pr(index_iter.LoPR());
+  auto *const hi_pr(index_iter.HiPR());
+  lo_pr->Set<int32_t, false>(0, lo_match, false);
+  hi_pr->Set<int32_t, false>(0, hi_match, false);
   index_iter.ScanAscending();
   while (index_iter.Advance()) {
     // Get tuple at the current slot
-    ProjectedRowWrapper table_pr(index_iter.TablePR());
+    auto *const table_pr(index_iter.TablePR());
     storage::TupleSlot slot(index_iter.CurrentSlot());
-    auto *val_a = table_pr.Get<int32_t, false>(0, nullptr);
+    auto *val_a = table_pr->Get<int32_t, false>(0, nullptr);
     // Delete from Table
     deleter.TableDelete(slot);
     // Delete from Index
-    ProjectedRowWrapper index_pr(deleter.GetIndexPR(index_oid));
-    index_pr.Set<int32_t, false>(0, *val_a, false);
+    auto *const index_pr(deleter.GetIndexPR(index_oid));
+    index_pr->Set<int32_t, false>(0, *val_a, false);
     deleter.IndexDelete(slot);
   }
 
   // Now try reading the deleted rows from the index. They should not be found
-  lo_pr.Set<int32_t, false>(0, lo_match, false);
-  hi_pr.Set<int32_t, false>(0, hi_match, false);
+  lo_pr->Set<int32_t, false>(0, lo_match, false);
+  hi_pr->Set<int32_t, false>(0, hi_match, false);
   index_iter.ScanAscending();
   ASSERT_FALSE(index_iter.Advance());
 
@@ -162,33 +161,33 @@ TEST_F(StorageInterfaceTest, SimpleNonIndexedUpdateTest) {
   // Find the rows with colA BETWEEN 495 AND 505.
   int32_t lo_match = 495;
   int32_t hi_match = 505;
-  ProjectedRowWrapper lo_pr(index_iter.LoPR());
-  ProjectedRowWrapper hi_pr(index_iter.HiPR());
-  lo_pr.Set<int32_t, false>(0, lo_match, false);
-  hi_pr.Set<int32_t, false>(0, hi_match, false);
+  auto *const lo_pr(index_iter.LoPR());
+  auto *const hi_pr(index_iter.HiPR());
+  lo_pr->Set<int32_t, false>(0, lo_match, false);
+  hi_pr->Set<int32_t, false>(0, hi_match, false);
   index_iter.ScanAscending();
   std::vector<uint32_t> old_vals;
   while (index_iter.Advance()) {
     // Get tuple at the current slot
-    ProjectedRowWrapper table_pr(index_iter.TablePR());
+    auto *const table_pr(index_iter.TablePR());
     storage::TupleSlot slot(index_iter.CurrentSlot());
-    auto *curr_val = table_pr.Get<int32_t, false>(0, nullptr);
+    auto *curr_val = table_pr->Get<int32_t, false>(0, nullptr);
     old_vals.emplace_back(*curr_val);
     // Update Table
-    ProjectedRowWrapper update_pr(updater.GetTablePR());
-    update_pr.Set<int32_t, false>(0, *curr_val + TEST1_SIZE, false);
+    auto *const update_pr(updater.GetTablePR());
+    update_pr->Set<int32_t, false>(0, *curr_val + TEST1_SIZE, false);
     ASSERT_TRUE(updater.TableUpdate(slot));
   }
 
   // Now try reading the updated rows.
   // The updated values should be found.
-  lo_pr.Set<int32_t, false>(0, lo_match, false);
-  hi_pr.Set<int32_t, false>(0, hi_match, false);
+  lo_pr->Set<int32_t, false>(0, lo_match, false);
+  hi_pr->Set<int32_t, false>(0, hi_match, false);
   index_iter.ScanAscending();
   uint32_t num_matches = 0;
   while (index_iter.Advance()) {
-    ProjectedRowWrapper table_pr(index_iter.TablePR());
-    auto *val = table_pr.Get<int32_t, false>(0, nullptr);
+    auto *const table_pr(index_iter.TablePR());
+    auto *val = table_pr->Get<int32_t, false>(0, nullptr);
     EXPECT_EQ(*val, old_vals[num_matches] + TEST1_SIZE);
     num_matches++;
   }
@@ -214,47 +213,47 @@ TEST_F(StorageInterfaceTest, SimpleIndexedUpdateTest) {
   // Find the rows with colA BETWEEN 495 AND 505.
   int32_t lo_match = 495;
   int32_t hi_match = 505;
-  ProjectedRowWrapper lo_pr(index_iter.LoPR());
-  ProjectedRowWrapper hi_pr(index_iter.HiPR());
-  lo_pr.Set<int32_t, false>(0, lo_match, false);
-  hi_pr.Set<int32_t, false>(0, hi_match, false);
+  auto *const lo_pr(index_iter.LoPR());
+  auto *const hi_pr(index_iter.HiPR());
+  lo_pr->Set<int32_t, false>(0, lo_match, false);
+  hi_pr->Set<int32_t, false>(0, hi_match, false);
   index_iter.ScanAscending();
   std::vector<uint32_t> old_vals;
   while (index_iter.Advance()) {
     // Get tuple at the current slot
-    ProjectedRowWrapper table_pr(index_iter.TablePR());
+    auto *const table_pr(index_iter.TablePR());
     storage::TupleSlot slot(index_iter.CurrentSlot());
-    auto *curr_val = table_pr.Get<int32_t, false>(0, nullptr);
-    auto *val_b = table_pr.Get<int32_t, false>(1, nullptr);
-    auto *val_c = table_pr.Get<int32_t, false>(2, nullptr);
-    auto *val_d = table_pr.Get<int32_t, false>(3, nullptr);
+    auto *curr_val = table_pr->Get<int32_t, false>(0, nullptr);
+    auto *val_b = table_pr->Get<int32_t, false>(1, nullptr);
+    auto *val_c = table_pr->Get<int32_t, false>(2, nullptr);
+    auto *val_d = table_pr->Get<int32_t, false>(3, nullptr);
     old_vals.emplace_back(*curr_val);
     // Delete + Insert in Table
     ASSERT_TRUE(updater.TableDelete(slot));
-    ProjectedRowWrapper update_pr(updater.GetTablePR());
-    update_pr.Set<int32_t, false>(0, *curr_val + TEST1_SIZE, false);
-    update_pr.Set<int32_t, false>(1, *val_b, false);
-    update_pr.Set<int32_t, false>(2, *val_c, false);
-    update_pr.Set<int32_t, false>(3, *val_d, false);
+    auto *const update_pr(updater.GetTablePR());
+    update_pr->Set<int32_t, false>(0, *curr_val + TEST1_SIZE, false);
+    update_pr->Set<int32_t, false>(1, *val_b, false);
+    update_pr->Set<int32_t, false>(2, *val_c, false);
+    update_pr->Set<int32_t, false>(3, *val_d, false);
     auto new_slot UNUSED_ATTRIBUTE = updater.TableInsert();
 
     // Delete + Insert in Index
-    ProjectedRowWrapper index_pr(updater.GetIndexPR(index_oid));
-    index_pr.Set<int32_t, false>(0, *curr_val, false);
+    auto *const index_pr(updater.GetIndexPR(index_oid));
+    index_pr->Set<int32_t, false>(0, *curr_val, false);
     updater.IndexDelete(slot);
-    index_pr.Set<int32_t, false>(0, *curr_val + TEST1_SIZE, false);
+    index_pr->Set<int32_t, false>(0, *curr_val + TEST1_SIZE, false);
     updater.IndexInsert();
   }
 
   // Now try reading the updated rows.
   // The updated values should be found.
-  lo_pr.Set<int32_t, false>(0, lo_match + TEST1_SIZE, false);
-  hi_pr.Set<int32_t, false>(0, hi_match + TEST1_SIZE, false);
+  lo_pr->Set<int32_t, false>(0, lo_match + TEST1_SIZE, false);
+  hi_pr->Set<int32_t, false>(0, hi_match + TEST1_SIZE, false);
   index_iter.ScanAscending();
   uint32_t num_matches = 0;
   while (index_iter.Advance()) {
-    ProjectedRowWrapper table_pr(index_iter.TablePR());
-    auto *val = table_pr.Get<int32_t, false>(0, nullptr);
+    auto *const table_pr(index_iter.TablePR());
+    auto *val = table_pr->Get<int32_t, false>(0, nullptr);
     EXPECT_EQ(*val, old_vals[num_matches] + TEST1_SIZE);
     num_matches++;
   }
@@ -292,52 +291,52 @@ TEST_F(StorageInterfaceTest, MultiIndexedUpdateTest) {
   int16_t lo_match = 495;
   int16_t hi_match = 505;
   int16_t update_val = static_cast<uint16_t>(TEST2_SIZE);
-  ProjectedRowWrapper lo_pr(index_iter1.LoPR());
-  ProjectedRowWrapper hi_pr(index_iter1.HiPR());
-  lo_pr.Set<int16_t, false>(0, lo_match, false);
-  hi_pr.Set<int16_t, false>(0, hi_match, false);
+  auto *lo_pr(index_iter1.LoPR());
+  auto *hi_pr(index_iter1.HiPR());
+  lo_pr->Set<int16_t, false>(0, lo_match, false);
+  hi_pr->Set<int16_t, false>(0, hi_match, false);
   index_iter1.ScanAscending();
   std::vector<uint16_t> old_vals;
   uint32_t num_updates = 0;
   while (index_iter1.Advance()) {
     // Get tuple at the current slot
-    ProjectedRowWrapper table_pr(index_iter1.TablePR());
+    auto *const table_pr(index_iter1.TablePR());
     storage::TupleSlot slot(index_iter1.CurrentSlot());
     // Read table values
-    auto *curr_val_a = table_pr.Get<int16_t, false>(idx_a, nullptr);
+    auto *curr_val_a = table_pr->Get<int16_t, false>(idx_a, nullptr);
     bool null_b;
-    auto *curr_val_b = table_pr.Get<int32_t, true>(idx_b, &null_b);
-    auto val_c = table_pr.Get<int64_t, false>(idx_c, nullptr);
+    auto *curr_val_b = table_pr->Get<int32_t, true>(idx_b, &null_b);
+    auto val_c = table_pr->Get<int64_t, false>(idx_c, nullptr);
     bool null_d;
-    auto val_d = table_pr.Get<int32_t, true>(idx_d, &null_d);
+    auto val_d = table_pr->Get<int32_t, true>(idx_d, &null_d);
 
     old_vals.emplace_back(*curr_val_a);
     // Delete + Insert in Table
     ASSERT_TRUE(updater.TableDelete(slot));
-    ProjectedRowWrapper update_pr(updater.GetTablePR());
-    update_pr.Set<int16_t, false>(idx_a, *curr_val_a + update_val, false);
-    update_pr.Set<int32_t, true>(idx_b, 0, false);
-    update_pr.Set<int64_t, false>(idx_c, *val_c, false);
-    update_pr.Set<int32_t, true>(idx_d, null_d ? 0 : *val_d, null_d);
+    auto *const update_pr(updater.GetTablePR());
+    update_pr->Set<int16_t, false>(idx_a, *curr_val_a + update_val, false);
+    update_pr->Set<int32_t, true>(idx_b, 0, false);
+    update_pr->Set<int64_t, false>(idx_c, *val_c, false);
+    update_pr->Set<int32_t, true>(idx_d, null_d ? 0 : *val_d, null_d);
     auto new_slot UNUSED_ATTRIBUTE = updater.TableInsert();
 
     // Delete + Insert in Indexes
     // First index
     {
-      ProjectedRowWrapper index_pr(updater.GetIndexPR(index_oid1));
-      index_pr.Set<int16_t, false>(0, *curr_val_a, false);
+      auto *const index_pr(updater.GetIndexPR(index_oid1));
+      index_pr->Set<int16_t, false>(0, *curr_val_a, false);
       updater.IndexDelete(slot);
-      index_pr.Set<int16_t, false>(0, *curr_val_a + update_val, false);
+      index_pr->Set<int16_t, false>(0, *curr_val_a + update_val, false);
       updater.IndexInsert();
     }
     // Second index
     {
-      ProjectedRowWrapper index_pr(updater.GetIndexPR(index_oid2));
-      index_pr.Set<int16_t, false>(1, *curr_val_a, false);
-      index_pr.Set<int32_t, true>(0, null_b ? 0 : *curr_val_b, null_b);
+      auto *const index_pr(updater.GetIndexPR(index_oid2));
+      index_pr->Set<int16_t, false>(1, *curr_val_a, false);
+      index_pr->Set<int32_t, true>(0, null_b ? 0 : *curr_val_b, null_b);
       updater.IndexDelete(slot);
-      index_pr.Set<int16_t, false>(1, *curr_val_a + update_val, false);
-      index_pr.Set<int32_t, true>(0, 0, false);
+      index_pr->Set<int16_t, false>(1, *curr_val_a + update_val, false);
+      index_pr->Set<int32_t, true>(0, 0, false);
       updater.IndexInsert();
     }
     num_updates++;
@@ -348,15 +347,15 @@ TEST_F(StorageInterfaceTest, MultiIndexedUpdateTest) {
 
   // Check first index
   {
-    lo_pr.Set<int16_t, false>(0, lo_match + update_val, false);
-    hi_pr.Set<int16_t, false>(0, hi_match + update_val, false);
+    lo_pr->Set<int16_t, false>(0, lo_match + update_val, false);
+    hi_pr->Set<int16_t, false>(0, hi_match + update_val, false);
     index_iter1.ScanAscending();
     uint32_t num_matches = 0;
     while (index_iter1.Advance()) {
-      ProjectedRowWrapper table_pr(index_iter1.TablePR());
-      auto *val_a = table_pr.Get<int16_t, false>(idx_a, nullptr);
+      auto *const table_pr(index_iter1.TablePR());
+      auto *val_a = table_pr->Get<int16_t, false>(idx_a, nullptr);
       bool null_b = true;
-      auto *val_b = table_pr.Get<int32_t, true>(idx_b, &null_b);
+      auto *val_b = table_pr->Get<int32_t, true>(idx_b, &null_b);
       EXPECT_EQ(*val_a, old_vals[num_matches] + update_val);
       ASSERT_FALSE(null_b);
       EXPECT_EQ(*val_b, 0);
@@ -367,19 +366,19 @@ TEST_F(StorageInterfaceTest, MultiIndexedUpdateTest) {
 
   // Check second index
   {
-    lo_pr = ProjectedRowWrapper(index_iter2.LoPR());
-    hi_pr = ProjectedRowWrapper(index_iter2.HiPR());
-    lo_pr.Set<int16_t, false>(1, lo_match + update_val, false);
-    lo_pr.Set<int32_t, true>(0, 0, false);
-    hi_pr.Set<int16_t, false>(1, hi_match + update_val, false);
-    hi_pr.Set<int32_t, true>(0, 0, false);
+    lo_pr = index_iter2.LoPR();
+    hi_pr = index_iter2.HiPR();
+    lo_pr->Set<int16_t, false>(1, lo_match + update_val, false);
+    lo_pr->Set<int32_t, false>(0, 0, false);
+    hi_pr->Set<int16_t, false>(1, hi_match + update_val, false);
+    hi_pr->Set<int32_t, false>(0, 0, false);
     index_iter2.ScanAscending();
     uint32_t num_matches = 0;
     while (index_iter2.Advance()) {
-      ProjectedRowWrapper table_pr(index_iter2.TablePR());
-      auto *val_a = table_pr.Get<int16_t, false>(idx_a, nullptr);
+      auto *const table_pr(index_iter2.TablePR());
+      auto *val_a = table_pr->Get<int16_t, false>(idx_a, nullptr);
       bool null_b = true;
-      auto *val_b = table_pr.Get<int32_t, true>(idx_b, &null_b);
+      auto *val_b = table_pr->Get<int32_t, true>(idx_b, &null_b);
       EXPECT_EQ(*val_a, old_vals[num_matches] + update_val);
       ASSERT_FALSE(null_b);
       EXPECT_EQ(*val_b, 0);

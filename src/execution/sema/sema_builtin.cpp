@@ -1518,9 +1518,10 @@ void Sema::CheckBuiltinIndexIteratorScan(execution::ast::CallExpr *call, ast::Bu
   switch (builtin) {
     case ast::Builtin::IndexIteratorScanKey:
     case ast::Builtin::IndexIteratorScanAscending:
-    case ast::Builtin::IndexIteratorScanDescending:
+    case ast::Builtin::IndexIteratorScanDescending: {
       if (!CheckArgCount(call, 1)) return;
       break;
+    }
     case ast::Builtin::IndexIteratorScanLimitAscending:
     case ast::Builtin::IndexIteratorScanLimitDescending: {
       if (!CheckArgCount(call, 2)) return;
@@ -1576,8 +1577,7 @@ void Sema::CheckBuiltinIndexIteratorPRCall(ast::CallExpr *call, ast::Builtin bui
   // First argument must be a pointer to a IndexIterator
   auto *index_type = call->Arguments()[0]->GetType()->GetPointeeType();
   if (index_type == nullptr || !index_type->IsSpecificBuiltin(ast::BuiltinType::IndexIterator)) {
-    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadArgToIndexIteratorFree,
-                               call->Arguments()[0]->GetType(), 0);
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(ast::BuiltinType::IndexIterator)->PointerTo());
     return;
   }
   switch (builtin) {
@@ -1585,7 +1585,7 @@ void Sema::CheckBuiltinIndexIteratorPRCall(ast::CallExpr *call, ast::Builtin bui
     case ast::Builtin::IndexIteratorGetLoPR:
     case ast::Builtin::IndexIteratorGetHiPR:
     case ast::Builtin::IndexIteratorGetTablePR:
-      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
+      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
       break;
     case ast::Builtin::IndexIteratorGetSlot:
       call->SetType(GetBuiltinType(ast::BuiltinType::TupleSlot));
@@ -1610,27 +1610,31 @@ void Sema::CheckBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin) {
     case ast::Builtin::PRSetTinyIntNull:
     case ast::Builtin::PRSetSmallIntNull:
     case ast::Builtin::PRSetIntNull:
-    case ast::Builtin::PRSetBigIntNull:
+    case ast::Builtin::PRSetBigIntNull: {
       is_set_call = true;
       sql_type = ast::BuiltinType::Integer;
       break;
+    }
     case ast::Builtin::PRSetReal:
     case ast::Builtin::PRSetDouble:
     case ast::Builtin::PRSetRealNull:
-    case ast::Builtin::PRSetDoubleNull:
+    case ast::Builtin::PRSetDoubleNull: {
       is_set_call = true;
       sql_type = ast::BuiltinType::Real;
       break;
+    }
     case ast::Builtin::PRSetDate:
-    case ast::Builtin::PRSetDateNull:
+    case ast::Builtin::PRSetDateNull: {
       is_set_call = true;
       sql_type = ast::BuiltinType::Date;
       break;
+    }
     case ast::Builtin::PRSetVarlen:
-    case ast::Builtin::PRSetVarlenNull:
+    case ast::Builtin::PRSetVarlenNull: {
       is_set_call = true;
       sql_type = ast::BuiltinType::StringVal;
       break;
+    }
     case ast::Builtin::PRGetTinyInt:
     case ast::Builtin::PRGetSmallInt:
     case ast::Builtin::PRGetInt:
@@ -1638,23 +1642,27 @@ void Sema::CheckBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin) {
     case ast::Builtin::PRGetTinyIntNull:
     case ast::Builtin::PRGetSmallIntNull:
     case ast::Builtin::PRGetIntNull:
-    case ast::Builtin::PRGetBigIntNull:
+    case ast::Builtin::PRGetBigIntNull: {
       sql_type = ast::BuiltinType::Integer;
       break;
+    }
     case ast::Builtin::PRGetReal:
     case ast::Builtin::PRGetDouble:
     case ast::Builtin::PRGetRealNull:
-    case ast::Builtin::PRGetDoubleNull:
+    case ast::Builtin::PRGetDoubleNull: {
       sql_type = ast::BuiltinType::Real;
       break;
+    }
     case ast::Builtin::PRGetDate:
-    case ast::Builtin::PRGetDateNull:
+    case ast::Builtin::PRGetDateNull: {
       sql_type = ast::BuiltinType::Date;
       break;
+    }
     case ast::Builtin::PRGetVarlen:
-    case ast::Builtin::PRGetVarlenNull:
+    case ast::Builtin::PRGetVarlenNull: {
       sql_type = ast::BuiltinType::StringVal;
       break;
+    }
     default:
       UNREACHABLE("Undefined projected row call!!");
   }
@@ -1787,7 +1795,7 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
       if (!CheckArgCount(call, 1)) {
         return;
       }
-      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
+      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
       break;
     }
     case ast::Builtin::TableInsert: {
@@ -1837,7 +1845,7 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
         return;
       }
 
-      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
+      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
       break;
     }
     case ast::Builtin::GetIndexPRBind: {
@@ -1850,7 +1858,7 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
         return;
       }
 
-      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
+      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
       break;
     }
     case ast::Builtin::IndexInsert: {

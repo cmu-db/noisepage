@@ -270,6 +270,16 @@ class DatabaseCatalog {
   std::vector<Column> GetColumns(transaction::TransactionContext *txn, ClassOid class_oid);
 
   /**
+   * A list of all oids and their postgres::ClassKind from pg_class on the given namespace. This is currently designed
+   * as an internal function, though could be exposed via the CatalogAccessor if desired in the future.
+   * @param txn for the operation
+   * @param ns being queried
+   * @return vector of OIDs for all of the objects on this namespace
+   */
+  std::vector<std::pair<uint32_t, postgres::ClassKind>> GetNamespaceClassOids(transaction::TransactionContext *txn,
+                                                                              namespace_oid_t ns_oid);
+
+  /**
    * Delete entries from pg_attribute
    * @tparam Column type of columns
    * @param txn txn to use
@@ -385,6 +395,15 @@ class DatabaseCatalog {
    */
   bool CreateIndexEntry(transaction::TransactionContext *txn, namespace_oid_t ns_oid, table_oid_t table_oid,
                         index_oid_t index_oid, const std::string &name, const IndexSchema &schema);
+
+  /**
+   * Delete all of the indexes for a given table. This is currently designed as an internal function, though could be
+   * exposed via the CatalogAccessor if desired in the future.
+   * @param txn for the operation
+   * @param table to remove all indexes for
+   * @return true if the deletion succeeded, otherwise false.
+   */
+  bool DeleteIndexes(transaction::TransactionContext *txn, table_oid_t table);
 
   /**
    * Bootstraps the built-in types found in type::Type
