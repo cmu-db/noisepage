@@ -90,7 +90,7 @@ class CompilerTest : public SqlBasedTest {
   }
 };
 
-/*
+
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleSeqScanTest) {
   // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1 WHERE col1 < 500 AND col2 >= 3;
@@ -1792,7 +1792,7 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     checker.CheckCorrectness();
   }
 }
-*/
+
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
