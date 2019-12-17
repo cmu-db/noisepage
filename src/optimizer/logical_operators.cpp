@@ -202,7 +202,7 @@ Operator LogicalInsert::Make(
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
   op->columns_ = std::move(columns);
-  op->values_ = std::move(values);
+  op->values_ = values;
   return Operator(std::move(op));
 }
 
@@ -727,8 +727,8 @@ Operator LogicalPrepare::Make(
     common::ManagedPointer<std::vector<common::ManagedPointer<parser::ParameterValueExpression>>> parameters) {
   auto op = std::make_unique<LogicalPrepare>();
   op->name_ = std::move(name);
-  op->dml_statement_ = std::move(dml_statement);
-  op->parameters_ = std::move(parameters);
+  op->dml_statement_ = dml_statement;
+  op->parameters_ = parameters;
   return Operator(std::move(op));
 }
 
