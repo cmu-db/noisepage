@@ -2,8 +2,6 @@
 
 #include <memory>
 
-#include "loggers/main_logger.h"
-
 namespace terrier::parser {
 
 std::shared_ptr<spdlog::logger> parser_logger = nullptr;  // NOLINT

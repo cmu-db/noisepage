@@ -7,7 +7,6 @@
 #include "common/managed_pointer.h"
 #include "common/settings.h"
 #include "gtest/gtest.h"
-#include "loggers/main_logger.h"
 #include "network/connection_handle_factory.h"
 #include "network/terrier_server.h"
 #include "storage/garbage_collector.h"

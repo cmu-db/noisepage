@@ -30,6 +30,7 @@
 #include "execution/vm/vm.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/MemoryBuffer.h"
+#include "loggers/execution_logger.h"
 #include "loggers/loggers_util.h"
 #include "main/db_main.h"
 #include "settings/settings_manager.h"
@@ -306,11 +307,8 @@ void InitTPL() {
  */
 void ShutdownTPL() {
   terrier::execution::vm::LLVMEngine::Shutdown();
-  terrier::LoggersUtil::ShutDown();
 
   scheduler.terminate();
-
-  LOG_INFO("TPL cleanly shutdown ...");
 }
 
 }  // namespace terrier::execution

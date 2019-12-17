@@ -9,7 +9,6 @@
 
 #include "common/settings.h"
 #include "gtest/gtest.h"
-#include "loggers/main_logger.h"
 #include "main/db_main.h"
 #include "network/connection_handle_factory.h"
 #include "network/terrier_server.h"

@@ -2,6 +2,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "common/exception.h"
 #include "common/managed_pointer.h"
 #include "parser/expression/aggregate_expression.h"
@@ -15,7 +16,6 @@
 #include "parser/expression/type_cast_expression.h"
 #include "parser/pg_trigger.h"
 #include "parser/postgresparser.h"
-
 #include "test_util/test_harness.h"
 #include "type/transient_value_peeker.h"
 
@@ -27,13 +27,10 @@ class ParserTestBase : public TerrierTest {
    * Initialization
    */
   void SetUp() override {
-    InitMainLogger();
-    InitParserLogger();
+    TerrierTest::SetUp();
     parser_logger->set_level(spdlog::level::debug);
     spdlog::flush_every(std::chrono::seconds(1));
   }
-
-  void TearDown() override { spdlog::shutdown(); }
 
   void CheckTable(const std::unique_ptr<TableInfo> &table_info, const std::string &table_name) {
     EXPECT_EQ(table_info->GetTableName(), table_name);

@@ -1,18 +1,16 @@
 #pragma once
 
-#include <iostream>
+#include <memory>
 
-#include "loggers/binder_logger.h"
-#include "loggers/catalog_logger.h"
-#include "loggers/execution_logger.h"
-#include "loggers/index_logger.h"
-#include "loggers/main_logger.h"
-#include "loggers/network_logger.h"
-#include "loggers/optimizer_logger.h"
-#include "loggers/parser_logger.h"
-#include "loggers/settings_logger.h"
-#include "loggers/storage_logger.h"
-#include "loggers/transaction_logger.h"
+// flush the debug logs, every <n> seconds
+#define DEBUG_LOG_FLUSH_INTERVAL 3
+
+#include "spdlog/fmt/ostr.h"
+#include "spdlog/sinks/basic_file_sink.h"
+#include "spdlog/sinks/stdout_sinks.h"
+#include "spdlog/spdlog.h"
+
+extern std::shared_ptr<spdlog::sinks::stdout_sink_mt> default_sink;  // NOLINT
 
 namespace terrier {
 
@@ -26,33 +24,11 @@ class LoggersUtil {
   /**
    * Initialize all of the debug loggers in the system.
    */
-  static void Initialize() {
-    try {
-      InitMainLogger();
-      // initialize namespace specific loggers
-      storage::InitIndexLogger();
-      storage::InitStorageLogger();
-      transaction::InitTransactionLogger();
-      catalog::InitCatalogLogger();
-      binder::InitBinderLogger();
-      optimizer::InitOptimizerLogger();
-      settings::InitSettingsLogger();
-      parser::InitParserLogger();
-      network::InitNetworkLogger();
-      execution::InitExecutionLogger();
-
-      // Flush all *registered* loggers using a worker thread. Registered loggers must be thread safe for this to work
-      // correctly
-      spdlog::flush_every(std::chrono::seconds(DEBUG_LOG_FLUSH_INTERVAL));
-    } catch (const spdlog::spdlog_ex &ex) {
-      std::cerr << "Debug logging initialization failed for " << ex.what() << std::endl;  // NOLINT
-      throw ex;
-    }
-  }
+  static void Initialize();
 
   /**
    * Shut down all of the debug loggers in the system.
    */
-  static void ShutDown() { ShutdownMainLogger(); }
+  static void ShutDown();
 };
 }  // namespace terrier

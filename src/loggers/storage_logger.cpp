@@ -2,8 +2,6 @@
 
 #include <memory>
 
-#include "loggers/main_logger.h"
-
 namespace terrier::storage {
 
 std::shared_ptr<spdlog::logger> storage_logger = nullptr;  // NOLINT

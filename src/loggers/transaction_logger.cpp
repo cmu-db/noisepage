@@ -2,8 +2,6 @@
 
 #include <memory>
 
-#include "loggers/main_logger.h"
-
 namespace terrier::transaction {
 
 std::shared_ptr<spdlog::logger> transaction_logger = nullptr;  // NOLINT

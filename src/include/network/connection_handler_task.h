@@ -9,7 +9,6 @@
 
 #include "common/exception.h"
 #include "common/notifiable_task.h"
-#include "loggers/main_logger.h"
 #include "network/network_defs.h"
 #include "network/protocol_interpreter.h"
 
