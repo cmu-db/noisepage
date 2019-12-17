@@ -357,9 +357,10 @@ TEST_F(ParserTestBase, PrepareTest) {
     EXPECT_EQ(result.GetStatement(0)->GetType(), StatementType::PREPARE);
     auto prepare_stmt = result.GetStatement(0).CastManagedPointerTo<PrepareStatement>();
     EXPECT_EQ(prepare_stmt->GetName(), "insert_plan");
-    // TODO(pakhtar)
-    // - check table name == table_name
-    // - check value_idx == 0
+    auto insert_stmt = prepare_stmt->GetQuery().CastManagedPointerTo<InsertStatement>();
+    EXPECT_EQ(insert_stmt->GetInsertionTable()->GetTableName(), "table_name");
+    auto param_value_expr = (*insert_stmt->GetValues())[0][0].CastManagedPointerTo<ParameterValueExpression>();
+    EXPECT_EQ(param_value_expr->GetValueIdx(), 0);
   }
 
   {
@@ -368,10 +369,11 @@ TEST_F(ParserTestBase, PrepareTest) {
     EXPECT_EQ(result.GetStatement(0)->GetType(), StatementType::PREPARE);
     auto prepare_stmt = result.GetStatement(0).CastManagedPointerTo<PrepareStatement>();
     EXPECT_EQ(prepare_stmt->GetName(), "insert_plan");
-    // TODO(pakhtar)
-    // - check table name == table_name
-    // - check value_idx == 0
-    // - can we check the type?
+    auto insert_stmt = prepare_stmt->GetQuery().CastManagedPointerTo<InsertStatement>();
+    EXPECT_EQ(insert_stmt->GetInsertionTable()->GetTableName(), "table_name");
+    auto param_value_expr = (*insert_stmt->GetValues())[0][0].CastManagedPointerTo<ParameterValueExpression>();
+    EXPECT_EQ(param_value_expr->GetValueIdx(), 0);
+    EXPECT_EQ(param_value_expr->GetReturnValueType(), type::TypeId::INTEGER);
   }
 
   {
@@ -381,10 +383,14 @@ TEST_F(ParserTestBase, PrepareTest) {
     EXPECT_EQ(result.GetStatement(0)->GetType(), StatementType::PREPARE);
     auto prepare_stmt = result.GetStatement(0).CastManagedPointerTo<PrepareStatement>();
     EXPECT_EQ(prepare_stmt->GetName(), "select_stmt_plan");
-    // TODO(pakhtar)
-    // - assert "column_name"
-    // - assert "table_name"
-    // - assert value_idx == 0
+    auto select_stmt = prepare_stmt->GetQuery().CastManagedPointerTo<SelectStatement>();
+    EXPECT_EQ(select_stmt->GetSelectTable()->GetTableName(), "table_name");
+    auto column_expr = select_stmt->GetSelectColumns()[0].CastManagedPointerTo<ColumnValueExpression>();
+    EXPECT_EQ(column_expr->GetColumnName(), "column_name");
+    auto left_child_expr = select_stmt->GetSelectCondition()->GetChildren()[0].CastManagedPointerTo<ColumnValueExpression>();
+    auto right_child_expr = select_stmt->GetSelectCondition()->GetChildren()[1].CastManagedPointerTo<ParameterValueExpression>();
+    EXPECT_EQ(left_child_expr->GetColumnName(), "id");
+    EXPECT_EQ(right_child_expr->GetValueIdx(), 0);
   }
 }
 

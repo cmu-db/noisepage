@@ -35,6 +35,7 @@
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
 #include "planner/plannodes/output_schema.h"
+#include "planner/plannodes/prepare_plan_node.h"
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/result_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
@@ -853,6 +854,26 @@ TEST(PlanNodeJsonTest, OrderByPlanNodeJsonTest) {
   auto deserialized_plan = common::ManagedPointer(deserialized.result_).CastManagedPointerTo<OrderByPlanNode>();
   EXPECT_TRUE(deserialized_plan != nullptr);
   EXPECT_EQ(PlanNodeType::ORDERBY, deserialized_plan->GetPlanNodeType());
+  EXPECT_EQ(*plan_node, *deserialized_plan);
+  EXPECT_EQ(plan_node->Hash(), deserialized_plan->Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeJsonTest, PreparePlanNodeJsonTest) {
+  // Construct PreparePlanNode
+  PreparePlanNode::Builder builder;
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+                       .Build();
+
+  // Serialize to Json
+  auto json = plan_node->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  // Deserialize plan node
+  auto deserialized = DeserializePlanNode(json);
+  auto deserialized_plan = common::ManagedPointer(deserialized.result_).CastManagedPointerTo<ProjectionPlanNode>();
+  EXPECT_TRUE(deserialized_plan != nullptr);
+  EXPECT_EQ(PlanNodeType::PROJECTION, deserialized_plan->GetPlanNodeType());
   EXPECT_EQ(*plan_node, *deserialized_plan);
   EXPECT_EQ(plan_node->Hash(), deserialized_plan->Hash());
 }

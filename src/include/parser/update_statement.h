@@ -94,7 +94,7 @@ class UpdateStatement : public SQLStatement {
   common::hash_t Hash() const override {
     common::hash_t hash = SQLStatement::Hash();
     if (table_ != nullptr) hash = common::HashUtil::CombineHashes(hash, table_->Hash());
-    for (const auto & update : updates_) hash = common::HashUtil::CombineHashes(hash, update->Hash());
+    for (const auto &update : updates_) hash = common::HashUtil::CombineHashes(hash, update->Hash());
     if (where_ != nullptr) hash = common::HashUtil::CombineHashes(hash, where_->Hash());
     return hash;
   }
