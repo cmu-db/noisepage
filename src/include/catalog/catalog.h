@@ -108,7 +108,7 @@ class Catalog {
    * @return a CatalogAccessor object for use with this transaction
    */
   std::unique_ptr<CatalogAccessor> GetAccessor(transaction::TransactionContext *txn, db_oid_t database,
-                                               namespace_oid_t temp_namespace);
+                                               namespace_oid_t temp_namespace = INVALID_NAMESPACE_OID);
 
  private:
   friend class storage::RecoveryManager;
