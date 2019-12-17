@@ -823,8 +823,8 @@ TEST_F(BinderCorrectnessTest, PrepareStatementTest) {
   {
     BINDER_LOG_DEBUG("Parsing sql query");
 
-    std::string select_sql = "PREPARE insert_plan AS INSERT INTO A VALUES($1)";
-    auto parse_tree = parser_.BuildParseTree(select_sql);
+    std::string insert_sql = "PREPARE insert_plan AS INSERT INTO A VALUES($1)";
+    auto parse_tree = parser_.BuildParseTree(insert_sql);
     auto statement = parse_tree.GetStatements()[0];
     binder_->BindNameToNode(statement, &parse_tree);
     auto prepare_stmt =
@@ -841,10 +841,34 @@ TEST_F(BinderCorrectnessTest, PrepareStatementTest) {
   {
     BINDER_LOG_DEBUG("Parsing sql query");
 
-    std::string select_sql = "PREPARE delete_plan AS DELETE FROM unknown_table WHERE b1=$1";
-    auto parse_tree = parser_.BuildParseTree(select_sql);
+    std::string delete_sql = "PREPARE delete_plan AS DELETE FROM unknown_table WHERE b1=$1";
+    auto parse_tree = parser_.BuildParseTree(delete_sql);
     auto statement = parse_tree.GetStatements()[0];
     EXPECT_THROW(binder_->BindNameToNode(statement, &parse_tree), BinderException);
+  }
+
+  {
+    BINDER_LOG_DEBUG("Parsing sql query");
+
+    std::string delete_sql = "PREPARE delete_plan AS DELETE FROM B WHERE b1=$1";
+    auto parse_tree = parser_.BuildParseTree(delete_sql);
+    auto statement = parse_tree.GetStatements()[0];
+    binder_->BindNameToNode(statement, &parse_tree);
+    auto prepare_stmt =
+        statement.CastManagedPointerTo<parser::PrepareStatement>();
+    EXPECT_EQ(prepare_stmt->GetName(), "delete_plan");
+    auto delete_stmt =
+        prepare_stmt->GetQuery().CastManagedPointerTo<parser::DeleteStatement>();
+
+    auto col_expr =
+        delete_stmt->GetDeleteCondition()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+    EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // b1
+    EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // b1
+    EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // b1
+
+    auto param_value_expr =
+        delete_stmt->GetDeleteCondition()->GetChild(1).CastManagedPointerTo<parser::ParameterValueExpression>();
+    EXPECT_EQ(param_value_expr->GetValueIdx(), 0);
   }
 }
 
