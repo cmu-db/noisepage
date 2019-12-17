@@ -3,12 +3,12 @@
 #include <cstdint>
 #include <string>
 
-#include "llvm/Support/Casting.h"
-
 #include "common/strong_typedef.h"
 #include "execution/ast/identifier.h"
+#include "execution/sql/storage_interface.h"
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
+#include "llvm/Support/Casting.h"
 
 namespace terrier::execution::ast {
 
@@ -83,6 +83,11 @@ class Context;
   NON_PRIM(RealMaxAggregate, terrier::execution::sql::RealMaxAggregate)                         \
   NON_PRIM(RealMinAggregate, terrier::execution::sql::RealMinAggregate)                         \
   NON_PRIM(RealSumAggregate, terrier::execution::sql::RealSumAggregate)                         \
+                                                                                                \
+  /* SQL Table operations */                                                                    \
+  NON_PRIM(ProjectedRow, terrier::storage::ProjectedRow)                                        \
+  NON_PRIM(TupleSlot, terrier::storage::TupleSlot)                                              \
+  NON_PRIM(StorageInterface, terrier::execution::sql::StorageInterface)                         \
                                                                                                 \
   /* Non-primitive SQL Runtime Values */                                                        \
   SQL(Boolean, terrier::execution::sql::BoolVal)                                                \
