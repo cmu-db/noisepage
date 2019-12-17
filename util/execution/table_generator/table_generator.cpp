@@ -14,14 +14,13 @@
 
 namespace terrier::execution::sql {
 template <typename T>
-T *TableGenerator::CreateNumberColumnData(Dist dist, uint32_t num_vals, uint64_t min, uint64_t max) {
-  static uint64_t serial_counter = 0;
+T *TableGenerator::CreateNumberColumnData(ColumnInsertMeta *col_meta, uint32_t num_vals) {
   auto *val = new T[num_vals];
 
-  switch (dist) {
+  switch (col_meta->dist_) {
     case Dist::Uniform: {
       std::mt19937 generator{};
-      std::uniform_int_distribution<T> distribution(static_cast<T>(min), static_cast<T>(max));
+      std::uniform_int_distribution<T> distribution(static_cast<T>(col_meta->min_), static_cast<T>(col_meta->max_));
 
       for (uint32_t i = 0; i < num_vals; i++) {
         val[i] = distribution(generator);
@@ -31,8 +30,8 @@ T *TableGenerator::CreateNumberColumnData(Dist dist, uint32_t num_vals, uint64_t
     }
     case Dist::Serial: {
       for (uint32_t i = 0; i < num_vals; i++) {
-        val[i] = static_cast<T>(serial_counter);
-        serial_counter++;
+        val[i] = static_cast<T>(col_meta->counter_);
+        col_meta->counter_++;
       }
       break;
     }
@@ -44,27 +43,24 @@ T *TableGenerator::CreateNumberColumnData(Dist dist, uint32_t num_vals, uint64_t
 }
 
 // Generate column data
-std::pair<byte *, uint32_t *> TableGenerator::GenerateColumnData(const ColumnInsertMeta &col_meta, uint32_t num_rows) {
+std::pair<byte *, uint32_t *> TableGenerator::GenerateColumnData(ColumnInsertMeta *col_meta, uint32_t num_rows) {
   // Create data
   byte *col_data = nullptr;
-  switch (col_meta.type_) {
+  switch (col_meta->type_) {
     case type::TypeId::BOOLEAN: {
       throw std::runtime_error("Implement me!");
     }
     case type::TypeId::SMALLINT: {
-      col_data = reinterpret_cast<byte *>(
-          CreateNumberColumnData<int16_t>(col_meta.dist_, num_rows, col_meta.min_, col_meta.max_));
+      col_data = reinterpret_cast<byte *>(CreateNumberColumnData<int16_t>(col_meta, num_rows));
       break;
     }
     case type::TypeId::INTEGER: {
-      col_data = reinterpret_cast<byte *>(
-          CreateNumberColumnData<int32_t>(col_meta.dist_, num_rows, col_meta.min_, col_meta.max_));
+      col_data = reinterpret_cast<byte *>(CreateNumberColumnData<int32_t>(col_meta, num_rows));
       break;
     }
     case type::TypeId::BIGINT:
     case type::TypeId::DECIMAL: {
-      col_data = reinterpret_cast<byte *>(
-          CreateNumberColumnData<int64_t>(col_meta.dist_, num_rows, col_meta.min_, col_meta.max_));
+      col_data = reinterpret_cast<byte *>(CreateNumberColumnData<int64_t>(col_meta, num_rows));
       break;
     }
     default: {
@@ -78,7 +74,7 @@ std::pair<byte *, uint32_t *> TableGenerator::GenerateColumnData(const ColumnIns
   uint64_t num_words = util::BitUtil::Num32BitWordsFor(num_rows);
   null_bitmap = new uint32_t[num_words];
   util::BitUtil::Clear(null_bitmap, num_rows);
-  if (col_meta.nullable_) {
+  if (col_meta->nullable_) {
     std::mt19937 generator;
     std::bernoulli_distribution coin(0.1);
     for (uint32_t i = 0; i < num_rows; i++) {
@@ -91,10 +87,10 @@ std::pair<byte *, uint32_t *> TableGenerator::GenerateColumnData(const ColumnIns
 
 // Fill a given table according to its metadata
 void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPointer<storage::SqlTable> table,
-                               const catalog::Schema &schema, const TableInsertMeta &table_meta) {
+                               const catalog::Schema &schema, TableInsertMeta *table_meta) {
   uint32_t batch_size = 10000;
   uint32_t num_batches =
-      table_meta.num_rows_ / batch_size + static_cast<uint32_t>(table_meta.num_rows_ % batch_size != 0);
+      table_meta->num_rows_ / batch_size + static_cast<uint32_t>(table_meta->num_rows_ % batch_size != 0);
   std::vector<catalog::col_oid_t> table_cols;
   for (const auto &col : schema.GetColumns()) {
     table_cols.emplace_back(col.Oid());
@@ -104,7 +100,7 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
   uint32_t vals_written = 0;
 
   std::vector<uint16_t> offsets;
-  for (const auto &col_meta : table_meta.col_meta_) {
+  for (const auto &col_meta : table_meta->col_meta_) {
     const auto &table_col = schema.GetColumn(col_meta.name_);
     offsets.emplace_back(offset_map[table_col.Oid()]);
   }
@@ -113,10 +109,10 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
     std::vector<std::pair<byte *, uint32_t *>> column_data;
 
     // Generate column data for all columns
-    uint32_t num_vals = std::min(batch_size, table_meta.num_rows_ - (i * batch_size));
+    uint32_t num_vals = std::min(batch_size, table_meta->num_rows_ - (i * batch_size));
     TERRIER_ASSERT(num_vals != 0, "Can't have empty columns.");
-    for (const auto &col_meta : table_meta.col_meta_) {
-      column_data.emplace_back(GenerateColumnData(col_meta, num_vals));
+    for (auto &col_meta : table_meta->col_meta_) {
+      column_data.emplace_back(GenerateColumnData(&col_meta, num_vals));
     }
 
     // Insert into the table
@@ -124,11 +120,11 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
       auto *const redo = exec_ctx_->GetTxn()->StageWrite(exec_ctx_->DBOid(), table_oid, pri);
       for (uint16_t k = 0; k < column_data.size(); k++) {
         auto offset = offsets[k];
-        if (table_meta.col_meta_[k].nullable_ && util::BitUtil::Test(column_data[k].second, j)) {
+        if (table_meta->col_meta_[k].nullable_ && util::BitUtil::Test(column_data[k].second, j)) {
           redo->Delta()->SetNull(offset);
         } else {
           byte *data = redo->Delta()->AccessForceNotNull(offset);
-          uint32_t elem_size = type::TypeUtil::GetTypeSize(table_meta.col_meta_[k].type_);
+          uint32_t elem_size = type::TypeUtil::GetTypeSize(table_meta->col_meta_[k].type_);
           std::memcpy(data, column_data[k].first + j * elem_size, elem_size);
         }
       }
@@ -142,7 +138,7 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
       delete[] col_data.second;
     }
   }
-  // EXECUTION_LOG_INFO("Wrote {} tuples into table {}.", vals_written, table_meta.name_);
+  // EXECUTION_LOG_INFO("Wrote {} tuples into table {}.", vals_written, table_meta->name_);
 }
 
 void TableGenerator::GenerateTestTables() {
@@ -151,7 +147,7 @@ void TableGenerator::GenerateTestTables() {
    * with a name, size, and schema. We also configure the columns of the table. If
    * you add a new table, set it up here.
    */
-  static const std::vector<TableInsertMeta> insert_meta{
+  std::vector<TableInsertMeta> insert_meta{
       // The empty table
       {"empty_table", 0, {{"colA", type::TypeId::INTEGER, false, Dist::Serial, 0, 0}}},
 
@@ -177,7 +173,7 @@ void TableGenerator::GenerateTestTables() {
        {{"colA", type::TypeId::INTEGER, false, Dist::Serial, 0, 0},
         {"colB", type::TypeId::BOOLEAN, false, Dist::Uniform, 0, 0}}},
   };
-  for (const auto &table_meta : insert_meta) {
+  for (auto &table_meta : insert_meta) {
     // Create Schema.
     std::vector<catalog::Schema::Column> cols;
     for (const auto &col_meta : table_meta.col_meta_) {
@@ -190,7 +186,7 @@ void TableGenerator::GenerateTestTables() {
     auto *tmp_table = new storage::SqlTable(store_, schema);
     exec_ctx_->GetAccessor()->SetTablePointer(table_oid, tmp_table);
     auto table = exec_ctx_->GetAccessor()->GetTable(table_oid);
-    FillTable(table_oid, table, schema, table_meta);
+    FillTable(table_oid, table, schema, &table_meta);
   }
 
   InitTestIndexes();
@@ -254,7 +250,7 @@ void TableGenerator::InitTestIndexes() {
   /**
    * This array configures indexes. To add an index, modify this array
    */
-  static const std::vector<IndexInsertMeta> index_metas = {
+  const std::vector<IndexInsertMeta> index_metas = {
       // The empty table
       {"index_empty", "empty_table", {{"index_colA", type::TypeId::INTEGER, false, "colA"}}},
 
