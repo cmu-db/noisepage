@@ -431,21 +431,37 @@ class DBMain {
       return *this;
     }
 
+    /**
+     * @param value LogManager argument
+     * @return self reference for chaining
+     */
     Builder &SetNumLogBuffers(const uint64_t value) {
       num_log_manager_buffers_ = value;
       return *this;
     }
 
+    /**
+     * @param value LogManager argument
+     * @return self reference for chaining
+     */
     Builder &SetLogSerializationInterval(const uint64_t value) {
       log_serialization_interval_ = value;
       return *this;
     }
 
+    /**
+     * @param value LogManager argument
+     * @return self reference for chaining
+     */
     Builder &SetLogPersistInterval(const uint64_t value) {
       log_persist_interval_ = value;
       return *this;
     }
 
+    /**
+     * @param value LogManager argument
+     * @return self reference for chaining
+     */
     Builder &SetLogPersistThreshold(const uint64_t value) {
       log_persist_threshold_ = value;
       return *this;
