@@ -28,8 +28,6 @@ namespace terrier::execution::sql::test {
 class DDLExecutorsTests : public TerrierTest {
  public:
   void SetUp() override {
-    TerrierTest::SetUp();
-
     db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
@@ -51,12 +49,6 @@ class DDLExecutorsTests : public TerrierTest {
     StorageTestUtil::ForceOid(&(keycols[0]), catalog::indexkeycol_oid_t(1));
     index_schema_ =
         std::make_unique<catalog::IndexSchema>(keycols, storage::index::IndexType::BWTREE, true, true, false, true);
-  }
-
-  void TearDown() override {
-    db_main_.reset();
-
-    TerrierTest::TearDown();
   }
 
   std::unique_ptr<DBMain> db_main_;

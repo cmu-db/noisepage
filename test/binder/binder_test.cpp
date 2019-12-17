@@ -89,11 +89,7 @@ class BinderCorrectnessTest : public TerrierTest {
     accessor_.reset(nullptr);
   }
 
-  void TearDownTables() { db_main_.reset(); }
-
   void SetUp() override {
-    TerrierTest::SetUp();
-
     db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
@@ -109,8 +105,6 @@ class BinderCorrectnessTest : public TerrierTest {
     txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
     accessor_.reset(nullptr);
     delete binder_;
-    TearDownTables();
-    TerrierTest::TearDown();
   }
 };
 

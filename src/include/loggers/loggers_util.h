@@ -15,7 +15,7 @@ extern std::shared_ptr<spdlog::sinks::stdout_sink_mt> default_sink;  // NOLINT
 namespace terrier {
 
 /**
- * Debug loggers get initialized here in a single utility class.
+ * Debug loggers get initialized here in a single static class.
  */
 class LoggersUtil {
  public:
@@ -30,5 +30,22 @@ class LoggersUtil {
    * Shut down all of the debug loggers in the system.
    */
   static void ShutDown();
+};
+
+/**
+ * Utility class that ties the life cycle of the loggers to it. This is useful when relying on destructor ordering to
+ * shut components down because this can trigger a ShutDown() call after a class' destructor would be invoked.
+ */
+class LoggersHandle {
+ public:
+  /**
+   * Initialize the loggers on instantiation.
+   */
+  LoggersHandle() { LoggersUtil::Initialize(); }
+
+  /**
+   * Shut the loggers down on destruction.
+   */
+  ~LoggersHandle() { LoggersUtil::ShutDown(); }
 };
 }  // namespace terrier

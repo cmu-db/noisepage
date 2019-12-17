@@ -23,8 +23,6 @@ namespace terrier {
 
 struct CatalogTests : public TerrierTest {
   void SetUp() override {
-    TerrierTest::SetUp();
-
     db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
@@ -32,8 +30,6 @@ struct CatalogTests : public TerrierTest {
     db_ = catalog_->GetDatabaseOid(txn, catalog::DEFAULT_DATABASE);
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
-
-  void TearDown() override { TerrierTest::TearDown(); }
 
   void VerifyCatalogTables(const catalog::CatalogAccessor &accessor) {
     auto ns_oid = accessor.GetNamespaceOid("pg_catalog");

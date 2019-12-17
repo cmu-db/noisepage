@@ -21,11 +21,10 @@
 #include "loggers/loggers_util.h"
 
 int main(int argc, char **argv) {
-  terrier::LoggersUtil::Initialize();
+  terrier::LoggersHandle loggers_handle;
 
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();
 
-  terrier::LoggersUtil::ShutDown();
   return 0;
 }

@@ -257,8 +257,6 @@ class DBMain {
      * @return DBMain that you get to own. YES, YOU! We're just giving away DBMains over here!
      */
     std::unique_ptr<DBMain> Build() {
-      LoggersUtil::Initialize();
-
       auto db_main = std::make_unique<DBMain>();
 
       std::unique_ptr<settings::SettingsManager> settings_manager = nullptr;
@@ -664,6 +662,10 @@ class DBMain {
   bool running_ = false;
 
   // Order matters here for destruction order
+  terrier::LoggersHandle
+      loggers_handle_;  // This is sort of a dummy object to make sure the debug loggers get shut down last. We
+                        // otherwise can't enforce this while relying on destruction order for the components because
+                        // explicitly shutting down the loggers in DBMain's destructor would happen first.
   std::unique_ptr<settings::SettingsManager> settings_manager_;
   std::unique_ptr<metrics::MetricsManager> metrics_manager_;
   std::unique_ptr<metrics::MetricsThread> metrics_thread_;

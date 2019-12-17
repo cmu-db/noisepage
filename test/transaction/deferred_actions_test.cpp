@@ -18,14 +18,11 @@ namespace terrier {
 class DeferredActionsTest : public TerrierTest {
  protected:
   void SetUp() override {
-    TerrierTest::SetUp();
     db_main_ = terrier::DBMain::Builder().SetUseGC(true).Build();
     txn_mgr_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     deferred_action_manager_ = db_main_->GetTransactionLayer()->GetDeferredActionManager();
     gc_ = db_main_->GetStorageLayer()->GetGarbageCollector();
   }
-
-  void TearDown() override { TerrierTest::TearDown(); }
 
   std::unique_ptr<DBMain> db_main_;
   common::ManagedPointer<transaction::TransactionManager> txn_mgr_;

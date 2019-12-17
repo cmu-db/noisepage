@@ -30,15 +30,11 @@ namespace terrier::tpcc {
 class TPCCTests : public TerrierTest {
  public:
   void SetUp() final {
-    TerrierTest::SetUp();
     unlink(LOG_FILE_NAME);
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
   }
 
-  void TearDown() final {
-    TerrierTest::TearDown();
-    unlink(LOG_FILE_NAME);
-  }
+  void TearDown() final { unlink(LOG_FILE_NAME); }
 
   std::default_random_engine generator_;
 

@@ -93,11 +93,7 @@ class OperatorTransformerTest : public TerrierTest {
     accessor_.reset(nullptr);
   }
 
-  void TearDownTables() { db_main_.reset(); }
-
   void SetUp() override {
-    TerrierTest::SetUp();
-
     db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
@@ -115,8 +111,6 @@ class OperatorTransformerTest : public TerrierTest {
     delete binder_;
     operator_transformer_.reset(nullptr);
     operator_tree_.reset(nullptr);
-    TearDownTables();
-    TerrierTest::TearDown();
   }
 
   std::string GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression> op) const {

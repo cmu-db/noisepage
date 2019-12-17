@@ -50,8 +50,6 @@ class NetworkTests : public TerrierTest {
       common::ManagedPointer<PostgresCommandFactory>(&fake_command_factory_)};
 
   void SetUp() override {
-    TerrierTest::SetUp();
-
     timestamp_manager_ = new transaction::TimestampManager;
     deferred_action_manager_ = new transaction::DeferredActionManager(common::ManagedPointer(timestamp_manager_));
     txn_manager_ = new transaction::TransactionManager(common::ManagedPointer(timestamp_manager_),
@@ -102,7 +100,6 @@ class NetworkTests : public TerrierTest {
     delete txn_manager_;
     delete deferred_action_manager_;
     delete timestamp_manager_;
-    TerrierTest::TearDown();
   }
 
   void TestExtendedQuery(uint16_t port) {

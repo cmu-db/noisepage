@@ -25,7 +25,6 @@ void DBMain::ForceShutdown() {
 
 DBMain::~DBMain() {
   ForceShutdown();
-  LoggersUtil::ShutDown();
 }
 
 }  // namespace terrier

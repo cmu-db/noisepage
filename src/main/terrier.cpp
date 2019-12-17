@@ -14,7 +14,8 @@ int main(int argc, char *argv[]) {
   ::google::ParseCommandLineFlags(&argc, &argv, true);
 
   // initialize stat registry
-  auto main_stat_reg = std::make_unique<terrier::common::StatisticsRegistry>();  // TODO(Matt): move this
+  auto main_stat_reg =
+      std::make_unique<terrier::common::StatisticsRegistry>();  // TODO(Matt): do we still want this thing?
 
   std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> param_map;
   terrier::settings::SettingsManager::ConstructParamMap(param_map);

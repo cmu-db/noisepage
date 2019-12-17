@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "loggers/loggers_util.h"
@@ -7,10 +8,8 @@
 namespace terrier {
 
 class TerrierTest : public ::testing::Test {
- protected:
-  void SetUp() override { LoggersUtil::Initialize(); }
-
-  void TearDown() override { LoggersUtil::ShutDown(); }
+ private:
+  terrier::LoggersHandle loggers_handle;
 };
 
 }  // namespace terrier

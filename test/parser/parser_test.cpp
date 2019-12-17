@@ -27,7 +27,6 @@ class ParserTestBase : public TerrierTest {
    * Initialization
    */
   void SetUp() override {
-    TerrierTest::SetUp();
     parser_logger->set_level(spdlog::level::debug);
     spdlog::flush_every(std::chrono::seconds(1));
   }

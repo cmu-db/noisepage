@@ -30,7 +30,6 @@ class MetricsTests : public TerrierTest {
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
 
   void SetUp() override {
-    TerrierTest::SetUp();
     std::unordered_map<settings::Param, settings::ParamInfo> param_map;
     settings::SettingsManager::ConstructParamMap(param_map);
     db_main_ = terrier::DBMain::Builder()

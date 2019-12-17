@@ -378,7 +378,6 @@ class IndexKeyTests : public TerrierTest {
     for (byte *ptr : loose_pointers_) {
       delete[] ptr;
     }
-    TerrierTest::TearDown();
   }
 };
 

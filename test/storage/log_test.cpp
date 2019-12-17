@@ -33,7 +33,6 @@ class WriteAheadLoggingTests : public TerrierTest {
   void SetUp() override {
     // Unlink log file incase one exists from previous test iteration
     unlink(LOG_FILE_NAME);
-    TerrierTest::SetUp();
 
     db_main_ = terrier::DBMain::Builder().SetLogFilePath(LOG_FILE_NAME).SetUseLogging(true).SetUseGC(true).Build();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
@@ -44,9 +43,6 @@ class WriteAheadLoggingTests : public TerrierTest {
   void TearDown() override {
     log_manager_->Start();  // all of the tests stop the LogManager, but DBMain's teardown logic expects it to still be
                             // running, so we'll just restart it
-    db_main_.reset();       // release DBMain before TerrierTest::TearDown so we still get any necessary debug logging
-
-    TerrierTest::TearDown();
     // Delete log file
     unlink(LOG_FILE_NAME);
   }

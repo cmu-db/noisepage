@@ -48,7 +48,6 @@ class RecoveryTests : public TerrierTest {
   void SetUp() override {
     // Unlink log file incase one exists from previous test iteration
     unlink(LOG_FILE_NAME);
-    TerrierTest::SetUp();
 
     db_main_ = terrier::DBMain::Builder()
                    .SetLogFilePath(LOG_FILE_NAME)
@@ -77,7 +76,6 @@ class RecoveryTests : public TerrierTest {
   }
 
   void TearDown() override {
-    TerrierTest::TearDown();
     // Delete log file
     unlink(LOG_FILE_NAME);
   }

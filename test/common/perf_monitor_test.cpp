@@ -13,10 +13,6 @@ namespace terrier {
 
 class PerfMonitorTests : public TerrierTest {
  public:
-  void SetUp() final { TerrierTest::SetUp(); }
-
-  void TearDown() final { TerrierTest::TearDown(); }
-
   static void CreateAndDestroyCatalog(common::PerfMonitor::PerfCounters *const counters) {
     common::PerfMonitor monitor(false);
 
