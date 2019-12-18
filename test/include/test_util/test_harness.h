@@ -8,8 +8,10 @@
 namespace terrier {
 
 class TerrierTest : public ::testing::Test {
- private:
-  terrier::LoggersHandle loggers_handle_;
+ public:
+  TerrierTest() { LoggersUtil::Initialize(); }
+
+  ~TerrierTest() { LoggersUtil::ShutDown(); }
 };
 
 }  // namespace terrier
