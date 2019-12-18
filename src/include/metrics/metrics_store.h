@@ -8,6 +8,7 @@
 #include "common/managed_pointer.h"
 #include "metrics/abstract_metric.h"
 #include "metrics/abstract_raw_data.h"
+#include "metrics/garbage_collection_metric.h"
 #include "metrics/logging_metric.h"
 #include "metrics/metrics_defs.h"
 #include "metrics/transaction_metric.h"
@@ -28,29 +29,53 @@ class MetricsStore {
  public:
   /**
    * Record metrics from the LogSerializerTask
-   * @param elapsed_us first entry of metrics datapoint
-   * @param num_bytes second entry of metrics datapoint
-   * @param num_records third entry of metrics datapoint
+   * @param num_bytes first entry of metrics datapoint
+   * @param num_records second entry of metrics datapoint
+   * @param resource_metrics third entry of metrics datapoint
    */
   void RecordSerializerData(const uint64_t num_bytes, const uint64_t num_records,
                             const common::ResourceTracker::Metrics &resource_metrics) {
-      TERRIER_ASSERT(ComponentEnabled(MetricsComponent::LOGGING), "LoggingMetric not enabled.");
+    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::LOGGING), "LoggingMetric not enabled.");
     TERRIER_ASSERT(logging_metric_ != nullptr, "LoggingMetric not allocated. Check MetricsStore constructor.");
     logging_metric_->RecordSerializerData(num_bytes, num_records, resource_metrics);
   }
 
   /**
    * Record metrics from the LogConsumerTask
-   * @param write_us first entry of metrics datapoint
-   * @param persist_us second entry of metrics datapoint
-   * @param num_bytes third entry of metrics datapoint
-   * @param num_records fourth entry of metrics datapoint
+   * @param num_bytes first entry of metrics datapoint
+   * @param num_records second entry of metrics datapoint
+   * @param resource_metrics third entry of metrics datapoint
    */
   void RecordConsumerData(const uint64_t num_bytes, const uint64_t num_records,
                           const common::ResourceTracker::Metrics &resource_metrics) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::LOGGING), "LoggingMetric not enabled.");
     TERRIER_ASSERT(logging_metric_ != nullptr, "LoggingMetric not allocated. Check MetricsStore constructor.");
     logging_metric_->RecordConsumerData(num_bytes, num_records, resource_metrics);
+  }
+
+  /**
+   * Record metrics from the GC deallocation
+   * @param num_processed first entry of metrics datapoint
+   * @param resource_metrics second entry of metrics datapoint
+   */
+  void RecordDeallocateData(const uint64_t num_processed, const common::ResourceTracker::Metrics &resource_metrics) {
+    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::GARBAGECOLLECTION), "GarbageCollectionMetric not enabled.");
+    TERRIER_ASSERT(gc_metric_ != nullptr, "GarbageCollectionMetric not allocated. Check MetricsStore constructor.");
+    gc_metric_->RecordDeallocateData(num_processed, resource_metrics);
+  }
+
+  /**
+   * Record metrics from the GC deallocation
+   * @param num_processed first entry of metrics datapoint
+   * @param num_buffers second entry of metrics datapoint
+   * @param num_readonly third entry of metrics datapoint
+   * @param resource_metrics forth entry of metrics datapoint
+   */
+  void RecordUnlinkData(const uint64_t num_processed, const uint64_t num_buffers, const uint64_t num_readonly,
+                        const common::ResourceTracker::Metrics &resource_metrics) {
+    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::GARBAGECOLLECTION), "GarbageCollectionMetric not enabled.");
+    TERRIER_ASSERT(gc_metric_ != nullptr, "GarbageCollectionMetric not allocated. Check MetricsStore constructor.");
+    gc_metric_->RecordUnlinkData(num_processed, num_buffers, num_readonly, resource_metrics);
   }
 
   /**
@@ -100,6 +125,7 @@ class MetricsStore {
 
   std::unique_ptr<LoggingMetric> logging_metric_;
   std::unique_ptr<TransactionMetric> txn_metric_;
+  std::unique_ptr<GarbageCollectionMetric> gc_metric_;
 
   const std::bitset<NUM_COMPONENTS> &enabled_metrics_;
 };

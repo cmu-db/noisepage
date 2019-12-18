@@ -35,6 +35,12 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
 uint32_t GarbageCollector::ProcessDeallocateQueue(transaction::timestamp_t oldest_txn) {
   uint32_t txns_processed = 0;
 
+  if (common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::GARBAGECOLLECTION)) {
+    // start the operating unit resource tracker
+    common::thread_context.resource_tracker_.Start();
+  }
+
   if (transaction::TransactionUtil::NewerThan(oldest_txn, last_unlinked_)) {
     // All of the transactions in my deallocation queue were unlinked before the oldest running txn in the system, and
     // have been serialized by the log manager. We are now safe to deallocate these txns because no running
@@ -45,11 +51,29 @@ uint32_t GarbageCollector::ProcessDeallocateQueue(transaction::timestamp_t oldes
     }
     txns_to_deallocate_.clear();
   }
+
+  if (common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::GARBAGECOLLECTION)) {
+    // Stop the resource tracker for this operating unit
+    common::thread_context.resource_tracker_.Stop();
+    if (txns_processed > 0) {
+      auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+      common::thread_context.metrics_store_->RecordDeallocateData(txns_processed, resource_metrics);
+    }
+  }
+
   return txns_processed;
 }
 
 uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_txn) {
   transaction::TransactionContext *txn = nullptr;
+
+  if (common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::GARBAGECOLLECTION)) {
+    // start the operating unit resource tracker
+    common::thread_context.resource_tracker_.Start();
+  }
+  uint64_t buffer_processed = 0, readonly_processed = 0;
 
   // Get the completed transactions from the TransactionManager
   transaction::TransactionQueue completed_txns = txn_manager_->CompletedTransactionsForGC();
@@ -75,6 +99,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_tx
       // This is a read-only transaction so this is safe to immediately delete
       delete txn;
       txns_processed++;
+      readonly_processed++;
     } else if (transaction::TransactionUtil::NewerThan(oldest_txn, txn->FinishTime())) {
       // Safe to garbage collect.
       for (auto &undo_record : txn->undo_buffer_) {
@@ -91,6 +116,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_tx
           ReclaimBufferIfVarlen(txn, &undo_record);
         }
         if (observer_ != nullptr) observer_->ObserveWrite(undo_record.Slot().GetBlock());
+        buffer_processed++;
       }
       txns_to_deallocate_.push_front(txn);
       txns_processed++;
@@ -102,6 +128,17 @@ uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_tx
 
   // Requeue any txns that we were still visible to running transactions
   txns_to_unlink_ = transaction::TransactionQueue(std::move(requeue));
+
+  if (common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::GARBAGECOLLECTION)) {
+    // Stop the resource tracker for this operating unit
+    common::thread_context.resource_tracker_.Stop();
+    if (txns_processed > 0) {
+      auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+      common::thread_context.metrics_store_->RecordUnlinkData(txns_processed, buffer_processed, readonly_processed,
+          resource_metrics);
+    }
+  }
 
   return txns_processed;
 }

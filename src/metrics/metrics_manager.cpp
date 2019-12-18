@@ -58,6 +58,11 @@ void MetricsManager::ResetMetric(const MetricsComponent component) const {
         metric->Swap();
         break;
       }
+      case MetricsComponent::GARBAGECOLLECTION: {
+        const auto &metric = metrics_store.second->gc_metric_;
+        metric->Swap();
+        break;
+      }
     }
   }
 }
@@ -95,6 +100,10 @@ void MetricsManager::ToCSV() const {
         }
         case MetricsComponent::TRANSACTION: {
           OpenFiles<TransactionMetricRawData>(&outfiles);
+          break;
+        }
+        case MetricsComponent::GARBAGECOLLECTION: {
+          OpenFiles<GarbageCollectionMetricRawData>(&outfiles);
           break;
         }
       }
