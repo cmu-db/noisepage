@@ -11,7 +11,7 @@ class TerrierTest : public ::testing::Test {
  public:
   TerrierTest() { LoggersUtil::Initialize(); }
 
-  ~TerrierTest() { LoggersUtil::ShutDown(); }
+  ~TerrierTest() override { LoggersUtil::ShutDown(); }
 };
 
 }  // namespace terrier
