@@ -32,10 +32,11 @@ class MetricsStore {
    * @param num_bytes second entry of metrics datapoint
    * @param num_records third entry of metrics datapoint
    */
-  void RecordSerializerData(const uint64_t elapsed_us, const uint64_t num_bytes, const uint64_t num_records) {
-    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::LOGGING), "LoggingMetric not enabled.");
+  void RecordSerializerData(const uint64_t num_bytes, const uint64_t num_records,
+                            const common::ResourceTracker::Metrics &resource_metrics) {
+      TERRIER_ASSERT(ComponentEnabled(MetricsComponent::LOGGING), "LoggingMetric not enabled.");
     TERRIER_ASSERT(logging_metric_ != nullptr, "LoggingMetric not allocated. Check MetricsStore constructor.");
-    logging_metric_->RecordSerializerData(elapsed_us, num_bytes, num_records);
+    logging_metric_->RecordSerializerData(num_bytes, num_records, resource_metrics);
   }
 
   /**

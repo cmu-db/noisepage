@@ -32,59 +32,68 @@ void LogSerializerTask::LogSerializerTaskLoop() {
 }
 
 bool LogSerializerTask::Process() {
-  uint64_t elapsed_us = 0, num_bytes = 0, num_records = 0;
-  bool buffers_processed = false;
-  {
-    common::ScopedTimer<std::chrono::microseconds> scoped_timer(&elapsed_us);
-    common::SpinLatch::ScopedSpinLatch serialization_guard(&serialization_latch_);
-    TERRIER_ASSERT(serialized_txns_.empty(),
-                   "Aggregated txn timestamps should have been handed off to TimestampManager");
-    // We continually grab all the buffers until we find there are no new buffers. This way we serialize buffers that
-    // came in during the previous serialization loop
-
-    // Continually loop, break out if there's no new buffers
-    while (true) {
-      // In a short critical section, get all buffers to serialize. We move them to a temp queue to reduce contention on
-      // the queue transactions interact with
-      {
-        common::SpinLatch::ScopedSpinLatch queue_guard(&flush_queue_latch_);
-
-        // There are no new buffers, so we can break
-        if (flush_queue_.empty()) break;
-
-        temp_flush_queue_ = std::move(flush_queue_);
-        flush_queue_ = std::queue<RecordBufferSegment *>();
-      }
-
-      // Loop over all the new buffers we found
-      while (!temp_flush_queue_.empty()) {
-        RecordBufferSegment *buffer = temp_flush_queue_.front();
-        temp_flush_queue_.pop();
-
-        // Serialize the Redo buffer and release it to the buffer pool
-        IterableBufferSegment<LogRecord> task_buffer(buffer);
-        const auto num_bytes_and_records = SerializeBuffer(&task_buffer);
-        buffer_pool_->Release(buffer);
-        num_bytes += num_bytes_and_records.first;
-        num_records += num_bytes_and_records.second;
-      }
-
-      buffers_processed = true;
-    }
-
-    // Mark the last buffer that was written to as full
-    if (filled_buffer_ != nullptr) HandFilledBufferToWriter();
-
-    // Bulk remove all the transactions we serialized. This prevents having to take the TimestampManager's latch once
-    // for each timestamp we remove.
-    for (const auto &txns : serialized_txns_) {
-      txns.first->RemoveTransactions(txns.second);
-    }
-    serialized_txns_.clear();
+  uint64_t num_bytes = 0, num_records = 0;
+  if (common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::LOGGING)) {
+    // start the operating unit resource tracker
+    common::thread_context.resource_tracker_.Start();
   }
-  if (num_bytes > 0 && common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::LOGGING))
-    common::thread_context.metrics_store_->RecordSerializerData(elapsed_us, num_bytes, num_records);
+
+  bool buffers_processed = false;
+  common::SpinLatch::ScopedSpinLatch serialization_guard(&serialization_latch_);
+  TERRIER_ASSERT(serialized_txns_.empty(), "Aggregated txn timestamps should have been handed off to TimestampManager");
+  // We continually grab all the buffers until we find there are no new buffers. This way we serialize buffers that
+  // came in during the previous serialization loop
+
+  // Continually loop, break out if there's no new buffers
+  while (true) {
+    // In a short critical section, get all buffers to serialize. We move them to a temp queue to reduce contention on
+    // the queue transactions interact with
+    {
+      common::SpinLatch::ScopedSpinLatch queue_guard(&flush_queue_latch_);
+
+      // There are no new buffers, so we can break
+      if (flush_queue_.empty()) break;
+
+      temp_flush_queue_ = std::move(flush_queue_);
+      flush_queue_ = std::queue<RecordBufferSegment *>();
+    }
+
+    // Loop over all the new buffers we found
+    while (!temp_flush_queue_.empty()) {
+      RecordBufferSegment *buffer = temp_flush_queue_.front();
+      temp_flush_queue_.pop();
+
+      // Serialize the Redo buffer and release it to the buffer pool
+      IterableBufferSegment<LogRecord> task_buffer(buffer);
+      const auto num_bytes_and_records = SerializeBuffer(&task_buffer);
+      buffer_pool_->Release(buffer);
+      num_bytes += num_bytes_and_records.first;
+      num_records += num_bytes_and_records.second;
+    }
+
+    buffers_processed = true;
+  }
+
+  // Mark the last buffer that was written to as full
+  if (filled_buffer_ != nullptr) HandFilledBufferToWriter();
+
+  // Bulk remove all the transactions we serialized. This prevents having to take the TimestampManager's latch once
+  // for each timestamp we remove.
+  for (const auto &txns : serialized_txns_) {
+    txns.first->RemoveTransactions(txns.second);
+  }
+  serialized_txns_.clear();
+
+  if (common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::LOGGING)) {
+    // Stop the resource tracker for this operating unit
+    common::thread_context.resource_tracker_.Stop();
+    if (num_bytes > 0) {
+      auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+      common::thread_context.metrics_store_->RecordSerializerData(num_bytes, num_records, resource_metrics);
+    }
+  }
 
   return buffers_processed;
 }

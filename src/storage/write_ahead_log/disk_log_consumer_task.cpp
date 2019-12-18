@@ -49,8 +49,11 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
   // input for this operating unit
   uint64_t num_bytes = 0, num_buffers = 0;
 
-  // start the operating unit resource tracker
-  common::thread_context.resource_tracker_.Start();
+  if (common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::LOGGING)) {
+    // start the operating unit resource tracker
+    common::thread_context.resource_tracker_.Start();
+  }
 
   // Keeps track of how much data we've written to the log file since the last persist
   current_data_written_ = 0;
