@@ -18,7 +18,7 @@ class LargeGCTests : public TerrierTest {
                                                   DISABLED);
       storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
       LargeDataTableTestObject tested(config, &store, &txn_manager, &generator, DISABLED);
-      storage::GarbageCollectorThread gc_thread(&gc, std::chrono::milliseconds(10));
+      storage::GarbageCollectorThread gc_thread(&gc, std::chrono::milliseconds(10), nullptr);
       for (uint32_t batch = 0; batch * config.BatchSize() < config.NumTxns(); batch++) {
         auto result = tested.SimulateOltp(config.BatchSize(), config.NumConcurrentTxns());
         gc_thread.PauseGC();

@@ -37,9 +37,9 @@ std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> MetricsStore::GetDa
         }
         case MetricsComponent::GARBAGECOLLECTION: {
           TERRIER_ASSERT(
-              txn_metric_ != nullptr,
+              gc_metric_ != nullptr,
               "GarbageCollectionMetric cannot be a nullptr. Check the MetricsStore constructor that it was allocated.");
-          result[component] = txn_metric_->Swap();
+          result[component] = gc_metric_->Swap();
           break;
         }
       }

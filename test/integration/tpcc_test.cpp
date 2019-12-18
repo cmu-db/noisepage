@@ -117,7 +117,7 @@ class TPCCTests : public TerrierTest {
     if (logging_enabled) log_manager_->ForceFlush();
 
     gc_ = new storage::GarbageCollector(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_, nullptr);
     Util::RegisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 

@@ -57,7 +57,7 @@ class RecoveryBenchmark : public benchmark::Fixture {
                                                   &log_manager);
       catalog::Catalog catalog(&txn_manager, &block_store_);
       storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
-      auto gc_thread = new storage::GarbageCollectorThread(&gc, gc_period_);  // Enable background GC
+      auto gc_thread = new storage::GarbageCollectorThread(&gc, gc_period_, nullptr);  // Enable background GC
 
       // Run the test object and log all transactions
       auto *tested = new LargeSqlTableTestObject(config, &txn_manager, &catalog, &block_store_, &generator_);
@@ -71,7 +71,8 @@ class RecoveryBenchmark : public benchmark::Fixture {
           &recovery_timestamp_manager, &recovery_deferred_action_manager, &buffer_pool_, true, DISABLED};
       storage::GarbageCollector recovery_gc(&recovery_timestamp_manager, &recovery_deferred_action_manager,
                                             &recovery_txn_manager, DISABLED);
-      auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_gc, gc_period_);  // Enable background GC
+      auto recovery_gc_thread =
+          new storage::GarbageCollectorThread(&recovery_gc, gc_period_, nullptr);  // Enable background GC
 
       // Create catalog for recovery
       catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
@@ -171,7 +172,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
                                                 &log_manager);
     catalog::Catalog catalog(&txn_manager, &block_store_);
     storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
-    auto gc_thread = new storage::GarbageCollectorThread(&gc, gc_period_);  // Enable background GC
+    auto gc_thread = new storage::GarbageCollectorThread(&gc, gc_period_, nullptr);  // Enable background GC
 
     // Create database, namespace, and table
     auto *txn = txn_manager.BeginTransaction();
@@ -228,7 +229,8 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
                                                          &buffer_pool_, true, DISABLED};
     storage::GarbageCollector recovery_gc(&recovery_timestamp_manager, &recovery_deferred_action_manager,
                                           &recovery_txn_manager, DISABLED);
-    auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_gc, gc_period_);  // Enable background GC
+    auto recovery_gc_thread =
+        new storage::GarbageCollectorThread(&recovery_gc, gc_period_, nullptr);  // Enable background GC
 
     // Create catalog for recovery
     catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);

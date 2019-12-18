@@ -81,7 +81,7 @@ class BwTreeIndexTests : public TerrierTest {
     txn_manager_ = new transaction::TransactionManager(timestamp_manager_, deferred_action_manager_, &buffer_pool_,
                                                        true, DISABLED);
     gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_, nullptr);
 
     unique_index_ = (IndexBuilder().SetKeySchema(unique_schema_)).Build();
     default_index_ = (IndexBuilder().SetKeySchema(default_schema_)).Build();

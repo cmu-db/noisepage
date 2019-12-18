@@ -136,7 +136,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_tx
     if (txns_processed > 0) {
       auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
       common::thread_context.metrics_store_->RecordUnlinkData(txns_processed, buffer_processed, readonly_processed,
-          resource_metrics);
+                                                              resource_metrics);
     }
   }
 

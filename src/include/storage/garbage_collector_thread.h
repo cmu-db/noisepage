@@ -4,6 +4,10 @@
 #include <thread>  //NOLINT
 #include "storage/garbage_collector.h"
 
+namespace terrier::settings {
+class MetricsManager;
+}
+
 namespace terrier::storage {
 
 /**
@@ -16,7 +20,8 @@ class GarbageCollectorThread {
    * @param gc pointer to the garbage collector object to be run on this thread
    * @param gc_period sleep time between GC invocations
    */
-  GarbageCollectorThread(GarbageCollector *gc, std::chrono::milliseconds gc_period);
+  GarbageCollectorThread(GarbageCollector *gc, std::chrono::milliseconds gc_period,
+                         metrics::MetricsManager *metrics_manager);
 
   ~GarbageCollectorThread() {
     run_gc_ = false;
@@ -51,6 +56,7 @@ class GarbageCollectorThread {
 
  private:
   storage::GarbageCollector *gc_;
+  const common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
   volatile bool run_gc_;
   volatile bool gc_paused_;
   std::chrono::milliseconds gc_period_;

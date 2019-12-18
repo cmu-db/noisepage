@@ -76,7 +76,7 @@ class IndexBenchmark : public benchmark::Fixture {
 
     // Create garbage collector and allocate separate thread for collection
     gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_, nullptr);
   }
 
   // Script to free all allocated elements of table structure

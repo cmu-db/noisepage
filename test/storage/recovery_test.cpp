@@ -71,7 +71,7 @@ class RecoveryTests : public TerrierTest {
                                                        true, log_manager_);
     catalog_ = new catalog::Catalog(txn_manager_, &block_store_);
     gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);  // Enable background GC
+    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_, nullptr);  // Enable background GC
 
     recovery_timestamp_manager_ = new transaction::TimestampManager;
     recovery_deferred_action_manager_ = new transaction::DeferredActionManager(recovery_timestamp_manager_);
@@ -80,7 +80,8 @@ class RecoveryTests : public TerrierTest {
     recovery_catalog_ = new catalog::Catalog(recovery_txn_manager_, &block_store_);
     recovery_gc_ = new storage::GarbageCollector(recovery_timestamp_manager_, recovery_deferred_action_manager_,
                                                  recovery_txn_manager_, DISABLED);
-    recovery_gc_thread_ = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);  // Enable background GC
+    recovery_gc_thread_ =
+        new storage::GarbageCollectorThread(recovery_gc_, gc_period_, nullptr);  // Enable background GC
   }
 
   void TearDown() override {
@@ -202,7 +203,7 @@ class RecoveryTests : public TerrierTest {
 
     // We now "boot up" up the system
     log_manager_->Start();
-    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_, nullptr);
   }
 
   void RunTest(const LargeSqlTableTestConfiguration &config) {
@@ -703,7 +704,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   recovery_catalog_ = new catalog::Catalog(recovery_txn_manager_, &block_store_);
   recovery_gc_ = new storage::GarbageCollector(recovery_timestamp_manager_, recovery_deferred_action_manager_,
                                                recovery_txn_manager_, DISABLED);
-  recovery_gc_thread_ = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
+  recovery_gc_thread_ = new storage::GarbageCollectorThread(recovery_gc_, gc_period_, nullptr);
 
   //--------------------------------
   // Do recovery for the first time
@@ -767,7 +768,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   storage::GarbageCollector secondary_recovery_gc{&secondary_recovery_timestamp_manager,
                                                   &secondary_recovery_deferred_action_manager,
                                                   &secondary_recovery_txn_manager, DISABLED};
-  auto secondary_recovery_gc_thread = new storage::GarbageCollectorThread(&secondary_recovery_gc, gc_period_);
+  auto secondary_recovery_gc_thread = new storage::GarbageCollectorThread(&secondary_recovery_gc, gc_period_, nullptr);
 
   // Create a new catalog for this second recovery
   catalog::Catalog secondary_recovery_catalog{&secondary_recovery_txn_manager, &block_store_};
