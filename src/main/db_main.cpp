@@ -23,8 +23,6 @@ void DBMain::ForceShutdown() {
   }
 }
 
-DBMain::~DBMain() {
-  ForceShutdown();
-}
+DBMain::~DBMain() { ForceShutdown(); }
 
 }  // namespace terrier

@@ -293,8 +293,6 @@ static void RunFile(const std::string &filename) {
 void InitTPL() {
   execution::CpuInfo::Instance();
 
-  terrier::LoggersUtil::Initialize();
-
   execution::vm::LLVMEngine::Initialize();
 
   EXECUTION_LOG_INFO("TPL Bytecode Count: {}", execution::vm::Bytecodes::NumBytecodes());
@@ -321,6 +319,12 @@ void SignalHandler(int32_t sig_num) {
 }
 
 int main(int argc, char **argv) {  // NOLINT (bugprone-exception-escape)
+
+  terrier::LoggersHandle
+      loggers_handle;  // This is sort of a dummy object to make sure the debug loggers get shut down last. We
+  // otherwise can't enforce this while relying on destruction order for the components because
+  // explicitly shutting down the loggers in DBMain's destructor would happen first.
+
   // Parse options
   llvm::cl::HideUnrelatedOptions(tpl_options_category);
   llvm::cl::ParseCommandLineOptions(argc, argv);

@@ -10,7 +10,6 @@
 #include "common/managed_pointer.h"
 #include "common/stat_registry.h"
 #include "common/worker_pool.h"
-#include "loggers/loggers_util.h"
 #include "metrics/metrics_thread.h"
 #include "network/terrier_server.h"
 #include "settings/settings_manager.h"
@@ -662,10 +661,6 @@ class DBMain {
   bool running_ = false;
 
   // Order matters here for destruction order
-  terrier::LoggersHandle
-      loggers_handle_;  // This is sort of a dummy object to make sure the debug loggers get shut down last. We
-                        // otherwise can't enforce this while relying on destruction order for the components because
-                        // explicitly shutting down the loggers in DBMain's destructor would happen first.
   std::unique_ptr<settings::SettingsManager> settings_manager_;
   std::unique_ptr<metrics::MetricsManager> metrics_manager_;
   std::unique_ptr<metrics::MetricsThread> metrics_thread_;

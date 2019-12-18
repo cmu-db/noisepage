@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "loggers/loggers_util.h"
 #include "main/db_main.h"
 #include "settings/settings_manager.h"
 
@@ -12,6 +13,11 @@ int main(int argc, char *argv[]) {
   // Parse Setting Values
   ::google::SetUsageMessage("Usage Info: \n");
   ::google::ParseCommandLineFlags(&argc, &argv, true);
+
+  terrier::LoggersHandle
+      loggers_handle;  // This is sort of a dummy object to make sure the debug loggers get shut down last. We
+  // otherwise can't enforce this while relying on destruction order for the components because
+  // explicitly shutting down the loggers in DBMain's destructor would happen first.
 
   // initialize stat registry
   auto main_stat_reg =

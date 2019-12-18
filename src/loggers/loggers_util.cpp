@@ -25,17 +25,17 @@ void LoggersUtil::Initialize() {
       default_sink = std::make_shared<spdlog::sinks::stdout_sink_mt>();  // NOLINT
     }
     // initialize namespace specific loggers
-    storage::InitIndexLogger();
-    storage::InitStorageLogger();
-    transaction::InitTransactionLogger();
+    binder::InitBinderLogger();
     catalog::InitCatalogLogger();
     common::InitCommonLogger();
-    binder::InitBinderLogger();
-    optimizer::InitOptimizerLogger();
-    settings::InitSettingsLogger();
-    parser::InitParserLogger();
-    network::InitNetworkLogger();
     execution::InitExecutionLogger();
+    storage::InitIndexLogger();
+    network::InitNetworkLogger();
+    optimizer::InitOptimizerLogger();
+    parser::InitParserLogger();
+    settings::InitSettingsLogger();
+    storage::InitStorageLogger();
+    transaction::InitTransactionLogger();
 
     // Flush all *registered* loggers using a worker thread. Registered loggers must be thread safe for this to work
     // correctly

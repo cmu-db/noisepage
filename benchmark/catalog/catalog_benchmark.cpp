@@ -32,6 +32,8 @@ class CatalogBenchmark : public benchmark::Fixture {
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 
+  void TearDown(const benchmark::State &state) final { db_main_.reset(); }
+
   common::ManagedPointer<catalog::Catalog> catalog_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
 
