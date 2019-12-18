@@ -9,7 +9,7 @@ namespace terrier {
 
 class TerrierTest : public ::testing::Test {
  private:
-  terrier::LoggersHandle loggers_handle;
+  terrier::LoggersHandle loggers_handle_;
 };
 
 }  // namespace terrier
