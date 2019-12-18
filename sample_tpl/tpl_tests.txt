@@ -48,6 +48,9 @@ types/strings.tpl,false,0
 agg.tpl,true,10
 agg-vec.tpl,true,10
 agg-vec-filter.tpl,true,10
+delete.tpl,true,0
+insert.tpl,true,11
+update.tpl,true,11
 join.tpl,true,0
 #parallel-join.tpl,true,0 <Parallel scan not yet supported>
 #parallel-scan.tpl,true,0 <Parallel scan not yet supported>
@@ -61,4 +64,5 @@ vec-filter.tpl,true,3000
 #output1.tpl,true,500 <Relies on output buffer>
 scan-index.tpl,true,1
 scan-index-2.tpl,true,1
+scan-index-3.tpl,true,32
 join-index.tpl,true,0

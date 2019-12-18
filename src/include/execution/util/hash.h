@@ -23,7 +23,7 @@ enum class HashMethod : uint8_t { Fnv1, Crc, Murmur2, xxHash3 };
  * for arithmetic values (integers and floats), and generic versions for longer
  * buffers (strings, c-strings, and opaque buffers).
  */
-class Hasher {
+class EXPORT Hasher {
  public:
   /**
    * Compute the hash value of an arithmetic input. The input is allowed to be
