@@ -66,8 +66,8 @@ class OptimizerTask {
    * @param valid_rules The valid rules to apply in the current rule set will be
    *  append to valid_rules, with their promises
    */
-  static void ConstructValidRules(GroupExpression *group_expr, OptimizationContext *context,
-                                  const std::vector<Rule *> &rules, std::vector<RuleWithPromise> *valid_rules);
+  static void ConstructValidRules(GroupExpression *group_expr, const std::vector<Rule *> &rules,
+                                  std::vector<RuleWithPromise> *valid_rules);
 
   /**
    * Function to execute the task

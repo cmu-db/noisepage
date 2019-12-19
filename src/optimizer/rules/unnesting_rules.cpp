@@ -31,8 +31,7 @@ UnnestMarkJoinToInnerJoin::UnnestMarkJoinToInnerJoin() {
   match_pattern_->AddChild(new Pattern(OpType::LEAF));
 }
 
-RewriteRulePromise UnnestMarkJoinToInnerJoin::Promise(GroupExpression *group_expr, OptimizationContext *context) const {
-  (void)context;
+RewriteRulePromise UnnestMarkJoinToInnerJoin::Promise(GroupExpression *group_expr) const {
   return RewriteRulePromise::LOGICAL_PROMISE;
 }
 
@@ -72,9 +71,7 @@ UnnestSingleJoinToInnerJoin::UnnestSingleJoinToInnerJoin() {
   match_pattern_->AddChild(new Pattern(OpType::LEAF));
 }
 
-RewriteRulePromise UnnestSingleJoinToInnerJoin::Promise(GroupExpression *group_expr,
-                                                        OptimizationContext *context) const {
-  (void)context;
+RewriteRulePromise UnnestSingleJoinToInnerJoin::Promise(GroupExpression *group_expr) const {
   return RewriteRulePromise::LOGICAL_PROMISE;
 }
 

@@ -6,8 +6,7 @@
 
 namespace terrier::optimizer {
 
-RewriteRulePromise Rule::Promise(GroupExpression *group_expr, OptimizationContext *context) const {
-  (void)context;
+RewriteRulePromise Rule::Promise(GroupExpression *group_expr) const {
   auto root_type = match_pattern_->Type();
   // This rule is not applicable
   if (root_type != OpType::LEAF && root_type != group_expr->Op().GetType()) {

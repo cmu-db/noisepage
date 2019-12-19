@@ -153,7 +153,7 @@ class Rule {
    *
    * @return The promise, the higher the promise, the rule should be applied sooner
    */
-  virtual RewriteRulePromise Promise(GroupExpression *group_expr, OptimizationContext *context) const;
+  virtual RewriteRulePromise Promise(GroupExpression *group_expr) const;
 
   /**
    * Check if the rule is applicable for the operator expression. The
@@ -275,18 +275,14 @@ class RuleSet {
    * @param set RuleSet to add the rule to
    * @param rule Rule to add
    */
-  void AddRule(RuleSetName set, Rule *rule) {
-    rules_map_[static_cast<uint32_t>(set)].push_back(rule);
-  }
+  void AddRule(RuleSetName set, Rule *rule) { rules_map_[static_cast<uint32_t>(set)].push_back(rule); }
 
   /**
    * Gets all stored rules in a given RuleSet
    * @param set Rewrite RuleSet to fetch
    * @returns vector of rules in that rewrite ruleset group
    */
-  std::vector<Rule *> &GetRulesByName(RuleSetName set) {
-    return rewrite_rules_map_[static_cast<uint32_t>(set)];
-  }
+  std::vector<Rule *> &GetRulesByName(RuleSetName set) { return rewrite_rules_map_[static_cast<uint32_t>(set)]; }
 
  private:
   /**

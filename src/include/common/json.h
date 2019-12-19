@@ -20,7 +20,7 @@ using json = nlohmann::json;
       j = nullptr;                                                                             \
     }                                                                                          \
   }                                                                                            \
-  inline void to_json(nlohmann::json &j, common::ManagedPointer<ClassName> c) {   /* NOLINT */ \
+  inline void to_json(nlohmann::json &j, common::ManagedPointer<ClassName> c) { /* NOLINT */   \
     if (c != nullptr) {                                                                        \
       j = c->ToJson();                                                                         \
     } else {                                                                                   \

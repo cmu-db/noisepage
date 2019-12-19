@@ -17,8 +17,8 @@ namespace terrier::optimizer {
 //===--------------------------------------------------------------------===//
 // Base class
 //===--------------------------------------------------------------------===//
-void OptimizerTask::ConstructValidRules(GroupExpression *group_expr, OptimizationContext *context,
-                                        const std::vector<Rule *> &rules, std::vector<RuleWithPromise> *valid_rules) {
+void OptimizerTask::ConstructValidRules(GroupExpression *group_expr, const std::vector<Rule *> &rules,
+                                        std::vector<RuleWithPromise> *valid_rules) {
   for (auto &rule : rules) {
     // Check if we can apply the rule
     bool root_pattern_mismatch = group_expr->Op().GetType() != rule->GetMatchPattern()->Type();
@@ -30,7 +30,7 @@ void OptimizerTask::ConstructValidRules(GroupExpression *group_expr, Optimizatio
       continue;
     }
 
-    auto promise = rule->Promise(group_expr, context);
+    auto promise = rule->Promise(group_expr);
     if (promise != RewriteRulePromise::NO_PROMISE) valid_rules->emplace_back(rule, promise);
   }
 }
@@ -74,8 +74,8 @@ void OptimizeExpression::Execute() {
   // Construct valid transformation rules from rule set
   auto logical_rules = GetRuleSet().GetRulesByName(RuleSetName::LOGICAL_TRANSFORMATION);
   auto phys_rules = GetRuleSet().GetRulesByName(RuleSetName::PHYSICAL_IMPLEMENTATION);
-  ConstructValidRules(group_expr_, context_, logical_rules, &valid_rules);
-  ConstructValidRules(group_expr_, context_, phys_rules, &valid_rules);
+  ConstructValidRules(group_expr_, logical_rules, &valid_rules);
+  ConstructValidRules(group_expr_, phys_rules, &valid_rules);
 
   std::sort(valid_rules.begin(), valid_rules.end());
   OPTIMIZER_LOG_DEBUG("OptimizeExpression::execute() op {0}, valid rules : {1}",
@@ -122,7 +122,7 @@ void ExploreExpression::Execute() {
 
   // Construct valid transformation rules from rule set
   auto logical_rules = GetRuleSet().GetRulesByName(RuleSetName::LOGICAL_TRANSFORMATION);
-  ConstructValidRules(group_expr_, context_, logical_rules, &valid_rules);
+  ConstructValidRules(group_expr_, logical_rules, &valid_rules);
   std::sort(valid_rules.begin(), valid_rules.end());
 
   // Apply rule
@@ -378,7 +378,7 @@ void TopDownRewrite::Execute() {
 
   // Construct valid transformation rules from rule set
   std::vector<Rule *> set = GetRuleSet().GetRewriteRulesByName(rule_set_name_);
-  ConstructValidRules(cur_group_expr, context_, set, &valid_rules);
+  ConstructValidRules(cur_group_expr, set, &valid_rules);
 
   // Sort so that we apply rewrite rules with higher promise first
   std::sort(valid_rules.begin(), valid_rules.end(), std::greater<>());
@@ -435,7 +435,7 @@ void BottomUpRewrite::Execute() {
 
   // Construct valid transformation rules from rule set
   std::vector<Rule *> set = GetRuleSet().GetRewriteRulesByName(rule_set_name_);
-  ConstructValidRules(cur_group_expr, context_, set, &valid_rules);
+  ConstructValidRules(cur_group_expr, set, &valid_rules);
 
   // Sort so that we apply rewrite rules with higher promise first
   std::sort(valid_rules.begin(), valid_rules.end(), std::greater<>());

@@ -363,9 +363,7 @@ RewritePullFilterThroughMarkJoin::RewritePullFilterThroughMarkJoin() {
   match_pattern_->AddChild(filter);
 }
 
-RewriteRulePromise RewritePullFilterThroughMarkJoin::Promise(GroupExpression *group_expr,
-                                                             OptimizationContext *context) const {
-  (void)context;
+RewriteRulePromise RewritePullFilterThroughMarkJoin::Promise(GroupExpression *group_expr) const {
   return RewriteRulePromise::UNNEST_PROMISE_HIGH;
 }
 
@@ -415,9 +413,7 @@ RewritePullFilterThroughAggregation::RewritePullFilterThroughAggregation() {
   match_pattern_->AddChild(filter);
 }
 
-RewriteRulePromise RewritePullFilterThroughAggregation::Promise(GroupExpression *group_expr,
-                                                                OptimizationContext *context) const {
-  (void)context;
+RewriteRulePromise RewritePullFilterThroughAggregation::Promise(GroupExpression *group_expr) const {
   return RewriteRulePromise::UNNEST_PROMISE_HIGH;
 }
 
