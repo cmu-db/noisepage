@@ -237,8 +237,13 @@ class DataTable {
    *    metadata_flatbuffer: bytes
    *    padding to 8-byte
    *    message body
-   * Message body is the data, which are organized as several buffers. Each buffer is described by
-   * a metadata_flatbuffer
+   *
+   * metadata_flatbuffer is the real Flatbuffer value. It primarily contains an array of Buffer metadata. Each element
+   * of the array points out the length and position of a Buffer.
+   *
+   * Message body is the data. They are organized as several Buffers, where a Buffer corresponds to a continuous memory
+   * block and is exactly the same concept as the Buffer above. Therefore, by parsing the metadata_flatbuffer, we can
+   * pinpoint and read the corresponding data.
    *
    * @param file_name the file that the table will be exported to
    */
@@ -315,7 +320,7 @@ class DataTable {
   /**
    * WriteDataBlock write a memory block to file. Such a memory block can be: offsets of varlen column,
    * data of a fixed-size column, bitmap of a column, etc.
-   * @param outfile the file write to
+   * @param outfile the output file
    * @param src the memory block
    * @param len the size, will be padded to arrow alignment according to the specification
    */
@@ -332,6 +337,20 @@ class DataTable {
   void AddBufferInfo(size_t *offset, size_t len, std::vector<flatbuf::Buffer> *buffers);
 
   /**
+   * Build the metadata_flatbuffer from all its components and export it to the file.
+   * @param outfile the output file
+   * @param header_type one of MessageHeader_Schema, MessageHeader_RecordBatch, or MessageHeader_DictionaryBatch
+   * @param header the auto-generated offset of the header
+   * @param body_len the length of follwoing message body (not the length of this metadata_flatbuffer)
+   * @param flatbuf_builder flatbuffer builder
+   */
+  void AssembleMetadataBuffer(std::ofstream &outfile,
+                              flatbuf::MessageHeader header_type,
+                              flatbuffers::Offset<void> header,
+                              int64_t body_len,
+                              flatbuffers::FlatBufferBuilder *flatbuf_builder);
+
+  /**
    * This function write a Schema message. The Schema message provides metadata describing the following RecordBatch
    * messages (you may think of it as a batch of rows), which includes but not limited to the logical type of each
    * column, the byte-width, etc. It's serialized via Flatbuffer and should be written to the file at the very
@@ -343,6 +362,7 @@ class DataTable {
    * For the flatbuffer schema of Schema message, please refer to:
    *    https://github.com/apache/arrow/blob/master/format/Schema.fbs
    *
+   * @param outfile the output file
    * @param dictionary_ids The dictionary entries and the indices for a batch of rows are written seperately.
    *                       Therefore, when a column is dictionary-compressed, we need to assign an id to it,
    *                       so that the dictionary and the indices can be paired.
@@ -363,6 +383,7 @@ class DataTable {
    *
    * @param outfile the output file
    * @param dictionary_id id of this dictionary, should have been assigned previously when writing the schema message.
+   * @param varlen_col varlen_col stores the dictionray for a dictionary compressed column
    * @param flatbuf_builder flatbuffer builder
    */
   void WriteDictionaryMessage(std::ofstream &outfile, int64_t dictionary_id, const ArrowVarlenColumn &varlen_col,

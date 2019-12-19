@@ -18,6 +18,7 @@ namespace terrier::storage {
 constexpr int32_t FLATBUF_CONTINUZATION = -1;
 constexpr uint8_t ARROW_ALIGNMENT = 8;
 constexpr char ALIGNMENT[8] = {0};
+constexpr flatbuf::MetadataVersion METADATA_VERSION = flatbuf::MetadataVersion_V4;
 
 DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const layout_version_t layout_version)
     : block_store_(store), layout_version_(layout_version), accessor_(layout) {
@@ -269,6 +270,25 @@ void DataTable::AddBufferInfo(size_t *offset, size_t len, std::vector<flatbuf::B
   *offset += len;
 }
 
+void DataTable::AssembleMetadataBuffer(std::ofstream &outfile,
+                                       flatbuf::MessageHeader header_type,
+                                       flatbuffers::Offset<void> header,
+                                       int64_t body_len,
+                                       flatbuffers::FlatBufferBuilder *flatbuf_builder) {
+  auto message = flatbuf::CreateMessage(*flatbuf_builder, METADATA_VERSION, header_type,
+                                        header, body_len);
+  flatbuf_builder->Finish(message);
+  int32_t flatbuf_size = flatbuf_builder->GetSize();
+  auto padded_flatbuf_size = StorageUtil::PadUpToSize(ARROW_ALIGNMENT, flatbuf_size);
+  outfile.write(reinterpret_cast<const char *>(&FLATBUF_CONTINUZATION), sizeof(int32_t));
+  outfile.write(reinterpret_cast<const char *>(&padded_flatbuf_size), sizeof(int32_t));
+  outfile.write(reinterpret_cast<const char *>(flatbuf_builder->GetBufferPointer()), flatbuf_size);
+  if (padded_flatbuf_size != static_cast<uint32_t>(flatbuf_size)) {
+    outfile.write(ALIGNMENT, padded_flatbuf_size - flatbuf_size);
+  }
+  outfile.flush();
+}
+
 void DataTable::WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<col_id_t, int64_t> *dictionary_ids,
                                    flatbuffers::FlatBufferBuilder *flatbuf_builder) {
   RawBlock *block = blocks_.front();
@@ -276,6 +296,16 @@ void DataTable::WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<co
   ArrowBlockMetadata &metadata = accessor_.GetArrowBlockMetadata(block);
   std::vector<flatbuffers::Offset<flatbuf::Field>> fields;
   int64_t dictionary_id = 0;
+
+  // For each column, write its metadata into the schema message that will be parsed at the very beginning when
+  // reading a exported table file.
+  //
+  // Such metadata includes:
+  // 1. Name of the column;
+  // 2. Logical Type of the column (fixed length, varlen, or dictionary compressed);
+  //    2.1. If it's fixed length, then its byte width will be included;
+  //    2.2. If it's dictionary compressed, then we pre-assign an id for the dictionary. Its real dictionary will
+  //         be built later with the id.
   for (col_id_t col_id : layout.AllColumns()) {
     ArrowColumnInfo &col_info = metadata.GetColumnInfo(layout, col_id);
     // TODO(Yuze): Change column name when we have the information, which we may need from upper layers.
@@ -307,24 +337,15 @@ void DataTable::WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<co
     // and its children type is Int64. Another example, for type List<List<Int64>>, List<Int64> is the children
     // of the outer List, and Int64 is the children of the inner List. Since we don't have nested types, we use
     // an empty array as fake children.
-    std::vector<flatbuffers::Offset<org::apache::arrow::flatbuf::Field>> fake_children;
+    std::vector<flatbuffers::Offset<flatbuf::Field>> fake_children;
     fields.emplace_back(flatbuf::CreateField(*flatbuf_builder, name, true, type, type_offset, dictionary,
                                              flatbuf_builder->CreateVector(fake_children)));
   }
+
+
   auto schema =
       flatbuf::CreateSchema(*flatbuf_builder, flatbuf::Endianness_Little, flatbuf_builder->CreateVector(fields));
-  auto message = flatbuf::CreateMessage(*flatbuf_builder, flatbuf::MetadataVersion_V4, flatbuf::MessageHeader_Schema,
-                                        schema.Union(), 0);
-  flatbuf_builder->Finish(message);
-  int32_t flatbuf_size = flatbuf_builder->GetSize();
-  auto padded_flatbuf_size = StorageUtil::PadUpToSize(ARROW_ALIGNMENT, flatbuf_size);
-  outfile.write(reinterpret_cast<const char *>(&FLATBUF_CONTINUZATION), sizeof(int32_t));
-  outfile.write(reinterpret_cast<const char *>(&padded_flatbuf_size), sizeof(int32_t));
-  outfile.write(reinterpret_cast<const char *>(flatbuf_builder->GetBufferPointer()), flatbuf_size);
-  if (padded_flatbuf_size != static_cast<uint32_t>(flatbuf_size)) {
-    outfile.write(ALIGNMENT, padded_flatbuf_size - flatbuf_size);
-  }
-  outfile.flush();
+  AssembleMetadataBuffer(outfile, flatbuf::MessageHeader_Schema, schema.Union(), 0, flatbuf_builder);
 }
 
 void DataTable::WriteDictionaryMessage(std::ofstream &outfile, int64_t dictionary_id,
@@ -350,19 +371,11 @@ void DataTable::WriteDictionaryMessage(std::ofstream &outfile, int64_t dictionar
                                  flatbuf_builder->CreateVectorOfStructs(buffers));
   auto dictionary_batch = flatbuf::CreateDictionaryBatch(*flatbuf_builder, dictionary_id, record_batch);
   auto aligned_offset = StorageUtil::PadUpToSize(ARROW_ALIGNMENT, buffer_offset);
-  auto message =
-      flatbuf::CreateMessage(*flatbuf_builder, flatbuf::MetadataVersion_V4, flatbuf::MessageHeader_DictionaryBatch,
-                             dictionary_batch.Union(), aligned_offset);
-  flatbuf_builder->Finish(message);
-  int32_t flatbuf_size = flatbuf_builder->GetSize();
-  auto padded_flatbuf_size = StorageUtil::PadUpToSize(ARROW_ALIGNMENT, flatbuf_size);
-  outfile.write(reinterpret_cast<const char *>(&FLATBUF_CONTINUZATION), sizeof(int32_t));
-  outfile.write(reinterpret_cast<const char *>(&padded_flatbuf_size), sizeof(int32_t));
-  outfile.write(reinterpret_cast<const char *>(flatbuf_builder->GetBufferPointer()), flatbuf_size);
-  if (padded_flatbuf_size != static_cast<uint32_t>(flatbuf_size)) {
-    outfile.write(ALIGNMENT, padded_flatbuf_size - flatbuf_size);
-  }
-
+  AssembleMetadataBuffer(outfile,
+                         flatbuf::MessageHeader_DictionaryBatch,
+                         dictionary_batch.Union(),
+                         aligned_offset,
+                         flatbuf_builder);
   WriteDataBlock(outfile, reinterpret_cast<const char *>(varlen_col.Offsets()),
                  varlen_col.OffsetsLength() * sizeof(uint64_t));
 
@@ -380,7 +393,6 @@ void DataTable::ExportTable(const std::string &file_name) {
   const BlockLayout &layout = accessor_.GetBlockLayout();
   auto column_ids = layout.AllColumns();
   common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
-  // We may choose to scan twice instead of using a buffer?
   for (RawBlock *block : blocks_) {
     std::vector<flatbuf::FieldNode> field_nodes;
     std::vector<flatbuf::Buffer> buffers;
@@ -426,7 +438,7 @@ void DataTable::ExportTable(const std::string &file_name) {
         int32_t cur_buffer_len;
         // Calculate the length of the data region of current column. For the columns except the last one, we calculate
         // their length by using the start of next column's bit map - the start of current column's data. For the
-        // last column, we calculate the length by using the begining address of the next block - the start of current
+        // last column, we calculate the length by using the beginning address of the next block - the start of current
         // column data.
         if (i == column_id_size - 1) {
           auto casted_column_start = reinterpret_cast<uintptr_t>(column_start);
@@ -443,17 +455,11 @@ void DataTable::ExportTable(const std::string &file_name) {
         flatbuf::CreateRecordBatch(flatbuf_builder, num_slots, flatbuf_builder.CreateVectorOfStructs(field_nodes),
                                    flatbuf_builder.CreateVectorOfStructs(buffers));
     auto aligned_offset = StorageUtil::PadUpToSize(ARROW_ALIGNMENT, buffer_offset);
-    auto message = flatbuf::CreateMessage(flatbuf_builder, flatbuf::MetadataVersion_V4,
-                                          flatbuf::MessageHeader_RecordBatch, record_batch.Union(), aligned_offset);
-    flatbuf_builder.Finish(message);
-    int32_t flatbuf_size = flatbuf_builder.GetSize();
-    auto padded_flatbuf_size = StorageUtil::PadUpToSize(ARROW_ALIGNMENT, flatbuf_size);
-    outfile.write(reinterpret_cast<const char *>(&FLATBUF_CONTINUZATION), sizeof(int32_t));
-    outfile.write(reinterpret_cast<const char *>(&padded_flatbuf_size), sizeof(int32_t));
-    outfile.write(reinterpret_cast<const char *>(flatbuf_builder.GetBufferPointer()), flatbuf_size);
-    if (padded_flatbuf_size != static_cast<uint32_t>(flatbuf_size)) {
-      outfile.write(ALIGNMENT, padded_flatbuf_size - flatbuf_size);
-    }
+    AssembleMetadataBuffer(outfile,
+                           flatbuf::MessageHeader_RecordBatch,
+                           record_batch.Union(),
+                           aligned_offset,
+                           &flatbuf_builder);
 
     // Second pass, write data
     for (size_t i = 0; i < column_id_size; ++i) {
