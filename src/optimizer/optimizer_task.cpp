@@ -57,7 +57,7 @@ void OptimizeGroup::Execute() {
 
   // Push implement tasks to ensure that they are run first (for early pruning)
   for (auto &physical_expr : group_->GetPhysicalExpressions()) {
-    PushTask(new OptimizeInputs(physical_expr, context_));
+    PushTask(new OptimizeExpressionCostWithEnforcedProperty(physical_expr, context_));
   }
 
   // Since there is no cycle in the tree, it is safe to set the flag even before
@@ -177,7 +177,7 @@ void ApplyRule::Execute() {
           }
         } else {
           // Cost this physical expression and optimize its inputs
-          PushTask(new OptimizeInputs(new_gexpr, context_));
+          PushTask(new OptimizeExpressionCostWithEnforcedProperty(new_gexpr, context_));
         }
       }
     }
@@ -232,11 +232,11 @@ void DeriveStats::Execute() {
 }
 
 //===--------------------------------------------------------------------===//
-// OptimizeInputs
+// OptimizeExpressionCostWithEnforcedProperty
 //===--------------------------------------------------------------------===//
-void OptimizeInputs::Execute() {
+void OptimizeExpressionCostWithEnforcedProperty::Execute() {
   // Init logic: only run once per task
-  OPTIMIZER_LOG_TRACE("OptimizeInputs::Execute() ");
+  OPTIMIZER_LOG_TRACE("OptimizeExpressionCostWithEnforcedProperty::Execute() ");
   if (cur_child_idx_ == -1) {
     // TODO(patrick):
     // 1. We can init input cost using non-zero value for pruning
@@ -258,7 +258,10 @@ void OptimizeInputs::Execute() {
     // cases, we can check whether it is the case here to do the pruning
   }
 
-  // Loop over (output prop, input props) pair
+  // Loop over (output prop, input props) pair for the GroupExpression being optimized
+  // (1) Cost children (if needed); or pick the best child expression (in terms of cost)
+  // (2) Enforce any missing properties as required
+  // (3) Update Group/Context metadata of expression + cost
   for (; cur_prop_pair_idx_ < static_cast<int>(output_input_properties_.size()); cur_prop_pair_idx_++) {
     auto &output_prop = output_input_properties_[cur_prop_pair_idx_].first;
     auto &input_props = output_input_properties_[cur_prop_pair_idx_].second;
@@ -284,7 +287,7 @@ void OptimizeInputs::Execute() {
         if (cur_total_cost_ > context_->GetCostUpperBound()) break;
       } else if (prev_child_idx_ != cur_child_idx_) {  // We haven't optimized child group
         prev_child_idx_ = cur_child_idx_;
-        PushTask(new OptimizeInputs(this));
+        PushTask(new OptimizeExpressionCostWithEnforcedProperty(this));
 
         auto cost_high = context_->GetCostUpperBound() - cur_total_cost_;
         auto ctx = new OptimizationContext(context_->GetOptimizerContext(), i_prop->Copy(), cost_high);

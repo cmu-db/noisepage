@@ -257,13 +257,7 @@ class RuleSet {
    * Destructor
    */
   ~RuleSet() {
-    for (auto rule : transformation_rules_) {
-      delete rule;
-    }
-    for (auto rule : implementation_rules_) {
-      delete rule;
-    }
-    for (auto &it : rewrite_rules_map_) {
+    for (auto &it : rules_map_) {
       for (auto rule : it.second) {
         delete rule;
       }
@@ -282,7 +276,7 @@ class RuleSet {
    * @param set Rewrite RuleSet to fetch
    * @returns vector of rules in that rewrite ruleset group
    */
-  std::vector<Rule *> &GetRulesByName(RuleSetName set) { return rewrite_rules_map_[static_cast<uint32_t>(set)]; }
+  std::vector<Rule *> &GetRulesByName(RuleSetName set) { return rules_map_[static_cast<uint32_t>(set)]; }
 
  private:
   /**

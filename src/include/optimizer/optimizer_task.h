@@ -260,26 +260,26 @@ class ApplyRule : public OptimizerTask {
 };
 
 /**
- * OptimizeInputs costs a physical expression. The root operator is costed first
+ * OptimizeExpressionCostWithEnforcedProperty costs a physical expression. The root operator is costed first
  * and the lowest cost of each child group is added. Finally, properties are
  * enforced to meet requirement in the context. We apply pruning by terminating if
  * the current expression's cost is larger than the upper bound of the current group
  */
-class OptimizeInputs : public OptimizerTask {
+class OptimizeExpressionCostWithEnforcedProperty : public OptimizerTask {
  public:
   /**
-   * Constructor for OptimizeInputs
+   * Constructor for OptimizeExpressionCostWithEnforcedProperty
    * @param group_expr GroupExpression to cost/optimize
    * @param context Current OptimizationContext
    */
-  OptimizeInputs(GroupExpression *group_expr, OptimizationContext *context)
+  OptimizeExpressionCostWithEnforcedProperty(GroupExpression *group_expr, OptimizationContext *context)
       : OptimizerTask(context, OptimizerTaskType::OPTIMIZE_INPUTS), group_expr_(group_expr) {}
 
   /**
-   * Constructor for OptimizeInputs
-   * @param task OptimizeInputs task to construct from
+   * Constructor for OptimizeExpressionCostWithEnforcedProperty
+   * @param task OptimizeExpressionCostWithEnforcedProperty task to construct from
    */
-  explicit OptimizeInputs(OptimizeInputs *task)
+  explicit OptimizeExpressionCostWithEnforcedProperty(OptimizeExpressionCostWithEnforcedProperty *task)
       : OptimizerTask(task->context_, OptimizerTaskType::OPTIMIZE_INPUTS),
         output_input_properties_(std::move(task->output_input_properties_)),
         group_expr_(task->group_expr_),
@@ -295,7 +295,7 @@ class OptimizeInputs : public OptimizerTask {
   /**
    * Destructor
    */
-  ~OptimizeInputs() override {
+  ~OptimizeExpressionCostWithEnforcedProperty() override {
     for (auto &pair : output_input_properties_) {
       delete pair.first;
       for (auto &prop : pair.second) {
