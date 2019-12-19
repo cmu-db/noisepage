@@ -122,7 +122,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SelectRandom)(benchmark::State &state) {
   if (env_threads == nullptr) {
     // todo: now what?
   } else {
-    num_threads_ = *env_threads;
+    num_threads_ = atoi(env_threads);
   }
   storage::DataTable read_table(&block_store_, layout_, storage::layout_version_t(0));
 
@@ -174,7 +174,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SelectSequential)(benchmark::State &state
   if (env_threads == nullptr) {
     // todo: now what?
   } else {
-    num_threads_ = *env_threads;
+    num_threads_ = atoi(env_threads);
   }
   storage::DataTable read_table(&block_store_, layout_, storage::layout_version_t(0));
 
@@ -218,7 +218,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, Scan)(benchmark::State &state) {
   if (env_threads == nullptr) {
     // todo: now what?
   } else {
-    num_threads_ = *env_threads;
+    num_threads_ = atoi(env_threads);
   }
   storage::DataTable read_table(&block_store_, layout_, storage::layout_version_t(0));
 
