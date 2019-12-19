@@ -142,17 +142,24 @@ class OptimizerContext {
   GroupExpression *MakeGroupExpression(common::ManagedPointer<OperatorExpression> expr) {
     std::vector<group_id_t> child_groups;
     for (auto &child : expr->GetChildren()) {
-      // Create a GroupExpression for the child
-      auto gexpr = MakeGroupExpression(child);
-
-      // Insert into the memo (this allows for duplicate detection)
-      auto expr = memo_.InsertExpression(gexpr, false);
-      if (expr == nullptr) {
-        // Delete if need to (see InsertExpression spec)
-        child_groups.push_back(gexpr->GetGroupID());
-        delete gexpr;
+      if (child->GetOp().GetType() == OpType::LEAF) {
+        // Special case for LEAF
+        const auto leaf = child->GetOp().As<LeafOperator>();
+        auto child_group = leaf->GetOriginGroup();
+        child_groups.push_back(child_group);
       } else {
-        child_groups.push_back(expr->GetGroupID());
+        // Create a GroupExpression for the child
+        auto gexpr = MakeGroupExpression(child);
+
+        // Insert into the memo (this allows for duplicate detection)
+        auto mexpr = memo_.InsertExpression(gexpr, false);
+        if (mexpr == nullptr) {
+          // Delete if need to (see InsertExpression spec)
+          child_groups.push_back(gexpr->GetGroupID());
+          delete gexpr;
+        } else {
+          child_groups.push_back(mexpr->GetGroupID());
+        }
       }
     }
 
@@ -160,30 +167,30 @@ class OptimizerContext {
   }
 
   /**
-   * Records a transformed OperatorExpression by creating a new group.
-   * A new group will be created if expr does not already exist.
+   * A group contains all logical/physically equivalent OperatorExpressions.
+   * Function try to add an equivalent OperatorExpression by creating a new group.
    *
-   * @param expr OperatorExpression to record
-   * @param gexpr Places the newly created GroupExpression
-   * @returns Whether the OperatorExpression already exists
+   * @param expr OperatorExpression to add
+   * @param gexpr Existing GroupExpression or new GroupExpression
+   * @returns Whether the OperatorExpression has been added before
    */
-  bool RecordTransformedExpression(common::ManagedPointer<OperatorExpression> expr, GroupExpression **gexpr) {
-    return RecordTransformedExpression(expr, gexpr, UNDEFINED_GROUP);
+  bool RecordOperatorExpressionIntoGroup(common::ManagedPointer<OperatorExpression> expr, GroupExpression **gexpr) {
+    return RecordOperatorExpressionIntoGroup(expr, gexpr, UNDEFINED_GROUP);
   }
 
   /**
-   * Adds a transformed OperatorExpression into a given group.
    * A group contains all logical/physically equivalent OperatorExpressions.
+   * Function adds a logically/physically equivalent OperatorExpression to the specified group.
    * This function is invoked by tasks which explore the plan search space
    * through rules (recording all "equivalent" expressions for cost/selection later).
    *
    * @param expr OperatorExpression to record into the group
-   * @param gexpr Places the newly created GroupExpression
+   * @param gexpr Existing GroupExpression or new GroupExpression
    * @param target_group ID of the Group that the OperatorExpression belongs to
-   * @returns Whether the OperatorExpression already exists
+   * @returns Whether the OperatorExpression has been added before
    */
-  bool RecordTransformedExpression(common::ManagedPointer<OperatorExpression> expr, GroupExpression **gexpr,
-                                   group_id_t target_group) {
+  bool RecordOperatorExpressionIntoGroup(common::ManagedPointer<OperatorExpression> expr, GroupExpression **gexpr,
+                                         group_id_t target_group) {
     auto new_gexpr = MakeGroupExpression(expr);
     auto ptr = memo_.InsertExpression(new_gexpr, target_group, false);
     TERRIER_ASSERT(ptr, "Root of expr should not fail insertion");

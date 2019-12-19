@@ -7,10 +7,8 @@
 namespace terrier::optimizer {
 
 /**
- * The base class of a task pool, which needs to support adding tasks and
- * getting available tasks from the pool. Note that a single-threaded task pool
- * is identical to a stack but we may need to implement a different data
- * structure for multi-threaded optimization.
+ * Abstract base class for a task pool.
+ * Task pool provides abstraction for adding and getting tasks.
  */
 class OptimizerTaskPool {
  public:
@@ -37,7 +35,7 @@ class OptimizerTaskPool {
 };
 
 /**
- * Stack implementation of the OptimizerTaskPool
+ * Single-threaded stack implementation of the OptimizerTaskPool
  */
 class OptimizerTaskStack : public OptimizerTaskPool {
  public:

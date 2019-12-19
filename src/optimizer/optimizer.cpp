@@ -36,7 +36,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(transaction:
 
   // Generate initial operator tree from query tree
   GroupExpression *gexpr = nullptr;
-  UNUSED_ATTRIBUTE bool insert = context_->RecordTransformedExpression(common::ManagedPointer(op_tree), &gexpr);
+  UNUSED_ATTRIBUTE bool insert = context_->RecordOperatorExpressionIntoGroup(common::ManagedPointer(op_tree), &gexpr);
   TERRIER_ASSERT(insert && gexpr, "Logical expression tree should insert");
 
   group_id_t root_id = gexpr->GetGroupID();
@@ -44,7 +44,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(transaction:
   // Physical properties
   PropertySet *phys_properties = query_info.GetPhysicalProperties();
 
-  // Give raw pointers to ChooseBestPlan
+  // Give ManagedPointers to ChooseBestPlan
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output_exprs;
   for (auto expr : query_info.GetOutputExprs()) {
     output_exprs.push_back(expr);

@@ -70,6 +70,12 @@ class Optimizer : public AbstractOptimizer {
                                                            std::unique_ptr<OperatorExpression> op_tree) override;
 
   /**
+   * Reset the optimizer state
+   */
+  void Reset() override;
+
+ private:
+  /**
    * Invoke a single optimization pass through the entire query.
    * The optimization pass includes rewriting and optimization logic.
    * @param root_group_id Group to begin optimization at
@@ -78,18 +84,6 @@ class Optimizer : public AbstractOptimizer {
    */
   void OptimizeLoop(group_id_t root_group_id, PropertySet *required_props, settings::SettingsManager *settings);
 
-  /**
-   * Reset the optimizer state
-   */
-  void Reset() override;
-
-  /**
-   * Gets the OptimizerContext used and set by the optimizer
-   * @returns context_
-   */
-  OptimizerContext *GetMetadata() { return context_; }
-
- private:
   /**
    * Retrieve the lowest cost execution plan with the given properties
    *

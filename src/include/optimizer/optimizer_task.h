@@ -380,9 +380,10 @@ class DeriveStats : public OptimizerTask {
 };
 
 /**
- * TopDownRewrite performs a top-down rewrite pass. The task accepts a RuleSet
- * which requires that lower-level rewrites in the operator tree will not enable
- * upper-level rewrites i.e predicate push-down from upper to lower).
+ * TopDownRewrite performs a top-down rewrite pass. A generally held assumption for
+ * any RuleSet utilizing TopDownRewrite is that once a tree level has been saturated,
+ * the tree level will remain saturated. i.e rewriting expresions lower in the operator
+ * tree will not allow a rule to be applicable at a higher level.
  */
 class TopDownRewrite : public OptimizerTask {
  public:
