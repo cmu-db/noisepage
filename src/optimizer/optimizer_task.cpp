@@ -85,8 +85,8 @@ void OptimizeExpression::Execute() {
     PushTask(new ApplyRule(group_expr_, r.GetRule(), context_));
     int child_group_idx = 0;
     for (auto &child_pattern : r.GetRule()->GetMatchPattern()->Children()) {
-      // Only need to explore non-leaf children before applying rule to the
-      // current group this condition is important for early-pruning
+      // If child_pattern has any more children (i.e non-leaf), then we will explore the
+      // child before applying the rule. (assumes task pool is effectively a stack)
       if (child_pattern->GetChildPatternsSize() > 0) {
         Group *group = GetMemo().GetGroupByID(group_expr_->GetChildGroupIDs()[child_group_idx]);
         PushTask(new ExploreGroup(group, context_));
