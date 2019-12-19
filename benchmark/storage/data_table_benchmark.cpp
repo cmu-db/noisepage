@@ -85,10 +85,9 @@ class DataTableBenchmark : public benchmark::Fixture {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, Insert)(benchmark::State &state) {
   const char *env_threads = std::getenv("TERRIER_BENCHMARK_CORES");
-  uint32_t total_threads_;
   if (env_threads == nullptr) {
   } else {
-    total_threads_ = atoi(env_threads);
+    num_threads_ = atoi(env_threads);
   }
   // NOLINTNEXTLINE
   for (auto _ : state) {
@@ -97,15 +96,15 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, Insert)(benchmark::State &state) {
       // We can use dummy timestamps here since we're not invoking concurrency control
       transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
                                           DISABLED);
-      for (uint32_t i = 0; i < num_inserts_ / total_threads_; i++) {
+      for (uint32_t i = 0; i < num_inserts_ / num_threads_; i++) {
         table.Insert(&txn, *redo_);
       }
     };
-    common::WorkerPool thread_pool(total_threads_, {});
+    common::WorkerPool thread_pool(num_threads_, {});
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      for (uint32_t j = 0; j < total_threads_; j++) {
+      for (uint32_t j = 0; j < num_threads_; j++) {
         thread_pool.SubmitTask([j, &workload] { workload(j); });
       }
       thread_pool.WaitUntilAllFinished();
