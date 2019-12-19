@@ -18,33 +18,34 @@ RewriteRulePromise Rule::Promise(GroupExpression *group_expr, OptimizationContex
 }
 
 RuleSet::RuleSet() {
-  AddTransformationRule(new LogicalInnerJoinCommutativity());
-  AddTransformationRule(new LogicalInnerJoinAssociativity());
-  AddImplementationRule(new LogicalDeleteToPhysicalDelete());
-  AddImplementationRule(new LogicalUpdateToPhysicalUpdate());
-  AddImplementationRule(new LogicalInsertToPhysicalInsert());
-  AddImplementationRule(new LogicalInsertSelectToPhysicalInsertSelect());
-  AddImplementationRule(new LogicalGroupByToPhysicalHashGroupBy());
-  AddImplementationRule(new LogicalAggregateToPhysicalAggregate());
-  AddImplementationRule(new LogicalGetToPhysicalTableFreeScan());
-  AddImplementationRule(new LogicalGetToPhysicalSeqScan());
-  AddImplementationRule(new LogicalGetToPhysicalIndexScan());
-  AddImplementationRule(new LogicalExternalFileGetToPhysicalExternalFileGet());
-  AddImplementationRule(new LogicalQueryDerivedGetToPhysicalQueryDerivedScan());
-  AddImplementationRule(new LogicalInnerJoinToPhysicalInnerNLJoin());
-  AddImplementationRule(new LogicalInnerJoinToPhysicalInnerHashJoin());
-  AddImplementationRule(new LogicalLimitToPhysicalLimit());
-  AddImplementationRule(new LogicalExportToPhysicalExport());
+  AddRule(RuleSetName::LOGICAL_TRANSFORMATION, new LogicalInnerJoinCommutavitity());
+  AddRule(RuleSetName::LOGICAL_TRANSFORMATION, new LogicalInnerJoinAssociativity());
 
-  AddRewriteRule(RewriteRuleSetName::PREDICATE_PUSH_DOWN, new RewritePushImplicitFilterThroughJoin());
-  AddRewriteRule(RewriteRuleSetName::PREDICATE_PUSH_DOWN, new RewritePushExplicitFilterThroughJoin());
-  AddRewriteRule(RewriteRuleSetName::PREDICATE_PUSH_DOWN, new RewritePushFilterThroughAggregation());
-  AddRewriteRule(RewriteRuleSetName::PREDICATE_PUSH_DOWN, new RewriteCombineConsecutiveFilter());
-  AddRewriteRule(RewriteRuleSetName::PREDICATE_PUSH_DOWN, new RewriteEmbedFilterIntoGet());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalDeleteToPhysicalDelete());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalUpdateToPhysicalUpdate());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalInsertToPhysicalInsert());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalInsertSelectToPhysicalInsertSelect());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalGroupByToPhysicalHashGroupBy());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalAggregateToPhysicalAggregate());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalGetToPhysicalTableFreeScan());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalGetToPhysicalSeqScan());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalGetToPhysicalIndexScan());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalExternalFileGetToPhysicalExternalFileGet());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalQueryDerivedGetToPhysicalQueryDerivedScan());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalInnerJoinToPhysicalInnerNLJoin());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalInnerJoinToPhysicalInnerHashJoin());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalLimitToPhysicalLimit());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalExportToPhysicalExport());
 
-  AddRewriteRule(RewriteRuleSetName::UNNEST_SUBQUERY, new RewritePullFilterThroughMarkJoin());
-  AddRewriteRule(RewriteRuleSetName::UNNEST_SUBQUERY, new UnnestMarkJoinToInnerJoin());
-  AddRewriteRule(RewriteRuleSetName::UNNEST_SUBQUERY, new RewritePullFilterThroughAggregation());
+  AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewritePushImplicitFilterThroughJoin());
+  AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewritePushExplicitFilterThroughJoin());
+  AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewritePushFilterThroughAggregation());
+  AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewriteCombineConsecutiveFilter());
+  AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewriteEmbedFilterIntoGet());
+
+  AddRule(RuleSetName::UNNEST_SUBQUERY, new RewritePullFilterThroughMarkJoin());
+  AddRule(RuleSetName::UNNEST_SUBQUERY, new UnnestMarkJoinToInnerJoin());
+  AddRule(RuleSetName::UNNEST_SUBQUERY, new RewritePullFilterThroughAggregation());
 }
 
 }  // namespace terrier::optimizer

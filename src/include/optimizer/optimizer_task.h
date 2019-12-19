@@ -109,9 +109,9 @@ class OptimizerTask {
 
 /**
  * OptimizeGroup optimize a group within a given context.
- * OptimizeGroup will (1) generate all logically equivalent operator trees
- * if not already explored and (2) cost all physical operator trees given
- * the current OptimizationContext.
+ * OptimizeGroup will generate tasks to optimize all logically equivalent
+ * operator trees if not already explored. OptimizeGroup will then generate
+ * tasks to cost all physical operator trees given the current OptimizationContext.
  */
 class OptimizeGroup : public OptimizerTask {
  public:
@@ -229,13 +229,13 @@ class ApplyRule : public OptimizerTask {
    * @param group_expr GroupExpression to apply the rule against
    * @param rule Rule to apply
    * @param context Current optimize context
-   * @param explore Flag indicating whether explore or optimize
+   * @param explore_only Flag indicating whether explore or optimize
    */
-  ApplyRule(GroupExpression *group_expr, Rule *rule, OptimizationContext *context, bool explore = false)
+  ApplyRule(GroupExpression *group_expr, Rule *rule, OptimizationContext *context, bool explore_only = false)
       : OptimizerTask(context, OptimizerTaskType::APPLY_RULE),
         group_expr_(group_expr),
         rule_(rule),
-        explore_only_(explore) {}
+        explore_only_(explore_only) {}
 
   /**
    * Function to execute the task

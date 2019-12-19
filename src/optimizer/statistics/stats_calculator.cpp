@@ -233,6 +233,9 @@ double StatsCalculator::CalculateSelectivityForPredicate(common::ManagedPointer<
       (expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE &&
        (expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT ||
         expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::VALUE_PARAMETER))) {
+    // For a [column (operator) value] or [value (operator) column] predicate,
+    // left_expr gets a reference to the ColumnValueExpression
+    // right_index is the child index to the value
     int right_index = expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE ? 1 : 0;
     auto left_expr = expr->GetChild(1 - right_index);
     TERRIER_ASSERT(left_expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");

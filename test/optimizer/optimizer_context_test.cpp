@@ -110,7 +110,7 @@ TEST_F(OptimizerContextTest, OptimizerContextTaskStackNullptrTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(OptimizerContextTest, RecordTransformedExpressionDuplicateSingleLayer) {
+TEST_F(OptimizerContextTest, RecordOperatorExpressionIntoGroupDuplicateSingleLayer) {
   auto context = OptimizerContext(nullptr);
 
   // Create OperatorExpression of JOIN <= (GET A, GET A)
@@ -129,9 +129,9 @@ TEST_F(OptimizerContextTest, RecordTransformedExpressionDuplicateSingleLayer) {
   jc.emplace_back(std::move(right_get));
   auto join = std::make_unique<OperatorExpression>(LogicalInnerJoin::Make(), std::move(jc));
 
-  // RecordTransformedExpression
+  // RecordOperatorExpressionIntoGroup
   GroupExpression *join_gexpr;
-  EXPECT_TRUE(context.RecordTransformedExpression(common::ManagedPointer(join), &join_gexpr));
+  EXPECT_TRUE(context.RecordOperatorExpressionIntoGroup(common::ManagedPointer(join), &join_gexpr));
   EXPECT_TRUE(join_gexpr != nullptr);
 
   EXPECT_EQ(join_gexpr->Op(), join->GetOp());
@@ -149,7 +149,7 @@ TEST_F(OptimizerContextTest, RecordTransformedExpressionDuplicateSingleLayer) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(OptimizerContextTest, RecordTransformedExpressionDuplicateMultiLayer) {
+TEST_F(OptimizerContextTest, RecordOperatorExpressionIntoGroupDuplicateMultiLayer) {
   auto context = OptimizerContext(nullptr);
 
   // Create OperatorExpression (A JOIN B) JOIN (A JOIN B)
@@ -178,9 +178,9 @@ TEST_F(OptimizerContextTest, RecordTransformedExpressionDuplicateMultiLayer) {
   jjc.emplace_back(std::move(right_join));
   auto join = std::make_unique<OperatorExpression>(LogicalInnerJoin::Make(), std::move(jjc));
 
-  // RecordTransformedExpression
+  // RecordOperatorExpressionIntoGroup
   GroupExpression *join_g_expr;
-  EXPECT_TRUE(context.RecordTransformedExpression(common::ManagedPointer(join), &join_g_expr));
+  EXPECT_TRUE(context.RecordOperatorExpressionIntoGroup(common::ManagedPointer(join), &join_g_expr));
   EXPECT_TRUE(join_g_expr != nullptr);
 
   EXPECT_EQ(join_g_expr->Op(), join->GetOp());
@@ -208,19 +208,19 @@ TEST_F(OptimizerContextTest, RecordTransformedExpressionDuplicateMultiLayer) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(OptimizerContextTest, RecordTransformedExpressionDuplicate) {
+TEST_F(OptimizerContextTest, RecordOperatorExpressionIntoGroupDuplicate) {
   auto context = OptimizerContext(nullptr);
 
   std::vector<std::unique_ptr<OperatorExpression>> c;
   auto tbl_free = std::make_unique<OperatorExpression>(TableFreeScan::Make(), std::move(c));
 
   GroupExpression *tbl_free_gexpr;
-  EXPECT_TRUE(context.RecordTransformedExpression(common::ManagedPointer(tbl_free), &tbl_free_gexpr));
+  EXPECT_TRUE(context.RecordOperatorExpressionIntoGroup(common::ManagedPointer(tbl_free), &tbl_free_gexpr));
   EXPECT_TRUE(tbl_free_gexpr != nullptr);
 
   // Duplicate should return false
   GroupExpression *dup_free_gexpr;
-  EXPECT_TRUE(!context.RecordTransformedExpression(common::ManagedPointer(tbl_free), &dup_free_gexpr));
+  EXPECT_TRUE(!context.RecordOperatorExpressionIntoGroup(common::ManagedPointer(tbl_free), &dup_free_gexpr));
   EXPECT_TRUE(dup_free_gexpr != nullptr);
   EXPECT_EQ(tbl_free_gexpr, dup_free_gexpr);
 }
@@ -242,7 +242,7 @@ TEST_F(OptimizerContextTest, SimpleBindingTest) {
   auto join = std::make_unique<OperatorExpression>(LogicalInnerJoin::Make(), std::move(jc));
 
   GroupExpression *gexpr = nullptr;
-  EXPECT_TRUE(context.RecordTransformedExpression(common::ManagedPointer(join), &gexpr));
+  EXPECT_TRUE(context.RecordOperatorExpressionIntoGroup(common::ManagedPointer(join), &gexpr));
   EXPECT_TRUE(gexpr != nullptr);
 
   auto *pattern = new Pattern(OpType::LOGICALINNERJOIN);
@@ -277,7 +277,7 @@ TEST_F(OptimizerContextTest, SingleWildcardTest) {
   auto join = std::make_unique<OperatorExpression>(LogicalInnerJoin::Make(), std::move(jc));
 
   GroupExpression *gexpr = nullptr;
-  EXPECT_TRUE(context.RecordTransformedExpression(common::ManagedPointer(join), &gexpr));
+  EXPECT_TRUE(context.RecordOperatorExpressionIntoGroup(common::ManagedPointer(join), &gexpr));
   EXPECT_TRUE(gexpr != nullptr);
 
   auto *pattern = new Pattern(OpType::LOGICALINNERJOIN);

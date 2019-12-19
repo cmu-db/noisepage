@@ -280,6 +280,11 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
 
 /**
  * Logical operator to perform a filter during a scan
+ *
+ * A key assumption made with this LogicalFilter is that the predicates
+ * are the result of splitting the original predicate along
+ * CONJUNCTION_AND. Refer to QueryToOperatorTransformer::CollectPredicates
+ * and QueryToOperatorTransformer::SplitPredicates for reference.
  */
 class LogicalFilter : public OperatorNode<LogicalFilter> {
  public:

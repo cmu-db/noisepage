@@ -35,7 +35,7 @@ double Selectivity::ComputeSelectivity(common::ManagedPointer<TableStats> stats,
 }
 
 double Selectivity::LessThan(common::ManagedPointer<TableStats> table_stats, const ValueCondition &condition) {
-  // Convert peloton value type to raw value (double)
+  // Convert value type to raw value (double)
   double v = TransientValueUtil::TransientValueToNumericValue(*condition.GetPointerToValue());
   if (std::isnan(v)) {
     OPTIMIZER_LOG_TRACE("Error computing less than for non-numeric type");

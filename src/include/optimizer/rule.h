@@ -58,9 +58,14 @@ enum class RuleType : uint32_t {
 };
 
 /**
- * Enum defining sets of rewrite rules
+ * Enum defining set of rules
  */
-enum class RewriteRuleSetName : uint32_t { PREDICATE_PUSH_DOWN = 0, UNNEST_SUBQUERY };
+enum class RuleSetName : uint32_t {
+  PREDICATE_PUSH_DOWN = 0,
+  UNNEST_SUBQUERY,
+  LOGICAL_TRANSFORMATION,
+  PHYSICAL_IMPLEMENTATION
+};
 
 /**
  * Enum defining rule promises
@@ -266,62 +271,28 @@ class RuleSet {
   }
 
   /**
-   * Adds a transformation rule to the RuleSet
+   * Adds a rule to the RuleSet
+   * @param set RuleSet to add the rule to
    * @param rule Rule to add
    */
-  void AddTransformationRule(Rule *rule) { transformation_rules_.push_back(rule); }
-
-  /**
-   * Adds an implementation rule to the RuleSet
-   * @param rule Rule to add
-   */
-  void AddImplementationRule(Rule *rule) { implementation_rules_.push_back(rule); }
-
-  /**
-   * Adds a rewrite rule to the RuleSet
-   * @param set Rewrie RuleSet to add the rule to
-   * @param rule Rule to add
-   */
-  void AddRewriteRule(RewriteRuleSetName set, Rule *rule) {
-    rewrite_rules_map_[static_cast<uint32_t>(set)].push_back(rule);
+  void AddRule(RuleSetName set, Rule *rule) {
+    rules_map_[static_cast<uint32_t>(set)].push_back(rule);
   }
-
-  /**
-   * Gets all stored transformation rules
-   * @returns vector of transformation rules
-   */
-  std::vector<Rule *> &GetTransformationRules() { return transformation_rules_; }
-
-  /**
-   * Gets all stored implementation rules
-   * @returns vector of implementation rules
-   */
-  std::vector<Rule *> &GetImplementationRules() { return implementation_rules_; }
 
   /**
    * Gets all stored rules in a given RuleSet
    * @param set Rewrite RuleSet to fetch
    * @returns vector of rules in that rewrite ruleset group
    */
-  std::vector<Rule *> &GetRewriteRulesByName(RewriteRuleSetName set) {
+  std::vector<Rule *> &GetRulesByName(RuleSetName set) {
     return rewrite_rules_map_[static_cast<uint32_t>(set)];
   }
 
  private:
   /**
-   * Vector of logical transformation rules
+   * Map from RuleSetName (uint32_t) -> vector of rules
    */
-  std::vector<Rule *> transformation_rules_;
-
-  /**
-   * Vector of physical implementation rules
-   */
-  std::vector<Rule *> implementation_rules_;
-
-  /**
-   * Map from RewriteRuleSetName (uint32_t) -> vector of rules
-   */
-  std::unordered_map<uint32_t, std::vector<Rule *>> rewrite_rules_map_;
+  std::unordered_map<uint32_t, std::vector<Rule *>> rules_map_;
 };
 
 }  // namespace terrier::optimizer

@@ -72,9 +72,10 @@ void OptimizeExpression::Execute() {
   std::vector<RuleWithPromise> valid_rules;
 
   // Construct valid transformation rules from rule set
-  // Construct valid implementation rules from rule set
-  ConstructValidRules(group_expr_, context_, GetRuleSet().GetTransformationRules(), &valid_rules);
-  ConstructValidRules(group_expr_, context_, GetRuleSet().GetImplementationRules(), &valid_rules);
+  auto logical_rules = GetRuleSet().GetRulesByName(RuleSetName::LOGICAL_TRANSFORMATION);
+  auto phys_rules = GetRuleSet().GetRulesByName(RuleSetName::PHYSICAL_IMPLEMENTATION);
+  ConstructValidRules(group_expr_, context_, logical_rules, &valid_rules);
+  ConstructValidRules(group_expr_, context_, phys_rules, &valid_rules);
 
   std::sort(valid_rules.begin(), valid_rules.end());
   OPTIMIZER_LOG_DEBUG("OptimizeExpression::execute() op {0}, valid rules : {1}",
@@ -120,7 +121,8 @@ void ExploreExpression::Execute() {
   std::vector<RuleWithPromise> valid_rules;
 
   // Construct valid transformation rules from rule set
-  ConstructValidRules(group_expr_, context_, GetRuleSet().GetTransformationRules(), &valid_rules);
+  auto logical_rules = GetRuleSet().GetRulesByName(RuleSetName::LOGICAL_TRANSFORMATION);
+  ConstructValidRules(group_expr_, context_, logical_rules, &valid_rules);
   std::sort(valid_rules.begin(), valid_rules.end());
 
   // Apply rule
