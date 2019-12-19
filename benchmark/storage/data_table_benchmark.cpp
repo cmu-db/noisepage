@@ -88,7 +88,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, Insert)(benchmark::State &state) {
   if (env_threads == nullptr) {
     // todo: now what?
   } else {
-    num_threads_ = *env_threads;
+    num_threads_ = atoi(env_threads);
   }
   // NOLINTNEXTLINE
   for (auto _ : state) {

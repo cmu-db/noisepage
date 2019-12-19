@@ -61,7 +61,7 @@ BENCHMARKS_TO_RUN = [
     "cuckoomap_benchmark",
     "parser_benchmark",
 ]
-os.environ["TERRIER_BENCHMARK_CORES"] = 4
+os.environ["TERRIER_BENCHMARK_CORES"] = "4"
 # Where to find the benchmarks to execute
 BENCHMARK_PATH = "../../build/release/"
 
