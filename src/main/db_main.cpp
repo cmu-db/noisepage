@@ -70,7 +70,7 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
   gc_thread_ = new storage::GarbageCollectorThread(garbage_collector_,
                                                    std::chrono::milliseconds{type::TransientValuePeeker::PeekInteger(
                                                        param_map_.find(settings::Param::gc_interval)->second.value_)},
-                                                   nullptr);
+                                                   metrics_manager_);
 
   t_cop_ = new trafficcop::TrafficCop(common::ManagedPointer(txn_manager_), common::ManagedPointer(catalog_));
   connection_handle_factory_ = new network::ConnectionHandleFactory(common::ManagedPointer(t_cop_));

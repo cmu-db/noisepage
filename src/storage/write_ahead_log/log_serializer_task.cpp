@@ -33,8 +33,9 @@ void LogSerializerTask::LogSerializerTaskLoop() {
 
 bool LogSerializerTask::Process() {
   uint64_t num_bytes = 0, num_records = 0;
-  if (common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::LOGGING)) {
+  bool logging_metrics_enabled = common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::LOGGING);
+  if (logging_metrics_enabled) {
     // start the operating unit resource tracker
     common::thread_context.resource_tracker_.Start();
   }
@@ -85,8 +86,7 @@ bool LogSerializerTask::Process() {
   }
   serialized_txns_.clear();
 
-  if (common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::LOGGING)) {
+  if (logging_metrics_enabled) {
     // Stop the resource tracker for this operating unit
     common::thread_context.resource_tracker_.Stop();
     if (num_bytes > 0) {

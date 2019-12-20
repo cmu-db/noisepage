@@ -80,24 +80,23 @@ class MetricsStore {
 
   /**
    * Record metrics for transaction manager when beginning transaction
-   * @param elapsed_us first entry of txn datapoint
-   * @param txn_start second entry of txn datapoint
+   * @param resource_metrics first entry of txn datapoint
    */
-  void RecordBeginData(const uint64_t elapsed_us, const transaction::timestamp_t txn_start) {
+  void RecordBeginData(const common::ResourceTracker::Metrics &resource_metrics) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::TRANSACTION), "TransactionMetric not enabled.");
     TERRIER_ASSERT(txn_metric_ != nullptr, "TransactionMetric not allocated. Check MetricsStore constructor.");
-    txn_metric_->RecordBeginData(elapsed_us, txn_start);
+    txn_metric_->RecordBeginData(resource_metrics);
   }
 
   /**
    * Record metrics for transaction manager when ending transaction
-   * @param elapsed_us first entry of txn datapoint
-   * @param txn_start second entry of txn datapoint
+   * @param is_readonly first entry of txn datapoint
+   * @param resource_metrics second entry of txn datapoint
    */
-  void RecordCommitData(const uint64_t elapsed_us, const transaction::timestamp_t txn_start) {
+  void RecordCommitData(const uint64_t is_readonly, const common::ResourceTracker::Metrics &resource_metrics) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::TRANSACTION), "TransactionMetric not enabled.");
     TERRIER_ASSERT(txn_metric_ != nullptr, "TransactionMetric not allocated. Check MetricsStore constructor.");
-    txn_metric_->RecordCommitData(elapsed_us, txn_start);
+    txn_metric_->RecordCommitData(is_readonly, resource_metrics);
   }
 
   /**

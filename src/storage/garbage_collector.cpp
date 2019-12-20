@@ -34,9 +34,10 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
 
 uint32_t GarbageCollector::ProcessDeallocateQueue(transaction::timestamp_t oldest_txn) {
   uint32_t txns_processed = 0;
+  bool gc_metrics_enabled = common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::GARBAGECOLLECTION);
 
-  if (common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::GARBAGECOLLECTION)) {
+  if (gc_metrics_enabled) {
     // start the operating unit resource tracker
     common::thread_context.resource_tracker_.Start();
   }
@@ -52,8 +53,7 @@ uint32_t GarbageCollector::ProcessDeallocateQueue(transaction::timestamp_t oldes
     txns_to_deallocate_.clear();
   }
 
-  if (common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::GARBAGECOLLECTION)) {
+  if (gc_metrics_enabled) {
     // Stop the resource tracker for this operating unit
     common::thread_context.resource_tracker_.Stop();
     if (txns_processed > 0) {
@@ -68,8 +68,9 @@ uint32_t GarbageCollector::ProcessDeallocateQueue(transaction::timestamp_t oldes
 uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_txn) {
   transaction::TransactionContext *txn = nullptr;
 
-  if (common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::GARBAGECOLLECTION)) {
+  bool gc_metrics_enabled = common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::GARBAGECOLLECTION);
+  if (gc_metrics_enabled) {
     // start the operating unit resource tracker
     common::thread_context.resource_tracker_.Start();
   }
@@ -129,8 +130,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_tx
   // Requeue any txns that we were still visible to running transactions
   txns_to_unlink_ = transaction::TransactionQueue(std::move(requeue));
 
-  if (common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::GARBAGECOLLECTION)) {
+  if (gc_metrics_enabled) {
     // Stop the resource tracker for this operating unit
     common::thread_context.resource_tracker_.Stop();
     if (txns_processed > 0) {
