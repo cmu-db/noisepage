@@ -31,8 +31,8 @@ UnnestMarkJoinToInnerJoin::UnnestMarkJoinToInnerJoin() {
   match_pattern_->AddChild(new Pattern(OpType::LEAF));
 }
 
-RewriteRulePromise UnnestMarkJoinToInnerJoin::Promise(GroupExpression *group_expr) const {
-  return RewriteRulePromise::LOGICAL_PROMISE;
+RulePromise UnnestMarkJoinToInnerJoin::Promise(GroupExpression *group_expr) const {
+  return RulePromise::LOGICAL_PROMISE;
 }
 
 bool UnnestMarkJoinToInnerJoin::Check(common::ManagedPointer<OperatorExpression> plan,
@@ -71,8 +71,8 @@ UnnestSingleJoinToInnerJoin::UnnestSingleJoinToInnerJoin() {
   match_pattern_->AddChild(new Pattern(OpType::LEAF));
 }
 
-RewriteRulePromise UnnestSingleJoinToInnerJoin::Promise(GroupExpression *group_expr) const {
-  return RewriteRulePromise::LOGICAL_PROMISE;
+RulePromise UnnestSingleJoinToInnerJoin::Promise(GroupExpression *group_expr) const {
+  return RulePromise::LOGICAL_PROMISE;
 }
 
 bool UnnestSingleJoinToInnerJoin::Check(common::ManagedPointer<OperatorExpression> plan,

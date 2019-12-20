@@ -71,7 +71,7 @@ enum class RuleSetName : uint32_t {
  * Enum defining rule promises
  * LogicalPromise should be used for logical rules and/or low priority unnest
  */
-enum class RewriteRulePromise : uint32_t {
+enum class RulePromise : uint32_t {
   /**
    * NO promise. Rule cannot be used
    */
@@ -149,11 +149,10 @@ class Rule {
    * rule.
    *
    * @param group_expr The current group expression to apply the rule
-   * @param context The current context for the optimization
    *
    * @return The promise, the higher the promise, the rule should be applied sooner
    */
-  virtual RewriteRulePromise Promise(GroupExpression *group_expr) const;
+  virtual RulePromise Promise(GroupExpression *group_expr) const;
 
   /**
    * Check if the rule is applicable for the operator expression. The
@@ -202,7 +201,7 @@ struct RuleWithPromise {
    * @param rule Pointer to rule
    * @param promise Promise of the rule
    */
-  RuleWithPromise(Rule *rule, RewriteRulePromise promise) : rule_(rule), promise_(promise) {}
+  RuleWithPromise(Rule *rule, RulePromise promise) : rule_(rule), promise_(promise) {}
 
   /**
    * Gets the rule
@@ -214,7 +213,7 @@ struct RuleWithPromise {
    * Gets the promise
    * @returns Promise
    */
-  RewriteRulePromise GetPromise() { return promise_; }
+  RulePromise GetPromise() { return promise_; }
 
   /**
    * Checks whether this is less than another RuleWithPromise by comparing promise.
@@ -239,7 +238,7 @@ struct RuleWithPromise {
   /**
    * Promise
    */
-  RewriteRulePromise promise_;
+  RulePromise promise_;
 };
 
 /**

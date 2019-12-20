@@ -23,7 +23,7 @@ class RuleSet;
 class Group;
 class GroupExpression;
 class OptimizerContext;
-enum class RewriteRuleSetName : uint32_t;
+enum class RuleSetName : uint32_t;
 
 /**
  * Enumeration defining the various optimizer task types
@@ -61,7 +61,6 @@ class OptimizerTask {
    * before logical rules
    *
    * @param group_expr The group expressions to apply rules
-   * @param context The current optimize context
    * @param rules The candidate rule set
    * @param valid_rules The valid rules to apply in the current rule set will be
    *  append to valid_rules, with their promises
@@ -393,7 +392,7 @@ class TopDownRewrite : public OptimizerTask {
    * @param context Current optimize context
    * @param rule_set_name RuleSet to execute
    */
-  TopDownRewrite(group_id_t group_id, OptimizationContext *context, RewriteRuleSetName rule_set_name)
+  TopDownRewrite(group_id_t group_id, OptimizationContext *context, RuleSetName rule_set_name)
       : OptimizerTask(context, OptimizerTaskType::TOP_DOWN_REWRITE),
         group_id_(group_id),
         rule_set_name_(rule_set_name) {}
@@ -412,7 +411,7 @@ class TopDownRewrite : public OptimizerTask {
   /**
    * Set of rules to apply
    */
-  RewriteRuleSetName rule_set_name_;
+  RuleSetName rule_set_name_;
 };
 
 /**
@@ -429,7 +428,7 @@ class BottomUpRewrite : public OptimizerTask {
    * @param rule_set_name RuleSet to execute
    * @param has_optimized_child Flag indicating whether children have been optimized
    */
-  BottomUpRewrite(group_id_t group_id, OptimizationContext *context, RewriteRuleSetName rule_set_name,
+  BottomUpRewrite(group_id_t group_id, OptimizationContext *context, RuleSetName rule_set_name,
                   bool has_optimized_child)
       : OptimizerTask(context, OptimizerTaskType::BOTTOM_UP_REWRITE),
         group_id_(group_id),
@@ -450,7 +449,7 @@ class BottomUpRewrite : public OptimizerTask {
   /**
    * Set of rules to apply
    */
-  RewriteRuleSetName rule_set_name_;
+  RuleSetName rule_set_name_;
 
   /**
    * Flag indicating whether children have been optimized

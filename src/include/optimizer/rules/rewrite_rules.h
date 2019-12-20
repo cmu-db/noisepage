@@ -174,10 +174,9 @@ class RewritePullFilterThroughMarkJoin : public Rule {
   /**
    * Gets the rule's promise to apply against a GroupExpression
    * @param group_expr GroupExpression to compute promise from
-   * @param context OptimizationContext currently executing under
    * @returns The promise value of applying the rule for ordering
    */
-  RewriteRulePromise Promise(GroupExpression *group_expr, OptimizationContext *context) const override;
+  RulePromise Promise(GroupExpression *group_expr) const override;
 
   /**
    * Checks whether the given rule can be applied
@@ -211,10 +210,9 @@ class RewritePullFilterThroughAggregation : public Rule {
   /**
    * Gets the rule's promise to apply against a GroupExpression
    * @param group_expr GroupExpression to compute promise from
-   * @param context OptimizationContext currently executing under
    * @returns The promise value of applying the rule for ordering
    */
-  RewriteRulePromise Promise(GroupExpression *group_expr, OptimizationContext *context) const override;
+  RulePromise Promise(GroupExpression *group_expr) const override;
 
   /**
    * Checks whether the given rule can be applied

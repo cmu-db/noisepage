@@ -6,18 +6,18 @@
 
 namespace terrier::optimizer {
 
-RewriteRulePromise Rule::Promise(GroupExpression *group_expr) const {
+RulePromise Rule::Promise(GroupExpression *group_expr) const {
   auto root_type = match_pattern_->Type();
   // This rule is not applicable
   if (root_type != OpType::LEAF && root_type != group_expr->Op().GetType()) {
-    return RewriteRulePromise::NO_PROMISE;
+    return RulePromise::NO_PROMISE;
   }
-  if (IsPhysical()) return RewriteRulePromise::PHYSICAL_PROMISE;
-  return RewriteRulePromise::LOGICAL_PROMISE;
+  if (IsPhysical()) return RulePromise::PHYSICAL_PROMISE;
+  return RulePromise::LOGICAL_PROMISE;
 }
 
 RuleSet::RuleSet() {
-  AddRule(RuleSetName::LOGICAL_TRANSFORMATION, new LogicalInnerJoinCommutavitity());
+  AddRule(RuleSetName::LOGICAL_TRANSFORMATION, new LogicalInnerJoinCommutativity());
   AddRule(RuleSetName::LOGICAL_TRANSFORMATION, new LogicalInnerJoinAssociativity());
 
   AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalDeleteToPhysicalDelete());

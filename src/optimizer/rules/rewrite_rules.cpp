@@ -363,8 +363,8 @@ RewritePullFilterThroughMarkJoin::RewritePullFilterThroughMarkJoin() {
   match_pattern_->AddChild(filter);
 }
 
-RewriteRulePromise RewritePullFilterThroughMarkJoin::Promise(GroupExpression *group_expr) const {
-  return RewriteRulePromise::UNNEST_PROMISE_HIGH;
+RulePromise RewritePullFilterThroughMarkJoin::Promise(GroupExpression *group_expr) const {
+  return RulePromise::UNNEST_PROMISE_HIGH;
 }
 
 bool RewritePullFilterThroughMarkJoin::Check(common::ManagedPointer<OperatorExpression> plan,
@@ -413,8 +413,8 @@ RewritePullFilterThroughAggregation::RewritePullFilterThroughAggregation() {
   match_pattern_->AddChild(filter);
 }
 
-RewriteRulePromise RewritePullFilterThroughAggregation::Promise(GroupExpression *group_expr) const {
-  return RewriteRulePromise::UNNEST_PROMISE_HIGH;
+RulePromise RewritePullFilterThroughAggregation::Promise(GroupExpression *group_expr) const {
+  return RulePromise::UNNEST_PROMISE_HIGH;
 }
 
 bool RewritePullFilterThroughAggregation::Check(common::ManagedPointer<OperatorExpression> plan,

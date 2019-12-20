@@ -23,6 +23,10 @@ void OptimizerTask::ConstructValidRules(GroupExpression *group_expr, const std::
     // Check if we can apply the rule
     bool root_pattern_mismatch = group_expr->Op().GetType() != rule->GetMatchPattern()->Type();
     bool already_explored = group_expr->HasRuleExplored(rule);
+
+    // This check exists only as an "early" reject. As is evident, we do not check
+    // the full patern here. Checking the full pattern happens when actually trying to
+    // apply the rule (via a GroupExprBindingIterator).
     bool child_pattern_mismatch =
         group_expr->GetChildrenGroupsSize() != rule->GetMatchPattern()->GetChildPatternsSize();
 
@@ -31,7 +35,7 @@ void OptimizerTask::ConstructValidRules(GroupExpression *group_expr, const std::
     }
 
     auto promise = rule->Promise(group_expr);
-    if (promise != RewriteRulePromise::NO_PROMISE) valid_rules->emplace_back(rule, promise);
+    if (promise != RulePromise::NO_PROMISE) valid_rules->emplace_back(rule, promise);
   }
 }
 
@@ -380,7 +384,7 @@ void TopDownRewrite::Execute() {
   auto cur_group_expr = cur_group->GetLogicalExpression();
 
   // Construct valid transformation rules from rule set
-  std::vector<Rule *> set = GetRuleSet().GetRewriteRulesByName(rule_set_name_);
+  std::vector<Rule *> set = GetRuleSet().GetRulesByName(rule_set_name_);
   ConstructValidRules(cur_group_expr, set, &valid_rules);
 
   // Sort so that we apply rewrite rules with higher promise first
@@ -437,7 +441,7 @@ void BottomUpRewrite::Execute() {
   }
 
   // Construct valid transformation rules from rule set
-  std::vector<Rule *> set = GetRuleSet().GetRewriteRulesByName(rule_set_name_);
+  std::vector<Rule *> set = GetRuleSet().GetRulesByName(rule_set_name_);
   ConstructValidRules(cur_group_expr, set, &valid_rules);
 
   // Sort so that we apply rewrite rules with higher promise first
