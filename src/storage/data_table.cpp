@@ -392,8 +392,11 @@ void DataTable::ExportTable(const std::string &file_name) {
 
   const BlockLayout &layout = accessor_.GetBlockLayout();
   auto column_ids = layout.AllColumns();
-  common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
-  for (RawBlock *block : blocks_) {
+  blocks_latch_.Lock();
+  std::list<RawBlock *> tmp_blocks = blocks_;
+  blocks_latch_.Unlock();
+
+  for (RawBlock *block : tmp_blocks) {
     std::vector<flatbuf::FieldNode> field_nodes;
     std::vector<flatbuf::Buffer> buffers;
 
