@@ -63,7 +63,7 @@ class InsertPlanNode : public AbstractPlanNode {
      * @param values values to insert
      * @return builder object
      */
-    Builder &AddValues(std::vector<type::TransientValue> &&values) {
+    Builder &AddValues(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&values) {
       values_.emplace_back(std::move(values));
       return *this;
     }
@@ -120,7 +120,7 @@ class InsertPlanNode : public AbstractPlanNode {
      * vector of values to insert. Multiple vector of values corresponds to a bulk insert. Values for each tuple are
      * ordered the same across tuples. Parameter info provides column mapping of values
      */
-    std::vector<std::vector<type::TransientValue>> values_;
+    std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> values_;
 
     /**
      * parameter information. Provides which column a value should be inserted into. For example, for a tuple t at
@@ -147,7 +147,7 @@ class InsertPlanNode : public AbstractPlanNode {
    */
   InsertPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
                  catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
-                 std::vector<std::vector<type::TransientValue>> &&values,
+                 std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values,
                  std::vector<catalog::col_oid_t> &&parameter_info)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
@@ -184,10 +184,12 @@ class InsertPlanNode : public AbstractPlanNode {
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
 
   /**
-   * @param idx index of tuple in values vecor
+   * @param idx index of tuple in values vector
    * @return values to be inserted
    */
-  const std::vector<type::TransientValue> &GetValues(const uint32_t idx) const { return values_[idx]; }
+  const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetValues(uint32_t idx) const {
+    return values_[idx];
+  }
 
   /**
    * @return the information of insert parameters
@@ -241,7 +243,7 @@ class InsertPlanNode : public AbstractPlanNode {
    * vector of values to insert. Multiple vector of values corresponds to a bulk insert. Values for each tuple are
    * ordered the same across tuples. Parameter info provides column mapping of values
    */
-  std::vector<std::vector<type::TransientValue>> values_;
+  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> values_;
 
   /**
    * parameter information. Provides which column a value should be inserted into. For example, for a tuple t at

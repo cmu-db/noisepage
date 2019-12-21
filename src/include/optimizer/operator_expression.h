@@ -25,6 +25,45 @@ class OperatorExpression {
       : op_(std::move(op)), children_(std::move(children)) {}
 
   /**
+   * Copy
+   */
+  std::unique_ptr<OperatorExpression> Copy() {
+    std::vector<std::unique_ptr<OperatorExpression>> child;
+    for (const auto &op : children_) {
+      child.emplace_back(op->Copy());
+    }
+    return std::make_unique<OperatorExpression>(Operator(op_), std::move(child));
+  }
+
+  /**
+   * Equality comparison
+   * @param other OperatorExpression to compare against
+   * @returns true if equal
+   */
+  bool operator==(const OperatorExpression &other) const {
+    if (op_ != other.op_) return false;
+    if (children_.size() != other.children_.size()) return false;
+
+    for (size_t idx = 0; idx < children_.size(); idx++) {
+      auto &child = children_[idx];
+      auto &other_child = other.children_[idx];
+      TERRIER_ASSERT(child != nullptr, "OperatorExpression should not have null children");
+      TERRIER_ASSERT(other_child != nullptr, "OperatorExpression should not have null children");
+
+      if (*child != *other_child) return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Not equal comparison
+   * @param other OperatorExpression to compare against
+   * @returns true if not equal
+   */
+  bool operator!=(const OperatorExpression &other) const { return !(*this == other); }
+
+  /**
    * Move constructor
    * @param op other to construct from
    */
