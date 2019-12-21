@@ -73,6 +73,7 @@ struct CatalogTests : public TerrierTest {
     VerifyTablePresent(accessor, ns_oid, "pg_index");
     VerifyTablePresent(accessor, ns_oid, "pg_namespace");
     VerifyTablePresent(accessor, ns_oid, "pg_type");
+    VerifyTablePresent(accessor, ns_oid, "pg_language");
   }
 
   void VerifyTablePresent(const catalog::CatalogAccessor &accessor, catalog::namespace_oid_t ns_oid,

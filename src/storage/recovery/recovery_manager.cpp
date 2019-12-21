@@ -12,6 +12,7 @@
 #include "catalog/postgres/pg_constraint.h"
 #include "catalog/postgres/pg_database.h"
 #include "catalog/postgres/pg_index.h"
+#include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/postgres/pg_type.h"
 #include "storage/index/index_builder.h"
@@ -805,6 +806,10 @@ common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transacti
     }
     case (!catalog::postgres::TYPE_TABLE_OID): {
       table_ptr = common::ManagedPointer(db_catalog_ptr->types_);
+      break;
+    }
+    case (!catalog::postgres::LANGUAGE_TABLE_OID): {
+      table_ptr = common::ManagedPointer(db_catalog_ptr->languages_);
       break;
     }
     default:
