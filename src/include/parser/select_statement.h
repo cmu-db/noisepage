@@ -38,8 +38,6 @@ class OrderByDescription {
    */
   OrderByDescription() = default;
 
-  virtual ~OrderByDescription() = default;
-
   /**
    * @return a copy of the order by description
    */
@@ -70,7 +68,12 @@ class OrderByDescription {
   std::vector<OrderType> GetOrderByTypes() { return types_; }
 
   /**
-   * @return order by expressions
+   * @return number of order by expressions
+   */
+  size_t GetOrderByExpressionsSize() const { return exprs_.size(); }
+
+  /**
+   * @return order by expression
    */
   const std::vector<common::ManagedPointer<AbstractExpression>> &GetOrderByExpressions() const { return exprs_; }
 
@@ -377,8 +380,6 @@ class SelectStatement : public SQLStatement {
         order_by_(std::move(order_by)),
         limit_(std::move(limit)),
         union_select_(nullptr) {}
-
-  ~SelectStatement() override = default;
 
   /** Default constructor for deserialization. */
   SelectStatement() = default;

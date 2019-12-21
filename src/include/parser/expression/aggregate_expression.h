@@ -27,11 +27,26 @@ class AggregateExpression : public AbstractExpression {
   /** Default constructor for deserialization. */
   AggregateExpression() = default;
 
+  /**
+   * Creates a copy of the current AbstractExpression
+   * @returns Copy of this
+   */
   std::unique_ptr<AbstractExpression> Copy() const override {
     std::vector<std::unique_ptr<AbstractExpression>> children;
     for (const auto &child : GetChildren()) {
       children.emplace_back(child->Copy());
     }
+    return CopyWithChildren(std::move(children));
+  }
+
+  /**
+   * Creates a copy of the current AbstractExpression with new children implanted.
+   * The children should not be owned by any other AbstractExpression.
+   * @param children New children to be owned by the copy
+   * @returns copy of this with new children
+   */
+  std::unique_ptr<AbstractExpression> CopyWithChildren(
+      std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
     auto expr = std::make_unique<AggregateExpression>(GetExpressionType(), std::move(children), IsDistinct());
     expr->SetMutableStateForCopy(*this);
     return expr;
@@ -63,7 +78,7 @@ class AggregateExpression : public AbstractExpression {
       case ExpressionType::AGGREGATE_MIN:
       case ExpressionType::AGGREGATE_SUM:
         TERRIER_ASSERT(this->GetChildrenSize() >= 1, "No column name given.");
-        this->GetChild(0)->DeriveReturnValueType();
+        const_cast<parser::AbstractExpression *>(this->GetChild(0).Get())->DeriveReturnValueType();
         this->SetReturnValueType(this->GetChild(0)->GetReturnValueType());
         break;
       case ExpressionType::AGGREGATE_AVG:

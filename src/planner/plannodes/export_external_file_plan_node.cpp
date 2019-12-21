@@ -21,6 +21,8 @@ common::hash_t ExportExternalFilePlanNode::Hash() const {
   // Escape Char
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(escape_));
 
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(format_));
+
   return hash;
 }
 
@@ -41,6 +43,8 @@ bool ExportExternalFilePlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Escape Char
   if (escape_ != other.escape_) return false;
 
+  if (format_ != other.format_) return false;
+
   return true;
 }
 
@@ -50,6 +54,7 @@ nlohmann::json ExportExternalFilePlanNode::ToJson() const {
   j["delimiter"] = delimiter_;
   j["quote"] = quote_;
   j["escape"] = escape_;
+  j["format"] = format_;
   return j;
 }
 
@@ -61,6 +66,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> ExportExternalFilePlanN
   delimiter_ = j.at("delimiter").get<char>();
   quote_ = j.at("quote").get<char>();
   escape_ = j.at("escape").get<char>();
+  format_ = j.at("format").get<parser::ExternalFileFormat>();
   return exprs;
 }
 }  // namespace terrier::planner

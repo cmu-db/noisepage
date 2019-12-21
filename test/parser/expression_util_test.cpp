@@ -5,8 +5,8 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "parser/expression/expression_util.h"
 #include "parser/expression/operator_expression.h"
+#include "parser/expression_util.h"
 #include "type/type_id.h"
 
 using ::testing::ElementsAre;

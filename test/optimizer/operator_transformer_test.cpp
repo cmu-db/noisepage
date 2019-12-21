@@ -212,7 +212,7 @@ TEST_F(OperatorTransformerTest, InsertStatementSimpleTest) {
   EXPECT_EQ(db_oid_, logical_insert->GetDatabaseOid());
   EXPECT_EQ(default_namespace_oid, logical_insert->GetNamespaceOid());
   EXPECT_EQ(table_a_oid_, logical_insert->GetTableOid());
-  EXPECT_EQ(std::vector<catalog::col_oid_t>({catalog::col_oid_t(2), catalog::col_oid_t(1)}),
+  EXPECT_EQ(std::vector<catalog::col_oid_t>({catalog::col_oid_t(1), catalog::col_oid_t(2)}),
             logical_insert->GetColumns());
 
   auto insert_value_a1 =
@@ -344,7 +344,7 @@ TEST_F(OperatorTransformerTest, SelectStatementDistinctTest) {
   std::string select_sql = "SELECT DISTINCT B1 FROM B WHERE B1 <= 5";
 
   std::string ref =
-      "{\"Op\":\"LogicalDistinct\",\"Children\":"
+      "{\"Op\":\"LogicalAggregateAndGroupBy\",\"Children\":"
       "[{\"Op\":\"LogicalFilter\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",}]}]}";
 
@@ -668,8 +668,7 @@ TEST_F(OperatorTransformerTest, SelectStatementDiffTableSameSchemaTest) {
   std::string ref =
       "{\"Op\":\"LogicalFilter\",\"Children\":"
       "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
-      "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
-      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]},{\"Op\":\"LogicalGet\",}]}]}";
+      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
@@ -691,8 +690,7 @@ TEST_F(OperatorTransformerTest, SelectStatementSelectListAliasTest) {
   std::string ref =
       "{\"Op\":\"LogicalFilter\",\"Children\":"
       "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
-      "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
-      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]},{\"Op\":\"LogicalGet\",}]}]}";
+      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
