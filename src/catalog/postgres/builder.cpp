@@ -9,6 +9,7 @@
 #include "catalog/postgres/pg_constraint.h"
 #include "catalog/postgres/pg_database.h"
 #include "catalog/postgres/pg_index.h"
+#include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
@@ -80,6 +81,7 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(storage::BlockStore *block_store
   dbc->columns_ = new storage::SqlTable(block_store, Builder::GetColumnTableSchema());
   dbc->types_ = new storage::SqlTable(block_store, Builder::GetTypeTableSchema());
   dbc->constraints_ = new storage::SqlTable(block_store, Builder::GetConstraintTableSchema());
+  dbc->languages_ = new storage::SqlTable(block_store, Builder::GetLanguageTableSchema());
 
   // Indexes on pg_namespace
   dbc->namespaces_oid_index_ =
@@ -120,6 +122,12 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(storage::BlockStore *block_store
       Builder::BuildLookupIndex(Builder::GetConstraintIndexIndexSchema(oid), CONSTRAINT_INDEX_INDEX_OID);
   dbc->constraints_foreigntable_index_ =
       Builder::BuildLookupIndex(Builder::GetConstraintForeignTableIndexSchema(oid), CONSTRAINT_FOREIGNTABLE_INDEX_OID);
+
+  // Indexes on pg_language
+  dbc->languages_oid_index_ =
+      Builder::BuildUniqueIndex(Builder::GetLanguageOidIndexSchema(oid), LANGUAGE_OID_INDEX_OID);
+  dbc->languages_name_index_ =
+      Builder::BuildUniqueIndex(Builder::GetLanguageNameIndexSchema(oid), LANGUAGE_NAME_INDEX_OID);
 
   dbc->next_oid_.store(START_OID);
 
@@ -290,6 +298,18 @@ Schema Builder::GetTypeTableSchema() {
 
   columns.emplace_back("typtype", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
   columns.back().SetOid(TYPTYPE_COL_OID);
+
+  return Schema(columns);
+}
+
+Schema Builder::GetLanguageTableSchema() {
+  std::vector<Schema::Column> columns;
+
+  columns.emplace_back("lanoid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(LANGOID_COL_OID);
+
+  columns.emplace_back("lanname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, MakeNull(type::TypeId::VARCHAR));
+  columns.back().SetOid(LANGNAME_COL_OID);
 
   return Schema(columns);
 }
@@ -544,6 +564,32 @@ IndexSchema Builder::GetConstraintForeignTableIndexSchema(db_oid_t db) {
 
   // Not unique
   IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
+
+  return schema;
+}
+
+IndexSchema Builder::GetLanguageOidIndexSchema(db_oid_t db) {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back("lanoid", type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, LANGUAGE_TABLE_OID, LANGOID_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(1));
+
+  // Primary
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
+
+  return schema;
+}
+
+IndexSchema Builder::GetLanguageNameIndexSchema(db_oid_t db) {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back("lanname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
+                       parser::ColumnValueExpression(db, LANGUAGE_TABLE_OID, LANGNAME_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(1));
+
+  // Unique, not primary
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
 
   return schema;
 }

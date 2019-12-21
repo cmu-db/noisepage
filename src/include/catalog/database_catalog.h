@@ -246,6 +246,10 @@ class DatabaseCatalog {
   std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> GetIndexes(
       common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
 
+  bool InsertLanguage(transaction::TransactionContext *txn, const std::string &lanname);
+
+  bool DeleteLanguage(transaction::TransactionContext *txn, const std::string &lanname);
+
  private:
   /**
    * Create a namespace with a given ns oid
@@ -353,6 +357,11 @@ class DatabaseCatalog {
   storage::index::Index *constraints_table_index_;
   storage::index::Index *constraints_index_index_;
   storage::index::Index *constraints_foreigntable_index_;
+
+  storage::SqlTable *languages_;
+  storage::index::Index *languages_oid_index_;
+  storage::index::Index *languages_name_index_;  // indexed on language OID and name
+  storage::ProjectedRowInitializer pg_language_name_pri_;
 
   std::atomic<uint32_t> next_oid_;
   std::atomic<transaction::timestamp_t> write_lock_;

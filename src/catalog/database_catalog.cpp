@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <catalog/database_catalog.h>
 
 #include "catalog/catalog_defs.h"
 #include "catalog/index_schema.h"
@@ -12,6 +13,7 @@
 #include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_constraint.h"
 #include "catalog/postgres/pg_index.h"
+#include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
@@ -208,6 +210,29 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::CONSTRAINT_FOREIGNTABLE_INDEX_OID, constraints_foreigntable_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+
+
+  // pg_language and associated indexes
+  retval = CreateTableEntry(txn, postgres::LANGUAGE_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_language",
+                            postgres::Builder::GetLanguageTableSchema());
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetTablePointer(txn, postgres::LANGUAGE_TABLE_OID, languages_);
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+
+  retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::LANGUAGE_TABLE_OID,
+                            postgres::LANGUAGE_OID_INDEX_OID, "pg_languages_oid_index",
+                            postgres::Builder::GetLanguageOidIndexSchema(db_oid_));
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetIndexPointer(txn, postgres::LANGUAGE_OID_INDEX_OID, languages_oid_index_);
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+
+  retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::LANGUAGE_TABLE_OID,
+                            postgres::LANGUAGE_NAME_INDEX_OID, "pg_languages_name_index",
+                            postgres::Builder::GetLanguageNameIndexSchema(db_oid_));
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetIndexPointer(txn, postgres::LANGUAGE_NAME_INDEX_OID, languages_name_index_);
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+
 }
 
 void DatabaseCatalog::BootstrapPRIs() {
@@ -287,6 +312,11 @@ void DatabaseCatalog::BootstrapPRIs() {
                                                 postgres::PG_TYPE_ALL_COL_OIDS.cend()};
   pg_type_all_cols_pri_ = types_->InitializerForProjectedRow(pg_type_all_oids);
   pg_type_all_cols_prm_ = types_->ProjectionMapForOids(pg_type_all_oids);
+
+  // pg_language
+  const std::vector<col_oid_t> pg_language_all_oids{postgres::PG_LANGUAGE_ALL_COL_OIDS.cbegin(),
+                                                postgres::PG_LANGUAGE_ALL_COL_OIDS.cend()};
+  pg_language_name_pri_ = languages_->InitializerForProjectedRow(pg_language_all_oids);
 }
 
 namespace_oid_t DatabaseCatalog::CreateNamespace(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -1894,6 +1924,48 @@ bool DatabaseCatalog::TryLock(const common::ManagedPointer<transaction::Transact
   }
   txn->SetMustAbort();  // though no changes were written to the storage layer, we'll treat this as a DDL change failure
                         // and force the txn to rollback
+  return false;
+}
+
+bool DatabaseCatalog::InsertLanguage(transaction::TransactionContext *txn, const std::string &lanname) {
+
+  // Insert into table
+  const auto name_varlen = storage::StorageUtil::CreateVarlen(lanname);
+  // Get & Fill Redo Record
+  auto *const redo = txn->StageWrite(db_oid_, postgres::LANGUAGE_TABLE_OID, pg_language_name_pri_);
+  language_oid_t oid = static_cast<language_oid_t >(next_oid_++);
+  *(reinterpret_cast<language_oid_t *>(
+      redo->Delta()->AccessForceNotNull(pg_language_name_pri_[postgres::LANGOID_COL_OID]))) = oid;
+  *(reinterpret_cast<storage::VarlenEntry *>(
+      redo->Delta()->AccessForceNotNull(pg_language_name_pri_[postgres::LANGNAME_COL_OID]))) = name_varlen;
+  const auto tuple_slot = languages_->Insert(txn, redo);
+
+  // Insert into name index
+  auto name_pri = languages_name_index_->GetProjectedRowInitializer();
+  byte *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
+  auto *index_pr = name_pri.InitializeRow(buffer);
+  // Write the attributes in the ProjectedRow
+  *(reinterpret_cast<storage::VarlenEntry *>(index_pr->AccessForceNotNull(0))) = name_varlen;
+
+  if (!languages_name_index_->InsertUnique(txn, *index_pr, tuple_slot)) {
+    // There was a name conflict and we need to abort.  Free the buffer and return false to indicate failure
+    delete[] buffer;
+    return false;
+  }
+
+  // Insert into oid index
+  auto oid_pr = languages_oid_index_->GetProjectedRowInitializer();
+  byte *const oid_buffer = common::AllocationUtil::AllocateAligned(oid_pr.ProjectedRowSize());
+  index_pr = name_pri.InitializeRow(buffer);
+  // Write the attributes in the ProjectedRow
+  *(reinterpret_cast<language_oid_t *>(index_pr->AccessForceNotNull(0))) = oid;
+
+  TERRIER_ASSERT(languages_oid_index_->InsertUnique(txn, *index_pr, tuple_slot), "Duplicate OID Inserted");
+  return true;
+}
+
+bool DatabaseCatalog::DeleteLanguage(transaction::TransactionContext *txn, const std::string &lanname) {
+
   return false;
 }
 
