@@ -2,21 +2,34 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
+
 #include "catalog/catalog_defs.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
+#include "common/strong_typedef.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 
-namespace terrier {
+namespace terrier::optimizer {
 
-namespace parser {
-class AbstractExpression;
-}
+/**
+ * typedef for GroupID
+ */
+STRONG_TYPEDEF(group_id_t, int32_t);
 
-namespace optimizer {
+/**
+ * Definition for a UNDEFINED_GROUP
+ */
+const group_id_t UNDEFINED_GROUP = group_id_t(-1);
+
+/**
+ * Enumeration defining external file formats
+ */
+enum class ExternalFileFormat { CSV };
+
 /**
  * OrderBy ordering
  */
@@ -27,6 +40,9 @@ enum class OrderByOrderingType { ASC, DESC };
  */
 enum class OpType {
   UNDEFINED = 0,
+
+  // Special wildcard
+  LEAF,
 
   // Logical Operators
   LOGICALGET,
@@ -48,7 +64,6 @@ enum class OpType {
   LOGICALDELETE,
   LOGICALUPDATE,
   LOGICALLIMIT,
-  LOGICALDISTINCT,
   LOGICALEXPORTEXTERNALFILE,
 
   // Separation of logical and physical operators
@@ -62,7 +77,6 @@ enum class OpType {
   QUERYDERIVEDSCAN,
   ORDERBY,
   LIMIT,
-  DISTINCT,
   INNERNLJOIN,
   LEFTNLJOIN,
   RIGHTNLJOIN,
@@ -145,5 +159,70 @@ class AnnotatedExpression {
   std::unordered_set<std::string> table_alias_set_;
 };
 
-}  // namespace optimizer
-}  // namespace terrier
+/**
+ * Struct implementing equality comparisons for both terrier::parser::AbstractExpression*
+ * and the const version const terrier::parser::AbstractExpression*
+ */
+struct ExprEqualCmp {
+  /**
+   * Checks two AbstractExpression for equality
+   * @param lhs one of the AbstractExpression
+   * @param rhs the other AbstractExpression
+   * @return whether the two are equal
+   *
+   * @pre lhs != nullptr && rhs != nullptr
+   */
+  bool operator()(common::ManagedPointer<terrier::parser::AbstractExpression> lhs,
+                  common::ManagedPointer<terrier::parser::AbstractExpression> rhs) {
+    TERRIER_ASSERT(lhs != nullptr && rhs != nullptr, "AbstractExpressions should not be null");
+    return (*lhs == *rhs);
+  }
+
+  /**
+   * Checks two AbstractExpression for equality (const version)
+   * @param lhs one of the AbstractExpression
+   * @param rhs the other AbstractExpression
+   * @return whether the two are equal
+   *
+   * @pre lhs != nullptr && rhs != nullptr
+   */
+  bool operator()(const common::ManagedPointer<terrier::parser::AbstractExpression> lhs,
+                  const common::ManagedPointer<terrier::parser::AbstractExpression> rhs) const {
+    TERRIER_ASSERT(lhs != nullptr && rhs != nullptr, "AbstractExpressions should not be null");
+    return (*lhs == *rhs);
+  }
+};
+
+/**
+ * Struct implementing Hash() for const terrier::parser::AbstractExpression*
+ */
+struct ExprHasher {
+  /**
+   * Hashes the given expression
+   * @param expr the expression to hash
+   * @return hash code of the given expression
+   *
+   * @pre expr != nullptr
+   */
+  size_t operator()(const common::ManagedPointer<terrier::parser::AbstractExpression> expr) const {
+    TERRIER_ASSERT(expr != nullptr, "AbstractExpression should not be null");
+    return expr->Hash();
+  }
+};
+
+/**
+ * Defines an ExprMap
+ * ExprMap is used exclusively in the optimizer to map from an AbstractExpression
+ * to a given column offset created by specific operators.
+ */
+using ExprMap =
+    std::unordered_map<common::ManagedPointer<parser::AbstractExpression>, unsigned, ExprHasher, ExprEqualCmp>;
+
+/**
+ * Defines an ExprSet.
+ * ExprSet is used in the optimizer to speed up AbstractExpression comparisons
+ * (checking whether an AbstractExpression already exists in a collection).
+ */
+using ExprSet = std::unordered_set<common::ManagedPointer<parser::AbstractExpression>, ExprHasher, ExprEqualCmp>;
+
+}  // namespace terrier::optimizer

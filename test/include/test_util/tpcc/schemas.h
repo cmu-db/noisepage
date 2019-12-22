@@ -31,39 +31,39 @@ class Schemas {
 
     // 2*W unique IDs
     warehouse_columns.emplace_back(
-        "W_ID", type::TypeId::TINYINT, false,
+        "w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     // variable text, size 10
     warehouse_columns.emplace_back(
-        "W_NAME", type::TypeId::VARCHAR, 10, false,
+        "w_name", type::TypeId::VARCHAR, 10, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // variable text, size 20
     warehouse_columns.emplace_back(
-        "W_STREET_1", type::TypeId::VARCHAR, 20, false,
+        "w_street_1", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // variable text, size 20
     warehouse_columns.emplace_back(
-        "W_STREET_2", type::TypeId::VARCHAR, 20, false,
+        "w_street_2", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // variable text, size 20
     warehouse_columns.emplace_back(
-        "W_CITY", type::TypeId::VARCHAR, 20, false,
+        "w_city", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // fixed text, size 2
     warehouse_columns.emplace_back(
-        "W_STATE", type::TypeId::VARCHAR, 2, false,
+        "w_state", type::TypeId::VARCHAR, 2, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // fixed text, size 9
     warehouse_columns.emplace_back(
-        "W_ZIP", type::TypeId::VARCHAR, 9, false,
+        "w_zip", type::TypeId::VARCHAR, 9, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // signed numeric(4,4)
     warehouse_columns.emplace_back(
-        "W_TAX", type::TypeId::DECIMAL, false,
+        "w_tax", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     // signed numeric(12,2)
     warehouse_columns.emplace_back(
-        "W_YTD", type::TypeId::DECIMAL, false,
+        "w_ytd", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
 
     TERRIER_ASSERT(warehouse_columns.size() == NUM_WAREHOUSE_TABLE_COLS,
@@ -105,47 +105,47 @@ class Schemas {
 
     // 20 unique IDs
     district_columns.emplace_back(
-        "D_ID", type::TypeId::TINYINT, false,
+        "d_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     // 2*W unique IDs
     district_columns.emplace_back(
-        "D_W_ID", type::TypeId::TINYINT, false,
+        "d_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     // variable text, size 10
     district_columns.emplace_back(
-        "D_NAME", type::TypeId::VARCHAR, 10, false,
+        "d_name", type::TypeId::VARCHAR, 10, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // variable text, size 20
     district_columns.emplace_back(
-        "D_STREET_1", type::TypeId::VARCHAR, 20, false,
+        "d_street_1", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // variable text, size 20
     district_columns.emplace_back(
-        "D_STREET_2", type::TypeId::VARCHAR, 20, false,
+        "d_street_2", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // variable text, size 20
     district_columns.emplace_back(
-        "D_CITY", type::TypeId::VARCHAR, 20, false,
+        "d_city", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // fixed text, size 2
     district_columns.emplace_back(
-        "D_STATE", type::TypeId::VARCHAR, 2, false,
+        "d_state", type::TypeId::VARCHAR, 2, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // fixed text, size 9
     district_columns.emplace_back(
-        "D_ZIP", type::TypeId::VARCHAR, 9, false,
+        "d_zip", type::TypeId::VARCHAR, 9, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // signed numeric(4,4)
     district_columns.emplace_back(
-        "D_TAX", type::TypeId::DECIMAL, false,
+        "d_tax", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     // signed numeric(12,2)
     district_columns.emplace_back(
-        "D_YTD", type::TypeId::DECIMAL, false,
+        "d_ytd", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     // 10,000,000 unique IDs
     district_columns.emplace_back(
-        "D_NEXT_O_ID", type::TypeId::INTEGER, false,
+        "d_next_o_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
 
     TERRIER_ASSERT(district_columns.size() == NUM_DISTRICT_TABLE_COLS,
@@ -190,87 +190,87 @@ class Schemas {
 
     // 96,000 unique IDs
     customer_columns.emplace_back(
-        "C_ID", type::TypeId::INTEGER, false,
+        "c_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     // 20 unique IDs
     customer_columns.emplace_back(
-        "C_D_ID", type::TypeId::TINYINT, false,
+        "c_d_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     // 2*W unique IDs
     customer_columns.emplace_back(
-        "C_W_ID", type::TypeId::TINYINT, false,
+        "c_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     // variable text, size 16
     customer_columns.emplace_back(
-        "C_FIRST", type::TypeId::VARCHAR, 16, false,
+        "c_first", type::TypeId::VARCHAR, 16, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // fixed text, size 2
     customer_columns.emplace_back(
-        "C_MIDDLE", type::TypeId::VARCHAR, 2, false,
+        "c_middle", type::TypeId::VARCHAR, 2, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // variable text, size 16
     customer_columns.emplace_back(
-        "C_LAST", type::TypeId::VARCHAR, 16, false,
+        "c_last", type::TypeId::VARCHAR, 16, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // variable text, size 20
     customer_columns.emplace_back(
-        "C_STREET_1", type::TypeId::VARCHAR, 20, false,
+        "c_street_1", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // variable text, size 20
     customer_columns.emplace_back(
-        "C_STREET_2", type::TypeId::VARCHAR, 20, false,
+        "c_street_2", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // variable text, size 20
     customer_columns.emplace_back(
-        "C_CITY", type::TypeId::VARCHAR, 20, false,
+        "c_city", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // fixed text, size 2
     customer_columns.emplace_back(
-        "C_STATE", type::TypeId::VARCHAR, 2, false,
+        "c_state", type::TypeId::VARCHAR, 2, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // fixed text, size 9
     customer_columns.emplace_back(
-        "C_ZIP", type::TypeId::VARCHAR, 9, false,
+        "c_zip", type::TypeId::VARCHAR, 9, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // fixed text, size 16
     customer_columns.emplace_back(
-        "C_PHONE", type::TypeId::VARCHAR, 16, false,
+        "c_phone", type::TypeId::VARCHAR, 16, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // date and time
     customer_columns.emplace_back(
-        "C_SINCE", type::TypeId::TIMESTAMP, false,
+        "c_since", type::TypeId::TIMESTAMP, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TIMESTAMP)));
     // fixed text, size 2
     customer_columns.emplace_back(
-        "C_CREDIT", type::TypeId::VARCHAR, 2, false,
+        "c_credit", type::TypeId::VARCHAR, 2, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // signed numeric(12,2)
     customer_columns.emplace_back(
-        "C_CREDIT_LIM", type::TypeId::DECIMAL, false,
+        "c_credit_lim", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     // signed numeric(4,4)
     customer_columns.emplace_back(
-        "C_DISCOUNT", type::TypeId::DECIMAL, false,
+        "c_discount", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     // signed numeric(12,2)
     customer_columns.emplace_back(
-        "C_BALANCE", type::TypeId::DECIMAL, false,
+        "c_balance", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     // signed numeric(12,2)
     customer_columns.emplace_back(
-        "C_YTD_PAYMENT", type::TypeId::DECIMAL, false,
+        "c_ytd_payment", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     // numeric(4)
     customer_columns.emplace_back(
-        "C_PAYMENT_CNT", type::TypeId::SMALLINT, false,
+        "c_payment_cnt", type::TypeId::SMALLINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::SMALLINT)));
     // numeric(4)
     customer_columns.emplace_back(
-        "C_DELIVERY_CNT", type::TypeId::SMALLINT, false,
+        "c_delivery_cnt", type::TypeId::SMALLINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::SMALLINT)));
     // variable text, size 500
     customer_columns.emplace_back(
-        "C_DATA", type::TypeId::VARCHAR, 500, false,
+        "c_data", type::TypeId::VARCHAR, 500, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
 
     TERRIER_ASSERT(customer_columns.size() == NUM_CUSTOMER_TABLE_COLS,
@@ -347,35 +347,35 @@ class Schemas {
 
     // 96,000 unique IDs
     history_columns.emplace_back(
-        "H_C_ID", type::TypeId::INTEGER, false,
+        "h_c_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     // 20 unique IDs
     history_columns.emplace_back(
-        "H_C_D_ID", type::TypeId::TINYINT, false,
+        "h_c_d_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     // 2*W unique IDs
     history_columns.emplace_back(
-        "H_C_W_ID", type::TypeId::TINYINT, false,
+        "h_c_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     // 20 unique IDs
     history_columns.emplace_back(
-        "H_D_ID", type::TypeId::TINYINT, false,
+        "h_d_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     // 2*W unique IDs
     history_columns.emplace_back(
-        "H_W_ID", type::TypeId::TINYINT, false,
+        "h_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     // date and time
     history_columns.emplace_back(
-        "H_DATE", type::TypeId::TIMESTAMP, false,
+        "h_date", type::TypeId::TIMESTAMP, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TIMESTAMP)));
     // signed numeric(6,2)
     history_columns.emplace_back(
-        "H_AMOUNT", type::TypeId::DECIMAL, false,
+        "h_amount", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     // variable text, size 24
     history_columns.emplace_back(
-        "H_DATA", type::TypeId::VARCHAR, 24, false,
+        "h_data", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
 
     TERRIER_ASSERT(history_columns.size() == NUM_HISTORY_TABLE_COLS,
@@ -394,15 +394,15 @@ class Schemas {
 
     // 10,000,000 unique IDs
     new_order_columns.emplace_back(
-        "NO_O_ID", type::TypeId::INTEGER, false,
+        "no_o_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     // 20 unique IDs
     new_order_columns.emplace_back(
-        "NO_D_ID", type::TypeId::TINYINT, false,
+        "no_d_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     // 2*W unique IDs
     new_order_columns.emplace_back(
-        "NO_W_ID", type::TypeId::TINYINT, false,
+        "no_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
 
     TERRIER_ASSERT(new_order_columns.size() == NUM_NEW_ORDER_TABLE_COLS,
@@ -450,35 +450,35 @@ class Schemas {
 
     // 10,000,000 unique IDs
     order_columns.emplace_back(
-        "O_ID", type::TypeId::INTEGER, false,
+        "o_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     // 20 unique IDs
     order_columns.emplace_back(
-        "O_D_ID", type::TypeId::TINYINT, false,
+        "o_d_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     // 2*W unique IDs
     order_columns.emplace_back(
-        "O_W_ID", type::TypeId::TINYINT, false,
+        "o_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     // 96,000 unique IDs
     order_columns.emplace_back(
-        "O_C_ID", type::TypeId::INTEGER, false,
+        "o_c_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     // date and time
     order_columns.emplace_back(
-        "O_ENTRY_D", type::TypeId::TIMESTAMP, false,
+        "o_entry_d", type::TypeId::TIMESTAMP, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TIMESTAMP)));
     // 10 unique IDs, or null
     order_columns.emplace_back(
-        "O_CARRIER_ID", type::TypeId::TINYINT, true,
+        "o_carrier_id", type::TypeId::TINYINT, true,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     // numeric(2)
     order_columns.emplace_back(
-        "O_OL_CNT", type::TypeId::TINYINT, false,
+        "o_ol_cnt", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     // numeric(1)
     order_columns.emplace_back(
-        "O_ALL_LOCAL", type::TypeId::TINYINT, false,
+        "o_all_local", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
 
     TERRIER_ASSERT(order_columns.size() == NUM_ORDER_TABLE_COLS, "Wrong number of columns for Order table schema.");
@@ -557,43 +557,43 @@ class Schemas {
 
     // 10,000,000 unique IDs
     order_line_columns.emplace_back(
-        "OL_O_ID", type::TypeId::INTEGER, false,
+        "ol_o_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     // 20 unique IDs
     order_line_columns.emplace_back(
-        "OL_D_ID", type::TypeId::TINYINT, false,
+        "ol_d_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     // 2*W unique IDs
     order_line_columns.emplace_back(
-        "OL_W_ID", type::TypeId::TINYINT, false,
+        "ol_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     // 15 unique IDs
     order_line_columns.emplace_back(
-        "OL_NUMBER", type::TypeId::TINYINT, false,
+        "ol_number", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     // 200,000 unique IDs
     order_line_columns.emplace_back(
-        "OL_I_ID", type::TypeId::INTEGER, false,
+        "ol_i_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     // 2*W unique IDs
     order_line_columns.emplace_back(
-        "OL_SUPPLY_W_ID", type::TypeId::TINYINT, false,
+        "ol_supply_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     // date and time, or null
     order_line_columns.emplace_back(
-        "OL_DELIVERY_D", type::TypeId::TIMESTAMP, true,
+        "ol_delivery_d", type::TypeId::TIMESTAMP, true,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TIMESTAMP)));
     // numeric(2)
     order_line_columns.emplace_back(
-        "OL_QUANTITY", type::TypeId::TINYINT, false,
+        "ol_quantity", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     // signed numeric(6,2)
     order_line_columns.emplace_back(
-        "OL_AMOUNT", type::TypeId::DECIMAL, false,
+        "ol_amount", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     // fixed text, size 24
     order_line_columns.emplace_back(
-        "OL_DIST_INFO", type::TypeId::VARCHAR, 24, false,
+        "ol_dist_info", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
 
     TERRIER_ASSERT(order_line_columns.size() == NUM_ORDER_LINE_TABLE_COLS,
@@ -644,23 +644,23 @@ class Schemas {
 
     // 200,000 unique IDs
     item_columns.emplace_back(
-        "I_ID", type::TypeId::INTEGER, false,
+        "i_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     // 200,000 unique IDs
     item_columns.emplace_back(
-        "I_IM_ID", type::TypeId::INTEGER, false,
+        "i_im_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     // variable text, size 24
     item_columns.emplace_back(
-        "I_NAME", type::TypeId::VARCHAR, 24, false,
+        "i_name", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // numeric(5,2)
     item_columns.emplace_back(
-        "I_PRICE", type::TypeId::DECIMAL, false,
+        "i_price", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     // variable text, size 50
     item_columns.emplace_back(
-        "I_DATA", type::TypeId::VARCHAR, 50, false,
+        "i_data", type::TypeId::VARCHAR, 50, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
 
     TERRIER_ASSERT(item_columns.size() == NUM_ITEM_TABLE_COLS, "Wrong number of columns for Item table schema.");
@@ -700,71 +700,71 @@ class Schemas {
 
     // 200,000 unique IDs
     stock_columns.emplace_back(
-        "S_I_ID", type::TypeId::INTEGER, false,
+        "s_i_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     // 2*W unique IDs
     stock_columns.emplace_back(
-        "S_W_ID", type::TypeId::TINYINT, false,
+        "s_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     // signed numeric(4)
     stock_columns.emplace_back(
-        "S_QUANTITY", type::TypeId::SMALLINT, false,
+        "s_quantity", type::TypeId::SMALLINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::SMALLINT)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_01", type::TypeId::VARCHAR, 24, false,
+        "s_dist_01", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_02", type::TypeId::VARCHAR, 24, false,
+        "s_dist_02", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_03", type::TypeId::VARCHAR, 24, false,
+        "s_dist_03", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_04", type::TypeId::VARCHAR, 24, false,
+        "s_dist_04", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_05", type::TypeId::VARCHAR, 24, false,
+        "s_dist_05", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_06", type::TypeId::VARCHAR, 24, false,
+        "s_dist_06", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_07", type::TypeId::VARCHAR, 24, false,
+        "s_dist_07", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_08", type::TypeId::VARCHAR, 24, false,
+        "s_dist_08", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_09", type::TypeId::VARCHAR, 24, false,
+        "s_dist_09", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_10", type::TypeId::VARCHAR, 24, false,
+        "s_dist_10", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     // numeric(8)
     stock_columns.emplace_back(
-        "S_YTD", type::TypeId::INTEGER, false,
+        "s_ytd", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     // numeric(4)
     stock_columns.emplace_back(
-        "S_ORDER_CNT", type::TypeId::SMALLINT, false,
+        "s_order_cnt", type::TypeId::SMALLINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::SMALLINT)));
     // numeric(4)
     stock_columns.emplace_back(
-        "S_REMOTE_CNT", type::TypeId::SMALLINT, false,
+        "s_remote_cnt", type::TypeId::SMALLINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::SMALLINT)));
     // variable text, size 50
     stock_columns.emplace_back(
-        "S_DATA", type::TypeId::VARCHAR, 50, false,
+        "s_data", type::TypeId::VARCHAR, 50, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
 
     TERRIER_ASSERT(stock_columns.size() == NUM_STOCK_TABLE_COLS, "Wrong number of columns for Stock table schema.");

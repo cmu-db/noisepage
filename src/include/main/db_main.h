@@ -100,6 +100,7 @@ class DBMain {
   void ForceShutdown();
 
  private:
+  friend class TpccPlanTest;
   friend class settings::SettingsManager;
   friend class settings::SettingsTests;
   friend class settings::Callbacks;
