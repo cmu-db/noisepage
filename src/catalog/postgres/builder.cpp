@@ -325,10 +325,7 @@ Schema Builder::GetLanguageTableSchema() {
 
   columns.emplace_back("lanvalidator", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
   columns.back().SetOid(LANVALIDATOR_COL_OID);
-
-  columns.emplace_back("lanacl", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
-  columns.back().SetOid(LANACL_COL_OID);
-
+  
   return Schema(columns);
 }
 
