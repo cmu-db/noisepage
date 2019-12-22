@@ -33,14 +33,10 @@ constexpr col_oid_t LANPLCALLFOID_COL_OID = col_oid_t(5);         // INTEGER (sk
 constexpr col_oid_t LANINLINE_COL_OID = col_oid_t(6);             // INTEGER (skey) [proc_oid_t]
 constexpr col_oid_t LANVALIDATOR_COL_OID = col_oid_t(7);          // INTEGER (skey) [proc_oid_t]
 
-// TODO(tanujnay112): This should be of type aclitem[] but we don't have that yet
-constexpr col_oid_t LANACL_COL_OID = col_oid_t(8);                // BOOLEAN (skey)
-
-
-constexpr uint8_t NUM_PG_LANGUAGE_COLS = 8;
+constexpr uint8_t NUM_PG_LANGUAGE_COLS = 7;
 
 constexpr std::array<col_oid_t, NUM_PG_LANGUAGE_COLS> PG_LANGUAGE_ALL_COL_OIDS = {
     LANOID_COL_OID, LANNAME_COL_OID, LANISPL_COL_OID, LANPLTRUSTED_COL_OID,
-    LANPLCALLFOID_COL_OID, LANINLINE_COL_OID, LANVALIDATOR_COL_OID, LANACL_COL_OID};
+    LANPLCALLFOID_COL_OID, LANINLINE_COL_OID, LANVALIDATOR_COL_OID};
 
 }  // namespace terrier::catalog::postgres
