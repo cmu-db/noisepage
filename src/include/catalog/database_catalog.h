@@ -351,7 +351,8 @@ class DatabaseCatalog {
   storage::SqlTable *languages_;
   storage::index::Index *languages_oid_index_;
   storage::index::Index *languages_name_index_;  // indexed on language OID and name
-  storage::ProjectedRowInitializer pg_language_name_pri_;
+  storage::ProjectedRowInitializer pg_language_all_cols_pri_;
+  storage::ProjectionMap pg_language_all_cols_prm_;
 
   std::atomic<uint32_t> next_oid_;
   std::atomic<transaction::timestamp_t> write_lock_;
@@ -419,6 +420,12 @@ class DatabaseCatalog {
    * @param txn transaction to insert into catalog with
    */
   void BootstrapTypes(transaction::TransactionContext *txn);
+
+  /**
+   * Bootstraps the built-in languages found in pg_languages
+   * @param txn transaction to insert into catalog with
+   */
+  void BootstrapLanguages(transaction::TransactionContext *txn);
 
   /**
    * Creates all of the ProjectedRowInitializers and ProjectionMaps for the catalog. These can be stashed because the

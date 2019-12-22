@@ -233,6 +233,7 @@ void DatabaseCatalog::Bootstrap(transaction::TransactionContext *const txn) {
   retval = SetIndexPointer(txn, postgres::LANGUAGE_NAME_INDEX_OID, languages_name_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
+  BootstrapLanguages(txn);
 }
 
 void DatabaseCatalog::BootstrapPRIs() {
@@ -316,7 +317,8 @@ void DatabaseCatalog::BootstrapPRIs() {
   // pg_language
   const std::vector<col_oid_t> pg_language_all_oids{postgres::PG_LANGUAGE_ALL_COL_OIDS.cbegin(),
                                                 postgres::PG_LANGUAGE_ALL_COL_OIDS.cend()};
-  pg_language_name_pri_ = languages_->InitializerForProjectedRow(pg_language_all_oids);
+  pg_language_all_cols_pri_ = languages_->InitializerForProjectedRow(pg_language_all_oids);
+  pg_language_all_cols_prm_ = languages_->ProjectionMapForOids(pg_language_all_oids);
 }
 
 namespace_oid_t DatabaseCatalog::CreateNamespace(transaction::TransactionContext *const txn, const std::string &name) {
@@ -1640,6 +1642,11 @@ void DatabaseCatalog::BootstrapTypes(transaction::TransactionContext *const txn)
              postgres::Type::BASE);
 }
 
+void DatabaseCatalog::BootstrapLanguages(transaction::TransactionContext *const txn)
+{
+  InsertLanguage(txn, "plpgsql");
+}
+
 bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const txn, const table_oid_t table_oid,
                                        const namespace_oid_t ns_oid, const std::string &name, const Schema &schema) {
   auto *const insert_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, pg_class_all_cols_pri_);
@@ -1914,17 +1921,21 @@ bool DatabaseCatalog::InsertLanguage(transaction::TransactionContext *txn, const
   // Insert into table
   const auto name_varlen = storage::StorageUtil::CreateVarlen(lanname);
   // Get & Fill Redo Record
-  auto *const redo = txn->StageWrite(db_oid_, postgres::LANGUAGE_TABLE_OID, pg_language_name_pri_);
+  auto *const redo = txn->StageWrite(db_oid_, postgres::LANGUAGE_TABLE_OID, pg_language_all_cols_pri_);
   language_oid_t oid = static_cast<language_oid_t >(next_oid_++);
   *(reinterpret_cast<language_oid_t *>(
-      redo->Delta()->AccessForceNotNull(pg_language_name_pri_[postgres::LANGOID_COL_OID]))) = oid;
+      redo->Delta()->AccessForceNotNull(pg_language_all_cols_prm_[postgres::LANGOID_COL_OID]))) = oid;
   *(reinterpret_cast<storage::VarlenEntry *>(
-      redo->Delta()->AccessForceNotNull(pg_language_name_pri_[postgres::LANGNAME_COL_OID]))) = name_varlen;
+      redo->Delta()->AccessForceNotNull(pg_language_all_cols_prm_[postgres::LANGNAME_COL_OID]))) = name_varlen;
   const auto tuple_slot = languages_->Insert(txn, redo);
 
   // Insert into name index
   auto name_pri = languages_name_index_->GetProjectedRowInitializer();
+  auto oid_pri = languages_oid_index_->GetProjectedRowInitializer();
+
+  // allocate from largest pri
   byte *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
+
   auto *index_pr = name_pri.InitializeRow(buffer);
   // Write the attributes in the ProjectedRow
   *(reinterpret_cast<storage::VarlenEntry *>(index_pr->AccessForceNotNull(0))) = name_varlen;
@@ -1937,18 +1948,45 @@ bool DatabaseCatalog::InsertLanguage(transaction::TransactionContext *txn, const
 
   // Insert into oid index
   auto oid_pr = languages_oid_index_->GetProjectedRowInitializer();
-  byte *const oid_buffer = common::AllocationUtil::AllocateAligned(oid_pr.ProjectedRowSize());
   index_pr = name_pri.InitializeRow(buffer);
   // Write the attributes in the ProjectedRow
   *(reinterpret_cast<language_oid_t *>(index_pr->AccessForceNotNull(0))) = oid;
-
   TERRIER_ASSERT(languages_oid_index_->InsertUnique(txn, *index_pr, tuple_slot), "Duplicate OID Inserted");
+
+  delete[] buffer;
   return true;
 }
 
 bool DatabaseCatalog::DeleteLanguage(transaction::TransactionContext *txn, const std::string &lanname) {
+  // Insert into table
+  const auto name_varlen = storage::StorageUtil::CreateVarlen(lanname);
+  // Get & Fill Redo Record
 
-  return false;
+  // Delete from oid index
+  auto name_pri = languages_name_index_->GetProjectedRowInitializer();
+  auto oid_pri = languages_name_index_->GetProjectedRowInitializer();
+
+  byte *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
+  auto index_pr = name_pri.InitializeRow(buffer);
+  *reinterpret_cast<storage::VarlenEntry *>(index_pr->AccessForceNotNull(0)) = name_varlen;
+
+  std::vector<storage::TupleSlot> results;
+  languages_name_index_->ScanKey(*txn, *index_pr, &results);
+  TERRIER_ASSERT(results.size() == 1, "More than one non-unique result found in unique index.");
+
+  auto to_delete_slot = results[0];
+  languages_name_index_->Delete(txn, *index_pr, to_delete_slot);
+
+  index_pr = oid_pri.InitializeRow(buffer);
+  TERRIER_ASSERT(results.size() == 1, "More than one non-unique result found in unique index.");
+
+  to_delete_slot = results[0];
+  languages_oid_index_->Delete(txn, *index_pr, to_delete_slot);
+
+  delete[] buffer;
+  txn->StageDelete(db_oid_, postgres::LANGUAGE_TABLE_OID, to_delete_slot);
+
+  return true;
 }
 
 template bool DatabaseCatalog::CreateColumn<Schema::Column, table_oid_t>(transaction::TransactionContext *const txn,
