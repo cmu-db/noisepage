@@ -71,7 +71,8 @@ void MetricsManager::RegisterThread() {
   common::SpinLatch::ScopedSpinLatch guard(&latch_);
   const auto thread_id = std::this_thread::get_id();
   TERRIER_ASSERT(stores_map_.count(thread_id) == 0, "This thread was already registered.");
-  auto result = stores_map_.emplace(thread_id, new MetricsStore(common::ManagedPointer(this), enabled_metrics_));
+  auto result = stores_map_.emplace(thread_id, new MetricsStore(common::ManagedPointer(this), enabled_metrics_,
+      sampling_masks_));
   TERRIER_ASSERT(result.second, "Insertion to concurrent map failed.");
   common::thread_context.metrics_store_ = result.first->second;
 }

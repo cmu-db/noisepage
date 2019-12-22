@@ -14,7 +14,7 @@ TransactionContext *TransactionManager::BeginTransaction() {
 
   bool txn_metrics_enabled =
       common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::TRANSACTION);
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::TRANSACTION);
 
   // start the operating unit resource tracker
   if (txn_metrics_enabled) common::thread_context.resource_tracker_.Start();
@@ -80,7 +80,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   timestamp_t result;
   bool txn_metrics_enabled =
       common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::TRANSACTION);
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::TRANSACTION);
 
   // start the operating unit resource tracker
   if (txn_metrics_enabled) common::thread_context.resource_tracker_.Start();

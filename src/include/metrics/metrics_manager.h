@@ -50,7 +50,7 @@ class MetricsManager {
 
   /**
    * @param component to be tested
-   * @return true if metrics are enabled for this metric, false otherwise
+   * @return true if metrics are enabled for this component, false otherwise
    */
   bool ComponentEnabled(const MetricsComponent component) {
     return enabled_metrics_.test(static_cast<uint8_t>(component));
@@ -63,13 +63,16 @@ class MetricsManager {
 
   /**
    * @param component to be enabled
+   * @param sampling_mask the mask according to the sample rate. Always sample in the power of 2 for fast comparison
    */
-  void EnableMetric(const MetricsComponent component) {
+  void EnableMetric(const MetricsComponent component, const SamplingMask sampling_mask) {
     common::SpinLatch::ScopedSpinLatch guard(&latch_);
     TERRIER_ASSERT(!ComponentEnabled(component), "Metric is already enabled.");
 
     ResetMetric(component);
+
     enabled_metrics_.set(static_cast<uint8_t>(component), true);
+    sampling_masks_[static_cast<uint8_t>(component)] = static_cast<uint32_t>(sampling_mask);
   }
 
   /**
@@ -91,6 +94,8 @@ class MetricsManager {
   std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> aggregated_metrics_;
 
   std::bitset<NUM_COMPONENTS> enabled_metrics_ = 0x0;
+
+  std::array<uint32_t, NUM_COMPONENTS> sampling_masks_{static_cast<uint32_t>(SamplingMask::SAMPLE_DISABLED)};
 };
 
 }  // namespace terrier::metrics

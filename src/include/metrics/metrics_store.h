@@ -12,6 +12,7 @@
 #include "metrics/logging_metric.h"
 #include "metrics/metrics_defs.h"
 #include "metrics/transaction_metric.h"
+#include "util/pcg_random.h"
 
 namespace terrier::metrics {
 
@@ -108,6 +109,21 @@ class MetricsStore {
   }
 
   /**
+   * @param component to be tested
+   * @return true if metrics are enabled for this component and we should record this metric according to the sampling,
+   * false otherwise
+   */
+  bool ComponentToRecord(const MetricsComponent component) {
+    auto component_index = static_cast<uint8_t>(component);
+    if (!enabled_metrics_.test(component_index)) return false;
+
+    if (sampling_masks_[component_index] == static_cast<uint32_t>(SamplingMask::SAMPLE_DISABLED)) return true;
+
+    uint32_t random_number = util::PCGRandomGenerator::pcg32_random_r(&pcg_random_state_);
+    return (random_number & sampling_masks_[component_index]) == 0;
+  }
+
+  /**
    * MetricsManager pointer that created this MetricsStore
    */
   common::ManagedPointer<metrics::MetricsManager> MetricsManager() const { return metrics_manager_; }
@@ -118,7 +134,8 @@ class MetricsStore {
   const common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
 
   explicit MetricsStore(common::ManagedPointer<metrics::MetricsManager> metrics_manager,
-                        const std::bitset<NUM_COMPONENTS> &enabled_metrics);
+                        const std::bitset<NUM_COMPONENTS> &enabled_metrics,
+                        const std::array<uint32_t, NUM_COMPONENTS> &sampling_masks);
 
   std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> GetDataToAggregate();
 
@@ -126,7 +143,11 @@ class MetricsStore {
   std::unique_ptr<TransactionMetric> txn_metric_;
   std::unique_ptr<GarbageCollectionMetric> gc_metric_;
 
+  // State for the fast random number generator (used by metrics sampling) of this thread
+  util::PCGRandomGenerator::pcg32_random_t pcg_random_state_;
+
   const std::bitset<NUM_COMPONENTS> &enabled_metrics_;
+  const std::array<uint32_t, NUM_COMPONENTS> &sampling_masks_;
 };
 
 }  // namespace terrier::metrics
