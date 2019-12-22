@@ -306,10 +306,28 @@ Schema Builder::GetLanguageTableSchema() {
   std::vector<Schema::Column> columns;
 
   columns.emplace_back("lanoid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
-  columns.back().SetOid(LANGOID_COL_OID);
+  columns.back().SetOid(LANOID_COL_OID);
 
   columns.emplace_back("lanname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, MakeNull(type::TypeId::VARCHAR));
-  columns.back().SetOid(LANGNAME_COL_OID);
+  columns.back().SetOid(LANNAME_COL_OID);
+
+  columns.emplace_back("lanispl", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.back().SetOid(LANISPL_COL_OID);
+
+  columns.emplace_back("lanpltrusted", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.back().SetOid(LANPLTRUSTED_COL_OID);
+
+  columns.emplace_back("lanplcallfoid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(LANPLCALLFOID_COL_OID);
+
+  columns.emplace_back("laninline", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(LANINLINE_COL_OID);
+
+  columns.emplace_back("lanvalidator", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(LANVALIDATOR_COL_OID);
+
+  columns.emplace_back("lanacl", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.back().SetOid(LANACL_COL_OID);
 
   return Schema(columns);
 }
@@ -572,7 +590,7 @@ IndexSchema Builder::GetLanguageOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back("lanoid", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, LANGUAGE_TABLE_OID, LANGOID_COL_OID));
+                       parser::ColumnValueExpression(db, LANGUAGE_TABLE_OID, LANOID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
@@ -585,7 +603,7 @@ IndexSchema Builder::GetLanguageNameIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
   columns.emplace_back("lanname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
-                       parser::ColumnValueExpression(db, LANGUAGE_TABLE_OID, LANGNAME_COL_OID));
+                       parser::ColumnValueExpression(db, LANGUAGE_TABLE_OID, LANNAME_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Unique, not primary

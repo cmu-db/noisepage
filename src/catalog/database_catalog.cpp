@@ -1942,9 +1942,9 @@ bool DatabaseCatalog::InsertLanguage(transaction::TransactionContext *txn, const
   auto *const redo = txn->StageWrite(db_oid_, postgres::LANGUAGE_TABLE_OID, pg_language_all_cols_pri_);
   language_oid_t oid = static_cast<language_oid_t >(next_oid_++);
   *(reinterpret_cast<language_oid_t *>(
-      redo->Delta()->AccessForceNotNull(pg_language_all_cols_prm_[postgres::LANGOID_COL_OID]))) = oid;
+      redo->Delta()->AccessForceNotNull(pg_language_all_cols_prm_[postgres::LANOID_COL_OID]))) = oid;
   *(reinterpret_cast<storage::VarlenEntry *>(
-      redo->Delta()->AccessForceNotNull(pg_language_all_cols_prm_[postgres::LANGNAME_COL_OID]))) = name_varlen;
+      redo->Delta()->AccessForceNotNull(pg_language_all_cols_prm_[postgres::LANNAME_COL_OID]))) = name_varlen;
   const auto tuple_slot = languages_->Insert(txn, redo);
 
   // Insert into name index
