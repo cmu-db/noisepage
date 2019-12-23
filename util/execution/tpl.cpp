@@ -9,7 +9,6 @@
 #include <utility>
 #include <vector>
 
-#include "tbb/task_scheduler_init.h"
 #include "execution/ast/ast_dump.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
@@ -34,6 +33,7 @@
 #include "loggers/loggers_util.h"
 #include "settings/settings_manager.h"
 #include "storage/garbage_collector.h"
+#include "tbb/task_scheduler_init.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/timestamp_manager.h"
 

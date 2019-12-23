@@ -69,7 +69,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
     /**
      * Sets the index cols.
      */
-    Builder &AddIndexColum(catalog::indexkeycol_oid_t col_oid, const IndexExpression &expr) {
+    Builder &AddIndexColumn(catalog::indexkeycol_oid_t col_oid, const IndexExpression &expr) {
       lo_index_cols_.emplace(col_oid, expr);
       return *this;
     }
@@ -77,7 +77,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
     /**
      * Sets the lower bound index cols.
      */
-    Builder &AddLoIndexColum(catalog::indexkeycol_oid_t col_oid, const IndexExpression &expr) {
+    Builder &AddLoIndexColumn(catalog::indexkeycol_oid_t col_oid, const IndexExpression &expr) {
       lo_index_cols_.emplace(col_oid, expr);
       return *this;
     }
@@ -85,7 +85,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
     /**
      * Sets the index upper bound cols.
      */
-    Builder &AddHiIndexColum(catalog::indexkeycol_oid_t col_oid, const IndexExpression &expr) {
+    Builder &AddHiIndexColumn(catalog::indexkeycol_oid_t col_oid, const IndexExpression &expr) {
       hi_index_cols_.emplace(col_oid, expr);
       return *this;
     }
@@ -250,7 +250,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   IndexScanType scan_type_;
   catalog::index_oid_t index_oid_;
   catalog::table_oid_t table_oid_;
-  std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> lo_index_cols_{};
+  std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> Columlo_index_cols_{};
   std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> hi_index_cols_{};
   uint32_t scan_limit_;
 };

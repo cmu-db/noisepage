@@ -62,6 +62,8 @@ ast::Stmt *CodeGen::ExecCall(ast::Identifier fn_name) {
 ast::Expr *CodeGen::GetStateMemberPtr(ast::Identifier ident) { return PointerTo(MemberExpr(state_var_, ident)); }
 
 ast::Identifier CodeGen::NewIdentifier(const std::string &prefix) {
+  // TODO(Amadou/Wan): John notes that there could be an extra string allocation and deallocation for the id count.
+  //  An explicit string formatting call could avoid this.
   // Use the custom allocator because the id will outlive the std::string.
   std::string id = prefix + std::to_string(id_count_++);
   auto *id_str = Region()->AllocateArray<char>(id.size() + 1);

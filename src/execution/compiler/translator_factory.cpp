@@ -87,7 +87,7 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateLeftTranslator(
     case terrier::planner::PlanNodeType::HASHJOIN:
       return std::make_unique<HashJoinLeftTranslator>(static_cast<const planner::HashJoinPlanNode *>(op), codegen);
     case terrier::planner::PlanNodeType::NESTLOOP:
-      return std::make_unique<NestedLoopLeftTransaltor>(static_cast<const planner::NestedLoopJoinPlanNode *>(op),
+      return std::make_unique<NestedLoopLeftTranslator>(static_cast<const planner::NestedLoopJoinPlanNode *>(op),
                                                         codegen);
     default:
       UNREACHABLE("Not a pipeline boundary!");
@@ -101,7 +101,7 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateRightTranslator(
       return std::make_unique<HashJoinRightTranslator>(static_cast<const planner::HashJoinPlanNode *>(op), codegen,
                                                        left);
     case terrier::planner::PlanNodeType::NESTLOOP:
-      return std::make_unique<NestedLoopRightTransaltor>(static_cast<const planner::NestedLoopJoinPlanNode *>(op),
+      return std::make_unique<NestedLoopRightTranslator>(static_cast<const planner::NestedLoopJoinPlanNode *>(op),
                                                          codegen, left);
     default:
       UNREACHABLE("Not a pipeline boundary!");

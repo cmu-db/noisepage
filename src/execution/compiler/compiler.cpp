@@ -114,7 +114,10 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipel
     default: {
       // Every other operation just adds itself to the current pipeline.
       auto translator = TranslatorFactory::CreateRegularTranslator(&op, codegen_);
-      if (op.GetChildrenSize() != 0) MakePipelines(*op.GetChild(0), curr_pipeline);
+      if (op.GetChildrenSize() != 0) {
+        TERRIER_ASSERT(op.GetChildrenSize() == 1, "We only look at the first child.");
+        MakePipelines(*op.GetChild(0), curr_pipeline);
+      }
       curr_pipeline->Add(std::move(translator));
       return;
     }
@@ -173,7 +176,7 @@ ast::Decl *Compiler::GenMainFunction() {
   // Step 3: Call the teardown function
   builder.Append(codegen_->ExecCall(codegen_->GetTeardownFn()));
   // Step 4: return a value of 0
-  builder.Append(codegen_->ReturnStmt(codegen_->IntLiteral(37)));
+  builder.Append(codegen_->ReturnStmt(codegen_->IntLiteral(0)));
   return builder.Finish();
 }
 }  // namespace terrier::execution::compiler

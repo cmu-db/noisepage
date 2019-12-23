@@ -37,7 +37,7 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
 
  private:
   /**
-   * @param children child plan nodes
+   * @param children child plan nodes, first child is inner loop, second child is outer loop
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param join_type logical join type
    * @param predicate join predicate

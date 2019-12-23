@@ -90,7 +90,6 @@ class CompilerTest : public SqlBasedTest {
   }
 };
 
-
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleSeqScanTest) {
   // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1 WHERE col1 < 500 AND col2 >= 3;
@@ -144,7 +143,6 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
   multi_checker.CheckCorrectness();
 }
 
-
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
   // SELECT col1, col2, col1 * col2, col1 >= param1*col2 FROM test_1 WHERE col1 < param2 AND col2 >= param3;
@@ -177,12 +175,12 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetScanPredicate(predicate)
-        .SetIsParallelFlag(false)
-        .SetIsForUpdateFlag(false)
-        .SetNamespaceOid(NSOid())
-        .SetTableOid(table_oid)
-        .Build();
+                   .SetScanPredicate(predicate)
+                   .SetIsParallelFlag(false)
+                   .SetIsForUpdateFlag(false)
+                   .SetNamespaceOid(NSOid())
+                   .SetTableOid(table_oid)
+                   .Build();
   }
 
   // Make the output checkers
@@ -1792,7 +1790,6 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     checker.CheckCorrectness();
   }
 }
-
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleInsertWithParamsTest) {

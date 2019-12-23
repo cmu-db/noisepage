@@ -7,21 +7,19 @@
 
 namespace terrier::execution::compiler {
 
-class NestedLoopRightTranslator;
-
 /**
  * Nested Loop Inner translator.
  * Because a nested loop join can be expressed without any special operation, this translator
  * does not do much. It just binds the two sides of the join together through GetOutput.
  */
-class NestedLoopLeftTransaltor : public OperatorTranslator {
+class NestedLoopLeftTranslator : public OperatorTranslator {
  public:
   /**
    * Constructor
    * @param op The plan node
    * @param codegen The code generator
    */
-  NestedLoopLeftTransaltor(const terrier::planner::NestedLoopJoinPlanNode *op, CodeGen *codegen)
+  NestedLoopLeftTranslator(const terrier::planner::NestedLoopJoinPlanNode *op, CodeGen *codegen)
       : OperatorTranslator(codegen), op_(op) {}
 
   // Does nothing
@@ -64,7 +62,7 @@ class NestedLoopLeftTransaltor : public OperatorTranslator {
  * Just like the left translator, this one does not do much. However, it needs to produces an if statement
  * for the join predicate.
  */
-class NestedLoopRightTransaltor : public OperatorTranslator {
+class NestedLoopRightTranslator : public OperatorTranslator {
  public:
   /**
    * Constructor
@@ -72,9 +70,9 @@ class NestedLoopRightTransaltor : public OperatorTranslator {
    * @param codegen The code generator
    * @param left The corresponding left translator
    */
-  NestedLoopRightTransaltor(const terrier::planner::NestedLoopJoinPlanNode *op, CodeGen *codegen,
+  NestedLoopRightTranslator(const terrier::planner::NestedLoopJoinPlanNode *op, CodeGen *codegen,
                             OperatorTranslator *left)
-      : OperatorTranslator(codegen), op_(op), left_(dynamic_cast<NestedLoopLeftTransaltor *>(left)) {}
+      : OperatorTranslator(codegen), op_(op), left_(dynamic_cast<NestedLoopLeftTranslator *>(left)) {}
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
@@ -132,6 +130,6 @@ class NestedLoopRightTransaltor : public OperatorTranslator {
 
  private:
   const planner::NestedLoopJoinPlanNode *op_;
-  NestedLoopLeftTransaltor *left_;
+  NestedLoopLeftTranslator *left_;
 };
 }  // namespace terrier::execution::compiler
