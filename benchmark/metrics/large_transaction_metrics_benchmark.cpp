@@ -34,7 +34,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, TPCCish)(benchmark::State &
   for (auto _ : state) {
     for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
-    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION, 128);
+    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION, 100);
 
     LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                          &block_store_, &buffer_pool_, &generator_, true);
@@ -61,7 +61,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, HighAbortRate)(benchmark::S
   for (auto _ : state) {
     for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
-    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION, 128);
+    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION, 100);
 
     // use a smaller table to make aborts more likely
     LargeDataTableBenchmarkObject tested(attr_sizes_, 1000, txn_length, insert_update_select_ratio, &block_store_,
@@ -89,7 +89,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, SingleStatementInsert)(benc
   for (auto _ : state) {
     for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
-    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION, 128);
+    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION, 100);
 
     // don't need any initial tuples
     LargeDataTableBenchmarkObject tested(attr_sizes_, 0, txn_length, insert_update_select_ratio, &block_store_,
@@ -117,7 +117,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, SingleStatementUpdate)(benc
   for (auto _ : state) {
     for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
-    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION, 128);
+    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION, 100);
 
     LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                          &block_store_, &buffer_pool_, &generator_, true);
@@ -144,7 +144,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, SingleStatementSelect)(benc
   for (auto _ : state) {
     for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
-    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION, 128);
+    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION, 100);
 
     LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                          &block_store_, &buffer_pool_, &generator_, true);
