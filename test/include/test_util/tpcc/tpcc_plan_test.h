@@ -55,10 +55,11 @@ class TpccPlanTest : public TerrierTest {
 
   common::ManagedPointer<catalog::Catalog> catalog_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
-  common::ManagedPointer<settings::SettingsManager> settings_manager_;
 
   std::unique_ptr<DBMain> db_main_;
   optimizer::StatsStorage *stats_storage_;
+
+  uint64_t task_execution_timeout_;
 
   // Optimizer transaction
   transaction::TransactionContext *txn_;
@@ -66,7 +67,6 @@ class TpccPlanTest : public TerrierTest {
 
   // Database
   tpcc::Database *tpcc_db_;
-
   catalog::db_oid_t db_;
 
   // OIDs
@@ -79,7 +79,6 @@ class TpccPlanTest : public TerrierTest {
   catalog::table_oid_t tbl_new_order_;
   catalog::table_oid_t tbl_order_;
   catalog::table_oid_t tbl_order_line_;
-
   catalog::index_oid_t pk_new_order_;
 };
 
