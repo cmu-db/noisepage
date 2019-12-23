@@ -1,3 +1,5 @@
+#include "test_util/tpcc/tpcc_plan_test.h"
+
 #include <memory>
 #include <queue>
 #include <set>
@@ -10,7 +12,6 @@
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
-#include "main/db_main.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/optimizer.h"
 #include "optimizer/properties.h"
@@ -20,17 +21,9 @@
 #include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/insert_plan_node.h"
-#include "settings/settings_manager.h"
-#include "storage/garbage_collector.h"
 #include "test_util/test_harness.h"
 #include "test_util/tpcc/builder.h"
 #include "transaction/transaction_manager.h"
-
-#define __SETTING_GFLAGS_DEFINE__      // NOLINT
-#include "settings/settings_common.h"  // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_GFLAGS_DEFINE__       // NOLINT
-#include "test_util/tpcc/tpcc_plan_test.h"
 
 namespace terrier {
 
@@ -55,19 +48,21 @@ void TpccPlanTest::CheckIndexScan(TpccPlanTest *test, parser::SelectStatement *s
 
 void TpccPlanTest::SetUp() {
   std::unordered_map<settings::Param, settings::ParamInfo> param_map;
-  terrier::settings::SettingsManager::ConstructParamMap(param_map);
-  db_main_ = new DBMain(std::move(param_map));
-  settings_manager_ = db_main_->settings_manager_;
+  settings::SettingsManager::ConstructParamMap(param_map);
+
+  db_main_ = terrier::DBMain::Builder()
+                 .SetUseGC(true)
+                 .SetSettingsParameterMap(std::move(param_map))
+                 .SetUseSettingsManager(true)
+                 .SetUseCatalog(true)
+                 .Build();
   stats_storage_ = new optimizer::StatsStorage();
 
-  timestamp_manager_ = new transaction::TimestampManager;
-  deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
-  txn_manager_ =
-      new transaction::TransactionManager(timestamp_manager_, deferred_action_manager_, &buffer_pool_, true, DISABLED);
-  gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, DISABLED);
+  settings_manager_ = db_main_->GetSettingsManager();
 
-  catalog_ = new catalog::Catalog(txn_manager_, &block_store_);
-  tpcc::Builder tpcc_builder(&block_store_, catalog_, txn_manager_);
+  catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
+  txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
+  tpcc::Builder tpcc_builder(db_main_->GetStorageLayer()->GetBlockStore(), catalog_, txn_manager_);
   tpcc_db_ = tpcc_builder.Build(storage::index::IndexType::BWTREE);
 
   db_ = tpcc_db_->db_oid_;
@@ -81,26 +76,10 @@ void TpccPlanTest::SetUp() {
   tbl_order_ = tpcc_db_->order_table_oid_;
   tbl_order_line_ = tpcc_db_->order_line_table_oid_;
   pk_new_order_ = tpcc_db_->new_order_primary_index_oid_;
-
-  gc_->PerformGarbageCollection();
-  gc_->PerformGarbageCollection();
 }
 
 void TpccPlanTest::TearDown() {
-  // Cleanup the catalog
-  catalog_->TearDown();
-
-  gc_->PerformGarbageCollection();
-  gc_->PerformGarbageCollection();
-  gc_->PerformGarbageCollection();
-
   delete tpcc_db_;
-  delete catalog_;
-  delete gc_;
-  delete txn_manager_;
-  delete db_main_;
-  delete deferred_action_manager_;
-  delete timestamp_manager_;
   delete stats_storage_;
 }
 
@@ -161,7 +140,7 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
 
     auto query_info = optimizer::QueryInfo(parser::StatementType::SELECT, std::move(output), property_set);
     out_plan =
-        optimizer->BuildPlanTree(txn_, accessor_, settings_manager_, stats_storage_, query_info, std::move(plan));
+        optimizer->BuildPlanTree(txn_, accessor_, settings_manager_.Get(), stats_storage_, query_info, std::move(plan));
     delete property_set;
   } else if (stmt_type == parser::StatementType::INSERT) {
     auto ins_stmt = stmt_list.GetStatement(0).CastManagedPointerTo<parser::InsertStatement>();
@@ -175,7 +154,7 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
     auto property_set = new optimizer::PropertySet();
     auto query_info = optimizer::QueryInfo(stmt_type, {}, property_set);
     out_plan =
-        optimizer->BuildPlanTree(txn_, accessor_, settings_manager_, stats_storage_, query_info, std::move(plan));
+        optimizer->BuildPlanTree(txn_, accessor_, settings_manager_.Get(), stats_storage_, query_info, std::move(plan));
     delete property_set;
 
     EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::INSERT);
@@ -196,7 +175,7 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
     auto property_set = new optimizer::PropertySet();
     auto query_info = optimizer::QueryInfo(stmt_type, {}, property_set);
     out_plan =
-        optimizer->BuildPlanTree(txn_, accessor_, settings_manager_, stats_storage_, query_info, std::move(plan));
+        optimizer->BuildPlanTree(txn_, accessor_, settings_manager_.Get(), stats_storage_, query_info, std::move(plan));
     delete property_set;
   }
 

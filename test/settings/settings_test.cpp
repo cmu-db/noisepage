@@ -24,7 +24,7 @@ class SettingsTests : public TerrierTest {
 
   void SetUp() override {
     std::unordered_map<Param, ParamInfo> param_map;
-    terrier::settings::SettingsManager::ConstructParamMap(param_map);
+    SettingsManager::ConstructParamMap(param_map);
 
     db_main_ = DBMain::Builder()
                    .SetSettingsParameterMap(std::move(param_map))

@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
+#include "main/db_main.h"
 #include "optimizer/optimizer.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
@@ -52,21 +53,15 @@ class TpccPlanTest : public TerrierTest {
                      void (*Check)(TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
                                    std::unique_ptr<planner::AbstractPlanNode> plan));
 
-  catalog::Catalog *catalog_;
-  transaction::TransactionManager *txn_manager_;
+  common::ManagedPointer<catalog::Catalog> catalog_;
+  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
+  common::ManagedPointer<settings::SettingsManager> settings_manager_;
 
-  storage::RecordBufferSegmentPool buffer_pool_{100, 100};
-  storage::BlockStore block_store_{100, 100};
-  storage::GarbageCollector *gc_;
-
-  DBMain *db_main_;
-  settings::SettingsManager *settings_manager_;
+  std::unique_ptr<DBMain> db_main_;
   optimizer::StatsStorage *stats_storage_;
 
   // Optimizer transaction
   transaction::TransactionContext *txn_;
-  transaction::DeferredActionManager *deferred_action_manager_;
-  transaction::TimestampManager *timestamp_manager_;
   catalog::CatalogAccessor *accessor_;
 
   // Database
