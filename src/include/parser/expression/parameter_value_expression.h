@@ -21,10 +21,26 @@ class ParameterValueExpression : public AbstractExpression {
   /** Default constructor for deserialization. */
   ParameterValueExpression() = default;
 
+  /**
+   * Copies this ParameterValueExpression
+   * @returns copy of this
+   */
   std::unique_ptr<AbstractExpression> Copy() const override {
     auto expr = std::make_unique<ParameterValueExpression>(GetValueIdx());
     expr->SetMutableStateForCopy(*this);
     return expr;
+  }
+
+  /**
+   * Creates a copy of the current AbstractExpression with new children implanted.
+   * The children should not be owned by any other AbstractExpression.
+   * @param children New children to be owned by the copy
+   * @returns copy of this with new children
+   */
+  std::unique_ptr<AbstractExpression> CopyWithChildren(
+      std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
+    TERRIER_ASSERT(children.empty(), "ParameterValueExpression should have 0 children");
+    return Copy();
   }
 
   /** @return offset in the expression */

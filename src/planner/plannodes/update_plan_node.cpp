@@ -24,6 +24,14 @@ common::hash_t UpdatePlanNode::Hash() const {
   auto is_update_primary_key = GetUpdatePrimaryKey();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_update_primary_key));
 
+  // SET Clauses
+  for (const auto &set : sets_) {
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(set.first));
+    if (set.second != nullptr) {
+      hash = common::HashUtil::CombineHashes(hash, set.second->Hash());
+    }
+  }
+
   return hash;
 }
 
@@ -44,6 +52,16 @@ bool UpdatePlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Update primary key
   if (update_primary_key_ != other.update_primary_key_) return false;
 
+  if (sets_.size() != other.sets_.size()) return false;
+  for (size_t idx = 0; idx < sets_.size(); idx++) {
+    if (sets_[idx].first != other.sets_[idx].first) return false;
+
+    if ((sets_[idx].second == nullptr && other.sets_[idx].second != nullptr) ||
+        (sets_[idx].second != nullptr && other.sets_[idx].second == nullptr))
+      return false;
+    if (sets_[idx].second != nullptr && *sets_[idx].second != *other.sets_[idx].second) return false;
+  }
+
   return true;
 }
 
@@ -53,6 +71,13 @@ nlohmann::json UpdatePlanNode::ToJson() const {
   j["namespace_oid"] = namespace_oid_;
   j["table_oid"] = table_oid_;
   j["update_primary_key"] = update_primary_key_;
+
+  std::vector<std::pair<catalog::col_oid_t, nlohmann::json>> sets;
+  sets.reserve(sets_.size());
+  for (const auto &set : sets_) {
+    sets.emplace_back(set.first, set.second->ToJson());
+  }
+  j["sets"] = sets;
   return j;
 }
 
@@ -64,6 +89,15 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> UpdatePlanNode::FromJso
   namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
   table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
   update_primary_key_ = j.at("update_primary_key").get<bool>();
+
+  auto sets = j.at("sets").get<std::vector<std::pair<catalog::col_oid_t, nlohmann::json>>>();
+  for (const auto &key_json : sets) {
+    auto deserialized = parser::DeserializeExpression(key_json.second);
+    sets_.emplace_back(key_json.first, common::ManagedPointer(deserialized.result_));
+    exprs.emplace_back(std::move(deserialized.result_));
+    exprs.insert(exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
+                 std::make_move_iterator(deserialized.non_owned_exprs_.end()));
+  }
   return exprs;
 }
 

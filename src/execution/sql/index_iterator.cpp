@@ -22,6 +22,9 @@ void IndexIterator::Init() {
   auto &index_pri = index_->GetProjectedRowInitializer();
   index_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(index_pri.ProjectedRowSize(), alignof(uint64_t), false);
   index_pr_ = index_pri.InitializeRow(index_buffer_);
+  hi_index_buffer_ =
+      exec_ctx_->GetMemoryPool()->AllocateAligned(index_pri.ProjectedRowSize(), alignof(uint64_t), false);
+  hi_index_pr_ = index_pri.InitializeRow(hi_index_buffer_);
 }
 
 void IndexIterator::ScanKey() {
@@ -31,18 +34,51 @@ void IndexIterator::ScanKey() {
   index_->ScanKey(*exec_ctx_->GetTxn(), *index_pr_, &tuples_);
 }
 
+void IndexIterator::ScanAscending() {
+  // Scan the index
+  tuples_.clear();
+  curr_index_ = 0;
+  index_->ScanAscending(*exec_ctx_->GetTxn(), *index_pr_, *hi_index_pr_, &tuples_);
+}
+
+void IndexIterator::ScanDescending() {
+  // Scan the index
+  tuples_.clear();
+  curr_index_ = 0;
+  index_->ScanDescending(*exec_ctx_->GetTxn(), *index_pr_, *hi_index_pr_, &tuples_);
+}
+
+void IndexIterator::ScanLimitDescending(uint32_t limit) {
+  // Scan the index
+  tuples_.clear();
+  curr_index_ = 0;
+  index_->ScanLimitDescending(*exec_ctx_->GetTxn(), *index_pr_, *hi_index_pr_, &tuples_, limit);
+}
+
+void IndexIterator::ScanLimitAscending(uint32_t limit) {
+  // Scan the index
+  tuples_.clear();
+  curr_index_ = 0;
+  index_->ScanLimitAscending(*exec_ctx_->GetTxn(), *index_pr_, *hi_index_pr_, &tuples_, limit);
+}
+
 bool IndexIterator::Advance() {
   if (curr_index_ < tuples_.size()) {
-    table_->Select(exec_ctx_->GetTxn(), tuples_[curr_index_], table_pr_);
     ++curr_index_;
     return true;
   }
   return false;
 }
 
+storage::ProjectedRow *IndexIterator::TablePR() {
+  table_->Select(exec_ctx_->GetTxn(), tuples_[curr_index_ - 1], table_pr_);
+  return table_pr_;
+}
+
 IndexIterator::~IndexIterator() {
   // Free allocated buffers
   exec_ctx_->GetMemoryPool()->Deallocate(table_buffer_, table_pr_->Size());
   exec_ctx_->GetMemoryPool()->Deallocate(index_buffer_, index_pr_->Size());
+  exec_ctx_->GetMemoryPool()->Deallocate(hi_index_buffer_, hi_index_pr_->Size());
 }
 }  // namespace terrier::execution::sql

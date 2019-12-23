@@ -33,18 +33,34 @@ class ConstantValueExpression : public AbstractExpression {
     return value_ == const_expr.GetValue();
   }
 
+  /**
+   * Copies this ConstantValueExpression
+   * @returns copy of this
+   */
+  std::unique_ptr<AbstractExpression> Copy() const override {
+    auto expr = std::make_unique<ConstantValueExpression>(GetValue());
+    expr->SetMutableStateForCopy(*this);
+    return expr;
+  }
+
+  /**
+   * Creates a copy of the current AbstractExpression with new children implanted.
+   * The children should not be owned by any other AbstractExpression.
+   * @param children New children to be owned by the copy
+   * @returns copy of this with new children
+   */
+  std::unique_ptr<AbstractExpression> CopyWithChildren(
+      std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
+    TERRIER_ASSERT(children.empty(), "COnstantValueExpression should have 0 children");
+    return Copy();
+  }
+
   void DeriveExpressionName() override {
     if (!this->GetAlias().empty()) {
       this->SetExpressionName(this->GetAlias());
     } else {
       this->SetExpressionName(value_.ToString());
     }
-  }
-
-  std::unique_ptr<AbstractExpression> Copy() const override {
-    auto expr = std::make_unique<ConstantValueExpression>(GetValue());
-    expr->SetMutableStateForCopy(*this);
-    return expr;
   }
 
   /** @return the constant value stored in this expression */

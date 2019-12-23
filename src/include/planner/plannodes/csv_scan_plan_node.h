@@ -61,11 +61,11 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
     }
 
     /**
-     * @param null_string null string for CSV
+     * @param val_types vector of value types for columns
      * @return builder object
      */
-    Builder &SetNullString(std::string null_string) {
-      null_string_ = std::move(null_string);
+    Builder &SetValueTypes(std::vector<type::TypeId> val_types) {
+      value_types_ = std::move(val_types);
       return *this;
     }
 
@@ -74,9 +74,9 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
      * @return plan node
      */
     std::unique_ptr<CSVScanPlanNode> Build() {
-      return std::unique_ptr<CSVScanPlanNode>(new CSVScanPlanNode(
-          std::move(children_), std::move(output_schema_), nullptr /* predicate */, is_for_update_, is_parallel_,
-          database_oid_, namespace_oid_, file_name_, delimiter_, quote_, escape_, null_string_));
+      return std::unique_ptr<CSVScanPlanNode>(
+          new CSVScanPlanNode(std::move(children_), std::move(output_schema_), nullptr /* predicate */, is_for_update_,
+                              database_oid_, namespace_oid_, file_name_, delimiter_, quote_, escape_, value_types_));
     }
 
    protected:
@@ -97,9 +97,9 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
      */
     char escape_ = DEFAULT_ESCAPE_CHAR;
     /**
-     * null string for CSV
+     * Value Types vector
      */
-    std::string null_string_ = DEFAULT_NULL_STRING;
+    std::vector<type::TypeId> value_types_;
   };
 
  private:
@@ -109,26 +109,25 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param predicate nullptr for csv scans
    * @param is_for_update false for csv scans
-   * @param is_parallel false for csv scans
    * @param database_oid database oid for scan
    * @param file_name The file path
    * @param delimiter The character that separates columns within a row
    * @param quote The character used to quote data (i.e., strings)
    * @param escape The character that should appear before any data characters that match the quote character.
-   * @param null_string the null string for the file
+   * @param value_types Value types for vector of columns
    */
   CSVScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::unique_ptr<OutputSchema> output_schema,
-                  common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
+                  common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update,
                   catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string file_name,
-                  char delimiter, char quote, char escape, std::string null_string)
-      : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, is_parallel,
-                             database_oid, namespace_oid),
+                  char delimiter, char quote, char escape, std::vector<type::TypeId> value_types)
+      : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, database_oid,
+                             namespace_oid),
         file_name_(std::move(file_name)),
         delimiter_(delimiter),
         quote_(quote),
         escape_(escape),
-        null_string_(std::move(null_string)) {}
+        value_types_(std::move(value_types)) {}
 
  public:
   /**
@@ -164,9 +163,9 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
   char GetEscapeChar() const { return escape_; }
 
   /**
-   * @return null string for CSV
+   * @return value types
    */
-  const std::string &GetNullString() const { return null_string_; }
+  const std::vector<type::TypeId> &GetValueTypes() const { return value_types_; }
 
   /**
    * @return the hashed value of this plan node
@@ -183,7 +182,7 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
   char delimiter_;
   char quote_;
   char escape_;
-  std::string null_string_;
+  std::vector<type::TypeId> value_types_;
 };
 
 DEFINE_JSON_DECLARATIONS(CSVScanPlanNode);

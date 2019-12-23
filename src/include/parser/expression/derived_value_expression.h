@@ -27,10 +27,25 @@ class DerivedValueExpression : public AbstractExpression {
   /** Default constructor for deserialization. */
   DerivedValueExpression() = default;
 
+  /**
+   * Copies this DerivedValueExpression
+   * @returns copy of this
+   */
   std::unique_ptr<AbstractExpression> Copy() const override {
     auto expr = std::make_unique<DerivedValueExpression>(GetReturnValueType(), GetTupleIdx(), GetValueIdx());
     expr->SetMutableStateForCopy(*this);
     return expr;
+  }
+
+  /**
+   * Copies this DerivedValueExpression with new children
+   * @param children New Children
+   * @returns copy of this with new children
+   */
+  std::unique_ptr<AbstractExpression> CopyWithChildren(
+      std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
+    TERRIER_ASSERT(children.empty(), "DerivedValueExpression should have no children");
+    return Copy();
   }
 
   /** @return index of the tuple */
