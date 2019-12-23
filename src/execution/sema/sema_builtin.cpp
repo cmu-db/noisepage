@@ -1894,6 +1894,55 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
   }
 }
 
+void Sema::CheckBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin) {
+  if (!CheckArgCount(call, 2)) {
+    return;
+  }
+
+  // first argument is an exec ctx
+  auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+  if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+    return;
+  }
+
+  // second argument is the index of the parameter
+  if (!call->Arguments()[1]->GetType()->IsIntegerType()) {
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(ast::BuiltinType::Kind::Uint32));
+    return;
+  }
+
+  // Type output sql value
+  ast::BuiltinType::Kind sql_type;
+  switch (builtin) {
+    case ast::Builtin::GetParamTinyInt:
+    case ast::Builtin::GetParamSmallInt:
+    case ast::Builtin::GetParamInt:
+    case ast::Builtin::GetParamBigInt: {
+      sql_type = ast::BuiltinType::Integer;
+      break;
+    }
+    case ast::Builtin::GetParamReal:
+    case ast::Builtin::GetParamDouble: {
+      sql_type = ast::BuiltinType::Real;
+      break;
+    }
+    case ast::Builtin::GetParamDate: {
+      sql_type = ast::BuiltinType::Date;
+      break;
+    }
+    case ast::Builtin::GetParamString: {
+      sql_type = ast::BuiltinType::StringVal;
+      break;
+    }
+    default:
+      UNREACHABLE("Undefined parameter call!!");
+  }
+
+  // Return sql type
+  call->SetType(ast::BuiltinType::Get(GetContext(), sql_type));
+}
+
 void Sema::CheckBuiltinCall(ast::CallExpr *call) {
   ast::Builtin builtin;
   if (!GetContext()->IsBuiltinFunction(call->GetFuncName(), &builtin)) {
@@ -2190,6 +2239,17 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::IndexDelete:
     case ast::Builtin::StorageInterfaceFree: {
       CheckBuiltinStorageInterfaceCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::GetParamTinyInt:
+    case ast::Builtin::GetParamSmallInt:
+    case ast::Builtin::GetParamInt:
+    case ast::Builtin::GetParamBigInt:
+    case ast::Builtin::GetParamReal:
+    case ast::Builtin::GetParamDouble:
+    case ast::Builtin::GetParamDate:
+    case ast::Builtin::GetParamString: {
+      CheckBuiltinParamCall(call, builtin);
       break;
     }
     default: {

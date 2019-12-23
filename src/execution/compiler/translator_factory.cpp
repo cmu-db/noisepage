@@ -10,6 +10,7 @@
 #include "execution/compiler/expression/constant_translator.h"
 #include "execution/compiler/expression/derived_value_translator.h"
 #include "execution/compiler/expression/null_check_translator.h"
+#include "execution/compiler/expression/param_value_translator.h"
 #include "execution/compiler/expression/tuple_value_translator.h"
 #include "execution/compiler/expression/unary_translator.h"
 #include "execution/compiler/operator/aggregate_translator.h"
@@ -130,6 +131,9 @@ std::unique_ptr<ExpressionTranslator> TranslatorFactory::CreateExpressionTransla
   }
   if (IsDerivedVal(type)) {
     return std::make_unique<DerivedValueTranslator>(expression, codegen);
+  }
+  if (IsParamVal(type)) {
+    return std::make_unique<ParamValueTranslator>(expression, codegen);
   }
   if (IsNullOp(type)) {
     return std::make_unique<NullCheckTranslator>(expression, codegen);

@@ -173,12 +173,24 @@ void TableGenerator::GenerateTestTables() {
        0,
        {{"colA", type::TypeId::INTEGER, false, Dist::Serial, 0, 0},
         {"colB", type::TypeId::BOOLEAN, false, Dist::Uniform, 0, 0}}},
+
+      // Empty table with columns of various types
+      {"all_types_table",
+       0,
+       {{"varchar_col", type::TypeId::VARCHAR, false, Dist::Serial, 0, 0},
+        {"date_col", type::TypeId::DATE, false, Dist::Serial, 0, 0},
+        {"real_col", type::TypeId::DECIMAL, false, Dist::Serial, 0, 0},
+        {"int_col", type::TypeId::INTEGER, false, Dist::Uniform, 0, 0}}},
   };
   for (auto &table_meta : insert_meta) {
     // Create Schema.
     std::vector<catalog::Schema::Column> cols;
     for (const auto &col_meta : table_meta.col_meta_) {
-      cols.emplace_back(col_meta.name_, col_meta.type_, col_meta.nullable_, DummyCVE());
+      if (col_meta.type_ != type::TypeId::VARCHAR) {
+        cols.emplace_back(col_meta.name_, col_meta.type_, col_meta.nullable_, DummyCVE());
+      } else {
+        cols.emplace_back(col_meta.name_, col_meta.type_, 100, col_meta.nullable_, DummyCVE());
+      }
     }
     catalog::Schema tmp_schema(cols);
     // Create Table.
@@ -264,7 +276,10 @@ void TableGenerator::InitTestIndexes() {
       // Table 2: two cols
       {"index_2_multi",
        "test_2",
-       {{"index_col1", type::TypeId::SMALLINT, false, "col1"}, {"index_col2", type::TypeId::INTEGER, true, "col2"}}}};
+       {{"index_col1", type::TypeId::SMALLINT, false, "col1"}, {"index_col2", type::TypeId::INTEGER, true, "col2"}}},
+
+      // Index on a varchar
+      {"varchar_index", "all_types_table", {{"index_varchar_col", type::TypeId::VARCHAR, false, "varchar_col"}}}};
 
   storage::index::IndexBuilder index_builder;
   for (const auto &index_meta : index_metas) {
@@ -278,7 +293,11 @@ void TableGenerator::InitTestIndexes() {
     for (const auto &col_meta : index_meta.cols_) {
       const auto &table_col = table_schema.GetColumn(col_meta.table_col_name_);
       parser::ColumnValueExpression col_expr(table_oid, table_col.Oid(), table_col.Type());
-      index_cols.emplace_back(col_meta.name_, col_meta.type_, col_meta.nullable_, col_expr);
+      if (table_col.Type() != type::TypeId::VARCHAR) {
+        index_cols.emplace_back(col_meta.name_, col_meta.type_, col_meta.nullable_, col_expr);
+      } else {
+        index_cols.emplace_back(col_meta.name_, col_meta.type_, 100, col_meta.nullable_, col_expr);
+      }
     }
     catalog::IndexSchema tmp_index_schema{index_cols, storage::index::IndexType::BWTREE, false, false, false, false};
     // Create Index

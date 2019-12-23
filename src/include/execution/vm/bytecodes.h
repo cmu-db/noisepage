@@ -430,7 +430,17 @@ namespace terrier::execution::vm {
   F(SplitPart, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
   F(Substring, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
   F(Trim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
-  F(Upper, OperandType::Local, OperandType::Local, OperandType::Local)
+  F(Upper, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
+                                                                                                                      \
+  /* String functions */                                                                                              \
+  F(GetParamTinyInt, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(GetParamSmallInt, OperandType::Local, OperandType::Local, OperandType::Local)                                     \
+  F(GetParamInt, OperandType::Local, OperandType::Local, OperandType::Local)                                          \
+  F(GetParamBigInt, OperandType::Local, OperandType::Local, OperandType::Local)                                       \
+  F(GetParamReal, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
+  F(GetParamDouble, OperandType::Local, OperandType::Local, OperandType::Local)                                       \
+  F(GetParamDate, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
+  F(GetParamString, OperandType::Local, OperandType::Local, OperandType::Local)
 
 /**
  * The single enumeration of all possible bytecode instructions

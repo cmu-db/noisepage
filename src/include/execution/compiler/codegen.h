@@ -33,9 +33,9 @@ class CodeGen {
   /**
    * Constructor
    * TODO(Amadou): This implicitly ties this object to a transaction. May not be what we want.
-   * @param accessor The catalog accessor
+   * @param exec_ctx The execution context
    */
-  explicit CodeGen(catalog::CatalogAccessor *accessor);
+  explicit CodeGen(exec::ExecutionContext *exec_ctx);
 
   /**
    * Prevent copy and move
@@ -60,7 +60,12 @@ class CodeGen {
   /**
    * @return the catalog accessor
    */
-  catalog::CatalogAccessor *Accessor() { return accessor_; }
+  catalog::CatalogAccessor *Accessor() { return exec_ctx_->GetAccessor(); }
+
+  /**
+   * @return the execution context
+   */
+  exec::ExecutionContext *ExecCtx() { return exec_ctx_; }
 
   /**
    * @return the error reporter
@@ -520,7 +525,7 @@ class CodeGen {
   sema::ErrorReporter error_reporter_;
   ast::Context ast_ctx_;
   ast::AstNodeFactory factory_;
-  catalog::CatalogAccessor *accessor_;
+  exec::ExecutionContext *exec_ctx_;
 
   // Identifiers that are always needed
   // Identifier of the state struct

@@ -102,6 +102,11 @@ class TranslatorFactory {
   static bool IsDerivedVal(parser::ExpressionType type) { return ((type) == parser::ExpressionType::VALUE_TUPLE); }
 
   /**
+   * Whether this is a parameter value
+   */
+  static bool IsParamVal(parser::ExpressionType type) { return ((type) == parser::ExpressionType::VALUE_PARAMETER); }
+
+  /**
    * Whether this is a null operation
    */
   static bool IsNullOp(parser::ExpressionType type) {

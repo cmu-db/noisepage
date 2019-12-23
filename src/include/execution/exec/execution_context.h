@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <utility>
+#include <vector>
 #include "catalog/catalog_accessor.h"
 #include "execution/exec/output.h"
 #include "execution/sql/memory_pool.h"
@@ -8,6 +9,7 @@
 #include "planner/plannodes/output_schema.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
+#include "type/transient_value.h"
 
 namespace terrier::execution::exec {
 /**
@@ -112,8 +114,17 @@ class EXPORT ExecutionContext {
 
   /**
    * Set the accessor
+   * @param accessor The catalog accessor.
    */
   void SetAccessor(std::unique_ptr<terrier::catalog::CatalogAccessor> &&accessor) { accessor_ = std::move(accessor); }
+
+  /**
+   * Set the execution parameters.
+   * @param params The exection parameters.
+   */
+  void SetParams(std::vector<type::TransientValue> &&params) { params_ = std::move(params); }
+
+  const type::TransientValue &GetParam(uint32_t param_idx) const { return params_[param_idx]; }
 
  private:
   catalog::db_oid_t db_oid_;
@@ -122,5 +133,6 @@ class EXPORT ExecutionContext {
   std::unique_ptr<OutputBuffer> buffer_;
   StringAllocator string_allocator_;
   std::unique_ptr<catalog::CatalogAccessor> accessor_;
+  std::vector<type::TransientValue> params_;
 };
 }  // namespace terrier::execution::exec
