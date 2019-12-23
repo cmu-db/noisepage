@@ -12,6 +12,7 @@
 #include "common/worker_pool.h"
 #include "metrics/metrics_thread.h"
 #include "network/terrier_server.h"
+#include "optimizer/statistics/stats_storage.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
@@ -343,6 +344,11 @@ class DBMain {
             std::make_unique<trafficcop::TrafficCop>(txn_layer->GetTransactionManager(), catalog_layer->GetCatalog());
       }
 
+      std::unique_ptr<optimizer::StatsStorage> stats_storage = DISABLED;
+      if (use_stats_storage_) {
+        stats_storage = std::make_unique<optimizer::StatsStorage>();
+      }
+
       std::unique_ptr<NetworkLayer> network_layer = DISABLED;
       if (use_network_) {
         TERRIER_ASSERT(use_traffic_cop_ && traffic_cop != DISABLED, "NetworkLayer needs TrafficCopLayer.");
@@ -361,6 +367,7 @@ class DBMain {
       db_main->catalog_layer_ = std::move(catalog_layer);
       db_main->gc_thread_ = std::move(gc_thread);
       db_main->traffic_cop_ = std::move(traffic_cop);
+      db_main->stats_storage_ = std::move(stats_storage);
       db_main->network_layer_ = std::move(network_layer);
 
       return db_main;
@@ -514,6 +521,15 @@ class DBMain {
      * @param value use component
      * @return self reference for chaining
      */
+    Builder &SetUseStatsStorage(const bool value) {
+      use_stats_storage_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value use component
+     * @return self reference for chaining
+     */
     Builder &SetUseNetwork(const bool value) {
       use_network_ = value;
       return *this;
@@ -581,6 +597,7 @@ class DBMain {
     int32_t gc_interval_ = 10;
     bool use_gc_thread_ = false;
     bool use_traffic_cop_ = false;
+    bool use_stats_storage_ = false;
     uint16_t network_port_ = 15721;
     bool use_network_ = false;
   };
@@ -655,6 +672,13 @@ class DBMain {
   /**
    * @return ManagedPointer to the component, can be nullptr if disabled
    */
+  common::ManagedPointer<optimizer::StatsStorage> GetStatsStorage() const {
+    return common::ManagedPointer(stats_storage_);
+  }
+
+  /**
+   * @return ManagedPointer to the component, can be nullptr if disabled
+   */
   common::ManagedPointer<NetworkLayer> GetNetworkLayer() const { return common::ManagedPointer(network_layer_); }
 
  private:
@@ -673,6 +697,7 @@ class DBMain {
   std::unique_ptr<CatalogLayer> catalog_layer_;
   std::unique_ptr<storage::GarbageCollectorThread>
       gc_thread_;  // thread needs to die before manual invocations of GC in CatalogLayer and others
+  std::unique_ptr<optimizer::StatsStorage> stats_storage_;
   std::unique_ptr<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<NetworkLayer> network_layer_;
 };

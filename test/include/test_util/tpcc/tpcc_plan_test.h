@@ -53,11 +53,11 @@ class TpccPlanTest : public TerrierTest {
                      void (*Check)(TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
                                    std::unique_ptr<planner::AbstractPlanNode> plan));
 
+  // Infrastucture
   common::ManagedPointer<catalog::Catalog> catalog_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
-
+  common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
   std::unique_ptr<DBMain> db_main_;
-  optimizer::StatsStorage *stats_storage_;
 
   uint64_t task_execution_timeout_;
 
