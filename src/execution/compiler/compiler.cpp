@@ -126,7 +126,8 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipel
 
 void Compiler::GenStateStruct(execution::util::RegionVector<execution::ast::Decl *> *top_level,
                               execution::util::RegionVector<execution::ast::FieldDecl *> &&fields) {
-  // Make a dummy fields in case no operator has a state. This can be remove once the empty struct bug is fixed.
+  // TODO(Amadou): Make a dummy fields in case no operator has a state.
+  //  This can be removed once the empty struct bug is fixed.
   ast::Identifier dummy_name = codegen_->Context()->GetIdentifier("DUMMY");
   ast::Expr *dummy_type = codegen_->BuiltinType(ast::BuiltinType::Kind::Int32);
   fields.emplace_back(codegen_->MakeField(dummy_name, dummy_type));
