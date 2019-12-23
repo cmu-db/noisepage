@@ -12,7 +12,6 @@
 #include "metrics/logging_metric.h"
 #include "metrics/metrics_defs.h"
 #include "metrics/transaction_metric.h"
-#include "util/pcg_random.h"
 
 namespace terrier::metrics {
 
@@ -110,17 +109,17 @@ class MetricsStore {
 
   /**
    * @param component to be tested
-   * @return true if metrics are enabled for this component and we should record this metric according to the sampling,
-   * false otherwise
+   * @return true if metrics are enabled for this component and we should record this metric according to the sample
+   * interval, false otherwise
    */
   bool ComponentToRecord(const MetricsComponent component) {
     auto component_index = static_cast<uint8_t>(component);
     if (!enabled_metrics_.test(component_index)) return false;
 
-    if (sampling_masks_[component_index] == static_cast<uint32_t>(SamplingMask::SAMPLE_DISABLED)) return true;
+    sample_count_[component_index] =
+        sample_count_[component_index] >= sample_interval_[component_index] ? 0 : sample_count_[component_index] + 1;
 
-    uint32_t random_number = util::PCGRandomGenerator::pcg32_random_r(&pcg_random_state_);
-    return (random_number & sampling_masks_[component_index]) == 0;
+    return sample_count_[component_index] == 0;
   }
 
   /**
@@ -143,11 +142,9 @@ class MetricsStore {
   std::unique_ptr<TransactionMetric> txn_metric_;
   std::unique_ptr<GarbageCollectionMetric> gc_metric_;
 
-  // State for the fast random number generator (used by metrics sampling) of this thread
-  util::PCGRandomGenerator::pcg32_random_t pcg_random_state_;
-
   const std::bitset<NUM_COMPONENTS> &enabled_metrics_;
-  const std::array<uint32_t, NUM_COMPONENTS> &sampling_masks_;
+  const std::array<uint32_t, NUM_COMPONENTS> &sample_interval_;
+  std::array<uint32_t, NUM_COMPONENTS> sample_count_{0};
 };
 
 }  // namespace terrier::metrics

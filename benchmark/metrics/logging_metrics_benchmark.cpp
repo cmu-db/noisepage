@@ -50,7 +50,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, TPCCish)(benchmark::State &state) {
     unlink(LOG_FILE_NAME);
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
-    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::LOGGING, metrics::SamplingMask::SAMPLE_DISABLED);
+    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::LOGGING, 0);
     thread_registry_ =
         new common::DedicatedThreadRegistry(common::ManagedPointer(&(metrics_thread->GetMetricsManager())));
 
@@ -96,7 +96,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, HighAbortRate)(benchmark::State &sta
     unlink(LOG_FILE_NAME);
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
-    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::LOGGING, metrics::SamplingMask::SAMPLE_DISABLED);
+    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::LOGGING, 0);
     thread_registry_ =
         new common::DedicatedThreadRegistry(common::ManagedPointer(&(metrics_thread->GetMetricsManager())));
 
@@ -143,7 +143,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementInsert)(benchmark::St
     unlink(LOG_FILE_NAME);
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
-    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::LOGGING, metrics::SamplingMask::SAMPLE_DISABLED);
+    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::LOGGING, 0);
     thread_registry_ =
         new common::DedicatedThreadRegistry(common::ManagedPointer(&(metrics_thread->GetMetricsManager())));
 
@@ -189,7 +189,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementUpdate)(benchmark::St
     unlink(LOG_FILE_NAME);
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
-    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::LOGGING, metrics::SamplingMask::SAMPLE_DISABLED);
+    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::LOGGING, 0);
     thread_registry_ =
         new common::DedicatedThreadRegistry(common::ManagedPointer(&(metrics_thread->GetMetricsManager())));
 
@@ -235,7 +235,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementSelect)(benchmark::St
     unlink(LOG_FILE_NAME);
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
-    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::LOGGING, metrics::SamplingMask::SAMPLE_DISABLED);
+    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::LOGGING, 0);
     thread_registry_ =
         new common::DedicatedThreadRegistry(common::ManagedPointer(&(metrics_thread->GetMetricsManager())));
 

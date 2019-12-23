@@ -71,7 +71,7 @@ void Callbacks::MetricsLogging(void *const old_value, void *const new_value, DBM
   action_context->SetState(common::ActionState::IN_PROGRESS);
   bool new_status = *static_cast<bool *>(new_value);
   if (new_status)
-    db_main->metrics_manager_->EnableMetric(metrics::MetricsComponent::LOGGING, metrics::SamplingMask::SAMPLE_DISABLED);
+    db_main->metrics_manager_->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
   else
     db_main->metrics_manager_->DisableMetric(metrics::MetricsComponent::LOGGING);
   action_context->SetState(common::ActionState::SUCCESS);
@@ -82,7 +82,7 @@ void Callbacks::MetricsTransaction(void *const old_value, void *const new_value,
   action_context->SetState(common::ActionState::IN_PROGRESS);
   bool new_status = *static_cast<bool *>(new_value);
   if (new_status)
-    db_main->metrics_manager_->EnableMetric(metrics::MetricsComponent::TRANSACTION, metrics::SamplingMask::SAMPLE_DISABLED);
+    db_main->metrics_manager_->EnableMetric(metrics::MetricsComponent::TRANSACTION, 0);
   else
     db_main->metrics_manager_->DisableMetric(metrics::MetricsComponent::TRANSACTION);
   action_context->SetState(common::ActionState::SUCCESS);

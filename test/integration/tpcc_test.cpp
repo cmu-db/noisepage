@@ -77,8 +77,8 @@ class TPCCTests : public TerrierTest {
     metrics::MetricsThread *metrics_thread = nullptr;
     if (metrics_enabled) {
       metrics_thread = new metrics::MetricsThread(metrics_period_);
-      metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::LOGGING, metrics::SamplingMask::SAMPLE_DISABLED);
-      metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION, metrics::SamplingMask::SAMPLE_DISABLED);
+      metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::LOGGING, 0);
+      metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION, 0);
       thread_registry_ =
           new common::DedicatedThreadRegistry(common::ManagedPointer(&(metrics_thread->GetMetricsManager())));
     } else {
