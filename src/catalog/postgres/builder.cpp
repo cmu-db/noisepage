@@ -1,6 +1,5 @@
 #include <utility>
 #include <vector>
-#include <catalog/postgres/builder.h>
 
 #include "catalog/database_catalog.h"
 #include "catalog/index_schema.h"

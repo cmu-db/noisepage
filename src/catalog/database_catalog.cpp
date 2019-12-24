@@ -1,12 +1,10 @@
-#include "catalog/database_catalog.h"
-
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
-#include <catalog/database_catalog.h>
 
 #include "catalog/catalog_defs.h"
+#include "catalog/database_catalog.h"
 #include "catalog/index_schema.h"
 #include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_attribute.h"
@@ -211,7 +209,6 @@ void DatabaseCatalog::Bootstrap(transaction::TransactionContext *const txn) {
   retval = SetIndexPointer(txn, postgres::CONSTRAINT_FOREIGNTABLE_INDEX_OID, constraints_foreigntable_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
-
   // pg_language and associated indexes
   retval = CreateTableEntry(txn, postgres::LANGUAGE_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_language",
                             postgres::Builder::GetLanguageTableSchema());
@@ -316,7 +313,7 @@ void DatabaseCatalog::BootstrapPRIs() {
 
   // pg_language
   const std::vector<col_oid_t> pg_language_all_oids{postgres::PG_LANGUAGE_ALL_COL_OIDS.cbegin(),
-                                                postgres::PG_LANGUAGE_ALL_COL_OIDS.cend()};
+                                                    postgres::PG_LANGUAGE_ALL_COL_OIDS.cend()};
   pg_language_all_cols_pri_ = languages_->InitializerForProjectedRow(pg_language_all_oids);
   pg_language_all_cols_prm_ = languages_->ProjectionMapForOids(pg_language_all_oids);
 }
@@ -1642,8 +1639,7 @@ void DatabaseCatalog::BootstrapTypes(transaction::TransactionContext *const txn)
              postgres::Type::BASE);
 }
 
-void DatabaseCatalog::BootstrapLanguages(transaction::TransactionContext *const txn)
-{
+void DatabaseCatalog::BootstrapLanguages(transaction::TransactionContext *const txn) {
   CreateLanguage(txn, "plpgsql", postgres::PLPGSQL_LANGUAGE_OID);
   CreateLanguage(txn, "internal", postgres::INTERNAL_LANGUAGE_OID);
 }
@@ -1918,10 +1914,8 @@ bool DatabaseCatalog::TryLock(transaction::TransactionContext *const txn) {
   return false;
 }
 
-bool DatabaseCatalog::CreateLanguage(transaction::TransactionContext *txn,
-                                     const std::string &lanname,
+bool DatabaseCatalog::CreateLanguage(transaction::TransactionContext *txn, const std::string &lanname,
                                      language_oid_t oid) {
-
   // Insert into table
   if (!TryLock(txn)) return false;
   const auto name_varlen = storage::StorageUtil::CreateVarlen(lanname);
@@ -1932,8 +1926,8 @@ bool DatabaseCatalog::CreateLanguage(transaction::TransactionContext *txn,
   *(reinterpret_cast<storage::VarlenEntry *>(
       redo->Delta()->AccessForceNotNull(pg_language_all_cols_prm_[postgres::LANNAME_COL_OID]))) = name_varlen;
 
-  *(reinterpret_cast<bool *>(
-      redo->Delta()->AccessForceNotNull(pg_language_all_cols_prm_[postgres::LANISPL_COL_OID]))) = false;
+  *(reinterpret_cast<bool *>(redo->Delta()->AccessForceNotNull(pg_language_all_cols_prm_[postgres::LANISPL_COL_OID]))) =
+      false;
   *(reinterpret_cast<bool *>(
       redo->Delta()->AccessForceNotNull(pg_language_all_cols_prm_[postgres::LANPLTRUSTED_COL_OID]))) = true;
   const auto tuple_slot = languages_->Insert(txn, redo);
@@ -1966,21 +1960,18 @@ bool DatabaseCatalog::CreateLanguage(transaction::TransactionContext *txn,
   return true;
 }
 
-language_oid_t DatabaseCatalog::CreateLanguage(transaction::TransactionContext *txn, const std::string &lanname)
-{
+language_oid_t DatabaseCatalog::CreateLanguage(transaction::TransactionContext *txn, const std::string &lanname) {
   auto oid = language_oid_counter_++;
-  if(!CreateLanguage(txn, lanname, oid)){
+  if (!CreateLanguage(txn, lanname, oid)) {
     return INVALID_LANGUAGE_OID;
   }
 
   return oid;
 }
 
-language_oid_t DatabaseCatalog::GetLanguageOid(transaction::TransactionContext *txn, const std::string &lanname)
-{
+language_oid_t DatabaseCatalog::GetLanguageOid(transaction::TransactionContext *txn, const std::string &lanname) {
   auto name_pri = languages_name_index_->GetProjectedRowInitializer();
-  byte *const buffer = common::AllocationUtil::AllocateAligned(
-      pg_language_all_cols_pri_.ProjectedRowSize());
+  byte *const buffer = common::AllocationUtil::AllocateAligned(pg_language_all_cols_pri_.ProjectedRowSize());
 
   auto name_pr = name_pri.InitializeRow(buffer);
   const auto name_varlen = storage::StorageUtil::CreateVarlen(lanname);
@@ -1991,7 +1982,7 @@ language_oid_t DatabaseCatalog::GetLanguageOid(transaction::TransactionContext *
   languages_name_index_->ScanKey(*txn, *name_pr, &results);
 
   auto oid = INVALID_LANGUAGE_OID;
-  if(results.size() != 0){
+  if (results.size() != 0) {
     TERRIER_ASSERT(results.size() == 1, "Unique language name index should return <= 1 result");
 
     // extract oid from results[0]
@@ -2024,7 +2015,7 @@ bool DatabaseCatalog::DropLanguage(transaction::TransactionContext *txn, languag
 
   std::vector<storage::TupleSlot> results;
   languages_oid_index_->ScanKey(*txn, *index_pr, &results);
-  if(results.size() == 0){
+  if (results.size() == 0) {
     delete[] buffer;
     return false;
   }
@@ -2045,14 +2036,13 @@ bool DatabaseCatalog::DropLanguage(transaction::TransactionContext *txn, languag
   auto table_pr = pg_language_all_cols_pri_.InitializeRow(buffer);
   bool UNUSED_ATTRIBUTE visible = languages_->Select(txn, to_delete_slot, table_pr);
 
-  auto name_varlen = *reinterpret_cast<storage::VarlenEntry*>(table_pr
-      ->AccessForceNotNull(pg_language_all_cols_prm_[postgres::LANNAME_COL_OID]));
+  auto name_varlen = *reinterpret_cast<storage::VarlenEntry *>(
+      table_pr->AccessForceNotNull(pg_language_all_cols_prm_[postgres::LANNAME_COL_OID]));
 
   index_pr = name_pri.InitializeRow(buffer);
   *reinterpret_cast<storage::VarlenEntry *>(index_pr->AccessForceNotNull(0)) = name_varlen;
 
   languages_name_index_->Delete(txn, *index_pr, to_delete_slot);
-
 
   delete[] buffer;
 
