@@ -140,9 +140,7 @@ language_oid_t CatalogAccessor::GetLanguageOid(const std::string &lanname) {
   return dbc_->GetLanguageOid(txn_, lanname);
 }
 
-bool CatalogAccessor::DropLanguage(language_oid_t language_oid) {
-  return dbc_->DropLanguage(txn_, language_oid);
-}
+bool CatalogAccessor::DropLanguage(language_oid_t language_oid) { return dbc_->DropLanguage(txn_, language_oid); }
 
 common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() const {
   // TODO(Matt): at some point we may decide to adjust the source  (i.e. each DatabaseCatalog has one), stick it in a

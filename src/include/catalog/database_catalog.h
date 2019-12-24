@@ -247,21 +247,20 @@ class DatabaseCatalog {
   std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> GetIndexes(
       common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
 
-
   /**
-  * Creates a language entry into the pg_language table
-  * @param txn transaction to use
-  * @param lanname name of language to insert
-  * @return oid of created entry if successful else INVALID_LANGUAGE_OID
-  */
+   * Creates a language entry into the pg_language table
+   * @param txn transaction to use
+   * @param lanname name of language to insert
+   * @return oid of created entry if successful else INVALID_LANGUAGE_OID
+   */
   language_oid_t CreateLanguage(transaction::TransactionContext *txn, const std::string &lanname);
 
   /**
-  * Looks up a language entry in the pg_language table
-  * @param txn transaction to use
-  * @param lanname name of language to look up
-  * @return oid of requested entry if found else INVALID_LANGUAGE_OID if not found
-  */
+   * Looks up a language entry in the pg_language table
+   * @param txn transaction to use
+   * @param lanname name of language to look up
+   * @return oid of requested entry if found else INVALID_LANGUAGE_OID if not found
+   */
   language_oid_t GetLanguageOid(transaction::TransactionContext *txn, const std::string &lanname);
 
   /**
@@ -273,7 +272,6 @@ class DatabaseCatalog {
   bool DropLanguage(transaction::TransactionContext *txn, language_oid_t oid);
 
  private:
-
   /**
    * Creates a language entry into the pg_language table
    * @param txn transaction to use

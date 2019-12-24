@@ -68,8 +68,7 @@ TEST_F(CatalogTests, LanguageTest) {
   auto accessor = catalog_->GetAccessor(txn, db_);
 
   auto oid = accessor->CreateLanguage("internal");
-  TERRIER_ASSERT(oid == catalog::INVALID_LANGUAGE_OID,
-      "internal language should already be there");
+  TERRIER_ASSERT(oid == catalog::INVALID_LANGUAGE_OID, "internal language should already be there");
 
   txn_manager_->Abort(txn);
   txn = txn_manager_->BeginTransaction();
@@ -86,8 +85,7 @@ TEST_F(CatalogTests, LanguageTest) {
   accessor = catalog_->GetAccessor(txn, db_);
 
   oid = accessor->CreateLanguage("test_language");
-  TERRIER_ASSERT(oid == catalog::INVALID_LANGUAGE_OID,
-      "Duplicate language creation succeeded");
+  TERRIER_ASSERT(oid == catalog::INVALID_LANGUAGE_OID, "Duplicate language creation succeeded");
   txn_manager_->Abort(txn);
 
   txn = txn_manager_->BeginTransaction();
