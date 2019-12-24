@@ -37,7 +37,6 @@ class TrafficCopTests : public TerrierTest {
                    .SetUseNetwork(true)
                    .Build();
 
-    db_main_->running_ = true;
     db_main_->GetNetworkLayer()->GetServer()->RunServer();
 
     port_ = static_cast<uint16_t>(db_main_->GetSettingsManager()->GetInt(settings::Param::port));

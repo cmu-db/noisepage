@@ -8,7 +8,7 @@
 namespace terrier {
 
 void DBMain::Run() {
-  running_ = true;
+  TERRIER_ASSERT(network_layer_ != DISABLED, "Trying to run without a NetworkLayer.");
   const auto server = network_layer_->GetServer();
   server->RunServer();
   {
@@ -18,7 +18,7 @@ void DBMain::Run() {
 }
 
 void DBMain::ForceShutdown() {
-  if (running_) {
+  if (network_layer_ != DISABLED && network_layer_->GetServer()->Running()) {
     network_layer_->GetServer()->StopServer();
   }
 }

@@ -35,7 +35,11 @@ class TrafficCopTests;
  * components, particularly at destruction since there are implicit dependencies in the interaction of various
  * components.
  * Use the Builder to request the components that you want, and it should detect if you missed a dependency at
- * construction on Build(). *Only the settings manager should be able to access the DBMain object.*
+ * construction on Build().
+ * DBMain should never be passed as a dependency to any components. Component dependencies should be explicit
+ * constructor arguments. This also means that the Getters for components on DBMain are really only meant for testing
+ * purposes, since the main() function's scope (either in a benchmark, test, or the DBMS executable) is the only scope
+ * with access to the DBMain object.
  */
 class DBMain {
  public:
@@ -55,12 +59,6 @@ class DBMain {
    */
   void ForceShutdown();
 
- private:
-  friend class TpccPlanTest;
-  friend class settings::SettingsManager;
-  friend class settings::Callbacks;
-
- public:
   /**
    * TimestampManager, DeferredActionManager, and TransactionManager
    */
@@ -682,9 +680,6 @@ class DBMain {
   common::ManagedPointer<NetworkLayer> GetNetworkLayer() const { return common::ManagedPointer(network_layer_); }
 
  private:
-  friend class trafficcop::TrafficCopTests;
-  bool running_ = false;
-
   // Order matters here for destruction order
   std::unique_ptr<settings::SettingsManager> settings_manager_;
   std::unique_ptr<metrics::MetricsManager> metrics_manager_;
