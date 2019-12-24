@@ -1,5 +1,6 @@
 #include <utility>
 #include <vector>
+#include <catalog/postgres/builder.h>
 
 #include "catalog/database_catalog.h"
 #include "catalog/index_schema.h"
@@ -311,21 +312,21 @@ Schema Builder::GetLanguageTableSchema() {
   columns.emplace_back("lanname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, MakeNull(type::TypeId::VARCHAR));
   columns.back().SetOid(LANNAME_COL_OID);
 
-  columns.emplace_back("lanispl", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.emplace_back("lanispl", type::TypeId::BOOLEAN, true, MakeNull(type::TypeId::BOOLEAN));
   columns.back().SetOid(LANISPL_COL_OID);
 
-  columns.emplace_back("lanpltrusted", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.emplace_back("lanpltrusted", type::TypeId::BOOLEAN, true, MakeNull(type::TypeId::BOOLEAN));
   columns.back().SetOid(LANPLTRUSTED_COL_OID);
 
-  columns.emplace_back("lanplcallfoid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("lanplcallfoid", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
   columns.back().SetOid(LANPLCALLFOID_COL_OID);
 
-  columns.emplace_back("laninline", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("laninline", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
   columns.back().SetOid(LANINLINE_COL_OID);
 
-  columns.emplace_back("lanvalidator", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("lanvalidator", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
   columns.back().SetOid(LANVALIDATOR_COL_OID);
-  
+
   return Schema(columns);
 }
 

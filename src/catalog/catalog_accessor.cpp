@@ -132,6 +132,14 @@ common::ManagedPointer<storage::index::Index> CatalogAccessor::GetIndex(index_oi
   return dbc_->GetIndex(txn_, index);
 }
 
+language_oid_t CatalogAccessor::CreateLanguage(const std::string &language) {
+  return dbc_->CreateLanguage(txn_, language);
+}
+
+bool CatalogAccessor::DropLanguage(language_oid_t language_oid) {
+  return dbc_->DropLanguage(txn_, language_oid);
+}
+
 common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() const {
   // TODO(Matt): at some point we may decide to adjust the source  (i.e. each DatabaseCatalog has one), stick it in a
   // pg_tablespace table, or we may eliminate the concept entirely. This works for now to allow CREATE nodes to bind a

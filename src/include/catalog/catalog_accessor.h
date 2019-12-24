@@ -264,6 +264,10 @@ class CatalogAccessor {
    */
   common::ManagedPointer<storage::index::Index> GetIndex(index_oid_t index) const;
 
+  language_oid_t CreateLanguage(const std::string &lanname);
+
+  bool DropLanguage(language_oid_t language_oid);
+
   /**
    * @return BlockStore to be used for CREATE operations
    */

@@ -1659,7 +1659,8 @@ void DatabaseCatalog::BootstrapTypes(const common::ManagedPointer<transaction::T
 
 void DatabaseCatalog::BootstrapLanguages(transaction::TransactionContext *const txn)
 {
-  InsertLanguage(txn, "plpgsql");
+  CreateLanguage(txn, "plpgsql", postgres::PLPGSQL_LANGUAGE_OID);
+  CreateLanguage(txn, "internal", postgres::INTERNAL_LANGUAGE_OID);
 }
 
 bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -1934,17 +1935,24 @@ bool DatabaseCatalog::TryLock(const common::ManagedPointer<transaction::Transact
   return false;
 }
 
-bool DatabaseCatalog::InsertLanguage(transaction::TransactionContext *txn, const std::string &lanname) {
+bool DatabaseCatalog::CreateLanguage(transaction::TransactionContext *txn,
+                                     const std::string &lanname,
+                                     language_oid_t oid) {
 
   // Insert into table
+  if (!TryLock(txn)) return false;
   const auto name_varlen = storage::StorageUtil::CreateVarlen(lanname);
   // Get & Fill Redo Record
   auto *const redo = txn->StageWrite(db_oid_, postgres::LANGUAGE_TABLE_OID, pg_language_all_cols_pri_);
-  language_oid_t oid = static_cast<language_oid_t >(next_oid_++);
   *(reinterpret_cast<language_oid_t *>(
       redo->Delta()->AccessForceNotNull(pg_language_all_cols_prm_[postgres::LANOID_COL_OID]))) = oid;
   *(reinterpret_cast<storage::VarlenEntry *>(
       redo->Delta()->AccessForceNotNull(pg_language_all_cols_prm_[postgres::LANNAME_COL_OID]))) = name_varlen;
+
+  *(reinterpret_cast<bool *>(
+      redo->Delta()->AccessForceNotNull(pg_language_all_cols_prm_[postgres::LANISPL_COL_OID]))) = false;
+  *(reinterpret_cast<bool *>(
+      redo->Delta()->AccessForceNotNull(pg_language_all_cols_prm_[postgres::LANPLTRUSTED_COL_OID]))) = true;
   const auto tuple_slot = languages_->Insert(txn, redo);
 
   // Insert into name index
@@ -1975,34 +1983,61 @@ bool DatabaseCatalog::InsertLanguage(transaction::TransactionContext *txn, const
   return true;
 }
 
-bool DatabaseCatalog::DeleteLanguage(transaction::TransactionContext *txn, const std::string &lanname) {
-  // Insert into table
-  const auto name_varlen = storage::StorageUtil::CreateVarlen(lanname);
-  // Get & Fill Redo Record
+language_oid_t DatabaseCatalog::CreateLanguage(transaction::TransactionContext *txn, const std::string &lanname)
+{
+  auto oid = language_oid_counter_++;
+  if(!CreateLanguage(txn, lanname, oid)){
+    return INVALID_LANGUAGE_OID;
+  }
 
+  return oid;
+}
+
+bool DatabaseCatalog::DropLanguage(transaction::TransactionContext *txn, language_oid_t oid) {
+  // Insert into table
+  if (!TryLock(txn)) return false;
+  TERRIER_ASSERT(oid != INVALID_LANGUAGE_OID, "Invalid oid passed");
   // Delete from oid index
   auto name_pri = languages_name_index_->GetProjectedRowInitializer();
-  auto oid_pri = languages_name_index_->GetProjectedRowInitializer();
+  auto oid_pri = languages_oid_index_->GetProjectedRowInitializer();
 
-  byte *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
-  auto index_pr = name_pri.InitializeRow(buffer);
-  *reinterpret_cast<storage::VarlenEntry *>(index_pr->AccessForceNotNull(0)) = name_varlen;
+  byte *const buffer = common::AllocationUtil::AllocateAligned(pg_language_all_cols_pri_.ProjectedRowSize());
+  auto index_pr = oid_pri.InitializeRow(buffer);
+  *reinterpret_cast<language_oid_t *>(index_pr->AccessForceNotNull(0)) = oid;
 
   std::vector<storage::TupleSlot> results;
-  languages_name_index_->ScanKey(*txn, *index_pr, &results);
+  languages_oid_index_->ScanKey(*txn, *index_pr, &results);
+  if(results.size() == 0){
+    delete[] buffer;
+    return false;
+  }
+
   TERRIER_ASSERT(results.size() == 1, "More than one non-unique result found in unique index.");
 
   auto to_delete_slot = results[0];
-  languages_name_index_->Delete(txn, *index_pr, to_delete_slot);
+  txn->StageDelete(db_oid_, postgres::LANGUAGE_TABLE_OID, to_delete_slot);
 
-  index_pr = oid_pri.InitializeRow(buffer);
-  TERRIER_ASSERT(results.size() == 1, "More than one non-unique result found in unique index.");
+  if (!languages_->Delete(txn, to_delete_slot)) {
+    // Someone else has a write-lock. Free the buffer and return false to indicate failure
+    delete[] buffer;
+    return false;
+  }
 
-  to_delete_slot = results[0];
   languages_oid_index_->Delete(txn, *index_pr, to_delete_slot);
 
+  auto table_pr = pg_language_all_cols_pri_.InitializeRow(buffer);
+  bool UNUSED_ATTRIBUTE visible = languages_->Select(txn, to_delete_slot, table_pr);
+
+  auto name_varlen = *reinterpret_cast<storage::VarlenEntry*>(table_pr
+      ->AccessForceNotNull(pg_language_all_cols_prm_[postgres::LANNAME_COL_OID]));
+
+  index_pr = name_pri.InitializeRow(buffer);
+  *reinterpret_cast<storage::VarlenEntry *>(index_pr->AccessForceNotNull(0)) = name_varlen;
+
+  languages_name_index_->Delete(txn, *index_pr, to_delete_slot);
+
+
   delete[] buffer;
-  txn->StageDelete(db_oid_, postgres::LANGUAGE_TABLE_OID, to_delete_slot);
 
   return true;
 }
