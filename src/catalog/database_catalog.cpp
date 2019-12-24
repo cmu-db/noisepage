@@ -1947,6 +1947,11 @@ bool DatabaseCatalog::CreateLanguage(transaction::TransactionContext *txn, const
       false;
   *(reinterpret_cast<bool *>(
       redo->Delta()->AccessForceNotNull(pg_language_all_cols_prm_[postgres::LANPLTRUSTED_COL_OID]))) = true;
+  redo->Delta()->SetNull(pg_language_all_cols_prm_[postgres::LANINLINE_COL_OID]);
+  redo->Delta()->SetNull(pg_language_all_cols_prm_[postgres::LANVALIDATOR_COL_OID]);
+  redo->Delta()->SetNull(pg_language_all_cols_prm_[postgres::LANPLCALLFOID_COL_OID]);
+
+
   const auto tuple_slot = languages_->Insert(txn, redo);
 
   // Insert into name index
