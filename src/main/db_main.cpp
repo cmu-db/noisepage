@@ -9,11 +9,11 @@ namespace terrier {
 
 void DBMain::Run() {
   running_ = true;
-  network_layer_->GetServer()->RunServer();
-
+  const auto server = network_layer_->GetServer();
+  server->RunServer();
   {
-    std::unique_lock<std::mutex> lock(network_layer_->GetServer()->RunningMutex());
-    network_layer_->GetServer()->RunningCV().wait(lock, [=] { return !(network_layer_->GetServer()->Running()); });
+    std::unique_lock<std::mutex> lock(server->RunningMutex());
+    server->RunningCV().wait(lock, [=] { return !(server->Running()); });
   }
 }
 
