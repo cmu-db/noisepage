@@ -197,6 +197,11 @@ class Builder {
   static IndexSchema GetLanguageNameIndexSchema(db_oid_t db);
 
   /**
+   * @return schema object for pg_proc table
+   */
+  static Schema GetProcTableSchema();
+
+  /**
    * Instantiate a new unique index with the given schema and oid
    * @param key_schema for the index
    * @param oid for the new index

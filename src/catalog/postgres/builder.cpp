@@ -11,6 +11,7 @@
 #include "catalog/postgres/pg_index.h"
 #include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_namespace.h"
+#include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
 #include "parser/expression/abstract_expression.h"
@@ -608,5 +609,78 @@ IndexSchema Builder::GetLanguageNameIndexSchema(db_oid_t db) {
 
   return schema;
 }
+
+Schema Builder::GetProcTableSchema() {
+  std::vector<Schema::Column> columns;
+
+  columns.emplace_back("prooid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(PROOID_COL_OID);
+
+  columns.emplace_back("proname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, MakeNull(type::TypeId::VARCHAR));
+  columns.back().SetOid(PRONAME_COL_OID);
+
+  columns.emplace_back("pronamespace", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(PRONAMESPACE_COL_OID);
+
+  columns.emplace_back("prolang", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(PROLANG_COL_OID);
+
+  columns.emplace_back("procost", type::TypeId::DECIMAL, true, MakeNull(type::TypeId::DECIMAL));
+  columns.back().SetOid(PROCOST_COL_OID);
+
+  columns.emplace_back("prorows", type::TypeId::DECIMAL, true, MakeNull(type::TypeId::DECIMAL));
+  columns.back().SetOid(PROROWS_COL_OID);
+
+  columns.emplace_back("provariadic", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(PROVARIADIC_COL_OID);
+
+  columns.emplace_back("proisagg", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.back().SetOid(PROISAGG_COL_OID);
+
+  columns.emplace_back("proiswindow", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.back().SetOid(PROISWINDOW_COL_OID);
+
+  columns.emplace_back("proisstrict", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.back().SetOid(PROISSTRICT_COL_OID);
+
+  columns.emplace_back("proretset", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.back().SetOid(PRORETSET_COL_OID);
+
+  columns.emplace_back("provolatile", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.back().SetOid(PROVOLATILE_COL_OID);
+
+  columns.emplace_back("pronargs", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
+  columns.back().SetOid(PRONARGS_COL_OID);
+
+  columns.emplace_back("pronargdefaults", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
+  columns.back().SetOid(PRONARGDEFAULTS_COL_OID);
+
+  columns.emplace_back("prorettype", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(PRORETTYPE_COL_OID);
+
+  columns.emplace_back("proargtypes", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(PROARGTYPES_COL_OID);
+
+  columns.emplace_back("proallargtypes", type::TypeId::VARBINARY, false, MakeNull(type::TypeId::VARBINARY));
+  columns.back().SetOid(PROALLARGTYPES_COL_OID);
+
+  columns.emplace_back("proargmodes", type::TypeId::VARBINARY, false, MakeNull(type::TypeId::VARBINARY));
+  columns.back().SetOid(PROARGMODES_COL_OID);
+
+  columns.emplace_back("proargdefaults", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, MakeNull(type::TypeId::VARCHAR));
+  columns.back().SetOid(PROARGDEFAULTS_COL_OID);
+
+  columns.emplace_back("proargnames", type::TypeId::VARBINARY, false, MakeNull(type::TypeId::VARBINARY));
+  columns.back().SetOid(PROARGNAMES_COL_OID);
+
+  columns.emplace_back("prosrc", type::TypeId::VARCHAR, 4096, false, MakeNull(type::TypeId::VARCHAR));
+  columns.back().SetOid(PROSRC_COL_OID);
+
+  columns.emplace_back("proconfig", type::TypeId::VARBINARY, false, MakeNull(type::TypeId::VARBINARY));
+  columns.back().SetOid(PROCONFIG_COL_OID);
+
+  return Schema();
+}
+
 
 }  // namespace terrier::catalog::postgres
