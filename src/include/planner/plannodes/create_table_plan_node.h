@@ -331,6 +331,15 @@ struct CheckInfo {
   CheckInfo() = default;
 
   /**
+   * Copy Constructor for Optimizer
+   */
+  CheckInfo(const CheckInfo &ci)
+    : check_cols_(ci.check_cols_),
+      constraint_name_(ci.constraint_name_),
+      expr_type_(ci.expr_type_),
+      expr_value_(ci.expr_value_) {}
+
+  /**
    * @return the hashed value of this check info
    */
   common::hash_t Hash() const {

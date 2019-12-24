@@ -94,8 +94,6 @@ struct ColumnDefinition {
         check_expr_(check_expr),
         varlen_(varlen) {}
 
-  virtual ~ColumnDefinition() = default;
-
   /**
    * @param str type string
    * @return data type
@@ -367,10 +365,7 @@ class IndexAttr {
   }
 
   /** @return the expression that we're indexed on */
-  common::ManagedPointer<AbstractExpression> GetExpression() const {
-    TERRIER_ASSERT(expr_ != nullptr, "Names don't come with expressions.");
-    return expr_;
-  }
+  common::ManagedPointer<AbstractExpression> GetExpression() const { return expr_; }
 
  private:
   bool has_expr_;

@@ -114,23 +114,11 @@ TEST(OperatorTests, LogicalInsertSelectTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, LogicalDistinctTest) {
-  // DISTINCT operator does not have any data members.
-  // So we just need to make sure that all instantiations
-  // of the object are equivalent.
-  Operator op1 = LogicalDistinct::Make();
-  EXPECT_EQ(op1.GetType(), OpType::LOGICALDISTINCT);
-
-  Operator op2 = LogicalDistinct::Make();
-  EXPECT_TRUE(op1 == op2);
-  EXPECT_EQ(op1.Hash(), op2.Hash());
-}
-
-// NOLINTNEXTLINE
 TEST(OperatorTests, LogicalLimitTest) {
   size_t offset = 90;
   size_t limit = 22;
-  auto sort_expr_ori = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
+  parser::AbstractExpression *sort_expr_ori =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
   auto sort_expr = common::ManagedPointer<parser::AbstractExpression>(sort_expr_ori);
   OrderByOrderingType sort_dir = OrderByOrderingType::ASC;
 
@@ -167,7 +155,7 @@ TEST(OperatorTests, LogicalDeleteTest) {
   catalog::table_oid_t table_oid(789);
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalDelete::Make(database_oid, namespace_oid, table_oid);
+  Operator op1 = LogicalDelete::Make(database_oid, namespace_oid, "tbl", table_oid);
   EXPECT_EQ(op1.GetType(), OpType::LOGICALDELETE);
   EXPECT_EQ(op1.As<LogicalDelete>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<LogicalDelete>()->GetNamespaceOid(), namespace_oid);
@@ -175,14 +163,14 @@ TEST(OperatorTests, LogicalDeleteTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = LogicalDelete::Make(database_oid, namespace_oid, table_oid);
+  Operator op2 = LogicalDelete::Make(database_oid, namespace_oid, "tbl", table_oid);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   catalog::db_oid_t other_database_oid(999);
-  Operator op3 = LogicalDelete::Make(other_database_oid, namespace_oid, table_oid);
+  Operator op3 = LogicalDelete::Make(other_database_oid, namespace_oid, "tbl", table_oid);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 }
@@ -202,7 +190,7 @@ TEST(OperatorTests, LogicalUpdateTest) {
   catalog::table_oid_t table_oid(789);
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalUpdate::Make(database_oid, namespace_oid, table_oid, std::move(update_clause_v));
+  Operator op1 = LogicalUpdate::Make(database_oid, namespace_oid, "tbl", table_oid, std::move(update_clause_v));
   EXPECT_EQ(op1.GetType(), OpType::LOGICALUPDATE);
   EXPECT_EQ(op1.As<LogicalUpdate>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<LogicalUpdate>()->GetNamespaceOid(), namespace_oid);
@@ -215,13 +203,13 @@ TEST(OperatorTests, LogicalUpdateTest) {
   // be equal to our first object and have the same hash
   std::vector<common::ManagedPointer<parser::UpdateClause>> update_clause_v2;
   update_clause_v2.emplace_back(common::ManagedPointer<parser::UpdateClause>(update_clause2));
-  Operator op2 = LogicalUpdate::Make(database_oid, namespace_oid, table_oid, std::move(update_clause_v2));
+  Operator op2 = LogicalUpdate::Make(database_oid, namespace_oid, "tbl", table_oid, std::move(update_clause_v2));
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
-  Operator op3 = LogicalUpdate::Make(database_oid, namespace_oid, table_oid, {});
+  Operator op3 = LogicalUpdate::Make(database_oid, namespace_oid, "tbl", table_oid, {});
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -249,7 +237,6 @@ TEST(OperatorTests, LogicalExportExternalFileTest) {
   // be equal to our first object and have the same hash
   std::string file_name_copy = file_name;  // NOLINT
   Operator op2 =
-
       LogicalExportExternalFile::Make(parser::ExternalFileFormat::BINARY, file_name_copy, delimiter, quote, escape);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
@@ -266,9 +253,12 @@ TEST(OperatorTests, LogicalGetTest) {
   //===--------------------------------------------------------------------===//
   // LogicalGet
   //===--------------------------------------------------------------------===//
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -438,9 +428,12 @@ TEST(OperatorTests, LogicalFilterTest) {
   //===--------------------------------------------------------------------===//
   // LogicalFilter
   //===--------------------------------------------------------------------===//
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -484,9 +477,12 @@ TEST(OperatorTests, LogicalProjectionTest) {
   //===--------------------------------------------------------------------===//
   // LogicalProjection
   //===--------------------------------------------------------------------===//
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -521,9 +517,12 @@ TEST(OperatorTests, LogicalDependentJoinTest) {
   //===--------------------------------------------------------------------===//
   // LogicalDependentJoin
   //===--------------------------------------------------------------------===//
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -572,9 +571,12 @@ TEST(OperatorTests, LogicalMarkJoinTest) {
   //===--------------------------------------------------------------------===//
   // LogicalMarkJoin
   //===--------------------------------------------------------------------===//
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -623,9 +625,12 @@ TEST(OperatorTests, LogicalSingleJoinTest) {
   //===--------------------------------------------------------------------===//
   // LogicalSingleJoin
   //===--------------------------------------------------------------------===//
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -674,9 +679,12 @@ TEST(OperatorTests, LogicalInnerJoinTest) {
   //===--------------------------------------------------------------------===//
   // LogicalInnerJoin
   //===--------------------------------------------------------------------===//
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -725,9 +733,12 @@ TEST(OperatorTests, LogicalLeftJoinTest) {
   //===--------------------------------------------------------------------===//
   // LogicalLeftJoin
   //===--------------------------------------------------------------------===//
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -765,9 +776,12 @@ TEST(OperatorTests, LogicalRightJoinTest) {
   //===--------------------------------------------------------------------===//
   // LogicalRightJoin
   //===--------------------------------------------------------------------===//
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -806,9 +820,12 @@ TEST(OperatorTests, LogicalOuterJoinTest) {
   //===--------------------------------------------------------------------===//
   // LogicalOuterJoin
   //===--------------------------------------------------------------------===//
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -846,9 +863,12 @@ TEST(OperatorTests, LogicalSemiJoinTest) {
   //===--------------------------------------------------------------------===//
   // LogicalSemiJoin
   //===--------------------------------------------------------------------===//
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -887,10 +907,14 @@ TEST(OperatorTests, LogicalAggregateAndGroupByTest) {
   // LogicalAggregateAndGroupBy
   //===--------------------------------------------------------------------===//
   // ConstValueExpression subclass AbstractExpression
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
-  auto expr_b_7 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_7 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   // columns: vector of shared_ptr of AbstractExpression
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
@@ -899,10 +923,14 @@ TEST(OperatorTests, LogicalAggregateAndGroupByTest) {
   auto x_7 = common::ManagedPointer<parser::AbstractExpression>(expr_b_7);
 
   // ConstValueExpression subclass AbstractExpression
-  auto expr_b_4 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_5 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_8 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_6 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_4 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_5 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_8 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_6 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
   auto x_4 = common::ManagedPointer<parser::AbstractExpression>(expr_b_4);
   auto x_5 = common::ManagedPointer<parser::AbstractExpression>(expr_b_5);
   auto x_6 = common::ManagedPointer<parser::AbstractExpression>(expr_b_6);
