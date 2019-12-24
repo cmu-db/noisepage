@@ -357,7 +357,8 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
 }
 
 // This test verifies that we don't write an abort record for an aborted transaction that never flushed its redo
-// buffer NOLINTNEXTLINE
+// buffer
+// NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   // Create SQLTable
   auto col = catalog::Schema::Column(
