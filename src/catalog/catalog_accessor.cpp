@@ -130,4 +130,12 @@ common::ManagedPointer<storage::index::Index> CatalogAccessor::GetIndex(index_oi
   return dbc_->GetIndex(txn_, index);
 }
 
+language_oid_t CatalogAccessor::CreateLanguage(const std::string &language) {
+  return dbc_->CreateLanguage(txn_, language);
+}
+
+bool CatalogAccessor::DropLanguage(language_oid_t language_oid) {
+  return dbc_->DropLanguage(txn_, language_oid);
+}
+
 }  // namespace terrier::catalog

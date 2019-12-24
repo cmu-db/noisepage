@@ -264,6 +264,10 @@ class CatalogAccessor {
    */
   common::ManagedPointer<storage::index::Index> GetIndex(index_oid_t index) const;
 
+  language_oid_t CreateLanguage(const std::string &lanname);
+
+  bool DropLanguage(language_oid_t language_oid);
+
   /**
    * Instantiates a new accessor into the catalog for the given database.
    * @param catalog pointer to the catalog being accessed

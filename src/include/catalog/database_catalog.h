@@ -9,6 +9,7 @@
 #include "catalog/catalog_defs.h"
 #include "catalog/index_schema.h"
 #include "catalog/postgres/pg_class.h"
+#include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
 #include "storage/index/index.h"
@@ -238,11 +239,34 @@ class DatabaseCatalog {
   std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> GetIndexes(
       transaction::TransactionContext *txn, table_oid_t table);
 
-  bool InsertLanguage(transaction::TransactionContext *txn, const std::string &lanname);
 
-  bool DeleteLanguage(transaction::TransactionContext *txn, const std::string &lanname);
+  /**
+  * Creates a language entry into the pg_language table
+  * @param txn transaction to use
+  * @param lanname name of language to insert
+  * @return oid of created entry if successful else INVALID_LANGUAGE_OID
+  */
+  language_oid_t CreateLanguage(transaction::TransactionContext *txn, const std::string &lanname);
+
+  /**
+   * Deletes a language entry from the pg_language table
+   * @param txn transaction to use
+   * @param oid oid of entry
+   * @return true if deletion is successful
+   */
+  bool DropLanguage(transaction::TransactionContext *txn, language_oid_t oid);
 
  private:
+
+  /**
+   * Creates a language entry into the pg_language table
+   * @param txn transaction to use
+   * @param lanname name of language to insert
+   * @param oid oid of entry
+   * @return true if insertion is successful
+   */
+  bool CreateLanguage(transaction::TransactionContext *txn, const std::string &lanname, language_oid_t oid);
+
   /**
    * Create a namespace with a given ns oid
    * @param txn transaction to use
@@ -350,9 +374,10 @@ class DatabaseCatalog {
 
   storage::SqlTable *languages_;
   storage::index::Index *languages_oid_index_;
-  storage::index::Index *languages_name_index_;  // indexed on language OID and name
+  storage::index::Index *languages_name_index_;  // indexed on language name
   storage::ProjectedRowInitializer pg_language_all_cols_pri_;
   storage::ProjectionMap pg_language_all_cols_prm_;
+  std::atomic<language_oid_t> language_oid_counter_{postgres::INITIAL_LANGUAGE_COUNTER_OID};
 
   std::atomic<uint32_t> next_oid_;
   std::atomic<transaction::timestamp_t> write_lock_;
