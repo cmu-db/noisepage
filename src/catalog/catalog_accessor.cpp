@@ -136,6 +136,10 @@ language_oid_t CatalogAccessor::CreateLanguage(const std::string &language) {
   return dbc_->CreateLanguage(txn_, language);
 }
 
+language_oid_t CatalogAccessor::GetLanguageOid(const std::string &lanname) {
+  return dbc_->GetLanguageOid(txn_, lanname);
+}
+
 bool CatalogAccessor::DropLanguage(language_oid_t language_oid) {
   return dbc_->DropLanguage(txn_, language_oid);
 }

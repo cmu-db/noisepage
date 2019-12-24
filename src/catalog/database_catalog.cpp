@@ -1993,6 +1993,40 @@ language_oid_t DatabaseCatalog::CreateLanguage(transaction::TransactionContext *
   return oid;
 }
 
+language_oid_t DatabaseCatalog::GetLanguageOid(transaction::TransactionContext *txn, const std::string &lanname)
+{
+  auto name_pri = languages_name_index_->GetProjectedRowInitializer();
+  byte *const buffer = common::AllocationUtil::AllocateAligned(
+      pg_language_all_cols_pri_.ProjectedRowSize());
+
+  auto name_pr = name_pri.InitializeRow(buffer);
+  const auto name_varlen = storage::StorageUtil::CreateVarlen(lanname);
+
+  *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(0)) = name_varlen;
+
+  std::vector<storage::TupleSlot> results;
+  languages_name_index_->ScanKey(*txn, *name_pr, &results);
+
+  auto oid = INVALID_LANGUAGE_OID;
+  if(results.size() != 0){
+    TERRIER_ASSERT(results.size() == 1, "Unique language name index should return <= 1 result");
+
+    // extract oid from results[0]
+    auto found_tuple = results[0];
+
+    // TODO(tanujnay112): Can optimize to not extract all columns.
+    // We may need all columns in the future though so doing this for now
+    auto all_cols_pr = pg_language_all_cols_pri_.InitializeRow(buffer);
+    languages_->Select(txn, found_tuple, all_cols_pr);
+
+    oid = *reinterpret_cast<language_oid_t *>(
+        all_cols_pr->AccessForceNotNull(pg_language_all_cols_prm_[postgres::LANOID_COL_OID]));
+  }
+
+  delete[] buffer;
+  return oid;
+}
+
 bool DatabaseCatalog::DropLanguage(transaction::TransactionContext *txn, language_oid_t oid) {
   // Insert into table
   if (!TryLock(txn)) return false;

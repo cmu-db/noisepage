@@ -257,6 +257,14 @@ class DatabaseCatalog {
   language_oid_t CreateLanguage(transaction::TransactionContext *txn, const std::string &lanname);
 
   /**
+  * Looks up a language entry in the pg_language table
+  * @param txn transaction to use
+  * @param lanname name of language to look up
+  * @return oid of requested entry if found else INVALID_LANGUAGE_OID if not found
+  */
+  language_oid_t GetLanguageOid(transaction::TransactionContext *txn, const std::string &lanname);
+
+  /**
    * Deletes a language entry from the pg_language table
    * @param txn transaction to use
    * @param oid oid of entry

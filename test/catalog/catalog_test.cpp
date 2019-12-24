@@ -93,6 +93,9 @@ TEST_F(CatalogTests, LanguageTest) {
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_);
 
+  oid = accessor->GetLanguageOid("test_language");
+  TERRIER_ASSERT(oid == good_oid, "test_language has inconsistent oid/is not found");
+
   auto result = accessor->DropLanguage(good_oid);
   TERRIER_ASSERT(result, "Drop language failed");
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
