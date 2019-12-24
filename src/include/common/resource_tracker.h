@@ -26,6 +26,8 @@ class ResourceTracker {
     PerfMonitor::PerfCounters counters_;
     // The rusage counters of the tracked event
     rusage rusage_;
+    // The number of the CPU on which the thread is currently executing
+    int cpu_id_;
 
     /**
      * Writes the metrics out to ofstreams
@@ -36,11 +38,13 @@ class ResourceTracker {
               << counters_.cache_misses_ << ", "
               << RusageMonitor::TimevalToMicroseconds(rusage_.ru_utime) +
                      RusageMonitor::TimevalToMicroseconds(rusage_.ru_stime)
-              << ", " << rusage_.ru_inblock << ", " << rusage_.ru_oublock << ", " << elapsed_us_ << ", " << start_;
+              << ", " << rusage_.ru_inblock << ", " << rusage_.ru_oublock << ", " << cpu_id_ << ", " << elapsed_us_
+              << ", " << start_;
     }
 
-    static constexpr std::string_view COLUMNS = {"cpu_cycles, instructions, cache_ref, cache_miss, cpu_time, "
-                                                 "block_read, block_write, elapsed_us, start_time"};
+    static constexpr std::string_view COLUMNS = {
+        "cpu_cycles, instructions, cache_ref, cache_miss, cpu_time, "
+        "block_read, block_write, cpu_id, elapsed_us, start_time"};
   };
 
   /**
@@ -61,6 +65,7 @@ class ResourceTracker {
     rusage_monitor_.Stop();
     metrics_.counters_ = perf_monitor_.Counters();
     metrics_.rusage_ = rusage_monitor_.Usage();
+    metrics_.cpu_id_ = sched_getcpu();
   }
 
   /**
