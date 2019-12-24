@@ -264,8 +264,26 @@ class CatalogAccessor {
    */
   common::ManagedPointer<storage::index::Index> GetIndex(index_oid_t index) const;
 
+  /**
+   * Adds a language to the catalog (with default parameters for now) if
+   * it doesn't exist in pg_language already
+   * @param lanname name of language
+   * @return oid of added language if it didn't exist before or INVALID_LANGUAGE_OID if else
+   */
   language_oid_t CreateLanguage(const std::string &lanname);
 
+  /**
+   * Gets a language's oid from the catalog if it exists in pg_language
+   * @param lanname name of language
+   * @return oid of requested language if it exists or INVALID_LANGUAGE_OID if else
+   */
+  language_oid_t GetLanguageOid(const std::string &lanname);
+
+  /**
+   * Drops a language from the catalog
+   * @param language_oid oid of the language to drop
+   * @return true iff the langauge was successfully found and dropped
+   */
   bool DropLanguage(language_oid_t language_oid);
 
   /**
