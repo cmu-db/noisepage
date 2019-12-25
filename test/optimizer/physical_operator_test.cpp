@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -1488,7 +1489,7 @@ TEST(OperatorTests, CreateTableTest) {
   // Copy should be equal and have same hash
   Operator copy(op10);
   EXPECT_TRUE(copy == op10);
-  EXPECT_TRUE(copy.Hash(), op10.Hash());
+  EXPECT_EQ(copy.Hash(), op10.Hash());
 }
 
 // NOLINTNEXTLINE
