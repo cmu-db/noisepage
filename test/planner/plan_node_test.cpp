@@ -111,7 +111,6 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
           .SetDatabaseOid(catalog::db_oid_t(0))
           .SetScanPredicate(common::ManagedPointer(scan_pred_1).CastManagedPointerTo<parser::AbstractExpression>())
           .SetIsForUpdateFlag(false)
-          .SetIsParallelFlag(true)
           .Build();
 
   EXPECT_EQ(PlanNodeType::SEQSCAN, seq_scan_1->GetPlanNodeType());
@@ -120,7 +119,6 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   EXPECT_EQ(catalog::db_oid_t(0), seq_scan_1->GetDatabaseOid());
   EXPECT_EQ(parser::ExpressionType::STAR, seq_scan_1->GetScanPredicate()->GetExpressionType());
   EXPECT_FALSE(seq_scan_1->IsForUpdate());
-  EXPECT_TRUE(seq_scan_1->IsParallel());
 
   auto scan_pred_2 = std::make_unique<parser::StarExpression>();
   auto seq_scan_2 =
@@ -129,7 +127,6 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
           .SetDatabaseOid(catalog::db_oid_t(0))
           .SetScanPredicate(common::ManagedPointer(scan_pred_2).CastManagedPointerTo<parser::AbstractExpression>())
           .SetIsForUpdateFlag(false)
-          .SetIsParallelFlag(true)
           .Build();
 
   EXPECT_EQ(PlanNodeType::SEQSCAN, seq_scan_2->GetPlanNodeType());
@@ -138,7 +135,6 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   EXPECT_EQ(catalog::db_oid_t(0), seq_scan_2->GetDatabaseOid());
   EXPECT_EQ(parser::ExpressionType::STAR, seq_scan_2->GetScanPredicate()->GetExpressionType());
   EXPECT_FALSE(seq_scan_2->IsForUpdate());
-  EXPECT_TRUE(seq_scan_2->IsParallel());
 
   std::vector<std::unique_ptr<parser::AbstractExpression>> expr_children;
   expr_children.push_back(std::make_unique<parser::ColumnValueExpression>("table1", "col1"));
@@ -259,7 +255,6 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
   planner::CSVScanPlanNode::Builder builder;
   auto plan = builder.SetDatabaseOid(db_oid)
                   .SetNamespaceOid(ns_oid)
-                  .SetIsParallelFlag(true)
                   .SetIsForUpdateFlag(false)
                   .SetFileName(file_name)
                   .SetDelimiter(delimiter)
@@ -279,12 +274,10 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
   EXPECT_EQ(plan->GetEscapeChar(), escape);
   EXPECT_EQ(plan->GetValueTypes(), value_types);
   EXPECT_EQ(plan->IsForUpdate(), false);
-  EXPECT_EQ(plan->IsParallel(), true);
 
   planner::CSVScanPlanNode::Builder builder2;
   auto plan2 = builder2.SetDatabaseOid(db_oid)
                    .SetNamespaceOid(ns_oid)
-                   .SetIsParallelFlag(true)
                    .SetIsForUpdateFlag(false)
                    .SetFileName(file_name)
                    .SetDelimiter(delimiter)
@@ -298,7 +291,7 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
 
   // Make different variations of the plan node and make
   // sure that they are not equal
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 9; i++) {
     catalog::db_oid_t o_db_oid(1);
     catalog::namespace_oid_t o_ns_oid(2);
     std::string o_file_name = "/home/file.txt";
@@ -307,7 +300,6 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
     char o_escape = '\\';
     std::vector<type::TypeId> o_value_types = {type::TypeId::INTEGER};
     auto o_schema = PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER);
-    auto o_parallel = true;
     auto o_update = false;
 
     switch (i) {
@@ -336,9 +328,6 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
         o_schema = PlanNodeTest::BuildOneColumnSchema("XXXX", type::TypeId::INTEGER);
         break;
       case 8:
-        o_parallel = false;
-        break;
-      case 9:
         o_update = true;
         break;
     }
@@ -346,7 +335,6 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
     planner::CSVScanPlanNode::Builder builder3;
     auto plan3 = builder3.SetDatabaseOid(o_db_oid)
                      .SetNamespaceOid(o_ns_oid)
-                     .SetIsParallelFlag(o_parallel)
                      .SetIsForUpdateFlag(o_update)
                      .SetFileName(o_file_name)
                      .SetDelimiter(o_delimiter)

@@ -11,6 +11,12 @@
 
 namespace terrier::planner {
 
+/**
+ * Describes a single SET clause of an UPDATE query.
+ * For UPDATE tbl SET [$1] = $2:
+ * - $1 is SetClause.first which mentions the column OID to update
+ * - $2 is SetClause.second which describes the expression to set
+ */
 using SetClause = std::pair<catalog::col_oid_t, common::ManagedPointer<parser::AbstractExpression>>;
 
 /**
@@ -31,6 +37,24 @@ class UpdatePlanNode : public AbstractPlanNode {
     DISALLOW_COPY_AND_MOVE(Builder)
 
     /**
+     * @param database_oid OID of the database
+     * @return builder object
+     */
+    Builder &SetDatabaseOid(catalog::db_oid_t database_oid) {
+      database_oid_ = database_oid;
+      return *this;
+    }
+
+    /**
+     * @param namespace_oid OID of the namespace
+     * @return builder object
+     */
+    Builder &SetNamespaceOid(catalog::namespace_oid_t namespace_oid) {
+      namespace_oid_ = namespace_oid;
+      return *this;
+    }
+
+    /**
      * @param table_oid the OID of the target SQL table
      * @return builder object
      */
@@ -40,11 +64,11 @@ class UpdatePlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param indexed_update whether to update indexes
+     * @param update_primary_key whether to update primary key
      * @return builder object
      */
-    Builder &SetIndexedUpdate(bool indexed_update) {
-      indexed_update_ = true;
+    Builder &SetUpdatePrimaryKey(bool update_primary_key) {
+      update_primary_key_ = update_primary_key;
       return *this;
     }
 
@@ -63,19 +87,30 @@ class UpdatePlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<UpdatePlanNode> Build() {
       return std::unique_ptr<UpdatePlanNode>(new UpdatePlanNode(std::move(children_), std::move(output_schema_),
-                                                                table_oid_, indexed_update_, std::move(sets_)));
+                                                                database_oid_, namespace_oid_, table_oid_,
+                                                                update_primary_key_, std::move(sets_)));
     }
 
    protected:
+    /**
+     * OID of the database
+     */
+    catalog::db_oid_t database_oid_;
+
+    /**
+     * OID of namespace
+     */
+    catalog::namespace_oid_t namespace_oid_;
+
     /**
      * OID of the table to update
      */
     catalog::table_oid_t table_oid_;
 
     /**
-     * Whether indexes are updated.
+     * Whether to update primary key
      */
-    bool indexed_update_;
+    bool update_primary_key_;
 
     /**
      * Set Clauses
@@ -87,15 +122,20 @@ class UpdatePlanNode : public AbstractPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
    * @param table_oid OID of the target SQL table
-   * @param indexed_upate whether to update indexes
+   * @param update_primary_key whether to update primary key
    * @param sets SET clauses
    */
   UpdatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
-                 catalog::table_oid_t table_oid, bool indexed_update, std::vector<SetClause> sets)
+                 catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+                 bool update_primary_key, std::vector<SetClause> sets)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
+        database_oid_(database_oid),
+        namespace_oid_(namespace_oid),
         table_oid_(table_oid),
-        indexed_update_(indexed_update),
+        update_primary_key_(update_primary_key),
         sets_(std::move(sets)) {}
 
  public:
@@ -107,14 +147,24 @@ class UpdatePlanNode : public AbstractPlanNode {
   DISALLOW_COPY_AND_MOVE(UpdatePlanNode)
 
   /**
+   * @return OID of the database
+   */
+  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
    * @return the OID of the target table to operate on
    */
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
 
   /**
-   * @return whether to update indexes
+   * @return whether to update primary key
    */
-  bool GetIndexedUpdate() const { return indexed_update_; }
+  bool GetUpdatePrimaryKey() const { return update_primary_key_; }
 
   /**
    * @return the type of this plan node
@@ -138,14 +188,24 @@ class UpdatePlanNode : public AbstractPlanNode {
 
  private:
   /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
    * OID of the table to update
    */
   catalog::table_oid_t table_oid_;
 
   /**
-   * Whether to update indexes
+   * Whether to update primary key
    */
-  bool indexed_update_;
+  bool update_primary_key_;
 
   /**
    * SET clauses

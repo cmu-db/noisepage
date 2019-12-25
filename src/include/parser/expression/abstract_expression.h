@@ -13,18 +13,18 @@
 #include "type/transient_value.h"
 #include "type/type_id.h"
 
-namespace terrier {
-
-namespace binder {
-class BindNodeVisitor;
-}  // namespace binder
-
-namespace optimizer {
+namespace terrier::optimizer {
+class OptimizerUtil;
 class QueryToOperatorTransformer;
-}  // namespace optimizer
+}  // namespace terrier::optimizer
 
-namespace parser {
+namespace terrier::binder {
+class BindNodeVisitor;
+}  // namespace terrier::binder
+
+namespace terrier::parser {
 class ParseResult;
+
 /**
  * AbstractExpression is the base class of any expression which is output from the parser.
  *
@@ -32,6 +32,8 @@ class ParseResult;
  * document these assumptions exactly.
  */
 class AbstractExpression {
+  friend class optimizer::OptimizerUtil;
+
  protected:
   /**
    * Instantiates a new abstract expression.
@@ -108,7 +110,7 @@ class AbstractExpression {
    */
   virtual common::hash_t Hash() const {
     common::hash_t hash = common::HashUtil::Hash(expression_type_);
-    for (auto const &child : children_) {
+    for (const auto &child : children_) {
       hash = common::HashUtil::CombineHashes(hash, child->Hash());
     }
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(return_value_type_));
@@ -155,6 +157,14 @@ class AbstractExpression {
   // It is incorrect to supply a default implementation here since that will return an object
   // of base type AbstractExpression instead of the desired non-abstract type.
   virtual std::unique_ptr<AbstractExpression> Copy() const = 0;
+
+  /**
+   * Creates a copy of the current AbstractExpression with new children implanted.
+   * The children should not be owned by any other AbstractExpression.
+   * @param children New children to be owned by the copy
+   */
+  virtual std::unique_ptr<AbstractExpression> CopyWithChildren(
+      std::vector<std::unique_ptr<AbstractExpression>> &&children) const = 0;
 
   /**
    * @return type of this expression
@@ -255,7 +265,7 @@ class AbstractExpression {
    */
   virtual std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j);
 
- private:
+ protected:
   // We make abstract expression friend with both binder and query to operator transformer
   // as they each traverse the ast independently and add in necessary information to the ast
   // TODO(Ling): we could look into whether the two traversals can be combined to one in the future
@@ -296,6 +306,7 @@ class AbstractExpression {
    * tree modifications.
    */
   int depth_ = -1;
+
   /**
    * MUTABLE Flag indicating if there's a sub-query in the current expression or in any of its children.
    * Per LING, this is required to detect the query predicate IsSupportedConjunctivePredicate.
@@ -331,8 +342,7 @@ struct JSONDeserializeExprIntermediate {
  */
 JSONDeserializeExprIntermediate DeserializeExpression(const nlohmann::json &j);
 
-}  // namespace parser
-}  // namespace terrier
+}  // namespace terrier::parser
 
 namespace std {
 /**

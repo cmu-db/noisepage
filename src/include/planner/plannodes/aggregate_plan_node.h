@@ -18,6 +18,7 @@ namespace terrier::planner {
 
 using GroupByTerm = common::ManagedPointer<parser::AbstractExpression>;
 using AggregateTerm = common::ManagedPointer<parser::AggregateExpression>;
+using GroupByTerm = common::ManagedPointer<parser::AbstractExpression>;
 
 /**
  * Plan node for aggregates
@@ -42,6 +43,15 @@ class AggregatePlanNode : public AbstractPlanNode {
      */
     Builder &AddAggregateTerm(AggregateTerm term) {
       aggregate_terms_.emplace_back(term);
+      return *this;
+    }
+
+    /**
+     * @param term groupby term to be added
+     * @return builder object
+     */
+    Builder &AddGroupByTerm(GroupByTerm term) {
+      groupby_terms_.emplace_back(term);
       return *this;
     }
 

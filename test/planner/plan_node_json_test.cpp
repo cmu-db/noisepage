@@ -440,7 +440,10 @@ TEST(PlanNodeJsonTest, DeletePlanNodeTest) {
   // Construct DeletePlanNode
   auto delete_pred = PlanNodeJsonTest::BuildDummyPredicate();
   DeletePlanNode::Builder builder;
-  auto plan_node = builder.SetTableOid(catalog::table_oid_t(2)).Build();
+  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
+                       .SetNamespaceOid(catalog::namespace_oid_t(0))
+                       .SetTableOid(catalog::table_oid_t(2))
+                       .Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -625,7 +628,6 @@ TEST(PlanNodeJsonTest, HashJoinPlanNodeJoinTest) {
           .SetJoinPredicate(common::ManagedPointer(join_pred))
           .AddLeftHashKey(common::ManagedPointer(left_hash_key).CastManagedPointerTo<parser::AbstractExpression>())
           .AddRightHashKey(common::ManagedPointer(right_hash_key).CastManagedPointerTo<parser::AbstractExpression>())
-          .SetBuildBloomFilterFlag(false)
           .Build();
 
   // Serialize to Json
@@ -648,7 +650,6 @@ TEST(PlanNodeJsonTest, IndexScanPlanNodeJsonTest) {
   IndexScanPlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetScanPredicate(common::ManagedPointer(scan_pred))
-                       .SetIsParallelFlag(true)
                        .SetIsForUpdateFlag(false)
                        .SetDatabaseOid(catalog::db_oid_t(0))
                        .SetIndexOid(catalog::index_oid_t(0))
@@ -856,7 +857,6 @@ TEST(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
   SeqScanPlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetScanPredicate(common::ManagedPointer(scan_pred))
-                       .SetIsParallelFlag(true)
                        .SetIsForUpdateFlag(false)
                        .SetDatabaseOid(catalog::db_oid_t(0))
                        .SetNamespaceOid(catalog::namespace_oid_t(0))
@@ -900,8 +900,10 @@ TEST(PlanNodeJsonTest, SetOpPlanNodeJsonTest) {
 TEST(PlanNodeJsonTest, UpdatePlanNodeJsonTest) {
   UpdatePlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+                       .SetDatabaseOid(catalog::db_oid_t(1000))
+                       .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .SetTableOid(catalog::table_oid_t(200))
-                       .SetIndexedUpdate(true)
+                       .SetUpdatePrimaryKey(true)
                        .Build();
 
   // Serialize to Json

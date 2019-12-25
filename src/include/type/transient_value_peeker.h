@@ -58,6 +58,17 @@ class TransientValuePeeker {
   }
 
   /**
+   * @param value TransientValue with TypeId PARAMETER_OFFSET to generate a C type for
+   * @return int32_t representing the value of the TransientValue
+   * @warning TransientValue must be non-NULL. @see TransientValue::Null() first
+   */
+  static uint32_t PeekParameterOffset(const TransientValue &value) {
+    TERRIER_ASSERT(!value.Null(), "Doesn't make sense to peek a NULL value.");
+    TERRIER_ASSERT(value.Type() == TypeId::PARAMETER_OFFSET, "TypeId mismatch.");
+    return value.GetAs<uint32_t>();
+  }
+
+  /**
    * @param value TransientValue with TypeId BIGINT to generate a C type for
    * @return int64_t representing the value of the TransientValue
    * @warning TransientValue must be non-NULL. @see TransientValue::Null() first
