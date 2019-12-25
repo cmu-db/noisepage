@@ -4,6 +4,7 @@
 namespace terrier::execution::exec {
 
 char *ExecutionContext::StringAllocator::Allocate(std::size_t size) {
+  if (tracker_ != nullptr) tracker_->Increment(size);
   return reinterpret_cast<char *>(region_.Allocate(size));
 }
 

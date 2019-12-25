@@ -4,6 +4,7 @@
 #include "catalog/catalog_accessor.h"
 #include "execution/exec/output.h"
 #include "execution/sql/memory_pool.h"
+#include "execution/sql/memory_tracker.h"
 #include "execution/util/region.h"
 #include "planner/plannodes/output_schema.h"
 #include "transaction/transaction_context.h"
@@ -28,7 +29,7 @@ class EXPORT ExecutionContext {
     /**
      * Create a new allocator
      */
-    StringAllocator() : region_("") {}
+    StringAllocator(common::ManagedPointer<sql::MemoryTracker> tracker) : region_(""), tracker_(tracker)  {}
 
     /**
      * This class cannot be copied or moved.
@@ -54,6 +55,8 @@ class EXPORT ExecutionContext {
 
    private:
     util::Region region_;
+    // Metadata tracker for memory allocations
+    common::ManagedPointer<sql::MemoryTracker> tracker_;
   };
 
   /**
@@ -68,10 +71,12 @@ class EXPORT ExecutionContext {
                    const planner::OutputSchema *schema, std::unique_ptr<catalog::CatalogAccessor> &&accessor)
       : db_oid_(db_oid),
         txn_(txn),
-        mem_pool_(std::make_unique<sql::MemoryPool>(nullptr)),
+        tracker_(std::make_unique<sql::MemoryTracker>()),
+        mem_pool_(std::make_unique<sql::MemoryPool>(common::ManagedPointer<sql::MemoryTracker>(tracker_))),
         buffer_(schema == nullptr ? nullptr
                                   : std::make_unique<OutputBuffer>(mem_pool_.get(), schema->GetColumns().size(),
                                                                    ComputeTupleSize(schema), callback)),
+        string_allocator_(common::ManagedPointer<sql::MemoryTracker>(tracker_)),
         accessor_(std::move(accessor)) {}
 
   /**
@@ -113,6 +118,7 @@ class EXPORT ExecutionContext {
  private:
   catalog::db_oid_t db_oid_;
   transaction::TransactionContext *txn_;
+  std::unique_ptr<sql::MemoryTracker> tracker_;
   std::unique_ptr<sql::MemoryPool> mem_pool_;
   std::unique_ptr<OutputBuffer> buffer_;
   StringAllocator string_allocator_;
