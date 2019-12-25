@@ -50,7 +50,7 @@ class ResourceTracker {
 
     static constexpr std::string_view COLUMNS = {
         "cpu_cycles, instructions, cache_ref, cache_miss, cpu_time, "
-        "block_read, block_write, cpu_id, elapsed_us, start_time"};
+        "block_read, block_write, cpu_id, memory_b, elapsed_us, start_time"};
   };
 
   /**
