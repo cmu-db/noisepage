@@ -6,6 +6,10 @@
 #include "common/rusage_monitor.h"
 #include "metrics/metrics_util.h"
 
+namespace terrier::execution::sql {
+class MemoryTracker;
+}
+
 namespace terrier::common {
 
 /**
@@ -28,6 +32,8 @@ class ResourceTracker {
     rusage rusage_;
     // The number of the CPU on which the thread is currently executing
     int cpu_id_;
+    // The memory consumption (in bytes)
+    uint64_t memory_b_;
 
     /**
      * Writes the metrics out to ofstreams
@@ -38,8 +44,8 @@ class ResourceTracker {
               << counters_.cache_misses_ << ", "
               << RusageMonitor::TimevalToMicroseconds(rusage_.ru_utime) +
                      RusageMonitor::TimevalToMicroseconds(rusage_.ru_stime)
-              << ", " << rusage_.ru_inblock << ", " << rusage_.ru_oublock << ", " << cpu_id_ << ", " << elapsed_us_
-              << ", " << start_;
+              << ", " << rusage_.ru_inblock << ", " << rusage_.ru_oublock << ", " << cpu_id_ << ", " << memory_b_
+              << ", " << elapsed_us_ << ", " << start_;
     }
 
     static constexpr std::string_view COLUMNS = {
@@ -54,6 +60,7 @@ class ResourceTracker {
     metrics_.start_ = metrics::MetricsUtil::Now();
     perf_monitor_.Start();
     rusage_monitor_.Start();
+    metrics_.memory_b_ = 0;
   }
 
   /**
@@ -75,6 +82,16 @@ class ResourceTracker {
   const Metrics &GetMetrics() { return metrics_; }
 
  private:
+  friend execution::sql::MemoryTracker;
+
+  /**
+   * Since we cannot directly obtained the per-thread memory allocation from the OS, and to avoid introducing
+   * dependency of the metrics system deep into the execution engine, we currently rely on customized
+   * memory tracking and set the memory consumption separately.
+   * @param memory_b memory in bytes
+   */
+  void SetMemory(const size_t memory_b) { metrics_.memory_b_ = memory_b; }
+
   PerfMonitor perf_monitor_{false};
   RusageMonitor rusage_monitor_{false};
 
