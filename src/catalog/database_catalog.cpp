@@ -1951,7 +1951,6 @@ bool DatabaseCatalog::CreateLanguage(transaction::TransactionContext *txn, const
   redo->Delta()->SetNull(pg_language_all_cols_prm_[postgres::LANVALIDATOR_COL_OID]);
   redo->Delta()->SetNull(pg_language_all_cols_prm_[postgres::LANPLCALLFOID_COL_OID]);
 
-
   const auto tuple_slot = languages_->Insert(txn, redo);
 
   // Insert into name index

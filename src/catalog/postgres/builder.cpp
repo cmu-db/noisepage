@@ -664,23 +664,23 @@ Schema Builder::GetProcTableSchema() {
   columns.emplace_back("proallargtypes", type::TypeId::VARBINARY, false, MakeNull(type::TypeId::VARBINARY));
   columns.back().SetOid(PROALLARGTYPES_COL_OID);
 
-  columns.emplace_back("proargmodes", type::TypeId::VARBINARY, false, MakeNull(type::TypeId::VARBINARY));
+  columns.emplace_back("proargmodes", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));
   columns.back().SetOid(PROARGMODES_COL_OID);
 
-  columns.emplace_back("proargdefaults", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, MakeNull(type::TypeId::VARCHAR));
+  columns.emplace_back("proargdefaults", type::TypeId::VARBINARY, 4096, false,
+                       MakeNull(type::TypeId::VARCHAR));
   columns.back().SetOid(PROARGDEFAULTS_COL_OID);
 
-  columns.emplace_back("proargnames", type::TypeId::VARBINARY, false, MakeNull(type::TypeId::VARBINARY));
+  columns.emplace_back("proargnames", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));
   columns.back().SetOid(PROARGNAMES_COL_OID);
 
   columns.emplace_back("prosrc", type::TypeId::VARCHAR, 4096, false, MakeNull(type::TypeId::VARCHAR));
   columns.back().SetOid(PROSRC_COL_OID);
 
-  columns.emplace_back("proconfig", type::TypeId::VARBINARY, false, MakeNull(type::TypeId::VARBINARY));
+  columns.emplace_back("proconfig", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));
   columns.back().SetOid(PROCONFIG_COL_OID);
 
   return Schema();
 }
-
 
 }  // namespace terrier::catalog::postgres

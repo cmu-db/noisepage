@@ -188,5 +188,26 @@ class StorageUtil {
     return storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(str.data()),
                                               static_cast<uint32_t>(str.size()));
   }
+
+  /**
+   * Helper method to serialize a vector of type T into a VarlenEntry
+   * @tparam T type of elements in data vector
+   * @param vec input whose elements are to be serialized into a VarlenEntry
+   * @return varlen entry representing this data vector
+   * @warning checking IsInlined() to see if you need to possibly clean up a buffer
+   * @warning the length of the data vector is not serialized
+   */
+  template <typename T>
+  static storage::VarlenEntry CreateVarlen(const std::vector<T> &vec) {
+    // determine total size
+    size_t total_size = sizeof(T) * vec.size();
+    if (total_size > storage::VarlenEntry::InlineThreshold()) {
+      byte *contents = common::AllocationUtil::AllocateAligned(total_size);
+      std::memcpy(contents, vec.data(), total_size);
+      return storage::VarlenEntry::Create(contents, static_cast<uint32_t>(total_size), true);
+    }
+    return storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(vec.data()),
+                                              static_cast<uint32_t>(total_size));
+  }
 };
 }  // namespace terrier::storage

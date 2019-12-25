@@ -316,6 +316,21 @@ class VarlenEntry {
     return std::string_view(reinterpret_cast<const char *const>(Content()), Size());
   }
 
+  /**
+   * Deserializes n_elems elements of type T into a returned vector from this varlen
+   * @tparam T type of elements that are serialized into this varlen entry
+   * @param n_elems number of elements to deserialize
+   * @return a vector of immutable deserialized T objects from this varlen entry
+   * @warning It is the programmer's responsibility to ensure that the returned vector doesn't outlive the VarlenEntry
+   */
+  template <typename T>
+  const std::vector<T> DeserializeArray(size_t n_elems) const {
+    size_t total_size = n_elems * sizeof(T);
+    TERRIER_ASSERT(total_size <= size_, "Asked for too many elements to be deserialized");
+    const T *head = reinterpret_cast<const T*>(Content());
+    return std::vector<T>(head, head + n_elems);
+  }
+
  private:
   int32_t size_;                   // buffer reclaimable => sign bit is 0 or size <= InlineThreshold
   byte prefix_[sizeof(uint32_t)];  // Explicit padding so that we can use these bits for inlined values or prefix

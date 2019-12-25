@@ -68,14 +68,14 @@ TEST_F(CatalogTests, LanguageTest) {
   auto accessor = catalog_->GetAccessor(txn, db_);
 
   auto oid = accessor->CreateLanguage("internal");
-  TERRIER_ASSERT(oid == catalog::INVALID_LANGUAGE_OID, "internal language should already be there");
+  EXPECT_EQ(oid, catalog::INVALID_LANGUAGE_OID);
 
   txn_manager_->Abort(txn);
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_);
 
   oid = accessor->CreateLanguage("test_language");
-  TERRIER_ASSERT(oid != catalog::INVALID_LANGUAGE_OID, "Language creation failed");
+  EXPECT_NE(oid, catalog::INVALID_LANGUAGE_OID);
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
@@ -85,24 +85,24 @@ TEST_F(CatalogTests, LanguageTest) {
   accessor = catalog_->GetAccessor(txn, db_);
 
   oid = accessor->CreateLanguage("test_language");
-  TERRIER_ASSERT(oid == catalog::INVALID_LANGUAGE_OID, "Duplicate language creation succeeded");
+  EXPECT_EQ(oid, catalog::INVALID_LANGUAGE_OID);
   txn_manager_->Abort(txn);
 
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_);
 
   oid = accessor->GetLanguageOid("test_language");
-  TERRIER_ASSERT(oid == good_oid, "test_language has inconsistent oid/is not found");
+  EXPECT_EQ(oid, good_oid);
 
   auto result = accessor->DropLanguage(good_oid);
-  TERRIER_ASSERT(result, "Drop language failed");
+  EXPECT_TRUE(result);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_);
 
   result = accessor->DropLanguage(good_oid);
-  TERRIER_ASSERT(!result, "Duplicate drop language succeeded");
+  EXPECT_FALSE(result);
   txn_manager_->Abort(txn);
 }
 
