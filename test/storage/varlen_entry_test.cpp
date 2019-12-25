@@ -3,6 +3,7 @@
 #include <string_view>  // NOLINT
 #include "common/allocator.h"
 #include "storage/storage_defs.h"
+#include "storage/storage_util.h"
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
 
@@ -59,5 +60,27 @@ TEST(VarlenEntryTests, StringView) {
   auto non_inlined_string_view = non_inlined_entry.StringView();
   EXPECT_EQ(non_inlined_string_view, not_hello_world);
   delete[] large_buffer;
+}
+
+/**
+ * Simple test to demonstrate array serialization and deserialization.
+ */
+// NOLINTNEXTLINE
+TEST(VarlenEntryTests, Array) {
+  {
+    std::vector<int32_t> test_data{2, 5, 6, 7, 2};
+    const auto varlen_entry = storage::StorageUtil::CreateVarlen(test_data);
+    const std::vector<int32_t> test_view = varlen_entry.DeserializeArray<int32_t>(test_data.size());
+    EXPECT_EQ(test_data, test_view);
+  }
+
+  // test inline
+  {
+    std::vector<int32_t> test_data{2};
+    const auto varlen_entry = storage::StorageUtil::CreateVarlen(test_data);
+    const std::vector<int32_t> test_view = varlen_entry.DeserializeArray<int32_t>(test_data.size());
+    EXPECT_EQ(test_data, test_view);
+  }
+
 }
 }  // namespace terrier
