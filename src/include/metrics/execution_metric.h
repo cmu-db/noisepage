@@ -66,7 +66,8 @@ class ExecutionMetricRawData : public AbstractRawData {
   friend class ExecutionMetric;
   FRIEND_TEST(MetricsTests, LoggingCSVTest);
 
-  void RecordExecutionData(const char *feature, uint32_t len, const common::ResourceTracker::Metrics &resource_metrics) {
+  void RecordExecutionData(const char *feature, uint32_t len,
+                           const common::ResourceTracker::Metrics &resource_metrics) {
     execution_data_.emplace_front(feature, len, resource_metrics);
   }
 
@@ -87,8 +88,8 @@ class ExecutionMetric : public AbstractMetric<ExecutionMetricRawData> {
  private:
   friend class MetricsStore;
 
-  void RecordExecutionData(const char *feature, uint32_t len, const common::ResourceTracker::Metrics
-  &resource_metrics) {
+  void RecordExecutionData(const char *feature, uint32_t len,
+                           const common::ResourceTracker::Metrics &resource_metrics) {
     GetRawData()->RecordExecutionData(feature, len, resource_metrics);
   }
 };
