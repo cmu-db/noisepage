@@ -1,9 +1,8 @@
 #pragma once
 
 #include <memory>
-#include "spdlog/fmt/ostr.h"
-#include "spdlog/sinks/basic_file_sink.h"
-#include "spdlog/spdlog.h"
+
+#include "loggers/loggers_util.h"
 
 namespace terrier::storage {
 extern std::shared_ptr<spdlog::logger> index_logger;  // NOLINT
