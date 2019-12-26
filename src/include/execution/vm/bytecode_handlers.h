@@ -183,6 +183,15 @@ VM_OP_HOT void OpExecutionContextGetMemoryPool(terrier::execution::sql::MemoryPo
   *memory = exec_ctx->GetMemoryPool();
 }
 
+VM_OP_HOT void OpExecutionContextStartResourceTracker(terrier::execution::exec::ExecutionContext *const exec_ctx) {
+  exec_ctx->StartResourceTracker();
+}
+
+VM_OP_HOT void OpExecutionContextEndResourceTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                          terrier::execution::sql::StringVal &name) {
+  exec_ctx->EndResourceTracker(name.Content(), name.len_);
+}
+
 void OpThreadStateContainerInit(terrier::execution::sql::ThreadStateContainer *thread_state_container,
                                 terrier::execution::sql::MemoryPool *memory);
 

@@ -448,6 +448,19 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
+  OP(ExecutionContextStartResourceTracker) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    OpExecutionContextStartResourceTracker(exec_ctx);
+    DISPATCH_NEXT();
+  }
+
+  OP(ExecutionContextEndResourceTracker) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *name = frame->LocalAt<sql::StringVal*>(READ_LOCAL_ID());
+    OpExecutionContextEndResourceTracker(exec_ctx, *name);
+    DISPATCH_NEXT();
+  }
+
   OP(ThreadStateContainerInit) : {
     auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());
     auto *memory = frame->LocalAt<execution::sql::MemoryPool *>(READ_LOCAL_ID());

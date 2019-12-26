@@ -16,4 +16,25 @@ uint32_t ExecutionContext::ComputeTupleSize(const planner::OutputSchema *schema)
   return tuple_size;
 }
 
+void ExecutionContext::StartResourceTracker() {
+  if (common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::EXECUTION)) {
+    // start the operating unit resource tracker
+    common::thread_context.resource_tracker_.Start();
+    mem_tracker_->Reset();
+  }
+}
+
+void ExecutionContext::EndResourceTracker(const char *name, uint32_t len) {
+  if (common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::EXECUTION)) {
+    std::string string_name(name, len);
+
+    common::thread_context.resource_tracker_.Stop();
+    common::thread_context.resource_tracker_.SetMemory(mem_tracker_->GetAllocatedSize());
+    auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+    common::thread_context.metrics_store_->RecordCommitData(0, resource_metrics);
+  }
+}
+
 }  // namespace terrier::execution::exec

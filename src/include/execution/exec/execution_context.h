@@ -71,12 +71,12 @@ class EXPORT ExecutionContext {
                    const planner::OutputSchema *schema, std::unique_ptr<catalog::CatalogAccessor> &&accessor)
       : db_oid_(db_oid),
         txn_(txn),
-        tracker_(std::make_unique<sql::MemoryTracker>()),
-        mem_pool_(std::make_unique<sql::MemoryPool>(common::ManagedPointer<sql::MemoryTracker>(tracker_))),
+        mem_tracker_(std::make_unique<sql::MemoryTracker>()),
+        mem_pool_(std::make_unique<sql::MemoryPool>(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_))),
         buffer_(schema == nullptr ? nullptr
                                   : std::make_unique<OutputBuffer>(mem_pool_.get(), schema->GetColumns().size(),
                                                                    ComputeTupleSize(schema), callback)),
-        string_allocator_(common::ManagedPointer<sql::MemoryTracker>(tracker_)),
+        string_allocator_(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_)),
         accessor_(std::move(accessor)) {}
 
   /**
@@ -111,17 +111,44 @@ class EXPORT ExecutionContext {
   catalog::CatalogAccessor *GetAccessor() { return accessor_.get(); }
 
   /**
+   * Start the resource tracker
+   */
+  void StartResourceTracker();
+
+  /**
+   * End the resource tracker and record the metrics
+   * @param name the string name get printed out with the time
+   * @param len the length of the string name
+   */
+  void EndResourceTracker(const char *name, uint32_t len);
+
+  /**
    * @return the db oid
    */
   catalog::db_oid_t DBOid() { return db_oid_; }
 
+  enum class ExecutionMode: uint8_t {
+    INTERPERT = 0,
+    JIT = 1,
+    ADAPTIVE = 2,
+  };
+
+  /**
+ * Set the mode for this execution.
+ * This only records the mode and serves the metrics collection purpose, which does not have any impact on the
+ * actual execution.
+ * @param mode the name of the execution mode
+ */
+  void SetExecutionMode(ExecutionMode mode) { execution_mode_ = mode; }
+
  private:
   catalog::db_oid_t db_oid_;
   transaction::TransactionContext *txn_;
-  std::unique_ptr<sql::MemoryTracker> tracker_;
+  std::unique_ptr<sql::MemoryTracker> mem_tracker_;
   std::unique_ptr<sql::MemoryPool> mem_pool_;
   std::unique_ptr<OutputBuffer> buffer_;
   StringAllocator string_allocator_;
   std::unique_ptr<catalog::CatalogAccessor> accessor_;
+  ExecutionMode execution_mode_;
 };
 }  // namespace terrier::execution::exec

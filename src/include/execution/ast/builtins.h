@@ -26,6 +26,8 @@ namespace terrier::execution::ast {
                                                                         \
   /* Thread State Container */                                          \
   F(ExecutionContextGetMemoryPool, execCtxGetMem)                       \
+  F(ExecutionContextStartResourceTracker, execCtxStartResourceTracker)  \
+  F(ExecutionContextEndResourceTracker, execCtxEndResourceTracker)      \
   F(ThreadStateContainerInit, tlsInit)                                  \
   F(ThreadStateContainerReset, tlsReset)                                \
   F(ThreadStateContainerIterate, tlsIterate)                            \

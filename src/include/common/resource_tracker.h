@@ -6,8 +6,8 @@
 #include "common/rusage_monitor.h"
 #include "metrics/metrics_util.h"
 
-namespace terrier::execution::sql {
-class MemoryTracker;
+namespace terrier::execution::exec {
+class ExecutionContext;
 }
 
 namespace terrier::common {
@@ -82,7 +82,7 @@ class ResourceTracker {
   const Metrics &GetMetrics() { return metrics_; }
 
  private:
-  friend execution::sql::MemoryTracker;
+  friend execution::exec::ExecutionContext;
 
   /**
    * Since we cannot directly obtained the per-thread memory allocation from the OS, and to avoid introducing
