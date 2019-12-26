@@ -1,3 +1,7 @@
+#include "execution/sql/thread_state_container.h"
+
+#include <tbb/tbb.h>  // NOLINT
+
 #include <limits>
 #include <memory>
 #include <numeric>
@@ -5,11 +9,7 @@
 #include <utility>
 #include <vector>
 
-#include <tbb/tbb.h>  // NOLINT
-
 #include "execution/tpl_test.h"
-
-#include "execution/sql/thread_state_container.h"
 
 namespace terrier::execution::sql::test {
 
@@ -135,7 +135,7 @@ TEST_F(ThreadStateContainerTest, SimpleContainerTest) {
   {
     std::vector<uint32_t *> counts;
     container.CollectThreadLocalStateElementsAs(&counts, 0);
-    LOG_INFO("{} thread states", counts.size());
+    EXECUTION_LOG_DEBUG("{} thread states", counts.size());
 
     total = static_cast<int32_t>(std::accumulate(counts.begin(), counts.end(), uint32_t(0),
                                                  [](uint32_t partial, const uint32_t *c) { return partial + *c; }));

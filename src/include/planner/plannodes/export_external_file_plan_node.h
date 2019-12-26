@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "parser/parser_defs.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
 // TODO(Gus,Wen): This plan probably needs a different way of generating the output schema. The output schema should be
@@ -30,6 +31,15 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
      * Don't allow builder to be copied or moved
      */
     DISALLOW_COPY_AND_MOVE(Builder);
+
+    /**
+     * @param format ExternalFileFormat
+     * @return builder object
+     */
+    Builder &SetFileFormat(parser::ExternalFileFormat format) {
+      format_ = format;
+      return *this;
+    }
 
     /**
      * @param file_name file path for external file file
@@ -73,10 +83,14 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<ExportExternalFilePlanNode> Build() {
       return std::unique_ptr<ExportExternalFilePlanNode>(
-          new ExportExternalFilePlanNode(std::move(children_), file_name_, delimiter_, quote_, escape_));
+          new ExportExternalFilePlanNode(std::move(children_), format_, file_name_, delimiter_, quote_, escape_));
     }
 
    protected:
+    /**
+     * Format
+     */
+    parser::ExternalFileFormat format_;
     /**
      * string representation of file name
      */
@@ -98,14 +112,17 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
  private:
   /**
    * @param children child plan nodes
+   * @param format Format
    * @param file_name string representation of file name
    * @param delimiter delimiter character
    * @param quote quote character
    * @param escape escape character
    */
-  explicit ExportExternalFilePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::string file_name,
-                                      char delimiter, char quote, char escape)
+  explicit ExportExternalFilePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                      parser::ExternalFileFormat format, std::string file_name, char delimiter,
+                                      char quote, char escape)
       : AbstractPlanNode(std::move(children), nullptr),
+        format_(format),
         file_name_(std::move(file_name)),
         delimiter_(delimiter),
         quote_(quote),
@@ -123,6 +140,11 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
    * @return the type of this plan node
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::EXPORT_EXTERNAL_FILE; }
+
+  /**
+   * @return format
+   */
+  const parser::ExternalFileFormat &GetFormat() const { return format_; }
 
   /**
    * @return string representation of file name
@@ -155,6 +177,7 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
+  parser::ExternalFileFormat format_;
   std::string file_name_;
   char delimiter_;
   char quote_;

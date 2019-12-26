@@ -195,7 +195,8 @@ TEST(ExpressionTests, ConstantValueExpressionJsonTest) {
   auto original_expr = std::make_unique<ConstantValueExpression>(
       type::TransientValueFactory::GetVarChar("ConstantValueExpressionJsonTest"));
 
-  EXPECT_EQ(*original_expr, *(original_expr->Copy()));
+  auto copy = original_expr->Copy();
+  EXPECT_EQ(*original_expr, *copy);
 
   // Serialize expression
   auto json = original_expr->ToJson();
@@ -221,7 +222,8 @@ TEST(ExpressionTests, NullConstantValueExpressionJsonTest) {
   auto original_expr =
       std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR));
 
-  EXPECT_EQ(*original_expr, *(original_expr->Copy()));
+  auto copy = original_expr->Copy();
+  EXPECT_EQ(*original_expr, *copy);
 
   // Serialize expression
   auto json = original_expr->ToJson();
@@ -302,8 +304,8 @@ TEST(ExpressionTests, ConjunctionExpressionJsonTest) {
   children1.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
   children1.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
   auto c_expr_1 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children1));
-
-  EXPECT_EQ(*c_expr_1, *(c_expr_1->Copy()));
+  auto copy = c_expr_1->Copy();
+  EXPECT_EQ(*c_expr_1, *copy);
 
   // Serialize expression
   auto json = c_expr_1->ToJson();
@@ -431,7 +433,8 @@ TEST(ExpressionTests, AggregateExpressionJsonTest) {
   std::unique_ptr<AggregateExpression> original_expr =
       std::make_unique<AggregateExpression>(ExpressionType::AGGREGATE_COUNT, std::move(children), true /* distinct */);
 
-  EXPECT_EQ(*original_expr, *(original_expr->Copy()));
+  auto copy = original_expr->Copy();
+  EXPECT_EQ(*original_expr, *copy);
 
   // Serialize expression
   auto json = original_expr->ToJson();
@@ -526,7 +529,8 @@ TEST(ExpressionTests, CaseExpressionJsonTest) {
   auto case_expr = std::make_unique<CaseExpression>(type::TypeId::BOOLEAN, std::move(when_clauses),
                                                     std::make_unique<StarExpression>());
 
-  EXPECT_EQ(*case_expr, *(case_expr->Copy()));
+  auto copy = case_expr->Copy();
+  EXPECT_EQ(*case_expr, *copy);
 
   // Serialize expression
   auto json = case_expr->ToJson();
@@ -749,7 +753,6 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   auto tve2 = new ColumnValueExpression("table_name", "column_name", "alias");
   auto tve3 = new ColumnValueExpression("table_name2", "column_name", "alias");
   auto tve4 = new ColumnValueExpression("table_name", "column_name2", "alias");
-  auto tve5 = new ColumnValueExpression("table_name", "column_name", "alias2");
   auto tve6 = new ColumnValueExpression("table_name", "column_name");
   auto tve7 = new ColumnValueExpression(catalog::db_oid_t(1), catalog::table_oid_t(2), catalog::col_oid_t(3));
   auto tve8 = new ColumnValueExpression(catalog::db_oid_t(1), catalog::table_oid_t(2), catalog::col_oid_t(3));
@@ -761,8 +764,6 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   EXPECT_TRUE(*tve1 == *tve2);
   EXPECT_FALSE(*tve1 == *tve3);
   EXPECT_FALSE(*tve1 == *tve4);
-  EXPECT_FALSE(*tve1 == *tve5);
-  EXPECT_FALSE(*tve1 == *tve6);
   EXPECT_TRUE(*tve7 == *tve8);
   EXPECT_FALSE(*tve7 == *tve9);
   EXPECT_FALSE(*tve7 == *tve10);
@@ -773,8 +774,6 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   EXPECT_EQ(tve1->Hash(), tve2->Hash());
   EXPECT_NE(tve1->Hash(), tve3->Hash());
   EXPECT_NE(tve1->Hash(), tve4->Hash());
-  EXPECT_NE(tve1->Hash(), tve5->Hash());
-  EXPECT_NE(tve1->Hash(), tve6->Hash());
   EXPECT_EQ(tve7->Hash(), tve8->Hash());
   EXPECT_NE(tve7->Hash(), tve9->Hash());
   EXPECT_NE(tve7->Hash(), tve10->Hash());
@@ -801,8 +800,6 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
 
   tve1->DeriveExpressionName();
   EXPECT_EQ(tve1->GetExpressionName(), "alias");
-  tve6->DeriveExpressionName();
-  EXPECT_EQ(tve6->GetExpressionName(), "column_name");
   tve7->DeriveExpressionName();
   EXPECT_EQ(tve7->GetExpressionName(), "");
 
@@ -810,7 +807,6 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   delete tve2;
   delete tve3;
   delete tve4;
-  delete tve5;
   delete tve6;
   delete tve7;
   delete tve8;
@@ -967,7 +963,9 @@ TEST(ExpressionTests, StarExpressionJsonTest) {
   EXPECT_EQ(original_expr->GetReturnValueType(), type::TypeId::INVALID);
   original_expr->DeriveExpressionName();
   EXPECT_EQ(original_expr->GetExpressionName(), "STAR");
-  EXPECT_EQ(*original_expr, *(original_expr->Copy()));
+
+  auto copy = original_expr->Copy();
+  EXPECT_EQ(*original_expr, *copy);
 
   // Serialize expression
   auto json = original_expr->ToJson();
@@ -990,7 +988,8 @@ TEST(ExpressionTests, DefaultValueExpressionJsonTest) {
   EXPECT_EQ(original_expr->GetReturnValueType(), type::TypeId::INVALID);
   original_expr->DeriveExpressionName();
   EXPECT_EQ(original_expr->GetExpressionName(), "VALUE_DEFAULT");
-  EXPECT_EQ(*original_expr, *(original_expr->Copy()));
+  auto copy = original_expr->Copy();
+  EXPECT_EQ(*original_expr, *copy);
 
   // Serialize expression
   auto json = original_expr->ToJson();

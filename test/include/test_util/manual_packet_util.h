@@ -7,7 +7,6 @@
 #include <unordered_map>
 
 #include "catalog/catalog_defs.h"
-#include "loggers/test_logger.h"
 #include "network/connection_handle_factory.h"
 #include "test_util/manual_packet_util.h"
 
@@ -61,8 +60,8 @@ class ManualPacketUtil {
     serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     serv_addr.sin_port = htons(port);
 
-    int64_t ret = connect(socket_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
-    if (ret < 0) TEST_LOG_ERROR("Connection Error");
+    int64_t ret UNUSED_ATTRIBUTE = connect(socket_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
+    TERRIER_ASSERT(ret >= 0, "Connector Error");
 
     auto io_socket = std::make_unique<NetworkIoWrapper>(socket_fd);
     PostgresPacketWriter writer(io_socket->GetWriteQueue());

@@ -16,8 +16,6 @@ class TableStatsTests : public TerrierTest {
   TableStats table_stats_obj_;
 
   void SetUp() override {
-    TerrierTest::SetUp();
-
     column_stats_obj_1_ = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(1), 5, 4, 0.2,
                                       {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
     column_stats_obj_2_ = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(2), 5, 4, 0.2,

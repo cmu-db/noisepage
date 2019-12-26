@@ -23,6 +23,10 @@ class SubqueryExpression : public AbstractExpression {
   /** Default constructor for JSON deserialization. */
   SubqueryExpression() = default;
 
+  /**
+   * Copies this SubqueryExpression
+   * @returns copy of this
+   */
   std::unique_ptr<AbstractExpression> Copy() const override {
     std::vector<common::ManagedPointer<AbstractExpression>> select_columns;
     for (const auto &col : subselect_->GetSelectColumns()) {
@@ -39,6 +43,18 @@ class SubqueryExpression : public AbstractExpression {
     auto expr = std::make_unique<SubqueryExpression>(std::move(parser_select));
     expr->SetMutableStateForCopy(*this);
     return expr;
+  }
+
+  /**
+   * Creates a copy of the current AbstractExpression with new children implanted.
+   * The children should not be owned by any other AbstractExpression.
+   * @param children New children to be owned by the copy
+   * @returns copy of this with new children
+   */
+  std::unique_ptr<AbstractExpression> CopyWithChildren(
+      std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
+    TERRIER_ASSERT(children.empty(), "SubqueryExpression should have 0 children");
+    return Copy();
   }
 
   /** @return managed pointer to the sub-select */
@@ -61,7 +77,7 @@ class SubqueryExpression : public AbstractExpression {
     }
     auto where = subselect_->GetSelectCondition();
     if (where != nullptr) {
-      auto where_depth = where->DeriveDepth();
+      auto where_depth = const_cast<parser::AbstractExpression *>(where.Get())->DeriveDepth();
       if (where_depth >= 0 && where_depth < current_depth) this->SetDepth(where_depth);
     }
     return this->GetDepth();
@@ -69,8 +85,9 @@ class SubqueryExpression : public AbstractExpression {
 
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();
-    for (auto &select_elem : subselect_->GetSelectColumns())
+    for (auto select_elem : subselect_->GetSelectColumns()) {
       hash = common::HashUtil::CombineHashes(hash, select_elem->Hash());
+    }
 
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(subselect_->IsSelectDistinct()));
     if (subselect_->GetSelectCondition() != nullptr)
