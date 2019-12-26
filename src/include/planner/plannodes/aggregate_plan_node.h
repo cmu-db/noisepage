@@ -74,15 +74,6 @@ class AggregatePlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param term the term to add
-     * @return builder object
-     */
-    Builder &AddGroupByTerm(GroupByTerm term) {
-      groupby_terms_.emplace_back(term);
-      return *this;
-    }
-
-    /**
      * Build the aggregate plan node
      * @return plan node
      */

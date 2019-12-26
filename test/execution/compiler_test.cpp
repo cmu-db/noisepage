@@ -119,7 +119,6 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(predicate)
-                   .SetIsParallelFlag(false)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
@@ -176,7 +175,6 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(predicate)
-                   .SetIsParallelFlag(false)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
@@ -226,7 +224,7 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid)
                      .SetIndexOid(index_oid)
-                     .AddIndexColum(catalog::indexkeycol_oid_t(1), const_500)
+                     .AddIndexColumn(catalog::indexkeycol_oid_t(1), const_500)
                      .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::Exact)
@@ -268,8 +266,8 @@ TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid)
                      .SetIndexOid(index_oid)
-                     .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
-                     .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
+                     .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
+                     .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
                      .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::Ascending)
@@ -334,8 +332,8 @@ TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid)
                      .SetIndexOid(index_oid)
-                     .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
-                     .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
+                     .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
+                     .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
                      .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::AscendingLimit)
@@ -399,8 +397,8 @@ TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid)
                      .SetIndexOid(index_oid)
-                     .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
-                     .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
+                     .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
+                     .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
                      .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::Descending)
@@ -464,8 +462,8 @@ TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid)
                      .SetIndexOid(index_oid)
-                     .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
-                     .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
+                     .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
+                     .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
                      .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::DescendingLimit)
@@ -532,7 +530,6 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(predicate)
-                   .SetIsParallelFlag(false)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
@@ -603,7 +600,6 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(predicate)
-                   .SetIsParallelFlag(false)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
@@ -692,7 +688,6 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
     planner::SeqScanPlanNode::Builder builder;
     seq_scan1 = builder.SetOutputSchema(std::move(schema))
                     .SetScanPredicate(predicate)
-                    .SetIsParallelFlag(false)
                     .SetIsForUpdateFlag(false)
                     .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid1)
@@ -713,7 +708,6 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
     planner::SeqScanPlanNode::Builder builder;
     seq_scan2 = builder.SetOutputSchema(std::move(schema))
                     .SetScanPredicate(predicate)
-                    .SetIsParallelFlag(false)
                     .SetIsForUpdateFlag(false)
                     .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid2)
@@ -809,7 +803,6 @@ TEST_F(CompilerTest, SimpleSortTest) {
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(predicate)
-                   .SetIsParallelFlag(false)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
@@ -908,7 +901,6 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
     planner::SeqScanPlanNode::Builder builder;
     seq_scan1 = builder.SetOutputSchema(std::move(schema))
                     .SetScanPredicate(predicate)
-                    .SetIsParallelFlag(false)
                     .SetIsForUpdateFlag(false)
                     .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid1)
@@ -929,7 +921,6 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
     planner::SeqScanPlanNode::Builder builder;
     seq_scan2 = builder.SetOutputSchema(std::move(schema))
                     .SetScanPredicate(predicate)
-                    .SetIsParallelFlag(false)
                     .SetIsForUpdateFlag(false)
                     .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid2)
@@ -1027,7 +1018,6 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(predicate)
-                   .SetIsParallelFlag(false)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid2)
@@ -1061,7 +1051,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
     index_join = builder.AddChild(std::move(seq_scan))
                      .SetIndexOid(index_oid1)
                      .SetTableOid(table_oid1)
-                     .AddIndexColum(catalog::indexkeycol_oid_t(1), t2_col1)
+                     .AddIndexColumn(catalog::indexkeycol_oid_t(1), t2_col1)
                      .SetOutputSchema(std::move(schema))
                      .SetJoinType(planner::LogicalJoinType::INNER)
                      .SetJoinPredicate(predicate)
@@ -1127,7 +1117,6 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(nullptr)
-                   .SetIsParallelFlag(false)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid1)
@@ -1160,8 +1149,8 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
     index_join = builder.AddChild(std::move(seq_scan))
                      .SetIndexOid(index_oid2)
                      .SetTableOid(table_oid2)
-                     .AddIndexColum(catalog::indexkeycol_oid_t(1), t1_col1)
-                     .AddIndexColum(catalog::indexkeycol_oid_t(2), t1_col2)
+                     .AddIndexColumn(catalog::indexkeycol_oid_t(1), t1_col1)
+                     .AddIndexColumn(catalog::indexkeycol_oid_t(2), t1_col2)
                      .SetOutputSchema(std::move(schema))
                      .SetJoinType(planner::LogicalJoinType::INNER)
                      .SetJoinPredicate(nullptr)
@@ -1227,7 +1216,6 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     planner::SeqScanPlanNode::Builder builder;
     seq_scan1 = builder.SetOutputSchema(std::move(schema))
                     .SetScanPredicate(predicate)
-                    .SetIsParallelFlag(false)
                     .SetIsForUpdateFlag(false)
                     .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid1)
@@ -1264,7 +1252,6 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(predicate)
-                   .SetIsParallelFlag(false)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid1)
@@ -1293,8 +1280,8 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid1)
                      .SetIndexOid(index_oid1)
-                     .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
-                     .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
+                     .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
+                     .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
                      .SetScanPredicate(nullptr)
                      .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
@@ -1346,7 +1333,6 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     planner::SeqScanPlanNode::Builder builder;
     seq_scan1 = builder.SetOutputSchema(std::move(schema))
                     .SetScanPredicate(predicate)
-                    .SetIsParallelFlag(false)
                     .SetIsForUpdateFlag(false)
                     .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid1)
@@ -1402,7 +1388,6 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(predicate)
-                   .SetIsParallelFlag(false)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid1)
@@ -1455,8 +1440,8 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid1)
                      .SetIndexOid(index_oid1)
-                     .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-505))
-                     .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-495))
+                     .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-505))
+                     .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-495))
                      .SetScanPredicate(nullptr)
                      .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
@@ -1543,7 +1528,6 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(predicate)
-                   .SetIsParallelFlag(false)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid1)
@@ -1601,8 +1585,8 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid1)
                      .SetIndexOid(index_oid1)
-                     .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-10000))
-                     .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1))
+                     .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-10000))
+                     .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1))
                      .SetScanPredicate(nullptr)
                      .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
@@ -1659,7 +1643,6 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     planner::SeqScanPlanNode::Builder builder;
     seq_scan1 = builder.SetOutputSchema(std::move(schema))
                     .SetScanPredicate(predicate)
-                    .SetIsParallelFlag(false)
                     .SetIsForUpdateFlag(false)
                     .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid1)
@@ -1713,7 +1696,6 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(predicate)
-                   .SetIsParallelFlag(false)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid1)
@@ -1769,8 +1751,8 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid1)
                      .SetIndexOid(index_oid1)
-                     .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1000))
-                     .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1))
+                     .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1000))
+                     .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1))
                      .SetScanPredicate(nullptr)
                      .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
@@ -1875,7 +1857,6 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
                    .SetScanPredicate(nullptr)
-                   .SetIsParallelFlag(false)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid1)
@@ -1940,8 +1921,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid1)
                      .SetIndexOid(index_oid1)
-                     .AddLoIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.PVE(type::TypeId::VARCHAR, 0))
-                     .AddHiIndexColum(catalog::indexkeycol_oid_t(1), expr_maker.PVE(type::TypeId::VARCHAR, 1))
+                     .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.PVE(type::TypeId::VARCHAR, 0))
+                     .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.PVE(type::TypeId::VARCHAR, 1))
                      .SetScanPredicate(nullptr)
                      .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
