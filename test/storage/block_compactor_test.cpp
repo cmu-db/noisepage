@@ -415,7 +415,7 @@ TEST_F(BlockCompactorTest, ExportDictionaryCompressedTableTest) {
   compactor.PutInQueue(block);
   compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
 
-  table.ExportTable(EXPORT_TABLE_NAME);
+  table.ExportTable(EXPORT_TABLE_NAME, NULL);
   EXPECT_EQ(unlink(EXPORT_TABLE_NAME), 0);
 
   for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
@@ -465,7 +465,7 @@ TEST_F(BlockCompactorTest, ExportVarlenTableTest) {
   compactor.PutInQueue(block);
   compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
 
-  table.ExportTable(EXPORT_TABLE_NAME);
+  table.ExportTable(EXPORT_TABLE_NAME, NULL);
   EXPECT_EQ(std::remove(EXPORT_TABLE_NAME), 0);
 
   for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping

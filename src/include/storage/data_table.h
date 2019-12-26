@@ -11,6 +11,7 @@
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
+#include "type/type_id.h"
 
 namespace flatbuf = org::apache::arrow::flatbuf;
 
@@ -247,7 +248,7 @@ class DataTable {
    *
    * @param file_name the file that the table will be exported to
    */
-  void ExportTable(const std::string &file_name);
+  void ExportTable(const std::string &file_name, std::vector<terrier::type::TypeId> *col_types);
 
  private:
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains
@@ -344,10 +345,8 @@ class DataTable {
    * @param body_len the length of follwoing message body (not the length of this metadata_flatbuffer)
    * @param flatbuf_builder flatbuffer builder
    */
-  void AssembleMetadataBuffer(std::ofstream &outfile,
-                              flatbuf::MessageHeader header_type,
-                              flatbuffers::Offset<void> header,
-                              int64_t body_len,
+  void AssembleMetadataBuffer(std::ofstream &outfile, flatbuf::MessageHeader header_type,
+                              flatbuffers::Offset<void> header, int64_t body_len,
                               flatbuffers::FlatBufferBuilder *flatbuf_builder);
 
   /**
@@ -369,7 +368,7 @@ class DataTable {
    * @param flatbuf_builder flatbuffer builder
    */
   void WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<col_id_t, int64_t> *dictionary_ids,
-                          flatbuffers::FlatBufferBuilder *flatbuf_builder);
+                          std::vector<type::TypeId> *col_types, flatbuffers::FlatBufferBuilder *flatbuf_builder);
 
   /**
    * This function write a Dictionary message. The dictionary message is something contains the dictionary entries.
