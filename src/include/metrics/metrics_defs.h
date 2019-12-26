@@ -7,6 +7,6 @@ namespace terrier::metrics {
  */
 enum class MetricsComponent : uint8_t { LOGGING, TRANSACTION, GARBAGECOLLECTION, EXECUTION };
 
-constexpr uint8_t NUM_COMPONENTS = 3;
+constexpr uint8_t NUM_COMPONENTS = 4;
 
 }  // namespace terrier::metrics

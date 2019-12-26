@@ -43,6 +43,13 @@ std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> MetricsStore::GetDa
           result[component] = gc_metric_->Swap();
           break;
         }
+        case MetricsComponent::EXECUTION: {
+          TERRIER_ASSERT(
+              execution_metric_!= nullptr,
+              "ExecutionMetric cannot be a nullptr. Check the MetricsStore constructor that it was allocated.");
+          result[component] = execution_metric_->Swap();
+          break;
+        }
       }
     }
   }

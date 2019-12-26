@@ -8,6 +8,7 @@
 #include "common/managed_pointer.h"
 #include "metrics/abstract_metric.h"
 #include "metrics/abstract_raw_data.h"
+#include "metrics/execution_metric.h"
 #include "metrics/garbage_collection_metric.h"
 #include "metrics/logging_metric.h"
 #include "metrics/metrics_defs.h"
@@ -100,6 +101,18 @@ class MetricsStore {
   }
 
   /**
+   * Record metrics for the execution engine when finish a pipeline
+   * @param feature first entry of execution datapoint
+   * @param len second entry of execution datapoint
+   */
+  void RecordExecutionData(const char *feature, uint32_t len,
+                           const common::ResourceTracker::Metrics &resource_metrics) {
+    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::EXECUTION), "ExecutionMetric not enabled.");
+    TERRIER_ASSERT(execution_metric_ != nullptr, "ExecutionMetric not allocated. Check MetricsStore constructor.");
+    execution_metric_->RecordExecutionData(feature, len, resource_metrics);
+  }
+
+  /**
    * @param component metrics component to test
    * @return true if metrics enabled for this component, false otherwise
    */
@@ -141,6 +154,7 @@ class MetricsStore {
   std::unique_ptr<LoggingMetric> logging_metric_;
   std::unique_ptr<TransactionMetric> txn_metric_;
   std::unique_ptr<GarbageCollectionMetric> gc_metric_;
+  std::unique_ptr<ExecutionMetric> execution_metric_;
 
   const std::bitset<NUM_COMPONENTS> &enabled_metrics_;
   const std::array<uint32_t, NUM_COMPONENTS> &sample_interval_;

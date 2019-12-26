@@ -33,7 +33,7 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
   /**
    * @return the type of the metric this object is holding the data for
    */
-  MetricsComponent GetMetricType() const override { return MetricsComponent::LOGGING; }
+  MetricsComponent GetMetricType() const override { return MetricsComponent::GARBAGECOLLECTION; }
 
   /**
    * Writes the data out to ofstreams
