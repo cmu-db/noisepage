@@ -64,11 +64,12 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @param thread_registry thread registry to register tasks
    * @param store block store used for SQLTable creation during recovery
    */
-  explicit RecoveryManager(AbstractLogProvider *log_provider, common::ManagedPointer<catalog::Catalog> catalog,
-                           transaction::TransactionManager *txn_manager,
-                           transaction::DeferredActionManager *deferred_action_manager,
-                           common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry,
-                           BlockStore *store)
+  explicit RecoveryManager(const common::ManagedPointer<AbstractLogProvider> log_provider,
+                           const common::ManagedPointer<catalog::Catalog> catalog,
+                           const common::ManagedPointer<transaction::TransactionManager> txn_manager,
+                           const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager,
+                           const common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry,
+                           const common::ManagedPointer<BlockStore> store)
       : DedicatedThreadOwner(thread_registry),
         log_provider_(log_provider),
         catalog_(catalog),
@@ -112,21 +113,21 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   friend class terrier::RecoveryBenchmark;
 
   // Log provider for reading in logs
-  AbstractLogProvider *log_provider_;
+  const common::ManagedPointer<AbstractLogProvider> log_provider_;
 
   // Catalog to fetch table pointers
-  common::ManagedPointer<catalog::Catalog> catalog_;
+  const common::ManagedPointer<catalog::Catalog> catalog_;
 
   // Transaction manager to create transactions for recovery
-  transaction::TransactionManager *txn_manager_;
+  const common::ManagedPointer<transaction::TransactionManager> txn_manager_;
 
   // DeferredActions manager to defer record deletes
-  transaction::DeferredActionManager *deferred_action_manager_;
+  const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;
 
   // TODO(Gus): The recovery manager should be passed a specific block store for table construction. Block store
   // management/assignment is probably a larger system issue that needs to be adddressed. Block store, used to create
   // tables during recovery
-  BlockStore *block_store_;
+  const common::ManagedPointer<BlockStore> block_store_;
 
   // Used during recovery from log. Maps old tuple slot to new tuple slot
   // TODO(Gus): This map may get huge, benchmark whether this becomes a problem and if we need a more sophisticated data

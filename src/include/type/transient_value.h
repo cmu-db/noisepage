@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstring>
 #include <string>
+
 #include "common/hash_util.h"
 #include "common/json.h"
 #include "common/macros.h"
@@ -12,6 +13,13 @@
 namespace terrier::parser {
 class ConstantValueExpression;
 }
+
+namespace terrier::optimizer {
+class PlanGenerator;
+class IndexScan;
+class IndexUtil;
+class StatsCalculator;
+}  // namespace terrier::optimizer
 
 namespace terrier::type {
 class TransientValueFactory;
@@ -30,6 +38,11 @@ class TransientValue {
   friend class TransientValueFactory;                     // Access to constructor
   friend class TransientValuePeeker;                      // Access to GetAs
   friend class terrier::parser::ConstantValueExpression;  // Access to copy constructor, json methods
+
+  friend class terrier::optimizer::PlanGenerator;  // Access to copy constructor
+  friend class terrier::optimizer::IndexScan;      // Access to copy constructor
+  friend class terrier::optimizer::IndexUtil;      // Access to copy constructor for extracting values from CVE
+  friend class terrier::optimizer::StatsCalculator;
 
  public:
   /**
@@ -247,8 +260,8 @@ class TransientValue {
     // clear internal buffer
     data_ = 0;
     type_ = type;
-    const auto num_bytes = std::min(static_cast<uint8_t>(static_cast<uint8_t>(TypeUtil::GetTypeSize(type)) & INT8_MAX),
-                                    static_cast<uint8_t>(sizeof(uintptr_t)));
+    const auto num_bytes =
+        std::min(storage::AttrSizeBytes(TypeUtil::GetTypeSize(type)), static_cast<uint16_t>(sizeof(uintptr_t)));
     std::memcpy(&data_, &data, num_bytes);
   }
 

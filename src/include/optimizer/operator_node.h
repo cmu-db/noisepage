@@ -30,6 +30,12 @@ class BaseOperatorNode {
   virtual ~BaseOperatorNode() = default;
 
   /**
+   * Copy
+   * @returns copy of this
+   */
+  virtual BaseOperatorNode *Copy() const = 0;
+
+  /**
    * Utility method for visitor pattern
    * @param v operator visitor for visitor pattern
    */
@@ -92,6 +98,12 @@ class OperatorNode : public BaseOperatorNode {
   void Accept(common::ManagedPointer<OperatorVisitor> v) const override;
 
   /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override = 0;
+
+  /**
    * @return string name of the underlying operator
    */
   std::string GetName() const override { return std::string(name); }
@@ -146,6 +158,11 @@ class Operator {
   Operator(Operator &&o) noexcept;
 
   /**
+   * Copy constructor for Operator
+   */
+  Operator(const Operator &op) : node_(op.node_->Copy()) {}
+
+  /**
    * Calls corresponding visitor to this operator node
    */
   void Accept(common::ManagedPointer<OperatorVisitor> v) const;
@@ -170,14 +187,14 @@ class Operator {
    * @param rhs other
    * @return true if the two operators are logically equal, false otherwise
    */
-  bool operator==(const Operator &rhs);
+  bool operator==(const Operator &rhs) const;
 
   /**
    * Logical inequality check
    * @param rhs other
    * @return true if the two operators are logically not equal, false otherwise
    */
-  bool operator!=(const Operator &rhs) { return !operator==(rhs); }
+  bool operator!=(const Operator &rhs) const { return !operator==(rhs); }
 
   /**
    * @return true if the operator is defined, false otherwise
@@ -193,11 +210,6 @@ class Operator {
    * @return true if the operator is physical, false otherwise
    */
   bool IsPhysical() const;
-
-  /**
-   * default destructor, the content of the Operator should be explicitly managed
-   */
-  ~Operator() = default;
 
   /**
    * Re-interpret the operator

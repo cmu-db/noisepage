@@ -59,10 +59,34 @@ class ColumnStats {
   size_t &GetNumRows() { return this->num_rows_; }
 
   /**
+   * Sets the number of rows int he column
+   * @param num_rows number of rows
+   */
+  void SetNumRows(size_t num_rows) { num_rows_ = num_rows; }
+
+  /**
    * Gets the cardinality of the column
    * @return the cardinality
    */
   double &GetCardinality() { return this->cardinality_; }
+
+  /**
+   * Gets the histogram bounds
+   * @return histogram bounds
+   */
+  const std::vector<double> &GetHistogramBounds() const { return histogram_bounds_; }
+
+  /**
+   * Gets the Common Vals
+   * @return column vals
+   */
+  const std::vector<double> &GetCommonVals() const { return most_common_vals_; }
+
+  /**
+   * Gets the Common Freqs
+   * @return common freqs
+   */
+  const std::vector<double> &GetCommonFreqs() const { return most_common_freqs_; }
 
   /**
    * Serializes a column stats object

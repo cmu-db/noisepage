@@ -16,7 +16,8 @@
 
 namespace terrier {
 class StorageTestUtil;
-}
+class TpccPlanTest;
+}  // namespace terrier
 
 namespace terrier::storage {
 class RecoveryManager;
@@ -204,7 +205,6 @@ class IndexSchema {
 
     friend class DatabaseCatalog;
     friend class postgres::Builder;
-
     friend class tpcc::Schemas;
     friend class terrier::StorageTestUtil;
   };
@@ -265,7 +265,7 @@ class IndexSchema {
   bool Unique() const { return is_unique_; }
 
   /**
-   * @return true if index represents the primary key of the table (Unique should always be true when this is true)
+   * @return true if this schema is for a unique index
    */
   bool Primary() const { return is_primary_; }
 
@@ -385,6 +385,7 @@ class IndexSchema {
 
   friend class Catalog;
   friend class postgres::Builder;
+  friend class terrier::TpccPlanTest;
 };
 
 DEFINE_JSON_DECLARATIONS(IndexSchema::Column);

@@ -1,23 +1,21 @@
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <pqxx/pqxx> /* libpqxx is used to instantiate C++ client */
-
-#include <cstdio>
 #include <cstring>
 #include <memory>
+#include <pqxx/pqxx>  // NOLINT
 #include <string>
-#include <unordered_map>
 #include <vector>
+
 #include "common/managed_pointer.h"
 #include "common/settings.h"
 #include "gtest/gtest.h"
-#include "loggers/main_logger.h"
 #include "network/connection_handle_factory.h"
 #include "network/terrier_server.h"
+#include "storage/garbage_collector.h"
 #include "test_util/manual_packet_util.h"
 #include "test_util/test_harness.h"
 #include "traffic_cop/result_set.h"
 #include "traffic_cop/traffic_cop.h"
+#include "transaction/deferred_action_manager.h"
+#include "transaction/transaction_manager.h"
 
 namespace terrier::network {
 
@@ -34,44 +32,79 @@ class FakeCommandFactory : public PostgresCommandFactory {
 
 class NetworkTests : public TerrierTest {
  protected:
+  trafficcop::TrafficCop *tcop_;
+  catalog::Catalog *catalog_;
+  storage::RecordBufferSegmentPool buffer_pool_{100, 100};
+  storage::BlockStore block_store_{100, 100};
+  transaction::TimestampManager *timestamp_manager_;
+  transaction::DeferredActionManager *deferred_action_manager_;
+  transaction::TransactionManager *txn_manager_;
+
+  storage::GarbageCollector *gc_;
   std::unique_ptr<TerrierServer> server_;
   std::unique_ptr<ConnectionHandleFactory> handle_factory_;
   common::DedicatedThreadRegistry thread_registry_ = common::DedicatedThreadRegistry(DISABLED);
-  uint16_t port_ = common::Settings::SERVER_PORT;
-  trafficcop::TrafficCop tcop_{catalog::INVALID_DATABASE_OID, DISABLED};
+  uint16_t port_ = 15721;
   FakeCommandFactory fake_command_factory_;
   PostgresProtocolInterpreter::Provider protocol_provider_{
       common::ManagedPointer<PostgresCommandFactory>(&fake_command_factory_)};
 
   void SetUp() override {
-    TerrierTest::SetUp();
+    timestamp_manager_ = new transaction::TimestampManager;
+    deferred_action_manager_ = new transaction::DeferredActionManager(common::ManagedPointer(timestamp_manager_));
+    txn_manager_ = new transaction::TransactionManager(common::ManagedPointer(timestamp_manager_),
+                                                       common::ManagedPointer(deferred_action_manager_),
+                                                       common::ManagedPointer(&buffer_pool_), true, DISABLED);
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(timestamp_manager_),
+                                        common::ManagedPointer(deferred_action_manager_),
+                                        common::ManagedPointer(txn_manager_), DISABLED);
+
+    catalog_ = new catalog::Catalog(common::ManagedPointer(txn_manager_), common::ManagedPointer(&block_store_));
+
+    tcop_ = new trafficcop::TrafficCop(common::ManagedPointer(txn_manager_), common::ManagedPointer(catalog_));
+
+    auto txn = txn_manager_->BeginTransaction();
+    catalog_->CreateDatabase(txn, catalog::DEFAULT_DATABASE, true);
+    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     network_logger->set_level(spdlog::level::trace);
     spdlog::flush_every(std::chrono::seconds(1));
 
     try {
-      handle_factory_ = std::make_unique<ConnectionHandleFactory>(common::ManagedPointer(&tcop_));
+      handle_factory_ = std::make_unique<ConnectionHandleFactory>(common::ManagedPointer(tcop_));
       server_ = std::make_unique<TerrierServer>(
           common::ManagedPointer<ProtocolInterpreter::Provider>(&protocol_provider_),
-          common::ManagedPointer(handle_factory_.get()), common::ManagedPointer(&thread_registry_));
-      server_->SetPort(port_);
+          common::ManagedPointer(handle_factory_.get()), common::ManagedPointer(&thread_registry_), port_);
       server_->RunServer();
     } catch (NetworkProcessException &exception) {
-      TEST_LOG_ERROR("[LaunchServer] exception when launching server");
+      NETWORK_LOG_ERROR("[LaunchServer] exception when launching server");
       throw;
     }
 
-    TEST_LOG_DEBUG("Server initialized");
+    NETWORK_LOG_DEBUG("Server initialized");
   }
 
   void TearDown() override {
     server_->StopServer();
-    TEST_LOG_DEBUG("Terrier has shut down");
-    TerrierTest::TearDown();
+    NETWORK_LOG_DEBUG("Terrier has shut down");
+    catalog_->TearDown();
+
+    // Run the GC to clean up transactions
+    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
+
+    delete catalog_;
+    delete tcop_;
+    delete gc_;
+    delete txn_manager_;
+    delete deferred_action_manager_;
+    delete timestamp_manager_;
   }
 
   void TestExtendedQuery(uint16_t port) {
-    std::shared_ptr<NetworkIoWrapper> io_socket = ManualPacketUtil::StartConnection(port);
+    auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
+    auto io_socket = common::ManagedPointer(io_socket_unique_ptr);
     io_socket->GetWriteQueue()->Reset();
     std::string stmt_name = "prepared_test";
     std::string query = "INSERT INTO foo VALUES($1, $2, $3, $4);";
@@ -107,6 +140,7 @@ class NetworkTests : public TerrierTest {
     EXPECT_TRUE(ManualPacketUtil::ReadUntilReadyOrClose(io_socket));
 
     ManualPacketUtil::TerminateConnection(io_socket->GetSocketFd());
+    io_socket->Close();
   }
 };
 
@@ -119,8 +153,8 @@ class NetworkTests : public TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, SimpleQueryTest) {
   try {
-    pqxx::connection c(
-        fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port_));
+    pqxx::connection c(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql", port_,
+                                   catalog::DEFAULT_DATABASE));
 
     pqxx::work txn1(c);
     txn1.exec("INSERT INTO employee VALUES (1, 'Han LI');");
@@ -131,17 +165,18 @@ TEST_F(NetworkTests, SimpleQueryTest) {
     txn1.commit();
     EXPECT_EQ(r.size(), 0);
   } catch (const std::exception &e) {
-    TEST_LOG_ERROR("[SimpleQueryTest] Exception occurred: {0}", e.what());
+    NETWORK_LOG_ERROR("[SimpleQueryTest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
-  TEST_LOG_DEBUG("[SimpleQueryTest] Client has closed");
+  NETWORK_LOG_DEBUG("[SimpleQueryTest] Client has closed");
 }
 
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, BadQueryTest) {
   try {
-    TEST_LOG_INFO("[BadQueryTest] Starting, expect errors to be logged");
-    std::shared_ptr<NetworkIoWrapper> io_socket = ManualPacketUtil::StartConnection(port_);
+    NETWORK_LOG_INFO("[BadQueryTest] Starting, expect errors to be logged");
+    auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
+    auto io_socket = common::ManagedPointer(io_socket_unique_ptr);
     PostgresPacketWriter writer(io_socket->GetWriteQueue());
 
     // Build a correct query message, "SELECT A FROM B"
@@ -161,23 +196,24 @@ TEST_F(NetworkTests, BadQueryTest) {
     EXPECT_FALSE(is_ready);
     io_socket->Close();
   } catch (const std::exception &e) {
-    TEST_LOG_ERROR("[BadQueryTest] Exception occurred: {0}", e.what());
+    NETWORK_LOG_ERROR("[BadQueryTest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
-  TEST_LOG_INFO("[BadQueryTest] Completed");
+  NETWORK_LOG_INFO("[BadQueryTest] Completed");
 }
 
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, NoSSLTest) {
   try {
-    pqxx::connection c(fmt::format("host=127.0.0.1 port={0} user=postgres application_name=psql", port_));
+    pqxx::connection c(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql", port_,
+                                   catalog::DEFAULT_DATABASE));
 
     pqxx::work txn1(c);
     txn1.exec("INSERT INTO employee VALUES (1, 'Han LI');");
     txn1.exec("INSERT INTO employee VALUES (2, 'Shaokun ZOU');");
     txn1.exec("INSERT INTO employee VALUES (3, 'Yilei CHU');");
   } catch (const std::exception &e) {
-    TEST_LOG_ERROR("[NoSSLTest] Exception occurred: {0}", e.what());
+    NETWORK_LOG_ERROR("[NoSSLTest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
 }
@@ -187,7 +223,7 @@ TEST_F(NetworkTests, PgNetworkCommandsTest) {
   try {
     TestExtendedQuery(port_);
   } catch (const std::exception &e) {
-    TEST_LOG_ERROR("[PgNetworkCommandsTest] Exception occurred: {0}", e.what());
+    NETWORK_LOG_ERROR("[PgNetworkCommandsTest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
 }
@@ -195,8 +231,8 @@ TEST_F(NetworkTests, PgNetworkCommandsTest) {
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, LargePacketsTest) {
   try {
-    pqxx::connection c(
-        fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port_));
+    pqxx::connection c(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql", port_,
+                                   catalog::DEFAULT_DATABASE));
 
     pqxx::work txn1(c);
     std::string long_query_packet_string(255555, 'a');
@@ -204,7 +240,7 @@ TEST_F(NetworkTests, LargePacketsTest) {
     txn1.exec(long_query_packet_string);
     txn1.commit();
   } catch (const std::exception &e) {
-    TEST_LOG_ERROR("[LargePacketstest] Exception occurred: {0}", e.what());
+    NETWORK_LOG_ERROR("[LargePacketstest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
 }
@@ -219,8 +255,9 @@ TEST_F(NetworkTests, LargePacketsTest) {
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, GusThesisSaver) {
   try {
-    TEST_LOG_INFO("[GusThesisSaver] Starting, expect errors to be logged");
-    std::shared_ptr<NetworkIoWrapper> io_socket = ManualPacketUtil::StartConnection(port_);
+    NETWORK_LOG_INFO("[GusThesisSaver] Starting, expect errors to be logged");
+    auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
+    auto io_socket = common::ManagedPointer(io_socket_unique_ptr);
     PostgresPacketWriter writer(io_socket->GetWriteQueue());
 
     // Create a large packet that will require the InputPacket to be extended
@@ -241,10 +278,10 @@ TEST_F(NetworkTests, GusThesisSaver) {
     EXPECT_TRUE(is_ready);  // should be okay
     io_socket->Close();
   } catch (const std::exception &e) {
-    TEST_LOG_ERROR("[GusThesisSaver] Exception occurred: {0}", e.what());
+    NETWORK_LOG_ERROR("[GusThesisSaver] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
-  TEST_LOG_INFO("[GusThesisSaver] Completed");
+  NETWORK_LOG_INFO("[GusThesisSaver] Completed");
 }
 
 }  // namespace terrier::network

@@ -1,14 +1,16 @@
+#include "traffic_cop/sqlite.h"
+
 #include <sqlite3.h>
+
 #include <cstdio>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "loggers/main_logger.h"
+#include "loggers/common_logger.h"
 #include "network/network_defs.h"
 #include "traffic_cop/result_set.h"
-#include "traffic_cop/sqlite.h"
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
 #include "type/transient_value_peeker.h"
@@ -20,7 +22,7 @@ SqliteEngine::SqliteEngine() {
                             SQLITE_OPEN_FULLMUTEX | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
   if (rc != 0) {
     fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(sqlite_db_));
-    LOG_ERROR("Can't open database %s", sqlite3_errmsg(sqlite_db_));
+    COMMON_LOG_ERROR("Can't open database %s", sqlite3_errmsg(sqlite_db_));
     exit(0);
   } else {
     fprintf(stderr, "\n");
@@ -38,7 +40,7 @@ sqlite3_stmt *SqliteEngine::PrepareStatement(std::string query) {
   int error_code = sqlite3_prepare_v2(sqlite_db_, query.c_str(), -1, &stmt, nullptr);
   if (error_code == SQLITE_OK) return stmt;
 
-  LOG_ERROR("Sqlite Prepare Error: Error Code = {0}, msg = {1}", error_code, sqlite3_errmsg(sqlite_db_));
+  COMMON_LOG_ERROR("Sqlite Prepare Error: Error Code = {0}, msg = {1}", error_code, sqlite3_errmsg(sqlite_db_));
   return nullptr;
 }
 
@@ -69,13 +71,13 @@ void SqliteEngine::Bind(sqlite3_stmt *stmt, common::ManagedPointer<std::vector<t
       } else if (type == TypeId::BIGINT) {
         res = sqlite3_bind_int64(stmt, i + 1, TransientValuePeeker::PeekBigInt(params[i]));
       } else {
-        LOG_ERROR("Unsupported type: {0}", static_cast<int>(type));
+        COMMON_LOG_ERROR("Unsupported type: {0}", static_cast<int>(type));
         res = 0;
       }
     }
 
     if (res != SQLITE_OK) {
-      LOG_ERROR("Bind error: error code = {0}", res);
+      COMMON_LOG_ERROR("Bind error: error code = {0}", res);
     }
   }
 }
@@ -114,7 +116,7 @@ ResultSet SqliteEngine::Execute(sqlite3_stmt *stmt) {
       } else if (type == SQLITE_NULL) {
         row.push_back(type::TransientValueFactory::GetVarChar("NULL"));
       } else {
-        LOG_ERROR("Unsupported Type: {0}", type);
+        COMMON_LOG_ERROR("Unsupported Type: {0}", type);
       }
     }
     result_set.rows_.push_back(std::move(row));
@@ -122,7 +124,7 @@ ResultSet SqliteEngine::Execute(sqlite3_stmt *stmt) {
     result_code = sqlite3_step(stmt);
   }
 
-  LOG_TRACE("Execute complete, {0} rows are in the result set", result_set.rows_.size());
+  COMMON_LOG_TRACE("Execute complete, {0} rows are in the result set", result_set.rows_.size());
 
   return result_set;
 }

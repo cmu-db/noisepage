@@ -19,15 +19,9 @@ struct DeltaRecordTests : public TerrierTest {
   storage::BlockStore block_store_{10, 10};
 
  protected:
-  void SetUp() override {
-    TerrierTest::SetUp();
-    raw_block_ = block_store_.Get();
-  }
+  void SetUp() override { raw_block_ = block_store_.Get(); }
 
-  void TearDown() override {
-    block_store_.Release(raw_block_);
-    TerrierTest::TearDown();
-  }
+  void TearDown() override { block_store_.Release(raw_block_); }
 };
 
 // Generates a list of UndoRecords and chain them together. Access from the beginning and see if we can access all

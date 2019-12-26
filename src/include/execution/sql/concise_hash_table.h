@@ -179,7 +179,7 @@ inline void ConciseHashTable::Insert(HashTableEntry *entry, const hash_t hash) {
   const uint64_t slot_idx = hash & slot_mask_;
   const uint64_t group_idx = slot_idx >> K_LOG_SLOTS_PER_GROUP;
   const uint64_t num_bits_to_group = group_idx << K_LOG_SLOTS_PER_GROUP;
-  auto *group_bits = reinterpret_cast<uint32_t *>(&slot_groups_[group_idx].bits_);
+  auto *group_bits = reinterpret_cast<uint32_t *>(&slot_groups_[group_idx] + offsetof(SlotGroup, bits_));
 
   auto bit_idx = static_cast<uint32_t>(slot_idx & K_GROUP_BIT_MASK);
   uint32_t max_bit_idx = std::min(63u, bit_idx + probe_limit_);

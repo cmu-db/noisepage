@@ -40,15 +40,6 @@ class AbstractScanPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param flag is parallel scan flag
-     * @return builder object
-     */
-    ConcreteType &SetIsParallelFlag(bool flag) {
-      is_parallel_ = flag;
-      return *dynamic_cast<ConcreteType *>(this);
-    }
-
-    /**
      * @param database_oid database OID of table/index beind scanned
      * @return builder object
      */
@@ -76,11 +67,6 @@ class AbstractScanPlanNode : public AbstractPlanNode {
      */
     bool is_for_update_ = false;
     /**
-     * Is this a parallel scan
-     */
-    bool is_parallel_ = false;
-
-    /**
      * Database OID for scan
      */
     catalog::db_oid_t database_oid_;
@@ -97,18 +83,16 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param predicate predicate used for performing scan
    * @param is_for_update scan is used for an update
-   * @param is_parallel parallel scan flag
    * @param database_oid database oid for scan
    * @param namespace_oid OID of the namespace
    */
   AbstractScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                        std::unique_ptr<OutputSchema> output_schema,
                        common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update,
-                       bool is_parallel, catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid)
+                       catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         scan_predicate_(predicate),
         is_for_update_(is_for_update),
-        is_parallel_(is_parallel),
         database_oid_(database_oid),
         namespace_oid_(namespace_oid) {}
 
@@ -131,11 +115,6 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    * @return for update flag
    */
   bool IsForUpdate() const { return is_for_update_; }
-
-  /**
-   * @return parallel scan flag
-   */
-  bool IsParallel() const { return is_parallel_; }
 
   /**
    * @return database OID of index/table being scanned
@@ -166,11 +145,6 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    * Are the tuples produced by this plan intended for update?
    */
   bool is_for_update_ = false;
-
-  /**
-   * Should this scan be performed in parallel?
-   */
-  bool is_parallel_;
 
   /**
    * Database OID for scan

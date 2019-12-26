@@ -4,6 +4,7 @@
 #include <thread>  //NOLINT
 #include <unordered_map>
 #include <utility>
+
 #include "main/db_main.h"
 #include "metrics/metrics_manager.h"
 #include "metrics/metrics_store.h"
@@ -15,11 +16,6 @@
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
 
-#define __SETTING_GFLAGS_DEFINE__      // NOLINT
-#include "settings/settings_common.h"  // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_GFLAGS_DEFINE__       // NOLINT
-
 namespace terrier::metrics {
 
 /**
@@ -27,41 +23,43 @@ namespace terrier::metrics {
  */
 class MetricsTests : public TerrierTest {
  public:
-  DBMain *db_main_;
-  settings::SettingsManager *settings_manager_;
-  MetricsManager *metrics_manager_;
-  transaction::TransactionManager *txn_manager_;
+  std::unique_ptr<DBMain> db_main_;
+  storage::SqlTable *sql_table_;
+  common::ManagedPointer<settings::SettingsManager> settings_manager_;
+  common::ManagedPointer<MetricsManager> metrics_manager_;
+  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
 
   void SetUp() override {
     std::unordered_map<settings::Param, settings::ParamInfo> param_map;
-    terrier::settings::SettingsManager::ConstructParamMap(param_map);
-
-    db_main_ = new DBMain(std::move(param_map));
-    settings_manager_ = db_main_->settings_manager_;
-    metrics_manager_ = db_main_->metrics_manager_;
-    txn_manager_ = db_main_->txn_manager_;
+    settings::SettingsManager::ConstructParamMap(param_map);
+    db_main_ = terrier::DBMain::Builder()
+                   .SetUseSettingsManager(true)
+                   .SetSettingsParameterMap(std::move(param_map))
+                   .SetUseMetrics(true)
+                   .SetUseLogging(true)
+                   .SetUseGC(true)
+                   .Build();
+    settings_manager_ = db_main_->GetSettingsManager();
+    metrics_manager_ = db_main_->GetMetricsManager();
+    txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
+    sql_table_ = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), table_schema_);
   }
-
   void TearDown() override {
-    delete db_main_;
-    delete sql_table_;
+    db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table_; });
   }
 
   std::default_random_engine generator_;
 
-  storage::BlockStore block_store_{100, 100};
-
   const catalog::Schema table_schema_{
       {{"attribute", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER))}}};
-  storage::SqlTable *const sql_table_{new storage::SqlTable(&block_store_, table_schema_)};
-  const storage::ProjectedRowInitializer tuple_initializer_{
-      sql_table_->InitializerForProjectedRow({catalog::col_oid_t(0)})};
 
   void Insert() {
+    static storage::ProjectedRowInitializer tuple_initializer =
+        sql_table_->InitializerForProjectedRow({catalog::col_oid_t(0)});
     auto *const insert_txn = txn_manager_->BeginTransaction();
     auto *const insert_redo =
-        insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
+        insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer);
     auto *const insert_tuple = insert_redo->Delta();
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
     sql_table_->Insert(insert_txn, insert_redo);
@@ -90,10 +88,14 @@ TEST_F(MetricsTests, LoggingCSVTest) {
   const auto aggregated_data = reinterpret_cast<LoggingMetricRawData *>(
       metrics_manager_->AggregatedMetrics().at(static_cast<uint8_t>(MetricsComponent::LOGGING)).get());
   EXPECT_NE(aggregated_data, nullptr);
-  EXPECT_GE(aggregated_data->serializer_data_.size(), 0);                 // 1 data point recorded
-  EXPECT_GE(aggregated_data->serializer_data_.begin()->num_records_, 0);  // 2 records: insert, commit
-  EXPECT_GE(aggregated_data->consumer_data_.size(), 0);                   // 1 data point recorded
-  EXPECT_GE(aggregated_data->consumer_data_.begin()->num_buffers_, 0);    // 1 buffer flushed
+  EXPECT_GE(aggregated_data->serializer_data_.size(), 0);  // 1 data point recorded
+  if (!(aggregated_data->serializer_data_.empty())) {
+    EXPECT_GE(aggregated_data->serializer_data_.begin()->num_records_, 0);  // 2 records: insert, commit
+  }
+  EXPECT_GE(aggregated_data->consumer_data_.size(), 0);  // 1 data point recorded
+  if (!(aggregated_data->consumer_data_.empty())) {
+    EXPECT_GE(aggregated_data->consumer_data_.begin()->num_buffers_, 0);  // 1 buffer flushed
+  }
   metrics_manager_->ToCSV();
   EXPECT_EQ(aggregated_data->serializer_data_.size(), 0);
   EXPECT_EQ(aggregated_data->consumer_data_.size(), 0);
@@ -104,10 +106,14 @@ TEST_F(MetricsTests, LoggingCSVTest) {
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
   metrics_manager_->Aggregate();
-  EXPECT_GE(aggregated_data->serializer_data_.size(), 0);                 // 1 data point recorded
-  EXPECT_GE(aggregated_data->serializer_data_.begin()->num_records_, 0);  // 4 records: 2 insert, 2 commit
-  EXPECT_GE(aggregated_data->consumer_data_.size(), 0);                   // 1 data point recorded
-  EXPECT_GE(aggregated_data->consumer_data_.begin()->num_buffers_, 0);    // 2 buffers flushed
+  EXPECT_GE(aggregated_data->serializer_data_.size(), 0);  // 1 data point recorded
+  if (!(aggregated_data->serializer_data_.empty())) {
+    EXPECT_GE(aggregated_data->serializer_data_.begin()->num_records_, 0);  // 4 records: 2 insert, 2 commit
+  }
+  EXPECT_GE(aggregated_data->consumer_data_.size(), 0);  // 1 data point recorded
+  if (!(aggregated_data->consumer_data_.empty())) {
+    EXPECT_GE(aggregated_data->consumer_data_.begin()->num_buffers_, 0);  // 2 buffers flushed
+  }
   metrics_manager_->ToCSV();
   EXPECT_EQ(aggregated_data->serializer_data_.size(), 0);
   EXPECT_EQ(aggregated_data->consumer_data_.size(), 0);
@@ -119,13 +125,21 @@ TEST_F(MetricsTests, LoggingCSVTest) {
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
   metrics_manager_->Aggregate();
-  EXPECT_GE(aggregated_data->serializer_data_.size(), 0);                 // 1 data point recorded
-  EXPECT_GE(aggregated_data->serializer_data_.begin()->num_records_, 0);  // 6 records: 3 insert, 3 commit
-  EXPECT_GE(aggregated_data->consumer_data_.size(), 0);                   // 1 data point recorded
-  EXPECT_GE(aggregated_data->consumer_data_.begin()->num_buffers_, 0);    // 3 buffers flushed
+  EXPECT_GE(aggregated_data->serializer_data_.size(), 0);  // 1 data point recorded
+  if (!(aggregated_data->serializer_data_.empty())) {
+    EXPECT_GE(aggregated_data->serializer_data_.begin()->num_records_, 0);  // 6 records: 3 insert, 3 commit
+  }
+  EXPECT_GE(aggregated_data->consumer_data_.size(), 0);  // 1 data point recorded
+  if (!(aggregated_data->consumer_data_.empty())) {
+    EXPECT_GE(aggregated_data->consumer_data_.begin()->num_buffers_, 0);  // 3 buffers flushed
+  }
   metrics_manager_->ToCSV();
   EXPECT_EQ(aggregated_data->serializer_data_.size(), 0);
   EXPECT_EQ(aggregated_data->consumer_data_.size(), 0);
+
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(2));
+  settings_manager_->SetBool(settings::Param::metrics_logging, false, common::ManagedPointer(action_context),
+                             setter_callback);
 }
 
 /**
@@ -179,6 +193,10 @@ TEST_F(MetricsTests, TransactionCSVTest) {
   metrics_manager_->ToCSV();
   EXPECT_EQ(aggregated_data->begin_data_.size(), 0);
   EXPECT_EQ(aggregated_data->commit_data_.size(), 0);
+
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(2));
+  settings_manager_->SetBool(settings::Param::metrics_transaction, false, common::ManagedPointer(action_context),
+                             setter_callback);
 
   metrics_manager_->UnregisterThread();
 }

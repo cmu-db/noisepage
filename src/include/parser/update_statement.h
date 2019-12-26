@@ -26,17 +26,16 @@ class UpdateClause {
    */
   UpdateClause(std::string column, common::ManagedPointer<AbstractExpression> value)
       : column_(std::move(column)), value_(value) {}
-  ~UpdateClause() = default;
 
   /**
    * @return column to be updated
    */
-  std::string GetColumnName() { return column_; }
+  std::string GetColumnName() const { return column_; }
 
   /**
    * @return value to update to
    */
-  common::ManagedPointer<AbstractExpression> GetUpdateValue() { return value_; }
+  common::ManagedPointer<AbstractExpression> GetUpdateValue() const { return value_; }
 
   /**
    * Logical equality check
@@ -57,7 +56,7 @@ class UpdateClause {
 
  private:
   const std::string column_;
-  const common::ManagedPointer<AbstractExpression> value_;
+  common::ManagedPointer<AbstractExpression> value_;
 };
 
 /**

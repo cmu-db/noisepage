@@ -5,7 +5,9 @@
 #include <map>
 #include <random>
 #include <vector>
+
 #include "catalog/index_schema.h"
+#include "main/db_main.h"
 #include "portable_endian/portable_endian.h"
 #include "storage/garbage_collector.h"
 #include "storage/index/compact_ints_key.h"
@@ -156,7 +158,7 @@ class IndexKeyTests : public TerrierTest {
       auto pr_offset = static_cast<uint16_t>(oid_offset_map.at(key_oid));
       auto attr = pr->AccessForceNotNull(pr_offset);
       WriteRandomAttribute(key, attr, reference + offset, generator);
-      offset += type::TypeUtil::GetTypeSize(key_type) & INT8_MAX;
+      offset += AttrSizeBytes(type::TypeUtil::GetTypeSize(key_type));
     }
     return reference;
   }
@@ -214,22 +216,18 @@ class IndexKeyTests : public TerrierTest {
     // Create a table. Note that this schema does not match the index's randomly generated schema, and what we're
     // inserting doesn't match either. We just need valid, visible TupleSlots to reference as values for all of the
     // index keys.
-    storage::BlockStore block_store{100, 100};
-    storage::RecordBufferSegmentPool buffer_pool{10000, 10000};
+
+    auto db_main = DBMain::Builder().SetUseGC(true).Build();
+    auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+
     std::vector<catalog::Schema::Column> columns;
     columns.emplace_back("attribute", type::TypeId ::INTEGER, false,
                          parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     catalog::Schema schema{columns};
-    storage::SqlTable sql_table(&block_store, schema);
-    const auto &tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)});
+    auto *sql_table = new storage::SqlTable(db_main->GetStorageLayer()->GetBlockStore().Get(), schema);
+    const auto &tuple_initializer = sql_table->InitializerForProjectedRow({catalog::col_oid_t(0)});
 
-    transaction::TimestampManager timestamp_manager;
-    transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
-    transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool, true,
-                                                DISABLED);
-    storage::GarbageCollector gc_manager(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
-
-    auto *const txn = txn_manager.BeginTransaction();
+    auto *const txn = txn_manager->BeginTransaction();
 
     // dummy tuple to insert for each key. We just need the visible TupleSlot
     auto *const insert_redo =
@@ -251,7 +249,7 @@ class IndexKeyTests : public TerrierTest {
     index->ScanKey(*txn, *key, &results);
     EXPECT_TRUE(results.empty());
 
-    const auto tuple_slot = sql_table.Insert(txn, insert_redo);
+    const auto tuple_slot = sql_table->Insert(txn, insert_redo);
 
     EXPECT_TRUE(index->Insert(txn, *key, tuple_slot));
 
@@ -260,18 +258,17 @@ class IndexKeyTests : public TerrierTest {
     EXPECT_EQ(results[0], tuple_slot);
 
     txn->StageDelete(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_slot);
-    sql_table.Delete(txn, tuple_slot);
+    sql_table->Delete(txn, tuple_slot);
     index->Delete(txn, *key, tuple_slot);
 
     results.clear();
     index->ScanKey(*txn, *key, &results);
     EXPECT_TRUE(results.empty());
 
-    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     // Clean up
-    gc_manager.PerformGarbageCollection();
-    gc_manager.PerformGarbageCollection();
+    db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table; });
     delete[] key_buffer;
   }
 
@@ -381,7 +378,6 @@ class IndexKeyTests : public TerrierTest {
     for (byte *ptr : loose_pointers_) {
       delete[] ptr;
     }
-    TerrierTest::TearDown();
   }
 };
 
@@ -774,8 +770,8 @@ TEST_F(IndexKeyTests, RandomCompactIntsKeyTest) {
       float probabilities[] = {0.0, 0.5, 1.0};
 
       for (float prob : probabilities) {
-        // have B copy A
-        std::memcpy(pr_b, pr_a, initializer.ProjectedRowSize());
+        // have B copy A. Recast pr_b to workaround -Wclass-memaccess.
+        std::memcpy(static_cast<void *>(pr_b), pr_a, initializer.ProjectedRowSize());
         auto *data_b = new byte[key_size];
         std::memcpy(data_b, data_a, key_size);
 

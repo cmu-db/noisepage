@@ -2,10 +2,12 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "benchmark_util/data_table_benchmark_util.h"
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
 #include "loggers/optimizer_logger.h"
+#include "main/db_main.h"
 #include "optimizer/logical_operators.h"
 #include "optimizer/operator_expression.h"
 #include "optimizer/query_to_operator_transformer.h"
@@ -28,21 +30,14 @@ using std::vector;
 namespace terrier {
 
 class OperatorTransformerTest : public TerrierTest {
- private:
-  storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
-  storage::BlockStore block_store_{1000, 1000};
-  catalog::Catalog *catalog_;
-  storage::GarbageCollector *gc_;
-
  protected:
   std::string default_database_name_ = "test_db";
   catalog::db_oid_t db_oid_;
   catalog::table_oid_t table_a_oid_;
   catalog::table_oid_t table_b_oid_;
   parser::PostgresParser parser_;
-  transaction::TimestampManager *timestamp_manager_;
-  transaction::DeferredActionManager *deferred_action_manager_;
-  transaction::TransactionManager *txn_manager_;
+  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
+  common::ManagedPointer<catalog::Catalog> catalog_;
   transaction::TransactionContext *txn_;
   std::unique_ptr<catalog::CatalogAccessor> accessor_;
   binder::BindNodeVisitor *binder_;
@@ -50,17 +45,9 @@ class OperatorTransformerTest : public TerrierTest {
   std::unique_ptr<optimizer::OperatorExpression> operator_tree_;
   std::vector<optimizer::OpType> op_types_;
 
+  std::unique_ptr<DBMain> db_main_;
+
   void SetUpTables() {
-    // Initialize the transaction manager and GC
-    timestamp_manager_ = new transaction::TimestampManager;
-    deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
-    txn_manager_ = new transaction::TransactionManager(timestamp_manager_, deferred_action_manager_, &buffer_pool_,
-                                                       true, DISABLED);
-    gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, nullptr);
-
-    // new catalog requires txn_manage and block_store as parameters
-    catalog_ = new catalog::Catalog(txn_manager_, &block_store_);
-
     // create database
     txn_ = txn_manager_->BeginTransaction();
     OPTIMIZER_LOG_DEBUG("Creating database %s", default_database_name_.c_str());
@@ -83,7 +70,7 @@ class OperatorTransformerTest : public TerrierTest {
     auto schema_a = catalog::Schema(cols_a);
 
     table_a_oid_ = accessor_->CreateTable(accessor_->GetDefaultNamespace(), "a", schema_a);
-    auto table_a = new storage::SqlTable(&block_store_, schema_a);
+    auto table_a = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), schema_a);
     EXPECT_TRUE(accessor_->SetTablePointer(table_a_oid_, table_a));
 
     txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
@@ -100,27 +87,17 @@ class OperatorTransformerTest : public TerrierTest {
 
     auto schema_b = catalog::Schema(cols_b);
     table_b_oid_ = accessor_->CreateTable(accessor_->GetDefaultNamespace(), "b", schema_b);
-    auto table_b = new storage::SqlTable(&block_store_, schema_b);
+    auto table_b = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), schema_b);
     EXPECT_TRUE(accessor_->SetTablePointer(table_b_oid_, table_b));
     txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
     accessor_.reset(nullptr);
   }
 
-  void TearDownTables() {
-    catalog_->TearDown();
-    // Run the GC to flush it down to a clean system
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
-    delete catalog_;
-    delete gc_;
-    delete txn_manager_;
-    delete deferred_action_manager_;
-    delete timestamp_manager_;
-  }
-
   void SetUp() override {
-    TerrierTest::SetUp();
+    db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
+    txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
+    catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
+
     SetUpTables();
     // prepare for testing
     txn_ = txn_manager_->BeginTransaction();
@@ -134,8 +111,6 @@ class OperatorTransformerTest : public TerrierTest {
     delete binder_;
     operator_transformer_.reset(nullptr);
     operator_tree_.reset(nullptr);
-    TearDownTables();
-    TerrierTest::TearDown();
   }
 
   std::string GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression> op) const {
@@ -212,7 +187,7 @@ TEST_F(OperatorTransformerTest, InsertStatementSimpleTest) {
   EXPECT_EQ(db_oid_, logical_insert->GetDatabaseOid());
   EXPECT_EQ(default_namespace_oid, logical_insert->GetNamespaceOid());
   EXPECT_EQ(table_a_oid_, logical_insert->GetTableOid());
-  EXPECT_EQ(std::vector<catalog::col_oid_t>({catalog::col_oid_t(2), catalog::col_oid_t(1)}),
+  EXPECT_EQ(std::vector<catalog::col_oid_t>({catalog::col_oid_t(1), catalog::col_oid_t(2)}),
             logical_insert->GetColumns());
 
   auto insert_value_a1 =
@@ -344,7 +319,7 @@ TEST_F(OperatorTransformerTest, SelectStatementDistinctTest) {
   std::string select_sql = "SELECT DISTINCT B1 FROM B WHERE B1 <= 5";
 
   std::string ref =
-      "{\"Op\":\"LogicalDistinct\",\"Children\":"
+      "{\"Op\":\"LogicalAggregateAndGroupBy\",\"Children\":"
       "[{\"Op\":\"LogicalFilter\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",}]}]}";
 
@@ -668,8 +643,7 @@ TEST_F(OperatorTransformerTest, SelectStatementDiffTableSameSchemaTest) {
   std::string ref =
       "{\"Op\":\"LogicalFilter\",\"Children\":"
       "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
-      "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
-      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]},{\"Op\":\"LogicalGet\",}]}]}";
+      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
@@ -691,8 +665,7 @@ TEST_F(OperatorTransformerTest, SelectStatementSelectListAliasTest) {
   std::string ref =
       "{\"Op\":\"LogicalFilter\",\"Children\":"
       "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
-      "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
-      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]},{\"Op\":\"LogicalGet\",}]}]}";
+      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];

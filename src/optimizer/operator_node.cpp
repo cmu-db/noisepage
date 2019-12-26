@@ -6,7 +6,7 @@
 
 namespace terrier::optimizer {
 
-Operator::Operator() noexcept : node_(nullptr) {}
+Operator::Operator() noexcept = default;
 
 Operator::Operator(std::unique_ptr<BaseOperatorNode> node) : node_(std::move(node)) {}
 
@@ -25,6 +25,7 @@ OpType Operator::GetType() const {
   if (IsDefined()) {
     return node_->GetType();
   }
+
   return OpType::UNDEFINED;
 }
 
@@ -49,7 +50,7 @@ common::hash_t Operator::Hash() const {
   return 0;
 }
 
-bool Operator::operator==(const Operator &rhs) {
+bool Operator::operator==(const Operator &rhs) const {
   if (IsDefined() && rhs.IsDefined()) {
     return *node_ == *rhs.node_;
   }

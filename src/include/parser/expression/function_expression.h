@@ -28,12 +28,27 @@ class FunctionExpression : public AbstractExpression {
   /** Default constructor for deserialization. */
   FunctionExpression() = default;
 
+  /**
+   * Copies this FunctionExpression
+   * @returns copy of this
+   */
   std::unique_ptr<AbstractExpression> Copy() const override {
-    std::string func_name = GetFuncName();
     std::vector<std::unique_ptr<AbstractExpression>> children;
     for (const auto &child : GetChildren()) {
       children.emplace_back(child->Copy());
     }
+    return CopyWithChildren(std::move(children));
+  }
+
+  /**
+   * Creates a copy of the current AbstractExpression with new children implanted.
+   * The children should not be owned by any other AbstractExpression.
+   * @param children New children to be owned by the copy
+   * @returns copy of this with new children
+   */
+  std::unique_ptr<AbstractExpression> CopyWithChildren(
+      std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
+    std::string func_name = GetFuncName();
     auto expr = std::make_unique<FunctionExpression>(std::move(func_name), GetReturnValueType(), std::move(children));
     expr->SetMutableStateForCopy(*this);
     return expr;
@@ -57,8 +72,9 @@ class FunctionExpression : public AbstractExpression {
   void DeriveExpressionName() override {
     bool first = true;
     std::string name = this->GetFuncName() + "(";
-    for (auto &child : this->GetChildren()) {
+    for (auto &child : children_) {
       if (!first) name.append(",");
+
       child->DeriveExpressionName();
       name.append(child->GetExpressionName());
       first = false;

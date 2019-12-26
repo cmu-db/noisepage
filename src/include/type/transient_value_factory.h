@@ -78,6 +78,12 @@ class TransientValueFactory {
   static TransientValue GetDate(const date_t value) { return {TypeId::DATE, value}; }
 
   /**
+   * @param offset Offset to generate a ParameterOffset for
+   * @return TransientValue representing that parameter offset
+   */
+  static TransientValue GetParameterOffset(const uint32_t offset) { return {TypeId::PARAMETER_OFFSET, offset}; }
+
+  /**
    * @param value C type to generate a TransientValue with TypeId VARCHAR. If you want a NULL with this TypeId, just
    * instantiate one with this factory method and then change its NULL value. @see TransientValue::SetNull().
    * @return TransientValue representing the value of the null-terminated C string. The TransientValue has its own

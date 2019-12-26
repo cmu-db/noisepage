@@ -10,9 +10,27 @@ namespace terrier::network {
 
 /**
  * A ConnectionContext stores the state of a connection.
+ * @warning Members of this struct should only be modified when establishing a
+ * new connection @see ConnectionHandle::StartUp. Once the connection is
+ * established, nothing should be changed.
  */
 
 struct ConnectionContext {
+  /**
+   * Commandline arguments parsed from protocol interpreter
+   */
+  std::unordered_map<std::string, std::string> cmdline_args_;
+
+  /**
+   * The OID of the database accessed by this connection
+   */
+  catalog::db_oid_t db_oid_ = catalog::INVALID_DATABASE_OID;
+
+  /**
+   * The OID of the temporary namespace for this connection
+   */
+  catalog::namespace_oid_t temp_namespace_oid_ = catalog::INVALID_NAMESPACE_OID;
+
   /**
    * The statements in this connection
    */
@@ -35,7 +53,9 @@ struct ConnectionContext {
   void Reset() {
     // Cleans up all the sqlite statements in this connection
     for (auto pair : statements_) pair.second.Finalize();
-
+    cmdline_args_.clear();
+    db_oid_ = catalog::INVALID_DATABASE_OID;
+    temp_namespace_oid_ = catalog::INVALID_NAMESPACE_OID;
     statements_.clear();
     portals_.clear();
   }

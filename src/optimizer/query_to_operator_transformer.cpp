@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cmath>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -15,9 +16,9 @@
 #include "optimizer/query_to_operator_transformer.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
-#include "parser/expression/expression_util.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/subquery_expression.h"
+#include "parser/expression_util.h"
 #include "parser/statements.h"
 #include "planner/plannodes/plan_node_defs.h"
 
@@ -97,14 +98,19 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
         output_expr_ = std::move(filter_expr);
       }
     }
-  }
+  } else if (op->IsSelectDistinct()) {
+    // SELECT DISTINCT a1 FROM A should be transformed to
+    // SELECT a1 FROM A GROUP BY a1
+    auto num_cols = op->GetSelectColumns().size();
+    auto group_by_cols = std::vector<common::ManagedPointer<parser::AbstractExpression>>(num_cols);
+    for (size_t i = 0; i < num_cols; i++) {
+      group_by_cols[i] = common::ManagedPointer<parser::AbstractExpression>(op->GetSelectColumns()[i]);
+    }
 
-  if (op->IsSelectDistinct()) {
-    OPTIMIZER_LOG_DEBUG("Handling distinct in SelectStatement ...");
-    auto distinct_expr = std::make_unique<OperatorExpression>(LogicalDistinct::Make(),
-                                                              std::vector<std::unique_ptr<OperatorExpression>>{});
-    distinct_expr->PushChild(std::move(output_expr_));
-    output_expr_ = std::move(distinct_expr);
+    std::vector<std::unique_ptr<OperatorExpression>> c;
+    c.emplace_back(std::move(output_expr_));
+    output_expr_ =
+        std::make_unique<OperatorExpression>(LogicalAggregateAndGroupBy::Make(std::move(group_by_cols)), std::move(c));
   }
 
   if (op->GetSelectLimit() != nullptr && op->GetSelectLimit()->GetLimit() != -1) {
@@ -221,7 +227,9 @@ void QueryToOperatorTransformer::Visit(parser::TableRef *node, parser::ParseResu
     node->GetList().at(0)->Accept(this, parse_result);
     auto prev_expr = std::move(output_expr_);
     // Build a left deep join tree
-    for (auto &list_elem : node->GetList()) {
+    for (size_t i = 1; i < node->GetList().size(); i++) {
+      // Start at i = 1 due to the Accept() above
+      auto list_elem = node->GetList().at(i);
       list_elem->Accept(this, parse_result);
       auto join_expr = std::make_unique<OperatorExpression>(LogicalInnerJoin::Make(),
                                                             std::vector<std::unique_ptr<OperatorExpression>>{});
@@ -323,6 +331,7 @@ void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::Pars
       try {
         const auto &column_object = schema.GetColumn(col);
         specified.insert(column_object.Oid());
+        col_ids.emplace_back(column_object.Oid());
       } catch (const std::out_of_range &oor) {
         throw CATALOG_EXCEPTION(
             ("Column \"" + col + "\" of relation \"" + target_table->GetTableName() + "\" does not exist").c_str());
@@ -337,8 +346,6 @@ void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::Pars
             ("Null value in column \"" + column.Name() + "\" violates not-null constraint").c_str());
       }
     }
-
-    col_ids.insert(col_ids.end(), specified.begin(), specified.end());
   }
 
   auto insert_expr = std::make_unique<OperatorExpression>(
@@ -355,9 +362,9 @@ void QueryToOperatorTransformer::Visit(parser::DeleteStatement *op, parser::Pars
   auto target_ns_id = accessor_->GetDefaultNamespace();
   auto target_table_alias = target_table->GetAlias();
 
-  auto delete_expr =
-      std::make_unique<OperatorExpression>(LogicalDelete::Make(target_db_id, target_ns_id, target_table_id),
-                                           std::vector<std::unique_ptr<OperatorExpression>>{});
+  std::vector<std::unique_ptr<OperatorExpression>> c;
+  auto delete_expr = std::make_unique<OperatorExpression>(
+      LogicalDelete::Make(target_db_id, target_ns_id, target_table_alias, target_table_id), std::move(c));
 
   std::unique_ptr<OperatorExpression> table_scan;
   if (op->GetDeleteCondition() != nullptr) {
@@ -403,9 +410,10 @@ void QueryToOperatorTransformer::Visit(parser::UpdateStatement *op,
 
   std::unique_ptr<OperatorExpression> table_scan;
 
+  std::vector<std::unique_ptr<OperatorExpression>> c;
   auto update_expr = std::make_unique<OperatorExpression>(
-      LogicalUpdate::Make(target_db_id, target_ns_id, target_table_id, op->GetUpdateClauses()),
-      std::vector<std::unique_ptr<OperatorExpression>>{});
+      LogicalUpdate::Make(target_db_id, target_ns_id, target_table_alias, target_table_id, op->GetUpdateClauses()),
+      std::move(c));
 
   if (op->GetUpdateCondition() != nullptr) {
     std::vector<AnnotatedExpression> predicates;
@@ -510,7 +518,7 @@ bool QueryToOperatorTransformer::RequireAggregation(common::ManagedPointer<parse
     std::vector<common::ManagedPointer<parser::AggregateExpression>> aggr_exprs;
     // we need to use get method of managed pointer because the function we are calling will recursivly get aggreate
     // expressions from the current expression and its children; children are of unique pointers
-    parser::expression::ExpressionUtil::GetAggregateExprs(&aggr_exprs, expr);
+    parser::ExpressionUtil::GetAggregateExprs(&aggr_exprs, expr);
     if (!aggr_exprs.empty())
       has_aggregation = true;
     else

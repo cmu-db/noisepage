@@ -1,9 +1,10 @@
+#include "catalog/catalog.h"
+
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/database_catalog.h"
 #include "catalog/postgres/builder.h"
@@ -16,9 +17,10 @@
 
 namespace terrier::catalog {
 
-Catalog::Catalog(transaction::TransactionManager *const txn_manager, storage::BlockStore *const block_store)
-    : txn_manager_(txn_manager), catalog_block_store_(block_store), next_oid_(1) {
-  databases_ = new storage::SqlTable(block_store, postgres::Builder::GetDatabaseTableSchema());
+Catalog::Catalog(const common::ManagedPointer<transaction::TransactionManager> txn_manager,
+                 const common::ManagedPointer<storage::BlockStore> block_store)
+    : txn_manager_(txn_manager.Get()), catalog_block_store_(block_store.Get()), next_oid_(1) {
+  databases_ = new storage::SqlTable(catalog_block_store_, postgres::Builder::GetDatabaseTableSchema());
   databases_oid_index_ = postgres::Builder::BuildUniqueIndex(postgres::Builder::GetDatabaseOidIndexSchema(),
                                                              postgres::DATABASE_OID_INDEX_OID);
   databases_name_index_ = postgres::Builder::BuildUniqueIndex(postgres::Builder::GetDatabaseNameIndexSchema(),
