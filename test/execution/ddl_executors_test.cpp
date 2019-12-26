@@ -1,3 +1,5 @@
+#include "execution/sql/ddl_executors.h"
+
 #include <memory>
 #include <utility>
 #include <vector>
@@ -6,7 +8,7 @@
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "execution/exec/execution_context.h"
-#include "execution/sql/ddl_executors.h"
+#include "main/db_main.h"
 #include "planner/plannodes/create_database_plan_node.h"
 #include "planner/plannodes/create_index_plan_node.h"
 #include "planner/plannodes/create_namespace_plan_node.h"
@@ -26,27 +28,13 @@ namespace terrier::execution::sql::test {
 class DDLExecutorsTests : public TerrierTest {
  public:
   void SetUp() override {
-    TerrierTest::SetUp();
-
-    // Initialize the transaction manager and GC
-    timestamp_manager_ = std::make_unique<transaction::TimestampManager>();
-    deferred_action_manager_ = std::make_unique<transaction::DeferredActionManager>(timestamp_manager_.get());
-    txn_manager_ = std::make_unique<transaction::TransactionManager>(
-        timestamp_manager_.get(), deferred_action_manager_.get(), &buffer_pool_, true, DISABLED);
-    gc_ = std::make_unique<storage::GarbageCollector>(timestamp_manager_.get(), deferred_action_manager_.get(),
-                                                      txn_manager_.get(), nullptr);
-
-    // Build out the catalog and commit so that it is visible to other transactions
-    catalog_ = std::make_unique<catalog::Catalog>(txn_manager_.get(), &block_store_);
-
+    db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
+    catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
+    txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
+    block_store_ = db_main_->GetStorageLayer()->GetBlockStore();
     auto *txn = txn_manager_->BeginTransaction();
-    db_ = catalog_->CreateDatabase(txn, "terrier", true);
-    EXPECT_NE(db_, catalog::INVALID_DATABASE_OID);
+    db_ = catalog_->GetDatabaseOid(txn, catalog::DEFAULT_DATABASE);
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-    // Run the GC to flush it down to a clean system
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
 
     auto col = catalog::Schema::Column(
         "attribute", type::TypeId::INTEGER, false,
@@ -63,23 +51,10 @@ class DDLExecutorsTests : public TerrierTest {
         std::make_unique<catalog::IndexSchema>(keycols, storage::index::IndexType::BWTREE, true, true, false, true);
   }
 
-  void TearDown() override {
-    catalog_->TearDown();
-    // Run the GC to clean up transactions
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
-
-    TerrierTest::TearDown();
-  }
-
-  std::unique_ptr<catalog::Catalog> catalog_;
-  storage::RecordBufferSegmentPool buffer_pool_{100, 100};
-  storage::BlockStore block_store_{100, 100};
-  std::unique_ptr<storage::GarbageCollector> gc_;
-  std::unique_ptr<transaction::TransactionManager> txn_manager_;
-  std::unique_ptr<transaction::DeferredActionManager> deferred_action_manager_;
-  std::unique_ptr<transaction::TimestampManager> timestamp_manager_;
+  std::unique_ptr<DBMain> db_main_;
+  common::ManagedPointer<catalog::Catalog> catalog_;
+  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
+  common::ManagedPointer<storage::BlockStore> block_store_;
 
   catalog::db_oid_t db_;
 
@@ -161,7 +136,7 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNode) {
   auto create_table_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
                                .SetTableSchema(std::move(table_schema_))
                                .SetTableName("foo")
-                               .SetBlockStore(common::ManagedPointer<storage::BlockStore>(&block_store_))
+                               .SetBlockStore(block_store_)
                                .Build();
   auto exec_ctx = CreateExecutionContext();
   auto accessor = exec_ctx->GetAccessor();
@@ -181,7 +156,7 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNodeAbort) {
   auto create_table_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
                                .SetTableSchema(std::move(table_schema_))
                                .SetTableName("foo")
-                               .SetBlockStore(common::ManagedPointer<storage::BlockStore>(&block_store_))
+                               .SetBlockStore(block_store_)
                                .Build();
   auto exec_ctx = CreateExecutionContext();
   auto accessor = exec_ctx->GetAccessor();
@@ -201,7 +176,7 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNodeTableNameConflict) {
   auto create_table_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
                                .SetTableSchema(std::move(table_schema_))
                                .SetTableName("foo")
-                               .SetBlockStore(common::ManagedPointer<storage::BlockStore>(&block_store_))
+                               .SetBlockStore(block_store_)
                                .Build();
   auto exec_ctx = CreateExecutionContext();
   auto accessor = exec_ctx->GetAccessor();
@@ -228,7 +203,7 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNodePKey) {
   auto create_table_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
                                .SetTableSchema(std::move(table_schema_))
                                .SetTableName("foo")
-                               .SetBlockStore(common::ManagedPointer<storage::BlockStore>(&block_store_))
+                               .SetBlockStore(block_store_)
                                .SetHasPrimaryKey(true)
                                .SetPrimaryKey(std::move(pk_info))
                                .Build();
@@ -254,7 +229,7 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNodePKeyAbort) {
   auto create_table_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
                                .SetTableSchema(std::move(table_schema_))
                                .SetTableName("foo")
-                               .SetBlockStore(common::ManagedPointer<storage::BlockStore>(&block_store_))
+                               .SetBlockStore(block_store_)
                                .SetHasPrimaryKey(true)
                                .SetPrimaryKey(std::move(pk_info))
                                .Build();
@@ -280,7 +255,7 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNodePKeyNameConflict) {
   auto create_table_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
                                .SetTableSchema(std::move(table_schema_))
                                .SetTableName("foo")
-                               .SetBlockStore(common::ManagedPointer<storage::BlockStore>(&block_store_))
+                               .SetBlockStore(block_store_)
                                .SetHasPrimaryKey(true)
                                .SetPrimaryKey(std::move(pk_info))
                                .Build();
@@ -365,7 +340,7 @@ TEST_F(DDLExecutorsTests, DropTablePlanNode) {
   auto create_table_node = create_builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
                                .SetTableSchema(std::move(table_schema_))
                                .SetTableName("foo")
-                               .SetBlockStore(common::ManagedPointer<storage::BlockStore>(&block_store_))
+                               .SetBlockStore(block_store_)
                                .Build();
   auto exec_ctx = CreateExecutionContext();
   auto accessor = exec_ctx->GetAccessor();

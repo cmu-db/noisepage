@@ -2,12 +2,11 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+
 #include "common/dedicated_thread_registry.h"
 #include "common/managed_pointer.h"
 #include "gtest/gtest.h"
 #include "main/db_main.h"
-#include "storage/data_table.h"
-#include "storage/garbage_collector_thread.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
@@ -20,43 +19,32 @@
 #include "transaction/transaction_manager.h"
 #include "type/transient_value_factory.h"
 
-#define __SETTING_GFLAGS_DEFINE__      // NOLINT
-#include "settings/settings_common.h"  // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_GFLAGS_DEFINE__       // NOLINT
-
 #define LOG_FILE_NAME "./test.log"
 
 namespace terrier::storage {
 class WriteAheadLoggingTests : public TerrierTest {
  protected:
   std::default_random_engine generator_;
-  storage::BlockStore store_{1000, 1000};
-  storage::RecordBufferSegmentPool buffer_pool_{10000, 10000};
-  transaction::TimestampManager timestamp_manager_;
-  transaction::DeferredActionManager deferred_action_manager_{&timestamp_manager_};
-  common::DedicatedThreadRegistry thread_registry_{DISABLED};
-  storage::LogManager log_manager_{LOG_FILE_NAME,
-                                   100,
-                                   std::chrono::microseconds(10),
-                                   std::chrono::milliseconds(20),
-                                   static_cast<uint64_t>((1U << 20U)),
-                                   &buffer_pool_,
-                                   common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry_)};
-  transaction::TransactionManager txn_manager_{&timestamp_manager_, &deferred_action_manager_, &buffer_pool_, true,
-                                               &log_manager_};
-  storage::GarbageCollector gc_{&timestamp_manager_, &deferred_action_manager_, &txn_manager_, DISABLED};
+  std::unique_ptr<DBMain> db_main_;
+  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
+  common::ManagedPointer<storage::LogManager> log_manager_;
+  common::ManagedPointer<storage::BlockStore> store_;
 
   void SetUp() override {
     // Unlink log file incase one exists from previous test iteration
     unlink(LOG_FILE_NAME);
-    TerrierTest::SetUp();
+
+    db_main_ = terrier::DBMain::Builder().SetLogFilePath(LOG_FILE_NAME).SetUseLogging(true).SetUseGC(true).Build();
+    txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
+    log_manager_ = db_main_->GetLogManager();
+    store_ = db_main_->GetStorageLayer()->GetBlockStore();
   }
 
   void TearDown() override {
+    log_manager_->Start();  // all of the tests stop the LogManager, but DBMain's teardown logic expects it to still be
+                            // running, so we'll just restart it
     // Delete log file
     unlink(LOG_FILE_NAME);
-    TerrierTest::TearDown();
   }
 
   /**
@@ -185,11 +173,11 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
                     .SetMaxColumns(5)
                     .SetVarlenAllowed(true)
                     .Build();
-  log_manager_.Start();
-  LargeDataTableTestObject tested(config, &store_, &txn_manager_, &generator_, &log_manager_);
+  auto *const tested =
+      new LargeDataTableTestObject(config, store_.Get(), txn_manager_.Get(), &generator_, log_manager_.Get());
   // Each transaction does 5 operations. The update-select ratio of operations is 50%-50%.
-  auto result = tested.SimulateOltp(100, 4);
-  log_manager_.PersistAndStop();
+  auto result = tested->SimulateOltp(100, 4);
+  log_manager_->PersistAndStop();
 
   std::unordered_map<transaction::timestamp_t, RandomDataTableTransaction *> txns_map;
   for (auto *txn : result.first) txns_map[txn->BeginTimestamp()] = txn;
@@ -198,7 +186,8 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   while (in.HasMore()) {
     storage::LogRecord *log_record = ReadNextRecord(&in);
     if (log_record->TxnBegin() == transaction::INITIAL_TXN_TIMESTAMP) {
-      // TODO(Tianyu): This is hacky, but it will be a pain to extract the initial transaction. The LargeTransactionTest
+      // TODO(Tianyu): This is hacky, but it will be a pain to extract the initial transaction. The
+      // LargeTransactionTest
       //  harness probably needs some refactor (later after wal is in).
       // This the initial setup transaction.
       delete[] reinterpret_cast<byte *>(log_record);
@@ -225,7 +214,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
       // so we are not checking it
       auto update_it = it->second->Updates()->find(redo->GetTupleSlot());
       EXPECT_NE(it->second->Updates()->end(), update_it);
-      EXPECT_TRUE(StorageTestUtil::ProjectionListEqualDeep(tested.Layout(), update_it->second, redo->Delta()));
+      EXPECT_TRUE(StorageTestUtil::ProjectionListEqualDeep(tested->Layout(), update_it->second, redo->Delta()));
       delete[] reinterpret_cast<byte *>(update_it->second);
       it->second->Updates()->erase(update_it);
     }
@@ -233,25 +222,24 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   }
 
   // Ensure that the only committed transactions which remain in txns_map are read-only, because any other committing
-  // transaction will generate a commit record and will be erased from txns_map in the checks above, if log records are
-  // properly being written out. If at this point, there is exists any transaction in txns_map which made updates, then
-  // something went wrong with logging. Read-only transactions do not generate commit records, so they will remain in
-  // txns_map.
+  // transaction will generate a commit record and will be erased from txns_map in the checks above, if log records
+  // are properly being written out. If at this point, there is exists any transaction in txns_map which made updates,
+  // then something went wrong with logging. Read-only transactions do not generate commit records, so they will
+  // remain in txns_map.
   for (const auto &kv_pair : txns_map) {
     EXPECT_TRUE(kv_pair.second->Updates()->empty());
   }
 
-  // We perform GC at the end because we need the transactions to compare against the deserialized logs, thus we can
-  // only reclaim their resources after that's done
-  gc_.PerformGarbageCollection();
-  gc_.PerformGarbageCollection();
+  // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
+  // DeferredAction
+  db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; });
 
   for (auto *txn : result.first) delete txn;
   for (auto *txn : result.second) delete txn;
 }
 
-// This test simulates a series of read-only transactions, and then reads the generated log file back in to ensure that
-// read-only transactions do not generate any log records, as they are not necessary for recovery.
+// This test simulates a series of read-only transactions, and then reads the generated log file back in to ensure
+// that read-only transactions do not generate any log records, as they are not necessary for recovery.
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   // Each transaction is read-only (update-select ratio of 0-100). Also, no need for bookkeeping.
@@ -264,10 +252,10 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
                     .SetMaxColumns(5)
                     .SetVarlenAllowed(true)
                     .Build();
-  log_manager_.Start();
-  LargeDataTableTestObject tested(config, &store_, &txn_manager_, &generator_, &log_manager_);
-  auto result = tested.SimulateOltp(1000, 4);
-  log_manager_.PersistAndStop();
+  auto *const tested =
+      new LargeDataTableTestObject(config, store_.Get(), txn_manager_.Get(), &generator_, log_manager_.Get());
+  auto result = tested->SimulateOltp(1000, 4);
+  log_manager_->PersistAndStop();
 
   // Read-only workload has completed. Read the log file back in to check that no records were produced for these
   // transactions.
@@ -276,8 +264,8 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   while (in.HasMore()) {
     storage::LogRecord *log_record = ReadNextRecord(&in);
     if (log_record->TxnBegin() == transaction::INITIAL_TXN_TIMESTAMP) {
-      // (TODO) Currently following pattern from LargeLogTest of skipping the initial transaction. When the transaction
-      // testing framework changes, fix this.
+      // (TODO) Currently following pattern from LargeLogTest of skipping the initial transaction. When the
+      // transaction testing framework changes, fix this.
       delete[] reinterpret_cast<byte *>(log_record);
       continue;
     }
@@ -286,12 +274,12 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
     delete[] reinterpret_cast<byte *>(log_record);
   }
 
-  // We perform GC at the end because we need the transactions to compare against the deserialized logs, thus we can
-  // only reclaim their resources after that's done
-  gc_.PerformGarbageCollection();
-  gc_.PerformGarbageCollection();
-
   EXPECT_EQ(log_records_count, 0);
+
+  // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
+  // DeferredAction
+  db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; });
+
   for (auto *txn : result.first) delete txn;
   for (auto *txn : result.second) delete txn;
 }
@@ -300,35 +288,33 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
 // correctly flushed out an abort record
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
-  log_manager_.Start();
-
   // Create SQLTable
   auto col = catalog::Schema::Column(
       "attribute", type::TypeId::INTEGER, false,
       parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
   StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(0));
   auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
-  storage::SqlTable sql_table(&store_, table_schema);
-  auto tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)});
+  auto *const sql_table = new storage::SqlTable(store_.Get(), table_schema);
+  auto tuple_initializer = sql_table->InitializerForProjectedRow({catalog::col_oid_t(0)});
 
   // Initialize first transaction, this txn will write a single tuple
-  auto *first_txn = txn_manager_.BeginTransaction();
+  auto *first_txn = txn_manager_->BeginTransaction();
   auto *insert_redo =
       first_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 1;
-  auto first_tuple_slot = sql_table.Insert(first_txn, insert_redo);
+  auto first_tuple_slot = sql_table->Insert(first_txn, insert_redo);
   EXPECT_TRUE(!first_txn->Aborted());
 
   // Initialize the second txn, this one will write until it has flushed a buffer to the log manager
-  auto second_txn = txn_manager_.BeginTransaction();
+  auto second_txn = txn_manager_->BeginTransaction();
   int32_t insert_value = 2;
   while (!GetRedoBuffer(second_txn).HasFlushed()) {
     insert_redo =
         second_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer);
     insert_tuple = insert_redo->Delta();
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = insert_value++;
-    sql_table.Insert(second_txn, insert_redo);
+    sql_table->Insert(second_txn, insert_redo);
   }
   EXPECT_TRUE(GetRedoBuffer(second_txn).HasFlushed());
   EXPECT_TRUE(!second_txn->Aborted());
@@ -340,15 +326,15 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   auto update_tuple = update_redo->Delta();
   *reinterpret_cast<int32_t *>(update_tuple->AccessForceNotNull(0)) = 0;
   update_redo->SetTupleSlot(first_tuple_slot);
-  EXPECT_FALSE(sql_table.Update(second_txn, update_redo));
+  EXPECT_FALSE(sql_table->Update(second_txn, update_redo));
 
   // Commit first txn and abort the second
-  txn_manager_.Commit(first_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  txn_manager_.Abort(second_txn);
+  txn_manager_->Commit(first_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Abort(second_txn);
   EXPECT_TRUE(second_txn->Aborted());
 
   // Shut down log manager
-  log_manager_.PersistAndStop();
+  log_manager_->PersistAndStop();
 
   // Read records, look for the abort record
   bool found_abort_record = false;
@@ -365,52 +351,51 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   }
   EXPECT_TRUE(found_abort_record);
 
-  // Perform GC, will clean up transactions for us
-  gc_.PerformGarbageCollection();
-  gc_.PerformGarbageCollection();
+  // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
+  // DeferredAction
+  db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table; });
 }
 
-// This test verifies that we don't write an abort record for an aborted transaction that never flushed its redo buffer
+// This test verifies that we don't write an abort record for an aborted transaction that never flushed its redo
+// buffer
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
-  log_manager_.Start();
-
   // Create SQLTable
   auto col = catalog::Schema::Column(
       "attribute", type::TypeId::INTEGER, false,
       parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
   StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(0));
   auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
-  storage::SqlTable sql_table(&store_, table_schema);
-  auto tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)});
+  auto *const sql_table = new storage::SqlTable(store_.Get(), table_schema);
+  auto tuple_initializer = sql_table->InitializerForProjectedRow({catalog::col_oid_t(0)});
 
   // Initialize first transaction, this txn will write a single tuple
-  auto *first_txn = txn_manager_.BeginTransaction();
+  auto *first_txn = txn_manager_->BeginTransaction();
   auto *insert_redo =
       first_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 1;
-  auto first_tuple_slot = sql_table.Insert(first_txn, insert_redo);
+  auto first_tuple_slot = sql_table->Insert(first_txn, insert_redo);
   EXPECT_TRUE(!first_txn->Aborted());
 
   // Initialize the second txn, this txn will try to update the tuple the first txn wrote, and thus will abort. We
   // expect this txn to not write an abort record
-  auto second_txn = txn_manager_.BeginTransaction();
+  auto second_txn = txn_manager_->BeginTransaction();
   auto update_redo =
       second_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer);
   auto update_tuple = update_redo->Delta();
   *reinterpret_cast<int32_t *>(update_tuple->AccessForceNotNull(0)) = 0;
   update_redo->SetTupleSlot(first_tuple_slot);
-  EXPECT_FALSE(sql_table.Update(second_txn, update_redo));
+  EXPECT_FALSE(sql_table->Update(second_txn, update_redo));
   EXPECT_FALSE(GetRedoBuffer(second_txn).HasFlushed());
 
   // Commit first txn and abort the second
-  txn_manager_.Commit(first_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  txn_manager_.Abort(second_txn);
+  txn_manager_->Commit(first_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Abort(second_txn);
   EXPECT_TRUE(second_txn->Aborted());
 
   // Shut down log manager
-  log_manager_.PersistAndStop();
+  log_manager_->PersistAndStop();
 
   // Read records, make sure we don't see an abort record
   bool found_abort_record = false;
@@ -424,8 +409,8 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   }
   EXPECT_FALSE(found_abort_record);
 
-  // Perform GC, will clean up transactions for us
-  gc_.PerformGarbageCollection();
-  gc_.PerformGarbageCollection();
+  // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
+  // DeferredAction
+  db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table; });
 }
 }  // namespace terrier::storage

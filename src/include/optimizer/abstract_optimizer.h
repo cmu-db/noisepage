@@ -98,7 +98,6 @@ class AbstractOptimizer {
    * Build the plan tree for query execution
    * @param txn TransactionContext
    * @param accessor CatalogAccessor for catalog
-   * @param settings SettingsManager to read settings from
    * @param storage StatsStorage
    * @param query_info Information about the query
    * @param op_tree Logical operator tree for execution
@@ -106,7 +105,6 @@ class AbstractOptimizer {
    */
   virtual std::unique_ptr<planner::AbstractPlanNode> BuildPlanTree(transaction::TransactionContext *txn,
                                                                    catalog::CatalogAccessor *accessor,
-                                                                   settings::SettingsManager *settings,
                                                                    StatsStorage *storage, QueryInfo query_info,
                                                                    std::unique_ptr<OperatorExpression> op_tree) = 0;
 
