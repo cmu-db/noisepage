@@ -30,15 +30,9 @@ struct StorageUtilTests : public TerrierTest {
   const uint32_t num_iterations_ = 100;
 
  protected:
-  void SetUp() override {
-    TerrierTest::SetUp();
-    raw_block_ = block_store_.Get();
-  }
+  void SetUp() override { raw_block_ = block_store_.Get(); }
 
-  void TearDown() override {
-    block_store_.Release(raw_block_);
-    TerrierTest::TearDown();
-  }
+  void TearDown() override { block_store_.Release(raw_block_); }
 };
 
 // Generate a random projected row layout, copy a pointer location into a projected row, read it back from projected

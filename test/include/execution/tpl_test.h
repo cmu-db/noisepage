@@ -12,8 +12,6 @@ namespace terrier::execution {
 class TplTest : public terrier::TerrierTest {
  public:
   TplTest() { CpuInfo::Instance(); }
-
-  void SetUp() override { terrier::TerrierTest::SetUp(); }
 };
 
 }  // namespace terrier::execution

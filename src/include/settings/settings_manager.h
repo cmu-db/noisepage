@@ -1,10 +1,12 @@
 #pragma once
 
 #include <gflags/gflags.h>
+
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <utility>
+
 #include "common/action_context.h"
 #include "common/exception.h"
 #include "common/shared_latch.h"
@@ -24,14 +26,15 @@ using setter_callback_fn = void (*)(common::ManagedPointer<common::ActionContext
 
 class SettingsManager {
  public:
-  SettingsManager() = delete;
-  SettingsManager(const SettingsManager &) = delete;
+  DISALLOW_COPY_AND_MOVE(SettingsManager)
 
   /**
    * The constructor of settings manager
-   * @param db a pointer to the DBMain
+   * @param db_main a pointer to the DBMain
+   * @param param_map constructed parameter map to take ownership of
    */
-  explicit SettingsManager(DBMain *db);
+  explicit SettingsManager(common::ManagedPointer<DBMain> db_main,
+                           std::unordered_map<settings::Param, settings::ParamInfo> &&param_map);
 
   /**
    * Get the value of an integer setting
@@ -131,7 +134,8 @@ class SettingsManager {
       std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> &param_map);  // NOLINT
 
  private:
-  DBMain *db_;
+  common::ManagedPointer<DBMain> db_main_;
+  std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
   common::SharedLatch latch_;
 
   void ValidateSetting(Param param, const type::TransientValue &min_value, const type::TransientValue &max_value);

@@ -22,7 +22,11 @@ class OutputSchema;
 
 namespace settings {
 class SettingsManager;
-}  // namespace settings
+}
+
+namespace catalog {
+class CatalogAccessor;
+}
 
 namespace optimizer {
 
@@ -44,7 +48,6 @@ class PlanGenerator : public OperatorVisitor {
    *
    * @param txn TransactionContext
    * @param accessor CatalogAccessor
-   * @param settings SettingsManager
    * @param op OperatorExpression to convert
    * @param required_props Required properties
    * @param required_cols Columns that are required to be output
@@ -54,9 +57,8 @@ class PlanGenerator : public OperatorVisitor {
    * @returns Output plan node
    */
   std::unique_ptr<planner::AbstractPlanNode> ConvertOpExpression(
-      transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, settings::SettingsManager *settings,
-      OperatorExpression *op, PropertySet *required_props,
-      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
+      transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, OperatorExpression *op,
+      PropertySet *required_props, const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
       const std::vector<common::ManagedPointer<parser::AbstractExpression>> &output_cols,
       std::vector<std::unique_ptr<planner::AbstractPlanNode>> &&children_plans,
       std::vector<ExprMap> &&children_expr_map);
@@ -303,11 +305,6 @@ class PlanGenerator : public OperatorVisitor {
    * Final output plan
    */
   std::unique_ptr<planner::AbstractPlanNode> output_plan_;
-
-  /**
-   * Settings Manager
-   */
-  settings::SettingsManager *settings_;
 
   /**
    * CatalogAccessor
