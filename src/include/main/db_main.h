@@ -156,8 +156,11 @@ class DBMain {
     common::ManagedPointer<storage::BlockStore> GetBlockStore() const { return common::ManagedPointer(block_store_); }
 
    private:
+    // Order currently does not matter in this layer
     std::unique_ptr<storage::BlockStore> block_store_;
     std::unique_ptr<storage::GarbageCollector> garbage_collector_;
+
+    // External dependencies for this layer
     const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;
     const common::ManagedPointer<storage::LogManager> log_manager_;
   };
@@ -206,11 +209,13 @@ class DBMain {
     common::ManagedPointer<catalog::Catalog> GetCatalog() const { return common::ManagedPointer(catalog_); }
 
    private:
+    // Order currently does not matter in this layer
+    std::unique_ptr<catalog::Catalog> catalog_;
+
+    // External dependencies for this layer
     const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;
     const common::ManagedPointer<storage::GarbageCollector> garbage_collector_;
     const common::ManagedPointer<storage::LogManager> log_manager_;
-
-    std::unique_ptr<catalog::Catalog> catalog_;
   };
 
   /**
@@ -256,33 +261,12 @@ class DBMain {
      * @return DBMain that you get to own. YES, YOU! We're just giving away DBMains over here!
      */
     std::unique_ptr<DBMain> Build() {
+      // Order matters through the Build() function and reflects the dependency ordering. It should match the member
+      // ordering so things get destructed in the right order.
       auto db_main = std::make_unique<DBMain>();
 
-      std::unique_ptr<settings::SettingsManager> settings_manager = nullptr;
-      if (use_settings_manager_) {
-        TERRIER_ASSERT(!param_map_.empty(), "Settings parameter map was never set.");
-        settings_manager =
-            std::make_unique<settings::SettingsManager>(common::ManagedPointer(db_main), std::move(param_map_));
-
-        record_buffer_segment_size_ =
-            static_cast<uint64_t>(settings_manager->GetInt(settings::Param::record_buffer_segment_size));
-        record_buffer_segment_reuse_ =
-            static_cast<uint64_t>(settings_manager->GetInt(settings::Param::record_buffer_segment_reuse));
-        block_store_size_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::block_store_size));
-        block_store_reuse_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::block_store_reuse));
-
-        log_file_path_ = settings_manager->GetString(settings::Param::log_file_path);
-        num_log_manager_buffers_ =
-            static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::num_log_manager_buffers));
-        log_serialization_interval_ = settings_manager->GetInt(settings::Param::log_serialization_interval);
-        log_persist_interval_ = settings_manager->GetInt(settings::Param::log_persist_interval);
-        log_persist_threshold_ =
-            static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::log_persist_threshold));
-
-        gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
-
-        network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
-      }
+      std::unique_ptr<settings::SettingsManager> settings_manager =
+          use_settings_manager_ ? BootstrapSettingsManager(common::ManagedPointer(db_main)) : DISABLED;
 
       std::unique_ptr<metrics::MetricsManager> metrics_manager = DISABLED;
       if (use_metrics_) metrics_manager = std::make_unique<metrics::MetricsManager>();
@@ -572,8 +556,9 @@ class DBMain {
    private:
     std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
 
-    // These are meant to be reasonable defaults, mostly for tests. Larger scale tests and benchmarks may need to to use
-    // setters on the Builder to adjust these before building DBMain. The real system should use the SettingsManager.
+    // These are meant to be reasonable defaults, mostly for tests. New settings should probably just mirror their
+    // default values here. Larger scale tests and benchmarks may need to to use setters on the Builder to adjust these
+    // before building DBMain. The real system should use the SettingsManager.
     bool use_settings_manager_ = false;
     bool use_thread_registry_ = false;
     bool use_metrics_ = false;
@@ -598,6 +583,37 @@ class DBMain {
     bool use_stats_storage_ = false;
     uint16_t network_port_ = 15721;
     bool use_network_ = false;
+
+    /**
+     * Instantiates the SettingsManager and reads all of the settings to override the Builder's settings.
+     * @return
+     */
+    std::unique_ptr<settings::SettingsManager> BootstrapSettingsManager(const common::ManagedPointer<DBMain> db_main) {
+      std::unique_ptr<settings::SettingsManager> settings_manager;
+      TERRIER_ASSERT(!param_map_.empty(), "Settings parameter map was never set.");
+      settings_manager = std::make_unique<settings::SettingsManager>(db_main, std::move(param_map_));
+
+      record_buffer_segment_size_ =
+          static_cast<uint64_t>(settings_manager->GetInt(settings::Param::record_buffer_segment_size));
+      record_buffer_segment_reuse_ =
+          static_cast<uint64_t>(settings_manager->GetInt(settings::Param::record_buffer_segment_reuse));
+      block_store_size_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::block_store_size));
+      block_store_reuse_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::block_store_reuse));
+
+      log_file_path_ = settings_manager->GetString(settings::Param::log_file_path);
+      num_log_manager_buffers_ =
+          static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::num_log_manager_buffers));
+      log_serialization_interval_ = settings_manager->GetInt(settings::Param::log_serialization_interval);
+      log_persist_interval_ = settings_manager->GetInt(settings::Param::log_persist_interval);
+      log_persist_threshold_ =
+          static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::log_persist_threshold));
+
+      gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
+
+      network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
+
+      return settings_manager;
+    }
   };
 
   /**
