@@ -236,6 +236,8 @@ ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanTy
       use_limit = true;
       builtin = ast::Builtin::IndexIteratorScanLimitDescending;
       break;
+    default:
+      UNREACHABLE("Unknown scan type");
   }
   // Non limited scan
   if (!use_limit) return OneArgCall(builtin, iter, true);

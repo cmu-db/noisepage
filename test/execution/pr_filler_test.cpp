@@ -79,7 +79,7 @@ TEST_F(PRFillerTest, SimpleIndexFillerTest) {
   auto accessor = exec_ctx->GetAccessor();
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
   auto table = accessor->GetTable(table_oid);
-  auto table_schema = accessor->GetSchema(table_oid);
+  const auto &table_schema = accessor->GetSchema(table_oid);
   std::vector<catalog::col_oid_t> col_oids;
   for (const auto &col : table_schema.GetColumns()) {
     col_oids.emplace_back(col.Oid());
@@ -94,7 +94,7 @@ TEST_F(PRFillerTest, SimpleIndexFillerTest) {
   auto index_oid = accessor->GetIndexOid(NSOid(), "index_1");
   auto index = accessor->GetIndex(index_oid);
   const auto &index_pm = index->GetKeyOidToOffsetMap();
-  auto index_schema = accessor->GetIndexSchema(index_oid);
+  const auto &index_schema = accessor->GetIndexSchema(index_oid);
 
   // Compile the function
   auto [root, fn_name] = filler.GenFiller(index_pm, index_schema);  // NOLINT
