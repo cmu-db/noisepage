@@ -45,7 +45,7 @@ class ExecutionMetricRawData : public AbstractRawData {
     auto &outfile = (*outfiles)[0];
 
     for (const auto &data : execution_data_) {
-      outfile << data.feature_ << ", ";
+      outfile << data.feature_ << ", " << data.execution_mode_ << ", ";
       data.resource_metrics_.ToCSV(outfile);
       outfile << std::endl;
     }
@@ -66,15 +66,17 @@ class ExecutionMetricRawData : public AbstractRawData {
   friend class ExecutionMetric;
   FRIEND_TEST(MetricsTests, LoggingCSVTest);
 
-  void RecordExecutionData(const char *feature, uint32_t len,
+  void RecordExecutionData(const char *feature, uint32_t len, uint8_t execution_mode,
                            const common::ResourceTracker::Metrics &resource_metrics) {
-    execution_data_.emplace_front(feature, len, resource_metrics);
+    execution_data_.emplace_front(feature, len, execution_mode, resource_metrics);
   }
 
   struct ExecutionData {
-    ExecutionData(const char *name, uint32_t len, const common::ResourceTracker::Metrics &resource_metrics)
-        : feature_(name, len), resource_metrics_(resource_metrics) {}
+    ExecutionData(const char *name, uint32_t len, uint8_t execution_mode,
+                  const common::ResourceTracker::Metrics &resource_metrics)
+        : feature_(name, len), execution_mode_(execution_mode), resource_metrics_(resource_metrics) {}
     const std::string feature_;
+    const uint8_t execution_mode_;
     const common::ResourceTracker::Metrics resource_metrics_;
   };
 
@@ -88,9 +90,9 @@ class ExecutionMetric : public AbstractMetric<ExecutionMetricRawData> {
  private:
   friend class MetricsStore;
 
-  void RecordExecutionData(const char *feature, uint32_t len,
+  void RecordExecutionData(const char *feature, uint32_t len, uint8_t execution_mode,
                            const common::ResourceTracker::Metrics &resource_metrics) {
-    GetRawData()->RecordExecutionData(feature, len, resource_metrics);
+    GetRawData()->RecordExecutionData(feature, len, execution_mode, resource_metrics);
   }
 };
 }  // namespace terrier::metrics

@@ -153,7 +153,7 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
   // EXECUTION_LOG_INFO("Wrote {} tuples into table {}.", vals_written, table_meta->name_);
 }
 
-void TableGenerator::GenerateTestTables() {
+void TableGenerator::GenerateTestTables(bool is_mini_runner) {
   /**
    * This array configures each of the test tables. Each able is configured
    * with a name, size, and schema. We also configure the columns of the table. If
@@ -186,8 +186,10 @@ void TableGenerator::GenerateTestTables() {
         {"colB", type::TypeId::BOOLEAN, false, Dist::Uniform, 0, 0}}},
   };
 
-  auto mini_runner_table_metas = GenerateMiniRunnerTableMetas();
-  insert_meta.insert(insert_meta.end(), mini_runner_table_metas.begin(), mini_runner_table_metas.end());
+  if (is_mini_runner) {
+    auto mini_runner_table_metas = GenerateMiniRunnerTableMetas();
+    insert_meta.insert(insert_meta.end(), mini_runner_table_metas.begin(), mini_runner_table_metas.end());
+  }
 
   for (auto &table_meta : insert_meta) {
     // Create Schema.

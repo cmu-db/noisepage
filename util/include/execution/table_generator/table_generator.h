@@ -39,8 +39,9 @@ class TableGenerator {
 
   /**
    * Generate test tables.
+   * @param is_mini_runner is this generation used for the mini runner
    */
-  void GenerateTestTables();
+  void GenerateTestTables(bool is_mini_runner);
 
  private:
   exec::ExecutionContext *exec_ctx_;

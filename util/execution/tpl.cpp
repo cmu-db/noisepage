@@ -56,6 +56,8 @@ llvm::cl::opt<bool> print_tbc("print-tbc", llvm::cl::desc("Print the generated T
 llvm::cl::opt<std::string> output_name("output-name", llvm::cl::desc("Print the output name"),
                                        llvm::cl::init("schema10"), llvm::cl::cat(tpl_options_category));
 llvm::cl::opt<bool> is_sql("sql", llvm::cl::desc("Is the input a SQL query?"), llvm::cl::cat(tpl_options_category));
+llvm::cl::opt<bool> is_mini_runner("is_mini_runner", llvm::cl::desc("Is this used for the mini runner?"), llvm::cl::cat
+(tpl_options_category));
 
 tbb::task_scheduler_init scheduler;
 
@@ -72,7 +74,7 @@ static constexpr const char *K_EXIT_KEYWORD = ".exit";
 static void CompileAndRun(const std::string &source, const std::string &name = "tmp-tpl") {
   // Initialize terrier objects
   storage::BlockStore block_store(1000, 1000);
-  storage::RecordBufferSegmentPool buffer_pool(100000, 100000);
+  storage::RecordBufferSegmentPool buffer_pool(1000000, 1000000);
   transaction::TimestampManager tm_manager{};
   transaction::DeferredActionManager da_manager{&tm_manager};
   transaction::TransactionManager txn_manager(&tm_manager, &da_manager, &buffer_pool, true, nullptr);
@@ -102,7 +104,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // Generate test tables
   // TODO(Amadou): Read this in from a directory. That would require boost or experimental C++ though
   sql::TableGenerator table_generator{&exec_ctx, &block_store, ns_oid};
-  table_generator.GenerateTestTables();
+  table_generator.GenerateTestTables(is_mini_runner);
   // Comment out to make more tables available at runtime
   // table_generator.GenerateTPCHTables(<path_to_tpch_dir>);
   // table_generator.GenerateTableFromFile(<path_to_schema>, <path_to_data>);
@@ -178,6 +180,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   //
 
   {
+    exec_ctx.SetExecutionMode(exec::ExecutionContext::ExecutionMode::INTERPERT);
     util::ScopedTimer<std::milli> timer(&interp_exec_ms);
 
     if (is_sql) {
@@ -203,7 +206,8 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // Adaptive
   //
 
-  {
+  if (!is_mini_runner) {
+    exec_ctx.SetExecutionMode(exec::ExecutionContext::ExecutionMode::ADAPTIVE);
     util::ScopedTimer<std::milli> timer(&adaptive_exec_ms);
 
     if (is_sql) {
@@ -229,6 +233,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // JIT
   //
   {
+    exec_ctx.SetExecutionMode(exec::ExecutionContext::ExecutionMode::JIT);
     util::ScopedTimer<std::milli> timer(&jit_exec_ms);
 
     if (is_sql) {

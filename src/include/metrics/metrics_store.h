@@ -105,11 +105,11 @@ class MetricsStore {
    * @param feature first entry of execution datapoint
    * @param len second entry of execution datapoint
    */
-  void RecordExecutionData(const char *feature, uint32_t len,
+  void RecordExecutionData(const char *feature, uint32_t len, uint8_t execution_mode,
                            const common::ResourceTracker::Metrics &resource_metrics) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::EXECUTION), "ExecutionMetric not enabled.");
     TERRIER_ASSERT(execution_metric_ != nullptr, "ExecutionMetric not allocated. Check MetricsStore constructor.");
-    execution_metric_->RecordExecutionData(feature, len, resource_metrics);
+    execution_metric_->RecordExecutionData(feature, len, execution_mode, resource_metrics);
   }
 
   /**

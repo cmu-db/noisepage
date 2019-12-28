@@ -22,7 +22,7 @@ class FilterManagerTest : public SqlBasedTest {
     SqlBasedTest::SetUp();
     exec_ctx_ = MakeExecCtx();
     sql::TableGenerator table_generator{exec_ctx_.get(), BlockStore(), NSOid()};
-    table_generator.GenerateTestTables();
+    table_generator.GenerateTestTables(false);
   }
 
  protected:

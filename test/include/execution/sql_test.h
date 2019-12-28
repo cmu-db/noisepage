@@ -62,7 +62,7 @@ class SqlBasedTest : public TplTest {
 
   void GenerateTestTables(exec::ExecutionContext *exec_ctx) {
     sql::TableGenerator table_generator{exec_ctx, block_store_.get(), test_ns_oid_};
-    table_generator.GenerateTestTables();
+    table_generator.GenerateTestTables(false);
   }
 
   parser::ConstantValueExpression DummyCVE() {
