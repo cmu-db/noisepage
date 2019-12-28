@@ -127,19 +127,13 @@ class EXPORT ExecutionContext {
    */
   catalog::db_oid_t DBOid() { return db_oid_; }
 
-  enum class ExecutionMode: uint8_t {
-    INTERPERT = 0,
-    JIT = 1,
-    ADAPTIVE = 2,
-  };
-
   /**
  * Set the mode for this execution.
  * This only records the mode and serves the metrics collection purpose, which does not have any impact on the
  * actual execution.
- * @param mode the name of the execution mode
+ * @param mode the integer value of the execution mode to record
  */
-  void SetExecutionMode(ExecutionMode mode) { execution_mode_ = mode; }
+  void SetExecutionMode(uint8_t mode) { execution_mode_ = mode; }
 
  private:
   catalog::db_oid_t db_oid_;
@@ -149,6 +143,6 @@ class EXPORT ExecutionContext {
   std::unique_ptr<OutputBuffer> buffer_;
   StringAllocator string_allocator_;
   std::unique_ptr<catalog::CatalogAccessor> accessor_;
-  ExecutionMode execution_mode_;
+  uint8_t execution_mode_;
 };
 }  // namespace terrier::execution::exec

@@ -45,7 +45,7 @@ class ExecutionMetricRawData : public AbstractRawData {
     auto &outfile = (*outfiles)[0];
 
     for (const auto &data : execution_data_) {
-      outfile << data.feature_ << ", " << data.execution_mode_ << ", ";
+      outfile << data.feature_ << ", " << static_cast<uint32_t>(data.execution_mode_) << ", ";
       data.resource_metrics_.ToCSV(outfile);
       outfile << std::endl;
     }

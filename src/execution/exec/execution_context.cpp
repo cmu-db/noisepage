@@ -31,8 +31,7 @@ void ExecutionContext::EndResourceTracker(const char *name, uint32_t len) {
     common::thread_context.resource_tracker_.Stop();
     common::thread_context.resource_tracker_.SetMemory(mem_tracker_->GetAllocatedSize());
     auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-    common::thread_context.metrics_store_->RecordExecutionData(name, len, static_cast<uint8_t>(execution_mode_),
-        resource_metrics);
+    common::thread_context.metrics_store_->RecordExecutionData(name, len, execution_mode_, resource_metrics);
   }
 }
 

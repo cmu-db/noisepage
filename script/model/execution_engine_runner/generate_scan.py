@@ -27,7 +27,7 @@ def GenerageScanFun(col_num, row_num, cardinality):
     print("  }")
     print("  @tableIterClose(&tvi)")
 
-    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"scan, {}, {}\"))".format(row_num, col_num))
+    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"scan, {}, {}, {}\"))".format(row_num, col_num, cardinality))
     print("}")
 
     print()

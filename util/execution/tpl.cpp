@@ -56,7 +56,7 @@ llvm::cl::opt<bool> print_tbc("print-tbc", llvm::cl::desc("Print the generated T
 llvm::cl::opt<std::string> output_name("output-name", llvm::cl::desc("Print the output name"),
                                        llvm::cl::init("schema10"), llvm::cl::cat(tpl_options_category));
 llvm::cl::opt<bool> is_sql("sql", llvm::cl::desc("Is the input a SQL query?"), llvm::cl::cat(tpl_options_category));
-llvm::cl::opt<bool> is_mini_runner("is_mini_runner", llvm::cl::desc("Is this used for the mini runner?"), llvm::cl::cat
+llvm::cl::opt<bool> is_mini_runner("mini-runner", llvm::cl::desc("Is this used for the mini runner?"), llvm::cl::cat
 (tpl_options_category));
 
 tbb::task_scheduler_init scheduler;
@@ -180,7 +180,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   //
 
   {
-    exec_ctx.SetExecutionMode(exec::ExecutionContext::ExecutionMode::INTERPERT);
+    exec_ctx.SetExecutionMode(static_cast<uint8_t>(vm::ExecutionMode::Interpret));
     util::ScopedTimer<std::milli> timer(&interp_exec_ms);
 
     if (is_sql) {
@@ -207,7 +207,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   //
 
   if (!is_mini_runner) {
-    exec_ctx.SetExecutionMode(exec::ExecutionContext::ExecutionMode::ADAPTIVE);
+    exec_ctx.SetExecutionMode(static_cast<uint8_t>(vm::ExecutionMode::Adaptive));
     util::ScopedTimer<std::milli> timer(&adaptive_exec_ms);
 
     if (is_sql) {
@@ -233,7 +233,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // JIT
   //
   {
-    exec_ctx.SetExecutionMode(exec::ExecutionContext::ExecutionMode::JIT);
+    exec_ctx.SetExecutionMode(static_cast<uint8_t>(vm::ExecutionMode::Compiled));
     util::ScopedTimer<std::milli> timer(&jit_exec_ms);
 
     if (is_sql) {
