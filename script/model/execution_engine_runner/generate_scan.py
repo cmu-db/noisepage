@@ -8,7 +8,7 @@ def GenerateState():
 def GenerageScanFun(col_num, row_num, cardinality):
     fun_name = "scanCol{}Row{}Car{}".format(col_num, row_num, cardinality)
     print("fun {}(execCtx: *ExecutionContext, state: *State) -> nil {{".format(fun_name))
-    print("  @execCtxStartTimer(execCtx)")
+    print("  @execCtxStartResourceTracker(execCtx)")
 
     # construct the iterator
     print("  var tvi: TableVectorIterator")
@@ -27,7 +27,7 @@ def GenerageScanFun(col_num, row_num, cardinality):
     print("  }")
     print("  @tableIterClose(&tvi)")
 
-    print("  @execCtxEndTimer(execCtx, @stringToSql(\"scan, {}, {}\"))".format(row_num, col_num))
+    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"scan, {}, {}\"))".format(row_num, col_num))
     print("}")
 
     print()

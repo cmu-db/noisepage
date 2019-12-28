@@ -14,6 +14,7 @@ MetricsStore::MetricsStore(const common::ManagedPointer<metrics::MetricsManager>
   logging_metric_ = std::make_unique<LoggingMetric>();
   txn_metric_ = std::make_unique<TransactionMetric>();
   gc_metric_ = std::make_unique<GarbageCollectionMetric>();
+  execution_metric_ = std::make_unique<ExecutionMetric>();
 }
 
 std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> MetricsStore::GetDataToAggregate() {

@@ -34,6 +34,7 @@
 #include "storage/garbage_collector.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/timestamp_manager.h"
+#include "metrics/metrics_thread.h"
 
 #define __SETTING_GFLAGS_DEFINE__      // NOLINT
 #include "settings/settings_common.h"  // NOLINT
@@ -77,6 +78,10 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   transaction::TransactionManager txn_manager(&tm_manager, &da_manager, &buffer_pool, true, nullptr);
   storage::GarbageCollector gc(&tm_manager, &da_manager, &txn_manager, nullptr);
   auto *txn = txn_manager.BeginTransaction();
+
+  auto *const metrics_thread = new metrics::MetricsThread(std::chrono::milliseconds(100));
+  metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::EXECUTION, 0);
+  metrics_thread->GetMetricsManager().RegisterThread();
 
   // Get the correct output format for this test
   exec::SampleOutput sample_output;

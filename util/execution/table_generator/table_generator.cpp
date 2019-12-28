@@ -16,6 +16,7 @@ namespace terrier::execution::sql {
 template <typename T>
 T *TableGenerator::CreateNumberColumnData(ColumnInsertMeta *col_meta, uint32_t num_vals) {
   auto *val = new T[num_vals];
+  static uint64_t rotate_counter = 0;
 
   switch (col_meta->dist_) {
     case Dist::Uniform: {
@@ -33,6 +34,17 @@ T *TableGenerator::CreateNumberColumnData(ColumnInsertMeta *col_meta, uint32_t n
         val[i] = static_cast<T>(col_meta->counter_);
         col_meta->counter_++;
       }
+      break;
+    }
+    case Dist::Rotate: {
+      for (uint32_t i = 0; i < num_vals; i++) {
+        if (rotate_counter > col_meta->max_) {
+          rotate_counter = col_meta->min_;
+        }
+        val[i] = static_cast<T>(rotate_counter);
+        rotate_counter++;
+      }
+      std::shuffle(&val[0], &val[num_vals], std::mt19937(std::random_device()()));
       break;
     }
     default:
@@ -173,6 +185,10 @@ void TableGenerator::GenerateTestTables() {
        {{"colA", type::TypeId::INTEGER, false, Dist::Serial, 0, 0},
         {"colB", type::TypeId::BOOLEAN, false, Dist::Uniform, 0, 0}}},
   };
+
+  auto mini_runner_table_metas = GenerateMiniRunnerTableMetas();
+  insert_meta.insert(insert_meta.end(), mini_runner_table_metas.begin(), mini_runner_table_metas.end());
+
   for (auto &table_meta : insert_meta) {
     // Create Schema.
     std::vector<catalog::Schema::Column> cols;
@@ -244,6 +260,58 @@ void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> ind
   delete[] table_buffer;
   delete[] index_buffer;
   // EXECUTION_LOG_INFO("Wrote {} tuples into index {}.", num_inserted, index_meta.index_name_);
+}
+
+std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerTableMetas() {
+  std::vector<TableInsertMeta> table_metas;
+  std::vector<uint32_t> row_nums = {1, 5, 10, 50, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000,
+                                    200000, 500000, 1000000};
+  //std::vector<uint32_t> row_nums = {1000000};
+  // Cardinality of the last column in percentage
+  std::vector<uint32_t> cardinalities = {1, 2, 5, 10, 50, 100};
+  std::vector<type::TypeId> types = {type::TypeId::INTEGER};
+  //std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
+  for (int col_num = 5; col_num <= 5; col_num++) {
+    for (uint32_t row_num : row_nums) {
+      for (uint32_t cardinality : cardinalities) {
+        for (type::TypeId type : types) {
+          std::stringstream table_name;
+          std::string type_name;
+          switch (type) {
+            case type::TypeId::INTEGER: {
+              type_name = "Integer";
+              break;
+            }
+            case type::TypeId::DECIMAL:{
+              type_name = "Real";
+              break;
+            }
+            default: { throw std::runtime_error("Implement me!"); }
+          }
+          table_name << type_name << "Col" << col_num << "Row" << row_num << "Car" << cardinality;
+          std::vector<ColumnInsertMeta> col_metas;
+          for (int j = 1; j <= col_num; j++) {
+            std::stringstream col_name;
+            col_name << "col" << j;
+            if (j == 1) {
+              // The first column would be serial
+              col_metas.emplace_back(col_name.str(), type, false, Dist::Serial, 0, 0);
+            } else if (j == col_num) {
+              // The last column is related to the cardinality
+              col_metas.emplace_back(col_name.str(), type, false, Dist::Rotate, 0, row_num
+                  * cardinality / 100);
+            } else {
+              // All the rest of the columns are uniformly distributed
+              col_metas.emplace_back(col_name.str(), type, false, Dist::Uniform, 0, row_num - 1);
+            }
+          }
+          table_metas.emplace_back(table_name.str(), row_num, col_metas);
+        }
+      }
+    }
+
+  }
+  return table_metas;
 }
 
 void TableGenerator::InitTestIndexes() {
