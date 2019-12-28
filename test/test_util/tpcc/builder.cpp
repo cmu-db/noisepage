@@ -65,23 +65,24 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
 
   // instantiate and set the table pointers in the catalog
 
-  auto result UNUSED_ATTRIBUTE = accessor->SetTablePointer(item_table_oid, new storage::SqlTable(store_, item_schema));
+  auto result UNUSED_ATTRIBUTE =
+      accessor->SetTablePointer(item_table_oid, new storage::SqlTable(store_.Get(), item_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(warehouse_table_oid, new storage::SqlTable(store_, warehouse_schema));
+  result = accessor->SetTablePointer(warehouse_table_oid, new storage::SqlTable(store_.Get(), warehouse_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(stock_table_oid, new storage::SqlTable(store_, stock_schema));
+  result = accessor->SetTablePointer(stock_table_oid, new storage::SqlTable(store_.Get(), stock_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(district_table_oid, new storage::SqlTable(store_, district_schema));
+  result = accessor->SetTablePointer(district_table_oid, new storage::SqlTable(store_.Get(), district_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(customer_table_oid, new storage::SqlTable(store_, customer_schema));
+  result = accessor->SetTablePointer(customer_table_oid, new storage::SqlTable(store_.Get(), customer_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(history_table_oid, new storage::SqlTable(store_, history_schema));
+  result = accessor->SetTablePointer(history_table_oid, new storage::SqlTable(store_.Get(), history_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(new_order_table_oid, new storage::SqlTable(store_, new_order_schema));
+  result = accessor->SetTablePointer(new_order_table_oid, new storage::SqlTable(store_.Get(), new_order_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(order_table_oid, new storage::SqlTable(store_, order_schema));
+  result = accessor->SetTablePointer(order_table_oid, new storage::SqlTable(store_.Get(), order_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(order_line_table_oid, new storage::SqlTable(store_, order_line_schema));
+  result = accessor->SetTablePointer(order_line_table_oid, new storage::SqlTable(store_.Get(), order_line_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <utility>
+
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/schema.h"
@@ -18,8 +19,9 @@ namespace terrier::tpcc {
  */
 class Builder {
  public:
-  Builder(storage::BlockStore *const store, catalog::Catalog *const catalog,
-          transaction::TransactionManager *const txn_manager)
+  Builder(const common::ManagedPointer<storage::BlockStore> store,
+          const common::ManagedPointer<catalog::Catalog> catalog,
+          const common::ManagedPointer<transaction::TransactionManager> txn_manager)
       : store_(store), catalog_(catalog), txn_manager_(txn_manager) {
     TERRIER_ASSERT(store_ != nullptr, "BlockStore cannot be nullptr.");
     TERRIER_ASSERT(catalog_ != nullptr, "Catalog cannot be nullptr.");
@@ -34,8 +36,8 @@ class Builder {
     return index_builder.Build();
   }
 
-  storage::BlockStore *const store_;
-  catalog::Catalog *const catalog_;
-  transaction::TransactionManager *const txn_manager_;
+  const common::ManagedPointer<storage::BlockStore> store_;
+  const common::ManagedPointer<catalog::Catalog> catalog_;
+  const common::ManagedPointer<transaction::TransactionManager> txn_manager_;
 };
 }  // namespace terrier::tpcc

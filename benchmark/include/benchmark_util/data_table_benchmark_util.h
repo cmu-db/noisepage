@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "gtest/gtest.h"
 #include "metrics/metrics_thread.h"
 #include "storage/data_table.h"
@@ -137,7 +138,7 @@ class LargeDataTableBenchmarkObject {
    * @return abort count, elapsed_ms
    */
   std::pair<uint64_t, uint64_t> SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns,
-                                             metrics::MetricsThread *metrics_thread = DISABLED,
+                                             metrics::MetricsManager *metrics_manager = DISABLED,
                                              uint32_t submit_interval_us = 0);
 
   /**

@@ -22,7 +22,7 @@ namespace terrier::tpcc {
 struct Loader {
   Loader() = delete;
 
-  static void PopulateDatabase(transaction::TransactionManager *const txn_manager, Database *const db,
+  static void PopulateDatabase(common::ManagedPointer<transaction::TransactionManager> txn_manager, Database *const db,
                                std::vector<Worker> *const workers, common::WorkerPool *const thread_pool) {
     TERRIER_ASSERT(txn_manager != nullptr, "TransactionManager does not exist.");
     TERRIER_ASSERT(db != nullptr, "Database does not exist.");

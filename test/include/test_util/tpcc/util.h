@@ -18,7 +18,8 @@ namespace terrier::tpcc {
 struct Util {
   Util() = delete;
 
-  static void RegisterIndexesForGC(storage::GarbageCollector *const gc, Database *const tpcc_db) {
+  static void RegisterIndexesForGC(const common::ManagedPointer<storage::GarbageCollector> gc,
+                                   const common::ManagedPointer<Database> tpcc_db) {
     gc->RegisterIndexForGC(tpcc_db->item_primary_index_);
     gc->RegisterIndexForGC(tpcc_db->warehouse_primary_index_);
     gc->RegisterIndexForGC(tpcc_db->stock_primary_index_);
@@ -31,7 +32,8 @@ struct Util {
     gc->RegisterIndexForGC(tpcc_db->order_line_primary_index_);
   }
 
-  static void UnregisterIndexesForGC(storage::GarbageCollector *const gc, Database *const tpcc_db) {
+  static void UnregisterIndexesForGC(const common::ManagedPointer<storage::GarbageCollector> gc,
+                                     const common::ManagedPointer<Database> tpcc_db) {
     gc->UnregisterIndexForGC(tpcc_db->item_primary_index_);
     gc->UnregisterIndexForGC(tpcc_db->warehouse_primary_index_);
     gc->UnregisterIndexForGC(tpcc_db->stock_primary_index_);

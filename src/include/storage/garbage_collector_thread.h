@@ -1,7 +1,10 @@
 #pragma once
 
+#include <transaction/deferred_action_manager.h>
+
 #include <chrono>  //NOLINT
 #include <thread>  //NOLINT
+
 #include "storage/garbage_collector.h"
 
 namespace terrier::settings {
@@ -20,17 +23,31 @@ class GarbageCollectorThread {
    * @param gc pointer to the garbage collector object to be run on this thread
    * @param gc_period sleep time between GC invocations
    */
-  GarbageCollectorThread(GarbageCollector *gc, std::chrono::milliseconds gc_period,
-                         metrics::MetricsManager *metrics_manager);
+  GarbageCollectorThread(common::ManagedPointer<GarbageCollector> gc, std::chrono::milliseconds gc_period,
+                         common::ManagedPointer<metrics::MetricsManager> metrics_manager);
 
-  ~GarbageCollectorThread() {
+  ~GarbageCollectorThread() { StopGC(); }
+
+  /**
+   * Kill the GC thread and run GC a few times to clean up the system.
+   */
+  void StopGC() {
+    TERRIER_ASSERT(run_gc_, "GC should already be running.");
     run_gc_ = false;
     gc_thread_.join();
-    // Make sure all garbage is collected. This takes 3 runs for unlink and deallocate, as well as catalog deallocations
-    // TODO(Matt): these semantics may change as the GC becomes a more general deferred event framework
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
+    for (uint8_t i = 0; i < transaction::MIN_GC_INVOCATIONS; i++) {
+      gc_->PerformGarbageCollection();
+    }
+  }
+
+  /**
+   * Spawn the GC thread if it has been previously stopped.
+   */
+  void StartGC() {
+    TERRIER_ASSERT(!run_gc_, "GC should not already be running.");
+    run_gc_ = true;
+    gc_paused_ = false;
+    gc_thread_ = std::thread([this] { GCThreadLoop(); });
   }
 
   /**
@@ -52,10 +69,10 @@ class GarbageCollectorThread {
   /**
    * @return the underlying GC object, mostly to register indexes currently.
    */
-  GarbageCollector &GetGarbageCollector() { return *gc_; }
+  common::ManagedPointer<GarbageCollector> GetGarbageCollector() { return gc_; }
 
  private:
-  storage::GarbageCollector *gc_;
+  const common::ManagedPointer<storage::GarbageCollector> gc_;
   const common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
   volatile bool run_gc_;
   volatile bool gc_paused_;

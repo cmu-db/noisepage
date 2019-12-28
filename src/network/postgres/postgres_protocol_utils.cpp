@@ -1,5 +1,6 @@
 #include "network/postgres/postgres_protocol_utils.h"
-#include "loggers/main_logger.h"
+
+#include "loggers/network_logger.h"
 
 namespace terrier::network {
 
@@ -34,7 +35,7 @@ type::TypeId PostgresValueTypeToInternalValueType(PostgresValueType type) {
     case PostgresValueType::DECIMAL:
       return type::TypeId::DECIMAL;
     default:
-      LOG_ERROR(fmt::format("No TypeId conversion for PostgresValueType value '%d'", static_cast<int>(type)));
+      NETWORK_LOG_ERROR(fmt::format("No TypeId conversion for PostgresValueType value '%d'", static_cast<int>(type)));
       throw NETWORK_PROCESS_EXCEPTION("");
   }
 }

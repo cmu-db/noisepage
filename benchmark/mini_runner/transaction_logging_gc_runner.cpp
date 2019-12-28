@@ -52,16 +52,18 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, Runner)(benchmark::State &state) 
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
-    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION, 500);
-    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::LOGGING, 0);
-    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    auto *const metrics_manager = new metrics::MetricsManager();
+    auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 500);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
 
     thread_registry_ =
-        new common::DedicatedThreadRegistry(common::ManagedPointer(&(metrics_thread->GetMetricsManager())));
+        new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
-                                           log_persist_interval_, log_persist_threshold_, &buffer_pool,
+                                           log_persist_interval_, log_persist_threshold_, common::ManagedPointer
+                                           (&buffer_pool),
                                            common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
 
@@ -70,9 +72,9 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, Runner)(benchmark::State &state) 
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_, &metrics_thread->GetMetricsManager());
-    const auto result = tested.SimulateOltp(num_txns, num_thread, metrics_thread, txn_interval);
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED, common::ManagedPointer(tested.GetTxnManager()), DISABLED);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, common::ManagedPointer(metrics_manager));
+    const auto result = tested.SimulateOltp(num_txns, num_thread, metrics_manager, txn_interval);
     abort_count += result.first;
     uint64_t elapsed_ms;
     {

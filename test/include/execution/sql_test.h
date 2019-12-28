@@ -3,12 +3,11 @@
 #include <memory>
 #include <utility>
 
-#include "gtest/gtest.h"
-
-#include "execution/tpl_test.h"
-
 #include "execution/exec/execution_context.h"
 #include "execution/table_generator/table_generator.h"
+#include "execution/tpl_test.h"
+#include "gtest/gtest.h"
+#include "main/db_main.h"
 #include "storage/garbage_collector.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/timestamp_manager.h"
@@ -25,34 +24,27 @@ class SqlBasedTest : public TplTest {
     // initialized after the loggers.
     TplTest::SetUp();
     // Initialize terrier objects
-    block_store_ = std::make_unique<storage::BlockStore>(1000, 1000);
-    buffer_pool_ = std::make_unique<storage::RecordBufferSegmentPool>(100000, 100000);
-    tm_manager_ = std::make_unique<transaction::TimestampManager>();
-    da_manager_ = std::make_unique<transaction::DeferredActionManager>(tm_manager_.get());
-    txn_manager_ = std::make_unique<transaction::TransactionManager>(tm_manager_.get(), da_manager_.get(),
-                                                                     buffer_pool_.get(), true, nullptr);
-    gc_ =
-        std::make_unique<storage::GarbageCollector>(tm_manager_.get(), da_manager_.get(), txn_manager_.get(), nullptr);
+
+    db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseGCThread(true).SetUseCatalog(true).Build();
+
+    block_store_ = db_main_->GetStorageLayer()->GetBlockStore();
+    catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
+    txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
+
     test_txn_ = txn_manager_->BeginTransaction();
 
     // Create catalog and test namespace
-    catalog_ = std::make_unique<catalog::Catalog>(txn_manager_.get(), block_store_.get());
     test_db_oid_ = catalog_->CreateDatabase(test_txn_, "test_db", true);
     ASSERT_NE(test_db_oid_, catalog::INVALID_DATABASE_OID) << "Default database does not exist";
     auto accessor = catalog_->GetAccessor(test_txn_, test_db_oid_);
     test_ns_oid_ = accessor->GetDefaultNamespace();
   }
 
-  ~SqlBasedTest() override {
-    txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
-    catalog_->TearDown();
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
-  }
+  ~SqlBasedTest() override { txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr); }
 
   catalog::namespace_oid_t NSOid() { return test_ns_oid_; }
 
-  storage::BlockStore *BlockStore() { return block_store_.get(); }
+  storage::BlockStore *BlockStore() { return block_store_.Get(); }
 
   std::unique_ptr<exec::ExecutionContext> MakeExecCtx(exec::OutputCallback &&callback = nullptr,
                                                       const planner::OutputSchema *schema = nullptr) {
@@ -61,7 +53,7 @@ class SqlBasedTest : public TplTest {
   }
 
   void GenerateTestTables(exec::ExecutionContext *exec_ctx) {
-    sql::TableGenerator table_generator{exec_ctx, block_store_.get(), test_ns_oid_};
+    sql::TableGenerator table_generator{exec_ctx, block_store_.Get(), test_ns_oid_};
     table_generator.GenerateTestTables(false);
   }
 
@@ -70,13 +62,10 @@ class SqlBasedTest : public TplTest {
   }
 
  private:
-  std::unique_ptr<storage::BlockStore> block_store_;
-  std::unique_ptr<storage::RecordBufferSegmentPool> buffer_pool_;
-  std::unique_ptr<transaction::TimestampManager> tm_manager_;
-  std::unique_ptr<transaction::DeferredActionManager> da_manager_;
-  std::unique_ptr<transaction::TransactionManager> txn_manager_;
-  std::unique_ptr<catalog::Catalog> catalog_;
-  std::unique_ptr<storage::GarbageCollector> gc_;
+  std::unique_ptr<DBMain> db_main_;
+  common::ManagedPointer<storage::BlockStore> block_store_;
+  common::ManagedPointer<catalog::Catalog> catalog_;
+  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   catalog::db_oid_t test_db_oid_{0};
   catalog::namespace_oid_t test_ns_oid_;
   transaction::TransactionContext *test_txn_;

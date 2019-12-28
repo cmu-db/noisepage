@@ -1,8 +1,10 @@
 #include "benchmark_util/data_table_benchmark_util.h"
+
 #include <algorithm>
 #include <cstring>
 #include <utility>
 #include <vector>
+
 #include "common/allocator.h"
 #include "common/scoped_timer.h"
 #include "metrics/metrics_thread.h"
@@ -34,8 +36,6 @@ void RandomDataTableTransaction::RandomUpdate(Random *generator) {
 
   auto *const record = txn_->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, initializer);
   record->SetTupleSlot(updated);
-
-  StorageTestUtil::PopulateRandomRow(record->Delta(), test_object_->layout_, 0.0, generator);
   auto result = test_object_->table_.Update(txn_, updated, *(record->Delta()));
   aborted_ = !result;
 }
@@ -45,7 +45,6 @@ void RandomDataTableTransaction::RandomInsert(Random *generator) {
   if (aborted_) return;
   auto *const redo =
       txn_->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, test_object_->row_initializer_);
-  StorageTestUtil::PopulateRandomRow(redo->Delta(), test_object_->layout_, 0.0, generator);
   const storage::TupleSlot inserted = test_object_->table_.Insert(txn_, *(redo->Delta()));
   redo->SetTupleSlot(inserted);
 }
@@ -79,7 +78,8 @@ LargeDataTableBenchmarkObject::LargeDataTableBenchmarkObject(const std::vector<u
       generator_(generator),
       layout_({attr_sizes}),
       table_(block_store, layout_, storage::layout_version_t(0)),
-      txn_manager_(&timestamp_manager_, DISABLED, buffer_pool, gc_on, log_manager),
+      txn_manager_(common::ManagedPointer(&timestamp_manager_), DISABLED, common::ManagedPointer(buffer_pool), gc_on,
+                   common::ManagedPointer(log_manager)),
       gc_on_(gc_on),
       abort_count_(0) {
   // Bootstrap the table to have the specified number of tuples
@@ -93,7 +93,7 @@ LargeDataTableBenchmarkObject::~LargeDataTableBenchmarkObject() {
 // Caller is responsible for freeing the returned results if bookkeeping is on.
 std::pair<uint64_t, uint64_t> LargeDataTableBenchmarkObject::SimulateOltp(uint32_t num_transactions,
                                                                           uint32_t num_concurrent_txns,
-                                                                          metrics::MetricsThread *const metrics_thread,
+                                                                          metrics::MetricsManager *const metrics_manager,
                                                                           uint32_t submit_interval_us) {
   common::WorkerPool thread_pool(num_concurrent_txns, {});
   std::vector<RandomDataTableTransaction *> txns;
@@ -107,7 +107,7 @@ std::pair<uint64_t, uint64_t> LargeDataTableBenchmarkObject::SimulateOltp(uint32
     auto current_time = metrics::MetricsUtil::Now();
     uint64_t time_diff;
 
-    if (metrics_thread != DISABLED) metrics_thread->GetMetricsManager().RegisterThread();
+    if (metrics_manager != DISABLED) metrics_manager->RegisterThread();
     for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
       if (submit_interval_us > 0) {
         // control the submission rate according to the argument
@@ -170,7 +170,6 @@ void LargeDataTableBenchmarkObject::PopulateInitialTable(uint32_t num_tuples, Ra
   for (uint32_t i = 0; i < num_tuples; i++) {
     auto *const redo =
         initial_txn_->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, row_initializer_);
-    StorageTestUtil::PopulateRandomRow(redo->Delta(), layout_, 0.0, generator);
     const storage::TupleSlot inserted = table_.Insert(initial_txn_, *(redo->Delta()));
     redo->SetTupleSlot(inserted);
     inserted_tuples_.emplace_back(inserted);

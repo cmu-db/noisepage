@@ -2,15 +2,15 @@
 #include <queue>
 #include <unordered_set>
 #include <utility>
+
 #include "common/gate.h"
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
 #include "storage/data_table.h"
 #include "storage/record_buffer.h"
 #include "storage/undo_record.h"
-#include "transaction/timestamp_manager.h"
-
 #include "storage/write_ahead_log/log_manager.h"
+#include "transaction/timestamp_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 
@@ -31,8 +31,10 @@ class TransactionManager {
    * @param gc_enabled true if txns should be stored in a local queue to hand off to the GC, false otherwise
    * @param log_manager the log manager in the system, or DISABLED(nulllptr) if logging is turned off.
    */
-  TransactionManager(TimestampManager *timestamp_manager, DeferredActionManager *deferred_action_manager,
-                     storage::RecordBufferSegmentPool *buffer_pool, bool gc_enabled, storage::LogManager *log_manager)
+  TransactionManager(const common::ManagedPointer<TimestampManager> timestamp_manager,
+                     const common::ManagedPointer<DeferredActionManager> deferred_action_manager,
+                     const common::ManagedPointer<storage::RecordBufferSegmentPool> buffer_pool, bool gc_enabled,
+                     const common::ManagedPointer<storage::LogManager> log_manager)
       : timestamp_manager_(timestamp_manager),
         deferred_action_manager_(deferred_action_manager),
         buffer_pool_(buffer_pool),
@@ -75,15 +77,15 @@ class TransactionManager {
   TransactionQueue CompletedTransactionsForGC();
 
  private:
-  TimestampManager *timestamp_manager_;
-  DeferredActionManager *deferred_action_manager_;
-  storage::RecordBufferSegmentPool *buffer_pool_;
+  const common::ManagedPointer<TimestampManager> timestamp_manager_;
+  const common::ManagedPointer<DeferredActionManager> deferred_action_manager_;
+  const common::ManagedPointer<storage::RecordBufferSegmentPool> buffer_pool_;
 
   common::Gate txn_gate_;
 
   bool gc_enabled_ = false;
   TransactionQueue completed_txns_;
-  storage::LogManager *const log_manager_;
+  const common::ManagedPointer<storage::LogManager> log_manager_;
 
   timestamp_t UpdatingCommitCriticalSection(TransactionContext *txn);
 

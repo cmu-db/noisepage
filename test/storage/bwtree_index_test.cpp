@@ -2,8 +2,11 @@
 #include <functional>
 #include <limits>
 #include <map>
+#include <memory>
 #include <random>
 #include <vector>
+
+#include "main/db_main.h"
 #include "parser/expression/column_value_expression.h"
 #include "portable_endian/portable_endian.h"
 #include "storage/garbage_collector_thread.h"
@@ -25,24 +28,40 @@ namespace terrier::storage::index {
 
 class BwTreeIndexTests : public TerrierTest {
  private:
-  const std::chrono::milliseconds gc_period_{10};
-  storage::GarbageCollector *gc_;
-  storage::GarbageCollectorThread *gc_thread_;
-
-  storage::BlockStore block_store_{1000, 1000};
-  storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   catalog::Schema table_schema_;
   catalog::IndexSchema unique_schema_;
   catalog::IndexSchema default_schema_;
 
  public:
-  BwTreeIndexTests() {
+  std::default_random_engine generator_;
+  const uint32_t num_threads_ = 4;
+
+  std::unique_ptr<DBMain> db_main_;
+  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
+
+  // SqlTable
+  storage::SqlTable *sql_table_;
+  storage::ProjectedRowInitializer tuple_initializer_ =
+      storage::ProjectedRowInitializer::Create(std::vector<uint16_t>{1}, std::vector<uint16_t>{1});
+
+  // BwTreeIndex
+  Index *default_index_, *unique_index_;
+
+  byte *key_buffer_1_, *key_buffer_2_;
+
+  common::WorkerPool thread_pool_{num_threads_, {}};
+
+ protected:
+  void SetUp() override {
+    db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseGCThread(true).SetRecordBufferSegmentSize(1e6).Build();
+    txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
+
     auto col = catalog::Schema::Column(
         "attribute", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(1));
     table_schema_ = catalog::Schema({col});
-    sql_table_ = new storage::SqlTable(&block_store_, table_schema_);
+    sql_table_ = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), table_schema_);
     tuple_initializer_ = sql_table_->InitializerForProjectedRow({catalog::col_oid_t(1)});
 
     std::vector<catalog::IndexSchema::Column> keycols;
@@ -52,42 +71,14 @@ class BwTreeIndexTests : public TerrierTest {
     StorageTestUtil::ForceOid(&(keycols[0]), catalog::indexkeycol_oid_t(1));
     unique_schema_ = catalog::IndexSchema(keycols, storage::index::IndexType::BWTREE, true, true, false, true);
     default_schema_ = catalog::IndexSchema(keycols, storage::index::IndexType::BWTREE, false, false, false, true);
-  }
-
-  std::default_random_engine generator_;
-  const uint32_t num_threads_ = 4;
-
-  // SqlTable
-  storage::SqlTable *sql_table_;
-  storage::ProjectedRowInitializer tuple_initializer_ =
-      storage::ProjectedRowInitializer::Create(std::vector<uint16_t>{1}, std::vector<uint16_t>{1});
-
-  // BwTreeIndex
-  Index *default_index_, *unique_index_;
-  transaction::TimestampManager *timestamp_manager_;
-  transaction::DeferredActionManager *deferred_action_manager_;
-  transaction::TransactionManager *txn_manager_;
-
-  byte *key_buffer_1_, *key_buffer_2_;
-
-  common::WorkerPool thread_pool_{num_threads_, {}};
-
- protected:
-  void SetUp() override {
-    TerrierTest::SetUp();
-
-    timestamp_manager_ = new transaction::TimestampManager;
-    deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
-    txn_manager_ = new transaction::TransactionManager(timestamp_manager_, deferred_action_manager_, &buffer_pool_,
-                                                       true, DISABLED);
-    gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_, nullptr);
 
     unique_index_ = (IndexBuilder().SetKeySchema(unique_schema_)).Build();
     default_index_ = (IndexBuilder().SetKeySchema(default_schema_)).Build();
 
-    gc_thread_->GetGarbageCollector().RegisterIndexForGC(common::ManagedPointer<Index>(unique_index_));
-    gc_thread_->GetGarbageCollector().RegisterIndexForGC(common::ManagedPointer<Index>(default_index_));
+    db_main_->GetStorageLayer()->GetGarbageCollector()->RegisterIndexForGC(
+        common::ManagedPointer<Index>(unique_index_));
+    db_main_->GetStorageLayer()->GetGarbageCollector()->RegisterIndexForGC(
+        common::ManagedPointer<Index>(default_index_));
 
     key_buffer_1_ =
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
@@ -95,20 +86,19 @@ class BwTreeIndexTests : public TerrierTest {
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
   }
   void TearDown() override {
-    gc_thread_->GetGarbageCollector().UnregisterIndexForGC(common::ManagedPointer<Index>(unique_index_));
-    gc_thread_->GetGarbageCollector().UnregisterIndexForGC(common::ManagedPointer<Index>(default_index_));
+    db_main_->GetStorageLayer()->GetGarbageCollector()->UnregisterIndexForGC(
+        common::ManagedPointer<Index>(unique_index_));
+    db_main_->GetStorageLayer()->GetGarbageCollector()->UnregisterIndexForGC(
+        common::ManagedPointer<Index>(default_index_));
 
-    delete gc_thread_;
-    delete gc_;
-    delete sql_table_;
-    delete default_index_;
-    delete unique_index_;
+    db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() {
+      delete sql_table_;
+      delete default_index_;
+      delete unique_index_;
+    });
+
     delete[] key_buffer_1_;
     delete[] key_buffer_2_;
-    delete txn_manager_;
-    delete deferred_action_manager_;
-    delete timestamp_manager_;
-    TerrierTest::TearDown();
   }
 };
 
@@ -121,9 +111,6 @@ class BwTreeIndexTests : public TerrierTest {
 TEST_F(BwTreeIndexTests, UniqueInsert) {
   const uint32_t num_inserts = 100000;  // number of tuples/primary keys for each worker to attempt to insert
   auto workload = [&](uint32_t worker_id) {
-    //    auto *const insert_buffer =
-    //        common::AllocationUtil::AllocateAligned(unique_index_->GetProjectedRowInitializer().ProjectedRowSize());
-    //    auto *const insert_tuple = tuple_initializer_.InitializeRow(insert_buffer);
     auto *const key_buffer =
         common::AllocationUtil::AllocateAligned(unique_index_->GetProjectedRowInitializer().ProjectedRowSize());
     auto *const insert_key = unique_index_->GetProjectedRowInitializer().InitializeRow(key_buffer);
