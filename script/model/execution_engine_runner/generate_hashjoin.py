@@ -28,7 +28,7 @@ def GenerateKeyCheck(col_num):
 def GenerateBuildSide(col_num, row_num, cardinality):
     fun_name = "buildCol{}Row{}Car{}".format(col_num, row_num, cardinality)
     print("fun {}(execCtx: *ExecutionContext, state: *State) -> nil {{".format(fun_name))
-    print("  @execCtxStartTimer(execCtx)")
+    print("  @execCtxStartResourceTracker(execCtx)")
 
     print("  var jht: *JoinHashTable = &state.table{}".format(col_num)) # join hash table
 
@@ -64,7 +64,8 @@ def GenerateBuildSide(col_num, row_num, cardinality):
     # Build the join table
     print("  @joinHTBuild(jht)")
 
-    print("  @execCtxEndTimer(execCtx, @stringToSql(\"joinbuild, {}, {}, {}\"))".format(row_num, col_num, cardinality))
+    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"joinbuild, {}, {}, {}\"))".format(row_num, col_num * 4,
+                                                                                          cardinality))
     print("}")
 
     print()
@@ -74,7 +75,7 @@ def GenerateBuildSide(col_num, row_num, cardinality):
 def GenerateProbeSide(col_num, row_num, cardinality):
     fun_name = "probeCol{}Row{}Car{}".format(col_num, row_num, cardinality)
     print("fun {}(execCtx: *ExecutionContext, state: *State) -> nil {{".format(fun_name))
-    print("  @execCtxStartTimer(execCtx)")
+    print("  @execCtxStartResourceTracker(execCtx)")
 
     print("  var jht: *JoinHashTable = &state.table{}".format(col_num)) # join hash table
     print("  var build_row: *BuildRow{}".format(col_num))
@@ -111,7 +112,7 @@ def GenerateProbeSide(col_num, row_num, cardinality):
     # Build the join table
     print("  @joinHTBuild(jht)")
 
-    print("  @execCtxEndTimer(execCtx, @stringToSql(\"joinprobe, {}, {}, {}\"))".format(row_num, col_num,
+    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"joinprobe, {}, {}, {}\"))".format(row_num, col_num * 4,
                                                                                        cardinality))
     print("}")
 
