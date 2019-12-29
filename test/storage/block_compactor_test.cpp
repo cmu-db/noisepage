@@ -398,11 +398,17 @@ TEST_F(BlockCompactorTest, ExportDictionaryCompressedTableTest) {
 
   // Manually populate the block header's arrow metadata for test initialization
   auto &arrow_metadata = accessor.GetArrowBlockMetadata(block);
+
+  std::vector<type::TypeId> column_types;
+  column_types.reserve(layout.NumColumns());
+
   for (storage::col_id_t col_id : layout.AllColumns()) {
     if (layout.IsVarlen(col_id)) {
       arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::DICTIONARY_COMPRESSED;
+      column_types.emplace_back(type::TypeId::VARCHAR);
     } else {
       arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::FIXED_LENGTH;
+      column_types.emplace_back(type::TypeId::INTEGER);
     }
   }
 
@@ -415,7 +421,7 @@ TEST_F(BlockCompactorTest, ExportDictionaryCompressedTableTest) {
   compactor.PutInQueue(block);
   compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
 
-  table.ExportTable(EXPORT_TABLE_NAME, NULL);
+  table.ExportTable(EXPORT_TABLE_NAME, &column_types);
   EXPECT_EQ(unlink(EXPORT_TABLE_NAME), 0);
 
   for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
@@ -448,11 +454,17 @@ TEST_F(BlockCompactorTest, ExportVarlenTableTest) {
 
   // Manually populate the block header's arrow metadata for test initialization
   auto &arrow_metadata = accessor.GetArrowBlockMetadata(block);
+
+  std::vector<type::TypeId> column_types;
+  column_types.reserve(layout.NumColumns());
+
   for (storage::col_id_t col_id : layout.AllColumns()) {
     if (layout.IsVarlen(col_id)) {
       arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::GATHERED_VARLEN;
+      column_types.emplace_back(type::TypeId::VARCHAR);
     } else {
       arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::FIXED_LENGTH;
+      column_types.emplace_back(type::TypeId::INTEGER);
     }
   }
 
@@ -465,7 +477,7 @@ TEST_F(BlockCompactorTest, ExportVarlenTableTest) {
   compactor.PutInQueue(block);
   compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
 
-  table.ExportTable(EXPORT_TABLE_NAME, NULL);
+  table.ExportTable(EXPORT_TABLE_NAME, &column_types);
   EXPECT_EQ(std::remove(EXPORT_TABLE_NAME), 0);
 
   for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping

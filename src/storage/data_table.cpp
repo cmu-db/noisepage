@@ -314,36 +314,31 @@ void DataTable::WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<co
     flatbuffers::Offset<flatbuf::DictionaryEncoding> dictionary = 0;
     if (!layout.IsVarlen(col_id) || col_info.Type() == ArrowColumnType::FIXED_LENGTH) {
       uint8_t byte_width = accessor_.GetBlockLayout().AttrSize(col_id);
-      if (col_types == NULL) {
-        type = flatbuf::Type_FixedSizeBinary;
-        type_offset = flatbuf::CreateFixedSizeBinary(*flatbuf_builder, byte_width).Union();
-      } else {
-        switch ((*col_types)[i++]) {
-          case type::TypeId::BOOLEAN:
-            type = flatbuf::Type_Bool;
-            type_offset = flatbuf::CreateBool(*flatbuf_builder).Union();
-            break;
-          case type::TypeId::TINYINT:
-            TERRIER_FALLTHROUGH;
-          case type::TypeId::SMALLINT:
-            TERRIER_FALLTHROUGH;
-          case type::TypeId::INTEGER:
-            TERRIER_FALLTHROUGH;
-          case type::TypeId::BIGINT:
-            type = flatbuf::Type_Int;
-            type_offset = flatbuf::CreateInt(*flatbuf_builder, byte_width, true).Union();
-            break;
-          case type::TypeId::TIMESTAMP:
-            type = flatbuf::Type_Timestamp;
-            type_offset = flatbuf::CreateTimestamp(*flatbuf_builder, flatbuf::TimeUnit_MICROSECOND).Union();
-            break;
-          case type::TypeId::DECIMAL:
-            type = flatbuf::Type_Decimal;
-            type_offset = flatbuf::CreateFloatingPoint(*flatbuf_builder, flatbuf::Precision_DOUBLE).Union();
-            break;
-          default:
-            throw std::runtime_error("unexpected column type");
-        }
+      switch ((*col_types)[i++]) {
+        case type::TypeId::BOOLEAN:
+          type = flatbuf::Type_Bool;
+          type_offset = flatbuf::CreateBool(*flatbuf_builder).Union();
+          break;
+        case type::TypeId::TINYINT:
+          TERRIER_FALLTHROUGH;
+        case type::TypeId::SMALLINT:
+          TERRIER_FALLTHROUGH;
+        case type::TypeId::INTEGER:
+          TERRIER_FALLTHROUGH;
+        case type::TypeId::BIGINT:
+          type = flatbuf::Type_Int;
+          type_offset = flatbuf::CreateInt(*flatbuf_builder, byte_width, true).Union();
+          break;
+        case type::TypeId::TIMESTAMP:
+          type = flatbuf::Type_Timestamp;
+          type_offset = flatbuf::CreateTimestamp(*flatbuf_builder, flatbuf::TimeUnit_MICROSECOND).Union();
+          break;
+        case type::TypeId::DECIMAL:
+          type = flatbuf::Type_Decimal;
+          type_offset = flatbuf::CreateFloatingPoint(*flatbuf_builder, flatbuf::Precision_DOUBLE).Union();
+          break;
+        default:
+          throw std::runtime_error("unexpected column type");
       }
     } else {
       switch (col_info.Type()) {
