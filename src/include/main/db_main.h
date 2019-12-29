@@ -1,14 +1,18 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <utility>
+
 #include "catalog/catalog.h"
 #include "common/action_context.h"
+#include "common/managed_pointer.h"
 #include "common/stat_registry.h"
 #include "common/worker_pool.h"
-#include "metrics/metrics_manager.h"
+#include "metrics/metrics_thread.h"
 #include "network/terrier_server.h"
+#include "optimizer/statistics/stats_storage.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
@@ -19,71 +23,27 @@ namespace terrier {
 
 namespace settings {
 class SettingsManager;
-class SettingsTests;
 class Callbacks;
 }  // namespace settings
-
-namespace metrics {
-class MetricsTests;
-}
 
 namespace trafficcop {
 class TrafficCopTests;
 }
 
-namespace storage {
-class WriteAheadLoggingTests;
-}
-
-namespace common {
-class DedicatedThreadRegistry;
-}
-
 /**
- * The DBMain Class holds all the singleton pointers. It has the full knowledge
- * of the whole database systems and serves as a global context of the system.
- * *Only the settings manager should be able to access the DBMain object.*
+ * The DBMain Class holds all the singleton pointers. It is mostly useful for coordinating dependencies between
+ * components, particularly at destruction since there are implicit dependencies in the interaction of various
+ * components.
+ * Use the Builder to request the components that you want, and it should detect if you missed a dependency at
+ * construction on Build().
+ * DBMain should never be passed as a dependency to any components. Component dependencies should be explicit
+ * constructor arguments. This also means that the Getters for components on DBMain are really only meant for testing
+ * purposes, since the main() function's scope (either in a benchmark, test, or the DBMS executable) is the only scope
+ * with access to the DBMain object.
  */
 class DBMain {
  public:
-  /**
-   * The constructor of DBMain
-   * This function boots the backend components.
-   * It initializes the following components in the following order:
-   *    Debug loggers
-   *    Stats registry (counters)
-   *    Buffer segment pools
-   *    Transaction manager
-   *    Garbage collector thread
-   *    Catalog
-   *    Settings manager
-   *    Log manager
-   *    Worker pool
-   * @param param_map a map stores setting values
-   */
-  explicit DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_map);
-
-  ~DBMain() {
-    ForceShutdown();
-    // TODO(Matt): might as well make these std::unique_ptr, but then will need to refactor other classes to take
-    // ManagedPointers unless we want a bunch of .get()s, which sounds like a future PR
-    delete metrics_manager_;
-    delete garbage_collector_;
-    delete settings_manager_;
-    delete txn_manager_;
-    delete timestamp_manager_;
-    delete deferred_action_manager_;
-    delete buffer_segment_pool_;
-    delete block_store_;
-    delete thread_pool_;
-    delete log_manager_;
-    delete connection_handle_factory_;
-    delete server_;
-    delete command_factory_;
-    delete provider_;
-    delete t_cop_;
-    delete thread_registry_;
-  }
+  ~DBMain();
 
   /**
    * Boots the traffic cop and networking layer, starts the server loop.
@@ -99,39 +59,658 @@ class DBMain {
    */
   void ForceShutdown();
 
- private:
-  friend class settings::SettingsManager;
-  friend class settings::SettingsTests;
-  friend class settings::Callbacks;
-  friend class metrics::MetricsTests;
-  friend class trafficcop::TrafficCopTests;
-  std::unique_ptr<common::StatisticsRegistry> main_stat_reg_;
-  std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
-  transaction::TimestampManager *timestamp_manager_;
-  transaction::DeferredActionManager *deferred_action_manager_;
-  transaction::TransactionManager *txn_manager_;
-  settings::SettingsManager *settings_manager_;
-  storage::LogManager *log_manager_;
-  storage::GarbageCollector *garbage_collector_;
-  storage::GarbageCollectorThread *gc_thread_;
-  network::TerrierServer *server_;
-  storage::RecordBufferSegmentPool *buffer_segment_pool_;
-  common::WorkerPool *thread_pool_;
-  trafficcop::TrafficCop *t_cop_;
-  network::PostgresCommandFactory *command_factory_;
-  network::ConnectionHandleFactory *connection_handle_factory_;
-  network::ProtocolInterpreter::Provider *provider_;
-  metrics::MetricsManager *metrics_manager_;
-  common::DedicatedThreadRegistry *thread_registry_;
-  std::unique_ptr<catalog::Catalog> catalog_;
-  storage::BlockStore *block_store_;
+  /**
+   * TimestampManager, DeferredActionManager, and TransactionManager
+   */
+  class TransactionLayer {
+   public:
+    /**
+     * @param buffer_segment_pool non-null required component
+     * @param gc_enabled argument to the TransactionManager
+     * @param log_manager argument to the TransactionManager
+     */
+    TransactionLayer(const common::ManagedPointer<storage::RecordBufferSegmentPool> buffer_segment_pool,
+                     const bool gc_enabled, const common::ManagedPointer<storage::LogManager> log_manager) {
+      TERRIER_ASSERT(buffer_segment_pool != nullptr, "Need a buffer segment pool for Transaction layer.");
+      timestamp_manager_ = std::make_unique<transaction::TimestampManager>();
+      deferred_action_manager_ =
+          std::make_unique<transaction::DeferredActionManager>(common::ManagedPointer(timestamp_manager_));
+      txn_manager_ = std::make_unique<transaction::TransactionManager>(common::ManagedPointer(timestamp_manager_),
+                                                                       common::ManagedPointer(deferred_action_manager_),
+                                                                       buffer_segment_pool, gc_enabled, log_manager);
+    }
 
-  bool running_ = false;
+    /**
+     * @return ManagedPointer to the component
+     */
+    common::ManagedPointer<transaction::TimestampManager> GetTimestampManager() const {
+      return common::ManagedPointer(timestamp_manager_);
+    }
+
+    /**
+     * @return ManagedPointer to the component
+     */
+    common::ManagedPointer<transaction::DeferredActionManager> GetDeferredActionManager() const {
+      return common::ManagedPointer(deferred_action_manager_);
+    }
+
+    /**
+     * @return ManagedPointer to the component
+     */
+    common::ManagedPointer<transaction::TransactionManager> GetTransactionManager() const {
+      return common::ManagedPointer(txn_manager_);
+    }
+
+   private:
+    // Order matters here for destruction order
+    std::unique_ptr<transaction::TimestampManager> timestamp_manager_;
+    std::unique_ptr<transaction::DeferredActionManager> deferred_action_manager_;
+    std::unique_ptr<transaction::TransactionManager> txn_manager_;
+  };
 
   /**
-   * Cleans up and exit.
+   * BlockStore and GarbageCollector
    */
-  void CleanUp();
+  class StorageLayer {
+   public:
+    /**
+     * @param txn_layer arguments to the GarbageCollector
+     * @param block_store_size_limit argument to the BlockStore
+     * @param block_store_reuse_limit argument to the BlockStore
+     * @param use_gc enable GarbageCollector
+     * @param log_manager needed for safe destruction of StorageLayer
+     */
+    StorageLayer(const common::ManagedPointer<TransactionLayer> txn_layer, const uint64_t block_store_size_limit,
+                 const uint64_t block_store_reuse_limit, const bool use_gc,
+                 const common::ManagedPointer<storage::LogManager> log_manager)
+        : deferred_action_manager_(txn_layer->GetDeferredActionManager()), log_manager_(log_manager) {
+      if (use_gc)
+        garbage_collector_ = std::make_unique<storage::GarbageCollector>(txn_layer->GetTimestampManager(),
+                                                                         txn_layer->GetDeferredActionManager(),
+                                                                         txn_layer->GetTransactionManager(), DISABLED);
+
+      block_store_ = std::make_unique<storage::BlockStore>(block_store_size_limit, block_store_reuse_limit);
+    }
+
+    ~StorageLayer() {
+      if (garbage_collector_ != DISABLED) {
+        // flush the system
+        deferred_action_manager_->FullyPerformGC(common::ManagedPointer(garbage_collector_), log_manager_);
+      }
+      if (log_manager_ != DISABLED) {
+        // stop the LogManager and make sure all buffers are released
+        log_manager_->PersistAndStop();
+      }
+    }
+
+    /**
+     * @return ManagedPointer to the component, can be nullptr if disabled
+     */
+    common::ManagedPointer<storage::GarbageCollector> GetGarbageCollector() const {
+      return common::ManagedPointer(garbage_collector_);
+    }
+
+    /**
+     * @return ManagedPointer to the component
+     */
+    common::ManagedPointer<storage::BlockStore> GetBlockStore() const { return common::ManagedPointer(block_store_); }
+
+   private:
+    // Order currently does not matter in this layer
+    std::unique_ptr<storage::BlockStore> block_store_;
+    std::unique_ptr<storage::GarbageCollector> garbage_collector_;
+
+    // External dependencies for this layer
+    const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;
+    const common::ManagedPointer<storage::LogManager> log_manager_;
+  };
+
+  /**
+   * Catalog, but needs a layer due to some complex teardown logic
+   */
+  class CatalogLayer {
+   public:
+    /**
+     * @param txn_layer arguments to the Catalog
+     * @param storage_layer arguments to the Catalog
+     * @param log_manager needed for safe destruction of CatalogLayer if logging is enabled
+     * @param create_default_database bootstrap the default database, false is used when recovering the Catalog
+     */
+    CatalogLayer(const common::ManagedPointer<TransactionLayer> txn_layer,
+                 const common::ManagedPointer<StorageLayer> storage_layer,
+                 const common::ManagedPointer<storage::LogManager> log_manager, const bool create_default_database)
+        : deferred_action_manager_(txn_layer->GetDeferredActionManager()),
+          garbage_collector_(storage_layer->GetGarbageCollector()),
+          log_manager_(log_manager) {
+      TERRIER_ASSERT(garbage_collector_ != DISABLED, "Required component missing.");
+
+      catalog_ = std::make_unique<catalog::Catalog>(txn_layer->GetTransactionManager(), storage_layer->GetBlockStore());
+
+      // Bootstrap the default database in the catalog.
+      if (create_default_database) {
+        auto *bootstrap_txn = txn_layer->GetTransactionManager()->BeginTransaction();
+        catalog_->CreateDatabase(bootstrap_txn, catalog::DEFAULT_DATABASE, true);
+        txn_layer->GetTransactionManager()->Commit(bootstrap_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+      }
+
+      // Run the GC to get a clean system. This needs to be done before instantiating the GC thread
+      // because the GC is not thread-safe
+      deferred_action_manager_->FullyPerformGC(garbage_collector_, log_manager_);
+    }
+
+    ~CatalogLayer() {
+      catalog_->TearDown();  // generates txns and deferred actions, so need to flush the system afterwards
+      deferred_action_manager_->FullyPerformGC(common::ManagedPointer(garbage_collector_), log_manager_);
+    }
+
+    /**
+     * @return ManagedPointer to the component
+     */
+    common::ManagedPointer<catalog::Catalog> GetCatalog() const { return common::ManagedPointer(catalog_); }
+
+   private:
+    // Order currently does not matter in this layer
+    std::unique_ptr<catalog::Catalog> catalog_;
+
+    // External dependencies for this layer
+    const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;
+    const common::ManagedPointer<storage::GarbageCollector> garbage_collector_;
+    const common::ManagedPointer<storage::LogManager> log_manager_;
+  };
+
+  /**
+   * ConnectionHandleFactory, CommandFactory, ProtocolInterpreter::Provider, Server
+   */
+  class NetworkLayer {
+   public:
+    /**
+     * @param thread_registry argument to the TerrierServer
+     * @param traffic_cop argument to the ConnectionHandleFactor
+     * @param port needed for safe destruction of CatalogLayer if logging is enabled
+     */
+    NetworkLayer(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
+                 const common::ManagedPointer<trafficcop::TrafficCop> traffic_cop, const uint16_t port) {
+      connection_handle_factory_ = std::make_unique<network::ConnectionHandleFactory>(traffic_cop);
+      command_factory_ = std::make_unique<network::PostgresCommandFactory>();
+      provider_ =
+          std::make_unique<network::PostgresProtocolInterpreter::Provider>(common::ManagedPointer(command_factory_));
+      server_ = std::make_unique<network::TerrierServer>(
+          common::ManagedPointer(provider_), common::ManagedPointer(connection_handle_factory_), thread_registry, port);
+    }
+
+    /**
+     * @return ManagedPointer to the component
+     */
+    common::ManagedPointer<network::TerrierServer> GetServer() const { return common::ManagedPointer(server_); }
+
+   private:
+    // Order matters here for destruction order
+    std::unique_ptr<network::ConnectionHandleFactory> connection_handle_factory_;
+    std::unique_ptr<network::PostgresCommandFactory> command_factory_;
+    std::unique_ptr<network::ProtocolInterpreter::Provider> provider_;
+    std::unique_ptr<network::TerrierServer> server_;
+  };
+
+  /**
+   * Creates DBMain objects
+   */
+  class Builder {
+   public:
+    /**
+     * Validate configuration and construct requested DBMain.
+     * @return DBMain that you get to own. YES, YOU! We're just giving away DBMains over here!
+     */
+    std::unique_ptr<DBMain> Build() {
+      // Order matters through the Build() function and reflects the dependency ordering. It should match the member
+      // ordering so things get destructed in the right order.
+      auto db_main = std::make_unique<DBMain>();
+
+      std::unique_ptr<settings::SettingsManager> settings_manager =
+          use_settings_manager_ ? BootstrapSettingsManager(common::ManagedPointer(db_main)) : DISABLED;
+
+      std::unique_ptr<metrics::MetricsManager> metrics_manager = DISABLED;
+      if (use_metrics_) metrics_manager = std::make_unique<metrics::MetricsManager>();
+
+      std::unique_ptr<metrics::MetricsThread> metrics_thread = DISABLED;
+      if (use_metrics_thread_) {
+        TERRIER_ASSERT(use_metrics_ && metrics_manager != DISABLED,
+                       "Can't have a MetricsThread without a MetricsManager.");
+        metrics_thread = std::make_unique<metrics::MetricsThread>(common::ManagedPointer(metrics_manager),
+                                                                  std::chrono::milliseconds{metrics_interval_});
+      }
+
+      std::unique_ptr<common::DedicatedThreadRegistry> thread_registry = DISABLED;
+      if (use_thread_registry_ || use_logging_ || use_network_)
+        thread_registry = std::make_unique<common::DedicatedThreadRegistry>(common::ManagedPointer(metrics_manager));
+
+      auto buffer_segment_pool =
+          std::make_unique<storage::RecordBufferSegmentPool>(record_buffer_segment_size_, record_buffer_segment_reuse_);
+
+      std::unique_ptr<storage::LogManager> log_manager = DISABLED;
+      if (use_logging_) {
+        log_manager = std::make_unique<storage::LogManager>(
+            log_file_path_, num_log_manager_buffers_, std::chrono::milliseconds{log_serialization_interval_},
+            std::chrono::milliseconds{log_persist_interval_}, log_persist_threshold_,
+            common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(thread_registry));
+        log_manager->Start();
+      }
+
+      auto txn_layer = std::make_unique<TransactionLayer>(common::ManagedPointer(buffer_segment_pool), use_gc_,
+                                                          common::ManagedPointer(log_manager));
+
+      auto storage_layer =
+          std::make_unique<StorageLayer>(common::ManagedPointer(txn_layer), block_store_size_, block_store_reuse_,
+                                         use_gc_, common::ManagedPointer(log_manager));
+
+      std::unique_ptr<CatalogLayer> catalog_layer = DISABLED;
+      if (use_catalog_) {
+        TERRIER_ASSERT(use_gc_ && storage_layer->GetGarbageCollector() != DISABLED, "Catalog needs GarbageCollector.");
+        catalog_layer =
+            std::make_unique<CatalogLayer>(common::ManagedPointer(txn_layer), common::ManagedPointer(storage_layer),
+                                           common::ManagedPointer(log_manager), create_default_database_);
+      }
+
+      std::unique_ptr<storage::GarbageCollectorThread> gc_thread = DISABLED;
+      if (use_gc_thread_) {
+        TERRIER_ASSERT(use_gc_ && storage_layer->GetGarbageCollector() != DISABLED,
+                       "GarbageCollectorThread needs GarbageCollector.");
+        gc_thread = std::make_unique<storage::GarbageCollectorThread>(storage_layer->GetGarbageCollector(),
+                                                                      std::chrono::milliseconds{gc_interval_});
+      }
+
+      std::unique_ptr<trafficcop::TrafficCop> traffic_cop = DISABLED;
+      if (use_traffic_cop_) {
+        TERRIER_ASSERT(use_catalog_ && catalog_layer->GetCatalog() != DISABLED,
+                       "TrafficCopLayer needs the CatalogLayer.");
+        traffic_cop =
+            std::make_unique<trafficcop::TrafficCop>(txn_layer->GetTransactionManager(), catalog_layer->GetCatalog());
+      }
+
+      std::unique_ptr<optimizer::StatsStorage> stats_storage = DISABLED;
+      if (use_stats_storage_) {
+        stats_storage = std::make_unique<optimizer::StatsStorage>();
+      }
+
+      std::unique_ptr<NetworkLayer> network_layer = DISABLED;
+      if (use_network_) {
+        TERRIER_ASSERT(use_traffic_cop_ && traffic_cop != DISABLED, "NetworkLayer needs TrafficCopLayer.");
+        network_layer = std::make_unique<NetworkLayer>(common::ManagedPointer(thread_registry),
+                                                       common::ManagedPointer(traffic_cop), network_port_);
+      }
+
+      db_main->settings_manager_ = std::move(settings_manager);
+      db_main->metrics_manager_ = std::move(metrics_manager);
+      db_main->metrics_thread_ = std::move(metrics_thread);
+      db_main->thread_registry_ = std::move(thread_registry);
+      db_main->buffer_segment_pool_ = std::move(buffer_segment_pool);
+      db_main->log_manager_ = std::move(log_manager);
+      db_main->txn_layer_ = std::move(txn_layer);
+      db_main->storage_layer_ = std::move(storage_layer);
+      db_main->catalog_layer_ = std::move(catalog_layer);
+      db_main->gc_thread_ = std::move(gc_thread);
+      db_main->traffic_cop_ = std::move(traffic_cop);
+      db_main->stats_storage_ = std::move(stats_storage);
+      db_main->network_layer_ = std::move(network_layer);
+
+      return db_main;
+    }
+
+    /**
+     * @param value LogManager argument
+     * @return self reference for chaining
+     */
+    Builder &SetLogFilePath(const std::string &value) {
+      log_file_path_ = value;
+      return *this;
+    }
+
+    /**
+     * @param param_map SettingsManager argument
+     * @return self reference for chaining
+     */
+    Builder &SetSettingsParameterMap(std::unordered_map<settings::Param, settings::ParamInfo> &&param_map) {
+      param_map_ = std::move(param_map);
+      return *this;
+    }
+
+    /**
+     * @param value use component
+     * @return self reference for chaining
+     */
+    Builder &SetUseThreadRegistry(const bool value) {
+      use_thread_registry_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value use component
+     * @return self reference for chaining
+     */
+    Builder &SetUseSettingsManager(const bool value) {
+      use_settings_manager_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value use component
+     * @return self reference for chaining
+     */
+    Builder &SetUseMetrics(const bool value) {
+      use_metrics_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value use component
+     * @return self reference for chaining
+     */
+    Builder &SetUseMetricsThread(const bool value) {
+      use_metrics_thread_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value use component
+     * @return self reference for chaining
+     */
+    Builder &SetUseLogging(const bool value) {
+      use_logging_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value LogManager argument
+     * @return self reference for chaining
+     */
+    Builder &SetNumLogBuffers(const uint64_t value) {
+      num_log_manager_buffers_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value LogManager argument
+     * @return self reference for chaining
+     */
+    Builder &SetLogSerializationInterval(const uint64_t value) {
+      log_serialization_interval_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value LogManager argument
+     * @return self reference for chaining
+     */
+    Builder &SetLogPersistInterval(const uint64_t value) {
+      log_persist_interval_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value LogManager argument
+     * @return self reference for chaining
+     */
+    Builder &SetLogPersistThreshold(const uint64_t value) {
+      log_persist_threshold_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value use component
+     * @return self reference for chaining
+     */
+    Builder &SetUseGC(const bool value) {
+      use_gc_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value use component
+     * @return self reference for chaining
+     */
+    Builder &SetUseCatalog(const bool value) {
+      use_catalog_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value whether CatalogLayer should create default database (set to false if recovering)
+     * @return self reference for chaining
+     */
+    Builder &SetCreateDefaultDatabase(const bool value) {
+      create_default_database_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value use component
+     * @return self reference for chaining
+     */
+    Builder &SetUseGCThread(const bool value) {
+      use_gc_thread_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value use component
+     * @return self reference for chaining
+     */
+    Builder &SetUseTrafficCop(const bool value) {
+      use_traffic_cop_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value use component
+     * @return self reference for chaining
+     */
+    Builder &SetUseStatsStorage(const bool value) {
+      use_stats_storage_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value use component
+     * @return self reference for chaining
+     */
+    Builder &SetUseNetwork(const bool value) {
+      use_network_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value RecordBufferSegmentPool argument
+     * @return self reference for chaining
+     */
+    Builder &SetRecordBufferSegmentSize(const uint64_t value) {
+      record_buffer_segment_size_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value RecordBufferSegmentPool argument
+     * @return self reference for chaining
+     */
+    Builder &SetRecordBufferSegmentReuse(const uint64_t value) {
+      record_buffer_segment_reuse_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value BlockStore argument
+     * @return self reference for chaining
+     */
+    Builder &SetBlockStoreSize(const uint64_t value) {
+      block_store_size_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value BlockStore argument
+     * @return self reference for chaining
+     */
+    Builder &SetBlockStoreReuse(const uint64_t value) {
+      block_store_reuse_ = value;
+      return *this;
+    }
+
+   private:
+    std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
+
+    // These are meant to be reasonable defaults, mostly for tests. New settings should probably just mirror their
+    // default values here. Larger scale tests and benchmarks may need to to use setters on the Builder to adjust these
+    // before building DBMain. The real system should use the SettingsManager.
+    bool use_settings_manager_ = false;
+    bool use_thread_registry_ = false;
+    bool use_metrics_ = false;
+    uint32_t metrics_interval_ = 100;
+    bool use_metrics_thread_ = false;
+    uint64_t record_buffer_segment_size_ = 1e5;
+    uint64_t record_buffer_segment_reuse_ = 1e4;
+    std::string log_file_path_ = "wal.log";
+    uint64_t num_log_manager_buffers_ = 100;
+    int32_t log_serialization_interval_ = 10;
+    int32_t log_persist_interval_ = 10;
+    uint64_t log_persist_threshold_ = static_cast<uint64_t>(1 << 20);
+    bool use_logging_ = false;
+    bool use_gc_ = false;
+    bool use_catalog_ = false;
+    bool create_default_database_ = true;
+    uint64_t block_store_size_ = 1e5;
+    uint64_t block_store_reuse_ = 1e3;
+    int32_t gc_interval_ = 10;
+    bool use_gc_thread_ = false;
+    bool use_traffic_cop_ = false;
+    bool use_stats_storage_ = false;
+    uint16_t network_port_ = 15721;
+    bool use_network_ = false;
+
+    /**
+     * Instantiates the SettingsManager and reads all of the settings to override the Builder's settings.
+     * @return
+     */
+    std::unique_ptr<settings::SettingsManager> BootstrapSettingsManager(const common::ManagedPointer<DBMain> db_main) {
+      std::unique_ptr<settings::SettingsManager> settings_manager;
+      TERRIER_ASSERT(!param_map_.empty(), "Settings parameter map was never set.");
+      settings_manager = std::make_unique<settings::SettingsManager>(db_main, std::move(param_map_));
+
+      record_buffer_segment_size_ =
+          static_cast<uint64_t>(settings_manager->GetInt(settings::Param::record_buffer_segment_size));
+      record_buffer_segment_reuse_ =
+          static_cast<uint64_t>(settings_manager->GetInt(settings::Param::record_buffer_segment_reuse));
+      block_store_size_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::block_store_size));
+      block_store_reuse_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::block_store_reuse));
+
+      log_file_path_ = settings_manager->GetString(settings::Param::log_file_path);
+      num_log_manager_buffers_ =
+          static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::num_log_manager_buffers));
+      log_serialization_interval_ = settings_manager->GetInt(settings::Param::log_serialization_interval);
+      log_persist_interval_ = settings_manager->GetInt(settings::Param::log_persist_interval);
+      log_persist_threshold_ =
+          static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::log_persist_threshold));
+
+      gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
+
+      network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
+
+      return settings_manager;
+    }
+  };
+
+  /**
+   * @return ManagedPointer to the component, can be nullptr if disabled
+   */
+  common::ManagedPointer<settings::SettingsManager> GetSettingsManager() const {
+    return common::ManagedPointer(settings_manager_);
+  }
+
+  /**
+   * @return ManagedPointer to the component, can be nullptr if disabled
+   */
+  common::ManagedPointer<metrics::MetricsManager> GetMetricsManager() const {
+    return common::ManagedPointer(metrics_manager_);
+  }
+
+  /**
+   * @return ManagedPointer to the component, can be nullptr if disabled
+   */
+  common::ManagedPointer<metrics::MetricsThread> GetMetricsThread() const {
+    return common::ManagedPointer(metrics_thread_);
+  }
+
+  /**
+   * @return ManagedPointer to the component, can be nullptr if disabled
+   */
+  common::ManagedPointer<common::DedicatedThreadRegistry> GetThreadRegistry() const {
+    return common::ManagedPointer(thread_registry_);
+  }
+
+  /**
+   * @return ManagedPointer to the component
+   */
+  common::ManagedPointer<storage::RecordBufferSegmentPool> GetBufferSegmentPool() const {
+    return common::ManagedPointer(buffer_segment_pool_);
+  }
+
+  /**
+   * @return ManagedPointer to the component, can be nullptr if disabled
+   */
+  common::ManagedPointer<storage::LogManager> GetLogManager() const { return common::ManagedPointer(log_manager_); }
+
+  /**
+   * @return ManagedPointer to the component
+   */
+  common::ManagedPointer<TransactionLayer> GetTransactionLayer() const { return common::ManagedPointer(txn_layer_); }
+
+  /**
+   * @return ManagedPointer to the component
+   */
+  common::ManagedPointer<StorageLayer> GetStorageLayer() const { return common::ManagedPointer(storage_layer_); }
+
+  /**
+   * @return ManagedPointer to the component, can be nullptr if disabled
+   */
+  common::ManagedPointer<CatalogLayer> GetCatalogLayer() const { return common::ManagedPointer(catalog_layer_); }
+
+  /**
+   * @return ManagedPointer to the component, can be nullptr if disabled
+   */
+  common::ManagedPointer<storage::GarbageCollectorThread> GetGarbageCollectorThread() const {
+    return common::ManagedPointer(gc_thread_);
+  }
+
+  /**
+   * @return ManagedPointer to the component, can be nullptr if disabled
+   */
+  common::ManagedPointer<trafficcop::TrafficCop> GetTrafficCop() const { return common::ManagedPointer(traffic_cop_); }
+
+  /**
+   * @return ManagedPointer to the component, can be nullptr if disabled
+   */
+  common::ManagedPointer<optimizer::StatsStorage> GetStatsStorage() const {
+    return common::ManagedPointer(stats_storage_);
+  }
+
+  /**
+   * @return ManagedPointer to the component, can be nullptr if disabled
+   */
+  common::ManagedPointer<NetworkLayer> GetNetworkLayer() const { return common::ManagedPointer(network_layer_); }
+
+ private:
+  // Order matters here for destruction order
+  std::unique_ptr<settings::SettingsManager> settings_manager_;
+  std::unique_ptr<metrics::MetricsManager> metrics_manager_;
+  std::unique_ptr<metrics::MetricsThread> metrics_thread_;
+  std::unique_ptr<common::DedicatedThreadRegistry> thread_registry_;
+  std::unique_ptr<storage::RecordBufferSegmentPool> buffer_segment_pool_;
+  std::unique_ptr<storage::LogManager> log_manager_;
+  std::unique_ptr<TransactionLayer> txn_layer_;
+  std::unique_ptr<StorageLayer> storage_layer_;
+  std::unique_ptr<CatalogLayer> catalog_layer_;
+  std::unique_ptr<storage::GarbageCollectorThread>
+      gc_thread_;  // thread needs to die before manual invocations of GC in CatalogLayer and others
+  std::unique_ptr<optimizer::StatsStorage> stats_storage_;
+  std::unique_ptr<trafficcop::TrafficCop> traffic_cop_;
+  std::unique_ptr<NetworkLayer> network_layer_;
 };
 
 }  // namespace terrier

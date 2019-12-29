@@ -8,17 +8,28 @@
 #include "parser/expression/abstract_expression.h"
 
 namespace terrier {
+class TpccPlanTest;
+}  // namespace terrier
 
-namespace binder {
+namespace terrier::optimizer {
+class OptimizerUtil;
+}  // namespace terrier::optimizer
+
+namespace terrier::binder {
 class BinderContext;
 }
 
-namespace parser {
+namespace terrier::parser {
 
 /**
  * ColumnValueExpression represents a reference to a column.
  */
 class ColumnValueExpression : public AbstractExpression {
+  // PlanGenerator creates ColumnValueexpressions and will
+  // need to set the bound oids
+  friend class terrier::optimizer::OptimizerUtil;
+  friend class terrier::TpccPlanTest;
+
  public:
   /**
    * This constructor is called only in postgresparser, setting the column name,
@@ -70,6 +81,21 @@ class ColumnValueExpression : public AbstractExpression {
   /** @return column oid */
   catalog::col_oid_t GetColumnOid() const { return column_oid_; }
 
+  /**
+   * Get Column Full Name [tbl].[col]
+   */
+  std::string GetFullName() const {
+    if (!table_name_.empty()) {
+      return table_name_ + "." + column_name_;
+    }
+
+    return column_name_;
+  }
+
+  /**
+   * Copies this ColumnValueExpression
+   * @returns copy of this
+   */
   std::unique_ptr<AbstractExpression> Copy() const override {
     auto expr = std::make_unique<ColumnValueExpression>(GetDatabaseOid(), GetTableOid(), GetColumnOid());
     expr->SetMutableStateForCopy(*this);
@@ -81,8 +107,20 @@ class ColumnValueExpression : public AbstractExpression {
     return expr;
   }
 
+  /**
+   * Copies this ColumnValueExpression with new children
+   * @param children new children
+   * @returns copy of this with new children
+   */
+  std::unique_ptr<AbstractExpression> CopyWithChildren(
+      std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
+    TERRIER_ASSERT(children.empty(), "ColumnValueExpression should have no children");
+    return Copy();
+  }
+
   common::hash_t Hash() const override {
-    common::hash_t hash = AbstractExpression::Hash();
+    common::hash_t hash = common::HashUtil::Hash(GetExpressionType());
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetReturnValueType()));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_name_));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(column_name_));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
@@ -92,7 +130,9 @@ class ColumnValueExpression : public AbstractExpression {
   }
 
   bool operator==(const AbstractExpression &rhs) const override {
-    if (!AbstractExpression::operator==(rhs)) return false;
+    if (GetExpressionType() != rhs.GetExpressionType()) return false;
+    if (GetReturnValueType() != rhs.GetReturnValueType()) return false;
+
     auto const &other = dynamic_cast<const ColumnValueExpression &>(rhs);
     if (GetColumnName() != other.GetColumnName()) return false;
     if (GetTableName() != other.GetTableName()) return false;
@@ -168,5 +208,4 @@ class ColumnValueExpression : public AbstractExpression {
 
 DEFINE_JSON_DECLARATIONS(ColumnValueExpression);
 
-}  // namespace parser
-}  // namespace terrier
+}  // namespace terrier::parser

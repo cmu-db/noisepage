@@ -14,10 +14,6 @@ namespace terrier {
  * Please do not use these as a model for other tests within this repository.
  */
 struct BwTreeTests : public TerrierTest {
-  void SetUp() override { TerrierTest::SetUp(); }
-
-  void TearDown() override { TerrierTest::TearDown(); }
-
   const uint32_t num_threads_ =
       MultiThreadTestUtil::HardwareConcurrency() + (MultiThreadTestUtil::HardwareConcurrency() % 2);
 };

@@ -1,12 +1,12 @@
 #include <vector>
+
 #include "benchmark/benchmark.h"
 #include "catalog/catalog_accessor.h"
 #include "common/scoped_timer.h"
-#include "storage/garbage_collector_thread.h"
+#include "main/db_main.h"
 #include "storage/recovery/disk_log_provider.h"
 #include "storage/recovery/recovery_manager.h"
 #include "storage/storage_defs.h"
-#include "storage/write_ahead_log/log_manager.h"
 #include "test_util/sql_table_test_util.h"
 
 #define LOG_FILE_NAME "/mnt/ramdisk/benchmark.txt"
@@ -21,18 +21,8 @@ class RecoveryBenchmark : public benchmark::Fixture {
   const uint32_t initial_table_size_ = 1000000;
   const uint32_t num_txns_ = 100000;
   const uint32_t num_indexes_ = 5;
-  storage::BlockStore block_store_{1000, 1000};
-  storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   std::default_random_engine generator_;
   const uint32_t num_concurrent_txns_ = 4;
-  const std::chrono::milliseconds gc_period_{10};
-  common::DedicatedThreadRegistry *thread_registry_;
-
-  // Settings for log manager
-  const uint64_t num_log_buffers_ = 100;
-  const std::chrono::microseconds log_serialization_interval_{5};
-  const std::chrono::milliseconds log_persist_interval_{10};
-  const uint64_t log_persist_threshold_ = (1u << 20u);  // 1MB
 
   /**
    * Runs the recovery benchmark with the provided config
@@ -45,42 +35,45 @@ class RecoveryBenchmark : public benchmark::Fixture {
       // Blow away log file after every benchmark iteration
       unlink(LOG_FILE_NAME);
       // Initialize table and run workload with logging enabled
-      thread_registry_ = new common::DedicatedThreadRegistry(DISABLED);
-      storage::LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
-                                      log_persist_interval_, log_persist_threshold_, &buffer_pool_,
-                                      common::ManagedPointer(thread_registry_));
-      log_manager.Start();
-
-      transaction::TimestampManager timestamp_manager;
-      transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
-      transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
-                                                  &log_manager);
-      catalog::Catalog catalog(&txn_manager, &block_store_);
-      storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
-      auto gc_thread = new storage::GarbageCollectorThread(&gc, gc_period_);  // Enable background GC
+      auto db_main = terrier::DBMain::Builder()
+                         .SetLogFilePath(LOG_FILE_NAME)
+                         .SetUseLogging(true)
+                         .SetUseGC(true)
+                         .SetUseGCThread(true)
+                         .SetUseCatalog(true)
+                         .SetRecordBufferSegmentSize(1e6)
+                         .SetRecordBufferSegmentReuse(1e6)
+                         .Build();
+      auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+      auto log_manager = db_main->GetLogManager();
+      auto block_store = db_main->GetStorageLayer()->GetBlockStore();
+      auto catalog = db_main->GetCatalogLayer()->GetCatalog();
 
       // Run the test object and log all transactions
-      auto *tested = new LargeSqlTableTestObject(config, &txn_manager, &catalog, &block_store_, &generator_);
+      auto *tested =
+          new LargeSqlTableTestObject(config, txn_manager.Get(), catalog.Get(), block_store.Get(), &generator_);
       tested->SimulateOltp(num_txns_, num_concurrent_txns_);
-      log_manager.ForceFlush();
+      log_manager->ForceFlush();
 
       // Start a new components with logging disabled, we don't want to log the log replaying
-      transaction::TimestampManager recovery_timestamp_manager;
-      transaction::DeferredActionManager recovery_deferred_action_manager(&recovery_timestamp_manager);
-      transaction::TransactionManager recovery_txn_manager{
-          &recovery_timestamp_manager, &recovery_deferred_action_manager, &buffer_pool_, true, DISABLED};
-      storage::GarbageCollector recovery_gc(&recovery_timestamp_manager, &recovery_deferred_action_manager,
-                                            &recovery_txn_manager, DISABLED);
-      auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_gc, gc_period_);  // Enable background GC
-
-      // Create catalog for recovery
-      catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
+      auto recovery_db_main = DBMain::Builder()
+                                  .SetUseThreadRegistry(true)
+                                  .SetUseGC(true)
+                                  .SetUseGCThread(true)
+                                  .SetUseCatalog(true)
+                                  .SetCreateDefaultDatabase(false)
+                                  .Build();
+      auto recovery_txn_manager = recovery_db_main->GetTransactionLayer()->GetTransactionManager();
+      auto recovery_deferred_action_manager = recovery_db_main->GetTransactionLayer()->GetDeferredActionManager();
+      auto recovery_block_store = recovery_db_main->GetStorageLayer()->GetBlockStore();
+      auto recovery_catalog = recovery_db_main->GetCatalogLayer()->GetCatalog();
+      auto recovery_thread_registry = recovery_db_main->GetThreadRegistry();
 
       // Instantiate recovery manager, and recover the tables.
       storage::DiskLogProvider log_provider(LOG_FILE_NAME);
-      storage::RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog),
-                                                &recovery_txn_manager, &recovery_deferred_action_manager,
-                                                common::ManagedPointer(thread_registry_), &block_store_);
+      storage::RecoveryManager recovery_manager(
+          common::ManagedPointer<storage::AbstractLogProvider>(&log_provider), recovery_catalog, recovery_txn_manager,
+          recovery_deferred_action_manager, recovery_thread_registry, recovery_block_store);
 
       uint64_t elapsed_ms;
       {
@@ -91,18 +84,9 @@ class RecoveryBenchmark : public benchmark::Fixture {
 
       state->SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 
-      // Clean up recovered data
-      recovered_catalog.TearDown();
-      delete recovery_gc_thread;
-      deferred_action_manager.FullyPerformGC(&recovery_gc, DISABLED);
-
-      // Clean up test data
-      catalog.TearDown();
-      delete tested;
-      delete gc_thread;
-      deferred_action_manager.FullyPerformGC(&gc, &log_manager);
-      log_manager.PersistAndStop();
-      delete thread_registry_;
+      // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
+      // DeferredAction
+      db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; });
     }
     state->SetItemsProcessed(num_txns_ * state->iterations());
   }
@@ -160,23 +144,24 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     // Blow away log file after every benchmark iteration
     unlink(LOG_FILE_NAME);
     // Initialize table and run workload with logging enabled
-    thread_registry_ = new common::DedicatedThreadRegistry(DISABLED);
-    storage::LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                                    log_persist_threshold_, &buffer_pool_, common::ManagedPointer(thread_registry_));
-    log_manager.Start();
-
-    transaction::TimestampManager timestamp_manager;
-    transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
-    transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
-                                                &log_manager);
-    catalog::Catalog catalog(&txn_manager, &block_store_);
-    storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
-    auto gc_thread = new storage::GarbageCollectorThread(&gc, gc_period_);  // Enable background GC
+    auto db_main = terrier::DBMain::Builder()
+                       .SetLogFilePath(LOG_FILE_NAME)
+                       .SetUseLogging(true)
+                       .SetUseGC(true)
+                       .SetUseGCThread(true)
+                       .SetUseCatalog(true)
+                       .SetRecordBufferSegmentSize(1e6)
+                       .SetRecordBufferSegmentReuse(1e6)
+                       .Build();
+    auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+    auto log_manager = db_main->GetLogManager();
+    auto block_store = db_main->GetStorageLayer()->GetBlockStore();
+    auto catalog = db_main->GetCatalogLayer()->GetCatalog();
 
     // Create database, namespace, and table
-    auto *txn = txn_manager.BeginTransaction();
-    auto db_oid = catalog.CreateDatabase(txn, db_name, true);
-    auto catalog_accessor = catalog.GetAccessor(txn, db_oid);
+    auto *txn = txn_manager->BeginTransaction();
+    auto db_oid = catalog->CreateDatabase(txn, db_name, true);
+    auto catalog_accessor = catalog->GetAccessor(txn, db_oid);
     auto namespace_oid = catalog_accessor->CreateNamespace(namespace_name);
 
     // Create random table
@@ -185,7 +170,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     catalog::Schema schema({col});
     auto table_oid = catalog_accessor->CreateTable(namespace_oid, table_name, schema);
     schema = catalog_accessor->GetSchema(table_oid);
-    auto *table = new storage::SqlTable(&block_store_, schema);
+    auto *table = new storage::SqlTable(block_store.Get(), schema);
     catalog_accessor->SetTablePointer(table_oid, table);
 
     // Create indexes on the table
@@ -200,7 +185,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
       auto *index = storage::index::IndexBuilder().SetKeySchema(index_schema).Build();
       catalog_accessor->SetIndexPointer(index_oid, index);
     }
-    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     auto initializer = table->InitializerForProjectedRow({schema.GetColumn(0).Oid()});
 
@@ -210,34 +195,36 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
       auto start_key = num_txns_ / num_concurrent_txns_ * id;
       auto end_key = start_key + num_txns_ / num_concurrent_txns_;
       for (auto key = start_key; key < end_key; key++) {
-        auto *txn = txn_manager.BeginTransaction();
+        auto *txn = txn_manager->BeginTransaction();
         auto redo_record = txn->StageWrite(db_oid, table_oid, initializer);
         *reinterpret_cast<int32_t *>(redo_record->Delta()->AccessForceNotNull(0)) = key;
         table->Insert(txn, redo_record);
-        txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+        txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
     };
     common::WorkerPool thread_pool(num_concurrent_txns_, {});
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_concurrent_txns_, workload);
-    log_manager.ForceFlush();
+    log_manager->ForceFlush();
 
     // Start a new components with logging disabled, we don't want to log the log replaying
-    transaction::TimestampManager recovery_timestamp_manager;
-    transaction::DeferredActionManager recovery_deferred_action_manager(&recovery_timestamp_manager);
-    transaction::TransactionManager recovery_txn_manager{&recovery_timestamp_manager, &recovery_deferred_action_manager,
-                                                         &buffer_pool_, true, DISABLED};
-    storage::GarbageCollector recovery_gc(&recovery_timestamp_manager, &recovery_deferred_action_manager,
-                                          &recovery_txn_manager, DISABLED);
-    auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_gc, gc_period_);  // Enable background GC
-
-    // Create catalog for recovery
-    catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
+    auto recovery_db_main = DBMain::Builder()
+                                .SetUseThreadRegistry(true)
+                                .SetUseGC(true)
+                                .SetUseGCThread(true)
+                                .SetUseCatalog(true)
+                                .SetCreateDefaultDatabase(false)
+                                .Build();
+    auto recovery_txn_manager = recovery_db_main->GetTransactionLayer()->GetTransactionManager();
+    auto recovery_deferred_action_manager = recovery_db_main->GetTransactionLayer()->GetDeferredActionManager();
+    auto recovery_block_store = recovery_db_main->GetStorageLayer()->GetBlockStore();
+    auto recovery_catalog = recovery_db_main->GetCatalogLayer()->GetCatalog();
+    auto recovery_thread_registry = recovery_db_main->GetThreadRegistry();
 
     // Instantiate recovery manager, and recover the tables.
     storage::DiskLogProvider log_provider(LOG_FILE_NAME);
-    storage::RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog),
-                                              &recovery_txn_manager, &recovery_deferred_action_manager,
-                                              common::ManagedPointer(thread_registry_), &block_store_);
+    storage::RecoveryManager recovery_manager(common::ManagedPointer<storage::AbstractLogProvider>(&log_provider),
+                                              recovery_catalog, recovery_txn_manager, recovery_deferred_action_manager,
+                                              recovery_thread_registry, recovery_block_store);
 
     uint64_t elapsed_ms;
     {
@@ -247,18 +234,6 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     }
 
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
-
-    // Clean up recovered data
-    recovered_catalog.TearDown();
-    delete recovery_gc_thread;
-    deferred_action_manager.FullyPerformGC(&recovery_gc, DISABLED);
-
-    // Clean up test data
-    catalog.TearDown();
-    delete gc_thread;
-    deferred_action_manager.FullyPerformGC(&gc, &log_manager);
-    log_manager.PersistAndStop();
-    delete thread_registry_;
   }
   state.SetItemsProcessed(num_txns_ * state.iterations());
 }

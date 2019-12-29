@@ -1,10 +1,12 @@
+#include "common/utility.h"
+
 #include <unistd.h>
+
 #include <cerrno>
 #include <string>
 #include <vector>
 
-#include "common/utility.h"
-#include "loggers/main_logger.h"
+#include "loggers/common_logger.h"
 #if __APPLE__
 extern "C" {
 #include <sys/cdefs.h>
@@ -42,7 +44,7 @@ int TerrierClose(int fd) {
 
   if (close_ret != 0) {
     auto error_message = TerrierErrorMessage();
-    LOG_DEBUG("Close failed on fd: %d, errno: %d [%s]", fd, errno, error_message.c_str());
+    COMMON_LOG_ERROR("Close failed on fd: %d, errno: %d [%s]", fd, errno, error_message.c_str());
   }
 
   return close_ret;

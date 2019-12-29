@@ -31,7 +31,7 @@ common::hash_t InsertPlanNode::Hash() const {
   // Values
   for (const auto &vals : values_) {
     for (const auto &val : vals) {
-      hash = common::HashUtil::CombineHashes(hash, val.Hash());
+      hash = common::HashUtil::CombineHashes(hash, val->Hash());
     }
   }
 
@@ -55,7 +55,13 @@ bool InsertPlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Values
   if (values_.size() != other.values_.size()) return false;
   for (size_t i = 0; i < values_.size(); i++) {
-    if (values_[i] != other.values_[i]) return false;
+    if (values_[i].size() != other.values_[i].size()) return false;
+
+    auto &tuple = values_[i];
+    auto &other_tuple = other.values_[i];
+    for (size_t j = 0; j < tuple.size(); j++) {
+      if (*tuple[j] != *other_tuple[j]) return false;
+    }
   }
 
   // Parameter info
@@ -84,7 +90,21 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> InsertPlanNode::FromJso
   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
   namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
   table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
-  values_ = j.at("values").get<std::vector<std::vector<type::TransientValue>>>();
+
+  values_ = std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>();
+  auto values = j.at("values").get<std::vector<std::vector<nlohmann::json>>>();
+  for (auto &vec : values) {
+    auto tuple = std::vector<common::ManagedPointer<parser::AbstractExpression>>();
+    for (const auto &json : vec) {
+      auto deserialized = parser::DeserializeExpression(json);
+      tuple.emplace_back(common::ManagedPointer(deserialized.result_));
+      exprs.emplace_back(std::move(deserialized.result_));
+      exprs.insert(exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
+                   std::make_move_iterator(deserialized.non_owned_exprs_.end()));
+    }
+    values_.push_back(std::move(tuple));
+  }
+
   parameter_info_ = j.at("parameter_info").get<std::vector<catalog::col_oid_t>>();
   return exprs;
 }

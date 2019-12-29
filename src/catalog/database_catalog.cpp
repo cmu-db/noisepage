@@ -1844,6 +1844,7 @@ Column DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr, const storag
   Column col = (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY)
                    ? Column(name, col_type, col_len, col_null, *expr)
                    : Column(name, col_type, col_null, *expr);
+
   col.SetOid(ColOid(col_oid));
   return col;
 }

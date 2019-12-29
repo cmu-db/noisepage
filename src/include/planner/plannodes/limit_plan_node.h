@@ -91,12 +91,12 @@ class LimitPlanNode : public AbstractPlanNode {
   /**
    * @return number to limit to
    */
-  size_t GetLimit() { return limit_; }
+  size_t GetLimit() const { return limit_; }
 
   /**
    * @return offset for where to limit from
    */
-  size_t GetOffset() { return offset_; }
+  size_t GetOffset() const { return offset_; }
 
   /**
    * @return the hashed value of this plan node

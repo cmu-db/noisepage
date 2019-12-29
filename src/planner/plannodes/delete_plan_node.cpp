@@ -20,9 +20,6 @@ common::hash_t DeletePlanNode::Hash() const {
   // Hash table_oid
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
 
-  // Hash delete_condition
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(delete_condition_->Hash()));
-
   return hash;
 }
 
@@ -40,9 +37,6 @@ bool DeletePlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Table OID
   if (table_oid_ != other.table_oid_) return false;
 
-  // Delete condition
-  if (*GetDeleteCondition() != *other.GetDeleteCondition()) return false;
-
   return true;
 }
 
@@ -51,7 +45,6 @@ nlohmann::json DeletePlanNode::ToJson() const {
   j["database_oid"] = database_oid_;
   j["namespace_oid"] = namespace_oid_;
   j["table_oid"] = table_oid_;
-  j["delete_condition"] = delete_condition_ == nullptr ? nlohmann::json(nullptr) : delete_condition_->ToJson();
   return j;
 }
 
@@ -62,13 +55,6 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> DeletePlanNode::FromJso
   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
   namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
   table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
-  if (!j.at("delete_condition").is_null()) {
-    auto deserialized = parser::DeserializeExpression(j.at("delete_condition"));
-    delete_condition_ = common::ManagedPointer(deserialized.result_);
-    exprs.emplace_back(std::move(deserialized.result_));
-    exprs.insert(exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
-                 std::make_move_iterator(deserialized.non_owned_exprs_.end()));
-  }
   return exprs;
 }
 

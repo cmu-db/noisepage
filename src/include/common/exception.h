@@ -18,8 +18,9 @@ namespace terrier {
 #define PARSER_EXCEPTION(msg) ParserException(msg, __FILE__, __LINE__)
 #define NETWORK_PROCESS_EXCEPTION(msg) NetworkProcessException(msg, __FILE__, __LINE__)
 #define SETTINGS_EXCEPTION(msg) SettingsException(msg, __FILE__, __LINE__)
+#define OPTIMIZER_EXCEPTION(msg) OptimizerException(msg, __FILE__, __LINE__)
+#define SYNTAX_EXCEPTION(msg) SyntaxException(msg, __FILE__, __LINE__)
 #define BINDER_EXCEPTION(msg) BinderException(msg, __FILE__, __LINE__)
-#define OPTIMIZER_EXCEPTION(msg) BinderException(msg, __FILE__, __LINE__)
 
 /**
  * Exception types
@@ -31,9 +32,10 @@ enum class ExceptionType : uint8_t {
   CATALOG,
   CONVERSION,
   NETWORK,
-  OPTIMIZER,
   PARSER,
-  SETTINGS
+  SETTINGS,
+  OPTIMIZER,
+  SYNTAX
 };
 
 /**
@@ -129,8 +131,9 @@ DEFINE_EXCEPTION(CatalogException, ExceptionType::CATALOG);
 DEFINE_EXCEPTION(ParserException, ExceptionType::PARSER);
 DEFINE_EXCEPTION(NetworkProcessException, ExceptionType::NETWORK);
 DEFINE_EXCEPTION(SettingsException, ExceptionType::SETTINGS);
-DEFINE_EXCEPTION(ConversionException, ExceptionType::CONVERSION);
-DEFINE_EXCEPTION(BinderException, ExceptionType::BINDER);
 DEFINE_EXCEPTION(OptimizerException, ExceptionType::OPTIMIZER);
+DEFINE_EXCEPTION(ConversionException, ExceptionType::CONVERSION);
+DEFINE_EXCEPTION(SyntaxException, ExceptionType::SYNTAX);
+DEFINE_EXCEPTION(BinderException, ExceptionType::BINDER);
 
 }  // namespace terrier

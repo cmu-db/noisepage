@@ -11,7 +11,9 @@ common::hash_t OrderByPlanNode::Hash() const {
 
   // Sort Keys
   for (const auto &sort_key : sort_keys_) {
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sort_key.first));
+    if (sort_key.first != nullptr) {
+      hash = common::HashUtil::CombineHashes(hash, sort_key.first->Hash());
+    }
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sort_key.second));
   }
 
@@ -31,7 +33,16 @@ bool OrderByPlanNode::operator==(const AbstractPlanNode &rhs) const {
   auto &other = static_cast<const OrderByPlanNode &>(rhs);
 
   // Sort Keys
-  if (sort_keys_ != other.sort_keys_) return false;
+  if (sort_keys_.size() != other.sort_keys_.size()) return false;
+  for (auto i = 0U; i < sort_keys_.size(); i++) {
+    auto &sort_key = sort_keys_[i];
+    auto &other_sort_key = other.sort_keys_[i];
+    if (sort_key.second != other_sort_key.second) return false;
+    if ((sort_key.first == nullptr && other_sort_key.first != nullptr) ||
+        (sort_key.first != nullptr && other_sort_key.first == nullptr))
+      return false;
+    if (sort_key.first != nullptr && *sort_key.first != *other_sort_key.first) return false;
+  }
 
   //  Inlined Limit Stuff
   if (has_limit_ != other.has_limit_) return false;
@@ -48,7 +59,13 @@ bool OrderByPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
 nlohmann::json OrderByPlanNode::ToJson() const {
   nlohmann::json j = AbstractPlanNode::ToJson();
-  j["sort_keys"] = sort_keys_;
+
+  std::vector<std::pair<nlohmann::json, optimizer::OrderByOrderingType>> sort_keys;
+  sort_keys.reserve(sort_keys_.size());
+  for (const auto &key : sort_keys_) {
+    sort_keys.emplace_back(key.first->ToJson(), key.second);
+  }
+  j["sort_keys"] = sort_keys;
   j["has_limit"] = has_limit_;
   j["limit"] = limit_;
   j["offset"] = offset_;
@@ -59,7 +76,17 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> OrderByPlanNode::FromJs
   std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
   auto e1 = AbstractPlanNode::FromJson(j);
   exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
-  sort_keys_ = j.at("sort_keys").get<std::vector<SortKey>>();
+
+  // Deserialize sort keys
+  auto sort_keys = j.at("sort_keys").get<std::vector<std::pair<nlohmann::json, optimizer::OrderByOrderingType>>>();
+  for (const auto &key_json : sort_keys) {
+    auto deserialized = parser::DeserializeExpression(key_json.first);
+    sort_keys_.emplace_back(common::ManagedPointer(deserialized.result_), key_json.second);
+    exprs.emplace_back(std::move(deserialized.result_));
+    exprs.insert(exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
+                 std::make_move_iterator(deserialized.non_owned_exprs_.end()));
+  }
+
   has_limit_ = j.at("has_limit").get<bool>();
   limit_ = j.at("limit").get<size_t>();
   offset_ = j.at("offset").get<size_t>();

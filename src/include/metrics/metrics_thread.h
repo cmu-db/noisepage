@@ -2,6 +2,7 @@
 
 #include <chrono>  //NOLINT
 #include <thread>  //NOLINT
+
 #include "metrics/metrics_manager.h"
 
 namespace terrier::metrics {
@@ -13,10 +14,13 @@ namespace terrier::metrics {
 class MetricsThread {
  public:
   /**
+   * @param metrics_manager pointer to the object to be run on this thread
    * @param metrics_period sleep time between metrics invocations
    */
-  MetricsThread(std::chrono::milliseconds metrics_period)  // NOLINT
-      : run_metrics_(true),
+  MetricsThread(common::ManagedPointer<MetricsManager> metrics_manager,
+                const std::chrono::milliseconds metrics_period)  // NOLINT
+      : metrics_manager_(metrics_manager),
+        run_metrics_(true),
         metrics_paused_(false),
         metrics_period_(metrics_period),
         metrics_thread_(std::thread([this] { MetricsThreadLoop(); })) {}
@@ -24,7 +28,7 @@ class MetricsThread {
   ~MetricsThread() {
     run_metrics_ = false;
     metrics_thread_.join();
-    metrics_manager_.ToCSV();
+    metrics_manager_->ToCSV();
   }
 
   /**
@@ -46,10 +50,10 @@ class MetricsThread {
   /**
    * @return the underlying metrics manager object.
    */
-  metrics::MetricsManager &GetMetricsManager() { return metrics_manager_; }
+  common::ManagedPointer<metrics::MetricsManager> GetMetricsManager() { return metrics_manager_; }
 
  private:
-  metrics::MetricsManager metrics_manager_;
+  const common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
   volatile bool run_metrics_;
   volatile bool metrics_paused_;
   std::chrono::milliseconds metrics_period_;
@@ -59,8 +63,8 @@ class MetricsThread {
     while (run_metrics_) {
       std::this_thread::sleep_for(metrics_period_);
       if (!metrics_paused_) {
-        metrics_manager_.Aggregate();
-        metrics_manager_.ToCSV();
+        metrics_manager_->Aggregate();
+        metrics_manager_->ToCSV();
       }
     }
   }
