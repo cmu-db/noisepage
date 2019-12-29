@@ -396,11 +396,14 @@ TEST_F(ParserTestBase, SelectTest) {
   // CheckTable(select_stmt->from_->table_info_, std::string("foo"));
   EXPECT_EQ(select_stmt->GetSelectColumns()[0]->GetExpressionType(), ExpressionType::STAR);
 
-  result = pgparser_.BuildParseTree("SELECT id FROM foo LIMIT 1 OFFSET 1;");
-  EXPECT_EQ(result.GetStatement(0)->GetType(), StatementType::SELECT);
-  select_stmt = result.GetStatement(0).CastManagedPointerTo<SelectStatement>();
-  EXPECT_EQ(select_stmt->GetSelectLimit()->GetLimit(), 1);
-  EXPECT_EQ(select_stmt->GetSelectLimit()->GetOffset(), 1);
+  auto result2 = pgparser_.BuildParseTree("SELECT id FROM foo LIMIT 1 OFFSET 1;");
+  EXPECT_EQ(result2.GetStatement(0)->GetType(), StatementType::SELECT);
+  auto select_stmt_2 = result2.GetStatement(0).CastManagedPointerTo<SelectStatement>();
+  EXPECT_EQ(select_stmt_2->GetSelectLimit()->GetLimit(), 1);
+  EXPECT_EQ(select_stmt_2->GetSelectLimit()->GetOffset(), 1);
+
+  EXPECT_NE(*select_stmt, *select_stmt_2);
+  EXPECT_NE(select_stmt->Hash(), select_stmt_2->Hash());
 }
 
 // NOLINTNEXTLINE
@@ -743,6 +746,11 @@ TEST_F(ParserTestBase, OldGroupByTest) {
   EXPECT_EQ("id", name_exp->GetColumnName());
   EXPECT_EQ(type::TypeId::INTEGER, value_exp->GetValue().Type());
   EXPECT_EQ(10, type::TransientValuePeeker::PeekInteger(value_exp->GetValue()));
+
+  auto result2 = pgparser_.BuildParseTree(query);
+  auto statement_2 = result2.GetStatement(0).CastManagedPointerTo<SelectStatement>();
+  EXPECT_TRUE(*statement == *statement_2);
+  EXPECT_EQ(statement->Hash(), statement_2->Hash());
 }
 
 // NOLINTNEXTLINE

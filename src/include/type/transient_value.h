@@ -14,6 +14,10 @@ namespace terrier::parser {
 class ConstantValueExpression;
 }
 
+namespace terrier::planner {
+struct CheckInfo;
+}  // namespace terrier::planner
+
 namespace terrier::optimizer {
 class PlanGenerator;
 class IndexScan;
@@ -38,6 +42,7 @@ class TransientValue {
   friend class TransientValueFactory;                     // Access to constructor
   friend class TransientValuePeeker;                      // Access to GetAs
   friend class terrier::parser::ConstantValueExpression;  // Access to copy constructor, json methods
+  friend struct terrier::planner::CheckInfo;              // Access to copy constructor
 
   friend class terrier::optimizer::PlanGenerator;  // Access to copy constructor
   friend class terrier::optimizer::IndexScan;      // Access to copy constructor
