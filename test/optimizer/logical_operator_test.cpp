@@ -990,4 +990,616 @@ TEST(OperatorTests, LogicalAggregateAndGroupByTest) {
   delete expr_b_8;
 }
 
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalCreateDatabaseTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalCreateDatabase
+  //===--------------------------------------------------------------------===//
+  Operator op1 = LogicalCreateDatabase::Make("testdb");
+  Operator op2 = LogicalCreateDatabase::Make("testdb");
+  Operator op3 = LogicalCreateDatabase::Make("another_testdb");
+
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALCREATEDATABASE);
+  EXPECT_EQ(op3.GetType(), OpType::LOGICALCREATEDATABASE);
+  EXPECT_EQ(op1.GetName(), "LogicalCreateDatabase");
+  EXPECT_EQ(op1.As<LogicalCreateDatabase>()->GetDatabaseName(), "testdb");
+  EXPECT_EQ(op3.As<LogicalCreateDatabase>()->GetDatabaseName(), "another_testdb");
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalCreateFunctionTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalCreateFunction
+  //===--------------------------------------------------------------------===//
+  Operator op1 = LogicalCreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALCREATEFUNCTION);
+  EXPECT_EQ(op1.GetName(), "LogicalCreateFunction");
+  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetDatabaseOid(), catalog::db_oid_t(1));
+  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetFunctionName(), "function1");
+  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetUDFLanguage(), parser::PLType::PL_C);
+  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetFunctionBody(), std::vector<std::string>{});
+  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetFunctionParameterNames(), std::vector<std::string>{"param"});
+  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetFunctionParameterTypes(),
+            std::vector<parser::BaseFunctionParameter::DataType>{parser::BaseFunctionParameter::DataType::INTEGER});
+  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetReturnType(), parser::BaseFunctionParameter::DataType::BOOLEAN);
+  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetParamCount(), 1);
+  EXPECT_FALSE(op1.As<LogicalCreateFunction>()->IsReplace());
+
+  Operator op2 = LogicalCreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 = LogicalCreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(3), "function1", parser::PLType::PL_C, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+  EXPECT_TRUE(op1 != op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 = LogicalCreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function4", parser::PLType::PL_C, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op1.Hash(), op4.Hash());
+
+  Operator op5 = LogicalCreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_PGSQL, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  Operator op6 =
+      LogicalCreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C,
+                                  {"body", "body2"}, {"param"}, {parser::BaseFunctionParameter::DataType::INTEGER},
+                                  parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+
+  Operator op7 = LogicalCreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param1", "param2"},
+      {parser::BaseFunctionParameter::DataType::INTEGER, parser::BaseFunctionParameter::DataType::BOOLEAN},
+      parser::BaseFunctionParameter::DataType::BOOLEAN, 2, false);
+  EXPECT_FALSE(op1 == op7);
+  EXPECT_NE(op1.Hash(), op7.Hash());
+
+  Operator op8 =
+      LogicalCreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C,
+                                  {}, {}, {}, parser::BaseFunctionParameter::DataType::BOOLEAN, 0, false);
+  EXPECT_FALSE(op1 == op8);
+  EXPECT_NE(op1.Hash(), op8.Hash());
+
+  Operator op9 = LogicalCreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::VARCHAR}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+  EXPECT_FALSE(op1 == op9);
+  EXPECT_NE(op1.Hash(), op9.Hash());
+
+  Operator op10 = LogicalCreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::INTEGER, 1, false);
+  EXPECT_FALSE(op1 == op10);
+  EXPECT_NE(op1.Hash(), op10.Hash());
+
+  Operator op11 = LogicalCreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, true);
+  EXPECT_FALSE(op1 == op11);
+  EXPECT_NE(op1.Hash(), op11.Hash());
+
+#ifndef NDEBUG
+  EXPECT_DEATH(
+      LogicalCreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C,
+                                  {}, {"param", "PARAM"}, {parser::BaseFunctionParameter::DataType::INTEGER},
+                                  parser::BaseFunctionParameter::DataType::BOOLEAN, 1, true),
+      "Mismatched");
+#endif
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalCreateIndexTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalCreateIndex
+  //===--------------------------------------------------------------------===//
+  Operator op1 =
+      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
+                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{});
+
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALCREATEINDEX);
+  EXPECT_EQ(op1.GetName(), "LogicalCreateIndex");
+  EXPECT_EQ(op1.As<LogicalCreateIndex>()->GetIndexName(), "index_1");
+  EXPECT_EQ(op1.As<LogicalCreateIndex>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.As<LogicalCreateIndex>()->GetTableOid(), catalog::table_oid_t(1));
+  EXPECT_EQ(op1.As<LogicalCreateIndex>()->GetIndexType(), parser::IndexType::BWTREE);
+  EXPECT_EQ(op1.As<LogicalCreateIndex>()->GetIndexAttr(),
+            std::vector<common::ManagedPointer<parser::AbstractExpression>>{});
+  EXPECT_EQ(op1.As<LogicalCreateIndex>()->IsUnique(), true);
+
+  Operator op2 =
+      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
+                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{});
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> raw_values = {
+      common::ManagedPointer<parser::AbstractExpression>(
+          new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1))),
+      common::ManagedPointer<parser::AbstractExpression>(
+          new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9)))};
+  auto raw_values_copy = raw_values;
+  Operator op3 = LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                          parser::IndexType::BWTREE, true, "index_1", std::move(raw_values_copy));
+  EXPECT_EQ(op3.As<LogicalCreateIndex>()->GetIndexAttr(), raw_values);
+  EXPECT_FALSE(op3 == op1);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  auto raw_values_copy2 = raw_values;
+  Operator op4 = LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                          parser::IndexType::BWTREE, true, "index_1", std::move(raw_values_copy2));
+  EXPECT_EQ(op4.As<LogicalCreateIndex>()->GetIndexAttr(), raw_values);
+  EXPECT_TRUE(op3 == op4);
+  EXPECT_EQ(op4.Hash(), op3.Hash());
+
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> raw_values_2 = {
+      common::ManagedPointer<parser::AbstractExpression>(
+          new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true))),
+      common::ManagedPointer<parser::AbstractExpression>(
+          new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9)))};
+  auto raw_values_copy3 = raw_values_2;
+  Operator op10 = LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                           parser::IndexType::BWTREE, true, "index_1", std::move(raw_values_copy3));
+  EXPECT_EQ(op10.As<LogicalCreateIndex>()->GetIndexAttr(), raw_values_2);
+  EXPECT_FALSE(op3 == op10);
+  EXPECT_NE(op10.Hash(), op3.Hash());
+
+  Operator op5 =
+      LogicalCreateIndex::Make(catalog::namespace_oid_t(2), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
+                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{});
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  Operator op6 =
+      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(2), parser::IndexType::BWTREE, true,
+                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{});
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+
+  Operator op7 =
+      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::HASH, true,
+                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{});
+  EXPECT_FALSE(op1 == op7);
+  EXPECT_NE(op1.Hash(), op7.Hash());
+
+  Operator op8 =
+      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, false,
+                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{});
+  EXPECT_FALSE(op1 == op8);
+  EXPECT_NE(op1.Hash(), op8.Hash());
+
+  Operator op9 =
+      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
+                               "index_2", std::vector<common::ManagedPointer<parser::AbstractExpression>>{});
+  EXPECT_FALSE(op1 == op9);
+  EXPECT_NE(op1.Hash(), op9.Hash());
+
+  for (auto entry : raw_values) delete entry.Get();
+  for (auto entry : raw_values_2) delete entry.Get();
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalCreateTableTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalCreateTable
+  //===--------------------------------------------------------------------===//
+  auto col_def =
+      new parser::ColumnDefinition("col_1", parser::ColumnDefinition::DataType::INTEGER, true, true, true,
+                                   common::ManagedPointer<parser::AbstractExpression>(
+                                       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9))),
+                                   nullptr, 4);
+  Operator op1 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_1",
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
+                                              common::ManagedPointer<parser::ColumnDefinition>(col_def)},
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALCREATETABLE);
+  EXPECT_EQ(op1.GetName(), "LogicalCreateTable");
+  EXPECT_EQ(op1.As<LogicalCreateTable>()->GetTableName(), "Table_1");
+  EXPECT_EQ(op1.As<LogicalCreateTable>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.As<LogicalCreateTable>()->GetForeignKeys(),
+            std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+  EXPECT_EQ(op1.As<LogicalCreateTable>()->GetColumns().size(), 1);
+  EXPECT_EQ(*op1.As<LogicalCreateTable>()->GetColumns().at(0), *col_def);
+
+  Operator op2 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_1",
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
+                                              common::ManagedPointer<parser::ColumnDefinition>(col_def)},
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 = LogicalCreateTable::Make(catalog::namespace_oid_t(2), "Table_1",
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
+                                              common::ManagedPointer<parser::ColumnDefinition>(col_def)},
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_2",
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
+                                              common::ManagedPointer<parser::ColumnDefinition>(col_def)},
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op1.Hash(), op4.Hash());
+
+  Operator op5 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_1",
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
+                                              common::ManagedPointer<parser::ColumnDefinition>(col_def),
+                                              common::ManagedPointer<parser::ColumnDefinition>(col_def)},
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  Operator op6 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_1",
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{},
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+
+  auto col_def_2 = new parser::ColumnDefinition(
+      "col_1", parser::ColumnDefinition::DataType::VARCHAR, true, true, true,
+      common::ManagedPointer<parser::AbstractExpression>(
+          new parser::ConstantValueExpression(type::TransientValueFactory::GetVarChar("col"))),
+      nullptr, 20);
+  Operator op7 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_2",
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
+                                              common::ManagedPointer<parser::ColumnDefinition>(col_def_2)},
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+  EXPECT_FALSE(op1 == op7);
+  EXPECT_NE(op1.Hash(), op7.Hash());
+
+  auto foreign_def =
+      new parser::ColumnDefinition({"foreign_col_1"}, {"col_1"}, "foreign", parser::FKConstrActionType::SETNULL,
+                                   parser::FKConstrActionType::CASCADE, parser::FKConstrMatchType::FULL);
+  Operator op8 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_1",
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
+                                              common::ManagedPointer<parser::ColumnDefinition>(col_def)},
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
+                                              common::ManagedPointer<parser::ColumnDefinition>(foreign_def)});
+  EXPECT_FALSE(op1 == op8);
+  EXPECT_NE(op1.Hash(), op8.Hash());
+  EXPECT_EQ(op8.As<LogicalCreateTable>()->GetForeignKeys().size(), 1);
+  EXPECT_EQ(*op8.As<LogicalCreateTable>()->GetForeignKeys().at(0), *foreign_def);
+
+  delete col_def->GetDefaultExpression().Get();
+  delete col_def;
+  delete col_def_2->GetDefaultExpression().Get();
+  delete col_def_2;
+  delete foreign_def;
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalCreateNamespaceTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalCreateNamespace
+  //===--------------------------------------------------------------------===//
+  Operator op1 = LogicalCreateNamespace::Make("testns");
+  Operator op2 = LogicalCreateNamespace::Make("testns");
+  Operator op3 = LogicalCreateNamespace::Make("another_testns");
+
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALCREATENAMESPACE);
+  EXPECT_EQ(op3.GetType(), OpType::LOGICALCREATENAMESPACE);
+  EXPECT_EQ(op1.GetName(), "LogicalCreateNamespace");
+  EXPECT_EQ(op1.As<LogicalCreateNamespace>()->GetNamespaceName(), "testns");
+  EXPECT_EQ(op3.As<LogicalCreateNamespace>()->GetNamespaceName(), "another_testns");
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalCreateTriggerTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalCreateTrigger
+  //===--------------------------------------------------------------------===//
+  auto when = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
+  Operator op1 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                            "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALCREATETRIGGER);
+  EXPECT_EQ(op1.GetName(), "LogicalCreateTrigger");
+  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetTriggerName(), "Trigger_1");
+  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetTableOid(), catalog::table_oid_t(1));
+  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetDatabaseOid(), catalog::db_oid_t(1));
+  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetTriggerType(), 0);
+  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetTriggerFuncName(), std::vector<std::string>{});
+  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetTriggerArgs(), std::vector<std::string>{});
+  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetTriggerColumns(),
+            std::vector<catalog::col_oid_t>{catalog::col_oid_t(1)});
+
+  Operator op2 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                            "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 = LogicalCreateTrigger::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                            "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_FALSE(op3 == op1);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(1),
+                                            "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op4.Hash(), op3.Hash());
+
+  Operator op5 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(2),
+                                            "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  Operator op6 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                            "Trigger_2", {}, {}, {catalog::col_oid_t(1)},
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+
+  Operator op7 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                            "Trigger_1", {"func_name"}, {"func_arg"}, {catalog::col_oid_t(1)},
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_EQ(op7.As<LogicalCreateTrigger>()->GetTriggerFuncName(), std::vector<std::string>{"func_name"});
+  EXPECT_EQ(op7.As<LogicalCreateTrigger>()->GetTriggerArgs(), std::vector<std::string>{"func_arg"});
+  EXPECT_FALSE(op1 == op7);
+  EXPECT_NE(op1.Hash(), op7.Hash());
+
+  Operator op8 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                            "Trigger_1", {"func_name"}, {"func_arg"}, {catalog::col_oid_t(1)},
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_TRUE(op7 == op8);
+  EXPECT_EQ(op7.Hash(), op8.Hash());
+
+  Operator op9 =
+      LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                 "Trigger_1", {"func_name", "func_name"}, {"func_arg", "func_arg"},
+                                 {catalog::col_oid_t(1)}, common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_EQ(op9.As<LogicalCreateTrigger>()->GetTriggerFuncName(), std::vector<std::string>({"func_name", "func_name"}));
+  EXPECT_EQ(op9.As<LogicalCreateTrigger>()->GetTriggerArgs(), std::vector<std::string>({"func_arg", "func_arg"}));
+  EXPECT_FALSE(op1 == op9);
+  EXPECT_FALSE(op7 == op9);
+  EXPECT_NE(op1.Hash(), op9.Hash());
+  EXPECT_NE(op7.Hash(), op9.Hash());
+
+  Operator op10 =
+      LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                 "Trigger_1", {}, {}, {}, common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_FALSE(op10 == op1);
+  EXPECT_NE(op1.Hash(), op10.Hash());
+
+  auto when_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(2));
+  Operator op11 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                             "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
+                                             common::ManagedPointer<parser::AbstractExpression>(when_2), 0);
+  EXPECT_FALSE(op11 == op1);
+  EXPECT_NE(op1.Hash(), op11.Hash());
+
+  Operator op12 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                             "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
+                                             common::ManagedPointer<parser::AbstractExpression>(when), 9);
+  EXPECT_FALSE(op12 == op1);
+  EXPECT_NE(op1.Hash(), op12.Hash());
+
+  delete when;
+  delete when_2;
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalCreateViewTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalCreateView
+  //===--------------------------------------------------------------------===//
+  Operator op1 = LogicalCreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view", nullptr);
+
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALCREATEVIEW);
+  EXPECT_EQ(op1.GetName(), "LogicalCreateView");
+  EXPECT_EQ(op1.As<LogicalCreateView>()->GetViewName(), "test_view");
+  EXPECT_EQ(op1.As<LogicalCreateView>()->GetViewQuery(), nullptr);
+
+  Operator op2 = LogicalCreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view", nullptr);
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 = LogicalCreateView::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), "test_view", nullptr);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 = LogicalCreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), "test_view", nullptr);
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op1.Hash(), op4.Hash());
+
+  Operator op5 = LogicalCreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view_2", nullptr);
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  auto stmt = new parser::SelectStatement(std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, true,
+                                          nullptr, nullptr, nullptr, nullptr, nullptr);
+  Operator op6 = LogicalCreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view",
+                                         common::ManagedPointer<parser::SelectStatement>(stmt));
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+  delete stmt;
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalDropDatabaseTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalDropDatabase
+  //===--------------------------------------------------------------------===//
+  Operator op1 = LogicalDropDatabase::Make(catalog::db_oid_t(1));
+  Operator op2 = LogicalDropDatabase::Make(catalog::db_oid_t(1));
+  Operator op3 = LogicalDropDatabase::Make(catalog::db_oid_t(2));
+
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALDROPDATABASE);
+  EXPECT_EQ(op3.GetType(), OpType::LOGICALDROPDATABASE);
+  EXPECT_EQ(op1.GetName(), "LogicalDropDatabase");
+  EXPECT_EQ(op1.As<LogicalDropDatabase>()->GetDatabaseOID(), catalog::db_oid_t(1));
+  EXPECT_EQ(op3.As<LogicalDropDatabase>()->GetDatabaseOID(), catalog::db_oid_t(2));
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalDropTableTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalDropTable
+  //===--------------------------------------------------------------------===//
+  Operator op1 = LogicalDropTable::Make(catalog::table_oid_t(1));
+  Operator op2 = LogicalDropTable::Make(catalog::table_oid_t(1));
+  Operator op3 = LogicalDropTable::Make(catalog::table_oid_t(2));
+
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALDROPTABLE);
+  EXPECT_EQ(op3.GetType(), OpType::LOGICALDROPTABLE);
+  EXPECT_EQ(op1.GetName(), "LogicalDropTable");
+  EXPECT_EQ(op1.As<LogicalDropTable>()->GetTableOID(), catalog::table_oid_t(1));
+  EXPECT_EQ(op3.As<LogicalDropTable>()->GetTableOID(), catalog::table_oid_t(2));
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalDropIndexTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalDropIndex
+  //===--------------------------------------------------------------------===//
+  Operator op1 = LogicalDropIndex::Make(catalog::index_oid_t(1));
+  Operator op2 = LogicalDropIndex::Make(catalog::index_oid_t(1));
+  Operator op3 = LogicalDropIndex::Make(catalog::index_oid_t(2));
+
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALDROPINDEX);
+  EXPECT_EQ(op3.GetType(), OpType::LOGICALDROPINDEX);
+  EXPECT_EQ(op1.GetName(), "LogicalDropIndex");
+  EXPECT_EQ(op1.As<LogicalDropIndex>()->GetIndexOID(), catalog::index_oid_t(1));
+  EXPECT_EQ(op3.As<LogicalDropIndex>()->GetIndexOID(), catalog::index_oid_t(2));
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalDropNamespaceTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalDropNamespace
+  //===--------------------------------------------------------------------===//
+  Operator op1 = LogicalDropNamespace::Make(catalog::namespace_oid_t(1));
+  Operator op2 = LogicalDropNamespace::Make(catalog::namespace_oid_t(1));
+  Operator op3 = LogicalDropNamespace::Make(catalog::namespace_oid_t(2));
+
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALDROPNAMESPACE);
+  EXPECT_EQ(op3.GetType(), OpType::LOGICALDROPNAMESPACE);
+  EXPECT_EQ(op1.GetName(), "LogicalDropNamespace");
+  EXPECT_EQ(op1.As<LogicalDropNamespace>()->GetNamespaceOID(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op3.As<LogicalDropNamespace>()->GetNamespaceOID(), catalog::namespace_oid_t(2));
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalDropTriggerTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalDropTrigger
+  //===--------------------------------------------------------------------===//
+  Operator op1 =
+      LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false);
+
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALDROPTRIGGER);
+  EXPECT_EQ(op1.GetName(), "LogicalDropTrigger");
+  EXPECT_EQ(op1.As<LogicalDropTrigger>()->GetDatabaseOid(), catalog::db_oid_t(1));
+  EXPECT_EQ(op1.As<LogicalDropTrigger>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.As<LogicalDropTrigger>()->GetTriggerOid(), catalog::trigger_oid_t(1));
+  EXPECT_FALSE(op1.As<LogicalDropTrigger>()->IsIfExists());
+
+  Operator op2 =
+      LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false);
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 =
+      LogicalDropTrigger::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false);
+  EXPECT_TRUE(op1 != op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 =
+      LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::trigger_oid_t(1), false);
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op1.Hash(), op4.Hash());
+
+  Operator op5 =
+      LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(2), false);
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  Operator op6 =
+      LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), true);
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalDropViewTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalDropView
+  //===--------------------------------------------------------------------===//
+  Operator op1 =
+      LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false);
+
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALDROPVIEW);
+  EXPECT_EQ(op1.GetName(), "LogicalDropView");
+  EXPECT_EQ(op1.As<LogicalDropView>()->GetDatabaseOid(), catalog::db_oid_t(1));
+  EXPECT_EQ(op1.As<LogicalDropView>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.As<LogicalDropView>()->GetViewOid(), catalog::view_oid_t(1));
+  EXPECT_FALSE(op1.As<LogicalDropView>()->IsIfExists());
+
+  Operator op2 =
+      LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false);
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 =
+      LogicalDropView::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false);
+  EXPECT_TRUE(op1 != op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 =
+      LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::view_oid_t(1), false);
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op1.Hash(), op4.Hash());
+
+  Operator op5 =
+      LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(2), false);
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  Operator op6 = LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), true);
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+}
+
 }  // namespace terrier::optimizer

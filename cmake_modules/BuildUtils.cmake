@@ -298,6 +298,7 @@ function(ADD_TERRIER_TEST REL_TEST_NAME)
     add_executable(${TEST_NAME} "${REL_TEST_NAME}.cpp")
 
     target_link_libraries(${TEST_NAME} ${TERRIER_TEST_LINK_LIBS})
+    set_target_properties(${TEST_NAME} PROPERTIES ENABLE_EXPORTS 1)
 
     add_dependencies(unittest ${TEST_NAME})
   else ()
