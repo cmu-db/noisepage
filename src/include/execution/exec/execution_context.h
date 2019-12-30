@@ -2,6 +2,7 @@
 #include <memory>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_accessor.h"
 #include "execution/exec/output.h"
 #include "execution/sql/memory_pool.h"
@@ -124,6 +125,10 @@ class EXPORT ExecutionContext {
    */
   void SetParams(std::vector<type::TransientValue> &&params) { params_ = std::move(params); }
 
+  /**
+   * @param param_idx index of parameter to access
+   * @return immutable parameter at provided index
+   */
   const type::TransientValue &GetParam(uint32_t param_idx) const { return params_[param_idx]; }
 
  private:
