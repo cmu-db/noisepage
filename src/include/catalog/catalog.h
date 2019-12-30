@@ -38,7 +38,8 @@ class Catalog {
    * @warning The catalog requires garbage collection and will leak catalog
    * tables if it is disabled.
    */
-  Catalog(transaction::TransactionManager *txn_manager, storage::BlockStore *block_store);
+  Catalog(common::ManagedPointer<transaction::TransactionManager> txn_manager,
+          common::ManagedPointer<storage::BlockStore> block_store);
 
   /**
    * Handles destruction of the catalog's members by calling the destructor on
@@ -109,6 +110,7 @@ class Catalog {
   std::unique_ptr<CatalogAccessor> GetAccessor(transaction::TransactionContext *txn, db_oid_t database);
 
  private:
+  DISALLOW_COPY_AND_MOVE(Catalog);
   friend class storage::RecoveryManager;
   transaction::TransactionManager *txn_manager_;
   storage::BlockStore *catalog_block_store_;

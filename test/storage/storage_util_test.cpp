@@ -30,15 +30,9 @@ struct StorageUtilTests : public TerrierTest {
   const uint32_t num_iterations_ = 100;
 
  protected:
-  void SetUp() override {
-    TerrierTest::SetUp();
-    raw_block_ = block_store_.Get();
-  }
+  void SetUp() override { raw_block_ = block_store_.Get(); }
 
-  void TearDown() override {
-    block_store_.Release(raw_block_);
-    TerrierTest::TearDown();
-  }
+  void TearDown() override { block_store_.Release(raw_block_); }
 };
 
 // Generate a random projected row layout, copy a pointer location into a projected row, read it back from projected
@@ -149,7 +143,7 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     for (uint16_t delta_col_offset = 0; delta_col_offset < rand_initializer.NumColumns(); ++delta_col_offset) {
       storage::col_id_t col = rand_initializer.ColId(delta_col_offset);
       auto old_col_offset =
-          static_cast<uint16_t>(!col - NUM_RESERVED_COLUMNS);  // since all columns were in the old one
+          static_cast<uint16_t>(!col - storage::NUM_RESERVED_COLUMNS);  // since all columns were in the old one
       byte *delta_val_ptr = delta->AccessWithNullCheck(delta_col_offset);
       byte *old_val_ptr = old->AccessWithNullCheck(old_col_offset);
       if (delta_val_ptr == nullptr) {
@@ -163,7 +157,7 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     // check whether other cols have been polluted
     std::unordered_set<storage::col_id_t> changed_cols(rand_col_ids.begin(), rand_col_ids.end());
     for (uint16_t i = 0; i < old->NumColumns(); ++i) {
-      storage::col_id_t col_id(static_cast<uint16_t>(i + NUM_RESERVED_COLUMNS));
+      storage::col_id_t col_id(static_cast<uint16_t>(i + storage::NUM_RESERVED_COLUMNS));
       if (changed_cols.find(all_col_ids[i]) == changed_cols.end()) {
         byte *ptr = old->AccessWithNullCheck(i);
         if (ptr == nullptr) {

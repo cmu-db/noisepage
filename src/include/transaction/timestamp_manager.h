@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <unordered_set>
 #include <vector>
+
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
 #include "transaction/transaction_defs.h"
@@ -18,6 +19,11 @@ class TransactionManager;
  */
 class TimestampManager {
  public:
+  ~TimestampManager() {
+    TERRIER_ASSERT(curr_running_txns_.empty(),
+                   "Destroying the TimestampManager while txns are still running. That seems wrong.");
+  }
+
   /**
    * @return unique timestamp based on current time, and advances one tick
    */

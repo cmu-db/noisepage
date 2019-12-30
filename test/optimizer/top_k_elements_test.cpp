@@ -13,10 +13,7 @@
 namespace terrier::optimizer {
 
 class TopKElementsTests : public TerrierTest {
-  void SetUp() override {
-    TerrierTest::SetUp();
-    optimizer::optimizer_logger->set_level(spdlog::level::info);
-  }
+  void SetUp() override { optimizer::optimizer_logger->set_level(spdlog::level::info); }
 };
 
 // Check that we can do simple increments to the top-k trackre

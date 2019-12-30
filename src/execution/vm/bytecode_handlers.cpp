@@ -1,8 +1,8 @@
 #include "execution/vm/bytecode_handlers.h"
-#include "execution/sql/projected_columns_iterator.h"
 
 #include "catalog/catalog_defs.h"
 #include "execution/exec/execution_context.h"
+#include "execution/sql/projected_columns_iterator.h"
 
 extern "C" {
 
@@ -31,6 +31,11 @@ void OpTableVectorIteratorInit(terrier::execution::sql::TableVectorIterator *ite
 }
 
 void OpTableVectorIteratorPerformInit(terrier::execution::sql::TableVectorIterator *iter) { iter->Init(); }
+
+void OpTableVectorIteratorReset(terrier::execution::sql::TableVectorIterator *iter) {
+  TERRIER_ASSERT(iter != nullptr, "NULL iterator given to reset");
+  iter->Reset();
+}
 
 void OpTableVectorIteratorFree(terrier::execution::sql::TableVectorIterator *iter) {
   TERRIER_ASSERT(iter != nullptr, "NULL iterator given to close");
@@ -177,6 +182,56 @@ void OpSorterIteratorInit(terrier::execution::sql::SorterIterator *iter, terrier
 }
 
 void OpSorterIteratorFree(terrier::execution::sql::SorterIterator *iter) { iter->~SorterIterator(); }
+
+// -------------------------------------------------------------
+// StorageInterface Calls
+// -------------------------------------------------------------
+
+void OpStorageInterfaceInit(terrier::execution::sql::StorageInterface *storage_interface,
+                            terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
+                            uint32_t *col_oids, uint32_t num_oids, bool need_indexes) {
+  new (storage_interface) terrier::execution::sql::StorageInterface(exec_ctx, terrier::catalog::table_oid_t(table_oid),
+                                                                    col_oids, num_oids, need_indexes);
+}
+
+void OpStorageInterfaceGetTablePR(terrier::storage::ProjectedRow **pr_result,
+                                  terrier::execution::sql::StorageInterface *storage_interface) {
+  *pr_result = storage_interface->GetTablePR();
+}
+
+void OpStorageInterfaceTableUpdate(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
+                                   terrier::storage::TupleSlot *tuple_slot) {
+  *result = storage_interface->TableUpdate(*tuple_slot);
+}
+
+void OpStorageInterfaceTableDelete(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
+                                   terrier::storage::TupleSlot *tuple_slot) {
+  *result = storage_interface->TableDelete(*tuple_slot);
+}
+
+void OpStorageInterfaceTableInsert(terrier::storage::TupleSlot *tuple_slot,
+                                   terrier::execution::sql::StorageInterface *storage_interface) {
+  *tuple_slot = storage_interface->TableInsert();
+}
+
+void OpStorageInterfaceGetIndexPR(terrier::storage::ProjectedRow **pr_result,
+                                  terrier::execution::sql::StorageInterface *storage_interface, uint32_t index_oid) {
+  *pr_result = storage_interface->GetIndexPR(terrier::catalog::index_oid_t(index_oid));
+}
+
+void OpStorageInterfaceIndexInsert(bool *result, terrier::execution::sql::StorageInterface *storage_interface) {
+  *result = storage_interface->IndexInsert();
+}
+
+void OpStorageInterfaceIndexDelete(terrier::execution::sql::StorageInterface *storage_interface,
+                                   terrier::storage::TupleSlot *tuple_slot) {
+  storage_interface->IndexDelete(*tuple_slot);
+}
+
+void OpStorageInterfaceFree(terrier::execution::sql::StorageInterface *storage_interface) {
+  storage_interface->~StorageInterface();
+}
+
 // -------------------------------------------------------------
 // Output
 // ------------------------------------------------------------

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include "common/managed_pointer.h"
 #include "nlohmann/json.hpp"
 
 namespace terrier::common {
@@ -15,6 +16,13 @@ using json = nlohmann::json;
   inline void to_json(nlohmann::json &j, const std::unique_ptr<ClassName> c) {   /* NOLINT */  \
     if (c != nullptr) {                                                                        \
       j = *c;                                                                                  \
+    } else {                                                                                   \
+      j = nullptr;                                                                             \
+    }                                                                                          \
+  }                                                                                            \
+  inline void to_json(nlohmann::json &j, common::ManagedPointer<ClassName> c) { /* NOLINT */   \
+    if (c != nullptr) {                                                                        \
+      j = c->ToJson();                                                                         \
     } else {                                                                                   \
       j = nullptr;                                                                             \
     }                                                                                          \

@@ -2,6 +2,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "common/exception.h"
 #include "common/managed_pointer.h"
 #include "parser/expression/aggregate_expression.h"
@@ -15,7 +16,6 @@
 #include "parser/expression/type_cast_expression.h"
 #include "parser/pg_trigger.h"
 #include "parser/postgresparser.h"
-
 #include "test_util/test_harness.h"
 #include "type/transient_value_peeker.h"
 
@@ -27,13 +27,9 @@ class ParserTestBase : public TerrierTest {
    * Initialization
    */
   void SetUp() override {
-    InitMainLogger();
-    InitParserLogger();
     parser_logger->set_level(spdlog::level::debug);
     spdlog::flush_every(std::chrono::seconds(1));
   }
-
-  void TearDown() override { spdlog::shutdown(); }
 
   void CheckTable(const std::unique_ptr<TableInfo> &table_info, const std::string &table_name) {
     EXPECT_EQ(table_info->GetTableName(), table_name);
@@ -296,7 +292,7 @@ TEST_F(ParserTestBase, DropSchemaTest) {
 
   auto drop_stmt = result.GetStatement(0).CastManagedPointerTo<DropStatement>();
   EXPECT_EQ(drop_stmt->GetDropType(), DropStatement::DropType::kSchema);
-  EXPECT_EQ(drop_stmt->GetSchemaName(), "foo");
+  EXPECT_EQ(drop_stmt->GetNamespaceName(), "foo");
   EXPECT_TRUE(drop_stmt->IsCascade());
   EXPECT_TRUE(drop_stmt->IsIfExists());
 }
@@ -400,11 +396,14 @@ TEST_F(ParserTestBase, SelectTest) {
   // CheckTable(select_stmt->from_->table_info_, std::string("foo"));
   EXPECT_EQ(select_stmt->GetSelectColumns()[0]->GetExpressionType(), ExpressionType::STAR);
 
-  result = pgparser_.BuildParseTree("SELECT id FROM foo LIMIT 1 OFFSET 1;");
-  EXPECT_EQ(result.GetStatement(0)->GetType(), StatementType::SELECT);
-  select_stmt = result.GetStatement(0).CastManagedPointerTo<SelectStatement>();
-  EXPECT_EQ(select_stmt->GetSelectLimit()->GetLimit(), 1);
-  EXPECT_EQ(select_stmt->GetSelectLimit()->GetOffset(), 1);
+  auto result2 = pgparser_.BuildParseTree("SELECT id FROM foo LIMIT 1 OFFSET 1;");
+  EXPECT_EQ(result2.GetStatement(0)->GetType(), StatementType::SELECT);
+  auto select_stmt_2 = result2.GetStatement(0).CastManagedPointerTo<SelectStatement>();
+  EXPECT_EQ(select_stmt_2->GetSelectLimit()->GetLimit(), 1);
+  EXPECT_EQ(select_stmt_2->GetSelectLimit()->GetOffset(), 1);
+
+  EXPECT_NE(*select_stmt, *select_stmt_2);
+  EXPECT_NE(select_stmt->Hash(), select_stmt_2->Hash());
 }
 
 // NOLINTNEXTLINE
@@ -747,6 +746,11 @@ TEST_F(ParserTestBase, OldGroupByTest) {
   EXPECT_EQ("id", name_exp->GetColumnName());
   EXPECT_EQ(type::TypeId::INTEGER, value_exp->GetValue().Type());
   EXPECT_EQ(10, type::TransientValuePeeker::PeekInteger(value_exp->GetValue()));
+
+  auto result2 = pgparser_.BuildParseTree(query);
+  auto statement_2 = result2.GetStatement(0).CastManagedPointerTo<SelectStatement>();
+  EXPECT_TRUE(*statement == *statement_2);
+  EXPECT_EQ(statement->Hash(), statement_2->Hash());
 }
 
 // NOLINTNEXTLINE
@@ -1330,13 +1334,13 @@ TEST_F(ParserTestBase, OldCreateSchemaTest) {
   std::string query = "CREATE SCHEMA tt";
   auto result = pgparser_.BuildParseTree(query);
   auto create_stmt = result.GetStatement(0).CastManagedPointerTo<CreateStatement>();
-  EXPECT_EQ("tt", create_stmt->GetSchemaName());
+  EXPECT_EQ("tt", create_stmt->GetNamespaceName());
 
   // Test default schema name
   query = "CREATE SCHEMA AUTHORIZATION joe";
   result = pgparser_.BuildParseTree(query);
   create_stmt = result.GetStatement(0).CastManagedPointerTo<CreateStatement>();
-  EXPECT_EQ("joe", create_stmt->GetSchemaName());
+  EXPECT_EQ("joe", create_stmt->GetNamespaceName());
 }
 
 // NOLINTNEXTLINE

@@ -13,6 +13,12 @@ class OperatorVisitor {
   virtual ~OperatorVisitor() = default;
 
   /**
+   * Visit a LeafOperator operator
+   * @param leaf operator
+   */
+  virtual void Visit(const LeafOperator *leaf) {}
+
+  /**
    * Visit a TableFreeScan operator
    * @param table_free_scan operator
    */
@@ -139,12 +145,6 @@ class OperatorVisitor {
   virtual void Visit(const SortGroupBy *sort_group_by) {}
 
   /**
-   * Visit a Distinct operator
-   * @param distinct operator
-   */
-  virtual void Visit(const Distinct *distinct) {}
-
-  /**
    * Visit a Aggregate operator
    * @param aggregate operator
    */
@@ -155,6 +155,83 @@ class OperatorVisitor {
    * @param export_ext_file operator
    */
   virtual void Visit(const ExportExternalFile *export_ext_file) {}
+
+  /**
+   * Visit a CreateDatabase operator
+   * @param create_database operator
+   */
+  virtual void Visit(const CreateDatabase *create_database) {}
+
+  /**
+   * Visit a CreateFunction operator
+   * @param create_function operator
+   */
+  virtual void Visit(const CreateFunction *create_function) {}
+
+  /**
+   * Visit a CreateIndex operator
+   * @param create_index operator
+   */
+  virtual void Visit(const CreateIndex *create_index) {}
+
+  /**
+   * Visit a CreateTable operator
+   * @param create_table operator
+   */
+  virtual void Visit(const CreateTable *create_table) {}
+
+  /**
+   * Visit a CreateNamespace operator
+   * @param create_namespace operator
+   */
+  virtual void Visit(const CreateNamespace *create_namespace) {}  // NOLINT
+
+  /**
+   * Visit a CreateTrigger operator
+   * @param create_trigger operator
+   */
+  virtual void Visit(const CreateTrigger *create_trigger) {}
+
+  /**
+   * Visit a CreateView operator
+   * @param create_view operator
+   */
+  virtual void Visit(const CreateView *create_view) {}
+  /**
+   * Visit a DropDatabase operator
+   * @param drop_database operator
+   */
+  virtual void Visit(const DropDatabase *drop_database) {}
+
+  /**
+   * Visit a DropTable operator
+   * @param drop_table operator
+   */
+  virtual void Visit(const DropTable *drop_table) {}
+
+  /**
+   * Visit a DropIndex operator
+   * @param drop_index operator
+   */
+  virtual void Visit(const DropIndex *drop_index) {}
+
+  /**
+   * Visit a DropNamespace operator
+   * @param drop_namespace operator
+   */
+  virtual void Visit(const DropNamespace *drop_namespace) {}  // NOLINT
+
+  /**
+   * Visit a DropTrigger operator
+   * @param drop_trigger operator
+   */
+  virtual void Visit(const DropTrigger *drop_trigger) {}
+
+  /**
+   * Visit a DropView operator
+   * @param drop_view operator
+   */
+  virtual void Visit(const DropView *drop_view) {}
 
   /**
    * Visit a LogicalGet operator
@@ -265,12 +342,6 @@ class OperatorVisitor {
   virtual void Visit(const LogicalUpdate *logical_update) {}
 
   /**
-   * Visit a LogicalDistinct operator
-   * @param logical_distinct operator
-   */
-  virtual void Visit(const LogicalDistinct *logical_distinct) {}
-
-  /**
    * Visit a LogicalLimit operator
    * @param logical_limit operator
    */
@@ -281,6 +352,84 @@ class OperatorVisitor {
    * @param logical_export_external_file operator
    */
   virtual void Visit(const LogicalExportExternalFile *logical_export_external_file) {}
+
+  /**
+   * Visit a LogicalCreateDatabase operator
+   * @param logical_create_database operator
+   */
+  virtual void Visit(const LogicalCreateDatabase *logical_create_database) {}
+
+  /**
+   * Visit a LogicalCreateFunction operator
+   * @param logical_create_function operator
+   */
+  virtual void Visit(const LogicalCreateFunction *logical_create_function) {}
+
+  /**
+   * Visit a LogicalCreateIndex operator
+   * @param logical_create_index operator
+   */
+  virtual void Visit(const LogicalCreateIndex *logical_create_index) {}
+
+  /**
+   * Visit a LogicalCreateTable operator
+   * @param logical_create_table operator
+   */
+  virtual void Visit(const LogicalCreateTable *logical_create_table) {}
+
+  /**
+   * Visit a LogicalCreateNamespace operator
+   * @param logical_create_namespace operator
+   */
+  virtual void Visit(const LogicalCreateNamespace *logical_create_namespace) {}  // NOLINT
+
+  /**
+   * Visit a LogicalCreateTrigger operator
+   * @param logical_create_trigger operator
+   */
+  virtual void Visit(const LogicalCreateTrigger *logical_create_trigger) {}
+
+  /**
+   * Visit a LogicalCreateView operator
+   * @param logical_create_view operator
+   */
+  virtual void Visit(const LogicalCreateView *logical_create_view) {}
+
+  /**
+   * Visit a LogicalDropDatabase operator
+   * @param logical_drop_database operator
+   */
+  virtual void Visit(const LogicalDropDatabase *logical_drop_database) {}
+
+  /**
+   * Visit a LogicalDropTable operator
+   * @param logical_drop_table operator
+   */
+  virtual void Visit(const LogicalDropTable *logical_drop_table) {}
+
+  /**
+   * Visit a LogicalDropIndex operator
+   * @param logical_drop_index operator
+   */
+  virtual void Visit(const LogicalDropIndex *logical_drop_index) {}
+
+  /**
+   * Visit a LogicalDropNamespace operator
+   * @param logical_drop_namespace operator
+   */
+  virtual void Visit(const LogicalDropNamespace *logical_drop_namespace) {}  // NOLINT
+
+  /**
+   * Visit a LogicalDropTrigger operator
+   * @param logical_drop_trigger operator
+   */
+  virtual void Visit(const LogicalDropTrigger *logical_drop_trigger) {}
+
+  /**
+   * Visit a LogicalDropView operator
+   * @param logical_drop_view operator
+   */
+  virtual void Visit(const LogicalDropView *logical_drop_view) {}
 };
 
 }  // namespace terrier::optimizer

@@ -825,6 +825,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
         // bytecode handler function.
         //
 
+        EXECUTION_LOG_INFO("CALLING {}", Bytecodes::GetBytecodeHandlerName(bytecode));
         llvm::Function *handler = LookupBytecodeHandler(bytecode);
         issue_call(handler, args);
         break;

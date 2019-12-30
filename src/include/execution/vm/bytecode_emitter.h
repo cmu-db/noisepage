@@ -403,15 +403,6 @@ class BytecodeEmitter {
    */
   void EmitOutputCall(Bytecode bytecode, LocalVar exec_ctx);
 
-  /**
-   * Emit code to set a column to null
-   * TODO(Amadou): Remove this if it's indeed unneeded.
-   * @param bytecode bytecode to set to null
-   * @param exec_ctx the execution_context
-   * @param idx index of the columns
-   */
-  void EmitOutputSetNull(Bytecode bytecode, LocalVar exec_ctx, LocalVar idx);
-
   // -------------------------------------------
   // Index Calls
   // -------------------------------------------
@@ -430,31 +421,6 @@ class BytecodeEmitter {
                              uint32_t index_oid, LocalVar col_oids, uint32_t num_oids);
 
   /**
-   * Emit code to free an index iterator
-   * @param bytecode bytecode used to free an index iterator
-   * @param iter index iterator to free
-   */
-  void EmitIndexIteratorFree(Bytecode bytecode, LocalVar iter);
-
-  /**
-   * Emit code to get columns of tuples with are iterator over
-   * @param bytecode bytecode corresponding to the column type
-   * @param out destination variable
-   * @param iter index iterator to use
-   * @param col_idx index of the column to access
-   */
-  void EmitIndexIteratorGet(Bytecode bytecode, LocalVar out, LocalVar iter, uint16_t col_idx);
-
-  /**
-   * Emit code to set the index's scan key
-   * @param bytecode bytecode corresponding to the column type
-   * @param iter index iterator to use
-   * @param col_idx index of the column to set
-   * @param val value to write
-   */
-  void EmitIndexIteratorSetKey(Bytecode bytecode, LocalVar iter, uint16_t col_idx, LocalVar val);
-
-  /**
    * Initialize a StringVal from a char array
    * @param bytecode bytecode to emit
    * @param out where to store the result
@@ -462,6 +428,27 @@ class BytecodeEmitter {
    * @param data pointer to the char array
    */
   void EmitInitString(Bytecode bytecode, LocalVar out, uint64_t length, uintptr_t data);
+
+  /**
+   * Emit bytecode to set value within a PR
+   */
+  void EmitPRSet(Bytecode bytecode, LocalVar pr, uint16_t col_idx, LocalVar val);
+
+  /**
+   * Emit bytecode to get a value from a PR
+   */
+  void EmitPRGet(Bytecode bytecode, LocalVar out, LocalVar pr, uint16_t col_idx);
+
+  /**
+   * Emit bytecode to init an Storage Interface
+   */
+  void EmitStorageInterfaceInit(Bytecode bytecode, LocalVar storage_interface, LocalVar exec_ctx, uint32_t table_oid,
+                                LocalVar col_oids, uint32_t num_oids, LocalVar need_indexes);
+
+  /**
+   * Emit bytecode to get an index PR for the storage_interface.
+   */
+  void EmitStorageInterfaceGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar storage_interface, uint32_t index_oid);
 
   /**
    * Copy a scalar immediate value into the bytecode stream

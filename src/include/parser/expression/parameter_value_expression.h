@@ -18,13 +18,37 @@ class ParameterValueExpression : public AbstractExpression {
   explicit ParameterValueExpression(const uint32_t value_idx)
       : AbstractExpression(ExpressionType::VALUE_PARAMETER, type::TypeId::INTEGER, {}), value_idx_(value_idx) {}
 
+  /**
+   * Instantiates a new ParameterValueExpression with the given offset and the given type
+   * @param value_idx the offset of the parameter
+   * @param ret_type the return type of the expression
+   */
+  explicit ParameterValueExpression(const uint32_t value_idx, type::TypeId ret_type)
+      : AbstractExpression(ExpressionType::VALUE_PARAMETER, ret_type, {}), value_idx_(value_idx) {}
+
   /** Default constructor for deserialization. */
   ParameterValueExpression() = default;
 
+  /**
+   * Copies this ParameterValueExpression
+   * @returns copy of this
+   */
   std::unique_ptr<AbstractExpression> Copy() const override {
     auto expr = std::make_unique<ParameterValueExpression>(GetValueIdx());
     expr->SetMutableStateForCopy(*this);
     return expr;
+  }
+
+  /**
+   * Creates a copy of the current AbstractExpression with new children implanted.
+   * The children should not be owned by any other AbstractExpression.
+   * @param children New children to be owned by the copy
+   * @returns copy of this with new children
+   */
+  std::unique_ptr<AbstractExpression> CopyWithChildren(
+      std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
+    TERRIER_ASSERT(children.empty(), "ParameterValueExpression should have 0 children");
+    return Copy();
   }
 
   /** @return offset in the expression */

@@ -1,9 +1,11 @@
 #include "storage/tuple_access_strategy.h"
+
 #include <algorithm>
 #include <cstring>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "common/strong_typedef.h"
 #include "storage/storage_util.h"
 #include "storage/undo_record.h"
@@ -61,15 +63,9 @@ struct TupleAccessStrategyTests : public TerrierTest {
   storage::BlockStore block_store_{1, 1};
 
  protected:
-  void SetUp() override {
-    TerrierTest::SetUp();
-    raw_block_ = block_store_.Get();
-  }
+  void SetUp() override { raw_block_ = block_store_.Get(); }
 
-  void TearDown() override {
-    block_store_.Release(raw_block_);
-    TerrierTest::TearDown();
-  }
+  void TearDown() override { block_store_.Release(raw_block_); }
 };
 
 // Tests that we can set things to null and the access strategy returns nullptr for null fields.
@@ -149,9 +145,9 @@ TEST_F(TupleAccessStrategyTests, MemorySafety) {
     storage::BlockLayout layout;
     if (i == 0) {
       // Make sure we test the largest layout so that there is still at least one slot in a block.
-      std::vector<uint8_t> sizes;
+      std::vector<uint16_t> sizes;
       for (uint32_t j = 0; j < common::Constants::MAX_COL; j++)
-        sizes.push_back(static_cast<uint8_t>(j == 0 ? 8 : VARLEN_COLUMN));
+        sizes.push_back(static_cast<uint16_t>(j == 0 ? 8 : storage::VARLEN_COLUMN));
       layout = storage::BlockLayout{sizes};
     } else {
       layout = StorageTestUtil::RandomLayoutWithVarlens(common::Constants::MAX_COL, &generator);
@@ -162,7 +158,7 @@ TEST_F(TupleAccessStrategyTests, MemorySafety) {
     tested.InitializeRawBlock(nullptr, raw_block_, storage::layout_version_t(0));
 
     // Skip header
-    void *lower_bound = tested.ColumnNullBitmap(raw_block_, VERSION_POINTER_COLUMN_ID);
+    void *lower_bound = tested.ColumnNullBitmap(raw_block_, storage::VERSION_POINTER_COLUMN_ID);
     void *upper_bound = raw_block_ + sizeof(storage::RawBlock);
     for (uint16_t offset = 0; offset < layout.NumColumns(); offset++) {
       storage::col_id_t col_id(offset);

@@ -6,6 +6,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+
 #include "catalog/index_schema.h"
 #include "catalog/schema.h"
 #include "storage/garbage_collector.h"
@@ -17,7 +18,8 @@ namespace terrier::tpcc {
 struct Util {
   Util() = delete;
 
-  static void RegisterIndexesForGC(storage::GarbageCollector *const gc, Database *const tpcc_db) {
+  static void RegisterIndexesForGC(const common::ManagedPointer<storage::GarbageCollector> gc,
+                                   const common::ManagedPointer<Database> tpcc_db) {
     gc->RegisterIndexForGC(tpcc_db->item_primary_index_);
     gc->RegisterIndexForGC(tpcc_db->warehouse_primary_index_);
     gc->RegisterIndexForGC(tpcc_db->stock_primary_index_);
@@ -30,7 +32,8 @@ struct Util {
     gc->RegisterIndexForGC(tpcc_db->order_line_primary_index_);
   }
 
-  static void UnregisterIndexesForGC(storage::GarbageCollector *const gc, Database *const tpcc_db) {
+  static void UnregisterIndexesForGC(const common::ManagedPointer<storage::GarbageCollector> gc,
+                                     const common::ManagedPointer<Database> tpcc_db) {
     gc->UnregisterIndexForGC(tpcc_db->item_primary_index_);
     gc->UnregisterIndexForGC(tpcc_db->warehouse_primary_index_);
     gc->UnregisterIndexForGC(tpcc_db->stock_primary_index_);
@@ -57,7 +60,8 @@ struct Util {
   static void SetTupleAttribute(const catalog::Schema &schema, const uint32_t col_offset,
                                 const storage::ProjectionMap &projection_map, storage::ProjectedRow *const pr,
                                 T value) {
-    TERRIER_ASSERT((schema.GetColumn(col_offset).AttrSize() & INT8_MAX) == sizeof(T), "Invalid attribute size.");
+    TERRIER_ASSERT(storage::AttrSizeBytes(schema.GetColumn(col_offset).AttrSize()) == sizeof(T),
+                   "Invalid attribute size.");
     const auto col_oid = schema.GetColumn(col_offset).Oid();
     const auto attr_offset = projection_map.at(col_oid);
     auto *const attr = pr->AccessForceNotNull(attr_offset);
@@ -69,7 +73,7 @@ struct Util {
                               const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &projection_map,
                               storage::ProjectedRow *const pr, T value) {
     const auto &key_cols = schema.GetColumns();
-    TERRIER_ASSERT((type::TypeUtil::GetTypeSize(key_cols.at(col_offset).Type()) & INT8_MAX) == sizeof(T),
+    TERRIER_ASSERT((type::TypeUtil::GetTypeSize(key_cols.at(col_offset).Type()) & INT16_MAX) == sizeof(T),
                    "Invalid attribute size.");
     const auto col_oid = key_cols.at(col_offset).Oid();
     const auto attr_offset = static_cast<uint16_t>(projection_map.at(col_oid));

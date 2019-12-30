@@ -6,6 +6,7 @@
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "common/exception.h"
+#include "common/hash_util.h"
 #include "common/json.h"
 #include "common/macros.h"
 #include "common/sql_node_visitor.h"
@@ -23,17 +24,17 @@ class ParseResult;
 class AbstractExpression;
 
 /**
- * Table location information (Database, Schema, Table).
+ * Table location information (Database, Namespace, Table).
  */
 struct TableInfo {
   /**
    * @param table_name table name
-   * @param schema_name schema name
+   * @param namespace_name namespace name
    * @param database_name database name
    */
-  TableInfo(std::string table_name, std::string schema_name, std::string database_name)
+  TableInfo(std::string table_name, std::string namespace_name, std::string database_name)
       : table_name_(std::move(table_name)),
-        schema_name_(std::move(schema_name)),
+        namespace_name_(std::move(namespace_name)),
         database_name_(std::move(database_name)) {}
 
   TableInfo() = default;
@@ -42,7 +43,7 @@ struct TableInfo {
    * @return a copy of the table location information
    */
   std::unique_ptr<TableInfo> Copy() {
-    return std::make_unique<TableInfo>(GetTableName(), GetSchemaName(), GetDatabaseName());
+    return std::make_unique<TableInfo>(GetTableName(), GetNamespaceName(), GetDatabaseName());
   }
 
   /**
@@ -51,9 +52,9 @@ struct TableInfo {
   std::string GetTableName() { return table_name_; }
 
   /**
-   * @return schema name
+   * @return namespace name
    */
-  std::string GetSchemaName() { return schema_name_; }
+  std::string GetNamespaceName() { return namespace_name_; }
 
   /**
    * @return database name
@@ -61,12 +62,40 @@ struct TableInfo {
   std::string GetDatabaseName() { return database_name_; }
 
   /**
+   * @return the hashed value of this table info object
+   */
+  common::hash_t Hash() const {
+    common::hash_t hash = common::HashUtil::Hash(table_name_);
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_name_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_name_));
+    return hash;
+  }
+
+  /**
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two TableInfo are logically equal
+   */
+  bool operator==(const TableInfo &rhs) const {
+    if (table_name_ != rhs.table_name_) return false;
+    if (namespace_name_ != rhs.namespace_name_) return false;
+    return database_name_ == rhs.database_name_;
+  }
+
+  /**
+   * Logical inequality check.
+   * @param rhs other
+   * @return true if the two TableInfo logically unequal
+   */
+  bool operator!=(const TableInfo &rhs) const { return !(operator==(rhs)); }
+
+  /**
    * @return TableInfo serialized to json
    */
   nlohmann::json ToJson() const {
     nlohmann::json j;
     j["table_name"] = table_name_;
-    j["schema_name"] = schema_name_;
+    j["namespace_name"] = namespace_name_;
     j["database_name"] = database_name_;
     return j;
   }
@@ -77,7 +106,7 @@ struct TableInfo {
   std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) {
     std::vector<std::unique_ptr<AbstractExpression>> exprs;
     table_name_ = j.at("table_name").get<std::string>();
-    schema_name_ = j.at("schema_name").get<std::string>();
+    namespace_name_ = j.at("namespace_name").get<std::string>();
     database_name_ = j.at("database_name").get<std::string>();
     return exprs;
   }
@@ -86,7 +115,7 @@ struct TableInfo {
   friend class TableRefStatement;
   friend class TableRef;
   std::string table_name_;
-  std::string schema_name_;
+  std::string namespace_name_;
   std::string database_name_;
 
   /**
@@ -185,9 +214,9 @@ class TableRefStatement : public SQLStatement {
   virtual std::string GetTableName() const { return table_info_->GetTableName(); }
 
   /**
-   * @return table schema name (aka namespace)
+   * @return namespace name
    */
-  virtual std::string GetSchemaName() const { return table_info_->GetSchemaName(); }
+  virtual std::string GetNamespaceName() const { return table_info_->GetNamespaceName(); }
 
   /**
    * @return database name

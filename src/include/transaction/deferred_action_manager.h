@@ -2,10 +2,16 @@
 #include <queue>
 #include <utility>
 #include <vector>
+
+#include "storage/garbage_collector.h"
+#include "storage/write_ahead_log/log_manager.h"
 #include "transaction/timestamp_manager.h"
 #include "transaction/transaction_defs.h"
 
 namespace terrier::transaction {
+
+constexpr uint8_t MIN_GC_INVOCATIONS = 3;
+
 /**
  * The deferred action manager tracks deferred actions and provides a function to process them
  */
@@ -15,7 +21,8 @@ class DeferredActionManager {
    * Constructs a new DeferredActionManager
    * @param timestamp_manager source of timestamps in the system
    */
-  explicit DeferredActionManager(TimestampManager *timestamp_manager) : timestamp_manager_(timestamp_manager) {}
+  explicit DeferredActionManager(const common::ManagedPointer<TimestampManager> timestamp_manager)
+      : timestamp_manager_(timestamp_manager) {}
 
   ~DeferredActionManager() {
     common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
@@ -69,8 +76,23 @@ class DeferredActionManager {
     return processed;
   }
 
+  /**
+   * Invokes GC and log manager enough times to fully GC any outstanding transactions and process deferred events.
+   * Currently, this must be done 3 times. The log manager must be called because transactions can only be GC'd once
+   * their logs are persisted.
+   * @param gc gc to use for garbage collection
+   * @param log_manager log manager to use for flushing logs
+   */
+  void FullyPerformGC(const common::ManagedPointer<storage::GarbageCollector> gc,
+                      const common::ManagedPointer<storage::LogManager> log_manager) {
+    for (int i = 0; i < MIN_GC_INVOCATIONS; i++) {
+      if (log_manager != DISABLED) log_manager->ForceFlush();
+      gc->PerformGarbageCollection();
+    }
+  }
+
  private:
-  TimestampManager *timestamp_manager_;
+  const common::ManagedPointer<TimestampManager> timestamp_manager_;
   // TODO(Tianyu): We might want to change this data structure to be more specialized than std::queue
   std::queue<std::pair<timestamp_t, DeferredAction>> new_deferred_actions_, back_log_;
   common::SpinLatch deferred_actions_latch_;

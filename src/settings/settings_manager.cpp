@@ -1,4 +1,7 @@
+#include "settings/settings_manager.h"
+
 #include <gflags/gflags.h>
+
 #include <memory>
 #include <string>
 #include <utility>
@@ -7,7 +10,6 @@
 #include "common/macros.h"
 #include "main/db_main.h"
 #include "settings/settings_callbacks.h"
-#include "settings/settings_manager.h"
 #include "type/transient_value_factory.h"
 
 #define __SETTING_GFLAGS_DECLARE__     // NOLINT
@@ -22,7 +24,11 @@ using ValuePeeker = type::TransientValuePeeker;
 using ActionContext = common::ActionContext;
 using ActionState = common::ActionState;
 
-SettingsManager::SettingsManager(DBMain *db) : db_(db) { ValidateParams(); }
+SettingsManager::SettingsManager(const common::ManagedPointer<DBMain> db_main,
+                                 std::unordered_map<settings::Param, settings::ParamInfo> &&param_map)
+    : db_main_(db_main), param_map_(std::move(param_map)) {
+  ValidateParams();
+}
 
 void SettingsManager::ValidateParams() {
   // This will expand to invoke settings_manager::DefineSetting on
@@ -39,7 +45,7 @@ void SettingsManager::ValidateParams() {
 
 void SettingsManager::ValidateSetting(Param param, const type::TransientValue &min_value,
                                       const type::TransientValue &max_value) {
-  const ParamInfo &info = db_->param_map_.find(param)->second;
+  const ParamInfo &info = param_map_.find(param)->second;
   if (!ValidateValue(info.value_, min_value, max_value)) {
     SETTINGS_LOG_ERROR(
         "Value given for \"{}"
@@ -52,6 +58,11 @@ void SettingsManager::ValidateSetting(Param param, const type::TransientValue &m
 int32_t SettingsManager::GetInt(Param param) {
   common::SharedLatch::ScopedSharedLatch guard(&latch_);
   return ValuePeeker::PeekInteger(GetValue(param));
+}
+
+int64_t SettingsManager::GetInt64(Param param) {
+  common::SharedLatch::ScopedSharedLatch guard(&latch_);
+  return ValuePeeker::PeekBigInt(GetValue(param));
 }
 
 double SettingsManager::GetDouble(Param param) {
@@ -78,7 +89,7 @@ void SettingsManager::SetInt(Param param, int32_t value, common::ManagedPointer<
     throw SETTINGS_EXCEPTION("Invalid ActionContext state");
   }
 
-  const auto &param_info = db_->param_map_.find(param)->second;
+  const auto &param_info = param_map_.find(param)->second;
   auto min_value = static_cast<const int>(param_info.min_value_);
   auto max_value = static_cast<const int>(param_info.max_value_);
 
@@ -103,6 +114,40 @@ void SettingsManager::SetInt(Param param, int32_t value, common::ManagedPointer<
   setter_callback(action_context);
 }
 
+void SettingsManager::SetInt64(Param param, int64_t value, common::ManagedPointer<ActionContext> action_context,
+                               setter_callback_fn setter_callback) {
+  // The ActionContext state must be set to INITIATED to prevent
+  // somebody from reusing it for multiple invocations
+  if (action_context->GetState() != ActionState::INITIATED) {
+    SETTINGS_LOG_ERROR("ActionContext state is not set to INITIATED");
+    throw SETTINGS_EXCEPTION("Invalid ActionContext state");
+  }
+
+  const auto &param_info = param_map_.find(param)->second;
+  auto min_value = static_cast<const int64_t>(param_info.min_value_);
+  auto max_value = static_cast<const int64_t>(param_info.max_value_);
+
+  common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
+  if (!(value >= min_value && value <= max_value)) {
+    action_context->SetState(ActionState::FAILURE);
+  } else {
+    int old_value = ValuePeeker::PeekBigInt(GetValue(param));
+    if (!SetValue(param, ValueFactory::GetBigInt(value))) {
+      action_context->SetState(ActionState::FAILURE);
+    } else {
+      ActionState action_state = InvokeCallback(param, &old_value, &value, action_context);
+      if (action_state == ActionState::FAILURE) {
+        bool result = SetValue(param, ValueFactory::GetBigInt(old_value));
+        if (!result) {
+          SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
+          throw SETTINGS_EXCEPTION("Failed to reset parameter");
+        }
+      }
+    }
+  }
+  setter_callback(action_context);
+}
+
 void SettingsManager::SetDouble(Param param, double value, common::ManagedPointer<ActionContext> action_context,
                                 setter_callback_fn setter_callback) {
   // The ActionContext state must be set to INITIATED to prevent
@@ -112,7 +157,7 @@ void SettingsManager::SetDouble(Param param, double value, common::ManagedPointe
     throw SETTINGS_EXCEPTION("Invalid ActionContext state");
   }
 
-  const auto &param_info = db_->param_map_.find(param)->second;
+  const auto &param_info = param_map_.find(param)->second;
   auto min_value = static_cast<const int>(param_info.min_value_);
   auto max_value = static_cast<const int>(param_info.max_value_);
 
@@ -146,7 +191,7 @@ void SettingsManager::SetBool(Param param, bool value, common::ManagedPointer<Ac
     throw SETTINGS_EXCEPTION("Invalid ActionContext state");
   }
 
-  const auto &param_info = db_->param_map_.find(param)->second;
+  const auto &param_info = param_map_.find(param)->second;
 
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   bool old_value = ValuePeeker::PeekBoolean(GetValue(param));
@@ -175,7 +220,7 @@ void SettingsManager::SetString(Param param, const std::string_view &value,
     throw SETTINGS_EXCEPTION("Invalid ActionContext state");
   }
 
-  const auto &param_info = db_->param_map_.find(param)->second;
+  const auto &param_info = param_map_.find(param)->second;
 
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   std::string_view old_value = ValuePeeker::PeekVarChar(GetValue(param));
@@ -196,12 +241,12 @@ void SettingsManager::SetString(Param param, const std::string_view &value,
 }
 
 type::TransientValue &SettingsManager::GetValue(Param param) {
-  auto &param_info = db_->param_map_.find(param)->second;
+  auto &param_info = param_map_.find(param)->second;
   return param_info.value_;
 }
 
 bool SettingsManager::SetValue(Param param, type::TransientValue value) {
-  auto &param_info = db_->param_map_.find(param)->second;
+  auto &param_info = param_map_.find(param)->second;
 
   if (!param_info.is_mutable_) return false;
 
@@ -225,8 +270,8 @@ bool SettingsManager::ValidateValue(const type::TransientValue &value, const typ
 
 common::ActionState SettingsManager::InvokeCallback(Param param, void *old_value, void *new_value,
                                                     common::ManagedPointer<common::ActionContext> action_context) {
-  callback_fn callback = db_->param_map_.find(param)->second.callback_;
-  (callback)(old_value, new_value, db_, action_context);
+  callback_fn callback = param_map_.find(param)->second.callback_;
+  (callback)(old_value, new_value, db_main_.Get(), action_context);
   ActionState action_state = action_context->GetState();
   TERRIER_ASSERT(action_state == ActionState::FAILURE || action_state == ActionState::SUCCESS,
                  "action context should have state of either SUCCESS or FAILURE on completion.");

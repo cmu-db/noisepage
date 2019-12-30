@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -11,6 +12,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/update_statement.h"
+#include "test_util/storage_test_util.h"
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
 
@@ -39,9 +41,12 @@ TEST(OperatorTests, SeqScanTest) {
   //===--------------------------------------------------------------------===//
   // SeqScan
   //===--------------------------------------------------------------------===//
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -117,9 +122,12 @@ TEST(OperatorTests, IndexScanTest) {
   // IndexScan
   //===--------------------------------------------------------------------===//
   // predicates
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -390,9 +398,12 @@ TEST(OperatorTests, InnerNLJoinTest) {
   //===--------------------------------------------------------------------===//
   // InnerNLJoin
   //===--------------------------------------------------------------------===//
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -451,9 +462,12 @@ TEST(OperatorTests, LeftNLJoinTest) {
   //===--------------------------------------------------------------------===//
   // LeftNLJoin
   //===--------------------------------------------------------------------===//
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -484,9 +498,12 @@ TEST(OperatorTests, RightNLJoinTest) {
   //===--------------------------------------------------------------------===//
   // RightNLJoin
   //===--------------------------------------------------------------------===//
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -517,9 +534,12 @@ TEST(OperatorTests, OuterNLJoin) {
   //===--------------------------------------------------------------------===//
   // OuterNLJoin
   //===--------------------------------------------------------------------===//
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -550,9 +570,12 @@ TEST(OperatorTests, InnerHashJoinTest) {
   //===--------------------------------------------------------------------===//
   // InnerHashJoin
   //===--------------------------------------------------------------------===//
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -613,9 +636,12 @@ TEST(OperatorTests, LeftHashJoinTest) {
   //===--------------------------------------------------------------------===//
   // LeftHashJoin
   //===--------------------------------------------------------------------===//
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -646,9 +672,12 @@ TEST(OperatorTests, RightHashJoinTest) {
   //===--------------------------------------------------------------------===//
   // RightHashJoin
   //===--------------------------------------------------------------------===//
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -679,9 +708,12 @@ TEST(OperatorTests, OuterHashJoinTest) {
   //===--------------------------------------------------------------------===//
   // OuterHashJoin
   //===--------------------------------------------------------------------===//
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -818,48 +850,29 @@ TEST(OperatorTests, DeleteTest) {
   //===--------------------------------------------------------------------===//
   // Delete
   //===--------------------------------------------------------------------===//
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
-
-  auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
-  auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
-  auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
-
   catalog::db_oid_t database_oid(123);
   catalog::namespace_oid_t namespace_oid(456);
   catalog::table_oid_t table_oid(789);
 
   // Check that all of our GET methods work as expected
-  Operator op1 = Delete::Make(database_oid, namespace_oid, table_oid, x_1);
+  Operator op1 = Delete::Make(database_oid, namespace_oid, "tbl", table_oid);
   EXPECT_EQ(op1.GetType(), OpType::DELETE);
   EXPECT_EQ(op1.As<Delete>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<Delete>()->GetNamespaceOid(), namespace_oid);
   EXPECT_EQ(op1.As<Delete>()->GetTableOid(), table_oid);
-  EXPECT_EQ(op1.As<Delete>()->GetDeleteCondition(), x_1);
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = Delete::Make(database_oid, namespace_oid, table_oid, x_2);
+  Operator op2 = Delete::Make(database_oid, namespace_oid, "tbl", table_oid);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   catalog::db_oid_t other_database_oid(999);
-  Operator op3 = Delete::Make(other_database_oid, namespace_oid, table_oid, x_1);
+  Operator op3 = Delete::Make(other_database_oid, namespace_oid, "tbl", table_oid);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
-
-  // Lastly, make another different object and make sure that it is not equal
-  // and that it's hash is not the same!
-  Operator op4 = Delete::Make(database_oid, namespace_oid, table_oid, x_3);
-  EXPECT_FALSE(op1 == op4);
-  EXPECT_NE(op1.Hash(), op4.Hash());
-
-  delete expr_b_1;
-  delete expr_b_2;
-  delete expr_b_3;
 }
 
 // NOLINTNEXTLINE
@@ -902,14 +915,14 @@ TEST(OperatorTests, UpdateTest) {
   //===--------------------------------------------------------------------===//
   std::string column = "abc";
   parser::AbstractExpression *value = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
-  auto raw_update_clause = new parser::UpdateClause(column, common::ManagedPointer<parser::AbstractExpression>(value));
+  parser::UpdateClause *raw_update_clause = new parser::UpdateClause(column, common::ManagedPointer(value));
   auto update_clause = common::ManagedPointer(raw_update_clause);
   catalog::db_oid_t database_oid(123);
   catalog::namespace_oid_t namespace_oid(456);
   catalog::table_oid_t table_oid(789);
 
   // Check that all of our GET methods work as expected
-  Operator op1 = Update::Make(database_oid, namespace_oid, table_oid, {update_clause});
+  Operator op1 = Update::Make(database_oid, namespace_oid, "tbl", table_oid, {update_clause});
   EXPECT_EQ(op1.GetType(), OpType::UPDATE);
   EXPECT_EQ(op1.As<Update>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<Update>()->GetNamespaceOid(), namespace_oid);
@@ -919,18 +932,18 @@ TEST(OperatorTests, UpdateTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = Update::Make(database_oid, namespace_oid, table_oid, {update_clause});
+  Operator op2 = Update::Make(database_oid, namespace_oid, "tbl", table_oid, {update_clause});
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
-  Operator op3 = Update::Make(database_oid, namespace_oid, table_oid, {});
+  Operator op3 = Update::Make(database_oid, namespace_oid, "tbl", table_oid, {});
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
-  delete value;
   delete raw_update_clause;
+  delete value;
 }
 
 // NOLINTNEXTLINE
@@ -939,10 +952,14 @@ TEST(OperatorTests, HashGroupByTest) {
   // HashGroupBy
   //===--------------------------------------------------------------------===//
   // ConstValueExpression subclass AbstractExpression
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
-  auto expr_b_7 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_7 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   // columns: vector of shared_ptr of AbstractExpression
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
@@ -951,10 +968,14 @@ TEST(OperatorTests, HashGroupByTest) {
   auto x_7 = common::ManagedPointer<parser::AbstractExpression>(expr_b_7);
 
   // ConstValueExpression subclass AbstractExpression
-  auto expr_b_4 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_5 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_8 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_6 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_4 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_5 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_8 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_6 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
   auto x_4 = common::ManagedPointer<parser::AbstractExpression>(expr_b_4);
   auto x_5 = common::ManagedPointer<parser::AbstractExpression>(expr_b_5);
   auto x_6 = common::ManagedPointer<parser::AbstractExpression>(expr_b_6);
@@ -1018,10 +1039,14 @@ TEST(OperatorTests, SortGroupByTest) {
   // SortGroupBy
   //===--------------------------------------------------------------------===//
   // ConstValueExpression subclass AbstractExpression
-  auto expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
-  auto expr_b_7 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_7 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   // columns: vector of shared_ptr of AbstractExpression
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
@@ -1030,10 +1055,14 @@ TEST(OperatorTests, SortGroupByTest) {
   auto x_7 = common::ManagedPointer<parser::AbstractExpression>(expr_b_7);
 
   // ConstValueExpression subclass AbstractExpression
-  auto expr_b_4 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_5 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_8 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_6 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  parser::AbstractExpression *expr_b_4 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_5 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_8 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  parser::AbstractExpression *expr_b_6 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
   auto x_4 = common::ManagedPointer<parser::AbstractExpression>(expr_b_4);
   auto x_5 = common::ManagedPointer<parser::AbstractExpression>(expr_b_5);
   auto x_6 = common::ManagedPointer<parser::AbstractExpression>(expr_b_6);
@@ -1108,19 +1137,662 @@ TEST(OperatorTests, AggregateTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, DistinctTest) {
+TEST(OperatorTests, CreateDatabaseTest) {
   //===--------------------------------------------------------------------===//
-  // Distinct
+  // CreateDatabase
   //===--------------------------------------------------------------------===//
-  // Distinct operator does not have any data members.
-  // So we just need to make sure that all instantiations
-  // of the object are equivalent.
-  Operator op1 = Distinct::Make();
-  EXPECT_EQ(op1.GetType(), OpType::DISTINCT);
+  Operator create_db_1 = CreateDatabase::Make("testdb");
+  Operator create_db_2 = CreateDatabase::Make("testdb");
+  Operator create_db_3 = CreateDatabase::Make("another_testdb");
 
-  Operator op2 = Distinct::Make();
+  EXPECT_EQ(create_db_1.GetType(), OpType::CREATEDATABASE);
+  EXPECT_EQ(create_db_3.GetType(), OpType::CREATEDATABASE);
+  EXPECT_EQ(create_db_1.GetName(), "CreateDatabase");
+  EXPECT_EQ(create_db_1.As<CreateDatabase>()->GetDatabaseName(), "testdb");
+  EXPECT_EQ(create_db_3.As<CreateDatabase>()->GetDatabaseName(), "another_testdb");
+  EXPECT_TRUE(create_db_1 == create_db_2);
+  EXPECT_FALSE(create_db_1 == create_db_3);
+  EXPECT_EQ(create_db_1.Hash(), create_db_2.Hash());
+  EXPECT_NE(create_db_1.Hash(), create_db_3.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, CreateFunctionTest) {
+  //===--------------------------------------------------------------------===//
+  // CreateFunction
+  //===--------------------------------------------------------------------===//
+  Operator op1 = CreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+
+  EXPECT_EQ(op1.GetType(), OpType::CREATEFUNCTION);
+  EXPECT_EQ(op1.GetName(), "CreateFunction");
+  EXPECT_EQ(op1.As<CreateFunction>()->GetDatabaseOid(), catalog::db_oid_t(1));
+  EXPECT_EQ(op1.As<CreateFunction>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.As<CreateFunction>()->GetFunctionName(), "function1");
+  EXPECT_EQ(op1.As<CreateFunction>()->GetUDFLanguage(), parser::PLType::PL_C);
+  EXPECT_EQ(op1.As<CreateFunction>()->GetFunctionBody(), std::vector<std::string>{});
+  EXPECT_EQ(op1.As<CreateFunction>()->GetFunctionParameterNames(), std::vector<std::string>{"param"});
+  EXPECT_EQ(op1.As<CreateFunction>()->GetFunctionParameterTypes(),
+            std::vector<parser::BaseFunctionParameter::DataType>{parser::BaseFunctionParameter::DataType::INTEGER});
+  EXPECT_EQ(op1.As<CreateFunction>()->GetReturnType(), parser::BaseFunctionParameter::DataType::BOOLEAN);
+  EXPECT_EQ(op1.As<CreateFunction>()->GetParamCount(), 1);
+  EXPECT_FALSE(op1.As<CreateFunction>()->IsReplace());
+
+  Operator op2 = CreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 = CreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(3), "function1", parser::PLType::PL_C, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+  EXPECT_TRUE(op1 != op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 = CreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function4", parser::PLType::PL_C, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op1.Hash(), op4.Hash());
+
+  Operator op5 = CreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_PGSQL, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  Operator op6 =
+      CreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C,
+                           {"body", "body2"}, {"param"}, {parser::BaseFunctionParameter::DataType::INTEGER},
+                           parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+
+  Operator op7 = CreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param1", "param2"},
+      {parser::BaseFunctionParameter::DataType::INTEGER, parser::BaseFunctionParameter::DataType::BOOLEAN},
+      parser::BaseFunctionParameter::DataType::BOOLEAN, 2, false);
+  EXPECT_FALSE(op1 == op7);
+  EXPECT_NE(op1.Hash(), op7.Hash());
+
+  Operator op8 =
+      CreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {},
+                           {}, parser::BaseFunctionParameter::DataType::BOOLEAN, 0, false);
+  EXPECT_FALSE(op1 == op8);
+  EXPECT_NE(op1.Hash(), op8.Hash());
+
+  Operator op9 = CreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::VARCHAR}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+  EXPECT_FALSE(op1 == op9);
+  EXPECT_NE(op1.Hash(), op9.Hash());
+
+  Operator op10 = CreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::INTEGER, 1, false);
+  EXPECT_FALSE(op1 == op10);
+  EXPECT_NE(op1.Hash(), op10.Hash());
+
+  Operator op11 = CreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, true);
+  EXPECT_FALSE(op1 == op11);
+  EXPECT_NE(op1.Hash(), op11.Hash());
+
+#ifndef NDEBUG
+  EXPECT_DEATH(
+      CreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {},
+                           {"param", "PARAM"}, {parser::BaseFunctionParameter::DataType::INTEGER},
+                           parser::BaseFunctionParameter::DataType::BOOLEAN, 1, true),
+      "Mismatched");
+#endif
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, CreateIndexTest) {
+  //===--------------------------------------------------------------------===//
+  // CreateIndex
+  //===--------------------------------------------------------------------===//
+  auto idx_schema = std::make_unique<catalog::IndexSchema>(
+      std::vector<catalog::IndexSchema::Column>{
+          catalog::IndexSchema::Column("col_1", type::TypeId::TINYINT, true,
+                                       parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)))},
+      storage::index::IndexType::BWTREE, true, true, true, true);
+
+  Operator op1 =
+      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema));
+
+  EXPECT_EQ(op1.GetType(), OpType::CREATEINDEX);
+  EXPECT_EQ(op1.GetName(), "CreateIndex");
+  EXPECT_EQ(op1.As<CreateIndex>()->GetIndexName(), "index_1");
+  EXPECT_EQ(op1.As<CreateIndex>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.As<CreateIndex>()->GetTableOid(), catalog::table_oid_t(1));
+  auto idx_schema_dup = std::make_unique<catalog::IndexSchema>(
+      std::vector<catalog::IndexSchema::Column>{
+          catalog::IndexSchema::Column("col_1", type::TypeId::TINYINT, true,
+                                       parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)))},
+      storage::index::IndexType::BWTREE, true, true, true, true);
+  EXPECT_EQ(*op1.As<CreateIndex>()->GetSchema(), *idx_schema_dup);
+
+  auto idx_schema_2 = std::make_unique<catalog::IndexSchema>(
+      std::vector<catalog::IndexSchema::Column>{
+          catalog::IndexSchema::Column("col_1", type::TypeId::TINYINT, true,
+                                       parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)))},
+      storage::index::IndexType::BWTREE, true, true, true, true);
+  Operator op2 =
+      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_2));
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  auto idx_schema_3 = std::make_unique<catalog::IndexSchema>(
+      std::vector<catalog::IndexSchema::Column>{
+          catalog::IndexSchema::Column("col_1", type::TypeId::TINYINT, true,
+                                       parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)))},
+      storage::index::IndexType::BWTREE, true, true, true, true);
+  Operator op3 =
+      CreateIndex::Make(catalog::namespace_oid_t(2), catalog::table_oid_t(1), "index_1", std::move(idx_schema_3));
+  EXPECT_FALSE(op3 == op1);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  auto idx_schema_4 = std::make_unique<catalog::IndexSchema>(
+      std::vector<catalog::IndexSchema::Column>{
+          catalog::IndexSchema::Column("col_1", type::TypeId::TINYINT, true,
+                                       parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)))},
+      storage::index::IndexType::BWTREE, true, true, true, true);
+  Operator op4 =
+      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_2", std::move(idx_schema_4));
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op1.Hash(), op4.Hash());
+
+  auto idx_schema_5 = std::make_unique<catalog::IndexSchema>(
+      std::vector<catalog::IndexSchema::Column>{
+          catalog::IndexSchema::Column("col_1", type::TypeId::INTEGER, true,
+                                       parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(1)))},
+      storage::index::IndexType::BWTREE, true, true, true, true);
+  Operator op5 =
+      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_5));
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  auto idx_schema_6 = std::make_unique<catalog::IndexSchema>(
+      std::vector<catalog::IndexSchema::Column>{
+          catalog::IndexSchema::Column("col_1", type::TypeId::INTEGER, true,
+                                       parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(1))),
+          catalog::IndexSchema::Column("col_2", type::TypeId::TINYINT, true,
+                                       parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(1)))},
+      storage::index::IndexType::BWTREE, true, true, true, true);
+  Operator op6 =
+      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_6));
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, CreateTableTest) {
+  //===--------------------------------------------------------------------===//
+  // CreateTable
+  //===--------------------------------------------------------------------===//
+  // PRIMARY KEY
+  auto get_pk_info = []() {
+    planner::PrimaryKeyInfo pk = {.primary_key_cols_ = {"a"}, .constraint_name_ = "pk_a"};
+    return pk;
+  };
+  auto get_pk_info_2 = []() {
+    planner::PrimaryKeyInfo pk = {.primary_key_cols_ = {}, .constraint_name_ = ""};
+    return pk;
+  };
+  auto get_pk_info_3 = []() {
+    planner::PrimaryKeyInfo pk = {.primary_key_cols_ = {"b"}, .constraint_name_ = "pk_b"};
+    return pk;
+  };
+
+  // FOREIGN KEY
+  auto get_fk_info = []() {
+    std::vector<planner::ForeignKeyInfo> checks;
+    planner::ForeignKeyInfo fk = {.foreign_key_sources_ = {"b"},
+                                  .foreign_key_sinks_ = {"b"},
+                                  .sink_table_name_ = {"tbl2"},
+                                  .constraint_name_ = "fk_b",
+                                  .upd_action_ = parser::FKConstrActionType::CASCADE,
+                                  .del_action_ = parser::FKConstrActionType::CASCADE};
+    checks.emplace_back(fk);
+    return checks;
+  };
+  auto get_fk_info_2 = []() {
+    std::vector<planner::ForeignKeyInfo> checks;
+    planner::ForeignKeyInfo fk = {.foreign_key_sources_ = {"b"},
+                                  .foreign_key_sinks_ = {"b"},
+                                  .sink_table_name_ = {"tbl2"},
+                                  .constraint_name_ = "fk_b",
+                                  .upd_action_ = parser::FKConstrActionType::CASCADE,
+                                  .del_action_ = parser::FKConstrActionType::SETNULL};
+    checks.emplace_back(fk);
+    return checks;
+  };
+
+  // UNIQUE CONSTRAINT
+  auto get_unique_info = []() {
+    std::vector<planner::UniqueInfo> checks;
+    planner::UniqueInfo uk = {.unique_cols_ = {"u_a", "u_b"}, .constraint_name_ = "uk_a_b"};
+    checks.emplace_back(uk);
+    return checks;
+  };
+  auto get_unique_info_2 = []() {
+    std::vector<planner::UniqueInfo> checks;
+    planner::UniqueInfo uk = {.unique_cols_ = {"u_a"}, .constraint_name_ = "uk_a"};
+    checks.emplace_back(uk);
+    return checks;
+  };
+
+  // CHECK CONSTRAINT
+  auto get_check_info = []() {
+    type::TransientValue val = type::TransientValueFactory::GetInteger(1);
+    std::vector<planner::CheckInfo> checks;
+    std::vector<std::string> cks = {"ck_a"};
+    checks.emplace_back(cks, "ck_a", parser::ExpressionType::COMPARE_GREATER_THAN, std::move(val));
+    return checks;
+  };
+  auto get_check_info_2 = []() {
+    type::TransientValue val = type::TransientValueFactory::GetBigInt(1);
+    std::vector<planner::CheckInfo> checks;
+    std::vector<std::string> cks = {};
+    checks.emplace_back(cks, "ck_a", parser::ExpressionType::COMPARE_GREATER_THAN, std::move(val));
+    return checks;
+  };
+
+  // Columns
+  auto get_schema = []() {
+    std::vector<catalog::Schema::Column> columns = {
+        catalog::Schema::Column(
+            "a", type::TypeId::INTEGER, false,
+            parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER))),
+        catalog::Schema::Column(
+            "u_a", type::TypeId::DECIMAL, false,
+            parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL))),
+        catalog::Schema::Column(
+            "u_b", type::TypeId::DATE, true,
+            parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DATE)))};
+    StorageTestUtil::ForceOid(&(columns[0]), catalog::col_oid_t(1));
+    StorageTestUtil::ForceOid(&(columns[1]), catalog::col_oid_t(2));
+    StorageTestUtil::ForceOid(&(columns[2]), catalog::col_oid_t(3));
+    return std::make_unique<catalog::Schema>(columns);
+  };
+  auto get_schema_2 = []() {
+    std::vector<catalog::Schema::Column> columns = {catalog::Schema::Column(
+        "u_a", type::TypeId::DECIMAL, false,
+        parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)))};
+    StorageTestUtil::ForceOid(&(columns[0]), catalog::col_oid_t(1));
+    return std::make_unique<catalog::Schema>(columns);
+  };
+
+  Operator op1 = CreateTable::Make(catalog::namespace_oid_t(2), "test_tbl", get_schema(), nullptr, true, get_pk_info(),
+                                   get_fk_info(), get_unique_info(), get_check_info());
+  EXPECT_EQ(op1.GetType(), OpType::CREATETABLE);
+  EXPECT_EQ(op1.GetName(), "CreateTable");
+  EXPECT_EQ(op1.As<CreateTable>()->GetTableName(), "test_tbl");
+  EXPECT_EQ(op1.As<CreateTable>()->GetNamespaceOid(), catalog::namespace_oid_t(2));
+  EXPECT_EQ(op1.As<CreateTable>()->GetForeignKeys(), get_fk_info());
+  EXPECT_EQ(op1.As<CreateTable>()->GetBlockStore(), nullptr);
+  EXPECT_EQ(*op1.As<CreateTable>()->GetSchema(), *get_schema());
+  EXPECT_EQ(op1.As<CreateTable>()->HasPrimaryKey(), true);
+  EXPECT_EQ(op1.As<CreateTable>()->GetPrimaryKey(), get_pk_info());
+  EXPECT_EQ(op1.As<CreateTable>()->GetUniqueConstraints(), get_unique_info());
+  EXPECT_EQ(op1.As<CreateTable>()->GetCheckConstraints(), get_check_info());
+
+  Operator op2 = CreateTable::Make(catalog::namespace_oid_t(2), "test_tbl", get_schema(), nullptr, true, get_pk_info(),
+                                   get_fk_info(), get_unique_info(), get_check_info());
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 = CreateTable::Make(catalog::namespace_oid_t(1), "test_tbl", get_schema(), nullptr, true, get_pk_info(),
+                                   get_fk_info(), get_unique_info(), get_check_info());
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 = CreateTable::Make(catalog::namespace_oid_t(2), "test_tbl_2", get_schema(), nullptr, true,
+                                   get_pk_info(), get_fk_info(), get_unique_info(), get_check_info());
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op1.Hash(), op4.Hash());
+
+  Operator op5 = CreateTable::Make(catalog::namespace_oid_t(2), "test_tbl", get_schema(), nullptr, false,
+                                   get_pk_info_2(), get_fk_info(), get_unique_info(), get_check_info());
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  Operator op6 = CreateTable::Make(catalog::namespace_oid_t(2), "test_tbl", get_schema(), nullptr, true, get_pk_info(),
+                                   get_fk_info(), get_unique_info(), get_check_info_2());
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+
+  Operator op7 = CreateTable::Make(catalog::namespace_oid_t(2), "test_tbl", get_schema_2(), nullptr, true,
+                                   get_pk_info(), get_fk_info(), get_unique_info(), get_check_info());
+  EXPECT_FALSE(op1 == op7);
+  EXPECT_NE(op1.Hash(), op7.Hash());
+
+  Operator op8 = CreateTable::Make(catalog::namespace_oid_t(2), "test_tbl", get_schema(), nullptr, true,
+                                   get_pk_info_3(), get_fk_info(), get_unique_info(), get_check_info());
+  EXPECT_FALSE(op1 == op8);
+  EXPECT_NE(op1.Hash(), op8.Hash());
+
+  Operator op9 = CreateTable::Make(catalog::namespace_oid_t(2), "test_tbl", get_schema(), nullptr, true, get_pk_info(),
+                                   get_fk_info(), get_unique_info_2(), get_check_info());
+  EXPECT_FALSE(op1 == op9);
+  EXPECT_NE(op1.Hash(), op9.Hash());
+
+  Operator op10 = CreateTable::Make(catalog::namespace_oid_t(2), "test_tbl", get_schema(), nullptr, true, get_pk_info(),
+                                    get_fk_info_2(), get_unique_info(), get_check_info());
+  EXPECT_FALSE(op1 == op10);
+  EXPECT_NE(op1.Hash(), op10.Hash());
+
+  // Copy should be equal and have same hash
+  // NOLINT the following so clang-tidy doesn't complain about this
+  Operator copy(op10);  // NOLINT
+  EXPECT_TRUE(copy == op10);
+  EXPECT_EQ(copy.Hash(), op10.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, CreateNamespaceTest) {
+  //===--------------------------------------------------------------------===//
+  // CreateNamespace
+  //===--------------------------------------------------------------------===//
+  Operator op1 = CreateNamespace::Make("testns");
+  Operator op2 = CreateNamespace::Make("testns");
+  Operator op3 = CreateNamespace::Make("another_testns");
+
+  EXPECT_EQ(op1.GetType(), OpType::CREATENAMESPACE);
+  EXPECT_EQ(op3.GetType(), OpType::CREATENAMESPACE);
+  EXPECT_EQ(op1.GetName(), "CreateNamespace");
+  EXPECT_EQ(op1.As<CreateNamespace>()->GetNamespaceName(), "testns");
+  EXPECT_EQ(op3.As<CreateNamespace>()->GetNamespaceName(), "another_testns");
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, CreateTriggerTest) {
+  //===--------------------------------------------------------------------===//
+  // CreateTrigger
+  //===--------------------------------------------------------------------===//
+  auto when = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
+  Operator op1 =
+      CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1), "Trigger_1", {},
+                          {}, {catalog::col_oid_t(1)}, common::ManagedPointer<parser::AbstractExpression>(when), 0);
+
+  EXPECT_EQ(op1.GetType(), OpType::CREATETRIGGER);
+  EXPECT_EQ(op1.GetName(), "CreateTrigger");
+  EXPECT_EQ(op1.As<CreateTrigger>()->GetTriggerName(), "Trigger_1");
+  EXPECT_EQ(op1.As<CreateTrigger>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.As<CreateTrigger>()->GetTableOid(), catalog::table_oid_t(1));
+  EXPECT_EQ(op1.As<CreateTrigger>()->GetDatabaseOid(), catalog::db_oid_t(1));
+  EXPECT_EQ(op1.As<CreateTrigger>()->GetTriggerType(), 0);
+  EXPECT_EQ(op1.As<CreateTrigger>()->GetTriggerFuncName(), std::vector<std::string>{});
+  EXPECT_EQ(op1.As<CreateTrigger>()->GetTriggerArgs(), std::vector<std::string>{});
+  EXPECT_EQ(op1.As<CreateTrigger>()->GetTriggerColumns(), std::vector<catalog::col_oid_t>{catalog::col_oid_t(1)});
+
+  Operator op2 =
+      CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1), "Trigger_1", {},
+                          {}, {catalog::col_oid_t(1)}, common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 =
+      CreateTrigger::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::table_oid_t(1), "Trigger_1", {},
+                          {}, {catalog::col_oid_t(1)}, common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_FALSE(op3 == op1);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 =
+      CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(1), "Trigger_1", {},
+                          {}, {catalog::col_oid_t(1)}, common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op4.Hash(), op3.Hash());
+
+  Operator op5 =
+      CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(2), "Trigger_1", {},
+                          {}, {catalog::col_oid_t(1)}, common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  Operator op6 =
+      CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1), "Trigger_2", {},
+                          {}, {catalog::col_oid_t(1)}, common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+
+  Operator op7 = CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                     "Trigger_1", {"func_name"}, {"func_arg"}, {catalog::col_oid_t(1)},
+                                     common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_FALSE(op1 == op7);
+  EXPECT_NE(op1.Hash(), op7.Hash());
+
+  Operator op8 = CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                                     "Trigger_1", {"func_name"}, {"func_arg"}, {catalog::col_oid_t(1)},
+                                     common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_TRUE(op7 == op8);
+  EXPECT_EQ(op7.Hash(), op8.Hash());
+
+  Operator op9 =
+      CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1), "Trigger_1",
+                          {"func_name", "func_name"}, {"func_arg", "func_arg"}, {catalog::col_oid_t(1)},
+                          common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_FALSE(op1 == op9);
+  EXPECT_FALSE(op7 == op9);
+  EXPECT_NE(op1.Hash(), op9.Hash());
+  EXPECT_NE(op7.Hash(), op9.Hash());
+
+  Operator op10 =
+      CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1), "Trigger_1", {},
+                          {}, {}, common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  EXPECT_FALSE(op10 == op1);
+  EXPECT_NE(op1.Hash(), op10.Hash());
+
+  auto when_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(2));
+  Operator op11 =
+      CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1), "Trigger_1", {},
+                          {}, {catalog::col_oid_t(1)}, common::ManagedPointer<parser::AbstractExpression>(when_2), 0);
+  EXPECT_FALSE(op11 == op1);
+  EXPECT_NE(op1.Hash(), op11.Hash());
+
+  Operator op12 =
+      CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1), "Trigger_1", {},
+                          {}, {catalog::col_oid_t(1)}, common::ManagedPointer<parser::AbstractExpression>(when), 9);
+  EXPECT_FALSE(op12 == op1);
+  EXPECT_NE(op1.Hash(), op12.Hash());
+
+  delete when;
+  delete when_2;
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, CreateViewTest) {
+  //===--------------------------------------------------------------------===//
+  // CreateView
+  //===--------------------------------------------------------------------===//
+  Operator op1 = CreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view", nullptr);
+
+  EXPECT_EQ(op1.GetType(), OpType::CREATEVIEW);
+  EXPECT_EQ(op1.GetName(), "CreateView");
+  EXPECT_EQ(op1.As<CreateView>()->GetViewName(), "test_view");
+  EXPECT_EQ(op1.As<CreateView>()->GetViewQuery(), nullptr);
+
+  Operator op2 = CreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view", nullptr);
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 = CreateView::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), "test_view", nullptr);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 = CreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), "test_view", nullptr);
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op1.Hash(), op4.Hash());
+
+  Operator op5 = CreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view_2", nullptr);
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  auto stmt = new parser::SelectStatement(std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, true,
+                                          nullptr, nullptr, nullptr, nullptr, nullptr);
+  Operator op6 = CreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view",
+                                  common::ManagedPointer<parser::SelectStatement>(stmt));
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+  delete stmt;
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, DropDatabaseTest) {
+  //===--------------------------------------------------------------------===//
+  // DropDatabase
+  //===--------------------------------------------------------------------===//
+  Operator op1 = DropDatabase::Make(catalog::db_oid_t(1));
+  Operator op2 = DropDatabase::Make(catalog::db_oid_t(1));
+  Operator op3 = DropDatabase::Make(catalog::db_oid_t(2));
+
+  EXPECT_EQ(op1.GetType(), OpType::DROPDATABASE);
+  EXPECT_EQ(op3.GetType(), OpType::DROPDATABASE);
+  EXPECT_EQ(op1.GetName(), "DropDatabase");
+  EXPECT_EQ(op1.As<DropDatabase>()->GetDatabaseOID(), catalog::db_oid_t(1));
+  EXPECT_EQ(op3.As<DropDatabase>()->GetDatabaseOID(), catalog::db_oid_t(2));
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, DropTableTest) {
+  //===--------------------------------------------------------------------===//
+  // DropTable
+  //===--------------------------------------------------------------------===//
+  Operator op1 = DropTable::Make(catalog::table_oid_t(1));
+  Operator op2 = DropTable::Make(catalog::table_oid_t(1));
+  Operator op3 = DropTable::Make(catalog::table_oid_t(2));
+
+  EXPECT_EQ(op1.GetType(), OpType::DROPTABLE);
+  EXPECT_EQ(op3.GetType(), OpType::DROPTABLE);
+  EXPECT_EQ(op1.GetName(), "DropTable");
+  EXPECT_EQ(op1.As<DropTable>()->GetTableOID(), catalog::table_oid_t(1));
+  EXPECT_EQ(op3.As<DropTable>()->GetTableOID(), catalog::table_oid_t(2));
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, DropIndexTest) {
+  //===--------------------------------------------------------------------===//
+  // DropIndex
+  //===--------------------------------------------------------------------===//
+  Operator op1 = DropIndex::Make(catalog::index_oid_t(1));
+  Operator op2 = DropIndex::Make(catalog::index_oid_t(1));
+  Operator op3 = DropIndex::Make(catalog::index_oid_t(2));
+
+  EXPECT_EQ(op1.GetType(), OpType::DROPINDEX);
+  EXPECT_EQ(op3.GetType(), OpType::DROPINDEX);
+  EXPECT_EQ(op1.GetName(), "DropIndex");
+  EXPECT_EQ(op1.As<DropIndex>()->GetIndexOID(), catalog::index_oid_t(1));
+  EXPECT_EQ(op3.As<DropIndex>()->GetIndexOID(), catalog::index_oid_t(2));
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, DropNamespaceTest) {
+  //===--------------------------------------------------------------------===//
+  // DropNamespace
+  //===--------------------------------------------------------------------===//
+  Operator op1 = DropNamespace::Make(catalog::namespace_oid_t(1));
+  Operator op2 = DropNamespace::Make(catalog::namespace_oid_t(1));
+  Operator op3 = DropNamespace::Make(catalog::namespace_oid_t(2));
+
+  EXPECT_EQ(op1.GetType(), OpType::DROPNAMESPACE);
+  EXPECT_EQ(op3.GetType(), OpType::DROPNAMESPACE);
+  EXPECT_EQ(op1.GetName(), "DropNamespace");
+  EXPECT_EQ(op1.As<DropNamespace>()->GetNamespaceOID(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op3.As<DropNamespace>()->GetNamespaceOID(), catalog::namespace_oid_t(2));
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, DropTriggerTest) {
+  //===--------------------------------------------------------------------===//
+  // DropTrigger
+  //===--------------------------------------------------------------------===//
+  Operator op1 = DropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false);
+
+  EXPECT_EQ(op1.GetType(), OpType::DROPTRIGGER);
+  EXPECT_EQ(op1.GetName(), "DropTrigger");
+  EXPECT_EQ(op1.As<DropTrigger>()->GetDatabaseOid(), catalog::db_oid_t(1));
+  EXPECT_EQ(op1.As<DropTrigger>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.As<DropTrigger>()->GetTriggerOid(), catalog::trigger_oid_t(1));
+  EXPECT_FALSE(op1.As<DropTrigger>()->IsIfExists());
+
+  Operator op2 = DropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false);
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 = DropTrigger::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false);
+  EXPECT_TRUE(op1 != op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 = DropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::trigger_oid_t(1), false);
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op1.Hash(), op4.Hash());
+
+  Operator op5 = DropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(2), false);
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  Operator op6 = DropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), true);
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, DropViewTest) {
+  //===--------------------------------------------------------------------===//
+  // DropView
+  //===--------------------------------------------------------------------===//
+  Operator op1 = DropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false);
+
+  EXPECT_EQ(op1.GetType(), OpType::DROPVIEW);
+  EXPECT_EQ(op1.GetName(), "DropView");
+  EXPECT_EQ(op1.As<DropView>()->GetDatabaseOid(), catalog::db_oid_t(1));
+  EXPECT_EQ(op1.As<DropView>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.As<DropView>()->GetViewOid(), catalog::view_oid_t(1));
+  EXPECT_FALSE(op1.As<DropView>()->IsIfExists());
+
+  Operator op2 = DropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false);
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 = DropView::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false);
+  EXPECT_TRUE(op1 != op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 = DropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::view_oid_t(1), false);
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op1.Hash(), op4.Hash());
+
+  Operator op5 = DropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(2), false);
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  Operator op6 = DropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), true);
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
 }
 
 }  // namespace terrier::optimizer

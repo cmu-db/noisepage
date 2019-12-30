@@ -12,6 +12,14 @@
 namespace terrier::planner {
 
 /**
+ * Describes a single SET clause of an UPDATE query.
+ * For UPDATE tbl SET [$1] = $2:
+ * - $1 is SetClause.first which mentions the column OID to update
+ * - $2 is SetClause.second which describes the expression to set
+ */
+using SetClause = std::pair<catalog::col_oid_t, common::ManagedPointer<parser::AbstractExpression>>;
+
+/**
  * Plan node for update
  */
 class UpdatePlanNode : public AbstractPlanNode {
@@ -65,13 +73,31 @@ class UpdatePlanNode : public AbstractPlanNode {
     }
 
     /**
+     * @param indexed_update whether to update indexes
+     * @return builder object
+     */
+    Builder &SetIndexedUpdate(bool indexed_update) {
+      indexed_update_ = true;
+      return *this;
+    }
+
+    /**
+     * @param clause SET clause in a update statement
+     * @return builder object
+     */
+    Builder &AddSetClause(SetClause clause) {
+      sets_.push_back(clause);
+      return *this;
+    }
+
+    /**
      * Build the delete plan node
      * @return plan node
      */
     std::unique_ptr<UpdatePlanNode> Build() {
-      return std::unique_ptr<UpdatePlanNode>(new UpdatePlanNode(std::move(children_), std::move(output_schema_),
-                                                                database_oid_, namespace_oid_, table_oid_,
-                                                                update_primary_key_));
+      return std::unique_ptr<UpdatePlanNode>(
+          new UpdatePlanNode(std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, table_oid_,
+                             update_primary_key_, indexed_update_, std::move(sets_)));
     }
 
    protected:
@@ -94,6 +120,16 @@ class UpdatePlanNode : public AbstractPlanNode {
      * Whether to update primary key
      */
     bool update_primary_key_;
+
+    /**
+     * Whether to update indexes
+     */
+    bool indexed_update_;
+
+    /**
+     * Set Clauses
+     */
+    std::vector<SetClause> sets_;
   };
 
  private:
@@ -104,15 +140,19 @@ class UpdatePlanNode : public AbstractPlanNode {
    * @param namespace_oid OID of the namespace
    * @param table_oid OID of the target SQL table
    * @param update_primary_key whether to update primary key
+   * @param indexed_update whether to update indexes
+   * @param sets SET clauses
    */
   UpdatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
                  catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
-                 bool update_primary_key)
+                 bool update_primary_key, bool indexed_update, std::vector<SetClause> sets)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
         namespace_oid_(namespace_oid),
         table_oid_(table_oid),
-        update_primary_key_(update_primary_key) {}
+        update_primary_key_(update_primary_key),
+        indexed_update_(indexed_update),
+        sets_(std::move(sets)) {}
 
  public:
   /**
@@ -143,9 +183,19 @@ class UpdatePlanNode : public AbstractPlanNode {
   bool GetUpdatePrimaryKey() const { return update_primary_key_; }
 
   /**
+   * @return whether to update indexes
+   */
+  bool GetIndexedUpdate() const { return indexed_update_; }
+
+  /**
    * @return the type of this plan node
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::UPDATE; }
+
+  /**
+   * @return SET clauses
+   */
+  const std::vector<SetClause> &GetSetClauses() const { return sets_; }
 
   /**
    * @return the hashed value of this plan node
@@ -177,6 +227,16 @@ class UpdatePlanNode : public AbstractPlanNode {
    * Whether to update primary key
    */
   bool update_primary_key_;
+
+  /**
+   * Whether to update indexes
+   */
+  bool indexed_update_;
+
+  /**
+   * SET clauses
+   */
+  std::vector<SetClause> sets_;
 };
 
 DEFINE_JSON_DECLARATIONS(UpdatePlanNode);

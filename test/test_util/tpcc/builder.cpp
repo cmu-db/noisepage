@@ -65,23 +65,24 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
 
   // instantiate and set the table pointers in the catalog
 
-  auto result UNUSED_ATTRIBUTE = accessor->SetTablePointer(item_table_oid, new storage::SqlTable(store_, item_schema));
+  auto result UNUSED_ATTRIBUTE =
+      accessor->SetTablePointer(item_table_oid, new storage::SqlTable(store_.Get(), item_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(warehouse_table_oid, new storage::SqlTable(store_, warehouse_schema));
+  result = accessor->SetTablePointer(warehouse_table_oid, new storage::SqlTable(store_.Get(), warehouse_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(stock_table_oid, new storage::SqlTable(store_, stock_schema));
+  result = accessor->SetTablePointer(stock_table_oid, new storage::SqlTable(store_.Get(), stock_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(district_table_oid, new storage::SqlTable(store_, district_schema));
+  result = accessor->SetTablePointer(district_table_oid, new storage::SqlTable(store_.Get(), district_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(customer_table_oid, new storage::SqlTable(store_, customer_schema));
+  result = accessor->SetTablePointer(customer_table_oid, new storage::SqlTable(store_.Get(), customer_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(history_table_oid, new storage::SqlTable(store_, history_schema));
+  result = accessor->SetTablePointer(history_table_oid, new storage::SqlTable(store_.Get(), history_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(new_order_table_oid, new storage::SqlTable(store_, new_order_schema));
+  result = accessor->SetTablePointer(new_order_table_oid, new storage::SqlTable(store_.Get(), new_order_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(order_table_oid, new storage::SqlTable(store_, order_schema));
+  result = accessor->SetTablePointer(order_table_oid, new storage::SqlTable(store_.Get(), order_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(order_line_table_oid, new storage::SqlTable(store_, order_line_schema));
+  result = accessor->SetTablePointer(order_line_table_oid, new storage::SqlTable(store_.Get(), order_line_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -106,11 +107,11 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
   // the same types across schemas.
 
   TERRIER_ASSERT(
-      warehouse_schema.GetColumn(0).Name() == "W_ID" && district_schema.GetColumn(1).Name() == "D_W_ID" &&
-          customer_schema.GetColumn(2).Name() == "C_W_ID" && history_schema.GetColumn(2).Name() == "H_C_W_ID" &&
-          history_schema.GetColumn(4).Name() == "H_W_ID" && new_order_schema.GetColumn(2).Name() == "NO_W_ID" &&
-          order_schema.GetColumn(2).Name() == "O_W_ID" && order_line_schema.GetColumn(2).Name() == "OL_W_ID" &&
-          stock_schema.GetColumn(1).Name() == "S_W_ID" &&
+      warehouse_schema.GetColumn(0).Name() == "w_id" && district_schema.GetColumn(1).Name() == "d_w_id" &&
+          customer_schema.GetColumn(2).Name() == "c_w_id" && history_schema.GetColumn(2).Name() == "h_c_w_id" &&
+          history_schema.GetColumn(4).Name() == "h_w_id" && new_order_schema.GetColumn(2).Name() == "no_w_id" &&
+          order_schema.GetColumn(2).Name() == "o_w_id" && order_line_schema.GetColumn(2).Name() == "ol_w_id" &&
+          stock_schema.GetColumn(1).Name() == "s_w_id" &&
           (warehouse_schema.GetColumn(0).Type() == district_schema.GetColumn(1).Type() &&
            warehouse_schema.GetColumn(0).Type() == customer_schema.GetColumn(2).Type() &&
            warehouse_schema.GetColumn(0).Type() == history_schema.GetColumn(2).Type() &&
@@ -122,10 +123,10 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
       "Invalid schema configurations for W_ID.");
 
   TERRIER_ASSERT(
-      district_schema.GetColumn(0).Name() == "D_ID" && customer_schema.GetColumn(1).Name() == "C_D_ID" &&
-          history_schema.GetColumn(1).Name() == "H_C_D_ID" && history_schema.GetColumn(3).Name() == "H_D_ID" &&
-          new_order_schema.GetColumn(1).Name() == "NO_D_ID" && order_schema.GetColumn(1).Name() == "O_D_ID" &&
-          order_line_schema.GetColumn(1).Name() == "OL_D_ID" &&
+      district_schema.GetColumn(0).Name() == "d_id" && customer_schema.GetColumn(1).Name() == "c_d_id" &&
+          history_schema.GetColumn(1).Name() == "h_c_d_id" && history_schema.GetColumn(3).Name() == "h_d_id" &&
+          new_order_schema.GetColumn(1).Name() == "no_d_id" && order_schema.GetColumn(1).Name() == "o_d_id" &&
+          order_line_schema.GetColumn(1).Name() == "ol_d_id" &&
           (district_schema.GetColumn(0).Type() == customer_schema.GetColumn(1).Type() &&
            district_schema.GetColumn(0).Type() == history_schema.GetColumn(1).Type() &&
            district_schema.GetColumn(0).Type() == history_schema.GetColumn(3).Type() &&
@@ -134,20 +135,20 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
            district_schema.GetColumn(0).Type() == order_line_schema.GetColumn(1).Type()),
       "Invalid schema configurations for D_ID.");
 
-  TERRIER_ASSERT(customer_schema.GetColumn(0).Name() == "C_ID" && history_schema.GetColumn(0).Name() == "H_C_ID" &&
-                     order_schema.GetColumn(3).Name() == "O_C_ID" &&
+  TERRIER_ASSERT(customer_schema.GetColumn(0).Name() == "c_id" && history_schema.GetColumn(0).Name() == "h_c_id" &&
+                     order_schema.GetColumn(3).Name() == "o_c_id" &&
                      (customer_schema.GetColumn(0).Type() == history_schema.GetColumn(0).Type() &&
                       customer_schema.GetColumn(0).Type() == order_schema.GetColumn(3).Type()),
                  "Invalid schema configurations for C_ID.");
 
-  TERRIER_ASSERT(new_order_schema.GetColumn(0).Name() == "NO_O_ID" && order_schema.GetColumn(0).Name() == "O_ID" &&
-                     order_line_schema.GetColumn(0).Name() == "OL_O_ID" &&
+  TERRIER_ASSERT(new_order_schema.GetColumn(0).Name() == "no_o_id" && order_schema.GetColumn(0).Name() == "o_id" &&
+                     order_line_schema.GetColumn(0).Name() == "ol_o_id" &&
                      (new_order_schema.GetColumn(0).Type() == order_schema.GetColumn(0).Type() &&
                       new_order_schema.GetColumn(0).Type() == order_line_schema.GetColumn(0).Type()),
                  "Invalid schema configurations for O_ID.");
 
-  TERRIER_ASSERT(order_line_schema.GetColumn(4).Name() == "OL_I_ID" && item_schema.GetColumn(0).Name() == "I_ID" &&
-                     stock_schema.GetColumn(0).Name() == "S_I_ID" &&
+  TERRIER_ASSERT(order_line_schema.GetColumn(4).Name() == "ol_i_id" && item_schema.GetColumn(0).Name() == "i_id" &&
+                     stock_schema.GetColumn(0).Name() == "s_i_id" &&
                      (order_line_schema.GetColumn(4).Type() == item_schema.GetColumn(0).Type() &&
                       order_line_schema.GetColumn(4).Type() == stock_schema.GetColumn(0).Type()),
                  "Invalid schema configurations for I_ID.");
@@ -354,7 +355,12 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
                       db_oid,
 
                       item_table_oid, warehouse_table_oid, stock_table_oid, district_table_oid, customer_table_oid,
-                      history_table_oid, new_order_table_oid, order_table_oid, order_line_table_oid);
+                      history_table_oid, new_order_table_oid, order_table_oid, order_line_table_oid,
+
+                      warehouse_primary_index_oid, district_primary_index_oid, customer_primary_index_oid,
+                      customer_secondary_index_oid, new_order_primary_index_oid, order_primary_index_oid,
+                      order_secondary_index_oid, order_line_primary_index_oid, item_primary_index_oid,
+                      stock_primary_index_oid);
 }
 
 }  // namespace terrier::tpcc

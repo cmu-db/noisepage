@@ -1,9 +1,8 @@
 #pragma once
 
 #include <memory>
-#include "spdlog/fmt/ostr.h"
-#include "spdlog/sinks/basic_file_sink.h"
-#include "spdlog/spdlog.h"
+
+#include "loggers/loggers_util.h"
 
 namespace terrier::binder {
 extern std::shared_ptr<spdlog::logger> binder_logger;  // NOLINT

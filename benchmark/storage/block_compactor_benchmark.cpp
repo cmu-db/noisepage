@@ -16,15 +16,18 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
   storage::BlockStore block_store_{5000, 5000};
   std::default_random_engine generator_;
   storage::RecordBufferSegmentPool buffer_pool_{100000, 100000};
-  storage::BlockLayout layout_{{8, 8, VARLEN_COLUMN}};
+  storage::BlockLayout layout_{{8, 8, storage::VARLEN_COLUMN}};
   storage::TupleAccessStrategy accessor_{layout_};
 
   storage::DataTable table_{&block_store_, layout_, storage::layout_version_t(0)};
   transaction::TimestampManager timestamp_manager_;
-  transaction::DeferredActionManager deferred_action_manager_{&timestamp_manager_};
-  transaction::TransactionManager txn_manager_{&timestamp_manager_, &deferred_action_manager_, &buffer_pool_, true,
-                                               DISABLED};
-  storage::GarbageCollector gc_{&timestamp_manager_, &deferred_action_manager_, &txn_manager_, nullptr};
+  transaction::DeferredActionManager deferred_action_manager_{common::ManagedPointer(&timestamp_manager_)};
+  transaction::TransactionManager txn_manager_{common::ManagedPointer(&timestamp_manager_),
+                                               common::ManagedPointer(&deferred_action_manager_),
+                                               common::ManagedPointer(&buffer_pool_), true, DISABLED};
+  storage::GarbageCollector gc_{common::ManagedPointer(&timestamp_manager_),
+                                common::ManagedPointer(&deferred_action_manager_),
+                                common::ManagedPointer(&txn_manager_), nullptr};
   storage::BlockCompactor compactor_;
 
   uint32_t num_blocks_ = 500;

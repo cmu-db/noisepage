@@ -1,11 +1,11 @@
+#include "storage/recovery/recovery_manager.h"
+
 #include <algorithm>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
-
-#include "storage/recovery/recovery_manager.h"
 
 #include "catalog/postgres/pg_attribute.h"
 #include "catalog/postgres/pg_class.h"
@@ -320,7 +320,7 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
       if (table_pr->IsNull(pr_map[table_col_oid])) {
         index_pr->SetNull(index->GetKeyOidToOffsetMap().at(index_col_oid));
       } else {
-        auto size = col.AttrSize() & INT8_MAX;
+        auto size = AttrSizeBytes(col.AttrSize());
         std::memcpy(index_pr->AccessForceNotNull(index->GetKeyOidToOffsetMap().at(index_col_oid)),
                     table_pr->AccessWithNullCheck(pr_map[table_col_oid]), size);
       }
@@ -584,7 +584,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
               // Use of the -> operator is ok here, since we are the ones who wrapped the table with the ManagedPointer
               sql_table = GetSqlTable(txn, redo_record->GetDatabaseOid(), catalog::table_oid_t(class_oid)).operator->();
             } else {
-              sql_table = new SqlTable(block_store_, *schema);
+              sql_table = new SqlTable(block_store_.Get(), *schema);
             }
             result = db_catalog->SetTablePointer(txn, catalog::table_oid_t(class_oid), sql_table);
             TERRIER_ASSERT(result, "Setting table pointer should succeed, entry should be in pg_class already");

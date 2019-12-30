@@ -2,8 +2,12 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
+#include "parser/expression/abstract_expression.h"
+#include "parser/expression/column_value_expression.h"
 #include "planner/plannodes/abstract_join_plan_node.h"
 
 namespace terrier::planner {
@@ -12,6 +16,8 @@ using IndexExpression = common::ManagedPointer<parser::AbstractExpression>;
 
 /**
  * Plan node for nested loop joins
+ * TODO(Amadou): This class is fairly similar to the IndexScan plan node. However, the translators are diffrerent.
+ * Make it can be replaced by a combination of IndexScan and NLJoin?
  */
 class IndexJoinPlanNode : public AbstractJoinPlanNode {
  public:
@@ -48,11 +54,9 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
 
     /**
      * Sets the index cols.
-     * TODO(Amadou): Ideally, these expressions should come from the catalog.
-     * But the optimizer may change the expression, so perhaps this is the right place
      */
-    Builder &AddIndexColumn(IndexExpression expr) {
-      index_cols_.emplace_back(expr);
+    Builder &AddIndexColumn(catalog::indexkeycol_oid_t col_oid, const IndexExpression &expr) {
+      index_cols_.emplace(col_oid, expr);
       return *this;
     }
 
@@ -78,7 +82,7 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
     /**
      * Index Cols
      */
-    std::vector<IndexExpression> index_cols_{};
+    std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> index_cols_{};
   };
 
  private:
@@ -91,7 +95,8 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
   IndexJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                     std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
                     common::ManagedPointer<parser::AbstractExpression> predicate, catalog::index_oid_t index_oid,
-                    catalog::table_oid_t table_oid, std::vector<IndexExpression> &&index_cols)
+                    catalog::table_oid_t table_oid,
+                    std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&index_cols)
       : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate),
         index_oid_(index_oid),
         table_oid_(table_oid),
@@ -133,9 +138,38 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
   /**
    * @return the index columns
    */
-  std::vector<IndexExpression> GetIndexColumns() const { return index_cols_; }
+  const std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &GetIndexColumns() const { return index_cols_; }
+
+  /**
+   * Collect all column oids in this expression
+   * @return the vector of unique columns oids
+   */
+  std::vector<catalog::col_oid_t> CollectInputOids() const {
+    std::vector<catalog::col_oid_t> result;
+    // Scan predicate
+    if (GetJoinPredicate() != nullptr) CollectOids(&result, GetJoinPredicate().Get());
+    // Output expressions
+    for (const auto &col : GetOutputSchema()->GetColumns()) {
+      CollectOids(&result, col.GetExpr().Get());
+    }
+    // Remove duplicates
+    std::unordered_set<catalog::col_oid_t> s(result.begin(), result.end());
+    result.assign(s.begin(), s.end());
+    return result;
+  }
 
  private:
+  void CollectOids(std::vector<catalog::col_oid_t> *result, const parser::AbstractExpression *expr) const {
+    if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
+      auto column_val = static_cast<const parser::ColumnValueExpression *>(expr);
+      result->emplace_back(column_val->GetColumnOid());
+    } else {
+      for (const auto &child : expr->GetChildren()) {
+        CollectOids(result, child.Get());
+      }
+    }
+  }
+
   /**
    * OID of the index
    */
@@ -147,7 +181,7 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
   /**
    * Index columns
    */
-  std::vector<IndexExpression> index_cols_{};
+  std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> index_cols_{};
 };
 
 DEFINE_JSON_DECLARATIONS(IndexJoinPlanNode);

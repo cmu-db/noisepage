@@ -1,41 +1,24 @@
 #include "common/perf_monitor.h"
+
 #include <thread>  //NOLINT
-#include "catalog/catalog.h"
+
 #include "common/macros.h"
+#include "common/managed_pointer.h"
 #include "common/scoped_timer.h"
-#include "storage/garbage_collector_thread.h"
-#include "storage/storage_defs.h"
+#include "main/db_main.h"
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
-#include "transaction/deferred_action_manager.h"
-#include "transaction/transaction_manager.h"
 
 namespace terrier {
 
 class PerfMonitorTests : public TerrierTest {
  public:
-  void SetUp() final { TerrierTest::SetUp(); }
-
-  void TearDown() final { TerrierTest::TearDown(); }
-
   static void CreateAndDestroyCatalog(common::PerfMonitor::PerfCounters *const counters) {
     common::PerfMonitor monitor(false);
-    monitor.Start();
 
-    storage::BlockStore block_store{1000, 1000};
-    storage::RecordBufferSegmentPool buffer_pool{1000000, 1000000};
+    auto db_main = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
+    db_main.reset();
 
-    transaction::TimestampManager timestamp_manager;
-    transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
-    transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool, true,
-                                                DISABLED);
-    catalog::Catalog catalog(&txn_manager, &block_store);
-
-    storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
-    StorageTestUtil::FullyPerformGC(&gc, DISABLED);
-
-    catalog.TearDown();
-    StorageTestUtil::FullyPerformGC(&gc, DISABLED);
     monitor.Stop();
     *counters = monitor.Counters();
   }

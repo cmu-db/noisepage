@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cmath>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -15,9 +16,10 @@
 #include "optimizer/query_to_operator_transformer.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
-#include "parser/expression/expression_util.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/subquery_expression.h"
+#include "parser/expression_util.h"
+#include "parser/postgresparser.h"
 #include "parser/statements.h"
 #include "planner/plannodes/plan_node_defs.h"
 
@@ -97,14 +99,19 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
         output_expr_ = std::move(filter_expr);
       }
     }
-  }
+  } else if (op->IsSelectDistinct()) {
+    // SELECT DISTINCT a1 FROM A should be transformed to
+    // SELECT a1 FROM A GROUP BY a1
+    auto num_cols = op->GetSelectColumns().size();
+    auto group_by_cols = std::vector<common::ManagedPointer<parser::AbstractExpression>>(num_cols);
+    for (size_t i = 0; i < num_cols; i++) {
+      group_by_cols[i] = common::ManagedPointer<parser::AbstractExpression>(op->GetSelectColumns()[i]);
+    }
 
-  if (op->IsSelectDistinct()) {
-    OPTIMIZER_LOG_DEBUG("Handling distinct in SelectStatement ...");
-    auto distinct_expr = std::make_unique<OperatorExpression>(LogicalDistinct::Make(),
-                                                              std::vector<std::unique_ptr<OperatorExpression>>{});
-    distinct_expr->PushChild(std::move(output_expr_));
-    output_expr_ = std::move(distinct_expr);
+    std::vector<std::unique_ptr<OperatorExpression>> c;
+    c.emplace_back(std::move(output_expr_));
+    output_expr_ =
+        std::make_unique<OperatorExpression>(LogicalAggregateAndGroupBy::Make(std::move(group_by_cols)), std::move(c));
   }
 
   if (op->GetSelectLimit() != nullptr && op->GetSelectLimit()->GetLimit() != -1) {
@@ -221,7 +228,9 @@ void QueryToOperatorTransformer::Visit(parser::TableRef *node, parser::ParseResu
     node->GetList().at(0)->Accept(this, parse_result);
     auto prev_expr = std::move(output_expr_);
     // Build a left deep join tree
-    for (auto &list_elem : node->GetList()) {
+    for (size_t i = 1; i < node->GetList().size(); i++) {
+      // Start at i = 1 due to the Accept() above
+      auto list_elem = node->GetList().at(i);
       list_elem->Accept(this, parse_result);
       auto join_expr = std::make_unique<OperatorExpression>(LogicalInnerJoin::Make(),
                                                             std::vector<std::unique_ptr<OperatorExpression>>{});
@@ -251,16 +260,93 @@ void QueryToOperatorTransformer::Visit(parser::OrderByDescription *node, parser:
 }
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::LimitDescription *node,
                                        UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
-  OPTIMIZER_LOG_DEBUG("Transforming LimitDecription to operators ...");
+  OPTIMIZER_LOG_DEBUG("Transforming LimitDescription to operators ...");
 }
-void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::CreateFunctionStatement *op,
+void QueryToOperatorTransformer::Visit(parser::CreateFunctionStatement *op,
                                        UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
   OPTIMIZER_LOG_DEBUG("Transforming CreateFunctionStatement to operators ...");
+  // TODO(Ling): Where should the as_type_ go?
+  std::vector<std::string> function_param_names;
+  std::vector<parser::BaseFunctionParameter::DataType> function_param_types;
+  for (const auto &col : op->GetFuncParameters()) {
+    function_param_names.push_back(col->GetParamName());
+    function_param_types.push_back(col->GetDataType());
+  }
+  // TODO(Ling): database oid of create function?
+  auto create_expr = std::make_unique<OperatorExpression>(
+      LogicalCreateFunction::Make(catalog::INVALID_DATABASE_OID, accessor_->GetDefaultNamespace(), op->GetFuncName(),
+                                  op->GetPLType(), op->GetFuncBody(), std::move(function_param_names),
+                                  std::move(function_param_types), op->GetFuncReturnType()->GetDataType(),
+                                  op->GetFuncParameters().size(), op->ShouldReplace()),
+      std::vector<std::unique_ptr<OperatorExpression>>{});
+  output_expr_ = std::move(create_expr);
 }
 
-void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::CreateStatement *op,
-                                       UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
+void QueryToOperatorTransformer::Visit(parser::CreateStatement *op, parser::ParseResult *parse_result) {
   OPTIMIZER_LOG_DEBUG("Transforming CreateStatement to operators ...");
+  auto create_type = op->GetCreateType();
+  std::unique_ptr<OperatorExpression> create_expr;
+  switch (create_type) {
+    case parser::CreateStatement::CreateType::kDatabase:
+      create_expr = std::make_unique<OperatorExpression>(LogicalCreateDatabase::Make(op->GetDatabaseName()),
+                                                         std::vector<std::unique_ptr<OperatorExpression>>{});
+      break;
+    case parser::CreateStatement::CreateType::kTable:
+      create_expr = std::make_unique<OperatorExpression>(
+          LogicalCreateTable::Make(accessor_->GetDefaultNamespace(), op->GetTableName(), op->GetColumns(),
+                                   op->GetForeignKeys()),
+          std::vector<std::unique_ptr<OperatorExpression>>{});
+      // TODO(Ling): for other procedures to generate create table plan, refer to create_table_plan_node builder.
+      //  Following part might be more adequate to be handled by optimizer when it it actually constructing the plan
+      //  I don't think we should extract out the desired fields here.
+      break;
+    case parser::CreateStatement::CreateType::kIndex: {
+      // create vector of expressions of the index entires
+      std::vector<common::ManagedPointer<parser::AbstractExpression>> entries;
+      for (auto &attr : op->GetIndexAttributes()) {
+        if (attr.HasExpr()) {
+          entries.emplace_back(attr.GetExpression());
+        } else {
+          auto tb_oid = accessor_->GetTableOid(op->GetTableName());
+          auto unique_col_expr = std::make_unique<parser::ColumnValueExpression>(
+              op->GetTableName(), attr.GetName(), accessor_->GetDatabaseOid(op->GetDatabaseName()), tb_oid,
+              accessor_->GetSchema(tb_oid).GetColumn(attr.GetName()).Oid());
+          parse_result->AddExpression(std::move(unique_col_expr));
+          auto new_col_expr = common::ManagedPointer(parse_result->GetExpressions().back());
+          entries.push_back(new_col_expr);
+        }
+      }
+      create_expr = std::make_unique<OperatorExpression>(
+          LogicalCreateIndex::Make(accessor_->GetDefaultNamespace(), accessor_->GetTableOid(op->GetTableName()),
+                                   op->GetIndexType(), op->IsUniqueIndex(), op->GetIndexName(), std::move(entries)),
+          std::vector<std::unique_ptr<OperatorExpression>>{});
+      break;
+    }
+    case parser::CreateStatement::CreateType::kTrigger: {
+      std::vector<catalog::col_oid_t> trigger_columns;
+      auto tb_oid = accessor_->GetTableOid(op->GetTableName());
+      auto schema = accessor_->GetSchema(tb_oid);
+      for (const auto &col : op->GetTriggerColumns()) trigger_columns.emplace_back(schema.GetColumn(col).Oid());
+      create_expr = std::make_unique<OperatorExpression>(
+          LogicalCreateTrigger::Make(accessor_->GetDatabaseOid(op->GetDatabaseName()), accessor_->GetDefaultNamespace(),
+                                     tb_oid, op->GetTriggerName(), op->GetTriggerFuncNames(), op->GetTriggerArgs(),
+                                     std::move(trigger_columns), op->GetTriggerWhen(), op->GetTriggerType()),
+          std::vector<std::unique_ptr<OperatorExpression>>{});
+      break;
+    }
+    case parser::CreateStatement::CreateType::kSchema:
+      create_expr = std::make_unique<OperatorExpression>(LogicalCreateNamespace::Make(op->GetNamespaceName()),
+                                                         std::vector<std::unique_ptr<OperatorExpression>>{});
+      break;
+    case parser::CreateStatement::CreateType::kView:
+      create_expr = std::make_unique<OperatorExpression>(
+          LogicalCreateView::Make(accessor_->GetDatabaseOid(op->GetDatabaseName()), accessor_->GetDefaultNamespace(),
+                                  op->GetViewName(), op->GetViewQuery()),
+          std::vector<std::unique_ptr<OperatorExpression>>{});
+      break;
+  }
+
+  output_expr_ = std::move(create_expr);
 }
 void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::ParseResult *parse_result) {
   OPTIMIZER_LOG_DEBUG("Transforming InsertStatement to operators ...");
@@ -323,6 +409,7 @@ void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::Pars
       try {
         const auto &column_object = schema.GetColumn(col);
         specified.insert(column_object.Oid());
+        col_ids.emplace_back(column_object.Oid());
       } catch (const std::out_of_range &oor) {
         throw CATALOG_EXCEPTION(
             ("Column \"" + col + "\" of relation \"" + target_table->GetTableName() + "\" does not exist").c_str());
@@ -337,8 +424,6 @@ void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::Pars
             ("Null value in column \"" + column.Name() + "\" violates not-null constraint").c_str());
       }
     }
-
-    col_ids.insert(col_ids.end(), specified.begin(), specified.end());
   }
 
   auto insert_expr = std::make_unique<OperatorExpression>(
@@ -355,9 +440,9 @@ void QueryToOperatorTransformer::Visit(parser::DeleteStatement *op, parser::Pars
   auto target_ns_id = accessor_->GetDefaultNamespace();
   auto target_table_alias = target_table->GetAlias();
 
-  auto delete_expr =
-      std::make_unique<OperatorExpression>(LogicalDelete::Make(target_db_id, target_ns_id, target_table_id),
-                                           std::vector<std::unique_ptr<OperatorExpression>>{});
+  std::vector<std::unique_ptr<OperatorExpression>> c;
+  auto delete_expr = std::make_unique<OperatorExpression>(
+      LogicalDelete::Make(target_db_id, target_ns_id, target_table_alias, target_table_id), std::move(c));
 
   std::unique_ptr<OperatorExpression> table_scan;
   if (op->GetDeleteCondition() != nullptr) {
@@ -376,8 +461,38 @@ void QueryToOperatorTransformer::Visit(parser::DeleteStatement *op, parser::Pars
   output_expr_ = std::move(delete_expr);
 }
 
-void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::DropStatement *op, parser::ParseResult *parse_result) {
-  OPTIMIZER_LOG_DEBUG("Transforming DropStatement to operators ...");
+void QueryToOperatorTransformer::Visit(parser::DropStatement *op, parser::ParseResult *parse_result) {
+  OPTIMIZER_LOG_DEBUG("Transforming DropStatement to operators ...")
+  auto drop_type = op->GetDropType();
+  std::unique_ptr<OperatorExpression> drop_expr;
+  switch (drop_type) {
+    case parser::DropStatement::DropType::kDatabase:
+      drop_expr = std::make_unique<OperatorExpression>(
+          LogicalDropDatabase::Make(accessor_->GetDatabaseOid(op->GetDatabaseName())),
+          std::vector<std::unique_ptr<OperatorExpression>>{});
+      break;
+    case parser::DropStatement::DropType::kTable:
+      drop_expr =
+          std::make_unique<OperatorExpression>(LogicalDropTable::Make(accessor_->GetTableOid(op->GetTableName())),
+                                               std::vector<std::unique_ptr<OperatorExpression>>{});
+      break;
+    case parser::DropStatement::DropType::kIndex:
+      drop_expr =
+          std::make_unique<OperatorExpression>(LogicalDropIndex::Make(accessor_->GetIndexOid(op->GetIndexName())),
+                                               std::vector<std::unique_ptr<OperatorExpression>>{});
+      break;
+    case parser::DropStatement::DropType::kSchema:
+      drop_expr = std::make_unique<OperatorExpression>(
+          LogicalDropNamespace::Make(accessor_->GetNamespaceOid(op->GetNamespaceName())),
+          std::vector<std::unique_ptr<OperatorExpression>>{});
+      break;
+    case parser::DropStatement::DropType::kTrigger:
+    case parser::DropStatement::DropType::kView:
+    case parser::DropStatement::DropType::kPreparedStatement:
+      break;
+  }
+
+  output_expr_ = std::move(drop_expr);
 }
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::PrepareStatement *op,
                                        UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
@@ -403,9 +518,10 @@ void QueryToOperatorTransformer::Visit(parser::UpdateStatement *op,
 
   std::unique_ptr<OperatorExpression> table_scan;
 
+  std::vector<std::unique_ptr<OperatorExpression>> c;
   auto update_expr = std::make_unique<OperatorExpression>(
-      LogicalUpdate::Make(target_db_id, target_ns_id, target_table_id, op->GetUpdateClauses()),
-      std::vector<std::unique_ptr<OperatorExpression>>{});
+      LogicalUpdate::Make(target_db_id, target_ns_id, target_table_alias, target_table_id, op->GetUpdateClauses()),
+      std::move(c));
 
   if (op->GetUpdateCondition() != nullptr) {
     std::vector<AnnotatedExpression> predicates;
@@ -510,7 +626,7 @@ bool QueryToOperatorTransformer::RequireAggregation(common::ManagedPointer<parse
     std::vector<common::ManagedPointer<parser::AggregateExpression>> aggr_exprs;
     // we need to use get method of managed pointer because the function we are calling will recursivly get aggreate
     // expressions from the current expression and its children; children are of unique pointers
-    parser::expression::ExpressionUtil::GetAggregateExprs(&aggr_exprs, expr);
+    parser::ExpressionUtil::GetAggregateExprs(&aggr_exprs, expr);
     if (!aggr_exprs.empty())
       has_aggregation = true;
     else

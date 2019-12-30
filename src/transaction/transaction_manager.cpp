@@ -1,6 +1,8 @@
 #include "transaction/transaction_manager.h"
+
 #include <unordered_set>
 #include <utility>
+
 #include "common/scoped_timer.h"
 #include "common/thread_context.h"
 #include "metrics/metrics_store.h"
@@ -36,7 +38,7 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
     byte *const commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
     storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, commit_callback,
                                       commit_callback_arg, oldest_active_txn, txn->IsReadOnly(), txn,
-                                      timestamp_manager_);
+                                      timestamp_manager_.Get());
   } else {
     // Otherwise, logging is disabled. We should pretend to have serialized and flushed the record so the rest of the
     // system proceeds correctly
@@ -87,7 +89,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
 
     while (!txn->commit_actions_.empty()) {
       TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
-      txn->commit_actions_.front()(deferred_action_manager_);
+      txn->commit_actions_.front()(deferred_action_manager_.Get());
       txn->commit_actions_.pop_front();
     }
 
@@ -130,7 +132,7 @@ void TransactionManager::LogAbort(TransactionContext *const txn) {
     // currently exist. Only the abort record is needed.
     txn->redo_buffer_.Reset();
     byte *const abort_record = txn->redo_buffer_.NewEntry(storage::AbortRecord::Size());
-    storage::AbortRecord::Initialize(abort_record, txn->StartTime(), txn, timestamp_manager_);
+    storage::AbortRecord::Initialize(abort_record, txn->StartTime(), txn, timestamp_manager_.Get());
     // Signal to the log manager that we are ready to be logged out
     txn->redo_buffer_.Finalize(true);
   } else {
@@ -147,7 +149,7 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   // Immediately clear the abort actions stack
   while (!txn->abort_actions_.empty()) {
     TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
-    txn->abort_actions_.front()(deferred_action_manager_);
+    txn->abort_actions_.front()(deferred_action_manager_.Get());
     txn->abort_actions_.pop_front();
   }
 
@@ -255,11 +257,11 @@ void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRe
       case storage::DeltaRecordType::INSERT:
         // Same as update, need to deallocate possible varlens.
         DeallocateInsertedTupleIfVarlen(txn, undo_record, accessor);
-        accessor.SetNull(slot, VERSION_POINTER_COLUMN_ID);
+        accessor.SetNull(slot, storage::VERSION_POINTER_COLUMN_ID);
         accessor.Deallocate(slot);
         break;
       case storage::DeltaRecordType::DELETE:
-        accessor.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
+        accessor.SetNotNull(slot, storage::VERSION_POINTER_COLUMN_ID);
         break;
       default:
         throw std::runtime_error("unexpected delta record type");
@@ -285,7 +287,7 @@ void TransactionManager::DeallocateColumnUpdateIfVarlen(TransactionContext *txn,
 void TransactionManager::DeallocateInsertedTupleIfVarlen(TransactionContext *txn, storage::UndoRecord *undo,
                                                          const storage::TupleAccessStrategy &accessor) const {
   const storage::BlockLayout &layout = accessor.GetBlockLayout();
-  for (uint16_t i = NUM_RESERVED_COLUMNS; i < layout.NumColumns(); i++) {
+  for (uint16_t i = storage::NUM_RESERVED_COLUMNS; i < layout.NumColumns(); i++) {
     storage::col_id_t col_id(i);
     if (layout.IsVarlen(col_id)) {
       auto *varlen = reinterpret_cast<storage::VarlenEntry *>(accessor.AccessWithNullCheck(undo->Slot(), col_id));

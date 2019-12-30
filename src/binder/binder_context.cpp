@@ -17,14 +17,28 @@ namespace terrier::binder {
 
 void BinderContext::AddRegularTable(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                                     parser::TableRef *table_ref) {
-  AddRegularTable(accessor, table_ref->GetDatabaseName(), table_ref->GetTableName(), table_ref->GetAlias());
+  AddRegularTable(accessor, table_ref->GetDatabaseName(), table_ref->GetNamespaceName(), table_ref->GetTableName(),
+                  table_ref->GetAlias());
 }
 
 void BinderContext::AddRegularTable(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
-                                    const std::string &db_name, const std::string &table_name,
-                                    const std::string &table_alias) {
+                                    const std::string &db_name, const std::string &namespace_name,
+                                    const std::string &table_name, const std::string &table_alias) {
   auto db_id = accessor->GetDatabaseOid(db_name);
-  auto table_id = accessor->GetTableOid(table_name);
+  if (db_id == catalog::INVALID_DATABASE_OID) {
+    throw BINDER_EXCEPTION(("Unknown database name " + db_name).c_str());
+  }
+
+  auto namespace_id = accessor->GetNamespaceOid(namespace_name);
+  if (namespace_id == catalog::INVALID_NAMESPACE_OID) {
+    throw BINDER_EXCEPTION(("Unknown namespace name " + namespace_name).c_str());
+  }
+
+  auto table_id = accessor->GetTableOid(namespace_id, table_name);
+  if (table_id == catalog::INVALID_TABLE_OID) {
+    throw BINDER_EXCEPTION(("Unknown table name " + table_name).c_str());
+  }
+
   auto schema = accessor->GetSchema(table_id);
 
   if (nested_table_alias_map_.find(table_alias) != nested_table_alias_map_.end()) {
@@ -35,6 +49,21 @@ void BinderContext::AddRegularTable(const std::unique_ptr<catalog::CatalogAccess
     throw BINDER_EXCEPTION(("Duplicate alias " + table_alias).c_str());
   }
   regular_table_alias_map_[table_alias] = std::make_tuple(db_id, table_id, schema);
+}
+
+void BinderContext::AddNewTable(const std::string &new_table_name,
+                                const std::vector<common::ManagedPointer<parser::ColumnDefinition>> &new_columns) {
+  if (regular_table_alias_map_.find(new_table_name) != regular_table_alias_map_.end() ||
+      nested_table_alias_map_.find(new_table_name) != nested_table_alias_map_.end()) {
+    throw BINDER_EXCEPTION(("Duplicate alias " + new_table_name).c_str());
+  }
+
+  std::unordered_map<std::string, type::TypeId> column_alias_map;
+
+  for (auto &col : new_columns) {
+    column_alias_map[col->GetColumnName()] = col->GetValueType();
+  }
+  nested_table_alias_map_[new_table_name] = column_alias_map;
 }
 
 void BinderContext::AddNestedTable(const std::string &table_alias,

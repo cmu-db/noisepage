@@ -12,18 +12,51 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 #include "parser/parser_defs.h"
+#include "parser/statements.h"
 #include "parser/update_statement.h"
 #include "planner/plannodes/plan_node_defs.h"
 #include "type/transient_value.h"
 
-namespace terrier {
-
-namespace parser {
-class AbstractExpression;
+namespace terrier::parser {
+class AbstractExpressionn;
 class UpdateClause;
-}  // namespace parser
+}  // namespace terrier::parser
 
-namespace optimizer {
+namespace terrier::optimizer {
+
+/**
+ * Operator that represents another group
+ */
+class LeafOperator : public OperatorNode<LeafOperator> {
+ public:
+  /**
+   * Make a LeafOperator
+   * @param group Group to wrap
+   */
+  static Operator Make(group_id_t group);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
+  bool operator==(const BaseOperatorNode &r) override;
+
+  common::hash_t Hash() const override;
+
+  /**
+   * Gets the original group (i.e group being wrapped)
+   * @returns GroupID of wrapped group
+   */
+  group_id_t GetOriginGroup() const { return origin_group_; }
+
+ private:
+  /**
+   * Wrapped group's GroupID
+   */
+  group_id_t origin_group_;
+};
 
 /**
  * Logical operator for get
@@ -48,6 +81,12 @@ class LogicalGet : public OperatorNode<LogicalGet> {
    * @return
    */
   static Operator Make();
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -131,6 +170,12 @@ class LogicalExternalFileGet : public OperatorNode<LogicalExternalFileGet> {
   static Operator Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
                        char escape);
 
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
 
@@ -200,6 +245,12 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
       std::string table_alias,
       std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map);
 
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
@@ -230,6 +281,11 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
 
 /**
  * Logical operator to perform a filter during a scan
+ *
+ * A key assumption made with this LogicalFilter is that the predicates
+ * are the result of splitting the original predicate along
+ * CONJUNCTION_AND. Refer to QueryToOperatorTransformer::CollectPredicates
+ * and QueryToOperatorTransformer::SplitPredicates for reference.
  */
 class LogicalFilter : public OperatorNode<LogicalFilter> {
  public:
@@ -238,6 +294,12 @@ class LogicalFilter : public OperatorNode<LogicalFilter> {
    * @return a LogicalFilter operator
    */
   static Operator Make(std::vector<AnnotatedExpression> &&predicates);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -267,6 +329,12 @@ class LogicalProjection : public OperatorNode<LogicalProjection> {
    * @return a LogicalProjection operator
    */
   static Operator Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&expressions);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -300,6 +368,12 @@ class LogicalDependentJoin : public OperatorNode<LogicalDependentJoin> {
    */
   static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
 
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
@@ -331,6 +405,12 @@ class LogicalMarkJoin : public OperatorNode<LogicalMarkJoin> {
    * @return a MarkJoin operator
    */
   static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -364,6 +444,12 @@ class LogicalSingleJoin : public OperatorNode<LogicalSingleJoin> {
    */
   static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
 
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
@@ -395,6 +481,12 @@ class LogicalInnerJoin : public OperatorNode<LogicalInnerJoin> {
    * @return an InnerJoin operator
    */
   static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -428,6 +520,12 @@ class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
    */
   static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
 
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
@@ -459,6 +557,12 @@ class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
    * @return a RightJoin operator
    */
   static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -492,6 +596,12 @@ class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
    */
   static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
 
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
@@ -523,6 +633,12 @@ class LogicalSemiJoin : public OperatorNode<LogicalSemiJoin> {
    * @return a SemiJoin operator
    */
   static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -563,6 +679,12 @@ class LogicalAggregateAndGroupBy : public OperatorNode<LogicalAggregateAndGroupB
    */
   static Operator Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
                        std::vector<AnnotatedExpression> &&having);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -607,6 +729,12 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
       catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
       std::vector<catalog::col_oid_t> &&columns,
       common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -681,6 +809,12 @@ class LogicalInsertSelect : public OperatorNode<LogicalInsertSelect> {
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid);
 
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
 
@@ -717,22 +851,6 @@ class LogicalInsertSelect : public OperatorNode<LogicalInsertSelect> {
 };
 
 /**
- * Logical operator for DISTINCT
- */
-class LogicalDistinct : public OperatorNode<LogicalDistinct> {
- public:
-  /**
-   * This generates the LogicalDistinct.
-   * It doesn't need to store any data. It is just a placeholder
-   * @return
-   */
-  static Operator Make();
-
-  bool operator==(const BaseOperatorNode &r) override;
-  common::hash_t Hash() const override;
-};
-
-/**
  * Logical operator for LIMIT
  * This supports embedded ORDER BY information
  */
@@ -748,6 +866,12 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
   static Operator Make(size_t offset, size_t limit,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
                        std::vector<optimizer::OrderByOrderingType> &&sort_directions);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -807,11 +931,18 @@ class LogicalDelete : public OperatorNode<LogicalDelete> {
   /**
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
+   * @param table_alias Alias
    * @param table_oid OID of the table
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
                        catalog::table_oid_t table_oid);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -825,6 +956,11 @@ class LogicalDelete : public OperatorNode<LogicalDelete> {
    * @return OID of the namespace
    */
   const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return alias
+   */
+  const std::string &GetTableAlias() const { return table_alias_; }
 
   /**
    * @return OID of the table
@@ -843,6 +979,11 @@ class LogicalDelete : public OperatorNode<LogicalDelete> {
   catalog::namespace_oid_t namespace_oid_;
 
   /**
+   * Alias
+   */
+  std::string table_alias_;
+
+  /**
    * OID of the table
    */
   catalog::table_oid_t table_oid_;
@@ -856,13 +997,20 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
   /**
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
+   * @param table_alias Table's Alias
    * @param table_oid OID of the table
    * @param updates the update clauses from the SET portion of the query
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
                        catalog::table_oid_t table_oid,
                        std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -876,6 +1024,11 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
    * @return OID of the namespace
    */
   const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return table alias
+   */
+  const std::string &GetTableAlias() const { return table_alias_; }
 
   /**
    * @return OID of the table
@@ -897,6 +1050,11 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
    * OID of the namespace
    */
   catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * Table Alias
+   */
+  std::string table_alias_;
 
   /**
    * OID of the table
@@ -924,6 +1082,12 @@ class LogicalExportExternalFile : public OperatorNode<LogicalExportExternalFile>
    */
   static Operator Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
                        char escape);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -982,5 +1146,809 @@ class LogicalExportExternalFile : public OperatorNode<LogicalExportExternalFile>
   char escape_;
 };
 
-}  // namespace optimizer
-}  // namespace terrier
+/**
+ * Logical operator for CreateDatabase
+ */
+class LogicalCreateDatabase : public OperatorNode<LogicalCreateDatabase> {
+ public:
+  /**
+   * @param database_name Name of the database to be created
+   * @return
+   */
+  static Operator Make(std::string database_name);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return the name of the database we want to create
+   */
+  const std::string &GetDatabaseName() const { return database_name_; }
+
+ private:
+  /**
+   * Name of the new database
+   */
+  std::string database_name_;
+};
+
+/**
+ * Logical operator for CreateFunction
+ */
+class LogicalCreateFunction : public OperatorNode<LogicalCreateFunction> {
+ public:
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param function_name Name of the function
+   * @param language Language type of the user defined function
+   * @param function_body Body of the user defined function
+   * @param function_param_names Parameter names of the user defined function
+   * @param function_param_types Parameter types of the user defined function
+   * @param return_type Return type of the user defined function
+   * @param param_count Number of parameters of the user defined function
+   * @param replace If this function should replace existing definitions
+   * @return
+   */
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       std::string function_name, parser::PLType language, std::vector<std::string> &&function_body,
+                       std::vector<std::string> &&function_param_names,
+                       std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
+                       parser::BaseFunctionParameter::DataType return_type, size_t param_count, bool replace);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the database
+   */
+  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return name of the user defined function
+   */
+  std::string GetFunctionName() const { return function_name_; }
+
+  /**
+   * @return language type of the user defined function
+   */
+  parser::PLType GetUDFLanguage() const { return language_; }
+
+  /**
+   * @return body of the user defined function
+   */
+  std::vector<std::string> GetFunctionBody() const { return function_body_; }
+
+  /**
+   * @return parameter names of the user defined function
+   */
+  std::vector<std::string> GetFunctionParameterNames() const { return function_param_names_; }
+
+  /**
+   * @return parameter types of the user defined function
+   */
+  std::vector<parser::BaseFunctionParameter::DataType> GetFunctionParameterTypes() const {
+    return function_param_types_;
+  }
+
+  /**
+   * @return return type of the user defined function
+   */
+  parser::BaseFunctionParameter::DataType GetReturnType() const { return return_type_; }
+
+  /**
+   * @return whether the definition of the user defined function needs to be replaced
+   */
+  bool IsReplace() const { return is_replace_; }
+
+  /**
+   * @return number of parameters of the user defined function
+   */
+  size_t GetParamCount() const { return param_count_; }
+
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * Indicates the UDF language type
+   */
+  parser::PLType language_;
+
+  /**
+   * Function parameters names passed to the UDF
+   */
+  std::vector<std::string> function_param_names_;
+
+  /**
+   * Function parameter types passed to the UDF
+   */
+  std::vector<parser::BaseFunctionParameter::DataType> function_param_types_;
+
+  /**
+   * Query string/ function body of the UDF
+   */
+  std::vector<std::string> function_body_;
+
+  /**
+   * Indicates if the function definition needs to be replaced
+   */
+  bool is_replace_;
+
+  /**
+   * Function name of the UDF
+   */
+  std::string function_name_;
+
+  /**
+   * Return type of the UDF
+   */
+  parser::BaseFunctionParameter::DataType return_type_;
+
+  /**
+   * Number of parameters
+   */
+  size_t param_count_ = 0;
+};
+
+/**
+ * Logical operator for CreateIndex
+ */
+class LogicalCreateIndex : public OperatorNode<LogicalCreateIndex> {
+ public:
+  /**
+   * @param namespace_oid OID of the namespace
+   * @param table_oid OID of the table
+   * @param index_type Type of the index
+   * @param unique If the index to be created should be unique
+   * @param index_name Name of the index
+   * @param index_attrs Attributes of the index
+   * @return
+   */
+  static Operator Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+                       parser::IndexType index_type, bool unique, std::string index_name,
+                       std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the namespace
+   */
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return OID of the table
+   */
+  const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
+
+  /**
+   * @return Type of the index
+   */
+  const parser::IndexType &GetIndexType() const { return index_type_; }
+
+  /**
+   * @return If the index should be unique
+   */
+  const bool &IsUnique() const { return unique_index_; }
+
+  /**
+   * @return Name of the index
+   */
+  const std::string &GetIndexName() const { return index_name_; }
+
+  /**
+   * @return Type of the index
+   */
+  const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetIndexAttr() const { return index_attrs_; }
+
+ private:
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * OID of the table
+   */
+  catalog::table_oid_t table_oid_;
+
+  /**
+   * Index type
+   */
+  parser::IndexType index_type_;
+
+  /**
+   * True if the index is unique
+   */
+  bool unique_index_;
+
+  /**
+   * Name of the Index
+   */
+  std::string index_name_;
+
+  /**
+   * Index attributes
+   */
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs_;
+};
+
+/**
+ * Logical operator for CreateTable
+ */
+class LogicalCreateTable : public OperatorNode<LogicalCreateTable> {
+ public:
+  /**
+   * @param namespace_oid OID of the namespace
+   * @param table_name Name of the table to be created
+   * @param columns Vector of definitions of the columns in the new table
+   * @param foreign_keys Vector of definitions of foreign key columns in the new table
+   * @return
+   */
+  static Operator Make(catalog::namespace_oid_t namespace_oid, std::string table_name,
+                       std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&columns,
+                       std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&foreign_keys);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the namespace
+   */
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+  /**
+   * @return the name of the database we want to create
+   */
+  const std::string &GetTableName() const { return table_name_; }
+  /**
+   * @return the name of the database we want to create
+   */
+  const std::vector<common::ManagedPointer<parser::ColumnDefinition>> &GetColumns() const { return columns_; }
+  /**
+   * @return the name of the database we want to create
+   */
+  const std::vector<common::ManagedPointer<parser::ColumnDefinition>> &GetForeignKeys() const { return foreign_keys_; }
+
+ private:
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * Table Name
+   */
+  std::string table_name_;
+
+  /**
+   * Vector of column definitions of the new table
+   */
+  std::vector<common::ManagedPointer<parser::ColumnDefinition>> columns_;
+
+  /**
+   * Vector of foreign key references of the new table
+   */
+  std::vector<common::ManagedPointer<parser::ColumnDefinition>> foreign_keys_;
+};
+
+/**
+ * Logical operator for CreateNamespace/Namespace
+ */
+class LogicalCreateNamespace : public OperatorNode<LogicalCreateNamespace> {
+ public:
+  /**
+   * @param namespace_name Name of the namespace to be created
+   * @return
+   */
+  static Operator Make(std::string namespace_name);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return the name of the namespace we want to create
+   */
+  const std::string &GetNamespaceName() const { return namespace_name_; }
+
+ private:
+  /**
+   * Name of the new namespace
+   */
+  std::string namespace_name_;
+};
+
+/**
+ * Logical operator for CreateTrigger
+ */
+class LogicalCreateTrigger : public OperatorNode<LogicalCreateTrigger> {
+ public:
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param table_oid OID of the table
+   * @param trigger_name Name of the trigger
+   * @param trigger_funcnames Trigger function names
+   * @param trigger_args Trigger arguments
+   * @param trigger_columns OIDs of trigger columns
+   * @param trigger_when Trigger when clause
+   * @param trigger_type Type of the trigger
+   * @return
+   */
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::table_oid_t table_oid, std::string trigger_name,
+                       std::vector<std::string> &&trigger_funcnames, std::vector<std::string> &&trigger_args,
+                       std::vector<catalog::col_oid_t> &&trigger_columns,
+                       common::ManagedPointer<parser::AbstractExpression> &&trigger_when, int16_t trigger_type);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the database
+   */
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return OID of the table
+   */
+  const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
+
+  /**
+   * @return trigger name
+   */
+  std::string GetTriggerName() const { return trigger_name_; }
+
+  /**
+   * @return trigger function names
+   */
+  std::vector<std::string> GetTriggerFuncName() const { return trigger_funcnames_; }
+
+  /**
+   * @return trigger args
+   */
+  std::vector<std::string> GetTriggerArgs() const { return trigger_args_; }
+
+  /**
+   * @return trigger columns
+   */
+  std::vector<catalog::col_oid_t> GetTriggerColumns() const { return trigger_columns_; }
+
+  /**
+   * @return trigger when clause
+   */
+  common::ManagedPointer<parser::AbstractExpression> GetTriggerWhen() const {
+    return common::ManagedPointer(trigger_when_);
+  }
+
+  /**
+   * @return trigger type, i.e. information about row, timing, events, access by pg_trigger
+   */
+  int16_t GetTriggerType() const { return trigger_type_; }
+
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * OID of the table
+   */
+  catalog::table_oid_t table_oid_;
+
+  /**
+   * Name of the trigger
+   */
+  std::string trigger_name_;
+
+  /**
+   * Names of the trigger functions
+   */
+  std::vector<std::string> trigger_funcnames_;
+
+  /**
+   * Trigger arguments
+   */
+  std::vector<std::string> trigger_args_;
+
+  /**
+   * Trigger columns
+   */
+  std::vector<catalog::col_oid_t> trigger_columns_;
+
+  /**
+   * Trigger when clause
+   */
+  common::ManagedPointer<parser::AbstractExpression> trigger_when_;
+
+  /**
+   * Type of trigger
+   */
+  int16_t trigger_type_ = 0;
+};
+
+/**
+ * Logical operator for CreateView
+ */
+class LogicalCreateView : public OperatorNode<LogicalCreateView> {
+ public:
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param view_name Name of the view
+   * @param view_query Query statement of the view
+   * @return
+   */
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string view_name,
+                       common::ManagedPointer<parser::SelectStatement> view_query);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the database
+   */
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+  /**
+   * @return view name
+   */
+  const std::string &GetViewName() const { return view_name_; }
+
+  /**
+   * @return view query
+   */
+  common::ManagedPointer<parser::SelectStatement> GetViewQuery() { return common::ManagedPointer(view_query_); }
+
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * Name of the view
+   */
+  std::string view_name_;
+
+  /**
+   * View query
+   */
+  common::ManagedPointer<parser::SelectStatement> view_query_;
+};
+
+/**
+ * Logical operator for DropDatabase
+ */
+class LogicalDropDatabase : public OperatorNode<LogicalDropDatabase> {
+ public:
+  /**
+   * @param db_oid OID of the database to be dropped
+   * @return
+   */
+  static Operator Make(catalog::db_oid_t db_oid);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return the OID of the database we want to drop
+   */
+  const catalog::db_oid_t &GetDatabaseOID() const { return db_oid_; }
+
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t db_oid_ = catalog::INVALID_DATABASE_OID;
+};
+
+/**
+ * Logical operator for DropTable
+ */
+class LogicalDropTable : public OperatorNode<LogicalDropTable> {
+ public:
+  /**
+   * @param table_oid OID of the table to be dropped
+   * @return
+   */
+  static Operator Make(catalog::table_oid_t table_oid);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return the OID of the table we want to drop
+   */
+  const catalog::table_oid_t &GetTableOID() const { return table_oid_; }
+
+ private:
+  /**
+   * OID of the table
+   */
+  catalog::table_oid_t table_oid_ = catalog::INVALID_TABLE_OID;
+};
+
+/**
+ * Logical operator for DropIndex
+ */
+class LogicalDropIndex : public OperatorNode<LogicalDropIndex> {
+ public:
+  /**
+   * @param index_oid OID of index to be dropped
+   * @return
+   */
+  static Operator Make(catalog::index_oid_t index_oid);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return the OID of the index we want to drop
+   */
+  const catalog::index_oid_t &GetIndexOID() const { return index_oid_; }
+
+ private:
+  /**
+   * OID of the table
+   */
+  catalog::index_oid_t index_oid_ = catalog::INVALID_INDEX_OID;
+};
+
+/**
+ * Logical operator for DropNamespace
+ */
+class LogicalDropNamespace : public OperatorNode<LogicalDropNamespace> {
+ public:
+  /**
+   * @param namespace_oid OID of the schema to be dropped
+   * @return
+   */
+  static Operator Make(catalog::namespace_oid_t namespace_oid);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return the OID of the namespace we want to drop
+   */
+  const catalog::namespace_oid_t &GetNamespaceOID() const { return namespace_oid_; }
+
+ private:
+  /**
+   * OID of the table
+   */
+  catalog::namespace_oid_t namespace_oid_ = catalog::INVALID_NAMESPACE_OID;
+};
+
+/**
+ * Logical operator for DropTrigger
+ */
+class LogicalDropTrigger : public OperatorNode<LogicalDropTrigger> {
+ public:
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param trigger_oid OID of the trigger to be dropped
+   * @param if_exists If "IF EXISTS" condition is used
+   * @return
+   */
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::trigger_oid_t trigger_oid, bool if_exists);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the database
+   */
+  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return OID of the trigger to drop
+   */
+  catalog::trigger_oid_t GetTriggerOid() const { return trigger_oid_; }
+
+  /**
+   * @return true if "IF EXISTS" was used
+   */
+  bool IsIfExists() const { return if_exists_; }
+
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * OID of the trigger to drop
+   */
+  catalog::trigger_oid_t trigger_oid_;
+
+  /**
+   * Whether "IF EXISTS" was used
+   */
+  bool if_exists_;
+};
+
+/**
+ * Logical operator for DropView
+ */
+class LogicalDropView : public OperatorNode<LogicalDropView> {
+ public:
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param view_oid OID of the view to be dropped
+   * @param if_exists If "IF EXISTS" condition is used
+   * @return
+   */
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::view_oid_t view_oid, bool if_exists);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the database
+   */
+  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return OID of the view to drop
+   */
+  catalog::view_oid_t GetViewOid() const { return view_oid_; }
+
+  /**
+   * @return true if "IF EXISTS" was used
+   */
+  bool IsIfExists() const { return if_exists_; }
+
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * OID of the view to drop
+   */
+  catalog::view_oid_t view_oid_;
+
+  /**
+   * Whether "IF EXISTS" was used
+   */
+  bool if_exists_;
+};
+
+}  // namespace terrier::optimizer
