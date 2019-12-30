@@ -314,13 +314,13 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentScan)(benchmark::State &state) 
 
 // Iterate the num_reads_ of tuples in the sequential  order from a DataTable concurrently
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentIterators)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentSlotIterators)(benchmark::State &state) {
   storage::DataTable read_table(&block_store_, layout_, storage::layout_version_t(0));
 
   // populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
-  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                      DISABLED);
+  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
+                                      common::ManagedPointer(&buffer_pool_), DISABLED);
   std::vector<storage::TupleSlot> read_order;
   for (uint32_t i = 0; i < num_reads_; ++i) {
     read_table.Insert(&txn, *redo_);
@@ -352,30 +352,30 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentIterators)(benchmark::State &st
   state.SetItemsProcessed(state.iterations() * num_reads_ * num_threads_);
 }
 
-// BENCHMARK_REGISTER_F(DataTableBenchmark, SimpleInsert)->Unit(benchmark::kMillisecond)->UseManualTime();
-//
-// BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentInsert)
-//    ->Unit(benchmark::kMillisecond)
-//    ->UseRealTime()
-//    ->UseManualTime();
-//
-// BENCHMARK_REGISTER_F(DataTableBenchmark, SelectSequential)->Unit(benchmark::kMillisecond);
-//
-// BENCHMARK_REGISTER_F(DataTableBenchmark, SelectRandom)->Unit(benchmark::kMillisecond);
-//
-// BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentSelectRandom)
-//    ->Unit(benchmark::kMillisecond)
-//    ->UseRealTime()
-//    ->UseManualTime();
-//
-// BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentSelectSequential)
-//    ->Unit(benchmark::kMillisecond)
-//    ->UseRealTime()
-//    ->UseManualTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, SimpleInsert)->Unit(benchmark::kMillisecond)->UseManualTime();
 
-//BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentScan)->Unit(benchmark::kMillisecond)->UseRealTime()->UseManualTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentInsert)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
 
-BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentIterators)
+BENCHMARK_REGISTER_F(DataTableBenchmark, SelectSequential)->Unit(benchmark::kMillisecond);
+
+BENCHMARK_REGISTER_F(DataTableBenchmark, SelectRandom)->Unit(benchmark::kMillisecond);
+
+BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentSelectRandom)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
+
+BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentSelectSequential)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
+
+BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentScan)->Unit(benchmark::kMillisecond)->UseRealTime()->UseManualTime();
+
+BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentSlotIterators)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime()
     ->UseManualTime();
