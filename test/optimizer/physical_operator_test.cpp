@@ -1488,7 +1488,7 @@ TEST(OperatorTests, CreateTableTest) {
 
   // Copy should be equal and have same hash
   // NOLINT the following so clang-tidy doesn't complain about this
-  Operator copy(op10);                  // NOLINT
+  Operator copy(op10);  // NOLINT
   EXPECT_TRUE(copy == op10);
   EXPECT_EQ(copy.Hash(), op10.Hash());
 }

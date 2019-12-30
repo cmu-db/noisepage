@@ -55,6 +55,11 @@ class EXPORT ProjectedColumnsIterator {
   // -------------------------------------------------------
 
   /**
+   * @return The current tuple slot
+   */
+  storage::TupleSlot CurrentSlot() { return projected_column_->TupleSlots()[curr_idx_]; }
+
+  /**
    * Get a pointer to the value in the column at index @em col_idx
    * @tparam T The desired data type stored in the vector projection
    * @tparam nullable Whether the column is NULLable
