@@ -357,7 +357,7 @@ namespace terrier::execution::vm {
   F(IndexIteratorGetSlot, OperandType::Local, OperandType::Local)                                                     \
                                                                                                                       \
   /* ProjectedRow */                                                                                                  \
-  F(PRGetBool, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
+  F(PRGetBool, OperandType::Local, OperandType::Local, OperandType::UImm2)                                            \
   F(PRGetTinyInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
   F(PRGetSmallInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
   F(PRGetInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                             \
@@ -366,7 +366,7 @@ namespace terrier::execution::vm {
   F(PRGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm2)                                          \
   F(PRGetDate, OperandType::Local, OperandType::Local, OperandType::UImm2)                                            \
   F(PRGetVarlen, OperandType::Local, OperandType::Local, OperandType::UImm2)                                          \
-  F(PRGetBoolNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                     \
+  F(PRGetBoolNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
   F(PRGetTinyIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                     \
   F(PRGetSmallIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
   F(PRGetIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
@@ -375,7 +375,7 @@ namespace terrier::execution::vm {
   F(PRGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                      \
   F(PRGetDateNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
   F(PRGetVarlenNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                      \
-  F(PRSetBool, OperandType::Local, OperandType::UImm2, OperandType::Local)                                         \
+  F(PRSetBool, OperandType::Local, OperandType::UImm2, OperandType::Local)                                            \
   F(PRSetTinyInt, OperandType::Local, OperandType::UImm2, OperandType::Local)                                         \
   F(PRSetSmallInt, OperandType::Local, OperandType::UImm2, OperandType::Local)                                        \
   F(PRSetInt, OperandType::Local, OperandType::UImm2, OperandType::Local)                                             \
@@ -384,7 +384,7 @@ namespace terrier::execution::vm {
   F(PRSetDouble, OperandType::Local, OperandType::UImm2, OperandType::Local)                                          \
   F(PRSetDate, OperandType::Local, OperandType::UImm2, OperandType::Local)                                            \
   F(PRSetVarlen, OperandType::Local, OperandType::UImm2, OperandType::Local)                                          \
-  F(PRSetBoolNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                     \
+  F(PRSetBoolNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                        \
   F(PRSetTinyIntNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                     \
   F(PRSetSmallIntNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                    \
   F(PRSetIntNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                         \
@@ -455,7 +455,7 @@ namespace terrier::execution::vm {
   F(Upper, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
                                                                                                                       \
   /* String functions */                                                                                              \
-  F(GetParamBool, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(GetParamBool, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
   F(GetParamTinyInt, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
   F(GetParamSmallInt, OperandType::Local, OperandType::Local, OperandType::Local)                                     \
   F(GetParamInt, OperandType::Local, OperandType::Local, OperandType::Local)                                          \

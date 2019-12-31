@@ -1,5 +1,6 @@
 #include "execution/table_generator/table_generator.h"
 
+#include <util/string_util.h>
 #include <algorithm>
 #include <memory>
 #include <random>
@@ -43,13 +44,47 @@ T *TableGenerator::CreateNumberColumnData(ColumnInsertMeta *col_meta, uint32_t n
   return val;
 }
 
+bool *TableGenerator::CreateBooleanColumnData(ColumnInsertMeta *col_meta, uint32_t num_vals) {
+  auto *val = new bool[num_vals];
+
+  switch (col_meta->dist_) {
+    case Dist::Uniform: {
+      std::mt19937 generator{};
+      std::uniform_int_distribution<int16_t> distribution(0, 1);
+      for (uint32_t i = 0; i < num_vals; i++) {
+        val[i] = distribution(generator) % 2 == 0;
+      }
+      break;
+    }
+    case Dist::Serial: {
+      // Split the false/true values by half
+      uint32_t half = num_vals / 2;
+      for (uint32_t i = 0; i < num_vals; i++) {
+        val[i] = (i >= half);
+        // TODO(pavlo): Remove
+        std::cout << "GENERATE: [" << i << "] => " << val[i] << "\n";
+      }
+      break;
+    }
+    default:
+      throw std::runtime_error("Unsupported distribution type for boolean columns");
+  }
+
+  return val;
+}
+
 // Generate column data
 std::pair<byte *, uint32_t *> TableGenerator::GenerateColumnData(ColumnInsertMeta *col_meta, uint32_t num_rows) {
   // Create data
   byte *col_data = nullptr;
   switch (col_meta->type_) {
     case type::TypeId::BOOLEAN: {
-      throw std::runtime_error("Implement me!");
+      col_data = reinterpret_cast<byte *>(CreateBooleanColumnData(col_meta, num_rows));
+      break;
+    }
+    case type::TypeId::TINYINT: {
+      col_data = reinterpret_cast<byte *>(CreateNumberColumnData<int8_t>(col_meta, num_rows));
+      break;
     }
     case type::TypeId::SMALLINT: {
       col_data = reinterpret_cast<byte *>(CreateNumberColumnData<int16_t>(col_meta, num_rows));
@@ -127,10 +162,38 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
           byte *data = redo->Delta()->AccessForceNotNull(offset);
           uint32_t elem_size = type::TypeUtil::GetTypeSize(table_meta->col_meta_[k].type_);
           std::memcpy(data, column_data[k].first + j * elem_size, elem_size);
+
+          // TODO(pavlo): Remove
+          if (terrier::util::StringUtil::Contains(table_meta->name_, "all_types") && k == 0) {
+            std::cout << "INSERT: [" << j << "] => " << static_cast<bool>(*data) << "\n";
+          }
         }
       }
       table->Insert(exec_ctx_->GetTxn(), redo);
       vals_written++;
+    }
+
+    // TODO(pavlo): This should be removed once we figure out
+    // why we can't read booleans back correctly.
+    if (terrier::util::StringUtil::Contains(table_meta->name_, "all_types")) {
+      std::vector<catalog::col_oid_t> col_oids;
+      for (const auto &col : schema.GetColumns()) {
+        col_oids.emplace_back(col.Oid());
+      }
+      auto pc_init = table->InitializerForProjectedColumns(col_oids, common::Constants::K_DEFAULT_VECTOR_SIZE);
+      auto buffer = common::AllocationUtil::AllocateAligned(pc_init.ProjectedColumnsSize());
+      auto pc = pc_init.Initialize(buffer);
+      pc->SetNumTuples(common::Constants::K_DEFAULT_VECTOR_SIZE);
+      auto iterator = table->begin();
+      table->Scan(exec_ctx_->GetTxn(), &iterator, pc);
+      auto col0 = reinterpret_cast<bool *>(pc->ColumnStart(offsets[0]));
+
+      // This code just scans the first column from the 'all_types' table
+      // and then prints out the result. It should match "INSERT" debug
+      // code up above.
+      for (uint tuple_idx = 0; tuple_idx < pc->NumTuples(); tuple_idx++) {
+        std::cout << "SCAN: [" << tuple_idx << "] => " << col0[tuple_idx] << "\n";
+      }
     }
 
     // Free allocated buffers
@@ -167,6 +230,15 @@ void TableGenerator::GenerateTestTables() {
         {"col2", type::TypeId::INTEGER, true, Dist::Uniform, 0, 9},
         {"col3", type::TypeId::BIGINT, false, Dist::Uniform, 0, common::Constants::K_DEFAULT_VECTOR_SIZE},
         {"col4", type::TypeId::INTEGER, true, Dist::Uniform, 0, 2 * common::Constants::K_DEFAULT_VECTOR_SIZE}}},
+
+      // Table 3
+      {"all_types",
+       TABLE_ALLTYPES_SIZE,
+       {{"bool_col", type::TypeId::BOOLEAN, false, Dist::Serial, 0, 0},
+        {"tinyint_col", type::TypeId::TINYINT, false, Dist::Uniform, 0, 127},
+        {"smallint_col", type::TypeId::SMALLINT, false, Dist::Serial, 0, 1000},
+        {"int_col", type::TypeId::INTEGER, false, Dist::Uniform, 0, 1000},
+        {"bigint_col", type::TypeId::BIGINT, false, Dist::Uniform, 0, 1000}}},
 
       // Empty table with two columns
       {"empty_table2",
