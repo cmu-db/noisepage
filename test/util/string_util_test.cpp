@@ -1,0 +1,282 @@
+#include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "test_util/test_harness.h"
+#include "util/string_util.h"
+
+namespace terrier::util {
+
+class StringUtilTests : public TerrierTest {};
+
+// NOLINTNEXTLINE
+TEST_F(StringUtilTests, ContainsTest) {
+  std::string str = "Word up, two for fives over here baby";
+  EXPECT_TRUE(StringUtil::Contains(str, "fives"));
+  EXPECT_TRUE(StringUtil::Contains(str, "two for fives"));
+  EXPECT_FALSE(StringUtil::Contains(str, "CREAM"));
+  EXPECT_TRUE(StringUtil::Contains(str, ""));
+}
+
+// NOLINTNEXTLINE
+TEST_F(StringUtilTests, StartsWithTest) {
+  std::string str = "I grew up on the crime side, the New York Times side";
+  EXPECT_TRUE(StringUtil::StartsWith(str, "I"));
+  EXPECT_TRUE(StringUtil::StartsWith(str, "I grew up"));
+  EXPECT_TRUE(StringUtil::StartsWith(str, str));
+  EXPECT_TRUE(StringUtil::StartsWith(str, ""));
+  EXPECT_FALSE(StringUtil::StartsWith(str, "grew up"));
+  EXPECT_FALSE(StringUtil::StartsWith(str, "CREAM"));
+}
+
+// NOLINTNEXTLINE
+TEST_F(StringUtilTests, EndsWithTest) {
+  std::string str = "Staying alive was no jive";
+  EXPECT_TRUE(StringUtil::EndsWith(str, "jive"));
+  EXPECT_TRUE(StringUtil::EndsWith(str, "no jive"));
+  EXPECT_TRUE(StringUtil::EndsWith(str, str));
+  EXPECT_TRUE(StringUtil::EndsWith(str, ""));
+  EXPECT_FALSE(StringUtil::EndsWith(str, "Staying alive"));
+  EXPECT_FALSE(StringUtil::EndsWith(str, "CREAM"));
+}
+
+// NOLINTNEXTLINE
+TEST_F(StringUtilTests, RepeatTest) {
+  std::vector<int> sizes = {0, 1, 2, 4, 8, 16, 17};
+  std::vector<std::string> strs = {"", "A", "XYZ"};
+
+  for (int size : sizes) {
+    for (const std::string &str : strs) {
+      std::string result = StringUtil::Repeat(str, size);
+      // LOG_TRACE("[%d / '%s'] => '%s'", size, str.c_str(), result.c_str());
+
+      if (size == 0 || str.empty()) {
+        EXPECT_TRUE(result.empty());
+      } else {
+        EXPECT_FALSE(result.empty());
+        EXPECT_EQ(size * str.size(), result.size());
+
+        // Count to just double check...
+        int occurrences = 0;
+        std::string::size_type pos = 0;
+        while ((pos = result.find(str, pos)) != std::string::npos) {
+          occurrences++;
+          pos += str.length();
+        }
+      }
+    }
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(StringUtilTests, PrefixTest) {
+  // clang-format off
+  const std::string message =
+      "My man Inf left a Tec and a nine at my crib\n"
+      "Turned himself in, he had to do a bid\n"
+      // Note the extra newline here
+      "\n"
+      "A one-to-three, he be home the end of '93\n"
+      "I'm ready to get this paper, G, you with me?\n";
+  // clang-format on
+
+  std::vector<std::string> prefixes = {"*", ">>>"};
+
+  for (const std::string &prefix : prefixes) {
+    std::string result = StringUtil::Prefix(message, prefix);
+    EXPECT_FALSE(result.empty());
+    // LOG_TRACE("[PREFIX=%s]\n%s\n=======\n", prefix.c_str(), result.c_str());
+
+    std::vector<std::string> lines = StringUtil::Split(result, '\n');
+    for (const auto &line : lines) {
+      std::string substr = line.substr(0, prefix.size());
+      EXPECT_EQ(prefix, substr);
+    }
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(StringUtilTests, FormatSizeTest) {
+  // clang-format off
+  std::vector<std::pair<int64_t, std::string>> data = {
+      std::make_pair(100, "100 bytes"),
+      std::make_pair(1200, "1.17 KB"),
+      std::make_pair(15721000, "14.99 MB"),
+      std::make_pair(9990000000, "9.30 GB"),
+  };
+  // clang-format on
+
+  for (const auto &x : data) {
+    std::string result = StringUtil::FormatSize(x.first);
+    EXPECT_FALSE(result.empty());
+    // LOG_TRACE("[%ld / '%s'] => %s", x.first, x.second.c_str(), result.c_str());
+    EXPECT_EQ(x.second, result);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(StringUtilTests, BoldTest) {
+  // Just check that we get back a string that contains
+  // the original string but is not the same length
+  std::string input = "Protect yo neck";
+  std::string result = StringUtil::Bold(input);
+  EXPECT_TRUE(StringUtil::Contains(result, input));
+  EXPECT_NE(result.length(), input.length());
+}
+
+// NOLINTNEXTLINE
+TEST_F(StringUtilTests, UpperTest) {
+  std::string input = "smoke crack rocks";
+  std::string expected = "SMOKE CRACK ROCKS";
+  std::string result = StringUtil::Upper(input);
+  EXPECT_EQ(expected, result);
+}
+
+// NOLINTNEXTLINE
+TEST_F(StringUtilTests, LowerTest) {
+  std::string input = "SMOKE CRACK ROCKS";
+  std::string expected = "smoke crack rocks";
+  std::string result = StringUtil::Lower(input);
+  EXPECT_EQ(expected, result);
+}
+
+// NOLINTNEXTLINE
+TEST_F(StringUtilTests, RTrimTest) {
+  std::vector<std::string> suffixes = {" ", "\f", "\n", "\r", "\t", "\v"};
+  std::string orig = "Playing With Fire, Son";
+  for (const auto &suffix : suffixes) {
+    std::string input = orig + suffix;
+    std::string result = StringUtil::RTrim(input);
+    EXPECT_EQ(orig, result);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(StringUtilTests, FormatIntTest) {
+  const int val = 10;
+
+  // <FORMAT, EXPECTED>
+  // clang-format off
+  std::vector<std::pair<std::string, std::string>> data{
+      std::make_pair("%5d", "   10"),
+      std::make_pair("%-5d", "10   "),
+      std::make_pair("%05d", "00010"),
+      std::make_pair("%+5d", "  +10"),
+      std::make_pair("%-+5d", "+10  "),
+  };
+  // clang-format on
+
+  for (const std::pair<std::string, std::string> &x : data) {
+    std::string result = StringUtil::Format(x.first, val);
+    EXPECT_EQ(x.second, result);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(StringUtilTests, FormatFloatTest) {
+  const float val = 10.3456;
+
+  // <FORMAT, EXPECTED>
+  // clang-format off
+  std::vector<std::pair<std::string, std::string>> data{
+      std::make_pair("%.1f", "10.3"),
+      std::make_pair("%.2f", "10.35"),
+      std::make_pair("%8.2f", "   10.35"),
+      std::make_pair("%8.4f", " 10.3456"),
+      std::make_pair("%08.2f", "00010.35"),
+      std::make_pair("%-8.2f", "10.35   "),
+  };
+  // clang-format on
+
+  for (const std::pair<std::string, std::string> &x : data) {
+    std::string result = StringUtil::Format(x.first, val);
+    EXPECT_EQ(x.second, result);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(StringUtilTests, SplitTest) {
+  // clang-format off
+  std::vector<std::string> words = {
+	"Come", "on", "motherfuckers," "come", "on"
+  };
+  // clang-format on
+
+  std::string split_char = "_";
+  for (int i = 1; i <= 5; i++) {
+    std::string split = StringUtil::Repeat(split_char, i);
+    EXPECT_EQ(i, split.size());
+    std::ostringstream os;
+    for (const auto &w : words) {
+      os << split << w;
+    }
+    os << split;
+    std::string input = os.str();
+
+    // Check that we can split both with the single char
+    // and with the full string
+    std::vector<std::string> result0 = StringUtil::Split(input, split_char);
+    EXPECT_EQ(words.size(), result0.size());
+    EXPECT_EQ(words, result0);
+
+    std::vector<std::string> result1 = StringUtil::Split(os.str(), split);
+    EXPECT_EQ(words.size(), result1.size());
+    EXPECT_EQ(words, result1);
+  }  // FOR
+}
+
+// NOLINTNEXTLINE
+TEST_F(StringUtilTests, JoinTest) {
+  {
+    // Empty input test
+    std::vector<std::string> words = {};
+    EXPECT_EQ("", StringUtil::Join(words, ","));
+    EXPECT_EQ("", StringUtil::Join(words, "_"));
+    EXPECT_EQ("", StringUtil::Join(words, "!\n"));
+  }
+
+  {
+    // Single word test
+    std::string w = "Bruh";
+    std::vector<std::string> words = {w};
+    EXPECT_EQ(w, StringUtil::Join(words, ","));
+    EXPECT_EQ(w, StringUtil::Join(words, "_"));
+    EXPECT_EQ(w, StringUtil::Join(words, "!\n"));
+  }
+
+  {
+    // Legit multi-word test
+
+    // clang-format off
+    std::vector<std::string> words = {
+        "Stop", "drop", "shut 'em down", "open up shop",
+        "Oh", "no", "that's how Ruff Ryders roll"};
+    // clang-format on
+
+    auto naive_join = [&words](const std::string &sep) -> std::string {
+      bool first = true;
+      std::string result;
+      for (const auto &word : words) {
+        if (!first) result += sep;
+        result += word;
+        first = false;
+      }
+      return result;
+    };
+
+    {
+      // Check last char doesn't have separator
+      auto ret = StringUtil::Join(words, ",");
+      EXPECT_FALSE(ret.empty());
+      EXPECT_NE(',', ret.back());
+    }
+
+    // Check using different separators
+    EXPECT_EQ(naive_join(","), StringUtil::Join(words, ","));
+    EXPECT_EQ(naive_join("_"), StringUtil::Join(words, "_"));
+    EXPECT_EQ(naive_join("!\n"), StringUtil::Join(words, "!\n"));
+  }
+}
+
+}  // namespace terrier::util
