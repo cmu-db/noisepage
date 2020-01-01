@@ -31,11 +31,10 @@ class OperatorExpression;
 class QueryToOperatorTransformer : public SqlNodeVisitor {
  public:
   /**
-   * Initialize the query to operator transformer object with a unique pointer to the catalog accessor
+   * Initialize the query to operator transformer object with a non-owning pointer to the catalog accessor
    * @param catalog_accessor Pointer to a catalog accessor
    */
   explicit QueryToOperatorTransformer(common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor);
-  // TODO(Matt): I suspect we don't actually want to acquire ownership of the catalog_accessor here
 
   /**
    * Traverse the query AST to generate AST of logical operators.

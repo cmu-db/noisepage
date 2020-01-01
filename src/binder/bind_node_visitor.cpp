@@ -27,7 +27,7 @@ namespace terrier::binder {
 
 BindNodeVisitor::BindNodeVisitor(common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor,
                                  std::string default_database_name)
-    : catalog_accessor_(std::move(catalog_accessor)), default_database_name_(std::move(default_database_name)) {}
+    : catalog_accessor_(catalog_accessor), default_database_name_(std::move(default_database_name)) {}
 
 void BindNodeVisitor::BindNameToNode(common::ManagedPointer<parser::SQLStatement> tree,
                                      parser::ParseResult *parse_result) {
