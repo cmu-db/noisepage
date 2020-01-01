@@ -4,11 +4,13 @@ def GetTypeInfo(type):
     if type == 'Integer':
         get_name = "Int"
         type_feature = "1, 0, 0, 0"
+        type_size = 4
     if type == 'Real':
         get_name = "Double"
         type_feature = "0, 1, 0, 0"
+        type_size = 8
 
-    return get_name, type_feature
+    return get_name, type_feature, type_size
 
 # Generate the key type for the join
 def GenerateBuildKey(col_num, type):
@@ -26,7 +28,7 @@ def GenerateBuildRow(col_num, type):
     print()
 
 def GenerateKeyCheck(col_num, type):
-    get_name, _ = GetTypeInfo(type)
+    get_name, _, _ = GetTypeInfo(type)
 
     print("fun keyCheck{}{}(row: *BuildRow{}{}, pci: *ProjectedColumnsIterator) -> bool {{".format(type, col_num,
                                                                                                  type, col_num))
@@ -36,11 +38,11 @@ def GenerateKeyCheck(col_num, type):
     print("\n}\n")
 
 def GenerateBuildSide(col_num, row_num, cardinality, type):
-    get_name, type_feature = GetTypeInfo(type)
+    get_name, _, type_size = GetTypeInfo(type)
 
     fun_name = "build{}Col{}Row{}Car{}".format(type, col_num, row_num, cardinality)
     print("fun {}(execCtx: *ExecutionContext, state: *State) -> nil {{".format(fun_name))
-    print("  @execCtxStartTimer(execCtx)")
+    print("  @execCtxStartResourceTracker(execCtx)")
 
     print("  var ht = &state.table{}{}".format(type, col_num)) # join hash table
 
@@ -76,8 +78,8 @@ def GenerateBuildSide(col_num, row_num, cardinality, type):
     print("  }")
     print("  @tableIterClose(&tvi)")
 
-    print("  @execCtxEndTimer(execCtx, @stringToSql(\"aggbuild, {}, {}, {}, {}\"))".format(row_num, col_num,
-                                                                                          cardinality, type_feature))
+    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"aggbuild, {}, {}, {}\"))".format(row_num, col_num * type_size,
+                                                                                          cardinality))
     print("}")
 
     print()
@@ -85,11 +87,11 @@ def GenerateBuildSide(col_num, row_num, cardinality, type):
     return fun_name
 
 def GenerateProbeSide(col_num, row_num, cardinality, type):
-    _, type_feature = GetTypeInfo(type)
+    _, _, type_size = GetTypeInfo(type)
 
     fun_name = "probe{}Col{}Row{}Car{}".format(type, col_num, row_num, cardinality)
     print("fun {}(execCtx: *ExecutionContext, state: *State) -> nil {{".format(fun_name))
-    print("  @execCtxStartTimer(execCtx)")
+    print("  @execCtxStartResourceTracker(execCtx)")
 
     # construct the iterator
     print("  var agg_ht_iter: AggregationHashTableIterator")
@@ -103,8 +105,9 @@ def GenerateProbeSide(col_num, row_num, cardinality, type):
     print("  }")
     print("  @aggHTIterClose(iter)")
 
-    print("  @execCtxEndTimer(execCtx, @stringToSql(\"aggprobe, {}, {}, {}, {}\"))".format(row_num, col_num,
-                                                                                          cardinality, type_feature))
+    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"aggprobe, {}, {}, {}\"))".format(row_num,
+                                                                                                 col_num * type_size,
+                                                                                                 cardinality))
     print("}")
 
     print()

@@ -271,14 +271,14 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
   //std::vector<uint32_t> row_nums = {1000000};
   // Cardinality of the last column in percentage
   std::vector<uint32_t> cardinalities = {1, 2, 5, 10, 50, 100};
-  std::vector<type::TypeId> types = {type::TypeId::INTEGER};
-  //std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
+  std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
   for (int col_num = 5; col_num <= 5; col_num++) {
     for (uint32_t row_num : row_nums) {
       for (uint32_t cardinality : cardinalities) {
         for (type::TypeId type : types) {
           std::stringstream table_name;
           std::string type_name;
+          bool skip = false;
           switch (type) {
             case type::TypeId::INTEGER: {
               type_name = "Integer";
@@ -286,10 +286,14 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
             }
             case type::TypeId::DECIMAL:{
               type_name = "Real";
+              // Only need the largest decimal for now
+              if (row_num != 1000000 or cardinality != 100)
+                skip = true;
               break;
             }
             default: { throw std::runtime_error("Implement me!"); }
           }
+          if (skip) continue;
           table_name << type_name << "Col" << col_num << "Row" << row_num << "Car" << cardinality;
           std::vector<ColumnInsertMeta> col_metas;
           for (int j = 1; j <= col_num; j++) {

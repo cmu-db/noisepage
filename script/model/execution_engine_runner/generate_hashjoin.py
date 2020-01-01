@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+#!/ usr / bin / env python3
 
-# Generate the key type for the join
+#Generate the key type for the join
 def GenerateBuildKey(col_num):
     print("struct BuildKey{} {{".format(col_num))
     for i in range(col_num):
@@ -8,7 +8,7 @@ def GenerateBuildKey(col_num):
     print("}")
     print()
 
-# Generage the join struct (key and value)
+#Generage the join struct(key and value)
 def GenerateBuildRow(col_num, agg_type):
     print("struct BuildRow{} {{".format(col_num))
     print("  key: BuildKey{}".format(col_num))
@@ -146,7 +146,6 @@ def GenerateSetup(col_nums):
 def GenerateMainFun(fun_names):
     print("fun main(execCtx: *ExecutionContext) -> int32 {")
     print("  var state: State")
-    print("  setUpState(execCtx, &state)")
 
     for fun_name in fun_names:
         if "build" in fun_name:

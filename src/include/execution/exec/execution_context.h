@@ -29,7 +29,7 @@ class EXPORT ExecutionContext {
     /**
      * Create a new allocator
      */
-    StringAllocator(common::ManagedPointer<sql::MemoryTracker> tracker) : region_(""), tracker_(tracker)  {}
+    StringAllocator(common::ManagedPointer<sql::MemoryTracker> tracker) : region_(""), tracker_(tracker) {}
 
     /**
      * This class cannot be copied or moved.
@@ -128,11 +128,11 @@ class EXPORT ExecutionContext {
   catalog::db_oid_t DBOid() { return db_oid_; }
 
   /**
- * Set the mode for this execution.
- * This only records the mode and serves the metrics collection purpose, which does not have any impact on the
- * actual execution.
- * @param mode the integer value of the execution mode to record
- */
+   * Set the mode for this execution.
+   * This only records the mode and serves the metrics collection purpose, which does not have any impact on the
+   * actual execution.
+   * @param mode the integer value of the execution mode to record
+   */
   void SetExecutionMode(uint8_t mode) { execution_mode_ = mode; }
 
  private:
