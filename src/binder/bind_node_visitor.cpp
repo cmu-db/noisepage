@@ -1,10 +1,12 @@
 #include "binder/bind_node_visitor.h"
+
 #include <algorithm>
 #include <memory>
 #include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "common/exception.h"
@@ -23,7 +25,7 @@
 
 namespace terrier::binder {
 
-BindNodeVisitor::BindNodeVisitor(std::unique_ptr<catalog::CatalogAccessor> catalog_accessor,
+BindNodeVisitor::BindNodeVisitor(common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor,
                                  std::string default_database_name)
     : catalog_accessor_(std::move(catalog_accessor)), default_database_name_(std::move(default_database_name)) {}
 

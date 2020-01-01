@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+
+#include "common/managed_pointer.h"
 #include "common/sql_node_visitor.h"
 
 namespace terrier {
@@ -32,7 +34,7 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
    * Initialize the query to operator transformer object with a unique pointer to the catalog accessor
    * @param catalog_accessor Pointer to a catalog accessor
    */
-  explicit QueryToOperatorTransformer(std::unique_ptr<catalog::CatalogAccessor> catalog_accessor);
+  explicit QueryToOperatorTransformer(common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor);
   // TODO(Matt): I suspect we don't actually want to acquire ownership of the catalog_accessor here
 
   /**
@@ -148,7 +150,7 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
   std::unique_ptr<OperatorExpression> output_expr_;
 
   /** The catalog accessor object */
-  std::unique_ptr<catalog::CatalogAccessor> accessor_;
+  common::ManagedPointer<catalog::CatalogAccessor> accessor_;
 
   /**
    * A set of predicates the current operator generated, we use them to generate filter operator
