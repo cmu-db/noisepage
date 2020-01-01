@@ -39,6 +39,7 @@ namespace terrier::execution::ast {
   F(TableIterAdvance, tableIterAdvance)                                 \
   F(TableIterGetPCI, tableIterGetPCI)                                   \
   F(TableIterClose, tableIterClose)                                     \
+  F(TableIterReset, tableIterReset)                                     \
   F(TableIterParallel, iterateTableParallel)                            \
                                                                         \
   /* PCI */                                                             \
@@ -47,6 +48,7 @@ namespace terrier::execution::ast {
   F(PCIHasNextFiltered, pciHasNextFiltered)                             \
   F(PCIAdvance, pciAdvance)                                             \
   F(PCIAdvanceFiltered, pciAdvanceFiltered)                             \
+  F(PCIGetSlot, pciGetSlot)                                             \
   F(PCIMatch, pciMatch)                                                 \
   F(PCIReset, pciReset)                                                 \
   F(PCIResetFiltered, pciResetFiltered)                                 \
@@ -203,7 +205,17 @@ namespace terrier::execution::ast {
   F(GetIndexPRBind, getIndexPRBind)                                     \
   F(IndexInsert, indexInsert)                                           \
   F(IndexDelete, indexDelete)                                           \
-  F(StorageInterfaceFree, storageInterfaceFree)
+  F(StorageInterfaceFree, storageInterfaceFree)                         \
+                                                                        \
+  /* Parameter calls */                                                 \
+  F(GetParamTinyInt, getParamTinyInt)                                   \
+  F(GetParamSmallInt, getParamSmallInt)                                 \
+  F(GetParamInt, getParamInt)                                           \
+  F(GetParamBigInt, getParamBigInt)                                     \
+  F(GetParamReal, getParamReal)                                         \
+  F(GetParamDouble, getParamDouble)                                     \
+  F(GetParamDate, getParamDate)                                         \
+  F(GetParamString, getParamString)
 
 /**
  * Enum of builtins

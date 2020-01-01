@@ -108,6 +108,9 @@ void BindNodeVisitor::Visit(parser::TableRef *node, parser::ParseResult *parse_r
     for (auto &table : node->GetList()) table->Accept(this, parse_result);
   } else {
     // Single table
+    if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
+      throw BINDER_EXCEPTION("Accessing non-existing table.");
+    }
     context_->AddRegularTable(catalog_accessor_, node);
   }
 }
@@ -183,9 +186,110 @@ void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::CreateFunctionStatement *no
   BINDER_LOG_DEBUG("Visiting CreateFunctionStatement ...");
 }
 
-void BindNodeVisitor::Visit(parser::CreateStatement *node, UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
+void BindNodeVisitor::Visit(parser::CreateStatement *node, parser::ParseResult *parse_result) {
   BINDER_LOG_DEBUG("Visiting CreateStatement ...");
-  node->TryBindDatabaseName(default_database_name_);
+  context_ = new BinderContext(context_);
+
+  auto create_type = node->GetCreateType();
+  switch (create_type) {
+    case parser::CreateStatement::CreateType::kDatabase:
+      if (catalog_accessor_->GetDatabaseOid(node->GetDatabaseName()) != catalog::INVALID_DATABASE_OID) {
+        throw BINDER_EXCEPTION("Database name already exists");
+      }
+      break;
+    case parser::CreateStatement::CreateType::kTable:
+      node->TryBindDatabaseName(default_database_name_);
+      if (catalog_accessor_->GetTableOid(node->GetTableName()) != catalog::INVALID_TABLE_OID) {
+        throw BINDER_EXCEPTION("Table name already exists");
+      }
+      context_->AddNewTable(node->GetTableName(), node->GetColumns());
+      for (const auto &col : node->GetColumns()) {
+        if (col->GetDefaultExpression() != nullptr) col->GetDefaultExpression()->Accept(this, parse_result);
+        if (col->GetCheckExpression() != nullptr) col->GetCheckExpression()->Accept(this, parse_result);
+      }
+      for (const auto &fk : node->GetForeignKeys()) {
+        // foreign key does not have check exprssion nor default expression
+        auto table_oid = catalog_accessor_->GetTableOid(fk->GetForeignKeySinkTableName());
+        if (table_oid == catalog::INVALID_TABLE_OID) {
+          throw BINDER_EXCEPTION("Foreign key referencing non-existing table");
+        }
+
+        auto src = fk->GetForeignKeySources();
+        auto ref = fk->GetForeignKeySinks();
+
+        // TODO(Ling): assuming no composite key? Do we support create type?
+        //  Where should we check uniqueness constraint
+        if (src.size() != ref.size())
+          throw BINDER_EXCEPTION("Number of columns in foreign key does not match number of reference columns");
+
+        for (size_t i = 0; i < src.size(); i++) {
+          auto ref_col = catalog_accessor_->GetSchema(table_oid).GetColumn(ref[i]);
+          if (ref_col.Oid() == catalog::INVALID_COLUMN_OID) {
+            throw BINDER_EXCEPTION("Foreign key referencing non-existing column");
+          }
+
+          bool find = false;
+          for (const auto &col : node->GetColumns()) {
+            if (col->GetColumnName() == src[i]) {
+              find = true;
+
+              // check if their type matches
+              if (ref_col.Type() != col->GetValueType())
+                throw BINDER_EXCEPTION(
+                    ("Foreign key source column " + src[i] + "type does not match reference column type").c_str());
+
+              break;
+            }
+          }
+          if (!find) throw BINDER_EXCEPTION(("Cannot find column " + src[i] + " in foreign key source").c_str());
+        }
+      }
+      break;
+    case parser::CreateStatement::CreateType::kIndex:
+      if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
+        throw BINDER_EXCEPTION("Build index on non-existing table.");
+      }
+      if (catalog_accessor_->GetIndexOid(node->GetIndexName()) != catalog::INVALID_INDEX_OID) {
+        throw BINDER_EXCEPTION("This index already exists.");
+      }
+      node->TryBindDatabaseName(default_database_name_);
+      context_->AddRegularTable(catalog_accessor_, node->GetDatabaseName(), node->GetNamespaceName(),
+                                node->GetTableName(), node->GetTableName());
+
+      for (auto &attr : node->GetIndexAttributes()) {
+        if (attr.HasExpr()) {
+          attr.GetExpression()->Accept(this, parse_result);
+        } else {
+          auto tb_oid = catalog_accessor_->GetTableOid(node->GetTableName());
+          if (!BinderContext::ColumnInSchema(catalog_accessor_->GetSchema(tb_oid), attr.GetName()))
+            throw BINDER_EXCEPTION(("No such column specified by the index attribute " + attr.GetName()).c_str());
+        }
+      }
+      break;
+    case parser::CreateStatement::CreateType::kTrigger:
+      node->TryBindDatabaseName(default_database_name_);
+      context_->AddRegularTable(catalog_accessor_, node->GetDatabaseName(), node->GetNamespaceName(),
+                                node->GetTableName(), node->GetTableName());
+      // TODO(Ling): I think there are rules on when the trigger can have OLD reference
+      //  and when it can have NEW reference, but I'm not sure how it actually works... need to add those check later
+      context_->AddRegularTable(catalog_accessor_, node->GetDatabaseName(), node->GetNamespaceName(),
+                                node->GetTableName(), "old");
+      context_->AddRegularTable(catalog_accessor_, node->GetDatabaseName(), node->GetNamespaceName(),
+                                node->GetTableName(), "new");
+      if (node->GetTriggerWhen() != nullptr) node->GetTriggerWhen()->Accept(this, parse_result);
+      break;
+    case parser::CreateStatement::CreateType::kSchema:
+      // nothing for binder to handler
+      break;
+    case parser::CreateStatement::CreateType::kView:
+      node->TryBindDatabaseName(default_database_name_);
+      TERRIER_ASSERT(node->GetViewQuery() != nullptr, "View requires a query");
+      node->GetViewQuery()->Accept(this, parse_result);
+      break;
+  }
+  auto curr_context = context_;
+  context_ = context_->GetUpperContext();
+  delete curr_context;
 }
 
 void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *parse_result) {
@@ -204,7 +308,38 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
 
 void BindNodeVisitor::Visit(parser::DropStatement *node, UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
   BINDER_LOG_DEBUG("Visiting DropStatement ...");
-  node->TryBindDatabaseName(default_database_name_);
+  context_ = new BinderContext(context_);
+
+  auto drop_type = node->GetDropType();
+  switch (drop_type) {
+    case parser::DropStatement::DropType::kDatabase:
+      if (catalog_accessor_->GetDatabaseOid(node->GetDatabaseName()) == catalog::INVALID_DATABASE_OID) {
+        throw BINDER_EXCEPTION("Database does not exist");
+      }
+      break;
+    case parser::DropStatement::DropType::kTable:
+      node->TryBindDatabaseName(default_database_name_);
+      if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
+        throw BINDER_EXCEPTION("Table does not exist");
+      }
+      break;
+    case parser::DropStatement::DropType::kIndex:
+      node->TryBindDatabaseName(default_database_name_);
+      if (catalog_accessor_->GetIndexOid(node->GetIndexName()) == catalog::INVALID_INDEX_OID) {
+        throw BINDER_EXCEPTION("Index does not exist");
+      }
+      break;
+    case parser::DropStatement::DropType::kTrigger:
+      // TODO(Ling): Get Trigger OID in catalog?
+    case parser::DropStatement::DropType::kSchema:
+    case parser::DropStatement::DropType::kView:
+      // TODO(Ling): Get View OID in catalog?
+    case parser::DropStatement::DropType::kPreparedStatement:
+      break;
+  }
+  auto curr_context = context_;
+  context_ = context_->GetUpperContext();
+  delete curr_context;
 }
 void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::PrepareStatement *node,
                             UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {

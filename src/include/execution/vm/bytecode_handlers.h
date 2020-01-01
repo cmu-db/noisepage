@@ -226,6 +226,8 @@ VM_OP_HOT void OpTableVectorIteratorNext(bool *has_more, terrier::execution::sql
 
 VM_OP void OpTableVectorIteratorFree(terrier::execution::sql::TableVectorIterator *iter);
 
+VM_OP void OpTableVectorIteratorReset(terrier::execution::sql::TableVectorIterator *iter);
+
 VM_OP_HOT void OpTableVectorIteratorGetPCI(terrier::execution::sql::ProjectedColumnsIterator **pci,
                                            terrier::execution::sql::TableVectorIterator *iter) {
   *pci = iter->GetProjectedColumnsIterator();
@@ -258,6 +260,10 @@ VM_OP_HOT void OpPCIMatch(terrier::execution::sql::ProjectedColumnsIterator *pci
 VM_OP_HOT void OpPCIReset(terrier::execution::sql::ProjectedColumnsIterator *pci) { pci->Reset(); }
 
 VM_OP_HOT void OpPCIResetFiltered(terrier::execution::sql::ProjectedColumnsIterator *pci) { pci->ResetFiltered(); }
+
+VM_OP_HOT void OpPCIGetSlot(terrier::storage::TupleSlot *slot, terrier::execution::sql::ProjectedColumnsIterator *pci) {
+  *slot = pci->CurrentSlot();
+}
 
 VM_OP_HOT void OpPCIGetTinyInt(terrier::execution::sql::Integer *out,
                                terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
@@ -1517,5 +1523,48 @@ VM_OP void OpStorageInterfaceFree(terrier::execution::sql::StorageInterface *sto
 VM_OP void OpOutputAlloc(terrier::execution::exec::ExecutionContext *exec_ctx, terrier::byte **result);
 
 VM_OP void OpOutputFinalize(terrier::execution::exec::ExecutionContext *exec_ctx);
+
+// Parameter calls
+#define GEN_SCALAR_PARAM_GET(Name, SqlType, PeekType)                                                         \
+  VM_OP_HOT void OpGetParam##Name(terrier::execution::sql::SqlType *ret,                                      \
+                                  terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t param_idx) { \
+    const auto &trans_val = exec_ctx->GetParam(param_idx);                                                    \
+    if (trans_val.Null()) {                                                                                   \
+      ret->is_null_ = true;                                                                                   \
+    } else {                                                                                                  \
+      auto val = terrier::type::TransientValuePeeker::PeekType(trans_val);                                    \
+      ret->val_ = val;                                                                                        \
+      ret->is_null_ = false;                                                                                  \
+    }                                                                                                         \
+  }
+
+GEN_SCALAR_PARAM_GET(TinyInt, Integer, PeekTinyInt)
+GEN_SCALAR_PARAM_GET(SmallInt, Integer, PeekSmallInt)
+GEN_SCALAR_PARAM_GET(Int, Integer, PeekInteger)
+GEN_SCALAR_PARAM_GET(BigInt, Integer, PeekBigInt)
+GEN_SCALAR_PARAM_GET(Real, Real, PeekDecimal)
+GEN_SCALAR_PARAM_GET(Double, Real, PeekDecimal)
+#undef GEN_SCALAR_PARAM_GET
+
+VM_OP_HOT void OpGetParamDate(terrier::execution::sql::Date *ret, terrier::execution::exec::ExecutionContext *exec_ctx,
+                              uint32_t param_idx) {
+  const auto &trans_val = exec_ctx->GetParam(param_idx);
+  if (trans_val.Null()) {
+    ret->is_null_ = false;
+  } else {
+    *ret = terrier::execution::sql::Date(terrier::type::TransientValuePeeker::PeekDate(trans_val));
+  }
+}
+
+VM_OP_HOT void OpGetParamString(terrier::execution::sql::StringVal *ret,
+                                terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t param_idx) {
+  const auto &trans_val = exec_ctx->GetParam(param_idx);
+  if (trans_val.Null()) {
+    ret->is_null_ = false;
+  } else {
+    auto val = terrier::type::TransientValuePeeker::PeekVarChar(trans_val);
+    *ret = terrier::execution::sql::StringVal(val.data(), static_cast<uint32_t>(val.size()));
+  }
+}
 
 }  // extern "C"

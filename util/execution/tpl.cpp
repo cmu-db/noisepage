@@ -10,6 +10,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "execution/ast/ast_dump.h"
 #include "execution/exec/execution_context.h"
@@ -19,6 +20,7 @@
 #include "execution/sema/error_reporter.h"
 #include "execution/sema/sema.h"
 #include "execution/sql/memory_pool.h"
+#include "execution/sql/value.h"
 #include "execution/table_generator/sample_output.h"
 #include "execution/table_generator/table_generator.h"
 #include "execution/util/cpu_info.h"
@@ -106,9 +108,16 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // Make the execution context
   exec::OutputPrinter printer(output_schema);
   exec::ExecutionContext exec_ctx{db_oid, txn, printer, output_schema, std::move(accessor)};
+  // Add dummy parameters for tests
+  sql::Date date(1937, 3, 7);
+  std::vector<type::TransientValue> params;
+  params.emplace_back(type::TransientValueFactory::GetInteger(37));
+  params.emplace_back(type::TransientValueFactory::GetDecimal(37.73));
+  params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date.int_val_)));
+  params.emplace_back(type::TransientValueFactory::GetVarChar("37 Strings"));
+  exec_ctx.SetParams(std::move(params));
 
   // Generate test tables
-  // TODO(Amadou): Read this in from a directory. That would require boost or experimental C++ though
   sql::TableGenerator table_generator{&exec_ctx, db_main->GetStorageLayer()->GetBlockStore().Get(), ns_oid};
   table_generator.GenerateTestTables(is_mini_runner);
   // Comment out to make more tables available at runtime
