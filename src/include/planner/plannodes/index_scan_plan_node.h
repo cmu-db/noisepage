@@ -6,6 +6,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "catalog/schema.h"
 #include "common/hash_util.h"
@@ -367,7 +368,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
 
   /**
    * Collect all column oids in this expression
-   * @warn slow!
+   * @warning slow!
    * @return the vector of unique columns oids
    */
   std::vector<catalog::col_oid_t> CollectInputOids() const {
