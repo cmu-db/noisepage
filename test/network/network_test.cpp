@@ -64,7 +64,7 @@ class NetworkTests : public TerrierTest {
     tcop_ = new trafficcop::TrafficCop(common::ManagedPointer(txn_manager_), common::ManagedPointer(catalog_));
 
     auto txn = txn_manager_->BeginTransaction();
-    catalog_->CreateDatabase(txn, catalog::DEFAULT_DATABASE, true);
+    catalog_->CreateDatabase(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE, true);
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     network_logger->set_level(spdlog::level::trace);

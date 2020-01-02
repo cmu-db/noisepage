@@ -3,6 +3,7 @@
 #include <set>
 #include <utility>
 #include <vector>
+
 #include "catalog/schema.h"
 #include "storage/data_table.h"
 #include "storage/projected_columns.h"
@@ -60,7 +61,8 @@ class SqlTable {
    * @param out_buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
    * @return true if tuple is visible to this txn and ProjectedRow has been populated, false otherwise
    */
-  bool Select(transaction::TransactionContext *const txn, const TupleSlot slot, ProjectedRow *const out_buffer) const {
+  bool Select(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
+              ProjectedRow *const out_buffer) const {
     return table_.data_table_->Select(txn, slot, out_buffer);
   }
 
@@ -73,7 +75,7 @@ class SqlTable {
    * TupleSlot in this RedoRecord must be set to the intended tuple.
    * @return true if successful, false otherwise
    */
-  bool Update(transaction::TransactionContext *const txn, RedoRecord *const redo) const {
+  bool Update(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo) const {
     TERRIER_ASSERT(redo->GetTupleSlot() != TupleSlot(nullptr, 0), "TupleSlot was never set in this RedoRecord.");
     TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
                                ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
@@ -96,7 +98,7 @@ class SqlTable {
    * @param redo after-image of the inserted tuple.
    * @return TupleSlot for the inserted tuple
    */
-  TupleSlot Insert(transaction::TransactionContext *const txn, RedoRecord *const redo) const {
+  TupleSlot Insert(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo) const {
     TERRIER_ASSERT(redo->GetTupleSlot() == TupleSlot(nullptr, 0), "TupleSlot was set in this RedoRecord.");
     TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
                                ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
@@ -113,7 +115,7 @@ class SqlTable {
    * @param slot the slot of the tuple to delete
    * @return true if successful, false otherwise
    */
-  bool Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
+  bool Delete(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot) {
     TERRIER_ASSERT(txn->redo_buffer_.LastRecord() != nullptr,
                    "The RedoBuffer is empty even though StageDelete should have been called.");
     TERRIER_ASSERT(
@@ -143,7 +145,7 @@ class SqlTable {
    * @param out_buffer output buffer. The object should already contain projection list information. This buffer is
    *                   always cleared of old values.
    */
-  void Scan(transaction::TransactionContext *const txn, DataTable::SlotIterator *const start_pos,
+  void Scan(const common::ManagedPointer<transaction::TransactionContext> txn, DataTable::SlotIterator *const start_pos,
             ProjectedColumns *const out_buffer) const {
     return table_.data_table_->Scan(txn, start_pos, out_buffer);
   }

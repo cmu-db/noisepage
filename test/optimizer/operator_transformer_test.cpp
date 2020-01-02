@@ -53,7 +53,7 @@ class OperatorTransformerTest : public TerrierTest {
     // create database
     txn_ = txn_manager_->BeginTransaction();
     OPTIMIZER_LOG_DEBUG("Creating database %s", default_database_name_.c_str());
-    db_oid_ = catalog_->CreateDatabase(txn_, default_database_name_, true);
+    db_oid_ = catalog_->CreateDatabase(common::ManagedPointer(txn_), default_database_name_, true);
     // commit the transactions
     txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
     OPTIMIZER_LOG_DEBUG("database %s created!", default_database_name_.c_str());
@@ -64,7 +64,7 @@ class OperatorTransformerTest : public TerrierTest {
 
     // create table A
     txn_ = txn_manager_->BeginTransaction();
-    accessor_ = catalog_->GetAccessor(txn_, db_oid_);
+    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_);
     // Create the column definition (no OIDs) for CREATE TABLE A(A1 int, a2 varchar)
     std::vector<catalog::Schema::Column> cols_a;
     cols_a.emplace_back("a1", type::TypeId::INTEGER, true, int_default);
@@ -80,7 +80,7 @@ class OperatorTransformerTest : public TerrierTest {
 
     // create Table B
     txn_ = txn_manager_->BeginTransaction();
-    accessor_ = catalog_->GetAccessor(txn_, db_oid_);
+    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_);
 
     // Create the column definition (no OIDs) for CREATE TABLE b(b1 int, B2 varchar)
     std::vector<catalog::Schema::Column> cols_b;
@@ -95,7 +95,7 @@ class OperatorTransformerTest : public TerrierTest {
 
     // create index on a1
     txn_ = txn_manager_->BeginTransaction();
-    accessor_ = catalog_->GetAccessor(txn_, db_oid_);
+    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_);
 
     auto col = catalog::IndexSchema::Column(
         "a1", type::TypeId::INTEGER, true,
@@ -119,7 +119,7 @@ class OperatorTransformerTest : public TerrierTest {
     SetUpTables();
     // prepare for testing
     txn_ = txn_manager_->BeginTransaction();
-    accessor_ = catalog_->GetAccessor(txn_, db_oid_);
+    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_);
     binder_ = new binder::BindNodeVisitor(common::ManagedPointer(accessor_), default_database_name_);
   }
 

@@ -1,9 +1,12 @@
 #include "test_util/data_table_test_util.h"
+
 #include <algorithm>
 #include <cstring>
 #include <utility>
 #include <vector>
+
 #include "common/allocator.h"
+#include "common/managed_pointer.h"
 #include "test_util/catalog_test_util.h"
 #include "transaction/transaction_util.h"
 
@@ -46,7 +49,7 @@ void RandomDataTableTransaction::RandomUpdate(Random *generator) {
   auto *record = txn_->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, initializer);
   record->SetTupleSlot(updated);
   std::memcpy(reinterpret_cast<void *>(record->Delta()), update, update->Size());
-  auto result = test_object_->table_.Update(txn_, updated, *update);
+  auto result = test_object_->table_.Update(common::ManagedPointer(txn_), updated, *update);
   aborted_ = !result;
 }
 
@@ -57,7 +60,7 @@ void RandomDataTableTransaction::RandomSelect(Random *generator) {
       RandomTestUtil::UniformRandomElement(test_object_->last_checked_version_, generator)->first;
   auto *select_buffer = common::AllocationUtil::AllocateAligned(test_object_->row_initializer_.ProjectedRowSize());
   storage::ProjectedRow *select = test_object_->row_initializer_.InitializeRow(select_buffer);
-  test_object_->table_.Select(txn_, selected, select);
+  test_object_->table_.Select(common::ManagedPointer(txn_), selected, select);
   auto updated = updates_.find(selected);
   // Only track reads whose value depend on the snapshot
   if (updated == updates_.end())
@@ -163,7 +166,7 @@ void LargeDataTableTestObject::PopulateInitialTable(uint32_t num_tuples, Random 
     // reinitialize every time
     storage::ProjectedRow *redo = row_initializer_.InitializeRow(redo_buffer);
     StorageTestUtil::PopulateRandomRow(redo, layout_, 0.0, generator);
-    storage::TupleSlot inserted = table_.Insert(initial_txn_, *redo);
+    storage::TupleSlot inserted = table_.Insert(common::ManagedPointer(initial_txn_), *redo);
     // TODO(Tianyu): Hardly efficient, but will do for testing.
     auto *record =
         initial_txn_->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, row_initializer_);

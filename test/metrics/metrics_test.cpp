@@ -62,7 +62,7 @@ class MetricsTests : public TerrierTest {
         insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer);
     auto *const insert_tuple = insert_redo->Delta();
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
-    sql_table_->Insert(insert_txn, insert_redo);
+    sql_table_->Insert(common::ManagedPointer(insert_txn), insert_redo);
     txn_manager_->Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 

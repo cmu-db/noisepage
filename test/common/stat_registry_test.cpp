@@ -176,7 +176,7 @@ TEST(StatRegistryTest, GTEST_DEBUG_ONLY(DataTableStatTest)) {
   auto *redo_buffer = terrier::common::AllocationUtil::AllocateAligned(init.ProjectedRowSize());
   auto *redo = init.InitializeRow(redo_buffer);
 
-  data_table.Insert(txn, *redo);
+  data_table.Insert(common::ManagedPointer(txn), *redo);
 
   // initialize stat registry
   auto test_stat_reg = std::make_shared<terrier::common::StatisticsRegistry>();

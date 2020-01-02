@@ -189,7 +189,7 @@ class DBMain {
       // Bootstrap the default database in the catalog.
       if (create_default_database) {
         auto *bootstrap_txn = txn_layer->GetTransactionManager()->BeginTransaction();
-        catalog_->CreateDatabase(bootstrap_txn, catalog::DEFAULT_DATABASE, true);
+        catalog_->CreateDatabase(common::ManagedPointer(bootstrap_txn), catalog::DEFAULT_DATABASE, true);
         txn_layer->GetTransactionManager()->Commit(bootstrap_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
 
