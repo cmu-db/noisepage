@@ -99,7 +99,7 @@ class BinderCorrectnessTest : public TerrierTest {
     // prepare for testing
     txn_ = txn_manager_->BeginTransaction();
     accessor_ = catalog_->GetAccessor(txn_, db_oid_);
-    binder_ = new binder::BindNodeVisitor(std::move(accessor_), default_database_name_);
+    binder_ = new binder::BindNodeVisitor(common::ManagedPointer(accessor_), default_database_name_);
   }
 
   void TearDown() override {
@@ -912,7 +912,6 @@ TEST_F(BinderCorrectnessTest, CreateViewTest) {
   auto parse_tree = parser_.BuildParseTree(create_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  accessor_ = binder_->GetCatalogAccessor();
 
   // Test logical create
   auto create_stmt = statement.CastManagedPointerTo<parser::CreateStatement>();
