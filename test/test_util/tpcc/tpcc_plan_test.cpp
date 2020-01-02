@@ -94,8 +94,7 @@ void TpccPlanTest::EndTransaction(bool commit) {
 std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::string &query,
                                                                   catalog::table_oid_t tbl_oid,
                                                                   parser::StatementType stmt_type) {
-  parser::PostgresParser pgparser;
-  auto stmt_list = pgparser.BuildParseTree(query);
+  auto stmt_list = parser::PostgresParser::BuildParseTree(query);
 
   // Bind + Transform
   auto accessor = catalog_->GetAccessor(txn_, db_);
@@ -206,8 +205,7 @@ void TpccPlanTest::OptimizeQuery(const std::string &query, catalog::table_oid_t 
                                                catalog::table_oid_t tbl_oid,
                                                std::unique_ptr<planner::AbstractPlanNode> plan)) {
   BeginTransaction();
-  parser::PostgresParser pgparser;
-  auto stmt_list = pgparser.BuildParseTree(query);
+  auto stmt_list = parser::PostgresParser::BuildParseTree(query);
   auto sel_stmt = stmt_list.GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
   auto plan = Optimize(query, tbl_oid, parser::StatementType::SELECT);
   Check(this, sel_stmt.Get(), tbl_oid, std::move(plan));

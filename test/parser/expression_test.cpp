@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "gtest/gtest.h"
-
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/constant_value_expression.h"
 // TODO(Tianyu): They are included here so they will get compiled and statically analyzed despite not being used
@@ -23,7 +22,6 @@
 #include "parser/expression/type_cast_expression.h"
 #include "parser/parameter.h"
 #include "parser/postgresparser.h"
-
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
@@ -1008,8 +1006,7 @@ TEST(ExpressionTests, SubqueryExpressionTest) {
   // Current implementation of subquery expression's ==operator and Hash() function
   // only handles: all fields inherited from abstract expression class and
   // subselect's select columns, where condition, and distinct flag
-  PostgresParser pgparser;
-  auto stmts0 = pgparser.BuildParseTree(
+  auto stmts0 = parser::PostgresParser::BuildParseTree(
       "SELECT * FROM foo INNER JOIN bar ON foo.a = bar.a WHERE foo.a > 0 GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
   EXPECT_EQ(stmts0.GetStatements().size(), 1);
   EXPECT_EQ(stmts0.GetStatement(0)->GetType(), StatementType::SELECT);
@@ -1018,14 +1015,14 @@ TEST(ExpressionTests, SubqueryExpressionTest) {
       reinterpret_cast<SelectStatement *>(stmts0.TakeStatementsOwnership()[0].release()));
   auto subselect_expr0 = new SubqueryExpression(std::move(select0));
 
-  auto stmts1 = pgparser.BuildParseTree(
+  auto stmts1 = parser::PostgresParser::BuildParseTree(
       "SELECT * FROM foo INNER JOIN bar ON foo.a = bar.a WHERE foo.a > 0 GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
   auto select1 = std::unique_ptr<SelectStatement>(
       reinterpret_cast<SelectStatement *>(stmts1.TakeStatementsOwnership()[0].release()));
   auto subselect_expr1 = new SubqueryExpression(std::move(select1));
 
   // different in select columns
-  auto stmts2 = pgparser.BuildParseTree(
+  auto stmts2 = parser::PostgresParser::BuildParseTree(
       "SELECT a, b FROM foo INNER JOIN bar ON foo.a = bar.a WHERE foo.a > 0 GROUP BY foo.b ORDER BY bar.b ASC LIMIT "
       "5;");
   auto select2 = std::unique_ptr<SelectStatement>(
@@ -1033,7 +1030,7 @@ TEST(ExpressionTests, SubqueryExpressionTest) {
   auto subselect_expr2 = new SubqueryExpression(std::move(select2));
 
   // different in distinct flag
-  auto stmts3 = pgparser.BuildParseTree(
+  auto stmts3 = parser::PostgresParser::BuildParseTree(
       "SELECT DISTINCT a, b FROM foo INNER JOIN bar ON foo.a = bar.a WHERE foo.a > 0 GROUP BY foo.b ORDER BY bar.b ASC "
       "LIMIT 5;");
   auto select3 = std::unique_ptr<SelectStatement>(
@@ -1041,14 +1038,14 @@ TEST(ExpressionTests, SubqueryExpressionTest) {
   auto subselect_expr3 = new SubqueryExpression(std::move(select3));
 
   // different in where
-  auto stmts4 = pgparser.BuildParseTree(
+  auto stmts4 = parser::PostgresParser::BuildParseTree(
       "SELECT * FROM foo INNER JOIN bar ON foo.b = bar.a WHERE foo.b > 0 GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
   auto select4 = std::unique_ptr<SelectStatement>(
       reinterpret_cast<SelectStatement *>(stmts4.TakeStatementsOwnership()[0].release()));
   auto subselect_expr4 = new SubqueryExpression(std::move(select4));
 
   // different in where
-  auto stmts5 = pgparser.BuildParseTree("SELECT * FROM foo INNER JOIN bar ON foo.b = bar.a;");
+  auto stmts5 = parser::PostgresParser::BuildParseTree("SELECT * FROM foo INNER JOIN bar ON foo.b = bar.a;");
   auto select5 = std::unique_ptr<SelectStatement>(
       reinterpret_cast<SelectStatement *>(stmts5.TakeStatementsOwnership()[0].release()));
   auto subselect_expr5 = new SubqueryExpression(std::move(select5));
@@ -1079,8 +1076,7 @@ TEST(ExpressionTests, SubqueryExpressionTest) {
 // NOLINTNEXTLINE
 TEST(ExpressionTests, SimpleSubqueryExpressionJsonTest) {
   // Create expression
-  PostgresParser pgparser;
-  auto result = pgparser.BuildParseTree("SELECT * FROM foo;");
+  auto result = parser::PostgresParser::BuildParseTree("SELECT * FROM foo;");
   EXPECT_EQ(result.GetStatements().size(), 1);
   EXPECT_EQ(result.GetStatement(0)->GetType(), StatementType::SELECT);
 
@@ -1111,8 +1107,7 @@ TEST(ExpressionTests, SimpleSubqueryExpressionJsonTest) {
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ComplexSubqueryExpressionJsonTest) {
   // Create expression
-  PostgresParser pgparser;
-  auto result = pgparser.BuildParseTree(
+  auto result = parser::PostgresParser::BuildParseTree(
       "SELECT * FROM foo INNER JOIN bar ON foo.a = bar.a GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
   EXPECT_EQ(result.GetStatements().size(), 1);
   EXPECT_EQ(result.GetStatements()[0]->GetType(), StatementType::SELECT);
