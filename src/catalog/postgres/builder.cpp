@@ -83,6 +83,7 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(storage::BlockStore *block_store
   dbc->types_ = new storage::SqlTable(block_store, Builder::GetTypeTableSchema());
   dbc->constraints_ = new storage::SqlTable(block_store, Builder::GetConstraintTableSchema());
   dbc->languages_ = new storage::SqlTable(block_store, Builder::GetLanguageTableSchema());
+  dbc->procs_ = new storage::SqlTable(block_store, Builder::GetProcTableSchema());
 
   // Indexes on pg_namespace
   dbc->namespaces_oid_index_ =
@@ -129,6 +130,12 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(storage::BlockStore *block_store
       Builder::BuildUniqueIndex(Builder::GetLanguageOidIndexSchema(oid), LANGUAGE_OID_INDEX_OID);
   dbc->languages_name_index_ =
       Builder::BuildUniqueIndex(Builder::GetLanguageNameIndexSchema(oid), LANGUAGE_NAME_INDEX_OID);
+
+  // Indexes on pg_proc
+  dbc->procs_oid_index_ =
+      Builder::BuildUniqueIndex(Builder::GetProcOidIndexSchema(oid), PRO_OID_INDEX_OID);
+  dbc->procs_name_index_ =
+      Builder::BuildUniqueIndex(Builder::GetProcNameIndexSchema(oid), PRO_NAME_INDEX_OID);
 
   dbc->next_oid_.store(START_OID);
 
@@ -649,10 +656,10 @@ Schema Builder::GetProcTableSchema() {
   columns.emplace_back("provolatile", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
   columns.back().SetOid(PROVOLATILE_COL_OID);
 
-  columns.emplace_back("pronargs", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
+  columns.emplace_back("pronargs", type::TypeId::SMALLINT, false, MakeNull(type::TypeId::TINYINT));
   columns.back().SetOid(PRONARGS_COL_OID);
 
-  columns.emplace_back("pronargdefaults", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
+  columns.emplace_back("pronargdefaults", type::TypeId::SMALLINT, false, MakeNull(type::TypeId::TINYINT));
   columns.back().SetOid(PRONARGDEFAULTS_COL_OID);
 
   columns.emplace_back("prorettype", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
@@ -681,6 +688,36 @@ Schema Builder::GetProcTableSchema() {
   columns.back().SetOid(PROCONFIG_COL_OID);
 
   return Schema();
+}
+
+IndexSchema Builder::GetProcOidIndexSchema(db_oid_t db) {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back("prooid", type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, PRO_TABLE_OID, PROOID_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(1));
+
+  // Primary
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
+
+  return schema;
+}
+
+IndexSchema Builder::GetProcNameIndexSchema(db_oid_t db) {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back("proname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
+                       parser::ColumnValueExpression(db, PRO_TABLE_OID, PRONAME_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(1));
+
+  columns.emplace_back("pronamespace", type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, PRO_TABLE_OID, PRONAMESPACE_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(2));
+
+  // Unique, not primary
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
+
+  return schema;
 }
 
 }  // namespace terrier::catalog::postgres

@@ -33,6 +33,7 @@ constexpr index_oid_t INVALID_INDEX_OID = index_oid_t(NULL_OID);
 constexpr indexkeycol_oid_t INVALID_INDEXKEYCOL_OID = indexkeycol_oid_t(NULL_OID);
 constexpr namespace_oid_t INVALID_NAMESPACE_OID = namespace_oid_t(NULL_OID);
 constexpr language_oid_t INVALID_LANGUAGE_OID = language_oid_t(NULL_OID);
+constexpr proc_oid_t INVALID_PROC_OID = proc_oid_t(NULL_OID);
 constexpr table_oid_t INVALID_TABLE_OID = table_oid_t(NULL_OID);
 constexpr type_oid_t INVALID_TYPE_OID = type_oid_t(NULL_OID);
 
