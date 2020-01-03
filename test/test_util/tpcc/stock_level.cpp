@@ -1,4 +1,5 @@
 #include "test_util/tpcc/stock_level.h"
+
 #include <unordered_map>
 #include <vector>
 
@@ -25,7 +26,8 @@ bool StockLevel::Execute(transaction::TransactionManager *const txn_manager, Dat
   TERRIER_ASSERT(index_scan_results.size() == 1, "District index lookup failed.");
 
   auto *district_select_tuple = district_select_pr_initializer_.InitializeRow(worker->district_tuple_buffer_);
-  bool select_result UNUSED_ATTRIBUTE = db->district_table_->Select(txn, index_scan_results[0], district_select_tuple);
+  bool select_result UNUSED_ATTRIBUTE =
+      db->district_table_->Select(common::ManagedPointer(txn), index_scan_results[0], district_select_tuple);
   TERRIER_ASSERT(select_result, "District should be present.");
 
   const auto d_next_o_id = *reinterpret_cast<int32_t *>(district_select_tuple->AccessWithNullCheck(0));
@@ -58,7 +60,8 @@ bool StockLevel::Execute(transaction::TransactionManager *const txn_manager, Dat
   for (const auto &order_line_tuple_slot : index_scan_results) {
     storage::ProjectedRow *order_line_select_tuple =
         order_line_select_pr_initializer_.InitializeRow(worker->order_line_tuple_buffer_);
-    select_result = db->order_line_table_->Select(txn, order_line_tuple_slot, order_line_select_tuple);
+    select_result =
+        db->order_line_table_->Select(common::ManagedPointer(txn), order_line_tuple_slot, order_line_select_tuple);
     TERRIER_ASSERT(select_result, "Order line index contained this.");
     const auto ol_i_id = *reinterpret_cast<int32_t *>(order_line_select_tuple->AccessForceNotNull(0));
     TERRIER_ASSERT(ol_i_id >= 1 && ol_i_id <= 100000, "Invalid ol_i_id read from the Order Line table.");
@@ -76,7 +79,8 @@ bool StockLevel::Execute(transaction::TransactionManager *const txn_manager, Dat
     TERRIER_ASSERT(stock_index_scan_results.size() == 1, "Couldn't find a matching stock item.");
 
     auto *const stock_select_tuple = stock_select_pr_initializer_.InitializeRow(worker->stock_tuple_buffer_);
-    select_result = db->stock_table_->Select(txn, stock_index_scan_results[0], stock_select_tuple);
+    select_result =
+        db->stock_table_->Select(common::ManagedPointer(txn), stock_index_scan_results[0], stock_select_tuple);
     TERRIER_ASSERT(select_result, "Stock index contained this.");
     const auto s_quantity = *reinterpret_cast<int16_t *>(stock_select_tuple->AccessForceNotNull(0));
     TERRIER_ASSERT(s_quantity >= 10 && s_quantity <= 100, "Invalid s_quantity read from the Stock table.");

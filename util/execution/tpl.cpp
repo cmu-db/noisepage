@@ -83,13 +83,14 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
 
   auto *txn = txn_manager->BeginTransaction();
 
-  auto db_oid = catalog->CreateDatabase(txn, "test_db", true);
-  auto accessor = std::unique_ptr<catalog::CatalogAccessor>(catalog->GetAccessor(txn, db_oid));
+  auto db_oid = catalog->CreateDatabase(common::ManagedPointer(txn), "test_db", true);
+  auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid);
   auto ns_oid = accessor->GetDefaultNamespace();
 
   // Make the execution context
   exec::OutputPrinter printer(output_schema);
-  exec::ExecutionContext exec_ctx{db_oid, txn, printer, output_schema, std::move(accessor)};
+  exec::ExecutionContext exec_ctx{db_oid, common::ManagedPointer(txn), printer, output_schema,
+                                  common::ManagedPointer(accessor)};
   // Add dummy parameters for tests
   sql::Date date(1937, 3, 7);
   std::vector<type::TransientValue> params;

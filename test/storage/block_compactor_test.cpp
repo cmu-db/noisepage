@@ -124,7 +124,7 @@ TEST_F(BlockCompactorTest, CompactionTest) {
 
     for (uint32_t i = 0; i < layout.NumSlots(); i++) {
       storage::TupleSlot slot(block, i);
-      bool visible = table.Select(txn, slot, read_row);
+      bool visible = table.Select(common::ManagedPointer(txn), slot, read_row);
       if (i >= num_tuples) {
         EXPECT_FALSE(visible);  // Should be deleted after compaction
       } else {
@@ -211,7 +211,7 @@ TEST_F(BlockCompactorTest, GatherTest) {
     transaction::TransactionContext *txn = txn_manager.BeginTransaction();
     for (uint32_t i = 0; i < num_tuples; i++) {
       storage::TupleSlot slot(block, i);
-      bool visible = table.Select(txn, slot, read_row);
+      bool visible = table.Select(common::ManagedPointer(txn), slot, read_row);
       EXPECT_TRUE(visible);  // Should be filled after compaction
       auto entry = tuple_set.find(read_row);
       EXPECT_NE(entry, tuple_set.end());  // Should be present in the original
@@ -331,7 +331,7 @@ TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
     transaction::TransactionContext *txn = txn_manager.BeginTransaction();
     for (uint32_t i = 0; i < num_tuples; i++) {
       storage::TupleSlot slot(block, i);
-      bool visible = table.Select(txn, slot, read_row);
+      bool visible = table.Select(common::ManagedPointer(txn), slot, read_row);
       EXPECT_TRUE(visible);  // Should be filled after compaction
       auto entry = tuple_set.find(read_row);
       EXPECT_NE(entry, tuple_set.end());  // Should be present in the original

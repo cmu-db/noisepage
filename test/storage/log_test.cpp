@@ -303,7 +303,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
       first_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 1;
-  auto first_tuple_slot = sql_table->Insert(first_txn, insert_redo);
+  auto first_tuple_slot = sql_table->Insert(common::ManagedPointer(first_txn), insert_redo);
   EXPECT_TRUE(!first_txn->Aborted());
 
   // Initialize the second txn, this one will write until it has flushed a buffer to the log manager
@@ -314,7 +314,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
         second_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer);
     insert_tuple = insert_redo->Delta();
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = insert_value++;
-    sql_table->Insert(second_txn, insert_redo);
+    sql_table->Insert(common::ManagedPointer(second_txn), insert_redo);
   }
   EXPECT_TRUE(GetRedoBuffer(second_txn).HasFlushed());
   EXPECT_TRUE(!second_txn->Aborted());
@@ -326,7 +326,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   auto update_tuple = update_redo->Delta();
   *reinterpret_cast<int32_t *>(update_tuple->AccessForceNotNull(0)) = 0;
   update_redo->SetTupleSlot(first_tuple_slot);
-  EXPECT_FALSE(sql_table->Update(second_txn, update_redo));
+  EXPECT_FALSE(sql_table->Update(common::ManagedPointer(second_txn), update_redo));
 
   // Commit first txn and abort the second
   txn_manager_->Commit(first_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -375,7 +375,7 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
       first_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 1;
-  auto first_tuple_slot = sql_table->Insert(first_txn, insert_redo);
+  auto first_tuple_slot = sql_table->Insert(common::ManagedPointer(first_txn), insert_redo);
   EXPECT_TRUE(!first_txn->Aborted());
 
   // Initialize the second txn, this txn will try to update the tuple the first txn wrote, and thus will abort. We
@@ -386,7 +386,7 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   auto update_tuple = update_redo->Delta();
   *reinterpret_cast<int32_t *>(update_tuple->AccessForceNotNull(0)) = 0;
   update_redo->SetTupleSlot(first_tuple_slot);
-  EXPECT_FALSE(sql_table->Update(second_txn, update_redo));
+  EXPECT_FALSE(sql_table->Update(common::ManagedPointer(second_txn), update_redo));
   EXPECT_FALSE(GetRedoBuffer(second_txn).HasFlushed());
 
   // Commit first txn and abort the second

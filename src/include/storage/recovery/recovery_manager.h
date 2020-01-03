@@ -206,9 +206,9 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    */
   common::ManagedPointer<catalog::DatabaseCatalog> GetDatabaseCatalog(transaction::TransactionContext *txn,
                                                                       catalog::db_oid_t db_oid) {
-    auto db_catalog_ptr = catalog_->GetDatabaseCatalog(txn, db_oid);
+    auto db_catalog_ptr = catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid);
     TERRIER_ASSERT(db_catalog_ptr != nullptr, "No catalog for given database oid");
-    auto result UNUSED_ATTRIBUTE = db_catalog_ptr->TryLock(txn);
+    auto result UNUSED_ATTRIBUTE = db_catalog_ptr->TryLock(common::ManagedPointer(txn));
     TERRIER_ASSERT(result, "There should not be concurrent DDL changes during recovery.");
     return db_catalog_ptr;
   }

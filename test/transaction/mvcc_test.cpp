@@ -66,7 +66,7 @@ class MVCCDataTableTestObject {
   storage::ProjectedRow *SelectIntoBuffer(transaction::TransactionContext *const txn, const storage::TupleSlot slot) {
     // generate a redo ProjectedRow for Select
     storage::ProjectedRow *select_row = redo_initializer_.InitializeRow(select_buffer_);
-    select_result_ = table_.Select(txn, slot, select_row);
+    select_result_ = table_.Select(common::ManagedPointer(txn), slot, select_row);
     return select_row;
   }
 
@@ -122,7 +122,7 @@ TEST_F(MVCCTests, CommitInsert1) {
     tested.loose_txns_.push_back(txn0);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
-    storage::TupleSlot slot = tested.table_.Insert(txn0, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn0), *insert_tuple);
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
@@ -184,7 +184,7 @@ TEST_F(MVCCTests, CommitInsert2) {
     tested.loose_txns_.push_back(txn1);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
-    storage::TupleSlot slot = tested.table_.Insert(txn1, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn1), *insert_tuple);
 
     tested.SelectIntoBuffer(txn0, slot);
     EXPECT_FALSE(tested.select_result_);
@@ -241,7 +241,7 @@ TEST_F(MVCCTests, AbortInsert1) {
     tested.loose_txns_.push_back(txn0);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
-    storage::TupleSlot slot = tested.table_.Insert(txn0, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn0), *insert_tuple);
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
@@ -302,7 +302,7 @@ TEST_F(MVCCTests, AbortInsert2) {
     tested.loose_txns_.push_back(txn1);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
-    storage::TupleSlot slot = tested.table_.Insert(txn1, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn1), *insert_tuple);
 
     tested.SelectIntoBuffer(txn0, slot);
     EXPECT_FALSE(tested.select_result_);
@@ -358,7 +358,7 @@ TEST_F(MVCCTests, CommitUpdate1) {
     // insert the tuple to be Updated later
     auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
-    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn), *insert_tuple);
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
@@ -366,7 +366,7 @@ TEST_F(MVCCTests, CommitUpdate1) {
     auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
-    EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
+    EXPECT_TRUE(tested.table_.Update(common::ManagedPointer(txn0), slot, *update));
 
     auto *update_tuple = tested.GenerateVersionFromUpdate(*update, *insert_tuple);
 
@@ -430,7 +430,7 @@ TEST_F(MVCCTests, CommitUpdate2) {
     // insert the tuple to be Updated later
     auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
-    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn), *insert_tuple);
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
@@ -441,7 +441,7 @@ TEST_F(MVCCTests, CommitUpdate2) {
     auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
-    EXPECT_TRUE(tested.table_.Update(txn1, slot, *update));
+    EXPECT_TRUE(tested.table_.Update(common::ManagedPointer(txn1), slot, *update));
 
     auto *update_tuple = tested.GenerateVersionFromUpdate(*update, *insert_tuple);
 
@@ -501,7 +501,7 @@ TEST_F(MVCCTests, AbortUpdate1) {
     // insert the tuple to be Updated later
     auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
-    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn), *insert_tuple);
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
@@ -509,7 +509,7 @@ TEST_F(MVCCTests, AbortUpdate1) {
     auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
-    EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
+    EXPECT_TRUE(tested.table_.Update(common::ManagedPointer(txn0), slot, *update));
 
     auto *update_tuple = tested.GenerateVersionFromUpdate(*update, *insert_tuple);
 
@@ -573,7 +573,7 @@ TEST_F(MVCCTests, AbortUpdate2) {
     // insert the tuple to be Updated later
     auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
-    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn), *insert_tuple);
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
@@ -584,7 +584,7 @@ TEST_F(MVCCTests, AbortUpdate2) {
     auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
-    EXPECT_TRUE(tested.table_.Update(txn1, slot, *update));
+    EXPECT_TRUE(tested.table_.Update(common::ManagedPointer(txn1), slot, *update));
 
     auto *update_tuple = tested.GenerateVersionFromUpdate(*update, *insert_tuple);
 
@@ -643,7 +643,7 @@ TEST_F(MVCCTests, InsertUpdate1) {
     tested.loose_txns_.push_back(txn1);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
-    storage::TupleSlot slot = tested.table_.Insert(txn1, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn1), *insert_tuple);
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
@@ -651,7 +651,7 @@ TEST_F(MVCCTests, InsertUpdate1) {
     txn_manager->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
-    EXPECT_FALSE(tested.table_.Update(txn0, slot, *update));
+    EXPECT_FALSE(tested.table_.Update(common::ManagedPointer(txn0), slot, *update));
 
     tested.SelectIntoBuffer(txn0, slot);
     EXPECT_FALSE(tested.select_result_);
@@ -691,13 +691,13 @@ TEST_F(MVCCTests, CommitDelete1) {
     // insert the tuple to be Deleted later
     auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
-    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn), *insert_tuple);
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
-    EXPECT_TRUE(tested.table_.Delete(txn0, slot));
+    EXPECT_TRUE(tested.table_.Delete(common::ManagedPointer(txn0), slot));
 
     tested.SelectIntoBuffer(txn0, slot);
     EXPECT_FALSE(tested.select_result_);
@@ -757,7 +757,7 @@ TEST_F(MVCCTests, CommitDelete2) {
     // insert the tuple to be Deleted later
     auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
-    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn), *insert_tuple);
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     auto *txn0 = txn_manager->BeginTransaction();
@@ -766,7 +766,7 @@ TEST_F(MVCCTests, CommitDelete2) {
     auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
-    EXPECT_TRUE(tested.table_.Delete(txn1, slot));
+    EXPECT_TRUE(tested.table_.Delete(common::ManagedPointer(txn1), slot));
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
@@ -823,13 +823,13 @@ TEST_F(MVCCTests, AbortDelete1) {
     // insert the tuple to be Updated later
     auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
-    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn), *insert_tuple);
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
-    EXPECT_TRUE(tested.table_.Delete(txn0, slot));
+    EXPECT_TRUE(tested.table_.Delete(common::ManagedPointer(txn0), slot));
 
     tested.SelectIntoBuffer(txn0, slot);
     EXPECT_FALSE(tested.select_result_);
@@ -890,7 +890,7 @@ TEST_F(MVCCTests, AbortDelete2) {
     // insert the tuple to be Updated later
     auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
-    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn), *insert_tuple);
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     auto *txn0 = txn_manager->BeginTransaction();
@@ -899,7 +899,7 @@ TEST_F(MVCCTests, AbortDelete2) {
     auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
-    EXPECT_TRUE(tested.table_.Delete(txn1, slot));
+    EXPECT_TRUE(tested.table_.Delete(common::ManagedPointer(txn1), slot));
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
@@ -959,7 +959,7 @@ TEST_F(MVCCTests, CommitUpdateDelete1) {
     // insert the tuple to be Updated later
     auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
-    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn), *insert_tuple);
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
@@ -967,7 +967,7 @@ TEST_F(MVCCTests, CommitUpdateDelete1) {
     auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
-    EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
+    EXPECT_TRUE(tested.table_.Update(common::ManagedPointer(txn0), slot, *update));
 
     auto *update_tuple = tested.GenerateVersionFromUpdate(*update, *insert_tuple);
 
@@ -978,7 +978,7 @@ TEST_F(MVCCTests, CommitUpdateDelete1) {
     auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
-    EXPECT_TRUE(tested.table_.Delete(txn0, slot));
+    EXPECT_TRUE(tested.table_.Delete(common::ManagedPointer(txn0), slot));
 
     tested.SelectIntoBuffer(txn0, slot);
     EXPECT_FALSE(tested.select_result_);
@@ -1037,7 +1037,7 @@ TEST_F(MVCCTests, CommitUpdateDelete2) {
     // insert the tuple to be Updated later
     auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
-    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn), *insert_tuple);
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
@@ -1048,7 +1048,7 @@ TEST_F(MVCCTests, CommitUpdateDelete2) {
     auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
-    EXPECT_TRUE(tested.table_.Update(txn1, slot, *update));
+    EXPECT_TRUE(tested.table_.Update(common::ManagedPointer(txn1), slot, *update));
 
     auto *update_tuple = tested.GenerateVersionFromUpdate(*update, *insert_tuple);
 
@@ -1059,7 +1059,7 @@ TEST_F(MVCCTests, CommitUpdateDelete2) {
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
-    EXPECT_TRUE(tested.table_.Delete(txn1, slot));
+    EXPECT_TRUE(tested.table_.Delete(common::ManagedPointer(txn1), slot));
 
     tested.SelectIntoBuffer(txn1, slot);
     EXPECT_FALSE(tested.select_result_);
@@ -1114,7 +1114,7 @@ TEST_F(MVCCTests, AbortUpdateDelete1) {
     // insert the tuple to be Updated later
     auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
-    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn), *insert_tuple);
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
@@ -1122,7 +1122,7 @@ TEST_F(MVCCTests, AbortUpdateDelete1) {
     auto *txn0 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn0);
 
-    EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
+    EXPECT_TRUE(tested.table_.Update(common::ManagedPointer(txn0), slot, *update));
 
     auto *update_tuple = tested.GenerateVersionFromUpdate(*update, *insert_tuple);
 
@@ -1137,7 +1137,7 @@ TEST_F(MVCCTests, AbortUpdateDelete1) {
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    EXPECT_TRUE(tested.table_.Delete(txn0, slot));
+    EXPECT_TRUE(tested.table_.Delete(common::ManagedPointer(txn0), slot));
 
     tested.SelectIntoBuffer(txn0, slot);
     EXPECT_FALSE(tested.select_result_);
@@ -1193,7 +1193,7 @@ TEST_F(MVCCTests, AbortUpdateDelete2) {
     // insert the tuple to be Updated later
     auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
-    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn), *insert_tuple);
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
@@ -1204,7 +1204,7 @@ TEST_F(MVCCTests, AbortUpdateDelete2) {
     auto *txn1 = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn1);
 
-    EXPECT_TRUE(tested.table_.Update(txn1, slot, *update));
+    EXPECT_TRUE(tested.table_.Update(common::ManagedPointer(txn1), slot, *update));
 
     auto *update_tuple = tested.GenerateVersionFromUpdate(*update, *insert_tuple);
 
@@ -1216,7 +1216,7 @@ TEST_F(MVCCTests, AbortUpdateDelete2) {
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
-    EXPECT_TRUE(tested.table_.Delete(txn1, slot));
+    EXPECT_TRUE(tested.table_.Delete(common::ManagedPointer(txn1), slot));
 
     tested.SelectIntoBuffer(txn1, slot);
     EXPECT_FALSE(tested.select_result_);
@@ -1265,7 +1265,7 @@ TEST_F(MVCCTests, SimpleDelete1) {
     // insert the tuple to be Updated later
     auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
-    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn), *insert_tuple);
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
@@ -1277,7 +1277,7 @@ TEST_F(MVCCTests, SimpleDelete1) {
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
+    EXPECT_TRUE(tested.table_.Update(common::ManagedPointer(txn0), slot, *update));
 
     auto *update_tuple = tested.GenerateVersionFromUpdate(*update, *insert_tuple);
 
@@ -1285,13 +1285,13 @@ TEST_F(MVCCTests, SimpleDelete1) {
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
-    EXPECT_TRUE(tested.table_.Delete(txn0, slot));
+    EXPECT_TRUE(tested.table_.Delete(common::ManagedPointer(txn0), slot));
 
     tested.SelectIntoBuffer(txn0, slot);
     EXPECT_FALSE(tested.select_result_);
 
     update = tested.GenerateRandomUpdate(&generator_);
-    EXPECT_FALSE(tested.table_.Update(txn0, slot, *update));
+    EXPECT_FALSE(tested.table_.Update(common::ManagedPointer(txn0), slot, *update));
 
     txn_manager->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
@@ -1330,7 +1330,7 @@ TEST_F(MVCCTests, SimpleDelete2) {
     // insert the tuple to be Updated later
     auto *txn = txn_manager->BeginTransaction();
     tested.loose_txns_.push_back(txn);
-    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn), *insert_tuple);
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
@@ -1342,7 +1342,7 @@ TEST_F(MVCCTests, SimpleDelete2) {
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
-    EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
+    EXPECT_TRUE(tested.table_.Update(common::ManagedPointer(txn0), slot, *update));
 
     auto *update_tuple = tested.GenerateVersionFromUpdate(*update, *insert_tuple);
 
@@ -1350,13 +1350,13 @@ TEST_F(MVCCTests, SimpleDelete2) {
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
-    EXPECT_TRUE(tested.table_.Delete(txn0, slot));
+    EXPECT_TRUE(tested.table_.Delete(common::ManagedPointer(txn0), slot));
 
     tested.SelectIntoBuffer(txn0, slot);
     EXPECT_FALSE(tested.select_result_);
 
     update = tested.GenerateRandomUpdate(&generator_);
-    EXPECT_FALSE(tested.table_.Update(txn0, slot, *update));
+    EXPECT_FALSE(tested.table_.Update(common::ManagedPointer(txn0), slot, *update));
 
     txn_manager->Abort(txn0);
 
