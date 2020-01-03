@@ -271,6 +271,31 @@ class DatabaseCatalog {
    */
   bool DropLanguage(transaction::TransactionContext *txn, language_oid_t oid);
 
+  /**
+   * Creates a procedure for the pg_proc table
+   * @param txn transaction to use
+   * @param procname name of process to add
+   * @param procns namespace of process to add
+   * @param args names of arguments to this proc
+   * @param arg_types types of arguments to this proc in the same order as in args
+   * @param arg_modes modes of arguments in the same order as in args
+   * @param rettype type of return value
+   * @param src source code of proc
+   * @return oid of created proc entry
+   * @warning does not support variadics yet
+   */
+  proc_oid_t CreateProcedure(transaction::TransactionContext *txn, const std::string &procname,
+      language_oid_t lanoid,
+      namespace_oid_t procns,
+      std::vector<const std::string> &args,
+      std::vector<type_oid_t> &arg_types,
+      std::vector<type_oid_t> &all_arg_types,
+      std::vector<char> &arg_modes,
+      type_oid_t rettype, const std::string &src,
+                             bool is_aggregate);
+
+  bool DropProcedure(transaction::TransactionContext *);
+
  private:
   /**
    * Creates a language entry into the pg_language table
@@ -390,10 +415,17 @@ class DatabaseCatalog {
 
   storage::SqlTable *languages_;
   storage::index::Index *languages_oid_index_;
-  storage::index::Index *languages_name_index_;  // indexed on language name
+  storage::index::Index *languages_name_index_;  // indexed on language name and namespace
   storage::ProjectedRowInitializer pg_language_all_cols_pri_;
   storage::ProjectionMap pg_language_all_cols_prm_;
   std::atomic<language_oid_t> language_oid_counter_{postgres::INITIAL_LANGUAGE_COUNTER_OID};
+
+  storage::SqlTable *procs_;
+  storage::index::Index *procs_oid_index_;
+  storage::index::Index *procs_name_index_;
+  storage::ProjectedRowInitializer pg_proc_all_cols_pri_;
+  storage::ProjectionMap  pg_proc_all_cols_prm_;
+  std::atomic<proc_oid_t> proc_oid_counter_{0};
 
   std::atomic<uint32_t> next_oid_;
   std::atomic<transaction::timestamp_t> write_lock_;

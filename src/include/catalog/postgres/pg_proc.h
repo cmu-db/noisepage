@@ -14,6 +14,8 @@
 namespace terrier::catalog::postgres {
 
 constexpr table_oid_t PRO_TABLE_OID = table_oid_t(81);
+constexpr index_oid_t PRO_OID_INDEX_OID = index_oid_t(82);
+constexpr index_oid_t PRO_NAME_INDEX_OID = index_oid_t(83);
 
 /*
  * Column names of the form "PRO[name]_COL_OID" are present in the PostgreSQL
