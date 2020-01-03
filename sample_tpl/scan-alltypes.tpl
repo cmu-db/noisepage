@@ -10,22 +10,37 @@
 fun main(execCtx: *ExecutionContext) -> int64 {
   var ret = 0
   var tvi: TableVectorIterator
-  var oids: [5]uint32
-  oids[0] = 1 // bool_col
-  oids[1] = 2 // tinyint_col
-  oids[2] = 3 // smallint_col
-  oids[3] = 4 // int_col
-  oids[4] = 5 // bigint_col
+  var oids: [2]uint32
+  
+  oids[0] = 1 // tinyint_col
+  oids[1] = 3 // bool_col
+  
+//   oids[0] = 1 // bool_col
+//   oids[1] = 2 // tinyint_col
+  
+//   oids[0] = 1 // bool_col
+//   oids[0] = 2 // tinyint_col
+//     oids[1] = 1 // bool_col
+//   oids[1] = 3 // smallint_col
+//   oids[1] = 4 // int_col
+//   oids[4] = 5 // bigint_col
 
   @tableIterInitBind(&tvi, execCtx, "all_types", oids)
   for (@tableIterAdvance(&tvi)) {
     var pci = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(pci); @pciAdvance(pci)) {
-      var col0 = @pciGetBool(pci, 0)
-      var col1 = @pciGetTinyInt(pci, 1)
-      var col2 = @pciGetSmallInt(pci, 2)
-      var col3 = @pciGetInt(pci, 3)
-      var col4 = @pciGetBigInt(pci, 4)
+//         var col0 = @pciGetBool(pci, 1)
+//         var col1 = @pciGetTinyInt(pci, 0)
+        
+        var col0 = @pciGetBool(pci, 0)
+//         var col1 = @pciGetTinyInt(pci, 1)
+        
+//       var col0 = @pciGetBool(pci, 0)
+//       var col0 = @pciGetTinyInt(pci, 0)
+//       var col1 = @pciGetTinyInt(pci, 1)
+//      var col2 = @pciGetSmallInt(pci, 1)
+//        var col3 = @pciGetInt(pci, 1)
+//       var col4 = @pciGetBigInt(pci, 4)
 
       if (col0 == true) { 
           // and 

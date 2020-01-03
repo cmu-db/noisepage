@@ -62,7 +62,7 @@ bool *TableGenerator::CreateBooleanColumnData(ColumnInsertMeta *col_meta, uint32
       for (uint32_t i = 0; i < num_vals; i++) {
         val[i] = (i >= half);
         // TODO(pavlo): Remove
-        std::cout << "GENERATE: [" << i << "] => " << val[i] << "\n";
+//        std::cout << "GENERATE: [" << i << "] => " << val[i] << "\n";
       }
       break;
     }
@@ -84,6 +84,10 @@ std::pair<byte *, uint32_t *> TableGenerator::GenerateColumnData(ColumnInsertMet
     }
     case type::TypeId::TINYINT: {
       col_data = reinterpret_cast<byte *>(CreateNumberColumnData<int8_t>(col_meta, num_rows));
+      // TODO: REMOVE
+//      for (uint32_t i = 0; i < num_rows; i++) {
+//        std::cout << "GENERATE: [" << i << "] => " << static_cast<int32_t>(col_data[i]) << "\n";
+//      }
       break;
     }
     case type::TypeId::SMALLINT: {
