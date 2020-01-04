@@ -265,21 +265,23 @@ void TableGenerator::InitTestIndexes() {
    */
   const std::vector<IndexInsertMeta> index_metas = {
       // The empty table
-      {"index_empty", "empty_table", {{"index_colA", type::TypeId::INTEGER, false, "colA"}}},
+      {"index_empty", "empty_table", {{"index_colA", type::TypeId::INTEGER, false, "colA"}}, true},
 
       // Table 1
-      {"index_1", "test_1", {{"index_colA", type::TypeId::INTEGER, false, "colA"}}},
+      {"index_1", "test_1", {{"index_colA", type::TypeId::INTEGER, false, "colA"}}, true},
+      {"empty_index_1", "test_1", {{"index_colA", type::TypeId::INTEGER, false, "colA"}}, false},
 
       // Table 2: one col
-      {"index_2", "test_2", {{"index_col1", type::TypeId::SMALLINT, false, "col1"}}},
+      {"index_2", "test_2", {{"index_col1", type::TypeId::SMALLINT, false, "col1"}}, true},
 
       // Table 2: two cols
       {"index_2_multi",
        "test_2",
-       {{"index_col1", type::TypeId::SMALLINT, false, "col1"}, {"index_col2", type::TypeId::INTEGER, true, "col2"}}},
+       {{"index_col1", type::TypeId::SMALLINT, false, "col1"}, {"index_col2", type::TypeId::INTEGER, true, "col2"}},
+       true},
 
       // Index on a varchar
-      {"varchar_index", "all_types_table", {{"index_varchar_col", type::TypeId::VARCHAR, false, "varchar_col"}}}};
+      {"varchar_index", "all_types_table", {{"index_varchar_col", type::TypeId::VARCHAR, false, "varchar_col"}}, true}};
 
   storage::index::IndexBuilder index_builder;
   for (const auto &index_meta : index_metas) {
@@ -310,7 +312,7 @@ void TableGenerator::InitTestIndexes() {
 
     auto index = exec_ctx_->GetAccessor()->GetIndex(index_oid);
     // Fill up the index
-    FillIndex(index, index_schema, index_meta, table, table_schema);
+    if (index_meta.fill_) FillIndex(index, index_schema, index_meta, table, table_schema);
   }
 }
 }  // namespace terrier::execution::sql
