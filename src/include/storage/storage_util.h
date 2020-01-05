@@ -190,12 +190,51 @@ class StorageUtil {
   }
 
   /**
+   * Helper method to serialize a vector of strings into a VarlenEntry
+   * @param vec input whose elements are to be serialized into a VarlenEntry
+   * @return varlen entry representing this data vector
+   * @warning checking IsInlined() to see if you need to possibly clean up a buffer
+   * @warning the length of the data vector is not serialized
+   */
+  static storage::VarlenEntry CreateVarlen(const std::vector<const std::string> &vec) {
+    // determine total size
+    size_t total_size = 0;
+    for(auto &elem : vec){
+      total_size += sizeof(size_t);
+      total_size += elem.length();
+    }
+
+    byte *contents = common::AllocationUtil::AllocateAligned(total_size);
+    byte *head = contents;
+
+    // serialize with length followed by string
+    for(auto &elem : vec){
+      *(reinterpret_cast<size_t *>(head)) = elem.length();
+      head += sizeof(size_t);
+      std::memcpy(head, elem.data(), elem.length());
+      head += elem.length();
+    }
+    if (total_size > storage::VarlenEntry::InlineThreshold()) {
+      return storage::VarlenEntry::Create(contents, static_cast<uint32_t>(total_size), true);
+    }
+
+
+    auto ret = storage::VarlenEntry::CreateInline(contents,
+                                              static_cast<uint32_t>(total_size));
+    delete []contents;
+    return ret;
+  }
+
+
+
+  /**
    * Helper method to serialize a vector of type T into a VarlenEntry
    * @tparam T type of elements in data vector
    * @param vec input whose elements are to be serialized into a VarlenEntry
    * @return varlen entry representing this data vector
    * @warning checking IsInlined() to see if you need to possibly clean up a buffer
    * @warning the length of the data vector is not serialized
+   * @warning be careful if vec consists of pointers
    */
   template <typename T>
   static storage::VarlenEntry CreateVarlen(const std::vector<T> &vec) {

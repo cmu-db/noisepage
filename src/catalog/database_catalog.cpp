@@ -2091,6 +2091,8 @@ proc_oid_t DatabaseCatalog::CreateProcedure(transaction::TransactionContext *txn
   const auto name_varlen = storage::StorageUtil::CreateVarlen(procname);
 
   std::vector<storage::VarlenEntry> arg_varlen_vec;
+
+  // TODO(tanujnay112): Ask how deallocation works for these, probably just have to do it in TearDown and Delete
   for(auto &arg : args){
     arg_varlen_vec.push_back(storage::StorageUtil::CreateVarlen(arg));
   }
