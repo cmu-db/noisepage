@@ -326,9 +326,35 @@ class VarlenEntry {
   template <typename T>
   const std::vector<T> DeserializeArray(size_t n_elems) const {
     size_t total_size = n_elems * sizeof(T);
-    TERRIER_ASSERT(total_size <= size_, "Asked for too many elements to be deserialized");
+    TERRIER_ASSERT(total_size <= Size(), "Asked for too many elements to be deserialized");
     const T *head = reinterpret_cast<const T*>(Content());
     return std::vector<T>(head, head + n_elems);
+  }
+
+  /**
+   * Deserializes n_elems of std::string type into a returned vector from this varlen
+   * @param n_elems number of elements to deserialize
+   * @return a vector of immutable deserialized T objects from this varlen entry
+   * @warning It is the programmer's responsibility to ensure that the returned vector doesn't outlive the VarlenEntry
+   * @warning Assuming this varlen is serialized in the format specified by
+   * StorageUtils::CreateVarlen(const std::vector<const std::string> &vec)
+   */
+  const std::vector<std::string> DeserializeArray(size_t n_elems) const {
+    std::vector<std::string> vec;
+    uint32_t to_read = Size();
+    uint32_t num_read = 0;
+
+    const char *head = reinterpret_cast<const char*>(Content());
+    size_t length;
+    while(num_read < to_read && vec.size() < n_elems){
+      length = *reinterpret_cast<const size_t *>(head);
+      head += sizeof(size_t);
+      vec.emplace_back(head, length);
+      head += length;
+      num_read += sizeof(size_t) + length;
+    }
+
+    return vec;
   }
 
  private:

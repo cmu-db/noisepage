@@ -82,5 +82,12 @@ TEST(VarlenEntryTests, Array) {
     EXPECT_EQ(test_data, test_view);
   }
 
+  // test strings
+  {
+    std::vector<std::string> test_data{"hello", "world", "i am", "a test"};
+    const auto varlen_entry = storage::StorageUtil::CreateVarlen(test_data);
+    const std::vector<std::string> test_view = varlen_entry.DeserializeArray<std::string>(test_data.size());
+    EXPECT_EQ(test_data, test_view);
+  }
 }
 }  // namespace terrier
