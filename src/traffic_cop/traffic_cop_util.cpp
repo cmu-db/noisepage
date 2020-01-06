@@ -75,7 +75,8 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::ParseBindAndOptimize(
   return optimizer.BuildPlanTree(txn.Get(), accessor.Get(), stats_storage.Get(), query_info, std::move(logical_exprs));
   // TODO(Matt): I see a lot of copying going on in the Optimizer that maybe shouldn't be happening. BuildPlanTree's
   // signature is copying QueryInfo object (contains a vector of output columns), which then immediately makes a local
-  // copy of that vector anyway. Presumably those are immutable, in which case they should be const & all the way down.
+  // copy of that vector anyway. Presumably those are immutable expressions, in which case they should be const & to the
+  // original vector (or parent object) all the way down.
   // TODO(Matt): Why does the Optimizer need a TransactionContext? It looks like it's an arg all the way down to the
   // cost model. Do we expect that can be transactional?
 }

@@ -10,6 +10,7 @@
 #include "common/managed_pointer.h"
 #include "common/stat_registry.h"
 #include "common/worker_pool.h"
+#include "execution/execution_util.h"
 #include "metrics/metrics_thread.h"
 #include "network/terrier_server.h"
 #include "optimizer/statistics/stats_storage.h"
@@ -252,6 +253,16 @@ class DBMain {
   };
 
   /**
+   * Currently doesn't hold any objects. The constructor and destructor are just used to orchestrate the setup and
+   * teardown for TPL.
+   */
+  class ExecutionLayer {
+   public:
+    ExecutionLayer() { execution::ExecutionUtil::InitTPL(); }
+    ~ExecutionLayer() { execution::ExecutionUtil::ShutdownTPL(); }
+  };
+
+  /**
    * Creates DBMain objects
    */
   class Builder {
@@ -338,6 +349,11 @@ class DBMain {
                                                        common::ManagedPointer(traffic_cop), network_port_);
       }
 
+      std::unique_ptr<ExecutionLayer> execution_layer = DISABLED;
+      if (use_execution_) {
+        execution_layer = std::make_unique<ExecutionLayer>();
+      }
+
       db_main->settings_manager_ = std::move(settings_manager);
       db_main->metrics_manager_ = std::move(metrics_manager);
       db_main->metrics_thread_ = std::move(metrics_thread);
@@ -351,6 +367,7 @@ class DBMain {
       db_main->traffic_cop_ = std::move(traffic_cop);
       db_main->stats_storage_ = std::move(stats_storage);
       db_main->network_layer_ = std::move(network_layer);
+      db_main->execution_layer_ = std::move(execution_layer);
 
       return db_main;
     }
@@ -553,6 +570,15 @@ class DBMain {
       return *this;
     }
 
+    /**
+     * @param value use component
+     * @return self reference for chaining
+     */
+    Builder &SetUseExecution(const bool value) {
+      use_execution_ = value;
+      return *this;
+    }
+
    private:
     std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
 
@@ -583,6 +609,7 @@ class DBMain {
     bool use_stats_storage_ = false;
     uint16_t network_port_ = 15721;
     bool use_network_ = false;
+    bool use_execution_ = false;
 
     /**
      * Instantiates the SettingsManager and reads all of the settings to override the Builder's settings.
@@ -695,6 +722,11 @@ class DBMain {
    */
   common::ManagedPointer<NetworkLayer> GetNetworkLayer() const { return common::ManagedPointer(network_layer_); }
 
+  /**
+   * @return ManagedPointer to the component, can be nullptr if disabled
+   */
+  common::ManagedPointer<ExecutionLayer> GetExecutionLayer() const { return common::ManagedPointer(execution_layer_); }
+
  private:
   // Order matters here for destruction order
   std::unique_ptr<settings::SettingsManager> settings_manager_;
@@ -711,6 +743,7 @@ class DBMain {
   std::unique_ptr<optimizer::StatsStorage> stats_storage_;
   std::unique_ptr<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<NetworkLayer> network_layer_;
+  std::unique_ptr<ExecutionLayer> execution_layer_;
 };
 
 }  // namespace terrier

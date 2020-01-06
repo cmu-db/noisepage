@@ -45,49 +45,6 @@ class CompilerTest : public SqlBasedTest {
     sql::TableGenerator table_generator{exec_ctx.get(), BlockStore(), NSOid()};
     table_generator.GenerateTestTables();
   }
-
-  static void CompileAndRun(planner::AbstractPlanNode *node, exec::ExecutionContext *exec_ctx) {
-    // Create the query object, whose region must outlive all the processing.
-    // Compile and check for errors
-    CodeGen codegen(exec_ctx);
-    Compiler compiler(&codegen, node);
-    auto root = compiler.Compile();
-    if (codegen.Reporter()->HasErrors()) {
-      EXECUTION_LOG_ERROR("Type-checking error! \n {}", codegen.Reporter()->SerializeErrors());
-    }
-
-    EXECUTION_LOG_INFO("Converted: \n {}", execution::ast::AstDump::Dump(root));
-
-    // Convert to bytecode
-    auto bytecode_module = vm::BytecodeGenerator::Compile(root, exec_ctx, "tmp-tpl");
-    auto module = std::make_unique<vm::Module>(std::move(bytecode_module));
-
-    // Run the main function
-    std::function<int64_t(exec::ExecutionContext *)> main;
-    if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
-      EXECUTION_LOG_ERROR(
-          "Missing 'main' entry function with signature "
-          "(*ExecutionContext)->int32");
-      return;
-    }
-    EXECUTION_LOG_INFO("VM main() returned: {}", main(exec_ctx));
-  }
-
-  /**
-   * Initialize all TPL subsystems
-   */
-  static void InitTPL() {
-    execution::CpuInfo::Instance();
-    execution::vm::LLVMEngine::Initialize();
-  }
-
-  /**
-   * Shutdown all TPL subsystems
-   */
-  static void ShutdownTPL() {
-    terrier::execution::vm::LLVMEngine::Shutdown();
-    terrier::LoggersUtil::ShutDown();
-  }
 };
 
 // NOLINTNEXTLINE
@@ -138,7 +95,7 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(seq_scan.get(), exec_ctx.get());
+  ExecutionUtil::CompileAndRun(seq_scan.get(), exec_ctx.get());
   multi_checker.CheckCorrectness();
 }
 
@@ -199,7 +156,7 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
   exec_ctx->SetParams(std::move(params));
 
   // Run & Check
-  CompileAndRun(seq_scan.get(), exec_ctx.get());
+  ExecutionUtil::CompileAndRun(seq_scan.get(), exec_ctx.get());
   multi_checker.CheckCorrectness();
 }
 
@@ -242,7 +199,7 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(index_scan.get(), exec_ctx.get());
+  ExecutionUtil::CompileAndRun(index_scan.get(), exec_ctx.get());
   multi_checker.CheckCorrectness();
 }
 
@@ -308,7 +265,7 @@ TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(index_scan.get(), exec_ctx.get());
+  ExecutionUtil::CompileAndRun(index_scan.get(), exec_ctx.get());
   checker.CheckCorrectness();
 }
 
@@ -373,7 +330,7 @@ TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(index_scan.get(), exec_ctx.get());
+  ExecutionUtil::CompileAndRun(index_scan.get(), exec_ctx.get());
   checker.CheckCorrectness();
 }
 
@@ -438,7 +395,7 @@ TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(index_scan.get(), exec_ctx.get());
+  ExecutionUtil::CompileAndRun(index_scan.get(), exec_ctx.get());
   checker.CheckCorrectness();
 }
 
@@ -503,7 +460,7 @@ TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(index_scan.get(), exec_ctx.get());
+  ExecutionUtil::CompileAndRun(index_scan.get(), exec_ctx.get());
   checker.CheckCorrectness();
 }
 
@@ -573,7 +530,7 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(agg.get(), exec_ctx.get());
+  ExecutionUtil::CompileAndRun(agg.get(), exec_ctx.get());
   multi_checker.CheckCorrectness();
 }
 
@@ -656,7 +613,7 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(agg.get(), exec_ctx.get());
+  ExecutionUtil::CompileAndRun(agg.get(), exec_ctx.get());
   checker.CheckCorrectness();
 }
 
@@ -776,7 +733,7 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), hash_join->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(hash_join.get(), exec_ctx.get());
+  ExecutionUtil::CompileAndRun(hash_join.get(), exec_ctx.get());
   checker.CheckCorrectness();
 }
 
@@ -870,7 +827,7 @@ TEST_F(CompilerTest, SimpleSortTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), order_by->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(order_by.get(), exec_ctx.get());
+  ExecutionUtil::CompileAndRun(order_by.get(), exec_ctx.get());
   checker.CheckCorrectness();
 }
 
@@ -988,7 +945,7 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), nl_join->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(nl_join.get(), exec_ctx.get());
+  ExecutionUtil::CompileAndRun(nl_join.get(), exec_ctx.get());
   checker.CheckCorrectness();
 }
 
@@ -1090,7 +1047,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_join->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(index_join.get(), exec_ctx.get());
+  ExecutionUtil::CompileAndRun(index_join.get(), exec_ctx.get());
   checker.CheckCorrectness();
 }
 
@@ -1186,7 +1143,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_join->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(index_join.get(), exec_ctx.get());
+  ExecutionUtil::CompileAndRun(index_join.get(), exec_ctx.get());
   checker.CheckCorrectness();
 }
 
@@ -1233,7 +1190,7 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     auto exec_ctx = MakeExecCtx(std::move(callback), delete_node->GetOutputSchema().Get());
-    CompileAndRun(delete_node.get(), exec_ctx.get());
+    ExecutionUtil::CompileAndRun(delete_node.get(), exec_ctx.get());
   }
 
   // Now scan through table to check content.
@@ -1264,7 +1221,7 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-    CompileAndRun(seq_scan.get(), exec_ctx.get());
+    ExecutionUtil::CompileAndRun(seq_scan.get(), exec_ctx.get());
     checker.CheckCorrectness();
   }
 
@@ -1297,7 +1254,7 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
-    CompileAndRun(index_scan.get(), exec_ctx.get());
+    ExecutionUtil::CompileAndRun(index_scan.get(), exec_ctx.get());
     checker.CheckCorrectness();
   }
 }
@@ -1367,7 +1324,7 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     auto exec_ctx = MakeExecCtx(std::move(callback), update_node->GetOutputSchema().Get());
-    CompileAndRun(update_node.get(), exec_ctx.get());
+    ExecutionUtil::CompileAndRun(update_node.get(), exec_ctx.get());
   }
 
   // Now scan through table to check content.
@@ -1421,7 +1378,7 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-    CompileAndRun(seq_scan.get(), exec_ctx.get());
+    ExecutionUtil::CompileAndRun(seq_scan.get(), exec_ctx.get());
     checker.CheckCorrectness();
   }
 
@@ -1458,7 +1415,7 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
-    CompileAndRun(index_scan.get(), exec_ctx.get());
+    ExecutionUtil::CompileAndRun(index_scan.get(), exec_ctx.get());
     checker.CheckCorrectness();
   }
 }
@@ -1505,7 +1462,7 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     auto exec_ctx = MakeExecCtx(std::move(callback), insert->GetOutputSchema().Get());
-    CompileAndRun(insert.get(), exec_ctx.get());
+    ExecutionUtil::CompileAndRun(insert.get(), exec_ctx.get());
   }
 
   // Now scan through table to check content.
@@ -1563,7 +1520,7 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-    CompileAndRun(seq_scan.get(), exec_ctx.get());
+    ExecutionUtil::CompileAndRun(seq_scan.get(), exec_ctx.get());
     checker.CheckCorrectness();
   }
 
@@ -1603,7 +1560,7 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
-    CompileAndRun(index_scan.get(), exec_ctx.get());
+    ExecutionUtil::CompileAndRun(index_scan.get(), exec_ctx.get());
     checker.CheckCorrectness();
   }
 }
@@ -1673,7 +1630,7 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     params.emplace_back(type::TransientValueFactory::GetInteger(495));
     params.emplace_back(type::TransientValueFactory::GetInteger(505));
     exec_ctx->SetParams(std::move(params));
-    CompileAndRun(insert.get(), exec_ctx.get());
+    ExecutionUtil::CompileAndRun(insert.get(), exec_ctx.get());
   }
 
   // Now scan through table to check content.
@@ -1729,7 +1686,7 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-    CompileAndRun(seq_scan.get(), exec_ctx.get());
+    ExecutionUtil::CompileAndRun(seq_scan.get(), exec_ctx.get());
     checker.CheckCorrectness();
   }
 
@@ -1768,7 +1725,7 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
-    CompileAndRun(index_scan.get(), exec_ctx.get());
+    ExecutionUtil::CompileAndRun(index_scan.get(), exec_ctx.get());
     checker.CheckCorrectness();
   }
 }
@@ -1835,7 +1792,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     params.emplace_back(type::TransientValueFactory::GetDecimal(real2));
     params.emplace_back(type::TransientValueFactory::GetInteger(int2));
     exec_ctx->SetParams(std::move(params));
-    CompileAndRun(insert.get(), exec_ctx.get());
+    ExecutionUtil::CompileAndRun(insert.get(), exec_ctx.get());
   }
 
   // Now scan through table to check content.
@@ -1899,7 +1856,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-    CompileAndRun(seq_scan.get(), exec_ctx.get());
+    ExecutionUtil::CompileAndRun(seq_scan.get(), exec_ctx.get());
     checker.CheckCorrectness();
   }
 
@@ -1943,7 +1900,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     params.emplace_back(type::TransientValueFactory::GetVarChar(str1));
     params.emplace_back(type::TransientValueFactory::GetVarChar(str2));
     exec_ctx->SetParams(std::move(params));
-    CompileAndRun(index_scan.get(), exec_ctx.get());
+    ExecutionUtil::CompileAndRun(index_scan.get(), exec_ctx.get());
     checker.CheckCorrectness();
   }
 }
@@ -2077,7 +2034,7 @@ TEST_F(CompilerTest, TPCHQ1Test) {
   exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(agg.get(), exec_ctx.get());
+  ExecutionUtil::CompileAndRun(agg.get(), exec_ctx.get());
   checker.CheckCorrectness();
 }
 */
@@ -2085,8 +2042,8 @@ TEST_F(CompilerTest, TPCHQ1Test) {
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
-  terrier::execution::compiler::test::CompilerTest::InitTPL();
+  terrier::execution::ExecutionUtil::InitTPL();
   int ret = RUN_ALL_TESTS();
-  terrier::execution::compiler::test::CompilerTest::ShutdownTPL();
+  terrier::execution::ExecutionUtil::ShutdownTPL();
   return ret;
 }
