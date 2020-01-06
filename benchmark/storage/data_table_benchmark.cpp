@@ -31,7 +31,7 @@ class DataTableBenchmark : public benchmark::Fixture {
     read_ = initializer_.InitializeRow(read_buffer_);
 
     // generate a vector of ProjectedRow buffers for concurrent reads
-    for (uint32_t i = 0; i < num_threads_; ++i) {
+    for (uint32_t i = 0; i < benchmark::BENCHMARK_NUM_THREADS; ++i) {
       // Create read buffer
       byte *read_buffer = common::AllocationUtil::AllocateAligned(initializer_.ProjectedRowSize());
       storage::ProjectedRow *read = initializer_.InitializeRow(read_buffer);
@@ -43,7 +43,7 @@ class DataTableBenchmark : public benchmark::Fixture {
   void TearDown(const benchmark::State &state) final {
     delete[] redo_buffer_;
     delete[] read_buffer_;
-    for (uint32_t i = 0; i < num_threads_; ++i) delete[] read_buffers_[i];
+    for (uint32_t i = 0; i < benchmark::BENCHMARK_NUM_THREADS; ++i) delete[] read_buffers_[i];
     // google benchmark might run benchmark several iterations. We need to clear vectors.
     read_buffers_.clear();
     reads_.clear();
@@ -60,7 +60,6 @@ class DataTableBenchmark : public benchmark::Fixture {
   // Workload
   const uint32_t num_inserts_ = 10000000;
   const uint32_t num_reads_ = 10000000;
-  uint32_t num_threads_ = 5;
   const uint64_t buffer_pool_reuse_limit_ = 10000000;
 
   // Test infrastructure
@@ -84,27 +83,22 @@ class DataTableBenchmark : public benchmark::Fixture {
 // Insert the num_inserts_ of tuples into a DataTable concurrently
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, Insert)(benchmark::State &state) {
-  const char *env_threads = std::getenv("TERRIER_BENCHMARK_CORES");
-  if (env_threads == nullptr) {
-  } else {
-    num_threads_ = atoi(env_threads);
-  }
   // NOLINTNEXTLINE
   for (auto _ : state) {
     storage::DataTable table(&block_store_, layout_, storage::layout_version_t(0));
     auto workload = [&](uint32_t id) {
       // We can use dummy timestamps here since we're not invoking concurrency control
-      transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), common::ManagedPointer(&buffer_pool_),
-                                          DISABLED);
-      for (uint32_t i = 0; i < num_inserts_ / num_threads_; i++) {
+      transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
+                                          common::ManagedPointer(&buffer_pool_), DISABLED);
+      for (uint32_t i = 0; i < num_inserts_ / benchmark::BENCHMARK_NUM_THREADS; i++) {
         table.Insert(common::ManagedPointer(&txn), *redo_);
       }
     };
-    common::WorkerPool thread_pool(num_threads_, {});
+    common::WorkerPool thread_pool(benchmark::BENCHMARK_NUM_THREADS, {});
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      for (uint32_t j = 0; j < num_threads_; j++) {
+      for (uint32_t j = 0; j < benchmark::BENCHMARK_NUM_THREADS; j++) {
         thread_pool.SubmitTask([j, &workload] { workload(j); });
       }
       thread_pool.WaitUntilAllFinished();
@@ -117,17 +111,12 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, Insert)(benchmark::State &state) {
 // Read the num_reads_ of tuples in a random order from a DataTable concurrently
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, SelectRandom)(benchmark::State &state) {
-  const char *env_threads = std::getenv("TERRIER_BENCHMARK_CORES");
-  if (env_threads == nullptr) {
-  } else {
-    num_threads_ = atoi(env_threads);
-  }
   storage::DataTable read_table(&block_store_, layout_, storage::layout_version_t(0));
 
   // populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
-  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), common::ManagedPointer(&buffer_pool_),
-                                      DISABLED);
+  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
+                                      common::ManagedPointer(&buffer_pool_), DISABLED);
   std::vector<storage::TupleSlot> read_order;
   // adding num_reads_ rows in the table
   for (uint32_t i = 0; i < num_reads_; ++i) {
@@ -137,7 +126,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SelectRandom)(benchmark::State &state) {
   std::shuffle(read_order.begin(), read_order.end(), generator_);
   std::uniform_int_distribution<uint32_t> rand_start(0, static_cast<uint32_t>(read_order.size() - 1));
   std::vector<uint32_t> rand_read_offsets;
-  for (uint32_t i = 0; i < num_threads_; ++i) {
+  for (uint32_t i = 0; i < benchmark::BENCHMARK_NUM_THREADS; ++i) {
     // Create random reads
     rand_read_offsets.emplace_back(rand_start(generator_));
   }
@@ -145,16 +134,17 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SelectRandom)(benchmark::State &state) {
   for (auto _ : state) {
     auto workload = [&](uint32_t id) {
       // We can use dummy timestamps here since we're not invoking concurrency control
-      transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), common::ManagedPointer(&buffer_pool_),
-                                          DISABLED);
-      for (uint32_t i = 0; i < num_reads_ / num_threads_; i++)
-        read_table.Select(common::ManagedPointer(&txn), read_order[(rand_read_offsets[id] + i) % read_order.size()], reads_[id]);
+      transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
+                                          common::ManagedPointer(&buffer_pool_), DISABLED);
+      for (uint32_t i = 0; i < num_reads_ / benchmark::BENCHMARK_NUM_THREADS; i++)
+        read_table.Select(common::ManagedPointer(&txn), read_order[(rand_read_offsets[id] + i) % read_order.size()],
+                          reads_[id]);
     };
-    common::WorkerPool thread_pool(num_threads_, {});
+    common::WorkerPool thread_pool(benchmark::BENCHMARK_NUM_THREADS, {});
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      for (uint32_t j = 0; j < num_threads_; j++) {
+      for (uint32_t j = 0; j < benchmark::BENCHMARK_NUM_THREADS; j++) {
         thread_pool.SubmitTask([j, &workload] { workload(j); });
       }
       thread_pool.WaitUntilAllFinished();
@@ -168,17 +158,12 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SelectRandom)(benchmark::State &state) {
 // Read the num_reads_ of tuples in the sequential  order from a DataTable concurrently
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, SelectSequential)(benchmark::State &state) {
-  const char *env_threads = std::getenv("TERRIER_BENCHMARK_CORES");
-  if (env_threads == nullptr) {
-  } else {
-    num_threads_ = atoi(env_threads);
-  }
   storage::DataTable read_table(&block_store_, layout_, storage::layout_version_t(0));
 
   // populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
-  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), common::ManagedPointer(&buffer_pool_),
-                                      DISABLED);
+  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
+                                      common::ManagedPointer(&buffer_pool_), DISABLED);
   std::vector<storage::TupleSlot> read_order;
 
   // inserted the table with 10 million rows
@@ -189,15 +174,16 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SelectSequential)(benchmark::State &state
   for (auto _ : state) {
     auto workload = [&](uint32_t id) {
       // We can use dummy timestamps here since we're not invoking concurrency control
-      transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), common::ManagedPointer(&buffer_pool_),
-                                          DISABLED);
-      for (uint32_t i = 0; i < num_reads_ / num_threads_; i++) read_table.Select(common::ManagedPointer(&txn), read_order[i], reads_[id]);
+      transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
+                                          common::ManagedPointer(&buffer_pool_), DISABLED);
+      for (uint32_t i = 0; i < num_reads_ / benchmark::BENCHMARK_NUM_THREADS; i++)
+        read_table.Select(common::ManagedPointer(&txn), read_order[i], reads_[id]);
     };
-    common::WorkerPool thread_pool(num_threads_, {});
+    common::WorkerPool thread_pool(benchmark::BENCHMARK_NUM_THREADS, {});
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      for (uint32_t j = 0; j < num_threads_; j++) {
+      for (uint32_t j = 0; j < benchmark::BENCHMARK_NUM_THREADS; j++) {
         thread_pool.SubmitTask([j, &workload] { workload(j); });
       }
       thread_pool.WaitUntilAllFinished();
@@ -211,17 +197,12 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SelectSequential)(benchmark::State &state
 // Read the num_reads_ of tuples in the sequential  order from a DataTable concurrently
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, Scan)(benchmark::State &state) {
-  const char *env_threads = std::getenv("TERRIER_BENCHMARK_CORES");
-  if (env_threads == nullptr) {
-  } else {
-    num_threads_ = atoi(env_threads);
-  }
   storage::DataTable read_table(&block_store_, layout_, storage::layout_version_t(0));
 
   // populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
-  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), common::ManagedPointer(&buffer_pool_),
-                                      DISABLED);
+  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
+                                      common::ManagedPointer(&buffer_pool_), DISABLED);
   std::vector<storage::TupleSlot> read_order;
   for (uint32_t i = 0; i < num_reads_; ++i) {
     read_order.emplace_back(read_table.Insert(common::ManagedPointer(&txn), *redo_));
@@ -232,7 +213,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, Scan)(benchmark::State &state) {
 
   std::vector<storage::ProjectedColumns *> all_columns;
   std::vector<byte *> buf;
-  for (uint32_t j = 0; j < num_threads_; j++) {
+  for (uint32_t j = 0; j < benchmark::BENCHMARK_NUM_THREADS; j++) {
     auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
     storage::ProjectedColumns *columns = initializer.Initialize(buffer);
     all_columns.push_back(columns);
@@ -247,11 +228,11 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, Scan)(benchmark::State &state) {
         read_table.Scan(common::ManagedPointer(&txn), &it, all_columns[id]);
       }
     };
-    common::WorkerPool thread_pool(num_threads_, {});
+    common::WorkerPool thread_pool(benchmark::BENCHMARK_NUM_THREADS, {});
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      for (uint32_t j = 0; j < num_threads_; j++) {
+      for (uint32_t j = 0; j < benchmark::BENCHMARK_NUM_THREADS; j++) {
         thread_pool.SubmitTask([j, &workload] { workload(j); });
       }
       thread_pool.WaitUntilAllFinished();
@@ -261,7 +242,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, Scan)(benchmark::State &state) {
   for (auto p : buf) {
     delete p;
   }
-  state.SetItemsProcessed(state.iterations() * num_reads_ * num_threads_);
+  state.SetItemsProcessed(state.iterations() * num_reads_ * benchmark::BENCHMARK_NUM_THREADS);
 }
 
 BENCHMARK_REGISTER_F(DataTableBenchmark, Insert)->Unit(benchmark::kMillisecond)->UseRealTime()->UseManualTime();
