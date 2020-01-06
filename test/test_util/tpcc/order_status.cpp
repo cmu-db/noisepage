@@ -140,7 +140,7 @@ bool OrderStatus::Execute(transaction::TransactionManager *const txn_manager, Da
                    "We already confirmed that this is a committed order above, so none of these should fail.");
   }
 
-  txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   return true;
 }

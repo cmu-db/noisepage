@@ -6,6 +6,8 @@
 
 namespace terrier::execution::parsing {
 
+#undef NIL
+
 /*
  * List of all tokens + keywords that accepts two callback functions. T() is
  * invoked for all symbol tokens, and K() is invoked for all keyword tokens.

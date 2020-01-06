@@ -54,7 +54,7 @@ class OperatorTransformerTest : public TerrierTest {
     OPTIMIZER_LOG_DEBUG("Creating database %s", default_database_name_.c_str());
     db_oid_ = catalog_->CreateDatabase(common::ManagedPointer(txn_), default_database_name_, true);
     // commit the transactions
-    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
     OPTIMIZER_LOG_DEBUG("database %s created!", default_database_name_.c_str());
 
     // get default values of the columns
@@ -74,7 +74,7 @@ class OperatorTransformerTest : public TerrierTest {
     auto table_a = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), schema_a);
     EXPECT_TRUE(accessor_->SetTablePointer(table_a_oid_, table_a));
 
-    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
     accessor_.reset(nullptr);
 
     // create Table B
@@ -90,7 +90,7 @@ class OperatorTransformerTest : public TerrierTest {
     table_b_oid_ = accessor_->CreateTable(accessor_->GetDefaultNamespace(), "b", schema_b);
     auto table_b = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), schema_b);
     EXPECT_TRUE(accessor_->SetTablePointer(table_b_oid_, table_b));
-    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     // create index on a1
     txn_ = txn_manager_->BeginTransaction();
@@ -106,7 +106,7 @@ class OperatorTransformerTest : public TerrierTest {
     auto index = index_builder.Build();
 
     EXPECT_TRUE(accessor_->SetIndexPointer(a_index_oid_, index));
-    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
     accessor_.reset(nullptr);
   }
 
@@ -123,7 +123,7 @@ class OperatorTransformerTest : public TerrierTest {
   }
 
   void TearDown() override {
-    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
     accessor_.reset(nullptr);
     delete binder_;
     operator_transformer_.reset(nullptr);
