@@ -34,6 +34,17 @@ class CaseExpression : public AbstractExpression {
     bool operator!=(const WhenClause &rhs) const { return !operator==(rhs); }
 
     /**
+     * Hash the current WhenClause.
+     * @return hash of WhenClause
+     */
+    common::hash_t Hash() const {
+      common::hash_t hash = condition_->Hash();
+      hash = common::HashUtil::CombineHashes(hash, condition_->Hash());
+      hash = common::HashUtil::CombineHashes(hash, then_->Hash());
+      return hash;
+    }
+
+    /**
      * Derived expressions should call this base method
      * @return expression serialized to json
      */
@@ -65,7 +76,7 @@ class CaseExpression : public AbstractExpression {
   /**
    * Instantiate a new case expression.
    * @param return_value_type return value of the case expression
-   * @param when_clauses list of when clauses
+   * @param when_clauses list of WhenClauses
    * @param default_expr default expression for this case
    */
   CaseExpression(const type::TypeId return_value_type, std::vector<WhenClause> &&when_clauses,
@@ -80,8 +91,7 @@ class CaseExpression : public AbstractExpression {
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();
     for (auto &clause : when_clauses_) {
-      hash = common::HashUtil::CombineHashes(hash, clause.condition_->Hash());
-      hash = common::HashUtil::CombineHashes(hash, clause.then_->Hash());
+      hash = common::HashUtil::CombineHashes(hash, clause.Hash());
     }
     if (default_expr_ != nullptr) {
       hash = common::HashUtil::CombineHashes(hash, default_expr_->Hash());
@@ -102,9 +112,13 @@ class CaseExpression : public AbstractExpression {
     auto other_default_exp = other.GetDefaultClause();
     if (default_exp == nullptr && other_default_exp == nullptr) return true;
     if (default_exp == nullptr || other_default_exp == nullptr) return false;
-    return *default_exp == *other_default_exp;
+    return (*default_exp == *other_default_exp);
   }
 
+  /**
+   * Copies this CaseExpression
+   * @returns copy of this
+   */
   std::unique_ptr<AbstractExpression> Copy() const override {
     std::vector<WhenClause> clauses;
     for (const auto &clause : when_clauses_) {
@@ -116,12 +130,24 @@ class CaseExpression : public AbstractExpression {
   }
 
   /**
-   * @return the number of when clauses
+   * Creates a copy of the current AbstractExpression with new children implanted.
+   * The children should not be owned by any other AbstractExpression.
+   * @param children New children to be owned by the copy
+   * @returns copy of this
+   */
+  std::unique_ptr<AbstractExpression> CopyWithChildren(
+      std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
+    TERRIER_ASSERT(children.empty(), "CaseExpression should have no children");
+    return Copy();
+  }
+
+  /**
+   * @return the number of WhenClauses
    */
   size_t GetWhenClauseSize() const { return when_clauses_.size(); }
 
   /**
-   * @param index index of when clause to get
+   * @param index index of WhenClause to get
    * @return condition at that index
    */
   common::ManagedPointer<AbstractExpression> GetWhenClauseCondition(size_t index) const {
@@ -130,7 +156,7 @@ class CaseExpression : public AbstractExpression {
   }
 
   /**
-   * @param index index of when clause to get
+   * @param index index of WhenClause to get
    * @return result at that index
    */
   common::ManagedPointer<AbstractExpression> GetWhenClauseResult(size_t index) const {

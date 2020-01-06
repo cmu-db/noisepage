@@ -27,11 +27,11 @@ bool TableStats::AddColumnStats(std::unique_ptr<ColumnStats> col_stats) {
 }
 
 double TableStats::GetCardinality(catalog::col_oid_t column_id) {
-  auto column_stats = GetColumnStats(column_id);
-  if (column_stats == nullptr) {
+  if (!HasColumnStats(column_id)) {
     return 0;
   }
-  return column_stats->GetCardinality();
+
+  return GetColumnStats(column_id)->GetCardinality();
 }
 
 bool TableStats::HasColumnStats(catalog::col_oid_t column_id) const {
@@ -40,11 +40,8 @@ bool TableStats::HasColumnStats(catalog::col_oid_t column_id) const {
 
 common::ManagedPointer<ColumnStats> TableStats::GetColumnStats(catalog::col_oid_t column_id) {
   auto col_it = column_stats_.find(column_id);
-
-  if (col_it != column_stats_.end()) {
-    return common::ManagedPointer<ColumnStats>(col_it->second);
-  }
-  return common::ManagedPointer<ColumnStats>(nullptr);
+  if (col_it == column_stats_.end()) return nullptr;
+  return common::ManagedPointer<ColumnStats>(col_it->second);
 }
 
 bool TableStats::RemoveColumnStats(catalog::col_oid_t column_id) {

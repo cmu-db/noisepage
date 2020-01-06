@@ -1,5 +1,6 @@
 #include <random>
-#include "gtest/gtest.h"
+
+#include "main/db_main.h"
 #include "test_util/data_table_test_util.h"
 #include "transaction/deferred_action_manager.h"
 
@@ -9,13 +10,10 @@ class LargeTransactionTests : public TerrierTest {
   void RunTest(const LargeDataTableTestConfiguration &config) {
     for (uint32_t iteration = 0; iteration < config.NumIterations(); iteration++) {
       std::default_random_engine generator;
-      storage::BlockStore store(1000, 1000);
-      storage::RecordBufferSegmentPool buffer_pool(20000, 20000);
-      transaction::TimestampManager timestamp_manager;
-      transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
-      transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool, false,
-                                                  DISABLED);
-      LargeDataTableTestObject tested(config, &store, &txn_manager, &generator, DISABLED);
+      auto db_main = DBMain::Builder().Build();
+      LargeDataTableTestObject tested(config, db_main->GetStorageLayer()->GetBlockStore().Get(),
+                                      db_main->GetTransactionLayer()->GetTransactionManager().Get(), &generator,
+                                      DISABLED);
 
       auto result = tested.SimulateOltp(config.NumTxns(), config.NumConcurrentTxns());
       tested.CheckReadsCorrect(&result.first);

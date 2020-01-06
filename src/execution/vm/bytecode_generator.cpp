@@ -537,6 +537,10 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
       ExecutionResult()->SetDestination(cond.ValueOf());
       break;
     }
+    case ast::Builtin::TableIterReset: {
+      Emitter()->Emit(Bytecode::TableVectorIteratorReset, iter);
+      break;
+    }
     case ast::Builtin::TableIterGetPCI: {
       ast::Type *pci_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedColumnsIterator);
       LocalVar pci = ExecutionResult()->GetOrCreateDestination(pci_type);
@@ -597,6 +601,11 @@ void BytecodeGenerator::VisitBuiltinPCICall(ast::CallExpr *call, ast::Builtin bu
     case ast::Builtin::PCIResetFiltered: {
       const Bytecode bytecode = builtin == ast::Builtin::PCIReset ? Bytecode::PCIReset : Bytecode::PCIResetFiltered;
       Emitter()->Emit(bytecode, pci);
+      break;
+    }
+    case ast::Builtin::PCIGetSlot: {
+      LocalVar res = ExecutionResult()->GetOrCreateDestination(call->GetType());
+      Emitter()->Emit(Bytecode::PCIGetSlot, res, pci);
       break;
     }
     case ast::Builtin::PCIGetTinyInt: {
@@ -1791,6 +1800,40 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
   }
 }
 
+void BytecodeGenerator::VisitBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin) {
+  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+  LocalVar param_idx = VisitExpressionForRValue(call->Arguments()[1]);
+  LocalVar ret = ExecutionResult()->GetOrCreateDestination(call->GetType());
+  switch (builtin) {
+    case ast::Builtin::GetParamTinyInt:
+      Emitter()->Emit(Bytecode::GetParamTinyInt, ret, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::GetParamSmallInt:
+      Emitter()->Emit(Bytecode::GetParamSmallInt, ret, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::GetParamInt:
+      Emitter()->Emit(Bytecode::GetParamInt, ret, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::GetParamBigInt:
+      Emitter()->Emit(Bytecode::GetParamBigInt, ret, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::GetParamReal:
+      Emitter()->Emit(Bytecode::GetParamReal, ret, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::GetParamDouble:
+      Emitter()->Emit(Bytecode::GetParamDouble, ret, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::GetParamDate:
+      Emitter()->Emit(Bytecode::GetParamDate, ret, exec_ctx, param_idx);
+      break;
+    case ast::Builtin::GetParamString:
+      Emitter()->Emit(Bytecode::GetParamString, ret, exec_ctx, param_idx);
+      break;
+    default:
+      UNREACHABLE("Impossible parameter call!");
+  }
+}
+
 void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
   ast::Builtin builtin;
 
@@ -1831,6 +1874,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::TableIterInit:
     case ast::Builtin::TableIterInitBind:
     case ast::Builtin::TableIterAdvance:
+    case ast::Builtin::TableIterReset:
     case ast::Builtin::TableIterGetPCI:
     case ast::Builtin::TableIterClose: {
       VisitBuiltinTableIterCall(call, builtin);
@@ -1848,6 +1892,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::PCIMatch:
     case ast::Builtin::PCIReset:
     case ast::Builtin::PCIResetFiltered:
+    case ast::Builtin::PCIGetSlot:
     case ast::Builtin::PCIGetTinyInt:
     case ast::Builtin::PCIGetTinyIntNull:
     case ast::Builtin::PCIGetSmallInt:
@@ -2029,6 +2074,18 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinStorageInterfaceCall(call, builtin);
       break;
     }
+    case ast::Builtin::GetParamTinyInt:
+    case ast::Builtin::GetParamSmallInt:
+    case ast::Builtin::GetParamInt:
+    case ast::Builtin::GetParamBigInt:
+    case ast::Builtin::GetParamReal:
+    case ast::Builtin::GetParamDouble:
+    case ast::Builtin::GetParamDate:
+    case ast::Builtin::GetParamString: {
+      VisitBuiltinParamCall(call, builtin);
+      break;
+    }
+
     default: {
       UNREACHABLE("Builtin not supported!");
     }

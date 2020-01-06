@@ -16,7 +16,8 @@
 
 namespace terrier {
 class StorageTestUtil;
-}
+class TpccPlanTest;
+}  // namespace terrier
 
 namespace terrier::storage {
 class RecoveryManager;
@@ -143,6 +144,42 @@ class IndexSchema {
     Column() = default;
 
     /**
+     * @return the hashed value of this column
+     */
+    common::hash_t Hash() const {
+      common::hash_t hash = common::HashUtil::Hash(name_);
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(name_));
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Type()));
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(MaxVarlenSize()));
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(Nullable()));
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(oid_));
+      if (definition_ != nullptr) hash = common::HashUtil::CombineHashes(hash, definition_->Hash());
+      return hash;
+    }
+
+    /**
+     * Perform a comparison of column
+     * @param rhs other column to compare against
+     * @return true if the two columns are equal
+     */
+    bool operator==(const Column &rhs) const {
+      if (name_ != rhs.name_) return false;
+      if (Type() != rhs.Type()) return false;
+      if (MaxVarlenSize() != rhs.MaxVarlenSize()) return false;
+      if (Nullable() != rhs.Nullable()) return false;
+      if (oid_ != rhs.oid_) return false;
+      if (definition_ == nullptr) return rhs.definition_ == nullptr;
+      return rhs.definition_ != nullptr && *definition_ == *rhs.definition_;
+    }
+
+    /**
+     * Perform a comparison of column
+     * @param rhs other column to compare against
+     * @return true if the two columns are not equal
+     */
+    bool operator!=(const Column &rhs) const { return !operator==(rhs); }
+
+    /**
      * @return column serialized to json
      */
     nlohmann::json ToJson() const {
@@ -204,7 +241,6 @@ class IndexSchema {
 
     friend class DatabaseCatalog;
     friend class postgres::Builder;
-
     friend class tpcc::Schemas;
     friend class terrier::StorageTestUtil;
   };
@@ -265,7 +301,7 @@ class IndexSchema {
   bool Unique() const { return is_unique_; }
 
   /**
-   * @return true if index represents the primary key of the table (Unique should always be true when this is true)
+   * @return true if this schema is for a unique index
    */
   bool Primary() const { return is_primary_; }
 
@@ -373,6 +409,44 @@ class IndexSchema {
     }
   }
 
+  /**
+   * @return the hashed value of this index schema
+   */
+  common::hash_t Hash() const {
+    // TODO(Ling): Does column order matter for hash?
+    common::hash_t hash = common::HashUtil::Hash(type_);
+    for (const auto &col : columns_) hash = common::HashUtil::CombineHashes(hash, col.Hash());
+    hash = common::HashUtil::CombineHashInRange(hash, indexed_oids_.begin(), indexed_oids_.end());
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_unique_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_primary_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_exclusion_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_immediate_));
+    return hash;
+  }
+
+  /**
+   * Perform a comparison of index schema
+   * @param rhs other index schema to compare against
+   * @return true if the two index schemas are equal
+   */
+  bool operator==(const IndexSchema &rhs) const {
+    if (type_ != rhs.type_) return false;
+    if (is_unique_ != rhs.is_unique_) return false;
+    if (is_primary_ != rhs.is_primary_) return false;
+    if (is_exclusion_ != rhs.is_exclusion_) return false;
+    if (is_immediate_ != rhs.is_immediate_) return false;
+    // TODO(Ling): Does column order matter for compare equal?
+    if (indexed_oids_ != rhs.indexed_oids_) return false;
+    return columns_ == rhs.columns_;
+  }
+
+  /**
+   * Perform a comparison of index schema
+   * @param rhs other index schema to compare against
+   * @return true if the two index schema are not equal
+   */
+  bool operator!=(const IndexSchema &rhs) const { return !operator==(rhs); }
+
  private:
   friend class DatabaseCatalog;
   std::vector<Column> columns_;
@@ -385,6 +459,7 @@ class IndexSchema {
 
   friend class Catalog;
   friend class postgres::Builder;
+  friend class terrier::TpccPlanTest;
 };
 
 DEFINE_JSON_DECLARATIONS(IndexSchema::Column);

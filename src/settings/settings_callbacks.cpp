@@ -1,5 +1,7 @@
 #include "settings/settings_callbacks.h"
+
 #include <memory>
+
 #include "main/db_main.h"
 
 namespace terrier::settings {
@@ -13,7 +15,7 @@ void Callbacks::BufferSegmentPoolSizeLimit(void *const old_value, void *const ne
                                            common::ManagedPointer<common::ActionContext> action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
   int new_size = *static_cast<int *>(new_value);
-  bool success = db_main->buffer_segment_pool_->SetSizeLimit(new_size);
+  bool success = db_main->GetBufferSegmentPool()->SetSizeLimit(new_size);
   if (success)
     action_context->SetState(common::ActionState::SUCCESS);
   else
@@ -24,7 +26,7 @@ void Callbacks::BufferSegmentPoolReuseLimit(void *const old_value, void *const n
                                             common::ManagedPointer<common::ActionContext> action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
   int new_reuse = *static_cast<int *>(new_value);
-  db_main->buffer_segment_pool_->SetReuseLimit(new_reuse);
+  db_main->GetBufferSegmentPool()->SetReuseLimit(new_reuse);
   action_context->SetState(common::ActionState::SUCCESS);
 }
 
@@ -32,7 +34,7 @@ void Callbacks::BlockStoreSizeLimit(void *const old_value, void *const new_value
                                     common::ManagedPointer<common::ActionContext> action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
   int64_t new_size = *static_cast<int64_t *>(new_value);
-  bool success = db_main->block_store_->SetSizeLimit(new_size);
+  bool success = db_main->GetStorageLayer()->GetBlockStore()->SetSizeLimit(new_size);
   if (success)
     action_context->SetState(common::ActionState::SUCCESS);
   else
@@ -43,15 +45,7 @@ void Callbacks::BlockStoreReuseLimit(void *const old_value, void *const new_valu
                                      common::ManagedPointer<common::ActionContext> action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
   int64_t new_reuse = *static_cast<int64_t *>(new_value);
-  db_main->block_store_->SetReuseLimit(new_reuse);
-  action_context->SetState(common::ActionState::SUCCESS);
-}
-
-void Callbacks::WorkerPoolThreads(void *const old_value, void *const new_value, DBMain *const db_main,
-                                  common::ManagedPointer<common::ActionContext> action_context) {
-  action_context->SetState(common::ActionState::IN_PROGRESS);
-  int num_threads = *static_cast<int *>(new_value);
-  db_main->thread_pool_->SetNumWorkers(num_threads);
+  db_main->GetStorageLayer()->GetBlockStore()->SetReuseLimit(new_reuse);
   action_context->SetState(common::ActionState::SUCCESS);
 }
 
@@ -59,7 +53,7 @@ void Callbacks::NumLogManagerBuffers(void *const old_value, void *const new_valu
                                      common::ManagedPointer<common::ActionContext> action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
   int new_size = *static_cast<int *>(new_value);
-  bool success = db_main->log_manager_->SetNumBuffers(new_size);
+  bool success = db_main->GetLogManager()->SetNumBuffers(new_size);
   if (success)
     action_context->SetState(common::ActionState::SUCCESS);
   else
@@ -71,9 +65,9 @@ void Callbacks::MetricsLogging(void *const old_value, void *const new_value, DBM
   action_context->SetState(common::ActionState::IN_PROGRESS);
   bool new_status = *static_cast<bool *>(new_value);
   if (new_status)
-    db_main->metrics_manager_->EnableMetric(metrics::MetricsComponent::LOGGING);
+    db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::LOGGING);
   else
-    db_main->metrics_manager_->DisableMetric(metrics::MetricsComponent::LOGGING);
+    db_main->GetMetricsManager()->DisableMetric(metrics::MetricsComponent::LOGGING);
   action_context->SetState(common::ActionState::SUCCESS);
 }
 
@@ -82,9 +76,9 @@ void Callbacks::MetricsTransaction(void *const old_value, void *const new_value,
   action_context->SetState(common::ActionState::IN_PROGRESS);
   bool new_status = *static_cast<bool *>(new_value);
   if (new_status)
-    db_main->metrics_manager_->EnableMetric(metrics::MetricsComponent::TRANSACTION);
+    db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::TRANSACTION);
   else
-    db_main->metrics_manager_->DisableMetric(metrics::MetricsComponent::TRANSACTION);
+    db_main->GetMetricsManager()->DisableMetric(metrics::MetricsComponent::TRANSACTION);
   action_context->SetState(common::ActionState::SUCCESS);
 }
 

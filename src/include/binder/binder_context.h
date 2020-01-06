@@ -9,6 +9,7 @@
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
+#include "parser/create_statement.h"
 
 namespace terrier {
 
@@ -49,7 +50,7 @@ class BinderContext {
    * @param accessor Pointer to the catalog accessor object
    * @param table_ref Pointer to the table ref object
    */
-  void AddRegularTable(const std::unique_ptr<catalog::CatalogAccessor> &accessor, parser::TableRef *table_ref);
+  void AddRegularTable(common::ManagedPointer<catalog::CatalogAccessor> accessor, parser::TableRef *table_ref);
 
   /**
    * Update the table alias map given a table reference (in the from clause)
@@ -59,7 +60,7 @@ class BinderContext {
    * @param table_name Name of the table
    * @param table_alias Alias of the table
    */
-  void AddRegularTable(const std::unique_ptr<catalog::CatalogAccessor> &accessor, const std::string &db_name,
+  void AddRegularTable(common::ManagedPointer<catalog::CatalogAccessor> accessor, const std::string &db_name,
                        const std::string &namespace_name, const std::string &table_name,
                        const std::string &table_alias);
 
@@ -70,6 +71,16 @@ class BinderContext {
    */
   void AddNestedTable(const std::string &table_alias,
                       const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list);
+
+  /**
+   * Add the new table by update the nested table alias map. This is called only in create table statement.
+   * We insert the new table information to the nested table alias map because the structure of the attribute matches
+   * the information we have about the new table; the name of the attribute might confuse people.
+   * @param new_table_name Name of the new table
+   * @param new_columns List of column definations of the new table
+   */
+  void AddNewTable(const std::string &new_table_name,
+                   const std::vector<common::ManagedPointer<parser::ColumnDefinition>> &new_columns);
 
   /**
    * Check if the current context has any table

@@ -1,6 +1,8 @@
 #include "storage/block_compactor.h"
+
 #include <unordered_map>
 #include <vector>
+
 #include "common/hash_util.h"
 #include "storage/block_access_controller.h"
 #include "storage/garbage_collector.h"
@@ -85,10 +87,13 @@ TEST_F(BlockCompactorTest, CompactionTest) {
 
     // Enable GC to cleanup transactions started by the block compactor
     transaction::TimestampManager timestamp_manager;
-    transaction::DeferredActionManager deferred_action_manager{&timestamp_manager};
-    transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
-                                                DISABLED);
-    storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
+    transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
+    transaction::TransactionManager txn_manager{common::ManagedPointer(&timestamp_manager),
+                                                common::ManagedPointer(&deferred_action_manager),
+                                                common::ManagedPointer(&buffer_pool_), true, DISABLED};
+    storage::GarbageCollector gc{common::ManagedPointer(&timestamp_manager),
+                                 common::ManagedPointer(&deferred_action_manager), common::ManagedPointer(&txn_manager),
+                                 DISABLED};
 
     auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
     auto num_tuples = tuples.size();
@@ -119,7 +124,7 @@ TEST_F(BlockCompactorTest, CompactionTest) {
 
     for (uint32_t i = 0; i < layout.NumSlots(); i++) {
       storage::TupleSlot slot(block, i);
-      bool visible = table.Select(txn, slot, read_row);
+      bool visible = table.Select(common::ManagedPointer(txn), slot, read_row);
       if (i >= num_tuples) {
         EXPECT_FALSE(visible);  // Should be deleted after compaction
       } else {
@@ -165,10 +170,13 @@ TEST_F(BlockCompactorTest, GatherTest) {
 
     // Enable GC to cleanup transactions started by the block compactor
     transaction::TimestampManager timestamp_manager;
-    transaction::DeferredActionManager deferred_action_manager{&timestamp_manager};
-    transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
-                                                DISABLED);
-    storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
+    transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
+    transaction::TransactionManager txn_manager{common::ManagedPointer(&timestamp_manager),
+                                                common::ManagedPointer(&deferred_action_manager),
+                                                common::ManagedPointer(&buffer_pool_), true, DISABLED};
+    storage::GarbageCollector gc{common::ManagedPointer(&timestamp_manager),
+                                 common::ManagedPointer(&deferred_action_manager), common::ManagedPointer(&txn_manager),
+                                 DISABLED};
 
     auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
     auto num_tuples = tuples.size();
@@ -203,7 +211,7 @@ TEST_F(BlockCompactorTest, GatherTest) {
     transaction::TransactionContext *txn = txn_manager.BeginTransaction();
     for (uint32_t i = 0; i < num_tuples; i++) {
       storage::TupleSlot slot(block, i);
-      bool visible = table.Select(txn, slot, read_row);
+      bool visible = table.Select(common::ManagedPointer(txn), slot, read_row);
       EXPECT_TRUE(visible);  // Should be filled after compaction
       auto entry = tuple_set.find(read_row);
       EXPECT_NE(entry, tuple_set.end());  // Should be present in the original
@@ -268,10 +276,13 @@ TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
 
     // Enable GC to cleanup transactions started by the block compactor
     transaction::TimestampManager timestamp_manager;
-    transaction::DeferredActionManager deferred_action_manager{&timestamp_manager};
-    transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
-                                                DISABLED);
-    storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
+    transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
+    transaction::TransactionManager txn_manager{common::ManagedPointer(&timestamp_manager),
+                                                common::ManagedPointer(&deferred_action_manager),
+                                                common::ManagedPointer(&buffer_pool_), true, DISABLED};
+    storage::GarbageCollector gc{common::ManagedPointer(&timestamp_manager),
+                                 common::ManagedPointer(&deferred_action_manager), common::ManagedPointer(&txn_manager),
+                                 DISABLED};
 
     auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
     auto num_tuples = tuples.size();
@@ -320,7 +331,7 @@ TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
     transaction::TransactionContext *txn = txn_manager.BeginTransaction();
     for (uint32_t i = 0; i < num_tuples; i++) {
       storage::TupleSlot slot(block, i);
-      bool visible = table.Select(txn, slot, read_row);
+      bool visible = table.Select(common::ManagedPointer(txn), slot, read_row);
       EXPECT_TRUE(visible);  // Should be filled after compaction
       auto entry = tuple_set.find(read_row);
       EXPECT_NE(entry, tuple_set.end());  // Should be present in the original

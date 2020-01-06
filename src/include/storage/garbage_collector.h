@@ -3,6 +3,7 @@
 #include <queue>
 #include <unordered_set>
 #include <utility>
+
 #include "common/shared_latch.h"
 #include "storage/access_observer.h"
 #include "storage/index/index.h"
@@ -33,9 +34,9 @@ class GarbageCollector {
    */
   // TODO(Tianyu): Eventually the GC will be re-written to be purely on the deferred action manager. which will
   //  eliminate this perceived redundancy of taking in a transaction manager.
-  GarbageCollector(transaction::TimestampManager *timestamp_manager,
-                   transaction::DeferredActionManager *deferred_action_manager,
-                   transaction::TransactionManager *txn_manager, AccessObserver *observer)
+  GarbageCollector(const common::ManagedPointer<transaction::TimestampManager> timestamp_manager,
+                   const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager,
+                   const common::ManagedPointer<transaction::TransactionManager> txn_manager, AccessObserver *observer)
       : timestamp_manager_(timestamp_manager),
         deferred_action_manager_(deferred_action_manager),
         txn_manager_(txn_manager),
@@ -99,9 +100,9 @@ class GarbageCollector {
 
   void ProcessIndexes();
 
-  transaction::TimestampManager *timestamp_manager_;
-  transaction::DeferredActionManager *deferred_action_manager_;
-  transaction::TransactionManager *const txn_manager_;
+  const common::ManagedPointer<transaction::TimestampManager> timestamp_manager_;
+  const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;
+  const common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   AccessObserver *observer_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
   transaction::timestamp_t last_unlinked_;

@@ -1,3 +1,5 @@
+#include "parser/postgresparser.h"
+
 #include <algorithm>
 #include <cstdio>
 #include <memory>
@@ -7,12 +9,9 @@
 #include <vector>
 
 #include "common/exception.h"
-
 #include "libpg_query/pg_list.h"
 #include "libpg_query/pg_query.h"
-
 #include "loggers/parser_logger.h"
-
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
 #include "parser/expression/column_value_expression.h"
@@ -27,7 +26,6 @@
 #include "parser/expression/subquery_expression.h"
 #include "parser/expression/type_cast_expression.h"
 #include "parser/pg_trigger.h"
-#include "parser/postgresparser.h"
 #include "type/transient_value_factory.h"
 
 /**
@@ -41,10 +39,6 @@
   throw PARSER_EXCEPTION(#FN_NAME ":" #TYPE_MSG " unsupported")
 
 namespace terrier::parser {
-
-PostgresParser::PostgresParser() = default;
-
-PostgresParser::~PostgresParser() = default;
 
 ParseResult PostgresParser::BuildParseTree(const std::string &query_string) {
   auto text = query_string.c_str();
@@ -189,7 +183,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(ParseResult *p
     return nullptr;
   }
 
-  std::unique_ptr<AbstractExpression> expr = nullptr;
+  std::unique_ptr<AbstractExpression> expr;
   switch (node->type) {
     case T_A_Const: {
       expr = ConstTransform(parse_result, reinterpret_cast<A_Const *>(node));
@@ -510,9 +504,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::CaseExprTransform(ParseResul
 
   auto default_expr = ExprTransform(parse_result, reinterpret_cast<Node *>(root->defresult_), nullptr);
   auto ret_val_type = clauses[0].then_->GetReturnValueType();
-
-  auto result = std::make_unique<CaseExpression>(ret_val_type, std::move(clauses), std::move(default_expr));
-  return result;
+  return std::make_unique<CaseExpression>(ret_val_type, std::move(clauses), std::move(default_expr));
 }
 
 // Postgres.ColumnRef -> terrier.ColumnValueExpression | terrier.StarExpression
@@ -579,14 +571,14 @@ std::unique_ptr<AbstractExpression> PostgresParser::FuncCallTransform(ParseResul
         children.emplace_back(ExprTransform(parse_result, expr_node, nullptr));
       }
     }
-    result = std::make_unique<FunctionExpression>(func_name.c_str(), type::TypeId::INVALID, std::move(children));
+    result = std::make_unique<FunctionExpression>(std::move(func_name), type::TypeId::INVALID, std::move(children));
   } else {
     // aggregate function
     auto agg_fun_type = StringToExpressionType("AGGREGATE_" + func_name);
     std::vector<std::unique_ptr<AbstractExpression>> children;
     if (root->agg_star_) {
-      auto child = std::make_unique<StarExpression>();
-      children.emplace_back(std::move(child));
+      auto child = new StarExpression();
+      children.emplace_back(child);
       result = std::make_unique<AggregateExpression>(agg_fun_type, std::move(children), root->agg_distinct_);
     } else if (root->args_->length < 2) {
       auto expr_node = reinterpret_cast<Node *>(root->args_->head->data.ptr_value);
@@ -638,8 +630,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::NullTestTransform(ParseResul
   ExpressionType type =
       root->nulltesttype_ == IS_NULL ? ExpressionType::OPERATOR_IS_NULL : ExpressionType::OPERATOR_IS_NOT_NULL;
 
-  auto result = std::make_unique<OperatorExpression>(type, type::TypeId::BOOLEAN, std::move(children));
-  return result;
+  return std::make_unique<OperatorExpression>(type, type::TypeId::BOOLEAN, std::move(children));
 }
 
 // Postgres.ParamRef -> terrier.ParameterValueExpression
@@ -700,23 +691,26 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
   std::unique_ptr<AbstractExpression> result;
   switch (val.type_) {
     case T_Integer: {
-      result = std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetInteger(val.val_.ival_));
+      auto v = type::TransientValueFactory::GetInteger(val.val_.ival_);
+      result = std::make_unique<ConstantValueExpression>(std::move(v));
       break;
     }
 
     case T_String: {
-      result = std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetVarChar(val.val_.str_));
+      auto v = type::TransientValueFactory::GetVarChar(val.val_.str_);
+      result = std::make_unique<ConstantValueExpression>(std::move(v));
       break;
     }
 
     case T_Float: {
-      result =
-          std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetDecimal(std::stod(val.val_.str_)));
+      auto v = type::TransientValueFactory::GetDecimal(std::stod(val.val_.str_));
+      result = std::make_unique<ConstantValueExpression>(std::move(v));
       break;
     }
 
     case T_Null: {
-      result = std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetNull(type::TypeId::INVALID));
+      auto v = type::TransientValueFactory::GetNull(type::TypeId::INVALID);
+      result = std::make_unique<ConstantValueExpression>(std::move(v));
       break;
     }
     default: {
@@ -1319,9 +1313,8 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(ParseResult *
     throw NOT_IMPLEMENTED_EXCEPTION("CreateIndexTransform error");
   }
 
-  auto result =
-      std::make_unique<CreateStatement>(std::move(table_info), index_type, unique, index_name, std::move(index_attrs));
-  return result;
+  return std::make_unique<CreateStatement>(std::move(table_info), index_type, unique, index_name,
+                                           std::move(index_attrs));
 }
 
 // Postgres.CreateSchemaStmt -> terrier.CreateStatement

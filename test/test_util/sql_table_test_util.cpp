@@ -1,6 +1,8 @@
 #include "test_util/sql_table_test_util.h"
+
 #include <utility>
 #include <vector>
+
 #include "storage/sql_table.h"
 #include "test_util/catalog_test_util.h"
 
@@ -16,14 +18,15 @@ void RandomSqlTableTransaction::RandomInsert(Random *generator) {
   const auto database_oid = *(RandomTestUtil::UniformRandomElement(test_object_->database_oids_, generator));
   const auto table_oid = *(RandomTestUtil::UniformRandomElement(test_object_->table_oids_[database_oid], generator));
   auto &sql_table_metadata = test_object_->tables_[database_oid][table_oid];
-  auto sql_table_ptr = test_object_->catalog_->GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
+  auto sql_table_ptr = test_object_->catalog_->GetDatabaseCatalog(common::ManagedPointer(txn_), database_oid)
+                           ->GetTable(common::ManagedPointer(txn_), table_oid);
 
   // Generate random insert
   auto initializer = sql_table_ptr->InitializerForProjectedRow(sql_table_metadata->col_oids_);
   auto *const record = txn_->StageWrite(database_oid, table_oid, initializer);
   StorageTestUtil::PopulateRandomRow(record->Delta(), sql_table_ptr->table_.layout_, 0.0, generator);
   record->SetTupleSlot(storage::TupleSlot(nullptr, 0));
-  auto tuple_slot = sql_table_ptr->Insert(txn_, record);
+  auto tuple_slot = sql_table_ptr->Insert(common::ManagedPointer(txn_), record);
 
   // Defer addition of tuples until commit in case of aborts
   inserted_tuples_[database_oid][table_oid].push_back(tuple_slot);
@@ -48,13 +51,14 @@ void RandomSqlTableTransaction::RandomUpdate(Random *generator) {
   // The placement of this get catalog call is important. Its possible that because we take a spin latch above, the OS
   // will serialize the txns by getting the tuple and quickly doing the operation on the tuple immedietly after. Adding
   // an expensive call (Like GetTable) will help in having the OS interleave the threads more.
-  auto sql_table_ptr = test_object_->catalog_->GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
+  auto sql_table_ptr = test_object_->catalog_->GetDatabaseCatalog(common::ManagedPointer(txn_), database_oid)
+                           ->GetTable(common::ManagedPointer(txn_), table_oid);
   auto initializer = sql_table_ptr->InitializerForProjectedRow(
       StorageTestUtil::RandomNonEmptySubset(sql_table_metadata->col_oids_, generator));
   auto *const record = txn_->StageWrite(database_oid, table_oid, initializer);
   record->SetTupleSlot(updated);
   StorageTestUtil::PopulateRandomRow(record->Delta(), sql_table_ptr->table_.layout_, 0.0, generator);
-  auto result = sql_table_ptr->Update(txn_, record);
+  auto result = sql_table_ptr->Update(common::ManagedPointer(txn_), record);
   aborted_ = !result;
 }
 
@@ -78,9 +82,10 @@ void RandomSqlTableTransaction::RandomDelete(Random *generator) {
   // The placement of this get catalog call is important. Its possible that because we take a spin latch above, the OS
   // will serialize the txns by getting the tuple and quickly doing the operation on the tuple immedietly after. Adding
   // an expensive call (Like GetTable) will help in having the OS interleave the threads more.
-  auto sql_table_ptr = test_object_->catalog_->GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
+  auto sql_table_ptr = test_object_->catalog_->GetDatabaseCatalog(common::ManagedPointer(txn_), database_oid)
+                           ->GetTable(common::ManagedPointer(txn_), table_oid);
   txn_->StageDelete(database_oid, table_oid, deleted);
-  auto result = sql_table_ptr->Delete(txn_, deleted);
+  auto result = sql_table_ptr->Delete(common::ManagedPointer(txn_), deleted);
   aborted_ = !result;
 
   // Delete tuple from list of inserted tuples if successful
@@ -114,10 +119,11 @@ void RandomSqlTableTransaction::RandomSelect(Random *generator) {
   // The placement of this get catalog call is important. Its possible that because we take a spin latch above, the OS
   // will serialize the txns by getting the tuple and quickly doing the operation on the tuple immedietly after. Adding
   // an expensive call (Like GetTable) will help in having the OS interleave the threads more.
-  auto sql_table_ptr = test_object_->catalog_->GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
+  auto sql_table_ptr = test_object_->catalog_->GetDatabaseCatalog(common::ManagedPointer(txn_), database_oid)
+                           ->GetTable(common::ManagedPointer(txn_), table_oid);
   auto initializer = sql_table_ptr->InitializerForProjectedRow(sql_table_metadata->col_oids_);
   storage::ProjectedRow *select = initializer.InitializeRow(sql_table_metadata->buffer_);
-  sql_table_ptr->Select(txn_, selected, select);
+  sql_table_ptr->Select(common::ManagedPointer(txn_), selected, select);
 }
 
 void RandomSqlTableTransaction::Finish() {
@@ -208,26 +214,28 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
 
   for (uint16_t db_idx = 0; db_idx < num_databases; db_idx++) {
     // Create database in catalog
-    auto database_oid = catalog_->CreateDatabase(initial_txn_, "database" + std::to_string(db_idx), true);
+    auto database_oid =
+        catalog_->CreateDatabase(common::ManagedPointer(initial_txn_), "database" + std::to_string(db_idx), true);
     TERRIER_ASSERT(database_oid != catalog::INVALID_DATABASE_OID, "Database creation should always succeed");
     database_oids_.emplace_back(database_oid);
 
     // Create test namespace
-    auto db_catalog_ptr = catalog_->GetDatabaseCatalog(initial_txn_, database_oid);
-    auto namespace_oid = db_catalog_ptr->CreateNamespace(initial_txn_, namespace_name);
+    auto db_catalog_ptr = catalog_->GetDatabaseCatalog(common::ManagedPointer(initial_txn_), database_oid);
+    auto namespace_oid = db_catalog_ptr->CreateNamespace(common::ManagedPointer(initial_txn_), namespace_name);
 
     for (uint16_t table_idx = 0; table_idx < num_tables; table_idx++) {
       // Create Database in catalog
       auto *schema = varlen_allowed ? StorageTestUtil::RandomSchemaWithVarlens(max_columns, generator)
                                     : StorageTestUtil::RandomSchemaNoVarlen(max_columns, generator);
-      auto table_oid =
-          db_catalog_ptr->CreateTable(initial_txn_, namespace_oid, "table" + std::to_string(table_idx), *schema);
+      auto table_oid = db_catalog_ptr->CreateTable(common::ManagedPointer(initial_txn_), namespace_oid,
+                                                   "table" + std::to_string(table_idx), *schema);
       TERRIER_ASSERT(table_oid != catalog::INVALID_TABLE_OID, "Table creation should always succeed");
       delete schema;
       table_oids_[database_oid].emplace_back(table_oid);
-      auto catalog_schema = db_catalog_ptr->GetSchema(initial_txn_, table_oid);
+      auto catalog_schema = db_catalog_ptr->GetSchema(common::ManagedPointer(initial_txn_), table_oid);
       auto *sql_table = new storage::SqlTable(block_store, catalog_schema);
-      auto result UNUSED_ATTRIBUTE = db_catalog_ptr->SetTablePointer(initial_txn_, table_oid, sql_table);
+      auto result UNUSED_ATTRIBUTE =
+          db_catalog_ptr->SetTablePointer(common::ManagedPointer(initial_txn_), table_oid, sql_table);
       TERRIER_ASSERT(result, "Setting table pointer in catalog should succeed");
 
       // Create metadata object
@@ -245,7 +253,7 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
       for (uint32_t i = 0; i < num_tuples; i++) {
         auto *const redo = initial_txn_->StageWrite(database_oid, table_oid, initializer);
         StorageTestUtil::PopulateRandomRow(redo->Delta(), sql_table->table_.layout_, 0.0, generator);
-        const storage::TupleSlot inserted = sql_table->Insert(initial_txn_, redo);
+        const storage::TupleSlot inserted = sql_table->Insert(common::ManagedPointer(initial_txn_), redo);
         inserted_tuples.emplace_back(inserted);
       }
 

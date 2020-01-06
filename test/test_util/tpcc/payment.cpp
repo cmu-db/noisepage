@@ -1,4 +1,5 @@
 #include "test_util/tpcc/payment.h"
+
 #include <algorithm>
 #include <map>
 #include <string>
@@ -26,7 +27,7 @@ bool Payment::Execute(transaction::TransactionManager *const txn_manager, Databa
   // Select W_NAME, W_STREET_1, W_STREET_2, W_CITY, W_STATE, W_ZIP, W_YTD in table
   auto *const warehouse_select_tuple = warehouse_select_pr_initializer_.InitializeRow(worker->warehouse_tuple_buffer_);
   bool UNUSED_ATTRIBUTE select_result =
-      db->warehouse_table_->Select(txn, index_scan_results[0], warehouse_select_tuple);
+      db->warehouse_table_->Select(common::ManagedPointer(txn), index_scan_results[0], warehouse_select_tuple);
   TERRIER_ASSERT(select_result, "Warehouse table doesn't change. All lookups should succeed.");
   const auto w_name =
       *reinterpret_cast<storage::VarlenEntry *>(warehouse_select_tuple->AccessWithNullCheck(w_name_select_pr_offset_));
@@ -38,7 +39,7 @@ bool Payment::Execute(transaction::TransactionManager *const txn_manager, Databa
       txn->StageWrite(db->db_oid_, db->warehouse_table_oid_, warehouse_update_pr_initializer_);
   *reinterpret_cast<double *>(warehouse_update_redo->Delta()->AccessForceNotNull(0)) = w_ytd + args.h_amount_;
   warehouse_update_redo->SetTupleSlot(index_scan_results[0]);
-  bool UNUSED_ATTRIBUTE result = db->warehouse_table_->Update(txn, warehouse_update_redo);
+  bool UNUSED_ATTRIBUTE result = db->warehouse_table_->Update(common::ManagedPointer(txn), warehouse_update_redo);
   TERRIER_ASSERT(result, "Warehouse update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
   // Look up D_ID, W_ID in index
@@ -54,7 +55,8 @@ bool Payment::Execute(transaction::TransactionManager *const txn_manager, Databa
 
   // Select D_NAME, D_STREET_1, D_STREET_2, D_CITY, D_STATE, D_ZIP, D_YTD in table
   auto *const district_select_tuple = district_select_pr_initializer_.InitializeRow(worker->district_tuple_buffer_);
-  select_result = db->district_table_->Select(txn, index_scan_results[0], district_select_tuple);
+  select_result =
+      db->district_table_->Select(common::ManagedPointer(txn), index_scan_results[0], district_select_tuple);
   TERRIER_ASSERT(select_result, "District table doesn't change. All lookups should succeed.");
   const auto d_name =
       *reinterpret_cast<storage::VarlenEntry *>(district_select_tuple->AccessWithNullCheck(d_name_select_pr_offset_));
@@ -66,7 +68,7 @@ bool Payment::Execute(transaction::TransactionManager *const txn_manager, Databa
       txn->StageWrite(db->db_oid_, db->district_table_oid_, district_update_pr_initializer_);
   *reinterpret_cast<double *>(district_update_redo->Delta()->AccessForceNotNull(0)) = d_ytd + args.h_amount_;
   district_update_redo->SetTupleSlot(index_scan_results[0]);
-  result = db->district_table_->Update(txn, district_update_redo);
+  result = db->district_table_->Update(common::ManagedPointer(txn), district_update_redo);
   TERRIER_ASSERT(result, "District update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
   storage::TupleSlot customer_slot;
@@ -101,7 +103,7 @@ bool Payment::Execute(transaction::TransactionManager *const txn_manager, Databa
       std::map<std::string, storage::TupleSlot> sorted_index_scan_results;
       for (const auto &tuple_slot : index_scan_results) {
         auto *const c_first_select_tuple = c_first_pr_initializer_.InitializeRow(worker->customer_tuple_buffer_);
-        select_result = db->customer_table_->Select(txn, tuple_slot, c_first_select_tuple);
+        select_result = db->customer_table_->Select(common::ManagedPointer(txn), tuple_slot, c_first_select_tuple);
         TERRIER_ASSERT(select_result, "Customer table doesn't change (no new entries). All lookups should succeed.");
         const auto c_first = *reinterpret_cast<storage::VarlenEntry *>(c_first_select_tuple->AccessWithNullCheck(0));
         sorted_index_scan_results.emplace(
@@ -118,7 +120,7 @@ bool Payment::Execute(transaction::TransactionManager *const txn_manager, Databa
 
   // Select customer in table
   auto *const customer_select_tuple = customer_select_pr_initializer_.InitializeRow(worker->customer_tuple_buffer_);
-  select_result = db->customer_table_->Select(txn, customer_slot, customer_select_tuple);
+  select_result = db->customer_table_->Select(common::ManagedPointer(txn), customer_slot, customer_select_tuple);
   TERRIER_ASSERT(select_result, "Customer table doesn't change (no new entries). All lookups should succeed.");
 
   const auto *const c_id_ptr =
@@ -149,7 +151,7 @@ bool Payment::Execute(transaction::TransactionManager *const txn_manager, Databa
   *reinterpret_cast<int16_t *>(customer_update_tuple->AccessForceNotNull(c_payment_cnt_update_pr_offset_)) =
       static_cast<int16_t>(c_payment_cnt + 1);
   customer_update_redo->SetTupleSlot(customer_slot);
-  result = db->customer_table_->Update(txn, customer_update_redo);
+  result = db->customer_table_->Update(common::ManagedPointer(txn), customer_update_redo);
   TERRIER_ASSERT(result, "Customer update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
   const auto c_credit_str = c_credit.StringView();
@@ -174,7 +176,7 @@ bool Payment::Execute(transaction::TransactionManager *const txn_manager, Databa
     *reinterpret_cast<storage::VarlenEntry *>(c_data_update_redo->Delta()->AccessForceNotNull(0)) = varlen_entry;
 
     c_data_update_redo->SetTupleSlot(customer_slot);
-    result = db->customer_table_->Update(txn, c_data_update_redo);
+    result = db->customer_table_->Update(common::ManagedPointer(txn), c_data_update_redo);
     TERRIER_ASSERT(result, "Customer update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
   }
 
@@ -200,7 +202,7 @@ bool Payment::Execute(transaction::TransactionManager *const txn_manager, Databa
   *reinterpret_cast<storage::VarlenEntry *>(history_insert_tuple->AccessForceNotNull(h_data_insert_pr_offset_)) =
       h_data;
 
-  db->history_table_->Insert(txn, history_insert_redo);
+  db->history_table_->Insert(common::ManagedPointer(txn), history_insert_redo);
 
   txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
 

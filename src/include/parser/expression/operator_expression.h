@@ -24,6 +24,31 @@ class OperatorExpression : public AbstractExpression {
   /** Default constructor for deserialization. */
   OperatorExpression() = default;
 
+  /**
+   * Copies this OperatorExpression
+   * @returns copy of this
+   */
+  std::unique_ptr<AbstractExpression> Copy() const override {
+    std::vector<std::unique_ptr<AbstractExpression>> children;
+    for (const auto &child : GetChildren()) {
+      children.emplace_back(child->Copy());
+    }
+    return CopyWithChildren(std::move(children));
+  }
+
+  /**
+   * Creates a copy of the current AbstractExpression with new children implanted.
+   * The children should not be owned by any other AbstractExpression.
+   * @param children New children to be owned by the copy
+   * @returns copy of this
+   */
+  std::unique_ptr<AbstractExpression> CopyWithChildren(
+      std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
+    auto expr = std::make_unique<OperatorExpression>(GetExpressionType(), GetReturnValueType(), std::move(children));
+    expr->SetMutableStateForCopy(*this);
+    return expr;
+  }
+
   void DeriveReturnValueType() override {
     // if we are a decimal or int we should take the highest type id of both children
     // This relies on a particular order in expression_defs.h
@@ -41,16 +66,6 @@ class OperatorExpression : public AbstractExpression {
     const auto &type = (*max_type_child)->GetReturnValueType();
     TERRIER_ASSERT(type <= type::TypeId::DECIMAL, "Invalid operand type in Operator Expression.");
     this->SetReturnValueType(type);
-  }
-
-  std::unique_ptr<AbstractExpression> Copy() const override {
-    std::vector<std::unique_ptr<AbstractExpression>> children;
-    for (const auto &child : GetChildren()) {
-      children.emplace_back(child->Copy());
-    }
-    auto expr = std::make_unique<OperatorExpression>(GetExpressionType(), GetReturnValueType(), std::move(children));
-    expr->SetMutableStateForCopy(*this);
-    return expr;
   }
 
   void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }

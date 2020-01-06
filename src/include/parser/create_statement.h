@@ -94,8 +94,6 @@ struct ColumnDefinition {
         check_expr_(check_expr),
         varlen_(varlen) {}
 
-  virtual ~ColumnDefinition() = default;
-
   /**
    * @param str type string
    * @return data type
@@ -270,6 +268,61 @@ struct ColumnDefinition {
   /** @param b true if should be primary key, false otherwise */
   void SetPrimary(bool b) { is_primary_ = b; }
 
+  /**
+   * Hashes the current column Definition
+   */
+  common::hash_t Hash() const {
+    common::hash_t hash = common::HashUtil::Hash(name_);
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_info_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(type_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(static_cast<char>(is_primary_)));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(static_cast<char>(is_not_null_)));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(static_cast<char>(is_unique_)));
+    if (default_expr_ != nullptr) hash = common::HashUtil::CombineHashes(hash, default_expr_->Hash());
+    if (check_expr_ != nullptr) hash = common::HashUtil::CombineHashes(hash, check_expr_->Hash());
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(varlen_));
+    hash = common::HashUtil::CombineHashInRange(hash, fk_sources_.begin(), fk_sources_.end());
+    hash = common::HashUtil::CombineHashInRange(hash, fk_sinks_.begin(), fk_sinks_.end());
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(fk_sink_table_name_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(fk_delete_action_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(fk_update_action_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(fk_match_type_));
+    return hash;
+  }
+
+  /**
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two column definitions are logically equal
+   */
+  bool operator==(const ColumnDefinition &rhs) const {
+    if (name_ != rhs.name_) return false;
+    if (type_ != rhs.type_) return false;
+    if ((!table_info_ && rhs.table_info_) || (table_info_ && table_info_ != rhs.table_info_)) return false;
+    if (is_primary_ != rhs.is_primary_) return false;
+    if (is_not_null_ != rhs.is_not_null_) return false;
+    if (is_unique_ != rhs.is_unique_) return false;
+    if (varlen_ != rhs.varlen_) return false;
+    if ((!default_expr_ && rhs.default_expr_) || (default_expr_ && default_expr_ != rhs.default_expr_)) return false;
+    if ((!check_expr_ && rhs.check_expr_) || (check_expr_ && check_expr_ != rhs.check_expr_)) return false;
+    if (fk_sources_.size() != rhs.fk_sources_.size()) return false;
+    for (size_t i = 0; i < fk_sources_.size(); i++)
+      if (fk_sources_[i] != rhs.fk_sources_[i]) return false;
+    if (fk_sinks_.size() != rhs.fk_sinks_.size()) return false;
+    for (size_t i = 0; i < fk_sinks_.size(); i++)
+      if (fk_sinks_[i] != rhs.fk_sinks_[i]) return false;
+    if (fk_sink_table_name_ != rhs.fk_sink_table_name_) return false;
+    if (fk_delete_action_ != rhs.fk_delete_action_) return false;
+    return fk_match_type_ == rhs.fk_match_type_;
+  }
+
+  /**
+   * Logical inequality check.
+   * @param rhs other
+   * @return true if the two column definitions are logically not equal
+   */
+  bool operator!=(const ColumnDefinition &rhs) const { return !operator==(rhs); }
+
  private:
   const std::string name_;
   const std::unique_ptr<TableInfo> table_info_ = nullptr;
@@ -278,8 +331,8 @@ struct ColumnDefinition {
   bool is_primary_ = false;  // not const because of how the parser returns us columns and primary key info separately
   const bool is_not_null_ = false;
   const bool is_unique_ = false;
-  common::ManagedPointer<AbstractExpression> default_expr_;
-  common::ManagedPointer<AbstractExpression> check_expr_;
+  common::ManagedPointer<AbstractExpression> default_expr_ = nullptr;
+  common::ManagedPointer<AbstractExpression> check_expr_ = nullptr;
   const size_t varlen_ = 0;
 
   const std::vector<std::string> fk_sources_;
@@ -297,10 +350,13 @@ struct ColumnDefinition {
 class IndexAttr {
  public:
   /** Create an index attribute on a column name. */
-  explicit IndexAttr(std::string name) : name_(std::move(name)), expr_(nullptr) {}
+  explicit IndexAttr(std::string name) : has_expr_(false), name_(std::move(name)), expr_(nullptr) {}
 
   /** Create an index attribute on an expression. */
-  explicit IndexAttr(common::ManagedPointer<AbstractExpression> expr) : name_(""), expr_(expr) {}
+  explicit IndexAttr(common::ManagedPointer<AbstractExpression> expr) : has_expr_(true), name_(""), expr_(expr) {}
+
+  /** @return if the index attribute contains expression */
+  bool HasExpr() const { return has_expr_; }
 
   /** @return the name of the column that we're indexed on */
   std::string GetName() const {
@@ -309,12 +365,10 @@ class IndexAttr {
   }
 
   /** @return the expression that we're indexed on */
-  common::ManagedPointer<AbstractExpression> GetExpression() const {
-    TERRIER_ASSERT(expr_ != nullptr, "Names don't come with expressions.");
-    return expr_;
-  }
+  common::ManagedPointer<AbstractExpression> GetExpression() const { return expr_; }
 
  private:
+  bool has_expr_;
   std::string name_;
   common::ManagedPointer<AbstractExpression> expr_;
 };

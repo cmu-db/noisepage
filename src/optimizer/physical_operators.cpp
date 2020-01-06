@@ -1,10 +1,12 @@
 #include "optimizer/physical_operators.h"
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include "common/macros.h"
 #include "optimizer/operator_visitor.h"
 #include "parser/expression/abstract_expression.h"
 
@@ -13,6 +15,8 @@ namespace terrier::optimizer {
 //===--------------------------------------------------------------------===//
 // TableFreeScan
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *TableFreeScan::Copy() const { return new TableFreeScan(*this); }
+
 Operator TableFreeScan::Make() { return Operator(std::make_unique<TableFreeScan>()); }
 
 bool TableFreeScan::operator==(const BaseOperatorNode &r) {
@@ -29,6 +33,8 @@ common::hash_t TableFreeScan::Hash() const {
 //===--------------------------------------------------------------------===//
 // SeqScan
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *SeqScan::Copy() const { return new SeqScan(*this); }
+
 Operator SeqScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> &&predicates,
                        std::string table_alias, bool is_for_update) {
@@ -70,6 +76,25 @@ common::hash_t SeqScan::Hash() const {
 //===--------------------------------------------------------------------===//
 // IndexScan
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *IndexScan::Copy() const {
+  auto *scan = new IndexScan;
+  scan->database_oid_ = database_oid_;
+  scan->namespace_oid_ = namespace_oid_;
+  scan->index_oid_ = index_oid_;
+  scan->table_alias_ = table_alias_;
+  scan->is_for_update_ = is_for_update_;
+  scan->predicates_ = predicates_;
+  scan->key_column_oid_list_ = key_column_oid_list_;
+  scan->expr_type_list_ = expr_type_list_;
+
+  for (auto &val : value_list_) {
+    type::TransientValue copy(val);
+    scan->value_list_.push_back(std::move(copy));
+  }
+
+  return scan;
+}
+
 Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                          catalog::index_oid_t index_oid, std::vector<AnnotatedExpression> &&predicates,
                          std::string table_alias, bool is_for_update,
@@ -134,6 +159,8 @@ common::hash_t IndexScan::Hash() const {
 //===--------------------------------------------------------------------===//
 // External file scan
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *ExternalFileScan::Copy() const { return new ExternalFileScan(*this); }
+
 Operator ExternalFileScan::Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
                                 char escape) {
   auto get = std::make_unique<ExternalFileScan>();
@@ -165,6 +192,8 @@ common::hash_t ExternalFileScan::Hash() const {
 //===--------------------------------------------------------------------===//
 // Query derived scan
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *QueryDerivedScan::Copy() const { return new QueryDerivedScan(*this); }
+
 Operator QueryDerivedScan::Make(
     std::string table_alias,
     std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map) {
@@ -195,6 +224,8 @@ common::hash_t QueryDerivedScan::Hash() const {
 //===--------------------------------------------------------------------===//
 // OrderBy
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *OrderBy::Copy() const { return new OrderBy(*this); }
+
 Operator OrderBy::Make() { return Operator(std::make_unique<OrderBy>()); }
 
 bool OrderBy::operator==(const BaseOperatorNode &r) {
@@ -211,6 +242,8 @@ common::hash_t OrderBy::Hash() const {
 //===--------------------------------------------------------------------===//
 // PhysicalLimit
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *Limit::Copy() const { return new Limit(*this); }
+
 Operator Limit::Make(size_t offset, size_t limit,
                      std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
                      std::vector<optimizer::OrderByOrderingType> &&sort_directions) {
@@ -244,6 +277,8 @@ common::hash_t Limit::Hash() const {
 //===--------------------------------------------------------------------===//
 // InnerNLJoin
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *InnerNLJoin::Copy() const { return new InnerNLJoin(*this); }
+
 Operator InnerNLJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
                            std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
                            std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_keys) {
@@ -288,6 +323,8 @@ bool InnerNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // LeftNLJoin
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LeftNLJoin::Copy() const { return new LeftNLJoin(*this); }
+
 Operator LeftNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto join = std::make_unique<LeftNLJoin>();
   join->join_predicate_ = join_predicate;
@@ -308,6 +345,8 @@ bool LeftNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // RightNLJoin
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *RightNLJoin::Copy() const { return new RightNLJoin(*this); }
+
 Operator RightNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto join = std::make_unique<RightNLJoin>();
   join->join_predicate_ = join_predicate;
@@ -329,6 +368,8 @@ bool RightNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // OuterNLJoin
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *OuterNLJoin::Copy() const { return new OuterNLJoin(*this); }
+
 Operator OuterNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto join = std::make_unique<OuterNLJoin>();
   join->join_predicate_ = join_predicate;
@@ -350,6 +391,8 @@ bool OuterNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // InnerHashJoin
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *InnerHashJoin::Copy() const { return new InnerHashJoin(*this); }
+
 Operator InnerHashJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
                              std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
                              std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_keys) {
@@ -393,6 +436,8 @@ bool InnerHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // LeftHashJoin
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LeftHashJoin::Copy() const { return new LeftHashJoin(*this); }
+
 Operator LeftHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto join = std::make_unique<LeftHashJoin>();
   join->join_predicate_ = join_predicate;
@@ -414,6 +459,8 @@ bool LeftHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // RightHashJoin
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *RightHashJoin::Copy() const { return new RightHashJoin(*this); }
+
 Operator RightHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto join = std::make_unique<RightHashJoin>();
   join->join_predicate_ = join_predicate;
@@ -435,6 +482,8 @@ bool RightHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // OuterHashJoin
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *OuterHashJoin::Copy() const { return new OuterHashJoin(*this); }
+
 Operator OuterHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto join = std::make_unique<OuterHashJoin>();
   join->join_predicate_ = join_predicate;
@@ -456,6 +505,8 @@ bool OuterHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // Insert
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *Insert::Copy() const { return new Insert(*this); }
+
 Operator Insert::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                       catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
                       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values,
@@ -507,6 +558,8 @@ bool Insert::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // InsertSelect
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *InsertSelect::Copy() const { return new InsertSelect(*this); }
+
 Operator InsertSelect::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                             catalog::table_oid_t table_oid, std::vector<catalog::index_oid_t> &&index_oids) {
   auto insert_op = std::make_unique<InsertSelect>();
@@ -537,14 +590,15 @@ bool InsertSelect::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // Delete
 //===--------------------------------------------------------------------===//
-Operator Delete::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                      catalog::table_oid_t table_oid,
-                      common::ManagedPointer<parser::AbstractExpression> delete_condition) {
+BaseOperatorNode *Delete::Copy() const { return new Delete(*this); }
+
+Operator Delete::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
+                      catalog::table_oid_t table_oid) {
   auto delete_op = std::make_unique<Delete>();
   delete_op->database_oid_ = database_oid;
   delete_op->namespace_oid_ = namespace_oid;
+  delete_op->table_alias_ = std::move(table_alias);
   delete_op->table_oid_ = table_oid;
-  delete_op->delete_condition_ = delete_condition;
   return Operator(std::move(delete_op));
 }
 
@@ -552,8 +606,8 @@ common::hash_t Delete::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
-  hash = common::HashUtil::CombineHashes(hash, delete_condition_->Hash());
   return hash;
 }
 
@@ -562,19 +616,21 @@ bool Delete::operator==(const BaseOperatorNode &r) {
   const Delete &node = *dynamic_cast<const Delete *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
-  if (table_oid_ != node.table_oid_) return false;
-  return (*delete_condition_ == *(node.delete_condition_));
+  return table_oid_ == node.table_oid_;
 }
 
 //===--------------------------------------------------------------------===//
 // Update
 //===--------------------------------------------------------------------===//
-Operator Update::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+BaseOperatorNode *Update::Copy() const { return new Update(*this); }
+
+Operator Update::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
                       catalog::table_oid_t table_oid,
                       std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates) {
   auto op = std::make_unique<Update>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
+  op->table_alias_ = std::move(table_alias);
   op->table_oid_ = table_oid;
   op->updates_ = updates;
   return Operator(std::move(op));
@@ -584,6 +640,7 @@ common::hash_t Update::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashInRange(hash, updates_.begin(), updates_.end());
   return hash;
@@ -596,12 +653,14 @@ bool Update::operator==(const BaseOperatorNode &r) {
   if (namespace_oid_ != node.namespace_oid_) return false;
   if (table_oid_ != node.table_oid_) return false;
   if (updates_ != node.updates_) return false;
-  return (true);
+  return table_alias_ == node.table_alias_;
 }
 
 //===--------------------------------------------------------------------===//
 // ExportExternalFile
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *ExportExternalFile::Copy() const { return new ExportExternalFile(*this); }
+
 Operator ExportExternalFile::Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
                                   char escape) {
   auto export_op = std::make_unique<ExportExternalFile>();
@@ -633,6 +692,8 @@ common::hash_t ExportExternalFile::Hash() const {
 //===--------------------------------------------------------------------===//
 // HashGroupBy
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *HashGroupBy::Copy() const { return new HashGroupBy(*this); }
+
 Operator HashGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
                            std::vector<AnnotatedExpression> &&having) {
   auto agg = std::make_unique<HashGroupBy>();
@@ -670,6 +731,8 @@ common::hash_t HashGroupBy::Hash() const {
 //===--------------------------------------------------------------------===//
 // SortGroupBy
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *SortGroupBy::Copy() const { return new SortGroupBy(*this); }
+
 Operator SortGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
                            std::vector<AnnotatedExpression> &&having) {
   auto agg = std::make_unique<SortGroupBy>();
@@ -707,6 +770,8 @@ common::hash_t SortGroupBy::Hash() const {
 //===--------------------------------------------------------------------===//
 // Aggregate
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *Aggregate::Copy() const { return new Aggregate(*this); }
+
 Operator Aggregate::Make() {
   auto agg = std::make_unique<Aggregate>();
   return Operator(std::move(agg));
@@ -724,19 +789,474 @@ common::hash_t Aggregate::Hash() const {
 }
 
 //===--------------------------------------------------------------------===//
-// Hash
+// CreateDatabase
 //===--------------------------------------------------------------------===//
-Operator Distinct::Make() { return Operator(std::make_unique<Distinct>()); }
+BaseOperatorNode *CreateDatabase::Copy() const { return new CreateDatabase(*this); }
 
-bool Distinct::operator==(const BaseOperatorNode &r) {
-  return (r.GetType() == OpType::DISTINCT);
-  // Again, there isn't any internal data so I guess we're always equal!
+Operator CreateDatabase::Make(std::string database_name) {
+  auto op = std::make_unique<CreateDatabase>();
+  op->database_name_ = std::move(database_name);
+  return Operator(std::move(op));
 }
 
-common::hash_t Distinct::Hash() const {
+common::hash_t CreateDatabase::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  // I guess every Aggregate object hashes to the same thing?
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_name_));
   return hash;
+}
+
+bool CreateDatabase::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::CREATEDATABASE) return false;
+  const CreateDatabase &node = *dynamic_cast<const CreateDatabase *>(&r);
+  return node.database_name_ == database_name_;
+}
+
+//===--------------------------------------------------------------------===//
+// CreateTable
+//===--------------------------------------------------------------------===//
+BaseOperatorNode *CreateTable::Copy() const {
+  std::vector<catalog::Schema::Column> columns;
+  for (auto &col : table_schema_->GetColumns()) {
+    columns.emplace_back(col);
+  }
+  auto schema = std::make_unique<catalog::Schema>(std::move(columns));
+  auto op = new CreateTable();
+  op->namespace_oid_ = namespace_oid_;
+  op->table_name_ = table_name_;
+  op->table_schema_ = std::move(schema);
+  op->block_store_ = block_store_;
+  op->has_primary_key_ = has_primary_key_;
+  op->primary_key_ = primary_key_;
+  op->foreign_keys_ = foreign_keys_;
+  op->con_uniques_ = con_uniques_;
+  op->con_checks_ = con_checks_;
+  return op;
+}
+
+Operator CreateTable::Make(catalog::namespace_oid_t namespace_oid, std::string table_name,
+                           std::unique_ptr<catalog::Schema> table_schema,
+                           common::ManagedPointer<storage::BlockStore> block_store, bool has_primary_key,
+                           planner::PrimaryKeyInfo primary_key, std::vector<planner::ForeignKeyInfo> &&foreign_keys,
+                           std::vector<planner::UniqueInfo> &&con_uniques,
+                           std::vector<planner::CheckInfo> &&con_checks) {
+  auto op = std::make_unique<CreateTable>();
+  op->namespace_oid_ = namespace_oid;
+  op->table_name_ = std::move(table_name);
+  op->table_schema_ = std::move(table_schema);
+  op->block_store_ = block_store;
+  op->has_primary_key_ = has_primary_key;
+  op->primary_key_ = std::move(primary_key);
+  op->foreign_keys_ = std::move(foreign_keys);
+  op->con_uniques_ = std::move(con_uniques);
+  op->con_checks_ = std::move(con_checks);
+  return Operator(std::move(op));
+}
+
+common::hash_t CreateTable::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_name_));
+  hash = common::HashUtil::CombineHashes(hash, table_schema_->Hash());
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(has_primary_key_));
+  if (has_primary_key_) {
+    hash = common::HashUtil::CombineHashes(hash, primary_key_.Hash());
+  }
+  for (const auto &foreign_key : foreign_keys_) {
+    hash = common::HashUtil::CombineHashes(hash, foreign_key.Hash());
+  }
+  for (const auto &con_unique : con_uniques_) {
+    hash = common::HashUtil::CombineHashes(hash, con_unique.Hash());
+  }
+  for (const auto &con_check : con_checks_) {
+    hash = common::HashUtil::CombineHashes(hash, con_check.Hash());
+  }
+  return hash;
+}
+
+bool CreateTable::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::CREATETABLE) return false;
+  const CreateTable &node = *dynamic_cast<const CreateTable *>(&r);
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  if (table_name_ != node.table_name_) return false;
+  if (table_schema_ != nullptr && *table_schema_ != *node.table_schema_) return false;
+  if (table_schema_ == nullptr && node.table_schema_ != nullptr) return false;
+  if (has_primary_key_ != node.has_primary_key_) return false;
+  if (has_primary_key_ && (primary_key_ != node.primary_key_)) return false;
+  if (foreign_keys_ != node.foreign_keys_) return false;
+  if (con_uniques_ != node.con_uniques_) return false;
+  return con_checks_ == node.con_checks_;
+}
+
+//===--------------------------------------------------------------------===//
+// CreateIndex
+//===--------------------------------------------------------------------===//
+BaseOperatorNode *CreateIndex::Copy() const {
+  std::vector<catalog::IndexSchema::Column> columns;
+  for (auto &col : schema_->GetColumns()) {
+    columns.emplace_back(col);
+  }
+  auto schema = std::make_unique<catalog::IndexSchema>(std::move(columns), schema_->Type(), schema_->Unique(),
+                                                       schema_->Primary(), schema_->Exclusion(), schema_->Immediate());
+
+  auto op = new CreateIndex();
+  op->namespace_oid_ = namespace_oid_;
+  op->table_oid_ = table_oid_;
+  op->index_name_ = index_name_;
+  op->schema_ = std::move(schema);
+  return op;
+}
+
+Operator CreateIndex::Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+                           std::string index_name, std::unique_ptr<catalog::IndexSchema> &&schema) {
+  auto op = std::make_unique<CreateIndex>();
+  op->namespace_oid_ = namespace_oid;
+  op->table_oid_ = table_oid;
+  op->index_name_ = std::move(index_name);
+  op->schema_ = std::move(schema);
+  return Operator(std::move(op));
+}
+
+common::hash_t CreateIndex::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_name_));
+  if (schema_ != nullptr) hash = common::HashUtil::CombineHashes(hash, schema_->Hash());
+  return hash;
+}
+
+bool CreateIndex::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::CREATEINDEX) return false;
+  const CreateIndex &node = *dynamic_cast<const CreateIndex *>(&r);
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  if (table_oid_ != node.table_oid_) return false;
+  if (index_name_ != node.index_name_) return false;
+  if (schema_ != nullptr && *schema_ != *node.schema_) return false;
+  if (schema_ == nullptr && node.schema_ != nullptr) return false;
+  return (true);
+}
+
+//===--------------------------------------------------------------------===//
+// CreateNamespace
+//===--------------------------------------------------------------------===//
+BaseOperatorNode *CreateNamespace::Copy() const { return new CreateNamespace(*this); }
+
+Operator CreateNamespace::Make(std::string namespace_name) {
+  auto op = std::make_unique<CreateNamespace>();
+  op->namespace_name_ = std::move(namespace_name);
+  return Operator(std::move(op));
+}
+
+common::hash_t CreateNamespace::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_name_));
+  return hash;
+}
+
+bool CreateNamespace::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::CREATENAMESPACE) return false;
+  const CreateNamespace &node = *dynamic_cast<const CreateNamespace *>(&r);
+  return node.namespace_name_ == namespace_name_;
+}
+
+//===--------------------------------------------------------------------===//
+// CreateTrigger
+//===--------------------------------------------------------------------===//
+BaseOperatorNode *CreateTrigger::Copy() const { return new CreateTrigger(*this); }
+
+Operator CreateTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                             catalog::table_oid_t table_oid, std::string trigger_name,
+                             std::vector<std::string> &&trigger_funcnames, std::vector<std::string> &&trigger_args,
+                             std::vector<catalog::col_oid_t> &&trigger_columns,
+                             common::ManagedPointer<parser::AbstractExpression> &&trigger_when, int16_t trigger_type) {
+  auto op = std::make_unique<CreateTrigger>();
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  op->table_oid_ = table_oid;
+  op->trigger_name_ = std::move(trigger_name);
+  op->trigger_funcnames_ = std::move(trigger_funcnames);
+  op->trigger_args_ = std::move(trigger_args);
+  op->trigger_columns_ = std::move(trigger_columns);
+  op->trigger_when_ = trigger_when;
+  op->trigger_type_ = trigger_type;
+  return Operator(std::move(op));
+}
+
+common::hash_t CreateTrigger::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(trigger_name_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(trigger_type_));
+  hash = common::HashUtil::CombineHashes(hash, trigger_when_->Hash());
+  hash = common::HashUtil::CombineHashInRange(hash, trigger_funcnames_.begin(), trigger_funcnames_.end());
+  hash = common::HashUtil::CombineHashInRange(hash, trigger_args_.begin(), trigger_args_.end());
+  hash = common::HashUtil::CombineHashInRange(hash, trigger_columns_.begin(), trigger_columns_.end());
+  return hash;
+}
+
+bool CreateTrigger::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::CREATETRIGGER) return false;
+  const CreateTrigger &node = *dynamic_cast<const CreateTrigger *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  if (table_oid_ != node.table_oid_) return false;
+  if (trigger_name_ != node.trigger_name_) return false;
+  if (trigger_funcnames_ != node.trigger_funcnames_) return false;
+  if (trigger_args_ != node.trigger_args_) return false;
+  if (trigger_columns_ != node.trigger_columns_) return false;
+  if (trigger_type_ != node.trigger_type_) return false;
+  if (trigger_when_ == nullptr) return node.trigger_when_ == nullptr;
+  return node.trigger_when_ != nullptr && *trigger_when_ == *node.trigger_when_;
+}
+
+//===--------------------------------------------------------------------===//
+// CreateView
+//===--------------------------------------------------------------------===//
+BaseOperatorNode *CreateView::Copy() const { return new CreateView(*this); }
+
+Operator CreateView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string view_name,
+                          common::ManagedPointer<parser::SelectStatement> view_query) {
+  auto op = std::make_unique<CreateView>();
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  op->view_name_ = std::move(view_name);
+  op->view_query_ = view_query;
+  return Operator(std::move(op));
+}
+
+common::hash_t CreateView::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(view_name_));
+  if (view_query_ != nullptr) hash = common::HashUtil::CombineHashes(hash, view_query_->Hash());
+  return hash;
+}
+
+bool CreateView::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::CREATEVIEW) return false;
+  const CreateView &node = *dynamic_cast<const CreateView *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  if (view_name_ != node.view_name_) return false;
+  if (view_query_ == nullptr) return node.view_query_ == nullptr;
+  return node.view_query_ != nullptr && *view_query_ == *node.view_query_;
+}
+
+//===--------------------------------------------------------------------===//
+// CreateFunction
+//===--------------------------------------------------------------------===//
+BaseOperatorNode *CreateFunction::Copy() const { return new CreateFunction(*this); }
+
+Operator CreateFunction::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                              std::string function_name, parser::PLType language,
+                              std::vector<std::string> &&function_body, std::vector<std::string> &&function_param_names,
+                              std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
+                              parser::BaseFunctionParameter::DataType return_type, size_t param_count, bool replace) {
+  TERRIER_ASSERT(function_param_names.size() == param_count && function_param_types.size() == param_count,
+                 "Mismatched number of items in vector and number of function parameters");
+  auto op = std::make_unique<CreateFunction>();
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  op->function_name_ = std::move(function_name);
+  op->function_body_ = std::move(function_body);
+  op->function_param_names_ = std::move(function_param_names);
+  op->function_param_types_ = std::move(function_param_types);
+  op->is_replace_ = replace;
+  op->param_count_ = param_count;
+  op->return_type_ = return_type;
+  op->language_ = language;
+  return Operator(std::move(op));
+}
+
+common::hash_t CreateFunction::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(function_name_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(param_count_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_replace_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(return_type_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(language_));
+  hash = common::HashUtil::CombineHashInRange(hash, function_body_.begin(), function_body_.end());
+  hash = common::HashUtil::CombineHashInRange(hash, function_param_names_.begin(), function_param_names_.end());
+  hash = common::HashUtil::CombineHashInRange(hash, function_param_types_.begin(), function_param_types_.end());
+  return hash;
+}
+
+bool CreateFunction::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::CREATEFUNCTION) return false;
+  const CreateFunction &node = *dynamic_cast<const CreateFunction *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  if (function_name_ != node.function_name_) return false;
+  if (function_body_ != node.function_body_) return false;
+  if (param_count_ != node.param_count_) return false;
+  if (return_type_ != node.return_type_) return false;
+  if (function_param_types_ != node.function_param_types_) return false;
+  if (function_param_names_ != node.function_param_names_) return false;
+  if (is_replace_ != node.is_replace_) return false;
+  return language_ == node.language_;
+}
+
+//===--------------------------------------------------------------------===//
+// DropDatabase
+//===--------------------------------------------------------------------===//
+BaseOperatorNode *DropDatabase::Copy() const { return new DropDatabase(*this); }
+
+Operator DropDatabase::Make(catalog::db_oid_t db_oid) {
+  auto op = std::make_unique<DropDatabase>();
+  op->db_oid_ = db_oid;
+  return Operator(std::move(op));
+}
+
+common::hash_t DropDatabase::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(db_oid_));
+  return hash;
+}
+
+bool DropDatabase::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::DROPDATABASE) return false;
+  const DropDatabase &node = *dynamic_cast<const DropDatabase *>(&r);
+  return node.db_oid_ == db_oid_;
+}
+
+//===--------------------------------------------------------------------===//
+// DropTable
+//===--------------------------------------------------------------------===//
+BaseOperatorNode *DropTable::Copy() const { return new DropTable(*this); }
+
+Operator DropTable::Make(catalog::table_oid_t table_oid) {
+  auto op = std::make_unique<DropTable>();
+  op->table_oid_ = table_oid;
+  return Operator(std::move(op));
+}
+
+common::hash_t DropTable::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
+  return hash;
+}
+
+bool DropTable::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::DROPTABLE) return false;
+  const DropTable &node = *dynamic_cast<const DropTable *>(&r);
+  return node.table_oid_ == table_oid_;
+}
+
+//===--------------------------------------------------------------------===//
+// DropIndex
+//===--------------------------------------------------------------------===//
+BaseOperatorNode *DropIndex::Copy() const { return new DropIndex(*this); }
+
+Operator DropIndex::Make(catalog::index_oid_t index_oid) {
+  auto op = std::make_unique<DropIndex>();
+  op->index_oid_ = index_oid;
+  return Operator(std::move(op));
+}
+
+common::hash_t DropIndex::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_oid_));
+  return hash;
+}
+
+bool DropIndex::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::DROPINDEX) return false;
+  const DropIndex &node = *dynamic_cast<const DropIndex *>(&r);
+  return node.index_oid_ == index_oid_;
+}
+
+//===--------------------------------------------------------------------===//
+// DropNamespace
+//===--------------------------------------------------------------------===//
+BaseOperatorNode *DropNamespace::Copy() const { return new DropNamespace(*this); }
+
+Operator DropNamespace::Make(catalog::namespace_oid_t namespace_oid) {
+  auto op = std::make_unique<DropNamespace>();
+  op->namespace_oid_ = namespace_oid;
+  return Operator(std::move(op));
+}
+
+common::hash_t DropNamespace::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  return hash;
+}
+
+bool DropNamespace::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::DROPNAMESPACE) return false;
+  const DropNamespace &node = *dynamic_cast<const DropNamespace *>(&r);
+  return node.namespace_oid_ == namespace_oid_;
+}
+
+//===--------------------------------------------------------------------===//
+// DropTrigger
+//===--------------------------------------------------------------------===//
+BaseOperatorNode *DropTrigger::Copy() const { return new DropTrigger(*this); }
+
+Operator DropTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                           catalog::trigger_oid_t trigger_oid, bool if_exists) {
+  auto op = std::make_unique<DropTrigger>();
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  op->trigger_oid_ = trigger_oid;
+  op->if_exists_ = if_exists;
+  return Operator(std::move(op));
+}
+
+common::hash_t DropTrigger::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(trigger_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(if_exists_));
+  return hash;
+}
+
+bool DropTrigger::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::DROPTRIGGER) return false;
+  const DropTrigger &node = *dynamic_cast<const DropTrigger *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (trigger_oid_ != node.trigger_oid_) return false;
+  if (if_exists_ != node.if_exists_) return false;
+  return node.namespace_oid_ == namespace_oid_;
+}
+
+//===--------------------------------------------------------------------===//
+// DropView
+//===--------------------------------------------------------------------===//
+BaseOperatorNode *DropView::Copy() const { return new DropView(*this); }
+
+Operator DropView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                        catalog::view_oid_t view_oid, bool if_exists) {
+  auto op = std::make_unique<DropView>();
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  op->view_oid_ = view_oid;
+  op->if_exists_ = if_exists;
+  return Operator(std::move(op));
+}
+
+common::hash_t DropView::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(view_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(if_exists_));
+  return hash;
+}
+
+bool DropView::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::DROPVIEW) return false;
+  const DropView &node = *dynamic_cast<const DropView *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (view_oid_ != node.view_oid_) return false;
+  if (if_exists_ != node.if_exists_) return false;
+  return node.namespace_oid_ == namespace_oid_;
 }
 
 //===--------------------------------------------------------------------===//
@@ -789,11 +1309,35 @@ const char *OperatorNode<HashGroupBy>::name = "HashGroupBy";
 template <>
 const char *OperatorNode<SortGroupBy>::name = "SortGroupBy";
 template <>
-const char *OperatorNode<Distinct>::name = "Distinct";
-template <>
 const char *OperatorNode<Aggregate>::name = "Aggregate";
 template <>
 const char *OperatorNode<ExportExternalFile>::name = "ExportExternalFile";
+template <>
+const char *OperatorNode<CreateDatabase>::name = "CreateDatabase";
+template <>
+const char *OperatorNode<CreateTable>::name = "CreateTable";
+template <>
+const char *OperatorNode<CreateIndex>::name = "CreateIndex";
+template <>
+const char *OperatorNode<CreateFunction>::name = "CreateFunction";
+template <>
+const char *OperatorNode<CreateNamespace>::name = "CreateNamespace";
+template <>
+const char *OperatorNode<CreateTrigger>::name = "CreateTrigger";
+template <>
+const char *OperatorNode<CreateView>::name = "CreateView";
+template <>
+const char *OperatorNode<DropDatabase>::name = "DropDatabase";
+template <>
+const char *OperatorNode<DropTable>::name = "DropTable";
+template <>
+const char *OperatorNode<DropIndex>::name = "DropIndex";
+template <>
+const char *OperatorNode<DropNamespace>::name = "DropNamespace";
+template <>
+const char *OperatorNode<DropTrigger>::name = "DropTrigger";
+template <>
+const char *OperatorNode<DropView>::name = "DropView";
 
 //===--------------------------------------------------------------------===//
 template <>
@@ -808,8 +1352,6 @@ template <>
 OpType OperatorNode<QueryDerivedScan>::type = OpType::QUERYDERIVEDSCAN;
 template <>
 OpType OperatorNode<OrderBy>::type = OpType::ORDERBY;
-template <>
-OpType OperatorNode<Distinct>::type = OpType::DISTINCT;
 template <>
 OpType OperatorNode<Limit>::type = OpType::LIMIT;
 template <>
@@ -844,6 +1386,32 @@ template <>
 OpType OperatorNode<Aggregate>::type = OpType::AGGREGATE;
 template <>
 OpType OperatorNode<ExportExternalFile>::type = OpType::EXPORTEXTERNALFILE;
+template <>
+OpType OperatorNode<CreateDatabase>::type = OpType::CREATEDATABASE;
+template <>
+OpType OperatorNode<CreateTable>::type = OpType::CREATETABLE;
+template <>
+OpType OperatorNode<CreateIndex>::type = OpType::CREATEINDEX;
+template <>
+OpType OperatorNode<CreateFunction>::type = OpType::CREATEFUNCTION;
+template <>
+OpType OperatorNode<CreateNamespace>::type = OpType::CREATENAMESPACE;
+template <>
+OpType OperatorNode<CreateTrigger>::type = OpType::CREATETRIGGER;
+template <>
+OpType OperatorNode<CreateView>::type = OpType::CREATEVIEW;
+template <>
+OpType OperatorNode<DropDatabase>::type = OpType::DROPDATABASE;
+template <>
+OpType OperatorNode<DropTable>::type = OpType::DROPTABLE;
+template <>
+OpType OperatorNode<DropIndex>::type = OpType::DROPINDEX;
+template <>
+OpType OperatorNode<DropNamespace>::type = OpType::DROPNAMESPACE;
+template <>
+OpType OperatorNode<DropTrigger>::type = OpType::DROPTRIGGER;
+template <>
+OpType OperatorNode<DropView>::type = OpType::DROPVIEW;
 
 template <typename T>
 bool OperatorNode<T>::IsLogical() const {
