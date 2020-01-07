@@ -15,7 +15,8 @@ common::hash_t CreateIndexPlanNode::Hash() const {
   // Hash table_oid
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
 
-  // TODO(Gus,Wen) Hash catalog::IndexSchema
+  // Hash index schema
+  if (schema_ != nullptr) hash = common::HashUtil::CombineHashes(hash, schema_->Hash());
 
   // Hash index_name
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_name_));
@@ -34,7 +35,12 @@ bool CreateIndexPlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Table OID
   if (table_oid_ != other.table_oid_) return false;
 
-  // TODO(Gus,Wen) Compare catalog::IndexSchema
+  // Index schema
+  if (schema_ != nullptr) {
+    if (other.schema_ == nullptr) return false;
+    if (*schema_ != *other.schema_) return false;
+  }
+  if (schema_ == nullptr && other.schema_ != nullptr) return false;
 
   // Index name
   if (index_name_ != other.index_name_) return false;

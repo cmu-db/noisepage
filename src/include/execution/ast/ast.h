@@ -890,6 +890,11 @@ class Expr : public AstNode {
   bool IsIntegerLiteral() const;
 
   /**
+   * @return Is this a boolean literal
+   */
+  bool IsBooleanLiteral() const;
+
+  /**
    * Checks whether the given node is an Expr.
    * @param node node to check
    * @return true iff given node is an Expr.

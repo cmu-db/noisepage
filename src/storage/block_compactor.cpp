@@ -1,9 +1,11 @@
 #include "storage/block_compactor.h"
+
 #include <algorithm>
 #include <queue>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "storage/index/bwtree_index.h"
 #include "storage/index/index_defs.h"
 #include "storage/sql_table.h"
@@ -148,7 +150,7 @@ bool BlockCompactor::MoveTuple(CompactionGroup *cg, TupleSlot from, TupleSlot to
 
   // Read out the tuple to copy
 
-  if (!cg->table_->Select(cg->txn_, from, cg->read_buffer_)) return false;
+  if (!cg->table_->Select(common::ManagedPointer(cg->txn_), from, cg->read_buffer_)) return false;
   // TODO(Tianyu): FIXME
   // This is a relic from the days when the logs interacted directly with the DataTable. Since we changed the log
   // records to only have oids, the Compactor no longer has the relevant information to directly construct
@@ -183,11 +185,11 @@ bool BlockCompactor::MoveTuple(CompactionGroup *cg, TupleSlot from, TupleSlot to
   // Copy the tuple into the empty slot
   // This operation cannot fail since a logically deleted slot can only be reclaimed by the compaction thread
   accessor.Reallocate(to);
-  cg->table_->InsertInto(cg->txn_, *record->Delta(), to);
+  cg->table_->InsertInto(common::ManagedPointer(cg->txn_), *record->Delta(), to);
 
   // The delete can fail if a concurrent transaction is updating said tuple. We will have to abort if this is
   // the case.
-  return cg->table_->Delete(cg->txn_, from);
+  return cg->table_->Delete(common::ManagedPointer(cg->txn_), from);
 }
 
 bool BlockCompactor::CheckForVersionsAndGaps(const TupleAccessStrategy &accessor, RawBlock *block) {

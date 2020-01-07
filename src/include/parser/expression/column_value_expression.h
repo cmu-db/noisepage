@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "parser/expression/abstract_expression.h"
 
@@ -59,6 +60,30 @@ class ColumnValueExpression : public AbstractExpression {
    */
   ColumnValueExpression(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, catalog::col_oid_t column_oid)
       : AbstractExpression(ExpressionType::COLUMN_VALUE, type::TypeId::INVALID, {}),
+        database_oid_(database_oid),
+        table_oid_(table_oid),
+        column_oid_(column_oid) {}
+
+  /**
+   * @param table_oid OID of the table.
+   * @param column_oid OID of the column.
+   * @param type Type of the column.
+   */
+  ColumnValueExpression(catalog::table_oid_t table_oid, catalog::col_oid_t column_oid, type::TypeId type)
+      : AbstractExpression(ExpressionType::COLUMN_VALUE, type, {}), table_oid_(table_oid), column_oid_(column_oid) {}
+
+  /**
+   * @param table_name table name
+   * @param col_name column name
+   * @param database_oid database OID
+   * @param table_oid table OID
+   * @param column_oid column OID
+   */
+  ColumnValueExpression(std::string table_name, std::string col_name, catalog::db_oid_t database_oid,
+                        catalog::table_oid_t table_oid, catalog::col_oid_t column_oid)
+      : AbstractExpression(ExpressionType::COLUMN_VALUE, type::TypeId::INVALID, {}),
+        table_name_(std::move(table_name)),
+        column_name_(std::move(col_name)),
         database_oid_(database_oid),
         table_oid_(table_oid),
         column_oid_(column_oid) {}

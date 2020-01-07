@@ -44,13 +44,13 @@ DataTable::~DataTable() {
   }
 }
 
-bool DataTable::Select(terrier::transaction::TransactionContext *txn, terrier::storage::TupleSlot slot,
-                       terrier::storage::ProjectedRow *out_buffer) const {
+bool DataTable::Select(const common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot,
+                       ProjectedRow *out_buffer) const {
   data_table_counter_.IncrementNumSelect(1);
   return SelectIntoBuffer(txn, slot, out_buffer);
 }
 
-void DataTable::Scan(transaction::TransactionContext *const txn, SlotIterator *const start_pos,
+void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *const start_pos,
                      ProjectedColumns *const out_buffer) const {
   // TODO(Tianyu): So far this is not that much better than tuple-at-a-time access,
   // but can be improved if block is read-only, or if we implement version synopsis, to just use std::memcpy when it's
@@ -98,7 +98,8 @@ DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compabi
   return {this, last_block, insert_head};
 }
 
-bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSlot slot, const ProjectedRow &redo) {
+bool DataTable::Update(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
+                       const ProjectedRow &redo) {
   TERRIER_ASSERT(redo.NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
                  "The input buffer cannot change the reserved columns, so it should have fewer attributes.");
   TERRIER_ASSERT(redo.NumColumns() > 0, "The input buffer should modify at least one attribute.");
@@ -159,7 +160,8 @@ void DataTable::CheckMoveHead(std::list<RawBlock *>::iterator block) {
   }
 }
 
-TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const ProjectedRow &redo) {
+TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::TransactionContext> txn,
+                            const ProjectedRow &redo) {
   TERRIER_ASSERT(redo.NumColumns() == accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
                  "The input buffer never changes the version pointer column, so it should have  exactly 1 fewer "
                  "attribute than the DataTable's layout.");
@@ -214,7 +216,8 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
   return result;
 }
 
-void DataTable::InsertInto(transaction::TransactionContext *txn, const ProjectedRow &redo, TupleSlot dest) {
+void DataTable::InsertInto(const common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo,
+                           TupleSlot dest) {
   TERRIER_ASSERT(accessor_.Allocated(dest), "destination slot must already be allocated");
   TERRIER_ASSERT(accessor_.IsNull(dest, VERSION_POINTER_COLUMN_ID),
                  "The slot needs to be logically deleted to every running transaction");
@@ -234,7 +237,7 @@ void DataTable::InsertInto(transaction::TransactionContext *txn, const Projected
   }
 }
 
-bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
+bool DataTable::Delete(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot) {
   data_table_counter_.IncrementNumDelete(1);
   UndoRecord *const undo = txn->UndoRecordForDelete(this, slot);
   slot.GetBlock()->controller_.WaitUntilHot();
@@ -529,8 +532,8 @@ void DataTable::ExportTable(const std::string &file_name, std::vector<type::Type
 }
 
 template <class RowType>
-bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, const TupleSlot slot,
-                                 RowType *const out_buffer) const {
+bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                 const TupleSlot slot, RowType *const out_buffer) const {
   TERRIER_ASSERT(out_buffer->NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
                  "The output buffer never returns the version pointer columns, so it should have "
                  "fewer attributes.");
@@ -610,11 +613,12 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
   return visible;
 }
 
-template bool DataTable::SelectIntoBuffer<ProjectedRow>(transaction::TransactionContext *txn, const TupleSlot slot,
-                                                        ProjectedRow *const out_buffer) const;
-template bool DataTable::SelectIntoBuffer<ProjectedColumns::RowView>(transaction::TransactionContext *txn,
-                                                                     const TupleSlot slot,
-                                                                     ProjectedColumns::RowView *const out_buffer) const;
+template bool DataTable::SelectIntoBuffer<ProjectedRow>(
+    const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
+    ProjectedRow *const out_buffer) const;
+template bool DataTable::SelectIntoBuffer<ProjectedColumns::RowView>(
+    const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
+    ProjectedColumns::RowView *const out_buffer) const;
 
 UndoRecord *DataTable::AtomicallyReadVersionPtr(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
   // Okay to ignore presence bit, because we use that for logical delete, not for validity of the version pointer value

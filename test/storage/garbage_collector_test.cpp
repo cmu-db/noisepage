@@ -66,7 +66,7 @@ class GarbageCollectorDataTableTestObject {
   storage::ProjectedRow *SelectIntoBuffer(transaction::TransactionContext *const txn, const storage::TupleSlot slot) {
     // generate a redo ProjectedRow for Select
     storage::ProjectedRow *select_row = initializer_.InitializeRow(select_buffer_);
-    select_result_ = table_.Select(txn, slot, select_row);
+    select_result_ = table_.Select(common::ManagedPointer(txn), slot, select_row);
     return select_row;
   }
 
@@ -104,7 +104,7 @@ TEST_F(GarbageCollectorTests, SingleInsert) {
     auto *txn0 = txn_manager->BeginTransaction();
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
-    storage::TupleSlot slot = tested.table_.Insert(txn0, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn0), *insert_tuple);
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
@@ -155,7 +155,7 @@ TEST_F(GarbageCollectorTests, CommitInsert1) {
     auto *txn0 = txn_manager->BeginTransaction();
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
-    storage::TupleSlot slot = tested.table_.Insert(txn0, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn0), *insert_tuple);
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
@@ -212,7 +212,7 @@ TEST_F(GarbageCollectorTests, CommitInsert2) {
     auto *txn1 = txn_manager->BeginTransaction();
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
-    storage::TupleSlot slot = tested.table_.Insert(txn1, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn1), *insert_tuple);
 
     tested.SelectIntoBuffer(txn0, slot);
     EXPECT_FALSE(tested.select_result_);
@@ -266,7 +266,7 @@ TEST_F(GarbageCollectorTests, AbortInsert1) {
     auto *txn0 = txn_manager->BeginTransaction();
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
-    storage::TupleSlot slot = tested.table_.Insert(txn0, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn0), *insert_tuple);
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
     EXPECT_TRUE(tested.select_result_);
@@ -324,7 +324,7 @@ TEST_F(GarbageCollectorTests, AbortInsert2) {
     auto *txn1 = txn_manager->BeginTransaction();
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
-    storage::TupleSlot slot = tested.table_.Insert(txn1, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn1), *insert_tuple);
 
     tested.SelectIntoBuffer(txn0, slot);
     EXPECT_FALSE(tested.select_result_);
@@ -379,7 +379,7 @@ TEST_F(GarbageCollectorTests, CommitUpdate1) {
 
     // insert the tuple to be Updated later
     auto *txn = txn_manager->BeginTransaction();
-    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn), *insert_tuple);
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     // Unlink and reclaim the Insert
@@ -390,7 +390,7 @@ TEST_F(GarbageCollectorTests, CommitUpdate1) {
 
     auto *txn0 = txn_manager->BeginTransaction();
 
-    EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
+    EXPECT_TRUE(tested.table_.Update(common::ManagedPointer(txn0), slot, *update));
 
     auto *update_tuple = tested.GenerateVersionFromUpdate(*update, *insert_tuple);
 
@@ -452,7 +452,7 @@ TEST_F(GarbageCollectorTests, CommitUpdate2) {
 
     // insert the tuple to be Updated later
     auto *txn = txn_manager->BeginTransaction();
-    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn), *insert_tuple);
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     // Unlink and reclaim the Insert
@@ -465,7 +465,7 @@ TEST_F(GarbageCollectorTests, CommitUpdate2) {
 
     auto *txn1 = txn_manager->BeginTransaction();
 
-    EXPECT_TRUE(tested.table_.Update(txn1, slot, *update));
+    EXPECT_TRUE(tested.table_.Update(common::ManagedPointer(txn1), slot, *update));
 
     // Nothing should be able to be GC'd yet because txn1 has not committed yet
     EXPECT_EQ(std::make_pair(0U, 0U), gc->PerformGarbageCollection());
@@ -525,7 +525,7 @@ TEST_F(GarbageCollectorTests, AbortUpdate1) {
 
     // insert the tuple to be Updated later
     auto *txn = txn_manager->BeginTransaction();
-    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn), *insert_tuple);
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     // Unlink and reclaim the Insert
@@ -536,7 +536,7 @@ TEST_F(GarbageCollectorTests, AbortUpdate1) {
 
     auto *txn0 = txn_manager->BeginTransaction();
 
-    EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
+    EXPECT_TRUE(tested.table_.Update(common::ManagedPointer(txn0), slot, *update));
 
     auto *update_tuple = tested.GenerateVersionFromUpdate(*update, *insert_tuple);
 
@@ -598,7 +598,7 @@ TEST_F(GarbageCollectorTests, AbortUpdate2) {
 
     // insert the tuple to be Updated later
     auto *txn = txn_manager->BeginTransaction();
-    storage::TupleSlot slot = tested.table_.Insert(txn, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn), *insert_tuple);
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     // Unlink and reclaim the Insert
@@ -611,7 +611,7 @@ TEST_F(GarbageCollectorTests, AbortUpdate2) {
 
     auto *txn1 = txn_manager->BeginTransaction();
 
-    EXPECT_TRUE(tested.table_.Update(txn1, slot, *update));
+    EXPECT_TRUE(tested.table_.Update(common::ManagedPointer(txn1), slot, *update));
 
     auto *update_tuple = tested.GenerateVersionFromUpdate(*update, *insert_tuple);
 
@@ -672,7 +672,7 @@ TEST_F(GarbageCollectorTests, InsertUpdate1) {
     auto *txn1 = txn_manager->BeginTransaction();
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
-    storage::TupleSlot slot = tested.table_.Insert(txn1, *insert_tuple);
+    storage::TupleSlot slot = tested.table_.Insert(common::ManagedPointer(txn1), *insert_tuple);
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn1, slot);
     EXPECT_TRUE(tested.select_result_);
@@ -687,7 +687,7 @@ TEST_F(GarbageCollectorTests, InsertUpdate1) {
     EXPECT_EQ(std::make_pair(0U, 0U), gc->PerformGarbageCollection());
 
     storage::ProjectedRow *update = tested.GenerateRandomUpdate(&generator_);
-    EXPECT_FALSE(tested.table_.Update(txn0, slot, *update));
+    EXPECT_FALSE(tested.table_.Update(common::ManagedPointer(txn0), slot, *update));
 
     tested.SelectIntoBuffer(txn0, slot);
     EXPECT_FALSE(tested.select_result_);

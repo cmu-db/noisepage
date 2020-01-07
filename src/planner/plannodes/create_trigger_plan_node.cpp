@@ -57,7 +57,7 @@ bool CreateTriggerPlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Table OID
   if (table_oid_ != other.table_oid_) return false;
 
-  // Hash trigger_name
+  // Trigger_name
   if (GetTriggerName() != other.GetTriggerName()) return false;
 
   // Trigger funcnames
@@ -93,7 +93,7 @@ bool CreateTriggerPlanNode::operator==(const AbstractPlanNode &rhs) const {
     }
   }
 
-  // Hash trigger_when
+  // Trigger_when
   auto trigger_when = GetTriggerWhen();
   auto other_trigger_when = other.GetTriggerWhen();
   if ((trigger_when == nullptr && other_trigger_when != nullptr) ||
@@ -101,7 +101,7 @@ bool CreateTriggerPlanNode::operator==(const AbstractPlanNode &rhs) const {
     return false;
   if (trigger_when != nullptr && *trigger_when != *other_trigger_when) return false;
 
-  // Hash trigger_type
+  // Trigger_type
   if (GetTriggerType() != other.GetTriggerType()) return false;
 
   return true;

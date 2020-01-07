@@ -6,6 +6,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+
 #include "common/performance_counter.h"
 #include "storage/projected_columns.h"
 #include "storage/storage_defs.h"
@@ -137,7 +138,8 @@ class DataTable {
    * reference col_id 0
    * @return true if tuple is visible to this txn and ProjectedRow has been populated, false otherwise
    */
-  bool Select(transaction::TransactionContext *txn, TupleSlot slot, ProjectedRow *out_buffer) const;
+  bool Select(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot,
+              ProjectedRow *out_buffer) const;
 
   // TODO(Tianyu): Should this be updated in place or return a new iterator? Does the caller ever want to
   // save a point of scan and come back to it later?
@@ -155,7 +157,8 @@ class DataTable {
    * @param out_buffer output buffer. The object should already contain projection list information. This buffer is
    *                   always cleared of old values.
    */
-  void Scan(transaction::TransactionContext *txn, SlotIterator *start_pos, ProjectedColumns *out_buffer) const;
+  void Scan(common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *start_pos,
+            ProjectedColumns *out_buffer) const;
 
   /**
    * @return the first tuple slot contained in the data table
@@ -187,7 +190,7 @@ class DataTable {
    * not reference col_id 0
    * @return true if successful, false otherwise
    */
-  bool Update(transaction::TransactionContext *txn, TupleSlot slot, const ProjectedRow &redo);
+  bool Update(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot, const ProjectedRow &redo);
 
   /**
    * Inserts a tuple, as given in the redo, and update the version chain the link to the given
@@ -198,7 +201,7 @@ class DataTable {
    * @return the TupleSlot allocated for this insert, used to identify this tuple's physical location for indexes and
    * such.
    */
-  TupleSlot Insert(transaction::TransactionContext *txn, const ProjectedRow &redo);
+  TupleSlot Insert(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo);
 
   /**
    * Deletes the given TupleSlot, this will call StageDelete on the provided txn to generate the RedoRecord for delete.
@@ -207,7 +210,7 @@ class DataTable {
    * @param slot the slot of the tuple to delete
    * @return true if successful, false otherwise
    */
-  bool Delete(transaction::TransactionContext *txn, TupleSlot slot);
+  bool Delete(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot);
 
   /**
    * Return a pointer to the performance counter for the data table.
@@ -291,9 +294,11 @@ class DataTable {
   // A templatized version for select, so that we can use the same code for both row and column access.
   // the method is explicitly instantiated for ProjectedRow and ProjectedColumns::RowView
   template <class RowType>
-  bool SelectIntoBuffer(transaction::TransactionContext *txn, TupleSlot slot, RowType *out_buffer) const;
+  bool SelectIntoBuffer(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot,
+                        RowType *out_buffer) const;
 
-  void InsertInto(transaction::TransactionContext *txn, const ProjectedRow &redo, TupleSlot dest);
+  void InsertInto(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo,
+                  TupleSlot dest);
   // Atomically read out the version pointer value.
   UndoRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor) const;
 

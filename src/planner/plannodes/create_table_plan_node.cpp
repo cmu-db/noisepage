@@ -15,7 +15,10 @@ common::hash_t CreateTablePlanNode::Hash() const {
   // Table Name
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_name_));
 
-  // TODO(Gus,Wen) Hash catalog::Schema
+  // Schema
+  if (table_schema_ != nullptr) {
+    hash = common::HashUtil::CombineHashes(hash, table_schema_->Hash());
+  }
 
   // Primary Key Flag
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(has_primary_key_));
@@ -54,7 +57,12 @@ bool CreateTablePlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Table name
   if (table_name_ != other.table_name_) return false;
 
-  // TODO(Gus,Wen) Compare catalog::Schema
+  // Schema
+  if (table_schema_ != nullptr) {
+    if (other.table_schema_ == nullptr) return false;
+    if (*table_schema_ != *other.table_schema_) return false;
+  }
+  if (table_schema_ == nullptr && other.table_schema_ != nullptr) return false;
 
   // Has primary key
   if (has_primary_key_ != other.has_primary_key_) return false;

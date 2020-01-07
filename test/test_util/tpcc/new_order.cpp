@@ -26,7 +26,7 @@ bool NewOrder::Execute(transaction::TransactionManager *const txn_manager, Datab
   // Select W_TAX in table
   auto *const warehouse_select_tuple = warehouse_select_pr_initializer_.InitializeRow(worker->warehouse_tuple_buffer_);
   bool UNUSED_ATTRIBUTE select_result =
-      db->warehouse_table_->Select(txn, index_scan_results[0], warehouse_select_tuple);
+      db->warehouse_table_->Select(common::ManagedPointer(txn), index_scan_results[0], warehouse_select_tuple);
   TERRIER_ASSERT(select_result, "Warehouse table doesn't change. All lookups should succeed.");
   const auto w_tax = *reinterpret_cast<double *>(warehouse_select_tuple->AccessWithNullCheck(0));
   TERRIER_ASSERT(w_tax >= 0 && w_tax <= 0.2, "Invalid w_tax read from the Warehouse table.");
@@ -44,7 +44,8 @@ bool NewOrder::Execute(transaction::TransactionManager *const txn_manager, Datab
 
   // Select D_TAX, D_NEXT_O_ID in table
   auto *const district_select_tuple = district_select_pr_initializer_.InitializeRow(worker->district_tuple_buffer_);
-  select_result = db->district_table_->Select(txn, index_scan_results[0], district_select_tuple);
+  select_result =
+      db->district_table_->Select(common::ManagedPointer(txn), index_scan_results[0], district_select_tuple);
   TERRIER_ASSERT(select_result, "District table doesn't change. All lookups should succeed.");
 
   const auto d_tax = *reinterpret_cast<double *>(district_select_tuple->AccessWithNullCheck(d_tax_select_pr_offset_));
@@ -58,7 +59,7 @@ bool NewOrder::Execute(transaction::TransactionManager *const txn_manager, Datab
       txn->StageWrite(db->db_oid_, db->district_table_oid_, district_update_pr_initializer_);
   *reinterpret_cast<int32_t *>(district_update_redo->Delta()->AccessForceNotNull(0)) = d_next_o_id + 1;
   district_update_redo->SetTupleSlot(index_scan_results[0]);
-  bool UNUSED_ATTRIBUTE result = db->district_table_->Update(txn, district_update_redo);
+  bool UNUSED_ATTRIBUTE result = db->district_table_->Update(common::ManagedPointer(txn), district_update_redo);
   TERRIER_ASSERT(result, "District update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
   // Look up C_ID, D_ID, W_ID in index
@@ -75,7 +76,8 @@ bool NewOrder::Execute(transaction::TransactionManager *const txn_manager, Datab
 
   // Select C_DISCOUNT, C_LAST, and C_CREDIT in table
   auto *const customer_select_tuple = customer_select_pr_initializer_.InitializeRow(worker->customer_tuple_buffer_);
-  select_result = db->customer_table_->Select(txn, index_scan_results[0], customer_select_tuple);
+  select_result =
+      db->customer_table_->Select(common::ManagedPointer(txn), index_scan_results[0], customer_select_tuple);
   TERRIER_ASSERT(select_result, "Customer table doesn't change. All lookups should succeed.");
   const auto c_discount =
       *reinterpret_cast<double *>(customer_select_tuple->AccessWithNullCheck(c_discount_select_pr_offset_));
@@ -90,7 +92,7 @@ bool NewOrder::Execute(transaction::TransactionManager *const txn_manager, Datab
   *reinterpret_cast<int8_t *>(new_order_insert_tuple->AccessForceNotNull(no_d_id_insert_pr_offset_)) = args.d_id_;
   *reinterpret_cast<int8_t *>(new_order_insert_tuple->AccessForceNotNull(no_w_id_insert_pr_offset_)) = args.w_id_;
 
-  const auto new_order_slot = db->new_order_table_->Insert(txn, new_order_insert_redo);
+  const auto new_order_slot = db->new_order_table_->Insert(common::ManagedPointer(txn), new_order_insert_redo);
 
   // insert in New Order index
   const auto new_order_key_pr_initializer = db->new_order_primary_index_->GetProjectedRowInitializer();
@@ -101,7 +103,7 @@ bool NewOrder::Execute(transaction::TransactionManager *const txn_manager, Datab
   *reinterpret_cast<int8_t *>(new_order_key->AccessForceNotNull(no_w_id_key_pr_offset_)) = args.w_id_;
 
   bool UNUSED_ATTRIBUTE index_insert_result =
-      db->new_order_primary_index_->InsertUnique(txn, *new_order_key, new_order_slot);
+      db->new_order_primary_index_->InsertUnique(common::ManagedPointer(txn), *new_order_key, new_order_slot);
   TERRIER_ASSERT(index_insert_result, "New Order index insertion failed.");
 
   // Insert new row in Order
@@ -118,7 +120,7 @@ bool NewOrder::Execute(transaction::TransactionManager *const txn_manager, Datab
   *reinterpret_cast<int8_t *>(order_insert_tuple->AccessForceNotNull(o_all_local_insert_pr_offset_)) =
       static_cast<int8_t>(args.o_all_local_);
 
-  const auto order_slot = db->order_table_->Insert(txn, order_insert_redo);
+  const auto order_slot = db->order_table_->Insert(common::ManagedPointer(txn), order_insert_redo);
 
   // insert in Order index
   const auto order_key_pr_initializer = db->order_primary_index_->GetProjectedRowInitializer();
@@ -128,7 +130,7 @@ bool NewOrder::Execute(transaction::TransactionManager *const txn_manager, Datab
   *reinterpret_cast<int8_t *>(order_key->AccessForceNotNull(o_d_id_key_pr_offset_)) = args.d_id_;
   *reinterpret_cast<int8_t *>(order_key->AccessForceNotNull(o_w_id_key_pr_offset_)) = args.w_id_;
 
-  index_insert_result = db->order_primary_index_->InsertUnique(txn, *order_key, order_slot);
+  index_insert_result = db->order_primary_index_->InsertUnique(common::ManagedPointer(txn), *order_key, order_slot);
   TERRIER_ASSERT(index_insert_result, "Order index insertion failed.");
 
   // insert in Order secondary index
@@ -141,7 +143,8 @@ bool NewOrder::Execute(transaction::TransactionManager *const txn_manager, Datab
   *reinterpret_cast<int8_t *>(order_secondary_key->AccessForceNotNull(o_w_id_secondary_key_pr_offset_)) = args.w_id_;
   *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_c_id_secondary_key_pr_offset_)) = args.c_id_;
 
-  index_insert_result = db->order_secondary_index_->InsertUnique(txn, *order_secondary_key, order_slot);
+  index_insert_result =
+      db->order_secondary_index_->InsertUnique(common::ManagedPointer(txn), *order_secondary_key, order_slot);
   TERRIER_ASSERT(index_insert_result, "Order secondary index insertion failed.");
 
   // for each item in order
@@ -164,7 +167,7 @@ bool NewOrder::Execute(transaction::TransactionManager *const txn_manager, Datab
 
     // Select I_PRICE, I_NAME, and I_DATE in table
     auto *const item_select_tuple = item_select_pr_initializer_.InitializeRow(worker->item_tuple_buffer_);
-    select_result = db->item_table_->Select(txn, index_scan_results[0], item_select_tuple);
+    select_result = db->item_table_->Select(common::ManagedPointer(txn), index_scan_results[0], item_select_tuple);
     TERRIER_ASSERT(select_result, "Item table doesn't change. All lookups should succeed.");
     const auto i_price = *reinterpret_cast<double *>(item_select_tuple->AccessWithNullCheck(i_price_select_pr_offset_));
     const auto i_data =
@@ -185,7 +188,7 @@ bool NewOrder::Execute(transaction::TransactionManager *const txn_manager, Datab
     // Select S_QUANTITY, S_DIST_xx (xx = args.d_id), S_YTD, S_ORDER_CNT, S_REMOTE_CNT, S_DATA in table
     auto *const stock_select_tuple =
         stock_select_initializers_[args.d_id_ - 1].first.InitializeRow(worker->stock_tuple_buffer_);
-    select_result = db->stock_table_->Select(txn, index_scan_results[0], stock_select_tuple);
+    select_result = db->stock_table_->Select(common::ManagedPointer(txn), index_scan_results[0], stock_select_tuple);
     TERRIER_ASSERT(select_result, "Stock table doesn't change (no new entries). All lookups should succeed.");
     const auto s_quantity = *reinterpret_cast<int16_t *>(
         stock_select_tuple->AccessWithNullCheck(stock_select_pr_offsets_[args.d_id_ - 1].s_quantity_select_pr_offset_));
@@ -214,7 +217,7 @@ bool NewOrder::Execute(transaction::TransactionManager *const txn_manager, Datab
     *reinterpret_cast<int16_t *>(stock_update_tuple->AccessForceNotNull(s_remote_cnt_update_pr_offset_)) =
         static_cast<int16_t>(item.remote_ ? s_remote_cnt + 1 : s_remote_cnt);
     stock_update_redo->SetTupleSlot(index_scan_results[0]);
-    result = db->stock_table_->Update(txn, stock_update_redo);
+    result = db->stock_table_->Update(common::ManagedPointer(txn), stock_update_redo);
     if (!result) {
       // This can fail due to remote orders
       txn_manager->Abort(txn);
@@ -262,7 +265,7 @@ bool NewOrder::Execute(transaction::TransactionManager *const txn_manager, Datab
           order_line_insert_tuple->AccessForceNotNull(ol_dist_info_insert_pr_offset_)) = varlen_entry;
     }
 
-    const auto order_line_slot = db->order_line_table_->Insert(txn, order_line_insert_redo);
+    const auto order_line_slot = db->order_line_table_->Insert(common::ManagedPointer(txn), order_line_insert_redo);
 
     // insert in Order Line index
     const auto order_line_key_pr_initializer = db->order_line_primary_index_->GetProjectedRowInitializer();
@@ -273,7 +276,8 @@ bool NewOrder::Execute(transaction::TransactionManager *const txn_manager, Datab
     *reinterpret_cast<int32_t *>(order_line_key->AccessForceNotNull(ol_o_id_key_pr_offset_)) = d_next_o_id;
     *reinterpret_cast<int8_t *>(order_line_key->AccessForceNotNull(ol_number_key_pr_offset_)) = ol_number;
 
-    index_insert_result = db->order_line_primary_index_->InsertUnique(txn, *order_line_key, order_line_slot);
+    index_insert_result =
+        db->order_line_primary_index_->InsertUnique(common::ManagedPointer(txn), *order_line_key, order_line_slot);
     TERRIER_ASSERT(index_insert_result, "Order Line index insertion failed.");
 
     ol_number++;

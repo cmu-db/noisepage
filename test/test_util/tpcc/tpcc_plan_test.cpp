@@ -80,7 +80,7 @@ void TpccPlanTest::TearDown() { delete tpcc_db_; }
 
 void TpccPlanTest::BeginTransaction() {
   txn_ = txn_manager_->BeginTransaction();
-  accessor_ = catalog_->GetAccessor(txn_, db_).release();
+  accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_).release();
 }
 
 void TpccPlanTest::EndTransaction(bool commit) {
@@ -94,15 +94,13 @@ void TpccPlanTest::EndTransaction(bool commit) {
 std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::string &query,
                                                                   catalog::table_oid_t tbl_oid,
                                                                   parser::StatementType stmt_type) {
-  parser::PostgresParser pgparser;
-  auto stmt_list = pgparser.BuildParseTree(query);
+  auto stmt_list = parser::PostgresParser::BuildParseTree(query);
 
   // Bind + Transform
-  auto accessor = catalog_->GetAccessor(txn_, db_);
-  auto *binder = new binder::BindNodeVisitor(std::move(accessor), "tpcc");
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn_), db_);
+  auto *binder = new binder::BindNodeVisitor(common::ManagedPointer(accessor), "tpcc");
   binder->BindNameToNode(stmt_list.GetStatement(0), &stmt_list);
-  accessor = binder->GetCatalogAccessor();
-  auto *transformer = new optimizer::QueryToOperatorTransformer(std::move(accessor));
+  auto *transformer = new optimizer::QueryToOperatorTransformer(common::ManagedPointer(accessor));
   auto plan = transformer->ConvertToOpExpression(stmt_list.GetStatement(0), &stmt_list);
   delete binder;
   delete transformer;
@@ -207,8 +205,7 @@ void TpccPlanTest::OptimizeQuery(const std::string &query, catalog::table_oid_t 
                                                catalog::table_oid_t tbl_oid,
                                                std::unique_ptr<planner::AbstractPlanNode> plan)) {
   BeginTransaction();
-  parser::PostgresParser pgparser;
-  auto stmt_list = pgparser.BuildParseTree(query);
+  auto stmt_list = parser::PostgresParser::BuildParseTree(query);
   auto sel_stmt = stmt_list.GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
   auto plan = Optimize(query, tbl_oid, parser::StatementType::SELECT);
   Check(this, sel_stmt.Get(), tbl_oid, std::move(plan));

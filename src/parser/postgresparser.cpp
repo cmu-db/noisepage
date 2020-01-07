@@ -1,3 +1,5 @@
+#include "parser/postgresparser.h"
+
 #include <algorithm>
 #include <cstdio>
 #include <memory>
@@ -7,12 +9,9 @@
 #include <vector>
 
 #include "common/exception.h"
-
 #include "libpg_query/pg_list.h"
 #include "libpg_query/pg_query.h"
-
 #include "loggers/parser_logger.h"
-
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
 #include "parser/expression/column_value_expression.h"
@@ -27,7 +26,6 @@
 #include "parser/expression/subquery_expression.h"
 #include "parser/expression/type_cast_expression.h"
 #include "parser/pg_trigger.h"
-#include "parser/postgresparser.h"
 #include "type/transient_value_factory.h"
 
 /**
@@ -41,10 +39,6 @@
   throw PARSER_EXCEPTION(#FN_NAME ":" #TYPE_MSG " unsupported")
 
 namespace terrier::parser {
-
-PostgresParser::PostgresParser() = default;
-
-PostgresParser::~PostgresParser() = default;
 
 ParseResult PostgresParser::BuildParseTree(const std::string &query_string) {
   auto text = query_string.c_str();

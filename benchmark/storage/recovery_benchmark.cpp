@@ -160,8 +160,8 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
 
     // Create database, namespace, and table
     auto *txn = txn_manager->BeginTransaction();
-    auto db_oid = catalog->CreateDatabase(txn, db_name, true);
-    auto catalog_accessor = catalog->GetAccessor(txn, db_oid);
+    auto db_oid = catalog->CreateDatabase(common::ManagedPointer(txn), db_name, true);
+    auto catalog_accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid);
     auto namespace_oid = catalog_accessor->CreateNamespace(namespace_name);
 
     // Create random table
@@ -198,7 +198,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
         auto *txn = txn_manager->BeginTransaction();
         auto redo_record = txn->StageWrite(db_oid, table_oid, initializer);
         *reinterpret_cast<int32_t *>(redo_record->Delta()->AccessForceNotNull(0)) = key;
-        table->Insert(txn, redo_record);
+        table->Insert(common::ManagedPointer(txn), redo_record);
         txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
     };
