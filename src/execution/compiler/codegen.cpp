@@ -483,7 +483,7 @@ ast::Expr *CodeGen::DateToSql(int16_t year, uint8_t month, uint8_t day) {
 }
 
 ast::Expr *CodeGen::StringToSql(std::string_view str) {
-  ast::Identifier str_ident = Context()->GetIdentifier(str.data());
+  ast::Identifier str_ident = Context()->GetIdentifier({str.data(), str.length()});
   ast::Expr *str_lit = Factory()->NewStringLiteral(DUMMY_POS, str_ident);
   return OneArgCall(ast::Builtin::StringToSql, str_lit);
 }
