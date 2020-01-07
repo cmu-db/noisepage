@@ -2,6 +2,7 @@
 #include "execution/exec/output.h"
 #include "execution/execution_util.h"
 #include "main/db_main.h"
+#include "parser/postgresparser.h"
 #include "test_util/test_harness.h"
 #include "test_util/tpcc/builder.h"
 #include "test_util/tpcc/database.h"
@@ -68,17 +69,22 @@ class TpccExecutionTest : public TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(TpccExecutionTest, SimpleTest) {
-  std::string query = "SELECT * from \"NEW ORDER\"";
+  const std::string query_string = "INSERT INTO \"NEW ORDER\" (NO_O_ID, NO_D_ID, NO_W_ID) VALUES (1,2,3)";
 
   auto *const txn = txn_manager_->BeginTransaction();
   const auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), tpcc_db_->db_oid_);
-  auto physical_plan = trafficcop::TrafficCopUtil::ParseBindAndOptimize(
-      common::ManagedPointer(txn), common::ManagedPointer(accessor), stats_storage_, query, std::string(db_name_),
-      optimizer_timeout_);
+
+  auto query = trafficcop::TrafficCopUtil::Parse(query_string);
+  trafficcop::TrafficCopUtil::Bind(common::ManagedPointer(accessor), std::string(db_name_),
+                                   common::ManagedPointer(query));
+
+  auto physical_plan =
+      trafficcop::TrafficCopUtil::Optimize(common::ManagedPointer(txn), common::ManagedPointer(accessor),
+                                           common::ManagedPointer(query), stats_storage_, optimizer_timeout_);
 
   execution::exec::OutputPrinter printer{physical_plan->GetOutputSchema().Get()};
 
-  std::cout << physical_plan->ToJson() << std::endl;
+  //  std::cout << physical_plan->ToJson() << std::endl;
 
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(tpcc_db_->db_oid_, common::ManagedPointer(txn),
                                                                       printer, physical_plan->GetOutputSchema().Get(),

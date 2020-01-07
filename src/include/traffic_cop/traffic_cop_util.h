@@ -31,11 +31,15 @@ class TrafficCopUtil {
  public:
   TrafficCopUtil() = delete;
 
-  static std::unique_ptr<planner::AbstractPlanNode> ParseBindAndOptimize(
+  static std::unique_ptr<parser::ParseResult> Parse(const std::string &query_string);
+
+  static void Bind(common::ManagedPointer<catalog::CatalogAccessor> accessor, const std::string &db_name,
+                   common::ManagedPointer<parser::ParseResult> query);
+
+  static std::unique_ptr<planner::AbstractPlanNode> Optimize(
       common::ManagedPointer<transaction::TransactionContext> txn,
-      common::ManagedPointer<catalog::CatalogAccessor> accessor,
-      common::ManagedPointer<optimizer::StatsStorage> stats_storage, const std::string &query_string,
-      const std::string &db_name, uint64_t optimizer_timeout);
+      common::ManagedPointer<catalog::CatalogAccessor> accessor, common::ManagedPointer<parser::ParseResult> query,
+      common::ManagedPointer<optimizer::StatsStorage> stats_storage, uint64_t optimizer_timeout);
 };
 
 }  // namespace terrier::trafficcop

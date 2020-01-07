@@ -18,21 +18,24 @@
 
 namespace terrier::trafficcop {
 
-std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::ParseBindAndOptimize(
+std::unique_ptr<parser::ParseResult> TrafficCopUtil::Parse(const std::string &query_string) {
+  return parser::PostgresParser::BuildParseTree(query_string);
+}
+
+void TrafficCopUtil::Bind(const common::ManagedPointer<catalog::CatalogAccessor> accessor, const std::string &db_name,
+                          const common::ManagedPointer<parser::ParseResult> query) {
+  binder::BindNodeVisitor visitor(accessor, db_name);
+  visitor.BindNameToNode(query->GetStatement(0), query.Get());
+}
+
+std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(
     const common::ManagedPointer<transaction::TransactionContext> txn,
     const common::ManagedPointer<catalog::CatalogAccessor> accessor,
-    const common::ManagedPointer<optimizer::StatsStorage> stats_storage, const std::string &query_string,
-    const std::string &db_name, const uint64_t optimizer_timeout) {
-  // Parse
-  auto query = parser::PostgresParser::BuildParseTree(query_string);
-
-  // Binder annotates the ParseResult
-  binder::BindNodeVisitor visitor(accessor, db_name);
-  visitor.BindNameToNode(query.GetStatement(0), &query);
-
+    const common::ManagedPointer<parser::ParseResult> query,
+    const common::ManagedPointer<optimizer::StatsStorage> stats_storage, const uint64_t optimizer_timeout) {
   // Optimizer transforms annotated ParseResult to logical expressions (ephemeral Optimizer structure)
   optimizer::QueryToOperatorTransformer transformer(accessor);
-  auto logical_exprs = transformer.ConvertToOpExpression(query.GetStatement(0), &query);
+  auto logical_exprs = transformer.ConvertToOpExpression(query->GetStatement(0), query.Get());
 
   // TODO(Matt): is the cost model to use going to become an arg to this function eventually?
   optimizer::Optimizer optimizer(std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout);
@@ -42,9 +45,9 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::ParseBindAndOptimize(
   // Build the QueryInfo object. For SELECTs this may require a bunch of other stuff from the original statement.
   // If any more logic like this is needed in the future, we should break this into its own function somewhere since
   // this is Optimizer-specific stuff.
-  const auto type = query.GetStatement(0)->GetType();
+  const auto type = query->GetStatement(0)->GetType();
   if (type == parser::StatementType::SELECT) {
-    const auto sel_stmt = query.GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
+    const auto sel_stmt = query->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
 
     // Output
     output = sel_stmt->GetSelectColumns();  // TODO(Matt): this is making a local copy. Revisit the life cycle and
