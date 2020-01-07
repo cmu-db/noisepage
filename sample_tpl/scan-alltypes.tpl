@@ -11,7 +11,6 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   var ret = 0
   var tvi: TableVectorIterator
   var oids: [2]uint32
-  
   // Setup #1 - Read the bool first then tinyint -- This works
   oids[0] = 1 // bool_col
   oids[1] = 2 // tinyint_col
@@ -31,15 +30,15 @@ fun main(execCtx: *ExecutionContext) -> int64 {
         // Setup #1
         var col0 = @pciGetBool(pci, 0)
         var col1 = @pciGetTinyInt(pci, 1)
-        
+
         // Setup #2
-//         var col0 = @pciGetBool(pci, 1)
-//         var col1 = @pciGetTinyInt(pci, 0)
-        
-        // Setup #3
-//         var col0 = @pciGetBool(pci, 0)
-//         var col1 = @pciGetSmallInt(pci, 1)
-        
+        // bool occurs before tinyint in the original table so is first even though they are the same size so is first in the projection list as well
+        // var col0 = @pciGetBool(pci, 0)
+        // var col1 = @pciGetTinyInt(pci, 1)
+
+        // Setup #3 // smallint is larger than bool so occurs first in the projection list
+        // var col0 = @pciGetBool(pci, 1)
+        // var col1 = @pciGetSmallInt(pci, 0)
 
       if (col0 == true) { 
           // and 

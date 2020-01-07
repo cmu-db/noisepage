@@ -168,8 +168,24 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
           std::memcpy(data, column_data[k].first + j * elem_size, elem_size);
 
           // TODO(pavlo): Remove
-          if (terrier::util::StringUtil::Contains(table_meta->name_, "all_types") && k == 0) {
-            std::cout << "INSERT: [" << j << "] => " << static_cast<bool>(*data) << "\n";
+          if (terrier::util::StringUtil::Contains(table_meta->name_, "all_types")) {
+            switch(k) {
+              case 0:
+                std::cout << "INSERT bool: [" << j << "] => " << static_cast<bool>(*data) << "\n";
+                break;
+              case 1:
+                std::cout << "INSERT tinyint: [" << j << "] => " << static_cast<int8_t>(*reinterpret_cast<int8_t*>(data)) << "\n";
+                break;
+              case 2:
+                std::cout << "INSERT smallint: [" << j << "] => " << static_cast<int16_t>(*reinterpret_cast<int16_t*>(data)) << "\n";
+                break;
+              case 3:
+                std::cout << "INSERT int: [" << j << "] => " << static_cast<int32_t>(*reinterpret_cast<int32_t*>(data)) << "\n";
+                break;
+              case 4:
+                std::cout << "INSERT bigint: [" << j << "] => " << static_cast<int64_t>(*reinterpret_cast<int64_t*>(data)) << "\n";
+                break;
+            }
           }
         }
       }
