@@ -65,6 +65,11 @@ bool StorageInterface::IndexInsert() {
   return curr_index_->Insert(exec_ctx_->GetTxn(), *index_pr_, table_redo_->GetTupleSlot());
 }
 
+bool StorageInterface::IndexInsertUnique() {
+  TERRIER_ASSERT(need_indexes_, "Index PR not allocated!");
+  return curr_index_->InsertUnique(exec_ctx_->GetTxn(), *index_pr_, table_redo_->GetTupleSlot());
+}
+
 void StorageInterface::IndexDelete(storage::TupleSlot table_tuple_slot) {
   TERRIER_ASSERT(need_indexes_, "Index PR not allocated!");
   curr_index_->Delete(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot);
