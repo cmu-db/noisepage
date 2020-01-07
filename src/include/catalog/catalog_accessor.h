@@ -287,6 +287,31 @@ class CatalogAccessor {
   bool DropLanguage(language_oid_t language_oid);
 
   /**
+   * Creates a procedure for the pg_proc table
+   * @param txn transaction to use
+   * @param procname name of process to add
+   * @param procns namespace of process to add
+   * @param args names of arguments to this proc
+   * @param arg_types types of arguments to this proc in the same order as in args
+   * @param arg_modes modes of arguments in the same order as in args
+   * @param rettype type of return value
+   * @param src source code of proc
+   * @param is_aggregate true iff this is an aggregate procedure
+   * @return oid of created proc entry
+   * @warning does not support variadics yet
+   */
+  proc_oid_t CreateProcedure(const std::string &procname,
+                                language_oid_t lanoid,
+                                namespace_oid_t procns,
+                                std::vector<const std::string> &args,
+                                std::vector<type::TypeId> &arg_types,
+                                std::vector<type::TypeId> &all_arg_types,
+                                std::vector<const char> &arg_modes,
+                                type::TypeId rettype, const std::string &src,
+                                bool is_aggregate);
+
+
+  /**
    * Instantiates a new accessor into the catalog for the given database.
    * @param catalog pointer to the catalog being accessed
    * @param dbc pointer to the database catalog being accessed

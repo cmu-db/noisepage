@@ -273,6 +273,7 @@ class DatabaseCatalog {
    * @param arg_modes modes of arguments in the same order as in args
    * @param rettype type of return value
    * @param src source code of proc
+   * @param is_aggregate true iff this is an aggregate procedure
    * @return oid of created proc entry
    * @warning does not support variadics yet
    */
@@ -280,10 +281,10 @@ class DatabaseCatalog {
       language_oid_t lanoid,
       namespace_oid_t procns,
       std::vector<const std::string> &args,
-      std::vector<type_oid_t> &arg_types,
-      std::vector<type_oid_t> &all_arg_types,
-      std::vector<char> &arg_modes,
-      type_oid_t rettype, const std::string &src,
+      std::vector<type::TypeId> &arg_types,
+      std::vector<type::TypeId> &all_arg_types,
+      std::vector<const char> &arg_modes,
+      type::TypeId rettype, const std::string &src,
                              bool is_aggregate);
 
   bool DropProcedure(transaction::TransactionContext *);
@@ -415,7 +416,7 @@ class DatabaseCatalog {
   storage::index::Index *procs_name_index_;
   storage::ProjectedRowInitializer pg_proc_all_cols_pri_;
   storage::ProjectionMap  pg_proc_all_cols_prm_;
-  std::atomic<proc_oid_t> proc_oid_counter_{0};
+  std::atomic<proc_oid_t> proc_oid_counter_{postgres::INITIAL_PROC_COUNTER_OID};
 
   std::atomic<uint32_t> next_oid_;
   std::atomic<transaction::timestamp_t> write_lock_;

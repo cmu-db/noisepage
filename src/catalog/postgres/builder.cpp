@@ -668,7 +668,7 @@ Schema Builder::GetProcTableSchema() {
   columns.emplace_back("proargtypes", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
   columns.back().SetOid(PROARGTYPES_COL_OID);
 
-  columns.emplace_back("proallargtypes", type::TypeId::VARBINARY, false, MakeNull(type::TypeId::VARBINARY));
+  columns.emplace_back("proallargtypes", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));
   columns.back().SetOid(PROALLARGTYPES_COL_OID);
 
   columns.emplace_back("proargmodes", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));
@@ -687,7 +687,7 @@ Schema Builder::GetProcTableSchema() {
   columns.emplace_back("proconfig", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));
   columns.back().SetOid(PROCONFIG_COL_OID);
 
-  return Schema();
+  return Schema(columns);
 }
 
 IndexSchema Builder::GetProcOidIndexSchema(db_oid_t db) {

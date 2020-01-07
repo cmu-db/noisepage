@@ -2,6 +2,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <catalog/catalog_accessor.h>
+
 #include "catalog/catalog.h"
 
 namespace terrier::catalog {
@@ -139,5 +141,19 @@ language_oid_t CatalogAccessor::GetLanguageOid(const std::string &lanname) {
 }
 
 bool CatalogAccessor::DropLanguage(language_oid_t language_oid) { return dbc_->DropLanguage(txn_, language_oid); }
+
+proc_oid_t CatalogAccessor::CreateProcedure(const std::string &procname,
+                                            language_oid_t lanoid,
+                                            namespace_oid_t procns,
+                                            std::vector<const std::string> &args,
+                                            std::vector<type::TypeId> &arg_types,
+                                            std::vector<type::TypeId> &all_arg_types,
+                                            std::vector<const char> &arg_modes,
+                                            type::TypeId rettype,
+                                            const std::string &src,
+                                            bool is_aggregate) {
+  return dbc_->CreateProcedure(txn_, procname, lanoid, procns, args, arg_types,
+                               all_arg_types, arg_modes, rettype, src, is_aggregate);
+}
 
 }  // namespace terrier::catalog

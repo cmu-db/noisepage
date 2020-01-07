@@ -74,6 +74,7 @@ struct CatalogTests : public TerrierTest {
     VerifyTablePresent(accessor, ns_oid, "pg_namespace");
     VerifyTablePresent(accessor, ns_oid, "pg_type");
     VerifyTablePresent(accessor, ns_oid, "pg_language");
+    VerifyTablePresent(accessor, ns_oid, "pg_proc");
   }
 
   void VerifyTablePresent(const catalog::CatalogAccessor &accessor, catalog::namespace_oid_t ns_oid,
@@ -140,6 +141,34 @@ TEST_F(CatalogTests, LanguageTest) {
   result = accessor->DropLanguage(good_oid);
   EXPECT_FALSE(result);
   txn_manager_->Abort(txn);
+}
+
+TEST_F(CatalogTests, ProcTest) {
+  auto txn = txn_manager_->BeginTransaction();
+  auto accessor = catalog_->GetAccessor(txn, db_);
+
+  auto lan_oid = accessor->CreateLanguage("test_language");
+  auto ns_oid = accessor->CreateNamespace("test_ns");
+
+  EXPECT_NE(lan_oid, catalog::INVALID_LANGUAGE_OID);
+  EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
+
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(txn, db_);
+
+  auto procname = "sample";
+  std::vector<const std::string> args = {"arg1", "arg2", "arg3"};
+  std::vector<type::TypeId>  arg_types = {type::TypeId::INTEGER, type::TypeId::BOOLEAN, type::TypeId::SMALLINT};
+  std::vector<const char> arg_modes = {'i', 'i', 'i'};
+  auto src = "int sample(arg1, arg2, arg3){return 2;}";
+
+  auto proc_oid = accessor->CreateProcedure(procname, lan_oid, ns_oid,
+                            args, arg_types, arg_types,
+                            arg_modes, type::TypeId::INTEGER, src, false);
+  EXPECT_NE(proc_oid, catalog::INVALID_PROC_OID);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 /*

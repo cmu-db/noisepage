@@ -321,8 +321,8 @@ void DatabaseCatalog::BootstrapPRIs() {
   // pg_proc
   const std::vector<col_oid_t> pg_proc_all_oids{postgres::PG_PRO_ALL_COL_OIDS.cbegin(),
                                                 postgres::PG_PRO_ALL_COL_OIDS.cend()};
-  pg_language_all_cols_pri_ = procs_->InitializerForProjectedRow(pg_proc_all_oids);
-  pg_language_all_cols_prm_ = procs_->ProjectionMapForOids(pg_proc_all_oids);
+  pg_proc_all_cols_pri_ = procs_->InitializerForProjectedRow(pg_proc_all_oids);
+  pg_proc_all_cols_prm_ = procs_->ProjectionMapForOids(pg_proc_all_oids);
 }
 
 namespace_oid_t DatabaseCatalog::CreateNamespace(transaction::TransactionContext *const txn, const std::string &name) {
@@ -2061,10 +2061,10 @@ proc_oid_t DatabaseCatalog::CreateProcedure(transaction::TransactionContext *txn
                                             language_oid_t lanoid,
                                             namespace_oid_t procns,
                                             std::vector<const std::string> &args,
-                                            std::vector<type_oid_t> &arg_types,
-                                            std::vector<type_oid_t> &all_arg_types,
-                                            std::vector<char> &arg_modes,
-                                            type_oid_t rettype, const std::string &src,
+                                            std::vector<type::TypeId> &arg_types,
+                                            std::vector<type::TypeId> &all_arg_types,
+                                            std::vector<const char> &arg_modes,
+                                            type::TypeId rettype, const std::string &src,
                                             bool is_aggregate)
 {
   TERRIER_ASSERT(args.size() < UINT16_MAX, "Number of arguments must fit in a SMALLINT");
@@ -2074,8 +2074,8 @@ proc_oid_t DatabaseCatalog::CreateProcedure(transaction::TransactionContext *txn
   const auto name_varlen = storage::StorageUtil::CreateVarlen(procname);
 
   std::vector<storage::VarlenEntry> arg_varlen_vec;
+  arg_varlen_vec.reserve(args.size()*sizeof(storage::VarlenEntry));
 
-  // TODO(tanujnay112): Ask how deallocation works for these, probably just have to do it in TearDown and Delete
   for(auto &arg : args){
     arg_varlen_vec.push_back(storage::StorageUtil::CreateVarlen(arg));
   }
@@ -2108,7 +2108,7 @@ proc_oid_t DatabaseCatalog::CreateProcedure(transaction::TransactionContext *txn
   *(reinterpret_cast<namespace_oid_t *>(redo->Delta()->AccessForceNotNull(
       pg_proc_all_cols_prm_[postgres::PRONAMESPACE_COL_OID]))) = procns;
   *(reinterpret_cast<type_oid_t *>(redo->Delta()->AccessForceNotNull(
-      pg_proc_all_cols_prm_[postgres::PRORETTYPE_COL_OID]))) = rettype;
+      pg_proc_all_cols_prm_[postgres::PRORETTYPE_COL_OID]))) = GetTypeOidForType(rettype);
 
   *(reinterpret_cast<uint16_t *>(redo->Delta()->AccessForceNotNull(
       pg_proc_all_cols_prm_[postgres::PRONARGS_COL_OID]))) = static_cast<uint16_t >(args.size());
@@ -2154,8 +2154,9 @@ proc_oid_t DatabaseCatalog::CreateProcedure(transaction::TransactionContext *txn
 
   byte *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
   auto name_pr = name_pri.InitializeRow(buffer);
-  *(reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(1))) = name_varlen;
-  *(reinterpret_cast<namespace_oid_t *>(name_pr->AccessForceNotNull(2))) = procns;
+  auto name_map = procs_name_index_->GetKeyOidToOffsetMap();
+  *(reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t{1}]))) = name_varlen;
+  *(reinterpret_cast<namespace_oid_t *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t{2}]))) = procns;
 
   auto result = procs_name_index_->InsertUnique(txn, *name_pr, tuple_slot);
   if(!result){
@@ -2164,7 +2165,7 @@ proc_oid_t DatabaseCatalog::CreateProcedure(transaction::TransactionContext *txn
   }
 
   auto oid_pr = oid_pri.InitializeRow(buffer);
-  *(reinterpret_cast<proc_oid_t *>(oid_pr->AccessForceNotNull(1))) = oid;
+  *(reinterpret_cast<proc_oid_t *>(oid_pr->AccessForceNotNull(0))) = oid;
   result = procs_oid_index_->InsertUnique(txn, *oid_pr, tuple_slot);
   TERRIER_ASSERT(result, "Oid insertion should be unique");
 
