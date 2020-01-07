@@ -109,6 +109,19 @@ class BwTreeBase {
   // We invoke the GC procedure after this has been reached
   static constexpr size_t GC_NODE_COUNT_THREADHOLD = 1024;
 
+  /** @return inner_delta_chain_length_threshold */
+  int GetInnerDeltaChainLengthThreshold() const { return inner_delta_chain_length_threshold_; }
+  /** @return leaf_delta_chain_length_threshold */
+  int GetLeafDeltaChainLengthThreshold() const { return leaf_delta_chain_length_threshold_; }
+  /** @return inner_node_size_upper_threshold */
+  int GetInnerNodeSizeUpperThreshold() const { return inner_node_size_upper_threshold_; }
+  /** @return inner_node_size_lower_threshold */
+  int GetInnerNodeSizeLowerThreshold() const { return inner_node_size_lower_threshold_; }
+  /** @return leaf_node_size_upper_threshold */
+  int GetLeafNodeSizeUpperThreshold() const { return leaf_node_size_upper_threshold_; }
+  /** @return leaf_node_size_lower_threshold */
+  int GetLeafNodeSizeLowerThreshold() const { return leaf_node_size_lower_threshold_; }
+
   /*
    * class GarbageNode - Garbage node used to represent delayed allocation
    *
@@ -225,6 +238,52 @@ class BwTreeBase {
   // This is current epoch
   // We need to make it atomic since multiple threads might try to modify it
   uint64_t epoch;
+
+ protected:
+  /** @param inner_delta_chain_length_threshold depth threshold for inner node chain to be assigned to this tree */
+  void SetInnerDeltaChainLengthThreshold(int inner_delta_chain_length_threshold) {
+    inner_delta_chain_length_threshold_ = inner_delta_chain_length_threshold;
+  }
+
+  /** @param leaf_delta_chain_length_threshold depth threshold for leaf node chain to be assigned to this tree */
+  void SetLeafDeltaChainLengthThreshold(int leaf_delta_chain_length_threshold) {
+    leaf_delta_chain_length_threshold_ = leaf_delta_chain_length_threshold;
+  }
+
+  /** @param inner_node_size_upper_threshold upper size threshold for inner node split to be assigned to this tree */
+  void SetInnerNodeSizeUpperThreshold(int inner_node_size_upper_threshold) {
+    inner_node_size_upper_threshold_ = inner_node_size_upper_threshold;
+  }
+
+  /** @param inner_node_size_upper_threshold lower size threshold for inner node removal to be assigned to this tree */
+  void SetInnerNodeSizeLowerThreshold(int inner_node_size_lower_threshold) {
+    inner_node_size_lower_threshold_ = inner_node_size_lower_threshold;
+  }
+
+  /** @param leaf_node_size_upper_threshold upper size threshold for leaf node split to be assigned to this tree */
+  void SetLeafNodeSizeUpperThreshold(int leaf_node_size_upper_threshold) {
+    leaf_node_size_upper_threshold_ = leaf_node_size_upper_threshold;
+  }
+
+  /** @param inner_node_size_upper_threshold lower size threshold for leaf node removal to be assigned to this tree */
+  void SetLeafNodeSizeLowerThreshold(int leaf_node_size_lower_threshold) {
+    leaf_node_size_lower_threshold_ = leaf_node_size_lower_threshold;
+  }
+
+  /** depth threshold for inner node chain */
+  int inner_delta_chain_length_threshold_ = INNER_DELTA_CHAIN_LENGTH_THRESHOLD;
+  /** depth threshold for leaf node chain */
+  int leaf_delta_chain_length_threshold_ = LEAF_DELTA_CHAIN_LENGTH_THRESHOLD;
+
+  /** upper size threshold for inner node split */
+  int inner_node_size_upper_threshold_ = INNER_NODE_SIZE_UPPER_THRESHOLD;
+  /** lower size threshold for inner node removal */
+  int inner_node_size_lower_threshold_ = INNER_NODE_SIZE_LOWER_THRESHOLD;
+
+  /** upper size threshold for leaf node split */
+  int leaf_node_size_upper_threshold_ = LEAF_NODE_SIZE_UPPER_THRESHOLD;
+  /** lower size threshold for leaf node removal */
+  int leaf_node_size_lower_threshold_ = LEAF_NODE_SIZE_LOWER_THRESHOLD;
 
  public:
   /*
@@ -2053,7 +2112,7 @@ class BwTree : public BwTreeBase {
       // This size is exactly the index of the split point
       int left_sibling_size = std::distance(this->Begin(), it);
 
-      if (left_sibling_size > static_cast<int>(LEAF_NODE_SIZE_LOWER_THRESHOLD)) {
+      if (left_sibling_size > static_cast<int>(leaf_node_size_lower_threshold_)) {
         return left_sibling_size;
       }
 
@@ -2068,7 +2127,7 @@ class BwTree : public BwTreeBase {
 
       int right_sibling_size = std::distance(it, this->End());
 
-      if (right_sibling_size > static_cast<int>(LEAF_NODE_SIZE_LOWER_THRESHOLD)) {
+      if (right_sibling_size > static_cast<int>(leaf_node_size_lower_threshold_)) {
         return std::distance(this->Begin(), it);
       }
 
@@ -5603,11 +5662,11 @@ class BwTree : public BwTreeBase {
     int depth = node_p->GetDepth();
 
     if (snapshot_p->IsLeaf()) {
-      if (depth < LEAF_DELTA_CHAIN_LENGTH_THRESHOLD) {
+      if (depth < leaf_delta_chain_length_threshold_) {
         return;
       }
     } else {
-      if (depth < INNER_DELTA_CHAIN_LENGTH_THRESHOLD) {
+      if (depth < inner_delta_chain_length_threshold_) {
         return;
       }
     }
@@ -5658,7 +5717,7 @@ class BwTree : public BwTreeBase {
       size_t node_size = leaf_node_p->GetItemCount();
 
       // Perform corresponding action based on node size
-      if (node_size >= LEAF_NODE_SIZE_UPPER_THRESHOLD) {
+      if (node_size >= leaf_node_size_upper_threshold_) {
         INDEX_LOG_TRACE("Node size >= leaf upper threshold. Split");
 
         // Note: This function takes this as argument since it will
@@ -5800,7 +5859,7 @@ class BwTree : public BwTreeBase {
 
       size_t node_size = inner_node_p->GetSize();
 
-      if (node_size >= INNER_NODE_SIZE_UPPER_THRESHOLD) {
+      if (node_size >= inner_node_size_upper_threshold_) {
         INDEX_LOG_TRACE("Node size >= inner upper threshold. Split");
 
         const InnerNode *new_inner_node_p = inner_node_p->GetSplitSibling();
@@ -5878,7 +5937,7 @@ class BwTree : public BwTreeBase {
 
         return;
         // if CAS fails
-      } else if (node_size <= INNER_NODE_SIZE_LOWER_THRESHOLD) {
+      } else if (node_size <= inner_node_size_lower_threshold_) {
         if (context_p->IsOnRootNode()) {
           INDEX_LOG_TRACE("Root underflow - let it be");
 
