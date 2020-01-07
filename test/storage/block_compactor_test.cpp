@@ -401,10 +401,13 @@ TEST_F(BlockCompactorTest, ExportDictionaryCompressedTableTest) {
 
   // Enable GC to cleanup transactions started by the block compactor
   transaction::TimestampManager timestamp_manager;
-  transaction::DeferredActionManager deferred_action_manager{&timestamp_manager};
-  transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
-                                              DISABLED);
-  storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
+  transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
+  transaction::TransactionManager txn_manager{common::ManagedPointer(&timestamp_manager),
+                                              common::ManagedPointer(&deferred_action_manager),
+                                              common::ManagedPointer(&buffer_pool_), true, DISABLED};
+  storage::GarbageCollector gc{common::ManagedPointer(&timestamp_manager),
+                               common::ManagedPointer(&deferred_action_manager), common::ManagedPointer(&txn_manager),
+                               DISABLED};
   auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
 
   // Manually populate the block header's arrow metadata for test initialization
@@ -416,10 +419,10 @@ TEST_F(BlockCompactorTest, ExportDictionaryCompressedTableTest) {
   for (storage::col_id_t col_id : layout.AllColumns()) {
     if (layout.IsVarlen(col_id)) {
       arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::DICTIONARY_COMPRESSED;
-      column_types.emplace_back(type::TypeId::VARCHAR);
+      column_types[!col_id] = type::TypeId::VARCHAR;
     } else {
       arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::FIXED_LENGTH;
-      column_types.emplace_back(type::TypeId::INTEGER);
+      column_types[!col_id] = type::TypeId::INTEGER;
     }
   }
 
@@ -457,10 +460,13 @@ TEST_F(BlockCompactorTest, ExportVarlenTableTest) {
 
   // Enable GC to cleanup transactions started by the block compactor
   transaction::TimestampManager timestamp_manager;
-  transaction::DeferredActionManager deferred_action_manager{&timestamp_manager};
-  transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
-                                              DISABLED);
-  storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
+  transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
+  transaction::TransactionManager txn_manager{common::ManagedPointer(&timestamp_manager),
+                                              common::ManagedPointer(&deferred_action_manager),
+                                              common::ManagedPointer(&buffer_pool_), true, DISABLED};
+  storage::GarbageCollector gc{common::ManagedPointer(&timestamp_manager),
+                               common::ManagedPointer(&deferred_action_manager), common::ManagedPointer(&txn_manager),
+                               DISABLED};
   auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
 
   // Manually populate the block header's arrow metadata for test initialization
@@ -472,10 +478,10 @@ TEST_F(BlockCompactorTest, ExportVarlenTableTest) {
   for (storage::col_id_t col_id : layout.AllColumns()) {
     if (layout.IsVarlen(col_id)) {
       arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::GATHERED_VARLEN;
-      column_types.emplace_back(type::TypeId::VARCHAR);
+      column_types[!col_id] = type::TypeId::VARCHAR;
     } else {
       arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::FIXED_LENGTH;
-      column_types.emplace_back(type::TypeId::INTEGER);
+      column_types[!col_id] = type::TypeId::INTEGER;
     }
   }
 

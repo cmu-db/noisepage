@@ -297,7 +297,6 @@ void DataTable::WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<co
   ArrowBlockMetadata &metadata = accessor_.GetArrowBlockMetadata(block);
   std::vector<flatbuffers::Offset<flatbuf::Field>> fields;
   int64_t dictionary_id = 0;
-  uint16_t i = 0;
 
   // For each column, write its metadata into the schema message that will be parsed at the very beginning when
   // reading a exported table file.
@@ -317,7 +316,7 @@ void DataTable::WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<co
     flatbuffers::Offset<flatbuf::DictionaryEncoding> dictionary = 0;
     if (!layout.IsVarlen(col_id) || col_info.Type() == ArrowColumnType::FIXED_LENGTH) {
       uint8_t byte_width = accessor_.GetBlockLayout().AttrSize(col_id);
-      switch ((*col_types)[i++]) {
+      switch ((*col_types)[!col_id]) {
         case type::TypeId::BOOLEAN:
           type = flatbuf::Type_Bool;
           type_offset = flatbuf::CreateBool(*flatbuf_builder).Union();
@@ -330,7 +329,7 @@ void DataTable::WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<co
           TERRIER_FALLTHROUGH;
         case type::TypeId::BIGINT:
           type = flatbuf::Type_Int;
-          type_offset = flatbuf::CreateInt(*flatbuf_builder, byte_width, true).Union();
+          type_offset = flatbuf::CreateInt(*flatbuf_builder, 8 * byte_width, true).Union();
           break;
         case type::TypeId::TIMESTAMP:
           type = flatbuf::Type_Timestamp;
@@ -350,15 +349,12 @@ void DataTable::WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<co
               *flatbuf_builder, dictionary_id, flatbuf::CreateInt(*flatbuf_builder, 8 * sizeof(uint64_t), true), false);
           dictionary_ids->emplace(col_id, dictionary_id++);
           TERRIER_FALLTHROUGH;
-        case ArrowColumnType::GATHERED_VARLEN:
-          type = flatbuf::Type_LargeBinary;
+        case ArrowColumnType::GATHERED_VARLEN:type = flatbuf::Type_LargeBinary;
           type_offset = flatbuf::CreateLargeBinary(*flatbuf_builder).Union();
           break;
-        default:
-          throw std::runtime_error("unexpected control flow");
+        default:throw std::runtime_error("unexpected control flow");
       }
     }
-
     // Apache Arrow supports nested logical types. For example, for type List<Int64>, the parent type is List,
     // and its children type is Int64. Another example, for type List<List<Int64>>, List<Int64> is the children
     // of the outer List, and Int64 is the children of the inner List. Since we don't have nested types, we use
