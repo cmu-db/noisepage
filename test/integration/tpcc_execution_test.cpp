@@ -42,7 +42,7 @@ class TpccExecutionTest : public TerrierTest {
   common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
   common::ManagedPointer<catalog::Catalog> catalog_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
-  static constexpr std::string_view db_name_ = "tpcc";
+  static constexpr std::string_view DB_NAME = "tpcc";
 
   const uint8_t num_threads_ = 1;
   const uint64_t optimizer_timeout_ = 5000;
@@ -69,13 +69,15 @@ class TpccExecutionTest : public TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(TpccExecutionTest, SimpleTest) {
-  const std::string query_string = "INSERT INTO \"NEW ORDER\" (NO_O_ID, NO_D_ID, NO_W_ID) VALUES (1,2,3)";
+//  const std::string query_string = "INSERT INTO HISTORY VALUES (1,1,1,1,1,1,1.0,'A')";
+  const std::string query_string = "INSERT INTO \"NEW ORDER\" VALUES (1,2,3)";
+//  const std::string query_string = "SELECT * FROM \"NEW ORDER\"";
 
   auto *const txn = txn_manager_->BeginTransaction();
   const auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), tpcc_db_->db_oid_);
 
   auto query = trafficcop::TrafficCopUtil::Parse(query_string);
-  trafficcop::TrafficCopUtil::Bind(common::ManagedPointer(accessor), std::string(db_name_),
+  trafficcop::TrafficCopUtil::Bind(common::ManagedPointer(accessor), std::string(DB_NAME),
                                    common::ManagedPointer(query));
 
   auto physical_plan =
