@@ -9,11 +9,11 @@ from sklearn.kernel_ridge import KernelRidge
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 from sklearn.neural_network.multilayer_perceptron import MLPRegressor
+from sklearn.multioutput import MultiOutputRegressor
 
 LOGTRANS_EPS = 1e-4
 
 def _get_base_ML_model(method):
-
     if method == 'lr':
         regressor = LinearRegression()
     if method == 'kr':
@@ -25,13 +25,14 @@ def _get_base_ML_model(method):
     if method == 'nn':
         regressor = MLPRegressor(hidden_layer_sizes=(30, 30), early_stopping=True, max_iter=1000000, alpha=0.01)
 
-    return regressor
+    multi_regressor = MultiOutputRegressor(regressor)
+
+    return multi_regressor
 
 class Model:
     '''
     The class that wraps around standard ML libraries.
     With the implementation for different normalization handlings
-
     '''
     def __init__(self, method, normalize = True, log_transform = True):
         '''
@@ -54,9 +55,9 @@ class Model:
 
         if self._normalize == True:
             x = self._xscaler.fit_transform(x)
-            y = self._yscaler.fit_transform(y.reshape(-1, 1))
+            y = self._yscaler.fit_transform(y)
 
-        self._base_model.fit(x, y.flatten())
+        self._base_model.fit(x, y)
 
     def predict(self, x):
         # transform the features
@@ -75,5 +76,5 @@ class Model:
             y = np.exp(y) - LOGTRANS_EPS
             y = np.clip(y, 0, None)
 
-        return y.flatten()
+        return y
 

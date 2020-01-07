@@ -3,6 +3,10 @@
 import csv
 import numpy as np
 import pandas as pd
+import os
+
+import data_info as di
+from data_info import OpUnit
 
 np.set_printoptions(precision=4)
 np.set_printoptions(suppress=True)
@@ -54,7 +58,7 @@ def get_data_list(path):
             #print(feature_grouped_data.groups.keys())
             data = feature_grouped_data.mean().to_numpy()
             #print(data)
-            data_list.append(Data(symbol, target, data))
+            data_list.append(OldData(symbol, target, data))
 
     return data_list
 
@@ -79,7 +83,7 @@ def get_concurrent_data_list(path):
     data_list = []
     for i, feature_idx in enumerate(feature_idxes):
         data = df.iloc[:, feature_idx].values
-        data_list.append(Data(symbols[i], targets[i], data))
+        data_list.append(OldData(symbols[i], targets[i], data))
 
     return data_list
 
@@ -104,8 +108,49 @@ def transform_data_list(data_list):
 
         write_extended_data(output_path, d.symbol, index_value_list, data_map)
 
+def get_mini_runner_data(file):
+    '''
+    Get the training data from the mini runner (except the execution engine)
+    '''
+    df = pd.read_csv(file)
+    file_name = os.path.splitext(os.path.basename(file))[0]
+    print(OpUnit[file_name])
+
+    x = df.iloc[:, :-di.target_num].values
+    y = df.iloc[:, -di.target_num:].values
+
+    return Data(OpUnit[file_name], x, y)
+
+def get_execution_mini_runner_data(file):
+    '''
+    Get the training data from the execution mini runner
+    '''
+    data_list = []
+    import csv
+
+    with open(file, "r") as f:
+        reader = csv.reader(f, delimiter=",", skipinitialspace=True)
+        for line in reader:
+            print(line)
+
+    return data_list
 
 class Data:
+    '''
+    The class that stores data and provides basic functions to manipulate the data
+    '''
+    def __init__(self, opunit, x, y):
+        '''
+
+        :param opunit: The opunit that the data is related to
+        :param x: The input feature
+        :param y: The outputs
+        '''
+        self.opunit = opunit
+        self.x = x
+        self.y = y
+
+class OldData:
     '''
     The class that stores data and provides basic functions to manipulate the data
 
@@ -160,7 +205,7 @@ class Data:
         new_label = func(self.data[:, -1], self.data[:, idx])
         new_data[:, -1] = new_label
 
-        return Data(self.symbol, self.target, new_data)
+        return OldData(self.symbol, self.target, new_data)
 
 
 # ==============================================
