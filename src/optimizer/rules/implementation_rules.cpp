@@ -111,6 +111,7 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<OperatorExp
 
   auto db_oid = get->GetDatabaseOid();
   auto ns_oid = get->GetNamespaceOid();
+  auto t_oid = get->GetTableOid();
   bool is_update = get->GetIsForUpdate();
   auto *accessor = context->GetOptimizerContext()->GetCatalogAccessor();
 
@@ -127,7 +128,8 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<OperatorExp
           std::string tbl_alias = std::string(get->GetTableAlias());
           std::vector<std::unique_ptr<OperatorExpression>> c;
           auto result = std::make_unique<OperatorExpression>(
-              IndexScan::Make(db_oid, ns_oid, index, std::move(preds), tbl_alias, is_update, {}, {}, {}), std::move(c));
+              IndexScan::Make(db_oid, ns_oid, index, t_oid, std::move(preds), tbl_alias, is_update, {}, {}, {}),
+              std::move(c));
           transformed->emplace_back(std::move(result));
         }
       }
@@ -151,7 +153,7 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<OperatorExp
         // instead to wrap all these vectors?
         std::vector<std::unique_ptr<OperatorExpression>> c;
         auto result = std::make_unique<OperatorExpression>(
-            IndexScan::Make(db_oid, ns_oid, index, std::move(preds), std::move(tbl_alias), is_update,
+            IndexScan::Make(db_oid, ns_oid, index, t_oid, std::move(preds), std::move(tbl_alias), is_update,
                             std::move(output.GetPredicateColumnIds()), std::move(output.GetPredicateExprTypes()),
                             std::move(output.GetPredicateValues())),
             std::move(c));
