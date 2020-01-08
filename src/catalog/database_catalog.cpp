@@ -3,6 +3,7 @@
 #include <utility>
 #include <vector>
 #include <catalog/postgres/pg_proc.h>
+#include <catalog/database_catalog.h>
 
 #include "catalog/catalog_defs.h"
 #include "catalog/database_catalog.h"
@@ -2022,12 +2023,13 @@ language_oid_t DatabaseCatalog::GetLanguageOid(transaction::TransactionContext *
         all_cols_pr->AccessForceNotNull(pg_language_all_cols_prm_[postgres::LANOID_COL_OID]));
   }
 
+
   delete[] buffer;
   return oid;
 }
 
 bool DatabaseCatalog::DropLanguage(transaction::TransactionContext *txn, language_oid_t oid) {
-  // Insert into table
+  // Delete fom table
   if (!TryLock(txn)) return false;
   TERRIER_ASSERT(oid != INVALID_LANGUAGE_OID, "Invalid oid passed");
   // Delete from oid index
@@ -2068,6 +2070,10 @@ bool DatabaseCatalog::DropLanguage(transaction::TransactionContext *txn, languag
   *reinterpret_cast<storage::VarlenEntry *>(index_pr->AccessForceNotNull(0)) = name_varlen;
 
   languages_name_index_->Delete(txn, *index_pr, to_delete_slot);
+
+  if(name_varlen.NeedReclaim()){
+    delete []name_varlen.Content();
+  }
 
   delete[] buffer;
 
@@ -2172,8 +2178,8 @@ proc_oid_t DatabaseCatalog::CreateProcedure(transaction::TransactionContext *txn
   byte *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
   auto name_pr = name_pri.InitializeRow(buffer);
   auto name_map = procs_name_index_->GetKeyOidToOffsetMap();
-  *(reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t{1}]))) = name_varlen;
-  *(reinterpret_cast<namespace_oid_t *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t{2}]))) = procns;
+  *(reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(1)]))) = name_varlen;
+  *(reinterpret_cast<namespace_oid_t *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(2)]))) = procns;
 
   auto result = procs_name_index_->InsertUnique(txn, *name_pr, tuple_slot);
   if(!result){
@@ -2188,6 +2194,96 @@ proc_oid_t DatabaseCatalog::CreateProcedure(transaction::TransactionContext *txn
 
   delete []buffer;
   return oid;
+}
+
+bool DatabaseCatalog::DropProcedure(transaction::TransactionContext *txn, proc_oid_t oid) {
+  if (!TryLock(txn)) return false;
+  TERRIER_ASSERT(oid != INVALID_PROC_OID, "Invalid oid passed");
+
+  auto name_pri = procs_name_index_->GetProjectedRowInitializer();
+  auto oid_pri = procs_oid_index_->GetProjectedRowInitializer();
+
+  byte *const buffer = common::AllocationUtil::AllocateAligned(pg_proc_all_cols_pri_.ProjectedRowSize());
+
+  auto oid_pr = oid_pri.InitializeRow(buffer);
+  *reinterpret_cast<proc_oid_t *>(oid_pr->AccessForceNotNull(0)) = oid;
+
+  std::vector<storage::TupleSlot> results;
+  procs_oid_index_->ScanKey(*txn, *oid_pr, &results);
+  if (results.size() == 0) {
+    delete[] buffer;
+    return false;
+  }
+
+  TERRIER_ASSERT(results.size() == 1, "More than one non-unique result found in unique index.");
+
+  auto to_delete_slot = results[0];
+  txn->StageDelete(db_oid_, postgres::LANGUAGE_TABLE_OID, to_delete_slot);
+
+  if (!procs_->Delete(txn, to_delete_slot)) {
+    // Someone else has a write-lock. Free the buffer and return false to indicate failure
+    delete[] buffer;
+    return false;
+  }
+
+  procs_oid_index_->Delete(txn, *oid_pr, to_delete_slot);
+
+  auto table_pr = pg_proc_all_cols_pri_.InitializeRow(buffer);
+  bool UNUSED_ATTRIBUTE visible = languages_->Select(txn, to_delete_slot, table_pr);
+
+  auto name_varlen = *reinterpret_cast<storage::VarlenEntry*>
+      (table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PRONAME_COL_OID]));
+  auto proc_ns = *reinterpret_cast<namespace_oid_t *>
+      (table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PRONAMESPACE_COL_OID]));
+
+  auto name_pr = name_pri.InitializeRow(buffer);
+
+  auto name_map = procs_name_index_->GetKeyOidToOffsetMap();
+  *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(1)])) = name_varlen;
+  *reinterpret_cast<namespace_oid_t *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(2)])) = proc_ns;
+
+  procs_name_index_->Delete(txn, *name_pr, to_delete_slot);
+
+  delete[] buffer;
+  return true;
+}
+
+proc_oid_t DatabaseCatalog::GetProcOid(transaction::TransactionContext *txn,
+    const std::string &procname, namespace_oid_t procns) {
+  if (!TryLock(txn)) return INVALID_PROC_OID;
+
+
+  auto name_pri = procs_name_index_->GetProjectedRowInitializer();
+  byte *const buffer = common::AllocationUtil::AllocateAligned(pg_proc_all_cols_pri_.ProjectedRowSize());
+
+  auto name_pr = name_pri.InitializeRow(buffer);
+  auto name_map = procs_name_index_->GetKeyOidToOffsetMap();
+
+  auto name_varlen = storage::StorageUtil::CreateVarlen(procname);
+  *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(1)])) = name_varlen;
+
+  std::vector<storage::TupleSlot> results;
+  procs_name_index_->ScanKey(*txn, *name_pr, &results);
+
+  proc_oid_t ret = INVALID_PROC_OID;
+  if (results.size() != 0) {
+
+    TERRIER_ASSERT(results.size() == 1, "More than one non-unique result found in unique index.");
+
+    auto found_slot = results[0];
+
+    auto table_pr = pg_proc_all_cols_pri_.InitializeRow(buffer);
+    bool UNUSED_ATTRIBUTE visible = languages_->Select(txn, found_slot, table_pr);
+    ret = *reinterpret_cast<proc_oid_t *>(table_pr->AccessForceNotNull(
+        pg_proc_all_cols_prm_[postgres::PROOID_COL_OID]));
+  }
+
+  if(name_varlen.NeedReclaim()){
+    delete[] name_varlen.Content();
+  }
+
+  delete[] buffer;
+  return ret;
 }
 
 template bool DatabaseCatalog::CreateColumn<Schema::Column, table_oid_t>(
