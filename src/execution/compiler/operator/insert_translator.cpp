@@ -1,6 +1,8 @@
 #include "execution/compiler/operator/insert_translator.h"
+
 #include <utility>
 #include <vector>
+
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/translator_factory.h"
 
@@ -153,7 +155,8 @@ void InsertTranslator::GenIndexInsert(FunctionBuilder *builder, const catalog::i
 
   // Insert into index
   // if (insert not successfull) { Abort(); }
-  auto index_insert_call = codegen_->OneArgCall(ast::Builtin::IndexInsert, inserter_, true);
+  auto index_insert_call = codegen_->OneArgCall(
+      index_schema.Unique() ? ast::Builtin::IndexInsertUnique : ast::Builtin::IndexInsert, inserter_, true);
   auto cond = codegen_->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
   builder->StartIfStmt(cond);
   Abort(builder);
