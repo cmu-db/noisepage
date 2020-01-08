@@ -287,7 +287,9 @@ class DatabaseCatalog {
       type::TypeId rettype, const std::string &src,
                              bool is_aggregate);
 
-  bool DropProcedure(transaction::TransactionContext *);
+  bool DropProcedure(transaction::TransactionContext *txn, proc_oid_t proc);
+
+  proc_oid_t GetProcOid(transaction::TransactionContext *txn, const std::string &procname, namespace_oid_t procns);
 
  private:
   /**
