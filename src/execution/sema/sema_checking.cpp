@@ -163,9 +163,15 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
     return {built_ret_type(left->GetType()), left, right};
   }
 
-  // Two Booleans
-  if (left->GetType()->IsBoolType() && right->GetType()->IsBoolType()) {
-    return {ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Bool), left, right};
+  // Primitive bool -> Sql Boolean
+  if (left->GetType()->IsBoolType() && right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Boolean)) {
+    auto new_left = ImplCastExprToType(left, right->GetType(), ast::CastKind::SqlBoolToBool);
+    return {built_ret_type(right->GetType()), new_left, right};
+  }
+  // Sql Boolean <- Primitive bool
+  if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::Boolean) && right->GetType()->IsBoolType()) {
+    auto new_right = ImplCastExprToType(right, left->GetType(), ast::CastKind::SqlBoolToBool);
+    return {built_ret_type(left->GetType()), left, new_right};
   }
 
   // If neither input expression is arithmetic, it's an ill-formed operation
@@ -213,36 +219,45 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
 }
 
 bool Sema::CheckAssignmentConstraints(ast::Type *target_type, ast::Expr **expr) {
+  auto expr_type = (*expr)->GetType();
+
   // If the target and expression types are the same, nothing to do
-  if ((*expr)->GetType() == target_type) {
+  if (expr_type == target_type) {
+    return true;
+  }
+
+  // Primitive bool -> SQL Boolean
+  // SQL Boolean -> Primitive bool
+  if ((target_type->IsBoolType() && expr_type->IsSpecificBuiltin(ast::BuiltinType::Boolean)) ||
+      (target_type->IsSpecificBuiltin(ast::BuiltinType::Boolean) && expr_type->IsBoolType())) {
     return true;
   }
 
   // Integer resizing
   // TODO(Amadou): Figure out integer casting rules. This just resizes_ the integer.
   // I don't think it handles sign bit expansions and things like that.
-  if (target_type->IsIntegerType() && (*expr)->GetType()->IsIntegerType()) {
-    // if (target_type->size() > (*expr)->GetType()->size()) {
+  if (target_type->IsIntegerType() && expr_type->IsIntegerType()) {
+    // if (target_type->size() > expr_type->size()) {
     *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::IntegralCast);
     //}
     return true;
   }
 
   // Float to integer expansion
-  if (target_type->IsIntegerType() && (*expr)->GetType()->IsFloatType()) {
+  if (target_type->IsIntegerType() && expr_type->IsFloatType()) {
     *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::FloatToInt);
     return true;
   }
 
   // Integer to float expansion
-  if (target_type->IsFloatType() && (*expr)->GetType()->IsIntegerType()) {
+  if (target_type->IsFloatType() && expr_type->IsIntegerType()) {
     *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::IntToFloat);
     return true;
   }
 
   // Convert *[N]Type to [*]Type
   if (auto *target_arr = target_type->SafeAs<ast::ArrayType>()) {
-    if (auto *expr_base = (*expr)->GetType()->GetPointeeType()) {
+    if (auto *expr_base = expr_type->GetPointeeType()) {
       if (auto *expr_arr = expr_base->SafeAs<ast::ArrayType>()) {
         if (target_arr->HasUnknownLength() && expr_arr->HasKnownLength()) {
           *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::BitCast);
@@ -253,7 +268,7 @@ bool Sema::CheckAssignmentConstraints(ast::Type *target_type, ast::Expr **expr) 
   }
 
   // *T to *U
-  if (target_type->IsPointerType() || (*expr)->GetType()->IsPointerType()) {
+  if (target_type->IsPointerType() || expr_type->IsPointerType()) {
     *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::BitCast);
     return true;
   }

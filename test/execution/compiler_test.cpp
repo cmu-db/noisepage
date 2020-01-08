@@ -56,8 +56,9 @@ class CompilerTest : public SqlBasedTest {
     if (codegen.Reporter()->HasErrors()) {
       EXECUTION_LOG_ERROR("Type-checking error! \n {}", codegen.Reporter()->SerializeErrors());
     }
+    ASSERT_FALSE(codegen.Reporter()->HasErrors());
 
-    EXECUTION_LOG_DEBUG("Converted: \n {}", execution::ast::AstDump::Dump(root));
+    EXECUTION_LOG_INFO("Converted: \n {}", execution::ast::AstDump::Dump(root));
 
     // Convert to bytecode
     auto bytecode_module = vm::BytecodeGenerator::Compile(root, exec_ctx, "tmp-tpl");
@@ -92,7 +93,7 @@ class CompilerTest : public SqlBasedTest {
 };
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DISABLED_SimpleSeqScanTest) {
+TEST_F(CompilerTest, SimpleSeqScanTest) {
   // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1 WHERE col1 < 500 AND col2 >= 3;
   auto accessor = MakeAccessor();
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
@@ -215,7 +216,7 @@ TEST_F(CompilerTest, SimpleSeqScanWithProjectionTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DISABLED_SimpleSeqScanWithParamsTest) {
+TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
   // SELECT col1, col2, col1 * col2, col1 >= param1*col2 FROM test_1 WHERE col1 < param2 AND col2 >= param3;
   // param1 = 100; param2 = 500; param3 = 3
   auto accessor = MakeAccessor();
@@ -280,7 +281,7 @@ TEST_F(CompilerTest, DISABLED_SimpleSeqScanWithParamsTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DISABLED_SimpleIndexScanTest) {
+TEST_F(CompilerTest, SimpleIndexScanTest) {
   // SELECT colA, colB FROM test_1 WHERE colA = 500;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
@@ -327,7 +328,7 @@ TEST_F(CompilerTest, DISABLED_SimpleIndexScanTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DISABLED_SimpleIndexScanAsendingTest) {
+TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
   // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
@@ -397,7 +398,7 @@ TEST_F(CompilerTest, DISABLED_SimpleIndexScanAsendingTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DISABLED_SimpleIndexScanLimitAsendingTest) {
+TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
   // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
@@ -466,7 +467,7 @@ TEST_F(CompilerTest, DISABLED_SimpleIndexScanLimitAsendingTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DISABLED_SimpleIndexScanDesendingTest) {
+TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
   // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
@@ -535,7 +536,7 @@ TEST_F(CompilerTest, DISABLED_SimpleIndexScanDesendingTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DISABLED_SimpleIndexScanLimitDesendingTest) {
+TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
   // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
@@ -604,7 +605,7 @@ TEST_F(CompilerTest, DISABLED_SimpleIndexScanLimitDesendingTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DISABLED_SimpleAggregateTest) {
+TEST_F(CompilerTest, SimpleAggregateTest) {
   // SELECT col2, SUM(col1) FROM test_1 WHERE col1 < 1000 GROUP BY col2;
   // Get accessor
   auto accessor = MakeAccessor();
@@ -678,7 +679,7 @@ TEST_F(CompilerTest, DISABLED_SimpleAggregateTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DISABLED_SimpleAggregateHavingTest) {
+TEST_F(CompilerTest, SimpleAggregateHavingTest) {
   // SELECT col2, SUM(col1) FROM test_1 WHERE col1 < 1000 GROUP BY col2 HAVING col2 >= 3 AND SUM(col1) < 50000;
   // Get accessor
   auto accessor = MakeAccessor();
@@ -765,7 +766,7 @@ TEST_F(CompilerTest, DISABLED_SimpleAggregateHavingTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DISABLED_SimpleHashJoinTest) {
+TEST_F(CompilerTest, SimpleHashJoinTest) {
   // SELECT t1.col1, t2.col1, t2.col2, t1.col1 + t2.col2 FROM t1 INNER JOIN t2 ON t1.col1=t2.col1
   // WHERE t1.col1 < 500 AND t2.col1 < 80
   // TODO(Amadou): Simple join tests are very similar. Some refactoring is possible.
@@ -893,7 +894,7 @@ TEST_F(CompilerTest, DISABLED_SimpleHashJoinTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DISABLED_SimpleSortTest) {
+TEST_F(CompilerTest, SimpleSortTest) {
   // SELECT col1, col2, col1 + col2 FROM test_1 WHERE col1 < 500 ORDER BY col2 ASC, col1 - col2 DESC
   // Get accessor
   auto accessor = MakeAccessor();
@@ -991,7 +992,7 @@ TEST_F(CompilerTest, DISABLED_SimpleSortTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DISABLED_SimpleNestedLoopJoinTest) {
+TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
   // SELECT t1.col1, t2.col1, t2.col2, t1.col1 + t2.col2 FROM t1 INNER JOIN t2 ON t1.col1=t2.col1
   // WHERE t1.col1 < 500 AND t2.col1 < 80
   // Get accessor
@@ -1117,7 +1118,7 @@ TEST_F(CompilerTest, DISABLED_SimpleNestedLoopJoinTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DISABLED_SimpleIndexNestedLoopJoinTest) {
+TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
   // SELECT t1.col1, t2.col1, t2.col2, t1.col2 + t2.col2 FROM test_2 AS t2 INNER JOIN test_1 AS t1 ON t1.col1=t2.col1
   // WHERE t1.col1 < 500 AND t2.col1 < 80
   // Get accessor
@@ -1223,7 +1224,7 @@ TEST_F(CompilerTest, DISABLED_SimpleIndexNestedLoopJoinTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DISABLED_SimpleIndexNestedLoopJoinMultiColumnTest) {
+TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
   // SELECT t1.col1, t2.col1, t2.col2, t1.col2 + t2.col2 FROM test_1 AS t1 INNER JOIN test_2 AS t2 ON t1.col1=t2.col1
   // AND t1.col2 = t2.col2 Get accessor
   auto accessor = MakeAccessor();
@@ -1323,7 +1324,7 @@ TEST_F(CompilerTest, DISABLED_SimpleIndexNestedLoopJoinMultiColumnTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DISABLED_SimpleDeleteTest) {
+TEST_F(CompilerTest, SimpleDeleteTest) {
   // DELETE FROM test_1 WHERE colA BETWEEN 495 AND 505
   // Then check that the following finds the no tuples:
   // SELECT * FROM test_1 WHERE colA BETWEEN 495 AND 505.
@@ -1439,7 +1440,7 @@ TEST_F(CompilerTest, DISABLED_SimpleDeleteTest) {
   }
 }
 
-TEST_F(CompilerTest, DISABLED_SimpleUpdateTest) {
+TEST_F(CompilerTest, SimpleUpdateTest) {
   // UPDATE test_1 SET colA = -colA, colB = 500 WHERE colA BETWEEN 495 AND 505
   // Then check that the following finds the tuples:
   // SELECT * FROM test_1 WHERE colA BETWEEN -505 AND -495.
@@ -1611,7 +1612,7 @@ TEST_F(CompilerTest, DISABLED_SimpleUpdateTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DISABLED_SimpleInsertTest) {
+TEST_F(CompilerTest, SimpleInsertTest) {
   // INSERT INTO test_1 (colA, colB, colC, colD) VALUES (-1, 1, 2, 3), (-2, 1, 2, 3)
   // Then check that the following finds the new tuples:
   // SELECT colA, colB, colC, colD FROM test_1 WHERE test_1.colA < 0.
@@ -1768,7 +1769,7 @@ TEST_F(CompilerTest, DISABLED_SimpleInsertTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DISABLED_InsertIntoSelectWithParamTest) {
+TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
   // INSERT INTO test_1
   // SELECT -colA, col2, col3, col4 FROM test_1 WHERE colA BETWEEN param1 AND param2.
   // Set param1 = 495 and param2 = 505
@@ -1948,11 +1949,18 @@ TEST_F(CompilerTest, DISABLED_InsertIntoSelectWithParamTest) {
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
-  // INSERT INTO all_types_table (string_col, date_col, real_col, bool_col, tinyint_col, smallint_col, int_col, bigint_col)
-  // VALUES (param1, param2, param3, param4),
-  // (param5, param6, param7, param8) Where the parameter values are: ("37 Strings", 1937-3-7, 37.73, 37), (73 String,
-  // 1973-7-3, 73.37, 73)
-  // Then check that the following finds the new tuples: SELECT colA, colB, colC, colD FROM test_1.
+  // INSERT INTO all_types_table
+  //    (string_col, date_col, real_col, bool_col, tinyint_col, smallint_col, int_col, bigint_col)
+  // VALUES
+  //    (param1, param2, param3, param4, param5, param6, param7, param8),
+  //    (param9, param10, param11, param12, param13, param14, param15, param16);
+  //
+  // Where the parameter values are:
+  //    ("37 Strings", 1937-3-7, 37.73, true, 37, 37, 37, 37),
+  //    ("73 Strings", 1973-7-3, 73.37, false, 73, 73, 73, 73)
+  //
+  // Then check that the following finds the
+  // new tuples: SELECT colA, colB, colC, colD FROM test_1.
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
   auto table_oid1 = accessor->GetTableOid(NSOid(), "all_types_table");
