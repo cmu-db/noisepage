@@ -325,7 +325,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentSlotIterators)(benchmark::State
                                       common::ManagedPointer(&buffer_pool_), DISABLED);
   std::vector<storage::TupleSlot> read_order;
   for (uint32_t i = 0; i < num_reads_; ++i) {
-    read_table.Insert(&txn, *redo_);
+    read_table.Insert(common::ManagedPointer(&txn), *redo_);
   }
 
   auto workload = [&]() {
