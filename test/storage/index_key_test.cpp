@@ -343,8 +343,8 @@ class IndexKeyTests : public TerrierTest {
   template <uint8_t KeySize>
   void TestGenericKeyStrings(const IndexMetadata &metadata, ProjectedRow *pr, char *c_str1, char *c_str2) {
     const auto generic_eq64 =
-        std::equal_to<GenericKey<KeySize>>();                    // NOLINT transparent functors can't deduce template
-    const auto generic_lt64 = std::less<GenericKey<KeySize>>();  // NOLINT transparent functors can't deduce template
+        std::equal_to<GenericKey<KeySize>>();
+    const auto generic_lt64 = std::less<GenericKey<KeySize>>();
 
     GenericKey<KeySize> key1, key2;
     SetGenericKeyFromString<KeySize>(metadata, &key1, pr, c_str1);
@@ -1080,9 +1080,9 @@ TEST_F(IndexKeyTests, GenericKeyInlineVarlenComparisons) {
   key1.SetFromProjectedRow(*pr, metadata);
   key2.SetFromProjectedRow(*pr, metadata);
 
-  const auto generic_eq64 = std::equal_to<GenericKey<64>>();  // NOLINT transparent functors can't figure out template
-  const auto generic_lt64 = std::less<GenericKey<64>>();      // NOLINT transparent functors can't figure out template
-  const auto generic_hash64 = std::hash<GenericKey<64>>();    // NOLINT transparent functors can't figure out template
+  const auto generic_eq64 = std::equal_to<GenericKey<64>>();
+  const auto generic_lt64 = std::less<GenericKey<64>>();
+  const auto generic_hash64 = std::hash<GenericKey<64>>();
 
   // lhs: "john", rhs: "john" (same prefixes, same strings (both <= prefix))
   EXPECT_TRUE(generic_eq64(key1, key2));

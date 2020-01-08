@@ -97,7 +97,7 @@ TEST_F(PRFillerTest, SimpleIndexFillerTest) {
   const auto &index_schema = accessor->GetIndexSchema(index_oid);
 
   // Compile the function
-  auto [root, fn_name] = filler.GenFiller(index_pm, index_schema);  // NOLINT
+  auto [root, fn_name] = filler.GenFiller(index_pm, index_schema);
   auto module = MakeModule(&codegen, root, exec_ctx.get());
 
   // Now get the compiled function
