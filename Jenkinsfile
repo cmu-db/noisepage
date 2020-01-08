@@ -15,6 +15,7 @@ pipeline {
                     steps {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | ./script/installation/packages.sh'
+                        sh 'cd apidoc && touch warnings.txt && doxygen Doxyfile.in 2>warnings.txt && (cat warnings.txt | grep -v Doxyfile.in > warnings.txt || true) && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
                         sh 'cd build && timeout 1h make check-format'
@@ -39,6 +40,7 @@ pipeline {
                     steps {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh'
+                        sh 'cd apidoc && touch warnings.txt && doxygen Doxyfile.in 2>warnings.txt && (cat warnings.txt | grep -v Doxyfile.in > warnings.txt || true) && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
                         sh 'cd build && timeout 1h make check-format'
@@ -67,6 +69,7 @@ pipeline {
                     steps {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh'
+                        sh 'cd apidoc && touch warnings.txt && doxygen Doxyfile.in 2>warnings.txt && (cat warnings.txt | grep -v Doxyfile.in > warnings.txt || true) && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
                         sh 'cd build && timeout 1h make check-format'
