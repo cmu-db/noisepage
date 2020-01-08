@@ -2,6 +2,7 @@ pipeline {
     agent none
     options {
         buildDiscarder(logRotator(daysToKeepStr: '30'))
+        parallelsAlwaysFailFast()
     }
     stages {
 
