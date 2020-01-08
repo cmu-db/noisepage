@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
-# Generate the key type for the sort
+
 def GenerateSortKey(col_num):
+    # Generate the key type for the sort
     print("struct SortRow{} {{".format(col_num))
     for i in range(col_num):
         print("  c{} : Integer".format(i + 1))
     print("}")
     print()
+
 
 def GenerateKeyCheck(col_num):
     print("fun compareFn{}(lhs: *SortRow{}, rhs: *SortRow{}) -> int32 {{".format(col_num, col_num, col_num))
@@ -20,12 +22,13 @@ def GenerateKeyCheck(col_num):
     print("  return 0")
     print("}\n")
 
+
 def GenerateBuildSide(col_num, row_num, cardinality):
     fun_name = "buildCol{}Row{}Car{}".format(col_num, row_num, cardinality)
     print("fun {}(execCtx: *ExecutionContext, state: *State) -> nil {{".format(fun_name))
     print("  @execCtxStartResourceTracker(execCtx)")
 
-    print("  var sorter = &state.sorter{}".format(col_num)) # sort buffer
+    print("  var sorter = &state.sorter{}".format(col_num))  # sort buffer
 
     # table iterator
     print("  var tvi: TableVectorIterator")
@@ -56,6 +59,7 @@ def GenerateBuildSide(col_num, row_num, cardinality):
     print()
 
     return fun_name
+
 
 def GenerateProbeSide(col_num, row_num, cardinality):
     fun_name = "probeCol{}Row{}Car{}".format(col_num, row_num, cardinality)
@@ -88,6 +92,7 @@ def GenerateState(col_nums):
     print("  ret_val : int32")
     print("}\n")
 
+
 def GenerateTearDown(col_nums):
     print("fun tearDownState(execCtx: *ExecutionContext, state: *State) -> nil {")
     for i in col_nums:
@@ -102,6 +107,7 @@ def GenerateSetup(col_nums):
                                                                                                                 i))
     print("  state.ret_val = 0")
     print("}\n")
+
 
 def GenerateMainFun(fun_names):
     print("fun main(execCtx: *ExecutionContext) -> int32 {")
@@ -144,6 +150,7 @@ def GenerateAll():
                 fun_names.append(GenerateProbeSide(col_num, row_num, cardinality))
 
     GenerateMainFun(fun_names)
+
 
 if __name__ == '__main__':
     GenerateAll()

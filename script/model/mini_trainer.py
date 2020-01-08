@@ -43,14 +43,9 @@ class MiniTrainer:
 
         for filename in glob.glob(os.path.join(self.input_path, '*.csv')):
             print(filename)
-            if "txn" not in filename and "execution" not in filename:
-                data = data_util.get_mini_runner_data(filename)
+            data_list = data_util.get_mini_runner_data(filename)
+            for data in data_list:
                 data_map[data.opunit] = data
-            if "execution" in filename:
-                data_list = data_util.get_execution_mini_runner_data(filename)
-                for data in data_list:
-                    data_map[data.opunit] = data
-
 
         '''
         data_list = get_concurrent_data_list(input_path)

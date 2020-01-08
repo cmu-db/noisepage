@@ -19,6 +19,7 @@ pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
 '''
 
+
 def write_extended_data(output_path, symbol, index_value_list, data_map):
     # clear the content of the file
     open(output_path, 'w').close()
@@ -26,6 +27,7 @@ def write_extended_data(output_path, symbol, index_value_list, data_map):
     write_result(output_path, symbol, index_value_list)
     for key, value in data_map.items():
         write_result(output_path, key, value)
+
 
 def write_result(path, label, data):
     with open(path, "a") as csvfile:
@@ -52,17 +54,18 @@ def get_data_list(path):
         symbols = symbol_grouped_data.groups.keys()
 
         for symbol in symbols:
-            #print(symbol)
+            # print(symbol)
             # first get the training data for each operation (symbol)
             symbol_group = symbol_grouped_data.get_group(symbol)
             # Then aggregate the labels for the same feature
             feature_grouped_data = symbol_group.groupby(list(range(1, col_n - 1)), as_index=False)
-            #print(feature_grouped_data.groups.keys())
+            # print(feature_grouped_data.groups.keys())
             data = feature_grouped_data.mean().to_numpy()
-            #print(data)
+            # print(data)
             data_list.append(OldData(symbol, target, data))
 
     return data_list
+
 
 def get_concurrent_data_list(path):
     '''
@@ -74,7 +77,7 @@ def get_concurrent_data_list(path):
     feature_idxes.append(list(range(4)) + list(range(9, 15)))
     feature_idxes.append(list(range(0, 9)) + [-4, -3])
     feature_idxes.append(list(range(0, 15)))
-    #feature_idxes.append([0, 4, 8, 9])
+    # feature_idxes.append([0, 4, 8, 9])
     feature_idxes.append(list(range(0, 9)) + [9])
     feature_idxes.append(list(range(0, 9)) + [10])
     feature_idxes.append(list(range(0, 9)) + [11])
@@ -88,6 +91,7 @@ def get_concurrent_data_list(path):
         data_list.append(OldData(symbols[i], targets[i], data))
 
     return data_list
+
 
 def transform_data_list(data_list):
     '''
@@ -110,30 +114,43 @@ def transform_data_list(data_list):
 
         write_extended_data(output_path, d.symbol, index_value_list, data_map)
 
-def get_mini_runner_data(file):
-    '''
-    Get the training data from the mini runner (except the execution engine)
-    '''
-    df = pd.read_csv(file)
-    file_name = os.path.splitext(os.path.basename(file))[0]
+
+def get_mini_runner_data(filename):
+    """Get the training data from the mini runner
+
+    :param filename: the input data file
+    :return: the list of Data for execution operating units
+    """
+
+    if "txn" in filename:
+        # Cannot handle the transaction manager data yet
+        return []
+    if "execution" in filename:
+        # Special handle of the execution data
+        return _execution_get_mini_runner_data(filename)
+
+    return _default_get_mini_runner_data(filename)
+
+
+def _default_get_mini_runner_data(filename):
+    # In the default case, the data does not need any pre-processing and the file name indicates the opunit
+    df = pd.read_csv(filename)
+    file_name = os.path.splitext(os.path.basename(filename))[0]
     print(OpUnit[file_name])
 
     x = df.iloc[:, :-data_info.metrics_output_num].values
     y = df.iloc[:, -data_info.target_num:].values
 
-    return Data(OpUnit[file_name], x, y)
+    return [Data(OpUnit[file_name], x, y)]
 
-def get_execution_mini_runner_data(file):
-    """Get the training data from the execution mini runner
 
-    :param file: the input data file
-    :return: the list of Data for execution operating units
-    """
+def _execution_get_mini_runner_data(filename):
+    # Get the mini runner data for the execution engine
     data_map = {}
 
     arithmetic_mode_index = data_info.arithmetic_feature_index[ArithmeticFeature.EXEC_MODE]
 
-    with open(file, "r") as f:
+    with open(filename, "r") as f:
         reader = csv.reader(f, delimiter=",", skipinitialspace=True)
         next(reader)
         for line in reader:
@@ -157,17 +174,19 @@ def get_execution_mini_runner_data(file):
                 v[arithmetic_mode_index] = 1
             values += compiled_values
         np_value = np.array(values)
-        #print(values)
+        # print(np_value)
         x = np_value[:, :-data_info.metrics_output_num]
         y = np_value[:, -data_info.target_num:]
         data_list.append(Data(opunit, x, y))
 
-    return data_map
+    return data_list
+
 
 class Data:
     """
     The class that stores data and provides basic functions to manipulate the data
     """
+
     def __init__(self, opunit, x, y):
         """
 
@@ -179,11 +198,13 @@ class Data:
         self.x = x
         self.y = y
 
+
 class OldData:
     """The class that stores data and provides basic functions to manipulate the data
 
     IMPORTANT: This assumes the label is the last attribute in each row of self.data
     """
+
     def __init__(self, symbol, target, data):
         self.symbol = symbol
         self.target = target
@@ -217,7 +238,6 @@ class OldData:
             index_value_list = data.iloc[:, idx]
             data_map[key] = data.iloc[:, -1].values
 
-
         return index_value_list, data_map
 
     def get_label_transformed_data(self, idx, func):
@@ -240,7 +260,6 @@ class OldData:
 # ==============================================
 if __name__ == '__main__':
     input_path = "./aggregate.csv"
-    #input_path = "./scan_interp.csv"
+    # input_path = "./scan_interp.csv"
 
     get_data_list(input_path)
-    

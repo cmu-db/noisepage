@@ -40,17 +40,16 @@ class ResourceTracker {
      * @param outfile opened ofstream to write to
      */
     void ToCSV(std::ofstream &outfile) const {
-      outfile << counters_.cpu_cycles_ << ", " << counters_.instructions_ << ", " << counters_.cache_references_ << ", "
-              << counters_.cache_misses_ << ", "
+      outfile << start_ << ", " << cpu_id_ << ", " << counters_.cpu_cycles_ << ", " << counters_.instructions_ << ", "
+              << counters_.cache_references_ << ", " << counters_.cache_misses_ << ", "
               << RusageMonitor::TimevalToMicroseconds(rusage_.ru_utime) +
                      RusageMonitor::TimevalToMicroseconds(rusage_.ru_stime)
-              << ", " << rusage_.ru_inblock << ", " << rusage_.ru_oublock << ", " << cpu_id_ << ", " << memory_b_
-              << ", " << elapsed_us_ << ", " << start_;
+              << ", " << rusage_.ru_inblock << ", " << rusage_.ru_oublock << ", " << memory_b_ << ", " << elapsed_us_;
     }
 
     static constexpr std::string_view COLUMNS = {
-        "cpu_cycles, instructions, cache_ref, cache_miss, cpu_time, "
-        "block_read, block_write, cpu_id, memory_b, elapsed_us, start_time"};
+        "start_time, cpu_id, cpu_cycles, instructions, cache_ref, cache_miss, cpu_time, "
+        "block_read, block_write, memory_b, elapsed_us"};
   };
 
   /**
