@@ -285,7 +285,6 @@ class BwTreeBase {
   /** lower size threshold for leaf node removal */
   int leaf_node_size_lower_threshold_ = LEAF_NODE_SIZE_LOWER_THRESHOLD;
 
- public:
   /*
    * DestroyThreadLocal() - Destroys thread local
    *
@@ -2112,7 +2111,7 @@ class BwTree : public BwTreeBase {
       // This size is exactly the index of the split point
       int left_sibling_size = std::distance(this->Begin(), it);
 
-      if (left_sibling_size > static_cast<int>(leaf_node_size_lower_threshold_)) {
+      if (left_sibling_size > static_cast<int>(t->GetLeafNodeSizeLowerThreshold())) {
         return left_sibling_size;
       }
 
@@ -2127,7 +2126,7 @@ class BwTree : public BwTreeBase {
 
       int right_sibling_size = std::distance(it, this->End());
 
-      if (right_sibling_size > static_cast<int>(leaf_node_size_lower_threshold_)) {
+      if (right_sibling_size > static_cast<int>(t->GetLeafNodeSizeLowerThreshold())) {
         return std::distance(this->Begin(), it);
       }
 
@@ -5662,11 +5661,11 @@ class BwTree : public BwTreeBase {
     int depth = node_p->GetDepth();
 
     if (snapshot_p->IsLeaf()) {
-      if (depth < leaf_delta_chain_length_threshold_) {
+      if (depth < GetLeafDeltaChainLengthThreshold()) {
         return;
       }
     } else {
-      if (depth < inner_delta_chain_length_threshold_) {
+      if (depth < GetInnerDeltaChainLengthThreshold()) {
         return;
       }
     }
@@ -5717,7 +5716,7 @@ class BwTree : public BwTreeBase {
       size_t node_size = leaf_node_p->GetItemCount();
 
       // Perform corresponding action based on node size
-      if (node_size >= leaf_node_size_upper_threshold_) {
+      if (node_size >= GetLeafNodeSizeUpperThreshold()) {
         INDEX_LOG_TRACE("Node size >= leaf upper threshold. Split");
 
         // Note: This function takes this as argument since it will
@@ -5859,7 +5858,7 @@ class BwTree : public BwTreeBase {
 
       size_t node_size = inner_node_p->GetSize();
 
-      if (node_size >= inner_node_size_upper_threshold_) {
+      if (node_size >= GetInnerNodeSizeUpperThreshold()) {
         INDEX_LOG_TRACE("Node size >= inner upper threshold. Split");
 
         const InnerNode *new_inner_node_p = inner_node_p->GetSplitSibling();
@@ -5937,7 +5936,7 @@ class BwTree : public BwTreeBase {
 
         return;
         // if CAS fails
-      } else if (node_size <= inner_node_size_lower_threshold_) {
+      } else if (node_size <= GetInnerNodeSizeLowerThreshold()) {
         if (context_p->IsOnRootNode()) {
           INDEX_LOG_TRACE("Root underflow - let it be");
 
