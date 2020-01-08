@@ -45,9 +45,6 @@ sqlite3_stmt *SqliteEngine::PrepareStatement(std::string query) {
 }
 
 void SqliteEngine::Bind(sqlite3_stmt *stmt, common::ManagedPointer<std::vector<type::TransientValue>> p_params) {
-  using type::TransientValuePeeker;
-  using type::TypeId;
-
   sqlite3_reset(stmt);
   auto &params = *p_params;
 
@@ -57,19 +54,19 @@ void SqliteEngine::Bind(sqlite3_stmt *stmt, common::ManagedPointer<std::vector<t
       res = sqlite3_bind_null(stmt, i + 1);
     } else {
       auto type = params[i].Type();
-      if (type == TypeId::INTEGER) {
-        res = sqlite3_bind_int(stmt, i + 1, TransientValuePeeker::PeekInteger(params[i]));
-      } else if (type == TypeId::DECIMAL) {
-        res = sqlite3_bind_double(stmt, i + 1, TransientValuePeeker::PeekDecimal(params[i]));
-      } else if (type == TypeId::VARCHAR) {
-        std::string_view varchar_value = TransientValuePeeker::PeekVarChar(params[i]);
+      if (type == type::TypeId::INTEGER) {
+        res = sqlite3_bind_int(stmt, i + 1, type::TransientValuePeeker::PeekInteger(params[i]));
+      } else if (type == type::TypeId::DECIMAL) {
+        res = sqlite3_bind_double(stmt, i + 1, type::TransientValuePeeker::PeekDecimal(params[i]));
+      } else if (type == type::TypeId::VARCHAR) {
+        std::string_view varchar_value = type::TransientValuePeeker::PeekVarChar(params[i]);
         res = sqlite3_bind_text(stmt, i + 1, varchar_value.data(), static_cast<int>(varchar_value.length()),
                                 SQLITE_STATIC);
-      } else if (type == TypeId::TIMESTAMP) {
-        auto value = static_cast<int64_t>(!TransientValuePeeker::PeekTimestamp(params[i]));
+      } else if (type == type::TypeId::TIMESTAMP) {
+        auto value = static_cast<int64_t>(!type::TransientValuePeeker::PeekTimestamp(params[i]));
         res = sqlite3_bind_int64(stmt, i + 1, value);
-      } else if (type == TypeId::BIGINT) {
-        res = sqlite3_bind_int64(stmt, i + 1, TransientValuePeeker::PeekBigInt(params[i]));
+      } else if (type == type::TypeId::BIGINT) {
+        res = sqlite3_bind_int64(stmt, i + 1, type::TransientValuePeeker::PeekBigInt(params[i]));
       } else {
         COMMON_LOG_ERROR("Unsupported type: {0}", static_cast<int>(type));
         res = 0;

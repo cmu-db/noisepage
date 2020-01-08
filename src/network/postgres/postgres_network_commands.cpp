@@ -1,8 +1,10 @@
 #include "network/postgres/postgres_network_commands.h"
+
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/terrier_server.h"
 #include "traffic_cop/portal.h"
@@ -91,18 +93,14 @@ Transition BindCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpr
                              common::ManagedPointer<PostgresPacketWriter> out,
                              common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                              common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
-  using std::pair;
-  using std::string;
-  using std::vector;
+  std::string portal_name = in_.ReadString();
 
-  string portal_name = in_.ReadString();
-
-  string stmt_name = in_.ReadString();
+  std::string stmt_name = in_.ReadString();
   NETWORK_LOG_TRACE("BindCommand, portal name = {0}, stmt name = {1}", portal_name, stmt_name);
 
   auto statement_pair = connection->statements_.find(stmt_name);
   if (statement_pair == connection->statements_.end()) {
-    string error_msg = fmt::format("Error: There is no statement with name {0}", stmt_name);
+    std::string error_msg = fmt::format("Error: There is no statement with name {0}", stmt_name);
     LogAndWriteErrorMsg(error_msg, out);
     return Transition::PROCEED;
   }
@@ -113,7 +111,7 @@ Transition BindCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpr
 
   trafficcop::Statement *statement = &statement_pair->second;
   auto num_formats = static_cast<size_t>(in_.ReadValue<int16_t>());
-  vector<int16_t> is_binary;
+  std::vector<int16_t> is_binary;
   size_t num_params = statement->NumParams();
   if (num_formats == 0) {
     // All params are text
@@ -129,7 +127,7 @@ Transition BindCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpr
       is_binary.push_back(format);
     }
   } else {
-    string error_msg = fmt::format(
+    std::string error_msg = fmt::format(
         "Error: Numbers of parameters don't match. "
         "{0} in statement, {1} in format code.",
         num_params, num_formats);
@@ -141,7 +139,7 @@ Transition BindCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpr
   // Read param values
   auto num_params_from_query = static_cast<size_t>(in_.ReadValue<int16_t>());
   if (num_params_from_query != num_params) {
-    string error_msg = fmt::format(
+    std::string error_msg = fmt::format(
         "Error: Numbers of parameters don't match. "
         "{0} in statement, {1} in bind command. "
         "This could be a result that the Parse command required type inference, which we don't support yet.",
@@ -151,17 +149,13 @@ Transition BindCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpr
     return Transition::PROCEED;
   }
 
-  using type::TransientValue;
-  using type::TransientValueFactory;
-  using type::TypeId;
-
-  auto params = std::make_unique<std::vector<TransientValue>>();
+  auto params = std::make_unique<std::vector<type::TransientValue>>();
 
   for (size_t i = 0; i < num_params; i++) {
     auto len = static_cast<int32_t>(in_.ReadValue<int32_t>());
     auto type = PostgresValueTypeToInternalValueType(statement->param_types_[i]);
 
-    if (type == TypeId::INTEGER) {
+    if (type == type::TypeId::INTEGER) {
       if (len != -1) {
         int32_t value;
         if (is_binary[i] == 0) {
@@ -172,11 +166,11 @@ Transition BindCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpr
         } else {
           value = in_.ReadValue<int32_t>();
         }
-        params->push_back(TransientValueFactory::GetInteger(value));
+        params->push_back(type::TransientValueFactory::GetInteger(value));
       } else {
-        params->push_back(TransientValueFactory::GetNull(TypeId::INTEGER));
+        params->push_back(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
       }
-    } else if (type == TypeId::DECIMAL) {
+    } else if (type == type::TypeId::DECIMAL) {
       if (len != -1) {
         double value;
         if (is_binary[i] == 0) {
@@ -187,29 +181,29 @@ Transition BindCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpr
         } else {
           value = in_.ReadValue<double>();
         }
-        params->push_back(TransientValueFactory::GetDecimal(value));
+        params->push_back(type::TransientValueFactory::GetDecimal(value));
       } else {
-        params->push_back(TransientValueFactory::GetNull(TypeId::DECIMAL));
+        params->push_back(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL));
       }
-    } else if (type == TypeId::VARCHAR) {
+    } else if (type == type::TypeId::VARCHAR) {
       if (len != -1) {
         char buf[len + 1];
         memset(buf, 0, len + 1);
         in_.Read(len, buf);
-        params->push_back(TransientValueFactory::GetVarChar(buf));
+        params->push_back(type::TransientValueFactory::GetVarChar(buf));
       } else {
-        params->push_back(TransientValueFactory::GetNull(TypeId::VARCHAR));
+        params->push_back(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR));
       }
-    } else if (type == TypeId::TIMESTAMP) {
+    } else if (type == type::TypeId::TIMESTAMP) {
       if (len != -1) {
         char buf[len + 1];
         memset(buf, 0, len + 1);
         in_.Read(len, buf);
-        params->push_back(TransientValueFactory::GetVarChar(buf));
+        params->push_back(type::TransientValueFactory::GetVarChar(buf));
       } else {
-        params->push_back(TransientValueFactory::GetNull(TypeId::VARCHAR));
+        params->push_back(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR));
       }
-    } else if (type == TypeId::BIGINT) {
+    } else if (type == type::TypeId::BIGINT) {
       if (len != -1) {
         int64_t value;
         if (is_binary[i] == 0) {
@@ -220,12 +214,12 @@ Transition BindCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpr
         } else {
           value = in_.ReadValue<int64_t>();
         }
-        params->push_back(TransientValueFactory::GetBigInt(value));
+        params->push_back(type::TransientValueFactory::GetBigInt(value));
       } else {
-        params->push_back(TransientValueFactory::GetNull(TypeId::BIGINT));
+        params->push_back(type::TransientValueFactory::GetNull(type::TypeId::BIGINT));
       }
     } else {
-      string error_msg =
+      std::string error_msg =
           fmt::format("Param type {0} is not implemented yet", static_cast<int>(statement->param_types_[i]));
 
       LogAndWriteErrorMsg(error_msg, out);
@@ -297,13 +291,12 @@ Transition ExecuteCommand::Exec(common::ManagedPointer<ProtocolInterpreter> inte
                                 common::ManagedPointer<PostgresPacketWriter> out,
                                 common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                 common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
-  using std::string;
-  string portal_name = in_.ReadString();
+  std::string portal_name = in_.ReadString();
   NETWORK_LOG_TRACE("ExecuteCommand portal name = {0}", portal_name);
 
   auto p_portal = connection->portals_.find(portal_name);
   if (p_portal == connection->portals_.end()) {
-    string error_msg = fmt::format("Error: Portal {0} does not exist.", portal_name);
+    std::string error_msg = fmt::format("Error: Portal {0} does not exist.", portal_name);
     NETWORK_LOG_ERROR(error_msg);
     out->WriteSingleErrorResponse(NetworkMessageType::PG_HUMAN_READABLE_ERROR, error_msg);
     return Transition::PROCEED;
@@ -320,17 +313,17 @@ Transition ExecuteCommand::Exec(common::ManagedPointer<ProtocolInterpreter> inte
     out->WriteDataRow(row);
   }
 
-  string &query_string = portal.statement_->query_string_;
-  if (query_string.find("INSERT") != string::npos) {
+  std::string &query_string = portal.statement_->query_string_;
+  if (query_string.find("INSERT") != std::string::npos) {
     // TODO(YUZE): OID
     out->WriteCommandComplete("INSERT 0 " + std::to_string(rows_affected));
-  } else if (query_string.find("DELETE") != string::npos) {
+  } else if (query_string.find("DELETE") != std::string::npos) {
     out->WriteCommandComplete("DELETE " + std::to_string(rows_affected));
-  } else if (query_string.find("UPDATE") != string::npos) {
+  } else if (query_string.find("UPDATE") != std::string::npos) {
     out->WriteCommandComplete("UPDATE " + std::to_string(rows_affected));
-  } else if (query_string.find("SELECT") != string::npos) {
+  } else if (query_string.find("SELECT") != std::string::npos) {
     out->WriteCommandComplete("SELECT " + std::to_string(result.rows_.size()));
-  } else if (query_string.find("BEGIN") != string::npos) {
+  } else if (query_string.find("BEGIN") != std::string::npos) {
     out->WriteCommandComplete("BEGIN");
   }
   return Transition::PROCEED;
