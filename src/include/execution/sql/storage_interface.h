@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+
 #include "execution/exec/execution_context.h"
 #include "execution/util/execution_common.h"
 
@@ -69,6 +70,12 @@ class EXPORT StorageInterface {
    * @return Whether insertion was successful.
    */
   bool IndexInsert();
+
+  /**
+   * InsertUnique into the current index
+   * @return Whether insertion was successful.
+   */
+  bool IndexInsertUnique();
 
  protected:
   /**
