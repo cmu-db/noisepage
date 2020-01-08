@@ -285,6 +285,7 @@ class BwTreeBase {
   /** lower size threshold for leaf node removal */
   int leaf_node_size_lower_threshold_ = LEAF_NODE_SIZE_LOWER_THRESHOLD;
 
+ public:
   /*
    * DestroyThreadLocal() - Destroys thread local
    *
