@@ -27,7 +27,7 @@ struct CatalogTests : public TerrierTest {
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
     auto *txn = txn_manager_->BeginTransaction();
-    db_ = catalog_->GetDatabaseOid(txn, catalog::DEFAULT_DATABASE);
+    db_ = catalog_->GetDatabaseOid(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE);
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 
@@ -69,16 +69,16 @@ struct CatalogTests : public TerrierTest {
 TEST_F(CatalogTests, DatabaseTest) {
   // Create a database and check that it's immediately visible
   auto txn = txn_manager_->BeginTransaction();
-  auto db_oid = catalog_->CreateDatabase(txn, "test_database", true);
+  auto db_oid = catalog_->CreateDatabase(common::ManagedPointer(txn), "test_database", true);
   EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
-  auto accessor = catalog_->GetAccessor(txn, db_oid);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
   EXPECT_NE(accessor, nullptr);
   VerifyCatalogTables(*accessor);  // Check visibility to me
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Cannot add a database twice
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_oid);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
   auto tmp_oid = accessor->CreateDatabase("test_database");
   EXPECT_EQ(tmp_oid, catalog::INVALID_DATABASE_OID);  // Should cause a name conflict
   txn_manager_->Abort(txn);
@@ -86,7 +86,7 @@ TEST_F(CatalogTests, DatabaseTest) {
   // Get an accessor into the database and validate the catalog tables exist
   // then delete it and verify an invalid OID is now returned for the lookup
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_oid);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
   EXPECT_NE(accessor, nullptr);
   VerifyCatalogTables(*accessor);  // Check visibility to me
   tmp_oid = accessor->GetDatabaseOid("test_database");
@@ -97,7 +97,7 @@ TEST_F(CatalogTests, DatabaseTest) {
 
   // Cannot get an accessor to a non-existent database
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_oid);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
   EXPECT_EQ(accessor, nullptr);
   txn_manager_->Abort(txn);
 }
@@ -109,7 +109,7 @@ TEST_F(CatalogTests, DatabaseTest) {
 TEST_F(CatalogTests, NamespaceTest) {
   // Create a database and check that it's immediately visible
   auto txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(txn, db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   EXPECT_NE(accessor, nullptr);
   auto ns_oid = accessor->CreateNamespace("test_namespace");
   EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
@@ -117,7 +117,7 @@ TEST_F(CatalogTests, NamespaceTest) {
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   ns_oid = accessor->CreateNamespace("test_namespace");
   EXPECT_EQ(ns_oid, catalog::INVALID_NAMESPACE_OID);  // Should cause a name conflict
   txn_manager_->Abort(txn);
@@ -125,7 +125,7 @@ TEST_F(CatalogTests, NamespaceTest) {
   // Get an accessor into the database and validate the catalog tables exist
   // then delete it and verify an invalid OID is now returned for the lookup
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   EXPECT_NE(accessor, nullptr);
   VerifyCatalogTables(*accessor);  // Check visibility to me
   ns_oid = accessor->GetNamespaceOid("test_namespace");
@@ -135,7 +135,7 @@ TEST_F(CatalogTests, NamespaceTest) {
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   ns_oid = accessor->GetNamespaceOid("test_namespace");
   EXPECT_EQ(ns_oid, catalog::INVALID_NAMESPACE_OID);
   txn_manager_->Abort(txn);
@@ -147,7 +147,7 @@ TEST_F(CatalogTests, NamespaceTest) {
 // NOLINTNEXTLINE
 TEST_F(CatalogTests, UserTableTest) {
   auto txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(txn, db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
@@ -179,7 +179,7 @@ TEST_F(CatalogTests, UserTableTest) {
   // Get an accessor into the database and validate the catalog tables exist
   // then delete it and verify an invalid OID is now returned for the lookup
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   EXPECT_NE(accessor, nullptr);
 
   VerifyTablePresent(*accessor, accessor->GetDefaultNamespace(), "test_table");
@@ -194,7 +194,7 @@ TEST_F(CatalogTests, UserTableTest) {
 // NOLINTNEXTLINE
 TEST_F(CatalogTests, UserIndexTest) {
   auto txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(txn, db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
@@ -230,7 +230,7 @@ TEST_F(CatalogTests, UserIndexTest) {
   // Get an accessor into the database and validate the catalog tables exist
   // then delete it and verify an invalid OID is now returned for the lookup
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   EXPECT_NE(accessor, nullptr);
   idx_oid = accessor->GetIndexOid("test_table_index_mabobberwithareallylongnamethatstillneedsmore");
   EXPECT_NE(idx_oid, catalog::INVALID_INDEX_OID);
@@ -246,7 +246,7 @@ TEST_F(CatalogTests, UserIndexTest) {
 // NOLINTNEXTLINE
 TEST_F(CatalogTests, CascadingDropTableTest) {
   auto txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(txn, db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   EXPECT_NE(accessor, nullptr);
 
   // Create the column definition (no OIDs)
@@ -266,7 +266,7 @@ TEST_F(CatalogTests, CascadingDropTableTest) {
 
   // Create the index
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   EXPECT_NE(accessor, nullptr);
   std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
       "id", type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
@@ -286,7 +286,7 @@ TEST_F(CatalogTests, CascadingDropTableTest) {
   // Get an accessor into the database and validate the catalog tables exist
   // then delete it and verify an invalid OID is now returned for the lookup
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   EXPECT_NE(accessor, nullptr);
 
   VerifyTablePresent(*accessor, accessor->GetDefaultNamespace(), "test_table");
@@ -305,7 +305,7 @@ TEST_F(CatalogTests, CascadingDropTableTest) {
 // NOLINTNEXTLINE
 TEST_F(CatalogTests, CascadingDropNamespaceTest) {
   auto txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(txn, db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   EXPECT_NE(accessor, nullptr);
   auto ns_oid = accessor->CreateNamespace("test_namespace");
   EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
@@ -321,7 +321,7 @@ TEST_F(CatalogTests, CascadingDropNamespaceTest) {
   auto tmp_schema = catalog::Schema(cols);
 
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   EXPECT_NE(accessor, nullptr);
   auto table_oid = accessor->CreateTable(ns_oid, "test_table", tmp_schema);
   auto schema = accessor->GetSchema(table_oid);
@@ -332,7 +332,7 @@ TEST_F(CatalogTests, CascadingDropNamespaceTest) {
 
   // Create the index
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   EXPECT_NE(accessor, nullptr);
   std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
       "id", type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
@@ -352,7 +352,7 @@ TEST_F(CatalogTests, CascadingDropNamespaceTest) {
   // Get an accessor into the database and validate the catalog tables exist
   // then delete it and verify an invalid OID is now returned for the lookup
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   EXPECT_NE(accessor, nullptr);
 
   VerifyTablePresent(*accessor, ns_oid, "test_table");
@@ -372,7 +372,7 @@ TEST_F(CatalogTests, CascadingDropNamespaceTest) {
 // NOLINTNEXTLINE
 TEST_F(CatalogTests, CascadingDropNamespaceWithIndexOnOtherNamespaceTest) {
   auto txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(txn, db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   EXPECT_NE(accessor, nullptr);
   auto ns_oid = accessor->CreateNamespace("test_namespace");
   EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
@@ -388,7 +388,7 @@ TEST_F(CatalogTests, CascadingDropNamespaceWithIndexOnOtherNamespaceTest) {
   auto tmp_schema = catalog::Schema(cols);
 
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   EXPECT_NE(accessor, nullptr);
   auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
   auto schema = accessor->GetSchema(table_oid);
@@ -399,7 +399,7 @@ TEST_F(CatalogTests, CascadingDropNamespaceWithIndexOnOtherNamespaceTest) {
 
   // Create the index
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   EXPECT_NE(accessor, nullptr);
   std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
       "id", type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
@@ -419,7 +419,7 @@ TEST_F(CatalogTests, CascadingDropNamespaceWithIndexOnOtherNamespaceTest) {
   // Get an accessor into the database and validate the catalog tables exist
   // then delete it and verify an invalid OID is now returned for the lookup
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   EXPECT_NE(accessor, nullptr);
 
   // Table is in default namespace, index is in user namespace
@@ -448,7 +448,7 @@ TEST_F(CatalogTests, CascadingDropNamespaceWithIndexOnOtherNamespaceTest) {
 TEST_F(CatalogTests, UserSearchPathTest) {
   // Create a database and check that it's immediately visible
   auto txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(txn, db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   auto public_ns_oid = accessor->GetNamespaceOid("public");
   EXPECT_NE(public_ns_oid, catalog::INVALID_NAMESPACE_OID);
   EXPECT_EQ(public_ns_oid, catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID);
@@ -482,7 +482,7 @@ TEST_F(CatalogTests, UserSearchPathTest) {
 
   // Check that it matches the table in the first namespace in path
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
 
   accessor->SetSearchPath({test_ns_oid, public_ns_oid});
   EXPECT_EQ(accessor->GetTableOid("test_table"), test_table_oid);
@@ -497,7 +497,7 @@ TEST_F(CatalogTests, UserSearchPathTest) {
   txn_manager_->Abort(txn);
 
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
 
   accessor->DropTable(test_table_oid);
 
@@ -512,7 +512,7 @@ TEST_F(CatalogTests, UserSearchPathTest) {
 // NOLINTNEXTLINE
 TEST_F(CatalogTests, CatalogSearchPathTest) {
   auto txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(txn, db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   EXPECT_EQ(accessor->GetTableOid("pg_namespace"), catalog::postgres::NAMESPACE_TABLE_OID);
 
   // Create the column definition (no OIDs)
@@ -551,25 +551,27 @@ TEST_F(CatalogTests, CatalogSearchPathTest) {
 // NOLINTNEXTLINE
 TEST_F(CatalogTests, NameNormalizationTest) {
   auto txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(txn, db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   auto ns_oid = accessor->CreateNamespace("TeSt_NaMeSpAcE");
   EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   EXPECT_EQ(catalog::INVALID_NAMESPACE_OID, accessor->CreateNamespace("TEST_NAMESPACE"));  // should conflict
   EXPECT_EQ(ns_oid, accessor->GetNamespaceOid("TEST_NAMESPACE"));                          // Should succeed
-  auto dbc = catalog_->GetDatabaseCatalog(txn, db_);
-  EXPECT_EQ(ns_oid, dbc->GetNamespaceOid(txn, "test_namespace"));  // Should match (normalized form)
-  EXPECT_EQ(catalog::INVALID_NAMESPACE_OID, dbc->GetNamespaceOid(txn, "TeSt_NaMeSpAcE"));  // Not normalized
+  auto dbc = catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), db_);
+  EXPECT_EQ(ns_oid,
+            dbc->GetNamespaceOid(common::ManagedPointer(txn), "test_namespace"));  // Should match (normalized form)
+  EXPECT_EQ(catalog::INVALID_NAMESPACE_OID,
+            dbc->GetNamespaceOid(common::ManagedPointer(txn), "TeSt_NaMeSpAcE"));  // Not normalized
   txn_manager_->Abort(txn);
 }
 
 // NOLINTNEXTLINE
 TEST_F(CatalogTests, GetIndexesTest) {
   auto txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(txn, db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
@@ -600,7 +602,7 @@ TEST_F(CatalogTests, GetIndexesTest) {
 
   // Get an accessor into the database
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   EXPECT_NE(accessor, nullptr);
 
   // Check that GetIndexes returns the indexes
@@ -614,7 +616,7 @@ TEST_F(CatalogTests, GetIndexesTest) {
 TEST_F(CatalogTests, GetIndexObjectsTest) {
   constexpr auto num_indexes = 3;
   auto txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(txn, db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
@@ -651,7 +653,7 @@ TEST_F(CatalogTests, GetIndexObjectsTest) {
 
   // Get an accessor into the database
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   EXPECT_NE(accessor, nullptr);
 
   // Check that GetIndexes returns the indexes correct number of indexes
@@ -677,17 +679,17 @@ TEST_F(CatalogTests, GetIndexObjectsTest) {
 TEST_F(CatalogTests, DDLLockTest) {
   // txn0 is used to verify that older concurrent txns can't acquire lock
   auto *txn0 = txn_manager_->BeginTransaction();
-  auto accessor0 = catalog_->GetAccessor(txn0, db_);
+  auto accessor0 = catalog_->GetAccessor(common::ManagedPointer(txn0), db_);
   // txn1 is used to verify that older concurrent txns can't acquire the lock
   auto *txn1 = txn_manager_->BeginTransaction();
-  auto accessor1 = catalog_->GetAccessor(txn1, db_);
+  auto accessor1 = catalog_->GetAccessor(common::ManagedPointer(txn1), db_);
 
   // txn2 is used to verify that commit releases the lock
   auto *txn2 = txn_manager_->BeginTransaction();
-  auto accessor2 = catalog_->GetAccessor(txn2, db_);
+  auto accessor2 = catalog_->GetAccessor(common::ManagedPointer(txn2), db_);
   // txn3 is used to verify that newer txns (than holder)
   auto *txn3 = txn_manager_->BeginTransaction();
-  auto accessor3 = catalog_->GetAccessor(txn3, db_);
+  auto accessor3 = catalog_->GetAccessor(common::ManagedPointer(txn3), db_);
 
   auto ns_oid = accessor2->CreateNamespace("txn2_ns");  // succeeds, txn2 acquires lock
   EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
@@ -697,7 +699,7 @@ TEST_F(CatalogTests, DDLLockTest) {
 
   // txn4 is used to verify that newer concurrent transactions can't acquire lock
   auto *txn4 = txn_manager_->BeginTransaction();
-  auto accessor4 = catalog_->GetAccessor(txn4, db_);
+  auto accessor4 = catalog_->GetAccessor(common::ManagedPointer(txn4), db_);
   ns_oid = accessor4->CreateNamespace("txn4_ns");
   EXPECT_EQ(ns_oid,
             catalog::INVALID_NAMESPACE_OID);  // fails, txn2 holds lock (txn4 > txn2)
@@ -722,11 +724,11 @@ TEST_F(CatalogTests, DDLLockTest) {
 
   // txn5 is used to verify that older concurrent transactions can acquire lock after abort
   auto *txn5 = txn_manager_->BeginTransaction();
-  auto accessor5 = catalog_->GetAccessor(txn5, db_);
+  auto accessor5 = catalog_->GetAccessor(common::ManagedPointer(txn5), db_);
 
   // txn6 is used to verify that abort releases the lock
   auto *txn6 = txn_manager_->BeginTransaction();
-  auto accessor6 = catalog_->GetAccessor(txn6, db_);
+  auto accessor6 = catalog_->GetAccessor(common::ManagedPointer(txn6), db_);
   ns_oid = accessor6->CreateNamespace("txn6_ns");
   EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);  // succeeds, txn6 acquires lock
   txn_manager_->Abort(txn6);                          // txn6 releases the lock

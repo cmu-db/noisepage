@@ -50,7 +50,7 @@ class BinderContext {
    * @param accessor Pointer to the catalog accessor object
    * @param table_ref Pointer to the table ref object
    */
-  void AddRegularTable(const std::unique_ptr<catalog::CatalogAccessor> &accessor, parser::TableRef *table_ref);
+  void AddRegularTable(common::ManagedPointer<catalog::CatalogAccessor> accessor, parser::TableRef *table_ref);
 
   /**
    * Update the table alias map given a table reference (in the from clause)
@@ -60,7 +60,7 @@ class BinderContext {
    * @param table_name Name of the table
    * @param table_alias Alias of the table
    */
-  void AddRegularTable(const std::unique_ptr<catalog::CatalogAccessor> &accessor, const std::string &db_name,
+  void AddRegularTable(common::ManagedPointer<catalog::CatalogAccessor> accessor, const std::string &db_name,
                        const std::string &namespace_name, const std::string &table_name,
                        const std::string &table_alias);
 

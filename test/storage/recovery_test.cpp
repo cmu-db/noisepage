@@ -91,15 +91,15 @@ class RecoveryTests : public TerrierTest {
 
   catalog::db_oid_t CreateDatabase(transaction::TransactionContext *txn,
                                    common::ManagedPointer<catalog::Catalog> catalog, const std::string &database_name) {
-    auto db_oid = catalog->CreateDatabase(txn, database_name, true /* bootstrap */);
+    auto db_oid = catalog->CreateDatabase(common::ManagedPointer(txn), database_name, true /* bootstrap */);
     EXPECT_TRUE(db_oid != catalog::INVALID_DATABASE_OID);
     return db_oid;
   }
 
   void DropDatabase(transaction::TransactionContext *txn, common::ManagedPointer<catalog::Catalog> catalog,
                     const catalog::db_oid_t db_oid) {
-    EXPECT_TRUE(catalog->DeleteDatabase(txn, db_oid));
-    EXPECT_FALSE(catalog->GetDatabaseCatalog(txn, db_oid));
+    EXPECT_TRUE(catalog->DeleteDatabase(common::ManagedPointer(txn), db_oid));
+    EXPECT_FALSE(catalog->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid));
   }
 
   catalog::table_oid_t CreateTable(transaction::TransactionContext *txn,
@@ -109,17 +109,17 @@ class RecoveryTests : public TerrierTest {
         "attribute", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
-    auto table_oid = db_catalog->CreateTable(txn, ns_oid, table_name, table_schema);
+    auto table_oid = db_catalog->CreateTable(common::ManagedPointer(txn), ns_oid, table_name, table_schema);
     EXPECT_TRUE(table_oid != catalog::INVALID_TABLE_OID);
-    const auto catalog_schema = db_catalog->GetSchema(txn, table_oid);
+    const auto catalog_schema = db_catalog->GetSchema(common::ManagedPointer(txn), table_oid);
     auto *table_ptr = new storage::SqlTable(block_store_.Get(), catalog_schema);
-    EXPECT_TRUE(db_catalog->SetTablePointer(txn, table_oid, table_ptr));
+    EXPECT_TRUE(db_catalog->SetTablePointer(common::ManagedPointer(txn), table_oid, table_ptr));
     return table_oid;
   }
 
   void DropTable(transaction::TransactionContext *txn, common::ManagedPointer<catalog::DatabaseCatalog> db_catalog,
                  const catalog::table_oid_t table_oid) {
-    EXPECT_TRUE(db_catalog->DeleteTable(txn, table_oid));
+    EXPECT_TRUE(db_catalog->DeleteTable(common::ManagedPointer(txn), table_oid));
   }
 
   catalog::index_oid_t CreateIndex(transaction::TransactionContext *txn,
@@ -127,29 +127,29 @@ class RecoveryTests : public TerrierTest {
                                    const catalog::namespace_oid_t ns_oid, const catalog::table_oid_t table_oid,
                                    const std::string &index_name) {
     auto index_schema = DummyIndexSchema();
-    auto index_oid = db_catalog->CreateIndex(txn, ns_oid, index_name, table_oid, index_schema);
+    auto index_oid = db_catalog->CreateIndex(common::ManagedPointer(txn), ns_oid, index_name, table_oid, index_schema);
     EXPECT_TRUE(index_oid != catalog::INVALID_INDEX_OID);
     auto *index_ptr = storage::index::IndexBuilder().SetKeySchema(index_schema).Build();
-    EXPECT_TRUE(db_catalog->SetIndexPointer(txn, index_oid, index_ptr));
+    EXPECT_TRUE(db_catalog->SetIndexPointer(common::ManagedPointer(txn), index_oid, index_ptr));
     return index_oid;
   }
 
   void DropIndex(transaction::TransactionContext *txn, common::ManagedPointer<catalog::DatabaseCatalog> db_catalog,
                  const catalog::index_oid_t index_oid) {
-    EXPECT_TRUE(db_catalog->DeleteIndex(txn, index_oid));
+    EXPECT_TRUE(db_catalog->DeleteIndex(common::ManagedPointer(txn), index_oid));
   }
 
   catalog::namespace_oid_t CreateNamespace(transaction::TransactionContext *txn,
                                            common::ManagedPointer<catalog::DatabaseCatalog> db_catalog,
                                            const std::string &namespace_name) {
-    auto namespace_oid = db_catalog->CreateNamespace(txn, namespace_name);
+    auto namespace_oid = db_catalog->CreateNamespace(common::ManagedPointer(txn), namespace_name);
     EXPECT_TRUE(namespace_oid != catalog::INVALID_NAMESPACE_OID);
     return namespace_oid;
   }
 
   void DropNamespace(transaction::TransactionContext *txn, common::ManagedPointer<catalog::DatabaseCatalog> db_catalog,
                      const catalog::namespace_oid_t ns_oid) {
-    EXPECT_TRUE(db_catalog->DeleteNamespace(txn, ns_oid));
+    EXPECT_TRUE(db_catalog->DeleteNamespace(common::ManagedPointer(txn), ns_oid));
   }
 
   storage::RedoBuffer &GetRedoBuffer(transaction::TransactionContext *txn) { return txn->redo_buffer_; }
@@ -209,14 +209,14 @@ class RecoveryTests : public TerrierTest {
       for (auto &table_oid : database.second) {
         // Get original sql table
         auto original_txn = txn_manager_->BeginTransaction();
-        auto original_sql_table =
-            catalog_->GetDatabaseCatalog(original_txn, database_oid)->GetTable(original_txn, table_oid);
+        auto original_sql_table = catalog_->GetDatabaseCatalog(common::ManagedPointer(original_txn), database_oid)
+                                      ->GetTable(common::ManagedPointer(original_txn), table_oid);
 
         // Get Recovered table
         auto *recovery_txn = recovery_txn_manager_->BeginTransaction();
-        auto db_catalog = recovery_catalog_->GetDatabaseCatalog(recovery_txn, database_oid);
+        auto db_catalog = recovery_catalog_->GetDatabaseCatalog(common::ManagedPointer(recovery_txn), database_oid);
         EXPECT_TRUE(db_catalog != nullptr);
-        auto recovered_sql_table = db_catalog->GetTable(recovery_txn, table_oid);
+        auto recovered_sql_table = db_catalog->GetTable(common::ManagedPointer(recovery_txn), table_oid);
         EXPECT_TRUE(recovered_sql_table != nullptr);
 
         EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
@@ -301,8 +301,9 @@ TEST_F(RecoveryTests, DropDatabaseTest) {
 
   // Assert the database we deleted doesn't exist
   txn = recovery_txn_manager_->BeginTransaction();
-  EXPECT_EQ(catalog::INVALID_DATABASE_OID, recovery_catalog_->GetDatabaseOid(txn, database_name));
-  EXPECT_FALSE(recovery_catalog_->GetDatabaseCatalog(txn, db_oid));
+  EXPECT_EQ(catalog::INVALID_DATABASE_OID,
+            recovery_catalog_->GetDatabaseOid(common::ManagedPointer(txn), database_name));
+  EXPECT_FALSE(recovery_catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid));
   recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
@@ -316,7 +317,7 @@ TEST_F(RecoveryTests, DropTableTest) {
   // Create database, table, then drop the table
   auto *txn = txn_manager_->BeginTransaction();
   auto db_oid = CreateDatabase(txn, catalog_, database_name);
-  auto db_catalog = catalog_->GetDatabaseCatalog(txn, db_oid);
+  auto db_catalog = catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid);
   auto table_oid = CreateTable(txn, db_catalog, namespace_oid, table_name);
   DropTable(txn, db_catalog, table_oid);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -328,12 +329,13 @@ TEST_F(RecoveryTests, DropTableTest) {
 
   // Assert the database we created exists
   txn = recovery_txn_manager_->BeginTransaction();
-  EXPECT_EQ(db_oid, recovery_catalog_->GetDatabaseOid(txn, database_name));
-  db_catalog = recovery_catalog_->GetDatabaseCatalog(txn, db_oid);
+  EXPECT_EQ(db_oid, recovery_catalog_->GetDatabaseOid(common::ManagedPointer(txn), database_name));
+  db_catalog = recovery_catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid);
   EXPECT_TRUE(db_catalog);
 
   // Assert the table we deleted doesn't exist
-  EXPECT_EQ(catalog::INVALID_TABLE_OID, db_catalog->GetTableOid(txn, namespace_oid, table_name));
+  EXPECT_EQ(catalog::INVALID_TABLE_OID,
+            db_catalog->GetTableOid(common::ManagedPointer(txn), namespace_oid, table_name));
   recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
@@ -348,7 +350,7 @@ TEST_F(RecoveryTests, DropIndexTest) {
   // Create database, table, index, then drop the index
   auto *txn = txn_manager_->BeginTransaction();
   auto db_oid = CreateDatabase(txn, catalog_, database_name);
-  auto db_catalog = catalog_->GetDatabaseCatalog(txn, db_oid);
+  auto db_catalog = catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid);
   auto table_oid = CreateTable(txn, db_catalog, namespace_oid, table_name);
   auto index_oid = CreateIndex(txn, db_catalog, namespace_oid, table_oid, index_name);
   DropIndex(txn, db_catalog, index_oid);
@@ -361,16 +363,16 @@ TEST_F(RecoveryTests, DropIndexTest) {
 
   // Assert the database we created exists
   txn = recovery_txn_manager_->BeginTransaction();
-  EXPECT_EQ(db_oid, recovery_catalog_->GetDatabaseOid(txn, database_name));
-  db_catalog = recovery_catalog_->GetDatabaseCatalog(txn, db_oid);
+  EXPECT_EQ(db_oid, recovery_catalog_->GetDatabaseOid(common::ManagedPointer(txn), database_name));
+  db_catalog = recovery_catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid);
   EXPECT_TRUE(db_catalog);
 
   // Assert the table we created exists
-  EXPECT_EQ(table_oid, db_catalog->GetTableOid(txn, namespace_oid, table_name));
-  EXPECT_TRUE(db_catalog->GetTable(txn, table_oid));
+  EXPECT_EQ(table_oid, db_catalog->GetTableOid(common::ManagedPointer(txn), namespace_oid, table_name));
+  EXPECT_TRUE(db_catalog->GetTable(common::ManagedPointer(txn), table_oid));
 
   // Assert the index we deleted doesn't exist
-  EXPECT_EQ(0, db_catalog->GetIndexOids(txn, table_oid).size());
+  EXPECT_EQ(0, db_catalog->GetIndexOids(common::ManagedPointer(txn), table_oid).size());
   recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
@@ -383,7 +385,7 @@ TEST_F(RecoveryTests, DropNamespaceTest) {
   // Create database, namespace, then drop namespace
   auto *txn = txn_manager_->BeginTransaction();
   auto db_oid = CreateDatabase(txn, catalog_, database_name);
-  auto db_catalog = catalog_->GetDatabaseCatalog(txn, db_oid);
+  auto db_catalog = catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid);
   auto ns_oid = CreateNamespace(txn, db_catalog, namespace_name);
   DropNamespace(txn, db_catalog, ns_oid);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -395,12 +397,12 @@ TEST_F(RecoveryTests, DropNamespaceTest) {
 
   // Assert the database we created exists
   txn = recovery_txn_manager_->BeginTransaction();
-  EXPECT_EQ(db_oid, recovery_catalog_->GetDatabaseOid(txn, database_name));
-  db_catalog = recovery_catalog_->GetDatabaseCatalog(txn, db_oid);
+  EXPECT_EQ(db_oid, recovery_catalog_->GetDatabaseOid(common::ManagedPointer(txn), database_name));
+  db_catalog = recovery_catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid);
   EXPECT_TRUE(db_catalog);
 
   // Assert the namespace we deleted doesn't exist
-  EXPECT_EQ(catalog::INVALID_NAMESPACE_OID, db_catalog->GetNamespaceOid(txn, namespace_name));
+  EXPECT_EQ(catalog::INVALID_NAMESPACE_OID, db_catalog->GetNamespaceOid(common::ManagedPointer(txn), namespace_name));
   recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
@@ -416,7 +418,7 @@ TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
   // Create a database, namespace, table, index, and then drop the database
   auto *txn = txn_manager_->BeginTransaction();
   auto db_oid = CreateDatabase(txn, catalog_, database_name);
-  auto db_catalog = catalog_->GetDatabaseCatalog(txn, db_oid);
+  auto db_catalog = catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid);
   auto ns_oid = CreateNamespace(txn, db_catalog, namespace_name);
   auto table_oid = CreateTable(txn, db_catalog, ns_oid, table_name);
   CreateIndex(txn, db_catalog, ns_oid, table_oid, index_name);
@@ -430,8 +432,9 @@ TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
 
   // Assert the database does not exist
   txn = recovery_txn_manager_->BeginTransaction();
-  EXPECT_EQ(catalog::INVALID_DATABASE_OID, recovery_catalog_->GetDatabaseOid(txn, database_name));
-  EXPECT_FALSE(recovery_catalog_->GetDatabaseCatalog(txn, db_oid));
+  EXPECT_EQ(catalog::INVALID_DATABASE_OID,
+            recovery_catalog_->GetDatabaseOid(common::ManagedPointer(txn), database_name));
+  EXPECT_FALSE(recovery_catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid));
   recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
@@ -471,13 +474,14 @@ TEST_F(RecoveryTests, UnrecoverableTransactionsTest) {
 
   // Assert the database creation we committed does exist
   txn = recovery_txn_manager_->BeginTransaction();
-  EXPECT_EQ(db_oid, recovery_catalog_->GetDatabaseOid(txn, database_name));
-  EXPECT_TRUE(recovery_catalog_->GetDatabaseCatalog(txn, db_oid));
+  EXPECT_EQ(db_oid, recovery_catalog_->GetDatabaseOid(common::ManagedPointer(txn), database_name));
+  EXPECT_TRUE(recovery_catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid));
 
   // Assert that none of the unrecoverable databases exist:
   for (int i = 0; i < db_idx; i++) {
-    EXPECT_EQ(catalog::INVALID_DATABASE_OID, recovery_catalog_->GetDatabaseOid(txn, std::to_string(i)));
-    EXPECT_FALSE(recovery_catalog_->GetDatabaseCatalog(txn, unrecoverable_databases[i]));
+    EXPECT_EQ(catalog::INVALID_DATABASE_OID,
+              recovery_catalog_->GetDatabaseOid(common::ManagedPointer(txn), std::to_string(i)));
+    EXPECT_FALSE(recovery_catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), unrecoverable_databases[i]));
   }
   recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
@@ -524,7 +528,7 @@ TEST_F(RecoveryTests, ConcurrentCatalogDDLChangesTest) {
 
   // With T1, create a table in testdb and commit. Even though T2 dropped testdb, this operation should still succeed
   // because T1 got a snapshot before T2
-  auto db_catalog = catalog_->GetDatabaseCatalog(txn1, db_oid);
+  auto db_catalog = catalog_->GetDatabaseCatalog(common::ManagedPointer(txn1), db_oid);
   CreateTable(txn1, db_catalog, namespace_oid, table_name);
   txn_manager_->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
@@ -535,8 +539,9 @@ TEST_F(RecoveryTests, ConcurrentCatalogDDLChangesTest) {
 
   // Assert the database we created does not exists
   auto txn = recovery_txn_manager_->BeginTransaction();
-  EXPECT_EQ(catalog::INVALID_DATABASE_OID, recovery_catalog_->GetDatabaseOid(txn, database_name));
-  EXPECT_FALSE(recovery_catalog_->GetDatabaseCatalog(txn, db_oid));
+  EXPECT_EQ(catalog::INVALID_DATABASE_OID,
+            recovery_catalog_->GetDatabaseOid(common::ManagedPointer(txn), database_name));
+  EXPECT_FALSE(recovery_catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid));
   recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
@@ -568,7 +573,7 @@ TEST_F(RecoveryTests, ConcurrentDDLChangesTest) {
   // Begin T0, create database, create table foo, and commit
   auto *txn0 = txn_manager_->BeginTransaction();
   auto db_oid = CreateDatabase(txn0, catalog_, database_name);
-  auto db_catalog = catalog_->GetDatabaseCatalog(txn0, db_oid);
+  auto db_catalog = catalog_->GetDatabaseCatalog(common::ManagedPointer(txn0), db_oid);
   auto table_oid = CreateTable(txn0, db_catalog, namespace_oid, table_name);
   txn_manager_->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
@@ -577,21 +582,21 @@ TEST_F(RecoveryTests, ConcurrentDDLChangesTest) {
 
   // Begin T2, drop foo, and commit
   auto txn2 = txn_manager_->BeginTransaction();
-  db_catalog = catalog_->GetDatabaseCatalog(txn2, db_oid);
+  db_catalog = catalog_->GetDatabaseCatalog(common::ManagedPointer(txn2), db_oid);
   DropTable(txn2, db_catalog, table_oid);
   txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // With T1, insert into foo and commit. Even though T2 dropped foo, this operation should still succeed
   // because T1 got a snapshot before T2
-  db_catalog = catalog_->GetDatabaseCatalog(txn1, db_oid);
-  auto table_ptr = db_catalog->GetTable(txn1, table_oid);
-  const auto &schema = db_catalog->GetSchema(txn1, table_oid);
+  db_catalog = catalog_->GetDatabaseCatalog(common::ManagedPointer(txn1), db_oid);
+  auto table_ptr = db_catalog->GetTable(common::ManagedPointer(txn1), table_oid);
+  const auto &schema = db_catalog->GetSchema(common::ManagedPointer(txn1), table_oid);
   EXPECT_EQ(1, schema.GetColumns().size());
   EXPECT_EQ(type::TypeId::INTEGER, schema.GetColumn(0).Type());
   auto initializer = table_ptr->InitializerForProjectedRow({schema.GetColumn(0).Oid()});
   auto *redo_record = txn1->StageWrite(db_oid, table_oid, initializer);
   *reinterpret_cast<int32_t *>(redo_record->Delta()->AccessForceNotNull(0)) = 0;
-  table_ptr->Insert(txn1, redo_record);
+  table_ptr->Insert(common::ManagedPointer(txn1), redo_record);
   txn_manager_->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   ShutdownAndRestartSystem();
@@ -601,11 +606,12 @@ TEST_F(RecoveryTests, ConcurrentDDLChangesTest) {
 
   // Assert the database we created does not exists
   auto txn = recovery_txn_manager_->BeginTransaction();
-  EXPECT_EQ(db_oid, recovery_catalog_->GetDatabaseOid(txn, database_name));
-  EXPECT_TRUE(recovery_catalog_->GetDatabaseCatalog(txn, db_oid));
+  EXPECT_EQ(db_oid, recovery_catalog_->GetDatabaseOid(common::ManagedPointer(txn), database_name));
+  EXPECT_TRUE(recovery_catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid));
 
   // Assert the table we deleted doesn't exist
-  EXPECT_EQ(catalog::INVALID_TABLE_OID, db_catalog->GetTableOid(txn, namespace_oid, table_name));
+  EXPECT_EQ(catalog::INVALID_TABLE_OID,
+            db_catalog->GetTableOid(common::ManagedPointer(txn), namespace_oid, table_name));
   recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
@@ -668,14 +674,14 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
     for (auto &table_oid : database.second) {
       // Get original sql table
       auto original_txn = txn_manager_->BeginTransaction();
-      auto original_sql_table =
-          catalog_->GetDatabaseCatalog(original_txn, database_oid)->GetTable(original_txn, table_oid);
+      auto original_sql_table = catalog_->GetDatabaseCatalog(common::ManagedPointer(original_txn), database_oid)
+                                    ->GetTable(common::ManagedPointer(original_txn), table_oid);
 
       // Get Recovered table
       auto *recovery_txn = recovery_txn_manager_->BeginTransaction();
-      auto db_catalog = recovery_catalog_->GetDatabaseCatalog(recovery_txn, database_oid);
+      auto db_catalog = recovery_catalog_->GetDatabaseCatalog(common::ManagedPointer(recovery_txn), database_oid);
       EXPECT_TRUE(db_catalog != nullptr);
-      auto recovered_sql_table = db_catalog->GetTable(recovery_txn, table_oid);
+      auto recovered_sql_table = db_catalog->GetTable(common::ManagedPointer(recovery_txn), table_oid);
       EXPECT_TRUE(recovered_sql_table != nullptr);
 
       EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
@@ -734,14 +740,15 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
     for (auto &table_oid : database.second) {
       // Get original sql table
       auto original_txn = txn_manager_->BeginTransaction();
-      auto original_sql_table =
-          catalog_->GetDatabaseCatalog(original_txn, database_oid)->GetTable(original_txn, table_oid);
+      auto original_sql_table = catalog_->GetDatabaseCatalog(common::ManagedPointer(original_txn), database_oid)
+                                    ->GetTable(common::ManagedPointer(original_txn), table_oid);
 
       // Get Recovered table
       auto *recovery_txn = secondary_recovery_txn_manager->BeginTransaction();
-      auto db_catalog = secondary_recovery_catalog->GetDatabaseCatalog(recovery_txn, database_oid);
+      auto db_catalog =
+          secondary_recovery_catalog->GetDatabaseCatalog(common::ManagedPointer(recovery_txn), database_oid);
       EXPECT_TRUE(db_catalog != nullptr);
-      auto recovered_sql_table = db_catalog->GetTable(recovery_txn, table_oid);
+      auto recovered_sql_table = db_catalog->GetTable(common::ManagedPointer(recovery_txn), table_oid);
       EXPECT_TRUE(recovered_sql_table != nullptr);
 
       EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(

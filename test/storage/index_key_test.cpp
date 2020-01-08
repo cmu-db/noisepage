@@ -249,17 +249,17 @@ class IndexKeyTests : public TerrierTest {
     index->ScanKey(*txn, *key, &results);
     EXPECT_TRUE(results.empty());
 
-    const auto tuple_slot = sql_table->Insert(txn, insert_redo);
+    const auto tuple_slot = sql_table->Insert(common::ManagedPointer(txn), insert_redo);
 
-    EXPECT_TRUE(index->Insert(txn, *key, tuple_slot));
+    EXPECT_TRUE(index->Insert(common::ManagedPointer(txn), *key, tuple_slot));
 
     index->ScanKey(*txn, *key, &results);
     EXPECT_EQ(results.size(), 1);
     EXPECT_EQ(results[0], tuple_slot);
 
     txn->StageDelete(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_slot);
-    sql_table->Delete(txn, tuple_slot);
-    index->Delete(txn, *key, tuple_slot);
+    sql_table->Delete(common::ManagedPointer(txn), tuple_slot);
+    index->Delete(common::ManagedPointer(txn), *key, tuple_slot);
 
     results.clear();
     index->ScanKey(*txn, *key, &results);

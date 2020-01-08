@@ -86,9 +86,9 @@ TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
     catalog::namespace_oid_t new_namespace_oid = catalog::INVALID_NAMESPACE_OID;
     do {
       auto txn = txn_manager_->BeginTransaction();
-      auto db_oid = catalog_->GetDatabaseOid(txn, catalog::DEFAULT_DATABASE);
+      auto db_oid = catalog_->GetDatabaseOid(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE);
       EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
-      auto db_accessor = catalog_->GetAccessor(txn, db_oid);
+      auto db_accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
       EXPECT_NE(db_accessor, nullptr);
       new_namespace_oid = db_accessor->CreateNamespace(std::string(trafficcop::TEMP_NAMESPACE_PREFIX));
       txn_manager_->Abort(txn);

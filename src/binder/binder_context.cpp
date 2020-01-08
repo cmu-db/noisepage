@@ -1,4 +1,5 @@
 #include "binder/binder_context.h"
+
 #include <algorithm>
 #include <memory>
 #include <string>
@@ -6,22 +7,22 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include "common/exception.h"
 
 #include "catalog/catalog_accessor.h"
+#include "common/exception.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/postgresparser.h"
 #include "parser/table_ref.h"
 
 namespace terrier::binder {
 
-void BinderContext::AddRegularTable(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+void BinderContext::AddRegularTable(const common::ManagedPointer<catalog::CatalogAccessor> accessor,
                                     parser::TableRef *table_ref) {
   AddRegularTable(accessor, table_ref->GetDatabaseName(), table_ref->GetNamespaceName(), table_ref->GetTableName(),
                   table_ref->GetAlias());
 }
 
-void BinderContext::AddRegularTable(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+void BinderContext::AddRegularTable(const common::ManagedPointer<catalog::CatalogAccessor> accessor,
                                     const std::string &db_name, const std::string &namespace_name,
                                     const std::string &table_name, const std::string &table_alias) {
   auto db_id = accessor->GetDatabaseOid(db_name);
