@@ -280,8 +280,6 @@ VM_OP_HOT void OpPCIGetBool(terrier::execution::sql::BoolVal *out,
   // Set
   out->is_null_ = false;
   out->val_ = *ptr;
-
-  std::cout << "GetBool: [" << col_idx << "] => out=" << out->val_ << " / ptr=" << static_cast<bool>(*ptr) << "\n";
 }
 
 VM_OP_HOT void OpPCIGetTinyInt(terrier::execution::sql::Integer *out,
@@ -293,8 +291,6 @@ VM_OP_HOT void OpPCIGetTinyInt(terrier::execution::sql::Integer *out,
   // Set
   out->is_null_ = false;
   out->val_ = *ptr;
-
-  std::cout << "GET tinyint: [" << col_idx << "] => out=" << out->val_ << " / ptr=" << static_cast<int8_t>(*ptr) << "\n";
 }
 
 VM_OP_HOT void OpPCIGetSmallInt(terrier::execution::sql::Integer *out,
@@ -306,8 +302,6 @@ VM_OP_HOT void OpPCIGetSmallInt(terrier::execution::sql::Integer *out,
   // Set
   out->is_null_ = false;
   out->val_ = *ptr;
-
-  std::cout << "GET smallint: [" << col_idx << "] => out=" << out->val_ << " / ptr=" << static_cast<int16_t>(*ptr) << "\n";
 }
 
 VM_OP_HOT void OpPCIGetInteger(terrier::execution::sql::Integer *out,
@@ -319,8 +313,6 @@ VM_OP_HOT void OpPCIGetInteger(terrier::execution::sql::Integer *out,
   // Set
   out->is_null_ = false;
   out->val_ = *ptr;
-
-  std::cout << "GET int: [" << col_idx << "] => out=" << out->val_ << " / ptr=" << static_cast<int32_t>(*ptr) << "\n";
 }
 
 VM_OP_HOT void OpPCIGetBigInt(terrier::execution::sql::Integer *out,
@@ -332,8 +324,6 @@ VM_OP_HOT void OpPCIGetBigInt(terrier::execution::sql::Integer *out,
   // Set
   out->is_null_ = false;
   out->val_ = *ptr;
-
-  std::cout << "GET bigint: [" << col_idx << "] => out=" << out->val_ << " / ptr=" << static_cast<int64_t>(*ptr) << "\n";
 }
 
 VM_OP_HOT void OpPCIGetReal(terrier::execution::sql::Real *out, terrier::execution::sql::ProjectedColumnsIterator *iter,

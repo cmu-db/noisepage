@@ -57,7 +57,7 @@ class CompilerTest : public SqlBasedTest {
       EXECUTION_LOG_ERROR("Type-checking error! \n {}", codegen.Reporter()->SerializeErrors());
     }
 
-    EXECUTION_LOG_INFO("Converted: \n {}", execution::ast::AstDump::Dump(root));
+    EXECUTION_LOG_DEBUG("Converted: \n {}", execution::ast::AstDump::Dump(root));
 
     // Convert to bytecode
     auto bytecode_module = vm::BytecodeGenerator::Compile(root, exec_ctx, "tmp-tpl");
@@ -92,7 +92,7 @@ class CompilerTest : public SqlBasedTest {
 };
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleSeqScanTest) {
+TEST_F(CompilerTest, DISABLED_SimpleSeqScanTest) {
   // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1 WHERE col1 < 500 AND col2 >= 3;
   auto accessor = MakeAccessor();
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
@@ -215,7 +215,7 @@ TEST_F(CompilerTest, SimpleSeqScanWithProjectionTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
+TEST_F(CompilerTest, DISABLED_SimpleSeqScanWithParamsTest) {
   // SELECT col1, col2, col1 * col2, col1 >= param1*col2 FROM test_1 WHERE col1 < param2 AND col2 >= param3;
   // param1 = 100; param2 = 500; param3 = 3
   auto accessor = MakeAccessor();
@@ -280,7 +280,7 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleIndexScanTest) {
+TEST_F(CompilerTest, DISABLED_SimpleIndexScanTest) {
   // SELECT colA, colB FROM test_1 WHERE colA = 500;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
@@ -327,7 +327,7 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
+TEST_F(CompilerTest, DISABLED_SimpleIndexScanAsendingTest) {
   // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
@@ -397,7 +397,7 @@ TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
+TEST_F(CompilerTest, DISABLED_SimpleIndexScanLimitAsendingTest) {
   // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
@@ -466,7 +466,7 @@ TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
+TEST_F(CompilerTest, DISABLED_SimpleIndexScanDesendingTest) {
   // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
@@ -535,7 +535,7 @@ TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
+TEST_F(CompilerTest, DISABLED_SimpleIndexScanLimitDesendingTest) {
   // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
@@ -604,7 +604,7 @@ TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleAggregateTest) {
+TEST_F(CompilerTest, DISABLED_SimpleAggregateTest) {
   // SELECT col2, SUM(col1) FROM test_1 WHERE col1 < 1000 GROUP BY col2;
   // Get accessor
   auto accessor = MakeAccessor();
@@ -678,7 +678,7 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleAggregateHavingTest) {
+TEST_F(CompilerTest, DISABLED_SimpleAggregateHavingTest) {
   // SELECT col2, SUM(col1) FROM test_1 WHERE col1 < 1000 GROUP BY col2 HAVING col2 >= 3 AND SUM(col1) < 50000;
   // Get accessor
   auto accessor = MakeAccessor();
@@ -765,7 +765,7 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleHashJoinTest) {
+TEST_F(CompilerTest, DISABLED_SimpleHashJoinTest) {
   // SELECT t1.col1, t2.col1, t2.col2, t1.col1 + t2.col2 FROM t1 INNER JOIN t2 ON t1.col1=t2.col1
   // WHERE t1.col1 < 500 AND t2.col1 < 80
   // TODO(Amadou): Simple join tests are very similar. Some refactoring is possible.
@@ -893,7 +893,7 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleSortTest) {
+TEST_F(CompilerTest, DISABLED_SimpleSortTest) {
   // SELECT col1, col2, col1 + col2 FROM test_1 WHERE col1 < 500 ORDER BY col2 ASC, col1 - col2 DESC
   // Get accessor
   auto accessor = MakeAccessor();
@@ -991,7 +991,7 @@ TEST_F(CompilerTest, SimpleSortTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
+TEST_F(CompilerTest, DISABLED_SimpleNestedLoopJoinTest) {
   // SELECT t1.col1, t2.col1, t2.col2, t1.col1 + t2.col2 FROM t1 INNER JOIN t2 ON t1.col1=t2.col1
   // WHERE t1.col1 < 500 AND t2.col1 < 80
   // Get accessor
@@ -1117,7 +1117,7 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
+TEST_F(CompilerTest, DISABLED_SimpleIndexNestedLoopJoinTest) {
   // SELECT t1.col1, t2.col1, t2.col2, t1.col2 + t2.col2 FROM test_2 AS t2 INNER JOIN test_1 AS t1 ON t1.col1=t2.col1
   // WHERE t1.col1 < 500 AND t2.col1 < 80
   // Get accessor
@@ -1223,7 +1223,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
+TEST_F(CompilerTest, DISABLED_SimpleIndexNestedLoopJoinMultiColumnTest) {
   // SELECT t1.col1, t2.col1, t2.col2, t1.col2 + t2.col2 FROM test_1 AS t1 INNER JOIN test_2 AS t2 ON t1.col1=t2.col1
   // AND t1.col2 = t2.col2 Get accessor
   auto accessor = MakeAccessor();
@@ -1323,7 +1323,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleDeleteTest) {
+TEST_F(CompilerTest, DISABLED_SimpleDeleteTest) {
   // DELETE FROM test_1 WHERE colA BETWEEN 495 AND 505
   // Then check that the following finds the no tuples:
   // SELECT * FROM test_1 WHERE colA BETWEEN 495 AND 505.
@@ -1439,7 +1439,7 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
   }
 }
 
-TEST_F(CompilerTest, SimpleUpdateTest) {
+TEST_F(CompilerTest, DISABLED_SimpleUpdateTest) {
   // UPDATE test_1 SET colA = -colA, colB = 500 WHERE colA BETWEEN 495 AND 505
   // Then check that the following finds the tuples:
   // SELECT * FROM test_1 WHERE colA BETWEEN -505 AND -495.
@@ -1611,7 +1611,7 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleInsertTest) {
+TEST_F(CompilerTest, DISABLED_SimpleInsertTest) {
   // INSERT INTO test_1 (colA, colB, colC, colD) VALUES (-1, 1, 2, 3), (-2, 1, 2, 3)
   // Then check that the following finds the new tuples:
   // SELECT colA, colB, colC, colD FROM test_1 WHERE test_1.colA < 0.
@@ -1768,7 +1768,7 @@ TEST_F(CompilerTest, SimpleInsertTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
+TEST_F(CompilerTest, DISABLED_InsertIntoSelectWithParamTest) {
   // INSERT INTO test_1
   // SELECT -colA, col2, col3, col4 FROM test_1 WHERE colA BETWEEN param1 AND param2.
   // Set param1 = 495 and param2 = 505
@@ -1948,9 +1948,11 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
-  // INSERT INTO all_types_table (string_col, date_col, real_col, int_col) VALUES (param1, param2, param3, param4),
+  // INSERT INTO all_types_table (string_col, date_col, real_col, bool_col, tinyint_col, smallint_col, int_col, bigint_col)
+  // VALUES (param1, param2, param3, param4),
   // (param5, param6, param7, param8) Where the parameter values are: ("37 Strings", 1937-3-7, 37.73, 37), (73 String,
-  // 1973-7-3, 73.37, 73) Then check that the following finds the new tuples: SELECT colA, colB, colC, colD FROM test_1.
+  // 1973-7-3, 73.37, 73)
+  // Then check that the following finds the new tuples: SELECT colA, colB, colC, colD FROM test_1.
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
   auto table_oid1 = accessor->GetTableOid(NSOid(), "all_types_table");
@@ -1964,8 +1966,16 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
   sql::Date date2(1973, 7, 3);
   double real1 = 37.73;
   double real2 = 73.37;
+  bool bool1 = true;
+  bool bool2 = false;
+  int8_t tinyint1 = 37;
+  int8_t tinyint2 = 73;
+  int16_t smallint1 = 37;
+  int16_t smallint2 = 73;
   int32_t int1 = 37;
   int32_t int2 = 73;
+  int64_t bigint1 = 37;
+  int64_t bigint2 = 73;
 
   // make InsertPlanNode
   std::unique_ptr<planner::AbstractPlanNode> insert;
@@ -1973,19 +1983,34 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     std::vector<ExpressionMaker::ManagedExpression> values1;
     std::vector<ExpressionMaker::ManagedExpression> values2;
 
-    values1.push_back(expr_maker.PVE(type::TypeId::VARCHAR, 0));
-    values1.push_back(expr_maker.PVE(type::TypeId::DATE, 1));
-    values1.push_back(expr_maker.PVE(type::TypeId::DECIMAL, 2));
-    values1.push_back(expr_maker.PVE(type::TypeId::INTEGER, 3));
-    values2.push_back(expr_maker.PVE(type::TypeId::VARCHAR, 4));
-    values2.push_back(expr_maker.PVE(type::TypeId::DATE, 5));
-    values2.push_back(expr_maker.PVE(type::TypeId::DECIMAL, 6));
-    values2.push_back(expr_maker.PVE(type::TypeId::INTEGER, 7));
+    int param_idx = 0;
+    values1.push_back(expr_maker.PVE(type::TypeId::VARCHAR, param_idx++));
+    values1.push_back(expr_maker.PVE(type::TypeId::DATE, param_idx++));
+    values1.push_back(expr_maker.PVE(type::TypeId::DECIMAL, param_idx++));
+    values1.push_back(expr_maker.PVE(type::TypeId::BOOLEAN, param_idx++));
+    values1.push_back(expr_maker.PVE(type::TypeId::TINYINT, param_idx++));
+    values1.push_back(expr_maker.PVE(type::TypeId::SMALLINT, param_idx++));
+    values1.push_back(expr_maker.PVE(type::TypeId::INTEGER, param_idx++));
+    values1.push_back(expr_maker.PVE(type::TypeId::BIGINT, param_idx++));
+
+    values2.push_back(expr_maker.PVE(type::TypeId::VARCHAR, param_idx++));
+    values2.push_back(expr_maker.PVE(type::TypeId::DATE, param_idx++));
+    values2.push_back(expr_maker.PVE(type::TypeId::DECIMAL, param_idx++));
+    values2.push_back(expr_maker.PVE(type::TypeId::BOOLEAN, param_idx++));
+    values2.push_back(expr_maker.PVE(type::TypeId::TINYINT, param_idx++));
+    values2.push_back(expr_maker.PVE(type::TypeId::SMALLINT, param_idx++));
+    values2.push_back(expr_maker.PVE(type::TypeId::INTEGER, param_idx++));
+    values2.push_back(expr_maker.PVE(type::TypeId::BIGINT, param_idx++));
+
     planner::InsertPlanNode::Builder builder;
     insert = builder.AddParameterInfo(table_schema1.GetColumn("varchar_col").Oid())
                  .AddParameterInfo(table_schema1.GetColumn("date_col").Oid())
                  .AddParameterInfo(table_schema1.GetColumn("real_col").Oid())
+                 .AddParameterInfo(table_schema1.GetColumn("bool_col").Oid())
+                 .AddParameterInfo(table_schema1.GetColumn("tinyint_col").Oid())
+                 .AddParameterInfo(table_schema1.GetColumn("smallint_col").Oid())
                  .AddParameterInfo(table_schema1.GetColumn("int_col").Oid())
+                 .AddParameterInfo(table_schema1.GetColumn("bigint_col").Oid())
                  .SetIndexOids({index_oid1})
                  .AddValues(std::move(values1))
                  .AddValues(std::move(values2))
@@ -1999,14 +2024,24 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     auto exec_ctx = MakeExecCtx(std::move(callback), insert->GetOutputSchema().Get());
     std::vector<type::TransientValue> params;
+    // First parameter list
     params.emplace_back(type::TransientValueFactory::GetVarChar(str1));
     params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date1.int_val_)));
     params.emplace_back(type::TransientValueFactory::GetDecimal(real1));
+    params.emplace_back(type::TransientValueFactory::GetBoolean(bool1));
+    params.emplace_back(type::TransientValueFactory::GetTinyInt(tinyint1));
+    params.emplace_back(type::TransientValueFactory::GetSmallInt(smallint1));
     params.emplace_back(type::TransientValueFactory::GetInteger(int1));
+    params.emplace_back(type::TransientValueFactory::GetBigInt(bigint1));
+    // Second parameter list
     params.emplace_back(type::TransientValueFactory::GetVarChar(str2));
     params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date2.int_val_)));
     params.emplace_back(type::TransientValueFactory::GetDecimal(real2));
+    params.emplace_back(type::TransientValueFactory::GetBoolean(bool2));
+    params.emplace_back(type::TransientValueFactory::GetTinyInt(tinyint2));
+    params.emplace_back(type::TransientValueFactory::GetSmallInt(smallint2));
     params.emplace_back(type::TransientValueFactory::GetInteger(int2));
+    params.emplace_back(type::TransientValueFactory::GetBigInt(bigint2));
     exec_ctx->SetParams(std::move(params));
     CompileAndRun(insert.get(), exec_ctx.get());
   }
@@ -2018,22 +2053,36 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     auto col1_oid = table_schema1.GetColumn("varchar_col").Oid();
     auto col2_oid = table_schema1.GetColumn("date_col").Oid();
     auto col3_oid = table_schema1.GetColumn("real_col").Oid();
-    auto col4_oid = table_schema1.GetColumn("int_col").Oid();
+    auto col4_oid = table_schema1.GetColumn("bool_col").Oid();
+    auto col5_oid = table_schema1.GetColumn("tinyint_col").Oid();
+    auto col6_oid = table_schema1.GetColumn("smallint_col").Oid();
+    auto col7_oid = table_schema1.GetColumn("int_col").Oid();
+    auto col8_oid = table_schema1.GetColumn("bigint_col").Oid();
+
     // Get Table columns
     auto col1 = expr_maker.CVE(col1_oid, type::TypeId::VARCHAR);
     auto col2 = expr_maker.CVE(col2_oid, type::TypeId::DATE);
     auto col3 = expr_maker.CVE(col3_oid, type::TypeId::DECIMAL);
-    auto col4 = expr_maker.CVE(col4_oid, type::TypeId::INTEGER);
+    auto col4 = expr_maker.CVE(col4_oid, type::TypeId::BOOLEAN);
+    auto col5 = expr_maker.CVE(col5_oid, type::TypeId::TINYINT);
+    auto col6 = expr_maker.CVE(col6_oid, type::TypeId::SMALLINT);
+    auto col7 = expr_maker.CVE(col7_oid, type::TypeId::INTEGER);
+    auto col8 = expr_maker.CVE(col8_oid, type::TypeId::BIGINT);
+
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     seq_scan_out.AddOutput("col3", col3);
     seq_scan_out.AddOutput("col4", col4);
+    seq_scan_out.AddOutput("col5", col5);
+    seq_scan_out.AddOutput("col6", col6);
+    seq_scan_out.AddOutput("col7", col7);
+    seq_scan_out.AddOutput("col8", col8);
     // Make predicate
     auto schema = seq_scan_out.MakeSchema();
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
-                   .SetColumnOids({col1_oid, col2_oid, col3_oid, col4_oid})
+                   .SetColumnOids({col1_oid, col2_oid, col3_oid, col4_oid, col5_oid, col6_oid, col7_oid, col8_oid})
                    .SetScanPredicate(nullptr)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -2048,20 +2097,43 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     auto col1 = static_cast<sql::StringVal *>(vals[0]);
     auto col2 = static_cast<sql::Date *>(vals[1]);
     auto col3 = static_cast<sql::Real *>(vals[2]);
-    auto col4 = static_cast<sql::Integer *>(vals[3]);
-    ASSERT_FALSE(col1->is_null_ || col2->is_null_ || col3->is_null_ || col4->is_null_);
+    auto col4 = static_cast<sql::BoolVal *>(vals[3]);
+    auto col5 = static_cast<sql::Integer *>(vals[4]);
+    auto col6 = static_cast<sql::Integer *>(vals[5]);
+    auto col7 = static_cast<sql::Integer *>(vals[6]);
+    auto col8 = static_cast<sql::Integer *>(vals[7]);
+
+    // Nobody should be null here!
+    ASSERT_FALSE(col1->is_null_);
+    ASSERT_FALSE(col2->is_null_);
+    ASSERT_FALSE(col3->is_null_);
+    ASSERT_FALSE(col4->is_null_);
+    ASSERT_FALSE(col5->is_null_);
+    ASSERT_FALSE(col6->is_null_);
+    ASSERT_FALSE(col7->is_null_);
+    ASSERT_FALSE(col8->is_null_);
+
+    // Make sure all of our values match what we inserted into the table
     if (num_output_rows == 0) {
       ASSERT_EQ(col1->len_, str1.size());
       ASSERT_EQ(std::memcmp(col1->Content(), str1.data(), col1->len_), 0);
       ASSERT_EQ(col2->ymd_, date1.ymd_);
       ASSERT_EQ(col3->val_, real1);
-      ASSERT_EQ(col4->val_, int1);
+      ASSERT_EQ(col4->val_, bool1);
+      ASSERT_EQ(col5->val_, tinyint1);
+      ASSERT_EQ(col6->val_, smallint1);
+      ASSERT_EQ(col7->val_, int1);
+      ASSERT_EQ(col8->val_, bigint1);
     } else {
       ASSERT_TRUE(col1->len_ == str2.size());
       ASSERT_EQ(std::memcmp(col1->Content(), str2.data(), col1->len_), 0);
       ASSERT_EQ(col2->ymd_, date2.ymd_);
       ASSERT_EQ(col3->val_, real2);
-      ASSERT_EQ(col4->val_, int2);
+      ASSERT_EQ(col4->val_, bool2);
+      ASSERT_EQ(col5->val_, tinyint2);
+      ASSERT_EQ(col6->val_, smallint2);
+      ASSERT_EQ(col7->val_, int2);
+      ASSERT_EQ(col8->val_, bigint2);
     }
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
@@ -2086,24 +2158,38 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
     // OIDs
-    auto cola_oid = table_schema1.GetColumn("varchar_col").Oid();
-    auto colb_oid = table_schema1.GetColumn("date_col").Oid();
-    auto colc_oid = table_schema1.GetColumn("real_col").Oid();
-    auto cold_oid = table_schema1.GetColumn("int_col").Oid();
+    auto col1_oid = table_schema1.GetColumn("varchar_col").Oid();
+    auto col2_oid = table_schema1.GetColumn("date_col").Oid();
+    auto col3_oid = table_schema1.GetColumn("real_col").Oid();
+    auto col4_oid = table_schema1.GetColumn("bool_col").Oid();
+    auto col5_oid = table_schema1.GetColumn("tinyint_col").Oid();
+    auto col6_oid = table_schema1.GetColumn("smallint_col").Oid();
+    auto col7_oid = table_schema1.GetColumn("int_col").Oid();
+    auto col8_oid = table_schema1.GetColumn("bigint_col").Oid();
+      
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::VARCHAR);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::DATE);
-    auto col3 = expr_maker.CVE(colc_oid, type::TypeId::DECIMAL);
-    auto col4 = expr_maker.CVE(cold_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(col1_oid, type::TypeId::VARCHAR);
+    auto col2 = expr_maker.CVE(col2_oid, type::TypeId::DATE);
+    auto col3 = expr_maker.CVE(col3_oid, type::TypeId::DECIMAL);
+    auto col4 = expr_maker.CVE(col4_oid, type::TypeId::BOOLEAN);
+    auto col5 = expr_maker.CVE(col5_oid, type::TypeId::TINYINT);
+    auto col6 = expr_maker.CVE(col6_oid, type::TypeId::SMALLINT);
+    auto col7 = expr_maker.CVE(col7_oid, type::TypeId::INTEGER);
+    auto col8 = expr_maker.CVE(col8_oid, type::TypeId::BIGINT);
 
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     index_scan_out.AddOutput("col3", col3);
     index_scan_out.AddOutput("col4", col4);
+    index_scan_out.AddOutput("col5", col5);
+    index_scan_out.AddOutput("col6", col6);
+    index_scan_out.AddOutput("col7", col7);
+    index_scan_out.AddOutput("col8", col8);
+
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid1)
-                     .SetColumnOids({cola_oid, colb_oid, colc_oid, cold_oid})
+                     .SetColumnOids({col1_oid, col2_oid, col3_oid, col4_oid, col5_oid, col6_oid, col7_oid, col8_oid})
                      .SetIndexOid(index_oid1)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.PVE(type::TypeId::VARCHAR, 0))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.PVE(type::TypeId::VARCHAR, 1))

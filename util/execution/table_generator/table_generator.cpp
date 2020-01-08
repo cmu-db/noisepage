@@ -61,8 +61,6 @@ bool *TableGenerator::CreateBooleanColumnData(ColumnInsertMeta *col_meta, uint32
       uint32_t half = num_vals / 2;
       for (uint32_t i = 0; i < num_vals; i++) {
         val[i] = (i >= half);
-        // TODO(pavlo): Remove
-//        std::cout << "GENERATE: [" << i << "] => " << val[i] << "\n";
       }
       break;
     }
@@ -166,54 +164,10 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
           byte *data = redo->Delta()->AccessForceNotNull(offset);
           uint32_t elem_size = type::TypeUtil::GetTypeSize(table_meta->col_meta_[k].type_);
           std::memcpy(data, column_data[k].first + j * elem_size, elem_size);
-
-          // TODO(pavlo): Remove
-          if (terrier::util::StringUtil::Contains(table_meta->name_, "all_types")) {
-            switch(k) {
-              case 0:
-                std::cout << "INSERT bool: [" << j << "] => " << static_cast<bool>(*data) << "\n";
-                break;
-              case 1:
-                std::cout << "INSERT tinyint: [" << j << "] => " << static_cast<int8_t>(*reinterpret_cast<int8_t*>(data)) << "\n";
-                break;
-              case 2:
-                std::cout << "INSERT smallint: [" << j << "] => " << static_cast<int16_t>(*reinterpret_cast<int16_t*>(data)) << "\n";
-                break;
-              case 3:
-                std::cout << "INSERT int: [" << j << "] => " << static_cast<int32_t>(*reinterpret_cast<int32_t*>(data)) << "\n";
-                break;
-              case 4:
-                std::cout << "INSERT bigint: [" << j << "] => " << static_cast<int64_t>(*reinterpret_cast<int64_t*>(data)) << "\n";
-                break;
-            }
-          }
         }
       }
       table->Insert(exec_ctx_->GetTxn(), redo);
       vals_written++;
-    }
-
-    // TODO(pavlo): This should be removed once we figure out
-    // why we can't read booleans back correctly.
-    if (terrier::util::StringUtil::Contains(table_meta->name_, "all_types")) {
-      std::vector<catalog::col_oid_t> col_oids;
-      for (const auto &col : schema.GetColumns()) {
-        col_oids.emplace_back(col.Oid());
-      }
-      auto pc_init = table->InitializerForProjectedColumns(col_oids, common::Constants::K_DEFAULT_VECTOR_SIZE);
-      auto buffer = common::AllocationUtil::AllocateAligned(pc_init.ProjectedColumnsSize());
-      auto pc = pc_init.Initialize(buffer);
-      pc->SetNumTuples(common::Constants::K_DEFAULT_VECTOR_SIZE);
-      auto iterator = table->begin();
-      table->Scan(exec_ctx_->GetTxn(), &iterator, pc);
-      auto col0 = reinterpret_cast<bool *>(pc->ColumnStart(offsets[0]));
-
-      // This code just scans the first column from the 'all_types' table
-      // and then prints out the result. It should match "INSERT" debug
-      // code up above.
-      for (uint tuple_idx = 0; tuple_idx < pc->NumTuples(); tuple_idx++) {
-        std::cout << "SCAN: [" << tuple_idx << "] => " << col0[tuple_idx] << "\n";
-      }
     }
 
     // Free allocated buffers
@@ -251,15 +205,6 @@ void TableGenerator::GenerateTestTables() {
         {"col3", type::TypeId::BIGINT, false, Dist::Uniform, 0, common::Constants::K_DEFAULT_VECTOR_SIZE},
         {"col4", type::TypeId::INTEGER, true, Dist::Uniform, 0, 2 * common::Constants::K_DEFAULT_VECTOR_SIZE}}},
 
-      // Table 3
-      {"all_types",
-       TABLE_ALLTYPES_SIZE,
-       {{"bool_col", type::TypeId::BOOLEAN, false, Dist::Serial, 0, 0},
-        {"tinyint_col", type::TypeId::TINYINT, false, Dist::Uniform, 0, 127},
-        {"smallint_col", type::TypeId::SMALLINT, false, Dist::Serial, 0, 1000},
-        {"int_col", type::TypeId::INTEGER, false, Dist::Uniform, 0, 1000},
-        {"bigint_col", type::TypeId::BIGINT, false, Dist::Uniform, 0, 1000}}},
-
       // Empty table with two columns
       {"empty_table2",
        0,
@@ -272,7 +217,11 @@ void TableGenerator::GenerateTestTables() {
        {{"varchar_col", type::TypeId::VARCHAR, false, Dist::Serial, 0, 0},
         {"date_col", type::TypeId::DATE, false, Dist::Serial, 0, 0},
         {"real_col", type::TypeId::DECIMAL, false, Dist::Serial, 0, 0},
-        {"int_col", type::TypeId::INTEGER, false, Dist::Uniform, 0, 0}}},
+        {"bool_col", type::TypeId::BOOLEAN, false, Dist::Serial, 0, 0},
+        {"tinyint_col", type::TypeId::TINYINT, false, Dist::Uniform, 0, 127},
+        {"smallint_col", type::TypeId::SMALLINT, false, Dist::Serial, 0, 1000},
+        {"int_col", type::TypeId::INTEGER, false, Dist::Uniform, 0, 0},
+        {"bigint_col", type::TypeId::BIGINT, false, Dist::Uniform, 0, 1000}}},
   };
   for (auto &table_meta : insert_meta) {
     // Create Schema.
