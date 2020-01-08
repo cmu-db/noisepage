@@ -4,9 +4,11 @@ import csv
 import numpy as np
 import pandas as pd
 import os
+import copy
 
-import data_info as di
-from data_info import OpUnit
+import data_info
+
+from type import OpUnit, ArithmeticFeature
 
 np.set_printoptions(precision=4)
 np.set_printoptions(suppress=True)
@@ -116,61 +118,86 @@ def get_mini_runner_data(file):
     file_name = os.path.splitext(os.path.basename(file))[0]
     print(OpUnit[file_name])
 
-    x = df.iloc[:, :-di.target_num].values
-    y = df.iloc[:, -di.target_num:].values
+    x = df.iloc[:, :-data_info.metrics_output_num].values
+    y = df.iloc[:, -data_info.target_num:].values
 
     return Data(OpUnit[file_name], x, y)
 
 def get_execution_mini_runner_data(file):
-    '''
-    Get the training data from the execution mini runner
-    '''
-    data_list = []
-    import csv
+    """Get the training data from the execution mini runner
+
+    :param file: the input data file
+    :return: the list of Data for execution operating units
+    """
+    data_map = {}
+
+    arithmetic_mode_index = data_info.arithmetic_feature_index[ArithmeticFeature.EXEC_MODE]
 
     with open(file, "r") as f:
         reader = csv.reader(f, delimiter=",", skipinitialspace=True)
+        next(reader)
         for line in reader:
-            print(line)
+            # The first element is always the opunit name for the execution metrics
+            opunit = OpUnit[line[0]]
+            line_data = line[1:]
+            if not opunit in data_map:
+                data_map[opunit] = []
+            # Do not record the compiled version of arithmetic operations since they'll all be optimized away
+            if opunit not in data_info.arithmetic_opunits or line_data[arithmetic_mode_index] != '1':
+                data_map[opunit].append(list(map(int, line_data)))
 
-    return data_list
+    data_list = []
+    # Since the compiled arithmetics are always optimized away,
+    # we treat the compiled arithmetics the same as the interpreted ones by copying the data
+    for opunit, values in data_map.items():
+        print(opunit)
+        if opunit in data_info.arithmetic_opunits:
+            compiled_values = copy.deepcopy(values)
+            for v in compiled_values:
+                v[arithmetic_mode_index] = 1
+            values += compiled_values
+        np_value = np.array(values)
+        #print(values)
+        x = np_value[:, :-data_info.metrics_output_num]
+        y = np_value[:, -data_info.target_num:]
+        data_list.append(Data(opunit, x, y))
+
+    return data_map
 
 class Data:
-    '''
+    """
     The class that stores data and provides basic functions to manipulate the data
-    '''
+    """
     def __init__(self, opunit, x, y):
-        '''
+        """
 
         :param opunit: The opunit that the data is related to
         :param x: The input feature
         :param y: The outputs
-        '''
+        """
         self.opunit = opunit
         self.x = x
         self.y = y
 
 class OldData:
-    '''
-    The class that stores data and provides basic functions to manipulate the data
+    """The class that stores data and provides basic functions to manipulate the data
 
     IMPORTANT: This assumes the label is the last attribute in each row of self.data
-    '''
+    """
     def __init__(self, symbol, target, data):
         self.symbol = symbol
         self.target = target
         self.data = data
 
     def extend_from_one_feature(self, idx):
-        '''
-        Pick one dimension to extend the labels
+        """Pick one dimension to extend the labels
 
         IMPORTANT: This assumes that the data has same amount of labels when fixing all the other feature dimensions
         :param idx: the dimension to extend
         :return:
             - A list of all the different elements from that dimension - first output
             - A dictionary that maps the remaining features to the list of values - second output
-        '''
+        """
 
         df = pd.DataFrame(self.data)
 
@@ -194,12 +221,12 @@ class OldData:
         return index_value_list, data_map
 
     def get_label_transformed_data(self, idx, func):
-        '''
-        Apply a label transformation according to given index and function
+        """Apply a label transformation according to given index and function
+
         :param idx: the source column index for the transformation
         :param fuc: the transformation function
         :return: the new Data with the transformed label
-        '''
+        """
 
         new_data = np.copy(self.data)
         new_label = func(self.data[:, -1], self.data[:, idx])

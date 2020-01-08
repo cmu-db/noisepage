@@ -1,54 +1,31 @@
-from enum import Enum
+from type import Target, OpUnit, ArithmeticFeature
 
 # The index for different targets in the output
-target_index = {
-    "cpu_cycles": -11,
-    "instructions": -10,
-    "cache_ref": -9,
-    "cache_miss": -8,
-    "cpu_time": -7,
-    "block_read": -6,
-    "block_write": -5,
-    "cpu_id": -4,
-    "memory_b": -3,
-    "elapsed_us": -2,
-    "start_time": -1
+target_csv_index = {
+    Target.START_TIME: -11,
+    Target.CPU_ID: -10,
+    Target.CPU_CYCLE: -9,
+    Target.INSTRUCTION: -8,
+    Target.CACHE_REF: -7,
+    Target.CACHE_MISS: -6,
+    Target.CPU_TIME: -5,
+    Target.BLOCK_READ: -4,
+    Target.BLOCK_WRITE: -3,
+    Target.MEMORY_B: -2,
+    Target.ELAPSED_US: -1,
 }
 
+arithmetic_feature_index = {
+    ArithmeticFeature.EXEC_NUMBER: 0,
+    ArithmeticFeature.EXEC_MODE: 1,
+}
+
+# The position of the name of the operating unit in the execution engine csv metrics file
+execution_csv_name_pos = 0
+
 # total number of outputs
-target_num = 11
+target_num = 9
+metrics_output_num = 11
 
-class OpUnit(Enum):
-    '''
-    The enum for all the operating units
-
-    The second lower case name (alias) is to match the string identifier from the csv data file
-    '''
-    GC_DEALLOC = "gc_deallocate",
-    GC_UNLINK = "gc_unlink",
-    LOG_SERIAL = "log_serializer_task",
-    LOG_CONSUME = 1,
-    disk_log_consumer_task = 1,
-    TXN_BEGIN = "txn_begin",
-    TXN_COMMIT = "txn_commit",
-
-    # Execution engine opunits
-    SCAN = "scan",
-    JOIN_BUILD = "joinbuild",
-    JOIN_PROBE = "joinprobe",
-    AGG_BUILD = "aggbuild",
-    AGG_PROBE = "aggprobe",
-    SORT_BUILD = "sortbuild",
-    SORT_PROBE = "sortprobe",
-    INT_ADD = "integeradd",
-    INT_MULTIPLY = "integermultiply",
-    INT_DIVIDE = "integerdivide",
-    INT_GREATER = "integergreater",
-    REAL_ADD = "realadd",
-    REAL_MULTIPLY = "realmultiply",
-    REAL_DIVIDE = "realdivide",
-    REAL_GREATER = "realgreater",
-
-
-execution_opunits = {OpUnit.INT_ADD, OpUnit.INT_MULTIPLY, OpUnit.INT_DIVIDE, OpUnit.INT_GREATER,
-                     OpUnit.REAL_ADD, OpUnit.REAL_MULTIPLY, OpUnit.REAL_DIVIDE, OpUnit.REAL_GREATER}
+arithmetic_opunits = {OpUnit.INT_ADD, OpUnit.INT_MULTIPLY, OpUnit.INT_DIVIDE, OpUnit.INT_GREATER,
+                      OpUnit.REAL_ADD, OpUnit.REAL_MULTIPLY, OpUnit.REAL_DIVIDE, OpUnit.REAL_GREATER}
