@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 
-def GenerateSortKey(col_num):
+def generate_sort_key(col_num):
     # Generate the key type for the sort
     print("struct SortRow{} {{".format(col_num))
     for i in range(col_num):
@@ -10,7 +10,7 @@ def GenerateSortKey(col_num):
     print()
 
 
-def GenerateKeyCheck(col_num):
+def generate_key_check(col_num):
     print("fun compareFn{}(lhs: *SortRow{}, rhs: *SortRow{}) -> int32 {{".format(col_num, col_num, col_num))
     for i in range(1, col_num + 1):
         print("  if (lhs.c{} < rhs.c{}) {{".format(i, i))
@@ -23,7 +23,7 @@ def GenerateKeyCheck(col_num):
     print("}\n")
 
 
-def GenerateBuildSide(col_num, row_num, cardinality):
+def generate_build_side(col_num, row_num, cardinality):
     fun_name = "buildCol{}Row{}Car{}".format(col_num, row_num, cardinality)
     print("fun {}(execCtx: *ExecutionContext, state: *State) -> nil {{".format(fun_name))
     print("  @execCtxStartResourceTracker(execCtx)")
@@ -61,7 +61,7 @@ def GenerateBuildSide(col_num, row_num, cardinality):
     return fun_name
 
 
-def GenerateProbeSide(col_num, row_num, cardinality):
+def generate_probe_side(col_num, row_num, cardinality):
     fun_name = "probeCol{}Row{}Car{}".format(col_num, row_num, cardinality)
     print("fun {}(execCtx: *ExecutionContext, state: *State) -> nil {{".format(fun_name))
     print("  @execCtxStartResourceTracker(execCtx)")
@@ -85,7 +85,7 @@ def GenerateProbeSide(col_num, row_num, cardinality):
     return fun_name
 
 
-def GenerateState(col_nums):
+def generate_state(col_nums):
     print("struct State {")
     for i in col_nums:
         print("  sorter{}: Sorter".format(i))
@@ -93,14 +93,14 @@ def GenerateState(col_nums):
     print("}\n")
 
 
-def GenerateTearDown(col_nums):
+def generate_tear_down(col_nums):
     print("fun tearDownState(execCtx: *ExecutionContext, state: *State) -> nil {")
     for i in col_nums:
         print("  @sorterFree(&state.sorter{})".format(i))
     print("}\n")
 
 
-def GenerateSetup(col_nums):
+def generate_setup(col_nums):
     print("fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {")
     for i in col_nums:
         print("  @sorterInit(&state.sorter{}, @execCtxGetMem(execCtx), compareFn{}, @sizeOf(SortRow{}))".format(i, i,
@@ -109,7 +109,7 @@ def GenerateSetup(col_nums):
     print("}\n")
 
 
-def GenerateMainFun(fun_names):
+def generate_main_fun(fun_names):
     print("fun main(execCtx: *ExecutionContext) -> int32 {")
     print("  var state: State")
 
@@ -125,7 +125,7 @@ def GenerateMainFun(fun_names):
     print("}")
 
 
-def GenerateAll():
+def generate_all():
     col_nums = range(1, 6)
     row_nums = [1, 5, 10, 50, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000,
                 200000, 500000, 1000000]
@@ -133,24 +133,24 @@ def GenerateAll():
     fun_names = []
 
     for col_num in col_nums:
-        GenerateSortKey(col_num)
+        generate_sort_key(col_num)
 
-    GenerateState(col_nums)
+    generate_state(col_nums)
 
     for col_num in col_nums:
-        GenerateKeyCheck(col_num)
+        generate_key_check(col_num)
 
-    GenerateSetup(col_nums)
-    GenerateTearDown(col_nums)
+    generate_setup(col_nums)
+    generate_tear_down(col_nums)
 
     for col_num in col_nums:
         for row_num in row_nums:
             for cardinality in cardinalities:
-                fun_names.append(GenerateBuildSide(col_num, row_num, cardinality))
-                fun_names.append(GenerateProbeSide(col_num, row_num, cardinality))
+                fun_names.append(generate_build_side(col_num, row_num, cardinality))
+                fun_names.append(generate_probe_side(col_num, row_num, cardinality))
 
-    GenerateMainFun(fun_names)
+    generate_main_fun(fun_names)
 
 
 if __name__ == '__main__':
-    GenerateAll()
+    generate_all()

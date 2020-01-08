@@ -1,36 +1,39 @@
-#!/ usr / bin / env python3
+#!/usr/bin/env python3
 
-#Generate the key type for the join
-def GenerateBuildKey(col_num):
+
+def generate_build_key(col_num):
+    # Generate the key type for the join
     print("struct BuildKey{} {{".format(col_num))
     for i in range(col_num):
         print("  c{} : Integer".format(i + 1))
     print("}")
     print()
 
-#Generage the join struct(key and value)
-def GenerateBuildRow(col_num, agg_type):
+
+def generate_build_row(col_num, agg_type):
+    # Generate the join struct(key and value)
     print("struct BuildRow{} {{".format(col_num))
     print("  key: BuildKey{}".format(col_num))
     print("  agg: {}".format(agg_type))
     print("}")
     print()
 
-def GenerateKeyCheck(col_num):
+
+def generate_key_check(col_num):
     print("fun keyCheck{}(execCtx: *ExecutionContext, pci: *ProjectedColumnsIterator, row: *BuildRow{}) -> bool {{"
-          "".format(
-        col_num, col_num))
+          "".format(col_num, col_num))
     print("  return @sqlToBool(@pciGetInt(pci, {}) == row.key.c1)".format(col_num - 1), end="")
     for i in range(1, col_num):
         print(" and @sqlToBool(@pciGetInt(pci, {}) == row.key.c{})".format(col_num - 1, i + 1), end="")
     print("\n}\n")
 
-def GenerateBuildSide(col_num, row_num, cardinality):
+
+def generate_build_side(col_num, row_num, cardinality):
     fun_name = "buildCol{}Row{}Car{}".format(col_num, row_num, cardinality)
     print("fun {}(execCtx: *ExecutionContext, state: *State) -> nil {{".format(fun_name))
     print("  @execCtxStartResourceTracker(execCtx)")
 
-    print("  var jht: *JoinHashTable = &state.table{}".format(col_num)) # join hash table
+    print("  var jht: *JoinHashTable = &state.table{}".format(col_num))  # join hash table
 
     # table iterator
     print("  var tvi: TableVectorIterator")
@@ -65,19 +68,20 @@ def GenerateBuildSide(col_num, row_num, cardinality):
     print("  @joinHTBuild(jht)")
 
     print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"joinbuild, {}, {}, {}\"))".format(row_num, col_num * 4,
-                                                                                          cardinality))
+                                                                                                  cardinality))
     print("}")
 
     print()
 
     return fun_name
 
-def GenerateProbeSide(col_num, row_num, cardinality):
+
+def generate_probe_side(col_num, row_num, cardinality):
     fun_name = "probeCol{}Row{}Car{}".format(col_num, row_num, cardinality)
     print("fun {}(execCtx: *ExecutionContext, state: *State) -> nil {{".format(fun_name))
     print("  @execCtxStartResourceTracker(execCtx)")
 
-    print("  var jht: *JoinHashTable = &state.table{}".format(col_num)) # join hash table
+    print("  var jht: *JoinHashTable = &state.table{}".format(col_num))  # join hash table
     print("  var build_row: *BuildRow{}".format(col_num))
 
     # table iterator
@@ -113,7 +117,7 @@ def GenerateProbeSide(col_num, row_num, cardinality):
     print("  @joinHTBuild(jht)")
 
     print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"joinprobe, {}, {}, {}\"))".format(row_num, col_num * 4,
-                                                                                       cardinality))
+                                                                                                  cardinality))
     print("}")
 
     print()
@@ -121,21 +125,22 @@ def GenerateProbeSide(col_num, row_num, cardinality):
     return fun_name
 
 
-def GenerateState(col_nums):
+def generate_state(col_nums):
     print("struct State {")
     for i in col_nums:
         print("  table{} : JoinHashTable".format(i))
     print("  num_matches : int64")
     print("}\n")
 
-def GenerateTearDown(col_nums):
+
+def generate_tear_down(col_nums):
     print("fun tearDownState(execCtx: *ExecutionContext, state: *State) -> nil {")
     for i in col_nums:
         print("  @joinHTFree(&state.table{})".format(i))
     print("}\n")
 
 
-def GenerateSetup(col_nums):
+def generate_setup(col_nums):
     print("fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {")
     for i in col_nums:
         print("  @joinHTInit(&state.table{}, @execCtxGetMem(execCtx), @sizeOf(BuildRow{}))".format(i, i))
@@ -143,7 +148,8 @@ def GenerateSetup(col_nums):
     print("  state.num_matches = 0")
     print("}\n")
 
-def GenerateMainFun(fun_names):
+
+def generate_main_fun(fun_names):
     print("fun main(execCtx: *ExecutionContext) -> int32 {")
     print("  var state: State")
 
@@ -159,35 +165,36 @@ def GenerateMainFun(fun_names):
     print("}")
 
 
-def GenerateAll():
-    agg_types = ['IntegerSumAggregate', 'CountStarAggregate', 'IntegerAvgAggregate', 'IntegerMinAggregate', 'IntegerMaxAggregate']
+def generate_all():
+    agg_types = ['IntegerSumAggregate', 'CountStarAggregate', 'IntegerAvgAggregate', 'IntegerMinAggregate',
+                 'IntegerMaxAggregate']
     fun_names = []
     col_nums = range(1, 6)
     row_nums = [1, 5, 10, 50, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000,
                 200000, 500000, 1000000]
     cardinalities = [1, 2, 5, 10, 50, 100]
 
+    for col_num in col_nums:
+        generate_build_key(col_num)
 
     for col_num in col_nums:
-        GenerateBuildKey(col_num)
+        generate_build_row(col_num, agg_types[col_num - 1])
+
+    generate_state(col_nums)
+    generate_setup(col_nums)
+    generate_tear_down(col_nums)
 
     for col_num in col_nums:
-        GenerateBuildRow(col_num, agg_types[col_num - 1])
-
-    GenerateState(col_nums)
-    GenerateSetup(col_nums)
-    GenerateTearDown(col_nums)
-
-    for col_num in col_nums:
-        GenerateKeyCheck(col_num)
+        generate_key_check(col_num)
 
     for col_num in col_nums:
         for row_num in row_nums:
             for cardinality in cardinalities:
-                fun_names.append(GenerateBuildSide(col_num, row_num, cardinality))
-                fun_names.append(GenerateProbeSide(col_num, row_num, cardinality))
+                fun_names.append(generate_build_side(col_num, row_num, cardinality))
+                fun_names.append(generate_probe_side(col_num, row_num, cardinality))
 
-    GenerateMainFun(fun_names)
+    generate_main_fun(fun_names)
+
 
 if __name__ == '__main__':
-    GenerateAll()
+    generate_all()
