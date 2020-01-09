@@ -35,7 +35,8 @@ class OptimizerContext {
    * Constructor for OptimizerContext
    * @param cost_model Cost Model to be stored by OptimizerContext
    */
-  explicit OptimizerContext(AbstractCostModel *cost_model) : cost_model_(cost_model), task_pool_(nullptr) {}
+  explicit OptimizerContext(const common::ManagedPointer<AbstractCostModel> cost_model)
+      : cost_model_(cost_model), task_pool_(nullptr) {}
 
   /**
    * Destructor
@@ -90,7 +91,7 @@ class OptimizerContext {
    * Gets the cost model
    * @returns Cost Model
    */
-  AbstractCostModel *GetCostModel() { return cost_model_; }
+  AbstractCostModel *GetCostModel() { return cost_model_.Get(); }
 
   /**
    * Gets the transaction
@@ -214,44 +215,13 @@ class OptimizerContext {
   }
 
  private:
-  /**
-   * Memo for memoization and group tracking
-   */
   Memo memo_;
-
-  /**
-   * RuleSet used for particular optimization pass
-   */
   RuleSet rule_set_;
-
-  /**
-   * Cost Model pointer
-   */
-  AbstractCostModel *cost_model_;
-
-  /**
-   * Pool of Optimizer tasks to execute
-   */
+  common::ManagedPointer<AbstractCostModel> cost_model_;
   OptimizerTaskPool *task_pool_;
-
-  /**
-   * CatalogAccessor
-   */
   catalog::CatalogAccessor *accessor_;
-
-  /**
-   * StatsStorage
-   */
   StatsStorage *stats_storage_;
-
-  /**
-   * TransactionContxt used for execution
-   */
   transaction::TransactionContext *txn_;
-
-  /**
-   * List to track OptimizationContext created
-   */
   std::vector<OptimizationContext *> track_list_;
 };
 

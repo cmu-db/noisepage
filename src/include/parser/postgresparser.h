@@ -4,12 +4,12 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "libpg_query/pg_query.h"
 #include "parser/parsenodes.h"
 #include "parser/statements.h"
 
-namespace terrier {
-namespace parser {
+namespace terrier::parser {
 
 /**
  * ParseResult is the parser's output to the binder. It allows you to obtain non-owning managed pointers to the
@@ -100,15 +100,14 @@ class PostgresParser {
    */
 
  public:
-  PostgresParser();
-  ~PostgresParser();
+  PostgresParser() = delete;
 
   /**
    * Builds the parse tree for the given query string.
    * @param query_string query string to be parsed
    * @return unique pointer to parse tree
    */
-  ParseResult BuildParseTree(const std::string &query_string);
+  static ParseResult BuildParseTree(const std::string &query_string);
 
  private:
   static FKConstrActionType CharToActionType(const char &type) {
@@ -287,5 +286,4 @@ class PostgresParser {
   static std::unique_ptr<UpdateStatement> UpdateTransform(ParseResult *parse_result, UpdateStmt *update_stmt);
 };
 
-}  // namespace parser
-}  // namespace terrier
+}  // namespace terrier::parser

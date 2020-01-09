@@ -103,6 +103,7 @@ namespace terrier::execution::vm {
     OperandType::UImm4)                                                                                               \
   F(TableVectorIteratorPerformInit, OperandType::Local)                                                               \
   F(TableVectorIteratorNext, OperandType::Local, OperandType::Local)                                                  \
+  F(TableVectorIteratorReset, OperandType::Local)                                                                     \
   F(TableVectorIteratorFree, OperandType::Local)                                                                      \
   F(TableVectorIteratorGetPCI, OperandType::Local, OperandType::Local)                                                \
   F(ParallelScanTable, OperandType::UImm4, OperandType::UImm4, OperandType::Local, OperandType::Local,                \
@@ -117,6 +118,7 @@ namespace terrier::execution::vm {
   F(PCIMatch, OperandType::Local, OperandType::Local)                                                                 \
   F(PCIReset, OperandType::Local)                                                                                     \
   F(PCIResetFiltered, OperandType::Local)                                                                             \
+  F(PCIGetSlot, OperandType::Local, OperandType::Local)                                                               \
   F(PCIGetTinyInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
   F(PCIGetSmallInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                       \
   F(PCIGetInteger, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
@@ -380,6 +382,7 @@ namespace terrier::execution::vm {
   F(StorageInterfaceTableDelete, OperandType::Local, OperandType::Local, OperandType::Local)                          \
   F(StorageInterfaceGetIndexPR, OperandType::Local, OperandType::Local, OperandType::UImm4)                           \
   F(StorageInterfaceIndexInsert, OperandType::Local, OperandType::Local)                                              \
+  F(StorageInterfaceIndexInsertUnique, OperandType::Local, OperandType::Local)                                        \
   F(StorageInterfaceIndexDelete, OperandType::Local, OperandType::Local)                                              \
   F(StorageInterfaceFree, OperandType::Local)                                                                         \
                                                                                                                       \
@@ -428,7 +431,17 @@ namespace terrier::execution::vm {
   F(SplitPart, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
   F(Substring, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
   F(Trim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
-  F(Upper, OperandType::Local, OperandType::Local, OperandType::Local)
+  F(Upper, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
+                                                                                                                      \
+  /* String functions */                                                                                              \
+  F(GetParamTinyInt, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(GetParamSmallInt, OperandType::Local, OperandType::Local, OperandType::Local)                                     \
+  F(GetParamInt, OperandType::Local, OperandType::Local, OperandType::Local)                                          \
+  F(GetParamBigInt, OperandType::Local, OperandType::Local, OperandType::Local)                                       \
+  F(GetParamReal, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
+  F(GetParamDouble, OperandType::Local, OperandType::Local, OperandType::Local)                                       \
+  F(GetParamDate, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
+  F(GetParamString, OperandType::Local, OperandType::Local, OperandType::Local)
 
 /**
  * The single enumeration of all possible bytecode instructions

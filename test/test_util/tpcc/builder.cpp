@@ -5,7 +5,7 @@ namespace terrier::tpcc {
 Database *Builder::Build(const storage::index::IndexType index_type) {
   // create the database in the catalog
   auto *txn = txn_manager_->BeginTransaction();
-  const catalog::db_oid_t db_oid = catalog_->CreateDatabase(txn, "tpcc", true);
+  const catalog::db_oid_t db_oid = catalog_->CreateDatabase(common::ManagedPointer(txn), "tpcc", true);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // generate all of the table schemas
@@ -21,7 +21,7 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
 
   // create the tables in the catalog
   txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(txn, db_oid);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
 
   const catalog::table_oid_t item_table_oid =
       accessor->CreateTable(accessor->GetDefaultNamespace(), "ITEM", item_schema);
@@ -65,30 +65,31 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
 
   // instantiate and set the table pointers in the catalog
 
-  auto result UNUSED_ATTRIBUTE = accessor->SetTablePointer(item_table_oid, new storage::SqlTable(store_, item_schema));
+  auto result UNUSED_ATTRIBUTE =
+      accessor->SetTablePointer(item_table_oid, new storage::SqlTable(store_.Get(), item_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(warehouse_table_oid, new storage::SqlTable(store_, warehouse_schema));
+  result = accessor->SetTablePointer(warehouse_table_oid, new storage::SqlTable(store_.Get(), warehouse_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(stock_table_oid, new storage::SqlTable(store_, stock_schema));
+  result = accessor->SetTablePointer(stock_table_oid, new storage::SqlTable(store_.Get(), stock_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(district_table_oid, new storage::SqlTable(store_, district_schema));
+  result = accessor->SetTablePointer(district_table_oid, new storage::SqlTable(store_.Get(), district_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(customer_table_oid, new storage::SqlTable(store_, customer_schema));
+  result = accessor->SetTablePointer(customer_table_oid, new storage::SqlTable(store_.Get(), customer_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(history_table_oid, new storage::SqlTable(store_, history_schema));
+  result = accessor->SetTablePointer(history_table_oid, new storage::SqlTable(store_.Get(), history_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(new_order_table_oid, new storage::SqlTable(store_, new_order_schema));
+  result = accessor->SetTablePointer(new_order_table_oid, new storage::SqlTable(store_.Get(), new_order_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(order_table_oid, new storage::SqlTable(store_, order_schema));
+  result = accessor->SetTablePointer(order_table_oid, new storage::SqlTable(store_.Get(), order_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
-  result = accessor->SetTablePointer(order_line_table_oid, new storage::SqlTable(store_, order_line_schema));
+  result = accessor->SetTablePointer(order_line_table_oid, new storage::SqlTable(store_.Get(), order_line_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // get the table pointers back from the catalog
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_oid);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
 
   const auto item_table = accessor->GetTable(item_table_oid);
   const auto warehouse_table = accessor->GetTable(warehouse_table_oid);
@@ -176,7 +177,7 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
 
   // create the indexes in the catalog
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_oid);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
 
   const catalog::index_oid_t warehouse_primary_index_oid = accessor->CreateIndex(
       accessor->GetDefaultNamespace(), warehouse_table_oid, "WAREHOUSE PRIMARY", warehouse_primary_index_schema);
@@ -249,7 +250,7 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
 
   // get the table pointers back from the catalog
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_oid);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
 
   const auto warehouse_index = accessor->GetIndex(warehouse_primary_index_oid);
   const auto district_index = accessor->GetIndex(district_primary_index_oid);

@@ -105,6 +105,14 @@ enum class SetOpType { INVALID = INVALID_TYPE_ID, INTERSECT = 1, INTERSECT_ALL =
 #define DEFAULT_ESCAPE_CHAR '"'
 #define DEFAULT_NULL_STRING ""
 
+//===--------------------------------------------------------------------===//
+// IndexScanPlanNode
+//===--------------------------------------------------------------------===//
+
+using IndexExpression = common::ManagedPointer<parser::AbstractExpression>;
+/** Type of index scan. */
+enum class IndexScanType : uint8_t { Exact, Ascending, Descending, AscendingLimit, DescendingLimit };
+
 // TODO(Gus,Wen) Tuple as a concept does not exist yet, someone need to define it in the storage layer, possibly a
 /**
  * Temporary definition of a tuple in the storage layer

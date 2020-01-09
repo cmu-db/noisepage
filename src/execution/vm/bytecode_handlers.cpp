@@ -32,6 +32,11 @@ void OpTableVectorIteratorInit(terrier::execution::sql::TableVectorIterator *ite
 
 void OpTableVectorIteratorPerformInit(terrier::execution::sql::TableVectorIterator *iter) { iter->Init(); }
 
+void OpTableVectorIteratorReset(terrier::execution::sql::TableVectorIterator *iter) {
+  TERRIER_ASSERT(iter != nullptr, "NULL iterator given to reset");
+  iter->Reset();
+}
+
 void OpTableVectorIteratorFree(terrier::execution::sql::TableVectorIterator *iter) {
   TERRIER_ASSERT(iter != nullptr, "NULL iterator given to close");
   iter->~TableVectorIterator();
@@ -216,6 +221,10 @@ void OpStorageInterfaceGetIndexPR(terrier::storage::ProjectedRow **pr_result,
 
 void OpStorageInterfaceIndexInsert(bool *result, terrier::execution::sql::StorageInterface *storage_interface) {
   *result = storage_interface->IndexInsert();
+}
+
+void OpStorageInterfaceIndexInsertUnique(bool *result, terrier::execution::sql::StorageInterface *storage_interface) {
+  *result = storage_interface->IndexInsertUnique();
 }
 
 void OpStorageInterfaceIndexDelete(terrier::execution::sql::StorageInterface *storage_interface,

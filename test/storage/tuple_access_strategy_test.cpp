@@ -63,15 +63,9 @@ struct TupleAccessStrategyTests : public TerrierTest {
   storage::BlockStore block_store_{1, 1};
 
  protected:
-  void SetUp() override {
-    TerrierTest::SetUp();
-    raw_block_ = block_store_.Get();
-  }
+  void SetUp() override { raw_block_ = block_store_.Get(); }
 
-  void TearDown() override {
-    block_store_.Release(raw_block_);
-    TerrierTest::TearDown();
-  }
+  void TearDown() override { block_store_.Release(raw_block_); }
 };
 
 // Tests that we can set things to null and the access strategy returns nullptr for null fields.

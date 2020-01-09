@@ -1,3 +1,5 @@
+#include "optimizer/plan_generator.h"
+
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -8,14 +10,10 @@
 #include "catalog/catalog_accessor.h"
 #include "common/exception.h"
 #include "optimizer/operator_expression.h"
-#include "optimizer/plan_generator.h"
 #include "optimizer/properties.h"
 #include "optimizer/property_set.h"
 #include "optimizer/util.h"
 #include "parser/expression_util.h"
-#include "settings/settings_manager.h"
-#include "transaction/transaction_context.h"
-
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/csv_scan_plan_node.h"
 #include "planner/plannodes/delete_plan_node.h"
@@ -29,15 +27,16 @@
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
+#include "settings/settings_manager.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::optimizer {
 
 PlanGenerator::PlanGenerator() = default;
 
 std::unique_ptr<planner::AbstractPlanNode> PlanGenerator::ConvertOpExpression(
-    transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, settings::SettingsManager *settings,
-    OperatorExpression *op, PropertySet *required_props,
-    const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
+    transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, OperatorExpression *op,
+    PropertySet *required_props, const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &output_cols,
     std::vector<std::unique_ptr<planner::AbstractPlanNode>> &&children_plans,
     std::vector<ExprMap> &&children_expr_map) {
@@ -46,7 +45,6 @@ std::unique_ptr<planner::AbstractPlanNode> PlanGenerator::ConvertOpExpression(
   output_cols_ = output_cols;
   children_plans_ = std::move(children_plans);
   children_expr_map_ = children_expr_map;
-  settings_ = settings;
   accessor_ = accessor;
   txn_ = txn;
 

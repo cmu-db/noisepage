@@ -21,10 +21,13 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
 
   storage::DataTable table_{&block_store_, layout_, storage::layout_version_t(0)};
   transaction::TimestampManager timestamp_manager_;
-  transaction::DeferredActionManager deferred_action_manager_{&timestamp_manager_};
-  transaction::TransactionManager txn_manager_{&timestamp_manager_, &deferred_action_manager_, &buffer_pool_, true,
-                                               DISABLED};
-  storage::GarbageCollector gc_{&timestamp_manager_, &deferred_action_manager_, &txn_manager_, nullptr};
+  transaction::DeferredActionManager deferred_action_manager_{common::ManagedPointer(&timestamp_manager_)};
+  transaction::TransactionManager txn_manager_{common::ManagedPointer(&timestamp_manager_),
+                                               common::ManagedPointer(&deferred_action_manager_),
+                                               common::ManagedPointer(&buffer_pool_), true, DISABLED};
+  storage::GarbageCollector gc_{common::ManagedPointer(&timestamp_manager_),
+                                common::ManagedPointer(&deferred_action_manager_),
+                                common::ManagedPointer(&txn_manager_), nullptr};
   storage::BlockCompactor compactor_;
 
   uint32_t num_blocks_ = 500;

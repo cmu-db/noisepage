@@ -333,8 +333,8 @@ class CatalogAccessor {
    * @param txn the transaction context for this accessor
    * @warning This constructor should never be called directly.  Instead you should get accessors from the catalog.
    */
-  CatalogAccessor(common::ManagedPointer<Catalog> catalog, common::ManagedPointer<DatabaseCatalog> dbc,
-                  transaction::TransactionContext *txn)
+  CatalogAccessor(const common::ManagedPointer<Catalog> catalog, const common::ManagedPointer<DatabaseCatalog> dbc,
+                  const common::ManagedPointer<transaction::TransactionContext> txn)
       : catalog_(catalog),
         dbc_(dbc),
         txn_(txn),
@@ -344,7 +344,7 @@ class CatalogAccessor {
  private:
   const common::ManagedPointer<Catalog> catalog_;
   const common::ManagedPointer<DatabaseCatalog> dbc_;
-  transaction::TransactionContext *const txn_;
+  const common::ManagedPointer<transaction::TransactionContext> txn_;
   std::vector<namespace_oid_t> search_path_;
   namespace_oid_t default_namespace_;
 

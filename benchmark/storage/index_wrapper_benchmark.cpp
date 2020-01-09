@@ -70,18 +70,19 @@ class IndexBenchmark : public benchmark::Fixture {
 
     // Create time, action, and transaction managers
     timestamp_manager_ = new transaction::TimestampManager;
-    deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
-    txn_manager_ = new transaction::TransactionManager(timestamp_manager_, deferred_action_manager_, &buffer_pool_,
-                                                       true, DISABLED);
-
-    // Create garbage collector and allocate separate thread for collection
-    gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
+    deferred_action_manager_ = new transaction::DeferredActionManager(common::ManagedPointer(timestamp_manager_));
+    txn_manager_ = new transaction::TransactionManager(common::ManagedPointer(timestamp_manager_),
+                                                       common::ManagedPointer(deferred_action_manager_),
+                                                       common::ManagedPointer(&buffer_pool_), true, DISABLED);
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(timestamp_manager_),
+                                        common::ManagedPointer(deferred_action_manager_),
+                                        common::ManagedPointer(txn_manager_), DISABLED);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
   }
 
   // Script to free all allocated elements of table structure
   void TearDown(const benchmark::State &state) override {
-    gc_thread_->GetGarbageCollector().UnregisterIndexForGC(index_);
+    gc_thread_->GetGarbageCollector()->UnregisterIndexForGC(index_);
 
     delete gc_thread_;
     delete gc_;
@@ -108,7 +109,7 @@ class IndexBenchmark : public benchmark::Fixture {
     index_ = (storage::index::IndexBuilder().SetKeySchema(index_schema_)).Build();
 
     // Register index to garbage collector
-    gc_thread_->GetGarbageCollector().RegisterIndexForGC(index_);
+    gc_thread_->GetGarbageCollector()->RegisterIndexForGC(index_);
 
     // Allocate buffer for data
     key_buffer_ = common::AllocationUtil::AllocateAligned(index_->GetProjectedRowInitializer().ProjectedRowSize());
@@ -127,11 +128,11 @@ class IndexBenchmark : public benchmark::Fixture {
           insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
       auto *const insert_tuple = insert_redo->Delta();
       *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
-      const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
+      const auto tuple_slot = sql_table_->Insert(common::ManagedPointer(insert_txn), insert_redo);
       *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
 
       // Ensure that insert action appropriately listed
-      EXPECT_TRUE(index_->Insert(insert_txn, *insert_key, tuple_slot));
+      EXPECT_TRUE(index_->Insert(common::ManagedPointer(insert_txn), *insert_key, tuple_slot));
     }
     // Store transactions completed
     txn_manager_->Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);

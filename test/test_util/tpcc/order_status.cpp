@@ -1,4 +1,5 @@
 #include "test_util/tpcc/order_status.h"
+
 #include <map>
 #include <string>
 #include <vector>
@@ -45,7 +46,8 @@ bool OrderStatus::Execute(transaction::TransactionManager *const txn_manager, Da
       std::map<std::string, storage::TupleSlot> sorted_index_scan_results;
       for (const auto &tuple_slot : index_scan_results) {
         auto *const c_first_select_tuple = c_first_pr_initializer_.InitializeRow(worker->customer_tuple_buffer_);
-        bool UNUSED_ATTRIBUTE select_result = db->customer_table_->Select(txn, tuple_slot, c_first_select_tuple);
+        bool UNUSED_ATTRIBUTE select_result =
+            db->customer_table_->Select(common::ManagedPointer(txn), tuple_slot, c_first_select_tuple);
         TERRIER_ASSERT(select_result, "Customer table doesn't change (no new entries). All lookups should succeed.");
         const auto c_first = *reinterpret_cast<storage::VarlenEntry *>(c_first_select_tuple->AccessWithNullCheck(0));
         sorted_index_scan_results.emplace(
@@ -62,7 +64,8 @@ bool OrderStatus::Execute(transaction::TransactionManager *const txn_manager, Da
 
   // Select customer in table
   auto *const customer_select_tuple = customer_select_pr_initializer_.InitializeRow(worker->customer_tuple_buffer_);
-  bool UNUSED_ATTRIBUTE select_result = db->customer_table_->Select(txn, customer_slot, customer_select_tuple);
+  bool UNUSED_ATTRIBUTE select_result =
+      db->customer_table_->Select(common::ManagedPointer(txn), customer_slot, customer_select_tuple);
   TERRIER_ASSERT(select_result, "Customer table doesn't change (no new entries). All lookups should succeed.");
 
   const auto *const c_id_ptr =
@@ -100,7 +103,7 @@ bool OrderStatus::Execute(transaction::TransactionManager *const txn_manager, Da
 
   // Select O_ID, O_ENTRY_D, O_CARRIER_ID from table for largest key (back of vector)
   auto *const order_select_tuple = order_select_pr_initializer_.InitializeRow(worker->order_tuple_buffer_);
-  select_result = db->order_table_->Select(txn, index_scan_results[0], order_select_tuple);
+  select_result = db->order_table_->Select(common::ManagedPointer(txn), index_scan_results[0], order_select_tuple);
   TERRIER_ASSERT(select_result,
                  "Order select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
@@ -132,7 +135,7 @@ bool OrderStatus::Execute(transaction::TransactionManager *const txn_manager, Da
   auto *const order_line_select_tuple =
       order_line_select_pr_initializer_.InitializeRow(worker->order_line_tuple_buffer_);
   for (const auto &tuple_slot : index_scan_results) {
-    select_result = db->order_line_table_->Select(txn, tuple_slot, order_line_select_tuple);
+    select_result = db->order_line_table_->Select(common::ManagedPointer(txn), tuple_slot, order_line_select_tuple);
     TERRIER_ASSERT(select_result,
                    "We already confirmed that this is a committed order above, so none of these should fail.");
   }

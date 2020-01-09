@@ -1,10 +1,13 @@
 #pragma once
 
 #include <event2/thread.h>
+
 #include <unordered_set>
+
 #include "common/dedicated_thread_task.h"
 #include "common/event_util.h"
 #include "common/macros.h"
+#include "loggers/common_logger.h"
 
 namespace terrier::common {
 
@@ -154,7 +157,7 @@ class NotifiableTask : public DedicatedThreadTask {
    */
   void EventLoop() {
     EventUtil::EventBaseDispatch(base_);
-    LOG_TRACE("stop");
+    COMMON_LOG_TRACE("stop");
   }
 
   /**

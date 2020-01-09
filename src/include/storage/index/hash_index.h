@@ -7,6 +7,7 @@
 #include <utility>
 #include <variant>  // NOLINT (Matt): lint thinks this C++17 header is a C header because it only knows C++11
 #include <vector>
+
 #include "libcuckoo/cuckoohash_map.hh"
 #include "storage/index/index.h"
 #include "storage/index/index_defs.h"
@@ -88,7 +89,8 @@ class HashIndex final : public Index {
  public:
   IndexType Type() const final { return IndexType::HASHMAP; }
 
-  bool Insert(transaction::TransactionContext *const txn, const ProjectedRow &tuple, const TupleSlot location) final {
+  bool Insert(const common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
+              const TupleSlot location) final {
     TERRIER_ASSERT(!(metadata_.GetSchema().Unique()),
                    "This Insert is designed for secondary indexes with no uniqueness constraints.");
     KeyType index_key;
@@ -135,7 +137,7 @@ class HashIndex final : public Index {
     return true;
   }
 
-  bool InsertUnique(transaction::TransactionContext *const txn, const ProjectedRow &tuple,
+  bool InsertUnique(const common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
                     const TupleSlot location) final {
     TERRIER_ASSERT(metadata_.GetSchema().Unique(), "This Insert is designed for indexes with uniqueness constraints.");
     KeyType index_key;
@@ -214,7 +216,8 @@ class HashIndex final : public Index {
     return overall_result;
   }
 
-  void Delete(transaction::TransactionContext *const txn, const ProjectedRow &tuple, const TupleSlot location) final {
+  void Delete(const common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
+              const TupleSlot location) final {
     KeyType index_key;
     index_key.SetFromProjectedRow(tuple, metadata_);
 

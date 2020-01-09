@@ -1,15 +1,15 @@
+#include "optimizer/optimizer.h"
+
 #include <memory>
 #include <utility>
 #include <vector>
 
 #include "common/exception.h"
 #include "common/scoped_timer.h"
-
 #include "optimizer/binding.h"
 #include "optimizer/input_column_deriver.h"
 #include "optimizer/operator_visitor.h"
 #include "optimizer/optimization_context.h"
-#include "optimizer/optimizer.h"
 #include "optimizer/optimizer_task_pool.h"
 #include "optimizer/plan_generator.h"
 #include "optimizer/properties.h"
@@ -19,15 +19,10 @@
 
 namespace terrier::optimizer {
 
-void Optimizer::Reset() {
-  // cleanup any existing resources;
-  delete context_;
-  context_ = new OptimizerContext(cost_model_);
-}
+void Optimizer::Reset() { context_ = std::make_unique<OptimizerContext>(common::ManagedPointer(cost_model_)); }
 
 std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(transaction::TransactionContext *txn,
                                                                     catalog::CatalogAccessor *accessor,
-                                                                    settings::SettingsManager *settings,
                                                                     StatsStorage *storage, QueryInfo query_info,
                                                                     std::unique_ptr<OperatorExpression> op_tree) {
   context_->SetTxn(txn);
@@ -51,13 +46,13 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(transaction:
   }
 
   try {
-    OptimizeLoop(root_id, phys_properties, settings);
+    OptimizeLoop(root_id, phys_properties);
   } catch (OptimizerException &e) {
     OPTIMIZER_LOG_WARN("Optimize Loop ended prematurely: {0}", e.what());
   }
 
   try {
-    auto best_plan = ChooseBestPlan(txn, accessor, settings, root_id, phys_properties, output_exprs);
+    auto best_plan = ChooseBestPlan(txn, accessor, root_id, phys_properties, output_exprs);
 
     // Reset memo after finishing the optimization
     Reset();
@@ -69,9 +64,8 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(transaction:
 }
 
 std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
-    transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, settings::SettingsManager *settings,
-    group_id_t id, PropertySet *required_props,
-    const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols) {
+    transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, group_id_t id,
+    PropertySet *required_props, const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols) {
   Group *group = context_->GetMemo().GetGroupByID(id);
   auto gexpr = group->GetBestExpression(required_props);
 
@@ -103,7 +97,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
       child_expr_map[input_cols[i][offset]] = offset;
     }
 
-    auto child_plan = ChooseBestPlan(txn, accessor, settings, child_groups[i], required_input_props[i], input_cols[i]);
+    auto child_plan = ChooseBestPlan(txn, accessor, child_groups[i], required_input_props[i], input_cols[i]);
     TERRIER_ASSERT(child_plan != nullptr, "child should have derived a non-null plan...");
 
     children_plans.emplace_back(std::move(child_plan));
@@ -114,7 +108,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   OperatorExpression *op = new OperatorExpression(Operator(gexpr->Op()), {});
 
   PlanGenerator generator;
-  auto plan = generator.ConvertOpExpression(txn, accessor, settings, op, required_props, required_cols, output_cols,
+  auto plan = generator.ConvertOpExpression(txn, accessor, op, required_props, required_cols, output_cols,
                                             std::move(children_plans), std::move(children_expr_map));
   OPTIMIZER_LOG_TRACE("Finish Choosing best plan for group {0}", id);
 
@@ -122,9 +116,8 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   return plan;
 }
 
-void Optimizer::OptimizeLoop(group_id_t root_group_id, PropertySet *required_props,
-                             settings::SettingsManager *settings) {
-  auto root_context = new OptimizationContext(context_, required_props->Copy());
+void Optimizer::OptimizeLoop(group_id_t root_group_id, PropertySet *required_props) {
+  auto root_context = new OptimizationContext(context_.get(), required_props->Copy());
   auto task_stack = new OptimizerTaskStack();
   context_->SetTaskPool(task_stack);
   context_->AddOptimizationContext(root_context);
@@ -132,7 +125,7 @@ void Optimizer::OptimizeLoop(group_id_t root_group_id, PropertySet *required_pro
   // Perform rewrite first
   task_stack->Push(new TopDownRewrite(root_group_id, root_context, RuleSetName::PREDICATE_PUSH_DOWN));
   task_stack->Push(new BottomUpRewrite(root_group_id, root_context, RuleSetName::UNNEST_SUBQUERY, false));
-  ExecuteTaskStack(task_stack, root_group_id, root_context, settings);
+  ExecuteTaskStack(task_stack, root_group_id, root_context);
 
   // Perform optimization after the rewrite
   Memo &memo = context_->GetMemo();
@@ -140,13 +133,12 @@ void Optimizer::OptimizeLoop(group_id_t root_group_id, PropertySet *required_pro
 
   // Derive stats for the only one logical expression before optimizing
   task_stack->Push(new DeriveStats(memo.GetGroupByID(root_group_id)->GetLogicalExpression(), ExprSet{}, root_context));
-  ExecuteTaskStack(task_stack, root_group_id, root_context, settings);
+  ExecuteTaskStack(task_stack, root_group_id, root_context);
 }
 
 void Optimizer::ExecuteTaskStack(OptimizerTaskStack *task_stack, group_id_t root_group_id,
-                                 OptimizationContext *root_context, settings::SettingsManager *settings) {
+                                 OptimizationContext *root_context) {
   auto root_group = context_->GetMemo().GetGroupByID(root_group_id);
-  const auto timeout_limit = static_cast<uint64_t>(settings->GetInt(settings::Param::task_execution_timeout));
   const auto &required_props = root_context->GetRequiredProperties();
 
   uint64_t elapsed_time = 0;
@@ -155,7 +147,7 @@ void Optimizer::ExecuteTaskStack(OptimizerTaskStack *task_stack, group_id_t root
   while (!task_stack->Empty()) {
     // Check to see if we have at least one plan, and if we have exceeded our
     // timeout limit
-    if (elapsed_time >= timeout_limit && root_group->HasExpressions(required_props)) {
+    if (elapsed_time >= task_execution_timeout_ && root_group->HasExpressions(required_props)) {
       throw OPTIMIZER_EXCEPTION("Optimizer task execution timed out");
     }
 

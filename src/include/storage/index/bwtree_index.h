@@ -4,6 +4,7 @@
 #include <memory>
 #include <utility>
 #include <vector>
+
 #include "bwtree/bwtree.h"
 #include "storage/index/index.h"
 #include "storage/index/index_defs.h"
@@ -36,7 +37,8 @@ class BwTreeIndex final : public Index {
 
   void PerformGarbageCollection() final { bwtree_->PerformGarbageCollection(); };
 
-  bool Insert(transaction::TransactionContext *const txn, const ProjectedRow &tuple, const TupleSlot location) final {
+  bool Insert(const common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
+              const TupleSlot location) final {
     TERRIER_ASSERT(!(metadata_.GetSchema().Unique()),
                    "This Insert is designed for secondary indexes with no uniqueness constraints.");
     KeyType index_key;
@@ -54,7 +56,7 @@ class BwTreeIndex final : public Index {
     return result;
   }
 
-  bool InsertUnique(transaction::TransactionContext *const txn, const ProjectedRow &tuple,
+  bool InsertUnique(const common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
                     const TupleSlot location) final {
     TERRIER_ASSERT(metadata_.GetSchema().Unique(), "This Insert is designed for indexes with uniqueness constraints.");
     KeyType index_key;
@@ -89,7 +91,8 @@ class BwTreeIndex final : public Index {
     return result;
   }
 
-  void Delete(transaction::TransactionContext *const txn, const ProjectedRow &tuple, const TupleSlot location) final {
+  void Delete(const common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
+              const TupleSlot location) final {
     KeyType index_key;
     index_key.SetFromProjectedRow(tuple, metadata_);
 
