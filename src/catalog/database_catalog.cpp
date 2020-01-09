@@ -2229,7 +2229,7 @@ bool DatabaseCatalog::DropProcedure(transaction::TransactionContext *txn, proc_o
   procs_oid_index_->Delete(txn, *oid_pr, to_delete_slot);
 
   auto table_pr = pg_proc_all_cols_pri_.InitializeRow(buffer);
-  bool UNUSED_ATTRIBUTE visible = languages_->Select(txn, to_delete_slot, table_pr);
+  bool UNUSED_ATTRIBUTE visible = procs_->Select(txn, to_delete_slot, table_pr);
 
   auto name_varlen = *reinterpret_cast<storage::VarlenEntry*>
       (table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PRONAME_COL_OID]));
@@ -2261,6 +2261,7 @@ proc_oid_t DatabaseCatalog::GetProcOid(transaction::TransactionContext *txn,
 
   auto name_varlen = storage::StorageUtil::CreateVarlen(procname);
   *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(1)])) = name_varlen;
+  *reinterpret_cast<namespace_oid_t *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(2)]))  = procns;
 
   std::vector<storage::TupleSlot> results;
   procs_name_index_->ScanKey(*txn, *name_pr, &results);
@@ -2273,7 +2274,7 @@ proc_oid_t DatabaseCatalog::GetProcOid(transaction::TransactionContext *txn,
     auto found_slot = results[0];
 
     auto table_pr = pg_proc_all_cols_pri_.InitializeRow(buffer);
-    bool UNUSED_ATTRIBUTE visible = languages_->Select(txn, found_slot, table_pr);
+    bool UNUSED_ATTRIBUTE visible = procs_->Select(txn, found_slot, table_pr);
     ret = *reinterpret_cast<proc_oid_t *>(table_pr->AccessForceNotNull(
         pg_proc_all_cols_prm_[postgres::PROOID_COL_OID]));
   }

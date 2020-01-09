@@ -311,6 +311,21 @@ class CatalogAccessor {
                                 bool is_aggregate);
 
   /**
+    * Drops a procedure from the pg_proc table
+    * @param proc oid of process to drop
+    * @return true iff the process was successfully found and dropped
+    */
+  bool DropProcedure(proc_oid_t proc);
+
+  /**
+   * Gets the oid of a procedure from pg_proc given a requested name and namespace
+   * @param procname name of the proc to lookup
+   * @param procns namespace of the process to lookup
+   * @return the oid of the found proc if found else INVALID_PROC_OID
+   */
+  proc_oid_t GetProcOid(const std::string &procname, namespace_oid_t procns);
+
+  /**
    * @return BlockStore to be used for CREATE operations
    */
   common::ManagedPointer<storage::BlockStore> GetBlockStore() const;

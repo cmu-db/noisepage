@@ -156,6 +156,15 @@ proc_oid_t CatalogAccessor::CreateProcedure(const std::string &procname,
                                all_arg_types, arg_modes, rettype, src, is_aggregate);
 }
 
+bool CatalogAccessor::DropProcedure(proc_oid_t proc) {
+  return dbc_->DropProcedure(txn_, proc);
+}
+
+proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname,
+                                       namespace_oid_t procns) {
+  return dbc_->GetProcOid(txn_, procname, procns);
+}
+
 common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() const {
   // TODO(Matt): at some point we may decide to adjust the source  (i.e. each DatabaseCatalog has one), stick it in a
   // pg_tablespace table, or we may eliminate the concept entirely. This works for now to allow CREATE nodes to bind a
