@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+
 #include "type/transient_value.h"
 
 namespace terrier::trafficcop {

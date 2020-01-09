@@ -1,3 +1,5 @@
+#include "network/postgres/postgres_protocol_interpreter.h"
+
 #include <algorithm>
 #include <memory>
 #include <string>
@@ -5,7 +7,6 @@
 
 #include "network/network_defs.h"
 #include "network/postgres/postgres_network_commands.h"
-#include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/terrier_server.h"
 
 #define SSL_MESSAGE_VERNO 80877103
@@ -65,7 +66,7 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const common::ManagedPoin
     std::string key = in->ReadString(), value = in->ReadString();
     NETWORK_LOG_TRACE("Option key {0}, value {1}", key.c_str(), value.c_str());
     if (key == std::string("database")) {
-      context->cmdline_args_[key] = std::move(value);
+      context->CommandLineArgs()[key] = std::move(value);
     }
   }
   // skip the last nul byte

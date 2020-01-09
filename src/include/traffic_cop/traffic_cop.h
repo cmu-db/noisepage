@@ -3,12 +3,10 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog.h"
 #include "network/postgres/postgres_protocol_utils.h"
 #include "storage/recovery/replication_log_provider.h"
-#include "traffic_cop/portal.h"
-#include "traffic_cop/sqlite.h"
-#include "traffic_cop/statement.h"
 
 namespace terrier::trafficcop {
 
@@ -35,12 +33,6 @@ class TrafficCop {
   virtual ~TrafficCop() = default;
 
   /**
-   * Returns the execution engine.
-   * @return the execution engine.
-   */
-  SqliteEngine *GetExecutionEngine() { return &sqlite_engine_; }
-
-  /**
    * Hands a buffer of logs to replication
    * @param buffer buffer containing logs
    */
@@ -61,10 +53,9 @@ class TrafficCop {
    * @param db_oid the OID of the database the connection is accessing
    * @return true if the temporary namespace has been deleted, false otherwise
    */
-  bool DropTempNamespace(catalog::namespace_oid_t ns_oid, catalog::db_oid_t db_oid = catalog::INVALID_DATABASE_OID);
+  bool DropTempNamespace(catalog::namespace_oid_t ns_oid, catalog::db_oid_t db_oid);
 
  private:
-  SqliteEngine sqlite_engine_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   common::ManagedPointer<catalog::Catalog> catalog_;
   // Hands logs off to replication component. TCop should forward these logs through this provider.

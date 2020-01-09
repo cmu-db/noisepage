@@ -1,14 +1,12 @@
 #pragma once
 
 #include <arpa/inet.h>
-#include <netinet/tcp.h>
-#include <sys/file.h>
-
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
 #include <event2/event.h>
 #include <event2/listener.h>
-#include <unordered_map>
+#include <netinet/tcp.h>
+#include <sys/file.h>
 
 #include <csignal>
 #include <cstdio>
@@ -16,13 +14,13 @@
 #include <cstring>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include "common/exception.h"
 #include "common/managed_pointer.h"
 #include "loggers/network_logger.h"
-
 #include "network/connection_context.h"
 #include "network/connection_handler_task.h"
 #include "network/network_io_wrapper.h"
@@ -30,7 +28,6 @@
 #include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/protocol_interpreter.h"
-
 #include "traffic_cop/traffic_cop.h"
 namespace terrier::network {
 
@@ -102,9 +99,12 @@ class ConnectionHandle {
    */
   Transition StartUp() {
     std::string db_name = catalog::DEFAULT_DATABASE;
-    if (context_.cmdline_args_.find("database") != context_.cmdline_args_.end()) {
-      if (!context_.cmdline_args_["database"].empty()) {
-        db_name = context_.cmdline_args_["database"];
+
+    auto &cmdline_args = context_.CommandLineArgs();
+
+    if (cmdline_args.find("database") != cmdline_args.end()) {
+      if (!cmdline_args["database"].empty()) {
+        db_name = cmdline_args["database"];
       }
     }
 
@@ -112,8 +112,8 @@ class ConnectionHandle {
     while (oids.first == catalog::INVALID_DATABASE_OID || oids.second == catalog::INVALID_NAMESPACE_OID) {
       oids = traffic_cop_->CreateTempNamespace(io_wrapper_->GetSocketFd(), db_name);
     }
-    context_.db_oid_ = oids.first;
-    context_.temp_namespace_oid_ = oids.second;
+    context_.SetDatabaseOid(oids.first);
+    context_.SetTempNamespaceOid(oids.second);
     return Transition::PROCEED;
   }
 

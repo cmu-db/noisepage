@@ -1,8 +1,8 @@
 #pragma once
 
-#include <sqlite3.h>
 #include <memory>
 #include <vector>
+
 #include "traffic_cop/statement.h"
 #include "type/transient_value.h"
 
