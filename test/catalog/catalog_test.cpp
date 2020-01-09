@@ -128,13 +128,12 @@ TEST_F(CatalogTests, ProcTest) {
 
   auto procname = "sample";
   std::vector<const std::string> args = {"arg1", "arg2", "arg3"};
-  std::vector<type::TypeId>  arg_types = {type::TypeId::INTEGER, type::TypeId::BOOLEAN, type::TypeId::SMALLINT};
+  std::vector<type::TypeId> arg_types = {type::TypeId::INTEGER, type::TypeId::BOOLEAN, type::TypeId::SMALLINT};
   std::vector<const char> arg_modes = {'i', 'i', 'i'};
   auto src = "int sample(arg1, arg2, arg3){return 2;}";
 
-  auto proc_oid = accessor->CreateProcedure(procname, lan_oid, ns_oid,
-                            args, arg_types, arg_types,
-                            arg_modes, type::TypeId::INTEGER, src, false);
+  auto proc_oid = accessor->CreateProcedure(procname, lan_oid, ns_oid, args, arg_types, arg_types, arg_modes,
+                                            type::TypeId::INTEGER, src, false);
   EXPECT_NE(proc_oid, catalog::INVALID_PROC_OID);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 

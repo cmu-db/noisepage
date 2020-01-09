@@ -1,6 +1,8 @@
 #include <random>
 #include <string>
 #include <string_view>  // NOLINT
+#include <vector>
+
 #include "common/allocator.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"

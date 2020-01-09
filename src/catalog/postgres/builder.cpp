@@ -132,10 +132,8 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(storage::BlockStore *block_store
       Builder::BuildUniqueIndex(Builder::GetLanguageNameIndexSchema(oid), LANGUAGE_NAME_INDEX_OID);
 
   // Indexes on pg_proc
-  dbc->procs_oid_index_ =
-      Builder::BuildUniqueIndex(Builder::GetProcOidIndexSchema(oid), PRO_OID_INDEX_OID);
-  dbc->procs_name_index_ =
-      Builder::BuildUniqueIndex(Builder::GetProcNameIndexSchema(oid), PRO_NAME_INDEX_OID);
+  dbc->procs_oid_index_ = Builder::BuildUniqueIndex(Builder::GetProcOidIndexSchema(oid), PRO_OID_INDEX_OID);
+  dbc->procs_name_index_ = Builder::BuildUniqueIndex(Builder::GetProcNameIndexSchema(oid), PRO_NAME_INDEX_OID);
 
   dbc->next_oid_.store(START_OID);
 
@@ -674,8 +672,7 @@ Schema Builder::GetProcTableSchema() {
   columns.emplace_back("proargmodes", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));
   columns.back().SetOid(PROARGMODES_COL_OID);
 
-  columns.emplace_back("proargdefaults", type::TypeId::VARBINARY, 4096, false,
-                       MakeNull(type::TypeId::VARCHAR));
+  columns.emplace_back("proargdefaults", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARCHAR));
   columns.back().SetOid(PROARGDEFAULTS_COL_OID);
 
   columns.emplace_back("proargnames", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));

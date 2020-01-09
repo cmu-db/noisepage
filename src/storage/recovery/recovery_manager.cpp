@@ -1,12 +1,12 @@
 #include "storage/recovery/recovery_manager.h"
 
+#include <catalog/postgres/pg_proc.h>
 #include <algorithm>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
-#include <catalog/postgres/pg_proc.h>
 
 #include "catalog/postgres/pg_attribute.h"
 #include "catalog/postgres/pg_class.h"

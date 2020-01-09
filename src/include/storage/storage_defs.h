@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <functional>
 #include <ostream>
+#include <string>
 #include <string_view>  // NOLINT
 #include <unordered_map>
 #include <utility>
@@ -327,7 +328,7 @@ class VarlenEntry {
   const std::vector<T> DeserializeArray(size_t n_elems) const {
     size_t total_size = n_elems * sizeof(T);
     TERRIER_ASSERT(total_size <= Size(), "Asked for too many elements to be deserialized");
-    const T *head = reinterpret_cast<const T*>(Content());
+    const T *head = reinterpret_cast<const T *>(Content());
     return std::vector<T>(head, head + n_elems);
   }
 
@@ -344,9 +345,9 @@ class VarlenEntry {
     uint32_t to_read = Size();
     uint32_t num_read = 0;
 
-    const char *head = reinterpret_cast<const char*>(Content());
+    const char *head = reinterpret_cast<const char *>(Content());
     size_t length;
-    while(num_read < to_read && vec.size() < n_elems){
+    while (num_read < to_read && vec.size() < n_elems) {
       length = *reinterpret_cast<const size_t *>(head);
       head += sizeof(size_t);
       vec.emplace_back(head, length);
