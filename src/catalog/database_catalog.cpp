@@ -254,6 +254,7 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::PRO_NAME_INDEX_OID, procs_name_index_);
 
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 }
 
 void DatabaseCatalog::BootstrapPRIs() {
