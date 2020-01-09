@@ -254,7 +254,7 @@ class DatabaseCatalog {
    * @return oid of created entry if successful else INVALID_LANGUAGE_OID
    */
   language_oid_t CreateLanguage(const common::ManagedPointer<transaction::TransactionContext> txn,
-      const std::string &lanname);
+                                const std::string &lanname);
 
   /**
    * Looks up a language entry in the pg_language table
@@ -263,7 +263,7 @@ class DatabaseCatalog {
    * @return oid of requested entry if found else INVALID_LANGUAGE_OID if not found
    */
   language_oid_t GetLanguageOid(const common::ManagedPointer<transaction::TransactionContext> txn,
-      const std::string &lanname);
+                                const std::string &lanname);
 
   /**
    * Deletes a language entry from the pg_language table
@@ -287,16 +287,11 @@ class DatabaseCatalog {
    * @return oid of created proc entry
    * @warning does not support variadics yet
    */
-  proc_oid_t CreateProcedure(const common::ManagedPointer<transaction::TransactionContext>
-      txn, const std::string &procname,
-      language_oid_t lanoid,
-      namespace_oid_t procns,
-      std::vector<const std::string> &args,
-      std::vector<type::TypeId> &arg_types,
-      std::vector<type::TypeId> &all_arg_types,
-      std::vector<const char> &arg_modes,
-      type::TypeId rettype, const std::string &src,
-                             bool is_aggregate);
+  proc_oid_t CreateProcedure(const common::ManagedPointer<transaction::TransactionContext> txn,
+                             const std::string &procname, language_oid_t lanoid, namespace_oid_t procns,
+                             const std::vector<const std::string> &args, const std::vector<type::TypeId> &arg_types,
+                             const std::vector<type::TypeId> &all_arg_types, const std::vector<const char> &arg_modes,
+                             type::TypeId rettype, const std::string &src, bool is_aggregate);
 
   /**
    * Drops a procedure from the pg_proc table
@@ -313,8 +308,8 @@ class DatabaseCatalog {
    * @param procns namespace of the process to lookup
    * @return the oid of the found proc if found else INVALID_PROC_OID
    */
-  proc_oid_t GetProcOid(const common::ManagedPointer<transaction::TransactionContext> txn,
-      const std::string &procname, namespace_oid_t procns);
+  proc_oid_t GetProcOid(const common::ManagedPointer<transaction::TransactionContext> txn, const std::string &procname,
+                        namespace_oid_t procns);
 
  private:
   /**
@@ -324,8 +319,8 @@ class DatabaseCatalog {
    * @param oid oid of entry
    * @return true if insertion is successful
    */
-  bool CreateLanguage(const common::ManagedPointer<transaction::TransactionContext>txn,
-      const std::string &lanname, language_oid_t oid);
+  bool CreateLanguage(const common::ManagedPointer<transaction::TransactionContext> txn, const std::string &lanname,
+                      language_oid_t oid);
 
   /**
    * Create a namespace with a given ns oid
@@ -445,7 +440,7 @@ class DatabaseCatalog {
   storage::index::Index *procs_oid_index_;
   storage::index::Index *procs_name_index_;
   storage::ProjectedRowInitializer pg_proc_all_cols_pri_;
-  storage::ProjectionMap  pg_proc_all_cols_prm_;
+  storage::ProjectionMap pg_proc_all_cols_prm_;
   std::atomic<proc_oid_t> proc_oid_counter_{postgres::INITIAL_PROC_COUNTER_OID};
 
   std::atomic<uint32_t> next_oid_;
@@ -521,6 +516,12 @@ class DatabaseCatalog {
    * @param txn transaction to insert into catalog with
    */
   void BootstrapLanguages(const common::ManagedPointer<transaction::TransactionContext> txn);
+
+  /**
+   * Bootstraps the built-in procs found in pg_procs
+   * @param txn transaction to insert into catalog with
+   */
+  void BootstrapProcs(const common::ManagedPointer<transaction::TransactionContext> txn);
 
   /**
    * Creates all of the ProjectedRowInitializers and ProjectionMaps for the catalog. These can be stashed because the

@@ -199,7 +199,7 @@ class StorageUtil {
   static storage::VarlenEntry CreateVarlen(const std::vector<const std::string> &vec) {
     // determine total size
     size_t total_size = 0;
-    for(auto &elem : vec){
+    for (auto &elem : vec) {
       total_size += sizeof(size_t);
       total_size += elem.length();
     }
@@ -208,7 +208,7 @@ class StorageUtil {
     byte *head = contents;
 
     // serialize with length followed by string
-    for(auto &elem : vec){
+    for (auto &elem : vec) {
       *(reinterpret_cast<size_t *>(head)) = elem.length();
       head += sizeof(size_t);
       std::memcpy(head, elem.data(), elem.length());
@@ -218,14 +218,10 @@ class StorageUtil {
       return storage::VarlenEntry::Create(contents, static_cast<uint32_t>(total_size), true);
     }
 
-
-    auto ret = storage::VarlenEntry::CreateInline(contents,
-                                              static_cast<uint32_t>(total_size));
-    delete []contents;
+    auto ret = storage::VarlenEntry::CreateInline(contents, static_cast<uint32_t>(total_size));
+    delete[] contents;
     return ret;
   }
-
-
 
   /**
    * Helper method to serialize a vector of type T into a VarlenEntry

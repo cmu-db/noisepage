@@ -2,8 +2,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <catalog/postgres/pg_proc.h>
-#include <catalog/database_catalog.h>
 
 #include "catalog/catalog_defs.h"
 #include "catalog/database_catalog.h"
@@ -15,6 +13,7 @@
 #include "catalog/postgres/pg_index.h"
 #include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_namespace.h"
+#include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
 #include "storage/index/index.h"
@@ -279,8 +278,8 @@ void DatabaseCatalog::BootstrapPRIs() {
   pg_attribute_all_cols_pri_ = columns_->InitializerForProjectedRow(pg_attribute_all_oids);
   pg_attribute_all_cols_prm_ = columns_->ProjectionMapForOids(pg_attribute_all_oids);
 
-  const std::vector<col_oid_t> get_columns_oids{postgres::ATTNUM_COL_OID, postgres::ATTNAME_COL_OID,
-                                                postgres::ATTTYPID_COL_OID, postgres::ATTLEN_COL_OID,
+  const std::vector<col_oid_t> get_columns_oids{postgres::ATTNUM_COL_OID,     postgres::ATTNAME_COL_OID,
+                                                postgres::ATTTYPID_COL_OID,   postgres::ATTLEN_COL_OID,
                                                 postgres::ATTNOTNULL_COL_OID, postgres::ADSRC_COL_OID};
   get_columns_pri_ = columns_->InitializerForProjectedRow(get_columns_oids);
   get_columns_prm_ = columns_->ProjectionMapForOids(get_columns_oids);
@@ -1082,8 +1081,8 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
   const auto index_table_pr = indexes_table_index_->GetProjectedRowInitializer();
 
   TERRIER_ASSERT((pg_class_all_cols_pri_.ProjectedRowSize() >= delete_index_pri_.ProjectedRowSize()) &&
-      (pg_class_all_cols_pri_.ProjectedRowSize() >= index_oid_pr.ProjectedRowSize()) &&
-      (pg_class_all_cols_pri_.ProjectedRowSize() >= index_table_pr.ProjectedRowSize()),
+                     (pg_class_all_cols_pri_.ProjectedRowSize() >= index_oid_pr.ProjectedRowSize()) &&
+                     (pg_class_all_cols_pri_.ProjectedRowSize() >= index_table_pr.ProjectedRowSize()),
                  "Buffer must be allocated for largest ProjectedRow size");
 
   // Find the entry in pg_index using the oid index
@@ -1102,7 +1101,7 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
   TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
 
   TERRIER_ASSERT(index == *(reinterpret_cast<const index_oid_t *const>(
-      table_pr->AccessForceNotNull(delete_index_prm_[postgres::INDOID_COL_OID]))),
+                              table_pr->AccessForceNotNull(delete_index_prm_[postgres::INDOID_COL_OID]))),
                  "index oid from pg_index did not match what was found by the index scan from the argument.");
 
   // Delete from pg_index table
@@ -1155,9 +1154,9 @@ template <typename ClassOid, typename Ptr>
 bool DatabaseCatalog::SetClassPointer(const common::ManagedPointer<transaction::TransactionContext> txn,
                                       const ClassOid oid, const Ptr *const pointer, const col_oid_t class_col) {
   TERRIER_ASSERT((std::is_same<ClassOid, table_oid_t>::value &&
-      (std::is_same<Ptr, storage::SqlTable>::value || std::is_same<Ptr, catalog::Schema>::value)) ||
-      (std::is_same<ClassOid, index_oid_t>::value && (std::is_same<Ptr, storage::index::Index>::value ||
-          std::is_same<Ptr, catalog::IndexSchema>::value)),
+                  (std::is_same<Ptr, storage::SqlTable>::value || std::is_same<Ptr, catalog::Schema>::value)) ||
+                     (std::is_same<ClassOid, index_oid_t>::value && (std::is_same<Ptr, storage::index::Index>::value ||
+                                                                     std::is_same<Ptr, catalog::IndexSchema>::value)),
                  "OID type must correspond to the same object type (Table or index)");
   TERRIER_ASSERT(pointer != nullptr, "Why are you inserting nullptr here? That seems wrong.");
   const auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
@@ -1240,9 +1239,9 @@ std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const Index
 
   // Do not need projection map when there is only one column
   TERRIER_ASSERT(get_class_object_and_schema_pri_.ProjectedRowSize() >= indexes_oid_pri.ProjectedRowSize() &&
-      get_class_object_and_schema_pri_.ProjectedRowSize() >= get_indexes_pri_.ProjectedRowSize() &&
-      get_class_object_and_schema_pri_.ProjectedRowSize() >=
-          classes_oid_index_->GetProjectedRowInitializer().ProjectedRowSize(),
+                     get_class_object_and_schema_pri_.ProjectedRowSize() >= get_indexes_pri_.ProjectedRowSize() &&
+                     get_class_object_and_schema_pri_.ProjectedRowSize() >=
+                         classes_oid_index_->GetProjectedRowInitializer().ProjectedRowSize(),
                  "Buffer must be allocated to fit largest PR");
   auto *const buffer = common::AllocationUtil::AllocateAligned(get_class_object_and_schema_pri_.ProjectedRowSize());
 
@@ -1341,13 +1340,16 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
       TERRIER_ASSERT(objects[i] != nullptr, "Pointer to objects in pg_class should not be nullptr");
       TERRIER_ASSERT(schemas[i] != nullptr, "Pointer to schemas in pg_class should not be nullptr");
       switch (classes[i]) {
-        case postgres::ClassKind::REGULAR_TABLE:table_schemas.emplace_back(reinterpret_cast<Schema *>(schemas[i]));
+        case postgres::ClassKind::REGULAR_TABLE:
+          table_schemas.emplace_back(reinterpret_cast<Schema *>(schemas[i]));
           tables.emplace_back(reinterpret_cast<storage::SqlTable *>(objects[i]));
           break;
-        case postgres::ClassKind::INDEX:index_schemas.emplace_back(reinterpret_cast<IndexSchema *>(schemas[i]));
+        case postgres::ClassKind::INDEX:
+          index_schemas.emplace_back(reinterpret_cast<IndexSchema *>(schemas[i]));
           indexes.emplace_back(reinterpret_cast<storage::index::Index *>(objects[i]));
           break;
-        default:throw std::runtime_error("Unimplemented destructor needed");
+        default:
+          throw std::runtime_error("Unimplemented destructor needed");
       }
     }
   }
@@ -1369,7 +1371,7 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
   }
 
   auto dbc_nuke = [=, tables{std::move(tables)}, indexes{std::move(indexes)}, table_schemas{std::move(table_schemas)},
-      index_schemas{std::move(index_schemas)}, expressions{std::move(expressions)}]() {
+                   index_schemas{std::move(index_schemas)}, expressions{std::move(expressions)}]() {
     for (auto table : tables) delete table;
 
     for (auto index : indexes) delete index;
@@ -1442,7 +1444,7 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
   const auto class_name_index_init = classes_name_index_->GetProjectedRowInitializer();
   const auto class_ns_index_init = classes_namespace_index_->GetProjectedRowInitializer();
   TERRIER_ASSERT((class_name_index_init.ProjectedRowSize() >= class_oid_index_init.ProjectedRowSize()) &&
-      (class_name_index_init.ProjectedRowSize() >= class_ns_index_init.ProjectedRowSize()),
+                     (class_name_index_init.ProjectedRowSize() >= class_ns_index_init.ProjectedRowSize()),
                  "Index buffer must be allocated based on the largest PR initializer");
   auto *index_buffer = common::AllocationUtil::AllocateAligned(class_name_index_init.ProjectedRowSize());
 
@@ -1515,7 +1517,7 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
   const auto indexes_oid_index_init = indexes_oid_index_->GetProjectedRowInitializer();
   const auto indexes_table_index_init = indexes_table_index_->GetProjectedRowInitializer();
   TERRIER_ASSERT((class_name_index_init.ProjectedRowSize() >= indexes_oid_index_init.ProjectedRowSize()) &&
-      (class_name_index_init.ProjectedRowSize() > indexes_table_index_init.ProjectedRowSize()),
+                     (class_name_index_init.ProjectedRowSize() > indexes_table_index_init.ProjectedRowSize()),
                  "Index buffer must be allocated based on the largest PR initializer");
 
   // Insert into indexes_oid_index
@@ -1608,9 +1610,9 @@ void DatabaseCatalog::InsertType(const common::ManagedPointer<transaction::Trans
 
   // Allocate buffer of largest size needed
   TERRIER_ASSERT((types_name_index_->GetProjectedRowInitializer().ProjectedRowSize() >=
-      types_oid_index_->GetProjectedRowInitializer().ProjectedRowSize()) &&
-      (types_name_index_->GetProjectedRowInitializer().ProjectedRowSize() >=
-          types_namespace_index_->GetProjectedRowInitializer().ProjectedRowSize()),
+                  types_oid_index_->GetProjectedRowInitializer().ProjectedRowSize()) &&
+                     (types_name_index_->GetProjectedRowInitializer().ProjectedRowSize() >=
+                      types_namespace_index_->GetProjectedRowInitializer().ProjectedRowSize()),
                  "Buffer must be allocated for largest ProjectedRow size");
   byte *buffer =
       common::AllocationUtil::AllocateAligned(types_name_index_->GetProjectedRowInitializer().ProjectedRowSize());
@@ -1685,6 +1687,8 @@ void DatabaseCatalog::BootstrapLanguages(const common::ManagedPointer<transactio
   CreateLanguage(txn, "plpgsql", postgres::PLPGSQL_LANGUAGE_OID);
   CreateLanguage(txn, "internal", postgres::INTERNAL_LANGUAGE_OID);
 }
+
+void BootstrapProcs(const common::ManagedPointer<transaction::TransactionContext> txn) {}
 
 bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
                                        const table_oid_t table_oid, const namespace_oid_t ns_oid,
@@ -1899,7 +1903,7 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassSchemaPtrKind(
   return {ptr, kind};
 }
 
-template<typename Column, typename ColOid>
+template <typename Column, typename ColOid>
 Column DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr, const storage::ProjectionMap &pr_map) {
   auto col_oid = *reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(pr_map.at(postgres::ATTNUM_COL_OID)));
   auto col_name =
@@ -1919,8 +1923,8 @@ Column DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr, const storag
 
   std::string name(reinterpret_cast<const char *>(col_name->Content()), col_name->Size());
   Column col = (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY)
-               ? Column(name, col_type, col_len, col_null, *expr)
-               : Column(name, col_type, col_null, *expr);
+                   ? Column(name, col_type, col_len, col_null, *expr)
+                   : Column(name, col_type, col_null, *expr);
 
   col.SetOid(ColOid(col_oid));
   return col;
@@ -1937,7 +1941,7 @@ bool DatabaseCatalog::TryLock(const common::ManagedPointer<transaction::Transact
 
   const bool owned_by_other_txn = !transaction::TransactionUtil::Committed(current_val);
   const bool newer_committed_version = transaction::TransactionUtil::Committed(current_val) &&
-      transaction::TransactionUtil::NewerThan(current_val, start_time);
+                                       transaction::TransactionUtil::NewerThan(current_val, start_time);
 
   if (owned_by_other_txn || newer_committed_version) {
     txn->SetMustAbort();  // though no changes were written to the storage layer, we'll treat this as a DDL change
@@ -1959,7 +1963,7 @@ bool DatabaseCatalog::TryLock(const common::ManagedPointer<transaction::Transact
 }
 
 bool DatabaseCatalog::CreateLanguage(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                      const std::string &lanname, language_oid_t oid) {
+                                     const std::string &lanname, language_oid_t oid) {
   // Insert into table
   if (!TryLock(txn)) return false;
   const auto name_varlen = storage::StorageUtil::CreateVarlen(lanname);
@@ -2009,7 +2013,7 @@ bool DatabaseCatalog::CreateLanguage(const common::ManagedPointer<transaction::T
 }
 
 language_oid_t DatabaseCatalog::CreateLanguage(const common::ManagedPointer<transaction::TransactionContext> txn,
-    const std::string &lanname) {
+                                               const std::string &lanname) {
   auto oid = language_oid_counter_++;
   if (!CreateLanguage(txn, lanname, oid)) {
     return INVALID_LANGUAGE_OID;
@@ -2018,8 +2022,8 @@ language_oid_t DatabaseCatalog::CreateLanguage(const common::ManagedPointer<tran
   return oid;
 }
 
-language_oid_t DatabaseCatalog::GetLanguageOid(const common::ManagedPointer<transaction::TransactionContext>
-    txn, const std::string &lanname) {
+language_oid_t DatabaseCatalog::GetLanguageOid(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                               const std::string &lanname) {
   auto name_pri = languages_name_index_->GetProjectedRowInitializer();
   byte *const buffer = common::AllocationUtil::AllocateAligned(pg_language_all_cols_pri_.ProjectedRowSize());
 
@@ -2047,13 +2051,12 @@ language_oid_t DatabaseCatalog::GetLanguageOid(const common::ManagedPointer<tran
         all_cols_pr->AccessForceNotNull(pg_language_all_cols_prm_[postgres::LANOID_COL_OID]));
   }
 
-
   delete[] buffer;
   return oid;
 }
 
 bool DatabaseCatalog::DropLanguage(const common::ManagedPointer<transaction::TransactionContext> txn,
-    language_oid_t oid) {
+                                   language_oid_t oid) {
   // Delete fom table
   if (!TryLock(txn)) return false;
   TERRIER_ASSERT(oid != INVALID_LANGUAGE_OID, "Invalid oid passed");
@@ -2102,16 +2105,12 @@ bool DatabaseCatalog::DropLanguage(const common::ManagedPointer<transaction::Tra
 }
 
 proc_oid_t DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                            const std::string &procname,
-                                            language_oid_t lanoid,
-                                            namespace_oid_t procns,
-                                            std::vector<const std::string> &args,
-                                            std::vector<type::TypeId> &arg_types,
-                                            std::vector<type::TypeId> &all_arg_types,
-                                            std::vector<const char> &arg_modes,
-                                            type::TypeId rettype, const std::string &src,
-                                            bool is_aggregate)
-{
+                                            const std::string &procname, language_oid_t lanoid, namespace_oid_t procns,
+                                            const std::vector<const std::string> &args,
+                                            const std::vector<type::TypeId> &arg_types,
+                                            const std::vector<type::TypeId> &all_arg_types,
+                                            const std::vector<const char> &arg_modes, type::TypeId rettype,
+                                            const std::string &src, bool is_aggregate) {
   TERRIER_ASSERT(args.size() < UINT16_MAX, "Number of arguments must fit in a SMALLINT");
 
   // Insert into table
@@ -2119,9 +2118,9 @@ proc_oid_t DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transac
   const auto name_varlen = storage::StorageUtil::CreateVarlen(procname);
 
   std::vector<storage::VarlenEntry> arg_varlen_vec;
-  arg_varlen_vec.reserve(args.size()*sizeof(storage::VarlenEntry));
+  arg_varlen_vec.reserve(args.size() * sizeof(storage::VarlenEntry));
 
-  for(auto &arg : args){
+  for (auto &arg : args) {
     arg_varlen_vec.push_back(storage::StorageUtil::CreateVarlen(arg));
   }
 
@@ -2133,62 +2132,62 @@ proc_oid_t DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transac
   auto oid = proc_oid_counter_++;
 
   auto *const redo = txn->StageWrite(db_oid_, postgres::PRO_TABLE_OID, pg_proc_all_cols_pri_);
-  *(reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(
-      pg_proc_all_cols_prm_[postgres::PRONAME_COL_OID]))) = name_varlen;
-  *(reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(
-      pg_proc_all_cols_prm_[postgres::PROARGNAMES_COL_OID]))) = arg_names_varlen;
-  *(reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(
-      pg_proc_all_cols_prm_[postgres::PROARGTYPES_COL_OID]))) = arg_types_varlen;
+  *(reinterpret_cast<storage::VarlenEntry *>(
+      redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PRONAME_COL_OID]))) = name_varlen;
+  *(reinterpret_cast<storage::VarlenEntry *>(
+      redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROARGNAMES_COL_OID]))) = arg_names_varlen;
+  *(reinterpret_cast<storage::VarlenEntry *>(
+      redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROARGTYPES_COL_OID]))) = arg_types_varlen;
   *(reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(
       pg_proc_all_cols_prm_[postgres::PROALLARGTYPES_COL_OID]))) = all_arg_types_varlen;
-  *(reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(
-      pg_proc_all_cols_prm_[postgres::PROARGMODES_COL_OID]))) = arg_modes_varlen;
-  *(reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(
-      pg_proc_all_cols_prm_[postgres::PROSRC_COL_OID]))) = src_varlen;
+  *(reinterpret_cast<storage::VarlenEntry *>(
+      redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROARGMODES_COL_OID]))) = arg_modes_varlen;
+  *(reinterpret_cast<storage::VarlenEntry *>(
+      redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROSRC_COL_OID]))) = src_varlen;
 
-  *(reinterpret_cast<proc_oid_t *>(redo->Delta()->AccessForceNotNull(
-      pg_proc_all_cols_prm_[postgres::PROOID_COL_OID]))) = oid;
-  *(reinterpret_cast<language_oid_t *>(redo->Delta()->AccessForceNotNull(
-      pg_proc_all_cols_prm_[postgres::PROLANG_COL_OID]))) = lanoid;
-  *(reinterpret_cast<namespace_oid_t *>(redo->Delta()->AccessForceNotNull(
-      pg_proc_all_cols_prm_[postgres::PRONAMESPACE_COL_OID]))) = procns;
+  *(reinterpret_cast<proc_oid_t *>(
+      redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROOID_COL_OID]))) = oid;
+  *(reinterpret_cast<language_oid_t *>(
+      redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROLANG_COL_OID]))) = lanoid;
+  *(reinterpret_cast<namespace_oid_t *>(
+      redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PRONAMESPACE_COL_OID]))) = procns;
   *(reinterpret_cast<type_oid_t *>(redo->Delta()->AccessForceNotNull(
       pg_proc_all_cols_prm_[postgres::PRORETTYPE_COL_OID]))) = GetTypeOidForType(rettype);
 
   *(reinterpret_cast<uint16_t *>(redo->Delta()->AccessForceNotNull(
-      pg_proc_all_cols_prm_[postgres::PRONARGS_COL_OID]))) = static_cast<uint16_t >(args.size());
+      pg_proc_all_cols_prm_[postgres::PRONARGS_COL_OID]))) = static_cast<uint16_t>(args.size());
 
   // setting zero default args
-  *(reinterpret_cast<uint16_t *>(redo->Delta()->AccessForceNotNull(
-      pg_proc_all_cols_prm_[postgres::PRONARGDEFAULTS_COL_OID]))) = 0;
+  *(reinterpret_cast<uint16_t *>(
+      redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PRONARGDEFAULTS_COL_OID]))) = 0;
   redo->Delta()->SetNull(pg_proc_all_cols_prm_[postgres::PROARGDEFAULTS_COL_OID]);
 
-  *reinterpret_cast<bool *>(redo->Delta()->AccessForceNotNull(
-      pg_proc_all_cols_prm_[postgres::PROISAGG_COL_OID])) = is_aggregate;
+  *reinterpret_cast<bool *>(redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROISAGG_COL_OID])) =
+      is_aggregate;
 
   // setting defaults of unexposed attributes
   // proiswindow, proisstrict, provolatile, provariadic, prorows, procost, proconfig
 
   // postgres documentation says this should be 0 if no variadics are there
-  *(reinterpret_cast<type_oid_t *>(redo->Delta()->AccessForceNotNull(
-      pg_proc_all_cols_prm_[postgres::PROVARIADIC_COL_OID]))) = type_oid_t{0};
+  *(reinterpret_cast<type_oid_t *>(
+      redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROVARIADIC_COL_OID]))) = type_oid_t{0};
 
-  *(reinterpret_cast<bool *>(redo->Delta()->AccessForceNotNull(
-      pg_proc_all_cols_prm_[postgres::PROISWINDOW_COL_OID]))) = false;
+  *(reinterpret_cast<bool *>(redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROISWINDOW_COL_OID]))) =
+      false;
 
   // stable by default
-  *(reinterpret_cast<char *>(redo->Delta()->AccessForceNotNull(
-      pg_proc_all_cols_prm_[postgres::PROVOLATILE_COL_OID]))) = 's';
+  *(reinterpret_cast<char *>(redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROVOLATILE_COL_OID]))) =
+      's';
 
   // strict by default
-  *(reinterpret_cast<bool *>(redo->Delta()->AccessForceNotNull(
-      pg_proc_all_cols_prm_[postgres::PROISSTRICT_COL_OID]))) = true;
+  *(reinterpret_cast<bool *>(redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROISSTRICT_COL_OID]))) =
+      true;
 
-  *(reinterpret_cast<double *>(redo->Delta()->AccessForceNotNull(
-      pg_proc_all_cols_prm_[postgres::PROROWS_COL_OID]))) = 0;
+  *(reinterpret_cast<double *>(redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROROWS_COL_OID]))) =
+      0;
 
-  *(reinterpret_cast<double *>(redo->Delta()->AccessForceNotNull(
-      pg_proc_all_cols_prm_[postgres::PROCOST_COL_OID]))) = 0;
+  *(reinterpret_cast<double *>(redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROCOST_COL_OID]))) =
+      0;
 
   redo->Delta()->SetNull(pg_proc_all_cols_prm_[postgres::PROCONFIG_COL_OID]);
 
@@ -2200,12 +2199,13 @@ proc_oid_t DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transac
   byte *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
   auto name_pr = name_pri.InitializeRow(buffer);
   auto name_map = procs_name_index_->GetKeyOidToOffsetMap();
-  *(reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(1)]))) = name_varlen;
+  *(reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(1)]))) =
+      name_varlen;
   *(reinterpret_cast<namespace_oid_t *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(2)]))) = procns;
 
   auto result = procs_name_index_->InsertUnique(txn, *name_pr, tuple_slot);
-  if(!result){
-    delete []buffer;
+  if (!result) {
+    delete[] buffer;
     return INVALID_PROC_OID;
   }
 
@@ -2214,7 +2214,7 @@ proc_oid_t DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transac
   result = procs_oid_index_->InsertUnique(txn, *oid_pr, tuple_slot);
   TERRIER_ASSERT(result, "Oid insertion should be unique");
 
-  delete []buffer;
+  delete[] buffer;
   return oid;
 }
 
@@ -2253,10 +2253,10 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
   auto table_pr = pg_proc_all_cols_pri_.InitializeRow(buffer);
   bool UNUSED_ATTRIBUTE visible = procs_->Select(txn, to_delete_slot, table_pr);
 
-  auto name_varlen = *reinterpret_cast<storage::VarlenEntry*>
-      (table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PRONAME_COL_OID]));
-  auto proc_ns = *reinterpret_cast<namespace_oid_t *>
-      (table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PRONAMESPACE_COL_OID]));
+  auto name_varlen = *reinterpret_cast<storage::VarlenEntry *>(
+      table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PRONAME_COL_OID]));
+  auto proc_ns = *reinterpret_cast<namespace_oid_t *>(
+      table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PRONAMESPACE_COL_OID]));
 
   auto name_pr = name_pri.InitializeRow(buffer);
 
@@ -2271,9 +2271,8 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
 }
 
 proc_oid_t DatabaseCatalog::GetProcOid(const common::ManagedPointer<transaction::TransactionContext> txn,
-    const std::string &procname, namespace_oid_t procns) {
+                                       const std::string &procname, namespace_oid_t procns) {
   if (!TryLock(txn)) return INVALID_PROC_OID;
-
 
   auto name_pri = procs_name_index_->GetProjectedRowInitializer();
   byte *const buffer = common::AllocationUtil::AllocateAligned(pg_proc_all_cols_pri_.ProjectedRowSize());
@@ -2283,25 +2282,24 @@ proc_oid_t DatabaseCatalog::GetProcOid(const common::ManagedPointer<transaction:
 
   auto name_varlen = storage::StorageUtil::CreateVarlen(procname);
   *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(1)])) = name_varlen;
-  *reinterpret_cast<namespace_oid_t *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(2)]))  = procns;
+  *reinterpret_cast<namespace_oid_t *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(2)])) = procns;
 
   std::vector<storage::TupleSlot> results;
   procs_name_index_->ScanKey(*txn, *name_pr, &results);
 
   proc_oid_t ret = INVALID_PROC_OID;
   if (results.size() != 0) {
-
     TERRIER_ASSERT(results.size() == 1, "More than one non-unique result found in unique index.");
 
     auto found_slot = results[0];
 
     auto table_pr = pg_proc_all_cols_pri_.InitializeRow(buffer);
     bool UNUSED_ATTRIBUTE visible = procs_->Select(txn, found_slot, table_pr);
-    ret = *reinterpret_cast<proc_oid_t *>(table_pr->AccessForceNotNull(
-        pg_proc_all_cols_prm_[postgres::PROOID_COL_OID]));
+    ret =
+        *reinterpret_cast<proc_oid_t *>(table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROOID_COL_OID]));
   }
 
-  if(name_varlen.NeedReclaim()){
+  if (name_varlen.NeedReclaim()) {
     delete[] name_varlen.Content();
   }
 
