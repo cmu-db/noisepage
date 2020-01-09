@@ -169,6 +169,18 @@ TEST_F(CatalogTests, ProcTest) {
                             arg_modes, type::TypeId::INTEGER, src, false);
   EXPECT_NE(proc_oid, catalog::INVALID_PROC_OID);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(txn, db_);
+
+  auto found_oid = accessor->GetProcOid("bad_proc", ns_oid);
+  EXPECT_EQ(found_oid, catalog::INVALID_PROC_OID);
+  found_oid = accessor->GetProcOid(procname, ns_oid);
+
+  EXPECT_EQ(found_oid, proc_oid);
+  auto result = accessor->DropProcedure(found_oid);
+  EXPECT_TRUE(result);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 /*

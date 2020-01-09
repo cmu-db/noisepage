@@ -156,4 +156,13 @@ proc_oid_t CatalogAccessor::CreateProcedure(const std::string &procname,
                                all_arg_types, arg_modes, rettype, src, is_aggregate);
 }
 
+bool CatalogAccessor::DropProcedure(proc_oid_t proc) {
+  return dbc_->DropProcedure(txn_, proc);
+}
+
+proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname,
+                                       namespace_oid_t procns) {
+  return dbc_->GetProcOid(txn_, procname, procns);
+}
+
 }  // namespace terrier::catalog
