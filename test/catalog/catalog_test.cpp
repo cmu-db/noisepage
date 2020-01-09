@@ -66,14 +66,16 @@ struct CatalogTests : public TerrierTest {
 
 TEST_F(CatalogTests, LanguageTest) {
   auto txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(txn, db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+
+  VerifyCatalogTables(*accessor);  // Check visibility to me
 
   auto oid = accessor->CreateLanguage("internal");
   EXPECT_EQ(oid, catalog::INVALID_LANGUAGE_OID);
 
   txn_manager_->Abort(txn);
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
 
   oid = accessor->CreateLanguage("test_language");
   EXPECT_NE(oid, catalog::INVALID_LANGUAGE_OID);
@@ -83,14 +85,14 @@ TEST_F(CatalogTests, LanguageTest) {
   auto good_oid = oid;
 
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
 
   oid = accessor->CreateLanguage("test_language");
   EXPECT_EQ(oid, catalog::INVALID_LANGUAGE_OID);
   txn_manager_->Abort(txn);
 
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
 
   oid = accessor->GetLanguageOid("test_language");
   EXPECT_EQ(oid, good_oid);
@@ -100,7 +102,7 @@ TEST_F(CatalogTests, LanguageTest) {
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
 
   result = accessor->DropLanguage(good_oid);
   EXPECT_FALSE(result);
@@ -109,7 +111,9 @@ TEST_F(CatalogTests, LanguageTest) {
 
 TEST_F(CatalogTests, ProcTest) {
   auto txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(txn, db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+
+  VerifyCatalogTables(*accessor);  // Check visibility to me
 
   auto lan_oid = accessor->CreateLanguage("test_language");
   auto ns_oid = accessor->CreateNamespace("test_ns");
@@ -120,7 +124,7 @@ TEST_F(CatalogTests, ProcTest) {
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
 
   auto procname = "sample";
   std::vector<const std::string> args = {"arg1", "arg2", "arg3"};
@@ -135,7 +139,7 @@ TEST_F(CatalogTests, ProcTest) {
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
 
   auto found_oid = accessor->GetProcOid("bad_proc", ns_oid);
   EXPECT_EQ(found_oid, catalog::INVALID_PROC_OID);
