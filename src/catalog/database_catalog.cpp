@@ -2071,10 +2071,6 @@ bool DatabaseCatalog::DropLanguage(transaction::TransactionContext *txn, languag
 
   languages_name_index_->Delete(txn, *index_pr, to_delete_slot);
 
-  if(name_varlen.NeedReclaim()){
-    delete []name_varlen.Content();
-  }
-
   delete[] buffer;
 
   return true;
