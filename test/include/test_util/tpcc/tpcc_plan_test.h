@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
+#include "main/db_main.h"
 #include "optimizer/optimizer.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
@@ -52,26 +53,20 @@ class TpccPlanTest : public TerrierTest {
                      void (*Check)(TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
                                    std::unique_ptr<planner::AbstractPlanNode> plan));
 
-  catalog::Catalog *catalog_;
-  transaction::TransactionManager *txn_manager_;
+  // Infrastucture
+  common::ManagedPointer<catalog::Catalog> catalog_;
+  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
+  common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
+  std::unique_ptr<DBMain> db_main_;
 
-  storage::RecordBufferSegmentPool buffer_pool_{100, 100};
-  storage::BlockStore block_store_{100, 100};
-  storage::GarbageCollector *gc_;
-
-  DBMain *db_main_;
-  settings::SettingsManager *settings_manager_;
-  optimizer::StatsStorage *stats_storage_;
+  uint64_t task_execution_timeout_;
 
   // Optimizer transaction
   transaction::TransactionContext *txn_;
-  transaction::DeferredActionManager *deferred_action_manager_;
-  transaction::TimestampManager *timestamp_manager_;
   catalog::CatalogAccessor *accessor_;
 
   // Database
   tpcc::Database *tpcc_db_;
-
   catalog::db_oid_t db_;
 
   // OIDs
@@ -84,7 +79,6 @@ class TpccPlanTest : public TerrierTest {
   catalog::table_oid_t tbl_new_order_;
   catalog::table_oid_t tbl_order_;
   catalog::table_oid_t tbl_order_line_;
-
   catalog::index_oid_t pk_new_order_;
 };
 

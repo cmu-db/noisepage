@@ -6,6 +6,7 @@
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "common/exception.h"
+#include "common/hash_util.h"
 #include "common/json.h"
 #include "common/macros.h"
 #include "common/sql_node_visitor.h"
@@ -59,6 +60,34 @@ struct TableInfo {
    * @return database name
    */
   std::string GetDatabaseName() { return database_name_; }
+
+  /**
+   * @return the hashed value of this table info object
+   */
+  common::hash_t Hash() const {
+    common::hash_t hash = common::HashUtil::Hash(table_name_);
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_name_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_name_));
+    return hash;
+  }
+
+  /**
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two TableInfo are logically equal
+   */
+  bool operator==(const TableInfo &rhs) const {
+    if (table_name_ != rhs.table_name_) return false;
+    if (namespace_name_ != rhs.namespace_name_) return false;
+    return database_name_ == rhs.database_name_;
+  }
+
+  /**
+   * Logical inequality check.
+   * @param rhs other
+   * @return true if the two TableInfo logically unequal
+   */
+  bool operator!=(const TableInfo &rhs) const { return !(operator==(rhs)); }
 
   /**
    * @return TableInfo serialized to json

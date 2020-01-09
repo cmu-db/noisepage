@@ -1,5 +1,8 @@
+#include "execution/tpl.h"
+
 #include <gflags/gflags.h>
 #include <unistd.h>
+
 #include <algorithm>
 #include <csignal>
 #include <cstdio>
@@ -7,7 +10,7 @@
 #include <memory>
 #include <string>
 #include <utility>
-#include "tbb/task_scheduler_init.h"
+#include <vector>
 
 #include "execution/ast/ast_dump.h"
 #include "execution/exec/execution_context.h"
@@ -17,9 +20,9 @@
 #include "execution/sema/error_reporter.h"
 #include "execution/sema/sema.h"
 #include "execution/sql/memory_pool.h"
+#include "execution/sql/value.h"
 #include "execution/table_generator/sample_output.h"
 #include "execution/table_generator/table_generator.h"
-#include "execution/tpl.h"
 #include "execution/util/cpu_info.h"
 #include "execution/util/timer.h"
 #include "execution/vm/bytecode_generator.h"
@@ -29,16 +32,14 @@
 #include "execution/vm/vm.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/MemoryBuffer.h"
+#include "loggers/execution_logger.h"
 #include "loggers/loggers_util.h"
+#include "main/db_main.h"
 #include "settings/settings_manager.h"
 #include "storage/garbage_collector.h"
+#include "tbb/task_scheduler_init.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/timestamp_manager.h"
-
-#define __SETTING_GFLAGS_DEFINE__      // NOLINT
-#include "settings/settings_common.h"  // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_GFLAGS_DEFINE__       // NOLINT
 
 // ---------------------------------------------------------
 // CLI options
@@ -70,37 +71,38 @@ static constexpr const char *K_EXIT_KEYWORD = ".exit";
  */
 static void CompileAndRun(const std::string &source, const std::string &name = "tmp-tpl") {
   // Initialize terrier objects
-  storage::BlockStore block_store(1000, 1000);
-  storage::RecordBufferSegmentPool buffer_pool(100000, 100000);
-  transaction::TimestampManager tm_manager{};
-  transaction::DeferredActionManager da_manager{&tm_manager};
-  transaction::TransactionManager txn_manager(&tm_manager, &da_manager, &buffer_pool, true, nullptr);
-  storage::GarbageCollector gc(&tm_manager, &da_manager, &txn_manager, nullptr);
-  auto *txn = txn_manager.BeginTransaction();
+  auto db_main = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).SetUseGCThread(true).Build();
 
   // Get the correct output format for this test
   exec::SampleOutput sample_output;
   sample_output.InitTestOutput();
   auto output_schema = sample_output.GetSchema(output_name.data());
 
-  // Make the catalog accessor
-  catalog::Catalog catalog(&txn_manager, &block_store);
+  auto catalog = db_main->GetCatalogLayer()->GetCatalog();
+  auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
 
-  auto db_oid = catalog.CreateDatabase(txn, "test_db", true);
-  auto accessor = std::unique_ptr<catalog::CatalogAccessor>(catalog.GetAccessor(txn, db_oid));
+  auto *txn = txn_manager->BeginTransaction();
+
+  auto db_oid = catalog->CreateDatabase(common::ManagedPointer(txn), "test_db", true);
+  auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid);
   auto ns_oid = accessor->GetDefaultNamespace();
 
   // Make the execution context
   exec::OutputPrinter printer(output_schema);
-  exec::ExecutionContext exec_ctx{db_oid, txn, printer, output_schema, std::move(accessor)};
+  exec::ExecutionContext exec_ctx{db_oid, common::ManagedPointer(txn), printer, output_schema,
+                                  common::ManagedPointer(accessor)};
+  // Add dummy parameters for tests
+  sql::Date date(1937, 3, 7);
+  std::vector<type::TransientValue> params;
+  params.emplace_back(type::TransientValueFactory::GetInteger(37));
+  params.emplace_back(type::TransientValueFactory::GetDecimal(37.73));
+  params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date.int_val_)));
+  params.emplace_back(type::TransientValueFactory::GetVarChar("37 Strings"));
+  exec_ctx.SetParams(std::move(params));
 
   // Generate test tables
-  // TODO(Amadou): Read this in from a directory. That would require boost or experimental C++ though
-  sql::TableGenerator table_generator{&exec_ctx, &block_store, ns_oid};
+  sql::TableGenerator table_generator{&exec_ctx, db_main->GetStorageLayer()->GetBlockStore().Get(), ns_oid};
   table_generator.GenerateTestTables();
-  // Comment out to make more tables available at runtime
-  // table_generator.GenerateTPCHTables(<path_to_tpch_dir>);
-  // table_generator.GenerateTableFromFile(<path_to_schema>, <path_to_data>);
 
   // Let's scan the source
   util::Region region("repl-ast");
@@ -250,10 +252,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       "Parse: {} ms, Type-check: {} ms, Code-gen: {} ms, Interp. Exec.: {} ms, "
       "Adaptive Exec.: {} ms, Jit+Exec.: {} ms",
       parse_ms, typecheck_ms, codegen_ms, interp_exec_ms, adaptive_exec_ms, jit_exec_ms);
-  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  catalog.TearDown();
-  gc.PerformGarbageCollection();
-  gc.PerformGarbageCollection();
+  txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 /**
@@ -301,8 +300,6 @@ static void RunFile(const std::string &filename) {
 void InitTPL() {
   execution::CpuInfo::Instance();
 
-  terrier::LoggersUtil::Initialize(false);
-
   execution::vm::LLVMEngine::Initialize();
 
   EXECUTION_LOG_INFO("TPL Bytecode Count: {}", execution::vm::Bytecodes::NumBytecodes());
@@ -315,11 +312,8 @@ void InitTPL() {
  */
 void ShutdownTPL() {
   terrier::execution::vm::LLVMEngine::Shutdown();
-  terrier::LoggersUtil::ShutDown();
 
   scheduler.terminate();
-
-  LOG_INFO("TPL cleanly shutdown ...");
 }
 
 }  // namespace terrier::execution
@@ -332,6 +326,8 @@ void SignalHandler(int32_t sig_num) {
 }
 
 int main(int argc, char **argv) {  // NOLINT (bugprone-exception-escape)
+  terrier::LoggersUtil::Initialize();
+
   // Parse options
   llvm::cl::HideUnrelatedOptions(tpl_options_category);
   llvm::cl::ParseCommandLineOptions(argc, argv);
@@ -364,6 +360,7 @@ int main(int argc, char **argv) {  // NOLINT (bugprone-exception-escape)
 
   // Cleanup
   terrier::execution::ShutdownTPL();
+  terrier::LoggersUtil::ShutDown();
 
   return 0;
 }

@@ -16,6 +16,7 @@
 
 namespace terrier::planner {
 
+using GroupByTerm = common::ManagedPointer<parser::AbstractExpression>;
 using AggregateTerm = common::ManagedPointer<parser::AggregateExpression>;
 using GroupByTerm = common::ManagedPointer<parser::AbstractExpression>;
 

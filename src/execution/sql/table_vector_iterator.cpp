@@ -46,6 +46,11 @@ bool TableVectorIterator::Advance() {
   return true;
 }
 
+void TableVectorIterator::Reset() {
+  if (!initialized_) return;
+  iter_ = std::make_unique<storage::DataTable::SlotIterator>(table_->begin());
+}
+
 bool TableVectorIterator::ParallelScan(uint32_t db_oid, uint32_t table_oid, void *const query_state,
                                        ThreadStateContainer *const thread_states, const ScanFn scan_fn,
                                        const uint32_t min_grain_size) {

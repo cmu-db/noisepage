@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "common/performance_counter.h"
 #include "storage/data_table.h"
@@ -71,7 +72,8 @@ class Index {
    * @param location value
    * @return false if the value already exists, true otherwise
    */
-  virtual bool Insert(transaction::TransactionContext *txn, const ProjectedRow &tuple, TupleSlot location) = 0;
+  virtual bool Insert(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
+                      TupleSlot location) = 0;
 
   /**
    * Inserts a key-value pair only if any matching keys have TupleSlots that don't conflict with the calling txn
@@ -81,7 +83,8 @@ class Index {
    * @return true if the value was inserted, false otherwise
    *         (either because value exists, or predicate returns true for one of the existing values)
    */
-  virtual bool InsertUnique(transaction::TransactionContext *txn, const ProjectedRow &tuple, TupleSlot location) = 0;
+  virtual bool InsertUnique(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
+                            TupleSlot location) = 0;
 
   /**
    * Doesn't immediately call delete on the index. Registers a commit action in the txn that will eventually register a
@@ -90,7 +93,8 @@ class Index {
    * @param tuple key
    * @param location value
    */
-  virtual void Delete(transaction::TransactionContext *txn, const ProjectedRow &tuple, TupleSlot location) = 0;
+  virtual void Delete(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
+                      TupleSlot location) = 0;
 
   /**
    * Finds all the values associated with the given key in our index.

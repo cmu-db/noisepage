@@ -14,7 +14,7 @@ namespace terrier {
  */
 #define PARSER_BENCHMARK_EXECUTE(QUERIES, TYPE)                                                                    \
   for (const auto &sql : QUERIES) {                                                                                \
-    auto result = parser_.BuildParseTree(sql);                                                                     \
+    auto result = parser::PostgresParser::BuildParseTree(sql);                                                     \
     TERRIER_ASSERT(result.GetStatement(0).CastManagedPointerTo<TYPE>() != nullptr, "Failed to get ##TYPE object"); \
   }
 
@@ -120,7 +120,6 @@ class ParserBenchmark : public benchmark::Fixture {
     // Nothing to do, nothing to see...
   }
 
-  parser::PostgresParser parser_;
   std::vector<std::string> selects_simple_;
   std::vector<std::string> selects_complex_;
   std::vector<std::string> updates_simple_;
@@ -207,7 +206,7 @@ BENCHMARK_DEFINE_F(ParserBenchmark, DeletesComplex)(benchmark::State &state) {
 BENCHMARK_DEFINE_F(ParserBenchmark, NOOPs)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    auto result = parser_.BuildParseTree(";");
+    auto result = parser::PostgresParser::BuildParseTree(";");
     TERRIER_ASSERT(result.GetStatements().empty(), "Unexpected return result for NOOP");
   }
   state.SetItemsProcessed(state.iterations());

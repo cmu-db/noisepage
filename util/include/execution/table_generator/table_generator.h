@@ -85,6 +85,10 @@ class TableGenerator {
      * Max value of the column
      */
     uint64_t max_;
+    /**
+     * Counter to generate serial data
+     */
+    uint64_t serial_counter_{0};
 
     /**
      * Constructor

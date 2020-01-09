@@ -1,6 +1,7 @@
-#include <pqxx/pqxx> /* libpqxx is used to instantiate C++ client */
+#include "traffic_cop/traffic_cop.h"
 
 #include <memory>
+#include <pqxx/pqxx>  // NOLINT
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -8,51 +9,45 @@
 
 #include "common/settings.h"
 #include "gtest/gtest.h"
-#include "loggers/main_logger.h"
 #include "main/db_main.h"
 #include "network/connection_handle_factory.h"
 #include "network/terrier_server.h"
 #include "storage/garbage_collector.h"
 #include "test_util/manual_packet_util.h"
 #include "test_util/test_harness.h"
-#include "traffic_cop/traffic_cop.h"
 #include "traffic_cop/traffic_cop_defs.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
-
-#define __SETTING_GFLAGS_DEFINE__      // NOLINT
-#include "settings/settings_common.h"  // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_GFLAGS_DEFINE__       // NOLINT
 
 namespace terrier::trafficcop {
 
 class TrafficCopTests : public TerrierTest {
  protected:
-  uint16_t port_ = common::Settings::SERVER_PORT;
-
-  DBMain *db_main_;
-  common::ManagedPointer<network::TerrierServer> server_;
-  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
-  common::ManagedPointer<catalog::Catalog> catalog_;
-
   void SetUp() override {
     std::unordered_map<settings::Param, settings::ParamInfo> param_map;
     terrier::settings::SettingsManager::ConstructParamMap(param_map);
 
-    db_main_ = new DBMain(std::move(param_map));
-    txn_manager_ = common::ManagedPointer(db_main_->txn_manager_);
-    catalog_ = common::ManagedPointer(db_main_->catalog_);
-    server_ = common::ManagedPointer(db_main_->server_);
-    db_main_->running_ = true;
-    server_->SetPort(port_);
-    server_->RunServer();
+    db_main_ = terrier::DBMain::Builder()
+                   .SetSettingsParameterMap(std::move(param_map))
+                   .SetUseSettingsManager(true)
+                   .SetUseGC(true)
+                   .SetUseCatalog(true)
+                   .SetUseGCThread(true)
+                   .SetUseTrafficCop(true)
+                   .SetUseNetwork(true)
+                   .Build();
+
+    db_main_->GetNetworkLayer()->GetServer()->RunServer();
+
+    port_ = static_cast<uint16_t>(db_main_->GetSettingsManager()->GetInt(settings::Param::port));
+    catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
+    txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
   }
 
-  void TearDown() override { delete db_main_; }
-
-  // The port used to connect a Postgres backend. Useful for debugging.
-  const int postgres_port_ = 5432;
+  std::unique_ptr<DBMain> db_main_;
+  uint16_t port_;
+  common::ManagedPointer<catalog::Catalog> catalog_;
+  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
 };
 
 // NOLINTNEXTLINE
@@ -91,9 +86,9 @@ TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
     catalog::namespace_oid_t new_namespace_oid = catalog::INVALID_NAMESPACE_OID;
     do {
       auto txn = txn_manager_->BeginTransaction();
-      auto db_oid = catalog_->GetDatabaseOid(txn, catalog::DEFAULT_DATABASE);
+      auto db_oid = catalog_->GetDatabaseOid(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE);
       EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
-      auto db_accessor = catalog_->GetAccessor(txn, db_oid);
+      auto db_accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
       EXPECT_NE(db_accessor, nullptr);
       new_namespace_oid = db_accessor->CreateNamespace(std::string(trafficcop::TEMP_NAMESPACE_PREFIX));
       txn_manager_->Abort(txn);

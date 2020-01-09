@@ -155,6 +155,7 @@ class Sema : public ast::AstVisitor<Sema> {
   void CheckBuiltinIndexIteratorPRCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin);
 
   // -------------------------------------------------------
   // Scoping

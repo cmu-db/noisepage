@@ -1,7 +1,9 @@
 #include "common/notifiable_task.h"
+
 #include <cstring>
+
 #include "common/event_util.h"
-#include "loggers/main_logger.h"
+#include "loggers/common_logger.h"
 
 namespace terrier::common {
 
@@ -35,7 +37,7 @@ void NotifiableTask::UnregisterEvent(struct event *event) {
   auto it = events_.find(event);
   if (it == events_.end()) return;
   if (event_del(event) == -1) {
-    LOG_ERROR("Failed to delete event");
+    COMMON_LOG_ERROR("Failed to delete event");
     return;
   }
   event_free(event);

@@ -2,11 +2,13 @@
 
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "catalog/schema.h"
 #include "parser/expression/abstract_expression.h"
+#include "parser/expression/column_value_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/abstract_scan_plan_node.h"
 
@@ -122,7 +124,36 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
   nlohmann::json ToJson() const override;
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
+  /**
+   * Collect all column oids in this expression
+   * @return the vector of unique columns oids
+   */
+  std::vector<catalog::col_oid_t> CollectInputOids() const {
+    std::vector<catalog::col_oid_t> result;
+    // Scan predicate
+    if (GetScanPredicate() != nullptr) CollectOids(&result, GetScanPredicate().Get());
+    // Output expressions
+    for (const auto &col : GetOutputSchema()->GetColumns()) {
+      CollectOids(&result, col.GetExpr().Get());
+    }
+    // Remove duplicates
+    std::unordered_set<catalog::col_oid_t> s(result.begin(), result.end());
+    result.assign(s.begin(), s.end());
+    return result;
+  }
+
  private:
+  void CollectOids(std::vector<catalog::col_oid_t> *result, const parser::AbstractExpression *expr) const {
+    if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
+      auto column_val = static_cast<const parser::ColumnValueExpression *>(expr);
+      result->emplace_back(column_val->GetColumnOid());
+    } else {
+      for (const auto &child : expr->GetChildren()) {
+        CollectOids(result, child.Get());
+      }
+    }
+  }
+
   /**
    * OIDs of columns to scan
    */
