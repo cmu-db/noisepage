@@ -265,6 +265,11 @@ class CatalogAccessor {
   common::ManagedPointer<storage::index::Index> GetIndex(index_oid_t index) const;
 
   /**
+   * @return BlockStore to be used for CREATE operations
+   */
+  common::ManagedPointer<storage::BlockStore> GetBlockStore() const;
+
+  /**
    * Instantiates a new accessor into the catalog for the given database.
    * @param catalog pointer to the catalog being accessed
    * @param dbc pointer to the database catalog being accessed
