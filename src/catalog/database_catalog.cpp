@@ -233,6 +233,27 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
   BootstrapLanguages(txn);
+
+  // pg_proc and associated indexes
+  retval = CreateTableEntry(txn, postgres::PRO_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_proc",
+                            postgres::Builder::GetProcTableSchema());
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetTablePointer(txn, postgres::PRO_TABLE_OID, procs_);
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+
+  retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::PRO_TABLE_OID,
+                            postgres::PRO_OID_INDEX_OID, "pg_proc_oid_index",
+                            postgres::Builder::GetProcOidIndexSchema(db_oid_));
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetIndexPointer(txn, postgres::PRO_OID_INDEX_OID, procs_oid_index_);
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+
+  retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::PRO_TABLE_OID,
+                            postgres::PRO_NAME_INDEX_OID, "pg_proc_name_index",
+                            postgres::Builder::GetProcNameIndexSchema(db_oid_));
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetIndexPointer(txn, postgres::PRO_NAME_INDEX_OID, procs_name_index_);
+
 }
 
 void DatabaseCatalog::BootstrapPRIs() {
@@ -1659,7 +1680,7 @@ void DatabaseCatalog::BootstrapTypes(const common::ManagedPointer<transaction::T
              postgres::Type::BASE);
 }
 
-void DatabaseCatalog::BootstrapLanguages(transaction::TransactionContext *const txn) {
+void DatabaseCatalog::BootstrapLanguages(const common::ManagedPointer<transaction::TransactionContext> txn) {
   CreateLanguage(txn, "plpgsql", postgres::PLPGSQL_LANGUAGE_OID);
   CreateLanguage(txn, "internal", postgres::INTERNAL_LANGUAGE_OID);
 }
@@ -1935,8 +1956,8 @@ bool DatabaseCatalog::TryLock(const common::ManagedPointer<transaction::Transact
   return false;
 }
 
-bool DatabaseCatalog::CreateLanguage(transaction::TransactionContext *txn, const std::string &lanname,
-                                     language_oid_t oid) {
+bool DatabaseCatalog::CreateLanguage(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                      const std::string &lanname, language_oid_t oid) {
   // Insert into table
   if (!TryLock(txn)) return false;
   const auto name_varlen = storage::StorageUtil::CreateVarlen(lanname);
@@ -1985,7 +2006,8 @@ bool DatabaseCatalog::CreateLanguage(transaction::TransactionContext *txn, const
   return true;
 }
 
-language_oid_t DatabaseCatalog::CreateLanguage(transaction::TransactionContext *txn, const std::string &lanname) {
+language_oid_t DatabaseCatalog::CreateLanguage(const common::ManagedPointer<transaction::TransactionContext> txn,
+    const std::string &lanname) {
   auto oid = language_oid_counter_++;
   if (!CreateLanguage(txn, lanname, oid)) {
     return INVALID_LANGUAGE_OID;
@@ -1994,7 +2016,8 @@ language_oid_t DatabaseCatalog::CreateLanguage(transaction::TransactionContext *
   return oid;
 }
 
-language_oid_t DatabaseCatalog::GetLanguageOid(transaction::TransactionContext *txn, const std::string &lanname) {
+language_oid_t DatabaseCatalog::GetLanguageOid(const common::ManagedPointer<transaction::TransactionContext>
+    txn, const std::string &lanname) {
   auto name_pri = languages_name_index_->GetProjectedRowInitializer();
   byte *const buffer = common::AllocationUtil::AllocateAligned(pg_language_all_cols_pri_.ProjectedRowSize());
 
@@ -2027,7 +2050,8 @@ language_oid_t DatabaseCatalog::GetLanguageOid(transaction::TransactionContext *
   return oid;
 }
 
-bool DatabaseCatalog::DropLanguage(transaction::TransactionContext *txn, language_oid_t oid) {
+bool DatabaseCatalog::DropLanguage(const common::ManagedPointer<transaction::TransactionContext> txn,
+    language_oid_t oid) {
   // Delete fom table
   if (!TryLock(txn)) return false;
   TERRIER_ASSERT(oid != INVALID_LANGUAGE_OID, "Invalid oid passed");
@@ -2075,7 +2099,8 @@ bool DatabaseCatalog::DropLanguage(transaction::TransactionContext *txn, languag
   return true;
 }
 
-proc_oid_t DatabaseCatalog::CreateProcedure(transaction::TransactionContext *txn, const std::string &procname,
+proc_oid_t DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                            const std::string &procname,
                                             language_oid_t lanoid,
                                             namespace_oid_t procns,
                                             std::vector<const std::string> &args,
@@ -2191,7 +2216,7 @@ proc_oid_t DatabaseCatalog::CreateProcedure(transaction::TransactionContext *txn
   return oid;
 }
 
-bool DatabaseCatalog::DropProcedure(transaction::TransactionContext *txn, proc_oid_t oid) {
+bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t oid) {
   if (!TryLock(txn)) return false;
   TERRIER_ASSERT(oid != INVALID_PROC_OID, "Invalid oid passed");
 
@@ -2243,7 +2268,7 @@ bool DatabaseCatalog::DropProcedure(transaction::TransactionContext *txn, proc_o
   return true;
 }
 
-proc_oid_t DatabaseCatalog::GetProcOid(transaction::TransactionContext *txn,
+proc_oid_t DatabaseCatalog::GetProcOid(const common::ManagedPointer<transaction::TransactionContext> txn,
     const std::string &procname, namespace_oid_t procns) {
   if (!TryLock(txn)) return INVALID_PROC_OID;
 
