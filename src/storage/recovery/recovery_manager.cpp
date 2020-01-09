@@ -6,6 +6,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <catalog/postgres/pg_proc.h>
 
 #include "catalog/postgres/pg_attribute.h"
 #include "catalog/postgres/pg_class.h"
@@ -274,6 +275,22 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
                                  db_catalog_ptr->types_name_index_->metadata_.GetSchema());
       index_objects.emplace_back(db_catalog_ptr->types_namespace_index_,
                                  db_catalog_ptr->types_namespace_index_->metadata_.GetSchema());
+      break;
+    }
+
+    case (!catalog::postgres::LANGUAGE_TABLE_OID): {
+      index_objects.emplace_back(db_catalog_ptr->languages_oid_index_,
+                                 db_catalog_ptr->languages_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->languages_name_index_,
+                                 db_catalog_ptr->languages_name_index_->metadata_.GetSchema());
+      break;
+    }
+
+    case (!catalog::postgres::PRO_TABLE_OID): {
+      index_objects.emplace_back(db_catalog_ptr->procs_oid_index_,
+                                 db_catalog_ptr->procs_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->procs_name_index_,
+                                 db_catalog_ptr->procs_name_index_->metadata_.GetSchema());
       break;
     }
 
@@ -815,6 +832,10 @@ common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transacti
     }
     case (!catalog::postgres::LANGUAGE_TABLE_OID): {
       table_ptr = common::ManagedPointer(db_catalog_ptr->languages_);
+      break;
+    }
+    case (!catalog::postgres::PRO_TABLE_OID): {
+      table_ptr = common::ManagedPointer(db_catalog_ptr->procs_);
       break;
     }
     default:
