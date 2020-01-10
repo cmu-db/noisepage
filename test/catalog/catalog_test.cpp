@@ -159,10 +159,15 @@ TEST_F(CatalogTests, ProcTest) {
   // look for proc that we actually added
   found_oid = accessor->GetProcOid(procname, arg_types);
 
+  auto sin_oid = accessor->GetProcOid("sin", catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID);
+  EXPECT_NE(sin_oid, catalog::INVALID_PROC_OID);
+
   EXPECT_EQ(found_oid, proc_oid);
   auto result = accessor->DropProcedure(found_oid);
   EXPECT_TRUE(result);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+
 }
 
 /*
