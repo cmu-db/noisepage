@@ -314,4 +314,12 @@ std::function<void()> Catalog::DeallocateDatabaseCatalog(DatabaseCatalog *const 
     delete dbc;
   };
 }
+
+common::ManagedPointer<storage::BlockStore> Catalog::GetBlockStore() const {
+  // TODO(Matt): at some point we may decide the Catalog owns this, but right now it doesn't. Taking ownership may
+  // introduce life cycle issues (i.e. guaranteeing that all tables are freed and Blocks returned before this object
+  // gets deleted)
+  return common::ManagedPointer(catalog_block_store_);
+}
+
 }  // namespace terrier::catalog
