@@ -32,6 +32,10 @@ class TrafficCop {
 
   virtual ~TrafficCop() = default;
 
+  void ExecuteSimpleQuery(const std::string &simple_query,
+                          common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                          common::ManagedPointer<network::PostgresPacketWriter> out) const;
+
   /**
    * Hands a buffer of logs to replication
    * @param buffer buffer containing logs

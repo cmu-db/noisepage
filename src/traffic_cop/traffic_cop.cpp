@@ -1,7 +1,11 @@
 #include "traffic_cop/traffic_cop.h"
+
+#include <network/connection_context.h>
+
 #include <memory>
 #include <string>
 #include <utility>
+
 #include "traffic_cop/traffic_cop_defs.h"
 #include "transaction/transaction_manager.h"
 
@@ -11,6 +15,10 @@ void TrafficCop::HandBufferToReplication(std::unique_ptr<network::ReadBuffer> bu
   TERRIER_ASSERT(replication_log_provider_ != DISABLED, "Should not be handing off logs if no log provider was given");
   replication_log_provider_->HandBufferToReplication(std::move(buffer));
 }
+
+void TrafficCop::ExecuteSimpleQuery(const std::string &string_query,
+                                    const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                    const common::ManagedPointer<network::PostgresPacketWriter> out) const {}
 
 std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNamespace(
     int sockfd, const std::string &database_name) {

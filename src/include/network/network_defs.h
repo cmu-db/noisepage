@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unistd.h>
+
 #include <bitset>
 #include <climits>
 #include <cstdint>
@@ -51,8 +52,6 @@ using uchar = unsigned char;
 using ByteBuf = std::vector<uchar>;
 
 using NetworkCallback = std::function<void(void)>;
-
-using SimpleQueryCallback = std::function<void(const trafficcop::ResultSet &, network::PostgresPacketWriter *)>;
 
 //===--------------------------------------------------------------------===//
 // Network Message Types
