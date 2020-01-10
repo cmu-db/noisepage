@@ -63,7 +63,7 @@ void RandomDataTableTransaction::Finish() {
   if (aborted_)
     test_object_->txn_manager_.Abort(txn_);
   else
-    commit_time_ = test_object_->txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    commit_time_ = test_object_->txn_manager_.Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 LargeDataTableBenchmarkObject::LargeDataTableBenchmarkObject(const std::vector<uint16_t> &attr_sizes,
@@ -160,6 +160,6 @@ void LargeDataTableBenchmarkObject::PopulateInitialTable(uint32_t num_tuples, Ra
     redo->SetTupleSlot(inserted);
     inserted_tuples_.emplace_back(inserted);
   }
-  txn_manager_.Commit(initial_txn_, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(initial_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 }  // namespace terrier

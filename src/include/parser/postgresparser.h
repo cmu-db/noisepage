@@ -107,7 +107,7 @@ class PostgresParser {
    * @param query_string query string to be parsed
    * @return unique pointer to parse tree
    */
-  static ParseResult BuildParseTree(const std::string &query_string);
+  static std::unique_ptr<parser::ParseResult> BuildParseTree(const std::string &query_string);
 
  private:
   static FKConstrActionType CharToActionType(const char &type) {

@@ -284,7 +284,7 @@ bool NewOrder::Execute(transaction::TransactionManager *const txn_manager, Datab
     total_amount += ol_amount;
   }
 
-  txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   total_amount = total_amount * (1 - c_discount) * (1 + w_tax + d_tax);
 
