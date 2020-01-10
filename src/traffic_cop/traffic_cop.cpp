@@ -31,34 +31,57 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
   // exist here, presumable looping over all of the elements in the ParseResult
 
   auto statement = parse_result->GetStatement(0);
-  if (statement->GetType() == parser::StatementType::TRANSACTION) {
-    // It's a BEGIN, COMMIT, or ROLLBACK
-    auto txn_statement = statement.CastManagedPointerTo<parser::TransactionStatement>();
-    const auto txn = connection_ctx->Transaction();
-    switch (txn_statement->GetTransactionType()) {
-      case parser::TransactionStatement::kBegin: {
-        if (txn != nullptr) {
-          // already in a transaction, postgres returns a warning
+
+  switch (statement->GetType()) {
+    case parser::StatementType::TRANSACTION: {
+      // It's a BEGIN, COMMIT, or ROLLBACK
+      auto txn_statement = statement.CastManagedPointerTo<parser::TransactionStatement>();
+      const auto txn = connection_ctx->Transaction();
+      switch (txn_statement->GetTransactionType()) {
+        case parser::TransactionStatement::kBegin: {
+          if (txn != nullptr) {
+            // already in a transaction, postgres returns a warning
+            return;
+          }
+          connection_ctx->SetTransaction(common::ManagedPointer(txn_manager_->BeginTransaction()));
+          // output BEGIN?
           return;
         }
-        connection_ctx->SetTransaction(common::ManagedPointer(txn_manager_->BeginTransaction()));
-        // output BEGIN?
-      }
-      case parser::TransactionStatement::kCommit: {
-        if (txn == nullptr) {
-          // not in a transaction, postgres returns a warning and COMMIT
+        case parser::TransactionStatement::kCommit: {
+          if (txn == nullptr) {
+            // not in a transaction, postgres returns a warning and COMMIT
+            return;
+          }
+          if (txn->MustAbort()) {
+            // postgres returns ROLLBACK
+            txn_manager_->Abort(txn.Get());
+            return;
+          }
+          // commit this txn
+          txn_manager_->Commit(txn.Get(), callback, nullptr);
           return;
         }
-        if (txn->MustAbort()) {
-          // postgres rolls back
+        case parser::TransactionStatement::kRollback: {
+          if (txn == nullptr) {
+            // not in a transaction, postgres returns a warning and ROLLBACK
+            return;
+          }
+          // abort this txn
           txn_manager_->Abort(txn.Get());
           return;
         }
-        // commit this txn
-        txn_manager_->Commit(txn.Get(), callback, nullptr);
       }
-      case parser::TransactionStatement::kRollback: {
-      }
+    }
+    case parser::StatementType::SELECT:
+    case parser::StatementType::INSERT:
+    case parser::StatementType::UPDATE:
+    case parser::StatementType::DELETE:
+    case parser::StatementType::CREATE:
+    case parser::StatementType::DROP: {
+      return;
+    }
+    default: {
+      return;
     }
   }
 }
