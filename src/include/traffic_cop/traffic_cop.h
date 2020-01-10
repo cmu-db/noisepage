@@ -8,6 +8,11 @@
 #include "network/postgres/postgres_protocol_utils.h"
 #include "storage/recovery/replication_log_provider.h"
 
+namespace terrier::network {
+class ConnectionContext;
+class PostgresPacketWriter;
+}  // namespace terrier::network
+
 namespace terrier::trafficcop {
 
 /**
@@ -34,7 +39,7 @@ class TrafficCop {
 
   void ExecuteSimpleQuery(const std::string &simple_query,
                           common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                          common::ManagedPointer<network::PostgresPacketWriter> out) const;
+                          common::ManagedPointer<network::PostgresPacketWriter> out, network::NetworkCallback callback) const;
 
   /**
    * Hands a buffer of logs to replication

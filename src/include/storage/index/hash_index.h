@@ -210,7 +210,7 @@ class HashIndex final : public Index {
       // Presumably you've already made modifications to a DataTable (the source of the TupleSlot argument to this
       // function) however, the index found a constraint violation and cannot allow that operation to succeed. For MVCC
       // correctness, this txn must now abort for the GC to clean up the version chain in the DataTable correctly.
-      txn->MustAbort();
+      txn->SetMustAbort();
     }
 
     return overall_result;

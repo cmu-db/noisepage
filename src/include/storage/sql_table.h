@@ -85,7 +85,7 @@ class SqlTable {
     if (!result) {
       // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
       // correctly.
-      txn->MustAbort();
+      txn->SetMustAbort();
     }
     return result;
   }
@@ -128,7 +128,7 @@ class SqlTable {
     if (!result) {
       // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
       // correctly.
-      txn->MustAbort();
+      txn->SetMustAbort();
     }
     return result;
   }

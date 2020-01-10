@@ -19,13 +19,23 @@
 namespace terrier::trafficcop {
 
 std::unique_ptr<parser::ParseResult> TrafficCopUtil::Parse(const std::string &query_string) {
-  return parser::PostgresParser::BuildParseTree(query_string);
+  std::unique_ptr<parser::ParseResult> parse_result;
+  try {
+    parse_result = parser::PostgresParser::BuildParseTree(query_string);
+  } catch (const Exception &e) {
+    // Failed to parse, handle this
+  }
+  return parse_result;
 }
 
 void TrafficCopUtil::Bind(const common::ManagedPointer<catalog::CatalogAccessor> accessor, const std::string &db_name,
                           const common::ManagedPointer<parser::ParseResult> query) {
-  binder::BindNodeVisitor visitor(accessor, db_name);
-  visitor.BindNameToNode(query->GetStatement(0), query.Get());
+  try {
+    binder::BindNodeVisitor visitor(accessor, db_name);
+    visitor.BindNameToNode(query->GetStatement(0), query.Get());
+  } catch (const Exception &e) {
+    // Failed to bind, handle this
+  }
 }
 
 std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(

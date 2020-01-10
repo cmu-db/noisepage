@@ -5,6 +5,10 @@
 
 #include "catalog/catalog_defs.h"
 
+namespace terrier::transaction {
+class TransactionContext;
+}
+
 namespace terrier::network {
 
 /**
@@ -20,7 +24,7 @@ class ConnectionContext {
     cmdline_args_.clear();
     db_oid_ = catalog::INVALID_DATABASE_OID;
     temp_namespace_oid_ = catalog::INVALID_NAMESPACE_OID;
-    in_transaction_ = false;
+    txn_ = nullptr;
   }
 
   catalog::db_oid_t GetDatabaseOid() const { return db_oid_; }
@@ -38,7 +42,9 @@ class ConnectionContext {
    */
   std::unordered_map<std::string, std::string> &CommandLineArgs() { return cmdline_args_; }
 
-  bool InTransaction() const { return in_transaction_; }
+  common::ManagedPointer<transaction::TransactionContext> Transaction() const { return txn_; }
+
+  void SetTransaction(const common::ManagedPointer<transaction::TransactionContext> txn) { txn_ = txn; }
 
  private:
   /**
@@ -56,10 +62,7 @@ class ConnectionContext {
    */
   catalog::namespace_oid_t temp_namespace_oid_ = catalog::INVALID_NAMESPACE_OID;
 
-  /**
-   * Indicate whether the current command is in a transaction block
-   */
-  bool in_transaction_ = false;
+  common::ManagedPointer<transaction::TransactionContext> txn_ = nullptr;
 };
 
 }  // namespace terrier::network

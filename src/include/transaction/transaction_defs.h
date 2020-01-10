@@ -4,6 +4,7 @@
 #include <functional>
 #include <queue>
 #include <utility>
+
 #include "common/strong_typedef.h"
 namespace terrier::transaction {
 STRONG_TYPEDEF(timestamp_t, uint64_t);
@@ -24,7 +25,7 @@ class DeferredActionManager;
 // background thread (GC). This structure can be replace with something faster if it becomes a measurable performance
 // bottleneck.
 using TransactionQueue = std::forward_list<transaction::TransactionContext *>;
-using callback_fn = void (*)(void *);
+using callback_fn = std::function<void(void)>;
 
 /**
  * A TransactionEndAction is applied when the transaction is either committed or aborted (as configured).

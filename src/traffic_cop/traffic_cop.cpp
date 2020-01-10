@@ -6,7 +6,10 @@
 #include <string>
 #include <utility>
 
+#include "common/exception.h"
+#include "parser/postgresparser.h"
 #include "traffic_cop/traffic_cop_defs.h"
+#include "traffic_cop/traffic_cop_util.h"
 #include "transaction/transaction_manager.h"
 
 namespace terrier::trafficcop {
@@ -16,9 +19,49 @@ void TrafficCop::HandBufferToReplication(std::unique_ptr<network::ReadBuffer> bu
   replication_log_provider_->HandBufferToReplication(std::move(buffer));
 }
 
-void TrafficCop::ExecuteSimpleQuery(const std::string &string_query,
+void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
                                     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                    const common::ManagedPointer<network::PostgresPacketWriter> out) const {}
+                                    const common::ManagedPointer<network::PostgresPacketWriter> out,
+                                    const network::NetworkCallback callback) const {
+  auto parse_result = TrafficCopUtil::Parse(simple_query);
+  TERRIER_ASSERT(parse_result->GetStatements().size() == 1,
+                 "We currently expect one statement per string (psql and oltpbench).");
+
+  // TODO(Matt:) some clients may send multiple statements in a single simple query packet/string. That behavior would
+  // exist here, presumable looping over all of the elements in the ParseResult
+
+  auto statement = parse_result->GetStatement(0);
+  if (statement->GetType() == parser::StatementType::TRANSACTION) {
+    // It's a BEGIN, COMMIT, or ROLLBACK
+    auto txn_statement = statement.CastManagedPointerTo<parser::TransactionStatement>();
+    const auto txn = connection_ctx->Transaction();
+    switch (txn_statement->GetTransactionType()) {
+      case parser::TransactionStatement::kBegin: {
+        if (txn != nullptr) {
+          // already in a transaction, postgres returns a warning
+          return;
+        }
+        connection_ctx->SetTransaction(common::ManagedPointer(txn_manager_->BeginTransaction()));
+        // output BEGIN?
+      }
+      case parser::TransactionStatement::kCommit: {
+        if (txn == nullptr) {
+          // not in a transaction, postgres returns a warning and COMMIT
+          return;
+        }
+        if (txn->MustAbort()) {
+          // postgres rolls back
+          txn_manager_->Abort(txn.Get());
+          return;
+        }
+        // commit this txn
+        txn_manager_->Commit(txn.Get(), callback, nullptr);
+      }
+      case parser::TransactionStatement::kRollback: {
+      }
+    }
+  }
+}
 
 std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNamespace(
     int sockfd, const std::string &database_name) {

@@ -25,7 +25,7 @@ Transition SimpleQueryCommand::Exec(common::ManagedPointer<ProtocolInterpreter> 
   std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("Execute SimpleQuery: {0}", query.c_str());
 
-  t_cop->ExecuteSimpleQuery(query, connection, out);
+  t_cop->ExecuteSimpleQuery(query, connection, out, callback);
 
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;
@@ -72,7 +72,7 @@ Transition SyncCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpr
                              common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                              common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Sync query");
-  if (connection->InTransaction()) {
+  if (connection->Transaction() != nullptr) {
     out->WriteReadyForQuery(NetworkTransactionStateType::BLOCK);
   } else {
     out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
