@@ -1584,7 +1584,7 @@ class CreateView : public OperatorNode<CreateView> {
   /**
    * @return view query
    */
-  common::ManagedPointer<parser::SelectStatement> GetViewQuery() { return common::ManagedPointer(view_query_); }
+  common::ManagedPointer<parser::SelectStatement> GetViewQuery() const { return common::ManagedPointer(view_query_); }
 
  private:
   /**
