@@ -191,7 +191,7 @@ class DBMain {
       if (create_default_database) {
         auto *bootstrap_txn = txn_layer->GetTransactionManager()->BeginTransaction();
         catalog_->CreateDatabase(common::ManagedPointer(bootstrap_txn), catalog::DEFAULT_DATABASE, true);
-        txn_layer->GetTransactionManager()->Commit(bootstrap_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+        txn_layer->GetTransactionManager()->Commit(bootstrap_txn, [](){}, nullptr);
       }
 
       // Run the GC to get a clean system. This needs to be done before instantiating the GC thread

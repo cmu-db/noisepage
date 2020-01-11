@@ -1,12 +1,18 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 
+#include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 
 namespace terrier::transaction {
 class TransactionContext;
+}
+
+namespace terrier::catalog {
+class CatalogAccessor;
 }
 
 namespace terrier::network {
@@ -25,6 +31,7 @@ class ConnectionContext {
     db_oid_ = catalog::INVALID_DATABASE_OID;
     temp_namespace_oid_ = catalog::INVALID_NAMESPACE_OID;
     txn_ = nullptr;
+    accessor_ = nullptr;
   }
 
   catalog::db_oid_t GetDatabaseOid() const { return db_oid_; }
@@ -46,6 +53,10 @@ class ConnectionContext {
 
   void SetTransaction(const common::ManagedPointer<transaction::TransactionContext> txn) { txn_ = txn; }
 
+  common::ManagedPointer<catalog::CatalogAccessor> Accessor() const { return common::ManagedPointer(accessor_); }
+
+  void SetAccessor(std::unique_ptr<catalog::CatalogAccessor> accessor) { accessor_ = std::move(accessor); }
+
  private:
   /**
    * Commandline arguments parsed from protocol interpreter
@@ -63,6 +74,8 @@ class ConnectionContext {
   catalog::namespace_oid_t temp_namespace_oid_ = catalog::INVALID_NAMESPACE_OID;
 
   common::ManagedPointer<transaction::TransactionContext> txn_ = nullptr;
+
+  std::unique_ptr<catalog::CatalogAccessor> accessor_ = nullptr;
 };
 
 }  // namespace terrier::network

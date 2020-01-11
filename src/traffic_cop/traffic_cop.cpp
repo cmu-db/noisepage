@@ -6,14 +6,17 @@
 #include <string>
 #include <utility>
 
+#include "catalog/catalog.h"
+#include "catalog/catalog_accessor.h"
 #include "common/exception.h"
 #include "parser/postgresparser.h"
 #include "traffic_cop/traffic_cop_defs.h"
 #include "traffic_cop/traffic_cop_util.h"
 #include "transaction/transaction_manager.h"
-#include "catalog/catalog.h
 
 namespace terrier::trafficcop {
+
+//void TrafficCop::BeginTransaction(const common::ManagedPointer<network::ConnectionContext> connection_ctx) {}
 
 void TrafficCop::HandBufferToReplication(std::unique_ptr<network::ReadBuffer> buffer) {
   TERRIER_ASSERT(replication_log_provider_ != DISABLED, "Should not be handing off logs if no log provider was given");
@@ -25,6 +28,9 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
                                     const common::ManagedPointer<network::PostgresPacketWriter> out,
                                     const network::NetworkCallback &callback) const {
   auto parse_result = TrafficCopUtil::Parse(simple_query);
+
+  // TODO(Matt): check for empty first
+
   TERRIER_ASSERT(parse_result->GetStatements().size() == 1,
                  "We currently expect one statement per string (psql and oltpbench).");
 
@@ -33,18 +39,27 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
 
   auto statement = parse_result->GetStatement(0);
 
+  auto txn = connection_ctx->Transaction();
+
+  if (txn->MustAbort()) {
+    // ERROR:  current transaction is aborted, commands ignored until end of transaction block
+    return;
+  }
+
   switch (statement->GetType()) {
     case parser::StatementType::TRANSACTION: {
       // It's a BEGIN, COMMIT, or ROLLBACK
       auto txn_statement = statement.CastManagedPointerTo<parser::TransactionStatement>();
-      const auto txn = connection_ctx->Transaction();
       switch (txn_statement->GetTransactionType()) {
         case parser::TransactionStatement::kBegin: {
           if (txn != nullptr) {
             // already in a transaction, postgres returns a warning
             return;
           }
-          connection_ctx->SetTransaction(common::ManagedPointer(txn_manager_->BeginTransaction()));
+          txn = txn_manager_->BeginTransaction();
+          connection_ctx->SetTransaction(txn);
+          connection_ctx->SetAccessor(catalog_->GetAccessor(txn, connection_ctx->GetDatabaseOid()));
+
           // output BEGIN?
           return;
         }
@@ -56,10 +71,12 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
           if (txn->MustAbort()) {
             // postgres returns ROLLBACK
             txn_manager_->Abort(txn.Get());
+            connection_ctx->SetTransaction(nullptr);
             return;
           }
           // commit this txn
           txn_manager_->Commit(txn.Get(), callback, nullptr);
+          connection_ctx->SetTransaction(nullptr);
           return;
         }
         case parser::TransactionStatement::kRollback: {
@@ -69,6 +86,7 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
           }
           // abort this txn
           txn_manager_->Abort(txn.Get());
+          connection_ctx->SetTransaction(nullptr);
           return;
         }
       }
@@ -80,6 +98,7 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
     case parser::StatementType::CREATE:
     case parser::StatementType::DROP: {
       const bool single_statement_txn = connection_ctx->Transaction() == nullptr;
+
       if (single_statement_txn)
         connection_ctx->SetTransaction(common::ManagedPointer(txn_manager_->BeginTransaction()));
 
@@ -108,7 +127,7 @@ std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNam
     return {db_oid, catalog::INVALID_NAMESPACE_OID};
   }
 
-  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn, [](){}, nullptr);
   return {db_oid, ns_oid};
 }
 
@@ -122,7 +141,7 @@ bool TrafficCop::DropTempNamespace(catalog::namespace_oid_t ns_oid, catalog::db_
 
   auto result = db_accessor->DropNamespace(ns_oid);
   if (result) {
-    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager_->Commit(txn, [](){}, nullptr);
   } else {
     txn_manager_->Abort(txn);
   }

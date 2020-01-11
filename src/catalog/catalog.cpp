@@ -85,7 +85,7 @@ void Catalog::TearDown() {
 
   // The transaction was read-only and we do not need any side-effects
   // so we use an empty lambda for the callback function.
-  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn, [](){}, nullptr);
 }
 
 bool Catalog::CreateDatabase(const common::ManagedPointer<transaction::TransactionContext> txn, const std::string &name,
@@ -310,7 +310,7 @@ std::function<void()> Catalog::DeallocateDatabaseCatalog(DatabaseCatalog *const 
   return [=]() {
     auto txn = txn_manager_->BeginTransaction();
     dbc->TearDown(common::ManagedPointer(txn));
-    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager_->Commit(txn, [](){}, nullptr);
     delete dbc;
   };
 }
