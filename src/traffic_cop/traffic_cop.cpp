@@ -11,6 +11,7 @@
 #include "traffic_cop/traffic_cop_defs.h"
 #include "traffic_cop/traffic_cop_util.h"
 #include "transaction/transaction_manager.h"
+#include "catalog/catalog.h
 
 namespace terrier::trafficcop {
 
@@ -22,7 +23,7 @@ void TrafficCop::HandBufferToReplication(std::unique_ptr<network::ReadBuffer> bu
 void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
                                     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                     const common::ManagedPointer<network::PostgresPacketWriter> out,
-                                    const network::NetworkCallback callback) const {
+                                    const network::NetworkCallback &callback) const {
   auto parse_result = TrafficCopUtil::Parse(simple_query);
   TERRIER_ASSERT(parse_result->GetStatements().size() == 1,
                  "We currently expect one statement per string (psql and oltpbench).");
@@ -78,6 +79,10 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
     case parser::StatementType::DELETE:
     case parser::StatementType::CREATE:
     case parser::StatementType::DROP: {
+      const bool single_statement_txn = connection_ctx->Transaction() == nullptr;
+      if (single_statement_txn)
+        connection_ctx->SetTransaction(common::ManagedPointer(txn_manager_->BeginTransaction()));
+
       return;
     }
     default: {
