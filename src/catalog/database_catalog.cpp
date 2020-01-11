@@ -2199,9 +2199,11 @@ proc_oid_t DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transac
   byte *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
   auto name_pr = name_pri.InitializeRow(buffer);
   auto name_map = procs_name_index_->GetKeyOidToOffsetMap();
-  *(reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(1)]))) =
+  *(reinterpret_cast<namespace_oid_t *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(1)]))) = procns;
+  *(reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(2)]))) =
       name_varlen;
-  *(reinterpret_cast<namespace_oid_t *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(2)]))) = procns;
+  *(reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(3)]))) =
+      all_arg_types_varlen;
 
   auto result = procs_name_index_->InsertUnique(txn, *name_pr, tuple_slot);
   if (!result) {
@@ -2257,12 +2259,15 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
       table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PRONAME_COL_OID]));
   auto proc_ns = *reinterpret_cast<namespace_oid_t *>(
       table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PRONAMESPACE_COL_OID]));
+  auto all_args_types_varlen = *reinterpret_cast<storage::VarlenEntry *>(
+      table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROALLARGTYPES_COL_OID]));
 
   auto name_pr = name_pri.InitializeRow(buffer);
 
   auto name_map = procs_name_index_->GetKeyOidToOffsetMap();
-  *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(1)])) = name_varlen;
-  *reinterpret_cast<namespace_oid_t *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(2)])) = proc_ns;
+  *reinterpret_cast<namespace_oid_t *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(1)])) = proc_ns;
+  *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(2)])) = name_varlen;
+  *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(3)])) = all_args_types_varlen;
 
   procs_name_index_->Delete(txn, *name_pr, to_delete_slot);
 
@@ -2271,7 +2276,8 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
 }
 
 proc_oid_t DatabaseCatalog::GetProcOid(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                       const std::string &procname, namespace_oid_t procns) {
+                                       namespace_oid_t procns, const std::string &procname,
+                                       std::vector<type::TypeId> &arg_types) {
   if (!TryLock(txn)) return INVALID_PROC_OID;
 
   auto name_pri = procs_name_index_->GetProjectedRowInitializer();
@@ -2281,8 +2287,11 @@ proc_oid_t DatabaseCatalog::GetProcOid(const common::ManagedPointer<transaction:
   auto name_map = procs_name_index_->GetKeyOidToOffsetMap();
 
   auto name_varlen = storage::StorageUtil::CreateVarlen(procname);
-  *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(1)])) = name_varlen;
-  *reinterpret_cast<namespace_oid_t *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(2)])) = procns;
+  auto all_arg_types_varlen = storage::StorageUtil::CreateVarlen(arg_types);
+  *reinterpret_cast<namespace_oid_t *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(1)])) = procns;
+  *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(2)])) = name_varlen;
+  *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(3)]))
+    = all_arg_types_varlen;
 
   std::vector<storage::TupleSlot> results;
   procs_name_index_->ScanKey(*txn, *name_pr, &results);
@@ -2301,6 +2310,10 @@ proc_oid_t DatabaseCatalog::GetProcOid(const common::ManagedPointer<transaction:
 
   if (name_varlen.NeedReclaim()) {
     delete[] name_varlen.Content();
+  }
+
+  if (all_arg_types_varlen.NeedReclaim()) {
+    delete[] all_arg_types_varlen.Content();
   }
 
   delete[] buffer;

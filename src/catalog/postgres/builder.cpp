@@ -703,13 +703,17 @@ IndexSchema Builder::GetProcOidIndexSchema(db_oid_t db) {
 IndexSchema Builder::GetProcNameIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back("proname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
-                       parser::ColumnValueExpression(db, PRO_TABLE_OID, PRONAME_COL_OID));
-  columns.back().SetOid(indexkeycol_oid_t(1));
-
   columns.emplace_back("pronamespace", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(db, PRO_TABLE_OID, PRONAMESPACE_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(1));
+
+  columns.emplace_back("proname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
+                       parser::ColumnValueExpression(db, PRO_TABLE_OID, PRONAME_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(2));
+
+  columns.emplace_back("proallargs", type::TypeId::VARBINARY, MAX_NAME_LENGTH, false,
+                       parser::ColumnValueExpression(db, PRO_TABLE_OID, PROALLARGTYPES_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(3));
 
   // Unique, not primary
   IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);

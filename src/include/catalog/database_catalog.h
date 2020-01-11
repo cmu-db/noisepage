@@ -308,8 +308,9 @@ class DatabaseCatalog {
    * @param procns namespace of the process to lookup
    * @return the oid of the found proc if found else INVALID_PROC_OID
    */
-  proc_oid_t GetProcOid(const common::ManagedPointer<transaction::TransactionContext> txn, const std::string &procname,
-                        namespace_oid_t procns);
+  proc_oid_t GetProcOid(const common::ManagedPointer<transaction::TransactionContext> txn,
+                        namespace_oid_t procns, const std::string &procname,
+                        std::vector<type::TypeId> &arg_types);
 
  private:
   /**
