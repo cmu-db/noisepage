@@ -8,17 +8,17 @@ import enum
 class Target(enum.Enum):
     """The output targets for the operating units
     """
-    CPU_CYCLE = 0,
-    INSTRUCTION = 1,
-    CACHE_REF = 2,
-    CACHE_MISS = 3,
-    CPU_TIME = 4,
-    BLOCK_READ = 5,
-    BLOCK_WRITE = 6,
-    CPU_ID = 7,
-    MEMORY_B = 8,
-    ELAPSED_US = 9,
-    START_TIME = 10
+    START_TIME = 0
+    CPU_ID = 1,
+    CPU_CYCLE = 2,
+    INSTRUCTION = 3,
+    CACHE_REF = 4,
+    CACHE_MISS = 5,
+    CPU_TIME = 6,
+    BLOCK_READ = 7,
+    BLOCK_WRITE = 8,
+    MEMORY_B = 9,
+    ELAPSED_US = 10,
 
 
 class OpUnit(enum.Enum):
@@ -72,8 +72,6 @@ class OpUnit(enum.Enum):
     REAL_GREATER = 20,
     realgreater = 20,
 
-    SORT_SORT = 21,
-    sortsort = 21,
 
 class ArithmeticFeature(enum.Enum):
     """The input fields of the arithmetic operating units

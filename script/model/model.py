@@ -11,6 +11,12 @@ from sklearn import preprocessing
 from sklearn.neural_network import multilayer_perceptron
 from sklearn import multioutput
 
+# import warnings filter
+from warnings import simplefilter
+# ignore all future warnings
+simplefilter(action='ignore', category=FutureWarning)
+
+
 _LOGTRANS_EPS = 1e-4
 
 
@@ -21,16 +27,15 @@ def _get_base_ml_model(method):
     if method == 'kr':
         regressor = kernel_ridge.KernelRidge(kernel='rbf')
     if method == 'rf':
-        regressor = ensemble.RandomForestRegressor(n_estimators=100, n_jobs=8)
+        regressor = ensemble.RandomForestRegressor(n_estimators=50, n_jobs=8)
     if method == 'xgb':
         regressor = xgb.XGBRegressor(max_depth=20, n_estimators=100, random_state=42)
+        regressor = multioutput.MultiOutputRegressor(regressor)
     if method == 'nn':
-        regressor = multilayer_perceptron.MLPRegressor(hidden_layer_sizes=(30, 30), early_stopping=True,
+        regressor = multilayer_perceptron.MLPRegressor(hidden_layer_sizes=(25, 25), early_stopping=True,
                                                        max_iter=1000000, alpha=0.01)
 
-    multi_regressor = multioutput.MultiOutputRegressor(regressor)
-
-    return multi_regressor
+    return regressor
 
 
 class Model:
@@ -39,20 +44,26 @@ class Model:
     With the implementation for different normalization handlings
     """
 
-    def __init__(self, method, normalize=True, log_transform=True):
+    def __init__(self, method, normalize=True, log_transform=True, modeling_transformer=None):
         """
 
         :param method: which ML method to use
         :param normalize: whether to perform standard normalization on data (both x and y)
         :param log_transform: whether to perform log transformation on data (both x and y)
+        :param modeling_transformer: the customized data transformer (a pair of functions with the first for training
+               and second for predict)
         """
         self._base_model = _get_base_ml_model(method)
         self._normalize = normalize
         self._log_transform = log_transform
         self._xscaler = preprocessing.StandardScaler()
         self._yscaler = preprocessing.StandardScaler()
+        self._modeling_transformer = modeling_transformer
 
     def train(self, x, y):
+        if self._modeling_transformer is not None:
+            y = self._modeling_transformer[0](x, y)
+
         if self._log_transform == 1:
             x = np.log(x + _LOGTRANS_EPS)
             y = np.log(y + _LOGTRANS_EPS)
@@ -64,6 +75,8 @@ class Model:
         self._base_model.fit(x, y)
 
     def predict(self, x):
+        oritinal_x = x
+
         # transform the features
         if self._log_transform == 1:
             x = np.log(x + _LOGTRANS_EPS)
@@ -79,5 +92,8 @@ class Model:
         if self._log_transform == 1:
             y = np.exp(y) - _LOGTRANS_EPS
             y = np.clip(y, 0, None)
+
+        if self._modeling_transformer is not None:
+            y = self._modeling_transformer[1](oritinal_x, y)
 
         return y

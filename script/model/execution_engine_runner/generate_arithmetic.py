@@ -79,7 +79,7 @@ def generate_main_fun(fun_names):
 
 def generate_all():
     fun_names = []
-    row_nums = [10000, 50000, 10000, 500000, 1000000]
+    row_nums = list(range(10000, 100000, 10000)) + list(range(100000, 1000000, 100000))
     data_types = ["Integer", "Real"]
     operations = ["add", "multiply", "divide", "greater"]
 

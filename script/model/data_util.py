@@ -30,6 +30,13 @@ def write_extended_data(output_path, symbol, index_value_list, data_map):
 
 
 def write_result(path, label, data):
+    """Write result data in csv format
+
+    :param path: write destination
+    :param label: the label (first column) to write
+    :param data: the rest columns
+    :return:
+    """
     with open(path, "a") as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow([label] + list(data))
@@ -129,6 +136,7 @@ def get_mini_runner_data(filename):
         # Special handle of the execution data
         return _execution_get_mini_runner_data(filename)
 
+    return []
     return _default_get_mini_runner_data(filename)
 
 
@@ -139,7 +147,7 @@ def _default_get_mini_runner_data(filename):
     print(OpUnit[file_name])
 
     x = df.iloc[:, :-data_info.metrics_output_num].values
-    y = df.iloc[:, -data_info.target_num:].values
+    y = df.iloc[:, -data_info.mini_model_target_num:].values
 
     return [Data(OpUnit[file_name], x, y)]
 
@@ -176,7 +184,7 @@ def _execution_get_mini_runner_data(filename):
         np_value = np.array(values)
         # print(np_value)
         x = np_value[:, :-data_info.metrics_output_num]
-        y = np_value[:, -data_info.target_num:]
+        y = np_value[:, -data_info.mini_model_target_num:]
         data_list.append(Data(opunit, x, y))
 
     return data_list
