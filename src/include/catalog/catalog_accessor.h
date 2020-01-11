@@ -314,11 +314,12 @@ class CatalogAccessor {
 
   /**
    * Gets the oid of a procedure from pg_proc given a requested name and namespace
-   * @param procname name of the proc to lookup
    * @param procns namespace of the process to lookup
+   * @param procname name of the proc to lookup
+   * @param arg_types vector of types of arguments of procedure to look up
    * @return the oid of the found proc if found else INVALID_PROC_OID
    */
-  proc_oid_t GetProcOid(const std::string &procname, namespace_oid_t procns);
+  proc_oid_t GetProcOid(namespace_oid_t procns, const std::string &procname, std::vector<type::TypeId> &arg_types);
 
   /**
    * Instantiates a new accessor into the catalog for the given database.

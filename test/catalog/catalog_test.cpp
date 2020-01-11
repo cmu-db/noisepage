@@ -140,9 +140,9 @@ TEST_F(CatalogTests, ProcTest) {
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
 
-  auto found_oid = accessor->GetProcOid("bad_proc", ns_oid);
+  auto found_oid = accessor->GetProcOid(ns_oid, "bad_proc", arg_types);
   EXPECT_EQ(found_oid, catalog::INVALID_PROC_OID);
-  found_oid = accessor->GetProcOid(procname, ns_oid);
+  found_oid = accessor->GetProcOid(ns_oid, procname, arg_types);
 
   EXPECT_EQ(found_oid, proc_oid);
   auto result = accessor->DropProcedure(found_oid);
