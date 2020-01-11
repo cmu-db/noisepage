@@ -319,7 +319,8 @@ class CatalogAccessor {
    * @param arg_types vector of types of arguments of procedure to look up
    * @return the oid of the found proc if found else INVALID_PROC_OID
    */
-  proc_oid_t GetProcOid(namespace_oid_t procns, const std::string &procname, std::vector<type::TypeId> &arg_types);
+  proc_oid_t GetProcOid(namespace_oid_t procns, const std::string &procname,
+                          const std::vector<type::TypeId> &arg_types);
 
   /**
    * @return BlockStore to be used for CREATE operations

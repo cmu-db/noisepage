@@ -155,7 +155,7 @@ proc_oid_t CatalogAccessor::CreateProcedure(const std::string &procname, languag
 bool CatalogAccessor::DropProcedure(proc_oid_t proc) { return dbc_->DropProcedure(txn_, proc); }
 
 proc_oid_t CatalogAccessor::GetProcOid(namespace_oid_t procns, const std::string &procname,
-    std::vector<type::TypeId> &arg_types) {
+                                       const std::vector<type::TypeId> &arg_types) {
   return dbc_->GetProcOid(txn_, procns, procname, arg_types);
 }
 

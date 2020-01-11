@@ -2267,7 +2267,8 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
   auto name_map = procs_name_index_->GetKeyOidToOffsetMap();
   *reinterpret_cast<namespace_oid_t *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(1)])) = proc_ns;
   *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(2)])) = name_varlen;
-  *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(3)])) = all_args_types_varlen;
+  *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(3)])) =
+      all_args_types_varlen;
 
   procs_name_index_->Delete(txn, *name_pr, to_delete_slot);
 
@@ -2277,7 +2278,7 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
 
 proc_oid_t DatabaseCatalog::GetProcOid(const common::ManagedPointer<transaction::TransactionContext> txn,
                                        namespace_oid_t procns, const std::string &procname,
-                                       std::vector<type::TypeId> &arg_types) {
+                                       const std::vector<type::TypeId> &arg_types) {
   if (!TryLock(txn)) return INVALID_PROC_OID;
 
   auto name_pri = procs_name_index_->GetProjectedRowInitializer();
@@ -2290,8 +2291,8 @@ proc_oid_t DatabaseCatalog::GetProcOid(const common::ManagedPointer<transaction:
   auto all_arg_types_varlen = storage::StorageUtil::CreateVarlen(arg_types);
   *reinterpret_cast<namespace_oid_t *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(1)])) = procns;
   *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(2)])) = name_varlen;
-  *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(3)]))
-    = all_arg_types_varlen;
+  *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(3)])) =
+      all_arg_types_varlen;
 
   std::vector<storage::TupleSlot> results;
   procs_name_index_->ScanKey(*txn, *name_pr, &results);
