@@ -21,16 +21,17 @@
 #include "benchmark/benchmark.h"
 #include "loggers/loggers_util.h"
 
+uint32_t BENCHMARK_NUM_THREADS;
 int main(int argc, char **argv) {
   terrier::LoggersUtil::Initialize();
 
   const char *env_threads = std::getenv("TERRIER_BENCHMARK_CORES");
   if (env_threads == nullptr) {
+    BENCHMARK_NUM_THREADS = 1;
   } else {
-    benchmark::BENCHMARK_NUM_THREADS = atoi(env_threads);
+    BENCHMARK_NUM_THREADS = atoi(env_threads);
   }
 
-  TERRIER_ASSERT(benchmark::BENCHMARK_NUM_THREADS == 0, "Thread count not set.");
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();
 

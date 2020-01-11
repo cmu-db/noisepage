@@ -11,6 +11,7 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
+extern uint32_t BENCHMARK_NUM_THREADS;
 namespace terrier {
 
 // This benchmark simulates a key-value store inserting a large number of tuples. This provides a good baseline and
@@ -31,7 +32,7 @@ class DataTableBenchmark : public benchmark::Fixture {
     read_ = initializer_.InitializeRow(read_buffer_);
 
     // generate a vector of ProjectedRow buffers for concurrent reads
-    for (uint32_t i = 0; i < benchmark::BENCHMARK_NUM_THREADS; ++i) {
+    for (uint32_t i = 0; i < BENCHMARK_NUM_THREADS; ++i) {
       // Create read buffer
       byte *read_buffer = common::AllocationUtil::AllocateAligned(initializer_.ProjectedRowSize());
       storage::ProjectedRow *read = initializer_.InitializeRow(read_buffer);
@@ -43,7 +44,7 @@ class DataTableBenchmark : public benchmark::Fixture {
   void TearDown(const benchmark::State &state) final {
     delete[] redo_buffer_;
     delete[] read_buffer_;
-    for (uint32_t i = 0; i < benchmark::BENCHMARK_NUM_THREADS; ++i) delete[] read_buffers_[i];
+    for (uint32_t i = 0; i < BENCHMARK_NUM_THREADS; ++i) delete[] read_buffers_[i];
     // google benchmark might run benchmark several iterations. We need to clear vectors.
     read_buffers_.clear();
     reads_.clear();
