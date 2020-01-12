@@ -13,6 +13,8 @@ import data_util
 import data_info
 import data_transform
 
+from type import Target
+
 np.set_printoptions(precision=4)
 np.set_printoptions(edgeitems=10)
 np.set_printoptions(suppress=True)
@@ -60,31 +62,37 @@ class MiniTrainer:
             x_train, x_test, y_train, y_test = model_selection.train_test_split(data.x, data.y,
                                                                                 test_size=self.test_ratio,
                                                                                 random_state=0)
-            result_path = "{}/{}.csv".format(self.model_metrics_path, data.opunit.name.lower())
 
+            # Write the first header rwo to the result file
+            result_path = "{}/{}.csv".format(self.model_metrics_path, data.opunit.name.lower())
             open(result_path, 'w').close()
             data_util.write_result(result_path, "Method", labels)
 
             methods = self.ml_models
-            # methods = ["nn"]
+            # Only use linear regression for the arithmetic operating units
             if data.opunit in data_info.arithmetic_opunits:
                 methods = ["lr"]
 
+            # Also test the prediction with the target transformer (if specified for the operating unit)
             transformers = [None]
             modeling_transformer = data_transform.opunit_modeling_trainsformer_map[data.opunit]
             if modeling_transformer is not None:
                 transformers.append(modeling_transformer)
 
             min_percentage_error = 1
+            elapsed_us_index = data_info.target_csv_index[Target.ELAPSED_US]
 
             for transformer in transformers:
                 for method in methods:
+                    # Train the model
+                    print("{} {}".format(data.opunit.name, method))
                     regressor = model.Model(method, modeling_transformer=transformer)
                     regressor.train(x_train, y_train)
 
-                    print("{} {}".format(data.opunit.name, method))
+                    # Evaluate on both the training and test set
                     results = []
                     evaluate_data = [(x_train, y_train), (x_test, y_test)]
+                    train_test_label = ["Train", "Test"]
                     for i, d in enumerate(evaluate_data):
                         evaluate_x = d[0]
                         evaluate_y = d[1]
@@ -92,16 +100,18 @@ class MiniTrainer:
                         y_pred = regressor.predict(evaluate_x)
                         print("x shape: ", evaluate_x.shape)
                         print("y shape: ", y_pred.shape)
-                        percentage_error = np.average(np.abs(evaluate_y - y_pred + 1) / (evaluate_y + 1), axis=0)
+                        percentage_error = np.average(np.abs(evaluate_y - y_pred) / (evaluate_y + 1), axis=0)
                         results += list(percentage_error) + [""]
 
-                        label = labels[i]
-                        print('{} Percenrage Error: {}'.format(label, percentage_error))
+                        print('{} Percentage Error: {}'.format(train_test_label[i], percentage_error))
 
-                        if i == 1 and percentage_error[-1] < min_percentage_error:
-                            min_percentage_error = percentage_error[-1]
+                        # Record the model with the lowest elapsed time prediction (since that might be the most
+                        # important prediction)
+                        if i == 1 and percentage_error[elapsed_us_index] < min_percentage_error:
+                            min_percentage_error = percentage_error[elapsed_us_index]
                             model_map[data.opunit] = regressor
 
+                    # Dump the prediction results
                     transform = " "
                     if transformer is not None:
                         transform = " transform"
