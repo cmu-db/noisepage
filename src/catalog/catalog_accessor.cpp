@@ -154,9 +154,16 @@ proc_oid_t CatalogAccessor::CreateProcedure(const std::string &procname, languag
 
 bool CatalogAccessor::DropProcedure(proc_oid_t proc) { return dbc_->DropProcedure(txn_, proc); }
 
-proc_oid_t CatalogAccessor::GetProcOid(namespace_oid_t procns, const std::string &procname,
-                                       const std::vector<type::TypeId> &arg_types) {
-  return dbc_->GetProcOid(txn_, procns, procname, arg_types);
+proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname,
+    const std::vector<type::TypeId> &arg_types) {
+  proc_oid_t ret;
+  for(auto ns_oid : search_path_) {
+    ret = dbc_->GetProcOid(txn_, ns_oid, procname, arg_types);
+    if(ret != catalog::INVALID_PROC_OID){
+      return ret;
+    }
+  }
+  return catalog::INVALID_PROC_OID;
 }
 
 common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() const {
