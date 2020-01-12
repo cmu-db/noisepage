@@ -8,14 +8,14 @@ from sklearn import linear_model
 from sklearn import kernel_ridge
 from sklearn import ensemble
 from sklearn import preprocessing
-from sklearn.neural_network import multilayer_perceptron
+from sklearn import neural_network
 from sklearn import multioutput
 
 # import warnings filter
 from warnings import simplefilter
+
 # ignore all future warnings
 simplefilter(action='ignore', category=FutureWarning)
-
 
 _LOGTRANS_EPS = 1e-4
 
@@ -32,8 +32,8 @@ def _get_base_ml_model(method):
         regressor = xgb.XGBRegressor(max_depth=20, n_estimators=100, random_state=42)
         regressor = multioutput.MultiOutputRegressor(regressor)
     if method == 'nn':
-        regressor = multilayer_perceptron.MLPRegressor(hidden_layer_sizes=(25, 25), early_stopping=True,
-                                                       max_iter=1000000, alpha=0.01)
+        regressor = neural_network.MLPRegressor(hidden_layer_sizes=(25, 25), early_stopping=True,
+                                                max_iter=1000000, alpha=0.01)
 
     return regressor
 
@@ -75,7 +75,7 @@ class Model:
         self._base_model.fit(x, y)
 
     def predict(self, x):
-        oritinal_x = x
+        original_x = x
 
         # transform the features
         if self._log_transform == 1:
@@ -94,6 +94,6 @@ class Model:
             y = np.clip(y, 0, None)
 
         if self._modeling_transformer is not None:
-            y = self._modeling_transformer[1](oritinal_x, y)
+            y = self._modeling_transformer[1](original_x, y)
 
         return y

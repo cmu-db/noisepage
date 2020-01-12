@@ -136,7 +136,6 @@ def get_mini_runner_data(filename):
         # Special handle of the execution data
         return _execution_get_mini_runner_data(filename)
 
-    return []
     return _default_get_mini_runner_data(filename)
 
 

@@ -4,6 +4,7 @@ import glob
 import os
 import numpy as np
 import argparse
+import pickle
 
 from sklearn import model_selection
 
@@ -17,15 +18,24 @@ np.set_printoptions(edgeitems=10)
 np.set_printoptions(suppress=True)
 
 
+def _get_result_labels():
+    labels = []
+    for dataset in ["Train", "Test"]:
+        for target in data_info.mini_model_target_list:
+            labels.append(dataset + " " + target.name)
+        labels.append("")
+
+    return labels
+
+
 class MiniTrainer:
     """
     Trainer for the mini models
     """
 
-    def __init__(self, input_path, model_metrics_path, save_path, ml_models, test_ratio):
+    def __init__(self, input_path, model_metrics_path, ml_models, test_ratio):
         self.input_path = input_path
         self.model_metrics_path = model_metrics_path
-        self.save_path = save_path
         self.ml_models = ml_models
         self.test_ratio = test_ratio
 
@@ -42,6 +52,8 @@ class MiniTrainer:
             print(filename)
             data_list += data_util.get_mini_runner_data(filename)
 
+        labels = _get_result_labels()
+
         model_map = {}
         # train the models for all the operating units
         for data in data_list:
@@ -51,7 +63,6 @@ class MiniTrainer:
             result_path = "{}/{}.csv".format(self.model_metrics_path, data.opunit.name.lower())
 
             open(result_path, 'w').close()
-            labels = ["Train", "Test"]
             data_util.write_result(result_path, "Method", labels)
 
             methods = self.ml_models
@@ -59,40 +70,46 @@ class MiniTrainer:
             if data.opunit in data_info.arithmetic_opunits:
                 methods = ["lr"]
 
+            transformers = [None]
             modeling_transformer = data_transform.opunit_modeling_trainsformer_map[data.opunit]
+            if modeling_transformer is not None:
+                transformers.append(modeling_transformer)
 
             min_percentage_error = 1
-            for method in methods:
-                regressor = model.Model(method, modeling_transformer=modeling_transformer)
-                regressor.train(x_train, y_train)
 
-                if data.opunit in data_info.arithmetic_opunits:
-                    print(regressor._base_model.coef_)
-                    print(regressor._base_model.intercept_)
+            for transformer in transformers:
+                for method in methods:
+                    regressor = model.Model(method, modeling_transformer=transformer)
+                    regressor.train(x_train, y_train)
 
-                print("{} {}".format(data.opunit.name, method))
-                results = []
-                evaluate_data = [(x_train, y_train), (x_test, y_test)]
-                for i, d in enumerate(evaluate_data):
-                    evaluate_x = d[0]
-                    evaluate_y = d[1]
+                    print("{} {}".format(data.opunit.name, method))
+                    results = []
+                    evaluate_data = [(x_train, y_train), (x_test, y_test)]
+                    for i, d in enumerate(evaluate_data):
+                        evaluate_x = d[0]
+                        evaluate_y = d[1]
 
-                    y_pred = regressor.predict(evaluate_x)
-                    print("x shape: ", evaluate_x.shape)
-                    print("y shape: ", y_pred.shape)
-                    percentage_error = np.average(np.abs(evaluate_y - y_pred) / (evaluate_y + 1), axis=0)
-                    results.append(percentage_error)
+                        y_pred = regressor.predict(evaluate_x)
+                        print("x shape: ", evaluate_x.shape)
+                        print("y shape: ", y_pred.shape)
+                        percentage_error = np.average(np.abs(evaluate_y - y_pred + 1) / (evaluate_y + 1), axis=0)
+                        results += list(percentage_error) + [""]
 
-                    label = labels[i]
-                    print('{} Percenrage Error: {}'.format(label, percentage_error))
+                        label = labels[i]
+                        print('{} Percenrage Error: {}'.format(label, percentage_error))
 
-                    if i == 1 and percentage_error[-1] < min_percentage_error:
-                        min_percentage_error = percentage_error[-1]
-                        model_map[data.opunit] = regressor
+                        if i == 1 and percentage_error[-1] < min_percentage_error:
+                            min_percentage_error = percentage_error[-1]
+                            model_map[data.opunit] = regressor
 
-                data_util.write_result(result_path, method, results)
+                    transform = " "
+                    if transformer is not None:
+                        transform = " transform"
+                    data_util.write_result(result_path, method + transform, results)
 
-                print()
+                    print()
+
+                data_util.write_result(result_path, "", [])
 
         '''
         data_list = get_concurrent_data_list(input_path)
@@ -182,12 +199,6 @@ class MiniTrainer:
 
         return model_map
 
-    def save(self):
-        """
-        Save the trained models to the save_path
-        :return:
-        """
-
 
 # ==============================================
 # main
@@ -197,11 +208,14 @@ if __name__ == '__main__':
     aparser.add_argument('--input_path', default='mini_runner_input', help='Input file path for the mini runners')
     aparser.add_argument('--model_metrics_path', default='mini_runner_model_metrics',
                          help='Prediction metrics of the mini models')
-    aparser.add_argument('--save_path', default='mini_model', help='Path to save the mini models')
+    aparser.add_argument('--save_path', default='trained_model', help='Path to save the mini models')
     aparser.add_argument('--ml_models', nargs='*', type=str, default=["lr", "rf", "nn"],
                          help='ML models for the mini trainer to evaluate')
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
     args = aparser.parse_args()
 
-    trainer = MiniTrainer(args.input_path, args.model_metrics_path, args.save_path, args.ml_models, args.test_ratio)
-    trainer.train()
+    trainer = MiniTrainer(args.input_path, args.model_metrics_path, args.ml_models, args.test_ratio)
+    trained_model_map = trainer.train()
+    if args.save_path is not None:
+        with open(args.save_path + '/mini_model_map.pickle', 'wb') as file:
+            pickle.dump(trained_model_map, file)
