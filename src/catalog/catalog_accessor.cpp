@@ -1,4 +1,5 @@
 #include "catalog/catalog_accessor.h"
+
 #include <string>
 #include <utility>
 #include <vector>
@@ -156,13 +157,20 @@ bool CatalogAccessor::DropProcedure(proc_oid_t proc) { return dbc_->DropProcedur
 proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname,
     const std::vector<type::TypeId> &arg_types) {
   proc_oid_t ret;
-  for(auto ns_oid : search_path_) {
+  for (auto ns_oid : search_path_) {
     ret = dbc_->GetProcOid(txn_, ns_oid, procname, arg_types);
-    if(ret != catalog::INVALID_PROC_OID){
+    if (ret != catalog::INVALID_PROC_OID) {
       return ret;
     }
   }
   return catalog::INVALID_PROC_OID;
+}
+
+common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() const {
+  // TODO(Matt): at some point we may decide to adjust the source  (i.e. each DatabaseCatalog has one), stick it in a
+  // pg_tablespace table, or we may eliminate the concept entirely. This works for now to allow CREATE nodes to bind a
+  // BlockStore
+  return catalog_->GetBlockStore();
 }
 
 }  // namespace terrier::catalog
