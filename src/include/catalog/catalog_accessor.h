@@ -265,6 +265,11 @@ class CatalogAccessor {
   common::ManagedPointer<storage::index::Index> GetIndex(index_oid_t index) const;
 
   /**
+   * @return BlockStore to be used for CREATE operations
+   */
+  common::ManagedPointer<storage::BlockStore> GetBlockStore() const;
+  
+  /**
    * Adds a language to the catalog (with default parameters for now) if
    * it doesn't exist in pg_language already
    * @param lanname name of language

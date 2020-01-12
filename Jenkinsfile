@@ -2,6 +2,7 @@ pipeline {
     agent none
     options {
         buildDiscarder(logRotator(daysToKeepStr: '30'))
+        parallelsAlwaysFailFast()
     }
     stages {
 
@@ -15,6 +16,7 @@ pipeline {
                     steps {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | ./script/installation/packages.sh'
+                        sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
                         sh 'cd build && timeout 1h make check-format'
@@ -39,6 +41,7 @@ pipeline {
                     steps {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh'
+                        sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
                         sh 'cd build && timeout 1h make check-format'
@@ -67,6 +70,7 @@ pipeline {
                     steps {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh'
+                        sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
                         sh 'cd build && timeout 1h make check-format'
