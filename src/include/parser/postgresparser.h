@@ -18,6 +18,8 @@ namespace terrier::parser {
  */
 class ParseResult {
  public:
+  bool Empty() const { return statements_.empty(); }
+
   /**
    * Adds a statement to this parse result.
    */

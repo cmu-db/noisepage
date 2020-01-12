@@ -9,6 +9,7 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
 #include "common/exception.h"
+#include "network/postgres/postgres_packet_writer.h"
 #include "parser/postgresparser.h"
 #include "traffic_cop/traffic_cop_defs.h"
 #include "traffic_cop/traffic_cop_util.h"
@@ -29,13 +30,16 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
                                     const network::NetworkCallback &callback) const {
   auto parse_result = TrafficCopUtil::Parse(simple_query);
 
-  // TODO(Matt): check for empty first
-
-  TERRIER_ASSERT(parse_result->GetStatements().size() == 1,
+  TERRIER_ASSERT(parse_result->GetStatements().size() <= 1,
                  "We currently expect one statement per string (psql and oltpbench).");
 
   // TODO(Matt:) some clients may send multiple statements in a single simple query packet/string. That behavior would
   // exist here, presumable looping over all of the elements in the ParseResult
+
+  if (parse_result->Empty()) {
+    out->WriteEmptyQueryResponse();
+    return;
+  }
 
   auto statement = parse_result->GetStatement(0);
 
