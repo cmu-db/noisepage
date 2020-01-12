@@ -803,7 +803,7 @@ void PlanGenerator::Visit(const CreateIndex *create_index) {
 
 void PlanGenerator::Visit(const CreateTable *create_table) {}
 
-void PlanGenerator::Visit(const CreateNamespace *create_namespace) {
+void PlanGenerator::Visit(const CreateNamespace *create_namespace) { // NOLINT
   output_plan_ =
       planner::CreateNamespacePlanNode::Builder().SetNamespaceName(create_namespace->GetNamespaceName()).Build();
 }
@@ -843,7 +843,7 @@ void PlanGenerator::Visit(const DropIndex *drop_index) {
   output_plan_ = planner::DropIndexPlanNode::Builder().SetIndexOid(drop_index->GetIndexOID()).Build();
 }
 
-void PlanGenerator::Visit(const DropNamespace *drop_namespace) {
+void PlanGenerator::Visit(const DropNamespace *drop_namespace) { // NOLINT
   output_plan_ = planner::DropNamespacePlanNode::Builder().SetNamespaceOid(drop_namespace->GetNamespaceOID()).Build();
 }
 
