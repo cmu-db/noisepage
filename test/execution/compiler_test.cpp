@@ -43,7 +43,7 @@ class CompilerTest : public SqlBasedTest {
     // Make the test tables
     auto exec_ctx = MakeExecCtx();
     sql::TableGenerator table_generator{exec_ctx.get(), BlockStore(), NSOid()};
-    table_generator.GenerateTestTables();
+    table_generator.GenerateTestTables(false);
   }
 
   static void CompileAndRun(planner::AbstractPlanNode *node, exec::ExecutionContext *exec_ctx) {

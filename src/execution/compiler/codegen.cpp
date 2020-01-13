@@ -9,10 +9,10 @@
 namespace terrier::execution::compiler {
 
 CodeGen::CodeGen(exec::ExecutionContext *exec_ctx)
-    : region_("QueryRegion"),
-      error_reporter_(&region_),
-      ast_ctx_(&region_, &error_reporter_),
-      factory_(&region_),
+    : region_(std::make_unique<util::Region>("QueryRegion")),
+      error_reporter_(region_.get()),
+      ast_ctx_(std::make_unique<ast::Context>(region_.get(), &error_reporter_)),
+      factory_(region_.get()),
       exec_ctx_(exec_ctx),
       state_struct_{Context()->GetIdentifier("State")},
       state_var_{Context()->GetIdentifier("state")},
