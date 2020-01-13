@@ -51,7 +51,7 @@ using uchar = unsigned char;
 /* type for buffer of bytes */
 using ByteBuf = std::vector<uchar>;
 
-using NetworkCallback = std::function<void(void)>;
+using NetworkCallback = void (*)(void *);
 
 //===--------------------------------------------------------------------===//
 // Network Message Types

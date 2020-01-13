@@ -1,8 +1,5 @@
 #pragma once
-#include <functional>
-
 #include "common/strong_typedef.h"
-#include "transaction/transaction_defs.h"
 
 namespace terrier::transaction {
 
@@ -35,7 +32,7 @@ class TransactionUtil {
   /**
    * Used for internal transactions and tests when a callback to the network layer isn't necessary.
    */
-  static void EmptyCallback() {}
+  static void EmptyCallback(void * /*unused*/) {}
 };
 
 }  // namespace terrier::transaction
