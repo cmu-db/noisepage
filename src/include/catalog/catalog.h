@@ -114,6 +114,11 @@ class Catalog {
   std::unique_ptr<CatalogAccessor> GetAccessor(common::ManagedPointer<transaction::TransactionContext> txn,
                                                db_oid_t database);
 
+  /**
+   * @return Catalog's BlockStore
+   */
+  common::ManagedPointer<storage::BlockStore> GetBlockStore() const;
+
  private:
   DISALLOW_COPY_AND_MOVE(Catalog);
   friend class storage::RecoveryManager;

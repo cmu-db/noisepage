@@ -1,8 +1,7 @@
-#include "execution/sema/sema.h"
-
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
+#include "execution/sema/sema.h"
 
 namespace terrier::execution::sema {
 
@@ -1868,6 +1867,13 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
       call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
       break;
     }
+    case ast::Builtin::IndexInsertUnique: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
+      break;
+    }
     case ast::Builtin::IndexDelete: {
       if (!CheckArgCount(call, 2)) {
         return;
@@ -2236,6 +2242,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::GetIndexPR:
     case ast::Builtin::GetIndexPRBind:
     case ast::Builtin::IndexInsert:
+    case ast::Builtin::IndexInsertUnique:
     case ast::Builtin::IndexDelete:
     case ast::Builtin::StorageInterfaceFree: {
       CheckBuiltinStorageInterfaceCall(call, builtin);
