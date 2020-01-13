@@ -39,7 +39,8 @@ class TrafficCop {
 
   void ExecuteSimpleQuery(const std::string &simple_query,
                           common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                          common::ManagedPointer<network::PostgresPacketWriter> out, const network::NetworkCallback &callback) const;
+                          common::ManagedPointer<network::PostgresPacketWriter> out,
+                          const network::NetworkCallback &callback) const;
 
   /**
    * Hands a buffer of logs to replication
@@ -65,6 +66,11 @@ class TrafficCop {
   bool DropTempNamespace(catalog::namespace_oid_t ns_oid, catalog::db_oid_t db_oid);
 
  private:
+  void BeginTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
+  void CommitTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                         const network::NetworkCallback &callback) const;
+  void AbortTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
+
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   common::ManagedPointer<catalog::Catalog> catalog_;
   // Hands logs off to replication component. TCop should forward these logs through this provider.

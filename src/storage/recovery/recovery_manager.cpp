@@ -98,7 +98,7 @@ void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestam
   buffered_changes_map_.erase(txn_id);
 
   // Commit the txn
-  txn_manager_->Commit(txn, [](){}, nullptr);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 void RecoveryManager::DeferRecordDeletes(terrier::transaction::timestamp_t txn_id, bool delete_varlens) {

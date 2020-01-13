@@ -35,7 +35,7 @@ class TransactionUtil {
   /**
    * Used for internal transactions and tests when a callback to the network layer isn't necessary.
    */
-  static void EmptyCallback(void * /*unused*/) {}
+  static void EmptyCallback() {}
 };
 
 }  // namespace terrier::transaction

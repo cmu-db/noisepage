@@ -37,7 +37,7 @@ void BlockCompactor::ProcessCompactionQueue(transaction::DeferredActionManager *
           // ask the GC to enqueue this block, because no access will be observed from the empty compaction transaction.
           if (cg.txn_->IsReadOnly())
             deferred_action_manager->RegisterDeferredAction([this, block]() { PutInQueue(block); });
-          txn_manager->Commit(cg.txn_, [](){}, nullptr);
+          txn_manager->Commit(cg.txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
         } else {
           txn_manager->Abort(cg.txn_);
         }

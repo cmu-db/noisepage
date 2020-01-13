@@ -17,7 +17,30 @@
 
 namespace terrier::trafficcop {
 
-//void TrafficCop::BeginTransaction(const common::ManagedPointer<network::ConnectionContext> connection_ctx) {}
+void TrafficCop::BeginTransaction(const common::ManagedPointer<network::ConnectionContext> connection_ctx) const {
+  TERRIER_ASSERT(connection_ctx->Transaction() == nullptr,
+                 "Attempting to begin on a ConnectionContext that already has a running txn.");
+  const auto txn = txn_manager_->BeginTransaction();
+  connection_ctx->SetTransaction(common::ManagedPointer(txn));
+  connection_ctx->SetAccessor(catalog_->GetAccessor(common::ManagedPointer(txn), connection_ctx->GetDatabaseOid()));
+}
+
+void TrafficCop::CommitTransaction(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                   const network::NetworkCallback &callback) const {
+  const auto txn = connection_ctx->Transaction();
+  TERRIER_ASSERT(txn != nullptr, "Attempting to commit on a ConnectionContext that doesn't have a running txn.");
+  txn_manager_->Commit(txn.Get(), callback, nullptr);
+  connection_ctx->SetTransaction(nullptr);
+  connection_ctx->SetAccessor(nullptr);
+}
+
+void TrafficCop::AbortTransaction(const common::ManagedPointer<network::ConnectionContext> connection_ctx) const {
+  const auto txn = connection_ctx->Transaction();
+  TERRIER_ASSERT(txn != nullptr, "Attempting to abort on a ConnectionContext that doesn't have a running txn.");
+  txn_manager_->Abort(txn.Get());
+  connection_ctx->SetTransaction(nullptr);
+  connection_ctx->SetAccessor(nullptr);
+}
 
 void TrafficCop::HandBufferToReplication(std::unique_ptr<network::ReadBuffer> buffer) {
   TERRIER_ASSERT(replication_log_provider_ != DISABLED, "Should not be handing off logs if no log provider was given");
@@ -41,11 +64,10 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
     return;
   }
 
-  auto statement = parse_result->GetStatement(0);
+  const auto statement = parse_result->GetStatement(0);
+  const auto txn = connection_ctx->Transaction();
 
-  auto txn = connection_ctx->Transaction();
-
-  if (txn->MustAbort()) {
+  if (txn != nullptr && txn->MustAbort()) {
     // ERROR:  current transaction is aborted, commands ignored until end of transaction block
     return;
   }
@@ -60,10 +82,7 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
             // already in a transaction, postgres returns a warning
             return;
           }
-          txn = txn_manager_->BeginTransaction();
-          connection_ctx->SetTransaction(txn);
-          connection_ctx->SetAccessor(catalog_->GetAccessor(txn, connection_ctx->GetDatabaseOid()));
-
+          BeginTransaction(connection_ctx);
           // output BEGIN?
           return;
         }
@@ -74,13 +93,10 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
           }
           if (txn->MustAbort()) {
             // postgres returns ROLLBACK
-            txn_manager_->Abort(txn.Get());
-            connection_ctx->SetTransaction(nullptr);
+            AbortTransaction(connection_ctx);
             return;
           }
-          // commit this txn
-          txn_manager_->Commit(txn.Get(), callback, nullptr);
-          connection_ctx->SetTransaction(nullptr);
+          CommitTransaction(connection_ctx, callback);
           return;
         }
         case parser::TransactionStatement::kRollback: {
@@ -88,9 +104,7 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
             // not in a transaction, postgres returns a warning and ROLLBACK
             return;
           }
-          // abort this txn
-          txn_manager_->Abort(txn.Get());
-          connection_ctx->SetTransaction(nullptr);
+          AbortTransaction(connection_ctx);
           return;
         }
       }
@@ -103,8 +117,9 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
     case parser::StatementType::DROP: {
       const bool single_statement_txn = connection_ctx->Transaction() == nullptr;
 
-      if (single_statement_txn)
-        connection_ctx->SetTransaction(common::ManagedPointer(txn_manager_->BeginTransaction()));
+      if (single_statement_txn) {
+        BeginTransaction(connection_ctx);
+      }
 
       return;
     }
@@ -131,7 +146,8 @@ std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNam
     return {db_oid, catalog::INVALID_NAMESPACE_OID};
   }
 
-  txn_manager_->Commit(txn, [](){}, nullptr);
+  txn_manager_->Commit(
+      txn, []() {}, nullptr);
   return {db_oid, ns_oid};
 }
 
@@ -145,7 +161,8 @@ bool TrafficCop::DropTempNamespace(catalog::namespace_oid_t ns_oid, catalog::db_
 
   auto result = db_accessor->DropNamespace(ns_oid);
   if (result) {
-    txn_manager_->Commit(txn, [](){}, nullptr);
+    txn_manager_->Commit(
+        txn, []() {}, nullptr);
   } else {
     txn_manager_->Abort(txn);
   }
