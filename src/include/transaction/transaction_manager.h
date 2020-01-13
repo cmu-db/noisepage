@@ -56,7 +56,7 @@ class TransactionManager {
    * @param callback_arg a void * argument that can be passed to the callback function when invoked
    * @return commit timestamp of this transaction
    */
-  timestamp_t Commit(TransactionContext *txn, const transaction::callback_fn &callback, void *callback_arg);
+  timestamp_t Commit(TransactionContext *txn, transaction::callback_fn callback, void *callback_arg);
 
   /**
    * Aborts a transaction, rolling back its changes (if any).
@@ -89,7 +89,7 @@ class TransactionManager {
 
   timestamp_t UpdatingCommitCriticalSection(TransactionContext *txn);
 
-  void LogCommit(TransactionContext *txn, timestamp_t commit_time, const transaction::callback_fn &commit_callback,
+  void LogCommit(TransactionContext *txn, timestamp_t commit_time, transaction::callback_fn commit_callback,
                  void *commit_callback_arg, timestamp_t oldest_active_txn);
 
   void LogAbort(TransactionContext *txn);

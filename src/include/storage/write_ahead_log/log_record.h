@@ -1,5 +1,6 @@
 #pragma once
 #include <transaction/timestamp_manager.h>
+
 #include "storage/data_table.h"
 #include "storage/projected_row.h"
 #include "transaction/transaction_defs.h"
@@ -291,7 +292,7 @@ class CommitRecord {
   // TODO(Tianyu): txn should contain a lot of the information here. Maybe we can simplify the function.
   // Note that however when reading log records back in we will not have a proper transaction.
   static LogRecord *Initialize(byte *const head, const transaction::timestamp_t txn_begin,
-                               const transaction::timestamp_t txn_commit, const transaction::callback_fn &commit_callback,
+                               const transaction::timestamp_t txn_commit, transaction::callback_fn commit_callback,
                                void *commit_callback_arg, const transaction::timestamp_t oldest_active_txn,
                                const bool is_read_only, transaction::TransactionContext *const txn,
                                transaction::TimestampManager *const timestamp_manager) {
@@ -320,7 +321,7 @@ class CommitRecord {
   /**
    * @return function pointer of the transaction commit callback. Not necessarily populated if read back in from disk.
    */
-  const transaction::callback_fn &CommitCallback() const { return commit_callback_; }
+  transaction::callback_fn CommitCallback() const { return commit_callback_; }
 
   /**
    * @return pointer to timestamp manager who manages committing txn
