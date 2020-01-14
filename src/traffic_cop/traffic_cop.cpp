@@ -94,7 +94,7 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
             AbortTransaction(connection_ctx);
             return;
           }
-          CommitTransaction(connection_ctx, callback);
+          CommitTransaction(connection_ctx);
           return;
         }
         case parser::TransactionStatement::kRollback: {
@@ -144,8 +144,7 @@ std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNam
     return {db_oid, catalog::INVALID_NAMESPACE_OID};
   }
 
-  txn_manager_->Commit(
-      txn, []() {}, nullptr);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   return {db_oid, ns_oid};
 }
 
@@ -159,8 +158,7 @@ bool TrafficCop::DropTempNamespace(catalog::namespace_oid_t ns_oid, catalog::db_
 
   auto result = db_accessor->DropNamespace(ns_oid);
   if (result) {
-    txn_manager_->Commit(
-        txn, []() {}, nullptr);
+    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   } else {
     txn_manager_->Abort(txn);
   }
