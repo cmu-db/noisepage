@@ -21,15 +21,15 @@
 #include "benchmark/benchmark.h"
 #include "loggers/loggers_util.h"
 
-uint32_t BENCHMARK_NUM_THREADS;
+uint32_t benchmark_num_threads;
 int main(int argc, char **argv) {
   terrier::LoggersUtil::Initialize();
 
   const char *env_threads = std::getenv("TERRIER_BENCHMARK_CORES");
   if (env_threads == nullptr) {
-    BENCHMARK_NUM_THREADS = 1;
+    benchmark_num_threads = 1;
   } else {
-    BENCHMARK_NUM_THREADS = atoi(env_threads);
+    benchmark_num_threads = atoi(env_threads);
   }
 
   benchmark::Initialize(&argc, argv);
