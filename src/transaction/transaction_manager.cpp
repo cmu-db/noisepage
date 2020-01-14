@@ -29,7 +29,7 @@ TransactionContext *TransactionManager::BeginTransaction() {
 }
 
 void TransactionManager::LogCommit(TransactionContext *const txn, const timestamp_t commit_time,
-                                   callback_fn commit_callback, void *const commit_callback_arg,
+                                   const callback_fn commit_callback, void *const commit_callback_arg,
                                    const timestamp_t oldest_active_txn) {
   if (log_manager_ != DISABLED) {
     // At this point the commit has already happened for the rest of the system.
@@ -43,7 +43,7 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
     // Otherwise, logging is disabled. We should pretend to have serialized and flushed the record so the rest of the
     // system proceeds correctly
     timestamp_manager_->RemoveTransaction(txn->StartTime());
-    commit_callback();
+    commit_callback(commit_callback_arg);
   }
   txn->redo_buffer_.Finalize(true);
 }
