@@ -69,9 +69,9 @@ class TpccExecutionTest : public TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(TpccExecutionTest, SimpleTest) {
-//  const std::string query_string = "INSERT INTO HISTORY VALUES (1,1,1,1,1,1,1.0,'A')";
+  //  const std::string query_string = "INSERT INTO HISTORY VALUES (1,1,1,1,1,1,1.0,'A')";
   const std::string query_string = "INSERT INTO \"NEW ORDER\" VALUES (1,2,3)";
-//  const std::string query_string = "SELECT * FROM \"NEW ORDER\"";
+  //  const std::string query_string = "SELECT * FROM \"NEW ORDER\"";
 
   auto *const txn = txn_manager_->BeginTransaction();
   const auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), tpcc_db_->db_oid_);
@@ -92,7 +92,9 @@ TEST_F(TpccExecutionTest, SimpleTest) {
                                                                       printer, physical_plan->GetOutputSchema().Get(),
                                                                       common::ManagedPointer(accessor));
 
-  execution::ExecutionUtil::CompileAndRun(physical_plan.get(), exec_ctx.get());
+  auto exec_query = execution::ExecutableQuery(common::ManagedPointer(physical_plan), common::ManagedPointer(exec_ctx));
+
+  exec_query.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
