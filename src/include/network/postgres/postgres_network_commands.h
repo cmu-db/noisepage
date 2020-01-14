@@ -1,14 +1,14 @@
 #pragma once
 #include "network/network_command.h"
 
-#define DEFINE_POSTGRES_COMMAND(name, flush)                                                                  \
-  class name : public PostgresNetworkCommand {                                                                \
-   public:                                                                                                    \
-    explicit name(const common::ManagedPointer<InputPacket> in) : PostgresNetworkCommand(in, flush) {}        \
-    Transition Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,                                  \
-                    common::ManagedPointer<PostgresPacketWriter> out,                                         \
-                    common::ManagedPointer<trafficcop::TrafficCop> t_cop,                                     \
-                    common::ManagedPointer<ConnectionContext> connection) override; \
+#define DEFINE_POSTGRES_COMMAND(name, flush)                                                           \
+  class name : public PostgresNetworkCommand {                                                         \
+   public:                                                                                             \
+    explicit name(const common::ManagedPointer<InputPacket> in) : PostgresNetworkCommand(in, flush) {} \
+    Transition Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,                           \
+                    common::ManagedPointer<PostgresPacketWriter> out,                                  \
+                    common::ManagedPointer<trafficcop::TrafficCop> t_cop,                              \
+                    common::ManagedPointer<ConnectionContext> connection) override;                    \
   }
 
 namespace terrier::network {

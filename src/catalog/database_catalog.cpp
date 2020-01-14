@@ -1879,7 +1879,8 @@ bool DatabaseCatalog::TryLock(const common::ManagedPointer<transaction::Transact
                                        transaction::TransactionUtil::NewerThan(current_val, start_time);
 
   if (owned_by_other_txn || newer_committed_version) {
-    txn->SetMustAbort();  // though no changes were written to the storage layer, we'll treat this as a DDL change failure
+    txn->SetMustAbort();  // though no changes were written to the storage layer, we'll treat this as a DDL change
+                          // failure
     // and force the txn to rollback
     return false;
   }
@@ -1892,7 +1893,7 @@ bool DatabaseCatalog::TryLock(const common::ManagedPointer<transaction::Transact
     return true;
   }
   txn->SetMustAbort();  // though no changes were written to the storage layer, we'll treat this as a DDL change failure
-                     // and force the txn to rollback
+                        // and force the txn to rollback
   return false;
 }
 

@@ -28,7 +28,6 @@ std::unique_ptr<parser::ParseResult> TrafficCopUtil::Parse(const std::string &qu
   return parse_result;
 }
 
-
 void TrafficCopUtil::Bind(const common::ManagedPointer<catalog::CatalogAccessor> accessor, const std::string &db_name,
                           const common::ManagedPointer<parser::ParseResult> query) {
   try {

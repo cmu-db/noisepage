@@ -8,7 +8,7 @@
     explicit name(const common::ManagedPointer<InputPacket> in) : ITPNetworkCommand(in, flush) {}                      \
     Transition Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,                                           \
                     common::ManagedPointer<ITPPacketWriter> out, common::ManagedPointer<trafficcop::TrafficCop> t_cop, \
-                    common::ManagedPointer<ConnectionContext> connection) override;          \
+                    common::ManagedPointer<ConnectionContext> connection) override;                                    \
   }
 
 namespace terrier::network {
