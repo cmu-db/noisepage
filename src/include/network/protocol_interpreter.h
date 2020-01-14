@@ -42,7 +42,7 @@ class ProtocolInterpreter {
    */
   virtual Transition Process(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out,
                              common::ManagedPointer<trafficcop::TrafficCop> t_cop,
-                             common::ManagedPointer<ConnectionContext> context, NetworkCallback callback) = 0;
+                             common::ManagedPointer<ConnectionContext> context) = 0;
 
   /**
    * Sends a result

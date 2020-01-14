@@ -59,7 +59,7 @@ class ITPProtocolInterpreter : public ProtocolInterpreter {
    */
   Transition Process(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out,
                      common::ManagedPointer<trafficcop::TrafficCop> t_cop,
-                     common::ManagedPointer<ConnectionContext> context, NetworkCallback callback) override;
+                     common::ManagedPointer<ConnectionContext> context) override;
 
   /**
    * Writes result to the client

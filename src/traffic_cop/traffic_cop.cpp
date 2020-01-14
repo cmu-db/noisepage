@@ -25,11 +25,10 @@ void TrafficCop::BeginTransaction(const common::ManagedPointer<network::Connecti
   connection_ctx->SetAccessor(catalog_->GetAccessor(common::ManagedPointer(txn), connection_ctx->GetDatabaseOid()));
 }
 
-void TrafficCop::CommitTransaction(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                   const network::NetworkCallback &callback) const {
+void TrafficCop::CommitTransaction(const common::ManagedPointer<network::ConnectionContext> connection_ctx) const {
   const auto txn = connection_ctx->Transaction();
   TERRIER_ASSERT(txn != nullptr, "Attempting to commit on a ConnectionContext that doesn't have a running txn.");
-  txn_manager_->Commit(txn.Get(), callback, nullptr);
+  txn_manager_->Commit(txn.Get(), connection_ctx->Callback(), connection_ctx->CallbackArgs());
   connection_ctx->SetTransaction(nullptr);
   connection_ctx->SetAccessor(nullptr);
 }
@@ -49,8 +48,7 @@ void TrafficCop::HandBufferToReplication(std::unique_ptr<network::ReadBuffer> bu
 
 void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
                                     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                    const common::ManagedPointer<network::PostgresPacketWriter> out,
-                                    const network::NetworkCallback &callback) const {
+                                    const common::ManagedPointer<network::PostgresPacketWriter> out) const {
   auto parse_result = TrafficCopUtil::Parse(simple_query);
 
   TERRIER_ASSERT(parse_result->GetStatements().size() <= 1,

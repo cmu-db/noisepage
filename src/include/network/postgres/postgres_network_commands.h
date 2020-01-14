@@ -8,7 +8,7 @@
     Transition Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,                                  \
                     common::ManagedPointer<PostgresPacketWriter> out,                                         \
                     common::ManagedPointer<trafficcop::TrafficCop> t_cop,                                     \
-                    common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) override; \
+                    common::ManagedPointer<ConnectionContext> connection) override; \
   }
 
 namespace terrier::network {
@@ -30,7 +30,7 @@ class PostgresNetworkCommand : public NetworkCommand {
   virtual Transition Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,
                           common::ManagedPointer<PostgresPacketWriter> out,
                           common::ManagedPointer<trafficcop::TrafficCop> t_cop,
-                          common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) = 0;
+                          common::ManagedPointer<ConnectionContext> connection) = 0;
 
  protected:
   /**

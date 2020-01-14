@@ -60,7 +60,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    */
   Transition Process(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out,
                      common::ManagedPointer<trafficcop::TrafficCop> t_cop,
-                     common::ManagedPointer<ConnectionContext> context, NetworkCallback callback) override;
+                     common::ManagedPointer<ConnectionContext> context) override;
 
   // TODO(Tianyu): Fill in the following documentation at some point
   /**

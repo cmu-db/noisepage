@@ -39,8 +39,7 @@ class TrafficCop {
 
   void ExecuteSimpleQuery(const std::string &simple_query,
                           common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                          common::ManagedPointer<network::PostgresPacketWriter> out,
-                          const network::NetworkCallback &callback) const;
+                          common::ManagedPointer<network::PostgresPacketWriter> out) const;
 
   /**
    * Hands a buffer of logs to replication
@@ -67,8 +66,7 @@ class TrafficCop {
 
  private:
   void BeginTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
-  void CommitTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                         const network::NetworkCallback &callback) const;
+  void CommitTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
   void AbortTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
 
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;

@@ -66,10 +66,13 @@ class ConnectionContext {
 
   void SetAccessor(std::unique_ptr<catalog::CatalogAccessor> accessor) { accessor_ = std::move(accessor); }
 
-  void SetCallback(network::NetworkCallback commit_callback, void *commit_callback_arg) {
+  void SetCallback(const network::NetworkCallback commit_callback, void *const commit_callback_arg) {
     commit_callback_ = commit_callback;
     commit_callback_arg_ = commit_callback_arg;
   }
+
+  network::NetworkCallback Callback() const { return commit_callback_; }
+  void *CallbackArgs() const { return commit_callback_arg_; }
 
  private:
   /**
