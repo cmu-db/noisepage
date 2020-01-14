@@ -4,6 +4,7 @@
 #include <functional>
 #include <queue>
 #include <utility>
+
 #include "common/strong_typedef.h"
 namespace terrier::transaction {
 STRONG_TYPEDEF(timestamp_t, uint64_t);

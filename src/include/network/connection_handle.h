@@ -114,6 +114,7 @@ class ConnectionHandle {
     }
     context_.SetDatabaseOid(oids.first);
     context_.SetTempNamespaceOid(oids.second);
+    context_.SetCallback(CommitCallback, this);
     return Transition::PROCEED;
   }
 
@@ -139,8 +140,7 @@ class ConnectionHandle {
    */
   Transition Process() {
     auto transition = protocol_interpreter_->Process(io_wrapper_->GetReadBuffer(), io_wrapper_->GetWriteQueue(),
-                                                     traffic_cop_, common::ManagedPointer(&context_),
-                                                     [=] { event_active(workpool_event_, EV_WRITE, 0); });
+                                                     traffic_cop_, common::ManagedPointer(&context_));
 
     /**
      * Additional processing for starting up a new connection. This is an intermediate state that does not wait for
@@ -192,6 +192,11 @@ class ConnectionHandle {
    * client query.
    */
   void StopReceivingNetworkEvent() { EventUtil::EventDel(network_event_); }
+
+  static void CommitCallback(void *callback_args) {
+    auto *const handle = reinterpret_cast<ConnectionHandle *>(callback_args);
+    event_active(handle->workpool_event_, EV_WRITE, 0);
+  }
 
  private:
   /**

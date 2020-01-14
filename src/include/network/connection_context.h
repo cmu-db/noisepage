@@ -6,6 +6,7 @@
 
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
+#include "network/network_defs.h"
 
 namespace terrier::transaction {
 class TransactionContext;
@@ -32,6 +33,8 @@ class ConnectionContext {
     temp_namespace_oid_ = catalog::INVALID_NAMESPACE_OID;
     txn_ = nullptr;
     accessor_ = nullptr;
+    commit_callback_ = nullptr;
+    commit_callback_arg_ = nullptr;
   }
 
   catalog::db_oid_t GetDatabaseOid() const { return db_oid_; }
@@ -63,6 +66,11 @@ class ConnectionContext {
 
   void SetAccessor(std::unique_ptr<catalog::CatalogAccessor> accessor) { accessor_ = std::move(accessor); }
 
+  void SetCallback(network::NetworkCallback commit_callback, void *commit_callback_arg) {
+    commit_callback_ = commit_callback;
+    commit_callback_arg_ = commit_callback_arg;
+  }
+
  private:
   /**
    * Commandline arguments parsed from protocol interpreter
@@ -82,6 +90,9 @@ class ConnectionContext {
   common::ManagedPointer<transaction::TransactionContext> txn_ = nullptr;
 
   std::unique_ptr<catalog::CatalogAccessor> accessor_ = nullptr;
+
+  network::NetworkCallback commit_callback_;
+  void *commit_callback_arg_;
 };
 
 }  // namespace terrier::network
