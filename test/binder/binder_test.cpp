@@ -16,7 +16,6 @@
 #include "parser/postgresparser.h"
 #include "storage/garbage_collector.h"
 #include "test_util/test_harness.h"
-#include "traffic_cop/statement.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
