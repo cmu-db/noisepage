@@ -6,6 +6,7 @@
 
 #include "catalog/catalog.h"
 #include "network/postgres/postgres_protocol_utils.h"
+#include "parser/create_statement.h"
 #include "parser/transaction_statement.h"
 #include "storage/recovery/replication_log_provider.h"
 
@@ -16,6 +17,10 @@ class PostgresPacketWriter;
 
 namespace terrier::optimizer {
 class StatsStorage;
+}
+
+namespace terrier::planner {
+class AbstractPlanNode;
 }
 
 namespace terrier::trafficcop {
@@ -81,6 +86,11 @@ class TrafficCop {
   void ExecuteTransactionStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                    common::ManagedPointer<network::PostgresPacketWriter> out,
                                    parser::TransactionStatement::CommandType type) const;
+
+  void ExecuteCreateStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                              common::ManagedPointer<network::PostgresPacketWriter> out,
+                              common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
+                              parser::CreateStatement::CreateType create_type, bool single_statement_txn) const;
 
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   common::ManagedPointer<catalog::Catalog> catalog_;

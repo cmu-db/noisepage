@@ -12,6 +12,7 @@
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
 #include "execution/execution_util.h"
+#include "execution/sql/ddl_executors.h"
 #include "execution/vm/module.h"
 #include "network/postgres/postgres_packet_writer.h"
 #include "optimizer/statistics/stats_storage.h"
@@ -99,6 +100,49 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
   }
 }
 
+void TrafficCop::ExecuteCreateStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                        const common::ManagedPointer<network::PostgresPacketWriter> out,
+                                        const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
+                                        const parser::CreateStatement::CreateType create_type,
+                                        const bool single_statement_txn) const {
+  switch (create_type) {
+    case parser::CreateStatement::CreateType::kTable: {
+      if (execution::sql::DDLExecutors::CreateTableExecutor(
+              physical_plan.CastManagedPointerTo<planner::CreateTablePlanNode>(), connection_ctx->Accessor(),
+              connection_ctx->GetDatabaseOid())) {
+        out->WriteCommandComplete("CREATE TABLE");
+        break;
+      }
+      out->WriteErrorResponse("ERROR:  failed to create table");
+      connection_ctx->Transaction()->SetMustAbort();
+      break;
+    }
+    case parser::CreateStatement::CreateType::kDatabase: {
+      if (!single_statement_txn) {
+        out->WriteErrorResponse("ERROR:  CREATE DATABASE cannot run inside a transaction block");
+        connection_ctx->Transaction()->SetMustAbort();
+        break;
+      }
+      if (execution::sql::DDLExecutors::CreateDatabaseExecutor(
+              physical_plan.CastManagedPointerTo<planner::CreateDatabasePlanNode>(), connection_ctx->Accessor())) {
+        out->WriteCommandComplete("CREATE DATABASE");
+        break;
+      }
+      out->WriteErrorResponse("ERROR:  failed to create database");
+      connection_ctx->Transaction()->SetMustAbort();
+      break;
+    }
+    case parser::CreateStatement::CreateType::kIndex: {
+    }
+    case parser::CreateStatement::CreateType::kSchema: {
+    }
+    default: {
+      out->WriteErrorResponse("ERROR:  unsupported statement type");
+      break;
+    }
+  }
+}
+
 void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
                                     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                     const common::ManagedPointer<network::PostgresPacketWriter> out) const {
@@ -181,17 +225,23 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
           connection_ctx->Transaction(), connection_ctx->Accessor(), common::ManagedPointer(parse_result),
           stats_storage_, optimizer_timeout_);
 
-      execution::exec::OutputPrinter printer{physical_plan->GetOutputSchema().Get()};
+      if (statement_type == parser::StatementType::CREATE) {
+        ExecuteCreateStatement(connection_ctx, out, common::ManagedPointer(physical_plan),
+                               statement.CastManagedPointerTo<parser::CreateStatement>()->GetCreateType(),
+                               single_statement_txn);
+      } else if (statement_type == parser::StatementType::DROP) {
+      } else {
+        execution::exec::OutputPrinter printer{physical_plan->GetOutputSchema().Get()};
 
-      auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-          connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), printer,
-          physical_plan->GetOutputSchema().Get(), connection_ctx->Accessor());
+        auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
+            connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), printer,
+            physical_plan->GetOutputSchema().Get(), connection_ctx->Accessor());
 
-      auto exec_query =
-          execution::ExecutableQuery(common::ManagedPointer(physical_plan), common::ManagedPointer(exec_ctx));
+        auto exec_query =
+            execution::ExecutableQuery(common::ManagedPointer(physical_plan), common::ManagedPointer(exec_ctx));
 
-      exec_query.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
-
+        exec_query.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+      }
       if (single_statement_txn) {
         // decide whether the txn should be committed or aborted based on the MustAbort flag, and then end the txn
         EndTransaction(connection_ctx, connection_ctx->Transaction()->MustAbort() ? network::QueryType::QUERY_ROLLBACK

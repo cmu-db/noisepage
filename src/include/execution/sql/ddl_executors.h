@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 namespace terrier::planner {
@@ -15,12 +16,13 @@ class DropIndexPlanNode;
 }  // namespace terrier::planner
 
 namespace terrier::execution::exec {
-class ExecutionContext;
+class Executionaccessor;
 }
 
 namespace terrier::catalog {
+class CatalogAccessor;
 class IndexSchema;
-}
+}  // namespace terrier::catalog
 
 namespace terrier::execution::sql {
 
@@ -33,70 +35,71 @@ class DDLExecutors {
 
   /**
    * @param node node to executed
-   * @param context context to use for execution
+   * @param accessor accessor to use for execution
    * @return true if operation succeeded, false otherwise
    */
   static bool CreateDatabaseExecutor(common::ManagedPointer<planner::CreateDatabasePlanNode> node,
-                                     common::ManagedPointer<exec::ExecutionContext> context);
+                                     common::ManagedPointer<catalog::CatalogAccessor> accessor);
 
   /**
    * @param node node to executed
-   * @param context context to use for execution
+   * @param accessor accessor to use for execution
    * @return true if operation succeeded, false otherwise
    */
   static bool CreateNamespaceExecutor(common::ManagedPointer<planner::CreateNamespacePlanNode> node,
-                                      common::ManagedPointer<exec::ExecutionContext> context);
+                                      common::ManagedPointer<catalog::CatalogAccessor> accessor);
 
   /**
    * @param node node to executed
-   * @param context context to use for execution
+   * @param accessor accessor to use for execution
    * @return true if operation succeeded, false otherwise
    */
   static bool CreateTableExecutor(common::ManagedPointer<planner::CreateTablePlanNode> node,
-                                  common::ManagedPointer<exec::ExecutionContext> context);
+                                  common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                                  catalog::db_oid_t connection_db);
 
   /**
    * @param node node to executed
-   * @param context context to use for execution
+   * @param accessor accessor to use for execution
    * @return true if operation succeeded, false otherwise
    */
   static bool CreateIndexExecutor(common::ManagedPointer<planner::CreateIndexPlanNode> node,
-                                  common::ManagedPointer<exec::ExecutionContext> context);
+                                  common::ManagedPointer<catalog::CatalogAccessor> accessor);
 
   /**
    * @param node node to executed
-   * @param context context to use for execution
+   * @param accessor accessor to use for execution
    * @return true if operation succeeded, false otherwise
    */
   static bool DropDatabaseExecutor(common::ManagedPointer<planner::DropDatabasePlanNode> node,
-                                   common::ManagedPointer<exec::ExecutionContext> context);
+                                   common::ManagedPointer<catalog::CatalogAccessor>, catalog::db_oid_t connection_db);
 
   /**
    * @param node node to executed
-   * @param context context to use for execution
+   * @param accessor accessor to use for execution
    * @return true if operation succeeded, false otherwise
    */
   static bool DropNamespaceExecutor(common::ManagedPointer<planner::DropNamespacePlanNode> node,
-                                    common::ManagedPointer<exec::ExecutionContext> context);
+                                    common::ManagedPointer<catalog::CatalogAccessor> accessor);
 
   /**
    * @param node node to executed
-   * @param context context to use for execution
+   * @param accessor accessor to use for execution
    * @return true if operation succeeded, false otherwise
    */
   static bool DropTableExecutor(common::ManagedPointer<planner::DropTablePlanNode> node,
-                                common::ManagedPointer<exec::ExecutionContext> context);
+                                common::ManagedPointer<catalog::CatalogAccessor> accessor);
 
   /**
    * @param node node to executed
-   * @param context context to use for execution
+   * @param accessor accessor to use for execution
    * @return true if operation succeeded, false otherwise
    */
   static bool DropIndexExecutor(common::ManagedPointer<planner::DropIndexPlanNode> node,
-                                common::ManagedPointer<exec::ExecutionContext> context);
+                                common::ManagedPointer<catalog::CatalogAccessor> accessor);
 
  private:
-  static bool CreateIndex(common::ManagedPointer<exec::ExecutionContext> context, catalog::namespace_oid_t ns,
+  static bool CreateIndex(common::ManagedPointer<catalog::CatalogAccessor> accessor, catalog::namespace_oid_t ns,
                           const std::string &name, catalog::table_oid_t table,
                           const catalog::IndexSchema &input_schema);
 };
