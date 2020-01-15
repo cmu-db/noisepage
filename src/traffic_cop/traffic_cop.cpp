@@ -133,11 +133,86 @@ void TrafficCop::ExecuteCreateStatement(const common::ManagedPointer<network::Co
       break;
     }
     case parser::CreateStatement::CreateType::kIndex: {
+      if (execution::sql::DDLExecutors::CreateIndexExecutor(
+              physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor())) {
+        out->WriteCommandComplete("CREATE INDEX");
+        break;
+      }
+      out->WriteErrorResponse("ERROR:  failed to create index");
+      connection_ctx->Transaction()->SetMustAbort();
+      break;
     }
     case parser::CreateStatement::CreateType::kSchema: {
+      if (execution::sql::DDLExecutors::CreateNamespaceExecutor(
+              physical_plan.CastManagedPointerTo<planner::CreateNamespacePlanNode>(), connection_ctx->Accessor())) {
+        out->WriteCommandComplete("CREATE SCHEMA");
+        break;
+      }
+      out->WriteErrorResponse("ERROR:  failed to create schema");
+      connection_ctx->Transaction()->SetMustAbort();
+      break;
     }
     default: {
-      out->WriteErrorResponse("ERROR:  unsupported statement type");
+      out->WriteErrorResponse("ERROR:  unsupported CREATE statement type");
+      break;
+    }
+  }
+}
+
+void TrafficCop::ExecuteDropStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                      const common::ManagedPointer<network::PostgresPacketWriter> out,
+                                      const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
+                                      const parser::DropStatement::DropType drop_type,
+                                      const bool single_statement_txn) const {
+  switch (drop_type) {
+    case parser::DropStatement::DropType::kTable: {
+      if (execution::sql::DDLExecutors::DropTableExecutor(
+              physical_plan.CastManagedPointerTo<planner::DropTablePlanNode>(), connection_ctx->Accessor())) {
+        out->WriteCommandComplete("DROP TABLE");
+        break;
+      }
+      out->WriteErrorResponse("ERROR:  failed to drop table");
+      connection_ctx->Transaction()->SetMustAbort();
+      break;
+    }
+    case parser::DropStatement::DropType::kDatabase: {
+      if (!single_statement_txn) {
+        out->WriteErrorResponse("ERROR:  DROP DATABASE cannot run inside a transaction block");
+        connection_ctx->Transaction()->SetMustAbort();
+        break;
+      }
+      if (execution::sql::DDLExecutors::DropDatabaseExecutor(
+              physical_plan.CastManagedPointerTo<planner::DropDatabasePlanNode>(), connection_ctx->Accessor(),
+              connection_ctx->GetDatabaseOid())) {
+        out->WriteCommandComplete("DROP DATABASE");
+        break;
+      }
+      out->WriteErrorResponse("ERROR:  failed to drop database");
+      connection_ctx->Transaction()->SetMustAbort();
+      break;
+    }
+    case parser::DropStatement::DropType::kIndex: {
+      if (execution::sql::DDLExecutors::DropIndexExecutor(
+              physical_plan.CastManagedPointerTo<planner::DropIndexPlanNode>(), connection_ctx->Accessor())) {
+        out->WriteCommandComplete("DROP INDEX");
+        break;
+      }
+      out->WriteErrorResponse("ERROR:  failed to drop index");
+      connection_ctx->Transaction()->SetMustAbort();
+      break;
+    }
+    case parser::DropStatement::DropType::kSchema: {
+      if (execution::sql::DDLExecutors::DropNamespaceExecutor(
+              physical_plan.CastManagedPointerTo<planner::DropNamespacePlanNode>(), connection_ctx->Accessor())) {
+        out->WriteCommandComplete("DROP SCHEMA");
+        break;
+      }
+      out->WriteErrorResponse("ERROR:  failed to drop schema");
+      connection_ctx->Transaction()->SetMustAbort();
+      break;
+    }
+    default: {
+      out->WriteErrorResponse("ERROR:  unsupported DROP statement type");
       break;
     }
   }
@@ -230,6 +305,9 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
                                statement.CastManagedPointerTo<parser::CreateStatement>()->GetCreateType(),
                                single_statement_txn);
       } else if (statement_type == parser::StatementType::DROP) {
+        ExecuteDropStatement(connection_ctx, out, common::ManagedPointer(physical_plan),
+                             statement.CastManagedPointerTo<parser::DropStatement>()->GetDropType(),
+                             single_statement_txn);
       } else {
         execution::exec::OutputPrinter printer{physical_plan->GetOutputSchema().Get()};
 

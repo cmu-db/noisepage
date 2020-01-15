@@ -7,6 +7,7 @@
 #include "catalog/catalog.h"
 #include "network/postgres/postgres_protocol_utils.h"
 #include "parser/create_statement.h"
+#include "parser/drop_statement.h"
 #include "parser/transaction_statement.h"
 #include "storage/recovery/replication_log_provider.h"
 
@@ -91,6 +92,11 @@ class TrafficCop {
                               common::ManagedPointer<network::PostgresPacketWriter> out,
                               common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
                               parser::CreateStatement::CreateType create_type, bool single_statement_txn) const;
+
+  void ExecuteDropStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                            common::ManagedPointer<network::PostgresPacketWriter> out,
+                            common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
+                            parser::DropStatement::DropType drop_type, bool single_statement_txn) const;
 
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   common::ManagedPointer<catalog::Catalog> catalog_;
