@@ -96,12 +96,13 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
 void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
                                     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                     const common::ManagedPointer<network::PostgresPacketWriter> out) const {
+  // Attempt to parse the statement first
   auto parse_result = TrafficCopUtil::Parse(simple_query);
 
   TERRIER_ASSERT(parse_result->GetStatements().size() <= 1,
                  "We currently expect one statement per string (psql and oltpbench).");
 
-  // TODO(Matt:) some clients may send multiple statements in a single simple query packet/string. Handling that would
+  // TODO(Matt:) some clients may send multiple statements in a single SimpleQuery packet/string. Handling that would
   // probably exist here, looping over all of the elements in the ParseResult
 
   if (parse_result->Empty()) {
@@ -109,17 +110,23 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
     return;
   }
 
+  // It parsed and we've got out single statement
   const auto statement = parse_result->GetStatement(0);
+  const auto statement_type = statement->GetType();
 
-  if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::FAIL) {
+  // Check if we're in a must-abort situation first before attempting to issue any statement other than ROLLBACK
+  if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::FAIL &&
+      (statement_type != parser::StatementType::TRANSACTION ||
+       statement.CastManagedPointerTo<parser::TransactionStatement>()->GetTransactionType() !=
+           parser::TransactionStatement::CommandType::kRollback)) {
     out->WriteErrorResponse("ERROR:  current transaction is aborted, commands ignored until end of transaction block");
     return;
   }
 
-  switch (statement->GetType()) {
+  switch (statement_type) {
     case parser::StatementType::TRANSACTION: {
       const auto txn_statement = statement.CastManagedPointerTo<parser::TransactionStatement>();
-      ExecuteTransactionStatement(txn_statement->GetTransactionType());
+      ExecuteTransactionStatement(connection_ctx, out, txn_statement->GetTransactionType());
       return;
     }
     case parser::StatementType::SELECT:
@@ -138,6 +145,7 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
       return;
     }
     default: {
+      out->WriteErrorResponse("ERROR:  unsupported statement type");
       return;
     }
   }
