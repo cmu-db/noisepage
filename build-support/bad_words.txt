@@ -11,4 +11,4 @@
 \bshared_ptr\b
 \bmake_shared\b
 \bweak_ptr\b
-namespace .*_.* {
+\bnamespace .*_.* {
