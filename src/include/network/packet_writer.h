@@ -42,14 +42,12 @@ class PacketWriter {
   void WriteType(NetworkMessageType type) { queue_->BufferWriteRawValue(type); }
 
   /**
-   * Write out a packet with a single type that is not related to Postgres SSL.
+   * Write out a packet with a single type
    * @param type Type of message to write out
    */
   void WriteSingleTypePacket(NetworkMessageType type) {
     // Make sure no active packet being constructed
     TERRIER_ASSERT(IsPacketEmpty(), "packet length is null");
-    TERRIER_ASSERT(type != NetworkMessageType::PG_SSL_YES && type != NetworkMessageType::PG_SSL_NO,
-                   "SSL types not allowed");
     BeginPacket(type).EndPacket();
   }
 

@@ -84,7 +84,6 @@ enum class NetworkMessageType : unsigned char {
   PG_ROW_DESCRIPTION = 'T',
   PG_DATA_ROW = 'D',
   // Errors
-  // TODO(Matt): this enum should be broken up
   PG_HUMAN_READABLE_ERROR = 'M',
   PG_SQLSTATE_CODE_ERROR = 'C',
   // Commands
@@ -96,9 +95,6 @@ enum class NetworkMessageType : unsigned char {
   PG_PARSE_COMMAND = 'P',
   PG_SIMPLE_QUERY_COMMAND = 'Q',
   PG_CLOSE_COMMAND = 'C',
-  // SSL willingness
-  PG_SSL_YES = 'S',
-  PG_SSL_NO = 'N',
 
   ////////////////////////
   // ITP message types  //
@@ -122,7 +118,7 @@ enum class DescribeCommandObjectType : unsigned char { PORTAL = 'P', STATEMENT =
 //// Query Types
 ////===--------------------------------------------------------------------===//
 //
-//enum class QueryType {
+// enum class QueryType {
 //  QUERY_BEGIN = 0,         // begin query
 //  QUERY_COMMIT = 1,        // commit query
 //  QUERY_ROLLBACK = 2,      // rollback query
@@ -154,7 +150,7 @@ enum class DescribeCommandObjectType : unsigned char { PORTAL = 'P', STATEMENT =
 //// Result Types
 ////===--------------------------------------------------------------------===//
 //
-//enum class ResultType {
+// enum class ResultType {
 //  INVALID = INVALID_TYPE_ID,  // invalid result type
 //  SUCCESS = 1,
 //  FAILURE = 2,

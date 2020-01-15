@@ -9,7 +9,7 @@
 #include "network/postgres/postgres_network_commands.h"
 #include "network/terrier_server.h"
 
-#define SSL_MESSAGE_VERNO 80877103
+constexpr uint32_t SSL_MESSAGE_VERNO = 80877103;
 #define PROTO_MAJOR_VERSION(x) ((x) >> 16)
 
 namespace terrier::network {
@@ -46,8 +46,8 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const common::ManagedPoin
   NETWORK_LOG_TRACE("protocol version: {0}", proto_version);
 
   if (proto_version == SSL_MESSAGE_VERNO) {
-    // TODO(Tianyu): Should this be moved from PelotonServer into settings?
-    writer.WriteSSLPacket(NetworkMessageType::PG_SSL_NO);
+    // We don't support SSL yet. Reply with a response telling the client not to use SSL.
+    writer.WriteType(static_cast<NetworkMessageType>('N'));
     return Transition::PROCEED;
   }
 
@@ -82,18 +82,18 @@ void PostgresProtocolInterpreter::SetPacketMessageType(const common::ManagedPoin
   if (!startup_) curr_input_packet_.msg_type_ = in->ReadValue<NetworkMessageType>();
 }
 //
-//void PostgresProtocolInterpreter::CompleteCommand(PostgresPacketWriter *const out, const QueryType &query_type,
+// void PostgresProtocolInterpreter::CompleteCommand(PostgresPacketWriter *const out, const QueryType &query_type,
 //                                                  int rows) {
 //  out->BeginPacket(NetworkMessageType::PG_COMMAND_COMPLETE).EndPacket();
 //}
 //
-//void PostgresProtocolInterpreter::ExecQueryMessageGetResult(PostgresPacketWriter *const out, ResultType status) {
+// void PostgresProtocolInterpreter::ExecQueryMessageGetResult(PostgresPacketWriter *const out, ResultType status) {
 //  CompleteCommand(out, QueryType::QUERY_INVALID, 0);
 //
 //  out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
 //}
 //
-//void PostgresProtocolInterpreter::ExecExecuteMessageGetResult(PostgresPacketWriter *const out, ResultType status) {
+// void PostgresProtocolInterpreter::ExecExecuteMessageGetResult(PostgresPacketWriter *const out, ResultType status) {
 //  CompleteCommand(out, QueryType::QUERY_INVALID, 0);
 //}
 
