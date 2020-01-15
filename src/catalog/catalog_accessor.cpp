@@ -1,7 +1,9 @@
 #include "catalog/catalog_accessor.h"
+
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog.h"
 
 namespace terrier::catalog {
@@ -128,6 +130,13 @@ bool CatalogAccessor::SetIndexPointer(index_oid_t index, storage::index::Index *
 
 common::ManagedPointer<storage::index::Index> CatalogAccessor::GetIndex(index_oid_t index) const {
   return dbc_->GetIndex(txn_, index);
+}
+
+common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() const {
+  // TODO(Matt): at some point we may decide to adjust the source  (i.e. each DatabaseCatalog has one), stick it in a
+  // pg_tablespace table, or we may eliminate the concept entirely. This works for now to allow CREATE nodes to bind a
+  // BlockStore
+  return catalog_->GetBlockStore();
 }
 
 }  // namespace terrier::catalog

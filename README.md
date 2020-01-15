@@ -21,7 +21,7 @@
 
 3. **Will the new system still be "[self-driving](http://www.cs.cmu.edu/~pavlo/blog/2018/04/what-is-a-self-driving-database-management-system.html)"?**
 
-   Yes, our goal is to have this new system to support autonmous operation and optimization as a first-class design principle.
+   Yes, our goal is to have this new system to support autonomous operation and optimization as a first-class design principle.
 
 4. **How can I get involved?**
    
