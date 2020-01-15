@@ -33,7 +33,7 @@ class TrafficCopUtil {
 
   static std::unique_ptr<parser::ParseResult> Parse(const std::string &query_string);
 
-  static void Bind(common::ManagedPointer<catalog::CatalogAccessor> accessor, const std::string &db_name,
+  static bool Bind(common::ManagedPointer<catalog::CatalogAccessor> accessor, const std::string &db_name,
                    common::ManagedPointer<parser::ParseResult> query);
 
   static std::unique_ptr<planner::AbstractPlanNode> Optimize(

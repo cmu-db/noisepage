@@ -23,19 +23,23 @@ std::unique_ptr<parser::ParseResult> TrafficCopUtil::Parse(const std::string &qu
   try {
     parse_result = parser::PostgresParser::BuildParseTree(query_string);
   } catch (const Exception &e) {
-    // Failed to parse, handle this in some more verbose manner
+    // Failed to parse
+    // TODO(Matt): handle this in some more verbose manner for the client (return more state)
   }
   return parse_result;
 }
 
-void TrafficCopUtil::Bind(const common::ManagedPointer<catalog::CatalogAccessor> accessor, const std::string &db_name,
+bool TrafficCopUtil::Bind(const common::ManagedPointer<catalog::CatalogAccessor> accessor, const std::string &db_name,
                           const common::ManagedPointer<parser::ParseResult> query) {
   try {
     binder::BindNodeVisitor visitor(accessor, db_name);
     visitor.BindNameToNode(query->GetStatement(0), query.Get());
   } catch (const Exception &e) {
-    // Failed to bind, handle this
+    // Failed to bind
+    // TODO(Matt): handle this in some more verbose manner for the client (return more state)
+    return false;
   }
+  return true;
 }
 
 std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(

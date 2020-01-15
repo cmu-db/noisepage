@@ -114,6 +114,7 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
   // TODO(Matt:) some clients may send multiple statements in a single SimpleQuery packet/string. Handling that would
   // probably exist here, looping over all of the elements in the ParseResult
 
+  // Empty queries get a special response in postgres
   if (parse_result->Empty()) {
     out->WriteEmptyQueryResponse();
     return;
@@ -126,8 +127,8 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
   // Check if we're in a must-abort situation first before attempting to issue any statement other than ROLLBACK
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::FAIL &&
       (statement_type != parser::StatementType::TRANSACTION ||
-       statement.CastManagedPointerTo<parser::TransactionStatement>()->GetTransactionType() !=
-           parser::TransactionStatement::CommandType::kRollback)) {
+       statement.CastManagedPointerTo<parser::TransactionStatement>()->GetTransactionType() ==
+           parser::TransactionStatement::CommandType::kBegin)) {
     out->WriteErrorResponse("ERROR:  current transaction is aborted, commands ignored until end of transaction block");
     return;
   }
@@ -149,6 +150,24 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
 
       if (single_statement_txn) {
         BeginTransaction(connection_ctx);
+      }
+
+      // Next step is to try to bind the parsed statement
+      // TODO(Matt): I don't think the binder should need the database name
+      if (!TrafficCopUtil::Bind(connection_ctx->Accessor(), connection_ctx->GetDatabaseName(),
+                                common::ManagedPointer(parse_result))) {
+        out->WriteErrorResponse("ERROR:  binding failed");
+        if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
+          // failing to bind fails a transaction in postgres
+          connection_ctx->Transaction()->SetMustAbort();
+        }
+      }
+
+      if (single_statement_txn) {
+        // decide whether the txn should be committed or aborted based on the MustAbort flag, and then end the txn
+        const auto txn_disposition = connection_ctx->Transaction()->MustAbort() ? network::QueryType::QUERY_ROLLBACK
+                                                                                : network::QueryType::QUERY_COMMIT;
+        EndTransaction(connection_ctx, txn_disposition);
       }
 
       return;

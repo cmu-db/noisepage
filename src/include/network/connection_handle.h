@@ -112,6 +112,7 @@ class ConnectionHandle {
     while (oids.first == catalog::INVALID_DATABASE_OID || oids.second == catalog::INVALID_NAMESPACE_OID) {
       oids = traffic_cop_->CreateTempNamespace(io_wrapper_->GetSocketFd(), db_name);
     }
+    context_.SetDatabaseName(std::move(db_name));
     context_.SetDatabaseOid(oids.first);
     context_.SetTempNamespaceOid(oids.second);
     context_.SetCallback(Callback, this);

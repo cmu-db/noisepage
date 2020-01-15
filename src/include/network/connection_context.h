@@ -42,6 +42,9 @@ class ConnectionContext {
   void SetDatabaseOid(const catalog::db_oid_t db_oid) { db_oid_ = db_oid; }
   void SetTempNamespaceOid(const catalog::namespace_oid_t ns_oid) { temp_namespace_oid_ = ns_oid; }
 
+  const std::string &GetDatabaseName() const { return db_name_; }
+  void SetDatabaseName(std::string &&db_name) { db_name_ = std::move(db_name); }
+
   /**
    * @return const reference to cmdline_args_ for reading values back out
    */
@@ -94,6 +97,12 @@ class ConnectionContext {
    * The OID of the database accessed by this connection. Only mutable by the Setter via ConnectionHandle, or Reset
    */
   catalog::db_oid_t db_oid_ = catalog::INVALID_DATABASE_OID;
+
+  /**
+   * The binder needs database name as an argument for some reason even though we've already bound the oid in
+   * ConnectionHandle::StartUp. I suspect this can be removed in the future.
+   */
+  std::string db_name_;
 
   /**
    * The OID of the temporary namespace for this connection. Only mutable by the Setter via ConnectionHandle, or Reset
