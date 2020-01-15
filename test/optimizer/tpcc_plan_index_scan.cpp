@@ -26,11 +26,6 @@ TEST_F(TpccPlanIndexScanTests, SimplePredicateIndexScan) {
                   std::unique_ptr<planner::AbstractPlanNode> plan) {
     // Get Schema
     auto &schema = test->accessor_->GetSchema(test->tbl_new_order_);
-    unsigned no_d_id_offset = 0;
-    for (size_t idx = 0; idx < schema.GetColumns().size(); idx++) {
-      auto idx_u = static_cast<unsigned>(idx);
-      if (schema.GetColumn(idx_u).Name() == "no_d_id") no_d_id_offset = static_cast<unsigned>(idx_u);
-    }
 
     // Should use New Order Primary Key (NO_W_ID, NO_D_ID, NO_O_ID)
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::INDEXSCAN);
@@ -56,12 +51,12 @@ TEST_F(TpccPlanIndexScanTests, SimplePredicateIndexScan) {
     EXPECT_TRUE(scan_pred != nullptr);
     EXPECT_EQ(scan_pred->GetExpressionType(), parser::ExpressionType::COMPARE_EQUAL);
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
-    EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
+    EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto dve = scan_pred->GetChild(0).CastManagedPointerTo<parser::DerivedValueExpression>();
+    auto tve = scan_pred->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
     auto cve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
-    EXPECT_EQ(dve->GetTupleIdx(), 0);
-    EXPECT_EQ(dve->GetValueIdx(), no_d_id_offset);  // ValueIdx() should be offset into underlying tuple
+    EXPECT_EQ(tve->GetColumnName(), "no_d_id");
+    EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("no_d_id").Oid());
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
   };
 
@@ -75,11 +70,6 @@ TEST_F(TpccPlanIndexScanTests, SimplePredicateFlippedIndexScan) {
                   std::unique_ptr<planner::AbstractPlanNode> plan) {
     // Get Schema
     auto &schema = test->accessor_->GetSchema(test->tbl_new_order_);
-    unsigned no_d_id_offset = 0;
-    for (size_t idx = 0; idx < schema.GetColumns().size(); idx++) {
-      auto idx_u = static_cast<unsigned>(idx);
-      if (schema.GetColumn(idx_u).Name() == "no_d_id") no_d_id_offset = static_cast<unsigned>(idx_u);
-    }
 
     // Should use New Order Primary Key (NO_W_ID, NO_D_ID, NO_O_ID)
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::INDEXSCAN);
@@ -106,12 +96,12 @@ TEST_F(TpccPlanIndexScanTests, SimplePredicateFlippedIndexScan) {
     EXPECT_TRUE(scan_pred != nullptr);
     EXPECT_EQ(scan_pred->GetExpressionType(), parser::ExpressionType::COMPARE_LESS_THAN);
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
-    EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
+    EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
     EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto dve = scan_pred->GetChild(1).CastManagedPointerTo<parser::DerivedValueExpression>();
+    auto tve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
     auto cve = scan_pred->GetChild(0).CastManagedPointerTo<parser::ConstantValueExpression>();
-    EXPECT_EQ(dve->GetTupleIdx(), 0);
-    EXPECT_EQ(dve->GetValueIdx(), no_d_id_offset);  // ValueIdx() should be offset into underlying tuple
+    EXPECT_EQ(tve->GetColumnName(), "no_d_id");
+    EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("no_d_id").Oid());
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
   };
 
@@ -168,13 +158,6 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicate) {
                   std::unique_ptr<planner::AbstractPlanNode> plan) {
     // Get Schema
     auto &schema = test->accessor_->GetSchema(test->tbl_new_order_);
-    unsigned no_w_id_offset = 0;
-    for (size_t idx = 0; idx < schema.GetColumns().size(); idx++) {
-      auto idx_u = static_cast<unsigned>(idx);
-      if (schema.GetColumn(idx_u).Name() == "no_w_id") {
-        no_w_id_offset = idx_u;
-      }
-    }
 
     // Should use New Order Primary Key (NO_W_ID, NO_D_ID, NO_O_ID)
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::INDEXSCAN);
@@ -202,12 +185,12 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicate) {
     EXPECT_TRUE(scan_pred != nullptr);
     EXPECT_EQ(scan_pred->GetExpressionType(), parser::ExpressionType::COMPARE_EQUAL);
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
-    EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
+    EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto dve = scan_pred->GetChild(0).CastManagedPointerTo<parser::DerivedValueExpression>();
+    auto tve = scan_pred->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
     auto cve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
-    EXPECT_EQ(dve->GetTupleIdx(), 0);
-    EXPECT_EQ(dve->GetValueIdx(), no_w_id_offset);  // ValueIdx() should be offset into underlying tuple
+    EXPECT_EQ(tve->GetColumnName(), "no_w_id");
+    EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("no_w_id").Oid());
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
   };
 
@@ -221,13 +204,6 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicateWithLimitOffset) {
                   std::unique_ptr<planner::AbstractPlanNode> plan) {
     // Get Schema
     auto &schema = test->accessor_->GetSchema(test->tbl_new_order_);
-    unsigned no_w_id_offset = 0;
-    for (size_t idx = 0; idx < schema.GetColumns().size(); idx++) {
-      auto idx_u = static_cast<unsigned>(idx);
-      if (schema.GetColumn(idx_u).Name() == "no_w_id") {
-        no_w_id_offset = idx_u;
-      }
-    }
     EXPECT_EQ(plan->GetChildrenSize(), 1);
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::PROJECTION);
 
@@ -283,12 +259,12 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicateWithLimitOffset) {
     EXPECT_TRUE(scan_pred != nullptr);
     EXPECT_EQ(scan_pred->GetExpressionType(), parser::ExpressionType::COMPARE_EQUAL);
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
-    EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
+    EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto dve = scan_pred->GetChild(0).CastManagedPointerTo<parser::DerivedValueExpression>();
+    auto tve = scan_pred->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
     auto cve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
-    EXPECT_EQ(dve->GetTupleIdx(), 0);
-    EXPECT_EQ(dve->GetValueIdx(), no_w_id_offset);  // ValueIdx() should be offset into underlying tuple
+    EXPECT_EQ(tve->GetColumnName(), "no_w_id");
+    EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("no_w_id").Oid());
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
   };
 
