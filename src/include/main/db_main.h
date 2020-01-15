@@ -329,17 +329,19 @@ class DBMain {
                                                                       std::chrono::milliseconds{gc_interval_});
       }
 
+      std::unique_ptr<optimizer::StatsStorage> stats_storage = DISABLED;
+      if (use_stats_storage_) {
+        stats_storage = std::make_unique<optimizer::StatsStorage>();
+      }
+
       std::unique_ptr<trafficcop::TrafficCop> traffic_cop = DISABLED;
       if (use_traffic_cop_) {
         TERRIER_ASSERT(use_catalog_ && catalog_layer->GetCatalog() != DISABLED,
                        "TrafficCopLayer needs the CatalogLayer.");
-        traffic_cop =
-            std::make_unique<trafficcop::TrafficCop>(txn_layer->GetTransactionManager(), catalog_layer->GetCatalog());
-      }
-
-      std::unique_ptr<optimizer::StatsStorage> stats_storage = DISABLED;
-      if (use_stats_storage_) {
-        stats_storage = std::make_unique<optimizer::StatsStorage>();
+        TERRIER_ASSERT(use_stats_storage_ && stats_storage != DISABLED, "TrafficCopLayer needs StatsStorage.");
+        traffic_cop = std::make_unique<trafficcop::TrafficCop>(
+            txn_layer->GetTransactionManager(), catalog_layer->GetCatalog(), DISABLED,
+            common::ManagedPointer(stats_storage), optimizer_timeout_);
       }
 
       std::unique_ptr<NetworkLayer> network_layer = DISABLED;
@@ -364,8 +366,8 @@ class DBMain {
       db_main->storage_layer_ = std::move(storage_layer);
       db_main->catalog_layer_ = std::move(catalog_layer);
       db_main->gc_thread_ = std::move(gc_thread);
-      db_main->traffic_cop_ = std::move(traffic_cop);
       db_main->stats_storage_ = std::move(stats_storage);
+      db_main->traffic_cop_ = std::move(traffic_cop);
       db_main->network_layer_ = std::move(network_layer);
       db_main->execution_layer_ = std::move(execution_layer);
 
@@ -570,6 +572,11 @@ class DBMain {
       return *this;
     }
 
+    Builder &SetOptimizerTimeout(const uint64_t value) {
+      optimizer_timeout_ = value;
+      return *this;
+    }
+
     /**
      * @param value use component
      * @return self reference for chaining
@@ -605,8 +612,9 @@ class DBMain {
     uint64_t block_store_reuse_ = 1e3;
     int32_t gc_interval_ = 10;
     bool use_gc_thread_ = false;
-    bool use_traffic_cop_ = false;
     bool use_stats_storage_ = false;
+    bool use_traffic_cop_ = false;
+    uint64_t optimizer_timeout_ = 5000;
     uint16_t network_port_ = 15721;
     bool use_network_ = false;
     bool use_execution_ = false;
@@ -638,6 +646,7 @@ class DBMain {
       gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
 
       network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
+      optimizer_timeout_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::task_execution_timeout));
 
       return settings_manager;
     }

@@ -14,6 +14,10 @@ class ConnectionContext;
 class PostgresPacketWriter;
 }  // namespace terrier::network
 
+namespace terrier::optimizer {
+class StatsStorage;
+}
+
 namespace terrier::trafficcop {
 
 /**
@@ -33,8 +37,13 @@ class TrafficCop {
    */
   TrafficCop(common::ManagedPointer<transaction::TransactionManager> txn_manager,
              common::ManagedPointer<catalog::Catalog> catalog,
-             common::ManagedPointer<storage::ReplicationLogProvider> replication_log_provider = DISABLED)
-      : txn_manager_(txn_manager), catalog_(catalog), replication_log_provider_(replication_log_provider) {}
+             common::ManagedPointer<storage::ReplicationLogProvider> replication_log_provider,
+             common::ManagedPointer<optimizer::StatsStorage> stats_storage, uint64_t optimizer_timeout)
+      : txn_manager_(txn_manager),
+        catalog_(catalog),
+        replication_log_provider_(replication_log_provider),
+        stats_storage_(stats_storage),
+        optimizer_timeout_(optimizer_timeout) {}
 
   virtual ~TrafficCop() = default;
 
@@ -77,6 +86,8 @@ class TrafficCop {
   common::ManagedPointer<catalog::Catalog> catalog_;
   // Hands logs off to replication component. TCop should forward these logs through this provider.
   common::ManagedPointer<storage::ReplicationLogProvider> replication_log_provider_;
+  common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
+  uint64_t optimizer_timeout_;
 };
 
 }  // namespace terrier::trafficcop

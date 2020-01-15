@@ -10,6 +10,7 @@
 #include "catalog/catalog_accessor.h"
 #include "common/exception.h"
 #include "network/postgres/postgres_packet_writer.h"
+#include "optimizer/statistics/stats_storage.h"
 #include "parser/postgresparser.h"
 #include "traffic_cop/traffic_cop_defs.h"
 #include "traffic_cop/traffic_cop_util.h"
@@ -162,6 +163,10 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
           connection_ctx->Transaction()->SetMustAbort();
         }
       }
+
+      // Optimize
+
+      // Execute
 
       if (single_statement_txn) {
         // decide whether the txn should be committed or aborted based on the MustAbort flag, and then end the txn
