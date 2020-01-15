@@ -51,10 +51,12 @@ void TrafficCop::HandBufferToReplication(std::unique_ptr<network::ReadBuffer> bu
 
 void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                              const common::ManagedPointer<network::PostgresPacketWriter> out,
-                                             const parser::TransactionStatement::CommandType type) {
+                                             const parser::TransactionStatement::CommandType type) const {
   switch (type) {
     case parser::TransactionStatement::CommandType::kBegin: {
-      if (txn != nullptr) {
+      TERRIER_ASSERT(connection_ctx->TransactionState() != network::NetworkTransactionStateType::FAIL,
+                     "We're in an aborted state. This should have been caught already before calling this function.");
+      if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
         out->WriteNoticeResponse("WARNING:  there is already a transaction in progress");
         out->WriteCommandComplete(network::QueryType::QUERY_BEGIN, 0);
         return;
@@ -64,12 +66,12 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
       return;
     }
     case parser::TransactionStatement::CommandType::kCommit: {
-      if (txn == nullptr) {
+      if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE) {
         out->WriteNoticeResponse("WARNING:  there is no transaction in progress");
         out->WriteCommandComplete(network::QueryType::QUERY_COMMIT, 0);
         return;
       }
-      if (txn->MustAbort()) {
+      if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::FAIL) {
         EndTransaction(connection_ctx, network::QueryType::QUERY_ROLLBACK);
         out->WriteCommandComplete(network::QueryType::QUERY_ROLLBACK, 0);
         return;
@@ -79,7 +81,7 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
       return;
     }
     case parser::TransactionStatement::CommandType::kRollback: {
-      if (txn == nullptr) {
+      if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE) {
         out->WriteNoticeResponse("WARNING:  there is no transaction in progress");
         out->WriteCommandComplete(network::QueryType::QUERY_ROLLBACK, 0);
         return;
