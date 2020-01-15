@@ -169,6 +169,8 @@ Transition ConnectionHandle::GetResult() {
 
 Transition ConnectionHandle::TryCloseConnection() {
   NETWORK_LOG_TRACE("Attempt to close the connection {0}", io_wrapper_->GetSocketFd());
+  // TODO(Matt): this feels like it should be in postgres protocol handler, but for some reason the Terminate command
+  // doesn't get that far
   if (context_.GetTempNamespaceOid() != catalog::INVALID_NAMESPACE_OID) {
     while (!traffic_cop_->DropTempNamespace(context_.GetTempNamespaceOid(), context_.GetDatabaseOid())) {
     }

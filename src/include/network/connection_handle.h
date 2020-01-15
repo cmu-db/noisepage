@@ -98,6 +98,7 @@ class ConnectionHandle {
    * @return The transition to trigger in the state machine after
    */
   Transition StartUp() {
+    // TODO(Matt): this feels like it should be in postgres protocol handler
     std::string db_name = catalog::DEFAULT_DATABASE;
 
     auto &cmdline_args = context_.CommandLineArgs();
@@ -105,6 +106,7 @@ class ConnectionHandle {
     if (cmdline_args.find("database") != cmdline_args.end()) {
       if (!cmdline_args["database"].empty()) {
         db_name = cmdline_args["database"];
+        NETWORK_LOG_TRACE(db_name);
       }
     }
 

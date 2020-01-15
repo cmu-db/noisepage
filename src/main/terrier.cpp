@@ -16,6 +16,8 @@ int main(int argc, char *argv[]) {
 
   terrier::LoggersUtil::Initialize();
 
+  terrier::network::network_logger->set_level(spdlog::level::trace);
+
   // initialize stat registry
   auto main_stat_reg =
       std::make_unique<terrier::common::StatisticsRegistry>();  // TODO(Matt): do we still want this thing?
