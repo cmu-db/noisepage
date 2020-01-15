@@ -30,6 +30,7 @@ class ConnectionContext {
   void Reset() {
     cmdline_args_.clear();
     db_oid_ = catalog::INVALID_DATABASE_OID;
+    db_name_.clear();
     temp_namespace_oid_ = catalog::INVALID_NAMESPACE_OID;
     txn_ = nullptr;
     accessor_ = nullptr;
