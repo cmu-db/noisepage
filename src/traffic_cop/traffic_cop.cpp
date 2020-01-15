@@ -18,8 +18,8 @@
 namespace terrier::trafficcop {
 
 void TrafficCop::BeginTransaction(const common::ManagedPointer<network::ConnectionContext> connection_ctx) const {
-  TERRIER_ASSERT(connection_ctx->Transaction() == nullptr,
-                 "Attempting to begin on a ConnectionContext that already has a running txn.");
+  TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE,
+                 "Invalid ConnectionContext state, already in a transaction.");
   const auto txn = txn_manager_->BeginTransaction();
   connection_ctx->SetTransaction(common::ManagedPointer(txn));
   connection_ctx->SetAccessor(catalog_->GetAccessor(common::ManagedPointer(txn), connection_ctx->GetDatabaseOid()));
@@ -27,15 +27,18 @@ void TrafficCop::BeginTransaction(const common::ManagedPointer<network::Connecti
 
 void TrafficCop::CommitTransaction(const common::ManagedPointer<network::ConnectionContext> connection_ctx) const {
   const auto txn = connection_ctx->Transaction();
-  TERRIER_ASSERT(txn != nullptr, "Attempting to commit on a ConnectionContext that doesn't have a running txn.");
-  txn_manager_->Commit(txn.Get(), connection_ctx->Callback(), connection_ctx->CallbackArgs());
+  TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
+                 "Invalid ConnectionContext state, not in a transaction that can be committed.");
+  // TODO(Matt): blocking callback here?
+  txn_manager_->Commit(txn.Get(), connection_ctx->Callback(), connection_ctx->CallbackArg());
   connection_ctx->SetTransaction(nullptr);
   connection_ctx->SetAccessor(nullptr);
 }
 
 void TrafficCop::AbortTransaction(const common::ManagedPointer<network::ConnectionContext> connection_ctx) const {
   const auto txn = connection_ctx->Transaction();
-  TERRIER_ASSERT(txn != nullptr, "Attempting to abort on a ConnectionContext that doesn't have a running txn.");
+  TERRIER_ASSERT(connection_ctx->TransactionState() != network::NetworkTransactionStateType::IDLE,
+                 "Invalid ConnectionContext state, not in a transaction that can be aborted.");
   txn_manager_->Abort(txn.Get());
   connection_ctx->SetTransaction(nullptr);
   connection_ctx->SetAccessor(nullptr);
@@ -54,8 +57,8 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
   TERRIER_ASSERT(parse_result->GetStatements().size() <= 1,
                  "We currently expect one statement per string (psql and oltpbench).");
 
-  // TODO(Matt:) some clients may send multiple statements in a single simple query packet/string. That behavior would
-  // exist here, presumable looping over all of the elements in the ParseResult
+  // TODO(Matt:) some clients may send multiple statements in a single simple query packet/string. Handling that would
+  // probably exist here, looping over all of the elements in the ParseResult
 
   if (parse_result->Empty()) {
     out->WriteEmptyQueryResponse();
@@ -81,7 +84,7 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
             return;
           }
           BeginTransaction(connection_ctx);
-          // output BEGIN?
+          out->WriteCommandComplete("BEGIN");
           return;
         }
         case parser::TransactionStatement::kCommit: {
@@ -90,19 +93,22 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
             return;
           }
           if (txn->MustAbort()) {
-            // postgres returns ROLLBACK
             AbortTransaction(connection_ctx);
+            out->WriteCommandComplete("ROLLBACK");
             return;
           }
           CommitTransaction(connection_ctx);
+          out->WriteCommandComplete("COMMIT");
           return;
         }
         case parser::TransactionStatement::kRollback: {
           if (txn == nullptr) {
             // not in a transaction, postgres returns a warning and ROLLBACK
+            out->WriteCommandComplete("ROLLBACK");
             return;
           }
           AbortTransaction(connection_ctx);
+          out->WriteCommandComplete("ROLLBACK");
           return;
         }
       }
@@ -113,7 +119,8 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
     case parser::StatementType::DELETE:
     case parser::StatementType::CREATE:
     case parser::StatementType::DROP: {
-      const bool single_statement_txn = connection_ctx->Transaction() == nullptr;
+      const bool single_statement_txn =
+          connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE;
 
       if (single_statement_txn) {
         BeginTransaction(connection_ctx);

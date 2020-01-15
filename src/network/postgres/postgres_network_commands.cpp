@@ -2,11 +2,8 @@
 
 #include <memory>
 #include <string>
-#include <utility>
-#include <vector>
 
 #include "network/postgres/postgres_protocol_interpreter.h"
-#include "network/terrier_server.h"
 #include "traffic_cop/traffic_cop.h"
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
@@ -26,8 +23,7 @@ Transition SimpleQueryCommand::Exec(common::ManagedPointer<ProtocolInterpreter> 
   NETWORK_LOG_TRACE("Execute SimpleQuery: {0}", query.c_str());
 
   t_cop->ExecuteSimpleQuery(query, connection, out);
-
-  out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
+  out->WriteReadyForQuery(connection->TransactionState());
   return Transition::PROCEED;
 }
 
@@ -72,11 +68,7 @@ Transition SyncCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpr
                              common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                              common::ManagedPointer<ConnectionContext> connection) {
   NETWORK_LOG_TRACE("Sync query");
-  if (connection->Transaction() != nullptr) {
-    out->WriteReadyForQuery(NetworkTransactionStateType::BLOCK);
-  } else {
-    out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
-  }
+  out->WriteReadyForQuery(connection->TransactionState());
   return Transition::PROCEED;
 }
 

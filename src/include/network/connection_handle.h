@@ -114,7 +114,7 @@ class ConnectionHandle {
     }
     context_.SetDatabaseOid(oids.first);
     context_.SetTempNamespaceOid(oids.second);
-    context_.SetCallback(CommitCallback, this);
+    context_.SetCallback(Callback, this);
     return Transition::PROCEED;
   }
 
@@ -193,7 +193,7 @@ class ConnectionHandle {
    */
   void StopReceivingNetworkEvent() { EventUtil::EventDel(network_event_); }
 
-  static void CommitCallback(void *callback_args) {
+  static void Callback(void *callback_args) {
     auto *const handle = reinterpret_cast<ConnectionHandle *>(callback_args);
     event_active(handle->workpool_event_, EV_WRITE, 0);
   }

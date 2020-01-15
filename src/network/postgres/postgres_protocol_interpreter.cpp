@@ -81,20 +81,20 @@ size_t PostgresProtocolInterpreter::GetPacketHeaderSize() { return startup_ ? si
 void PostgresProtocolInterpreter::SetPacketMessageType(const common::ManagedPointer<ReadBuffer> in) {
   if (!startup_) curr_input_packet_.msg_type_ = in->ReadValue<NetworkMessageType>();
 }
-
-void PostgresProtocolInterpreter::CompleteCommand(PostgresPacketWriter *const out, const QueryType &query_type,
-                                                  int rows) {
-  out->BeginPacket(NetworkMessageType::PG_COMMAND_COMPLETE).EndPacket();
-}
-
-void PostgresProtocolInterpreter::ExecQueryMessageGetResult(PostgresPacketWriter *const out, ResultType status) {
-  CompleteCommand(out, QueryType::QUERY_INVALID, 0);
-
-  out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
-}
-
-void PostgresProtocolInterpreter::ExecExecuteMessageGetResult(PostgresPacketWriter *const out, ResultType status) {
-  CompleteCommand(out, QueryType::QUERY_INVALID, 0);
-}
+//
+//void PostgresProtocolInterpreter::CompleteCommand(PostgresPacketWriter *const out, const QueryType &query_type,
+//                                                  int rows) {
+//  out->BeginPacket(NetworkMessageType::PG_COMMAND_COMPLETE).EndPacket();
+//}
+//
+//void PostgresProtocolInterpreter::ExecQueryMessageGetResult(PostgresPacketWriter *const out, ResultType status) {
+//  CompleteCommand(out, QueryType::QUERY_INVALID, 0);
+//
+//  out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
+//}
+//
+//void PostgresProtocolInterpreter::ExecExecuteMessageGetResult(PostgresPacketWriter *const out, ResultType status) {
+//  CompleteCommand(out, QueryType::QUERY_INVALID, 0);
+//}
 
 }  // namespace terrier::network

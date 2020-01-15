@@ -44,6 +44,10 @@ class PostgresPacketWriter : public PacketWriter {
     BeginPacket(NetworkMessageType::PG_SIMPLE_QUERY_COMMAND).AppendString(query).EndPacket();
   }
 
+  void WriteNoticeResponse(const std::string &message) {
+
+  }
+
   /**
    * Writes an empty query response
    */

@@ -68,8 +68,8 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    * @param out
    */
   void GetResult(const common::ManagedPointer<WriteQueue> out) override {
-    PostgresPacketWriter writer(out);
-    ExecQueryMessageGetResult(&writer, ResultType::SUCCESS);
+//    PostgresPacketWriter writer(out);
+//    ExecQueryMessageGetResult(&writer, ResultType::SUCCESS);
   }
 
   /**
@@ -82,27 +82,27 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   Transition ProcessStartup(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out,
                             common::ManagedPointer<ConnectionContext> context);
 
-  /**
-   *
-   * @param out
-   * @param query_type
-   * @param rows
-   */
-  void CompleteCommand(PostgresPacketWriter *out, const QueryType &query_type, int rows);
-
-  /**
-   *
-   * @param out
-   * @param status
-   */
-  void ExecQueryMessageGetResult(PostgresPacketWriter *out, ResultType status);
-
-  /**
-   *
-   * @param out
-   * @param status
-   */
-  void ExecExecuteMessageGetResult(PostgresPacketWriter *out, ResultType status);
+//  /**
+//   *
+//   * @param out
+//   * @param query_type
+//   * @param rows
+//   */
+//  void CompleteCommand(PostgresPacketWriter *out, const QueryType &query_type, int rows);
+//
+//  /**
+//   *
+//   * @param out
+//   * @param status
+//   */
+//  void ExecQueryMessageGetResult(PostgresPacketWriter *out, ResultType status);
+//
+//  /**
+//   *
+//   * @param out
+//   * @param status
+//   */
+//  void ExecExecuteMessageGetResult(PostgresPacketWriter *out, ResultType status);
 
  protected:
   /**

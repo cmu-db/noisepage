@@ -33,8 +33,8 @@ class ConnectionContext {
     temp_namespace_oid_ = catalog::INVALID_NAMESPACE_OID;
     txn_ = nullptr;
     accessor_ = nullptr;
-    commit_callback_ = nullptr;
-    commit_callback_arg_ = nullptr;
+    callback_ = nullptr;
+    callback_arg_ = nullptr;
   }
 
   catalog::db_oid_t GetDatabaseOid() const { return db_oid_; }
@@ -52,6 +52,16 @@ class ConnectionContext {
    */
   std::unordered_map<std::string, std::string> &CommandLineArgs() { return cmdline_args_; }
 
+  NetworkTransactionStateType TransactionState() const {
+    if (txn_ != nullptr) {
+      if (txn_->MustAbort()) {
+        return NetworkTransactionStateType::FAIL;
+      }
+      return NetworkTransactionStateType::BLOCK;
+    }
+    return NetworkTransactionStateType::IDLE;
+  }
+
   common::ManagedPointer<transaction::TransactionContext> Transaction() const { return txn_; }
 
   void SetTransaction(const common::ManagedPointer<transaction::TransactionContext> txn) { txn_ = txn; }
@@ -66,13 +76,13 @@ class ConnectionContext {
 
   void SetAccessor(std::unique_ptr<catalog::CatalogAccessor> accessor) { accessor_ = std::move(accessor); }
 
-  void SetCallback(const network::NetworkCallback commit_callback, void *const commit_callback_arg) {
-    commit_callback_ = commit_callback;
-    commit_callback_arg_ = commit_callback_arg;
+  void SetCallback(const network::NetworkCallback callback, void *const callback_arg) {
+    callback_ = callback;
+    callback_arg_ = callback_arg;
   }
 
-  network::NetworkCallback Callback() const { return commit_callback_; }
-  void *CallbackArgs() const { return commit_callback_arg_; }
+  network::NetworkCallback Callback() const { return callback_; }
+  void *CallbackArg() const { return callback_arg_; }
 
  private:
   /**
@@ -94,8 +104,8 @@ class ConnectionContext {
 
   std::unique_ptr<catalog::CatalogAccessor> accessor_ = nullptr;
 
-  network::NetworkCallback commit_callback_;
-  void *commit_callback_arg_;
+  network::NetworkCallback callback_;
+  void *callback_arg_;
 };
 
 }  // namespace terrier::network
