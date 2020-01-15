@@ -58,8 +58,8 @@ class CreateViewPlanNode : public AbstractPlanNode {
      * @param view_query view query
      * @return builder object
      */
-    Builder &SetViewQuery(common::ManagedPointer<parser::SelectStatement> view_query) {
-      view_query_ = view_query;
+    Builder &SetViewQuery(std::unique_ptr<parser::SelectStatement> view_query) {
+      view_query_ = std::move(view_query);
       return *this;
     }
 
@@ -70,7 +70,7 @@ class CreateViewPlanNode : public AbstractPlanNode {
     std::unique_ptr<CreateViewPlanNode> Build() {
       return std::unique_ptr<CreateViewPlanNode>(new CreateViewPlanNode(std::move(children_), std::move(output_schema_),
                                                                         database_oid_, namespace_oid_,
-                                                                        std::move(view_name_), view_query_));
+                                                                        std::move(view_name_), std::move(view_query_)));
     }
 
    protected:
@@ -84,7 +84,7 @@ class CreateViewPlanNode : public AbstractPlanNode {
     std::string view_name_;
 
     /** View query */
-    common::ManagedPointer<parser::SelectStatement> view_query_;
+    std::unique_ptr<parser::SelectStatement> view_query_;
   };
 
  private:
@@ -99,12 +99,12 @@ class CreateViewPlanNode : public AbstractPlanNode {
   CreateViewPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                      std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                      catalog::namespace_oid_t namespace_oid, std::string view_name,
-                     common::ManagedPointer<parser::SelectStatement> view_query)
+                     std::unique_ptr<parser::SelectStatement> view_query)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
         namespace_oid_(namespace_oid),
         view_name_(std::move(view_name)),
-        view_query_(view_query) {}
+        view_query_(std::move(view_query)) {}
 
  public:
   /** Default constructor for deserialization. */
@@ -146,7 +146,7 @@ class CreateViewPlanNode : public AbstractPlanNode {
   std::string view_name_;
 
   /** View query */
-  common::ManagedPointer<parser::SelectStatement> view_query_;
+  std::unique_ptr<parser::SelectStatement> view_query_;
 };
 
 DEFINE_JSON_DECLARATIONS(CreateViewPlanNode);

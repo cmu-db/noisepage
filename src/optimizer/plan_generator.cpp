@@ -801,9 +801,57 @@ void PlanGenerator::Visit(const CreateIndex *create_index) {
                      .Build();
 }
 
-void PlanGenerator::Visit(const CreateTable *create_table) {}
+void PlanGenerator::Visit(const CreateTable *create_table) {
+  auto builder = planner::CreateTablePlanNode::Builder();
+  builder.SetNamespaceOid(create_table->GetNamespaceOid());
+  builder.SetTableName(create_table->GetTableName());
+  builder.SetBlockStore(accessor_->GetBlockStore());
 
-void PlanGenerator::Visit(const CreateNamespace *create_namespace) { // NOLINT
+  std::vector<std::string> pk_cols;
+  std::string pk_cname = "pk";
+  std::vector<catalog::Schema::Column> cols;
+  for (auto col : create_table->GetColumns()) {
+    if (col->IsPrimaryKey()) {
+      pk_cols.push_back(col->GetColumnName());
+      pk_cname = pk_cname + "_" + col->GetColumnName();
+    }
+
+    // Unique Constraint
+    if (col->IsUnique()) {
+      builder.ProcessUniqueConstraint(col);
+    }
+
+    // Check Constraint
+    if (col->GetCheckExpression()) {
+      builder.ProcessCheckConstraint(col);
+    }
+
+    auto val_type = col->GetValueType();
+    if (val_type == type::TypeId::VARCHAR || val_type == type::TypeId::VARBINARY) {
+      cols.emplace_back(col->GetColumnName(), val_type, col->GetVarlenSize(), col->IsNullable(),
+                        *col->GetDefaultExpression());
+    } else {
+      cols.emplace_back(col->GetColumnName(), val_type, col->IsNullable(), *col->GetDefaultExpression());
+    }
+  }
+
+  // Process FK
+  for (auto fk : create_table->GetForeignKeys()) {
+    builder.ProcessForeignKeyConstraint(create_table->GetTableName(), fk);
+  }
+
+  // Set PK info
+  if (!pk_cols.empty()) {
+    builder.SetHasPrimaryKey(true);
+    builder.SetPrimaryKey(
+        planner::PrimaryKeyInfo{.primary_key_cols_ = std::move(pk_cols), .constraint_name_ = std::move(pk_cname)});
+  }
+
+  auto schema = std::make_unique<catalog::Schema>(std::move(cols));
+  output_plan_ = builder.Build();
+}
+
+void PlanGenerator::Visit(const CreateNamespace *create_namespace) {
   output_plan_ =
       planner::CreateNamespacePlanNode::Builder().SetNamespaceName(create_namespace->GetNamespaceName()).Build();
 }
@@ -827,7 +875,7 @@ void PlanGenerator::Visit(const CreateView *create_view) {
                      .SetDatabaseOid(create_view->GetDatabaseOid())
                      .SetNamespaceOid(create_view->GetNamespaceOid())
                      .SetViewName(create_view->GetViewName())
-                     .SetViewQuery(create_view->GetViewQuery())
+                     .SetViewQuery(create_view->GetViewQuery()->Copy())
                      .Build();
 }
 
@@ -843,7 +891,7 @@ void PlanGenerator::Visit(const DropIndex *drop_index) {
   output_plan_ = planner::DropIndexPlanNode::Builder().SetIndexOid(drop_index->GetIndexOID()).Build();
 }
 
-void PlanGenerator::Visit(const DropNamespace *drop_namespace) { // NOLINT
+void PlanGenerator::Visit(const DropNamespace *drop_namespace) {
   output_plan_ = planner::DropNamespacePlanNode::Builder().SetNamespaceOid(drop_namespace->GetNamespaceOID()).Build();
 }
 

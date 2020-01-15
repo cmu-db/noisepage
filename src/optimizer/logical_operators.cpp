@@ -1011,7 +1011,7 @@ Operator LogicalCreateView::Make(catalog::db_oid_t database_oid, catalog::namesp
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->view_name_ = std::move(view_name);
-  op->view_query_ = view_query;
+  op->view_query_ = std::move(view_query);
   return Operator(std::move(op));
 }
 

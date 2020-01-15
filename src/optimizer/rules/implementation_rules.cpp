@@ -742,8 +742,22 @@ bool LogicalCreateTableToPhysicalCreateTable::Check(common::ManagedPointer<Opera
 void LogicalCreateTableToPhysicalCreateTable::Transform(common::ManagedPointer<OperatorExpression> input,
                                                         std::vector<std::unique_ptr<OperatorExpression>> *transformed,
                                                         UNUSED_ATTRIBUTE OptimizationContext *context) const {
-  // TODO(wz2): blockstore?
-  TERRIER_ASSERT(0, "Unimplemented...what about blockstore?");
+  auto ct_op = input->GetOp().As<LogicalCreateTable>();
+  TERRIER_ASSERT(input->GetChildren().empty(), "LogicalCreateTable should have 0 children");
+
+  std::vector<common::ManagedPointer<parser::ColumnDefinition>> cols;
+  std::vector<common::ManagedPointer<parser::ColumnDefinition>> fks;
+  for (const auto &col : ct_op->GetColumns()) {
+    cols.push_back(col);
+  }
+  for (const auto &fk : ct_op->GetForeignKeys()) {
+    fks.push_back(fk);
+  }
+
+  auto op = std::make_unique<OperatorExpression>(
+      CreateTable::Make(ct_op->GetNamespaceOid(), ct_op->GetTableName(), std::move(cols), std::move(fks)),
+      std::vector<std::unique_ptr<OperatorExpression>>());
+  transformed->emplace_back(std::move(op));
 }
 
 LogicalCreateNamespaceToPhysicalCreateNamespace::LogicalCreateNamespaceToPhysicalCreateNamespace() {
