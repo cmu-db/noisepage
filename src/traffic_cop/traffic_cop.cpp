@@ -282,18 +282,16 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
       if (!TrafficCopUtil::Bind(connection_ctx->Accessor(), connection_ctx->GetDatabaseName(),
                                 common::ManagedPointer(parse_result))) {
         out->WriteErrorResponse("ERROR:  binding failed");
-        if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
-          // failing to bind fails a transaction in postgres
-          connection_ctx->Transaction()->SetMustAbort();
 
-          if (single_statement_txn) {
-            // decide whether the txn should be committed or aborted based on the MustAbort flag, and then end the txn
-            EndTransaction(connection_ctx, connection_ctx->Transaction()->MustAbort()
-                                               ? network::QueryType::QUERY_ROLLBACK
-                                               : network::QueryType::QUERY_COMMIT);
-          }
-          return;
+        // failing to bind fails a transaction in postgres
+        connection_ctx->Transaction()->SetMustAbort();
+
+        if (single_statement_txn) {
+          // decide whether the txn should be committed or aborted based on the MustAbort flag, and then end the txn
+          EndTransaction(connection_ctx, connection_ctx->Transaction()->MustAbort() ? network::QueryType::QUERY_ROLLBACK
+                                                                                    : network::QueryType::QUERY_COMMIT);
         }
+        return;
       }
 
       auto physical_plan = trafficcop::TrafficCopUtil::Optimize(
