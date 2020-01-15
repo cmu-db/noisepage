@@ -9,9 +9,14 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
 #include "common/exception.h"
+#include "execution/exec/execution_context.h"
+#include "execution/exec/output.h"
+#include "execution/execution_util.h"
+#include "execution/vm/module.h"
 #include "network/postgres/postgres_packet_writer.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "parser/postgresparser.h"
+#include "planner/plannodes/abstract_plan_node.h"
 #include "traffic_cop/traffic_cop_defs.h"
 #include "traffic_cop/traffic_cop_util.h"
 #include "transaction/transaction_manager.h"
@@ -161,18 +166,36 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
         if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
           // failing to bind fails a transaction in postgres
           connection_ctx->Transaction()->SetMustAbort();
+
+          if (single_statement_txn) {
+            // decide whether the txn should be committed or aborted based on the MustAbort flag, and then end the txn
+            EndTransaction(connection_ctx, connection_ctx->Transaction()->MustAbort()
+                                               ? network::QueryType::QUERY_ROLLBACK
+                                               : network::QueryType::QUERY_COMMIT);
+          }
+          return;
         }
       }
 
-      // Optimize
+      auto physical_plan = trafficcop::TrafficCopUtil::Optimize(
+          connection_ctx->Transaction(), connection_ctx->Accessor(), common::ManagedPointer(parse_result),
+          stats_storage_, optimizer_timeout_);
 
-      // Execute
+      execution::exec::OutputPrinter printer{physical_plan->GetOutputSchema().Get()};
+
+      auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
+          connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), printer,
+          physical_plan->GetOutputSchema().Get(), connection_ctx->Accessor());
+
+      auto exec_query =
+          execution::ExecutableQuery(common::ManagedPointer(physical_plan), common::ManagedPointer(exec_ctx));
+
+      exec_query.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
 
       if (single_statement_txn) {
         // decide whether the txn should be committed or aborted based on the MustAbort flag, and then end the txn
-        const auto txn_disposition = connection_ctx->Transaction()->MustAbort() ? network::QueryType::QUERY_ROLLBACK
-                                                                                : network::QueryType::QUERY_COMMIT;
-        EndTransaction(connection_ctx, txn_disposition);
+        EndTransaction(connection_ctx, connection_ctx->Transaction()->MustAbort() ? network::QueryType::QUERY_ROLLBACK
+                                                                                  : network::QueryType::QUERY_COMMIT);
       }
 
       return;
