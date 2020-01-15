@@ -163,7 +163,7 @@ enum class DescribeCommandObjectType : unsigned char { PORTAL = 'P', STATEMENT =
 
 enum class NetworkTransactionStateType : unsigned char {
   INVALID = static_cast<unsigned char>(INVALID_TYPE_ID),
-  IDLE = 'I',
+  IDLE = 'I',   // Not in a transaction block
   BLOCK = 'T',  // In a transaction block
   FAIL = 'E',   // In a failed transaction
 };
