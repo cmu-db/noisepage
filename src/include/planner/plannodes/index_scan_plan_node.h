@@ -367,7 +367,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
-  :ndexScanType scan_type_;
+  IndexScanType scan_type_;
   catalog::index_oid_t index_oid_;
   catalog::table_oid_t table_oid_;
   std::vector<catalog::col_oid_t> column_oids_;
