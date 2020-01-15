@@ -23,7 +23,7 @@ std::unique_ptr<parser::ParseResult> TrafficCopUtil::Parse(const std::string &qu
   try {
     parse_result = parser::PostgresParser::BuildParseTree(query_string);
   } catch (const Exception &e) {
-    // Failed to parse, handle this
+    // Failed to parse, handle this in some more verbose manner
   }
   return parse_result;
 }

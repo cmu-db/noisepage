@@ -99,6 +99,15 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
   // Attempt to parse the statement first
   auto parse_result = TrafficCopUtil::Parse(simple_query);
 
+  if (parse_result == nullptr) {
+    out->WriteErrorResponse("ERROR:  syntax error");
+    if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
+      // failing to parse fails a transaction in postgres
+      connection_ctx->Transaction()->SetMustAbort();
+    }
+    return;
+  }
+
   TERRIER_ASSERT(parse_result->GetStatements().size() <= 1,
                  "We currently expect one statement per string (psql and oltpbench).");
 

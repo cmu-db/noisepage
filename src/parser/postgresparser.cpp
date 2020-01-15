@@ -50,6 +50,8 @@ std::unique_ptr<parser::ParseResult> PostgresParser::BuildParseTree(const std::s
     PARSER_LOG_DEBUG("BuildParseTree error: msg {}, curpos {}", result.error->message, result.error->cursorpos);
     pg_query_parse_finish(ctx);
     pg_query_free_parse_result(result);
+    // TODO(Matt): we just destroyed all of the information we probably wanted to return to the client to match
+    // postgres' behavior
     throw PARSER_EXCEPTION("BuildParseTree error");
   }
 
