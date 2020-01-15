@@ -6,6 +6,7 @@
 
 #include "catalog/catalog.h"
 #include "network/postgres/postgres_protocol_utils.h"
+#include "parser/transaction_statement.h"
 #include "storage/recovery/replication_log_provider.h"
 
 namespace terrier::network {
@@ -66,8 +67,11 @@ class TrafficCop {
 
  private:
   void BeginTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
-  void CommitTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
-  void AbortTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
+  void EndTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                      network::QueryType query_type) const;
+  void ExecuteTransactionStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                   common::ManagedPointer<network::PostgresPacketWriter> out,
+                                   parser::TransactionStatement::CommandType type) const;
 
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   common::ManagedPointer<catalog::Catalog> catalog_;

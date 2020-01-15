@@ -54,7 +54,7 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const common::ManagedPoin
   // Process startup packet
   if (PROTO_MAJOR_VERSION(proto_version) != 3) {
     NETWORK_LOG_TRACE("Protocol error: only protocol version 3 is supported");
-    writer.WriteErrorResponse({{NetworkMessageType::PG_HUMAN_READABLE_ERROR, "Protocol Version Not Supported"}});
+    writer.WriteErrorResponse("Protocol Version Not Supported");
     return Transition::TERMINATE;
   }
 

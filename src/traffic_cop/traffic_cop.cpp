@@ -25,21 +25,21 @@ void TrafficCop::BeginTransaction(const common::ManagedPointer<network::Connecti
   connection_ctx->SetAccessor(catalog_->GetAccessor(common::ManagedPointer(txn), connection_ctx->GetDatabaseOid()));
 }
 
-void TrafficCop::CommitTransaction(const common::ManagedPointer<network::ConnectionContext> connection_ctx) const {
+void TrafficCop::EndTransaction(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                const network::QueryType query_type) const {
+  TERRIER_ASSERT(query_type == network::QueryType::QUERY_COMMIT || query_type == network::QueryType::QUERY_ROLLBACK,
+                 "EndTransaction called with invalid QueryType.");
   const auto txn = connection_ctx->Transaction();
-  TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
-                 "Invalid ConnectionContext state, not in a transaction that can be committed.");
-  // TODO(Matt): blocking callback here?
-  txn_manager_->Commit(txn.Get(), connection_ctx->Callback(), connection_ctx->CallbackArg());
-  connection_ctx->SetTransaction(nullptr);
-  connection_ctx->SetAccessor(nullptr);
-}
-
-void TrafficCop::AbortTransaction(const common::ManagedPointer<network::ConnectionContext> connection_ctx) const {
-  const auto txn = connection_ctx->Transaction();
-  TERRIER_ASSERT(connection_ctx->TransactionState() != network::NetworkTransactionStateType::IDLE,
-                 "Invalid ConnectionContext state, not in a transaction that can be aborted.");
-  txn_manager_->Abort(txn.Get());
+  if (query_type == network::QueryType::QUERY_COMMIT) {
+    TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
+                   "Invalid ConnectionContext state, not in a transaction that can be committed.");
+    // TODO(Matt): blocking callback here?
+    txn_manager_->Commit(txn.Get(), connection_ctx->Callback(), connection_ctx->CallbackArg());
+  } else {
+    TERRIER_ASSERT(connection_ctx->TransactionState() != network::NetworkTransactionStateType::IDLE,
+                   "Invalid ConnectionContext state, not in a transaction that can be aborted.");
+    txn_manager_->Abort(txn.Get());
+  }
   connection_ctx->SetTransaction(nullptr);
   connection_ctx->SetAccessor(nullptr);
 }
@@ -47,6 +47,48 @@ void TrafficCop::AbortTransaction(const common::ManagedPointer<network::Connecti
 void TrafficCop::HandBufferToReplication(std::unique_ptr<network::ReadBuffer> buffer) {
   TERRIER_ASSERT(replication_log_provider_ != DISABLED, "Should not be handing off logs if no log provider was given");
   replication_log_provider_->HandBufferToReplication(std::move(buffer));
+}
+
+void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                             const common::ManagedPointer<network::PostgresPacketWriter> out,
+                                             const parser::TransactionStatement::CommandType type) {
+  switch (type) {
+    case parser::TransactionStatement::CommandType::kBegin: {
+      if (txn != nullptr) {
+        out->WriteNoticeResponse("WARNING:  there is already a transaction in progress");
+        out->WriteCommandComplete(network::QueryType::QUERY_BEGIN, 0);
+        return;
+      }
+      BeginTransaction(connection_ctx);
+      out->WriteCommandComplete(network::QueryType::QUERY_BEGIN, 0);
+      return;
+    }
+    case parser::TransactionStatement::CommandType::kCommit: {
+      if (txn == nullptr) {
+        out->WriteNoticeResponse("WARNING:  there is no transaction in progress");
+        out->WriteCommandComplete(network::QueryType::QUERY_COMMIT, 0);
+        return;
+      }
+      if (txn->MustAbort()) {
+        EndTransaction(connection_ctx, network::QueryType::QUERY_ROLLBACK);
+        out->WriteCommandComplete(network::QueryType::QUERY_ROLLBACK, 0);
+        return;
+      }
+      EndTransaction(connection_ctx, network::QueryType::QUERY_COMMIT);
+      out->WriteCommandComplete(network::QueryType::QUERY_COMMIT, 0);
+      return;
+    }
+    case parser::TransactionStatement::CommandType::kRollback: {
+      if (txn == nullptr) {
+        out->WriteNoticeResponse("WARNING:  there is no transaction in progress");
+        out->WriteCommandComplete(network::QueryType::QUERY_ROLLBACK, 0);
+        return;
+      }
+      EndTransaction(connection_ctx, network::QueryType::QUERY_ROLLBACK);
+      out->WriteCommandComplete(network::QueryType::QUERY_ROLLBACK, 0);
+      return;
+    }
+  }
 }
 
 void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
@@ -66,52 +108,17 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
   }
 
   const auto statement = parse_result->GetStatement(0);
-  const auto txn = connection_ctx->Transaction();
 
-  if (txn != nullptr && txn->MustAbort()) {
-    // ERROR:  current transaction is aborted, commands ignored until end of transaction block
+  if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::FAIL) {
+    out->WriteErrorResponse("ERROR:  current transaction is aborted, commands ignored until end of transaction block");
     return;
   }
 
   switch (statement->GetType()) {
     case parser::StatementType::TRANSACTION: {
-      // It's a BEGIN, COMMIT, or ROLLBACK
-      auto txn_statement = statement.CastManagedPointerTo<parser::TransactionStatement>();
-      switch (txn_statement->GetTransactionType()) {
-        case parser::TransactionStatement::kBegin: {
-          if (txn != nullptr) {
-            // already in a transaction, postgres returns a warning
-            return;
-          }
-          BeginTransaction(connection_ctx);
-          out->WriteCommandComplete("BEGIN");
-          return;
-        }
-        case parser::TransactionStatement::kCommit: {
-          if (txn == nullptr) {
-            // not in a transaction, postgres returns a warning and COMMIT
-            return;
-          }
-          if (txn->MustAbort()) {
-            AbortTransaction(connection_ctx);
-            out->WriteCommandComplete("ROLLBACK");
-            return;
-          }
-          CommitTransaction(connection_ctx);
-          out->WriteCommandComplete("COMMIT");
-          return;
-        }
-        case parser::TransactionStatement::kRollback: {
-          if (txn == nullptr) {
-            // not in a transaction, postgres returns a warning and ROLLBACK
-            out->WriteCommandComplete("ROLLBACK");
-            return;
-          }
-          AbortTransaction(connection_ctx);
-          out->WriteCommandComplete("ROLLBACK");
-          return;
-        }
-      }
+      const auto txn_statement = statement.CastManagedPointerTo<parser::TransactionStatement>();
+      ExecuteTransactionStatement(txn_statement->GetTransactionType());
+      return;
     }
     case parser::StatementType::SELECT:
     case parser::StatementType::INSERT:

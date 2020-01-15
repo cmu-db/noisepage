@@ -76,6 +76,7 @@ enum class NetworkMessageType : unsigned char {
   PG_COMMAND_COMPLETE = 'C',
   PG_PARAMETER_STATUS = 'S',
   PG_AUTHENTICATION_REQUEST = 'R',
+  PG_NOTICE_RESPONSE = 'N',
   PG_ERROR_RESPONSE = 'E',
   PG_EMPTY_QUERY_RESPONSE = 'I',
   PG_NO_DATA_RESPONSE = 'n',
@@ -83,7 +84,8 @@ enum class NetworkMessageType : unsigned char {
   PG_PARAMETER_DESCRIPTION = 't',
   PG_ROW_DESCRIPTION = 'T',
   PG_DATA_ROW = 'D',
-  // Errors
+  // Errors  // TODO(Matt): These should be their own enums. They're field types for ErrorResponse and NoticeResponse,
+  // not message types
   PG_HUMAN_READABLE_ERROR = 'M',
   PG_SQLSTATE_CODE_ERROR = 'C',
   // Commands
@@ -113,53 +115,53 @@ enum class NetworkMessageType : unsigned char {
 //===--------------------------------------------------------------------===//
 
 enum class DescribeCommandObjectType : unsigned char { PORTAL = 'P', STATEMENT = 'S' };
-//
-////===--------------------------------------------------------------------===//
-//// Query Types
-////===--------------------------------------------------------------------===//
-//
-// enum class QueryType {
-//  QUERY_BEGIN = 0,         // begin query
-//  QUERY_COMMIT = 1,        // commit query
-//  QUERY_ROLLBACK = 2,      // rollback query
-//  QUERY_CREATE_TABLE = 3,  // create query
-//  QUERY_CREATE_DB = 4,
-//  QUERY_CREATE_INDEX = 5,
-//  QUERY_DROP = 6,     // other queries
-//  QUERY_INSERT = 7,   // insert query
-//  QUERY_PREPARE = 8,  // prepare query
-//  QUERY_EXECUTE = 9,  // execute query
-//  QUERY_UPDATE = 10,
-//  QUERY_DELETE = 11,
-//  QUERY_RENAME = 12,
-//  QUERY_ALTER = 13,
-//  QUERY_COPY = 14,
-//  QUERY_ANALYZE = 15,
-//  QUERY_SET = 16,   // set query
-//  QUERY_SHOW = 17,  // show query
-//  QUERY_SELECT = 18,
-//  QUERY_OTHER = 19,
-//  QUERY_INVALID = 20,
-//  QUERY_CREATE_TRIGGER = 21,
-//  QUERY_CREATE_SCHEMA = 22,
-//  QUERY_CREATE_VIEW = 23,
-//  QUERY_EXPLAIN = 24
-//};
-//
-////===--------------------------------------------------------------------===//
-//// Result Types
-////===--------------------------------------------------------------------===//
-//
-// enum class ResultType {
-//  INVALID = INVALID_TYPE_ID,  // invalid result type
-//  SUCCESS = 1,
-//  FAILURE = 2,
-//  ABORTED = 3,  // aborted
-//  NOOP = 4,     // no op
-//  UNKNOWN = 5,
-//  QUEUING = 6,
-//  TO_ABORT = 7,
-//};
+
+//===--------------------------------------------------------------------===//
+// Query Types
+//===--------------------------------------------------------------------===//
+
+enum class QueryType {
+  QUERY_BEGIN = 0,         // begin query
+  QUERY_COMMIT = 1,        // commit query
+  QUERY_ROLLBACK = 2,      // rollback query
+  QUERY_CREATE_TABLE = 3,  // create query
+  QUERY_CREATE_DB = 4,
+  QUERY_CREATE_INDEX = 5,
+  QUERY_DROP = 6,     // other queries
+  QUERY_INSERT = 7,   // insert query
+  QUERY_PREPARE = 8,  // prepare query
+  QUERY_EXECUTE = 9,  // execute query
+  QUERY_UPDATE = 10,
+  QUERY_DELETE = 11,
+  QUERY_RENAME = 12,
+  QUERY_ALTER = 13,
+  QUERY_COPY = 14,
+  QUERY_ANALYZE = 15,
+  QUERY_SET = 16,   // set query
+  QUERY_SHOW = 17,  // show query
+  QUERY_SELECT = 18,
+  QUERY_OTHER = 19,
+  QUERY_INVALID = 20,
+  QUERY_CREATE_TRIGGER = 21,
+  QUERY_CREATE_SCHEMA = 22,
+  QUERY_CREATE_VIEW = 23,
+  QUERY_EXPLAIN = 24
+};
+
+//===--------------------------------------------------------------------===//
+// Result Types
+//===--------------------------------------------------------------------===//
+
+enum class ResultType {
+  INVALID = INVALID_TYPE_ID,  // invalid result type
+  SUCCESS = 1,
+  FAILURE = 2,
+  ABORTED = 3,  // aborted
+  NOOP = 4,     // no op
+  UNKNOWN = 5,
+  QUEUING = 6,
+  TO_ABORT = 7,
+};
 
 enum class NetworkTransactionStateType : unsigned char {
   INVALID = static_cast<unsigned char>(INVALID_TYPE_ID),

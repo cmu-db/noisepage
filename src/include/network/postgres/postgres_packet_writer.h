@@ -27,7 +27,19 @@ class PostgresPacketWriter : public PacketWriter {
   }
 
   void WriteNoticeResponse(const std::string &message) {
+    BeginPacket(NetworkMessageType::PG_NOTICE_RESPONSE)
+        .AppendRawValue(NetworkMessageType::PG_HUMAN_READABLE_ERROR)
+        .AppendString(message)
+        .AppendRawValue<uchar>(0)
+        .EndPacket();  // Nul-terminate packet
+  }
 
+  void WriteErrorResponse(const std::string &message) {
+    BeginPacket(NetworkMessageType::PG_ERROR_RESPONSE)
+        .AppendRawValue(NetworkMessageType::PG_HUMAN_READABLE_ERROR)
+        .AppendString(message)
+        .AppendRawValue<uchar>(0)
+        .EndPacket();  // Nul-terminate packet
   }
 
   /**
@@ -106,6 +118,35 @@ class PostgresPacketWriter : public PacketWriter {
    */
   void WriteCommandComplete(const std::string &tag) {
     BeginPacket(NetworkMessageType::PG_COMMAND_COMPLETE).AppendString(tag).EndPacket();
+  }
+
+  void WriteCommandComplete(const QueryType query_type, const uint32_t num_rows) {
+    switch (query_type) {
+      case QueryType::QUERY_BEGIN:
+        WriteCommandComplete("BEGIN");
+        break;
+      case QueryType::QUERY_COMMIT:
+        WriteCommandComplete("COMMIT");
+        break;
+      case QueryType::QUERY_ROLLBACK:
+        WriteCommandComplete("ROLLBACK");
+        break;
+      case QueryType::QUERY_INSERT:
+        WriteCommandComplete("INSERT 0 " + std::to_string(num_rows));
+        break;
+      case QueryType::QUERY_DELETE:
+        WriteCommandComplete("DELETE " + std::to_string(num_rows));
+        break;
+      case QueryType::QUERY_UPDATE:
+        WriteCommandComplete("UPDATE " + std::to_string(num_rows));
+        break;
+      case QueryType::QUERY_SELECT:
+        WriteCommandComplete("SELECT " + std::to_string(num_rows));
+        break;
+      default:
+        WriteCommandComplete("This QueryType needs a completion message!");
+        break;
+    }
   }
 
   /**
