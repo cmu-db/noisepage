@@ -52,7 +52,10 @@ class ConnectionHandle {
       : io_wrapper_(std::make_unique<NetworkIoWrapper>(sock_fd)),
         conn_handler_(handler),
         traffic_cop_(tcop),
-        protocol_interpreter_(std::move(interpreter)) {}
+        protocol_interpreter_(std::move(interpreter)) {
+    context_.SetCallback(Callback, this);
+    context_.SetConnectionID(static_cast<connection_id_t>(sock_fd));
+  }
 
   ~ConnectionHandle() { context_.Reset(); }
 
@@ -92,35 +95,6 @@ class ConnectionHandle {
     state_machine_.Accept(t, common::ManagedPointer<ConnectionHandle>(this));
   }
 
-  /* State Machine Actions */
-  /**
-   * @brief Actions performed after receiving startup packet
-   * @return The transition to trigger in the state machine after
-   */
-  Transition StartUp() {
-    // TODO(Matt): this feels like it should be in postgres protocol handler
-    std::string db_name = catalog::DEFAULT_DATABASE;
-
-    auto &cmdline_args = context_.CommandLineArgs();
-
-    if (cmdline_args.find("database") != cmdline_args.end()) {
-      if (!cmdline_args["database"].empty()) {
-        db_name = cmdline_args["database"];
-        NETWORK_LOG_TRACE(db_name);
-      }
-    }
-
-    auto oids = traffic_cop_->CreateTempNamespace(io_wrapper_->GetSocketFd(), db_name);
-    while (oids.first == catalog::INVALID_DATABASE_OID || oids.second == catalog::INVALID_NAMESPACE_OID) {
-      oids = traffic_cop_->CreateTempNamespace(io_wrapper_->GetSocketFd(), db_name);
-    }
-    context_.SetDatabaseName(std::move(db_name));
-    context_.SetDatabaseOid(oids.first);
-    context_.SetTempNamespaceOid(oids.second);
-    context_.SetCallback(Callback, this);
-    return Transition::PROCEED;
-  }
-
   /**
    * @brief Tries to read from the event port onto the read buffer
    * @return The transition to trigger in the state machine after
@@ -144,14 +118,6 @@ class ConnectionHandle {
   Transition Process() {
     auto transition = protocol_interpreter_->Process(io_wrapper_->GetReadBuffer(), io_wrapper_->GetWriteQueue(),
                                                      traffic_cop_, common::ManagedPointer(&context_));
-
-    /**
-     * Additional processing for starting up a new connection. This is an intermediate state that does not wait for
-     * an event from libevent
-     */
-    if (transition == Transition::STARTUP) {
-      transition = StartUp();
-    }
     return transition;
   }
 

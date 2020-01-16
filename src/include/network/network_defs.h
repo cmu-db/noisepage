@@ -26,6 +26,10 @@ namespace terrier::network {
 class PostgresPacketWriter;
 class ReadBuffer;
 
+// This is to be stashed in a ConnectionContext as a unique identifier. This is really just the socket, but we don't
+// want anyone using it to directly access the socket downstream
+STRONG_TYPEDEF(connection_id_t, uint16_t);
+
 // For threads
 #define CONNECTION_THREAD_COUNT 4
 

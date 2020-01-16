@@ -28,6 +28,7 @@ class ConnectionContext {
    * This is called when its connection handle is reused to occupy another connection or destroyed.
    */
   void Reset() {
+    connection_id_ = static_cast<connection_id_t>(0);
     cmdline_args_.clear();
     db_oid_ = catalog::INVALID_DATABASE_OID;
     db_name_.clear();
@@ -42,6 +43,13 @@ class ConnectionContext {
   catalog::namespace_oid_t GetTempNamespaceOid() const { return temp_namespace_oid_; }
   void SetDatabaseOid(const catalog::db_oid_t db_oid) { db_oid_ = db_oid; }
   void SetTempNamespaceOid(const catalog::namespace_oid_t ns_oid) { temp_namespace_oid_ = ns_oid; }
+  connection_id_t GetConnectionID() const { return connection_id_; }
+
+  /**
+   * To be used by the ConnectionHandle during its constructor.
+   * @param connection_id
+   */
+  void SetConnectionID(const connection_id_t connection_id) { connection_id_ = connection_id; }
 
   const std::string &GetDatabaseName() const { return db_name_; }
   void SetDatabaseName(std::string &&db_name) { db_name_ = std::move(db_name); }
@@ -89,6 +97,12 @@ class ConnectionContext {
   void *CallbackArg() const { return callback_arg_; }
 
  private:
+  /**
+   * This is a unique identifier (among currently open connections, not over the lifetime of the system) for this
+   * connection.
+   */
+  connection_id_t connection_id_;
+
   /**
    * Commandline arguments parsed from protocol interpreter
    */

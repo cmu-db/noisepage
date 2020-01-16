@@ -69,7 +69,7 @@ class TrafficCop {
    * @param database_name the name of the database the connection is accessing
    * @return a pair of OIDs for the database and the temporary namespace
    */
-  std::pair<catalog::db_oid_t, catalog::namespace_oid_t> CreateTempNamespace(int sockfd,
+  std::pair<catalog::db_oid_t, catalog::namespace_oid_t> CreateTempNamespace(network::connection_id_t connection_id,
                                                                              const std::string &database_name);
 
   /**

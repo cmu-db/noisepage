@@ -63,6 +63,10 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
                      common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                      common::ManagedPointer<ConnectionContext> context) override;
 
+  void Teardown(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out,
+                common::ManagedPointer<trafficcop::TrafficCop> t_cop,
+                common::ManagedPointer<ConnectionContext> context) override;
+
   // TODO(Tianyu): Fill in the following documentation at some point
   /**
    *
@@ -81,6 +85,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    * @return
    */
   Transition ProcessStartup(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out,
+                            common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                             common::ManagedPointer<ConnectionContext> context);
 
  protected:

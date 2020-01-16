@@ -27,7 +27,7 @@ Transition PostgresProtocolInterpreter::Process(common::ManagedPointer<ReadBuffe
     // Always flush startup packet response
     out->ForceFlush();
     curr_input_packet_.Clear();
-    return ProcessStartup(in, out, context);
+    return ProcessStartup(in, out, t_cop, context);
   }
   auto command = command_factory_->PacketToCommand(common::ManagedPointer<InputPacket>(&curr_input_packet_));
   PostgresPacketWriter writer(out);
@@ -40,7 +40,8 @@ Transition PostgresProtocolInterpreter::Process(common::ManagedPointer<ReadBuffe
 
 Transition PostgresProtocolInterpreter::ProcessStartup(const common::ManagedPointer<ReadBuffer> in,
                                                        const common::ManagedPointer<WriteQueue> out,
-                                                       common::ManagedPointer<ConnectionContext> context) {
+                                                       const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
+                                                       const common::ManagedPointer<ConnectionContext> context) {
   PostgresPacketWriter writer(out);
   auto proto_version = in->ReadValue<uint32_t>();
   NETWORK_LOG_TRACE("protocol version: {0}", proto_version);
@@ -71,9 +72,50 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const common::ManagedPoin
   // skip the last nul byte
   in->Skip(1);
   // TODO(Tianyu): Implement authentication. For now we always send AuthOK
+
+  // Create a temp namespace for this connection
+  std::string db_name = catalog::DEFAULT_DATABASE;
+  auto &cmdline_args = context->CommandLineArgs();
+  if (cmdline_args.find("database") != cmdline_args.end()) {
+    if (!cmdline_args["database"].empty()) {
+      db_name = cmdline_args["database"];
+      NETWORK_LOG_TRACE(db_name);
+    }
+  }
+  auto oids = t_cop->CreateTempNamespace(context->GetConnectionID(), db_name);
+  if (oids.first == catalog::INVALID_DATABASE_OID) {
+    // Invalid database name
+    // TODO(Matt): need to actually return an error to the client
+    return Transition::TERMINATE;
+  }
+  if (oids.second == catalog::INVALID_NAMESPACE_OID) {
+    // Failed to create temporary namespace. Client should retry.
+    // TODO(Matt): need to actually return an error to the client
+    return Transition::TERMINATE;
+  }
+
+  // Temp namespace creation succeeded, stash some metadata about it in the ConnectionContext
+  context->SetDatabaseName(std::move(db_name));
+  context->SetDatabaseOid(oids.first);
+  context->SetTempNamespaceOid(oids.second);
+
+  // All done
   writer.WriteStartupResponse();
   startup_ = false;
-  return Transition::STARTUP;
+  return Transition::PROCEED;
+}
+
+void PostgresProtocolInterpreter::Teardown(const common::ManagedPointer<ReadBuffer> in,
+                                           const common::ManagedPointer<WriteQueue> out,
+                                           const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
+                                           const common::ManagedPointer<ConnectionContext> context) {
+  // Drop the temp namespace (if it exists) for this connection. It's possible that temporary namespace failed to be
+  // created and we're closing the connection for that reason, in
+  // case there's nothing to drop
+  if (context->GetTempNamespaceOid() != catalog::INVALID_NAMESPACE_OID) {
+    while (!t_cop->DropTempNamespace(context->GetTempNamespaceOid(), context->GetDatabaseOid())) {
+    }
+  }
 }
 
 size_t PostgresProtocolInterpreter::GetPacketHeaderSize() { return startup_ ? sizeof(uint32_t) : 1 + sizeof(uint32_t); }
