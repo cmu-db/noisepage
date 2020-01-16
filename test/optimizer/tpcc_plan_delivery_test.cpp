@@ -353,15 +353,6 @@ TEST_F(TpccPlanDeliveryTests, UpdateCustomBalanceDeliveryCount) {
     std::vector<catalog::col_oid_t> update_oids{schema.GetColumn("c_balance").Oid(),
                                                 schema.GetColumn("c_delivery_cnt").Oid()};
 
-    std::vector<int> update_idxs(2, -1);
-    for (size_t i = 0; i < schema.GetColumns().size(); i++) {
-      if (schema.GetColumns()[i].Name() == "c_balance") {
-        update_idxs[0] = static_cast<int>(i);
-      } else if (schema.GetColumns()[i].Name() == "c_delivery_cnt") {
-        update_idxs[1] = static_cast<int>(i);
-      }
-    }
-
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::UPDATE);
     auto update = reinterpret_cast<planner::UpdatePlanNode *>(plan.get());
     EXPECT_EQ(update->GetDatabaseOid(), test->db_);
@@ -374,9 +365,8 @@ TEST_F(TpccPlanDeliveryTests, UpdateCustomBalanceDeliveryCount) {
       EXPECT_EQ(update->GetSetClauses()[idx].first, update_oids[idx]);
       auto expr = update->GetSetClauses()[idx].second;
       EXPECT_EQ(expr->GetExpressionType(), parser::ExpressionType::OPERATOR_PLUS);
-      auto dve = expr->GetChild(0).CastManagedPointerTo<parser::DerivedValueExpression>();
-      EXPECT_EQ(dve->GetTupleIdx(), 0);
-      EXPECT_EQ(dve->GetValueIdx(), update_idxs[idx]);
+      auto dve = expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+      EXPECT_EQ(dve->GetColumnOid(), update_oids[idx]);
 
       auto cve = expr->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
       EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);

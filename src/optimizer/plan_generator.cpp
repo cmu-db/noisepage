@@ -685,7 +685,9 @@ void PlanGenerator::Visit(const Update *op) {
       throw SYNTAX_EXCEPTION("Multiple assignments to same column");
 
     update_col_offsets.insert(col_id);
-    builder.AddSetClause(std::make_pair(col_id, update->GetUpdateValue()));
+    auto upd_value = update->GetUpdateValue()->Copy().release();
+    builder.AddSetClause(std::make_pair(col_id, common::ManagedPointer(upd_value)));
+    RegisterPointerCleanup<parser::AbstractExpression>(upd_value, true, true);
   }
 
   // Empty OutputSchema for update

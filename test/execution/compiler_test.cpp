@@ -1733,12 +1733,8 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan1 = builder.SetOutputSchema(std::move(schema))
-                    .SetColumnOids({
-                        table_schema1.GetColumn("colA").Oid(),
-                        table_schema1.GetColumn("colB").Oid(),
-                        table_schema1.GetColumn("colC").Oid(),
-                        table_schema1.GetColumn("colD").Oid()
-                    })
+                    .SetColumnOids({table_schema1.GetColumn("colA").Oid(), table_schema1.GetColumn("colB").Oid(),
+                                    table_schema1.GetColumn("colC").Oid(), table_schema1.GetColumn("colD").Oid()})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
                     .SetNamespaceOid(NSOid())
