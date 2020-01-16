@@ -23,7 +23,7 @@ bool TrafficCopUtil::Bind(const common::ManagedPointer<catalog::CatalogAccessor>
   try {
     binder::BindNodeVisitor visitor(accessor, db_name);
     visitor.BindNameToNode(query->GetStatement(0), query.Get());
-  } catch (const Exception &e) {
+  } catch (...) {
     // Failed to bind
     // TODO(Matt): handle this in some more verbose manner for the client (return more state)
     return false;

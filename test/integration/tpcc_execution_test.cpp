@@ -68,7 +68,7 @@ class TpccExecutionTest : public TerrierTest {
 };
 
 // NOLINTNEXTLINE
-TEST_F(TpccExecutionTest, SimpleTest) {
+TEST_F(TpccExecutionTest, DISABLED_SimpleTest) {
   //  const std::string query_string = "INSERT INTO HISTORY VALUES (1,1,1,1,1,1,1.0,'A')";
   const std::string query_string = "INSERT INTO \"NEW ORDER\" VALUES (1,2,3)";
   //  const std::string query_string = "SELECT * FROM \"NEW ORDER\"";
@@ -86,8 +86,6 @@ TEST_F(TpccExecutionTest, SimpleTest) {
                                            common::ManagedPointer(query), stats_storage_, optimizer_timeout_);
 
   execution::exec::OutputPrinter printer{physical_plan->GetOutputSchema().Get()};
-
-  //  std::cout << physical_plan->ToJson() << std::endl;
 
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(tpcc_db_->db_oid_, common::ManagedPointer(txn),
                                                                       printer, physical_plan->GetOutputSchema().Get(),

@@ -235,7 +235,7 @@ std::unique_ptr<parser::ParseResult> TrafficCop::ParseQuery(
   std::unique_ptr<parser::ParseResult> parse_result;
   try {
     parse_result = parser::PostgresParser::BuildParseTree(query);
-  } catch (const Exception &e) {
+  } catch (...) {
     // Failed to parse
     // TODO(Matt): handle this in some more verbose manner for the client (return more state)
   }

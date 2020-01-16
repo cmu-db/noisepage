@@ -1,9 +1,9 @@
 #pragma once
 
 #include <memory>
-#include <utility>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
