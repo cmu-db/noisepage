@@ -242,49 +242,6 @@ std::unique_ptr<parser::ParseResult> TrafficCop::ParseQuery(
   return parse_result;
 }
 
-void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
-                                    const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                    const common::ManagedPointer<network::PostgresPacketWriter> out) const {
-  const auto parse_result = ParseQuery(simple_query, connection_ctx, out);
-
-  if (parse_result == nullptr) {
-    out->WriteErrorResponse("ERROR:  syntax error");
-    if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
-      // failing to parse fails a transaction in postgres
-      connection_ctx->Transaction()->SetMustAbort();
-    }
-    return;
-  }
-
-  TERRIER_ASSERT(parse_result->GetStatements().size() <= 1,
-                 "We currently expect one statement per string (psql and oltpbench).");
-
-  // TODO(Matt:) some clients may send multiple statements in a single SimpleQuery packet/string. Handling that would
-  // probably exist here, looping over all of the elements in the ParseResult
-
-  // Empty queries get a special response in postgres and do not care if they're in a failed txn block
-  if (parse_result->Empty()) {
-    out->WriteEmptyQueryResponse();
-    return;
-  }
-
-  // It parsed and we've got our single statement
-  const auto statement = parse_result->GetStatement(0);
-  const auto statement_type = statement->GetType();
-
-  // Check if we're in a must-abort situation first before attempting to issue any statement other than ROLLBACK
-  if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::FAIL &&
-      (statement_type != parser::StatementType::TRANSACTION ||
-       statement.CastManagedPointerTo<parser::TransactionStatement>()->GetTransactionType() ==
-           parser::TransactionStatement::CommandType::kBegin)) {
-    out->WriteErrorResponse("ERROR:  current transaction is aborted, commands ignored until end of transaction block");
-    return;
-  }
-
-  ExecuteStatement(connection_ctx, out, common::ManagedPointer(parse_result), parse_result->GetStatement(0),
-                   statement_type);
-}
-
 void TrafficCop::ExecuteStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                   const common::ManagedPointer<network::PostgresPacketWriter> out,
                                   const common::ManagedPointer<parser::ParseResult> parse_result,
@@ -308,6 +265,7 @@ void TrafficCop::ExecuteStatement(const common::ManagedPointer<network::Connecti
       const bool single_statement_txn =
           connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE;
 
+      // Begin a txn, if necessary
       if (single_statement_txn) {
         BeginTransaction(connection_ctx);
       }
@@ -322,6 +280,7 @@ void TrafficCop::ExecuteStatement(const common::ManagedPointer<network::Connecti
         connection_ctx->Transaction()->SetMustAbort();
 
         if (single_statement_txn) {
+          // Single statement transaction should be ended before returning
           // decide whether the txn should be committed or aborted based on the MustAbort flag, and then end the txn
           EndTransaction(connection_ctx, connection_ctx->Transaction()->MustAbort() ? network::QueryType::QUERY_ROLLBACK
                                                                                     : network::QueryType::QUERY_COMMIT);
@@ -329,10 +288,12 @@ void TrafficCop::ExecuteStatement(const common::ManagedPointer<network::Connecti
         return;
       }
 
+      // optimize the plan
       auto physical_plan = trafficcop::TrafficCopUtil::Optimize(
           connection_ctx->Transaction(), connection_ctx->Accessor(), common::ManagedPointer(parse_result),
           stats_storage_, optimizer_timeout_);
 
+      // execute the plan
       if (statement_type == parser::StatementType::CREATE) {
         ExecuteCreateStatement(connection_ctx, out, common::ManagedPointer(physical_plan),
                                statement.CastManagedPointerTo<parser::CreateStatement>()->GetCreateType(),
@@ -354,6 +315,7 @@ void TrafficCop::ExecuteStatement(const common::ManagedPointer<network::Connecti
         exec_query.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
       }
       if (single_statement_txn) {
+        // Single statement transaction should be ended before returning
         // decide whether the txn should be committed or aborted based on the MustAbort flag, and then end the txn
         EndTransaction(connection_ctx, connection_ctx->Transaction()->MustAbort() ? network::QueryType::QUERY_ROLLBACK
                                                                                   : network::QueryType::QUERY_COMMIT);

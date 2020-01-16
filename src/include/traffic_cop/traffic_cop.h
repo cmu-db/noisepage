@@ -53,10 +53,6 @@ class TrafficCop {
 
   virtual ~TrafficCop() = default;
 
-  void ExecuteSimpleQuery(const std::string &simple_query,
-                          common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                          common::ManagedPointer<network::PostgresPacketWriter> out) const;
-
   /**
    * Hands a buffer of logs to replication
    * @param buffer buffer containing logs
@@ -84,16 +80,16 @@ class TrafficCop {
                                                   common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                                   common::ManagedPointer<network::PostgresPacketWriter> out) const;
 
- private:
-  void BeginTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
-  void EndTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                      network::QueryType query_type) const;
-
   void ExecuteStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                         common::ManagedPointer<network::PostgresPacketWriter> out,
                         common::ManagedPointer<parser::ParseResult> parse_result,
                         common::ManagedPointer<parser::SQLStatement> statement,
                         parser::StatementType statement_type) const;
+
+ private:
+  void BeginTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
+  void EndTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                      network::QueryType query_type) const;
 
   void ExecuteTransactionStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                    common::ManagedPointer<network::PostgresPacketWriter> out,
