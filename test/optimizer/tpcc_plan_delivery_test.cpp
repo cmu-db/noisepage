@@ -111,7 +111,7 @@ TEST_F(TpccPlanDeliveryTests, DeliveryDeleteNewOrder) {
     // IdxScan OutputSchema/ColumnIds
     auto idx_scan_schema = idx_scan->GetOutputSchema();
     EXPECT_EQ(idx_scan_schema->GetColumns().size(), schema.GetColumns().size());
-    EXPECT_EQ(idx_scan->GetColumnIds().size(), schema.GetColumns().size());
+    EXPECT_EQ(idx_scan->GetColumnOids().size(), schema.GetColumns().size());
 
     size_t idx = 0;
     for (auto &col : schema.GetColumns()) {
@@ -121,7 +121,7 @@ TEST_F(TpccPlanDeliveryTests, DeliveryDeleteNewOrder) {
       EXPECT_EQ(idx_scan_expr_dve->GetTupleIdx(), 0);
       EXPECT_EQ(idx_scan_expr_dve->GetValueIdx(), idx);
 
-      EXPECT_EQ(idx_scan->GetColumnIds()[idx], col.Oid());
+      EXPECT_EQ(idx_scan->GetColumnOids()[idx], col.Oid());
       idx++;
     }
   };
@@ -183,7 +183,7 @@ TEST_F(TpccPlanDeliveryTests, DeliveryUpdateCarrierId) {
     // IdxScan OutputSchema/ColumnIds
     auto idx_scan_schema = idx_scan->GetOutputSchema();
     EXPECT_EQ(idx_scan_schema->GetColumns().size(), schema.GetColumns().size());
-    EXPECT_EQ(idx_scan->GetColumnIds().size(), schema.GetColumns().size());
+    EXPECT_EQ(idx_scan->GetColumnOids().size(), schema.GetColumns().size());
 
     size_t idx = 0;
     for (auto &col : schema.GetColumns()) {
@@ -193,7 +193,7 @@ TEST_F(TpccPlanDeliveryTests, DeliveryUpdateCarrierId) {
       EXPECT_EQ(idx_scan_expr_dve->GetTupleIdx(), 0);
       EXPECT_EQ(idx_scan_expr_dve->GetValueIdx(), idx);
 
-      EXPECT_EQ(idx_scan->GetColumnIds()[idx], col.Oid());
+      EXPECT_EQ(idx_scan->GetColumnOids()[idx], col.Oid());
       idx++;
     }
   };
@@ -250,7 +250,7 @@ TEST_F(TpccPlanDeliveryTests, DeliveryUpdateDeliveryDate) {
     // IdxScan OutputSchema/ColumnIds
     auto idx_scan_schema = idx_scan->GetOutputSchema();
     EXPECT_EQ(idx_scan_schema->GetColumns().size(), schema.GetColumns().size());
-    EXPECT_EQ(idx_scan->GetColumnIds().size(), schema.GetColumns().size());
+    EXPECT_EQ(idx_scan->GetColumnOids().size(), schema.GetColumns().size());
 
     size_t idx = 0;
     for (auto &col : schema.GetColumns()) {
@@ -260,7 +260,7 @@ TEST_F(TpccPlanDeliveryTests, DeliveryUpdateDeliveryDate) {
       EXPECT_EQ(idx_scan_expr_dve->GetTupleIdx(), 0);
       EXPECT_EQ(idx_scan_expr_dve->GetValueIdx(), idx);
 
-      EXPECT_EQ(idx_scan->GetColumnIds()[idx], col.Oid());
+      EXPECT_EQ(idx_scan->GetColumnOids()[idx], col.Oid());
       idx++;
     }
   };
@@ -321,8 +321,8 @@ TEST_F(TpccPlanDeliveryTests, DeliverySumOrderAmount) {
     EXPECT_EQ(idx_scan->IsForUpdate(), false);
     EXPECT_EQ(idx_scan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(idx_scan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
-    EXPECT_EQ(idx_scan->GetColumnIds().size(), 1);
-    EXPECT_EQ(idx_scan->GetColumnIds()[0], schema.GetColumn("ol_amount").Oid());
+    EXPECT_EQ(idx_scan->GetColumnOids().size(), 1);
+    EXPECT_EQ(idx_scan->GetColumnOids()[0], schema.GetColumn("ol_amount").Oid());
 
     auto &idx_desc = idx_scan->GetIndexScanDescription();
     EXPECT_EQ(idx_desc.GetExpressionTypeList().size(), 3);
@@ -451,7 +451,7 @@ TEST_F(TpccPlanDeliveryTests, UpdateCustomBalanceDeliveryCount) {
     // IdxScan OutputSchema/ColumnIds -> match schema
     auto idx_scan_schema = idx_scan->GetOutputSchema();
     EXPECT_EQ(idx_scan_schema->GetColumns().size(), schema.GetColumns().size());
-    EXPECT_EQ(idx_scan->GetColumnIds().size(), schema.GetColumns().size());
+    EXPECT_EQ(idx_scan->GetColumnOids().size(), schema.GetColumns().size());
 
     size_t idx = 0;
     for (auto &col : schema.GetColumns()) {
@@ -461,7 +461,7 @@ TEST_F(TpccPlanDeliveryTests, UpdateCustomBalanceDeliveryCount) {
       EXPECT_EQ(idx_scan_expr_dve->GetTupleIdx(), 0);
       EXPECT_EQ(idx_scan_expr_dve->GetValueIdx(), idx);
 
-      EXPECT_EQ(idx_scan->GetColumnIds()[idx], col.Oid());
+      EXPECT_EQ(idx_scan->GetColumnOids()[idx], col.Oid());
       idx++;
     }
   };

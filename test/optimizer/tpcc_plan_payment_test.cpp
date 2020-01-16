@@ -64,7 +64,7 @@ TEST_F(TpccPlanPaymentTests, UpdateWarehouse) {
     // IdxScan OutputSchema/ColumnIds -> match schema
     auto idx_scan_schema = idx_scan->GetOutputSchema();
     EXPECT_EQ(idx_scan_schema->GetColumns().size(), schema.GetColumns().size());
-    EXPECT_EQ(idx_scan->GetColumnIds().size(), schema.GetColumns().size());
+    EXPECT_EQ(idx_scan->GetColumnOids().size(), schema.GetColumns().size());
 
     size_t idx = 0;
     for (auto &col : schema.GetColumns()) {
@@ -74,7 +74,7 @@ TEST_F(TpccPlanPaymentTests, UpdateWarehouse) {
       EXPECT_EQ(idx_scan_expr_dve->GetTupleIdx(), 0);
       EXPECT_EQ(idx_scan_expr_dve->GetValueIdx(), idx);
 
-      EXPECT_EQ(idx_scan->GetColumnIds()[idx], col.Oid());
+      EXPECT_EQ(idx_scan->GetColumnOids()[idx], col.Oid());
       idx++;
     }
   };
@@ -143,7 +143,7 @@ TEST_F(TpccPlanPaymentTests, UpdateDistrict) {
     // IdxScan OutputSchema/ColumnIds -> match schema
     auto idx_scan_schema = idx_scan->GetOutputSchema();
     EXPECT_EQ(idx_scan_schema->GetColumns().size(), schema.GetColumns().size());
-    EXPECT_EQ(idx_scan->GetColumnIds().size(), schema.GetColumns().size());
+    EXPECT_EQ(idx_scan->GetColumnOids().size(), schema.GetColumns().size());
 
     size_t idx = 0;
     for (auto &col : schema.GetColumns()) {
@@ -153,7 +153,7 @@ TEST_F(TpccPlanPaymentTests, UpdateDistrict) {
       EXPECT_EQ(idx_scan_expr_dve->GetTupleIdx(), 0);
       EXPECT_EQ(idx_scan_expr_dve->GetValueIdx(), idx);
 
-      EXPECT_EQ(idx_scan->GetColumnIds()[idx], col.Oid());
+      EXPECT_EQ(idx_scan->GetColumnOids()[idx], col.Oid());
       idx++;
     }
   };
@@ -242,7 +242,7 @@ TEST_F(TpccPlanPaymentTests, UpdateCustomerBalance) {
     // IdxScan OutputSchema/ColumnIds -> match schema
     auto idx_scan_schema = idx_scan->GetOutputSchema();
     EXPECT_EQ(idx_scan_schema->GetColumns().size(), schema.GetColumns().size());
-    EXPECT_EQ(idx_scan->GetColumnIds().size(), schema.GetColumns().size());
+    EXPECT_EQ(idx_scan->GetColumnOids().size(), schema.GetColumns().size());
 
     size_t idx = 0;
     for (auto &col : schema.GetColumns()) {
@@ -252,7 +252,7 @@ TEST_F(TpccPlanPaymentTests, UpdateCustomerBalance) {
       EXPECT_EQ(idx_scan_expr_dve->GetTupleIdx(), 0);
       EXPECT_EQ(idx_scan_expr_dve->GetValueIdx(), idx);
 
-      EXPECT_EQ(idx_scan->GetColumnIds()[idx], col.Oid());
+      EXPECT_EQ(idx_scan->GetColumnOids()[idx], col.Oid());
       idx++;
     }
   };

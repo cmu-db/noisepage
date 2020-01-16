@@ -107,7 +107,7 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
   /**
    * @return OIDs of columns to scan
    */
-  const std::vector<catalog::col_oid_t> &GetColumnIds() const { return column_oids_; }
+  const std::vector<catalog::col_oid_t> &GetColumnOids() const { return column_oids_; }
 
   /**
    * @return the OID for the table being scanned

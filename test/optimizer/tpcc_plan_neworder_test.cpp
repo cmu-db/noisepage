@@ -94,7 +94,7 @@ TEST_F(TpccPlanNewOrderTests, UpdateDistrict) {
     // IdxScan OutputSchema/ColumnIds
     auto idx_scan_schema = idx_scan->GetOutputSchema();
     EXPECT_EQ(idx_scan_schema->GetColumns().size(), schema.GetColumns().size());
-    EXPECT_EQ(idx_scan->GetColumnIds().size(), schema.GetColumns().size());
+    EXPECT_EQ(idx_scan->GetColumnOids().size(), schema.GetColumns().size());
 
     size_t idx = 0;
     for (auto &col : schema.GetColumns()) {
@@ -104,7 +104,7 @@ TEST_F(TpccPlanNewOrderTests, UpdateDistrict) {
       EXPECT_EQ(idx_scan_expr_dve->GetTupleIdx(), 0);
       EXPECT_EQ(idx_scan_expr_dve->GetValueIdx(), idx);
 
-      EXPECT_EQ(idx_scan->GetColumnIds()[idx], col.Oid());
+      EXPECT_EQ(idx_scan->GetColumnOids()[idx], col.Oid());
       idx++;
     }
   };
@@ -234,7 +234,7 @@ TEST_F(TpccPlanNewOrderTests, UpdateStock) {
     // IdxScan OutputSchema/ColumnIds
     auto idx_scan_schema = idx_scan->GetOutputSchema();
     EXPECT_EQ(idx_scan_schema->GetColumns().size(), schema.GetColumns().size());
-    EXPECT_EQ(idx_scan->GetColumnIds().size(), schema.GetColumns().size());
+    EXPECT_EQ(idx_scan->GetColumnOids().size(), schema.GetColumns().size());
 
     size_t idx = 0;
     for (auto &col : schema.GetColumns()) {
@@ -244,7 +244,7 @@ TEST_F(TpccPlanNewOrderTests, UpdateStock) {
       EXPECT_EQ(idx_scan_expr_dve->GetTupleIdx(), 0);
       EXPECT_EQ(idx_scan_expr_dve->GetValueIdx(), idx);
 
-      EXPECT_EQ(idx_scan->GetColumnIds()[idx], col.Oid());
+      EXPECT_EQ(idx_scan->GetColumnOids()[idx], col.Oid());
       idx++;
     }
   };
