@@ -2,6 +2,7 @@
 
 #include <network/connection_context.h>
 
+#include <future>  // NOLINT
 #include <memory>
 #include <string>
 #include <utility>
@@ -24,6 +25,11 @@
 
 namespace terrier::trafficcop {
 
+static void CommitCallback(void *const callback_arg) {
+  auto *const promise = reinterpret_cast<std::promise<bool> *const>(callback_arg);
+  promise->set_value(true);
+}
+
 void TrafficCop::BeginTransaction(const common::ManagedPointer<network::ConnectionContext> connection_ctx) const {
   TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE,
                  "Invalid ConnectionContext state, already in a transaction.");
@@ -40,8 +46,13 @@ void TrafficCop::EndTransaction(const common::ManagedPointer<network::Connection
   if (query_type == network::QueryType::QUERY_COMMIT) {
     TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                    "Invalid ConnectionContext state, not in a transaction that can be committed.");
-    // TODO(Matt): blocking callback here?
-    txn_manager_->Commit(txn.Get(), connection_ctx->Callback(), connection_ctx->CallbackArg());
+    // Set up a blocking callback. Will be invoked when we can tell the client that commit is complete.
+    std::promise<bool> promise;
+    auto future = promise.get_future();
+    TERRIER_ASSERT(future.valid(), "future must be valid for synchronization to work.");
+    txn_manager_->Commit(txn.Get(), CommitCallback, &promise);
+    future.wait();
+    TERRIER_ASSERT(future.get(), "Got past the wait() without the value being set to true. That's weird.");
   } else {
     TERRIER_ASSERT(connection_ctx->TransactionState() != network::NetworkTransactionStateType::IDLE,
                    "Invalid ConnectionContext state, not in a transaction that can be aborted.");
