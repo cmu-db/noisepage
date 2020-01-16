@@ -73,7 +73,7 @@ bool LogSerializerTask::Process() {
     }
 
     // Mark the last buffer that was written to as full
-    if (filled_buffer_ != nullptr) HandFilledBufferToWriter();
+    if (buffers_processed) HandFilledBufferToWriter();
 
     // Bulk remove all the transactions we serialized. This prevents having to take the TimestampManager's latch once
     // for each timestamp we remove.
