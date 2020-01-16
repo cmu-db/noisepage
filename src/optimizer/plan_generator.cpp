@@ -673,7 +673,6 @@ void PlanGenerator::Visit(const Update *op) {
   auto builder = planner::UpdatePlanNode::Builder();
   std::unordered_set<catalog::col_oid_t> update_col_offsets;
 
-  const auto &alias = op->GetTableAlias();
   auto tbl_oid = op->GetTableOid();
   auto tbl_schema = accessor_->GetSchema(tbl_oid);
 
@@ -686,7 +685,7 @@ void PlanGenerator::Visit(const Update *op) {
       throw SYNTAX_EXCEPTION("Multiple assignments to same column");
 
     update_col_offsets.insert(col_id);
-    builder.AddSetClause(std::make_pair(col_id, value->GetUpdateValue()));
+    builder.AddSetClause(std::make_pair(col_id, update->GetUpdateValue()));
   }
 
   // Empty OutputSchema for update
