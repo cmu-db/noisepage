@@ -12,7 +12,7 @@
 #include "common/exception.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
-#include "execution/execution_util.h"
+#include "execution/executable_query.h"
 #include "execution/sql/ddl_executors.h"
 #include "execution/vm/module.h"
 #include "network/postgres/postgres_packet_writer.h"

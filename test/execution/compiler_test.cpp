@@ -13,6 +13,7 @@
 #include "execution/compiler/output_schema_util.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
+#include "execution/executable_query.h"
 #include "execution/execution_util.h"
 #include "execution/sema/sema.h"
 #include "execution/sql/value.h"
