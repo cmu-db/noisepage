@@ -8,11 +8,18 @@
 #include "catalog/catalog.h"
 #include "loggers/optimizer_logger.h"
 #include "main/db_main.h"
+#include "optimizer/cost_model/abstract_cost_model.h"
+#include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/logical_operators.h"
 #include "optimizer/operator_expression.h"
+#include "optimizer/optimization_context.h"
+#include "optimizer/optimizer_context.h"
 #include "optimizer/query_to_operator_transformer.h"
+#include "optimizer/rules/implementation_rules.h"
+#include "parser/create_statement.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/column_value_expression.h"
+#include "parser/expression/constant_value_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/subquery_expression.h"
 #include "parser/postgresparser.h"
@@ -45,6 +52,9 @@ class OperatorTransformerTest : public TerrierTest {
   std::unique_ptr<optimizer::QueryToOperatorTransformer> operator_transformer_;
   std::unique_ptr<optimizer::OperatorExpression> operator_tree_;
   std::vector<optimizer::OpType> op_types_;
+  std::unique_ptr<optimizer::TrivialCostModel> trivial_cost_model_;
+  std::unique_ptr<optimizer::OptimizerContext> optimizer_context_;
+  std::unique_ptr<optimizer::OptimizationContext> optimization_context_;
 
   std::unique_ptr<DBMain> db_main_;
 
@@ -120,6 +130,12 @@ class OperatorTransformerTest : public TerrierTest {
     txn_ = txn_manager_->BeginTransaction();
     accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_);
     binder_ = new binder::BindNodeVisitor(common::ManagedPointer(accessor_), default_database_name_);
+
+    trivial_cost_model_ = std::make_unique<optimizer::TrivialCostModel>();
+    optimizer_context_ = std::make_unique<optimizer::OptimizerContext>(
+        common::ManagedPointer(trivial_cost_model_).CastManagedPointerTo<optimizer::AbstractCostModel>());
+    auto *properties = new optimizer::PropertySet();
+    optimization_context_ = std::make_unique<optimizer::OptimizationContext>(optimizer_context_.get(), properties);
   }
 
   void TearDown() override {
@@ -848,6 +864,76 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   auto create_stmt = statement.CastManagedPointerTo<parser::CreateStatement>();
   EXPECT_EQ(logical_create->GetColumns(), create_stmt->GetColumns());
   EXPECT_EQ(logical_create->GetForeignKeys(), create_stmt->GetForeignKeys());
+
+  auto optree_ptr = common::ManagedPointer(operator_tree_);
+  auto *op_ctx = optimization_context_.get();
+  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+
+  optimizer::LogicalCreateTableToPhysicalCreateTable rule;
+  EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
+  rule.Transform(optree_ptr, &transformed, op_ctx);
+
+  auto op = transformed[0]->GetOp();
+  EXPECT_EQ(op.GetType(), optimizer::OpType::CREATETABLE);
+  EXPECT_TRUE(op.IsPhysical());
+  EXPECT_EQ(op.GetName(), "CreateTable");
+  auto ct = op.As<optimizer::CreateTable>();
+
+  // TODO(WAN): for mysterious reasons, all names are lowercased
+  EXPECT_EQ(ct->GetTableName(), "c");
+  EXPECT_EQ(ct->GetColumns().size(), 4);
+
+  // c1
+  EXPECT_EQ(ct->GetColumns()[0]->GetColumnName(), "c1");
+  EXPECT_EQ(ct->GetColumns()[0]->GetColumnType(), parser::ColumnDefinition::DataType::INT);
+  EXPECT_FALSE(ct->GetColumns()[0]->IsNullable());
+  EXPECT_FALSE(ct->GetColumns()[0]->IsUnique());
+  EXPECT_TRUE(ct->GetColumns()[0]->IsPrimaryKey());
+  EXPECT_EQ(ct->GetColumns()[0]->GetDefaultExpression(), nullptr);
+  EXPECT_EQ(ct->GetColumns()[0]->GetCheckExpression(), nullptr);
+
+  // c2
+  EXPECT_EQ(ct->GetColumns()[1]->GetColumnName(), "c2");
+  EXPECT_EQ(ct->GetColumns()[1]->GetColumnType(), parser::ColumnDefinition::DataType::VARCHAR);
+  EXPECT_FALSE(ct->GetColumns()[1]->IsNullable());
+  EXPECT_TRUE(ct->GetColumns()[1]->IsUnique());
+  EXPECT_FALSE(ct->GetColumns()[1]->IsPrimaryKey());
+  EXPECT_EQ(ct->GetColumns()[1]->GetDefaultExpression(), nullptr);
+  EXPECT_EQ(ct->GetColumns()[1]->GetCheckExpression(), nullptr);
+
+  // c3
+  EXPECT_EQ(ct->GetColumns()[2]->GetColumnName(), "c3");
+  EXPECT_EQ(ct->GetColumns()[2]->GetColumnType(), parser::ColumnDefinition::DataType::INT);
+  EXPECT_TRUE(ct->GetColumns()[2]->IsNullable());
+  EXPECT_FALSE(ct->GetColumns()[2]->IsUnique());
+  EXPECT_FALSE(ct->GetColumns()[2]->IsPrimaryKey());
+  EXPECT_EQ(ct->GetColumns()[2]->GetDefaultExpression(), nullptr);
+  EXPECT_EQ(ct->GetColumns()[2]->GetCheckExpression(), nullptr);
+  EXPECT_EQ(ct->GetForeignKeys().size(), 1);
+  EXPECT_EQ(ct->GetForeignKeys()[0]->GetForeignKeySources()[0], "c3");
+  EXPECT_EQ(ct->GetForeignKeys()[0]->GetForeignKeySinks()[0], "a1");
+  EXPECT_EQ(ct->GetForeignKeys()[0]->GetForeignKeySinkTableName(), "a");
+
+  // c4
+  EXPECT_EQ(ct->GetColumns()[3]->GetColumnName(), "c4");
+  EXPECT_EQ(ct->GetColumns()[3]->GetColumnType(), parser::ColumnDefinition::DataType::INT);
+  EXPECT_TRUE(ct->GetColumns()[3]->IsNullable());
+  EXPECT_FALSE(ct->GetColumns()[3]->IsUnique());
+  EXPECT_FALSE(ct->GetColumns()[3]->IsPrimaryKey());
+
+  auto def_expr = ct->GetColumns()[3]->GetDefaultExpression();
+  EXPECT_EQ(def_expr->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
+  EXPECT_EQ(def_expr.CastManagedPointerTo<parser::ConstantValueExpression>()->GetValue(),
+            type::TransientValueFactory::GetInteger(14));
+
+  auto chk_expr = ct->GetColumns()[3]->GetCheckExpression();
+  EXPECT_EQ(chk_expr->GetExpressionType(), parser::ExpressionType::COMPARE_LESS_THAN);
+  EXPECT_EQ(chk_expr->GetChild(0)->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
+  EXPECT_EQ(chk_expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>()->GetTableName(), "c");
+  EXPECT_EQ(chk_expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>()->GetColumnName(), "c4");
+  EXPECT_EQ(chk_expr->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
+  EXPECT_EQ(chk_expr->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>()->GetValue(),
+            type::TransientValueFactory::GetInteger(100));
 }
 
 // NOLINTNEXTLINE
