@@ -18,17 +18,6 @@
 
 namespace terrier::trafficcop {
 
-std::unique_ptr<parser::ParseResult> TrafficCopUtil::Parse(const std::string &query_string) {
-  std::unique_ptr<parser::ParseResult> parse_result;
-  try {
-    parse_result = parser::PostgresParser::BuildParseTree(query_string);
-  } catch (const Exception &e) {
-    // Failed to parse
-    // TODO(Matt): handle this in some more verbose manner for the client (return more state)
-  }
-  return parse_result;
-}
-
 bool TrafficCopUtil::Bind(const common::ManagedPointer<catalog::CatalogAccessor> accessor, const std::string &db_name,
                           const common::ManagedPointer<parser::ParseResult> query) {
   try {

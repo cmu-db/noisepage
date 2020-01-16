@@ -109,11 +109,18 @@ void PostgresProtocolInterpreter::Teardown(const common::ManagedPointer<ReadBuff
                                            const common::ManagedPointer<WriteQueue> out,
                                            const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                            const common::ManagedPointer<ConnectionContext> context) {
-  // Drop the temp namespace (if it exists) for this connection. It's possible that temporary namespace failed to be
+  // Drop the temp namespace (if it exists) for this connection.
+
+  // It's possible that the client provided an invalid database name, in which case there's nothing to do
+  if (context->GetDatabaseOid() == catalog::INVALID_DATABASE_OID) {
+    return;
+  }
+
+  // It's possible that temporary namespace failed to be
   // created and we're closing the connection for that reason, in
   // case there's nothing to drop
   if (context->GetTempNamespaceOid() != catalog::INVALID_NAMESPACE_OID) {
-    while (!t_cop->DropTempNamespace(context->GetTempNamespaceOid(), context->GetDatabaseOid())) {
+    while (!t_cop->DropTempNamespace(context->GetDatabaseOid(), context->GetTempNamespaceOid())) {
     }
   }
 }

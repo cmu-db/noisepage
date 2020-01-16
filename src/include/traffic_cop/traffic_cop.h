@@ -78,12 +78,23 @@ class TrafficCop {
    * @param db_oid the OID of the database the connection is accessing
    * @return true if the temporary namespace has been deleted, false otherwise
    */
-  bool DropTempNamespace(catalog::namespace_oid_t ns_oid, catalog::db_oid_t db_oid);
+  bool DropTempNamespace(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oid);
+
+  std::unique_ptr<parser::ParseResult> ParseQuery(const std::string &query,
+                                                  common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                                  common::ManagedPointer<network::PostgresPacketWriter> out) const;
 
  private:
   void BeginTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
   void EndTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                       network::QueryType query_type) const;
+
+  void ExecuteStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                        common::ManagedPointer<network::PostgresPacketWriter> out,
+                        common::ManagedPointer<parser::ParseResult> parse_result,
+                        common::ManagedPointer<parser::SQLStatement> statement,
+                        parser::StatementType statement_type) const;
+
   void ExecuteTransactionStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                    common::ManagedPointer<network::PostgresPacketWriter> out,
                                    parser::TransactionStatement::CommandType type) const;

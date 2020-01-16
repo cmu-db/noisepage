@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <memory>
+#include <string>
 
 #include "common/managed_pointer.h"
 
@@ -31,8 +31,6 @@ namespace terrier::trafficcop {
 class TrafficCopUtil {
  public:
   TrafficCopUtil() = delete;
-
-  static std::unique_ptr<parser::ParseResult> Parse(const std::string &query_string);
 
   static bool Bind(common::ManagedPointer<catalog::CatalogAccessor> accessor, const std::string &db_name,
                    common::ManagedPointer<parser::ParseResult> query);

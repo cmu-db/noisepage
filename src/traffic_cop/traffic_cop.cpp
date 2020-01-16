@@ -229,11 +229,25 @@ void TrafficCop::ExecuteDropStatement(const common::ManagedPointer<network::Conn
   }
 }
 
+std::unique_ptr<parser::ParseResult> TrafficCop::ParseQuery(
+    const std::string &query, const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+    const common::ManagedPointer<network::PostgresPacketWriter> out) const {
+  std::unique_ptr<parser::ParseResult> parse_result;
+  try {
+    parse_result = parser::PostgresParser::BuildParseTree(query);
+  } catch (const Exception &e) {
+    // Failed to parse
+    // TODO(Matt): handle this in some more verbose manner for the client (return more state)
+  }
+  return parse_result;
+
+  return parse_result;
+}
+
 void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
                                     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                     const common::ManagedPointer<network::PostgresPacketWriter> out) const {
-  // Attempt to parse the statement first
-  auto parse_result = TrafficCopUtil::Parse(simple_query);
+  const auto parse_result = ParseQuery(simple_query, connection_ctx, out);
 
   if (parse_result == nullptr) {
     out->WriteErrorResponse("ERROR:  syntax error");
@@ -250,7 +264,7 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
   // TODO(Matt:) some clients may send multiple statements in a single SimpleQuery packet/string. Handling that would
   // probably exist here, looping over all of the elements in the ParseResult
 
-  // Empty queries get a special response in postgres
+  // Empty queries get a special response in postgres and do not care if they're in a failed txn block
   if (parse_result->Empty()) {
     out->WriteEmptyQueryResponse();
     return;
@@ -268,6 +282,18 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
     out->WriteErrorResponse("ERROR:  current transaction is aborted, commands ignored until end of transaction block");
     return;
   }
+
+  ExecuteStatement(connection_ctx, out, common::ManagedPointer(parse_result), parse_result->GetStatement(0),
+                   statement_type);
+}
+
+void TrafficCop::ExecuteStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                  const common::ManagedPointer<network::PostgresPacketWriter> out,
+                                  const common::ManagedPointer<parser::ParseResult> parse_result,
+                                  const common::ManagedPointer<parser::SQLStatement> statement,
+                                  const parser::StatementType statement_type) const {
+  TERRIER_ASSERT(statement->GetType() == statement_type,
+                 "Called ExecuteStatement with a type that doens't match the statement.");
 
   switch (statement_type) {
     case parser::StatementType::TRANSACTION: {
@@ -346,8 +372,8 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
 
 std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNamespace(
     const network::connection_id_t connection_id, const std::string &database_name) {
-  auto txn = txn_manager_->BeginTransaction();
-  auto db_oid = catalog_->GetDatabaseOid(common::ManagedPointer(txn), database_name);
+  auto *const txn = txn_manager_->BeginTransaction();
+  const auto db_oid = catalog_->GetDatabaseOid(common::ManagedPointer(txn), database_name);
 
   if (db_oid == catalog::INVALID_DATABASE_OID) {
     // Invalid database name
@@ -355,7 +381,7 @@ std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNam
     return {catalog::INVALID_DATABASE_OID, catalog::INVALID_NAMESPACE_OID};
   }
 
-  auto ns_oid =
+  const auto ns_oid =
       catalog_->GetAccessor(common::ManagedPointer(txn), db_oid)
           ->CreateNamespace(std::string(TEMP_NAMESPACE_PREFIX) + std::to_string(static_cast<uint16_t>(connection_id)));
   if (ns_oid == catalog::INVALID_NAMESPACE_OID) {
@@ -369,15 +395,15 @@ std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNam
   return {db_oid, ns_oid};
 }
 
-bool TrafficCop::DropTempNamespace(catalog::namespace_oid_t ns_oid, catalog::db_oid_t db_oid) {
-  auto txn = txn_manager_->BeginTransaction();
-  auto db_accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
-  if (!db_accessor) {
-    txn_manager_->Abort(txn);
-    return false;
-  }
+bool TrafficCop::DropTempNamespace(const catalog::db_oid_t db_oid, const catalog::namespace_oid_t ns_oid) {
+  TERRIER_ASSERT(db_oid != catalog::INVALID_DATABASE_OID, "Called DropTempNamespace() with an invalid database oid.");
+  TERRIER_ASSERT(ns_oid != catalog::INVALID_NAMESPACE_OID, "Called DropTempNamespace() with an invalid namespace oid.");
+  auto *const txn = txn_manager_->BeginTransaction();
+  const auto db_accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
 
-  auto result = db_accessor->DropNamespace(ns_oid);
+  TERRIER_ASSERT(db_accessor != nullptr, "Catalog failed to provide a CatalogAccessor. Was the db_oid still valid?");
+
+  const auto result = db_accessor->DropNamespace(ns_oid);
   if (result) {
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   } else {

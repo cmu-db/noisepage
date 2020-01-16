@@ -23,6 +23,10 @@ Transition SimpleQueryCommand::Exec(common::ManagedPointer<ProtocolInterpreter> 
   NETWORK_LOG_TRACE("Execute SimpleQuery: {0}", query.c_str());
 
   t_cop->ExecuteSimpleQuery(query, connection, out);
+
+
+
+
   out->WriteReadyForQuery(connection->TransactionState());
   return Transition::PROCEED;
 }
