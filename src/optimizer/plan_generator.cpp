@@ -813,7 +813,7 @@ void PlanGenerator::Visit(const CreateTable *create_table) {
   for (auto col : create_table->GetColumns()) {
     if (col->IsPrimaryKey()) {
       pk_cols.push_back(col->GetColumnName());
-      pk_cname = pk_cname + "_" + col->GetColumnName();
+      pk_cname += "_" + col->GetColumnName();
     }
 
     // Unique Constraint
