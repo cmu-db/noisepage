@@ -76,7 +76,8 @@ TEST_F(TpccExecutionTest, SimpleTest) {
   auto *const txn = txn_manager_->BeginTransaction();
   const auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), tpcc_db_->db_oid_);
 
-  auto query = trafficcop::TrafficCopUtil::Parse(query_string);
+  auto query = parser::PostgresParser::BuildParseTree(query_string);
+
   trafficcop::TrafficCopUtil::Bind(common::ManagedPointer(accessor), std::string(DB_NAME),
                                    common::ManagedPointer(query));
 

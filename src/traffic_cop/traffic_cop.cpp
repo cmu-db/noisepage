@@ -240,8 +240,6 @@ std::unique_ptr<parser::ParseResult> TrafficCop::ParseQuery(
     // TODO(Matt): handle this in some more verbose manner for the client (return more state)
   }
   return parse_result;
-
-  return parse_result;
 }
 
 void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
@@ -270,7 +268,7 @@ void TrafficCop::ExecuteSimpleQuery(const std::string &simple_query,
     return;
   }
 
-  // It parsed and we've got out single statement
+  // It parsed and we've got our single statement
   const auto statement = parse_result->GetStatement(0);
   const auto statement_type = statement->GetType();
 
