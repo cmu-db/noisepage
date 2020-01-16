@@ -41,12 +41,6 @@ TEST_F(TpccPlanNewOrderTests, InsertNewOrder) {
 TEST_F(TpccPlanNewOrderTests, UpdateDistrict) {
   auto check = [](TpccPlanTest *test, catalog::table_oid_t tbl_oid, std::unique_ptr<planner::AbstractPlanNode> plan) {
     auto &schema = test->accessor_->GetSchema(tbl_oid);
-    auto d_next_o_id_idx = -1;
-    for (size_t i = 0; i < schema.GetColumns().size(); i++) {
-      if (schema.GetColumns()[i].Name() == "d_next_o_id") {
-        d_next_o_id_idx = static_cast<int>(i);
-      }
-    }
 
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::UPDATE);
     auto update = reinterpret_cast<planner::UpdatePlanNode *>(plan.get());
@@ -99,11 +93,9 @@ TEST_F(TpccPlanNewOrderTests, UpdateDistrict) {
     size_t idx = 0;
     for (auto &col : schema.GetColumns()) {
       auto idx_scan_expr = idx_scan_schema->GetColumn(idx).GetExpr();
-      EXPECT_EQ(idx_scan_expr->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
-      auto idx_scan_expr_dve = idx_scan_expr.CastManagedPointerTo<parser::DerivedValueExpression>();
-      EXPECT_EQ(idx_scan_expr_dve->GetTupleIdx(), 0);
-      EXPECT_EQ(idx_scan_expr_dve->GetValueIdx(), idx);
-
+      EXPECT_EQ(idx_scan_expr->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
+      auto idx_scan_expr_dve = idx_scan_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
+      EXPECT_EQ(idx_scan_expr_dve->GetColumnOid(), col.Oid());
       EXPECT_EQ(idx_scan->GetColumnOids()[idx], col.Oid());
       idx++;
     }
@@ -239,11 +231,9 @@ TEST_F(TpccPlanNewOrderTests, UpdateStock) {
     size_t idx = 0;
     for (auto &col : schema.GetColumns()) {
       auto idx_scan_expr = idx_scan_schema->GetColumn(idx).GetExpr();
-      EXPECT_EQ(idx_scan_expr->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
-      auto idx_scan_expr_dve = idx_scan_expr.CastManagedPointerTo<parser::DerivedValueExpression>();
-      EXPECT_EQ(idx_scan_expr_dve->GetTupleIdx(), 0);
-      EXPECT_EQ(idx_scan_expr_dve->GetValueIdx(), idx);
-
+      EXPECT_EQ(idx_scan_expr->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
+      auto idx_scan_expr_dve = idx_scan_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
+      EXPECT_EQ(idx_scan_expr_dve->GetColumnOid(), col.Oid());
       EXPECT_EQ(idx_scan->GetColumnOids()[idx], col.Oid());
       idx++;
     }

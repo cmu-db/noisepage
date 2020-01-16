@@ -677,12 +677,6 @@ void PlanGenerator::Visit(const Update *op) {
   auto tbl_oid = op->GetTableOid();
   auto tbl_schema = accessor_->GetSchema(tbl_oid);
 
-  ExprMap table_expr_map;
-  auto exprs = OptimizerUtil::GenerateTableColumnValueExprs(accessor_, alias, op->GetDatabaseOid(), tbl_oid);
-  for (size_t idx = 0; idx < exprs.size(); idx++) {
-    table_expr_map[common::ManagedPointer(exprs[idx])] = static_cast<int>(idx);
-  }
-
   // Evaluate update expression and add to target list
   auto updates = op->GetUpdateClauses();
   for (auto &update : updates) {
@@ -692,13 +686,7 @@ void PlanGenerator::Visit(const Update *op) {
       throw SYNTAX_EXCEPTION("Multiple assignments to same column");
 
     update_col_offsets.insert(col_id);
-    auto value = parser::ExpressionUtil::EvaluateExpression({table_expr_map}, update->GetUpdateValue()).release();
-    RegisterPointerCleanup<parser::AbstractExpression>(value, true, true);
-    builder.AddSetClause(std::make_pair(col_id, common::ManagedPointer<parser::AbstractExpression>(value)));
-  }
-
-  for (auto expr : exprs) {
-    delete expr;
+    builder.AddSetClause(std::make_pair(col_id, value->GetUpdateValue()));
   }
 
   // Empty OutputSchema for update
