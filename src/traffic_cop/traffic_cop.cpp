@@ -272,8 +272,7 @@ void TrafficCop::ExecuteStatement(const common::ManagedPointer<network::Connecti
 
       // Next step is to try to bind the parsed statement
       // TODO(Matt): I don't think the binder should need the database name
-      if (!TrafficCopUtil::Bind(connection_ctx->Accessor(), connection_ctx->GetDatabaseName(),
-                                common::ManagedPointer(parse_result))) {
+      if (!TrafficCopUtil::Bind(connection_ctx->Accessor(), connection_ctx->GetDatabaseName(), parse_result)) {
         out->WriteErrorResponse("ERROR:  binding failed");
 
         // failing to bind fails a transaction in postgres
@@ -290,8 +289,7 @@ void TrafficCop::ExecuteStatement(const common::ManagedPointer<network::Connecti
 
       // optimize the plan
       auto physical_plan = trafficcop::TrafficCopUtil::Optimize(
-          connection_ctx->Transaction(), connection_ctx->Accessor(), common::ManagedPointer(parse_result),
-          stats_storage_, optimizer_timeout_);
+          connection_ctx->Transaction(), connection_ctx->Accessor(), parse_result, stats_storage_, optimizer_timeout_);
 
       // execute the plan
       if (statement_type == parser::StatementType::CREATE) {
