@@ -14,6 +14,7 @@
 #include "optimizer/operator_expression.h"
 #include "optimizer/optimization_context.h"
 #include "optimizer/optimizer_context.h"
+#include "optimizer/plan_generator.h"
 #include "optimizer/query_to_operator_transformer.h"
 #include "optimizer/rules/implementation_rules.h"
 #include "parser/create_statement.h"
@@ -23,12 +24,14 @@
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/subquery_expression.h"
 #include "parser/postgresparser.h"
+#include "planner/plannodes/create_table_plan_node.h"
 #include "storage/garbage_collector.h"
 #include "storage/index/index_builder.h"
 #include "test_util/test_harness.h"
 #include "traffic_cop/statement.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
+#include "type/transient_value_factory.h"
 
 using std::make_tuple;
 
@@ -934,6 +937,64 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   EXPECT_EQ(chk_expr->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
   EXPECT_EQ(chk_expr->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>()->GetValue(),
             type::TransientValueFactory::GetInteger(100));
+
+  optimizer::PlanGenerator plan_generator{};
+  optimizer::PropertySet property_set{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
+  std::vector<optimizer::ExprMap> children_expr_map{};
+
+  auto plan_node =
+      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+  EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::CREATE_TABLE);
+  auto ctpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::CreateTablePlanNode>();
+
+  EXPECT_EQ(ctpn->GetTableName(), "c");
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns().size(), 4);
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[0].Name(), "c1");
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[1].Name(), "c2");
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[2].Name(), "c3");
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[3].Name(), "c4");
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[0].Type(), type::TypeId::INTEGER);
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[1].Type(), type::TypeId::VARCHAR);
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[2].Type(), type::TypeId::INTEGER);
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[3].Type(), type::TypeId::INTEGER);
+  EXPECT_FALSE(ctpn->GetSchema()->GetColumns()[0].Nullable());
+  EXPECT_FALSE(ctpn->GetSchema()->GetColumns()[1].Nullable());
+  EXPECT_TRUE(ctpn->GetSchema()->GetColumns()[2].Nullable());
+  EXPECT_TRUE(ctpn->GetSchema()->GetColumns()[3].Nullable());
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[0].AttrSize(), 4);
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[1].MaxVarlenSize(), 255);
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[2].AttrSize(), 4);
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[3].AttrSize(), 4);
+  EXPECT_EQ(*ctpn->GetSchema()->GetColumns()[3].StoredExpression(),
+            parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(14)));
+
+  EXPECT_TRUE(ctpn->HasPrimaryKey());
+  EXPECT_EQ(ctpn->GetPrimaryKey().primary_key_cols_.size(), 1);
+  EXPECT_EQ(ctpn->GetPrimaryKey().primary_key_cols_[0], "c1");
+  EXPECT_EQ(ctpn->GetPrimaryKey().constraint_name_, "pk_c1");
+  EXPECT_EQ(ctpn->GetForeignKeys().size(), 1);
+  EXPECT_EQ(ctpn->GetForeignKeys()[0].foreign_key_sources_.size(), 1);
+  EXPECT_EQ(ctpn->GetForeignKeys()[0].foreign_key_sources_[0], "c3");
+  EXPECT_EQ(ctpn->GetForeignKeys()[0].foreign_key_sinks_.size(), 1);
+  EXPECT_EQ(ctpn->GetForeignKeys()[0].foreign_key_sinks_[0], "a1");
+  EXPECT_EQ(ctpn->GetForeignKeys()[0].sink_table_name_, "a");
+  EXPECT_EQ(ctpn->GetForeignKeys()[0].constraint_name_, "FK_c->a");
+  EXPECT_EQ(ctpn->GetForeignKeys()[0].del_action_, parser::FKConstrActionType::NOACTION);
+  EXPECT_EQ(ctpn->GetForeignKeys()[0].upd_action_, parser::FKConstrActionType::NOACTION);
+  EXPECT_EQ(ctpn->GetUniqueConstraints().size(), 1);
+  EXPECT_EQ(ctpn->GetUniqueConstraints()[0].unique_cols_.size(), 1);
+  EXPECT_EQ(ctpn->GetUniqueConstraints()[0].unique_cols_[0], "c2");
+  EXPECT_EQ(ctpn->GetUniqueConstraints()[0].constraint_name_, "con_unique");
+  EXPECT_EQ(ctpn->GetCheckConstraints().size(), 1);
+  EXPECT_EQ(ctpn->GetCheckConstraints()[0].check_cols_.size(), 1);
+  EXPECT_EQ(ctpn->GetCheckConstraints()[0].check_cols_[0], "c4");
+  EXPECT_EQ(ctpn->GetCheckConstraints()[0].constraint_name_, "con_check");
+  EXPECT_EQ(ctpn->GetCheckConstraints()[0].expr_type_, parser::ExpressionType::COMPARE_LESS_THAN);
+  EXPECT_EQ(ctpn->GetCheckConstraints()[0].expr_value_, type::TransientValueFactory::GetInteger(100));
 }
 
 // NOLINTNEXTLINE
