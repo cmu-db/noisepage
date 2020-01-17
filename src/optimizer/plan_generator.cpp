@@ -132,49 +132,19 @@ std::vector<catalog::col_oid_t> PlanGenerator::GenerateColumnsForScan() {
 
 std::unique_ptr<planner::OutputSchema> PlanGenerator::GenerateScanOutputSchema(catalog::table_oid_t tbl_oid) {
   // Underlying tuple provided by the table's schema.
-  const auto &schema = accessor_->GetSchema(tbl_oid);
-  std::unordered_map<catalog::col_oid_t, unsigned> coloid_to_offset;
-  for (size_t idx = 0; idx < schema.GetColumns().size(); idx++) {
-    coloid_to_offset[schema.GetColumns()[idx].Oid()] = static_cast<unsigned>(idx);
-  }
-
   std::vector<planner::OutputSchema::Column> columns;
   for (auto &output_expr : output_cols_) {
     TERRIER_ASSERT(output_expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE,
                    "Scan columns should all be base table columns");
 
     auto tve = output_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
-    auto col_id = tve->GetColumnOid();
-    auto old_idx = coloid_to_offset.at(col_id);
 
     // output schema of a plan node is literally the columns of the table.
     // there is no such thing as an intermediate column here!
-    auto dve = std::make_unique<parser::DerivedValueExpression>(tve->GetReturnValueType(), 0, old_idx);
-    columns.emplace_back(tve->GetColumnName(), tve->GetReturnValueType(), std::move(dve));
+    columns.emplace_back(tve->GetColumnName(), tve->GetReturnValueType(), tve->Copy());
   }
 
   return std::make_unique<planner::OutputSchema>(std::move(columns));
-}
-
-std::unique_ptr<parser::AbstractExpression> PlanGenerator::GeneratePredicateForScan(
-    common::ManagedPointer<parser::AbstractExpression> predicate_expr, const std::string &alias,
-    catalog::db_oid_t db_oid, catalog::table_oid_t tbl_oid) {
-  if (predicate_expr.Get() == nullptr) {
-    return nullptr;
-  }
-
-  ExprMap table_expr_map;
-  auto exprs = OptimizerUtil::GenerateTableColumnValueExprs(accessor_, alias, db_oid, tbl_oid);
-  for (size_t idx = 0; idx < exprs.size(); idx++) {
-    table_expr_map[common::ManagedPointer(exprs[idx])] = static_cast<int>(idx);
-  }
-
-  // Makes a copy
-  auto pred = parser::ExpressionUtil::EvaluateExpression({table_expr_map}, predicate_expr);
-  for (auto *expr : exprs) {
-    delete expr;
-  }
-  return pred;
 }
 
 void PlanGenerator::Visit(const SeqScan *op) {
@@ -182,10 +152,7 @@ void PlanGenerator::Visit(const SeqScan *op) {
   std::vector<catalog::col_oid_t> column_ids = GenerateColumnsForScan();
 
   // Generate the predicate in the scan
-  auto conj_expr = parser::ExpressionUtil::JoinAnnotatedExprs(op->GetPredicates());
-  auto predicate = GeneratePredicateForScan(common::ManagedPointer(conj_expr), op->GetTableAlias(),
-                                            op->GetDatabaseOID(), op->GetTableOID())
-                       .release();
+  auto predicate = parser::ExpressionUtil::JoinAnnotatedExprs(op->GetPredicates()).release();
   RegisterPointerCleanup<parser::AbstractExpression>(predicate, true, true);
 
   // OutputSchema
@@ -212,10 +179,7 @@ void PlanGenerator::Visit(const IndexScan *op) {
   auto output_schema = GenerateScanOutputSchema(tbl_oid);
 
   // Generate the predicate in the scan
-  auto conj_expr = parser::ExpressionUtil::JoinAnnotatedExprs(op->GetPredicates());
-  auto predicate =
-      GeneratePredicateForScan(common::ManagedPointer(conj_expr), op->GetTableAlias(), op->GetDatabaseOID(), tbl_oid)
-          .release();
+  auto predicate = parser::ExpressionUtil::JoinAnnotatedExprs(op->GetPredicates()).release();
   RegisterPointerCleanup<parser::AbstractExpression>(predicate, true, true);
 
   // Create index scan desc
@@ -239,6 +203,7 @@ void PlanGenerator::Visit(const IndexScan *op) {
                      .SetDatabaseOid(op->GetDatabaseOID())
                      .SetNamespaceOid(op->GetNamespaceOID())
                      .SetIndexOid(op->GetIndexOID())
+                     .SetTableOid(tbl_oid)
                      .SetColumnOids(std::move(column_ids))
                      .SetIndexScanDescription(std::move(index_desc))
                      .Build();
@@ -708,15 +673,8 @@ void PlanGenerator::Visit(const Update *op) {
   auto builder = planner::UpdatePlanNode::Builder();
   std::unordered_set<catalog::col_oid_t> update_col_offsets;
 
-  const auto &alias = op->GetTableAlias();
   auto tbl_oid = op->GetTableOid();
   auto tbl_schema = accessor_->GetSchema(tbl_oid);
-
-  ExprMap table_expr_map;
-  auto exprs = OptimizerUtil::GenerateTableColumnValueExprs(accessor_, alias, op->GetDatabaseOid(), tbl_oid);
-  for (size_t idx = 0; idx < exprs.size(); idx++) {
-    table_expr_map[common::ManagedPointer(exprs[idx])] = static_cast<int>(idx);
-  }
 
   // Evaluate update expression and add to target list
   auto updates = op->GetUpdateClauses();
@@ -727,13 +685,9 @@ void PlanGenerator::Visit(const Update *op) {
       throw SYNTAX_EXCEPTION("Multiple assignments to same column");
 
     update_col_offsets.insert(col_id);
-    auto value = parser::ExpressionUtil::EvaluateExpression({table_expr_map}, update->GetUpdateValue()).release();
-    RegisterPointerCleanup<parser::AbstractExpression>(value, true, true);
-    builder.AddSetClause(std::make_pair(col_id, common::ManagedPointer<parser::AbstractExpression>(value)));
-  }
-
-  for (auto expr : exprs) {
-    delete expr;
+    auto upd_value = update->GetUpdateValue()->Copy().release();
+    builder.AddSetClause(std::make_pair(col_id, common::ManagedPointer(upd_value)));
+    RegisterPointerCleanup<parser::AbstractExpression>(upd_value, true, true);
   }
 
   // Empty OutputSchema for update
