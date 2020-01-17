@@ -268,7 +268,7 @@ class CatalogAccessor {
    * @return BlockStore to be used for CREATE operations
    */
   common::ManagedPointer<storage::BlockStore> GetBlockStore() const;
-  
+
   /**
    * Adds a language to the catalog (with default parameters for now) if
    * it doesn't exist in pg_language already
@@ -293,11 +293,13 @@ class CatalogAccessor {
 
   /**
    * Creates a procedure for the pg_proc table
-   * @param txn transaction to use
    * @param procname name of process to add
+   * @param lanoid oid of language this process is written in
    * @param procns namespace of process to add
    * @param args names of arguments to this proc
-   * @param arg_types types of arguments to this proc in the same order as in args
+   * @param arg_types types of arguments to this proc in the same order as in args (only for in and inout
+   *        arguments)
+   * @param all_arg_types types of all arguments
    * @param arg_modes modes of arguments in the same order as in args
    * @param rettype oid of the type of return value
    * @param src source code of proc
@@ -322,11 +324,10 @@ class CatalogAccessor {
    * This lookup will return the first one found through a sequential scan through
    * the current search path
    * @param procname name of the proc to lookup
-   * @param arg_types vector of types of arguments of procedure to look up
+   * @param all_arg_types vector of types of arguments of procedure to look up
    * @return the oid of the found proc if found else INVALID_PROC_OID
    */
-  proc_oid_t GetProcOid(const std::string &procname,
-                          const std::vector<type::TypeId> &arg_types);
+  proc_oid_t GetProcOid(const std::string &procname, const std::vector<type::TypeId> &all_arg_types);
 
   /**
    * Instantiates a new accessor into the catalog for the given database.

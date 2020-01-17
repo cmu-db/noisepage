@@ -239,14 +239,14 @@ class StorageUtil {
     // determine total size
     size_t total_size = sizeof(T) * vec.size() + sizeof(size_t);
     byte *contents = common::AllocationUtil::AllocateAligned(total_size);
-    *reinterpret_cast<size_t*>(contents) = vec.size();
+    *reinterpret_cast<size_t *>(contents) = vec.size();
     byte *payload = contents + sizeof(size_t);
-    std::memcpy(payload, vec.data(), sizeof(T)*vec.size());
+    std::memcpy(payload, vec.data(), sizeof(T) * vec.size());
     if (total_size > storage::VarlenEntry::InlineThreshold()) {
       return storage::VarlenEntry::Create(contents, static_cast<uint32_t>(total_size), true);
     }
     auto ret = storage::VarlenEntry::CreateInline(contents, static_cast<uint32_t>(total_size));
-    delete []contents;
+    delete[] contents;
     return ret;
   }
 };
