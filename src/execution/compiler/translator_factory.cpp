@@ -20,6 +20,7 @@
 #include "execution/compiler/operator/index_scan_translator.h"
 #include "execution/compiler/operator/insert_translator.h"
 #include "execution/compiler/operator/nested_loop_translator.h"
+#include "execution/compiler/operator/projection_translator.h"
 #include "execution/compiler/operator/seq_scan_translator.h"
 #include "execution/compiler/operator/sort_translator.h"
 #include "execution/compiler/operator/update_translator.h"
@@ -49,6 +50,9 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateRegularTranslator(
     }
     case terrier::planner::PlanNodeType::INDEXSCAN: {
       return std::make_unique<IndexScanTranslator>(static_cast<const planner::IndexScanPlanNode *>(op), codegen);
+    }
+    case terrier::planner::PlanNodeType::PROJECTION: {
+      return std::make_unique<ProjectionTranslator>(static_cast<const planner::ProjectionPlanNode *>(op), codegen);
     }
     default:
       UNREACHABLE("Unsupported plan nodes");
