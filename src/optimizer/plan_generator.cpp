@@ -13,6 +13,8 @@
 #include "optimizer/properties.h"
 #include "optimizer/property_set.h"
 #include "optimizer/util.h"
+#include "parser/expression/abstract_expression.h"
+#include "parser/expression/constant_value_expression.h"
 #include "parser/expression_util.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/create_database_plan_node.h"
@@ -42,6 +44,7 @@
 #include "planner/plannodes/update_plan_node.h"
 #include "settings/settings_manager.h"
 #include "transaction/transaction_context.h"
+#include "type/transient_value_factory.h"
 
 namespace terrier::optimizer {
 
@@ -827,11 +830,14 @@ void PlanGenerator::Visit(const CreateTable *create_table) {
     }
 
     auto val_type = col->GetValueType();
+
+    parser::ConstantValueExpression null_val{type::TransientValueFactory::GetNull(val_type)};
+    auto &val = col->GetDefaultExpression() != nullptr ? *col->GetDefaultExpression() : null_val;
+
     if (val_type == type::TypeId::VARCHAR || val_type == type::TypeId::VARBINARY) {
-      cols.emplace_back(col->GetColumnName(), val_type, col->GetVarlenSize(), col->IsNullable(),
-                        *col->GetDefaultExpression());
+      cols.emplace_back(col->GetColumnName(), val_type, col->GetVarlenSize(), col->IsNullable(), val);
     } else {
-      cols.emplace_back(col->GetColumnName(), val_type, col->IsNullable(), *col->GetDefaultExpression());
+      cols.emplace_back(col->GetColumnName(), val_type, col->IsNullable(), val);
     }
   }
 
@@ -848,6 +854,7 @@ void PlanGenerator::Visit(const CreateTable *create_table) {
   }
 
   auto schema = std::make_unique<catalog::Schema>(std::move(cols));
+  builder.SetTableSchema(std::move(schema));
   output_plan_ = builder.Build();
 }
 
