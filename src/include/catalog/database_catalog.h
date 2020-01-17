@@ -275,6 +275,7 @@ class DatabaseCatalog {
 
   /**
    * Creates a procedure for the pg_proc table
+   * @param txn transaction to use
    * @param procname name of process to add
    * @param lanoid oid of language this process is written in
    * @param procns namespace of process to add
