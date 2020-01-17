@@ -6,6 +6,7 @@
 #include "benchmark_util/data_table_benchmark_util.h"
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
+#include "catalog/postgres/pg_namespace.h"
 #include "loggers/optimizer_logger.h"
 #include "main/db_main.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
@@ -24,7 +25,13 @@
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/subquery_expression.h"
 #include "parser/postgresparser.h"
+#include "planner/plannodes/create_database_plan_node.h"
+#include "planner/plannodes/create_namespace_plan_node.h"
 #include "planner/plannodes/create_table_plan_node.h"
+#include "planner/plannodes/drop_database_plan_node.h"
+#include "planner/plannodes/drop_index_plan_node.h"
+#include "planner/plannodes/drop_namespace_plan_node.h"
+#include "planner/plannodes/drop_table_plan_node.h"
 #include "storage/garbage_collector.h"
 #include "storage/index/index_builder.h"
 #include "test_util/test_harness.h"
@@ -137,6 +144,11 @@ class OperatorTransformerTest : public TerrierTest {
     trivial_cost_model_ = std::make_unique<optimizer::TrivialCostModel>();
     optimizer_context_ = std::make_unique<optimizer::OptimizerContext>(
         common::ManagedPointer(trivial_cost_model_).CastManagedPointerTo<optimizer::AbstractCostModel>());
+    // TODO(WAN): footgun API
+    optimizer_context_->SetTxn(txn_);
+    optimizer_context_->SetCatalogAccessor(accessor_.get());
+    optimizer_context_->SetStatsStorage(db_main_->GetStatsStorage().Get());
+
     auto *properties = new optimizer::PropertySet();
     optimization_context_ = std::make_unique<optimizer::OptimizationContext>(optimizer_context_.get(), properties);
   }
@@ -841,6 +853,35 @@ TEST_F(OperatorTransformerTest, CreateDatabaseTest) {
   // Test logical create
   auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalCreateDatabase>();
   EXPECT_EQ("c", logical_create->GetDatabaseName());
+
+  auto optree_ptr = common::ManagedPointer(operator_tree_);
+  auto *op_ctx = optimization_context_.get();
+  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+
+  optimizer::LogicalCreateDatabaseToPhysicalCreateDatabase rule;
+  EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
+  rule.Transform(optree_ptr, &transformed, op_ctx);
+
+  auto op = transformed[0]->GetOp();
+  EXPECT_EQ(op.GetType(), optimizer::OpType::CREATEDATABASE);
+  EXPECT_TRUE(op.IsPhysical());
+  EXPECT_EQ(op.GetName(), "CreateDatabase");
+  auto cd = op.As<optimizer::CreateDatabase>();
+  EXPECT_EQ(cd->GetDatabaseName(), "c");
+
+  optimizer::PlanGenerator plan_generator{};
+  optimizer::PropertySet property_set{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
+  std::vector<optimizer::ExprMap> children_expr_map{};
+
+  auto plan_node =
+      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+  EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::CREATE_DATABASE);
+  auto cdpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::CreateDatabasePlanNode>();
+  EXPECT_EQ(cdpn->GetDatabaseName(), "c");
 }
 
 // NOLINTNEXTLINE
@@ -1037,6 +1078,27 @@ TEST_F(OperatorTransformerTest, CreateIndexTest) {
   EXPECT_EQ(col_attr->GetColumnName(), "a2");
   EXPECT_EQ(col_attr->GetColumnOid(), col_a2_oid);
   EXPECT_EQ(col_attr->GetDatabaseOid(), db_oid_);
+
+  auto optree_ptr = common::ManagedPointer(operator_tree_);
+  auto *op_ctx = optimization_context_.get();
+  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+
+  optimizer::LogicalCreateIndexToPhysicalCreateIndex rule;
+  EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
+  rule.Transform(optree_ptr, &transformed, op_ctx);
+
+  auto op = transformed[0]->GetOp();
+  EXPECT_EQ(op.GetType(), optimizer::OpType::CREATEINDEX);
+  EXPECT_TRUE(op.IsPhysical());
+  EXPECT_EQ(op.GetName(), "CreateIndex");
+  auto ct = op.As<optimizer::CreateIndex>();
+
+  EXPECT_EQ(ct->GetIndexName(), "idx_d");
+  EXPECT_EQ(ct->GetTableOid(), table_a_oid_);
+  EXPECT_EQ(ct->GetSchema()->GetColumns().size(), 2);
+  // TODO(WAN): contents of columns broken, who is responsible for filling in information? Binder or optimizer?
+  //  see the corresponding implementation rule, it needs to handle more...
+
 }
 
 // NOLINTNEXTLINE
@@ -1098,6 +1160,35 @@ TEST_F(OperatorTransformerTest, CreateNamespaceTest) {
   // Test logical create
   auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalCreateNamespace>();
   EXPECT_EQ("e", logical_create->GetNamespaceName());
+
+  auto optree_ptr = common::ManagedPointer(operator_tree_);
+  auto *op_ctx = optimization_context_.get();
+  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+
+  optimizer::LogicalCreateNamespaceToPhysicalCreateNamespace rule;
+  EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
+  rule.Transform(optree_ptr, &transformed, op_ctx);
+
+  auto op = transformed[0]->GetOp();
+  EXPECT_EQ(op.GetType(), optimizer::OpType::CREATENAMESPACE);
+  EXPECT_TRUE(op.IsPhysical());
+  EXPECT_EQ(op.GetName(), "CreateNamespace");
+  auto cn = op.As<optimizer::CreateNamespace>();
+  EXPECT_EQ(cn->GetNamespaceName(), "e");
+
+  optimizer::PlanGenerator plan_generator{};
+  optimizer::PropertySet property_set{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
+  std::vector<optimizer::ExprMap> children_expr_map{};
+
+  auto plan_node =
+      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+  EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::CREATE_NAMESPACE);
+  auto cnpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::CreateNamespacePlanNode>();
+  EXPECT_EQ(cnpn->GetNamespaceName(), "e");
 }
 
 // NOLINTNEXTLINE
@@ -1184,6 +1275,35 @@ TEST_F(OperatorTransformerTest, DropDatabaseTest) {
   // Test logical drop db
   auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalDropDatabase>();
   EXPECT_EQ(logical_create->GetDatabaseOID(), db_oid_);
+
+  auto optree_ptr = common::ManagedPointer(operator_tree_);
+  auto *op_ctx = optimization_context_.get();
+  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+
+  optimizer::LogicalDropDatabaseToPhysicalDropDatabase rule;
+  EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
+  rule.Transform(optree_ptr, &transformed, op_ctx);
+
+  auto op = transformed[0]->GetOp();
+  EXPECT_EQ(op.GetType(), optimizer::OpType::DROPDATABASE);
+  EXPECT_TRUE(op.IsPhysical());
+  EXPECT_EQ(op.GetName(), "DropDatabase");
+  auto dd = op.As<optimizer::DropDatabase>();
+  EXPECT_EQ(dd->GetDatabaseOID(), db_oid_);
+
+  optimizer::PlanGenerator plan_generator{};
+  optimizer::PropertySet property_set{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
+  std::vector<optimizer::ExprMap> children_expr_map{};
+
+  auto plan_node =
+      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+  EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_DATABASE);
+  auto ddpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropDatabasePlanNode>();
+  EXPECT_EQ(ddpn->GetDatabaseOid(), db_oid_);
 }
 
 // NOLINTNEXTLINE
@@ -1204,6 +1324,35 @@ TEST_F(OperatorTransformerTest, DropTableTest) {
   // Test logical drop table
   auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalDropTable>();
   EXPECT_EQ(logical_create->GetTableOID(), table_a_oid_);
+
+  auto optree_ptr = common::ManagedPointer(operator_tree_);
+  auto *op_ctx = optimization_context_.get();
+  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+
+  optimizer::LogicalDropTableToPhysicalDropTable rule;
+  EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
+  rule.Transform(optree_ptr, &transformed, op_ctx);
+
+  auto op = transformed[0]->GetOp();
+  EXPECT_EQ(op.GetType(), optimizer::OpType::DROPTABLE);
+  EXPECT_TRUE(op.IsPhysical());
+  EXPECT_EQ(op.GetName(), "DropTable");
+  auto dt = op.As<optimizer::DropTable>();
+  EXPECT_EQ(dt->GetTableOID(), table_a_oid_);
+
+  optimizer::PlanGenerator plan_generator{};
+  optimizer::PropertySet property_set{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
+  std::vector<optimizer::ExprMap> children_expr_map{};
+
+  auto plan_node =
+      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+  EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_TABLE);
+  auto dtpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropTablePlanNode>();
+  EXPECT_EQ(dtpn->GetTableOid(), table_a_oid_);
 }
 
 // NOLINTNEXTLINE
@@ -1223,10 +1372,87 @@ TEST_F(OperatorTransformerTest, DropIndexTest) {
   // Test logical drop table
   auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalDropIndex>();
   EXPECT_EQ(logical_create->GetIndexOID(), a_index_oid_);
+
+  auto optree_ptr = common::ManagedPointer(operator_tree_);
+  auto *op_ctx = optimization_context_.get();
+  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+
+  optimizer::LogicalDropIndexToPhysicalDropIndex rule;
+  EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
+  rule.Transform(optree_ptr, &transformed, op_ctx);
+
+  auto op = transformed[0]->GetOp();
+  EXPECT_EQ(op.GetType(), optimizer::OpType::DROPINDEX);
+  EXPECT_TRUE(op.IsPhysical());
+  EXPECT_EQ(op.GetName(), "DropIndex");
+  auto di = op.As<optimizer::DropIndex>();
+  EXPECT_EQ(di->GetIndexOID(), a_index_oid_);
+
+  optimizer::PlanGenerator plan_generator{};
+  optimizer::PropertySet property_set{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
+  std::vector<optimizer::ExprMap> children_expr_map{};
+
+  auto plan_node =
+      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+  EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_INDEX);
+  auto dipn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropIndexPlanNode>();
+  EXPECT_EQ(dipn->GetIndexOid(), a_index_oid_);
 }
 
 // NOLINTNEXTLINE
-TEST_F(OperatorTransformerTest, DropNamespaceIfExistsTest) {
+TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereExistTest) {
+  std::string drop_sql = "DROP SCHEMA IF EXISTS public CASCADE;";
+  std::string ref = R"({"Op":"LogicalDropNamespace",})";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+
+  EXPECT_EQ(ref, info);
+
+  // Test logical drop table
+  auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalDropNamespace>();
+  EXPECT_EQ(logical_create->GetNamespaceOID(), catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID);
+
+  auto optree_ptr = common::ManagedPointer(operator_tree_);
+  auto *op_ctx = optimization_context_.get();
+  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+
+  optimizer::LogicalDropNamespaceToPhysicalDropNamespace rule;
+  EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
+  rule.Transform(optree_ptr, &transformed, op_ctx);
+
+  auto op = transformed[0]->GetOp();
+  EXPECT_EQ(op.GetType(), optimizer::OpType::DROPNAMESPACE);
+  EXPECT_TRUE(op.IsPhysical());
+  EXPECT_EQ(op.GetName(), "DropNamespace");
+  auto dn = op.As<optimizer::DropNamespace>();
+  EXPECT_EQ(dn->GetNamespaceOID(), catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID);
+
+  optimizer::PlanGenerator plan_generator{};
+  optimizer::PropertySet property_set{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
+  std::vector<optimizer::ExprMap> children_expr_map{};
+
+  auto plan_node =
+      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+  EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_NAMESPACE);
+  auto dnpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropNamespacePlanNode>();
+  EXPECT_EQ(dnpn->GetNamespaceOid(), catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID);
+}
+
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereNotExistTest) {
   std::string drop_sql = "DROP SCHEMA IF EXISTS foo CASCADE;";
   std::string ref = R"({"Op":"LogicalDropNamespace",})";
 
@@ -1242,6 +1468,35 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsTest) {
   // Test logical drop table
   auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalDropNamespace>();
   EXPECT_EQ(logical_create->GetNamespaceOID(), catalog::INVALID_NAMESPACE_OID);
+
+  auto optree_ptr = common::ManagedPointer(operator_tree_);
+  auto *op_ctx = optimization_context_.get();
+  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+
+  optimizer::LogicalDropNamespaceToPhysicalDropNamespace rule;
+  EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
+  rule.Transform(optree_ptr, &transformed, op_ctx);
+
+  auto op = transformed[0]->GetOp();
+  EXPECT_EQ(op.GetType(), optimizer::OpType::DROPNAMESPACE);
+  EXPECT_TRUE(op.IsPhysical());
+  EXPECT_EQ(op.GetName(), "DropNamespace");
+  auto dn = op.As<optimizer::DropNamespace>();
+  EXPECT_EQ(dn->GetNamespaceOID(), catalog::INVALID_NAMESPACE_OID);
+
+  optimizer::PlanGenerator plan_generator{};
+  optimizer::PropertySet property_set{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
+  std::vector<optimizer::ExprMap> children_expr_map{};
+
+  auto plan_node =
+      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+  EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_NAMESPACE);
+  auto dnpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropNamespacePlanNode>();
+  EXPECT_EQ(dnpn->GetNamespaceOid(), catalog::INVALID_NAMESPACE_OID);
 }
 
 }  // namespace terrier
