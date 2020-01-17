@@ -2,6 +2,7 @@
 
 #include "execution/sql/value.h"
 #include "loggers/execution_logger.h"
+#include "network/postgres/postgres_packet_writer.h"
 
 namespace terrier::execution::exec {
 

@@ -13,9 +13,12 @@
 #include "catalog/schema.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/util/execution_common.h"
-#include "network/postgres/postgres_packet_writer.h"
 #include "parser/parser_defs.h"
 #include "planner/plannodes/output_schema.h"
+
+namespace terrier::network {
+class PostgresPacketWriter;
+}
 
 namespace terrier::execution::exec {
 
