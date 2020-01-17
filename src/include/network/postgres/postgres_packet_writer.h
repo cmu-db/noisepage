@@ -15,8 +15,6 @@ namespace terrier::network {
  */
 class PostgresPacketWriter : public PacketWriter {
  public:
-  enum class AttributeFormat : int16_t { text = 0, binary = 1 };
-
   /**
    * Instantiates a new PostgresPacketWriter backed by the given WriteQueue
    */
@@ -81,7 +79,7 @@ class PostgresPacketWriter : public PacketWriter {
    * Writes row description, as the first packet of sending query results
    * @param columns the column information from the OutputSchema
    */
-  void WriteRowDescription(const std::vector<planner::OutputSchema::Column> &columns, const AttributeFormat format) {
+  void WriteRowDescription(const std::vector<planner::OutputSchema::Column> &columns) {
     BeginPacket(NetworkMessageType::PG_ROW_DESCRIPTION).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
     for (const auto &col : columns) {
       AppendString(col.GetName())
@@ -91,7 +89,7 @@ class PostgresPacketWriter : public PacketWriter {
           .AppendValue(static_cast<int32_t>(InternalValueTypeToPostgresValueType(col.GetType())))  // type oid
           .AppendValue<int16_t>(execution::sql::ValUtil::GetSqlSize(col.GetType()))                // data type size
           .AppendValue<int32_t>(-1)  // type modifier, generally -1 (see pg_attribute.atttypmod)
-          .AppendValue<int16_t>(static_cast<int16_t>(format));  // format code for the field
+          .AppendValue<int16_t>(1);  // format code for the field, 0 for text, 1 for binary
     }
     EndPacket();
   }
