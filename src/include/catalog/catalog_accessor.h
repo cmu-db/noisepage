@@ -299,7 +299,7 @@ class CatalogAccessor {
    * @param args names of arguments to this proc
    * @param arg_types types of arguments to this proc in the same order as in args
    * @param arg_modes modes of arguments in the same order as in args
-   * @param rettype type of return value
+   * @param rettype oid of the type of return value
    * @param src source code of proc
    * @param is_aggregate true iff this is an aggregate procedure
    * @return oid of created proc entry
@@ -308,7 +308,7 @@ class CatalogAccessor {
   proc_oid_t CreateProcedure(const std::string &procname, language_oid_t lanoid, namespace_oid_t procns,
                              const std::vector<const std::string> &args, const std::vector<type::TypeId> &arg_types,
                              const std::vector<type::TypeId> &all_arg_types, const std::vector<const char> &arg_modes,
-                             type::TypeId rettype, const std::string &src, bool is_aggregate);
+                             type_oid_t rettype, const std::string &src, bool is_aggregate);
 
   /**
    * Drops a procedure from the pg_proc table

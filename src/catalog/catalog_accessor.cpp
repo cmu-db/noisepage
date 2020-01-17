@@ -146,7 +146,7 @@ proc_oid_t CatalogAccessor::CreateProcedure(const std::string &procname, languag
                                             const std::vector<const std::string> &args,
                                             const std::vector<type::TypeId> &arg_types,
                                             const std::vector<type::TypeId> &all_arg_types,
-                                            const std::vector<const char> &arg_modes, type::TypeId rettype,
+                                            const std::vector<const char> &arg_modes, type_oid_t rettype,
                                             const std::string &src, bool is_aggregate) {
   return dbc_->CreateProcedure(txn_, procname, lanoid, procns, args, arg_types, all_arg_types, arg_modes, rettype, src,
                                is_aggregate);

@@ -291,7 +291,7 @@ class DatabaseCatalog {
                              const std::string &procname, language_oid_t lanoid, namespace_oid_t procns,
                              const std::vector<const std::string> &args, const std::vector<type::TypeId> &arg_types,
                              const std::vector<type::TypeId> &all_arg_types, const std::vector<const char> &arg_modes,
-                             type::TypeId rettype, const std::string &src, bool is_aggregate);
+                             type_oid_t rettype, const std::string &src, bool is_aggregate);
 
   /**
    * Drops a procedure from the pg_proc table
@@ -528,6 +528,22 @@ class DatabaseCatalog {
    * catalog shouldn't undergo schema changes at runtime
    */
   void BootstrapPRIs();
+
+
+  /**
+   * Helper function to insert a type into PG_Type and the type indexes
+   * @param txn transaction to insert with
+   * @param type_oid oid of type to insert with
+   * @param name type name
+   * @param namespace_oid namespace to insert type into
+   * @param len length of type in bytes. len should be -1 for varlen types
+   * @param by_val true if type should be passed by value. false if passed by reference
+   * @param type_category category of type
+   */
+  void InsertType(common::ManagedPointer<transaction::TransactionContext> txn, type_oid_t type_oid,
+                  const std::string &name, namespace_oid_t namespace_oid, int16_t len, bool by_val,
+                  postgres::Type type_category);
+
 
   /**
    * Helper function to insert a type into PG_Type and the type indexes
