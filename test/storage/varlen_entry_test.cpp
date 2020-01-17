@@ -72,7 +72,7 @@ TEST(VarlenEntryTests, Array) {
   {
     std::vector<int32_t> test_data{2, 5, 6, 7, 2};
     const auto varlen_entry = storage::StorageUtil::CreateVarlen(test_data);
-    const std::vector<int32_t> test_view = varlen_entry.DeserializeArray<int32_t>(test_data.size());
+    const std::vector<int32_t> test_view = varlen_entry.DeserializeArray<int32_t>();
     EXPECT_EQ(test_data, test_view);
   }
 
@@ -80,7 +80,7 @@ TEST(VarlenEntryTests, Array) {
   {
     std::vector<int32_t> test_data{2};
     const auto varlen_entry = storage::StorageUtil::CreateVarlen(test_data);
-    const std::vector<int32_t> test_view = varlen_entry.DeserializeArray<int32_t>(test_data.size());
+    const std::vector<int32_t> test_view = varlen_entry.DeserializeArray<int32_t>();
     EXPECT_EQ(test_data, test_view);
   }
 
@@ -88,7 +88,7 @@ TEST(VarlenEntryTests, Array) {
   {
     std::vector<std::string> test_data{"hello", "world", "i am", "a test"};
     const auto varlen_entry = storage::StorageUtil::CreateVarlen(test_data);
-    const std::vector<std::string> test_view = varlen_entry.DeserializeArray<std::string>(test_data.size());
+    const std::vector<std::string> test_view = varlen_entry.DeserializeArray<std::string>();
     EXPECT_EQ(test_data, test_view);
   }
 }

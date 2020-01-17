@@ -1570,7 +1570,7 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
 type_oid_t DatabaseCatalog::GetTypeOidForType(type::TypeId type) { return type_oid_t(static_cast<uint8_t>(type)); }
 
 void DatabaseCatalog::InsertType(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                 const type::TypeId internal_type, const std::string &name,
+                                 type_oid_t type_oid, const std::string &name,
                                  const namespace_oid_t namespace_oid, const int16_t len, bool by_val,
                                  const postgres::Type type_category) {
   // Stage the write into the table
@@ -1579,7 +1579,6 @@ void DatabaseCatalog::InsertType(const common::ManagedPointer<transaction::Trans
 
   // Populate oid
   auto offset = pg_type_all_cols_prm_[postgres::TYPOID_COL_OID];
-  auto type_oid = GetTypeOidForType(internal_type);
   *(reinterpret_cast<type_oid_t *>(delta->AccessForceNotNull(offset))) = type_oid;
 
   // Populate type name
@@ -1648,6 +1647,14 @@ void DatabaseCatalog::InsertType(const common::ManagedPointer<transaction::Trans
   delete[] buffer;
 }
 
+void DatabaseCatalog::InsertType(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                 type::TypeId internal_type, const std::string &name,
+                                 const namespace_oid_t namespace_oid, const int16_t len, bool by_val,
+                                 const postgres::Type type_category) {
+  auto type_oid = GetTypeOidForType(internal_type);
+  InsertType(txn, type_oid, name, namespace_oid, len, by_val, type_category);
+}
+
 void DatabaseCatalog::BootstrapTypes(const common::ManagedPointer<transaction::TransactionContext> txn) {
   InsertType(txn, type::TypeId::INVALID, "invalid", postgres::NAMESPACE_CATALOG_NAMESPACE_OID, 1, true,
              postgres::Type::BASE);
@@ -1681,6 +1688,9 @@ void DatabaseCatalog::BootstrapTypes(const common::ManagedPointer<transaction::T
 
   InsertType(txn, type::TypeId::VARBINARY, "varbinary", postgres::NAMESPACE_CATALOG_NAMESPACE_OID, -1, false,
              postgres::Type::BASE);
+
+  InsertType(txn, postgres::VAR_ARRAY_OID, "var_array", postgres::NAMESPACE_CATALOG_NAMESPACE_OID, -1, false,
+             postgres::Type::COMPOSITE);
 }
 
 void DatabaseCatalog::BootstrapLanguages(const common::ManagedPointer<transaction::TransactionContext> txn) {
@@ -1688,7 +1698,7 @@ void DatabaseCatalog::BootstrapLanguages(const common::ManagedPointer<transactio
   CreateLanguage(txn, "internal", postgres::INTERNAL_LANGUAGE_OID);
 }
 
-void BootstrapProcs(const common::ManagedPointer<transaction::TransactionContext> txn) {}
+void BootstrapProcs(const common::ManagedPointer<transaction::TransactionContext> txn) {(void)txn;}
 
 bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
                                        const table_oid_t table_oid, const namespace_oid_t ns_oid,
@@ -2109,7 +2119,7 @@ proc_oid_t DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transac
                                             const std::vector<const std::string> &args,
                                             const std::vector<type::TypeId> &arg_types,
                                             const std::vector<type::TypeId> &all_arg_types,
-                                            const std::vector<const char> &arg_modes, type::TypeId rettype,
+                                            const std::vector<const char> &arg_modes, type_oid_t rettype,
                                             const std::string &src, bool is_aggregate) {
   TERRIER_ASSERT(args.size() < UINT16_MAX, "Number of arguments must fit in a SMALLINT");
 
@@ -2152,7 +2162,7 @@ proc_oid_t DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transac
   *(reinterpret_cast<namespace_oid_t *>(
       redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PRONAMESPACE_COL_OID]))) = procns;
   *(reinterpret_cast<type_oid_t *>(redo->Delta()->AccessForceNotNull(
-      pg_proc_all_cols_prm_[postgres::PRORETTYPE_COL_OID]))) = GetTypeOidForType(rettype);
+      pg_proc_all_cols_prm_[postgres::PRORETTYPE_COL_OID]))) = rettype;
 
   *(reinterpret_cast<uint16_t *>(redo->Delta()->AccessForceNotNull(
       pg_proc_all_cols_prm_[postgres::PRONARGS_COL_OID]))) = static_cast<uint16_t>(args.size());

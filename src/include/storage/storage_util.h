@@ -198,7 +198,7 @@ class StorageUtil {
    */
   static storage::VarlenEntry CreateVarlen(const std::vector<const std::string> &vec) {
     // determine total size
-    size_t total_size = 0;
+    size_t total_size = sizeof(size_t);
     for (auto &elem : vec) {
       total_size += sizeof(size_t);
       total_size += elem.length();
@@ -206,6 +206,8 @@ class StorageUtil {
 
     byte *contents = common::AllocationUtil::AllocateAligned(total_size);
     byte *head = contents;
+    *reinterpret_cast<size_t *>(head) = vec.size();
+    head += sizeof(size_t);
 
     // serialize with length followed by string
     for (auto &elem : vec) {
@@ -235,14 +237,17 @@ class StorageUtil {
   template <typename T>
   static storage::VarlenEntry CreateVarlen(const std::vector<T> &vec) {
     // determine total size
-    size_t total_size = sizeof(T) * vec.size();
+    size_t total_size = sizeof(T) * vec.size() + sizeof(size_t);
+    byte *contents = common::AllocationUtil::AllocateAligned(total_size);
+    *reinterpret_cast<size_t*>(contents) = vec.size();
+    byte *payload = contents + sizeof(size_t);
+    std::memcpy(payload, vec.data(), sizeof(T)*vec.size());
     if (total_size > storage::VarlenEntry::InlineThreshold()) {
-      byte *contents = common::AllocationUtil::AllocateAligned(total_size);
-      std::memcpy(contents, vec.data(), total_size);
       return storage::VarlenEntry::Create(contents, static_cast<uint32_t>(total_size), true);
     }
-    return storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(vec.data()),
-                                              static_cast<uint32_t>(total_size));
+    auto ret = storage::VarlenEntry::CreateInline(contents, static_cast<uint32_t>(total_size));
+    delete []contents;
+    return ret;
   }
 };
 }  // namespace terrier::storage

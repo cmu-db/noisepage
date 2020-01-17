@@ -132,7 +132,7 @@ TEST_F(CatalogTests, ProcTest) {
   auto src = "int sample(arg1, arg2, arg3){return 2;}";
 
   auto proc_oid = accessor->CreateProcedure(procname, lan_oid, ns_oid, args, arg_types, arg_types, arg_modes,
-                                            type::TypeId::INTEGER, src, false);
+                                            catalog::type_oid_t(static_cast<uint8_t>(type::TypeId::INTEGER)), src, false);
   EXPECT_NE(proc_oid, catalog::INVALID_PROC_OID);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
