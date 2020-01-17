@@ -162,8 +162,14 @@ class ConnectionHandle {
    */
   void StopReceivingNetworkEvent() { EventUtil::EventDel(network_event_); }
 
+  /**
+   * issues a libevent to wake up the state machine in the WAIT_ON_TERRIER state
+   * @param callback_args this for a ConnectionHandle in WAIT_ON_TERRIER state
+   */
   static void Callback(void *callback_args) {
     auto *const handle = reinterpret_cast<ConnectionHandle *>(callback_args);
+    TERRIER_ASSERT(handle->state_machine_.CurrentState() == ConnState::PROCESS,
+                   "Should be waking up a ConnectionHandle that's in PROCESS state waiting on query result.");
     event_active(handle->workpool_event_, EV_WRITE, 0);
   }
 
@@ -208,6 +214,8 @@ class ConnectionHandle {
      * @param connection the network connection object to apply actions to
      */
     void Accept(Transition action, common::ManagedPointer<ConnectionHandle> connection);
+
+    ConnState CurrentState() const { return current_state_; }
 
    private:
     /**

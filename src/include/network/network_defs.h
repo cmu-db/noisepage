@@ -15,7 +15,6 @@
 #include <vector>
 
 #include "common/macros.h"
-#include "traffic_cop/result_set.h"
 #include "type/type_id.h"
 
 namespace terrier::trafficcop {

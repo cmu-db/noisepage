@@ -18,6 +18,9 @@ namespace terrier::parser {
  */
 class ParseResult {
  public:
+  /**
+   * @return true if no statements exist
+   */
   bool Empty() const { return statements_.empty(); }
 
   /**

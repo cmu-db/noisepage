@@ -85,32 +85,34 @@ class PostgresPacketWriter : public PacketWriter {
     EndPacket();
   }
 
+  // TODO(Matt): reimplement this for our new result type from the execution engine, leaving this dead code for now in
+  // case it's instructive
   /**
    * Writes a data row.
    * @param values a row's values.
    */
-  void WriteDataRow(const trafficcop::Row &values) {
-    using type::TransientValuePeeker;
-    using type::TypeId;
-
-    BeginPacket(NetworkMessageType::PG_DATA_ROW).AppendValue<int16_t>(static_cast<int16_t>(values.size()));
-    for (auto &value : values) {
-      // use text to represent values for now
-      std::string ret;
-      if (value.Type() == TypeId::INTEGER)
-        ret = std::to_string(TransientValuePeeker::PeekInteger(value));
-      else if (value.Type() == TypeId::DECIMAL)
-        ret = std::to_string(TransientValuePeeker::PeekDecimal(value));
-      else if (value.Type() == TypeId::VARCHAR)
-        ret = TransientValuePeeker::PeekVarChar(value);
-      if (ret == "NULL") {
-        AppendValue<int32_t>(static_cast<int32_t>(-1));
-      } else {
-        AppendValue<int32_t>(static_cast<int32_t>(ret.length())).AppendString(ret, false);
-      }
-    }
-    EndPacket();
-  }
+  //  void WriteDataRow(const trafficcop::Row &values) {
+  //    using type::TransientValuePeeker;
+  //    using type::TypeId;
+  //
+  //    BeginPacket(NetworkMessageType::PG_DATA_ROW).AppendValue<int16_t>(static_cast<int16_t>(values.size()));
+  //    for (auto &value : values) {
+  //      // use text to represent values for now
+  //      std::string ret;
+  //      if (value.Type() == TypeId::INTEGER)
+  //        ret = std::to_string(TransientValuePeeker::PeekInteger(value));
+  //      else if (value.Type() == TypeId::DECIMAL)
+  //        ret = std::to_string(TransientValuePeeker::PeekDecimal(value));
+  //      else if (value.Type() == TypeId::VARCHAR)
+  //        ret = TransientValuePeeker::PeekVarChar(value);
+  //      if (ret == "NULL") {
+  //        AppendValue<int32_t>(static_cast<int32_t>(-1));
+  //      } else {
+  //        AppendValue<int32_t>(static_cast<int32_t>(ret.length())).AppendString(ret, false);
+  //      }
+  //    }
+  //    EndPacket();
+  //  }
 
   /**
    * Tells the client that the query command is complete.

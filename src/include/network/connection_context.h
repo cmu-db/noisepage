@@ -124,9 +124,11 @@ class ConnectionContext {
    */
   void SetTransaction(const common::ManagedPointer<transaction::TransactionContext> txn) { txn_ = txn; }
 
+  /**
+   * @return current CatalogAccesor for connection
+   */
   common::ManagedPointer<catalog::CatalogAccessor> Accessor() const {
     TERRIER_ASSERT(accessor_ != nullptr, "Requesting CatalogAccessor that doesn't exist yet.");
-
     // TODO(Matt): I'd like an assert here that the accessor's txn matches the connection context's txn, but the
     // accessor doesn't expose a getter.
     return common::ManagedPointer(accessor_);
@@ -139,6 +141,11 @@ class ConnectionContext {
    */
   void SetAccessor(std::unique_ptr<catalog::CatalogAccessor> accessor) { accessor_ = std::move(accessor); }
 
+  /**
+   * @param callback static method for callback in ConnectionHandle
+   * @param callback_arg this from ConnectionHandle constructor
+   * @warning only to be used by ConnectionHandle's constructor
+   */
   void SetCallback(const network::NetworkCallback callback, void *const callback_arg) {
     callback_ = callback;
     callback_arg_ = callback_arg;

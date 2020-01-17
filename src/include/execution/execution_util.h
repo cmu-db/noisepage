@@ -7,6 +7,9 @@
 
 namespace terrier::execution {
 
+/**
+ * Static helper methods for interacting with the LLVM execution engine.
+ */
 class ExecutionUtil {
  public:
   ExecutionUtil() = delete;

@@ -572,6 +572,10 @@ class DBMain {
       return *this;
     }
 
+    /**
+     * @param value TrafficCop argument
+     * @return self reference for chaining
+     */
     Builder &SetOptimizerTimeout(const uint64_t value) {
       optimizer_timeout_ = value;
       return *this;
