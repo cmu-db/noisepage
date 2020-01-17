@@ -13,6 +13,8 @@
 #include "catalog/schema.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/util/execution_common.h"
+#include "network/postgres/postgres_packet_writer.h"
+#include "parser/parser_defs.h"
 #include "planner/plannodes/output_schema.h"
 
 namespace terrier::execution::exec {
@@ -100,6 +102,38 @@ class OutputPrinter {
  private:
   uint32_t printed_ = 0;
   const planner::OutputSchema *schema_;
+};
+
+/**
+ * Output handler for execution engine that writes results to PostgresPacketWriter
+ */
+class OutputWriter {
+ public:
+  /**
+   * @param schema final schema to output
+   * @param out packet writer to use
+   */
+  OutputWriter(const common::ManagedPointer<planner::OutputSchema> schema,
+               const common::ManagedPointer<network::PostgresPacketWriter> out)
+      : schema_(schema), out_(out) {}
+
+  /**
+   * Callback that prints a batch of tuples to std out.
+   * @param tuples batch of tuples
+   * @param num_tuples number of tuples
+   * @param tuple_size size of tuples
+   */
+  void operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple_size);
+
+  /**
+   * @return number of rows printed
+   */
+  uint32_t NumRows() const { return num_rows_; }
+
+ private:
+  uint32_t num_rows_ = 0;
+  const common::ManagedPointer<planner::OutputSchema> schema_;
+  const common::ManagedPointer<network::PostgresPacketWriter> out_;
 };
 
 }  // namespace terrier::execution::exec

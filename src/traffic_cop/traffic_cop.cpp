@@ -301,16 +301,36 @@ void TrafficCop::ExecuteStatement(const common::ManagedPointer<network::Connecti
                              statement.CastManagedPointerTo<parser::DropStatement>()->GetDropType(),
                              single_statement_txn);
       } else {
-        execution::exec::OutputPrinter printer{physical_plan->GetOutputSchema().Get()};
+        execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out);
 
         auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-            connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), printer,
+            connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer,
             physical_plan->GetOutputSchema().Get(), connection_ctx->Accessor());
 
         auto exec_query =
             execution::ExecutableQuery(common::ManagedPointer(physical_plan), common::ManagedPointer(exec_ctx));
 
         exec_query.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+
+        // TODO(Matt): I now see that we should switch the parser::StatementType to a network::QueryType far earlier to
+        // clean up some of these conditionals. Future refactor.
+
+        switch (statement_type) {
+          case parser::StatementType::SELECT:
+            out->WriteCommandComplete(network::QueryType::QUERY_SELECT, writer.NumRows());
+            break;
+          case parser::StatementType::INSERT:
+            out->WriteCommandComplete(network::QueryType::QUERY_INSERT, writer.NumRows());
+            break;
+          case parser::StatementType::UPDATE:
+            out->WriteCommandComplete(network::QueryType::QUERY_UPDATE, writer.NumRows());
+            break;
+          case parser::StatementType::DELETE:
+            out->WriteCommandComplete(network::QueryType::QUERY_DELETE, writer.NumRows());
+            break;
+          default:
+            UNREACHABLE("Shouldn't be possible in these nested switch statements.");
+        }
       }
       if (single_statement_txn) {
         // Single statement transaction should be ended before returning

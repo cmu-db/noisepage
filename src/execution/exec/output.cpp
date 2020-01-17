@@ -1,4 +1,5 @@
 #include "execution/exec/output.h"
+
 #include "execution/sql/value.h"
 #include "loggers/execution_logger.h"
 
@@ -83,5 +84,18 @@ void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple
   }
   EXECUTION_LOG_INFO("Ouptut batch {}: \n{}", printed_, ss.str());
   printed_++;
+}
+
+void OutputWriter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {
+  // Only write the row description once for a single query, not for each batch produced
+  if (num_rows_ == 0) {
+    out_->WriteRowDescription(schema_->GetColumns());
+  }
+  // Write out the rows for this batch
+  for (uint32_t row = 0; row < num_tuples; row++) {
+    const byte *const tuple = tuples + row * tuple_size;
+    out_->WriteDataRow(tuple, schema_->GetColumns());
+    num_rows_++;
+  }
 }
 }  // namespace terrier::execution::exec
