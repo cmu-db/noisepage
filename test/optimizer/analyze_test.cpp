@@ -58,9 +58,8 @@ class AnalyzeTests : public TerrierTest {
 };
 
 /**
- * This test creates multiple worker threads that all try to insert [0,num_inserts) as tuples in the table and into the
- * primary key index. At completion of the workload, only num_inserts_ txns should have committed with visible versions
- * in the index and table.
+ * This test creates fills in the table with i values for all i between 0 to 99. Then it runs the analyze function
+ and confirms the column stats generated.
  */
 // NOLINTNEXTLINE
 TEST_F(AnalyzeTests, SingleColumnTest) {

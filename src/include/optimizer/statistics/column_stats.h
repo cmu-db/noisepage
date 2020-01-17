@@ -47,10 +47,34 @@ class ColumnStats {
   ColumnStats() = default;
 
   /**
+   * Gets the database ID of the column
+   * @return the database_id_
+   */
+  catalog::db_oid_t GetDatabaseID() const { return database_id_; }
+
+  /**
+   * Gets the table ID of the column
+   * @return the table_id_
+   */
+  catalog::table_oid_t GetTableID() const { return table_id_; }
+
+  /**
    * Gets the column oid of the column
    * @return the column oid
    */
   catalog::col_oid_t GetColumnID() const { return column_id_; }
+
+  /**
+   * Gets the fraction of Null values of the column
+   * @return frac_null_
+   */
+  double GetFracNull() const { return frac_null_; }
+
+  /**
+   * Returns True if the column is part of a base table
+   * @return is_base_table_
+   */
+  bool BaseTable() const { return is_base_table_; }
 
   /**
    * Gets the number of rows in the column
