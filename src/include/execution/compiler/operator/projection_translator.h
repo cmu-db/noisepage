@@ -52,7 +52,6 @@ class ProjectionTranslator : public OperatorTranslator {
     return translator->DeriveExpr(this);
   }
 
-  // Should not be called here
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {
     return child_translator_->GetOutput(attr_idx);
   }
