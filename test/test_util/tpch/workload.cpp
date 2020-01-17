@@ -21,12 +21,13 @@ Workload::Workload(common::ManagedPointer<DBMain> db_main, const std::string &db
   auto txn = txn_manager_->BeginTransaction();
 
   // Create database catalog and namespace
-  db_oid_ = catalog_->CreateDatabase(txn, db_name, true);
-  auto accessor = catalog_->GetAccessor(txn, db_oid_);
+  db_oid_ = catalog_->CreateDatabase(common::ManagedPointer<transaction::TransactionContext>(txn), db_name, true);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_);
   ns_oid_ = accessor->GetDefaultNamespace();
 
   // Make the execution context
-  execution::exec::ExecutionContext exec_ctx{db_oid_, txn, nullptr, nullptr, std::move(accessor)};
+  execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
+      nullptr, nullptr, common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
 
   // create the TPCH database and compile the queries
   GenerateTPCHTables(&exec_ctx, table_root);
@@ -67,9 +68,10 @@ void Workload::Execute(int8_t worker_id, uint32_t num_precomputed_txns_per_worke
   for (uint32_t i = 0; i < num_precomputed_txns_per_worker; i++) {
     // Executing all the queries on by one in round robin
     auto txn = txn_manager_->BeginTransaction();
-    auto accessor = catalog_->GetAccessor(txn, db_oid_);
+    auto accessor = catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_);
     execution::ExecutableQuery &query = queries_[index[counter]];
-    execution::exec::ExecutionContext exec_ctx{db_oid_, txn, query.GetPrinter(), query.GetOutputSchema(), std::move(accessor)};
+    execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
+        query.GetPrinter(), query.GetOutputSchema(), common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
     printf("%d, %d, %p\n", counter, index[counter], &queries_[index[counter]]);
     query.Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
     counter = counter == num_queries - 1 ? 0:counter + 1 ;
