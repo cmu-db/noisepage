@@ -85,7 +85,6 @@ class PostgresPacketWriter : public PacketWriter {
       AppendString(col.GetName())
           .AppendValue<int32_t>(0)  // table oid (if it's a column from a table), 0 otherwise
           .AppendValue<int16_t>(0)  // column oid (if it's a column from a table), 0 otherwise
-
           .AppendValue(static_cast<int32_t>(InternalValueTypeToPostgresValueType(col.GetType())))  // type oid
           .AppendValue<int16_t>(execution::sql::ValUtil::GetSqlSize(col.GetType()))                // data type size
           .AppendValue<int32_t>(-1)  // type modifier, generally -1 (see pg_attribute.atttypmod)
