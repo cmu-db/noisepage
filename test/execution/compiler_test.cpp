@@ -29,6 +29,7 @@
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
 #include "planner/plannodes/output_schema.h"
+#include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
 #include "type/transient_value.h"
@@ -143,6 +144,73 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
 
   // Run & Check
   CompileAndRun(seq_scan.get(), exec_ctx.get());
+  multi_checker.CheckCorrectness();
+}
+
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, SimpleSeqScanWithProjectionTest) {
+  // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1 WHERE col1 < 500 AND col2 >= 3;
+  // This test first selects col1 and col2, and then constructs the 4 output columns.
+  auto accessor = MakeAccessor();
+  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+  auto table_schema = accessor->GetSchema(table_oid);
+  ExpressionMaker expr_maker;
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
+  {
+    // Get Table columns
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    // Make New Column
+    seq_scan_out.AddOutput("col1", common::ManagedPointer(col1));
+    seq_scan_out.AddOutput("col2", common::ManagedPointer(col2));
+    auto schema = seq_scan_out.MakeSchema();
+    // Make predicate
+    auto comp1 = expr_maker.ComparisonLt(col1, expr_maker.Constant(500));
+    auto comp2 = expr_maker.ComparisonGe(col2, expr_maker.Constant(3));
+    auto predicate = expr_maker.ConjunctionAnd(comp1, comp2);
+    // Build
+    planner::SeqScanPlanNode::Builder builder;
+    seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid})
+                   .SetScanPredicate(predicate)
+                   .SetIsForUpdateFlag(false)
+                   .SetNamespaceOid(NSOid())
+                   .SetTableOid(table_oid)
+                   .Build();
+  }
+  std::unique_ptr<planner::AbstractPlanNode> proj;
+  OutputSchemaHelper proj_out{0, &expr_maker};
+  {
+    auto col1 = seq_scan_out.GetOutput("col1");
+    auto col2 = seq_scan_out.GetOutput("col2");
+    auto col3 = expr_maker.OpMul(col1, col2);
+    auto col4 = expr_maker.ComparisonGe(col1, expr_maker.OpMul(expr_maker.Constant(100), col2));
+    proj_out.AddOutput("col1", common::ManagedPointer(col1));
+    proj_out.AddOutput("col2", common::ManagedPointer(col2));
+    proj_out.AddOutput("col3", common::ManagedPointer(col3));
+    proj_out.AddOutput("col4", common::ManagedPointer(col4));
+    auto schema = proj_out.MakeSchema();
+    planner::ProjectionPlanNode::Builder builder;
+    proj = builder.SetOutputSchema(std::move(schema)).AddChild(std::move(seq_scan)).Build();
+  }
+
+  // Make the output checkers
+  SingleIntComparisonChecker col1_checker(std::less<>(), 0, 500);
+  SingleIntComparisonChecker col2_checker(std::greater_equal<>(), 1, 3);
+
+  MultiChecker multi_checker{std::vector<OutputChecker *>{&col1_checker, &col2_checker}};
+
+  // Create the execution context
+  OutputStore store{&multi_checker, proj->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(proj->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), proj->GetOutputSchema().Get());
+
+  // Run & Check
+  CompileAndRun(proj.get(), exec_ctx.get());
   multi_checker.CheckCorrectness();
 }
 
