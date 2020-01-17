@@ -7,6 +7,7 @@
 #include <vector>
 #include "catalog/catalog.h"
 #include "execution/exec/execution_context.h"
+#include "execution/table_generator/table_reader.h"
 #include "parser/expression/constant_value_expression.h"
 #include "transaction/transaction_context.h"
 #include "type/transient_value_factory.h"

@@ -41,20 +41,21 @@ class ExecutableQuery {
   }
 
   /**
- * Compile the TPL source in \a source and run it in both interpreted and JIT
- * compiled mode
- * @param source The TPL source
- * @param name The name of the module/program
- */
-
-  /**
-   * Construct the the executable query from a TPL string source
+   * Construct and compile an executable TPL program in the given filename
    *
-   * @param source The TPL source
+   * @param filename The name of the file on disk to compile
    * @param exec_ctx context to execute
    */
-  ExecutableQuery(const std::string &source,
-                  const common::ManagedPointer<exec::ExecutionContext> exec_ctx) {
+  ExecutableQuery(const std::string &filename, const common::ManagedPointer<exec::ExecutionContext> exec_ctx) {
+    auto file = llvm::MemoryBuffer::getFile(filename);
+    if (std::error_code error = file.getError()) {
+      EXECUTION_LOG_ERROR("There was an error reading file '{}': {}", filename, error.message());
+      return;
+    }
+
+    // Copy the source into a temporary, compile, and run
+    auto source = (*file)->getBuffer().str();
+
     // Let's scan the source
     region_ = std::make_unique<util::Region>("repl-ast");
     util::Region error_region("repl-error");

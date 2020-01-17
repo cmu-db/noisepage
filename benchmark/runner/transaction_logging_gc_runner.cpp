@@ -8,7 +8,7 @@
 
 #define LOG_FILE_NAME "benchmark.txt"
 
-namespace terrier {
+namespace terrier::runner {
 
 class TransactionLoggingGCRunner : public benchmark::Fixture {
  public:
@@ -29,9 +29,6 @@ class TransactionLoggingGCRunner : public benchmark::Fixture {
   const uint64_t log_persist_threshold_ = (1 << 20);  // 1MB
 };
 
-/**
- * Run a TPCC-like workload (5 statements per txn, 10% insert, 40% update, 50% select).
- */
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, Runner)(benchmark::State &state) {
   const auto txn_length = static_cast<uint32_t>(state.range(0));
@@ -112,4 +109,4 @@ BENCHMARK_REGISTER_F(TransactionLoggingGCRunner, Runner)
     ->UseManualTime()
     ->Iterations(1)
     ->Apply(EnumeratedArguments);
-}  // namespace terrier
+}  // namespace terrier::runner
