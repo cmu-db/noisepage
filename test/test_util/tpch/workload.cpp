@@ -58,6 +58,7 @@ void Workload::Execute(int8_t worker_id, uint32_t num_precomputed_txns_per_worke
   // Shuffle the queries randomly for each thread
   auto num_queries = queries_.size();
   uint32_t index[num_queries];
+  for (uint32_t i = 0; i < num_queries; ++i) index[i] = i;
   std::shuffle(&index[0], &index[num_queries], std::mt19937(worker_id));
 
   // Register to the metrics manager
@@ -67,9 +68,11 @@ void Workload::Execute(int8_t worker_id, uint32_t num_precomputed_txns_per_worke
     // Executing all the queries on by one in round robin
     auto txn = txn_manager_->BeginTransaction();
     auto accessor = catalog_->GetAccessor(txn, db_oid_);
-    execution::exec::ExecutionContext exec_ctx{db_oid_, txn, nullptr, nullptr, std::move(accessor)};
-    queries_[index[counter]].Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
-    counter = counter == num_queries - 1?0:counter + 1 ;
+    execution::ExecutableQuery &query = queries_[index[counter]];
+    execution::exec::ExecutionContext exec_ctx{db_oid_, txn, query.GetPrinter(), query.GetOutputSchema(), std::move(accessor)};
+    printf("%d, %d, %p\n", counter, index[counter], &queries_[index[counter]]);
+    query.Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
+    counter = counter == num_queries - 1 ? 0:counter + 1 ;
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 

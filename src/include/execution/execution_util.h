@@ -9,6 +9,7 @@
 #include "execution/parsing/parser.h"
 #include "execution/parsing/scanner.h"
 #include "execution/sema/sema.h"
+#include "execution/table_generator/sample_output.h"
 #include "execution/util/cpu_info.h"
 #include "execution/util/region.h"
 #include "execution/vm/bytecode_generator.h"
@@ -30,7 +31,7 @@ class ExecutableQuery {
       EXECUTION_LOG_ERROR("Type-checking error! \n {}", codegen.Reporter()->SerializeErrors());
     }
 
-    EXECUTION_LOG_INFO("Converted: \n {}", execution::ast::AstDump::Dump(root));
+    EXECUTION_LOG_DEBUG("Converted: \n {}", execution::ast::AstDump::Dump(root));
 
     // Convert to bytecode
     auto bytecode_module = vm::BytecodeGenerator::Compile(root, exec_ctx.Get(), "tmp-tpl");
@@ -80,12 +81,18 @@ class ExecutableQuery {
       throw std::runtime_error("Type Checking Error!");
     }
 
-    EXECUTION_LOG_INFO("Converted: \n {}", execution::ast::AstDump::Dump(root));
+    EXECUTION_LOG_DEBUG("Converted: \n {}", execution::ast::AstDump::Dump(root));
 
     // Convert to bytecode
     auto bytecode_module = vm::BytecodeGenerator::Compile(root, exec_ctx.Get(), "tmp-tpl");
-
     tpl_module_ = std::make_unique<vm::Module>(std::move(bytecode_module));
+
+    // acquire the output format
+    query_name_ = GetFileName(filename);
+    sample_output_ = std::make_unique<exec::SampleOutput>();
+    sample_output_->InitTestOutput();
+    auto output_schema = sample_output_->GetSchema(query_name_);
+    printer_ = std::make_unique<exec::OutputPrinter>(output_schema);
   }
 
   void Run(const common::ManagedPointer<exec::ExecutionContext> exec_ctx, const vm::ExecutionMode mode) {
@@ -101,7 +108,16 @@ class ExecutableQuery {
     EXECUTION_LOG_INFO("main() returned: {}", result);
   }
 
+  const planner::OutputSchema *GetOutputSchema() const { return sample_output_->GetSchema(query_name_);; }
+  const exec::OutputPrinter &GetPrinter() const { return *printer_; }
+
  private:
+  static std::string GetFileName(const std::string &path) {
+    std::size_t size = path.size();
+    std::size_t found = path.find_last_of("/\\");
+    return path.substr(found + 1, size - found - 5);
+  }
+
   // TPL bytecodes for this query
   std::unique_ptr<vm::Module> tpl_module_;
 
@@ -110,6 +126,11 @@ class ExecutableQuery {
   // together.
   std::unique_ptr<util::Region> region_;
   std::unique_ptr<ast::Context> ast_ctx_;
+
+  // Used to specify the output for this query
+  std::unique_ptr<exec::SampleOutput> sample_output_;
+  std::unique_ptr<exec::OutputPrinter> printer_;
+  std::string query_name_;
 };
 
 class ExecutionUtil {

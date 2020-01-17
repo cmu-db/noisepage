@@ -8,8 +8,8 @@
 namespace terrier::runner {
 class TPCHRunner : public benchmark::Fixture {
  public:
-  const int8_t num_threads_ = 4;                             // defines the number of terminals (workers threads)
-  const uint32_t num_precomputed_txns_per_worker_ = 100000;  // Number of txns to run per terminal (worker thread)
+  const int8_t num_threads_ = 1;                             // defines the number of terminals (workers threads)
+  const uint32_t num_precomputed_txns_per_worker_ = 4;  // Number of txns to run per terminal (worker thread)
   const execution::vm::ExecutionMode mode_ = execution::vm::ExecutionMode::Compiled;
 
   std::unique_ptr<DBMain> db_main_;
@@ -19,7 +19,8 @@ class TPCHRunner : public benchmark::Fixture {
   // TPCH setup
   const std::vector<std::string> tpch_query_filenames_ = {
       "../../tpl_tables/sample_tpl/tpch_q1.tpl", "../../tpl_tables/sample_tpl/tpch_q4.tpl",
-      "../../tpl_tables/sample_tpl/tpch_q5.tpl", "../../tpl_tables/sample_tpl/tpch_q6.tpl"};
+      //"../../tpl_tables/sample_tpl/tpch_q5.tpl",
+      "../../tpl_tables/sample_tpl/tpch_q6.tpl"};
   const std::string tpch_table_root_ = "../../tpl_tables/tables/";
   const std::string tpch_database_name_ = "tpch_db";
 
@@ -43,7 +44,11 @@ class TPCHRunner : public benchmark::Fixture {
     metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
   }
 
-  void TearDown(const benchmark::State &state) final { terrier::execution::ExecutionUtil::ShutdownTPL(); }
+  void TearDown(const benchmark::State &state) final {
+    terrier::execution::ExecutionUtil::ShutdownTPL();
+    // free db main here so we don't need to use the loggers anymore
+    db_main_.reset();
+  }
 };
 
 // NOLINTNEXTLINE
@@ -73,6 +78,9 @@ BENCHMARK_DEFINE_F(TPCHRunner, Runner)(benchmark::State &state) {
   }
 
   state.SetItemsProcessed(state.iterations() * num_precomputed_txns_per_worker_ * num_threads_);
+
+  // free the workload here so we don't need to use the loggers anymore
+  tpch_workload_.reset();
 }
 
 BENCHMARK_REGISTER_F(TPCHRunner, Runner)->Unit(benchmark::kMillisecond)->UseManualTime()->Iterations(1);
