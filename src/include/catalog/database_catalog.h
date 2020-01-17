@@ -275,23 +275,25 @@ class DatabaseCatalog {
 
   /**
    * Creates a procedure for the pg_proc table
-   * @param txn transaction to use
    * @param procname name of process to add
+   * @param lanoid oid of language this process is written in
    * @param procns namespace of process to add
    * @param args names of arguments to this proc
-   * @param arg_types types of arguments to this proc in the same order as in args
+   * @param arg_types types of arguments to this proc in the same order as in args (only for in and inout
+   *        arguments)
+   * @param all_arg_types types of all arguments
    * @param arg_modes modes of arguments in the same order as in args
-   * @param rettype type of return value
+   * @param rettype oid of the type of return value
    * @param src source code of proc
    * @param is_aggregate true iff this is an aggregate procedure
    * @return oid of created proc entry
    * @warning does not support variadics yet
    */
-  proc_oid_t CreateProcedure(const common::ManagedPointer<transaction::TransactionContext> txn,
-                             const std::string &procname, language_oid_t lanoid, namespace_oid_t procns,
-                             const std::vector<const std::string> &args, const std::vector<type::TypeId> &arg_types,
-                             const std::vector<type::TypeId> &all_arg_types, const std::vector<const char> &arg_modes,
-                             type_oid_t rettype, const std::string &src, bool is_aggregate);
+  proc_oid_t CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &procname,
+                             language_oid_t lanoid, namespace_oid_t procns, const std::vector<const std::string> &args,
+                             const std::vector<type::TypeId> &arg_types, const std::vector<type::TypeId> &all_arg_types,
+                             const std::vector<const char> &arg_modes, type_oid_t rettype, const std::string &src,
+                             bool is_aggregate);
 
   /**
    * Drops a procedure from the pg_proc table
@@ -299,17 +301,18 @@ class DatabaseCatalog {
    * @param proc oid of process to drop
    * @return true iff the process was successfully found and dropped
    */
-  bool DropProcedure(const common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc);
+  bool DropProcedure(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc);
 
   /**
    * Gets the oid of a procedure from pg_proc given a requested name and namespace
    * @param txn transaction to use
-   * @param procname name of the proc to lookup
    * @param procns namespace of the process to lookup
+   * @param procname name of the proc to lookup
+   * @param all_arg_types types of all arguments in this function
    * @return the oid of the found proc if found else INVALID_PROC_OID
    */
-  proc_oid_t GetProcOid(const common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t procns,
-                        const std::string &procname, const std::vector<type::TypeId> &arg_types);
+  proc_oid_t GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t procns,
+                        const std::string &procname, const std::vector<type::TypeId> &all_arg_types);
 
  private:
   /**
@@ -319,7 +322,7 @@ class DatabaseCatalog {
    * @param oid oid of entry
    * @return true if insertion is successful
    */
-  bool CreateLanguage(const common::ManagedPointer<transaction::TransactionContext> txn, const std::string &lanname,
+  bool CreateLanguage(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &lanname,
                       language_oid_t oid);
 
   /**
@@ -529,7 +532,6 @@ class DatabaseCatalog {
    */
   void BootstrapPRIs();
 
-
   /**
    * Helper function to insert a type into PG_Type and the type indexes
    * @param txn transaction to insert with
@@ -543,7 +545,6 @@ class DatabaseCatalog {
   void InsertType(common::ManagedPointer<transaction::TransactionContext> txn, type_oid_t type_oid,
                   const std::string &name, namespace_oid_t namespace_oid, int16_t len, bool by_val,
                   postgres::Type type_category);
-
 
   /**
    * Helper function to insert a type into PG_Type and the type indexes

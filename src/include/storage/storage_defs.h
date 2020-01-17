@@ -318,9 +318,8 @@ class VarlenEntry {
   }
 
   /**
-   * Deserializes n_elems elements of type T into a returned vector from this varlen
+   * Deserializes all elements of type T into a returned vector from this varlen
    * @tparam T type of elements that are serialized into this varlen entry
-   * @param n_elems number of elements to deserialize
    * @return a vector of immutable deserialized T objects from this varlen entry
    * @warning It is the programmer's responsibility to ensure that the returned vector doesn't outlive the VarlenEntry
    */
@@ -328,14 +327,13 @@ class VarlenEntry {
   const std::vector<T> DeserializeArray() const {
     const byte *contents = Content();
     size_t num_elements = *reinterpret_cast<const size_t *>(contents);
-    TERRIER_ASSERT(sizeof(T) == Size()/num_elements, "Deserializing the wrong element types from array");
+    TERRIER_ASSERT(sizeof(T) == Size() / num_elements, "Deserializing the wrong element types from array");
     const T *payload = contents + sizeof(size_t);
     return std::vector<T>(payload, payload + num_elements);
   }
 
   /**
-   * Deserializes n_elems of std::string type into a returned vector from this varlen
-   * @param n_elems number of elements to deserialize
+   * Deserializes all elements of std::string type into a returned vector from this varlen
    * @return a vector of immutable deserialized T objects from this varlen entry
    * @warning It is the programmer's responsibility to ensure that the returned vector doesn't outlive the VarlenEntry
    * @warning Assuming this varlen is serialized in the format specified by

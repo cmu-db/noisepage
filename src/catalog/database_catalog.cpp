@@ -1569,10 +1569,9 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
 
 type_oid_t DatabaseCatalog::GetTypeOidForType(type::TypeId type) { return type_oid_t(static_cast<uint8_t>(type)); }
 
-void DatabaseCatalog::InsertType(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                 type_oid_t type_oid, const std::string &name,
-                                 const namespace_oid_t namespace_oid, const int16_t len, bool by_val,
-                                 const postgres::Type type_category) {
+void DatabaseCatalog::InsertType(const common::ManagedPointer<transaction::TransactionContext> txn, type_oid_t type_oid,
+                                 const std::string &name, const namespace_oid_t namespace_oid, const int16_t len,
+                                 bool by_val, const postgres::Type type_category) {
   // Stage the write into the table
   auto redo_record = txn->StageWrite(db_oid_, postgres::TYPE_TABLE_OID, pg_type_all_cols_pri_);
   auto *delta = redo_record->Delta();
@@ -1698,7 +1697,7 @@ void DatabaseCatalog::BootstrapLanguages(const common::ManagedPointer<transactio
   CreateLanguage(txn, "internal", postgres::INTERNAL_LANGUAGE_OID);
 }
 
-void BootstrapProcs(const common::ManagedPointer<transaction::TransactionContext> txn) {(void)txn;}
+void BootstrapProcs(const common::ManagedPointer<transaction::TransactionContext> txn) { (void)txn; }
 
 bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
                                        const table_oid_t table_oid, const namespace_oid_t ns_oid,
@@ -2161,8 +2160,8 @@ proc_oid_t DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transac
       redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROLANG_COL_OID]))) = lanoid;
   *(reinterpret_cast<namespace_oid_t *>(
       redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PRONAMESPACE_COL_OID]))) = procns;
-  *(reinterpret_cast<type_oid_t *>(redo->Delta()->AccessForceNotNull(
-      pg_proc_all_cols_prm_[postgres::PRORETTYPE_COL_OID]))) = rettype;
+  *(reinterpret_cast<type_oid_t *>(
+      redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PRORETTYPE_COL_OID]))) = rettype;
 
   *(reinterpret_cast<uint16_t *>(redo->Delta()->AccessForceNotNull(
       pg_proc_all_cols_prm_[postgres::PRONARGS_COL_OID]))) = static_cast<uint16_t>(args.size());
