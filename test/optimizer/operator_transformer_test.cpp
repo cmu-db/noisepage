@@ -7,6 +7,7 @@
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
 #include "catalog/postgres/pg_namespace.h"
+#include "common/sql_node_visitor.h"
 #include "loggers/optimizer_logger.h"
 #include "main/db_main.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
@@ -22,10 +23,12 @@
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/constant_value_expression.h"
+#include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/subquery_expression.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/create_database_plan_node.h"
+#include "planner/plannodes/create_index_plan_node.h"
 #include "planner/plannodes/create_namespace_plan_node.h"
 #include "planner/plannodes/create_table_plan_node.h"
 #include "planner/plannodes/drop_database_plan_node.h"
@@ -1091,14 +1094,41 @@ TEST_F(OperatorTransformerTest, CreateIndexTest) {
   EXPECT_EQ(op.GetType(), optimizer::OpType::CREATEINDEX);
   EXPECT_TRUE(op.IsPhysical());
   EXPECT_EQ(op.GetName(), "CreateIndex");
-  auto ct = op.As<optimizer::CreateIndex>();
+  auto ci = op.As<optimizer::CreateIndex>();
 
-  EXPECT_EQ(ct->GetIndexName(), "idx_d");
-  EXPECT_EQ(ct->GetTableOid(), table_a_oid_);
-  EXPECT_EQ(ct->GetSchema()->GetColumns().size(), 2);
-  // TODO(WAN): contents of columns broken, who is responsible for filling in information? Binder or optimizer?
-  //  see the corresponding implementation rule, it needs to handle more...
+  EXPECT_EQ(ci->GetIndexName(), "idx_d");
+  EXPECT_EQ(ci->GetTableOid(), table_a_oid_);
+  EXPECT_EQ(ci->GetSchema()->GetColumns().size(), 2);
 
+  auto child0 = ci->GetSchema()->GetColumns()[0].StoredExpression();
+  EXPECT_EQ(child0->GetExpressionType(), parser::ExpressionType::FUNCTION);
+  EXPECT_EQ(child0.CastManagedPointerTo<const parser::FunctionExpression>()->GetFuncName(), "lower");
+  EXPECT_EQ(child0->GetChildren().size(), 1);
+  EXPECT_EQ(child0->GetChildren()[0]->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
+  EXPECT_EQ(child0->GetChildren()[0].CastManagedPointerTo<parser::ColumnValueExpression>()->GetColumnName(), "a2");
+  EXPECT_EQ(child0->GetChildren()[0].CastManagedPointerTo<parser::ColumnValueExpression>()->GetColumnOid(), col_a2_oid);
+  auto child1 = ci->GetSchema()->GetColumns()[1].StoredExpression();
+  EXPECT_EQ(child1->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
+  EXPECT_EQ(child1.CastManagedPointerTo<const parser::ColumnValueExpression>()->GetColumnName(), "a1");
+  EXPECT_EQ(child1.CastManagedPointerTo<const parser::ColumnValueExpression>()->GetColumnOid(), col_a1_oid);
+
+  optimizer::PlanGenerator plan_generator{};
+  optimizer::PropertySet property_set{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
+  std::vector<optimizer::ExprMap> children_expr_map{};
+
+  auto plan_node =
+      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+  EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::CREATE_INDEX);
+  auto cipn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::CreateIndexPlanNode>();
+  EXPECT_EQ(cipn->GetIndexName(), "idx_d");
+  EXPECT_EQ(cipn->GetNamespaceOid(), ns_oid);
+  EXPECT_EQ(cipn->GetTableOid(), table_a_oid_);
+  EXPECT_EQ(cipn->GetSchema()->GetColumns().size(), 2);
+  EXPECT_EQ(cipn->GetSchema()->GetColumns(), ci->GetSchema()->GetColumns());
 }
 
 // NOLINTNEXTLINE
