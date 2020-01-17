@@ -15,15 +15,15 @@ void TrafficCop::HandBufferToReplication(std::unique_ptr<network::ReadBuffer> bu
 std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNamespace(
     int sockfd, const std::string &database_name) {
   auto txn = txn_manager_->BeginTransaction();
-  auto db_oid = catalog_->GetDatabaseOid(txn, database_name);
+  auto db_oid = catalog_->GetDatabaseOid(common::ManagedPointer(txn), database_name);
 
   if (db_oid == catalog::INVALID_DATABASE_OID) {
     txn_manager_->Abort(txn);
     return {catalog::INVALID_DATABASE_OID, catalog::INVALID_NAMESPACE_OID};
   }
 
-  auto ns_oid =
-      catalog_->GetAccessor(txn, db_oid)->CreateNamespace(std::string(TEMP_NAMESPACE_PREFIX) + std::to_string(sockfd));
+  auto ns_oid = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid)
+                    ->CreateNamespace(std::string(TEMP_NAMESPACE_PREFIX) + std::to_string(sockfd));
   if (ns_oid == catalog::INVALID_NAMESPACE_OID) {
     txn_manager_->Abort(txn);
     return {db_oid, catalog::INVALID_NAMESPACE_OID};
@@ -35,7 +35,7 @@ std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNam
 
 bool TrafficCop::DropTempNamespace(catalog::namespace_oid_t ns_oid, catalog::db_oid_t db_oid) {
   auto txn = txn_manager_->BeginTransaction();
-  auto db_accessor = catalog_->GetAccessor(txn, db_oid);
+  auto db_accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
   if (!db_accessor) {
     txn_manager_->Abort(txn);
     return false;

@@ -1,4 +1,5 @@
 #include "test_util/tpcc/delivery.h"
+
 #include <vector>
 
 namespace terrier::tpcc {
@@ -35,7 +36,8 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
     // Otherwise, the lowest NO_O_ID is selected
     auto *const new_order_select_tuple = new_order_pr_initializer_.InitializeRow(worker->new_order_tuple_buffer_);
     const auto new_order_slot = index_scan_results[0];
-    bool select_result UNUSED_ATTRIBUTE = db->new_order_table_->Select(txn, new_order_slot, new_order_select_tuple);
+    bool select_result UNUSED_ATTRIBUTE =
+        db->new_order_table_->Select(common::ManagedPointer(txn), new_order_slot, new_order_select_tuple);
     TERRIER_ASSERT(select_result,
                    "New Order select failed. This assertion assumes 1:1 mapping between warehouse and workers and "
                    "that indexes are getting cleaned.");
@@ -43,7 +45,7 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
 
     // Delete the corresponding New Order table row
     txn->StageDelete(db->db_oid_, db->new_order_table_oid_, new_order_slot);
-    bool delete_result UNUSED_ATTRIBUTE = db->new_order_table_->Delete(txn, new_order_slot);
+    bool delete_result UNUSED_ATTRIBUTE = db->new_order_table_->Delete(common::ManagedPointer(txn), new_order_slot);
     TERRIER_ASSERT(delete_result,
                    "New Order delete failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
@@ -53,7 +55,7 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
     *reinterpret_cast<int8_t *>(new_order_delete_key->AccessForceNotNull(no_w_id_key_pr_offset_)) = args.w_id_;
     *reinterpret_cast<int8_t *>(new_order_delete_key->AccessForceNotNull(no_d_id_key_pr_offset_)) = d_id;
     *reinterpret_cast<int32_t *>(new_order_delete_key->AccessForceNotNull(no_o_id_key_pr_offset_)) = no_o_id;
-    db->new_order_primary_index_->Delete(txn, *new_order_delete_key, new_order_slot);
+    db->new_order_primary_index_->Delete(common::ManagedPointer(txn), *new_order_delete_key, new_order_slot);
 
     // Look up O_W_ID, O_D_ID and O_ID
     const auto order_key_pr_initializer = db->order_primary_index_->GetProjectedRowInitializer();
@@ -70,7 +72,7 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
     // Retrieve O_C_ID
     auto &order_slot = index_scan_results[0];
     auto *order_select_tuple = order_select_pr_initializer_.InitializeRow(worker->order_tuple_buffer_);
-    select_result = db->order_table_->Select(txn, order_slot, order_select_tuple);
+    select_result = db->order_table_->Select(common::ManagedPointer(txn), order_slot, order_select_tuple);
     TERRIER_ASSERT(select_result,
                    "Order select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
@@ -81,7 +83,7 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
     auto *const order_update_redo = txn->StageWrite(db->db_oid_, db->order_table_oid_, order_update_pr_initializer_);
     *reinterpret_cast<int8_t *>(order_update_redo->Delta()->AccessForceNotNull(0)) = args.o_carrier_id_;
     order_update_redo->SetTupleSlot(order_slot);
-    bool update_result UNUSED_ATTRIBUTE = db->order_table_->Update(txn, order_update_redo);
+    bool update_result UNUSED_ATTRIBUTE = db->order_table_->Update(common::ManagedPointer(txn), order_update_redo);
     TERRIER_ASSERT(select_result,
                    "Order update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
@@ -110,7 +112,8 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
     double ol_amount_sum = 0.0;
     for (const auto &order_line_slot : index_scan_results) {
       order_line_select_tuple = order_line_select_pr_initializer_.InitializeRow(worker->order_line_tuple_buffer_);
-      select_result = db->order_line_table_->Select(txn, order_line_slot, order_line_select_tuple);
+      select_result =
+          db->order_line_table_->Select(common::ManagedPointer(txn), order_line_slot, order_line_select_tuple);
       TERRIER_ASSERT(select_result,
                      "Order Line select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
       const auto ol_amount = *reinterpret_cast<double *>(order_line_select_tuple->AccessForceNotNull(0));
@@ -121,7 +124,7 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
           txn->StageWrite(db->db_oid_, db->order_line_table_oid_, order_line_update_pr_initializer_);
       *reinterpret_cast<uint64_t *>(order_line_update_redo->Delta()->AccessForceNotNull(0)) = args.ol_delivery_d_;
       order_line_update_redo->SetTupleSlot(order_line_slot);
-      update_result = db->order_line_table_->Update(txn, order_line_update_redo);
+      update_result = db->order_line_table_->Update(common::ManagedPointer(txn), order_line_update_redo);
       TERRIER_ASSERT(update_result,
                      "Order Line update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
     }
@@ -142,13 +145,14 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
     auto *const customer_update_redo = txn->StageWrite(db->db_oid_, db->customer_table_oid_, customer_pr_initializer_);
     auto *const customer_update_tuple = customer_update_redo->Delta();
 
-    select_result = db->customer_table_->Select(txn, index_scan_results[0], customer_update_tuple);
+    select_result =
+        db->customer_table_->Select(common::ManagedPointer(txn), index_scan_results[0], customer_update_tuple);
     TERRIER_ASSERT(select_result,
                    "Customer select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
     *reinterpret_cast<double *>(customer_update_tuple->AccessForceNotNull(c_balance_pr_offset_)) += ol_amount_sum;
     (*reinterpret_cast<int16_t *>(customer_update_tuple->AccessForceNotNull(c_delivery_cnt_pr_offset_)))++;
     customer_update_redo->SetTupleSlot(index_scan_results[0]);
-    update_result = db->customer_table_->Update(txn, customer_update_redo);
+    update_result = db->customer_table_->Update(common::ManagedPointer(txn), customer_update_redo);
     TERRIER_ASSERT(update_result,
                    "Customer update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
   }

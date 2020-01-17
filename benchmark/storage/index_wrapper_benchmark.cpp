@@ -128,11 +128,11 @@ class IndexBenchmark : public benchmark::Fixture {
           insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
       auto *const insert_tuple = insert_redo->Delta();
       *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
-      const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
+      const auto tuple_slot = sql_table_->Insert(common::ManagedPointer(insert_txn), insert_redo);
       *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
 
       // Ensure that insert action appropriately listed
-      EXPECT_TRUE(index_->Insert(insert_txn, *insert_key, tuple_slot));
+      EXPECT_TRUE(index_->Insert(common::ManagedPointer(insert_txn), *insert_key, tuple_slot));
     }
     // Store transactions completed
     txn_manager_->Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);

@@ -43,7 +43,7 @@ class RandomDataTableTestObject {
         new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(buffer_pool), DISABLED);
     loose_txns_.push_back(txn);
 
-    storage::TupleSlot slot = table_.Insert(txn, *redo);
+    storage::TupleSlot slot = table_.Insert(common::ManagedPointer(txn), *redo);
     inserted_slots_.push_back(slot);
     tuple_versions_[slot].emplace_back(timestamp, redo);
 
@@ -61,7 +61,7 @@ class RandomDataTableTestObject {
     storage::ProjectedRow *redo = redo_initializer_.InitializeRow(redo_buffer);
     StorageTestUtil::PopulateRandomRow(redo, layout_, null_bias_, generator);
 
-    storage::TupleSlot slot = table_.Insert(txn, *redo);
+    storage::TupleSlot slot = table_.Insert(common::ManagedPointer(txn), *redo);
     inserted_slots_.push_back(slot);
     tuple_versions_[slot].emplace_back(txn->StartTime(), redo);
 
@@ -88,7 +88,7 @@ class RandomDataTableTestObject {
         new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(buffer_pool), DISABLED);
     loose_txns_.push_back(txn);
 
-    bool result = table_.Update(txn, slot, *update);
+    bool result = table_.Update(common::ManagedPointer(txn), slot, *update);
 
     if (result) {
       // manually apply the delta in an append-only fashion
@@ -132,7 +132,7 @@ class RandomDataTableTestObject {
 
     // generate a redo ProjectedRow for Select
     storage::ProjectedRow *select_row = redo_initializer_.InitializeRow(select_buffer_);
-    table_.Select(txn, slot, select_row);
+    table_.Select(common::ManagedPointer(txn), slot, select_row);
     return select_row;
   }
 
@@ -141,7 +141,7 @@ class RandomDataTableTestObject {
     auto *txn =
         new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(buffer_pool), DISABLED);
     loose_txns_.push_back(txn);
-    table_.Scan(txn, begin, buffer);
+    table_.Scan(common::ManagedPointer(txn), begin, buffer);
   }
 
   storage::DataTable &GetTable() { return table_; }

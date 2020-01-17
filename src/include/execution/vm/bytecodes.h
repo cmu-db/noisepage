@@ -384,6 +384,7 @@ namespace terrier::execution::vm {
   F(StorageInterfaceTableDelete, OperandType::Local, OperandType::Local, OperandType::Local)                          \
   F(StorageInterfaceGetIndexPR, OperandType::Local, OperandType::Local, OperandType::UImm4)                           \
   F(StorageInterfaceIndexInsert, OperandType::Local, OperandType::Local)                                              \
+  F(StorageInterfaceIndexInsertUnique, OperandType::Local, OperandType::Local)                                        \
   F(StorageInterfaceIndexDelete, OperandType::Local, OperandType::Local)                                              \
   F(StorageInterfaceFree, OperandType::Local)                                                                         \
                                                                                                                       \

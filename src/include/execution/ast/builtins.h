@@ -204,6 +204,7 @@ namespace terrier::execution::ast {
   F(GetIndexPR, getIndexPR)                                             \
   F(GetIndexPRBind, getIndexPRBind)                                     \
   F(IndexInsert, indexInsert)                                           \
+  F(IndexInsertUnique, indexInsertUnique)                               \
   F(IndexDelete, indexDelete)                                           \
   F(StorageInterfaceFree, storageInterfaceFree)                         \
                                                                         \

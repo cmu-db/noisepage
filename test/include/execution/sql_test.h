@@ -19,9 +19,6 @@ class SqlBasedTest : public TplTest {
   SqlBasedTest() = default;
 
   void SetUp() override {
-    // NOTE: Do not move these into the constructor unless you change the loggers' initialization first.
-    // Some of these objects use the loggers in their constructor (I know the catalog does), so they need to be
-    // initialized after the loggers.
     TplTest::SetUp();
     // Initialize terrier objects
 
@@ -34,10 +31,10 @@ class SqlBasedTest : public TplTest {
     test_txn_ = txn_manager_->BeginTransaction();
 
     // Create catalog and test namespace
-    test_db_oid_ = catalog_->CreateDatabase(test_txn_, "test_db", true);
+    test_db_oid_ = catalog_->CreateDatabase(common::ManagedPointer(test_txn_), "test_db", true);
     ASSERT_NE(test_db_oid_, catalog::INVALID_DATABASE_OID) << "Default database does not exist";
-    auto accessor = catalog_->GetAccessor(test_txn_, test_db_oid_);
-    test_ns_oid_ = accessor->GetDefaultNamespace();
+    accessor_ = catalog_->GetAccessor(common::ManagedPointer(test_txn_), test_db_oid_);
+    test_ns_oid_ = accessor_->GetDefaultNamespace();
   }
 
   ~SqlBasedTest() override { txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr); }
@@ -48,8 +45,8 @@ class SqlBasedTest : public TplTest {
 
   std::unique_ptr<exec::ExecutionContext> MakeExecCtx(exec::OutputCallback &&callback = nullptr,
                                                       const planner::OutputSchema *schema = nullptr) {
-    auto accessor = catalog_->GetAccessor(test_txn_, test_db_oid_);
-    return std::make_unique<exec::ExecutionContext>(test_db_oid_, test_txn_, callback, schema, std::move(accessor));
+    return std::make_unique<exec::ExecutionContext>(test_db_oid_, common::ManagedPointer(test_txn_), callback, schema,
+                                                    common::ManagedPointer(accessor_));
   }
 
   void GenerateTestTables(exec::ExecutionContext *exec_ctx) {
@@ -62,7 +59,7 @@ class SqlBasedTest : public TplTest {
   }
 
   std::unique_ptr<terrier::catalog::CatalogAccessor> MakeAccessor() {
-    return catalog_->GetAccessor(test_txn_, test_db_oid_);
+    return catalog_->GetAccessor(common::ManagedPointer(test_txn_), test_db_oid_);
   }
 
  private:
@@ -73,6 +70,7 @@ class SqlBasedTest : public TplTest {
   catalog::db_oid_t test_db_oid_{0};
   catalog::namespace_oid_t test_ns_oid_;
   transaction::TransactionContext *test_txn_;
+  std::unique_ptr<catalog::CatalogAccessor> accessor_;
 };
 
 }  // namespace terrier::execution

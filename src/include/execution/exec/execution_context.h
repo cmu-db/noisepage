@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
+#include "common/managed_pointer.h"
 #include "execution/exec/output.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/memory_tracker.h"
@@ -70,8 +71,9 @@ class EXPORT ExecutionContext {
    * @param schema the schema of the output
    * @param accessor the catalog accessor of this query
    */
-  ExecutionContext(catalog::db_oid_t db_oid, transaction::TransactionContext *txn, const OutputCallback &callback,
-                   const planner::OutputSchema *schema, std::unique_ptr<catalog::CatalogAccessor> &&accessor)
+  ExecutionContext(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionContext> txn,
+                   const OutputCallback &callback, const planner::OutputSchema *schema,
+                   const common::ManagedPointer<catalog::CatalogAccessor> accessor)
       : db_oid_(db_oid),
         txn_(txn),
         mem_tracker_(std::make_unique<sql::MemoryTracker>()),
@@ -80,12 +82,12 @@ class EXPORT ExecutionContext {
                                   : std::make_unique<OutputBuffer>(mem_pool_.get(), schema->GetColumns().size(),
                                                                    ComputeTupleSize(schema), callback)),
         string_allocator_(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_)),
-        accessor_(std::move(accessor)) {}
+        accessor_(accessor) {}
 
   /**
    * @return the transaction used by this query
    */
-  transaction::TransactionContext *GetTxn() { return txn_; }
+  common::ManagedPointer<transaction::TransactionContext> GetTxn() { return txn_; }
 
   /**
    * @return the output buffer used by this query
@@ -111,7 +113,7 @@ class EXPORT ExecutionContext {
   /**
    * @return the catalog accessor
    */
-  catalog::CatalogAccessor *GetAccessor() { return accessor_.get(); }
+  catalog::CatalogAccessor *GetAccessor() { return accessor_.Get(); }
 
   /**
    * Start the resource tracker
@@ -142,7 +144,7 @@ class EXPORT ExecutionContext {
    * Set the accessor
    * @param accessor The catalog accessor.
    */
-  void SetAccessor(std::unique_ptr<terrier::catalog::CatalogAccessor> &&accessor) { accessor_ = std::move(accessor); }
+  void SetAccessor(const common::ManagedPointer<catalog::CatalogAccessor> accessor) { accessor_ = accessor; }
 
   /**
    * Set the execution parameters.
@@ -158,12 +160,12 @@ class EXPORT ExecutionContext {
 
  private:
   catalog::db_oid_t db_oid_;
-  transaction::TransactionContext *txn_;
+  common::ManagedPointer<transaction::TransactionContext> txn_;
   std::unique_ptr<sql::MemoryTracker> mem_tracker_;
   std::unique_ptr<sql::MemoryPool> mem_pool_;
   std::unique_ptr<OutputBuffer> buffer_;
   StringAllocator string_allocator_;
-  std::unique_ptr<catalog::CatalogAccessor> accessor_;
+  common::ManagedPointer<catalog::CatalogAccessor> accessor_;
   uint8_t execution_mode_;
   std::vector<type::TransientValue> params_;
 };

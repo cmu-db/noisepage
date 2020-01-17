@@ -1512,6 +1512,9 @@ VM_OP void OpStorageInterfaceGetIndexPR(terrier::storage::ProjectedRow **pr_resu
 
 VM_OP void OpStorageInterfaceIndexInsert(bool *result, terrier::execution::sql::StorageInterface *storage_interface);
 
+VM_OP void OpStorageInterfaceIndexInsertUnique(bool *result,
+                                               terrier::execution::sql::StorageInterface *storage_interface);
+
 VM_OP void OpStorageInterfaceIndexDelete(terrier::execution::sql::StorageInterface *storage_interface,
                                          terrier::storage::TupleSlot *tuple_slot);
 

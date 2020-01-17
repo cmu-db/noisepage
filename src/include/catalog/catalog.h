@@ -8,6 +8,7 @@
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "catalog/database_catalog.h"
+#include "common/managed_pointer.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 
@@ -63,7 +64,8 @@ class Catalog {
    * @return OID of the database or INVALID_DATABASE_OID if the operation failed
    *   (which should only occur if there is already a database with that name)
    */
-  db_oid_t CreateDatabase(transaction::TransactionContext *txn, const std::string &name, bool bootstrap);
+  db_oid_t CreateDatabase(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &name,
+                          bool bootstrap);
 
   /**
    * Deletes the given database.  This operation will fail if there is any DDL
@@ -73,7 +75,7 @@ class Catalog {
    * @param database OID to be deleted
    * @return true if the deletion succeeds, false otherwise
    */
-  bool DeleteDatabase(transaction::TransactionContext *txn, db_oid_t database);
+  bool DeleteDatabase(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t database);
 
   /**
    * Renames the given database.
@@ -82,7 +84,8 @@ class Catalog {
    * @param name which the database will now have
    * @return true if the operation succeeds, false otherwise
    */
-  bool RenameDatabase(transaction::TransactionContext *txn, db_oid_t database, const std::string &name);
+  bool RenameDatabase(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t database,
+                      const std::string &name);
 
   /**
    * Resolve a database name to its OID.
@@ -90,7 +93,7 @@ class Catalog {
    * @param name of the database to resolve
    * @return OID of the database or INVALID_DATABASE_OID if it does not exist
    */
-  db_oid_t GetDatabaseOid(transaction::TransactionContext *txn, const std::string &name);
+  db_oid_t GetDatabaseOid(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &name);
 
   /**
    * Gets the database-specific catalog object.
@@ -99,7 +102,8 @@ class Catalog {
    * @return DatabaseCatalog object which has catalog information for the
    *   specific database
    */
-  common::ManagedPointer<DatabaseCatalog> GetDatabaseCatalog(transaction::TransactionContext *txn, db_oid_t database);
+  common::ManagedPointer<DatabaseCatalog> GetDatabaseCatalog(
+      common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t database);
 
   /**
    * Creates a new accessor into the catalog which will handle transactionality and sequencing of catalog operations.
@@ -107,7 +111,13 @@ class Catalog {
    * @param database in which this transaction is scoped
    * @return a CatalogAccessor object for use with this transaction
    */
-  std::unique_ptr<CatalogAccessor> GetAccessor(transaction::TransactionContext *txn, db_oid_t database);
+  std::unique_ptr<CatalogAccessor> GetAccessor(common::ManagedPointer<transaction::TransactionContext> txn,
+                                               db_oid_t database);
+
+  /**
+   * @return Catalog's BlockStore
+   */
+  common::ManagedPointer<storage::BlockStore> GetBlockStore() const;
 
  private:
   DISALLOW_COPY_AND_MOVE(Catalog);
@@ -146,8 +156,8 @@ class Catalog {
    * @param db_oid oid for new database
    * @return true if creation succeeded, false otherwise
    */
-  bool CreateDatabase(transaction::TransactionContext *txn, const std::string &name, bool bootstrap,
-                      catalog::db_oid_t db_oid);
+  bool CreateDatabase(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &name,
+                      bool bootstrap, catalog::db_oid_t db_oid);
 
   /**
    * Creates a new database entry.
@@ -157,8 +167,8 @@ class Catalog {
    * @param dbc database catalog object for the new database
    * @return true if successful, otherwise false
    */
-  bool CreateDatabaseEntry(transaction::TransactionContext *txn, db_oid_t db, const std::string &name,
-                           DatabaseCatalog *dbc);
+  bool CreateDatabaseEntry(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db,
+                           const std::string &name, DatabaseCatalog *dbc);
 
   /**
    * Deletes a database entry without scheduling the catalog object for destruction
@@ -166,7 +176,7 @@ class Catalog {
    * @param db OID of the database
    * @return pointer to the database object if successful, otherwise nullptr
    */
-  DatabaseCatalog *DeleteDatabaseEntry(transaction::TransactionContext *txn, db_oid_t db);
+  DatabaseCatalog *DeleteDatabaseEntry(common::ManagedPointer<transaction::TransactionContext> txn, db_oid_t db);
 
   /**
    * Creates a lambda that captures the necessary values by value and handles

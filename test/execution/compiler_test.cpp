@@ -101,9 +101,12 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     // Make New Column
     auto col3 = expr_maker.OpMul(col1, col2);
     auto col4 = expr_maker.ComparisonGe(col1, expr_maker.OpMul(expr_maker.Constant(100), col2));
@@ -119,6 +122,7 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -154,9 +158,12 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     // Make New Column
     auto col3 = expr_maker.OpMul(col1, col2);
     auto param1 = expr_maker.PVE(type::TypeId::INTEGER, 0);
@@ -175,6 +182,7 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -215,15 +223,19 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
   std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     auto const_500 = expr_maker.Constant(500);
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid)
+                     .SetColumnOids({cola_oid, colb_oid})
                      .SetIndexOid(index_oid)
                      .AddIndexColumn(catalog::indexkeycol_oid_t(1), const_500)
                      .SetNamespaceOid(NSOid())
@@ -258,14 +270,18 @@ TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
   std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid)
+                     .SetColumnOids({cola_oid, colb_oid})
                      .SetIndexOid(index_oid)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
@@ -324,14 +340,18 @@ TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
   std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid)
+                     .SetColumnOids({cola_oid, colb_oid})
                      .SetIndexOid(index_oid)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
@@ -389,14 +409,18 @@ TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
   std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid)
+                     .SetColumnOids({cola_oid, colb_oid})
                      .SetIndexOid(index_oid)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
@@ -454,14 +478,18 @@ TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
   std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid)
+                     .SetColumnOids({cola_oid, colb_oid})
                      .SetIndexOid(index_oid)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
@@ -519,9 +547,12 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
@@ -530,6 +561,7 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -589,9 +621,12 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
@@ -600,6 +635,7 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -677,9 +713,12 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan1;
   OutputSchemaHelper seq_scan_out1{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("colA").Oid();
+    auto colb_oid = table_schema1.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     seq_scan_out1.AddOutput("col1", col1);
     seq_scan_out1.AddOutput("col2", col2);
     auto schema = seq_scan_out1.MakeSchema();
@@ -688,6 +727,7 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan1 = builder.SetOutputSchema(std::move(schema))
+                    .SetColumnOids({cola_oid, colb_oid})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
                     .SetNamespaceOid(NSOid())
@@ -698,9 +738,12 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan2;
   OutputSchemaHelper seq_scan_out2{1, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema2.GetColumn("col1").Oid();
+    auto colb_oid = table_schema2.GetColumn("col2").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema2.GetColumn("col1").Oid(), type::TypeId::SMALLINT);
-    auto col2 = expr_maker.CVE(table_schema2.GetColumn("col2").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::SMALLINT);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     seq_scan_out2.AddOutput("col1", col1);
     seq_scan_out2.AddOutput("col2", col2);
     auto schema = seq_scan_out2.MakeSchema();
@@ -708,6 +751,7 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan2 = builder.SetOutputSchema(std::move(schema))
+                    .SetColumnOids({cola_oid, colb_oid})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
                     .SetNamespaceOid(NSOid())
@@ -792,9 +836,12 @@ TEST_F(CompilerTest, SimpleSortTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
@@ -803,6 +850,7 @@ TEST_F(CompilerTest, SimpleSortTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -890,9 +938,12 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan1;
   OutputSchemaHelper seq_scan_out1{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("colA").Oid();
+    auto colb_oid = table_schema1.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     seq_scan_out1.AddOutput("col1", col1);
     seq_scan_out1.AddOutput("col2", col2);
     auto schema = seq_scan_out1.MakeSchema();
@@ -901,6 +952,7 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan1 = builder.SetOutputSchema(std::move(schema))
+                    .SetColumnOids({cola_oid, colb_oid})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
                     .SetNamespaceOid(NSOid())
@@ -911,9 +963,12 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan2;
   OutputSchemaHelper seq_scan_out2{1, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema2.GetColumn("col1").Oid();
+    auto colb_oid = table_schema2.GetColumn("col2").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema2.GetColumn("col1").Oid(), type::TypeId::SMALLINT);
-    auto col2 = expr_maker.CVE(table_schema2.GetColumn("col2").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::SMALLINT);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     seq_scan_out2.AddOutput("col1", col1);
     seq_scan_out2.AddOutput("col2", col2);
     auto schema = seq_scan_out2.MakeSchema();
@@ -921,6 +976,7 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan2 = builder.SetOutputSchema(std::move(schema))
+                    .SetColumnOids({cola_oid, colb_oid})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
                     .SetNamespaceOid(NSOid())
@@ -1007,9 +1063,12 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
   {
     auto table_oid2 = accessor->GetTableOid(NSOid(), "test_2");
     auto table_schema2 = accessor->GetSchema(table_oid2);
+    // OIDs
+    auto cola_oid = table_schema2.GetColumn("col1").Oid();
+    auto colb_oid = table_schema2.GetColumn("col2").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema2.GetColumn("col1").Oid(), type::TypeId::SMALLINT);
-    auto col2 = expr_maker.CVE(table_schema2.GetColumn("col2").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
@@ -1018,6 +1077,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -1108,15 +1168,19 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
   {
     auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
     auto table_schema1 = accessor->GetSchema(table_oid1);
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("colA").Oid();
+    auto colb_oid = table_schema1.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(nullptr)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -1216,6 +1280,7 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan1 = builder.SetOutputSchema(std::move(schema))
+                    .SetColumnOids({table_schema1.GetColumn("colA").Oid()})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
                     .SetNamespaceOid(NSOid())
@@ -1241,8 +1306,10 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("colA").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     // Make predicate
     auto pred1 = expr_maker.ComparisonGe(col1, expr_maker.Constant(495));
@@ -1252,6 +1319,7 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -1280,6 +1348,7 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid1)
+                     .SetColumnOids({table_schema1.GetColumn("colA").Oid()})
                      .SetIndexOid(index_oid1)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
@@ -1333,6 +1402,8 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan1 = builder.SetOutputSchema(std::move(schema))
+                    .SetColumnOids({table_schema1.GetColumn("colA").Oid(), table_schema1.GetColumn("colB").Oid(),
+                                    table_schema1.GetColumn("colC").Oid(), table_schema1.GetColumn("colD").Oid()})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
                     .SetNamespaceOid(NSOid())
@@ -1375,9 +1446,12 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("colA").Oid();
+    auto colb_oid = table_schema1.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     // Make predicate
@@ -1388,6 +1462,7 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -1431,15 +1506,19 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
   std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("colA").Oid();
+    auto colb_oid = table_schema1.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
 
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid1)
+                     .SetColumnOids({cola_oid, colb_oid})
                      .SetIndexOid(index_oid1)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-505))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-495))
@@ -1513,11 +1592,16 @@ TEST_F(CompilerTest, SimpleInsertTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("colA").Oid();
+    auto colb_oid = table_schema1.GetColumn("colB").Oid();
+    auto colc_oid = table_schema1.GetColumn("colC").Oid();
+    auto cold_oid = table_schema1.GetColumn("colD").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
-    auto col3 = expr_maker.CVE(table_schema1.GetColumn("colC").Oid(), type::TypeId::INTEGER);
-    auto col4 = expr_maker.CVE(table_schema1.GetColumn("colD").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col3 = expr_maker.CVE(colc_oid, type::TypeId::INTEGER);
+    auto col4 = expr_maker.CVE(cold_oid, type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     seq_scan_out.AddOutput("col3", col3);
@@ -1528,6 +1612,7 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid, colc_oid, cold_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -1572,11 +1657,16 @@ TEST_F(CompilerTest, SimpleInsertTest) {
   std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("colA").Oid();
+    auto colb_oid = table_schema1.GetColumn("colB").Oid();
+    auto colc_oid = table_schema1.GetColumn("colC").Oid();
+    auto cold_oid = table_schema1.GetColumn("colD").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
-    auto col3 = expr_maker.CVE(table_schema1.GetColumn("colC").Oid(), type::TypeId::INTEGER);
-    auto col4 = expr_maker.CVE(table_schema1.GetColumn("colD").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col3 = expr_maker.CVE(colc_oid, type::TypeId::INTEGER);
+    auto col4 = expr_maker.CVE(cold_oid, type::TypeId::INTEGER);
 
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
@@ -1585,6 +1675,7 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid1)
+                     .SetColumnOids({cola_oid, colb_oid, colc_oid, cold_oid})
                      .SetIndexOid(index_oid1)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-10000))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1))
@@ -1643,6 +1734,8 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan1 = builder.SetOutputSchema(std::move(schema))
+                    .SetColumnOids({table_schema1.GetColumn("colA").Oid(), table_schema1.GetColumn("colB").Oid(),
+                                    table_schema1.GetColumn("colC").Oid(), table_schema1.GetColumn("colD").Oid()})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
                     .SetNamespaceOid(NSOid())
@@ -1681,11 +1774,16 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("colA").Oid();
+    auto colb_oid = table_schema1.GetColumn("colB").Oid();
+    auto colc_oid = table_schema1.GetColumn("colC").Oid();
+    auto cold_oid = table_schema1.GetColumn("colD").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
-    auto col3 = expr_maker.CVE(table_schema1.GetColumn("colC").Oid(), type::TypeId::INTEGER);
-    auto col4 = expr_maker.CVE(table_schema1.GetColumn("colD").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col3 = expr_maker.CVE(colc_oid, type::TypeId::INTEGER);
+    auto col4 = expr_maker.CVE(cold_oid, type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     seq_scan_out.AddOutput("col3", col3);
@@ -1696,6 +1794,7 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid, colc_oid, cold_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -1738,11 +1837,16 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
   std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("colA").Oid();
+    auto colb_oid = table_schema1.GetColumn("colB").Oid();
+    auto colc_oid = table_schema1.GetColumn("colC").Oid();
+    auto cold_oid = table_schema1.GetColumn("colD").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
-    auto col3 = expr_maker.CVE(table_schema1.GetColumn("colC").Oid(), type::TypeId::INTEGER);
-    auto col4 = expr_maker.CVE(table_schema1.GetColumn("colD").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col3 = expr_maker.CVE(colc_oid, type::TypeId::INTEGER);
+    auto col4 = expr_maker.CVE(cold_oid, type::TypeId::INTEGER);
 
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
@@ -1751,6 +1855,7 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid1)
+                     .SetColumnOids({cola_oid, colb_oid, colc_oid, cold_oid})
                      .SetIndexOid(index_oid1)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1000))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1))
@@ -1843,11 +1948,15 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
+    auto col1_oid = table_schema1.GetColumn("varchar_col").Oid();
+    auto col2_oid = table_schema1.GetColumn("date_col").Oid();
+    auto col3_oid = table_schema1.GetColumn("real_col").Oid();
+    auto col4_oid = table_schema1.GetColumn("int_col").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("varchar_col").Oid(), type::TypeId::VARCHAR);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("date_col").Oid(), type::TypeId::DATE);
-    auto col3 = expr_maker.CVE(table_schema1.GetColumn("real_col").Oid(), type::TypeId::DECIMAL);
-    auto col4 = expr_maker.CVE(table_schema1.GetColumn("int_col").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(col1_oid, type::TypeId::VARCHAR);
+    auto col2 = expr_maker.CVE(col2_oid, type::TypeId::DATE);
+    auto col3 = expr_maker.CVE(col3_oid, type::TypeId::DECIMAL);
+    auto col4 = expr_maker.CVE(col4_oid, type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     seq_scan_out.AddOutput("col3", col3);
@@ -1857,6 +1966,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({col1_oid, col2_oid, col3_oid, col4_oid})
                    .SetScanPredicate(nullptr)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -1908,11 +2018,16 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
   std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("varchar_col").Oid();
+    auto colb_oid = table_schema1.GetColumn("date_col").Oid();
+    auto colc_oid = table_schema1.GetColumn("real_col").Oid();
+    auto cold_oid = table_schema1.GetColumn("int_col").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("varchar_col").Oid(), type::TypeId::VARCHAR);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("date_col").Oid(), type::TypeId::DATE);
-    auto col3 = expr_maker.CVE(table_schema1.GetColumn("real_col").Oid(), type::TypeId::DECIMAL);
-    auto col4 = expr_maker.CVE(table_schema1.GetColumn("int_col").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::VARCHAR);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::DATE);
+    auto col3 = expr_maker.CVE(colc_oid, type::TypeId::DECIMAL);
+    auto col4 = expr_maker.CVE(cold_oid, type::TypeId::INTEGER);
 
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
@@ -1921,6 +2036,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid1)
+                     .SetColumnOids({cola_oid, colb_oid, colc_oid, cold_oid})
                      .SetIndexOid(index_oid1)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.PVE(type::TypeId::VARCHAR, 0))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.PVE(type::TypeId::VARCHAR, 1))

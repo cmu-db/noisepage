@@ -31,7 +31,7 @@ class FakeTransaction {
     storage::ProjectedRow *redo = redo_initializer_.InitializeRow(redo_buffer);
     StorageTestUtil::PopulateRandomRow(redo, layout_, null_bias_, generator);
 
-    storage::TupleSlot slot = table_->Insert(&txn_, *redo);
+    storage::TupleSlot slot = table_->Insert(common::ManagedPointer(&txn_), *redo);
     inserted_slots_.push_back(slot);
     reference_tuples_.emplace(slot, redo);
     return slot;
@@ -47,7 +47,7 @@ class FakeTransaction {
     storage::ProjectedRow *update = update_initializer.InitializeRow(update_buffer);
     StorageTestUtil::PopulateRandomRow(update, layout_, null_bias_, generator);
 
-    bool result = table_->Update(&txn_, slot, *update);
+    bool result = table_->Update(common::ManagedPointer(&txn_), slot, *update);
     // the update buffer does not need to live past this scope
     delete[] update_buffer;
     return result;
@@ -113,7 +113,7 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
     for (auto &fake_txn : fake_txns) {
       for (auto slot : fake_txn->InsertedTuples()) {
         storage::ProjectedRow *select_row = select_initializer.InitializeRow(select_buffer);
-        tested.Select(fake_txn->GetTxn(), slot, select_row);
+        tested.Select(common::ManagedPointer(fake_txn->GetTxn()), slot, select_row);
         EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(layout, fake_txn->GetReferenceTuple(slot), select_row));
       }
     }

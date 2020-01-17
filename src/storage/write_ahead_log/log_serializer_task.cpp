@@ -41,50 +41,57 @@ bool LogSerializerTask::Process() {
   }
 
   bool buffers_processed = false;
-  common::SpinLatch::ScopedSpinLatch serialization_guard(&serialization_latch_);
-  TERRIER_ASSERT(serialized_txns_.empty(), "Aggregated txn timestamps should have been handed off to TimestampManager");
-  // We continually grab all the buffers until we find there are no new buffers. This way we serialize buffers that
-  // came in during the previous serialization loop
 
-  // Continually loop, break out if there's no new buffers
-  while (true) {
-    // In a short critical section, get all buffers to serialize. We move them to a temp queue to reduce contention on
-    // the queue transactions interact with
-    {
-      common::SpinLatch::ScopedSpinLatch queue_guard(&flush_queue_latch_);
+  {
+    common::SpinLatch::ScopedSpinLatch serialization_guard(&serialization_latch_);
+    TERRIER_ASSERT(serialized_txns_.empty(),
+                   "Aggregated txn timestamps should have been handed off to TimestampManager");
+    // We continually grab all the buffers until we find there are no new buffers. This way we serialize buffers that
+    // came in during the previous serialization loop
 
-      // There are no new buffers, so we can break
-      if (flush_queue_.empty()) break;
+    // Continually loop, break out if there's no new buffers
+    while (true) {
+      // In a short critical section, get all buffers to serialize. We move them to a temp queue to reduce contention on
+      // the queue transactions interact with
+      {
+        common::SpinLatch::ScopedSpinLatch queue_guard(&flush_queue_latch_);
 
-      temp_flush_queue_ = std::move(flush_queue_);
-      flush_queue_ = std::queue<RecordBufferSegment *>();
+        // There are no new buffers, so we can break
+        if (flush_queue_.empty()) break;
+
+        temp_flush_queue_ = std::move(flush_queue_);
+        flush_queue_ = std::queue<RecordBufferSegment *>();
+      }
+
+      // Loop over all the new buffers we found
+      while (!temp_flush_queue_.empty()) {
+        RecordBufferSegment *buffer = temp_flush_queue_.front();
+        temp_flush_queue_.pop();
+
+        // Serialize the Redo buffer and release it to the buffer pool
+        IterableBufferSegment<LogRecord> task_buffer(buffer);
+        const auto num_bytes_and_records = SerializeBuffer(&task_buffer);
+        buffer_pool_->Release(buffer);
+        num_bytes += num_bytes_and_records.first;
+        num_records += num_bytes_and_records.second;
+      }
+
+      buffers_processed = true;
     }
 
-    // Loop over all the new buffers we found
-    while (!temp_flush_queue_.empty()) {
-      RecordBufferSegment *buffer = temp_flush_queue_.front();
-      temp_flush_queue_.pop();
+    // Mark the last buffer that was written to as full
+    if (buffers_processed) HandFilledBufferToWriter();
 
-      // Serialize the Redo buffer and release it to the buffer pool
-      IterableBufferSegment<LogRecord> task_buffer(buffer);
-      const auto num_bytes_and_records = SerializeBuffer(&task_buffer);
-      buffer_pool_->Release(buffer);
-      num_bytes += num_bytes_and_records.first;
-      num_records += num_bytes_and_records.second;
+    // Mark the last buffer that was written to as full
+    if (filled_buffer_ != nullptr) HandFilledBufferToWriter();
+
+    // Bulk remove all the transactions we serialized. This prevents having to take the TimestampManager's latch once
+    // for each timestamp we remove.
+    for (const auto &txns : serialized_txns_) {
+      txns.first->RemoveTransactions(txns.second);
     }
-
-    buffers_processed = true;
+    serialized_txns_.clear();
   }
-
-  // Mark the last buffer that was written to as full
-  if (filled_buffer_ != nullptr) HandFilledBufferToWriter();
-
-  // Bulk remove all the transactions we serialized. This prevents having to take the TimestampManager's latch once
-  // for each timestamp we remove.
-  for (const auto &txns : serialized_txns_) {
-    txns.first->RemoveTransactions(txns.second);
-  }
-  serialized_txns_.clear();
 
   if (logging_metrics_enabled) {
     // Stop the resource tracker for this operating unit
