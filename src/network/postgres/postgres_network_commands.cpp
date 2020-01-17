@@ -67,6 +67,7 @@ Transition SimpleQueryCommand::Exec(common::ManagedPointer<ProtocolInterpreter> 
     return FinishSimpleQueryCommand(out, connection);
   }
 
+  // Pass the statement to be executed by the traffic cop
   t_cop->ExecuteStatement(connection, out, common::ManagedPointer(parse_result), parse_result->GetStatement(0),
                           statement_type);
 

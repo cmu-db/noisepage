@@ -301,6 +301,7 @@ void TrafficCop::ExecuteStatement(const common::ManagedPointer<network::Connecti
                              statement.CastManagedPointerTo<parser::DropStatement>()->GetDropType(),
                              single_statement_txn);
       } else {
+        // Create the OutputWriter with text format. Simple Queries only use text format.
         execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out);
 
         auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(

@@ -16,9 +16,18 @@ namespace terrier::network {
 class PostgresPacketWriter : public PacketWriter {
  public:
   /**
-   * Instantiates a new PostgresPacketWriter backed by the given WriteQueue
+   * Normal constructor for PostgresPacketWriter
+   * @param write_queue backing data structure for this packet writer
    */
   explicit PostgresPacketWriter(const common::ManagedPointer<WriteQueue> write_queue) : PacketWriter(write_queue) {}
+
+  /**
+   * Constructor if you want to override the result wire format
+   * @param write_queue backing data structure for this packet writer
+   * @param format text or binary format
+   */
+  PostgresPacketWriter(const common::ManagedPointer<WriteQueue> write_queue, const FieldFormat format)
+      : PacketWriter(write_queue), format_(format) {}
 
   /**
    * Writes a simple query
@@ -80,7 +89,7 @@ class PostgresPacketWriter : public PacketWriter {
    * @param columns the column information from the OutputSchema
    * @param binary use binary format for fields, otherwise text
    */
-  void WriteRowDescription(const std::vector<planner::OutputSchema::Column> &columns, const bool binary) {
+  void WriteRowDescription(const std::vector<planner::OutputSchema::Column> &columns) {
     BeginPacket(NetworkMessageType::PG_ROW_DESCRIPTION).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
     for (const auto &col : columns) {
       const auto col_type = col.GetType();
@@ -94,135 +103,7 @@ class PostgresPacketWriter : public PacketWriter {
         AppendValue<int16_t>(execution::sql::ValUtil::GetSqlSize(col_type));  // data type size
       }
       AppendValue<int32_t>(-1)  // type modifier, generally -1 (see pg_attribute.atttypmod)
-          .AppendValue<int16_t>(static_cast<int16_t>(binary));  // format code for the field, 0 for text, 1 for binary
-    }
-    EndPacket();
-  }
-
-  /**
-   * Write a data row in Postgres' binary format coming from an OutputBuffer in the execution engine. Unclear when the
-   * server should use this just yet.
-   * @param tuple pointer to the start of the row
-   * @param columns OutputSchema describing the tuple
-   */
-  void WriteBinaryDataRow(const byte *const tuple, const std::vector<planner::OutputSchema::Column> &columns) {
-    BeginPacket(NetworkMessageType::PG_DATA_ROW).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
-    uint32_t curr_offset = 0;
-    for (const auto &col : columns) {
-      // Reinterpret to a base value type first and check if it's NULL
-      const auto *const val = reinterpret_cast<const execution::sql::Val *const>(tuple + curr_offset);
-
-      if (val->is_null_) {
-        // write a -1 for the length of the column value and continue to the next value
-        AppendValue<int32_t>(static_cast<int32_t>(-1));
-        continue;
-      }
-
-      const auto type_size = execution::sql::ValUtil::GetSqlSize(col.GetType());
-
-      // Write the attribute
-      switch (col.GetType()) {
-        case type::TypeId::TINYINT:
-        case type::TypeId::SMALLINT:
-        case type::TypeId::BIGINT:
-        case type::TypeId::INTEGER: {
-          auto *int_val = reinterpret_cast<const execution::sql::Integer *const>(val);
-          AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<int64_t>(int_val->val_);
-          break;
-        }
-        case type::TypeId::BOOLEAN: {
-          auto *bool_val = reinterpret_cast<const execution::sql::BoolVal *const>(val);
-          AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<bool>(bool_val->val_);
-          break;
-        }
-        case type::TypeId::DECIMAL: {
-          auto *real_val = reinterpret_cast<const execution::sql::Real *const>(val);
-          AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<double>(real_val->val_);
-          break;
-        }
-        case type::TypeId::DATE: {
-          auto *date_val = reinterpret_cast<const execution::sql::Date *const>(val);
-          // TODO(Matt): would we ever use the ymd_ format for the wire?
-          AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<uint32_t>(date_val->int_val_);
-          break;
-        }
-        case type::TypeId::VARCHAR: {
-          auto *string_val = reinterpret_cast<const execution::sql::StringVal *const>(val);
-          AppendValue<int32_t>(static_cast<int32_t>(string_val->len_))
-              .AppendStringView(string_val->StringView(), false);
-          break;
-        }
-        default:
-          UNREACHABLE("Cannot output unsupported type!!!");
-      }
-      // Advance in the buffer based on the execution engine's type size
-      curr_offset += type_size;
-    }
-    EndPacket();
-  }
-
-  /**
-   * Write a data row in Postgres' text format coming from an OutputBuffer in the execution engine. Simple Query
-   * messages always reply with text format data.
-   * @param tuple pointer to the start of the row
-   * @param columns OutputSchema describing the tuple
-   */
-  void WriteTextDataRow(const byte *const tuple, const std::vector<planner::OutputSchema::Column> &columns) {
-    BeginPacket(NetworkMessageType::PG_DATA_ROW).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
-    uint32_t curr_offset = 0;
-    for (const auto &col : columns) {
-      // Reinterpret to a base value type first and check if it's NULL
-      const auto *const val = reinterpret_cast<const execution::sql::Val *const>(tuple + curr_offset);
-
-      if (val->is_null_) {
-        // write a -1 for the length of the column value and continue to the next value
-        AppendValue<int32_t>(static_cast<int32_t>(-1));
-        continue;
-      }
-
-      // Convert the field to text format
-      std::string string_value;
-      switch (col.GetType()) {
-        case type::TypeId::TINYINT:
-        case type::TypeId::SMALLINT:
-        case type::TypeId::BIGINT:
-        case type::TypeId::INTEGER: {
-          auto *int_val = reinterpret_cast<const execution::sql::Integer *const>(val);
-          string_value = std::to_string(int_val->val_);
-          break;
-        }
-        case type::TypeId::BOOLEAN: {
-          auto *bool_val = reinterpret_cast<const execution::sql::BoolVal *const>(val);
-          string_value = std::to_string(static_cast<int8_t>(bool_val->val_));
-          break;
-        }
-        case type::TypeId::DECIMAL: {
-          auto *real_val = reinterpret_cast<const execution::sql::Real *const>(val);
-          string_value = std::to_string(real_val->val_);
-          break;
-        }
-        case type::TypeId::DATE: {
-          auto *date_val = reinterpret_cast<const execution::sql::Date *const>(val);
-          // TODO(Matt): would we ever use the ymd_ format for the wire?
-          string_value = std::to_string(date_val->int_val_);
-          break;
-        }
-        case type::TypeId::VARCHAR: {
-          // Don't allocate an actual string for a VARCHAR, just wrap a std::string_view, write the value directly, and
-          // continue
-          auto *string_val = reinterpret_cast<const execution::sql::StringVal *const>(val);
-          AppendValue<int32_t>(static_cast<int32_t>(string_val->len_))
-              .AppendStringView(string_val->StringView(), false);
-          continue;
-        }
-        default:
-          UNREACHABLE("Cannot output unsupported type!!!");
-      }
-
-      AppendValue<int32_t>(static_cast<int32_t>(string_value.length())).AppendString(string_value, false);
-
-      // Advance in the buffer based on the execution engine's type size
-      curr_offset += execution::sql::ValUtil::GetSqlSize(col.GetType());
+          .AppendValue<int16_t>(static_cast<int16_t>(format_));  // format code for the field, 0 for text, 1 for binary
     }
     EndPacket();
   }
@@ -371,6 +252,152 @@ class PostgresPacketWriter : public PacketWriter {
    * Tells the client that the bind command is complete.
    */
   void WriteBindComplete() { BeginPacket(NetworkMessageType::PG_BIND_COMPLETE).EndPacket(); }
+
+  /**
+   * Write a data row from the execution engine back to the client
+   * @param tuple pointer to the start of the row
+   * @param columns OutputSchema describing the tuple
+   */
+  void WriteDataRow(const byte *const tuple, const std::vector<planner::OutputSchema::Column> &columns) {
+    if (format_ == FieldFormat::text) {
+      WriteTextDataRow(tuple, columns);
+      return;
+    }
+    WriteBinaryDataRow(tuple, columns);
+  }
+
+ private:
+  // Maybe make this mutable in the future if we want to reuse these objects? Otherwise since it seems like its life
+  // cycle is tied to a query, we only need to instantiate the value once.
+  const FieldFormat format_ = FieldFormat::text;
+
+  /**
+   * Write a data row in Postgres' binary format coming from an OutputBuffer in the execution engine. Unclear when the
+   * server should use this just yet.
+   * @param tuple pointer to the start of the row
+   * @param columns OutputSchema describing the tuple
+   */
+  void WriteBinaryDataRow(const byte *const tuple, const std::vector<planner::OutputSchema::Column> &columns) {
+    BeginPacket(NetworkMessageType::PG_DATA_ROW).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
+    uint32_t curr_offset = 0;
+    for (const auto &col : columns) {
+      // Reinterpret to a base value type first and check if it's NULL
+      const auto *const val = reinterpret_cast<const execution::sql::Val *const>(tuple + curr_offset);
+
+      if (val->is_null_) {
+        // write a -1 for the length of the column value and continue to the next value
+        AppendValue<int32_t>(static_cast<int32_t>(-1));
+        continue;
+      }
+
+      const auto type_size = execution::sql::ValUtil::GetSqlSize(col.GetType());
+
+      // Write the attribute
+      switch (col.GetType()) {
+        case type::TypeId::TINYINT:
+        case type::TypeId::SMALLINT:
+        case type::TypeId::BIGINT:
+        case type::TypeId::INTEGER: {
+          auto *int_val = reinterpret_cast<const execution::sql::Integer *const>(val);
+          AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<int64_t>(int_val->val_);
+          break;
+        }
+        case type::TypeId::BOOLEAN: {
+          auto *bool_val = reinterpret_cast<const execution::sql::BoolVal *const>(val);
+          AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<bool>(bool_val->val_);
+          break;
+        }
+        case type::TypeId::DECIMAL: {
+          auto *real_val = reinterpret_cast<const execution::sql::Real *const>(val);
+          AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<double>(real_val->val_);
+          break;
+        }
+        case type::TypeId::DATE: {
+          auto *date_val = reinterpret_cast<const execution::sql::Date *const>(val);
+          // TODO(Matt): would we ever use the ymd_ format for the wire?
+          AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<uint32_t>(date_val->int_val_);
+          break;
+        }
+        case type::TypeId::VARCHAR: {
+          auto *string_val = reinterpret_cast<const execution::sql::StringVal *const>(val);
+          AppendValue<int32_t>(static_cast<int32_t>(string_val->len_))
+              .AppendStringView(string_val->StringView(), false);
+          break;
+        }
+        default:
+          UNREACHABLE("Cannot output unsupported type!!!");
+      }
+      // Advance in the buffer based on the execution engine's type size
+      curr_offset += type_size;
+    }
+    EndPacket();
+  }
+
+  /**
+   * Write a data row in Postgres' text format coming from an OutputBuffer in the execution engine. Simple Query
+   * messages always reply with text format data.
+   * @param tuple pointer to the start of the row
+   * @param columns OutputSchema describing the tuple
+   */
+  void WriteTextDataRow(const byte *const tuple, const std::vector<planner::OutputSchema::Column> &columns) {
+    BeginPacket(NetworkMessageType::PG_DATA_ROW).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
+    uint32_t curr_offset = 0;
+    for (const auto &col : columns) {
+      // Reinterpret to a base value type first and check if it's NULL
+      const auto *const val = reinterpret_cast<const execution::sql::Val *const>(tuple + curr_offset);
+
+      if (val->is_null_) {
+        // write a -1 for the length of the column value and continue to the next value
+        AppendValue<int32_t>(static_cast<int32_t>(-1));
+        continue;
+      }
+
+      // Convert the field to text format
+      std::string string_value;
+      switch (col.GetType()) {
+        case type::TypeId::TINYINT:
+        case type::TypeId::SMALLINT:
+        case type::TypeId::BIGINT:
+        case type::TypeId::INTEGER: {
+          auto *int_val = reinterpret_cast<const execution::sql::Integer *const>(val);
+          string_value = std::to_string(int_val->val_);
+          break;
+        }
+        case type::TypeId::BOOLEAN: {
+          auto *bool_val = reinterpret_cast<const execution::sql::BoolVal *const>(val);
+          string_value = std::to_string(static_cast<int8_t>(bool_val->val_));
+          break;
+        }
+        case type::TypeId::DECIMAL: {
+          auto *real_val = reinterpret_cast<const execution::sql::Real *const>(val);
+          string_value = std::to_string(real_val->val_);
+          break;
+        }
+        case type::TypeId::DATE: {
+          auto *date_val = reinterpret_cast<const execution::sql::Date *const>(val);
+          // TODO(Matt): would we ever use the ymd_ format for the wire?
+          string_value = std::to_string(date_val->int_val_);
+          break;
+        }
+        case type::TypeId::VARCHAR: {
+          // Don't allocate an actual string for a VARCHAR, just wrap a std::string_view, write the value directly, and
+          // continue
+          auto *string_val = reinterpret_cast<const execution::sql::StringVal *const>(val);
+          AppendValue<int32_t>(static_cast<int32_t>(string_val->len_))
+              .AppendStringView(string_val->StringView(), false);
+          continue;
+        }
+        default:
+          UNREACHABLE("Cannot output unsupported type!!!");
+      }
+
+      AppendValue<int32_t>(static_cast<int32_t>(string_value.length())).AppendString(string_value, false);
+
+      // Advance in the buffer based on the execution engine's type size
+      curr_offset += execution::sql::ValUtil::GetSqlSize(col.GetType());
+    }
+    EndPacket();
+  }
 };
 
 }  // namespace terrier::network

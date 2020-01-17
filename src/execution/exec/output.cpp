@@ -95,11 +95,7 @@ void OutputWriter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple_
   // Write out the rows for this batch
   for (uint32_t row = 0; row < num_tuples; row++) {
     const byte *const tuple = tuples + row * tuple_size;
-    if (binary_) {
-      out_->WriteBinaryDataRow(tuple, schema_->GetColumns());
-    } else {
-      out_->WriteTextDataRow(tuple, schema_->GetColumns());
-    }
+    out_->WriteDataRow(tuple, schema_->GetColumns());
     num_rows_++;
   }
 }

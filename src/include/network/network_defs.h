@@ -173,4 +173,6 @@ enum class NetworkTransactionStateType : unsigned char {
   FAIL = 'E',   // In a failed transaction
 };
 
+enum class FieldFormat : uint8_t { text = 0, binary = 1 };
+
 }  // namespace terrier::network

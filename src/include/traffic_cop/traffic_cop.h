@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "catalog/catalog.h"
+#include "network/network_defs.h"
 #include "network/postgres/postgres_protocol_utils.h"
 #include "parser/create_statement.h"
 #include "parser/drop_statement.h"
