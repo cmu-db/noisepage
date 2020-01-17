@@ -141,6 +141,16 @@ class PacketWriter {
   }
 
   /**
+   * Append a string_view onto the write queue.
+   * @param str the string to append
+   * @param nul_terminate whether the nul terminaor should be written as well
+   * @return self-reference for chaining
+   */
+  PacketWriter &AppendStringView(const std::string_view str, bool nul_terminate = true) {
+    return AppendRaw(str.data(), nul_terminate ? str.size() + 1 : str.size());
+  }
+
+  /**
    * Writes error responses to the client
    * @param error_status The error messages to send
    */

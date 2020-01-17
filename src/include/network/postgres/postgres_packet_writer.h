@@ -4,7 +4,9 @@
 #include <string>
 #include <vector>
 
+#include "execution/sql/value.h"
 #include "network/packet_writer.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace terrier::network {
 /**
@@ -13,6 +15,8 @@ namespace terrier::network {
  */
 class PostgresPacketWriter : public PacketWriter {
  public:
+  enum class AttributeFormat : int16_t { text = 0, binary = 1 };
+
   /**
    * Instantiates a new PostgresPacketWriter backed by the given WriteQueue
    */
@@ -75,48 +79,78 @@ class PostgresPacketWriter : public PacketWriter {
 
   /**
    * Writes row description, as the first packet of sending query results
-   * @param columns the column names
+   * @param columns the column information from the OutputSchema
    */
-  void WriteRowDescription(const std::vector<std::string> &columns) {
-    // TODO(Weichen): fill correct OIDs here. This depends on the catalog.
+  void WriteRowDescription(const std::vector<planner::OutputSchema::Column> &columns, const AttributeFormat format) {
     BeginPacket(NetworkMessageType::PG_ROW_DESCRIPTION).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
-    for (auto &col_name : columns) {
-      AppendString(col_name)
-          .AppendValue<int32_t>(0)                                     // table oid, 0 for now
-          .AppendValue<int16_t>(0)                                     // column oid, 0 for now
-          .AppendValue(static_cast<int32_t>(PostgresValueType::TEXT))  // type oid
-          .AppendValue<int16_t>(-1)                                    // Variable Length
-          .AppendValue<int32_t>(-1)                                    // pg_attribute.attrmod, generally -1
-          .AppendValue<int16_t>(0);                                    // text=0
-    }
+    for (const auto &col : columns) {
+      AppendString(col.GetName())
+          .AppendValue<int32_t>(0)  // table oid (if it's a column from a table), 0 otherwise
+          .AppendValue<int16_t>(0)  // column oid (if it's a column from a table), 0 otherwise
 
+          .AppendValue(static_cast<int32_t>(InternalValueTypeToPostgresValueType(col.GetType())))  // type oid
+          .AppendValue<int16_t>(execution::sql::ValUtil::GetSqlSize(col.GetType()))                // data type size
+          .AppendValue<int32_t>(-1)  // type modifier, generally -1 (see pg_attribute.atttypmod)
+          .AppendValue<int16_t>(static_cast<int16_t>(format));  // format code for the field
+    }
     EndPacket();
   }
 
-  // TODO(Matt): reimplement this for our new result type from the execution engine, leaving this dead code for now in
-  // case it's instructive
-  //  void WriteDataRow(const trafficcop::Row &values) {
-  //    using type::TransientValuePeeker;
-  //    using type::TypeId;
-  //
-  //    BeginPacket(NetworkMessageType::PG_DATA_ROW).AppendValue<int16_t>(static_cast<int16_t>(values.size()));
-  //    for (auto &value : values) {
-  //      // use text to represent values for now
-  //      std::string ret;
-  //      if (value.Type() == TypeId::INTEGER)
-  //        ret = std::to_string(TransientValuePeeker::PeekInteger(value));
-  //      else if (value.Type() == TypeId::DECIMAL)
-  //        ret = std::to_string(TransientValuePeeker::PeekDecimal(value));
-  //      else if (value.Type() == TypeId::VARCHAR)
-  //        ret = TransientValuePeeker::PeekVarChar(value);
-  //      if (ret == "NULL") {
-  //        AppendValue<int32_t>(static_cast<int32_t>(-1));
-  //      } else {
-  //        AppendValue<int32_t>(static_cast<int32_t>(ret.length())).AppendString(ret, false);
-  //      }
-  //    }
-  //    EndPacket();
-  //  }
+  void WriteDataRow(const byte *const tuple, const std::vector<planner::OutputSchema::Column> &columns) {
+    BeginPacket(NetworkMessageType::PG_DATA_ROW).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
+    uint32_t curr_offset = 0;
+    for (const auto &col : columns) {
+      // Reinterpret to a base value type first and check if it's NULL
+      const auto *const val = reinterpret_cast<const execution::sql::Val *const>(tuple + curr_offset);
+
+      if (val->is_null_) {
+        // write a -1 for the length of the column value and continue to the next value
+        AppendValue<int32_t>(static_cast<int32_t>(-1));
+        continue;
+      }
+
+      // Write the length of the column value for non-NULL
+      const auto type_size = execution::sql::ValUtil::GetSqlSize(col.GetType());
+      AppendValue<int32_t>(static_cast<int32_t>(type_size));
+
+      // Write the attribute
+      switch (col.GetType()) {
+        case type::TypeId::TINYINT:
+        case type::TypeId::SMALLINT:
+        case type::TypeId::BIGINT:
+        case type::TypeId::INTEGER: {
+          auto *int_val = reinterpret_cast<const execution::sql::Integer *const>(val);
+          AppendValue<int64_t>(int_val->val_);
+          break;
+        }
+        case type::TypeId::BOOLEAN: {
+          auto *bool_val = reinterpret_cast<const execution::sql::BoolVal *const>(val);
+          AppendValue<bool>(bool_val->val_);
+          break;
+        }
+        case type::TypeId::DECIMAL: {
+          auto *real_val = reinterpret_cast<const execution::sql::Real *const>(val);
+          AppendValue<double>(real_val->val_);
+          break;
+        }
+        case type::TypeId::DATE: {
+          auto *date_val = reinterpret_cast<const execution::sql::Date *const>(val);
+          // TODO(Matt): would we ever use the ymd_ format for the wire?
+          AppendValue<uint32_t>(date_val->int_val_);
+          break;
+        }
+        case type::TypeId::VARCHAR: {
+          auto *string_val = reinterpret_cast<const execution::sql::StringVal *const>(val);
+          AppendStringView(string_val->StringView());
+          break;
+        }
+        default:
+          UNREACHABLE("Cannot output unsupported type!!!");
+      }
+      curr_offset += type_size;
+    }
+    EndPacket();
+  }
 
   /**
    * Tells the client that the query command is complete.
