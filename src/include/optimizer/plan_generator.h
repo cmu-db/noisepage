@@ -312,21 +312,6 @@ class PlanGenerator : public OperatorVisitor {
   std::unique_ptr<planner::OutputSchema> GenerateScanOutputSchema(catalog::table_oid_t tbl_oid);
 
   /**
-   * Generate a predicate expression for scan plans
-   *
-   * @param predicate_expr the original expression
-   * @param alias the table alias
-   * @param db_oid Database OID
-   * @param tbl_oid Table OID for catalog lookup
-   *
-   * @return a predicate that is already evaluated, which could be used to
-   * generate a scan plan i.e. all tuple idx are set
-   */
-  std::unique_ptr<parser::AbstractExpression> GeneratePredicateForScan(
-      common::ManagedPointer<parser::AbstractExpression> predicate_expr, const std::string &alias,
-      catalog::db_oid_t db_oid, catalog::table_oid_t tbl_oid);
-
-  /**
    * Generate projection info and projection schema for join
    * @returns output schema of projection
    */

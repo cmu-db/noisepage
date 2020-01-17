@@ -35,8 +35,8 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelect) {
     auto &schema = test->accessor_->GetSchema(tbl_oid);
     EXPECT_EQ(seq->GetTableOid(), test->tbl_new_order_);
 
-    EXPECT_EQ(seq->GetColumnIds().size(), 1);
-    EXPECT_EQ(seq->GetColumnIds()[0], schema.GetColumn("no_o_id").Oid());
+    EXPECT_EQ(seq->GetColumnOids().size(), 1);
+    EXPECT_EQ(seq->GetColumnOids()[0], schema.GetColumn("no_o_id").Oid());
   };
 
   std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\"";
@@ -48,13 +48,6 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicate) {
   auto check = [](TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
                   std::unique_ptr<planner::AbstractPlanNode> plan) {
     auto &schema = test->accessor_->GetSchema(test->tbl_order_);
-    auto offset = 0;
-    for (size_t idx = 0; idx < schema.GetColumns().size(); idx++) {
-      auto idx_u = static_cast<unsigned>(idx);
-      if (schema.GetColumn(idx_u).Name() == "o_carrier_id") {
-        offset = static_cast<unsigned>(idx_u);
-      }
-    }
 
     EXPECT_EQ(plan->GetChildrenSize(), 0);
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::SEQSCAN);
@@ -64,20 +57,20 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicate) {
     EXPECT_EQ(seq->GetDatabaseOid(), test->db_);
     EXPECT_EQ(seq->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
     EXPECT_EQ(seq->GetTableOid(), test->tbl_order_);
-    EXPECT_EQ(seq->GetColumnIds().size(), 1);
-    EXPECT_EQ(seq->GetColumnIds()[0], schema.GetColumn("o_id").Oid());
+    EXPECT_EQ(seq->GetColumnOids().size(), 1);
+    EXPECT_EQ(seq->GetColumnOids()[0], schema.GetColumn("o_id").Oid());
 
     // Check Scan Predicate
     auto scan_pred = seq->GetScanPredicate();
     EXPECT_TRUE(scan_pred != nullptr);
     EXPECT_EQ(scan_pred->GetExpressionType(), parser::ExpressionType::COMPARE_EQUAL);
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
-    EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
+    EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto dve = scan_pred->GetChild(0).CastManagedPointerTo<parser::DerivedValueExpression>();
+    auto tve = scan_pred->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
     auto cve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
-    EXPECT_EQ(dve->GetTupleIdx(), 0);
-    EXPECT_EQ(dve->GetValueIdx(), offset);  // ValueIdx() should be offset into underlying tuple
+    EXPECT_EQ(tve->GetColumnName(), "o_carrier_id");
+    EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("o_carrier_id").Oid());
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 5);
   };
 
@@ -91,11 +84,6 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderBy) {
                   std::unique_ptr<planner::AbstractPlanNode> plan) {
     // Find column offset that matches with o_carrier_id
     auto &schema = test->accessor_->GetSchema(test->tbl_order_);
-    unsigned carrier_offset = 0;
-    for (size_t idx = 0; idx < schema.GetColumns().size(); idx++) {
-      if (schema.GetColumns()[idx].Name() == "o_carrier_id") carrier_offset = static_cast<unsigned>(idx);
-    }
-
     EXPECT_EQ(plan->GetChildrenSize(), 1);
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::PROJECTION);
 
@@ -124,21 +112,21 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderBy) {
     EXPECT_EQ(seq->GetDatabaseOid(), test->db_);
     EXPECT_EQ(seq->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
     EXPECT_EQ(seq->GetTableOid(), test->tbl_order_);
-    EXPECT_EQ(seq->GetColumnIds().size(), 2);
-    EXPECT_EQ(seq->GetColumnIds()[0], schema.GetColumn("o_ol_cnt").Oid());
-    EXPECT_EQ(seq->GetColumnIds()[1], schema.GetColumn("o_id").Oid());
+    EXPECT_EQ(seq->GetColumnOids().size(), 2);
+    EXPECT_EQ(seq->GetColumnOids()[0], schema.GetColumn("o_ol_cnt").Oid());
+    EXPECT_EQ(seq->GetColumnOids()[1], schema.GetColumn("o_id").Oid());
 
     // Check scan predicate
     auto scan_pred = seq->GetScanPredicate();
     EXPECT_TRUE(scan_pred != nullptr);
     EXPECT_EQ(scan_pred->GetExpressionType(), parser::ExpressionType::COMPARE_EQUAL);
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
-    EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
+    EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(0).Get());
-    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(1).Get());
-    EXPECT_EQ(dve->GetTupleIdx(), 0);
-    EXPECT_EQ(dve->GetValueIdx(), carrier_offset);  // ValueIdx() should be offset into underlying tuple (all cols)
+    auto tve = scan_pred->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+    auto cve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
+    EXPECT_EQ(tve->GetColumnName(), "o_carrier_id");
+    EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("o_carrier_id").Oid());
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 5);
   };
 
@@ -152,10 +140,6 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateLimit) {
                   std::unique_ptr<planner::AbstractPlanNode> plan) {
     // Find column offset that matches with o_carrier_id
     auto &schema = test->accessor_->GetSchema(test->tbl_order_);
-    unsigned carrier_offset = 0;
-    for (size_t idx = 0; idx < schema.GetColumns().size(); idx++) {
-      if (schema.GetColumns()[idx].Name() == "o_carrier_id") carrier_offset = static_cast<unsigned>(idx);
-    }
 
     EXPECT_EQ(plan->GetChildrenSize(), 1);
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::LIMIT);
@@ -172,20 +156,20 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateLimit) {
     EXPECT_EQ(seq->GetDatabaseOid(), test->db_);
     EXPECT_EQ(seq->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
     EXPECT_EQ(seq->GetTableOid(), test->tbl_order_);
-    EXPECT_EQ(seq->GetColumnIds().size(), 1);
-    EXPECT_EQ(seq->GetColumnIds()[0], schema.GetColumn("o_id").Oid());
+    EXPECT_EQ(seq->GetColumnOids().size(), 1);
+    EXPECT_EQ(seq->GetColumnOids()[0], schema.GetColumn("o_id").Oid());
 
     // Check scan predicate
     auto scan_pred = seq->GetScanPredicate();
     EXPECT_TRUE(scan_pred != nullptr);
     EXPECT_EQ(scan_pred->GetExpressionType(), parser::ExpressionType::COMPARE_EQUAL);
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
-    EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
+    EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(0).Get());
-    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(1).Get());
-    EXPECT_EQ(dve->GetTupleIdx(), 0);
-    EXPECT_EQ(dve->GetValueIdx(), carrier_offset);  // ValueIdx() should be offset into underlying tuple (all cols)
+    auto tve = scan_pred->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+    auto cve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
+    EXPECT_EQ(tve->GetColumnName(), "o_carrier_id");
+    EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("o_carrier_id").Oid());
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 5);
   };
 
@@ -199,11 +183,6 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderByLimit) {
                   std::unique_ptr<planner::AbstractPlanNode> plan) {
     // Find column offset that matches with o_carrier_id
     auto &schema = test->accessor_->GetSchema(test->tbl_order_);
-    unsigned carrier_offset = 0;
-    for (size_t idx = 0; idx < schema.GetColumns().size(); idx++) {
-      if (schema.GetColumns()[idx].Name() == "o_carrier_id") carrier_offset = static_cast<unsigned>(idx);
-    }
-
     EXPECT_EQ(plan->GetChildrenSize(), 1);
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::PROJECTION);
 
@@ -240,21 +219,21 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderByLimit) {
     EXPECT_EQ(seq->GetDatabaseOid(), test->db_);
     EXPECT_EQ(seq->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
     EXPECT_EQ(seq->GetTableOid(), test->tbl_order_);
-    EXPECT_EQ(seq->GetColumnIds().size(), 2);
-    EXPECT_EQ(seq->GetColumnIds()[0], schema.GetColumn("o_ol_cnt").Oid());
-    EXPECT_EQ(seq->GetColumnIds()[1], schema.GetColumn("o_id").Oid());
+    EXPECT_EQ(seq->GetColumnOids().size(), 2);
+    EXPECT_EQ(seq->GetColumnOids()[0], schema.GetColumn("o_ol_cnt").Oid());
+    EXPECT_EQ(seq->GetColumnOids()[1], schema.GetColumn("o_id").Oid());
 
     // Check scan predicate
     auto scan_pred = seq->GetScanPredicate();
     EXPECT_TRUE(scan_pred != nullptr);
     EXPECT_EQ(scan_pred->GetExpressionType(), parser::ExpressionType::COMPARE_EQUAL);
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
-    EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
+    EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto dve = scan_pred->GetChild(0).CastManagedPointerTo<parser::DerivedValueExpression>();
+    auto tve = scan_pred->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
     auto cve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
-    EXPECT_EQ(dve->GetTupleIdx(), 0);
-    EXPECT_EQ(dve->GetValueIdx(), carrier_offset);  // ValueIdx() should be offset into underlying tuple (all cols)
+    EXPECT_EQ(tve->GetColumnName(), "o_carrier_id");
+    EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("o_carrier_id").Oid());
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 5);
   };
 
