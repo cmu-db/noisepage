@@ -115,10 +115,11 @@ class OutputWriter {
   /**
    * @param schema final schema to output
    * @param out packet writer to use
+   * @param use binary format for attributes, otherwise text. Simple Queries always use text
    */
   OutputWriter(const common::ManagedPointer<planner::OutputSchema> schema,
-               const common::ManagedPointer<network::PostgresPacketWriter> out)
-      : schema_(schema), out_(out) {}
+               const common::ManagedPointer<network::PostgresPacketWriter> out, const bool binary)
+      : schema_(schema), out_(out), binary_(binary) {}
 
   /**
    * Callback that prints a batch of tuples to std out.
@@ -137,6 +138,7 @@ class OutputWriter {
   uint32_t num_rows_ = 0;
   const common::ManagedPointer<planner::OutputSchema> schema_;
   const common::ManagedPointer<network::PostgresPacketWriter> out_;
+  const bool binary_;
 };
 
 }  // namespace terrier::execution::exec
