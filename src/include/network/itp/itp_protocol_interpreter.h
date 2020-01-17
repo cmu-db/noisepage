@@ -55,7 +55,6 @@ class ITPProtocolInterpreter : public ProtocolInterpreter {
    * @param out The WriteQueue to communicate with the client through
    * @param t_cop the traffic cop pointer
    * @param context the connection context
-   * @param callback The callback function to trigger on completion
    * @return
    */
   Transition Process(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out,

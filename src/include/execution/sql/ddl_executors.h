@@ -52,6 +52,7 @@ class DDLExecutors {
   /**
    * @param node node to executed
    * @param accessor accessor to use for execution
+   * @param connection_db database for the current connection
    * @return true if operation succeeded, false otherwise
    */
   static bool CreateTableExecutor(common::ManagedPointer<planner::CreateTablePlanNode> node,
@@ -69,10 +70,12 @@ class DDLExecutors {
   /**
    * @param node node to executed
    * @param accessor accessor to use for execution
+   * @param connection_db database for the current connection
    * @return true if operation succeeded, false otherwise
    */
   static bool DropDatabaseExecutor(common::ManagedPointer<planner::DropDatabasePlanNode> node,
-                                   common::ManagedPointer<catalog::CatalogAccessor>, catalog::db_oid_t connection_db);
+                                   common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                                   catalog::db_oid_t connection_db);
 
   /**
    * @param node node to executed

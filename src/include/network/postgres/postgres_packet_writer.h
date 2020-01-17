@@ -26,6 +26,10 @@ class PostgresPacketWriter : public PacketWriter {
     BeginPacket(NetworkMessageType::PG_SIMPLE_QUERY_COMMAND).AppendString(query).EndPacket();
   }
 
+  /**
+   * Writes a Postgres notice response
+   * @param message human readable message
+   */
   void WriteNoticeResponse(const std::string &message) {
     BeginPacket(NetworkMessageType::PG_NOTICE_RESPONSE)
         .AppendRawValue(NetworkMessageType::PG_HUMAN_READABLE_ERROR)
@@ -34,6 +38,10 @@ class PostgresPacketWriter : public PacketWriter {
         .EndPacket();  // Nul-terminate packet
   }
 
+  /**
+   * Writes a Postgres error response
+   * @param message human readable message
+   */
   void WriteErrorResponse(const std::string &message) {
     BeginPacket(NetworkMessageType::PG_ERROR_RESPONSE)
         .AppendRawValue(NetworkMessageType::PG_HUMAN_READABLE_ERROR)
@@ -87,10 +95,6 @@ class PostgresPacketWriter : public PacketWriter {
 
   // TODO(Matt): reimplement this for our new result type from the execution engine, leaving this dead code for now in
   // case it's instructive
-  /**
-   * Writes a data row.
-   * @param values a row's values.
-   */
   //  void WriteDataRow(const trafficcop::Row &values) {
   //    using type::TransientValuePeeker;
   //    using type::TypeId;
@@ -122,6 +126,11 @@ class PostgresPacketWriter : public PacketWriter {
     BeginPacket(NetworkMessageType::PG_COMMAND_COMPLETE).AppendString(tag).EndPacket();
   }
 
+  /**
+   * Writes Postgres command complete
+   * @param query_type what type of query this was
+   * @param num_rows number of rows for the queries that need it in their output
+   */
   void WriteCommandComplete(const QueryType query_type, const uint32_t num_rows) {
     switch (query_type) {
       case QueryType::QUERY_BEGIN:

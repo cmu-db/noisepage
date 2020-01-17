@@ -89,6 +89,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    * connection.
    * @param in buffer to read packets from
    * @param out buffer to send results back out on (doesn't really happen if TERMINATE is returned)
+   * @param t_cop non-owning pointer to the traffic cop for use in any cleanup necessary
    * @param context where to stash connection-specific state
    * @return transition::PROCEED if it succeeded, transition::TERMINATE otherwise
    */

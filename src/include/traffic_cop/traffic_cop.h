@@ -40,6 +40,8 @@ class TrafficCop {
    * @param txn_manager the transaction manager of the system
    * @param catalog the catalog of the system
    * @param replication_log_provider if given, the tcop will forward replication logs to this provider
+   * @param stats_storage for optimizer calls
+   * @param optimizer_timeout for optimizer calls
    */
   TrafficCop(common::ManagedPointer<transaction::TransactionManager> txn_manager,
              common::ManagedPointer<catalog::Catalog> catalog,
@@ -61,7 +63,7 @@ class TrafficCop {
 
   /**
    * Create a temporary namespace for a connection
-   * @param sockfd the socket file descriptor the connection communicates on
+   * @param connection_id the unique connection ID to use for the namespace name
    * @param database_name the name of the database the connection is accessing
    * @return a pair of OIDs for the database and the temporary namespace
    */
@@ -76,10 +78,24 @@ class TrafficCop {
    */
   bool DropTempNamespace(catalog::db_oid_t db_oid, catalog::namespace_oid_t ns_oid);
 
+  /**
+   * @param query SQL string to be parsed
+   * @param connection_ctx used to maintain state
+   * @param out used to write out results if necessary
+   * @return parser's ParseResult, nullptr if failed
+   */
   std::unique_ptr<parser::ParseResult> ParseQuery(const std::string &query,
                                                   common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                                   common::ManagedPointer<network::PostgresPacketWriter> out) const;
 
+  /**
+   * @param connection_ctx used to maintain state
+   * @param out used to write out results if necessary
+   * @param parse_result parser's valid ParseResult
+   * @param statement to be executed
+   * @param statement_type type of the statement. Could be derived again from the statement itself, but noticed this was
+   * already looked up in calling contexts so added it as an argument
+   */
   void ExecuteStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                         common::ManagedPointer<network::PostgresPacketWriter> out,
                         common::ManagedPointer<parser::ParseResult> parse_result,

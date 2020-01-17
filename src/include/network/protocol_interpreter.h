@@ -38,7 +38,6 @@ class ProtocolInterpreter {
    * @param out The WriteQueue to communicate with the client through
    * @param t_cop The traffic cop pointer
    * @param context the connection context
-   * @param callback The callback function to trigger on completion
    * @return The next transition for the client's associated state machine
    */
   virtual Transition Process(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out,
@@ -51,7 +50,6 @@ class ProtocolInterpreter {
    * @param out The WriteQueue to communicate with the client through
    * @param t_cop The traffic cop pointer
    * @param context the connection context
-   * @param callback The callback function to trigger on completion
    * @return The next transition for the client's associated state machine
    */
   virtual void Teardown(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out,
