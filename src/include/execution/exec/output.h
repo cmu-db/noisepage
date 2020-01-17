@@ -115,7 +115,6 @@ class OutputWriter {
   /**
    * @param schema final schema to output
    * @param out packet writer to use
-   * @param use binary format for attributes, otherwise text. Simple Queries always use text
    */
   OutputWriter(const common::ManagedPointer<planner::OutputSchema> schema,
                const common::ManagedPointer<network::PostgresPacketWriter> out)

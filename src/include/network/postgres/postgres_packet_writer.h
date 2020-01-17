@@ -87,7 +87,6 @@ class PostgresPacketWriter : public PacketWriter {
   /**
    * Writes row description, as the first packet of sending query results
    * @param columns the column information from the OutputSchema
-   * @param binary use binary format for fields, otherwise text
    */
   void WriteRowDescription(const std::vector<planner::OutputSchema::Column> &columns) {
     BeginPacket(NetworkMessageType::PG_ROW_DESCRIPTION).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
