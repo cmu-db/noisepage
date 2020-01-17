@@ -93,6 +93,11 @@ class PostgresPacketWriter : public PacketWriter {
     EndPacket();
   }
 
+  /**
+   * Write a data row coming from an OutputBuffer in the execution engine
+   * @param tuple pointer to the start of the row
+   * @param columns OutputSchema describing the tuple
+   */
   void WriteDataRow(const byte *const tuple, const std::vector<planner::OutputSchema::Column> &columns) {
     BeginPacket(NetworkMessageType::PG_DATA_ROW).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
     uint32_t curr_offset = 0;

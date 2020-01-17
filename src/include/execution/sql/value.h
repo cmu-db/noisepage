@@ -225,6 +225,9 @@ struct StringVal : public Val {
     }
   }
 
+  /**
+   * @return std::string_view of StringVal's contents
+   */
   std::string_view StringView() const {
     TERRIER_ASSERT(!is_null_,
                    "You should be doing a NULL check before attempting to generate a std::string_view of a StringVal.");
