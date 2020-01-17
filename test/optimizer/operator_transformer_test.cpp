@@ -26,15 +26,21 @@
 #include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/subquery_expression.h"
+#include "parser/expression_defs.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/create_database_plan_node.h"
+#include "planner/plannodes/create_function_plan_node.h"
 #include "planner/plannodes/create_index_plan_node.h"
 #include "planner/plannodes/create_namespace_plan_node.h"
 #include "planner/plannodes/create_table_plan_node.h"
+#include "planner/plannodes/create_trigger_plan_node.h"
+#include "planner/plannodes/create_view_plan_node.h"
 #include "planner/plannodes/drop_database_plan_node.h"
 #include "planner/plannodes/drop_index_plan_node.h"
 #include "planner/plannodes/drop_namespace_plan_node.h"
 #include "planner/plannodes/drop_table_plan_node.h"
+#include "planner/plannodes/drop_trigger_plan_node.h"
+#include "planner/plannodes/drop_view_plan_node.h"
 #include "storage/garbage_collector.h"
 #include "storage/index/index_builder.h"
 #include "test_util/test_harness.h"
@@ -1170,6 +1176,56 @@ TEST_F(OperatorTransformerTest, CreateFunctionTest) {
     EXPECT_EQ(op_params_names[i], stmt_params[i]->GetParamName());
     EXPECT_EQ(op_params_types[i], stmt_params[i]->GetDataType());
   }
+
+  auto optree_ptr = common::ManagedPointer(operator_tree_);
+  auto *op_ctx = optimization_context_.get();
+  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+
+  optimizer::LogicalCreateFunctionToPhysicalCreateFunction rule;
+  EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
+  rule.Transform(optree_ptr, &transformed, op_ctx);
+
+  auto op = transformed[0]->GetOp();
+  EXPECT_EQ(op.GetType(), optimizer::OpType::CREATEFUNCTION);
+  EXPECT_TRUE(op.IsPhysical());
+  EXPECT_EQ(op.GetName(), "CreateFunction");
+  auto cf = op.As<optimizer::CreateFunction>();
+
+  EXPECT_EQ(cf->GetNamespaceOid(), ns_oid);
+  EXPECT_EQ(cf->GetFunctionName(), create_stmt->GetFuncName());
+  EXPECT_EQ(cf->GetFunctionBody(), create_stmt->GetFuncBody());
+  EXPECT_EQ(cf->GetReturnType(), create_stmt->GetFuncReturnType()->GetDataType());
+  EXPECT_EQ(cf->GetUDFLanguage(), create_stmt->GetPLType());
+  EXPECT_EQ(cf->IsReplace(), create_stmt->ShouldReplace());
+  EXPECT_EQ(cf->GetParamCount(), stmt_params.size());
+  for (size_t i = 0; i < create_stmt->GetFuncParameters().size(); i++) {
+    EXPECT_EQ(cf->GetFunctionParameterNames()[i], stmt_params[i]->GetParamName());
+    EXPECT_EQ(cf->GetFunctionParameterTypes()[i], stmt_params[i]->GetDataType());
+  }
+
+  optimizer::PlanGenerator plan_generator{};
+  optimizer::PropertySet property_set{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
+  std::vector<optimizer::ExprMap> children_expr_map{};
+
+  auto plan_node =
+      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+  EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::CREATE_FUNC);
+  auto cfpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::CreateFunctionPlanNode>();
+  EXPECT_EQ(cfpn->GetNamespaceOid(), ns_oid);
+  EXPECT_EQ(cfpn->GetFunctionName(), create_stmt->GetFuncName());
+  EXPECT_EQ(cfpn->GetFunctionBody(), create_stmt->GetFuncBody());
+  EXPECT_EQ(cfpn->GetReturnType(), create_stmt->GetFuncReturnType()->GetDataType());
+  EXPECT_EQ(cfpn->GetUDFLanguage(), create_stmt->GetPLType());
+  EXPECT_EQ(cfpn->IsReplace(), create_stmt->ShouldReplace());
+  EXPECT_EQ(cfpn->GetParamCount(), stmt_params.size());
+  for (size_t i = 0; i < create_stmt->GetFuncParameters().size(); i++) {
+    EXPECT_EQ(cfpn->GetFunctionParameterNames()[i], stmt_params[i]->GetParamName());
+    EXPECT_EQ(cfpn->GetFunctionParameterTypes()[i], stmt_params[i]->GetDataType());
+  }
 }
 
 // NOLINTNEXTLINE
@@ -1242,6 +1298,58 @@ TEST_F(OperatorTransformerTest, CreateViewTest) {
   EXPECT_EQ(logical_create->GetDatabaseOid(), db_oid_);
   EXPECT_EQ(logical_create->GetNamespaceOid(), ns_oid);
   EXPECT_EQ(logical_create->GetViewName(), "a_view");
+
+  auto optree_ptr = common::ManagedPointer(operator_tree_);
+  auto *op_ctx = optimization_context_.get();
+  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+
+  optimizer::LogicalCreateViewToPhysicalCreateView rule;
+  EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
+  rule.Transform(optree_ptr, &transformed, op_ctx);
+
+  auto op = transformed[0]->GetOp();
+  EXPECT_EQ(op.GetType(), optimizer::OpType::CREATEVIEW);
+  EXPECT_TRUE(op.IsPhysical());
+  EXPECT_EQ(op.GetName(), "CreateView");
+  auto cv = op.As<optimizer::CreateView>();
+  EXPECT_EQ(cv->GetDatabaseOid(), db_oid_);
+  EXPECT_EQ(cv->GetNamespaceOid(), ns_oid);
+  EXPECT_EQ(cv->GetViewName(), "a_view");
+  EXPECT_EQ(cv->GetViewQuery()->GetDepth(), 1);
+  EXPECT_EQ(cv->GetViewQuery()->GetSelectTable()->GetTableName(), "a");
+  EXPECT_EQ(cv->GetViewQuery()->GetSelectCondition()->GetExpressionType(), parser::ExpressionType::COMPARE_EQUAL);
+  auto sc0 = cv->GetViewQuery()->GetSelectCondition()->GetChild(0);
+  auto sc1 = cv->GetViewQuery()->GetSelectCondition()->GetChild(1);
+  EXPECT_EQ(sc0->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
+  EXPECT_EQ(sc0.CastManagedPointerTo<parser::ColumnValueExpression>()->GetColumnName(), "a1");
+  EXPECT_EQ(sc1->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
+  EXPECT_EQ(sc1.CastManagedPointerTo<parser::ConstantValueExpression>()->GetValue(),
+            type::TransientValueFactory::GetInteger(4));
+
+  optimizer::PlanGenerator plan_generator{};
+  optimizer::PropertySet property_set{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
+  std::vector<optimizer::ExprMap> children_expr_map{};
+
+  auto plan_node =
+      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+  EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::CREATE_VIEW);
+  auto cvpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::CreateViewPlanNode>();
+  EXPECT_EQ(cvpn->GetDatabaseOid(), db_oid_);
+  EXPECT_EQ(cvpn->GetNamespaceOid(), ns_oid);
+  EXPECT_EQ(cvpn->GetViewName(), "a_view");
+  EXPECT_EQ(cvpn->GetViewQuery()->GetSelectTable()->GetTableName(), "a");
+  EXPECT_EQ(cvpn->GetViewQuery()->GetSelectCondition()->GetExpressionType(), parser::ExpressionType::COMPARE_EQUAL);
+  auto scpn0 = cvpn->GetViewQuery()->GetSelectCondition()->GetChild(0);
+  auto scpn1 = cvpn->GetViewQuery()->GetSelectCondition()->GetChild(1);
+  EXPECT_EQ(scpn0->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
+  EXPECT_EQ(scpn0.CastManagedPointerTo<parser::ColumnValueExpression>()->GetColumnName(), "a1");
+  EXPECT_EQ(scpn1->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
+  EXPECT_EQ(scpn1.CastManagedPointerTo<parser::ConstantValueExpression>()->GetValue(),
+            type::TransientValueFactory::GetInteger(4));
 }
 
 // NOLINTNEXTLINE
@@ -1285,6 +1393,67 @@ TEST_F(OperatorTransformerTest, CreateTriggerTest) {
   EXPECT_EQ(col2->GetColumnOid(), col_a1_oid);
   EXPECT_EQ(col1->GetDatabaseOid(), db_oid_);
   EXPECT_EQ(col2->GetDatabaseOid(), db_oid_);
+
+  auto optree_ptr = common::ManagedPointer(operator_tree_);
+  auto *op_ctx = optimization_context_.get();
+  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+
+  optimizer::LogicalCreateTriggerToPhysicalCreateTrigger rule;
+  EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
+  rule.Transform(optree_ptr, &transformed, op_ctx);
+
+  auto op = transformed[0]->GetOp();
+  EXPECT_EQ(op.GetType(), optimizer::OpType::CREATETRIGGER);
+  EXPECT_TRUE(op.IsPhysical());
+  EXPECT_EQ(op.GetName(), "CreateTrigger");
+  auto ct = op.As<optimizer::CreateTrigger>();
+  EXPECT_EQ(ct->GetTriggerName(), "check_update");
+  EXPECT_EQ(ct->GetTriggerType(), create_stmt->GetTriggerType());
+  EXPECT_EQ(ct->GetTriggerColumns().size(), create_stmt->GetTriggerColumns().size());
+  EXPECT_EQ(ct->GetTriggerColumns().at(0), col_a1_oid);
+  EXPECT_EQ(ct->GetNamespaceOid(), ns_oid);
+  EXPECT_EQ(ct->GetTableOid(), table_a_oid_);
+  EXPECT_EQ(ct->GetTriggerFuncName(), create_stmt->GetTriggerFuncNames());
+  EXPECT_EQ(ct->GetTriggerArgs(), create_stmt->GetTriggerArgs());
+  EXPECT_EQ(ct->GetTriggerWhen()->GetChildrenSize(), 2);
+  auto ctc1 = ct->GetTriggerWhen()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+  auto ctc2 = ct->GetTriggerWhen()->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
+  EXPECT_EQ(ctc1->GetTableOid(), table_a_oid_);
+  EXPECT_EQ(ctc2->GetTableOid(), table_a_oid_);
+  EXPECT_EQ(ctc1->GetColumnOid(), col_a1_oid);
+  EXPECT_EQ(ctc2->GetColumnOid(), col_a1_oid);
+  EXPECT_EQ(ctc1->GetDatabaseOid(), db_oid_);
+  EXPECT_EQ(ctc2->GetDatabaseOid(), db_oid_);
+
+  optimizer::PlanGenerator plan_generator{};
+  optimizer::PropertySet property_set{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
+  std::vector<optimizer::ExprMap> children_expr_map{};
+
+  auto plan_node =
+      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+  EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::CREATE_TRIGGER);
+  auto ctpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::CreateTriggerPlanNode>();
+  EXPECT_EQ(ctpn->GetTriggerName(), "check_update");
+  EXPECT_EQ(ctpn->GetTriggerType(), create_stmt->GetTriggerType());
+  EXPECT_EQ(ctpn->GetTriggerColumns().size(), create_stmt->GetTriggerColumns().size());
+  EXPECT_EQ(ctpn->GetTriggerColumns().at(0), col_a1_oid);
+  EXPECT_EQ(ctpn->GetNamespaceOid(), ns_oid);
+  EXPECT_EQ(ctpn->GetTableOid(), table_a_oid_);
+  EXPECT_EQ(ctpn->GetTriggerFuncName(), create_stmt->GetTriggerFuncNames());
+  EXPECT_EQ(ctpn->GetTriggerArgs(), create_stmt->GetTriggerArgs());
+  EXPECT_EQ(ctpn->GetTriggerWhen()->GetChildrenSize(), 2);
+  auto ctpnc1 = ct->GetTriggerWhen()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+  auto ctpnc2 = ct->GetTriggerWhen()->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
+  EXPECT_EQ(ctpnc1->GetTableOid(), table_a_oid_);
+  EXPECT_EQ(ctpnc2->GetTableOid(), table_a_oid_);
+  EXPECT_EQ(ctpnc1->GetColumnOid(), col_a1_oid);
+  EXPECT_EQ(ctpnc2->GetColumnOid(), col_a1_oid);
+  EXPECT_EQ(ctpnc1->GetDatabaseOid(), db_oid_);
+  EXPECT_EQ(ctpnc2->GetDatabaseOid(), db_oid_);
 }
 
 // NOLINTNEXTLINE
@@ -1447,9 +1616,8 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereExistTest) {
 
   EXPECT_EQ(ref, info);
 
-  // Test logical drop table
-  auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalDropNamespace>();
-  EXPECT_EQ(logical_create->GetNamespaceOID(), catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID);
+  auto logical_drop = operator_tree_->GetOp().As<optimizer::LogicalDropNamespace>();
+  EXPECT_EQ(logical_drop->GetNamespaceOID(), catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID);
 
   auto optree_ptr = common::ManagedPointer(operator_tree_);
   auto *op_ctx = optimization_context_.get();
@@ -1495,9 +1663,8 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereNotExistTest) {
 
   EXPECT_EQ(ref, info);
 
-  // Test logical drop table
-  auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalDropNamespace>();
-  EXPECT_EQ(logical_create->GetNamespaceOID(), catalog::INVALID_NAMESPACE_OID);
+  auto logical_drop = operator_tree_->GetOp().As<optimizer::LogicalDropNamespace>();
+  EXPECT_EQ(logical_drop->GetNamespaceOID(), catalog::INVALID_NAMESPACE_OID);
 
   auto optree_ptr = common::ManagedPointer(operator_tree_);
   auto *op_ctx = optimization_context_.get();
@@ -1527,6 +1694,100 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereNotExistTest) {
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_NAMESPACE);
   auto dnpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropNamespacePlanNode>();
   EXPECT_EQ(dnpn->GetNamespaceOid(), catalog::INVALID_NAMESPACE_OID);
+}
+
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, DISABLED_DropTriggerIfExistsWhereNotExistTest) {
+  std::string drop_sql = "DROP TRIGGER IF EXISTS foo;";
+  std::string ref = R"({"Op":"LogicalDropTrigger",})";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+
+  EXPECT_EQ(ref, info);
+
+  auto logical_drop = operator_tree_->GetOp().As<optimizer::LogicalDropTrigger>();
+  EXPECT_EQ(logical_drop->GetTriggerOid(), catalog::INVALID_TRIGGER_OID);
+
+  auto optree_ptr = common::ManagedPointer(operator_tree_);
+  auto *op_ctx = optimization_context_.get();
+  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+
+  optimizer::LogicalDropTriggerToPhysicalDropTrigger rule;
+  EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
+  rule.Transform(optree_ptr, &transformed, op_ctx);
+
+  auto op = transformed[0]->GetOp();
+  EXPECT_EQ(op.GetType(), optimizer::OpType::DROPVIEW);
+  EXPECT_TRUE(op.IsPhysical());
+  EXPECT_EQ(op.GetName(), "DropTrigger");
+  auto dt = op.As<optimizer::DropTrigger>();
+  EXPECT_EQ(dt->GetTriggerOid(), catalog::INVALID_TRIGGER_OID);
+
+  optimizer::PlanGenerator plan_generator{};
+  optimizer::PropertySet property_set{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
+  std::vector<optimizer::ExprMap> children_expr_map{};
+
+  auto plan_node =
+      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+  EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_VIEW);
+  auto dtpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropTriggerPlanNode>();
+  EXPECT_EQ(dtpn->GetTriggerOid(), catalog::INVALID_TRIGGER_OID);
+}
+
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, DISABLED_DropViewIfExistsWhereNotExistTest) {
+  std::string drop_sql = "DROP VIEW IF EXISTS foo;";
+  std::string ref = R"({"Op":"LogicalDropView",})";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+
+  EXPECT_EQ(ref, info);
+
+  auto logical_drop = operator_tree_->GetOp().As<optimizer::LogicalDropView>();
+  EXPECT_EQ(logical_drop->GetViewOid(), catalog::INVALID_VIEW_OID);
+
+  auto optree_ptr = common::ManagedPointer(operator_tree_);
+  auto *op_ctx = optimization_context_.get();
+  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+
+  optimizer::LogicalDropViewToPhysicalDropView rule;
+  EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
+  rule.Transform(optree_ptr, &transformed, op_ctx);
+
+  auto op = transformed[0]->GetOp();
+  EXPECT_EQ(op.GetType(), optimizer::OpType::DROPVIEW);
+  EXPECT_TRUE(op.IsPhysical());
+  EXPECT_EQ(op.GetName(), "DropView");
+  auto dv = op.As<optimizer::DropView>();
+  EXPECT_EQ(dv->GetViewOid(), catalog::INVALID_VIEW_OID);
+
+  optimizer::PlanGenerator plan_generator{};
+  optimizer::PropertySet property_set{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
+  std::vector<optimizer::ExprMap> children_expr_map{};
+
+  auto plan_node =
+      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+  EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_VIEW);
+  auto dvpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropViewPlanNode>();
+  EXPECT_EQ(dvpn->GetViewOid(), catalog::INVALID_VIEW_OID);
 }
 
 }  // namespace terrier
