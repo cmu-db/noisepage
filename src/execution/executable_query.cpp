@@ -10,6 +10,7 @@ ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractP
   auto root = compiler.Compile();
   if (codegen.Reporter()->HasErrors()) {
     EXECUTION_LOG_ERROR("Type-checking error! \n {}", codegen.Reporter()->SerializeErrors());
+    return;
   }
 
   EXECUTION_LOG_INFO("Converted: \n {}", execution::ast::AstDump::Dump(root));
@@ -23,6 +24,7 @@ ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractP
 }
 
 void ExecutableQuery::Run(const common::ManagedPointer<exec::ExecutionContext> exec_ctx, const vm::ExecutionMode mode) {
+  TERRIER_ASSERT(tpl_module_ != nullptr, "Trying to run a module that failed to compile.");
   // Run the main function
   std::function<int64_t(exec::ExecutionContext *)> main;
   if (!tpl_module_->GetFunction("main", mode, &main)) {

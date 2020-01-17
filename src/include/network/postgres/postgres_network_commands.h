@@ -14,7 +14,8 @@
 namespace terrier::network {
 
 /**
- * Interface for the execution of the standard PostgresNetworkCommands for the postgres protocol
+ * Interface for the execution of the standard PostgresNetworkCommands for the postgres protocol. Any state/logic that
+ * is Postgres command-specific should live at this layer.
  */
 class PostgresNetworkCommand : public NetworkCommand {
  public:

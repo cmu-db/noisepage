@@ -20,7 +20,8 @@ class CatalogAccessor;
 namespace terrier::network {
 
 /**
- * A ConnectionContext stores the state of a connection.
+ * A ConnectionContext stores the state of a connection. There should be as little as possible that is protocol-specific
+ * in this layer, and if you find yourself wanting to put more the design should be discussed.
  */
 class ConnectionContext {
  public:
@@ -40,20 +41,50 @@ class ConnectionContext {
     callback_arg_ = nullptr;
   }
 
-  catalog::db_oid_t GetDatabaseOid() const { return db_oid_; }
-  catalog::namespace_oid_t GetTempNamespaceOid() const { return temp_namespace_oid_; }
-  void SetDatabaseOid(const catalog::db_oid_t db_oid) { db_oid_ = db_oid; }
-  void SetTempNamespaceOid(const catalog::namespace_oid_t ns_oid) { temp_namespace_oid_ = ns_oid; }
+  /**
+   * @return unique identifier (among currently open connections, not over the lifetime of the system) for this
+   * connection
+   */
   connection_id_t GetConnectionID() const { return connection_id_; }
 
   /**
-   * To be used by the ConnectionHandle during its constructor.
+   * @return database name. It should be in cmdline_args_ as well, this just makes it quicker to find
+   */
+  const std::string &GetDatabaseName() const { return db_name_; }
+
+  /**
+   * @return database OID connected to, or INVALID_DATABASE_OID in the event of failure
+   */
+  catalog::db_oid_t GetDatabaseOid() const { return db_oid_; }
+
+  /**
+   * @return temporary namespace OID that was generated at connection, or INVALID_NAMESPACE_OID in the event of failure
+   */
+  catalog::namespace_oid_t GetTempNamespaceOid() const { return temp_namespace_oid_; }
+
+  /**
+   * @param db_oid database OID that the connection is using
+   * @warning only to be used by the protocol interpreter during startup
+   */
+  void SetDatabaseOid(const catalog::db_oid_t db_oid) { db_oid_ = db_oid; }
+
+  /**
+   * @param ns_oid temporary namespace OID that was generated at connection
+   * @warning only to be used by the protocol interpreter during startup
+   */
+  void SetTempNamespaceOid(const catalog::namespace_oid_t ns_oid) { temp_namespace_oid_ = ns_oid; }
+
+  /**
+   * @param db_name database name. It should be in cmdline_args_ as well, this just makes it quicker to find
+   * @warning only to be used by the protocol interpreter during startup
+   */
+  void SetDatabaseName(std::string &&db_name) { db_name_ = std::move(db_name); }
+
+  /**
    * @param connection_id
+   * @warning only to be used by the ConnectionHandle during its constructor.
    */
   void SetConnectionID(const connection_id_t connection_id) { connection_id_ = connection_id; }
-
-  const std::string &GetDatabaseName() const { return db_name_; }
-  void SetDatabaseName(std::string &&db_name) { db_name_ = std::move(db_name); }
 
   /**
    * @return const reference to cmdline_args_ for reading values back out
@@ -65,6 +96,12 @@ class ConnectionContext {
    */
   std::unordered_map<std::string, std::string> &CommandLineArgs() { return cmdline_args_; }
 
+  /**
+   * Helper method to determine a connection's transaction state without needing to know the type or API of
+   * TransactionContext
+   * @return transaction state
+   * @see NetworkTransactionStateType definition for state definitions
+   */
   NetworkTransactionStateType TransactionState() const {
     if (txn_ != nullptr) {
       if (txn_->MustAbort()) {
@@ -75,18 +112,31 @@ class ConnectionContext {
     return NetworkTransactionStateType::IDLE;
   }
 
+  /**
+   * @return managed pointer to the connection's current txn (may be nullptr if none running)
+   */
   common::ManagedPointer<transaction::TransactionContext> Transaction() const { return txn_; }
 
+  /**
+   * @param txn new value
+   * @warning this should only be used by TrafficCop::BeginTransaction and TrafficCop::EndTransaction
+   * @warning it should match the txn used for this ConnectionContext's current CatalogAccessor
+   */
   void SetTransaction(const common::ManagedPointer<transaction::TransactionContext> txn) { txn_ = txn; }
 
   common::ManagedPointer<catalog::CatalogAccessor> Accessor() const {
     TERRIER_ASSERT(accessor_ != nullptr, "Requesting CatalogAccessor that doesn't exist yet.");
 
     // TODO(Matt): I'd like an assert here that the accessor's txn matches the connection context's txn, but the
-    // accessor doesn't expose a getter
+    // accessor doesn't expose a getter.
     return common::ManagedPointer(accessor_);
   }
 
+  /**
+   * @param accessor new value
+   * @warning this should only be used by TrafficCop::BeginTransaction and TrafficCop::EndTransaction
+   * @warning it should match the txn used for this ConnectionContext's current txn
+   */
   void SetAccessor(std::unique_ptr<catalog::CatalogAccessor> accessor) { accessor_ = std::move(accessor); }
 
   void SetCallback(const network::NetworkCallback callback, void *const callback_arg) {
@@ -94,7 +144,16 @@ class ConnectionContext {
     callback_arg_ = callback_arg;
   }
 
+  /**
+   * @return handle to the ConnectionHandle callback to issue a libevent wakeup in the event of WAIT_ON_TERRIER
+   * state. Currently not used, but may in the future for asynchronous execution.
+   */
   network::NetworkCallback Callback() const { return callback_; }
+
+  /**
+   * @return args to the ConnectionHandle callback to issue a libevent wakeup in the event of WAIT_ON_TERRIER
+   * state. Currently not used, but may in the future for asynchronous execution.
+   */
   void *CallbackArg() const { return callback_arg_; }
 
  private:
@@ -125,10 +184,23 @@ class ConnectionContext {
    */
   catalog::namespace_oid_t temp_namespace_oid_ = catalog::INVALID_NAMESPACE_OID;
 
+  /**
+   * In theory the ConnectionContext owns this too, but for legacy reasons (and safety about who can delete them) we
+   * don't use unique_ptrs for txns. If that ever changes, then the ConnectionContext should probably own it and
+   * transfer ownership to the TransactionManager (via the TrafficCop) at commit or abort.
+   */
   common::ManagedPointer<transaction::TransactionContext> txn_ = nullptr;
 
+  /**
+   * The ConnectionContext owns this, and I don't expect that should ever change. It's life cycle dominates objects
+   * later in the pipeline so this is a reasonable owner and will just hand out ManagedPointers for other components.
+   */
   std::unique_ptr<catalog::CatalogAccessor> accessor_ = nullptr;
 
+  /**
+   * ConnectionHandle callback stuff to issue a libevent wakeup in the event of WAIT_ON_TERRIER state. Currently
+   * not used, but may in the future for asynchronous execution.
+   */
   network::NetworkCallback callback_;
   void *callback_arg_;
 };
