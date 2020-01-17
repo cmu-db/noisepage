@@ -105,5 +105,5 @@ add_custom_target(check-tpl
         -b ${CMAKE_BINARY_DIR}/bin/tpl
         -f ${PROJECT_SOURCE_DIR}/sample_tpl/tpl_tests.txt
         -t ${PROJECT_SOURCE_DIR}/sample_tpl
-        -d ${CMAKE_BINARY_DIR}
+        -d ${CMAKE_BINARY_DIR}/${BUILD_SUBDIR_NAME}
         )
