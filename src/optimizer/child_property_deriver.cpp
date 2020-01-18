@@ -191,4 +191,69 @@ void ChildPropertyDeriver::DeriveForJoin() {
   }
 }
 
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const CreateDatabase *create_database) {
+  // Operator does not provide any properties
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
+}
+
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const CreateFunction *create_function) {
+  // Operator does not provide any properties
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
+}
+
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const CreateIndex *create_index) {
+  // Operator does not provide any properties
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
+}
+
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const CreateTable *create_table) {
+  // Operator does not provide any properties
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
+}
+
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const CreateNamespace *create_namespace) {
+  // Operator does not provide any properties
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
+}
+
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const CreateTrigger *create_trigger) {
+  // Operator does not provide any properties
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
+}
+
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const CreateView *create_view) {
+  // Operator does not provide any properties
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
+}
+
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const DropDatabase *drop_database) {
+  // Operator does not provide any properties
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
+}
+
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const DropTable *drop_table) {
+  // Operator does not provide any properties
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
+}
+
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const DropIndex *drop_index) {
+  // Operator does not provide any properties
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
+}
+
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const DropNamespace *drop_namespace) {
+  // Operator does not provide any properties
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
+}
+
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const DropTrigger *drop_trigger) {
+  // Operator does not provide any properties
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
+}
+
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const DropView *drop_view) {
+  // Operator does not provide any properties
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
+}
+
 }  // namespace terrier::optimizer

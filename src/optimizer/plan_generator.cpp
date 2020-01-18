@@ -13,10 +13,25 @@
 #include "optimizer/properties.h"
 #include "optimizer/property_set.h"
 #include "optimizer/util.h"
+#include "parser/expression/abstract_expression.h"
+#include "parser/expression/constant_value_expression.h"
 #include "parser/expression_util.h"
 #include "planner/plannodes/aggregate_plan_node.h"
+#include "planner/plannodes/create_database_plan_node.h"
+#include "planner/plannodes/create_function_plan_node.h"
+#include "planner/plannodes/create_index_plan_node.h"
+#include "planner/plannodes/create_namespace_plan_node.h"
+#include "planner/plannodes/create_table_plan_node.h"
+#include "planner/plannodes/create_trigger_plan_node.h"
+#include "planner/plannodes/create_view_plan_node.h"
 #include "planner/plannodes/csv_scan_plan_node.h"
 #include "planner/plannodes/delete_plan_node.h"
+#include "planner/plannodes/drop_database_plan_node.h"
+#include "planner/plannodes/drop_index_plan_node.h"
+#include "planner/plannodes/drop_namespace_plan_node.h"
+#include "planner/plannodes/drop_table_plan_node.h"
+#include "planner/plannodes/drop_trigger_plan_node.h"
+#include "planner/plannodes/drop_view_plan_node.h"
 #include "planner/plannodes/export_external_file_plan_node.h"
 #include "planner/plannodes/hash_join_plan_node.h"
 #include "planner/plannodes/index_scan_plan_node.h"
@@ -29,6 +44,7 @@
 #include "planner/plannodes/update_plan_node.h"
 #include "settings/settings_manager.h"
 #include "transaction/transaction_context.h"
+#include "type/transient_value_factory.h"
 
 namespace terrier::optimizer {
 
@@ -700,6 +716,161 @@ void PlanGenerator::Visit(const Update *op) {
                      .SetTableOid(op->GetTableOid())
                      .SetUpdatePrimaryKey(false)
                      .AddChild(std::move(children_plans_[0]))
+                     .Build();
+}
+
+// Create/Drop
+
+void PlanGenerator::Visit(const CreateDatabase *create_database) {
+  output_plan_ = planner::CreateDatabasePlanNode::Builder().SetDatabaseName(create_database->GetDatabaseName()).Build();
+}
+
+void PlanGenerator::Visit(const CreateFunction *create_function) {
+  output_plan_ = planner::CreateFunctionPlanNode::Builder()
+                     .SetDatabaseOid(create_function->GetDatabaseOid())
+                     .SetNamespaceOid(create_function->GetNamespaceOid())
+                     .SetFunctionName(create_function->GetFunctionName())
+                     .SetLanguage(create_function->GetUDFLanguage())
+                     .SetBody(create_function->GetFunctionBody())
+                     .SetFunctionParamNames(create_function->GetFunctionParameterNames())
+                     .SetFunctionParamTypes(create_function->GetFunctionParameterTypes())
+                     .SetReturnType(create_function->GetReturnType())
+                     .SetIsReplace(create_function->IsReplace())
+                     .SetParamCount(create_function->GetParamCount())
+                     .Build();
+}
+
+void PlanGenerator::Visit(const CreateIndex *create_index) {
+  // Copy the IndexSchema out
+  auto schema = create_index->GetSchema();
+  std::vector<catalog::IndexSchema::Column> cols;
+  for (const auto &col : schema->GetColumns()) {
+    cols.emplace_back(col);
+  }
+  auto idx_schema = std::make_unique<catalog::IndexSchema>(std::move(cols), schema->Type(), schema->Unique(),
+                                                           schema->Primary(), schema->Exclusion(), schema->Immediate());
+
+  output_plan_ = planner::CreateIndexPlanNode::Builder()
+                     .SetNamespaceOid(create_index->GetNamespaceOid())
+                     .SetTableOid(create_index->GetTableOid())
+                     .SetIndexName(create_index->GetIndexName())
+                     .SetSchema(std::move(idx_schema))
+                     .Build();
+}
+
+void PlanGenerator::Visit(const CreateTable *create_table) {
+  auto builder = planner::CreateTablePlanNode::Builder();
+  builder.SetNamespaceOid(create_table->GetNamespaceOid());
+  builder.SetTableName(create_table->GetTableName());
+  builder.SetBlockStore(accessor_->GetBlockStore());
+
+  std::vector<std::string> pk_cols;
+  std::string pk_cname = "pk";
+  std::vector<catalog::Schema::Column> cols;
+  for (auto col : create_table->GetColumns()) {
+    if (col->IsPrimaryKey()) {
+      pk_cols.push_back(col->GetColumnName());
+      pk_cname += "_" + col->GetColumnName();
+    }
+
+    // Unique Constraint
+    if (col->IsUnique()) {
+      builder.ProcessUniqueConstraint(col);
+    }
+
+    // Check Constraint
+    if (col->GetCheckExpression()) {
+      builder.ProcessCheckConstraint(col);
+    }
+
+    auto val_type = col->GetValueType();
+
+    parser::ConstantValueExpression null_val{type::TransientValueFactory::GetNull(val_type)};
+    auto &val = col->GetDefaultExpression() != nullptr ? *col->GetDefaultExpression() : null_val;
+
+    if (val_type == type::TypeId::VARCHAR || val_type == type::TypeId::VARBINARY) {
+      cols.emplace_back(col->GetColumnName(), val_type, col->GetVarlenSize(), col->IsNullable(), val);
+    } else {
+      cols.emplace_back(col->GetColumnName(), val_type, col->IsNullable(), val);
+    }
+  }
+
+  // Process FK
+  for (auto fk : create_table->GetForeignKeys()) {
+    builder.ProcessForeignKeyConstraint(create_table->GetTableName(), fk);
+  }
+
+  // Set PK info
+  if (!pk_cols.empty()) {
+    builder.SetHasPrimaryKey(true);
+    builder.SetPrimaryKey(
+        planner::PrimaryKeyInfo{.primary_key_cols_ = std::move(pk_cols), .constraint_name_ = std::move(pk_cname)});
+  }
+
+  auto schema = std::make_unique<catalog::Schema>(std::move(cols));
+  builder.SetTableSchema(std::move(schema));
+  output_plan_ = builder.Build();
+}
+
+void PlanGenerator::Visit(const CreateNamespace *create_namespace) {
+  output_plan_ =
+      planner::CreateNamespacePlanNode::Builder().SetNamespaceName(create_namespace->GetNamespaceName()).Build();
+}
+
+void PlanGenerator::Visit(const CreateTrigger *create_trigger) {
+  output_plan_ = planner::CreateTriggerPlanNode::Builder()
+                     .SetDatabaseOid(create_trigger->GetDatabaseOid())
+                     .SetNamespaceOid(create_trigger->GetNamespaceOid())
+                     .SetTableOid(create_trigger->GetTableOid())
+                     .SetTriggerName(create_trigger->GetTriggerName())
+                     .SetTriggerFuncnames(create_trigger->GetTriggerFuncName())
+                     .SetTriggerArgs(create_trigger->GetTriggerArgs())
+                     .SetTriggerColumns(create_trigger->GetTriggerColumns())
+                     .SetTriggerWhen(create_trigger->GetTriggerWhen())
+                     .SetTriggerType(create_trigger->GetTriggerType())
+                     .Build();
+}
+
+void PlanGenerator::Visit(const CreateView *create_view) {
+  output_plan_ = planner::CreateViewPlanNode::Builder()
+                     .SetDatabaseOid(create_view->GetDatabaseOid())
+                     .SetNamespaceOid(create_view->GetNamespaceOid())
+                     .SetViewName(create_view->GetViewName())
+                     .SetViewQuery(create_view->GetViewQuery()->Copy())
+                     .Build();
+}
+
+void PlanGenerator::Visit(const DropDatabase *drop_database) {
+  output_plan_ = planner::DropDatabasePlanNode::Builder().SetDatabaseOid(drop_database->GetDatabaseOID()).Build();
+}
+
+void PlanGenerator::Visit(const DropTable *drop_table) {
+  output_plan_ = planner::DropTablePlanNode::Builder().SetTableOid(drop_table->GetTableOID()).Build();
+}
+
+void PlanGenerator::Visit(const DropIndex *drop_index) {
+  output_plan_ = planner::DropIndexPlanNode::Builder().SetIndexOid(drop_index->GetIndexOID()).Build();
+}
+
+void PlanGenerator::Visit(const DropNamespace *drop_namespace) {
+  output_plan_ = planner::DropNamespacePlanNode::Builder().SetNamespaceOid(drop_namespace->GetNamespaceOID()).Build();
+}
+
+void PlanGenerator::Visit(const DropTrigger *drop_trigger) {
+  output_plan_ = planner::DropTriggerPlanNode::Builder()
+                     .SetDatabaseOid(drop_trigger->GetDatabaseOid())
+                     .SetNamespaceOid(drop_trigger->GetNamespaceOid())
+                     .SetTriggerOid(drop_trigger->GetTriggerOid())
+                     .SetIfExist(drop_trigger->IsIfExists())
+                     .Build();
+}
+
+void PlanGenerator::Visit(const DropView *drop_view) {
+  output_plan_ = planner::DropViewPlanNode::Builder()
+                     .SetDatabaseOid(drop_view->GetDatabaseOid())
+                     .SetNamespaceOid(drop_view->GetNamespaceOid())
+                     .SetViewOid(drop_view->GetViewOid())
+                     .SetIfExist(drop_view->IsIfExists())
                      .Build();
 }
 
