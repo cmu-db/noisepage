@@ -171,7 +171,8 @@ TEST_F(CompilerTest, SimpleSeqScanWithProjectionTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), proj->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(proj.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(proj), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   multi_checker.CheckCorrectness();
 }
 
