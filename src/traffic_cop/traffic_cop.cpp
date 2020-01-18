@@ -274,18 +274,12 @@ void TrafficCop::ExecuteStatement(const common::ManagedPointer<network::Connecti
     if (query_type <= network::QueryType::QUERY_DELETE) {
       // DML query to put through codegen
       CodegenAndRunPhysicalPlan(connection_ctx, out, common::ManagedPointer(physical_plan), query_type);
-      return;
-    }
-    // DDL statement
-    if (query_type <= network::QueryType::QUERY_CREATE_VIEW) {
+    } else if (query_type <= network::QueryType::QUERY_CREATE_VIEW) {
       ExecuteCreateStatement(connection_ctx, out, common::ManagedPointer(physical_plan), query_type,
                              single_statement_txn);
-      return;
-    }
-    if (query_type <= network::QueryType::QUERY_DROP_VIEW) {
+    } else if (query_type <= network::QueryType::QUERY_DROP_VIEW) {
       ExecuteDropStatement(connection_ctx, out, common::ManagedPointer(physical_plan), query_type,
                            single_statement_txn);
-      return;
     }
   }
 
