@@ -1117,7 +1117,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateTransform(ParseResult *parse
   RangeVar *relation = root->relation_;
   auto table_name = relation->relname_ != nullptr ? relation->relname_ : "";
   auto schema_name = relation->schemaname_ != nullptr ? relation->schemaname_ : "";
-  auto database_name = relation->schemaname_ != nullptr ? relation->catalogname_ : "";
+  auto database_name = relation->catalogname_ != nullptr ? relation->catalogname_ : "";
   std::unique_ptr<TableInfo> table_info = std::make_unique<TableInfo>(table_name, schema_name, database_name);
 
   std::unordered_set<std::string> primary_keys;
