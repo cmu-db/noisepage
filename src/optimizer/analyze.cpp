@@ -78,6 +78,7 @@ terrier::optimizer::ColumnStats CalculateColumnStats(catalog::db_oid_t database_
                                             static_cast<double>(num_null_values) / static_cast<double>(num_rows),
                                             most_common_values, most_common_frequencies, histogram_bounds, true);
 
+  delete[] buffer;
   return col_stats;
 }
 
