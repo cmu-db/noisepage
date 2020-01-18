@@ -311,6 +311,9 @@ void TrafficCop::ExecuteStatement(const common::ManagedPointer<network::Connecti
         auto exec_query =
             execution::ExecutableQuery(common::ManagedPointer(physical_plan), common::ManagedPointer(exec_ctx));
 
+        if (statement_type == parser::StatementType::SELECT)
+          out->WriteRowDescription(physical_plan->GetOutputSchema()->GetColumns());
+
         exec_query.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
 
         // TODO(Matt): I now see that we should switch the parser::StatementType to a network::QueryType far earlier to

@@ -88,10 +88,6 @@ void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple
 }
 
 void OutputWriter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {
-  // Only write the row description once for a single query, not for each batch produced
-  if (num_rows_ == 0) {
-    out_->WriteRowDescription(schema_->GetColumns());
-  }
   // Write out the rows for this batch
   for (uint32_t row = 0; row < num_tuples; row++) {
     const byte *const tuple = tuples + row * tuple_size;

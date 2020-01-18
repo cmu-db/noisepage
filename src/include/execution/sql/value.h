@@ -231,7 +231,7 @@ struct StringVal : public Val {
   std::string_view StringView() const {
     TERRIER_ASSERT(!is_null_,
                    "You should be doing a NULL check before attempting to generate a std::string_view of a StringVal.");
-    return std::string_view(ptr_, len_);
+    return std::string_view(Content(), len_);
   }
 
   /**

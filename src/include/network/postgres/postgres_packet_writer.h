@@ -383,7 +383,7 @@ class PostgresPacketWriter : public PacketWriter {
           // continue
           auto *string_val = reinterpret_cast<const execution::sql::StringVal *const>(val);
           AppendValue<int32_t>(static_cast<int32_t>(string_val->len_))
-              .AppendStringView(string_val->StringView(), false);
+              .AppendRaw(string_val->Content(), string_val->len_);
           continue;
         }
         default:
