@@ -513,6 +513,12 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
+  OP(TableVectorIteratorReset) : {
+    auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
+    OpTableVectorIteratorReset(iter);
+    DISPATCH_NEXT();
+  }
+
   OP(TableVectorIteratorFree) : {
     auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
     OpTableVectorIteratorFree(iter);
@@ -591,6 +597,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   OP(PCIResetFiltered) : {
     auto *iter = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID());
     OpPCIResetFiltered(iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(PCIGetSlot) : {
+    auto *slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID());
+    OpPCIGetSlot(slot, iter);
     DISPATCH_NEXT();
   }
 
@@ -1582,6 +1595,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
+  OP(StorageInterfaceIndexInsertUnique) : {
+    auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
+    auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
+    OpStorageInterfaceIndexInsertUnique(result, storage_interface);
+    DISPATCH_NEXT();
+  }
+
   OP(StorageInterfaceIndexDelete) : {
     auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
     auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
@@ -1594,6 +1614,28 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     OpStorageInterfaceFree(storage_interface);
     DISPATCH_NEXT();
   }
+
+  // ----------------------------
+  // Parameter calls
+  // -----------------------------
+#define GEN_PARAM_GET(Name, SqlType)                                            \
+  OP(GetParam##Name) : {                                                        \
+    auto *ret = frame->LocalAt<sql::SqlType *>(READ_LOCAL_ID());                \
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID()); \
+    auto param_idx = frame->LocalAt<uint32_t>(READ_LOCAL_ID());                 \
+    OpGetParam##Name(ret, exec_ctx, param_idx);                                 \
+    DISPATCH_NEXT();                                                            \
+  }
+
+  GEN_PARAM_GET(TinyInt, Integer)
+  GEN_PARAM_GET(SmallInt, Integer)
+  GEN_PARAM_GET(Int, Integer)
+  GEN_PARAM_GET(BigInt, Integer)
+  GEN_PARAM_GET(Real, Real)
+  GEN_PARAM_GET(Double, Real)
+  GEN_PARAM_GET(Date, Date)
+  GEN_PARAM_GET(String, StringVal)
+#undef GEN_PARAM_GET
 
   // -------------------------------------------------------
   // Real-value functions

@@ -1,3 +1,5 @@
+#include "optimizer/query_to_operator_transformer.h"
+
 #include <algorithm>
 #include <cmath>
 #include <memory>
@@ -13,7 +15,6 @@
 #include "loggers/optimizer_logger.h"
 #include "optimizer/logical_operators.h"
 #include "optimizer/operator_expression.h"
-#include "optimizer/query_to_operator_transformer.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/operator_expression.h"
@@ -25,8 +26,9 @@
 
 namespace terrier::optimizer {
 
-QueryToOperatorTransformer::QueryToOperatorTransformer(std::unique_ptr<catalog::CatalogAccessor> catalog_accessor)
-    : accessor_(std::move(catalog_accessor)) {
+QueryToOperatorTransformer::QueryToOperatorTransformer(
+    const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor)
+    : accessor_(catalog_accessor) {
   output_expr_ = nullptr;
 }
 

@@ -1,3 +1,4 @@
+#include <future>  // NOLINT
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -45,6 +46,11 @@ class WriteAheadLoggingTests : public TerrierTest {
                             // running, so we'll just restart it
     // Delete log file
     unlink(LOG_FILE_NAME);
+  }
+
+  static void TestCommitCallback(void *const callback_arg) {
+    auto *const promise = reinterpret_cast<std::promise<bool> *const>(callback_arg);
+    promise->set_value(true);
   }
 
   /**
@@ -303,7 +309,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
       first_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 1;
-  auto first_tuple_slot = sql_table->Insert(first_txn, insert_redo);
+  auto first_tuple_slot = sql_table->Insert(common::ManagedPointer(first_txn), insert_redo);
   EXPECT_TRUE(!first_txn->Aborted());
 
   // Initialize the second txn, this one will write until it has flushed a buffer to the log manager
@@ -314,7 +320,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
         second_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer);
     insert_tuple = insert_redo->Delta();
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = insert_value++;
-    sql_table->Insert(second_txn, insert_redo);
+    sql_table->Insert(common::ManagedPointer(second_txn), insert_redo);
   }
   EXPECT_TRUE(GetRedoBuffer(second_txn).HasFlushed());
   EXPECT_TRUE(!second_txn->Aborted());
@@ -326,7 +332,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   auto update_tuple = update_redo->Delta();
   *reinterpret_cast<int32_t *>(update_tuple->AccessForceNotNull(0)) = 0;
   update_redo->SetTupleSlot(first_tuple_slot);
-  EXPECT_FALSE(sql_table->Update(second_txn, update_redo));
+  EXPECT_FALSE(sql_table->Update(common::ManagedPointer(second_txn), update_redo));
 
   // Commit first txn and abort the second
   txn_manager_->Commit(first_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -375,7 +381,7 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
       first_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 1;
-  auto first_tuple_slot = sql_table->Insert(first_txn, insert_redo);
+  auto first_tuple_slot = sql_table->Insert(common::ManagedPointer(first_txn), insert_redo);
   EXPECT_TRUE(!first_txn->Aborted());
 
   // Initialize the second txn, this txn will try to update the tuple the first txn wrote, and thus will abort. We
@@ -386,7 +392,7 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   auto update_tuple = update_redo->Delta();
   *reinterpret_cast<int32_t *>(update_tuple->AccessForceNotNull(0)) = 0;
   update_redo->SetTupleSlot(first_tuple_slot);
-  EXPECT_FALSE(sql_table->Update(second_txn, update_redo));
+  EXPECT_FALSE(sql_table->Update(common::ManagedPointer(second_txn), update_redo));
   EXPECT_FALSE(GetRedoBuffer(second_txn).HasFlushed());
 
   // Commit first txn and abort the second
@@ -408,6 +414,38 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
     delete[] reinterpret_cast<byte *>(log_record);
   }
   EXPECT_FALSE(found_abort_record);
+
+  // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
+  // DeferredAction
+  db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table; });
+}
+
+// Verify that we invoke the callback even for read-only txns. This test checks a bug that was found when sending
+// BEGIN; COMMIT; across PSQL and noticing that COMMIT blocked forever with a real callback.
+TEST_F(WriteAheadLoggingTests, ReadOnlyCallbackTest) {
+  // Create SQLTable
+  auto col = catalog::Schema::Column(
+      "attribute", type::TypeId::INTEGER, false,
+      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(0));
+  auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
+  auto *const sql_table = new storage::SqlTable(store_.Get(), table_schema);
+
+  // Initialize first transaction, this txn will write a single tuple
+  auto *const txn = txn_manager_->BeginTransaction();
+
+  // Call commit with a real callback that modifies a future
+  std::promise<bool> promise;
+  auto future = promise.get_future();
+  EXPECT_TRUE(future.valid());
+  txn_manager_->Commit(txn, TestCommitCallback, &promise);
+
+  // Shut down log manager
+  log_manager_->PersistAndStop();
+
+  // We probably won't end up waiting at all since the PersistAndStop likely flushed it already, but we just want to
+  // verify that it was invoked
+  EXPECT_TRUE(future.get());
 
   // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
   // DeferredAction

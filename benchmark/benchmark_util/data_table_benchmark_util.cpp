@@ -36,7 +36,7 @@ void RandomDataTableTransaction::RandomUpdate(Random *generator) {
 
   auto *const record = txn_->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, initializer);
   record->SetTupleSlot(updated);
-  auto result = test_object_->table_.Update(txn_, updated, *(record->Delta()));
+  auto result = test_object_->table_.Update(common::ManagedPointer(txn_), updated, *(record->Delta()));
   aborted_ = !result;
 }
 
@@ -45,7 +45,7 @@ void RandomDataTableTransaction::RandomInsert(Random *generator) {
   if (aborted_) return;
   auto *const redo =
       txn_->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, test_object_->row_initializer_);
-  const storage::TupleSlot inserted = test_object_->table_.Insert(txn_, *(redo->Delta()));
+  const storage::TupleSlot inserted = test_object_->table_.Insert(common::ManagedPointer(txn_), *(redo->Delta()));
   redo->SetTupleSlot(inserted);
 }
 
@@ -56,7 +56,7 @@ void RandomDataTableTransaction::RandomSelect(Random *generator) {
       *(RandomTestUtil::UniformRandomElement(test_object_->inserted_tuples_, generator));
   auto *select_buffer = buffer_;
   storage::ProjectedRow *select = test_object_->row_initializer_.InitializeRow(select_buffer);
-  test_object_->table_.Select(txn_, selected, select);
+  test_object_->table_.Select(common::ManagedPointer(txn_), selected, select);
 }
 
 void RandomDataTableTransaction::Finish() {
@@ -156,7 +156,7 @@ void LargeDataTableBenchmarkObject::PopulateInitialTable(uint32_t num_tuples, Ra
   for (uint32_t i = 0; i < num_tuples; i++) {
     auto *const redo =
         initial_txn_->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, row_initializer_);
-    const storage::TupleSlot inserted = table_.Insert(initial_txn_, *(redo->Delta()));
+    const storage::TupleSlot inserted = table_.Insert(common::ManagedPointer(initial_txn_), *(redo->Delta()));
     redo->SetTupleSlot(inserted);
     inserted_tuples_.emplace_back(inserted);
   }

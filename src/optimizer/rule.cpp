@@ -36,6 +36,20 @@ RuleSet::RuleSet() {
   AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalLimitToPhysicalLimit());
   AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalExportToPhysicalExport());
 
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalCreateDatabaseToPhysicalCreateDatabase());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalCreateFunctionToPhysicalCreateFunction());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalCreateIndexToPhysicalCreateIndex());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalCreateTableToPhysicalCreateTable());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalCreateNamespaceToPhysicalCreateNamespace());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalCreateTriggerToPhysicalCreateTrigger());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalCreateViewToPhysicalCreateView());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalDropDatabaseToPhysicalDropDatabase());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalDropTableToPhysicalDropTable());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalDropIndexToPhysicalDropIndex());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalDropNamespaceToPhysicalDropNamespace());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalDropTriggerToPhysicalDropTrigger());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalDropViewToPhysicalDropView());
+
   AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewritePushImplicitFilterThroughJoin());
   AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewritePushExplicitFilterThroughJoin());
   AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewritePushFilterThroughAggregation());

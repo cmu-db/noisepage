@@ -1,4 +1,5 @@
 #include "storage/write_ahead_log/disk_log_consumer_task.h"
+
 #include "common/scoped_timer.h"
 #include "common/thread_context.h"
 #include "metrics/metrics_store.h"
@@ -25,18 +26,26 @@ void DiskLogConsumerTask::WriteBuffersToLogFile() {
   while (!filled_buffer_queue_->Empty()) {
     // Dequeue filled buffers and flush them to disk, as well as storing commit callbacks
     filled_buffer_queue_->Dequeue(&logs);
-    current_data_written_ += logs.first->FlushBuffer();
+    if (logs.first != nullptr) {
+      // Need the nullptr check because read-only txns don't serialize any buffers, but generate callbacks to be invoked
+      current_data_written_ += logs.first->FlushBuffer();
+    }
     commit_callbacks_.insert(commit_callbacks_.end(), logs.second.begin(), logs.second.end());
     // Enqueue the flushed buffer to the empty buffer queue
-    empty_buffer_queue_->Enqueue(logs.first);
+    if (logs.first != nullptr) {
+      // nullptr check for the same reason as above
+      empty_buffer_queue_->Enqueue(logs.first);
+    }
   }
 }
 
 uint64_t DiskLogConsumerTask::PersistLogFile() {
-  TERRIER_ASSERT(!buffers_->empty(), "Buffers vector should not be empty until Shutdown");
-  // Force the buffers to be written to disk. Because all buffers log to the same file, it suffices to call persist on
-  // any buffer.
-  buffers_->front().Persist();
+  // buffers_ may be empty but we have callbacks to invoke due to read-only txns
+  if (!buffers_->empty()) {
+    // Force the buffers to be written to disk. Because all buffers log to the same file, it suffices to call persist on
+    // any buffer.
+    buffers_->front().Persist();
+  }
   const auto num_buffers = commit_callbacks_.size();
   // Execute the callbacks for the transactions that have been persisted
   for (auto &callback : commit_callbacks_) callback.first(callback.second);

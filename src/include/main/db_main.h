@@ -189,7 +189,7 @@ class DBMain {
       // Bootstrap the default database in the catalog.
       if (create_default_database) {
         auto *bootstrap_txn = txn_layer->GetTransactionManager()->BeginTransaction();
-        catalog_->CreateDatabase(bootstrap_txn, catalog::DEFAULT_DATABASE, true);
+        catalog_->CreateDatabase(common::ManagedPointer(bootstrap_txn), catalog::DEFAULT_DATABASE, true);
         txn_layer->GetTransactionManager()->Commit(bootstrap_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
 
@@ -289,7 +289,7 @@ class DBMain {
       std::unique_ptr<storage::LogManager> log_manager = DISABLED;
       if (use_logging_) {
         log_manager = std::make_unique<storage::LogManager>(
-            log_file_path_, num_log_manager_buffers_, std::chrono::milliseconds{log_serialization_interval_},
+            log_file_path_, num_log_manager_buffers_, std::chrono::microseconds{log_serialization_interval_},
             std::chrono::milliseconds{log_persist_interval_}, log_persist_threshold_,
             common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(thread_registry));
         log_manager->Start();

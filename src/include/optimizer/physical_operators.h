@@ -1328,20 +1328,13 @@ class CreateTable : public OperatorNode<CreateTable> {
   /**
    * @param namespace_oid OID of the namespace
    * @param table_name Name of the table to be created
-   * @param table_schema Schema of the table to be created
-   * @param block_store Block store for the new table
-   * @param has_primary_key If the table has a primary key
-   * @param primary_key Primary key information of the table
-   * @param foreign_keys List of foreign key reference in the table
-   * @param con_uniques Information of unique columns in the table
-   * @param con_checks Information of check constrations on columns in the table
+   * @param columns Vector of definitions of the columns in the new table
+   * @param foreign_keys Vector of definitions of foreign key columns in the new table
    * @return
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid, std::string table_name,
-                       std::unique_ptr<catalog::Schema> table_schema,
-                       common::ManagedPointer<storage::BlockStore> block_store, bool has_primary_key,
-                       planner::PrimaryKeyInfo primary_key, std::vector<planner::ForeignKeyInfo> &&foreign_keys,
-                       std::vector<planner::UniqueInfo> &&con_uniques, std::vector<planner::CheckInfo> &&con_checks);
+                       std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&columns,
+                       std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&foreign_keys);
 
   /**
    * Copy
@@ -1353,53 +1346,25 @@ class CreateTable : public OperatorNode<CreateTable> {
   common::hash_t Hash() const override;
 
   /**
-   * @return OID of the namespace to create table in
+   * @return OID of the namespace
    */
-  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
-
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
   /**
-   * @return name of the table
+   * @return the name of the table we want to create
    */
   const std::string &GetTableName() const { return table_name_; }
-
   /**
-   * @return block store to be used when constructing this table
+   * @return column definitions for the table
    */
-  common::ManagedPointer<storage::BlockStore> GetBlockStore() const { return block_store_; }
-
+  const std::vector<common::ManagedPointer<parser::ColumnDefinition>> &GetColumns() const { return columns_; }
   /**
-   * @return pointer to the schema
+   * @return foreign key references for the table
    */
-  common::ManagedPointer<catalog::Schema> GetSchema() const { return common::ManagedPointer(table_schema_); }
-
-  /**
-   * @return true if index/table has primary key
-   */
-  bool HasPrimaryKey() const { return has_primary_key_; }
-
-  /**
-   * @return primary key meta-data
-   */
-  const planner::PrimaryKeyInfo &GetPrimaryKey() const { return primary_key_; }
-
-  /**
-   * @return foreign keys meta-data
-   */
-  const std::vector<planner::ForeignKeyInfo> &GetForeignKeys() const { return foreign_keys_; }
-
-  /**
-   * @return unique constraints
-   */
-  const std::vector<planner::UniqueInfo> &GetUniqueConstraints() const { return con_uniques_; }
-
-  /**
-   * @return check constraints
-   */
-  const std::vector<planner::CheckInfo> &GetCheckConstraints() const { return con_checks_; }
+  const std::vector<common::ManagedPointer<parser::ColumnDefinition>> &GetForeignKeys() const { return foreign_keys_; }
 
  private:
   /**
-   * OID of the schema/namespace
+   * OID of the namespace
    */
   catalog::namespace_oid_t namespace_oid_;
 
@@ -1409,40 +1374,14 @@ class CreateTable : public OperatorNode<CreateTable> {
   std::string table_name_;
 
   /**
-   * Table Schema
+   * Vector of column definitions of the new table
    */
-  std::unique_ptr<catalog::Schema> table_schema_;
+  std::vector<common::ManagedPointer<parser::ColumnDefinition>> columns_;
 
   /**
-   * block store to be used when constructing this table
+   * Vector of foreign key references of the new table
    */
-  common::ManagedPointer<storage::BlockStore> block_store_;
-
-  /**
-   * ColumnDefinition for multi-column constraints (including foreign key)
-   * Whether the table/index has primary key
-   */
-  bool has_primary_key_ = false;
-
-  /**
-   * Primary key information
-   */
-  planner::PrimaryKeyInfo primary_key_;
-
-  /**
-   * Foreign keys information
-   */
-  std::vector<planner::ForeignKeyInfo> foreign_keys_;
-
-  /**
-   * Unique constraints
-   */
-  std::vector<planner::UniqueInfo> con_uniques_;
-
-  /**
-   * Check constraints
-   */
-  std::vector<planner::CheckInfo> con_checks_;
+  std::vector<common::ManagedPointer<parser::ColumnDefinition>> foreign_keys_;
 };
 
 /**
@@ -1584,7 +1523,7 @@ class CreateView : public OperatorNode<CreateView> {
   /**
    * @return view query
    */
-  common::ManagedPointer<parser::SelectStatement> GetViewQuery() { return common::ManagedPointer(view_query_); }
+  common::ManagedPointer<parser::SelectStatement> GetViewQuery() const { return common::ManagedPointer(view_query_); }
 
  private:
   /**

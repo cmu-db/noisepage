@@ -2,11 +2,13 @@
 
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "catalog/schema.h"
 #include "parser/expression/abstract_expression.h"
+#include "parser/expression/column_value_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/abstract_scan_plan_node.h"
 
@@ -105,7 +107,7 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
   /**
    * @return OIDs of columns to scan
    */
-  const std::vector<catalog::col_oid_t> &GetColumnIds() const { return column_oids_; }
+  const std::vector<catalog::col_oid_t> &GetColumnOids() const { return column_oids_; }
 
   /**
    * @return the OID for the table being scanned
