@@ -243,10 +243,7 @@ std::unique_ptr<parser::ParseResult> TrafficCop::ParseQuery(
 void TrafficCop::ExecuteStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                   const common::ManagedPointer<network::PostgresPacketWriter> out,
                                   const common::ManagedPointer<parser::ParseResult> parse_result,
-                                  const common::ManagedPointer<parser::SQLStatement> statement,
                                   const terrier::network::QueryType query_type) const {
-  TERRIER_ASSERT(TrafficCopUtil::QueryTypeForStatement(statement) == query_type,
-                 "Called ExecuteStatement with a type that doens't match the statement.");
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
   if (query_type <= network::QueryType::QUERY_ROLLBACK) {
     ExecuteTransactionStatement(connection_ctx, out, query_type);
@@ -261,7 +258,7 @@ void TrafficCop::ExecuteStatement(const common::ManagedPointer<network::Connecti
   }
 
   // Try to bind the parsed statement
-  // TODO(Matt): this is why IF EXISTS can be short-circuited if the binder is enhanced to return the proper state
+  // TODO(Matt): this is where IF EXISTS can be short-circuited if the binder is enhanced to return the proper state
   // TODO(Matt): I don't think the binder should need the database name
   if (!TrafficCopUtil::Bind(connection_ctx->Accessor(), connection_ctx->GetDatabaseName(), parse_result)) {
     out->WriteErrorResponse("ERROR:  binding failed");

@@ -94,13 +94,11 @@ class TrafficCop {
    * @param connection_ctx used to maintain state
    * @param out used to write out results if necessary
    * @param parse_result parser's valid ParseResult
-   * @param statement to be executed
    * @param query_type type of the query, can be re-derived but should already be known
    */
   void ExecuteStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                         common::ManagedPointer<network::PostgresPacketWriter> out,
                         common::ManagedPointer<parser::ParseResult> parse_result,
-                        common::ManagedPointer<parser::SQLStatement> statement,
                         terrier::network::QueryType query_type) const;
 
  private:
