@@ -99,7 +99,7 @@ class PostgresPacketWriter : public PacketWriter {
       if (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY) {
         AppendValue<int16_t>(-1);  // variable length
       } else {
-        AppendValue<int16_t>(execution::sql::ValUtil::GetSqlSize(col_type));  // data type size
+        AppendValue<int16_t>(type::TypeUtil::GetTypeSize(col_type));  // data type size
       }
       AppendValue<int32_t>(-1)  // type modifier, generally -1 (see pg_attribute.atttypmod)
           .AppendValue<int16_t>(static_cast<int16_t>(format_));  // format code for the field, 0 for text, 1 for binary
@@ -408,6 +408,7 @@ class PostgresPacketWriter : public PacketWriter {
           auto *string_val = reinterpret_cast<const execution::sql::StringVal *const>(val);
           AppendValue<int32_t>(static_cast<int32_t>(string_val->len_))
               .AppendRaw(string_val->Content(), string_val->len_);
+          curr_offset += execution::sql::ValUtil::GetSqlSize(col.GetType());
           continue;
         }
         default:
