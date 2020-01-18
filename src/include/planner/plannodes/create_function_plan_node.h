@@ -76,7 +76,7 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
      * @param function_body query string/function body of the UDF
      * @return builder object
      */
-    Builder &SetColumnNames(std::vector<std::string> &&function_body) {
+    Builder &SetBody(std::vector<std::string> &&function_body) {
       function_body_ = std::move(function_body);
       return *this;
     }

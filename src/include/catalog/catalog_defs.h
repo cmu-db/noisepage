@@ -31,7 +31,9 @@ constexpr index_oid_t INVALID_INDEX_OID = index_oid_t(NULL_OID);
 constexpr indexkeycol_oid_t INVALID_INDEXKEYCOL_OID = indexkeycol_oid_t(NULL_OID);
 constexpr namespace_oid_t INVALID_NAMESPACE_OID = namespace_oid_t(NULL_OID);
 constexpr table_oid_t INVALID_TABLE_OID = table_oid_t(NULL_OID);
+constexpr trigger_oid_t INVALID_TRIGGER_OID = trigger_oid_t(NULL_OID);
 constexpr type_oid_t INVALID_TYPE_OID = type_oid_t(NULL_OID);
+constexpr view_oid_t INVALID_VIEW_OID = view_oid_t(NULL_OID);
 
 constexpr char DEFAULT_DATABASE[] = "terrier";
 
