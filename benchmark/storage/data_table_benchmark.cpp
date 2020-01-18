@@ -307,7 +307,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentScan)(benchmark::State &state) 
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
   for (auto p : buf) {
-    delete p;
+    delete[] p;
   }
   state.SetItemsProcessed(state.iterations() * num_reads_ * num_threads_);
 }
