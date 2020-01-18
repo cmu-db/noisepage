@@ -86,7 +86,7 @@ TEST_F(IndexIteratorTest, SimpleAscendingScanTest) {
   auto *const hi_pr(index_iter.HiPR());
   lo_pr->Set<int32_t, false>(0, 495, false);
   hi_pr->Set<int32_t, false>(0, 505, false);
-  index_iter.ScanAscending();
+  index_iter.ScanAscendingClosed();
   int32_t curr_match = 495;
   uint32_t num_matches = 0;
   while (index_iter.Advance()) {

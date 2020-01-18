@@ -222,8 +222,14 @@ ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanTy
     case planner::IndexScanType::Exact:
       builtin = ast::Builtin::IndexIteratorScanKey;
       break;
-    case planner::IndexScanType::Ascending:
-      builtin = ast::Builtin::IndexIteratorScanAscending;
+    case planner::IndexScanType::AscendingClosed:
+      builtin = ast::Builtin::IndexIteratorScanAscendingClosed;
+      break;
+    case planner::IndexScanType::AscendingOpenHigh:
+      builtin = ast::Builtin::IndexIteratorScanAscendingOpenHigh;
+      break;
+    case planner::IndexScanType::AscendingOpenLow:
+      builtin = ast::Builtin::IndexIteratorScanAscendingOpenLow;
       break;
     case planner::IndexScanType::Descending:
       builtin = ast::Builtin::IndexIteratorScanDescending;

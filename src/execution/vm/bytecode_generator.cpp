@@ -1448,8 +1448,16 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
       Emitter()->Emit(Bytecode::IndexIteratorScanKey, iterator);
       break;
     }
-    case ast::Builtin::IndexIteratorScanAscending: {
-      Emitter()->Emit(Bytecode::IndexIteratorScanAscending, iterator);
+    case ast::Builtin::IndexIteratorScanAscendingClosed: {
+      Emitter()->Emit(Bytecode::IndexIteratorScanAscendingClosed, iterator);
+      break;
+    }
+    case ast::Builtin::IndexIteratorScanAscendingOpenHigh: {
+      Emitter()->Emit(Bytecode::IndexIteratorScanAscendingOpenHigh, iterator);
+      break;
+    }
+    case ast::Builtin::IndexIteratorScanAscendingOpenLow: {
+      Emitter()->Emit(Bytecode::IndexIteratorScanAscendingOpenLow, iterator);
       break;
     }
     case ast::Builtin::IndexIteratorScanDescending: {
@@ -2018,7 +2026,9 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::IndexIteratorInit:
     case ast::Builtin::IndexIteratorInitBind:
     case ast::Builtin::IndexIteratorScanKey:
-    case ast::Builtin::IndexIteratorScanAscending:
+    case ast::Builtin::IndexIteratorScanAscendingClosed:
+    case ast::Builtin::IndexIteratorScanAscendingOpenHigh:
+    case ast::Builtin::IndexIteratorScanAscendingOpenLow:
     case ast::Builtin::IndexIteratorScanDescending:
     case ast::Builtin::IndexIteratorScanLimitAscending:
     case ast::Builtin::IndexIteratorScanLimitDescending:

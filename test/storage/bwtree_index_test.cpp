@@ -171,7 +171,7 @@ TEST_F(BwTreeIndexTests, UniqueInsert) {
   // scan[0,num_inserts_) should hit num_inserts_ keys (no duplicates)
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 0;
   *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = num_inserts - 1;
-  unique_index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
+  unique_index_->ScanAscendingClosed(*scan_txn, *low_key_pr, *high_key_pr, &results);
   EXPECT_EQ(results.size(), num_inserts);
 
   txn_manager_->Commit(scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -239,7 +239,7 @@ TEST_F(BwTreeIndexTests, DefaultInsert) {
   // scan[0,num_inserts_) should hit num_inserts_ * num_threads_ keys
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 0;
   *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = num_inserts - 1;
-  default_index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
+  default_index_->ScanAscendingClosed(*scan_txn, *low_key_pr, *high_key_pr, &results);
   EXPECT_EQ(results.size(), num_inserts * num_threads_);
 
   txn_manager_->Commit(scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -279,7 +279,7 @@ TEST_F(BwTreeIndexTests, ScanAscending) {
   // scan[8,12] should hit keys 8, 10, 12
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 8;
   *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 12;
-  default_index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
+  default_index_->ScanAscendingClosed(*scan_txn, *low_key_pr, *high_key_pr, &results);
   EXPECT_EQ(results.size(), 3);
   EXPECT_EQ(reference.at(8), results[0]);
   EXPECT_EQ(reference.at(10), results[1]);
@@ -289,7 +289,7 @@ TEST_F(BwTreeIndexTests, ScanAscending) {
   // scan[7,13] should hit keys 8, 10, 12
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 7;
   *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 13;
-  default_index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
+  default_index_->ScanAscendingClosed(*scan_txn, *low_key_pr, *high_key_pr, &results);
   EXPECT_EQ(results.size(), 3);
   EXPECT_EQ(reference.at(8), results[0]);
   EXPECT_EQ(reference.at(10), results[1]);
@@ -299,7 +299,7 @@ TEST_F(BwTreeIndexTests, ScanAscending) {
   // scan[-1,5] should hit keys 0, 2, 4
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = -1;
   *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 5;
-  default_index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
+  default_index_->ScanAscendingClosed(*scan_txn, *low_key_pr, *high_key_pr, &results);
   EXPECT_EQ(results.size(), 3);
   EXPECT_EQ(reference.at(0), results[0]);
   EXPECT_EQ(reference.at(2), results[1]);
@@ -309,7 +309,7 @@ TEST_F(BwTreeIndexTests, ScanAscending) {
   // scan[15,21] should hit keys 16, 18, 20
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 15;
   *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = 21;
-  default_index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
+  default_index_->ScanAscendingClosed(*scan_txn, *low_key_pr, *high_key_pr, &results);
   EXPECT_EQ(results.size(), 3);
   EXPECT_EQ(reference.at(16), results[0]);
   EXPECT_EQ(reference.at(18), results[1]);

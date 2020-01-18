@@ -1401,9 +1401,21 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
-  OP(IndexIteratorScanAscending) : {
+  OP(IndexIteratorScanAscendingClosed) : {
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
-    OpIndexIteratorScanAscending(iter);
+    OpIndexIteratorScanAscendingClosed(iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(IndexIteratorScanAscendingOpenHigh) : {
+    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
+    OpIndexIteratorScanAscendingOpenHigh(iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(IndexIteratorScanAscendingOpenLow) : {
+    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
+    OpIndexIteratorScanAscendingOpenLow(iter);
     DISPATCH_NEXT();
   }
 

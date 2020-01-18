@@ -34,11 +34,25 @@ void IndexIterator::ScanKey() {
   index_->ScanKey(*exec_ctx_->GetTxn(), *index_pr_, &tuples_);
 }
 
-void IndexIterator::ScanAscending() {
+void IndexIterator::ScanAscendingClosed() {
   // Scan the index
   tuples_.clear();
   curr_index_ = 0;
-  index_->ScanAscending(*exec_ctx_->GetTxn(), *index_pr_, *hi_index_pr_, &tuples_);
+  index_->ScanAscendingClosed(*exec_ctx_->GetTxn(), *index_pr_, *hi_index_pr_, &tuples_);
+}
+
+void IndexIterator::ScanAscendingOpenHigh() {
+  // Scan the index
+  tuples_.clear();
+  curr_index_ = 0;
+  index_->ScanAscendingOpenHigh(*exec_ctx_->GetTxn(), *index_pr_, &tuples_);
+}
+
+void IndexIterator::ScanAscendingOpenLow() {
+  // Scan the index
+  tuples_.clear();
+  curr_index_ = 0;
+  index_->ScanAscendingOpenLow(*exec_ctx_->GetTxn(), *hi_index_pr_, &tuples_);
 }
 
 void IndexIterator::ScanDescending() {

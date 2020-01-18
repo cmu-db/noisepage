@@ -112,8 +112,30 @@ class Index {
    * @param high_key the key to end at
    * @param[out] value_list the values associated with the keys
    */
-  virtual void ScanAscending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
-                             const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) {
+  virtual void ScanAscendingClosed(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
+                                   const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) {
+    TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
+  }
+
+  /**
+   * Finds all the values from a given key in our index, sorted in ascending order.
+   * @param txn txn context for the calling txn, used for visibility checks
+   * @param low_key the key to start at
+   * @param[out] value_list the values associated with the keys
+   */
+  virtual void ScanAscendingOpenHigh(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
+                                     std::vector<TupleSlot> *value_list) {
+    TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
+  }
+
+  /**
+   * Finds all the values up to a given key in our index, sorted in ascending order.
+   * @param txn txn context for the calling txn, used for visibility checks
+   * @param high_key the key to end at
+   * @param[out] value_list the values associated with the keys
+   */
+  virtual void ScanAscendingOpenLow(const transaction::TransactionContext &txn, const ProjectedRow &high_key,
+                                    std::vector<TupleSlot> *value_list) {
     TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
   }
 

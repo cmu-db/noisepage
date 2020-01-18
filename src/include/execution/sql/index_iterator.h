@@ -40,9 +40,19 @@ class EXPORT IndexIterator {
   void ScanKey();
 
   /**
-   * Perform an ascending scan
+   * Perform an ascending scan where low and high keys exist
    */
-  void ScanAscending();
+  void ScanAscendingClosed();
+
+  /**
+   * Perform an ascending scan from a low key
+   */
+  void ScanAscendingOpenHigh();
+
+  /**
+   * Perform an ascending scan to a high key
+   */
+  void ScanAscendingOpenLow();
 
   /**
    * Perfrom a descending scan

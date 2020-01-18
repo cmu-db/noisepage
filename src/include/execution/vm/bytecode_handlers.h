@@ -1327,7 +1327,11 @@ VM_OP void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *it
 
 VM_OP_WARM void OpIndexIteratorScanKey(terrier::execution::sql::IndexIterator *iter) { iter->ScanKey(); }
 
-VM_OP_WARM void OpIndexIteratorScanAscending(terrier::execution::sql::IndexIterator *iter) { iter->ScanAscending(); }
+VM_OP_WARM void OpIndexIteratorScanAscendingClosed(terrier::execution::sql::IndexIterator *iter) { iter->ScanAscendingClosed(); }
+
+VM_OP_WARM void OpIndexIteratorScanAscendingOpenHigh(terrier::execution::sql::IndexIterator *iter) { iter->ScanAscendingOpenHigh(); }
+
+VM_OP_WARM void OpIndexIteratorScanAscendingOpenLow(terrier::execution::sql::IndexIterator *iter) { iter->ScanAscendingOpenLow(); }
 
 VM_OP_WARM void OpIndexIteratorScanDescending(terrier::execution::sql::IndexIterator *iter) { iter->ScanDescending(); }
 

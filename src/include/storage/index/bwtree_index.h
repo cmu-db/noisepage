@@ -32,6 +32,35 @@ class BwTreeIndex final : public Index {
 
   const std::unique_ptr<third_party::bwtree::BwTree<KeyType, TupleSlot>> bwtree_;
 
+  /**
+   * Finds all the values between the given keys in our index, sorted in ascending order.
+   * @param txn txn context for the calling txn, used for visibility checks
+   * @param low_key_exists whether low key exists
+   * @param low_key the key to start at
+   * @param high_key_exists whether high key exists
+   * @param high_key the key to end at
+   * @param[out] value_list the values associated with the keys
+   */
+  void ScanAscending(const transaction::TransactionContext &txn,
+                     bool low_key_exists, const ProjectedRow &low_key,
+                     bool high_key_exists, const ProjectedRow &high_key,
+                     std::vector<TupleSlot> *value_list) {
+    TERRIER_ASSERT(value_list->empty(), "Result set should begin empty.");
+
+    // Build search keys
+    KeyType index_low_key, index_high_key;
+    if (low_key_exists) index_low_key.SetFromProjectedRow(low_key, metadata_);
+    if (high_key_exists) index_high_key.SetFromProjectedRow(high_key, metadata_);
+
+    // Perform lookup in BwTree
+    auto scan_itr = low_key_exists ? bwtree_->Begin(index_low_key) : bwtree_->Begin();
+    while (!scan_itr.IsEnd() && (!high_key_exists || bwtree_->KeyCmpLessEqual(scan_itr->first, index_high_key))) {
+      // Perform visibility check on result
+      if (IsVisible(txn, scan_itr->second)) value_list->emplace_back(scan_itr->second);
+      scan_itr++;
+    }
+  }
+
  public:
   IndexType Type() const final { return IndexType::BWTREE; }
 
@@ -134,22 +163,21 @@ class BwTreeIndex final : public Index {
                    "Invalid number of results for unique index.");
   }
 
-  void ScanAscending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
-                     const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) final {
-    TERRIER_ASSERT(value_list->empty(), "Result set should begin empty.");
+  void ScanAscendingClosed(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
+                           const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) final {
+    ScanAscending(txn, true, low_key, true, high_key, value_list);
+  }
 
-    // Build search keys
-    KeyType index_low_key, index_high_key;
-    index_low_key.SetFromProjectedRow(low_key, metadata_);
-    index_high_key.SetFromProjectedRow(high_key, metadata_);
+  void ScanAscendingOpenHigh(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
+                             std::vector<TupleSlot> *value_list) final {
+    // (wz2): High key is not used so this is fine?
+    ScanAscending(txn, true, low_key, false, low_key, value_list);
+  }
 
-    // Perform lookup in BwTree
-    auto scan_itr = bwtree_->Begin(index_low_key);
-    while (!scan_itr.IsEnd() && (bwtree_->KeyCmpLessEqual(scan_itr->first, index_high_key))) {
-      // Perform visibility check on result
-      if (IsVisible(txn, scan_itr->second)) value_list->emplace_back(scan_itr->second);
-      scan_itr++;
-    }
+  void ScanAscendingOpenLow(const transaction::TransactionContext &txn, const ProjectedRow &high_key,
+                            std::vector<TupleSlot> *value_list) final {
+    // (wz2): Low key is not used so this is fine?
+    ScanAscending(txn, false, high_key, true, high_key, value_list);
   }
 
   void ScanDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
