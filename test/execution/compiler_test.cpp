@@ -1949,7 +1949,7 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
-  // INSERT INTO all_types_table
+  // INSERT INTO all_types_empty_table
   //    (string_col, date_col, real_col, bool_col, tinyint_col, smallint_col, int_col, bigint_col)
   // VALUES
   //    (param1, param2, param3, param4, param5, param6, param7, param8),
@@ -1963,7 +1963,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
   // new tuples: SELECT colA, colB, colC, colD FROM test_1.
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
-  auto table_oid1 = accessor->GetTableOid(NSOid(), "all_types_table");
+  auto table_oid1 = accessor->GetTableOid(NSOid(), "all_types_empty_table");
   auto index_oid1 = accessor->GetIndexOid(NSOid(), "varchar_index");
   auto table_schema1 = accessor->GetSchema(table_oid1);
 

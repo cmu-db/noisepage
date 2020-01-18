@@ -1,5 +1,5 @@
 // Perform:
-// SELECT COUNT(*) FROM all_types
+// SELECT COUNT(*) FROM all_types_table
 //  WHERE bool_col = true
 //    AND (tinyint_col >= 0 OR smallint_col >= 0 OR int_col >=0 OR bigint_col >= 0)
 //
@@ -10,10 +10,10 @@
 fun main(execCtx: *ExecutionContext) -> int64 {
   var ret = 0
   var tvi: TableVectorIterator
-  var oids: [2]uint32
+  var oids: [1]uint32
   // Setup #1 - Read the bool first then tinyint -- This works
   oids[0] = 1 // bool_col
-  oids[1] = 2 // tinyint_col
+//   oids[1] = 2 // tinyint_col
   
   // Setup #2 - Read the tinyint first then bool -- This doesn't work?
   // oids[0] = 2 // tinyint_col
@@ -23,13 +23,13 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   // oids[0] = 1 // bool_col
   // oids[1] = 3 // smallint_col
 
-  @tableIterInitBind(&tvi, execCtx, "all_types", oids)
+  @tableIterInitBind(&tvi, execCtx, "all_types_table", oids)
   for (@tableIterAdvance(&tvi)) {
     var pci = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(pci); @pciAdvance(pci)) {
         // Setup #1
         var col0 = @pciGetBool(pci, 0)
-        var col1 = @pciGetTinyInt(pci, 1)
+//         var col1 = @pciGetTinyInt(pci, 1)
 
         // Setup #2
         // bool occurs before tinyint in the original table so is first even though they are the same size so is first in the projection list as well
