@@ -1607,10 +1607,10 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereExistTest) {
   std::string ref = R"({"Op":"LogicalDropNamespace",})";
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  binder_->BindNameToNode(statement, &parse_tree);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(statement, parse_tree.get());
   operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
@@ -1701,10 +1701,10 @@ TEST_F(OperatorTransformerTest, DISABLED_DropTriggerIfExistsWhereNotExistTest) {
   std::string ref = R"({"Op":"LogicalDropTrigger",})";
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  binder_->BindNameToNode(statement, &parse_tree);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(statement, parse_tree.get());
   operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
@@ -1748,10 +1748,10 @@ TEST_F(OperatorTransformerTest, DISABLED_DropViewIfExistsWhereNotExistTest) {
   std::string ref = R"({"Op":"LogicalDropView",})";
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  binder_->BindNameToNode(statement, &parse_tree);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(statement, parse_tree.get());
   operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
