@@ -96,6 +96,9 @@ class ExecutableQuery {
   }
 
   void Run(const common::ManagedPointer<exec::ExecutionContext> exec_ctx, const vm::ExecutionMode mode) {
+    auto params = GetQueryParams();
+    exec_ctx->SetParams(std::move(params));
+
     // Run the main function
     std::function<int64_t(exec::ExecutionContext *)> main;
     if (!tpl_module_->GetFunction("main", mode, &main)) {
@@ -116,6 +119,14 @@ class ExecutableQuery {
     std::size_t size = path.size();
     std::size_t found = path.find_last_of("/\\");
     return path.substr(found + 1, size - found - 5);
+  }
+
+  std::vector<type::TransientValue> GetQueryParams() {
+    std::vector<type::TransientValue> params;
+    if (query_name_ == "tpch_q5")
+      params.emplace_back(type::TransientValueFactory::GetVarChar("ASIA"));
+
+    return params;
   }
 
   // TPL bytecodes for this query

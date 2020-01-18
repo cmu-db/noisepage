@@ -72,7 +72,6 @@ void Workload::Execute(int8_t worker_id, uint32_t num_precomputed_txns_per_worke
     execution::ExecutableQuery &query = queries_[index[counter]];
     execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
         query.GetPrinter(), query.GetOutputSchema(), common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
-    printf("%d, %d, %p\n", counter, index[counter], &queries_[index[counter]]);
     query.Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
     counter = counter == num_queries - 1 ? 0:counter + 1 ;
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
