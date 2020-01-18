@@ -314,7 +314,14 @@ void TrafficCop::CodegenAndRunPhysicalPlan(const common::ManagedPointer<network:
   // TODO(Matt): I think the number of rows affected should be switched to the ExecutionContext since the
   // OutputPrinter isn't invoked for INSERT, UPDATE, DELETE so we can't get the number from there.
 
-  out->WriteCommandComplete(query_type, writer.NumRows());
+  if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
+    // Execution didn't set us to FAIL state, go ahead and write command complete
+    out->WriteCommandComplete(query_type, writer.NumRows());
+  } else {
+    // TODO(Matt): We need a more verbose way to say what happened during execution (INSERT failed for key conflict,
+    // etc.)
+    out->WriteErrorResponse("Query failed.");
+  }
 }
 
 std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNamespace(
