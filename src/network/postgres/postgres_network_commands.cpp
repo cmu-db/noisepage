@@ -6,8 +6,7 @@
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "parser/postgresparser.h"
 #include "traffic_cop/traffic_cop.h"
-#include "type/transient_value_factory.h"
-#include "type/type_id.h"
+#include "traffic_cop/traffic_cop_util.h"
 
 namespace terrier::network {
 
@@ -56,20 +55,18 @@ Transition SimpleQueryCommand::Exec(common::ManagedPointer<ProtocolInterpreter> 
 
   // It parsed and we've got our single statement
   const auto statement = parse_result->GetStatement(0);
-  const auto statement_type = statement->GetType();
+  const auto query_type = trafficcop::TrafficCopUtil::QueryTypeForStatement(statement);
 
   // Check if we're in a must-abort situation first before attempting to issue any statement other than ROLLBACK
   if (connection->TransactionState() == network::NetworkTransactionStateType::FAIL &&
-      (statement_type != parser::StatementType::TRANSACTION ||
-       statement.CastManagedPointerTo<parser::TransactionStatement>()->GetTransactionType() ==
-           parser::TransactionStatement::CommandType::kBegin)) {
+      query_type != QueryType::QUERY_COMMIT && query_type != QueryType::QUERY_ROLLBACK) {
     out->WriteErrorResponse("ERROR:  current transaction is aborted, commands ignored until end of transaction block");
     return FinishSimpleQueryCommand(out, connection);
   }
 
   // Pass the statement to be executed by the traffic cop
   t_cop->ExecuteStatement(connection, out, common::ManagedPointer(parse_result), parse_result->GetStatement(0),
-                          statement_type);
+                          query_type);
 
   return FinishSimpleQueryCommand(out, connection);
 }

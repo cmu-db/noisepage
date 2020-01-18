@@ -69,25 +69,25 @@ void TrafficCop::HandBufferToReplication(std::unique_ptr<network::ReadBuffer> bu
 
 void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                              const common::ManagedPointer<network::PostgresPacketWriter> out,
-                                             const parser::TransactionStatement::CommandType type) const {
-  switch (type) {
-    case parser::TransactionStatement::CommandType::kBegin: {
+                                             const terrier::network::QueryType query_type) const {
+  TERRIER_ASSERT(query_type == network::QueryType::QUERY_COMMIT || query_type == network::QueryType::QUERY_ROLLBACK ||
+                     query_type == network::QueryType::QUERY_BEGIN,
+                 "ExecuteTransactionStatement called with invalid QueryType.");
+  switch (query_type) {
+    case network::QueryType::QUERY_BEGIN: {
       TERRIER_ASSERT(connection_ctx->TransactionState() != network::NetworkTransactionStateType::FAIL,
                      "We're in an aborted state. This should have been caught already before calling this function.");
       if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
         out->WriteNoticeResponse("WARNING:  there is already a transaction in progress");
-        out->WriteCommandComplete(network::QueryType::QUERY_BEGIN, 0);
-        return;
+        break;
       }
       BeginTransaction(connection_ctx);
-      out->WriteCommandComplete(network::QueryType::QUERY_BEGIN, 0);
-      return;
+      break;
     }
-    case parser::TransactionStatement::CommandType::kCommit: {
+    case network::QueryType::QUERY_COMMIT: {
       if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE) {
         out->WriteNoticeResponse("WARNING:  there is no transaction in progress");
-        out->WriteCommandComplete(network::QueryType::QUERY_COMMIT, 0);
-        return;
+        break;
       }
       if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::FAIL) {
         EndTransaction(connection_ctx, network::QueryType::QUERY_ROLLBACK);
@@ -95,131 +95,127 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
         return;
       }
       EndTransaction(connection_ctx, network::QueryType::QUERY_COMMIT);
-      out->WriteCommandComplete(network::QueryType::QUERY_COMMIT, 0);
-      return;
+      break;
     }
-    case parser::TransactionStatement::CommandType::kRollback: {
+    case network::QueryType::QUERY_ROLLBACK: {
       if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE) {
         out->WriteNoticeResponse("WARNING:  there is no transaction in progress");
-        out->WriteCommandComplete(network::QueryType::QUERY_ROLLBACK, 0);
-        return;
+        break;
       }
       EndTransaction(connection_ctx, network::QueryType::QUERY_ROLLBACK);
-      out->WriteCommandComplete(network::QueryType::QUERY_ROLLBACK, 0);
-      return;
+      break;
     }
+    default:
+      UNREACHABLE("ExecuteTransactionStatement called with invalid QueryType.");
   }
+  out->WriteCommandComplete(query_type, 0);
 }
 
 void TrafficCop::ExecuteCreateStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                         const common::ManagedPointer<network::PostgresPacketWriter> out,
                                         const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-                                        const parser::CreateStatement::CreateType create_type,
+                                        const terrier::network::QueryType query_type,
                                         const bool single_statement_txn) const {
-  switch (create_type) {
-    case parser::CreateStatement::CreateType::kTable: {
+  TERRIER_ASSERT(
+      query_type == network::QueryType::QUERY_CREATE_TABLE || query_type == network::QueryType::QUERY_CREATE_SCHEMA ||
+          query_type == network::QueryType::QUERY_CREATE_INDEX || query_type == network::QueryType::QUERY_CREATE_DB ||
+          query_type == network::QueryType::QUERY_CREATE_VIEW || query_type == network::QueryType::QUERY_CREATE_TRIGGER,
+      "ExecuteCreateStatement called with invalid QueryType.");
+  switch (query_type) {
+    case network::QueryType::QUERY_CREATE_TABLE: {
       if (execution::sql::DDLExecutors::CreateTableExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateTablePlanNode>(), connection_ctx->Accessor(),
               connection_ctx->GetDatabaseOid())) {
-        out->WriteCommandComplete("CREATE TABLE");
-        break;
+        out->WriteCommandComplete(query_type, 0);
+        return;
       }
-      out->WriteErrorResponse("ERROR:  failed to create table");
-      connection_ctx->Transaction()->SetMustAbort();
       break;
     }
-    case parser::CreateStatement::CreateType::kDatabase: {
+    case network::QueryType::QUERY_CREATE_DB: {
       if (!single_statement_txn) {
         out->WriteErrorResponse("ERROR:  CREATE DATABASE cannot run inside a transaction block");
         connection_ctx->Transaction()->SetMustAbort();
-        break;
+        return;
       }
       if (execution::sql::DDLExecutors::CreateDatabaseExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateDatabasePlanNode>(), connection_ctx->Accessor())) {
-        out->WriteCommandComplete("CREATE DATABASE");
-        break;
+        out->WriteCommandComplete(query_type, 0);
+        return;
       }
-      out->WriteErrorResponse("ERROR:  failed to create database");
-      connection_ctx->Transaction()->SetMustAbort();
       break;
     }
-    case parser::CreateStatement::CreateType::kIndex: {
+    case network::QueryType::QUERY_CREATE_INDEX: {
       if (execution::sql::DDLExecutors::CreateIndexExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor())) {
-        out->WriteCommandComplete("CREATE INDEX");
-        break;
+        out->WriteCommandComplete(query_type, 0);
+        return;
       }
-      out->WriteErrorResponse("ERROR:  failed to create index");
-      connection_ctx->Transaction()->SetMustAbort();
       break;
     }
-    case parser::CreateStatement::CreateType::kSchema: {
+    case network::QueryType::QUERY_CREATE_SCHEMA: {
       if (execution::sql::DDLExecutors::CreateNamespaceExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateNamespacePlanNode>(), connection_ctx->Accessor())) {
-        out->WriteCommandComplete("CREATE SCHEMA");
-        break;
+        out->WriteCommandComplete(query_type, 0);
+        return;
       }
-      out->WriteErrorResponse("ERROR:  failed to create schema");
-      connection_ctx->Transaction()->SetMustAbort();
       break;
     }
     default: {
       out->WriteErrorResponse("ERROR:  unsupported CREATE statement type");
-      break;
+      return;
     }
   }
+  out->WriteErrorResponse("ERROR:  failed to execute CREATE");
+  connection_ctx->Transaction()->SetMustAbort();
 }
 
 void TrafficCop::ExecuteDropStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                       const common::ManagedPointer<network::PostgresPacketWriter> out,
                                       const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-                                      const parser::DropStatement::DropType drop_type,
+                                      const terrier::network::QueryType query_type,
                                       const bool single_statement_txn) const {
-  switch (drop_type) {
-    case parser::DropStatement::DropType::kTable: {
+  TERRIER_ASSERT(
+      query_type == network::QueryType::QUERY_DROP_TABLE || query_type == network::QueryType::QUERY_DROP_SCHEMA ||
+          query_type == network::QueryType::QUERY_DROP_INDEX || query_type == network::QueryType::QUERY_DROP_DB ||
+          query_type == network::QueryType::QUERY_DROP_VIEW || query_type == network::QueryType::QUERY_DROP_TRIGGER,
+      "ExecuteDropStatement called with invalid QueryType.");
+  switch (query_type) {
+    case network::QueryType::QUERY_DROP_TABLE: {
       if (execution::sql::DDLExecutors::DropTableExecutor(
               physical_plan.CastManagedPointerTo<planner::DropTablePlanNode>(), connection_ctx->Accessor())) {
-        out->WriteCommandComplete("DROP TABLE");
-        break;
+        out->WriteCommandComplete(query_type, 0);
+        return;
       }
-      out->WriteErrorResponse("ERROR:  failed to drop table");
-      connection_ctx->Transaction()->SetMustAbort();
       break;
     }
-    case parser::DropStatement::DropType::kDatabase: {
+    case network::QueryType::QUERY_DROP_DB: {
       if (!single_statement_txn) {
         out->WriteErrorResponse("ERROR:  DROP DATABASE cannot run inside a transaction block");
         connection_ctx->Transaction()->SetMustAbort();
-        break;
+        return;
       }
       if (execution::sql::DDLExecutors::DropDatabaseExecutor(
               physical_plan.CastManagedPointerTo<planner::DropDatabasePlanNode>(), connection_ctx->Accessor(),
               connection_ctx->GetDatabaseOid())) {
-        out->WriteCommandComplete("DROP DATABASE");
-        break;
+        out->WriteCommandComplete(query_type, 0);
+        return;
       }
-      out->WriteErrorResponse("ERROR:  failed to drop database");
-      connection_ctx->Transaction()->SetMustAbort();
       break;
     }
-    case parser::DropStatement::DropType::kIndex: {
+    case network::QueryType::QUERY_DROP_INDEX: {
       if (execution::sql::DDLExecutors::DropIndexExecutor(
               physical_plan.CastManagedPointerTo<planner::DropIndexPlanNode>(), connection_ctx->Accessor())) {
-        out->WriteCommandComplete("DROP INDEX");
-        break;
+        out->WriteCommandComplete(query_type, 0);
+        return;
       }
-      out->WriteErrorResponse("ERROR:  failed to drop index");
-      connection_ctx->Transaction()->SetMustAbort();
       break;
     }
-    case parser::DropStatement::DropType::kSchema: {
+    case network::QueryType::QUERY_DROP_SCHEMA: {
       if (execution::sql::DDLExecutors::DropNamespaceExecutor(
               physical_plan.CastManagedPointerTo<planner::DropNamespacePlanNode>(), connection_ctx->Accessor())) {
-        out->WriteCommandComplete("DROP SCHEMA");
-        break;
+        out->WriteCommandComplete(query_type, 0);
+        return;
       }
-      out->WriteErrorResponse("ERROR:  failed to drop schema");
-      connection_ctx->Transaction()->SetMustAbort();
       break;
     }
     default: {
@@ -227,6 +223,8 @@ void TrafficCop::ExecuteDropStatement(const common::ManagedPointer<network::Conn
       break;
     }
   }
+  out->WriteErrorResponse("ERROR:  failed to execute DROP");
+  connection_ctx->Transaction()->SetMustAbort();
 }
 
 std::unique_ptr<parser::ParseResult> TrafficCop::ParseQuery(
@@ -246,110 +244,86 @@ void TrafficCop::ExecuteStatement(const common::ManagedPointer<network::Connecti
                                   const common::ManagedPointer<network::PostgresPacketWriter> out,
                                   const common::ManagedPointer<parser::ParseResult> parse_result,
                                   const common::ManagedPointer<parser::SQLStatement> statement,
-                                  const parser::StatementType statement_type) const {
-  TERRIER_ASSERT(statement->GetType() == statement_type,
+                                  const terrier::network::QueryType query_type) const {
+  TERRIER_ASSERT(TrafficCopUtil::QueryTypeForStatement(statement) == query_type,
                  "Called ExecuteStatement with a type that doens't match the statement.");
+  // This logic relies on ordering of values in the enum's definition and is documented there as well.
+  if (query_type <= network::QueryType::QUERY_ROLLBACK) {
+    ExecuteTransactionStatement(connection_ctx, out, query_type);
+    return;
+  }
 
-  switch (statement_type) {
-    case parser::StatementType::TRANSACTION: {
-      const auto txn_statement = statement.CastManagedPointerTo<parser::TransactionStatement>();
-      ExecuteTransactionStatement(connection_ctx, out, txn_statement->GetTransactionType());
+  const bool single_statement_txn = connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE;
+
+  // Begin a transaction if necessary
+  if (single_statement_txn) {
+    BeginTransaction(connection_ctx);
+  }
+
+  // Try to bind the parsed statement
+  // TODO(Matt): this is why IF EXISTS can be short-circuited if the binder is enhanced to return the proper state
+  // TODO(Matt): I don't think the binder should need the database name
+  if (!TrafficCopUtil::Bind(connection_ctx->Accessor(), connection_ctx->GetDatabaseName(), parse_result)) {
+    out->WriteErrorResponse("ERROR:  binding failed");
+
+    // failing to bind fails a transaction in postgres
+    connection_ctx->Transaction()->SetMustAbort();
+  } else {
+    // Binding succeeded, optimize to generate a physical plan and then execute
+    auto physical_plan = trafficcop::TrafficCopUtil::Optimize(connection_ctx->Transaction(), connection_ctx->Accessor(),
+                                                              parse_result, stats_storage_, optimizer_timeout_);
+
+    // This logic relies on ordering of values in the enum's definition and is documented there as well.
+    if (query_type <= network::QueryType::QUERY_DELETE) {
+      // DML query to put through codegen
+      CodegenAndRunPhysicalPlan(connection_ctx, out, common::ManagedPointer(physical_plan), query_type);
       return;
     }
-    case parser::StatementType::SELECT:
-    case parser::StatementType::INSERT:
-    case parser::StatementType::UPDATE:
-    case parser::StatementType::DELETE:
-    case parser::StatementType::CREATE:
-    case parser::StatementType::DROP: {
-      const bool single_statement_txn =
-          connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE;
-
-      // Begin a txn, if necessary
-      if (single_statement_txn) {
-        BeginTransaction(connection_ctx);
-      }
-
-      // Next step is to try to bind the parsed statement
-      // TODO(Matt): I don't think the binder should need the database name
-      if (!TrafficCopUtil::Bind(connection_ctx->Accessor(), connection_ctx->GetDatabaseName(), parse_result)) {
-        out->WriteErrorResponse("ERROR:  binding failed");
-
-        // failing to bind fails a transaction in postgres
-        connection_ctx->Transaction()->SetMustAbort();
-
-        if (single_statement_txn) {
-          // Single statement transaction should be ended before returning
-          // decide whether the txn should be committed or aborted based on the MustAbort flag, and then end the txn
-          EndTransaction(connection_ctx, connection_ctx->Transaction()->MustAbort() ? network::QueryType::QUERY_ROLLBACK
-                                                                                    : network::QueryType::QUERY_COMMIT);
-        }
-        return;
-      }
-
-      // optimize the plan
-      auto physical_plan = trafficcop::TrafficCopUtil::Optimize(
-          connection_ctx->Transaction(), connection_ctx->Accessor(), parse_result, stats_storage_, optimizer_timeout_);
-
-      // execute the plan
-      if (statement_type == parser::StatementType::CREATE) {
-        ExecuteCreateStatement(connection_ctx, out, common::ManagedPointer(physical_plan),
-                               statement.CastManagedPointerTo<parser::CreateStatement>()->GetCreateType(),
-                               single_statement_txn);
-      } else if (statement_type == parser::StatementType::DROP) {
-        ExecuteDropStatement(connection_ctx, out, common::ManagedPointer(physical_plan),
-                             statement.CastManagedPointerTo<parser::DropStatement>()->GetDropType(),
+    // DDL statement
+    if (query_type <= network::QueryType::QUERY_CREATE_VIEW) {
+      ExecuteCreateStatement(connection_ctx, out, common::ManagedPointer(physical_plan), query_type,
                              single_statement_txn);
-      } else {
-        // Create the OutputWriter with text format. Simple Queries only use text format.
-        execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out);
-
-        auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-            connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer,
-            physical_plan->GetOutputSchema().Get(), connection_ctx->Accessor());
-
-        auto exec_query =
-            execution::ExecutableQuery(common::ManagedPointer(physical_plan), common::ManagedPointer(exec_ctx));
-
-        if (statement_type == parser::StatementType::SELECT)
-          out->WriteRowDescription(physical_plan->GetOutputSchema()->GetColumns());
-
-        exec_query.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
-
-        // TODO(Matt): I now see that we should switch the parser::StatementType to a network::QueryType far earlier to
-        // clean up some of these conditionals. Future refactor.
-
-        switch (statement_type) {
-          case parser::StatementType::SELECT:
-            out->WriteCommandComplete(network::QueryType::QUERY_SELECT, writer.NumRows());
-            break;
-          case parser::StatementType::INSERT:
-            out->WriteCommandComplete(network::QueryType::QUERY_INSERT, writer.NumRows());
-            break;
-          case parser::StatementType::UPDATE:
-            out->WriteCommandComplete(network::QueryType::QUERY_UPDATE, writer.NumRows());
-            break;
-          case parser::StatementType::DELETE:
-            out->WriteCommandComplete(network::QueryType::QUERY_DELETE, writer.NumRows());
-            break;
-          default:
-            UNREACHABLE("Shouldn't be possible in these nested switch statements.");
-        }
-      }
-      if (single_statement_txn) {
-        // Single statement transaction should be ended before returning
-        // decide whether the txn should be committed or aborted based on the MustAbort flag, and then end the txn
-        EndTransaction(connection_ctx, connection_ctx->Transaction()->MustAbort() ? network::QueryType::QUERY_ROLLBACK
-                                                                                  : network::QueryType::QUERY_COMMIT);
-      }
-
       return;
     }
-    default: {
-      out->WriteErrorResponse("ERROR:  unsupported statement type");
+    if (query_type <= network::QueryType::QUERY_DROP_VIEW) {
+      ExecuteDropStatement(connection_ctx, out, common::ManagedPointer(physical_plan), query_type,
+                           single_statement_txn);
       return;
     }
   }
+
+  if (single_statement_txn) {
+    // Single statement transaction should be ended before returning
+    // decide whether the txn should be committed or aborted based on the MustAbort flag, and then end the txn
+    EndTransaction(connection_ctx, connection_ctx->Transaction()->MustAbort() ? network::QueryType::QUERY_ROLLBACK
+                                                                              : network::QueryType::QUERY_COMMIT);
+  }
+}
+
+void TrafficCop::CodegenAndRunPhysicalPlan(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                           const common::ManagedPointer<network::PostgresPacketWriter> out,
+                                           const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
+                                           const terrier::network::QueryType query_type) const {
+  TERRIER_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
+                     query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
+                 "CodegenAndRunPhysicalPlan called with invalid QueryType.");
+  execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out);
+
+  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
+      connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer, physical_plan->GetOutputSchema().Get(),
+      connection_ctx->Accessor());
+
+  auto exec_query = execution::ExecutableQuery(common::ManagedPointer(physical_plan), common::ManagedPointer(exec_ctx));
+
+  if (query_type == network::QueryType::QUERY_SELECT)
+    out->WriteRowDescription(physical_plan->GetOutputSchema()->GetColumns());
+
+  exec_query.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+
+  // TODO(Matt): I think the number of rows affected should be switched to the ExecutionContext since the
+  // OutputPrinter isn't invoked for INSERT, UPDATE, DELETE so we can't get the number from there.
+
+  out->WriteCommandComplete(query_type, writer.NumRows());
 }
 
 std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNamespace(

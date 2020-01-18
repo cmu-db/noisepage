@@ -143,6 +143,30 @@ class PostgresPacketWriter : public PacketWriter {
       case QueryType::QUERY_SELECT:
         WriteCommandComplete("SELECT " + std::to_string(num_rows));
         break;
+      case QueryType::QUERY_CREATE_DB:
+        WriteCommandComplete("CREATE DATABASE");
+        break;
+      case QueryType::QUERY_CREATE_TABLE:
+        WriteCommandComplete("CREATE TABLE");
+        break;
+      case QueryType::QUERY_CREATE_INDEX:
+        WriteCommandComplete("CREATE INDEX");
+        break;
+      case QueryType::QUERY_CREATE_SCHEMA:
+        WriteCommandComplete("CREATE SCHEMA");
+        break;
+      case QueryType::QUERY_DROP_DB:
+        WriteCommandComplete("DROP DATABASE");
+        break;
+      case QueryType::QUERY_DROP_TABLE:
+        WriteCommandComplete("DROP TABLE");
+        break;
+      case QueryType::QUERY_DROP_INDEX:
+        WriteCommandComplete("DROP INDEX");
+        break;
+      case QueryType::QUERY_DROP_SCHEMA:
+        WriteCommandComplete("DROP SCHEMA");
+        break;
       default:
         WriteCommandComplete("This QueryType needs a completion message!");
         break;

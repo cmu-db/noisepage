@@ -1,5 +1,7 @@
 #pragma once
 
+#include <network/network_defs.h>
+
 #include <memory>
 #include <string>
 
@@ -11,7 +13,8 @@ class CatalogAccessor;
 
 namespace terrier::parser {
 class ParseResult;
-}
+class SQLStatement;
+}  // namespace terrier::parser
 
 namespace terrier::planner {
 class AbstractPlanNode;
@@ -56,6 +59,13 @@ class TrafficCopUtil {
       common::ManagedPointer<transaction::TransactionContext> txn,
       common::ManagedPointer<catalog::CatalogAccessor> accessor, common::ManagedPointer<parser::ParseResult> query,
       common::ManagedPointer<optimizer::StatsStorage> stats_storage, uint64_t optimizer_timeout);
+
+  /**
+   * Converts parser statement types (which rely on multiple enums) to a single QueryType enum from the network layer
+   * @param statement
+   * @return
+   */
+  static network::QueryType QueryTypeForStatement(common::ManagedPointer<parser::SQLStatement> statement);
 };
 
 }  // namespace terrier::trafficcop

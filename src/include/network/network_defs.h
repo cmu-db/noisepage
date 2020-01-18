@@ -109,61 +109,46 @@ enum class NetworkMessageType : unsigned char {
   ITP_COMMAND_COMPLETE = 'c',
 };
 
-//===--------------------------------------------------------------------===//
-// Network packet defs
-//===--------------------------------------------------------------------===//
-
-//===--------------------------------------------------------------------===//
-// Describe Message Types
-//===--------------------------------------------------------------------===//
-
 enum class DescribeCommandObjectType : unsigned char { PORTAL = 'P', STATEMENT = 'S' };
 
-//===--------------------------------------------------------------------===//
-// Query Types
-//===--------------------------------------------------------------------===//
-
-enum class QueryType {
-  QUERY_BEGIN = 0,         // begin query
-  QUERY_COMMIT = 1,        // commit query
-  QUERY_ROLLBACK = 2,      // rollback query
-  QUERY_CREATE_TABLE = 3,  // create query
-  QUERY_CREATE_DB = 4,
-  QUERY_CREATE_INDEX = 5,
-  QUERY_DROP = 6,     // other queries
-  QUERY_INSERT = 7,   // insert query
-  QUERY_PREPARE = 8,  // prepare query
-  QUERY_EXECUTE = 9,  // execute query
-  QUERY_UPDATE = 10,
-  QUERY_DELETE = 11,
-  QUERY_RENAME = 12,
-  QUERY_ALTER = 13,
-  QUERY_COPY = 14,
-  QUERY_ANALYZE = 15,
-  QUERY_SET = 16,   // set query
-  QUERY_SHOW = 17,  // show query
-  QUERY_SELECT = 18,
-  QUERY_OTHER = 19,
-  QUERY_INVALID = 20,
-  QUERY_CREATE_TRIGGER = 21,
-  QUERY_CREATE_SCHEMA = 22,
-  QUERY_CREATE_VIEW = 23,
-  QUERY_EXPLAIN = 24
-};
-
-//===--------------------------------------------------------------------===//
-// Result Types
-//===--------------------------------------------------------------------===//
-
-enum class ResultType {
-  INVALID = INVALID_TYPE_ID,  // invalid result type
-  SUCCESS = 1,
-  FAILURE = 2,
-  ABORTED = 3,  // aborted
-  NOOP = 4,     // no op
-  UNKNOWN = 5,
-  QUEUING = 6,
-  TO_ABORT = 7,
+// The TrafficCop logic relies on very specific ordering of these values. Reorder with care.
+enum class QueryType : uint8_t {
+  // Transaction statements
+  QUERY_BEGIN,
+  QUERY_COMMIT,
+  QUERY_ROLLBACK,
+  // DML
+  QUERY_SELECT,
+  QUERY_INSERT,
+  QUERY_UPDATE,
+  QUERY_DELETE,
+  // DDL
+  QUERY_CREATE_TABLE,
+  QUERY_CREATE_DB,
+  QUERY_CREATE_INDEX,
+  QUERY_CREATE_TRIGGER,
+  QUERY_CREATE_SCHEMA,
+  QUERY_CREATE_VIEW,
+  QUERY_DROP_TABLE,
+  QUERY_DROP_DB,
+  QUERY_DROP_INDEX,
+  QUERY_DROP_TRIGGER,
+  QUERY_DROP_SCHEMA,
+  QUERY_DROP_VIEW,
+  QUERY_RENAME,
+  QUERY_ALTER,
+  // Prepared statement stuff
+  QUERY_DROP_PREPARED_STATEMENT,
+  QUERY_PREPARE,
+  QUERY_EXECUTE,
+  // Misc
+  QUERY_COPY,
+  QUERY_ANALYZE,
+  QUERY_SET,
+  QUERY_SHOW,
+  QUERY_OTHER,
+  QUERY_INVALID,
+  QUERY_EXPLAIN
 };
 
 enum class NetworkTransactionStateType : unsigned char {
