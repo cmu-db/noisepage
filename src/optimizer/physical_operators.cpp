@@ -76,31 +76,11 @@ common::hash_t SeqScan::Hash() const {
 //===--------------------------------------------------------------------===//
 // IndexScan
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *IndexScan::Copy() const {
-  auto *scan = new IndexScan;
-  scan->database_oid_ = database_oid_;
-  scan->namespace_oid_ = namespace_oid_;
-  scan->index_oid_ = index_oid_;
-  scan->table_alias_ = table_alias_;
-  scan->is_for_update_ = is_for_update_;
-  scan->predicates_ = predicates_;
-  scan->key_column_oid_list_ = key_column_oid_list_;
-  scan->expr_type_list_ = expr_type_list_;
-
-  for (auto &val : value_list_) {
-    type::TransientValue copy(val);
-    scan->value_list_.push_back(std::move(copy));
-  }
-
-  return scan;
-}
+BaseOperatorNode *IndexScan::Copy() const { return new IndexScan(*this); }
 
 Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                          catalog::index_oid_t index_oid, std::vector<AnnotatedExpression> &&predicates,
-                         std::string table_alias, bool is_for_update,
-                         std::vector<catalog::col_oid_t> &&key_column_oid_list,
-                         std::vector<parser::ExpressionType> &&expr_type_list,
-                         std::vector<type::TransientValue> &&value_list) {
+                         std::string table_alias, bool is_for_update) {
   auto scan = std::make_unique<IndexScan>();
   scan->database_oid_ = database_oid;
   scan->namespace_oid_ = namespace_oid;
@@ -108,10 +88,6 @@ Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_
   scan->table_alias_ = std::move(table_alias);
   scan->is_for_update_ = is_for_update;
   scan->predicates_ = std::move(predicates);
-  scan->key_column_oid_list_ = std::move(key_column_oid_list);
-  scan->expr_type_list_ = std::move(expr_type_list);
-  scan->value_list_ = std::move(value_list);
-
   return Operator(std::move(scan));
 }
 
@@ -119,18 +95,13 @@ bool IndexScan::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::INDEXSCAN) return false;
   const IndexScan &node = *dynamic_cast<const IndexScan *>(&r);
   if (database_oid_ != node.database_oid_ || namespace_oid_ != node.namespace_oid_ || index_oid_ != node.index_oid_ ||
-      table_alias_ != node.table_alias_ || key_column_oid_list_ != node.key_column_oid_list_ ||
-      expr_type_list_ != node.expr_type_list_ || predicates_.size() != node.predicates_.size() ||
-      key_column_oid_list_.size() != node.key_column_oid_list_.size() || is_for_update_ != node.is_for_update_ ||
-      expr_type_list_.size() != node.expr_type_list_.size() || value_list_.size() != node.value_list_.size())
+      table_alias_ != node.table_alias_ || predicates_.size() != node.predicates_.size() ||
+      is_for_update_ != node.is_for_update_)
     return false;
 
   for (size_t i = 0; i < predicates_.size(); i++) {
     if (predicates_[i].GetExpr() != node.predicates_[i].GetExpr()) return false;
   }
-  if (key_column_oid_list_ != node.key_column_oid_list_) return false;
-  if (expr_type_list_ != node.expr_type_list_) return false;
-  if (value_list_ != node.value_list_) return false;
   return true;
 }
 
@@ -148,11 +119,6 @@ common::hash_t IndexScan::Hash() const {
     else
       hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
   }
-  for (const auto &col_oid : key_column_oid_list_)
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(col_oid));
-  for (const auto &expr_type : expr_type_list_)
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expr_type));
-  for (auto &val : value_list_) hash = common::HashUtil::CombineHashes(hash, val.Hash());
   return hash;
 }
 

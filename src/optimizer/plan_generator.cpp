@@ -198,20 +198,6 @@ void PlanGenerator::Visit(const IndexScan *op) {
   auto predicate = parser::ExpressionUtil::JoinAnnotatedExprs(op->GetPredicates()).release();
   RegisterPointerCleanup<parser::AbstractExpression>(predicate, true, true);
 
-  // Create index scan desc
-  // Can destructively move from physical operator since we won't need them anymore
-  auto tuple_oids = std::vector<catalog::col_oid_t>(op->GetKeyColumnOIDList());
-  auto expr_list = std::vector<parser::ExpressionType>(op->GetExprTypeList());
-
-  // We do a copy since const_cast is not good
-  std::vector<type::TransientValue> value_list;
-  for (auto &value : op->GetValueList()) {
-    auto val_copy = type::TransientValue(value);
-    value_list.push_back(std::move(val_copy));
-  }
-
-  auto index_desc = planner::IndexScanDescription(std::move(tuple_oids), std::move(expr_list), std::move(value_list));
-
   output_plan_ = planner::IndexScanPlanNode::Builder()
                      .SetOutputSchema(std::move(output_schema))
                      .SetScanPredicate(common::ManagedPointer(predicate))
@@ -221,7 +207,6 @@ void PlanGenerator::Visit(const IndexScan *op) {
                      .SetIndexOid(op->GetIndexOID())
                      .SetTableOid(tbl_oid)
                      .SetColumnOids(std::move(column_ids))
-                     .SetIndexScanDescription(std::move(index_desc))
                      .Build();
 }
 

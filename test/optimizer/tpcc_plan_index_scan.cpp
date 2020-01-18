@@ -38,15 +38,6 @@ TEST_F(TpccPlanIndexScanTests, SimplePredicateIndexScan) {
     EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(index_plan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 
-    auto &index_desc = index_plan->GetIndexScanDescription();
-    EXPECT_EQ(index_desc.GetTupleColumnIdList().size(), 1);
-    EXPECT_EQ(index_desc.GetExpressionTypeList().size(), 1);
-    EXPECT_EQ(index_desc.GetValueList().size(), 1);
-    EXPECT_EQ(index_desc.GetTupleColumnIdList()[0], schema.GetColumn("no_d_id").Oid());
-    EXPECT_EQ(index_desc.GetExpressionTypeList()[0], parser::ExpressionType::COMPARE_EQUAL);
-    EXPECT_EQ(index_desc.GetValueList()[0].Type(), type::TypeId::INTEGER);
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(index_desc.GetValueList()[0]), 1);
-
     auto scan_pred = index_plan->GetScanPredicate();
     EXPECT_TRUE(scan_pred != nullptr);
     EXPECT_EQ(scan_pred->GetExpressionType(), parser::ExpressionType::COMPARE_EQUAL);
@@ -82,16 +73,6 @@ TEST_F(TpccPlanIndexScanTests, SimplePredicateFlippedIndexScan) {
     EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(index_plan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 
-    auto &index_desc = index_plan->GetIndexScanDescription();
-    EXPECT_EQ(index_desc.GetTupleColumnIdList().size(), 1);
-    EXPECT_EQ(index_desc.GetExpressionTypeList().size(), 1);
-    EXPECT_EQ(index_desc.GetValueList().size(), 1);
-    EXPECT_EQ(index_desc.GetTupleColumnIdList()[0], schema.GetColumn("no_d_id").Oid());
-    EXPECT_EQ(index_desc.GetExpressionTypeList()[0],
-              parser::ExpressionUtil::ReverseComparisonExpressionType(parser::ExpressionType::COMPARE_LESS_THAN));
-    EXPECT_EQ(index_desc.GetValueList()[0].Type(), type::TypeId::INTEGER);
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(index_desc.GetValueList()[0]), 1);
-
     auto scan_pred = index_plan->GetScanPredicate();
     EXPECT_TRUE(scan_pred != nullptr);
     EXPECT_EQ(scan_pred->GetExpressionType(), parser::ExpressionType::COMPARE_LESS_THAN);
@@ -126,10 +107,6 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSort) {
     EXPECT_EQ(index_plan->IsForUpdate(), false);
     EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(index_plan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
-
-    EXPECT_EQ(index_plan->GetIndexScanDescription().GetTupleColumnIdList().size(), 0);
-    EXPECT_EQ(index_plan->GetIndexScanDescription().GetExpressionTypeList().size(), 0);
-    EXPECT_EQ(index_plan->GetIndexScanDescription().GetValueList().size(), 0);
     EXPECT_EQ(index_plan->GetScanPredicate().Get(), nullptr);
   };
 
@@ -169,16 +146,6 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicate) {
     EXPECT_EQ(index_plan->IsForUpdate(), false);
     EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(index_plan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
-
-    // Check IndexScanDescription
-    auto &index_desc = index_plan->GetIndexScanDescription();
-    EXPECT_EQ(index_desc.GetTupleColumnIdList().size(), 1);
-    EXPECT_EQ(index_desc.GetExpressionTypeList().size(), 1);
-    EXPECT_EQ(index_desc.GetValueList().size(), 1);
-    EXPECT_EQ(index_desc.GetTupleColumnIdList()[0], schema.GetColumn("no_w_id").Oid());
-    EXPECT_EQ(index_desc.GetExpressionTypeList()[0], parser::ExpressionType::COMPARE_EQUAL);
-    EXPECT_EQ(index_desc.GetValueList()[0].Type(), type::TypeId::INTEGER);
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(index_desc.GetValueList()[0]), 1);
 
     // Check Index Scan Predicate
     auto scan_pred = index_plan->GetScanPredicate();
@@ -243,16 +210,6 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicateWithLimitOffset) {
     EXPECT_EQ(index_plan->IsForUpdate(), false);
     EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(index_plan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
-
-    // Check IndexScanDescription
-    auto &index_desc = index_plan->GetIndexScanDescription();
-    EXPECT_EQ(index_desc.GetTupleColumnIdList().size(), 1);
-    EXPECT_EQ(index_desc.GetExpressionTypeList().size(), 1);
-    EXPECT_EQ(index_desc.GetValueList().size(), 1);
-    EXPECT_EQ(index_desc.GetTupleColumnIdList()[0], schema.GetColumn("no_w_id").Oid());
-    EXPECT_EQ(index_desc.GetExpressionTypeList()[0], parser::ExpressionType::COMPARE_EQUAL);
-    EXPECT_EQ(index_desc.GetValueList()[0].Type(), type::TypeId::INTEGER);
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(index_desc.GetValueList()[0]), 1);
 
     // Check Index Scan Predicate
     auto scan_pred = index_plan->GetScanPredicate();

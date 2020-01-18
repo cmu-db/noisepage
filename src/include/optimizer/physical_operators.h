@@ -151,17 +151,11 @@ class IndexScan : public OperatorNode<IndexScan> {
    * @param predicates query predicates
    * @param table_alias alias of the table
    * @param is_for_update whether the scan is used for update
-   * @param key_column_oid_list OID of key columns
-   * @param expr_type_list expression types
-   * @param value_list values to be scanned
    * @return an IndexScan operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::index_oid_t index_oid, std::vector<AnnotatedExpression> &&predicates,
-                       std::string table_alias, bool is_for_update,
-                       std::vector<catalog::col_oid_t> &&key_column_oid_list,
-                       std::vector<parser::ExpressionType> &&expr_type_list,
-                       std::vector<type::TransientValue> &&value_list);
+                       std::string table_alias, bool is_for_update);
 
   /**
    * Copy
@@ -203,21 +197,6 @@ class IndexScan : public OperatorNode<IndexScan> {
    */
   bool GetIsForUpdate() const { return is_for_update_; }
 
-  /**
-   * @return List of OIDs of key columns
-   */
-  const std::vector<catalog::col_oid_t> &GetKeyColumnOIDList() const { return key_column_oid_list_; }
-
-  /**
-   * @return List of expression types
-   */
-  const std::vector<parser::ExpressionType> &GetExprTypeList() const { return expr_type_list_; }
-
-  /**
-   * @return List of parameter values
-   */
-  const std::vector<type::TransientValue> &GetValueList() const { return value_list_; }
-
  private:
   /**
    * OID of the database
@@ -248,21 +227,6 @@ class IndexScan : public OperatorNode<IndexScan> {
    * Whether the scan is used for update
    */
   bool is_for_update_;
-
-  /**
-   * OIDs of key columns
-   */
-  std::vector<catalog::col_oid_t> key_column_oid_list_;
-
-  /**
-   * Expression types
-   */
-  std::vector<parser::ExpressionType> expr_type_list_;
-
-  /**
-   * Parameter values
-   */
-  std::vector<type::TransientValue> value_list_;
 };
 
 /**
