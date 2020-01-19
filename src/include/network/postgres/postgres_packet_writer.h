@@ -92,6 +92,7 @@ class PostgresPacketWriter : public PacketWriter {
     BeginPacket(NetworkMessageType::PG_ROW_DESCRIPTION).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
     for (const auto &col : columns) {
       const auto col_type = col.GetType();
+      // TODO(Matt): Figure out how to get table oid and column oids in the OutputSchema (Optimizer's job?)
       AppendString(col.GetName())
           .AppendValue<int32_t>(0)  // table oid (if it's a column from a table), 0 otherwise
           .AppendValue<int16_t>(0)  // column oid (if it's a column from a table), 0 otherwise
