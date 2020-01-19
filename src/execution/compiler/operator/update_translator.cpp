@@ -26,7 +26,8 @@ void UpdateTranslator::Produce(FunctionBuilder *builder) {
 
 void UpdateTranslator::Abort(FunctionBuilder *builder) {
   GenUpdaterFree(builder);
-  if (child_translator_ != nullptr) child_translator_->Abort(builder);
+  child_translator_->Abort(builder);
+  builder->Append(codegen_->ReturnStmt(nullptr));
 }
 
 void UpdateTranslator::Consume(FunctionBuilder *builder) {

@@ -1,5 +1,7 @@
 #include "execution/sql/join_hash_table.h"
 
+#include <tbb/tbb.h>
+
 #include <algorithm>
 #include <limits>
 #include <utility>
@@ -12,7 +14,6 @@
 #include "execution/util/timer.h"
 #include "libcount/hll.h"
 #include "loggers/execution_logger.h"
-#include "tbb/tbb.h"
 
 namespace terrier::execution::sql {
 

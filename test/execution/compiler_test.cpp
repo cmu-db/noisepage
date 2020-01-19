@@ -1456,7 +1456,7 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
                     .Build();
   }
 
-  // make DeletePlanNode
+  // make UpdatePlanNode
   std::unique_ptr<planner::AbstractPlanNode> update_node;
   {
     planner::UpdatePlanNode::Builder builder;
@@ -1479,7 +1479,7 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
                       .SetIndexedUpdate(true)
                       .Build();
   }
-  // Execute delete
+  // Execute update
   {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};

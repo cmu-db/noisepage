@@ -1,6 +1,8 @@
 #include "execution/compiler/operator/delete_translator.h"
+
 #include <utility>
 #include <vector>
+
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/translator_factory.h"
 
@@ -21,6 +23,7 @@ void DeleteTranslator::Produce(FunctionBuilder *builder) {
 void DeleteTranslator::Abort(FunctionBuilder *builder) {
   GenDeleterFree(builder);
   child_translator_->Abort(builder);
+  builder->Append(codegen_->ReturnStmt(nullptr));
 }
 
 void DeleteTranslator::Consume(FunctionBuilder *builder) {
