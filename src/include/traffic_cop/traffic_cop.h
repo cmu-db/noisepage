@@ -101,6 +101,12 @@ class TrafficCop {
                         common::ManagedPointer<parser::ParseResult> parse_result,
                         terrier::network::QueryType query_type) const;
 
+  /**
+   * Adjust the TrafficCop's optimizer timeout value (for use by SettingsManager)
+   * @param optimizer_timeout time in ms to spend on a task @see optimizer::Optimizer constructor
+   */
+  void SetOptimizerTimeout(const uint64_t optimizer_timeout) { optimizer_timeout_ = optimizer_timeout; }
+
  private:
   // Internal method to handle the logic of beginning a txn. Is not responsible for outputting results, only meant to be
   // called by ExecuteTransactionStatement
