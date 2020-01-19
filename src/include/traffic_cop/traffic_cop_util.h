@@ -20,9 +20,8 @@ class AbstractPlanNode;
 }
 
 namespace terrier::optimizer {
-class OperatorExpression;
 class StatsStorage;
-}  // namespace terrier::optimizer
+}
 
 namespace terrier::transaction {
 class TransactionContext;
