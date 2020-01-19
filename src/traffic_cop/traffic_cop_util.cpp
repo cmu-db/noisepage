@@ -3,7 +3,6 @@
 #include <string>
 #include <vector>
 
-#include "binder/bind_node_visitor.h"
 #include "catalog/catalog_accessor.h"
 #include "optimizer/abstract_optimizer.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
@@ -17,19 +16,6 @@
 #include "parser/postgresparser.h"
 
 namespace terrier::trafficcop {
-
-bool TrafficCopUtil::Bind(const common::ManagedPointer<catalog::CatalogAccessor> accessor, const std::string &db_name,
-                          const common::ManagedPointer<parser::ParseResult> query) {
-  try {
-    binder::BindNodeVisitor visitor(accessor, db_name);
-    visitor.BindNameToNode(query->GetStatement(0), query.Get());
-  } catch (...) {
-    // Failed to bind
-    // TODO(Matt): handle this in some more verbose manner for the client (return more state)
-    return false;
-  }
-  return true;
-}
 
 std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(
     const common::ManagedPointer<transaction::TransactionContext> txn,

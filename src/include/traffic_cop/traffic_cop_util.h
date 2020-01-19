@@ -38,15 +38,6 @@ class TrafficCopUtil {
   TrafficCopUtil() = delete;
 
   /**
-   * @param accessor used by binder
-   * @param db_name used by binder
-   * @param query to be bound
-   * @return bound ParseResult
-   */
-  static bool Bind(common::ManagedPointer<catalog::CatalogAccessor> accessor, const std::string &db_name,
-                   common::ManagedPointer<parser::ParseResult> query);
-
-  /**
    * @param txn used by optimizer
    * @param accessor used by optimizer
    * @param query bound ParseResult

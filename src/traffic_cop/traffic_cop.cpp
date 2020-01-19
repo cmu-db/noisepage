@@ -5,6 +5,7 @@
 #include <string>
 #include <utility>
 
+#include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
 #include "common/exception.h"
@@ -239,6 +240,32 @@ std::unique_ptr<parser::ParseResult> TrafficCop::ParseQuery(
   return parse_result;
 }
 
+bool TrafficCop::BindStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                               const common::ManagedPointer<network::PostgresPacketWriter> out,
+                               const common::ManagedPointer<parser::ParseResult> parse_result,
+                               const terrier::network::QueryType query_type) const {
+  try {
+    // TODO(Matt): I don't think the binder should need the database name. It's already bound in the ConnectionContext
+    binder::BindNodeVisitor visitor(connection_ctx->Accessor(), connection_ctx->GetDatabaseName());
+    visitor.BindNameToNode(parse_result->GetStatement(0), parse_result.Get());
+  } catch (...) {
+    // Failed to bind
+    // TODO(Matt): this is a hack to get IF EXISTS to work with our tests, we actually need better support in
+    // PostgresParser and the binder should return more state back to the TrafficCop to figure out what to do
+    if ((parse_result->GetStatement(0)->GetType() == parser::StatementType::DROP &&
+         parse_result->GetStatement(0).CastManagedPointerTo<parser::DropStatement>()->IsIfExists())) {
+      out->WriteNoticeResponse("NOTICE:  binding failed with an IF EXISTS clause, skipping statement");
+      out->WriteCommandComplete(query_type, 0);
+    } else {
+      out->WriteErrorResponse("ERROR:  binding failed");
+      // failing to bind fails a transaction in postgres
+      connection_ctx->Transaction()->SetMustAbort();
+    }
+    return false;
+  }
+  return true;
+}
+
 void TrafficCop::ExecuteStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                   const common::ManagedPointer<network::PostgresPacketWriter> out,
                                   const common::ManagedPointer<parser::ParseResult> parse_result,
@@ -264,14 +291,7 @@ void TrafficCop::ExecuteStatement(const common::ManagedPointer<network::Connecti
   }
 
   // Try to bind the parsed statement
-  // TODO(Matt): this is where IF EXISTS can be short-circuited if the binder is enhanced to return the proper state
-  // TODO(Matt): I don't think the binder should need the database name
-  if (!TrafficCopUtil::Bind(connection_ctx->Accessor(), connection_ctx->GetDatabaseName(), parse_result)) {
-    out->WriteErrorResponse("ERROR:  binding failed");
-
-    // failing to bind fails a transaction in postgres
-    connection_ctx->Transaction()->SetMustAbort();
-  } else {
+  if (BindStatement(connection_ctx, out, parse_result, query_type)) {
     // Binding succeeded, optimize to generate a physical plan and then execute
     auto physical_plan = trafficcop::TrafficCopUtil::Optimize(connection_ctx->Transaction(), connection_ctx->Accessor(),
                                                               parse_result, stats_storage_, optimizer_timeout_);

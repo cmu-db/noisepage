@@ -37,6 +37,7 @@ class TrafficCopTests : public TerrierTest {
                    .SetUseStatsStorage(true)
                    .SetUseLogging(true)
                    .SetUseNetwork(true)
+                   .SetUseExecution(true)
                    .Build();
 
     db_main_->GetNetworkLayer()->GetServer()->RunServer();

@@ -122,6 +122,12 @@ class TrafficCop {
                                    common::ManagedPointer<network::PostgresPacketWriter> out,
                                    terrier::network::QueryType query_type) const;
 
+  // Contains logic to reason about binding, and basic IF EXISTS logic. Responsible for outputting results.
+  bool BindStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                     common::ManagedPointer<network::PostgresPacketWriter> out,
+                     common::ManagedPointer<parser::ParseResult> parse_result,
+                     terrier::network::QueryType query_type) const;
+
   // Contains the logic to reason about CREATE execution. Responsible for outputting results.
   void ExecuteCreateStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                               common::ManagedPointer<network::PostgresPacketWriter> out,
