@@ -5,16 +5,14 @@
 #include <utility>
 #include <vector>
 
-#include "tbb/tbb.h"
-
-#include "libcount/hll.h"
-
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/cpu_info.h"
 #include "execution/util/memory.h"
 #include "execution/util/timer.h"
+#include "libcount/hll.h"
 #include "loggers/execution_logger.h"
+#include "tbb/tbb.h"
 
 namespace terrier::execution::sql {
 
@@ -533,7 +531,7 @@ void JoinHashTable::BuildConciseHashTableInternal() {
   // Build
   concise_hash_table_.Build();
 
-  EXECUTION_LOG_INFO(
+  EXECUTION_LOG_DEBUG(
       "Concise Table Stats: {} entries, {} overflow ({} % overflow)", entries_.size(),
       concise_hash_table_.NumOverflow(),
       100.0 * (static_cast<double>(concise_hash_table_.NumOverflow()) * 1.0 / static_cast<double>(entries_.size())));
@@ -698,7 +696,7 @@ void JoinHashTable::MergeParallel(const ThreadStateContainer *thread_state_conta
   }
 
   uint64_t num_elem_estimate = hll_estimator_->Estimate();
-  EXECUTION_LOG_INFO("Global unique count: {}", num_elem_estimate);
+  EXECUTION_LOG_DEBUG("Global unique count: {}", num_elem_estimate);
 
   // Set size
   generic_hash_table_.SetSize(num_elem_estimate);
