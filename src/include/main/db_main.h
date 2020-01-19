@@ -334,11 +334,17 @@ class DBMain {
         stats_storage = std::make_unique<optimizer::StatsStorage>();
       }
 
+      std::unique_ptr<ExecutionLayer> execution_layer = DISABLED;
+      if (use_execution_) {
+        execution_layer = std::make_unique<ExecutionLayer>();
+      }
+
       std::unique_ptr<trafficcop::TrafficCop> traffic_cop = DISABLED;
       if (use_traffic_cop_) {
         TERRIER_ASSERT(use_catalog_ && catalog_layer->GetCatalog() != DISABLED,
                        "TrafficCopLayer needs the CatalogLayer.");
         TERRIER_ASSERT(use_stats_storage_ && stats_storage != DISABLED, "TrafficCopLayer needs StatsStorage.");
+        TERRIER_ASSERT(use_execution_ && execution_layer != DISABLED, "TrafficCopLayer needs ExecutionLayer.");
         traffic_cop = std::make_unique<trafficcop::TrafficCop>(
             txn_layer->GetTransactionManager(), catalog_layer->GetCatalog(), DISABLED,
             common::ManagedPointer(stats_storage), optimizer_timeout_);
@@ -349,11 +355,6 @@ class DBMain {
         TERRIER_ASSERT(use_traffic_cop_ && traffic_cop != DISABLED, "NetworkLayer needs TrafficCopLayer.");
         network_layer = std::make_unique<NetworkLayer>(common::ManagedPointer(thread_registry),
                                                        common::ManagedPointer(traffic_cop), network_port_);
-      }
-
-      std::unique_ptr<ExecutionLayer> execution_layer = DISABLED;
-      if (use_execution_) {
-        execution_layer = std::make_unique<ExecutionLayer>();
       }
 
       db_main->settings_manager_ = std::move(settings_manager);
@@ -367,9 +368,9 @@ class DBMain {
       db_main->catalog_layer_ = std::move(catalog_layer);
       db_main->gc_thread_ = std::move(gc_thread);
       db_main->stats_storage_ = std::move(stats_storage);
+      db_main->execution_layer_ = std::move(execution_layer);
       db_main->traffic_cop_ = std::move(traffic_cop);
       db_main->network_layer_ = std::move(network_layer);
-      db_main->execution_layer_ = std::move(execution_layer);
 
       return db_main;
     }
@@ -617,11 +618,11 @@ class DBMain {
     int32_t gc_interval_ = 10;
     bool use_gc_thread_ = false;
     bool use_stats_storage_ = false;
+    bool use_execution_ = false;
     bool use_traffic_cop_ = false;
     uint64_t optimizer_timeout_ = 5000;
     uint16_t network_port_ = 15721;
     bool use_network_ = false;
-    bool use_execution_ = false;
 
     /**
      * Instantiates the SettingsManager and reads all of the settings to override the Builder's settings.
@@ -754,9 +755,9 @@ class DBMain {
   std::unique_ptr<storage::GarbageCollectorThread>
       gc_thread_;  // thread needs to die before manual invocations of GC in CatalogLayer and others
   std::unique_ptr<optimizer::StatsStorage> stats_storage_;
+  std::unique_ptr<ExecutionLayer> execution_layer_;
   std::unique_ptr<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<NetworkLayer> network_layer_;
-  std::unique_ptr<ExecutionLayer> execution_layer_;
 };
 
 }  // namespace terrier
