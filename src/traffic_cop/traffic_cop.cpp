@@ -1,7 +1,5 @@
 #include "traffic_cop/traffic_cop.h"
 
-#include <network/connection_context.h>
-
 #include <future>  // NOLINT
 #include <memory>
 #include <string>
@@ -15,6 +13,7 @@
 #include "execution/executable_query.h"
 #include "execution/sql/ddl_executors.h"
 #include "execution/vm/module.h"
+#include "network/connection_context.h"
 #include "network/postgres/postgres_packet_writer.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "parser/postgresparser.h"

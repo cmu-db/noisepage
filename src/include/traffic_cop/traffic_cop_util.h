@@ -1,11 +1,10 @@
 #pragma once
 
-#include <network/network_defs.h>
-
 #include <memory>
 #include <string>
 
 #include "common/managed_pointer.h"
+#include "network/network_defs.h"
 
 namespace terrier::catalog {
 class CatalogAccessor;
