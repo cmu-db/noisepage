@@ -36,6 +36,8 @@ namespace terrier::network {
  * a client connection for its entire duration. This includes a state machine
  * and the necessary libevent infrastructure for a handler to work on this
  * connection.
+ *
+ * State not related to the network state machine probably doesn't belong here, but rather in the ConnectionContext.
  */
 class ConnectionHandle {
  public:

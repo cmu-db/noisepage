@@ -22,6 +22,9 @@ namespace terrier::network {
 /**
  * A ConnectionContext stores the state of a connection. There should be as little as possible that is protocol-specific
  * in this layer, and if you find yourself wanting to put more the design should be discussed.
+ *
+ * This class is designed to share information between several layers: ConnectionHandle, ProtocolInterpreter,
+ * NetworkCommands, and TrafficCop.
  */
 class ConnectionContext {
  public:

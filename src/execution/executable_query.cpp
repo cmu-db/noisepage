@@ -1,5 +1,13 @@
 #include "execution/executable_query.h"
 
+#include "execution/ast/ast_dump.h"
+#include "execution/compiler/codegen.h"
+#include "execution/compiler/compiler.h"
+#include "execution/util/region.h"
+#include "execution/vm/bytecode_generator.h"
+#include "execution/vm/module.h"
+#include "loggers/execution_logger.h"
+
 namespace terrier::execution {
 
 ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,

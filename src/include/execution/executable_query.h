@@ -2,16 +2,27 @@
 #include <memory>
 #include <utility>
 
-#include "execution/ast/ast_dump.h"
+#include "common/managed_pointer.h"
 #include "execution/ast/context.h"
-#include "execution/compiler/codegen.h"
-#include "execution/compiler/compiler.h"
-#include "execution/util/region.h"
-#include "execution/vm/bytecode_generator.h"
-#include "execution/vm/module.h"
-#include "loggers/execution_logger.h"
+
+namespace terrier::planner {
+class AbstractPlanNode;
+}
 
 namespace terrier::execution {
+
+namespace exec {
+class ExecutionContext;
+}
+
+namespace vm {
+enum class ExecutionMode : uint8_t;
+class Module;
+}  // namespace vm
+
+namespace util {
+class Region;
+}
 
 /**
  * ExecutableQuery abstracts the TPL code generation and compilation process. The result is an object that can be
