@@ -36,6 +36,7 @@ int main(int argc, char *argv[]) {
                      .SetUseCatalog(true)
                      .SetUseGCThread(true)
                      .SetUseStatsStorage(true)
+                     .SetUseExecution(true)
                      .SetUseTrafficCop(true)
                      .SetUseNetwork(true)
                      .Build();
