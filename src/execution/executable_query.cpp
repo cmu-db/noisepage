@@ -13,7 +13,7 @@ ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractP
     return;
   }
 
-  EXECUTION_LOG_INFO("Converted: \n {}", execution::ast::AstDump::Dump(root));
+  EXECUTION_LOG_DEBUG("Converted: \n {}", execution::ast::AstDump::Dump(root));
 
   // Convert to bytecode
   auto bytecode_module = vm::BytecodeGenerator::Compile(root, exec_ctx.Get(), "tmp-tpl");
@@ -34,7 +34,7 @@ void ExecutableQuery::Run(const common::ManagedPointer<exec::ExecutionContext> e
     return;
   }
   auto result = main(exec_ctx.Get());
-  EXECUTION_LOG_INFO("main() returned: {}", result);
+  EXECUTION_LOG_DEBUG("main() returned: {}", result);
 }
 
 }  // namespace terrier::execution
