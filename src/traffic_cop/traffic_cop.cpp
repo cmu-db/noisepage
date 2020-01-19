@@ -317,15 +317,14 @@ void TrafficCop::CodegenAndRunPhysicalPlan(const common::ManagedPointer<network:
 
   exec_query.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
 
-  // TODO(Matt): I think the number of rows affected should be switched to the ExecutionContext since the
-  // OutputPrinter isn't invoked for INSERT, UPDATE, DELETE so we can't get the number from there.
-
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
     // Execution didn't set us to FAIL state, go ahead and write command complete
+    // TODO(Matt): I think the number of rows affected should be switched to the ExecutionContext since the
+    // OutputPrinter isn't invoked for INSERT, UPDATE, DELETE so we can't get the number from there.
     out->WriteCommandComplete(query_type, writer.NumRows());
   } else {
     // TODO(Matt): We need a more verbose way to say what happened during execution (INSERT failed for key conflict,
-    // etc.)
+    // etc.) I suspect we would stash that in the ExecutionContext.
     out->WriteErrorResponse("Query failed.");
   }
 }
