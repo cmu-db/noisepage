@@ -12,7 +12,7 @@ public class InsertTest extends PLTestBase {
     private String s_sql = "SELECT * FROM tbl;";
 
     private static final String SQL_DROP_TABLE =
-            "DROP TABLE IF EXISTS tbl;";
+            "DROP TABLE tbl;";
 
     private static final String SQL_CREATE_TABLE =
             "CREATE TABLE tbl (" +
