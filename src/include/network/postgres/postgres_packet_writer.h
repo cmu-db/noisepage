@@ -168,6 +168,9 @@ class PostgresPacketWriter : public PacketWriter {
       case QueryType::QUERY_DROP_SCHEMA:
         WriteCommandComplete("DROP SCHEMA");
         break;
+      case QueryType::QUERY_SET:
+        WriteCommandComplete("SET");
+        break;
       default:
         WriteCommandComplete("This QueryType needs a completion message!");
         break;

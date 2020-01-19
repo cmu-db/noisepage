@@ -249,6 +249,13 @@ void TrafficCop::ExecuteStatement(const common::ManagedPointer<network::Connecti
     return;
   }
 
+  if (query_type >= network::QueryType::QUERY_RENAME) {
+    // We don't yet support query types with values greater than this
+    // TODO(Matt): add a TRAFFIC_COP_LOG_INFO here
+    out->WriteCommandComplete(query_type, 0);
+    return;
+  }
+
   const bool single_statement_txn = connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE;
 
   // Begin a transaction if necessary

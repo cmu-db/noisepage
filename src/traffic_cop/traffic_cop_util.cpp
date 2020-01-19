@@ -145,6 +145,8 @@ network::QueryType TrafficCopUtil::QueryTypeForStatement(const common::ManagedPo
           return network::QueryType::QUERY_DROP_TRIGGER;
       }
     }
+    case parser::StatementType::VARIABLE_SET:
+      return network::QueryType::QUERY_SET;
     case parser::StatementType::PREPARE:
       return network::QueryType::QUERY_PREPARE;
     case parser::StatementType::EXECUTE:
