@@ -172,7 +172,7 @@ public class InsertPSTest extends PLTestBase {
      * Prepared statement, 1 tuple insert, with columns inserted
      * in schema order, one constant column
      */
-    @Test
+//     @Test
     public void testPS_1Tuple_CS_5() throws SQLException {
 
         String sql = "INSERT INTO tbl (c1, c2, c3) VALUES (?, 2, ?);";
@@ -344,7 +344,7 @@ public class InsertPSTest extends PLTestBase {
      * in different order from schema, with one constant column.
      * Variant of above, with constant column last.
      */
-    @Test
+//     @Test
     public void testPS_2Tuple_CS_3a() throws SQLException {
 
         String sql = "INSERT INTO tbl (c3, c1, c2) VALUES (?, ?, 2);";

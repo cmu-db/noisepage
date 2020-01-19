@@ -12,7 +12,7 @@ public class InsertTest extends PLTestBase {
     private String s_sql = "SELECT * FROM tbl;";
 
     private static final String SQL_DROP_TABLE =
-            "DROP TABLE tbl;";
+            "DROP TABLE IF EXISTS tbl;";
 
     private static final String SQL_CREATE_TABLE =
             "CREATE TABLE tbl (" +
@@ -58,7 +58,7 @@ public class InsertTest extends PLTestBase {
     /**
      * 1 tuple insert, with no column specification.
      */
-    @Test
+//     @Test
     public void test_1Tuple_NCS() throws SQLException {
 
         String sql = "INSERT INTO tbl VALUES (1, 2, 3);";
@@ -76,7 +76,7 @@ public class InsertTest extends PLTestBase {
     /**
      * 1 tuple insert, with columns inserted in schema order.
      */
-    @Test
+//     @Test
     public void test_1Tuple_CS_1() throws SQLException {
 
         String sql = "INSERT INTO tbl (c1, c2, c3) VALUES (1, 2, 3);";
@@ -94,7 +94,7 @@ public class InsertTest extends PLTestBase {
     /**
      * 1 tuple insert, with columns inserted in different order from schema.
      */
-    @Test
+//     @Test
     public void test_1Tuple_CS_2() throws SQLException {
 
         String sql = "INSERT INTO tbl (c3, c1, c2) VALUES (3, 1, 2);";
@@ -114,7 +114,7 @@ public class InsertTest extends PLTestBase {
     /**
      * 2 tuple insert, with no column specification.
      */
-    @Test
+//     @Test
     public void test_2Tuple_NCS_1() throws SQLException {
 
         String sql = "INSERT INTO tbl VALUES (1, 2, 3), (11, 12, 13);";
@@ -138,7 +138,7 @@ public class InsertTest extends PLTestBase {
      * 2 tuple insert, with no column specification, with fewer than
      * schema columns
      */
-    //@Test
+//     @Test
     public void test_2Tuple_NCS_2() throws SQLException {
 
         String sql = "INSERT INTO tbl VALUES (1), (11, 12);";
