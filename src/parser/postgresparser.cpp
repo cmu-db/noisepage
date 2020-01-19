@@ -1281,13 +1281,29 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateFunctionTransform(ParseResul
 // Postgres.IndexStmt -> terrier.CreateStatement
 std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(ParseResult *parse_result, IndexStmt *root) {
   auto unique = root->unique_;
-  auto index_name = root->idxname_;
+
+  TERRIER_ASSERT(root->relation_->relname_ != nullptr, "It can't be empty. See postgres spec.");
+
+  auto table_name = root->relation_->relname_;
+  auto schema_name = root->relation_->schemaname_ == nullptr ? "" : root->relation_->schemaname_;
+  auto database_name = root->relation_->catalogname_ == nullptr ? "" : root->relation_->catalogname_;
+  auto table_info = std::make_unique<TableInfo>(table_name, schema_name, database_name);
+
+  std::string index_name;
+  if (root->idxname_ != nullptr) {
+    index_name = root->idxname_;
+  } else {
+    index_name = table_name;
+  }
 
   std::vector<IndexAttr> index_attrs;
   for (auto cell = root->index_params_->head; cell != nullptr; cell = cell->next) {
     auto *index_elem = reinterpret_cast<IndexElem *>(cell->data.ptr_value);
     if (index_elem->expr_ == nullptr) {
       index_attrs.emplace_back(index_elem->name_);
+      if (root->idxname_ == nullptr) {
+        index_name += "_" + std::string(index_elem->name_);
+      }
     } else {
       auto expr = ExprTransform(parse_result, index_elem->expr_, nullptr);
       auto expr_ptr = common::ManagedPointer(expr);
@@ -1295,11 +1311,6 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(ParseResult *
       index_attrs.emplace_back(expr_ptr);
     }
   }
-
-  auto table_name = root->relation_->relname_ == nullptr ? "" : root->relation_->relname_;
-  auto schema_name = root->relation_->schemaname_ == nullptr ? "" : root->relation_->schemaname_;
-  auto database_name = root->relation_->catalogname_ == nullptr ? "" : root->relation_->catalogname_;
-  auto table_info = std::make_unique<TableInfo>(table_name, schema_name, database_name);
 
   char *access_method = root->access_method_;
   IndexType index_type;

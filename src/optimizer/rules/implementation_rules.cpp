@@ -1,3 +1,5 @@
+#include "optimizer/rules/implementation_rules.h"
+
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -13,7 +15,6 @@
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/physical_operators.h"
 #include "optimizer/properties.h"
-#include "optimizer/rules/implementation_rules.h"
 #include "optimizer/util.h"
 #include "parser/expression_util.h"
 #include "storage/storage_defs.h"
@@ -691,9 +692,11 @@ void LogicalCreateIndexToPhysicalCreateIndex::Transform(common::ManagedPointer<O
     if (attr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
       auto cve = attr.CastManagedPointerTo<parser::ColumnValueExpression>();
       auto &col = tbl_schema.GetColumn(cve->GetColumnOid());
+      name = cve->GetColumnName();
       nullable = col.Nullable();
       if (is_var) varlen_size = col.MaxVarlenSize();
     } else {
+      // TODO(Matt): derive a unique name
       // TODO(wz2): Derive nullability/varlen from non ColumnValue
       nullable = true;
       varlen_size = UINT16_MAX;
