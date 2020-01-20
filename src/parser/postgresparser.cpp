@@ -1289,8 +1289,9 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(ParseResult *
   auto database_name = root->relation_->catalogname_ == nullptr ? "" : root->relation_->catalogname_;
   auto table_info = std::make_unique<TableInfo>(table_name, schema_name, database_name);
 
+  const bool no_name = root->idxname_ == nullptr;
   std::string index_name;
-  if (root->idxname_ != nullptr) {
+  if (!no_name) {
     index_name = root->idxname_;
   } else {
     index_name = table_name;
@@ -1301,7 +1302,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(ParseResult *
     auto *index_elem = reinterpret_cast<IndexElem *>(cell->data.ptr_value);
     if (index_elem->expr_ == nullptr) {
       index_attrs.emplace_back(index_elem->name_);
-      if (root->idxname_ == nullptr) {
+      if (no_name) {
         index_name += "_" + std::string(index_elem->name_);
       }
     } else {
@@ -1310,6 +1311,10 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(ParseResult *
       parse_result->AddExpression(std::move(expr));
       index_attrs.emplace_back(expr_ptr);
     }
+  }
+
+  if (no_name) {
+    index_name += "_idx";
   }
 
   char *access_method = root->access_method_;
