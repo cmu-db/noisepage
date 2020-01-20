@@ -2,6 +2,7 @@
 
 #include <sstream>
 #include <string>
+#include <string_view>
 
 #include "common/macros.h"
 #include "common/math_util.h"
@@ -222,6 +223,15 @@ struct StringVal : public Val {
         ptr_ = str;
       }
     }
+  }
+
+  /**
+   * @return std::string_view of StringVal's contents
+   */
+  std::string_view StringView() const {
+    TERRIER_ASSERT(!is_null_,
+                   "You should be doing a NULL check before attempting to generate a std::string_view of a StringVal.");
+    return std::string_view(Content(), len_);
   }
 
   /**

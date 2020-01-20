@@ -1,6 +1,7 @@
 #include "execution/tpl.h"
 
 #include <gflags/gflags.h>
+#include <tbb/task_scheduler_init.h>
 #include <unistd.h>
 
 #include <algorithm>
@@ -37,7 +38,6 @@
 #include "main/db_main.h"
 #include "settings/settings_manager.h"
 #include "storage/garbage_collector.h"
-#include "tbb/task_scheduler_init.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/timestamp_manager.h"
 

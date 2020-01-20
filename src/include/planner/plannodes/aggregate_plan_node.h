@@ -1,13 +1,14 @@
 #pragma once
 
-#include <parser/expression/aggregate_expression.h>
 #include <memory>
 #include <numeric>
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "common/hash_util.h"
 #include "parser/expression/abstract_expression.h"
+#include "parser/expression/aggregate_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
 // TODO(Gus, Wen): Replace Perform Binding in parser::AggregateExpression* and AggregatePlanNode
