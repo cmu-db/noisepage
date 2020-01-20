@@ -123,12 +123,7 @@ class IndexUtil {
     std::unordered_set<catalog::col_oid_t> mapped_set;
     for (auto col : mapped_cols) mapped_set.insert(col);
 
-    if (!CheckPredicates(index_schema, lookup, mapped_set, predicates, scan_type, bounds)) {
-      // Must use seq scan to satisfy predicates
-      return false;
-    }
-
-    return true;
+    return CheckPredicates(index_schema, lookup, mapped_set, predicates, scan_type, bounds);
   }
 
  private:
@@ -153,7 +148,7 @@ class IndexUtil {
     // To concatenate/shrink ranges, we would need to be able to compare TransientValues.
     std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> open_highs;  // <index, low start>
     std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> open_lows;   // <index, high end>
-    for (auto pred : predicates) {
+    for (const auto &pred : predicates) {
       auto expr = pred.GetExpr();
       if (expr->HasSubquery()) return false;
 
@@ -229,7 +224,9 @@ class IndexUtil {
       if (open_highs.find(oid) == open_highs.end() && open_lows.find(oid) == open_lows.end()) {
         // Index predicate ordering is busted
         break;
-      } else if (open_highs.find(oid) != open_highs.end() && open_lows.find(oid) != open_lows.end()) {
+      }
+      
+      if (open_highs.find(oid) != open_highs.end() && open_lows.find(oid) != open_lows.end()) {
         bounds->insert(std::make_pair(oid, std::vector<planner::IndexExpression>{open_highs[oid], open_lows[oid]}));
 
         // A range is defined but we are doing exact scans, so make ascending closed

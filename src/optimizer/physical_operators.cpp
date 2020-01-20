@@ -90,7 +90,7 @@ Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_
   scan->is_for_update_ = is_for_update;
   scan->predicates_ = std::move(predicates);
   scan->scan_type_ = scan_type;
-  scan->bounds_ = bounds;
+  scan->bounds_ = std::move(bounds);
   return Operator(std::move(scan));
 }
 
@@ -107,21 +107,17 @@ bool IndexScan::operator==(const BaseOperatorNode &r) {
   }
 
   if (bounds_.size() != node.bounds_.size()) return false;
-  for (auto bound : bounds_) {
+  for (const auto &bound : bounds_) {
     if (node.bounds_.find(bound.first) == node.bounds_.end()) return false;
 
     std::vector<planner::IndexExpression> exprs = bound.second;
     std::vector<planner::IndexExpression> o_exprs = node.bounds_.find(bound.first)->second;
     if (exprs.size() != o_exprs.size()) return false;
     for (size_t idx = 0; idx < exprs.size(); idx++) {
-      if (exprs[idx] == nullptr && o_exprs[idx] == nullptr)
-        continue;
-      else if (exprs[idx] == nullptr && o_exprs[idx] != nullptr)
-        return false;
-      else if (exprs[idx] != nullptr && o_exprs[idx] == nullptr)
-        return false;
-      else if (*exprs[idx] != *o_exprs[idx])
-        return false;
+      if (exprs[idx] == nullptr && o_exprs[idx] == nullptr) continue;
+      if (exprs[idx] == nullptr && o_exprs[idx] != nullptr) return false;
+      if (exprs[idx] != nullptr && o_exprs[idx] == nullptr) return false;
+      if (*exprs[idx] != *o_exprs[idx]) return false;
     }
   }
   return true;
@@ -143,7 +139,7 @@ common::hash_t IndexScan::Hash() const {
       hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
   }
 
-  for (auto bound : bounds_) {
+  for (const auto &bound : bounds_) {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(bound.first));
     for (auto expr : bound.second) {
       if (expr != nullptr) {
