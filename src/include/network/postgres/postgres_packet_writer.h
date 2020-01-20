@@ -37,6 +37,64 @@ class PostgresPacketWriter : public PacketWriter {
   }
 
   /**
+   * Write out a packet with a single type that is not related to Postgres SSL.
+   * @param type Type of message to write out
+   */
+  void WriteSingleTypePacket(NetworkMessageType type) {
+    // Make sure no active packet being constructed
+    TERRIER_ASSERT(IsPacketEmpty(), "packet length is null");
+    TERRIER_ASSERT(type != NetworkMessageType::PG_SSL_YES && type != NetworkMessageType::PG_SSL_NO,
+                   "SSL types not allowed");
+    BeginPacket(type).EndPacket();
+  }
+
+  /**
+   * Writes error responses to the client
+   * @param error_status The error messages to send
+   */
+  void WriteErrorResponse(const std::vector<std::pair<NetworkMessageType, std::string>> &error_status) {
+    BeginPacket(NetworkMessageType::PG_ERROR_RESPONSE);
+
+    for (const auto &entry : error_status) AppendRawValue(entry.first).AppendString(entry.second);
+
+    // Nul-terminate packet
+    AppendRawValue<uchar>(0).EndPacket();
+  }
+
+  /**
+   * Notify the client a readiness to receive a query
+   * @param txn_status
+   */
+  void WriteReadyForQuery(NetworkTransactionStateType txn_status) {
+    BeginPacket(NetworkMessageType::PG_READY_FOR_QUERY).AppendRawValue(txn_status).EndPacket();
+  }
+
+  /**
+   * A helper function to write a single error message without having to make a vector every time.
+   * @param type
+   * @param status
+   */
+  void WriteSingleErrorResponse(NetworkMessageType type, const std::string &status) {
+    std::vector<std::pair<NetworkMessageType, std::string>> buf;
+    buf.emplace_back(type, status);
+    WriteErrorResponse(buf);
+  }
+
+  /**
+   * Writes response to startup message
+   */
+  void WriteStartupResponse() {
+    BeginPacket(NetworkMessageType::PG_AUTHENTICATION_REQUEST).AppendValue<int32_t>(0).EndPacket();
+
+    for (auto &entry : PG_PARAMETER_STATUS_MAP)
+      BeginPacket(NetworkMessageType::PG_PARAMETER_STATUS)
+          .AppendString(entry.first)
+          .AppendString(entry.second)
+          .EndPacket();
+    WriteReadyForQuery(NetworkTransactionStateType::IDLE);
+  }
+
+  /**
    * Writes a simple query
    * @param query string to execute
    */
