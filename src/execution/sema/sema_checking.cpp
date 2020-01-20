@@ -165,12 +165,12 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
 
   // Primitive bool -> Sql Boolean
   if (left->GetType()->IsBoolType() && right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Boolean)) {
-    auto new_left = ImplCastExprToType(left, right->GetType(), ast::CastKind::SqlBoolToBool);
+    auto new_left = ImplCastExprToType(left, right->GetType(), ast::CastKind::BoolToSqlBool);
     return {built_ret_type(right->GetType()), new_left, right};
   }
   // Sql Boolean <- Primitive bool
   if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::Boolean) && right->GetType()->IsBoolType()) {
-    auto new_right = ImplCastExprToType(right, left->GetType(), ast::CastKind::SqlBoolToBool);
+    auto new_right = ImplCastExprToType(right, left->GetType(), ast::CastKind::BoolToSqlBool);
     return {built_ret_type(left->GetType()), left, new_right};
   }
 

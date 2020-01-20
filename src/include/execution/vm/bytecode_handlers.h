@@ -54,7 +54,8 @@ extern "C" {
   VM_OP_HOT void OpLessThan##_##type(bool *result, type lhs, type rhs) { *result = (lhs < rhs); }          \
                                                                                                            \
   /* Primitive not-equal-to implementation */                                                              \
-  VM_OP_HOT void OpNotEqual##_##type(bool *result, type lhs, type rhs) { *result = (lhs != rhs); }
+  VM_OP_HOT void OpNotEqual##_##type(bool *result, type lhs, type rhs) { std::cout << "lhs:" << lhs << " != rhs:" << rhs << "\n"; \
+    *result = (lhs != rhs); }
 
 ALL_TYPES(COMPARISONS);
 

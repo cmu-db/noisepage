@@ -226,6 +226,11 @@ void BytecodeGenerator::VisitImplicitCastExpr(ast::ImplicitCastExpr *node) {
       ExecutionResult()->SetDestination(dest.ValueOf());
       break;
     }
+    case ast::CastKind::BoolToSqlBool: {
+      Emitter()->Emit(Bytecode::InitBoolVal, dest, input);
+      ExecutionResult()->SetDestination(dest);
+      break;
+    }
     case ast::CastKind::IntToSqlInt: {
       Emitter()->Emit(Bytecode::InitInteger, dest, input);
       ExecutionResult()->SetDestination(dest);
@@ -2401,6 +2406,9 @@ void BytecodeGenerator::VisitBinaryOpExpr(ast::BinaryOpExpr *node) {
 
 #define COMPARISON_BYTECODE(code, comp_type, kind) \
   switch (kind) {                                  \
+    case ast::BuiltinType::Kind::Boolean:          \
+      code = Bytecode::comp_type##BoolVal;         \
+      break;                                       \
     case ast::BuiltinType::Kind::Integer:          \
       code = Bytecode::comp_type##Integer;         \
       break;                                       \
