@@ -1,11 +1,12 @@
 #include "execution/vm/module.h"
 
+#include <tbb/task.h>
+
 #include <memory>
 #include <string>
 #include <utility>
 
 #include "common/constants.h"
-#include "tbb/task.h"
 
 #define XBYAK_NO_OP_NAMES
 #include "xbyak/xbyak.h"

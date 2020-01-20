@@ -12,7 +12,6 @@
 #include "storage/garbage_collector.h"
 #include "test_util/manual_packet_util.h"
 #include "test_util/test_harness.h"
-#include "traffic_cop/result_set.h"
 #include "traffic_cop/traffic_cop.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
@@ -61,7 +60,8 @@ class NetworkTests : public TerrierTest {
 
     catalog_ = new catalog::Catalog(common::ManagedPointer(txn_manager_), common::ManagedPointer(&block_store_));
 
-    tcop_ = new trafficcop::TrafficCop(common::ManagedPointer(txn_manager_), common::ManagedPointer(catalog_));
+    tcop_ = new trafficcop::TrafficCop(common::ManagedPointer(txn_manager_), common::ManagedPointer(catalog_), DISABLED,
+                                       DISABLED, 0);
 
     auto txn = txn_manager_->BeginTransaction();
     catalog_->CreateDatabase(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE, true);

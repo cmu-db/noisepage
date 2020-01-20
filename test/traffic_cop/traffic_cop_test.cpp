@@ -34,7 +34,10 @@ class TrafficCopTests : public TerrierTest {
                    .SetUseCatalog(true)
                    .SetUseGCThread(true)
                    .SetUseTrafficCop(true)
+                   .SetUseStatsStorage(true)
+                   .SetUseLogging(true)
                    .SetUseNetwork(true)
+                   .SetUseExecution(true)
                    .Build();
 
     db_main_->GetNetworkLayer()->GetServer()->RunServer();
@@ -51,13 +54,89 @@ class TrafficCopTests : public TerrierTest {
 };
 
 // NOLINTNEXTLINE
-TEST_F(TrafficCopTests, RoundTripTest) {
+TEST_F(TrafficCopTests, EmptyCommitTest) {
   try {
     pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
                                             port_, catalog::DEFAULT_DATABASE));
 
     pqxx::work txn1(connection);
-    txn1.exec("DROP TABLE IF EXISTS TableA");
+    txn1.commit();
+    connection.disconnect();
+  } catch (const std::exception &e) {
+    EXPECT_TRUE(false);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(TrafficCopTests, EmptyAbortTest) {
+  try {
+    pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+                                            port_, catalog::DEFAULT_DATABASE));
+
+    pqxx::work txn1(connection);
+    txn1.abort();
+    connection.disconnect();
+  } catch (const std::exception &e) {
+    EXPECT_TRUE(false);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(TrafficCopTests, EmptyStatementTest) {
+  try {
+    pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+                                            port_, catalog::DEFAULT_DATABASE));
+
+    pqxx::work txn1(connection);
+    pqxx::result r = txn1.exec(";");
+    txn1.commit();
+    connection.disconnect();
+  } catch (const std::exception &e) {
+    EXPECT_TRUE(false);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(TrafficCopTests, BadParseTest) {
+  try {
+    pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+                                            port_, catalog::DEFAULT_DATABASE));
+
+    pqxx::work txn1(connection);
+    pqxx::result r = txn1.exec("INSTERT INTO FOO VALUES (1,1);");
+    txn1.commit();
+    connection.disconnect();
+  } catch (const std::exception &e) {
+    std::string error(e.what());
+    std::string expect("ERROR:  syntax error\n");
+    EXPECT_EQ(error, expect);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(TrafficCopTests, BadBindingTest) {
+  try {
+    pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+                                            port_, catalog::DEFAULT_DATABASE));
+
+    pqxx::work txn1(connection);
+    pqxx::result r = txn1.exec("INSERT INTO FOO VALUES (1,1);");
+    txn1.commit();
+    connection.disconnect();
+  } catch (const std::exception &e) {
+    std::string error(e.what());
+    std::string expect("ERROR:  binding failed\n");
+    EXPECT_EQ(error, expect);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(TrafficCopTests, DISABLED_BasicTest) {
+  try {
+    pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+                                            port_, catalog::DEFAULT_DATABASE));
+
+    pqxx::work txn1(connection);
     txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data TEXT);");
     txn1.exec("INSERT INTO TableA VALUES (1, 'abc');");
 
@@ -101,8 +180,11 @@ TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
   }
 }
 
+// The tests below are from the old sqlite traffic cop era. Unclear if they should be removed at this time, but for now
+// they're disabled
+
 // NOLINTNEXTLINE
-TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
+TEST_F(TrafficCopTests, DISABLED_ManualExtendedQueryTest) {
   try {
     auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
     auto io_socket = common::ManagedPointer(io_socket_unique_ptr);
@@ -277,7 +359,7 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
  */
 
 // NOLINTNEXTLINE
-TEST_F(TrafficCopTests, ManualRoundTripTest) {
+TEST_F(TrafficCopTests, DISABLED_ManualRoundTripTest) {
   try {
     auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
     auto io_socket = common::ManagedPointer(io_socket_unique_ptr);
@@ -304,7 +386,7 @@ TEST_F(TrafficCopTests, ManualRoundTripTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(TrafficCopTests, ErrorHandlingTest) {
+TEST_F(TrafficCopTests, DISABLED_ErrorHandlingTest) {
   auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
   auto io_socket = common::ManagedPointer(io_socket_unique_ptr);
   network::PostgresPacketWriter writer(io_socket->GetWriteQueue());

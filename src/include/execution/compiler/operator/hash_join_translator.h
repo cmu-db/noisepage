@@ -1,8 +1,8 @@
 #pragma once
 
-#include <planner/plannodes/hash_join_plan_node.h>
 #include "execution/compiler/expression/expression_translator.h"
 #include "execution/compiler/operator/operator_translator.h"
+#include "planner/plannodes/hash_join_plan_node.h"
 
 namespace terrier::execution::compiler {
 

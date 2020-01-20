@@ -1,12 +1,10 @@
 #include "execution/sql/aggregation_hash_table.h"
 
+#include <tbb/tbb.h>
+
 #include <algorithm>
 #include <utility>
 #include <vector>
-
-#include "tbb/tbb.h"
-
-#include "libcount/hll.h"
 
 #include "common/math_util.h"
 #include "execution/sql/projected_columns_iterator.h"
@@ -15,6 +13,7 @@
 #include "execution/util/cpu_info.h"
 #include "execution/util/timer.h"
 #include "execution/util/vector_util.h"
+#include "libcount/hll.h"
 #include "loggers/execution_logger.h"
 
 namespace terrier::execution::sql {

@@ -11,22 +11,18 @@ import static org.junit.Assert.assertEquals;
 public class PLTestBase {
 
     public static Connection makeDefaultConnection() throws SQLException {
-	return makeConnection("localhost", 15721, "terrier", "terrier");
+	return makeConnection("localhost", 15721, "terrier");
     }
 
     public static Connection makeConnection(String host,
 					    int port,
-					    String username,
-					    String pass) throws SQLException {
+					    String username) throws SQLException {
 	String url = String.format("jdbc:postgresql://%s:%d/",
 				   host, port);
         Properties props = new Properties();
         props.setProperty("user", username);
-        props.setProperty("password", pass);
-        /*
-         * 0 => suppress switchover to binary protocol 
-         */
-        props.setProperty("prepareThreshold", "0");
+        props.setProperty("preferQueryMode", "simple"); // force SimpleQuery protocol for now
+        props.setProperty("prepareThreshold", "0"); // suppress switchover to binary protocol
 	Connection conn = DriverManager.getConnection(url, props);
 	return conn;
     }
