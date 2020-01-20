@@ -4,9 +4,12 @@
 #include <unordered_map>
 #include <utility>
 
+#include "execution/sql/ddl_executors.h"
 #include "loggers/loggers_util.h"
 #include "main/db_main.h"
+#include "planner/plannodes/create_table_plan_node.h"
 #include "settings/settings_manager.h"
+#include "type/transient_value_factory.h"
 
 int main(int argc, char *argv[]) {
   // initialize loggers
@@ -32,6 +35,8 @@ int main(int argc, char *argv[]) {
                      .SetUseGC(true)
                      .SetUseCatalog(true)
                      .SetUseGCThread(true)
+                     .SetUseStatsStorage(true)
+                     .SetUseExecution(true)
                      .SetUseTrafficCop(true)
                      .SetUseNetwork(true)
                      .Build();

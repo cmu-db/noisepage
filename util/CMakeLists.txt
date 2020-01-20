@@ -72,7 +72,7 @@ target_link_libraries(tpl util_static)
 add_custom_command(
         TARGET tpl
         POST_BUILD
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/${BUILD_SUBDIR_NAME}
         COMMENT "Generating Optimized Bitcode ..."
         COMMAND ${CLANG} ${CLANG_IR_CXX_FLAGS} ${CLANG_IR_CXX_INCLUDES}
             ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp -o bytecode_handlers_ir.bc
@@ -105,5 +105,5 @@ add_custom_target(check-tpl
         -b ${CMAKE_BINARY_DIR}/bin/tpl
         -f ${PROJECT_SOURCE_DIR}/sample_tpl/tpl_tests.txt
         -t ${PROJECT_SOURCE_DIR}/sample_tpl
-        -d ${CMAKE_BINARY_DIR}
+        -d ${CMAKE_BINARY_DIR}/${BUILD_SUBDIR_NAME}
         )

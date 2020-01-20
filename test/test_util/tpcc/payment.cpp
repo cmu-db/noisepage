@@ -204,7 +204,7 @@ bool Payment::Execute(transaction::TransactionManager *const txn_manager, Databa
 
   db->history_table_->Insert(common::ManagedPointer(txn), history_insert_redo);
 
-  txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   return true;
 }

@@ -42,6 +42,16 @@ class PacketWriter {
   void WriteType(NetworkMessageType type) { queue_->BufferWriteRawValue(type); }
 
   /**
+   * Write out a packet with a single type
+   * @param type Type of message to write out
+   */
+  void WriteSingleTypePacket(NetworkMessageType type) {
+    // Make sure no active packet being constructed
+    TERRIER_ASSERT(IsPacketEmpty(), "packet length is null");
+    BeginPacket(type).EndPacket();
+  }
+
+  /**
    * Begin writing a new packet. Caller can use other append methods to write
    * contents to the packet. An explicit call to end packet must be made to
    * make these writes valid.
@@ -127,6 +137,16 @@ class PacketWriter {
    * @return self-reference for chaining
    */
   PacketWriter &AppendString(const std::string &str, bool nul_terminate = true) {
+    return AppendRaw(str.data(), nul_terminate ? str.size() + 1 : str.size());
+  }
+
+  /**
+   * Append a string_view onto the write queue.
+   * @param str the string to append
+   * @param nul_terminate whether the nul terminaor should be written as well
+   * @return self-reference for chaining
+   */
+  PacketWriter &AppendStringView(const std::string_view str, bool nul_terminate = true) {
     return AppendRaw(str.data(), nul_terminate ? str.size() + 1 : str.size());
   }
 
