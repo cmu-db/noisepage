@@ -198,16 +198,38 @@ void PlanGenerator::Visit(const IndexScan *op) {
   auto predicate = parser::ExpressionUtil::JoinAnnotatedExprs(op->GetPredicates()).release();
   RegisterPointerCleanup<parser::AbstractExpression>(predicate, true, true);
 
-  output_plan_ = planner::IndexScanPlanNode::Builder()
-                     .SetOutputSchema(std::move(output_schema))
-                     .SetScanPredicate(common::ManagedPointer(predicate))
-                     .SetIsForUpdateFlag(op->GetIsForUpdate())
-                     .SetDatabaseOid(op->GetDatabaseOID())
-                     .SetNamespaceOid(op->GetNamespaceOID())
-                     .SetIndexOid(op->GetIndexOID())
-                     .SetTableOid(tbl_oid)
-                     .SetColumnOids(std::move(column_ids))
-                     .Build();
+  auto builder = planner::IndexScanPlanNode::Builder();
+  builder.SetOutputSchema(std::move(output_schema));
+  builder.SetScanPredicate(common::ManagedPointer(predicate));
+  builder.SetIsForUpdateFlag(op->GetIsForUpdate());
+  builder.SetDatabaseOid(op->GetDatabaseOID());
+  builder.SetNamespaceOid(op->GetNamespaceOID());
+  builder.SetIndexOid(op->GetIndexOID());
+  builder.SetTableOid(tbl_oid);
+  builder.SetColumnOids(std::move(column_ids));
+
+  auto type = op->GetIndexScanType();
+  builder.SetScanType(type);
+  for (auto bound : op->GetBounds()) {
+    if (type == planner::IndexScanType::Exact) {
+      // Exact lookup
+      builder.AddIndexColumn(bound.first, bound.second[0]);
+    } else if (type == planner::IndexScanType::AscendingClosed) {
+      // Range lookup, so use lo and hi
+      builder.AddLoIndexColumn(bound.first, bound.second[0]);
+      builder.AddHiIndexColumn(bound.first, bound.second[1]);
+    } else if (type == planner::IndexScanType::AscendingOpenHigh) {
+      // Open high scan, so use only lo
+      builder.AddLoIndexColumn(bound.first, bound.second[0]);
+    } else if (type == planner::IndexScanType::AscendingOpenLow) {
+      // Open low scan, so use only high
+      builder.AddHiIndexColumn(bound.first, bound.second[1]);
+    } else if (type == planner::IndexScanType::AscendingOpenBoth) {
+      // No bounds need to be set
+    }
+  }
+
+  output_plan_ = builder.Build();
 }
 
 void PlanGenerator::Visit(const ExternalFileScan *op) {

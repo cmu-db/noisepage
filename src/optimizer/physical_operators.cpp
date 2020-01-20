@@ -80,7 +80,8 @@ BaseOperatorNode *IndexScan::Copy() const { return new IndexScan(*this); }
 
 Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                          catalog::index_oid_t index_oid, std::vector<AnnotatedExpression> &&predicates,
-                         std::string table_alias, bool is_for_update) {
+                         std::string table_alias, bool is_for_update, planner::IndexScanType scan_type,
+                         std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds) {
   auto scan = std::make_unique<IndexScan>();
   scan->database_oid_ = database_oid;
   scan->namespace_oid_ = namespace_oid;
@@ -88,6 +89,8 @@ Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_
   scan->table_alias_ = std::move(table_alias);
   scan->is_for_update_ = is_for_update;
   scan->predicates_ = std::move(predicates);
+  scan->scan_type_ = scan_type;
+  scan->bounds_ = bounds;
   return Operator(std::move(scan));
 }
 
@@ -96,11 +99,30 @@ bool IndexScan::operator==(const BaseOperatorNode &r) {
   const IndexScan &node = *dynamic_cast<const IndexScan *>(&r);
   if (database_oid_ != node.database_oid_ || namespace_oid_ != node.namespace_oid_ || index_oid_ != node.index_oid_ ||
       table_alias_ != node.table_alias_ || predicates_.size() != node.predicates_.size() ||
-      is_for_update_ != node.is_for_update_)
+      is_for_update_ != node.is_for_update_ || scan_type_ != node.scan_type_)
     return false;
 
   for (size_t i = 0; i < predicates_.size(); i++) {
     if (predicates_[i].GetExpr() != node.predicates_[i].GetExpr()) return false;
+  }
+
+  if (bounds_.size() != node.bounds_.size()) return false;
+  for (auto bound : bounds_) {
+    if (node.bounds_.find(bound.first) == node.bounds_.end()) return false;
+
+    std::vector<planner::IndexExpression> exprs = bound.second;
+    std::vector<planner::IndexExpression> o_exprs = node.bounds_.find(bound.first)->second;
+    if (exprs.size() != o_exprs.size()) return false;
+    for (size_t idx = 0; idx < exprs.size(); idx++) {
+      if (exprs[idx] == nullptr && o_exprs[idx] == nullptr)
+        continue;
+      else if (exprs[idx] == nullptr && o_exprs[idx] != nullptr)
+        return false;
+      else if (exprs[idx] != nullptr && o_exprs[idx] == nullptr)
+        return false;
+      else if (*exprs[idx] != *o_exprs[idx])
+        return false;
+    }
   }
   return true;
 }
@@ -112,12 +134,22 @@ common::hash_t IndexScan::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_for_update_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(scan_type_));
   for (auto &pred : predicates_) {
     auto expr = pred.GetExpr();
     if (expr)
       hash = common::HashUtil::SumHashes(hash, expr->Hash());
     else
       hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+  }
+
+  for (auto bound : bounds_) {
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(bound.first));
+    for (auto expr : bound.second) {
+      if (expr != nullptr) {
+        hash = common::HashUtil::CombineHashes(hash, expr->Hash());
+      }
+    }
   }
   return hash;
 }

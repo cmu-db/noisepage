@@ -46,12 +46,12 @@ TEST_F(TpccPlanIndexScanTests, SimplePredicateIndexScan) {
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
     auto tve = scan_pred->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
     auto cve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
-    EXPECT_EQ(tve->GetColumnName(), "no_d_id");
-    EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("no_d_id").Oid());
+    EXPECT_EQ(tve->GetColumnName(), "no_w_id");
+    EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("no_w_id").Oid());
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
   };
 
-  std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\" WHERE NO_D_ID = 1";
+  std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\" WHERE NO_W_ID = 1";
   OptimizeQuery(query, tbl_new_order_, check);
 }
 
@@ -81,12 +81,12 @@ TEST_F(TpccPlanIndexScanTests, SimplePredicateFlippedIndexScan) {
     EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
     auto tve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
     auto cve = scan_pred->GetChild(0).CastManagedPointerTo<parser::ConstantValueExpression>();
-    EXPECT_EQ(tve->GetColumnName(), "no_d_id");
-    EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("no_d_id").Oid());
+    EXPECT_EQ(tve->GetColumnName(), "no_w_id");
+    EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("no_w_id").Oid());
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
   };
 
-  std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\" WHERE 1 < NO_D_ID";
+  std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\" WHERE 1 < NO_W_ID";
   OptimizeQuery(query, tbl_new_order_, check);
 }
 

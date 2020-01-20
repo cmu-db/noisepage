@@ -151,11 +151,14 @@ class IndexScan : public OperatorNode<IndexScan> {
    * @param predicates query predicates
    * @param table_alias alias of the table
    * @param is_for_update whether the scan is used for update
+   * @param scan_type IndexScanType
+   * @param bounds Bounds for IndexScan
    * @return an IndexScan operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::index_oid_t index_oid, std::vector<AnnotatedExpression> &&predicates,
-                       std::string table_alias, bool is_for_update);
+                       std::string table_alias, bool is_for_update, planner::IndexScanType scan_type,
+                       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds);
 
   /**
    * Copy
@@ -197,6 +200,18 @@ class IndexScan : public OperatorNode<IndexScan> {
    */
   bool GetIsForUpdate() const { return is_for_update_; }
 
+  /**
+   * @return index scan type
+   */
+  planner::IndexScanType GetIndexScanType() const { return scan_type_; }
+
+  /**
+   * @return bounds
+   */
+  const std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> &GetBounds() const {
+    return bounds_;
+  }
+
  private:
   /**
    * OID of the database
@@ -227,6 +242,16 @@ class IndexScan : public OperatorNode<IndexScan> {
    * Whether the scan is used for update
    */
   bool is_for_update_;
+
+  /**
+   * Scan Type
+   */
+  planner::IndexScanType scan_type_;
+
+  /**
+   * Bounds
+   */
+  std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds_;
 };
 
 /**
