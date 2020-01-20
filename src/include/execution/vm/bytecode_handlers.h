@@ -44,8 +44,7 @@ extern "C" {
   VM_OP_HOT void OpGreaterThan##_##type(bool *result, type lhs, type rhs) { *result = (lhs > rhs); }       \
                                                                                                            \
   /* Primitive equal-to implementation */                                                                  \
-  VM_OP_HOT void OpEqual##_##type(bool *result, type lhs, type rhs) { std::cout << "lhs:" << lhs << " == rhs:" << rhs << "\n"; \
-    *result = (lhs == rhs); }            \
+  VM_OP_HOT void OpEqual##_##type(bool *result, type lhs, type rhs) { *result = (lhs == rhs); }            \
                                                                                                            \
   /* Primitive less-than-equal implementation */                                                           \
   VM_OP_HOT void OpLessThanEqual##_##type(bool *result, type lhs, type rhs) { *result = (lhs <= rhs); }    \
@@ -54,8 +53,7 @@ extern "C" {
   VM_OP_HOT void OpLessThan##_##type(bool *result, type lhs, type rhs) { *result = (lhs < rhs); }          \
                                                                                                            \
   /* Primitive not-equal-to implementation */                                                              \
-  VM_OP_HOT void OpNotEqual##_##type(bool *result, type lhs, type rhs) { std::cout << "lhs:" << lhs << " != rhs:" << rhs << "\n"; \
-    *result = (lhs != rhs); }
+  VM_OP_HOT void OpNotEqual##_##type(bool *result, type lhs, type rhs) { *result = (lhs != rhs); }
 
 ALL_TYPES(COMPARISONS);
 
@@ -282,8 +280,6 @@ VM_OP_HOT void OpPCIGetBool(terrier::execution::sql::BoolVal *out,
   // Set
   out->is_null_ = false;
   out->val_ = *ptr;
-
-  std::cout << "GetBool: [" << col_idx << "] => out=" << static_cast<bool>(out->val_) << "\n";
 }
 
 VM_OP_HOT void OpPCIGetTinyInt(terrier::execution::sql::Integer *out,

@@ -26,7 +26,7 @@ constexpr uint32_t TEST2_SIZE = 1000;
 /**
  * Size of the alltypes table
  */
-constexpr uint32_t TABLE_ALLTYPES_SIZE = 10;
+constexpr uint32_t TABLE_ALLTYPES_SIZE = 1000;
 
 /**
  * Helper class to generate test tables and their indexes.

@@ -10,24 +10,28 @@
 fun main(execCtx: *ExecutionContext) -> int64 {
   var ret = 0
   var tvi: TableVectorIterator
-  var oids: [1]uint32
-  // Setup #1 - Read the bool first then tinyint -- This works
+  
+  // These are the columns that we want. The order listed here will be 
+  // different than the order that we get back from the projected column.
+  var oids: [5]uint32
   oids[0] = 1 // bool_col
+  oids[1] = 2 // tinyint_col
+  oids[2] = 3 // smallint_col
+  oids[3] = 4 // int_col
+  oids[4] = 5 // bigint_col
 
   @tableIterInitBind(&tvi, execCtx, "all_types_table", oids)
   for (@tableIterAdvance(&tvi)) {
     var pci = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(pci); @pciAdvance(pci)) {
-        var col0 = @pciGetBool(pci, 0)
-        var col1 = false
+        var col0 = @pciGetBool(pci, 3)
+        var col1 = @pciGetTinyInt(pci, 0)
+        var col2 = @pciGetSmallInt(pci, 1)
+        var col3 = @pciGetInt(pci, 2)
+        var col4 = @pciGetBigInt(pci, 4)
 
-        if (col1 == col1) {
-          ret = ret + 1
-        }
-        
-        if (col0 == col1) { 
-          // and 
-          // (col1 >= 0 or col2 >= 0 or col3 >= 0 or col4 >= 0)) {
+        if ((col0 == true) and 
+            (col1 >= 0 or col2 >= 0 or col3 >= 0 or col4 >= 0)) {
         ret = ret + 1
       }
     }
