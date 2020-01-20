@@ -2174,7 +2174,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     auto col6_oid = table_schema1.GetColumn("smallint_col").Oid();
     auto col7_oid = table_schema1.GetColumn("int_col").Oid();
     auto col8_oid = table_schema1.GetColumn("bigint_col").Oid();
-      
+
     // Get Table columns
     auto col1 = expr_maker.CVE(col1_oid, type::TypeId::VARCHAR);
     auto col2 = expr_maker.CVE(col2_oid, type::TypeId::DATE);
