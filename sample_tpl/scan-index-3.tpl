@@ -22,7 +22,7 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   @prSetInt(hi_index_pr, 0, @intToSql(505)) // Set colA in hi
 
   // Iterate through the matches in ascending order: should output 11 tuples (505 - 405 + 1)
-  for (@indexIteratorScanAscending(&index); @indexIteratorAdvance(&index);) {
+  for (@indexIteratorScanAscendingClosed(&index); @indexIteratorAdvance(&index);) {
     // Materialize the current match.
     var table_pr1 = @indexIteratorGetTablePR(&index)
 

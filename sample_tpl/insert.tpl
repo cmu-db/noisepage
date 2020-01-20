@@ -16,7 +16,7 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   var hi_index_pr = @indexIteratorGetHiPR(&index)
   @prSetInt(lo_index_pr, 0, @intToSql(495)) // Set colA in lo
   @prSetInt(hi_index_pr, 0, @intToSql(505)) // Set colA in hi
-  for (@indexIteratorScanAscending(&index); @indexIteratorAdvance(&index);) {
+  for (@indexIteratorScanAscendingClosed(&index); @indexIteratorAdvance(&index);) {
     // Materialize the current match.
     var table_pr = @indexIteratorGetTablePR(&index)
     var colA = @prGetInt(table_pr, 0)
