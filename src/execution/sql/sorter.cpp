@@ -1,18 +1,16 @@
 #include "execution/sql/sorter.h"
 
+#include <tbb/tbb.h>
+
 #include <algorithm>
 #include <queue>
 #include <utility>
 #include <vector>
 
-#include "tbb/tbb.h"
-
-#include "llvm/ADT/STLExtras.h"
-
-#include "ips4o/ips4o.hpp"
-
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/stage_timer.h"
+#include "ips4o/ips4o.hpp"
+#include "llvm/ADT/STLExtras.h"
 #include "loggers/execution_logger.h"
 
 namespace terrier::execution::sql {

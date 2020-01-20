@@ -40,7 +40,7 @@
 
 namespace terrier::parser {
 
-ParseResult PostgresParser::BuildParseTree(const std::string &query_string) {
+std::unique_ptr<parser::ParseResult> PostgresParser::BuildParseTree(const std::string &query_string) {
   auto text = query_string.c_str();
   auto ctx = pg_query_parse_init();
   auto result = pg_query_parse(text);
@@ -50,13 +50,15 @@ ParseResult PostgresParser::BuildParseTree(const std::string &query_string) {
     PARSER_LOG_DEBUG("BuildParseTree error: msg {}, curpos {}", result.error->message, result.error->cursorpos);
     pg_query_parse_finish(ctx);
     pg_query_free_parse_result(result);
+    // TODO(Matt): we just destroyed all of the information we probably wanted to return to the client to match
+    // postgres' behavior
     throw PARSER_EXCEPTION("BuildParseTree error");
   }
 
   // Transform the Postgres parse tree to a Terrier representation.
-  ParseResult parse_result;
+  auto parse_result = std::make_unique<ParseResult>();
   try {
-    ListTransform(&parse_result, result.tree);
+    ListTransform(parse_result.get(), result.tree);
   } catch (const Exception &e) {
     pg_query_parse_finish(ctx);
     pg_query_free_parse_result(result);

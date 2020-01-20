@@ -81,7 +81,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
       common::ScopedTimer<std::chrono::nanoseconds> timer(&elapsed_us);
     TERRIER_ASSERT(
         !txn->must_abort_,
-        "This txn was marked that it must abort. Set a breakpoint at TransactionContext::MustAbort() to see a "
+        "This txn was marked that it must abort. Set a breakpoint at TransactionContext::SetMustAbort() to see a "
         "stack trace for when this flag is getting tripped.");
     result = txn->IsReadOnly() ? timestamp_manager_->CheckOutTimestamp() : UpdatingCommitCriticalSection(txn);
 

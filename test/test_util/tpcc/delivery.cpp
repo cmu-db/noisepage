@@ -157,7 +157,7 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
                    "Customer update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
   }
 
-  txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   return true;
 }
 

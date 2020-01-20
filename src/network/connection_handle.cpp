@@ -1,14 +1,15 @@
+#include "network/connection_handle.h"
+
 #include <unistd.h>
+
 #include <cstring>
 #include <memory>
 #include <utility>
 
+#include "common/utility.h"
 #include "network/connection_dispatcher_task.h"
-#include "network/connection_handle.h"
 #include "network/connection_handle_factory.h"
 #include "network/terrier_server.h"
-
-#include "common/utility.h"
 
 /*
  *  Here we are abusing macro expansion to allow for human readable definition
@@ -168,10 +169,10 @@ Transition ConnectionHandle::GetResult() {
 
 Transition ConnectionHandle::TryCloseConnection() {
   NETWORK_LOG_TRACE("Attempt to close the connection {0}", io_wrapper_->GetSocketFd());
-  if (context_.temp_namespace_oid_ != catalog::INVALID_NAMESPACE_OID) {
-    while (!traffic_cop_->DropTempNamespace(context_.temp_namespace_oid_, context_.db_oid_)) {
-    }
-  }
+
+  protocol_interpreter_->Teardown(io_wrapper_->GetReadBuffer(), io_wrapper_->GetWriteQueue(), traffic_cop_,
+                                  common::ManagedPointer(&context_));
+
   Transition close = io_wrapper_->Close();
   if (close != Transition::PROCEED) return close;
   // Remove listening event
