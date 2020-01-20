@@ -225,7 +225,7 @@ class IndexUtil {
         // Index predicate ordering is busted
         break;
       }
-      
+
       if (open_highs.find(oid) != open_highs.end() && open_lows.find(oid) != open_lows.end()) {
         bounds->insert(std::make_pair(oid, std::vector<planner::IndexExpression>{open_highs[oid], open_lows[oid]}));
 
