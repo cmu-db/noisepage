@@ -1460,6 +1460,10 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
       Emitter()->Emit(Bytecode::IndexIteratorScanAscendingOpenLow, iterator);
       break;
     }
+    case ast::Builtin::IndexIteratorScanAscendingOpenBoth: {
+      Emitter()->Emit(Bytecode::IndexIteratorScanAscendingOpenBoth, iterator);
+      break;
+    }
     case ast::Builtin::IndexIteratorScanDescending: {
       Emitter()->Emit(Bytecode::IndexIteratorScanDescending, iterator);
       break;
@@ -2029,6 +2033,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::IndexIteratorScanAscendingClosed:
     case ast::Builtin::IndexIteratorScanAscendingOpenHigh:
     case ast::Builtin::IndexIteratorScanAscendingOpenLow:
+    case ast::Builtin::IndexIteratorScanAscendingOpenBoth:
     case ast::Builtin::IndexIteratorScanDescending:
     case ast::Builtin::IndexIteratorScanLimitAscending:
     case ast::Builtin::IndexIteratorScanLimitDescending:

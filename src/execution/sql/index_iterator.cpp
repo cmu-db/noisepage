@@ -55,6 +55,13 @@ void IndexIterator::ScanAscendingOpenLow() {
   index_->ScanAscendingOpenLow(*exec_ctx_->GetTxn(), *hi_index_pr_, &tuples_);
 }
 
+void IndexIterator::ScanAscendingOpenBoth() {
+  // Scan the index
+  tuples_.clear();
+  curr_index_ = 0;
+  index_->ScanAscendingOpenBoth(*exec_ctx_->GetTxn(), &tuples_);
+}
+
 void IndexIterator::ScanDescending() {
   // Scan the index
   tuples_.clear();

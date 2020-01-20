@@ -116,6 +116,7 @@ enum class IndexScanType : uint8_t {
   AscendingClosed,
   AscendingOpenHigh,
   AscendingOpenLow,
+  AscendingOpenBoth,
 
   Descending,
   AscendingLimit,

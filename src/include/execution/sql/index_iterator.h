@@ -55,6 +55,11 @@ class EXPORT IndexIterator {
   void ScanAscendingOpenLow();
 
   /**
+   * Perform an ascending scan
+   */
+  void ScanAscendingOpenBoth();
+
+  /**
    * Perfrom a descending scan
    */
   void ScanDescending();

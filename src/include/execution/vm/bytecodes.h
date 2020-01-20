@@ -330,6 +330,7 @@ namespace terrier::execution::vm {
   F(IndexIteratorScanAscendingClosed, OperandType::Local)                                                             \
   F(IndexIteratorScanAscendingOpenHigh, OperandType::Local)                                                           \
   F(IndexIteratorScanAscendingOpenLow, OperandType::Local)                                                            \
+  F(IndexIteratorScanAscendingOpenBoth, OperandType::Local)                                                           \
   F(IndexIteratorScanDescending, OperandType::Local)                                                                  \
   F(IndexIteratorScanLimitAscending, OperandType::Local, OperandType::Local)                                          \
   F(IndexIteratorScanLimitDescending, OperandType::Local, OperandType::Local)                                         \

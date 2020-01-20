@@ -140,6 +140,15 @@ class Index {
   }
 
   /**
+   * Finds all the values in our index, sorted in ascending order.
+   * @param txn txn context for the calling txn, used for visibility checks
+   * @param[out] value_list the values associated with the keys
+   */
+  virtual void ScanAscendingOpenBoth(const transaction::TransactionContext &txn, std::vector<TupleSlot> *value_list) {
+    TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
+  }
+
+  /**
    * Finds all the values between the given keys in our index, sorted in descending order.
    * @param txn txn context for the calling txn, used for visibility checks
    * @param low_key the key to end at

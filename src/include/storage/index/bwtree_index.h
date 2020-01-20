@@ -41,10 +41,8 @@ class BwTreeIndex final : public Index {
    * @param high_key the key to end at
    * @param[out] value_list the values associated with the keys
    */
-  void ScanAscending(const transaction::TransactionContext &txn,
-                     bool low_key_exists, const ProjectedRow &low_key,
-                     bool high_key_exists, const ProjectedRow &high_key,
-                     std::vector<TupleSlot> *value_list) {
+  void ScanAscending(const transaction::TransactionContext &txn, bool low_key_exists, const ProjectedRow &low_key,
+                     bool high_key_exists, const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) {
     TERRIER_ASSERT(value_list->empty(), "Result set should begin empty.");
 
     // Build search keys
@@ -178,6 +176,18 @@ class BwTreeIndex final : public Index {
                             std::vector<TupleSlot> *value_list) final {
     // (wz2): Low key is not used so this is fine?
     ScanAscending(txn, false, high_key, true, high_key, value_list);
+  }
+
+  void ScanAscendingOpenBoth(const transaction::TransactionContext &txn, std::vector<TupleSlot> *value_list) final {
+    TERRIER_ASSERT(value_list->empty(), "Result set should begin empty.");
+
+    // Perform lookup in BwTree
+    auto scan_itr = bwtree_->Begin();
+    while (!scan_itr.IsEnd()) {
+      // Perform visibility check on result
+      if (IsVisible(txn, scan_itr->second)) value_list->emplace_back(scan_itr->second);
+      scan_itr++;
+    }
   }
 
   void ScanDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
