@@ -18,10 +18,10 @@ ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractP
   auto root = compiler.Compile();
   if (codegen.Reporter()->HasErrors()) {
     EXECUTION_LOG_ERROR("Type-checking error! \n {}", codegen.Reporter()->SerializeErrors());
+    EXECUTION_LOG_ERROR("Dumping AST:");
+    EXECUTION_LOG_ERROR(execution::ast::AstDump::Dump(root));
     return;
   }
-
-  EXECUTION_LOG_DEBUG("Converted: \n {}", execution::ast::AstDump::Dump(root));
 
   // Convert to bytecode
   auto bytecode_module = vm::BytecodeGenerator::Compile(root, exec_ctx.Get(), "tmp-tpl");
