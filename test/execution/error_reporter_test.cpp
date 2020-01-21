@@ -9,7 +9,6 @@
 #include "execution/parsing/parser.h"
 #include "execution/parsing/scanner.h"
 #include "execution/tpl_test.h"
-#include "util/string_util.h"
 
 namespace terrier::execution::parsing::test {
 
@@ -20,6 +19,24 @@ class ErrorReporterTest : public TplTest {
     TplTest::SetUp();
     reporter_ = std::make_unique<sema::ErrorReporter>(&region_);
     ctx_ = std::make_unique<ast::Context>(&region_, reporter_.get());
+  }
+
+  /**
+   * Split a string on a delimiter.
+   * This used to be in my StringUtil class but we decided to not bring that class in for now.
+   * So this mofo is in this test case. Deal with it, son.
+   * @param str
+   * @param delimiter
+   * @return
+   */
+  std::vector<std::string> Split(const std::string &str, char delimiter) {
+    std::stringstream ss(str);
+    std::vector<std::string> lines;
+    std::string temp;
+    while (std::getline(ss, temp, delimiter)) {
+      lines.push_back(temp);
+    }  // WHILE
+    return (lines);
   }
 
   ast::Context *GetContext() { return ctx_.get(); }
@@ -53,7 +70,7 @@ TEST_F(ErrorReporterTest, DISABLED_SerializeErrorsTest) {
   // There should be two errors, so we should expect two newlines
   // There isn't anything else that we can really check here since
   // the output is meant for human consumption
-  auto lines = terrier::util::StringUtil::Split(errors, '\n');
+  auto lines = Split(errors, '\n');
   EXPECT_EQ(lines.size(), 2);
 }
 

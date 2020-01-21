@@ -1,6 +1,5 @@
 #include "execution/table_generator/table_generator.h"
 
-#include <util/string_util.h>
 #include <algorithm>
 #include <memory>
 #include <random>
