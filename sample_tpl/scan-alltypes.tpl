@@ -24,8 +24,8 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   for (@tableIterAdvance(&tvi)) {
     var pci = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(pci); @pciAdvance(pci)) {
-        var col0 = @pciGetBool(pci, 1)
-        var col1 = @pciGetTinyInt(pci, 0)
+        var col0 = @pciGetBool(pci, 0)
+        var col1 = @pciGetTinyInt(pci, 1)
 //         var col2 = @pciGetSmallInt(pci, 1)
 //         var col3 = @pciGetInt(pci, 2)
 //         var col4 = @pciGetBigInt(pci, 4)
