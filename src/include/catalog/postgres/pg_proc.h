@@ -13,6 +13,8 @@
 
 namespace terrier::catalog::postgres {
 
+enum class ProArgModes : char { IN = 'i', OUT = 'o', INOUT = 'b', VARIADIC = 'v' };
+
 constexpr table_oid_t PRO_TABLE_OID = table_oid_t(81);
 constexpr index_oid_t PRO_OID_INDEX_OID = index_oid_t(82);
 constexpr index_oid_t PRO_NAME_INDEX_OID = index_oid_t(83);

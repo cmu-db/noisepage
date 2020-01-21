@@ -2118,7 +2118,7 @@ proc_oid_t DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transac
                                             const std::vector<const std::string> &args,
                                             const std::vector<type::TypeId> &arg_types,
                                             const std::vector<type::TypeId> &all_arg_types,
-                                            const std::vector<const char> &arg_modes, type_oid_t rettype,
+                                            const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,
                                             const std::string &src, bool is_aggregate) {
   TERRIER_ASSERT(args.size() < UINT16_MAX, "Number of arguments must fit in a SMALLINT");
 

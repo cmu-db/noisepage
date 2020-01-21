@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "catalog/catalog.h"
+#include "catalog/postgres/pg_proc.h"
 
 namespace terrier::catalog {
 db_oid_t CatalogAccessor::GetDatabaseOid(std::string name) const {
@@ -142,17 +143,17 @@ language_oid_t CatalogAccessor::GetLanguageOid(const std::string &lanname) {
 
 bool CatalogAccessor::DropLanguage(language_oid_t language_oid) { return dbc_->DropLanguage(txn_, language_oid); }
 
-proc_oid_t CatalogAccessor::CreateProcedure(const std::string &procname, language_oid_t lanoid, namespace_oid_t procns,
-                                            const std::vector<const std::string> &args,
+proc_oid_t CatalogAccessor::CreateProcedure(const std::string &procname, language_oid_t language_oid,
+                                            namespace_oid_t procns, const std::vector<const std::string> &args,
                                             const std::vector<type::TypeId> &arg_types,
                                             const std::vector<type::TypeId> &all_arg_types,
-                                            const std::vector<const char> &arg_modes, type_oid_t rettype,
+                                            const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,
                                             const std::string &src, bool is_aggregate) {
-  return dbc_->CreateProcedure(txn_, procname, lanoid, procns, args, arg_types, all_arg_types, arg_modes, rettype, src,
-                               is_aggregate);
+  return dbc_->CreateProcedure(txn_, procname, language_oid, procns, args, arg_types, all_arg_types, arg_modes, rettype,
+                               src, is_aggregate);
 }
 
-bool CatalogAccessor::DropProcedure(proc_oid_t proc) { return dbc_->DropProcedure(txn_, proc); }
+bool CatalogAccessor::DropProcedure(proc_oid_t proc_oid) { return dbc_->DropProcedure(txn_, proc_oid); }
 
 proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname, const std::vector<type::TypeId> &arg_types) {
   proc_oid_t ret;

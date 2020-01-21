@@ -128,7 +128,9 @@ TEST_F(CatalogTests, ProcTest) {
   auto procname = "sample";
   std::vector<const std::string> args = {"arg1", "arg2", "arg3"};
   std::vector<type::TypeId> arg_types = {type::TypeId::INTEGER, type::TypeId::BOOLEAN, type::TypeId::SMALLINT};
-  std::vector<const char> arg_modes = {'i', 'i', 'i'};
+  std::vector<catalog::postgres::ProArgModes> arg_modes = {catalog::postgres::ProArgModes::IN,
+                                                           catalog::postgres::ProArgModes::IN,
+                                                           catalog::postgres::ProArgModes::IN};
   auto src = "int sample(arg1, arg2, arg3){return 2;}";
 
   auto proc_oid =
