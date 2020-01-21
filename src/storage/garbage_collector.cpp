@@ -1,6 +1,8 @@
 #include "storage/garbage_collector.h"
+
 #include <unordered_set>
 #include <utility>
+
 #include "common/macros.h"
 #include "loggers/storage_logger.h"
 #include "storage/data_table.h"
@@ -12,6 +14,11 @@
 
 namespace terrier::storage {
 
+// TODO(John) Figure out how we keep the illusion of this for tests but ween the
+// main system off this.  Initial thought is we can imitate this with static
+// counters that are globally incremented in the callbacks (maybe tunable?).  It
+// would be nice if this was hooked into metrics but that's a too far for right
+// now.
 std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
   if (observer_ != nullptr) observer_->ObserveGCInvocation();
   timestamp_manager_->CheckOutTimestamp();
@@ -32,6 +39,7 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
   return std::make_pair(txns_deallocated, txns_unlinked);
 }
 
+// TODO(John) Refactor to be deferred inside unlinking below
 uint32_t GarbageCollector::ProcessDeallocateQueue(transaction::timestamp_t oldest_txn) {
   uint32_t txns_processed = 0;
   bool gc_metrics_enabled =
@@ -66,6 +74,7 @@ uint32_t GarbageCollector::ProcessDeallocateQueue(transaction::timestamp_t oldes
   return txns_processed;
 }
 
+// TODO(John) Move to TransactionContext class.  We defer this action at abort or commit to kick-off the GC logic.
 uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_txn) {
   transaction::TransactionContext *txn = nullptr;
 
@@ -152,6 +161,7 @@ void GarbageCollector::ProcessDeferredActions(transaction::timestamp_t oldest_tx
   }
 }
 
+// TODO(John) Move to UndoRecord class
 void GarbageCollector::TruncateVersionChain(DataTable *const table, const TupleSlot slot,
                                             const transaction::timestamp_t oldest) const {
   const TupleAccessStrategy &accessor = table->accessor_;
@@ -194,10 +204,12 @@ void GarbageCollector::TruncateVersionChain(DataTable *const table, const TupleS
     TruncateVersionChain(table, slot, oldest);
 }
 
+// TODO(John) Where should this live?
 void GarbageCollector::ReclaimSlotIfDeleted(UndoRecord *const undo_record) const {
   if (undo_record->Type() == DeltaRecordType::DELETE) undo_record->Table()->accessor_.Deallocate(undo_record->Slot());
 }
 
+// TODO(John) Move to UndoRecord class
 void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *const txn,
                                              UndoRecord *const undo_record) const {
   const TupleAccessStrategy &accessor = undo_record->Table()->accessor_;
@@ -206,23 +218,25 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *co
     case DeltaRecordType::INSERT:
       return;  // no possibility of outdated varlen to gc
     case DeltaRecordType::DELETE:
-      // TODO(Tianyu): Potentially need to be more efficient than linear in column size?
       for (uint16_t i = 0; i < layout.NumColumns(); i++) {
         col_id_t col_id(i);
         // Okay to include version vector, as it is never varlen
         if (layout.IsVarlen(col_id)) {
           auto *varlen = reinterpret_cast<VarlenEntry *>(accessor.AccessWithNullCheck(undo_record->Slot(), col_id));
           if (varlen != nullptr && varlen->NeedReclaim()) txn->loose_ptrs_.push_back(varlen->Content());
+        } else {
+          break;  // Once done with varlens we won't see them again.
         }
       }
       break;
     case DeltaRecordType::UPDATE:
-      // TODO(Tianyu): This might be a really bad idea for large deltas...
       for (uint16_t i = 0; i < undo_record->Delta()->NumColumns(); i++) {
         col_id_t col_id = undo_record->Delta()->ColumnIds()[i];
         if (layout.IsVarlen(col_id)) {
           auto *varlen = reinterpret_cast<VarlenEntry *>(undo_record->Delta()->AccessWithNullCheck(i));
           if (varlen != nullptr && varlen->NeedReclaim()) txn->loose_ptrs_.push_back(varlen->Content());
+        } else {
+          break;  // Once done with varlens we won't see them again.
         }
       }
       break;
@@ -231,6 +245,7 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *co
   }
 }
 
+// TODO(John) Where should this live?
 void GarbageCollector::RegisterIndexForGC(const common::ManagedPointer<index::Index> index) {
   TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
   common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
@@ -238,6 +253,7 @@ void GarbageCollector::RegisterIndexForGC(const common::ManagedPointer<index::In
   indexes_.insert(index);
 }
 
+// TODO(John) Where should this live?
 void GarbageCollector::UnregisterIndexForGC(const common::ManagedPointer<index::Index> index) {
   TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
   common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
@@ -245,6 +261,13 @@ void GarbageCollector::UnregisterIndexForGC(const common::ManagedPointer<index::
   indexes_.erase(index);
 }
 
+// TODO(John) What is the right way to invoke this?  Should it be a periodic task in the deferred action queue or
+// special cased (which feels dirty)?  Frequency of call should not affect index performance just memory usage.  In
+// fact, keeping transaction processing regulare should be more important for throughput than calling this.  Also, this
+// potentially introduces a long pause in normal processing (could be bad) and could block (or be blocked by) DDL.
+//
+// @bug This should be exclusive because concurrent calls to PerformGarbageCollection for the same index may not be
+// thread safe (i.e. bwtrees...)
 void GarbageCollector::ProcessIndexes() {
   common::SharedLatch::ScopedSharedLatch guard(&indexes_latch_);
   for (const auto &index : indexes_) index->PerformGarbageCollection();

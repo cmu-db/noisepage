@@ -11,6 +11,8 @@ namespace terrier::storage {
 /**
  * Class for spinning off a thread that runs garbage collection at a fixed interval. This should be used in most cases
  * to enable GC in the system unless you need fine-grained control over table state or profiling.
+ *
+ * TODO(John) Repurpose thisto be the deferred action manager's thread
  */
 class GarbageCollectorThread {
  public:
