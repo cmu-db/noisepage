@@ -1024,7 +1024,7 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   EXPECT_TRUE(ctpn->HasPrimaryKey());
   EXPECT_EQ(ctpn->GetPrimaryKey().primary_key_cols_.size(), 1);
   EXPECT_EQ(ctpn->GetPrimaryKey().primary_key_cols_[0], "c1");
-  EXPECT_EQ(ctpn->GetPrimaryKey().constraint_name_, "pk_c1");
+  EXPECT_EQ(ctpn->GetPrimaryKey().constraint_name_, "c_pk_c1");
   EXPECT_EQ(ctpn->GetForeignKeys().size(), 1);
   EXPECT_EQ(ctpn->GetForeignKeys()[0].foreign_key_sources_.size(), 1);
   EXPECT_EQ(ctpn->GetForeignKeys()[0].foreign_key_sources_[0], "c3");

@@ -262,6 +262,8 @@ void BindNodeVisitor::Visit(parser::CreateStatement *node, parser::ParseResult *
         if (attr.HasExpr()) {
           attr.GetExpression()->Accept(this, parse_result);
         } else {
+          // TODO(Matt): can an index attribute definition ever reference multiple tables? I don't think so. We should
+          // probably move this out of the loop.
           auto tb_oid = catalog_accessor_->GetTableOid(node->GetTableName());
           if (!BinderContext::ColumnInSchema(catalog_accessor_->GetSchema(tb_oid), attr.GetName()))
             throw BINDER_EXCEPTION(("No such column specified by the index attribute " + attr.GetName()).c_str());
