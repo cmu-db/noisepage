@@ -309,10 +309,16 @@ void QueryToOperatorTransformer::Visit(parser::CreateStatement *op, parser::Pars
         if (attr.HasExpr()) {
           entries.emplace_back(attr.GetExpression());
         } else {
-          auto tb_oid = accessor_->GetTableOid(op->GetTableName());
+          // TODO(Matt): can an index attribute definition ever reference multiple tables? I don't think so. We should
+          // probably move this out of the loop.
+          // TODO(Matt): why are we still binding names to oids at this point? Didn't the binder already bind this
+          // expression?
+          const auto tb_oid = accessor_->GetTableOid(op->GetTableName());
+          const auto &table_schema = accessor_->GetSchema(tb_oid);
+          const auto &table_col = table_schema.GetColumn(attr.GetName());
           auto unique_col_expr = std::make_unique<parser::ColumnValueExpression>(
               op->GetTableName(), attr.GetName(), accessor_->GetDatabaseOid(op->GetDatabaseName()), tb_oid,
-              accessor_->GetSchema(tb_oid).GetColumn(attr.GetName()).Oid());
+              table_col.Oid(), table_col.Type());
           parse_result->AddExpression(std::move(unique_col_expr));
           auto new_col_expr = common::ManagedPointer(parse_result->GetExpressions().back());
           entries.push_back(new_col_expr);
