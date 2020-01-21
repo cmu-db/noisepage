@@ -151,17 +151,6 @@ class PacketWriter {
   }
 
   /**
-   * A helper function to write a single error message without having to make a vector every time.
-   * @param type
-   * @param status
-   */
-  void WriteSingleErrorResponse(NetworkMessageType type, const std::string &status) {
-    std::vector<std::pair<NetworkMessageType, std::string>> buf;
-    buf.emplace_back(type, status);
-    WriteErrorResponse(buf);
-  }
-
-  /**
    * Writes the startup message, used by clients
    */
   void WriteStartupRequest(const std::unordered_map<std::string, std::string> &config, int16_t major_version = 3) {
