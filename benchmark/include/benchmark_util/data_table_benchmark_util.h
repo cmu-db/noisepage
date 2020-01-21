@@ -13,10 +13,6 @@
 #include "transaction/transaction_manager.h"
 
 namespace terrier {
-struct TestCallbacks {
-  TestCallbacks() = delete;
-  static void EmptyCallback(void * /*unused*/) {}
-};
 
 class LargeDataTableBenchmarkObject;
 class RandomDataTableTransaction;

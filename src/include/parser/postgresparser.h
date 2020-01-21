@@ -19,6 +19,11 @@ namespace terrier::parser {
 class ParseResult {
  public:
   /**
+   * @return true if no statements exist
+   */
+  bool Empty() const { return statements_.empty(); }
+
+  /**
    * Adds a statement to this parse result.
    */
   void AddStatement(std::unique_ptr<SQLStatement> statement) { statements_.emplace_back(std::move(statement)); }
@@ -107,7 +112,7 @@ class PostgresParser {
    * @param query_string query string to be parsed
    * @return unique pointer to parse tree
    */
-  static ParseResult BuildParseTree(const std::string &query_string);
+  static std::unique_ptr<parser::ParseResult> BuildParseTree(const std::string &query_string);
 
  private:
   static FKConstrActionType CharToActionType(const char &type) {

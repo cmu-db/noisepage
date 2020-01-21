@@ -54,7 +54,8 @@ public class InsertPSTest extends PLTestBase {
     /**
      * Prepared statement, 1 tuple insert, with no column specification.
      */
-    @Test
+//  Disable until prepared statements are supported
+//     @Test
     public void testPS_1Tuple_NCS() throws SQLException {
 
         String sql = "INSERT INTO tbl VALUES (?, ?, ?);";
@@ -78,7 +79,9 @@ public class InsertPSTest extends PLTestBase {
      * Prepared statement, 1 tuple insert, with columns inserted
      * in schema order.
      */
-    @Test
+
+//  Disable until prepared statements are supported
+//     @Test
     public void testPS_1Tuple_CS_1() throws SQLException {
 
         String sql = "INSERT INTO tbl (c1, c2, c3) VALUES (?, ?, ?);";
@@ -100,7 +103,8 @@ public class InsertPSTest extends PLTestBase {
      * Prepared statement, 1 tuple insert, with columns inserted
      * in different order from schema.
      */
-    @Test
+//  Disable until prepared statements are supported
+//     @Test
     public void testPS_1Tuple_CS_2() throws SQLException {
 
         String sql = "INSERT INTO tbl (c3, c1, c2) VALUES (?, ?, ?);";
@@ -122,7 +126,8 @@ public class InsertPSTest extends PLTestBase {
      * Prepared statement, 1 tuple insert, with columns inserted
      * in different order from schema, with one constant column.
      */
-    @Test
+//  Disable until prepared statements are supported
+//     @Test
     public void testPS_1Tuple_CS_3() throws SQLException {
 
         String sql = "INSERT INTO tbl (c3, c1, c2) VALUES (?, 1, ?);";
@@ -144,7 +149,8 @@ public class InsertPSTest extends PLTestBase {
      * Prepared statement, 1 tuple insert, with columns inserted
      * in schema order, with 2nd column missing.
      */
-    @Test
+//  Disable until prepared statements are supported
+//     @Test
     public void testPS_1Tuple_CS_4() throws SQLException {
 
         String sql = "INSERT INTO tbl (c1, c3) VALUES (?, ?);";
@@ -166,7 +172,7 @@ public class InsertPSTest extends PLTestBase {
      * Prepared statement, 1 tuple insert, with columns inserted
      * in schema order, one constant column
      */
-    @Test
+//     @Test
     public void testPS_1Tuple_CS_5() throws SQLException {
 
         String sql = "INSERT INTO tbl (c1, c2, c3) VALUES (?, 2, ?);";
@@ -187,7 +193,8 @@ public class InsertPSTest extends PLTestBase {
     /**
      * Prepared statement, 1 tuple insert, all constants
      */
-    @Test
+//  Disable until prepared statements are supported
+//     @Test
     public void testPS_1Tuple_CS_6() throws SQLException {
 
         String sql = "INSERT INTO tbl (c1, c2, c3) VALUES (1, 2, 3);";
@@ -216,7 +223,8 @@ public class InsertPSTest extends PLTestBase {
     /**
      * Prepared statement, 2 tuple insert, with no column specification.
      */
-    @Test
+//  Disable until prepared statements are supported
+//     @Test
     public void testPS_2Tuple_NCS() throws SQLException {
 
         String sql = "INSERT INTO tbl VALUES (?, ?, ?);";
@@ -246,7 +254,8 @@ public class InsertPSTest extends PLTestBase {
      * in schema order
      *
      */
-    @Test
+//  Disable until prepared statements are supported
+//     @Test
     public void testPS_2Tuple_CS_1() throws SQLException {
 
         String sql = "INSERT INTO tbl (c1, c2, c3) VALUES (?, ?, ?);";
@@ -275,7 +284,8 @@ public class InsertPSTest extends PLTestBase {
      * Prepared statement, 2 tuple insert, with columns inserted
      * in different order from schema.
      */
-    @Test
+//  Disable until prepared statements are supported
+//     @Test
     public void testPS_2Tuple_CS_2() throws SQLException {
 
         String sql = "INSERT INTO tbl (c3, c1, c2) VALUES (?, ?, ?);";
@@ -304,7 +314,8 @@ public class InsertPSTest extends PLTestBase {
      * Prepared statement, 2 tuple insert, with columns inserted
      * in different order from schema, with one constant column.
      */
-    @Test
+//  Disable until prepared statements are supported
+//     @Test
     public void testPS_2Tuple_CS_3() throws SQLException {
 
         String sql = "INSERT INTO tbl (c3, c1, c2) VALUES (3, ?, ?);";
@@ -333,7 +344,7 @@ public class InsertPSTest extends PLTestBase {
      * in different order from schema, with one constant column.
      * Variant of above, with constant column last.
      */
-    @Test
+//     @Test
     public void testPS_2Tuple_CS_3a() throws SQLException {
 
         String sql = "INSERT INTO tbl (c3, c1, c2) VALUES (?, ?, 2);";
@@ -361,7 +372,8 @@ public class InsertPSTest extends PLTestBase {
      * Prepared statement, 2 tuple insert, with columns inserted
      * in schema order, with 2nd column missing.
      */
-    @Test
+//  Disable until prepared statements are supported
+//     @Test
     public void testPS_2Tuple_CS_4() throws SQLException {
 
         String sql = "INSERT INTO tbl (c1, c3) VALUES (?, ?);";

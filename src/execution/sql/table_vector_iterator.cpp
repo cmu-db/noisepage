@@ -1,12 +1,14 @@
+#include "execution/sql/table_vector_iterator.h"
+
+#include <tbb/blocked_range.h>
+#include <tbb/parallel_for.h>
+#include <tbb/task_scheduler_init.h>
+
 #include <memory>
 #include <vector>
 
 #include "execution/exec/execution_context.h"
-#include "execution/sql/table_vector_iterator.h"
 #include "execution/util/timer.h"
-#include "tbb/blocked_range.h"
-#include "tbb/parallel_for.h"
-#include "tbb/task_scheduler_init.h"
 
 namespace terrier::execution::sql {
 TableVectorIterator::TableVectorIterator(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *col_oids,

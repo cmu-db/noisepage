@@ -12,10 +12,10 @@ namespace terrier {
 /**
  * Magic macro for our parser microbencmarks
  */
-#define PARSER_BENCHMARK_EXECUTE(QUERIES, TYPE)                                                                    \
-  for (const auto &sql : QUERIES) {                                                                                \
-    auto result = parser::PostgresParser::BuildParseTree(sql);                                                     \
-    TERRIER_ASSERT(result.GetStatement(0).CastManagedPointerTo<TYPE>() != nullptr, "Failed to get ##TYPE object"); \
+#define PARSER_BENCHMARK_EXECUTE(QUERIES, TYPE)                                                                     \
+  for (const auto &sql : QUERIES) {                                                                                 \
+    auto result = parser::PostgresParser::BuildParseTree(sql);                                                      \
+    TERRIER_ASSERT(result->GetStatement(0).CastManagedPointerTo<TYPE>() != nullptr, "Failed to get ##TYPE object"); \
   }
 
 class ParserBenchmark : public benchmark::Fixture {
@@ -207,7 +207,7 @@ BENCHMARK_DEFINE_F(ParserBenchmark, NOOPs)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
     auto result = parser::PostgresParser::BuildParseTree(";");
-    TERRIER_ASSERT(result.GetStatements().empty(), "Unexpected return result for NOOP");
+    TERRIER_ASSERT(result->GetStatements().empty(), "Unexpected return result for NOOP");
   }
   state.SetItemsProcessed(state.iterations());
 }

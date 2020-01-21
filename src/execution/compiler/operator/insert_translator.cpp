@@ -50,6 +50,7 @@ void InsertTranslator::Produce(FunctionBuilder *builder) {
 void InsertTranslator::Abort(FunctionBuilder *builder) {
   GenInserterFree(builder);
   if (child_translator_ != nullptr) child_translator_->Abort(builder);
+  builder->Append(codegen_->ReturnStmt(nullptr));
 }
 
 void InsertTranslator::Consume(FunctionBuilder *builder) {

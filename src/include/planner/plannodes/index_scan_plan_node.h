@@ -314,7 +314,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   /**
    * @return OIDs of columns to scan
    */
-  const std::vector<catalog::col_oid_t> &GetColumnIds() const { return column_oids_; }
+  const std::vector<catalog::col_oid_t> &GetColumnOids() const { return column_oids_; }
 
   /**
    * @returns Index Scan Description
@@ -366,36 +366,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   nlohmann::json ToJson() const override;
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
-  /**
-   * Collect all column oids in this expression
-   * @warning slow!
-   * @return the vector of unique columns oids
-   */
-  std::vector<catalog::col_oid_t> CollectInputOids() const {
-    std::vector<catalog::col_oid_t> result;
-    // Output expressions
-    for (const auto &col : GetOutputSchema()->GetColumns()) {
-      CollectOids(&result, col.GetExpr());
-    }
-    // Remove duplicates
-    std::unordered_set<catalog::col_oid_t> s(result.begin(), result.end());
-    result.assign(s.begin(), s.end());
-    return result;
-  }
-
  private:
-  void CollectOids(std::vector<catalog::col_oid_t> *result,
-                   common::ManagedPointer<parser::AbstractExpression> expr) const {
-    if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-      auto column_val = expr.CastManagedPointerTo<parser::ColumnValueExpression>();
-      result->emplace_back(column_val->GetColumnOid());
-    } else {
-      for (const auto &child : expr->GetChildren()) {
-        CollectOids(result, child);
-      }
-    }
-  }
-
   IndexScanType scan_type_;
   catalog::index_oid_t index_oid_;
   catalog::table_oid_t table_oid_;

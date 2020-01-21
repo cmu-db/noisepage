@@ -1,3 +1,5 @@
+#include "optimizer/rules/implementation_rules.h"
+
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -13,9 +15,9 @@
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/physical_operators.h"
 #include "optimizer/properties.h"
-#include "optimizer/rules/implementation_rules.h"
 #include "optimizer/util.h"
 #include "parser/expression_util.h"
+#include "storage/storage_defs.h"
 #include "type/transient_value_factory.h"
 
 namespace terrier::optimizer {
@@ -607,6 +609,356 @@ void LogicalExportToPhysicalExport::Transform(common::ManagedPointer<OperatorExp
                                export_op->GetQuote(), export_op->GetEscape()),
       std::move(c));
   transformed->emplace_back(std::move(result_plan));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+/// Logical Create/Drop to Physical Create/Drop
+///////////////////////////////////////////////////////////////////////////////
+LogicalCreateDatabaseToPhysicalCreateDatabase::LogicalCreateDatabaseToPhysicalCreateDatabase() {
+  type_ = RuleType::CREATE_DATABASE_TO_PHYSICAL;
+  match_pattern_ = new Pattern(OpType::LOGICALCREATEDATABASE);
+}
+
+bool LogicalCreateDatabaseToPhysicalCreateDatabase::Check(common::ManagedPointer<OperatorExpression> plan,
+                                                          OptimizationContext *context) const {
+  return true;
+}
+
+void LogicalCreateDatabaseToPhysicalCreateDatabase::Transform(
+    common::ManagedPointer<OperatorExpression> input, std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+    UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  const auto cdb_op = input->GetOp().As<LogicalCreateDatabase>();
+  TERRIER_ASSERT(input->GetChildren().empty(), "LogicalCreateDatabase should have 0 children");
+
+  auto op = std::make_unique<OperatorExpression>(CreateDatabase::Make(cdb_op->GetDatabaseName()),
+                                                 std::vector<std::unique_ptr<OperatorExpression>>());
+  transformed->emplace_back(std::move(op));
+}
+
+LogicalCreateFunctionToPhysicalCreateFunction::LogicalCreateFunctionToPhysicalCreateFunction() {
+  type_ = RuleType::CREATE_FUNCTION_TO_PHYSICAL;
+  match_pattern_ = new Pattern(OpType::LOGICALCREATEFUNCTION);
+}
+
+bool LogicalCreateFunctionToPhysicalCreateFunction::Check(common::ManagedPointer<OperatorExpression> plan,
+                                                          OptimizationContext *context) const {
+  return true;
+}
+
+void LogicalCreateFunctionToPhysicalCreateFunction::Transform(
+    common::ManagedPointer<OperatorExpression> input, std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+    UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  const auto cf_op = input->GetOp().As<LogicalCreateFunction>();
+  TERRIER_ASSERT(input->GetChildren().empty(), "LogicalCreateFunction should have 0 children");
+
+  auto op = std::make_unique<OperatorExpression>(
+      CreateFunction::Make(cf_op->GetDatabaseOid(), cf_op->GetNamespaceOid(), cf_op->GetFunctionName(),
+                           cf_op->GetUDFLanguage(), cf_op->GetFunctionBody(), cf_op->GetFunctionParameterNames(),
+                           cf_op->GetFunctionParameterTypes(), cf_op->GetReturnType(), cf_op->GetParamCount(),
+                           cf_op->IsReplace()),
+      std::vector<std::unique_ptr<OperatorExpression>>());
+  transformed->emplace_back(std::move(op));
+}
+
+LogicalCreateIndexToPhysicalCreateIndex::LogicalCreateIndexToPhysicalCreateIndex() {
+  type_ = RuleType::CREATE_INDEX_TO_PHYSICAL;
+  match_pattern_ = new Pattern(OpType::LOGICALCREATEINDEX);
+}
+
+bool LogicalCreateIndexToPhysicalCreateIndex::Check(common::ManagedPointer<OperatorExpression> plan,
+                                                    OptimizationContext *context) const {
+  return true;
+}
+
+void LogicalCreateIndexToPhysicalCreateIndex::Transform(common::ManagedPointer<OperatorExpression> input,
+                                                        std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+                                                        UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  auto ci_op = input->GetOp().As<LogicalCreateIndex>();
+  TERRIER_ASSERT(input->GetChildren().empty(), "LogicalCreateIndex should have 0 children");
+
+  auto *accessor = context->GetOptimizerContext()->GetCatalogAccessor();
+  const auto &tbl_schema = accessor->GetSchema(ci_op->GetTableOid());
+
+  std::vector<catalog::IndexSchema::Column> cols;
+  for (auto attr : ci_op->GetIndexAttr()) {
+    // Information should already be derived
+    auto name = attr->GetExpressionName();
+    auto type = attr->GetReturnValueType();
+    auto is_var = (type == type::TypeId::VARCHAR || type == type::TypeId::VARBINARY);
+
+    // Need a catalog lookup to see if nullable
+    bool nullable = false;
+    uint16_t varlen_size = 0;
+    if (attr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
+      auto cve = attr.CastManagedPointerTo<parser::ColumnValueExpression>();
+      auto &col = tbl_schema.GetColumn(cve->GetColumnOid());
+      name = cve->GetColumnName();
+      nullable = col.Nullable();
+      if (is_var) varlen_size = col.MaxVarlenSize();
+    } else {
+      // TODO(Matt): derive a unique name
+      // TODO(wz2): Derive nullability/varlen from non ColumnValue
+      nullable = true;
+      varlen_size = UINT16_MAX;
+    }
+
+    if (is_var)
+      cols.emplace_back(name, type, varlen_size, nullable, *attr);
+    else
+      cols.emplace_back(name, type, nullable, *attr);
+  }
+
+  storage::index::IndexType idx_type = storage::index::IndexType::BWTREE;
+  switch (ci_op->GetIndexType()) {
+    case parser::IndexType::BWTREE:
+      idx_type = storage::index::IndexType::BWTREE;
+      break;
+    case parser::IndexType::HASH:
+      idx_type = storage::index::IndexType::HASHMAP;
+      break;
+    default:
+      TERRIER_ASSERT(false, "Unsupported index type encountered");
+      break;
+  }
+
+  auto schema = std::make_unique<catalog::IndexSchema>(std::move(cols), idx_type, ci_op->IsUnique(),
+                                                       false,   // is_primary
+                                                       false,   // is_exclusion
+                                                       false);  // is_immediate
+
+  auto op = std::make_unique<OperatorExpression>(
+      CreateIndex::Make(ci_op->GetNamespaceOid(), ci_op->GetTableOid(), ci_op->GetIndexName(), std::move(schema)),
+      std::vector<std::unique_ptr<OperatorExpression>>());
+  transformed->emplace_back(std::move(op));
+}
+
+LogicalCreateTableToPhysicalCreateTable::LogicalCreateTableToPhysicalCreateTable() {
+  type_ = RuleType::CREATE_TABLE_TO_PHYSICAL;
+  match_pattern_ = new Pattern(OpType::LOGICALCREATETABLE);
+}
+
+bool LogicalCreateTableToPhysicalCreateTable::Check(common::ManagedPointer<OperatorExpression> plan,
+                                                    OptimizationContext *context) const {
+  return true;
+}
+
+void LogicalCreateTableToPhysicalCreateTable::Transform(common::ManagedPointer<OperatorExpression> input,
+                                                        std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+                                                        UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  auto ct_op = input->GetOp().As<LogicalCreateTable>();
+  TERRIER_ASSERT(input->GetChildren().empty(), "LogicalCreateTable should have 0 children");
+
+  std::vector<common::ManagedPointer<parser::ColumnDefinition>> cols;
+  std::vector<common::ManagedPointer<parser::ColumnDefinition>> fks;
+  for (const auto &col : ct_op->GetColumns()) {
+    cols.push_back(col);
+  }
+  for (const auto &fk : ct_op->GetForeignKeys()) {
+    fks.push_back(fk);
+  }
+
+  auto op = std::make_unique<OperatorExpression>(
+      CreateTable::Make(ct_op->GetNamespaceOid(), ct_op->GetTableName(), std::move(cols), std::move(fks)),
+      std::vector<std::unique_ptr<OperatorExpression>>());
+  transformed->emplace_back(std::move(op));
+}
+
+LogicalCreateNamespaceToPhysicalCreateNamespace::LogicalCreateNamespaceToPhysicalCreateNamespace() {
+  type_ = RuleType::CREATE_NAMESPACE_TO_PHYSICAL;
+  match_pattern_ = new Pattern(OpType::LOGICALCREATENAMESPACE);
+}
+
+bool LogicalCreateNamespaceToPhysicalCreateNamespace::Check(common::ManagedPointer<OperatorExpression> plan,
+                                                            OptimizationContext *context) const {
+  return true;
+}
+
+void LogicalCreateNamespaceToPhysicalCreateNamespace::Transform(
+    common::ManagedPointer<OperatorExpression> input, std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+    UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  auto cn_op = input->GetOp().As<LogicalCreateNamespace>();
+  TERRIER_ASSERT(input->GetChildren().empty(), "LogicalCreateNamespace should have 0 children");
+
+  auto op = std::make_unique<OperatorExpression>(CreateNamespace::Make(cn_op->GetNamespaceName()),
+                                                 std::vector<std::unique_ptr<OperatorExpression>>());
+
+  transformed->emplace_back(std::move(op));
+}
+
+LogicalCreateTriggerToPhysicalCreateTrigger::LogicalCreateTriggerToPhysicalCreateTrigger() {
+  type_ = RuleType::CREATE_TRIGGER_TO_PHYSICAL;
+  match_pattern_ = new Pattern(OpType::LOGICALCREATETRIGGER);
+}
+
+bool LogicalCreateTriggerToPhysicalCreateTrigger::Check(common::ManagedPointer<OperatorExpression> plan,
+                                                        OptimizationContext *context) const {
+  return true;
+}
+
+void LogicalCreateTriggerToPhysicalCreateTrigger::Transform(
+    common::ManagedPointer<OperatorExpression> input, std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+    UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  auto ct_op = input->GetOp().As<LogicalCreateTrigger>();
+  TERRIER_ASSERT(input->GetChildren().empty(), "LogicalCreateTrigger should have 0 children");
+
+  auto op = std::make_unique<OperatorExpression>(
+      CreateTrigger::Make(ct_op->GetDatabaseOid(), ct_op->GetNamespaceOid(), ct_op->GetTableOid(),
+                          ct_op->GetTriggerName(), ct_op->GetTriggerFuncName(), ct_op->GetTriggerArgs(),
+                          ct_op->GetTriggerColumns(), ct_op->GetTriggerWhen(), ct_op->GetTriggerType()),
+      std::vector<std::unique_ptr<OperatorExpression>>());
+
+  transformed->emplace_back(std::move(op));
+}
+
+LogicalCreateViewToPhysicalCreateView::LogicalCreateViewToPhysicalCreateView() {
+  type_ = RuleType::CREATE_VIEW_TO_PHYSICAL;
+  match_pattern_ = new Pattern(OpType::LOGICALCREATEVIEW);
+}
+
+bool LogicalCreateViewToPhysicalCreateView::Check(common::ManagedPointer<OperatorExpression> plan,
+                                                  OptimizationContext *context) const {
+  return true;
+}
+
+void LogicalCreateViewToPhysicalCreateView::Transform(common::ManagedPointer<OperatorExpression> input,
+                                                      std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+                                                      UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  auto cv_op = input->GetOp().As<LogicalCreateView>();
+  TERRIER_ASSERT(input->GetChildren().empty(), "LogicalCreateView should have 0 children");
+
+  auto op = std::make_unique<OperatorExpression>(
+      CreateView::Make(cv_op->GetDatabaseOid(), cv_op->GetNamespaceOid(), cv_op->GetViewName(), cv_op->GetViewQuery()),
+      std::vector<std::unique_ptr<OperatorExpression>>());
+
+  transformed->emplace_back(std::move(op));
+}
+
+LogicalDropDatabaseToPhysicalDropDatabase::LogicalDropDatabaseToPhysicalDropDatabase() {
+  type_ = RuleType::DROP_DATABASE_TO_PHYSICAL;
+  match_pattern_ = new Pattern(OpType::LOGICALDROPDATABASE);
+}
+
+bool LogicalDropDatabaseToPhysicalDropDatabase::Check(common::ManagedPointer<OperatorExpression> plan,
+                                                      OptimizationContext *context) const {
+  return true;
+}
+
+void LogicalDropDatabaseToPhysicalDropDatabase::Transform(common::ManagedPointer<OperatorExpression> input,
+                                                          std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+                                                          UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  auto dd_op = input->GetOp().As<LogicalDropDatabase>();
+  TERRIER_ASSERT(input->GetChildren().empty(), "LogicalDropDatabase should have 0 children");
+
+  auto op = std::make_unique<OperatorExpression>(DropDatabase::Make(dd_op->GetDatabaseOID()),
+                                                 std::vector<std::unique_ptr<OperatorExpression>>());
+  transformed->emplace_back(std::move(op));
+}
+
+LogicalDropTableToPhysicalDropTable::LogicalDropTableToPhysicalDropTable() {
+  type_ = RuleType::DROP_TABLE_TO_PHYSICAL;
+  match_pattern_ = new Pattern(OpType::LOGICALDROPTABLE);
+}
+
+bool LogicalDropTableToPhysicalDropTable::Check(common::ManagedPointer<OperatorExpression> plan,
+                                                OptimizationContext *context) const {
+  return true;
+}
+
+void LogicalDropTableToPhysicalDropTable::Transform(common::ManagedPointer<OperatorExpression> input,
+                                                    std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+                                                    UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  auto dt_op = input->GetOp().As<LogicalDropTable>();
+  TERRIER_ASSERT(input->GetChildren().empty(), "LogicalDropTable should have 0 children");
+
+  auto op = std::make_unique<OperatorExpression>(DropTable::Make(dt_op->GetTableOID()),
+                                                 std::vector<std::unique_ptr<OperatorExpression>>());
+  transformed->emplace_back(std::move(op));
+}
+
+LogicalDropIndexToPhysicalDropIndex::LogicalDropIndexToPhysicalDropIndex() {
+  type_ = RuleType::DROP_INDEX_TO_PHYSICAL;
+  match_pattern_ = new Pattern(OpType::LOGICALDROPINDEX);
+}
+
+bool LogicalDropIndexToPhysicalDropIndex::Check(common::ManagedPointer<OperatorExpression> plan,
+                                                OptimizationContext *context) const {
+  return true;
+}
+
+void LogicalDropIndexToPhysicalDropIndex::Transform(common::ManagedPointer<OperatorExpression> input,
+                                                    std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+                                                    UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  auto di_op = input->GetOp().As<LogicalDropIndex>();
+  TERRIER_ASSERT(input->GetChildren().empty(), "LogicalDropIndex should have 0 children");
+
+  auto op = std::make_unique<OperatorExpression>(DropIndex::Make(di_op->GetIndexOID()),
+                                                 std::vector<std::unique_ptr<OperatorExpression>>());
+  transformed->emplace_back(std::move(op));
+}
+
+LogicalDropTriggerToPhysicalDropTrigger::LogicalDropTriggerToPhysicalDropTrigger() {
+  type_ = RuleType::DROP_TRIGGER_TO_PHYSICAL;
+  match_pattern_ = new Pattern(OpType::LOGICALDROPTRIGGER);
+}
+
+bool LogicalDropTriggerToPhysicalDropTrigger::Check(common::ManagedPointer<OperatorExpression> plan,
+                                                    OptimizationContext *context) const {
+  return true;
+}
+
+void LogicalDropTriggerToPhysicalDropTrigger::Transform(common::ManagedPointer<OperatorExpression> input,
+                                                        std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+                                                        UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  auto dt_op = input->GetOp().As<LogicalDropTrigger>();
+  TERRIER_ASSERT(input->GetChildren().empty(), "LogicalDropTrigger should have 0 children");
+
+  auto op = std::make_unique<OperatorExpression>(
+      DropTrigger::Make(dt_op->GetDatabaseOid(), dt_op->GetNamespaceOid(), dt_op->GetTriggerOid(), dt_op->IsIfExists()),
+      std::vector<std::unique_ptr<OperatorExpression>>());
+  transformed->emplace_back(std::move(op));
+}
+
+LogicalDropNamespaceToPhysicalDropNamespace::LogicalDropNamespaceToPhysicalDropNamespace() {
+  type_ = RuleType::DROP_NAMESPACE_TO_PHYSICAL;
+  match_pattern_ = new Pattern(OpType::LOGICALDROPNAMESPACE);
+}
+
+bool LogicalDropNamespaceToPhysicalDropNamespace::Check(common::ManagedPointer<OperatorExpression> plan,
+                                                        OptimizationContext *context) const {
+  return true;
+}
+
+void LogicalDropNamespaceToPhysicalDropNamespace::Transform(
+    common::ManagedPointer<OperatorExpression> input, std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+    UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  auto dn_op = input->GetOp().As<LogicalDropNamespace>();
+  TERRIER_ASSERT(input->GetChildren().empty(), "LogicalDropNamespace should have 0 children");
+
+  auto op = std::make_unique<OperatorExpression>(DropNamespace::Make(dn_op->GetNamespaceOID()),
+                                                 std::vector<std::unique_ptr<OperatorExpression>>());
+  transformed->emplace_back(std::move(op));
+}
+
+LogicalDropViewToPhysicalDropView::LogicalDropViewToPhysicalDropView() {
+  type_ = RuleType::DROP_VIEW_TO_PHYSICAL;
+  match_pattern_ = new Pattern(OpType::LOGICALDROPVIEW);
+}
+
+bool LogicalDropViewToPhysicalDropView::Check(common::ManagedPointer<OperatorExpression> plan,
+                                              OptimizationContext *context) const {
+  return true;
+}
+
+void LogicalDropViewToPhysicalDropView::Transform(common::ManagedPointer<OperatorExpression> input,
+                                                  std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+                                                  UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  auto dv_op = input->GetOp().As<LogicalDropView>();
+  TERRIER_ASSERT(input->GetChildren().empty(), "LogicalDropView should have 0 children");
+
+  auto op = std::make_unique<OperatorExpression>(
+      DropView::Make(dv_op->GetDatabaseOid(), dv_op->GetNamespaceOid(), dv_op->GetViewOid(), dv_op->IsIfExists()),
+      std::vector<std::unique_ptr<OperatorExpression>>());
+  transformed->emplace_back(std::move(op));
 }
 
 }  // namespace terrier::optimizer

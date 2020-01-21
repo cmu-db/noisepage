@@ -13,6 +13,8 @@
 #include "execution/compiler/output_schema_util.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
+#include "execution/executable_query.h"
+#include "execution/execution_util.h"
 #include "execution/sema/sema.h"
 #include "execution/sql/value.h"
 #include "execution/sql_test.h"  // NOLINT
@@ -29,6 +31,7 @@
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
 #include "planner/plannodes/output_schema.h"
+#include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
 #include "type/transient_value.h"
@@ -46,48 +49,7 @@ class CompilerTest : public SqlBasedTest {
     table_generator.GenerateTestTables();
   }
 
-  static void CompileAndRun(planner::AbstractPlanNode *node, exec::ExecutionContext *exec_ctx) {
-    // Create the query object, whose region must outlive all the processing.
-    // Compile and check for errors
-    CodeGen codegen(exec_ctx);
-    Compiler compiler(&codegen, node);
-    auto root = compiler.Compile();
-    if (codegen.Reporter()->HasErrors()) {
-      EXECUTION_LOG_ERROR("Type-checking error! \n {}", codegen.Reporter()->SerializeErrors());
-    }
-
-    EXECUTION_LOG_INFO("Converted: \n {}", execution::ast::AstDump::Dump(root));
-
-    // Convert to bytecode
-    auto bytecode_module = vm::BytecodeGenerator::Compile(root, exec_ctx, "tmp-tpl");
-    auto module = std::make_unique<vm::Module>(std::move(bytecode_module));
-
-    // Run the main function
-    std::function<int64_t(exec::ExecutionContext *)> main;
-    if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
-      EXECUTION_LOG_ERROR(
-          "Missing 'main' entry function with signature "
-          "(*ExecutionContext)->int32");
-      return;
-    }
-    EXECUTION_LOG_INFO("VM main() returned: {}", main(exec_ctx));
-  }
-
-  /**
-   * Initialize all TPL subsystems
-   */
-  static void InitTPL() {
-    execution::CpuInfo::Instance();
-    execution::vm::LLVMEngine::Initialize();
-  }
-
-  /**
-   * Shutdown all TPL subsystems
-   */
-  static void ShutdownTPL() {
-    terrier::execution::vm::LLVMEngine::Shutdown();
-    terrier::LoggersUtil::ShutDown();
-  }
+  static constexpr vm::ExecutionMode MODE = vm::ExecutionMode::Interpret;
 };
 
 // NOLINTNEXTLINE
@@ -100,9 +62,12 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     // Make New Column
     auto col3 = expr_maker.OpMul(col1, col2);
     auto col4 = expr_maker.ComparisonGe(col1, expr_maker.OpMul(expr_maker.Constant(100), col2));
@@ -118,13 +83,13 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
-
   // Make the output checkers
   SingleIntComparisonChecker col1_checker(std::less<>(), 0, 500);
   SingleIntComparisonChecker col2_checker(std::greater_equal<>(), 1, 3);
@@ -138,7 +103,76 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(seq_scan.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  multi_checker.CheckCorrectness();
+}
+
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, SimpleSeqScanWithProjectionTest) {
+  // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1 WHERE col1 < 500 AND col2 >= 3;
+  // This test first selects col1 and col2, and then constructs the 4 output columns.
+  auto accessor = MakeAccessor();
+  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+  auto table_schema = accessor->GetSchema(table_oid);
+  ExpressionMaker expr_maker;
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
+  {
+    // Get Table columns
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    // Make New Column
+    seq_scan_out.AddOutput("col1", common::ManagedPointer(col1));
+    seq_scan_out.AddOutput("col2", common::ManagedPointer(col2));
+    auto schema = seq_scan_out.MakeSchema();
+    // Make predicate
+    auto comp1 = expr_maker.ComparisonLt(col1, expr_maker.Constant(500));
+    auto comp2 = expr_maker.ComparisonGe(col2, expr_maker.Constant(3));
+    auto predicate = expr_maker.ConjunctionAnd(comp1, comp2);
+    // Build
+    planner::SeqScanPlanNode::Builder builder;
+    seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid})
+                   .SetScanPredicate(predicate)
+                   .SetIsForUpdateFlag(false)
+                   .SetNamespaceOid(NSOid())
+                   .SetTableOid(table_oid)
+                   .Build();
+  }
+  std::unique_ptr<planner::AbstractPlanNode> proj;
+  OutputSchemaHelper proj_out{0, &expr_maker};
+  {
+    auto col1 = seq_scan_out.GetOutput("col1");
+    auto col2 = seq_scan_out.GetOutput("col2");
+    auto col3 = expr_maker.OpMul(col1, col2);
+    auto col4 = expr_maker.ComparisonGe(col1, expr_maker.OpMul(expr_maker.Constant(100), col2));
+    proj_out.AddOutput("col1", common::ManagedPointer(col1));
+    proj_out.AddOutput("col2", common::ManagedPointer(col2));
+    proj_out.AddOutput("col3", common::ManagedPointer(col3));
+    proj_out.AddOutput("col4", common::ManagedPointer(col4));
+    auto schema = proj_out.MakeSchema();
+    planner::ProjectionPlanNode::Builder builder;
+    proj = builder.SetOutputSchema(std::move(schema)).AddChild(std::move(seq_scan)).Build();
+  }
+
+  // Make the output checkers
+  SingleIntComparisonChecker col1_checker(std::less<>(), 0, 500);
+  SingleIntComparisonChecker col2_checker(std::greater_equal<>(), 1, 3);
+
+  MultiChecker multi_checker{std::vector<OutputChecker *>{&col1_checker, &col2_checker}};
+
+  // Create the execution context
+  OutputStore store{&multi_checker, proj->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(proj->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), proj->GetOutputSchema().Get());
+
+  // Run & Check
+  auto executable = ExecutableQuery(common::ManagedPointer(proj), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   multi_checker.CheckCorrectness();
 }
 
@@ -153,9 +187,12 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     // Make New Column
     auto col3 = expr_maker.OpMul(col1, col2);
     auto param1 = expr_maker.PVE(type::TypeId::INTEGER, 0);
@@ -174,6 +211,7 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -199,7 +237,8 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
   exec_ctx->SetParams(std::move(params));
 
   // Run & Check
-  CompileAndRun(seq_scan.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   multi_checker.CheckCorrectness();
 }
 
@@ -214,15 +253,19 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
   std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     auto const_500 = expr_maker.Constant(500);
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid)
+                     .SetColumnOids({cola_oid, colb_oid})
                      .SetIndexOid(index_oid)
                      .AddIndexColumn(catalog::indexkeycol_oid_t(1), const_500)
                      .SetNamespaceOid(NSOid())
@@ -242,7 +285,8 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(index_scan.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   multi_checker.CheckCorrectness();
 }
 
@@ -257,14 +301,18 @@ TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
   std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid)
+                     .SetColumnOids({cola_oid, colb_oid})
                      .SetIndexOid(index_oid)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
@@ -308,7 +356,8 @@ TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(index_scan.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -323,14 +372,18 @@ TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
   std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid)
+                     .SetColumnOids({cola_oid, colb_oid})
                      .SetIndexOid(index_oid)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
@@ -373,7 +426,8 @@ TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(index_scan.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -388,14 +442,18 @@ TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
   std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid)
+                     .SetColumnOids({cola_oid, colb_oid})
                      .SetIndexOid(index_oid)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
@@ -438,7 +496,8 @@ TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(index_scan.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -453,14 +512,18 @@ TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
   std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid)
+                     .SetColumnOids({cola_oid, colb_oid})
                      .SetIndexOid(index_oid)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
@@ -503,7 +566,8 @@ TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(index_scan.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -518,9 +582,12 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
@@ -529,6 +596,7 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -573,7 +641,8 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(agg.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(agg), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   multi_checker.CheckCorrectness();
 }
 
@@ -588,9 +657,12 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
@@ -599,6 +671,7 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -656,7 +729,8 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(agg.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(agg), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -676,9 +750,12 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan1;
   OutputSchemaHelper seq_scan_out1{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("colA").Oid();
+    auto colb_oid = table_schema1.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     seq_scan_out1.AddOutput("col1", col1);
     seq_scan_out1.AddOutput("col2", col2);
     auto schema = seq_scan_out1.MakeSchema();
@@ -687,6 +764,7 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan1 = builder.SetOutputSchema(std::move(schema))
+                    .SetColumnOids({cola_oid, colb_oid})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
                     .SetNamespaceOid(NSOid())
@@ -697,9 +775,12 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan2;
   OutputSchemaHelper seq_scan_out2{1, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema2.GetColumn("col1").Oid();
+    auto colb_oid = table_schema2.GetColumn("col2").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema2.GetColumn("col1").Oid(), type::TypeId::SMALLINT);
-    auto col2 = expr_maker.CVE(table_schema2.GetColumn("col2").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::SMALLINT);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     seq_scan_out2.AddOutput("col1", col1);
     seq_scan_out2.AddOutput("col2", col2);
     auto schema = seq_scan_out2.MakeSchema();
@@ -707,6 +788,7 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan2 = builder.SetOutputSchema(std::move(schema))
+                    .SetColumnOids({cola_oid, colb_oid})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
                     .SetNamespaceOid(NSOid())
@@ -776,7 +858,8 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), hash_join->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(hash_join.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(hash_join), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -791,9 +874,12 @@ TEST_F(CompilerTest, SimpleSortTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
@@ -802,6 +888,7 @@ TEST_F(CompilerTest, SimpleSortTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -870,7 +957,8 @@ TEST_F(CompilerTest, SimpleSortTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), order_by->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(order_by.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(order_by), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -889,9 +977,12 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan1;
   OutputSchemaHelper seq_scan_out1{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("colA").Oid();
+    auto colb_oid = table_schema1.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     seq_scan_out1.AddOutput("col1", col1);
     seq_scan_out1.AddOutput("col2", col2);
     auto schema = seq_scan_out1.MakeSchema();
@@ -900,6 +991,7 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan1 = builder.SetOutputSchema(std::move(schema))
+                    .SetColumnOids({cola_oid, colb_oid})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
                     .SetNamespaceOid(NSOid())
@@ -910,9 +1002,12 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan2;
   OutputSchemaHelper seq_scan_out2{1, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema2.GetColumn("col1").Oid();
+    auto colb_oid = table_schema2.GetColumn("col2").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema2.GetColumn("col1").Oid(), type::TypeId::SMALLINT);
-    auto col2 = expr_maker.CVE(table_schema2.GetColumn("col2").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::SMALLINT);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     seq_scan_out2.AddOutput("col1", col1);
     seq_scan_out2.AddOutput("col2", col2);
     auto schema = seq_scan_out2.MakeSchema();
@@ -920,6 +1015,7 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan2 = builder.SetOutputSchema(std::move(schema))
+                    .SetColumnOids({cola_oid, colb_oid})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
                     .SetNamespaceOid(NSOid())
@@ -988,7 +1084,8 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), nl_join->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(nl_join.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(nl_join), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -1006,9 +1103,12 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
   {
     auto table_oid2 = accessor->GetTableOid(NSOid(), "test_2");
     auto table_schema2 = accessor->GetSchema(table_oid2);
+    // OIDs
+    auto cola_oid = table_schema2.GetColumn("col1").Oid();
+    auto colb_oid = table_schema2.GetColumn("col2").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema2.GetColumn("col1").Oid(), type::TypeId::SMALLINT);
-    auto col2 = expr_maker.CVE(table_schema2.GetColumn("col2").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
@@ -1017,6 +1117,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -1090,7 +1191,8 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_join->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(index_join.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(index_join), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -1107,15 +1209,19 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
   {
     auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
     auto table_schema1 = accessor->GetSchema(table_oid1);
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("colA").Oid();
+    auto colb_oid = table_schema1.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(nullptr)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -1186,7 +1292,8 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_join->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(index_join.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(index_join), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -1215,6 +1322,7 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan1 = builder.SetOutputSchema(std::move(schema))
+                    .SetColumnOids({table_schema1.GetColumn("colA").Oid()})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
                     .SetNamespaceOid(NSOid())
@@ -1233,15 +1341,18 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     auto exec_ctx = MakeExecCtx(std::move(callback), delete_node->GetOutputSchema().Get());
-    CompileAndRun(delete_node.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(delete_node), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
   }
 
   // Now scan through table to check content.
   std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("colA").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     // Make predicate
     auto pred1 = expr_maker.ComparisonGe(col1, expr_maker.Constant(495));
@@ -1251,6 +1362,7 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -1264,7 +1376,8 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-    CompileAndRun(seq_scan.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 
@@ -1279,6 +1392,7 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid1)
+                     .SetColumnOids({table_schema1.GetColumn("colA").Oid()})
                      .SetIndexOid(index_oid1)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
@@ -1297,7 +1411,8 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
-    CompileAndRun(index_scan.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 }
@@ -1332,6 +1447,8 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan1 = builder.SetOutputSchema(std::move(schema))
+                    .SetColumnOids({table_schema1.GetColumn("colA").Oid(), table_schema1.GetColumn("colB").Oid(),
+                                    table_schema1.GetColumn("colC").Oid(), table_schema1.GetColumn("colD").Oid()})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
                     .SetNamespaceOid(NSOid())
@@ -1339,7 +1456,7 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
                     .Build();
   }
 
-  // make DeletePlanNode
+  // make UpdatePlanNode
   std::unique_ptr<planner::AbstractPlanNode> update_node;
   {
     planner::UpdatePlanNode::Builder builder;
@@ -1362,21 +1479,25 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
                       .SetIndexedUpdate(true)
                       .Build();
   }
-  // Execute delete
+  // Execute update
   {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     auto exec_ctx = MakeExecCtx(std::move(callback), update_node->GetOutputSchema().Get());
-    CompileAndRun(update_node.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(update_node), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
   }
 
   // Now scan through table to check content.
   std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("colA").Oid();
+    auto colb_oid = table_schema1.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     // Make predicate
@@ -1387,6 +1508,7 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -1421,7 +1543,8 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-    CompileAndRun(seq_scan.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 
@@ -1430,15 +1553,19 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
   std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("colA").Oid();
+    auto colb_oid = table_schema1.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
 
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid1)
+                     .SetColumnOids({cola_oid, colb_oid})
                      .SetIndexOid(index_oid1)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-505))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-495))
@@ -1458,7 +1585,8 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
-    CompileAndRun(index_scan.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 }
@@ -1505,18 +1633,24 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     auto exec_ctx = MakeExecCtx(std::move(callback), insert->GetOutputSchema().Get());
-    CompileAndRun(insert.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(insert), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
   }
 
   // Now scan through table to check content.
   std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("colA").Oid();
+    auto colb_oid = table_schema1.GetColumn("colB").Oid();
+    auto colc_oid = table_schema1.GetColumn("colC").Oid();
+    auto cold_oid = table_schema1.GetColumn("colD").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
-    auto col3 = expr_maker.CVE(table_schema1.GetColumn("colC").Oid(), type::TypeId::INTEGER);
-    auto col4 = expr_maker.CVE(table_schema1.GetColumn("colD").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col3 = expr_maker.CVE(colc_oid, type::TypeId::INTEGER);
+    auto col4 = expr_maker.CVE(cold_oid, type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     seq_scan_out.AddOutput("col3", col3);
@@ -1527,6 +1661,7 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid, colc_oid, cold_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -1563,7 +1698,8 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-    CompileAndRun(seq_scan.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 
@@ -1571,11 +1707,16 @@ TEST_F(CompilerTest, SimpleInsertTest) {
   std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("colA").Oid();
+    auto colb_oid = table_schema1.GetColumn("colB").Oid();
+    auto colc_oid = table_schema1.GetColumn("colC").Oid();
+    auto cold_oid = table_schema1.GetColumn("colD").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
-    auto col3 = expr_maker.CVE(table_schema1.GetColumn("colC").Oid(), type::TypeId::INTEGER);
-    auto col4 = expr_maker.CVE(table_schema1.GetColumn("colD").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col3 = expr_maker.CVE(colc_oid, type::TypeId::INTEGER);
+    auto col4 = expr_maker.CVE(cold_oid, type::TypeId::INTEGER);
 
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
@@ -1584,6 +1725,7 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid1)
+                     .SetColumnOids({cola_oid, colb_oid, colc_oid, cold_oid})
                      .SetIndexOid(index_oid1)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-10000))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1))
@@ -1603,7 +1745,8 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
-    CompileAndRun(index_scan.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 }
@@ -1642,6 +1785,8 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan1 = builder.SetOutputSchema(std::move(schema))
+                    .SetColumnOids({table_schema1.GetColumn("colA").Oid(), table_schema1.GetColumn("colB").Oid(),
+                                    table_schema1.GetColumn("colC").Oid(), table_schema1.GetColumn("colD").Oid()})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
                     .SetNamespaceOid(NSOid())
@@ -1673,18 +1818,24 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     params.emplace_back(type::TransientValueFactory::GetInteger(495));
     params.emplace_back(type::TransientValueFactory::GetInteger(505));
     exec_ctx->SetParams(std::move(params));
-    CompileAndRun(insert.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(insert), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
   }
 
   // Now scan through table to check content.
   std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("colA").Oid();
+    auto colb_oid = table_schema1.GetColumn("colB").Oid();
+    auto colc_oid = table_schema1.GetColumn("colC").Oid();
+    auto cold_oid = table_schema1.GetColumn("colD").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
-    auto col3 = expr_maker.CVE(table_schema1.GetColumn("colC").Oid(), type::TypeId::INTEGER);
-    auto col4 = expr_maker.CVE(table_schema1.GetColumn("colD").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col3 = expr_maker.CVE(colc_oid, type::TypeId::INTEGER);
+    auto col4 = expr_maker.CVE(cold_oid, type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     seq_scan_out.AddOutput("col3", col3);
@@ -1695,6 +1846,7 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid, colc_oid, cold_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -1729,7 +1881,8 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-    CompileAndRun(seq_scan.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 
@@ -1737,11 +1890,16 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
   std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("colA").Oid();
+    auto colb_oid = table_schema1.GetColumn("colB").Oid();
+    auto colc_oid = table_schema1.GetColumn("colC").Oid();
+    auto cold_oid = table_schema1.GetColumn("colD").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
-    auto col3 = expr_maker.CVE(table_schema1.GetColumn("colC").Oid(), type::TypeId::INTEGER);
-    auto col4 = expr_maker.CVE(table_schema1.GetColumn("colD").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col3 = expr_maker.CVE(colc_oid, type::TypeId::INTEGER);
+    auto col4 = expr_maker.CVE(cold_oid, type::TypeId::INTEGER);
 
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
@@ -1750,6 +1908,7 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid1)
+                     .SetColumnOids({cola_oid, colb_oid, colc_oid, cold_oid})
                      .SetIndexOid(index_oid1)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1000))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1))
@@ -1768,7 +1927,8 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
-    CompileAndRun(index_scan.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 }
@@ -1835,18 +1995,23 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     params.emplace_back(type::TransientValueFactory::GetDecimal(real2));
     params.emplace_back(type::TransientValueFactory::GetInteger(int2));
     exec_ctx->SetParams(std::move(params));
-    CompileAndRun(insert.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(insert), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
   }
 
   // Now scan through table to check content.
   std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
+    auto col1_oid = table_schema1.GetColumn("varchar_col").Oid();
+    auto col2_oid = table_schema1.GetColumn("date_col").Oid();
+    auto col3_oid = table_schema1.GetColumn("real_col").Oid();
+    auto col4_oid = table_schema1.GetColumn("int_col").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("varchar_col").Oid(), type::TypeId::VARCHAR);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("date_col").Oid(), type::TypeId::DATE);
-    auto col3 = expr_maker.CVE(table_schema1.GetColumn("real_col").Oid(), type::TypeId::DECIMAL);
-    auto col4 = expr_maker.CVE(table_schema1.GetColumn("int_col").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(col1_oid, type::TypeId::VARCHAR);
+    auto col2 = expr_maker.CVE(col2_oid, type::TypeId::DATE);
+    auto col3 = expr_maker.CVE(col3_oid, type::TypeId::DECIMAL);
+    auto col4 = expr_maker.CVE(col4_oid, type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     seq_scan_out.AddOutput("col3", col3);
@@ -1856,6 +2021,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({col1_oid, col2_oid, col3_oid, col4_oid})
                    .SetScanPredicate(nullptr)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -1899,7 +2065,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-    CompileAndRun(seq_scan.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 
@@ -1907,11 +2074,16 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
   std::unique_ptr<planner::AbstractPlanNode> index_scan;
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("varchar_col").Oid();
+    auto colb_oid = table_schema1.GetColumn("date_col").Oid();
+    auto colc_oid = table_schema1.GetColumn("real_col").Oid();
+    auto cold_oid = table_schema1.GetColumn("int_col").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("varchar_col").Oid(), type::TypeId::VARCHAR);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("date_col").Oid(), type::TypeId::DATE);
-    auto col3 = expr_maker.CVE(table_schema1.GetColumn("real_col").Oid(), type::TypeId::DECIMAL);
-    auto col4 = expr_maker.CVE(table_schema1.GetColumn("int_col").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::VARCHAR);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::DATE);
+    auto col3 = expr_maker.CVE(colc_oid, type::TypeId::DECIMAL);
+    auto col4 = expr_maker.CVE(cold_oid, type::TypeId::INTEGER);
 
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
@@ -1920,6 +2092,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid1)
+                     .SetColumnOids({cola_oid, colb_oid, colc_oid, cold_oid})
                      .SetIndexOid(index_oid1)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.PVE(type::TypeId::VARCHAR, 0))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.PVE(type::TypeId::VARCHAR, 1))
@@ -1943,7 +2116,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     params.emplace_back(type::TransientValueFactory::GetVarChar(str1));
     params.emplace_back(type::TransientValueFactory::GetVarChar(str2));
     exec_ctx->SetParams(std::move(params));
-    CompileAndRun(index_scan.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 }
@@ -2077,7 +2251,8 @@ TEST_F(CompilerTest, TPCHQ1Test) {
   exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(agg.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(agg), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 */
@@ -2085,8 +2260,8 @@ TEST_F(CompilerTest, TPCHQ1Test) {
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
-  terrier::execution::compiler::test::CompilerTest::InitTPL();
+  terrier::execution::ExecutionUtil::InitTPL();
   int ret = RUN_ALL_TESTS();
-  terrier::execution::compiler::test::CompilerTest::ShutdownTPL();
+  terrier::execution::ExecutionUtil::ShutdownTPL();
   return ret;
 }

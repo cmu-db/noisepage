@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <functional>
 #include <memory>
+
 #include "common/managed_pointer.h"
 #include "loggers/network_logger.h"
 #include "network/connection_context.h"
@@ -37,12 +38,23 @@ class ProtocolInterpreter {
    * @param out The WriteQueue to communicate with the client through
    * @param t_cop The traffic cop pointer
    * @param context the connection context
-   * @param callback The callback function to trigger on completion
    * @return The next transition for the client's associated state machine
    */
   virtual Transition Process(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out,
                              common::ManagedPointer<trafficcop::TrafficCop> t_cop,
-                             common::ManagedPointer<ConnectionContext> context, NetworkCallback callback) = 0;
+                             common::ManagedPointer<ConnectionContext> context) = 0;
+
+  /**
+   * Tear down any state and perform any connection closing duties for this protocol
+   * @param in The ReadBuffer to read input from
+   * @param out The WriteQueue to communicate with the client through
+   * @param t_cop The traffic cop pointer
+   * @param context the connection context
+   * @return The next transition for the client's associated state machine
+   */
+  virtual void Teardown(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out,
+                        common::ManagedPointer<trafficcop::TrafficCop> t_cop,
+                        common::ManagedPointer<ConnectionContext> context) = 0;
 
   /**
    * Sends a result
