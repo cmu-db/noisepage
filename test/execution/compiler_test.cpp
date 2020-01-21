@@ -110,7 +110,7 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleSeqScanWithProjectionTest) {
-  // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1 WHERE col1 < 500 AND col2 >= 3;
+  // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1 WHERE col1 < 500;
   // This test first selects col1 and col2, and then constructs the 4 output columns.
   auto accessor = MakeAccessor();
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
@@ -129,9 +129,7 @@ TEST_F(CompilerTest, SimpleSeqScanWithProjectionTest) {
     seq_scan_out.AddOutput("col2", common::ManagedPointer(col2));
     auto schema = seq_scan_out.MakeSchema();
     // Make predicate
-    auto comp1 = expr_maker.ComparisonLt(col1, expr_maker.Constant(500));
-    auto comp2 = expr_maker.ComparisonGe(col2, expr_maker.Constant(3));
-    auto predicate = expr_maker.ConjunctionAnd(comp1, comp2);
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(500));
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
@@ -159,10 +157,10 @@ TEST_F(CompilerTest, SimpleSeqScanWithProjectionTest) {
   }
 
   // Make the output checkers
+  NumChecker num_checker(500);
   SingleIntComparisonChecker col1_checker(std::less<>(), 0, 500);
-  SingleIntComparisonChecker col2_checker(std::greater_equal<>(), 1, 3);
 
-  MultiChecker multi_checker{std::vector<OutputChecker *>{&col1_checker, &col2_checker}};
+  MultiChecker multi_checker{std::vector<OutputChecker *>{&num_checker, &col1_checker}};
 
   // Create the execution context
   OutputStore store{&multi_checker, proj->GetOutputSchema().Get()};
@@ -292,7 +290,7 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
-  // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505;
+  // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505 ORDER BY colA;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
@@ -363,7 +361,7 @@ TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
-  // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505;
+  // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505 ORDER BY colA LIMIT 5;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
@@ -433,7 +431,7 @@ TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
-  // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505;
+  // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505 ORDER BY colA DESC;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
@@ -503,7 +501,7 @@ TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
-  // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505;
+  // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505 ORDER BY colA DESC LIMIT 5;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
