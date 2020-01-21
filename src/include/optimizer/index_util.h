@@ -179,6 +179,7 @@ class IndexUtil {
                       ltype == parser::ExpressionType::VALUE_PARAMETER)) {
             tv_expr = expr->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
             idx_expr = expr->GetChild(0);
+            type = parser::ExpressionUtil::ReverseComparisonExpressionType(type);
           } else {
             // By derivation, all of these predicates should be CONJUNCTIVE_AND
             // so, we let the scan_predicate() handle evaluating the truthfulness.
@@ -218,7 +219,13 @@ class IndexUtil {
     if (open_highs.empty() && open_lows.empty()) return false;
 
     // Check predicate open/close ordering
-    planner::IndexScanType scan_type = planner::IndexScanType::Exact;
+    planner::IndexScanType scan_type = planner::IndexScanType::AscendingClosed;
+    if (open_highs.size() == open_lows.size() && open_highs.size() == schema.GetColumns().size()) {
+      // Generally on multi-column indexes, exact would result in comparing against unspecified attribute.
+      // Only try to do an exact key lookup if potentially all attributes are specified.
+      scan_type = planner::IndexScanType::Exact;
+    }
+
     for (auto &col : schema.GetColumns()) {
       auto oid = col.Oid();
       if (open_highs.find(oid) == open_highs.end() && open_lows.find(oid) == open_lows.end()) {
