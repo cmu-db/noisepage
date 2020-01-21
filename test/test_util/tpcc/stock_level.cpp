@@ -93,7 +93,7 @@ bool StockLevel::Execute(transaction::TransactionManager *const txn_manager, Dat
     low_stock = static_cast<uint16_t>(low_stock + static_cast<uint16_t>(it.second < args.s_quantity_threshold_));
   }
 
-  txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   return true;
 }
 

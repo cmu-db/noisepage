@@ -1,10 +1,11 @@
+#include "network/itp/itp_protocol_interpreter.h"
+
 #include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
 
 #include "network/itp/itp_network_commands.h"
-#include "network/itp/itp_protocol_interpreter.h"
 #include "network/network_defs.h"
 #include "network/terrier_server.h"
 
@@ -12,8 +13,7 @@ namespace terrier::network {
 Transition ITPProtocolInterpreter::Process(common::ManagedPointer<ReadBuffer> in,
                                            common::ManagedPointer<WriteQueue> out,
                                            common::ManagedPointer<trafficcop::TrafficCop> t_cop,
-                                           common::ManagedPointer<ConnectionContext> context,
-                                           NetworkCallback callback) {
+                                           common::ManagedPointer<ConnectionContext> context) {
   try {
     if (!TryBuildPacket(in)) return Transition::NEED_READ_TIMEOUT;
   } catch (std::exception &e) {
@@ -24,7 +24,7 @@ Transition ITPProtocolInterpreter::Process(common::ManagedPointer<ReadBuffer> in
   ITPPacketWriter writer(out);
   if (command->FlushOnComplete()) out->ForceFlush();
   Transition ret = command->Exec(common::ManagedPointer<ProtocolInterpreter>(this),
-                                 common::ManagedPointer<ITPPacketWriter>(&writer), t_cop, context, callback);
+                                 common::ManagedPointer<ITPPacketWriter>(&writer), t_cop, context);
   curr_input_packet_.Clear();
   return ret;
 }

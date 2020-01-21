@@ -4,7 +4,7 @@
 
 namespace terrier::network {
 
-type::TypeId PostgresValueTypeToInternalValueType(PostgresValueType type) {
+type::TypeId PostgresValueTypeToInternalValueType(const PostgresValueType type) {
   switch (type) {
     case PostgresValueType::BOOLEAN:
       return type::TypeId::BOOLEAN;
@@ -34,6 +34,47 @@ type::TypeId PostgresValueTypeToInternalValueType(PostgresValueType type) {
 
     case PostgresValueType::DECIMAL:
       return type::TypeId::DECIMAL;
+    default:
+      NETWORK_LOG_ERROR(fmt::format("No TypeId conversion for PostgresValueType value '%d'", static_cast<int>(type)));
+      throw NETWORK_PROCESS_EXCEPTION("");
+  }
+}
+
+PostgresValueType InternalValueTypeToPostgresValueType(const type::TypeId type) {
+  switch (type) {
+    case type::TypeId::INVALID:
+      return PostgresValueType::INVALID;
+
+    case type::TypeId::BOOLEAN:
+      return PostgresValueType::BOOLEAN;
+
+    case type::TypeId::TINYINT:
+      return PostgresValueType::TINYINT;
+
+    case type::TypeId::SMALLINT:
+      return PostgresValueType::SMALLINT;
+
+    case type::TypeId::INTEGER:
+      return PostgresValueType::INTEGER;
+
+    case type::TypeId::BIGINT:
+      return PostgresValueType::BIGINT;
+
+    case type::TypeId::DECIMAL:
+      return PostgresValueType::DOUBLE;
+
+    case type::TypeId::TIMESTAMP:
+      return PostgresValueType::TIMESTAMPS;
+
+    case type::TypeId::DATE:
+      return PostgresValueType::DATE;
+
+    case type::TypeId::VARCHAR:
+      return PostgresValueType::TEXT;
+
+    case type::TypeId::VARBINARY:
+      return PostgresValueType::VARBINARY;
+
     default:
       NETWORK_LOG_ERROR(fmt::format("No TypeId conversion for PostgresValueType value '%d'", static_cast<int>(type)));
       throw NETWORK_PROCESS_EXCEPTION("");

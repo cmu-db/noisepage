@@ -1,3 +1,5 @@
+#include "network/postgres/postgres_protocol_interpreter.h"
+
 #include <algorithm>
 #include <memory>
 #include <string>
@@ -5,18 +7,16 @@
 
 #include "network/network_defs.h"
 #include "network/postgres/postgres_network_commands.h"
-#include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/terrier_server.h"
 
-#define SSL_MESSAGE_VERNO 80877103
+constexpr uint32_t SSL_MESSAGE_VERNO = 80877103;
 #define PROTO_MAJOR_VERSION(x) ((x) >> 16)
 
 namespace terrier::network {
 Transition PostgresProtocolInterpreter::Process(common::ManagedPointer<ReadBuffer> in,
                                                 common::ManagedPointer<WriteQueue> out,
                                                 common::ManagedPointer<trafficcop::TrafficCop> t_cop,
-                                                common::ManagedPointer<ConnectionContext> context,
-                                                NetworkCallback callback) {
+                                                common::ManagedPointer<ConnectionContext> context) {
   try {
     if (!TryBuildPacket(in)) return Transition::NEED_READ_TIMEOUT;
   } catch (std::exception &e) {
@@ -27,34 +27,36 @@ Transition PostgresProtocolInterpreter::Process(common::ManagedPointer<ReadBuffe
     // Always flush startup packet response
     out->ForceFlush();
     curr_input_packet_.Clear();
-    return ProcessStartup(in, out, context);
+    return ProcessStartup(in, out, t_cop, context);
   }
   auto command = command_factory_->PacketToCommand(common::ManagedPointer<InputPacket>(&curr_input_packet_));
-  PostgresPacketWriter writer(out);
+  PostgresPacketWriter writer(out, FieldFormat::text);
+  // TODO(Matt): Figure out when we should use binary format. Simple Query only supports text
   if (command->FlushOnComplete()) out->ForceFlush();
   Transition ret = command->Exec(common::ManagedPointer<ProtocolInterpreter>(this),
-                                 common::ManagedPointer<PostgresPacketWriter>(&writer), t_cop, context, callback);
+                                 common::ManagedPointer<PostgresPacketWriter>(&writer), t_cop, context);
   curr_input_packet_.Clear();
   return ret;
 }
 
 Transition PostgresProtocolInterpreter::ProcessStartup(const common::ManagedPointer<ReadBuffer> in,
                                                        const common::ManagedPointer<WriteQueue> out,
-                                                       common::ManagedPointer<ConnectionContext> context) {
+                                                       const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
+                                                       const common::ManagedPointer<ConnectionContext> context) {
   PostgresPacketWriter writer(out);
   auto proto_version = in->ReadValue<uint32_t>();
   NETWORK_LOG_TRACE("protocol version: {0}", proto_version);
 
   if (proto_version == SSL_MESSAGE_VERNO) {
-    // TODO(Tianyu): Should this be moved from PelotonServer into settings?
-    writer.WriteSSLPacket(NetworkMessageType::PG_SSL_NO);
+    // We don't support SSL yet. Reply with a response telling the client not to use SSL.
+    writer.WriteType(static_cast<NetworkMessageType>('N'));
     return Transition::PROCEED;
   }
 
   // Process startup packet
   if (PROTO_MAJOR_VERSION(proto_version) != 3) {
     NETWORK_LOG_TRACE("Protocol error: only protocol version 3 is supported");
-    writer.WriteErrorResponse({{NetworkMessageType::PG_HUMAN_READABLE_ERROR, "Protocol Version Not Supported"}});
+    writer.WriteErrorResponse("Protocol Version Not Supported");
     return Transition::TERMINATE;
   }
 
@@ -65,36 +67,69 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const common::ManagedPoin
     std::string key = in->ReadString(), value = in->ReadString();
     NETWORK_LOG_TRACE("Option key {0}, value {1}", key.c_str(), value.c_str());
     if (key == std::string("database")) {
-      context->cmdline_args_[key] = std::move(value);
+      context->CommandLineArgs()[key] = std::move(value);
     }
   }
   // skip the last nul byte
   in->Skip(1);
   // TODO(Tianyu): Implement authentication. For now we always send AuthOK
+
+  // Create a temp namespace for this connection
+  std::string db_name = catalog::DEFAULT_DATABASE;
+  auto &cmdline_args = context->CommandLineArgs();
+  if (cmdline_args.find("database") != cmdline_args.end()) {
+    if (!cmdline_args["database"].empty()) {
+      db_name = cmdline_args["database"];
+      NETWORK_LOG_TRACE(db_name);
+    }
+  }
+  auto oids = t_cop->CreateTempNamespace(context->GetConnectionID(), db_name);
+  if (oids.first == catalog::INVALID_DATABASE_OID) {
+    // Invalid database name
+    // TODO(Matt): need to actually return an error to the client
+    return Transition::TERMINATE;
+  }
+  if (oids.second == catalog::INVALID_NAMESPACE_OID) {
+    // Failed to create temporary namespace. Client should retry.
+    // TODO(Matt): need to actually return an error to the client
+    return Transition::TERMINATE;
+  }
+
+  // Temp namespace creation succeeded, stash some metadata about it in the ConnectionContext
+  context->SetDatabaseName(std::move(db_name));
+  context->SetDatabaseOid(oids.first);
+  context->SetTempNamespaceOid(oids.second);
+
+  // All done
   writer.WriteStartupResponse();
   startup_ = false;
-  return Transition::STARTUP;
+  return Transition::PROCEED;
+}
+
+void PostgresProtocolInterpreter::Teardown(const common::ManagedPointer<ReadBuffer> in,
+                                           const common::ManagedPointer<WriteQueue> out,
+                                           const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
+                                           const common::ManagedPointer<ConnectionContext> context) {
+  // Drop the temp namespace (if it exists) for this connection.
+
+  // It's possible that the client provided an invalid database name, in which case there's nothing to do
+  if (context->GetDatabaseOid() == catalog::INVALID_DATABASE_OID) {
+    return;
+  }
+
+  // It's possible that temporary namespace failed to be
+  // created and we're closing the connection for that reason, in
+  // case there's nothing to drop
+  if (context->GetTempNamespaceOid() != catalog::INVALID_NAMESPACE_OID) {
+    while (!t_cop->DropTempNamespace(context->GetDatabaseOid(), context->GetTempNamespaceOid())) {
+    }
+  }
 }
 
 size_t PostgresProtocolInterpreter::GetPacketHeaderSize() { return startup_ ? sizeof(uint32_t) : 1 + sizeof(uint32_t); }
 
 void PostgresProtocolInterpreter::SetPacketMessageType(const common::ManagedPointer<ReadBuffer> in) {
   if (!startup_) curr_input_packet_.msg_type_ = in->ReadValue<NetworkMessageType>();
-}
-
-void PostgresProtocolInterpreter::CompleteCommand(PostgresPacketWriter *const out, const QueryType &query_type,
-                                                  int rows) {
-  out->BeginPacket(NetworkMessageType::PG_COMMAND_COMPLETE).EndPacket();
-}
-
-void PostgresProtocolInterpreter::ExecQueryMessageGetResult(PostgresPacketWriter *const out, ResultType status) {
-  CompleteCommand(out, QueryType::QUERY_INVALID, 0);
-
-  out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
-}
-
-void PostgresProtocolInterpreter::ExecExecuteMessageGetResult(PostgresPacketWriter *const out, ResultType status) {
-  CompleteCommand(out, QueryType::QUERY_INVALID, 0);
 }
 
 }  // namespace terrier::network

@@ -191,10 +191,17 @@ class TransactionContext {
   }
 
   /**
+   * This transaction encountered a conflict and cannot commit. Set a breakpoint at TransactionContext::SetMustAbort()
+   * and run again to see why.
+   * @return true if txn must abort, false otherwise
+   */
+  bool MustAbort() { return must_abort_; }
+
+  /**
    * Flips the TransactionContext's internal flag that it cannot commit to true. This is checked by the
    * TransactionManager.
    */
-  void MustAbort() { must_abort_ = true; }
+  void SetMustAbort() { must_abort_ = true; }
 
  private:
   friend class storage::GarbageCollector;

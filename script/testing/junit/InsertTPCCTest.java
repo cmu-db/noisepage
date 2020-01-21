@@ -46,8 +46,8 @@ public class InsertTPCCTest extends PLTestBase {
 	stmt.execute(SQL_DROP_TABLE);
     }
 
-
-    @Test
+//  Disable until prepared statements are supported
+//     @Test
     public void testPstmtCVInsert() throws SQLException {
 	int col;
 	Timestamp ts = new org.postgresql.util.PGTimestamp((long) 100);

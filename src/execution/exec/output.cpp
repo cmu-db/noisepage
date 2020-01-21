@@ -1,6 +1,8 @@
 #include "execution/exec/output.h"
+
 #include "execution/sql/value.h"
 #include "loggers/execution_logger.h"
+#include "network/postgres/postgres_packet_writer.h"
 
 namespace terrier::execution::exec {
 
@@ -83,5 +85,14 @@ void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple
   }
   EXECUTION_LOG_INFO("Ouptut batch {}: \n{}", printed_, ss.str());
   printed_++;
+}
+
+void OutputWriter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {
+  // Write out the rows for this batch
+  for (uint32_t row = 0; row < num_tuples; row++) {
+    const byte *const tuple = tuples + row * tuple_size;
+    out_->WriteDataRow(tuple, schema_->GetColumns());
+    num_rows_++;
+  }
 }
 }  // namespace terrier::execution::exec

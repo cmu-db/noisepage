@@ -1,8 +1,10 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_accessor.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_node_factory.h"
@@ -45,7 +47,12 @@ class CodeGen {
   /**
    * @return region used for allocation
    */
-  util::Region *Region() { return &region_; }
+  util::Region *Region() { return region_.get(); }
+
+  /**
+   * @return release ownership of the region used for allocation
+   */
+  std::unique_ptr<util::Region> ReleaseRegion() { return std::move(region_); }
 
   /**
    * @return the ast node factory
@@ -55,7 +62,12 @@ class CodeGen {
   /**
    * @return the ast context
    */
-  ast::Context *Context() { return &ast_ctx_; }
+  ast::Context *Context() { return ast_ctx_.get(); }
+
+  /**
+   * @return release ownership of the ast context
+   */
+  std::unique_ptr<ast::Context> ReleaseContext() { return std::move(ast_ctx_); }
 
   /**
    * @return the catalog accessor
@@ -521,9 +533,9 @@ class CodeGen {
   uint64_t id_count_{0};
 
   // Helper objects
-  util::Region region_;
+  std::unique_ptr<util::Region> region_;
   sema::ErrorReporter error_reporter_;
-  ast::Context ast_ctx_;
+  std::unique_ptr<ast::Context> ast_ctx_;
   ast::AstNodeFactory factory_;
   exec::ExecutionContext *exec_ctx_;
 
