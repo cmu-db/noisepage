@@ -10,6 +10,7 @@
 #include "catalog/index_schema.h"
 #include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_language.h"
+#include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
 #include "storage/index/index.h"
@@ -262,7 +263,7 @@ class DatabaseCatalog {
    * @param lanname name of language to look up
    * @return oid of requested entry if found else INVALID_LANGUAGE_OID if not found
    */
-  language_oid_t GetLanguageOid(const common::ManagedPointer<transaction::TransactionContext> txn,
+  language_oid_t GetLanguageOid(common::ManagedPointer<transaction::TransactionContext> txn,
                                 const std::string &lanname);
 
   /**
@@ -271,7 +272,7 @@ class DatabaseCatalog {
    * @param oid oid of entry
    * @return true if deletion is successful
    */
-  bool DropLanguage(const common::ManagedPointer<transaction::TransactionContext> txn, language_oid_t oid);
+  bool DropLanguage(common::ManagedPointer<transaction::TransactionContext> txn, language_oid_t oid);
 
   /**
    * Creates a procedure for the pg_proc table
@@ -293,8 +294,8 @@ class DatabaseCatalog {
   proc_oid_t CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &procname,
                              language_oid_t lanoid, namespace_oid_t procns, const std::vector<const std::string> &args,
                              const std::vector<type::TypeId> &arg_types, const std::vector<type::TypeId> &all_arg_types,
-                             const std::vector<const char> &arg_modes, type_oid_t rettype, const std::string &src,
-                             bool is_aggregate);
+                             const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,
+                             const std::string &src, bool is_aggregate);
 
   /**
    * Drops a procedure from the pg_proc table

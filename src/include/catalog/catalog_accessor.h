@@ -307,17 +307,18 @@ class CatalogAccessor {
    * @return oid of created proc entry
    * @warning does not support variadics yet
    */
-  proc_oid_t CreateProcedure(const std::string &procname, language_oid_t lanoid, namespace_oid_t procns,
+  proc_oid_t CreateProcedure(const std::string &procname, language_oid_t language_oid, namespace_oid_t procns,
                              const std::vector<const std::string> &args, const std::vector<type::TypeId> &arg_types,
-                             const std::vector<type::TypeId> &all_arg_types, const std::vector<const char> &arg_modes,
-                             type_oid_t rettype, const std::string &src, bool is_aggregate);
+                             const std::vector<type::TypeId> &all_arg_types,
+                             const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,
+                             const std::string &src, bool is_aggregate);
 
   /**
    * Drops a procedure from the pg_proc table
    * @param proc oid of process to drop
    * @return true iff the process was successfully found and dropped
    */
-  bool DropProcedure(proc_oid_t proc);
+  bool DropProcedure(proc_oid_t proc_oid);
 
   /**
    * Gets the oid of a procedure from pg_proc given a requested name and namespace
