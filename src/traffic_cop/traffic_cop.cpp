@@ -339,8 +339,6 @@ void TrafficCop::CodegenAndRunPhysicalPlan(const common::ManagedPointer<network:
 
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
     // Execution didn't set us to FAIL state, go ahead and write command complete
-    // TODO(Matt): I think the number of rows affected should be switched to the ExecutionContext since the
-    // OutputPrinter isn't invoked for INSERT, UPDATE, DELETE so we can't get the number from there.
 
     if (query_type == network::QueryType::QUERY_SELECT) {
       // For selects we really on the OutputWriter to store the number of rows affected because sequential scan
