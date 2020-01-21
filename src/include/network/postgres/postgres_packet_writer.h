@@ -13,12 +13,12 @@ namespace terrier::network {
 /**
  * The string value to use for 'true' boolean values
  */
-#define POSTGRES_BOOLEAN_STR_TRUE "t"
+constexpr char POSTGRES_BOOLEAN_STR_TRUE[] = "t";
 
 /**
  * The string value to use for 'false' boolean values
  */
-#define POSTGRES_BOOLEAN_STR_FALSE "f"
+constexpr char POSTGRES_BOOLEAN_STR_FALSE[] = "f";
 
 /**
  * Wrapper around an I/O layer WriteQueue to provide Postgres-specific
