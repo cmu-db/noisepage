@@ -24,6 +24,11 @@ constexpr uint32_t TEST1_SIZE = 10000;
 constexpr uint32_t TEST2_SIZE = 1000;
 
 /**
+ * Size of the alltypes table
+ */
+constexpr uint32_t TABLE_ALLTYPES_SIZE = 1000;
+
+/**
  * Helper class to generate test tables and their indexes.
  */
 class TableGenerator {
@@ -176,14 +181,39 @@ class TableGenerator {
 
   void InitTestIndexes();
 
-  // Create integer data with the given distribution
+  /**
+   * Create integer data with the given distribution
+   * @tparam T
+   * @param col_meta
+   * @param num_vals
+   * @return
+   */
   template <typename T>
   T *CreateNumberColumnData(ColumnInsertMeta *col_meta, uint32_t num_vals);
 
-  // Generate column data
+  /**
+   * Create an array of boolean data with the given distribution
+   * @param col_meta
+   * @param num_vals
+   * @return
+   */
+  bool *CreateBooleanColumnData(ColumnInsertMeta *col_meta, uint32_t num_vals);
+
+  /**
+   * Generate column data
+   * @param col_meta
+   * @param num_rows
+   * @return
+   */
   std::pair<byte *, uint32_t *> GenerateColumnData(ColumnInsertMeta *col_meta, uint32_t num_rows);
 
-  // Fill a given table according to its metadata
+  /**
+   * Fill a given table according to its metadata
+   * @param table_oid
+   * @param table
+   * @param schema
+   * @param table_meta
+   */
   void FillTable(catalog::table_oid_t table_oid, common::ManagedPointer<storage::SqlTable> table,
                  const catalog::Schema &schema, TableInsertMeta *table_meta);
 

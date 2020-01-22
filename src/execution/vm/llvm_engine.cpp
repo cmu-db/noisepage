@@ -59,19 +59,19 @@ bool FunctionHasDirectReturn(const ast::FunctionType *func_type) {
 class LLVMEngine::TPLMemoryManager : public llvm::SectionMemoryManager {
  public:
   llvm::JITSymbol findSymbol(const std::string &name) override {
-    EXECUTION_LOG_INFO("Resolving symbol '{}' ...", name);
+    EXECUTION_LOG_DEBUG("Resolving symbol '{}' ...", name);
 
     if (const auto iter = symbols_.find(name); iter != symbols_.end()) {
-      EXECUTION_LOG_INFO("Symbol '{}' found in cache ...", name);
+      EXECUTION_LOG_DEBUG("Symbol '{}' found in cache ...", name);
       return llvm::JITSymbol(iter->second);
     }
 
     if (name == "__dso_handle") {
-      EXECUTION_LOG_INFO("'__dso_handle' resolved to {} ...", reinterpret_cast<uint64_t>(&__dso_handle));
+      EXECUTION_LOG_DEBUG("'__dso_handle' resolved to {} ...", reinterpret_cast<uint64_t>(&__dso_handle));
       return {reinterpret_cast<uint64_t>(&__dso_handle), {}};
     }
 
-    EXECUTION_LOG_INFO("Symbol '{}' not found in cache, checking process ...", name);
+    EXECUTION_LOG_DEBUG("Symbol '{}' not found in cache, checking process ...", name);
 
     llvm::JITSymbol symbol = llvm::SectionMemoryManager::findSymbol(name);
     TERRIER_ASSERT(symbol.getAddress().get() != 0, "Resolved symbol has no address!");
@@ -825,7 +825,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
         // bytecode handler function.
         //
 
-        EXECUTION_LOG_INFO("CALLING {}", Bytecodes::GetBytecodeHandlerName(bytecode));
+        EXECUTION_LOG_DEBUG("CALLING {}", Bytecodes::GetBytecodeHandlerName(bytecode));
         llvm::Function *handler = LookupBytecodeHandler(bytecode);
         issue_call(handler, args);
         break;

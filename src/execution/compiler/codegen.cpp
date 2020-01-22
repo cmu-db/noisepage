@@ -116,14 +116,17 @@ ast::Expr *CodeGen::TableIterInit(ast::Identifier tvi, uint32_t table_oid, ast::
 ast::Expr *CodeGen::PCIGet(ast::Identifier pci, type::TypeId type, bool nullable, uint32_t idx) {
   ast::Builtin builtin;
   switch (type) {
-    case type::TypeId::INTEGER:
-      builtin = nullable ? ast::Builtin::PCIGetIntNull : ast::Builtin::PCIGetInt;
+    case type::TypeId::BOOLEAN:
+      builtin = nullable ? ast::Builtin::PCIGetBoolNull : ast::Builtin::PCIGetBool;
       break;
     case type::TypeId::TINYINT:
       builtin = nullable ? ast::Builtin::PCIGetTinyIntNull : ast::Builtin::PCIGetTinyInt;
       break;
     case type::TypeId::SMALLINT:
       builtin = nullable ? ast::Builtin::PCIGetSmallIntNull : ast::Builtin::PCIGetSmallInt;
+      break;
+    case type::TypeId::INTEGER:
+      builtin = nullable ? ast::Builtin::PCIGetIntNull : ast::Builtin::PCIGetInt;
       break;
     case type::TypeId::BIGINT:
       builtin = nullable ? ast::Builtin::PCIGetBigIntNull : ast::Builtin::PCIGetBigInt;
@@ -255,14 +258,17 @@ ast::Expr *CodeGen::PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
   // @indexIteratorGetTypeNull(&iter, attr_idx)
   ast::Builtin builtin;
   switch (type) {
-    case type::TypeId::INTEGER:
-      builtin = nullable ? ast::Builtin::PRGetIntNull : ast::Builtin::PRGetInt;
+    case type::TypeId::BOOLEAN:
+      builtin = nullable ? ast::Builtin::PRGetBoolNull : ast::Builtin::PRGetBool;
+      break;
+    case type::TypeId::TINYINT:
+      builtin = nullable ? ast::Builtin::PRGetTinyIntNull : ast::Builtin::PRGetTinyInt;
       break;
     case type::TypeId::SMALLINT:
       builtin = nullable ? ast::Builtin::PRGetSmallIntNull : ast::Builtin::PRGetSmallInt;
       break;
-    case type::TypeId::TINYINT:
-      builtin = nullable ? ast::Builtin::PRGetTinyIntNull : ast::Builtin::PRGetTinyInt;
+    case type::TypeId::INTEGER:
+      builtin = nullable ? ast::Builtin::PRGetIntNull : ast::Builtin::PRGetInt;
       break;
     case type::TypeId::BIGINT:
       builtin = nullable ? ast::Builtin::PRGetBigIntNull : ast::Builtin::PRGetBigInt;
@@ -289,14 +295,17 @@ ast::Expr *CodeGen::PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
 ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val) {
   ast::Builtin builtin;
   switch (type) {
-    case type::TypeId::INTEGER:
-      builtin = nullable ? ast::Builtin::PRSetIntNull : ast::Builtin::PRSetInt;
+    case type::TypeId::BOOLEAN:
+      builtin = nullable ? ast::Builtin::PRSetBoolNull : ast::Builtin::PRSetBool;
+      break;
+    case type::TypeId::TINYINT:
+      builtin = nullable ? ast::Builtin::PRSetTinyIntNull : ast::Builtin::PRSetTinyInt;
       break;
     case type::TypeId::SMALLINT:
       builtin = nullable ? ast::Builtin::PRSetSmallIntNull : ast::Builtin::PRSetSmallInt;
       break;
-    case type::TypeId::TINYINT:
-      builtin = nullable ? ast::Builtin::PRSetTinyIntNull : ast::Builtin::PRSetTinyInt;
+    case type::TypeId::INTEGER:
+      builtin = nullable ? ast::Builtin::PRSetIntNull : ast::Builtin::PRSetInt;
       break;
     case type::TypeId::BIGINT:
       builtin = nullable ? ast::Builtin::PRSetBigIntNull : ast::Builtin::PRSetBigInt;
@@ -321,6 +330,10 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
 
 ast::Expr *CodeGen::PeekValue(const type::TransientValue &transient_val) {
   switch (transient_val.Type()) {
+    case type::TypeId::BOOLEAN: {
+      auto val = type::TransientValuePeeker::PeekBoolean(transient_val);
+      return BoolLiteral(val);
+    }
     case type::TypeId::TINYINT: {
       auto val = type::TransientValuePeeker::PeekTinyInt(transient_val);
       return IntToSql(val);
@@ -336,10 +349,6 @@ ast::Expr *CodeGen::PeekValue(const type::TransientValue &transient_val) {
     case type::TypeId::BIGINT: {
       auto val = type::TransientValuePeeker::PeekBigInt(transient_val);
       return IntToSql(val);
-    }
-    case type::TypeId::BOOLEAN: {
-      auto val = type::TransientValuePeeker::PeekBoolean(transient_val);
-      return BoolLiteral(val);
     }
     case type::TypeId::DATE: {
       sql::Date date(terrier::type::TransientValuePeeker::PeekDate(transient_val));
@@ -366,13 +375,13 @@ ast::Expr *CodeGen::PeekValue(const type::TransientValue &transient_val) {
 
 ast::Expr *CodeGen::TplType(type::TypeId type) {
   switch (type) {
+    case type::TypeId::BOOLEAN:
+      return BuiltinType(ast::BuiltinType::Kind::Boolean);
     case type::TypeId::TINYINT:
     case type::TypeId::SMALLINT:
     case type::TypeId::INTEGER:
     case type::TypeId::BIGINT:
       return BuiltinType(ast::BuiltinType::Kind::Integer);
-    case type::TypeId::BOOLEAN:
-      return BuiltinType(ast::BuiltinType::Kind::Boolean);
     case type::TypeId::DATE:
       return BuiltinType(ast::BuiltinType::Kind::Date);
     case type::TypeId::DECIMAL:
