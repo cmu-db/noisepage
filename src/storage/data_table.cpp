@@ -354,7 +354,7 @@ void DataTable::AtomicallyWriteVersionPtr(const TupleSlot slot, const TupleAcces
   reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)->store(desired);
 }
 
-void DataTable::TruncateVersionChain(const TupleSlot slot, const transaction::timestamp_t oldest) const {
+void DataTable::TruncateVersionChain(const TupleSlot slot, const transaction::timestamp_t oldest) {
   UndoRecord *const version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
   // This is a legitimate case where we truncated the version chain but had to restart because the previous head
   // was aborted.
