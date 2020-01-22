@@ -9,6 +9,17 @@
 #include "planner/plannodes/output_schema.h"
 
 namespace terrier::network {
+
+/**
+ * The string value to use for 'true' boolean values
+ */
+constexpr char POSTGRES_BOOLEAN_STR_TRUE[] = "t";
+
+/**
+ * The string value to use for 'false' boolean values
+ */
+constexpr char POSTGRES_BOOLEAN_STR_FALSE[] = "f";
+
 /**
  * Wrapper around an I/O layer WriteQueue to provide Postgres-specific
  * helper methods.
@@ -392,7 +403,7 @@ class PostgresPacketWriter : public PacketWriter {
         }
         case type::TypeId::BOOLEAN: {
           auto *bool_val = reinterpret_cast<const execution::sql::BoolVal *const>(val);
-          string_value = std::to_string(static_cast<int8_t>(bool_val->val_));
+          string_value = (static_cast<bool>(bool_val->val_) ? POSTGRES_BOOLEAN_STR_TRUE : POSTGRES_BOOLEAN_STR_FALSE);
           break;
         }
         case type::TypeId::DECIMAL: {
