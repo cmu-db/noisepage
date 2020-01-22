@@ -11,17 +11,21 @@
 #include "settings/settings_manager.h"
 
 /**
- * Need a global pointer to access from SignalHandler, unfortunately
+ * Need a global pointer to access from SignalHandler, unfortunately. Do not remove from this anonymous namespace since
+ * the pointer is meant only for the signal handler. If you think you need a global pointer to db_main somewhere else in
+ * the system, you're probably doing something wrong.
  */
-static terrier::common::ManagedPointer<terrier::DBMain> db_main_ptr = nullptr;
+namespace {
+terrier::common::ManagedPointer<terrier::DBMain> db_main_handler_ptr = nullptr;
+}
 
 /**
  * The signal handler to be invoked for SIGINT and SIGTERM
  * @param sig_num portable signal number passed to the handler by the kernel
  */
 void SignalHandler(int32_t sig_num) {
-  if ((sig_num == SIGINT || sig_num == SIGTERM) && db_main_ptr != nullptr) {
-    db_main_ptr->ForceShutdown();
+  if ((sig_num == SIGINT || sig_num == SIGTERM) && db_main_handler_ptr != nullptr) {
+    db_main_handler_ptr->ForceShutdown();
   }
 }
 
@@ -87,7 +91,7 @@ int main(int argc, char *argv[]) {
                      .SetUseNetwork(true)
                      .Build();
 
-  db_main_ptr = db_main.get();
+  db_main_handler_ptr = db_main.get();
 
   db_main->Run();
 
