@@ -294,6 +294,12 @@ class CodeGen {
   ast::Expr *DateToSql(int16_t year, uint8_t month, uint8_t day);
 
   /**
+   * @param unix_timestamp The number to convert to a sql Timestamp.
+   * @return The generated sql Timestamp
+   */
+  ast::Expr *TimestampToSql(int64_t unix_timestamp);
+
+  /**
    * Convert a raw string to a sql StringVal.
    * @param str The string to convert to a sql StringVal.
    * @return The generate sql StringVal

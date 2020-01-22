@@ -137,6 +137,9 @@ ast::Expr *CodeGen::PCIGet(ast::Identifier pci, type::TypeId type, bool nullable
     case type::TypeId::DATE:
       builtin = nullable ? ast::Builtin ::PCIGetDateNull : ast::Builtin::PCIGetDate;
       break;
+    case type::TypeId::TIMESTAMP:
+      builtin = nullable ? ast::Builtin ::PCIGetTimestampNull : ast::Builtin::PCIGetTimestamp;
+      break;
     case type::TypeId::VARCHAR:
       builtin = nullable ? ast::Builtin ::PCIGetVarlenNull : ast::Builtin::PCIGetVarlen;
       break;
@@ -279,6 +282,9 @@ ast::Expr *CodeGen::PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
     case type::TypeId::DATE:
       builtin = nullable ? ast::Builtin::PRGetDateNull : ast::Builtin::PRGetDate;
       break;
+    case type::TypeId::TIMESTAMP:
+      builtin = nullable ? ast::Builtin::PRGetTimestampNull : ast::Builtin::PRGetTimestamp;
+      break;
     case type::TypeId::VARCHAR:
       builtin = nullable ? ast::Builtin::PRGetVarlenNull : ast::Builtin::PRGetVarlen;
       break;
@@ -315,6 +321,9 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
       break;
     case type::TypeId::DATE:
       builtin = nullable ? ast::Builtin::PRSetDateNull : ast::Builtin::PRSetDate;
+      break;
+    case type::TypeId::TIMESTAMP:
+      builtin = nullable ? ast::Builtin::PRSetTimestampNull : ast::Builtin::PRSetTimestamp;
       break;
     case type::TypeId::VARCHAR:
       builtin = nullable ? ast::Builtin::PRSetVarlenNull : ast::Builtin::PRSetVarlen;
@@ -357,6 +366,10 @@ ast::Expr *CodeGen::PeekValue(const type::TransientValue &transient_val) {
       uint8_t day = sql::ValUtil::ExtractDay(date);
       return DateToSql(year, month, day);
     }
+    case type::TypeId::TIMESTAMP: {
+      auto val = type::TransientValuePeeker::PeekBigInt(transient_val);
+      return TimestampToSql(val);
+    }
     case type::TypeId::DECIMAL: {
       auto val = type::TransientValuePeeker::PeekDecimal(transient_val);
       return FloatToSql(val);
@@ -365,7 +378,6 @@ ast::Expr *CodeGen::PeekValue(const type::TransientValue &transient_val) {
       auto val = terrier::type::TransientValuePeeker::PeekVarChar(transient_val);
       return StringToSql(val);
     }
-    case type::TypeId::TIMESTAMP:
     case type::TypeId::VARBINARY:
     default:
       // TODO(Amadou): Add support for these types.
@@ -384,12 +396,13 @@ ast::Expr *CodeGen::TplType(type::TypeId type) {
       return BuiltinType(ast::BuiltinType::Kind::Integer);
     case type::TypeId::DATE:
       return BuiltinType(ast::BuiltinType::Kind::Date);
+    case type::TypeId::TIMESTAMP:
+      return BuiltinType(ast::BuiltinType::Kind::Timestamp);
     case type::TypeId::DECIMAL:
       return BuiltinType(ast::BuiltinType::Kind::Real);
     case type::TypeId::VARCHAR:
       return BuiltinType(ast::BuiltinType::Kind::StringVal);
     case type::TypeId::VARBINARY:
-    case type::TypeId::TIMESTAMP:
     default:
       UNREACHABLE("Cannot codegen unsupported type.");
   }
@@ -490,6 +503,11 @@ ast::Expr *CodeGen::DateToSql(int16_t year, uint8_t month, uint8_t day) {
   ast::Expr *day_lit = IntLiteral(day);
   util::RegionVector<ast::Expr *> args{{year_lit, month_lit, day_lit}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+}
+
+ast::Expr *CodeGen::TimestampToSql(int64_t unix_timestamp) {
+  ast::Expr *timestamp_lit = IntLiteral(unix_timestamp);
+  return OneArgCall(ast::Builtin::TimestampToSql, timestamp_lit);
 }
 
 ast::Expr *CodeGen::StringToSql(std::string_view str) {

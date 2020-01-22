@@ -1041,6 +1041,11 @@ void Sema::CheckBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::Date));
       break;
     }
+    case ast::Builtin::PCIGetTimestamp:
+    case ast::Builtin::PCIGetTimestampNull: {
+      call->SetType(GetBuiltinType(ast::BuiltinType::Timestamp));
+      break;
+    }
     case ast::Builtin::PCIGetVarlen:
     case ast::Builtin::PCIGetVarlenNull: {
       call->SetType(GetBuiltinType(ast::BuiltinType::StringVal));
@@ -1639,6 +1644,12 @@ void Sema::CheckBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin) {
       sql_type = ast::BuiltinType::Date;
       break;
     }
+    case ast::Builtin::PRSetTimestamp:
+    case ast::Builtin::PRSetTimestampNull: {
+      is_set_call = true;
+      sql_type = ast::BuiltinType::Timestamp;
+      break;
+    }
     case ast::Builtin::PRSetVarlen:
     case ast::Builtin::PRSetVarlenNull: {
       is_set_call = true;
@@ -1671,6 +1682,11 @@ void Sema::CheckBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin) {
     case ast::Builtin::PRGetDate:
     case ast::Builtin::PRGetDateNull: {
       sql_type = ast::BuiltinType::Date;
+      break;
+    }
+    case ast::Builtin::PRGetTimestamp:
+    case ast::Builtin::PRGetTimestampNull: {
+      sql_type = ast::BuiltinType::Timestamp;
       break;
     }
     case ast::Builtin::PRGetVarlen:
@@ -2059,6 +2075,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::PCIGetDoubleNull:
     case ast::Builtin::PCIGetDate:
     case ast::Builtin::PCIGetDateNull:
+    case ast::Builtin::PCIGetTimestamp:
+    case ast::Builtin::PCIGetTimestampNull:
     case ast::Builtin::PCIGetVarlen:
     case ast::Builtin::PCIGetVarlenNull: {
       CheckBuiltinPCICall(call, builtin);
@@ -2228,6 +2246,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::PRSetReal:
     case ast::Builtin::PRSetDouble:
     case ast::Builtin::PRSetDate:
+    case ast::Builtin::PRSetTimestamp:
     case ast::Builtin::PRSetVarlen:
     case ast::Builtin::PRSetBoolNull:
     case ast::Builtin::PRSetTinyIntNull:
@@ -2237,6 +2256,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::PRSetRealNull:
     case ast::Builtin::PRSetDoubleNull:
     case ast::Builtin::PRSetDateNull:
+    case ast::Builtin::PRSetTimestampNull:
     case ast::Builtin::PRSetVarlenNull:
     case ast::Builtin::PRGetBool:
     case ast::Builtin::PRGetTinyInt:
@@ -2246,6 +2266,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::PRGetReal:
     case ast::Builtin::PRGetDouble:
     case ast::Builtin::PRGetDate:
+    case ast::Builtin::PRGetTimestamp:
     case ast::Builtin::PRGetVarlen:
     case ast::Builtin::PRGetBoolNull:
     case ast::Builtin::PRGetTinyIntNull:
@@ -2255,6 +2276,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::PRGetRealNull:
     case ast::Builtin::PRGetDoubleNull:
     case ast::Builtin::PRGetDateNull:
+    case ast::Builtin::PRGetTimestampNull:
     case ast::Builtin::PRGetVarlenNull: {
       CheckBuiltinPRCall(call, builtin);
       break;
@@ -2282,6 +2304,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::GetParamReal:
     case ast::Builtin::GetParamDouble:
     case ast::Builtin::GetParamDate:
+    case ast::Builtin::GetParamTimestamp:
     case ast::Builtin::GetParamString: {
       CheckBuiltinParamCall(call, builtin);
       break;
