@@ -1013,6 +1013,11 @@ void Sema::CheckBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::TupleSlot));
       break;
     }
+    case ast::Builtin::PCIGetBool:
+    case ast::Builtin::PCIGetBoolNull: {
+      call->SetType(GetBuiltinType(ast::BuiltinType::Boolean));
+      break;
+    }
     case ast::Builtin::PCIGetTinyInt:
     case ast::Builtin::PCIGetTinyIntNull:
     case ast::Builtin::PCIGetSmallInt:
@@ -1602,6 +1607,12 @@ void Sema::CheckBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin) {
   // Type of the input or output sql value
   ast::BuiltinType::Kind sql_type;
   switch (builtin) {
+    case ast::Builtin::PRSetBool:
+    case ast::Builtin::PRSetBoolNull: {
+      is_set_call = true;
+      sql_type = ast::BuiltinType::Bool;
+      break;
+    }
     case ast::Builtin::PRSetTinyInt:
     case ast::Builtin::PRSetSmallInt:
     case ast::Builtin::PRSetInt:
@@ -1632,6 +1643,11 @@ void Sema::CheckBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin) {
     case ast::Builtin::PRSetVarlenNull: {
       is_set_call = true;
       sql_type = ast::BuiltinType::StringVal;
+      break;
+    }
+    case ast::Builtin::PRGetBool:
+    case ast::Builtin::PRGetBoolNull: {
+      sql_type = ast::BuiltinType::Bool;
       break;
     }
     case ast::Builtin::PRGetTinyInt:
@@ -1921,6 +1937,10 @@ void Sema::CheckBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin) {
   // Type output sql value
   ast::BuiltinType::Kind sql_type;
   switch (builtin) {
+    case ast::Builtin::GetParamBool: {
+      sql_type = ast::BuiltinType::Bool;
+      break;
+    }
     case ast::Builtin::GetParamTinyInt:
     case ast::Builtin::GetParamSmallInt:
     case ast::Builtin::GetParamInt:
@@ -2023,6 +2043,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::PCIMatch:
     case ast::Builtin::PCIReset:
     case ast::Builtin::PCIResetFiltered:
+    case ast::Builtin::PCIGetBool:
+    case ast::Builtin::PCIGetBoolNull:
     case ast::Builtin::PCIGetTinyInt:
     case ast::Builtin::PCIGetTinyIntNull:
     case ast::Builtin::PCIGetSmallInt:
@@ -2198,6 +2220,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckMathTrigCall(call, builtin);
       break;
     }
+    case ast::Builtin::PRSetBool:
     case ast::Builtin::PRSetTinyInt:
     case ast::Builtin::PRSetSmallInt:
     case ast::Builtin::PRSetInt:
@@ -2206,6 +2229,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::PRSetDouble:
     case ast::Builtin::PRSetDate:
     case ast::Builtin::PRSetVarlen:
+    case ast::Builtin::PRSetBoolNull:
     case ast::Builtin::PRSetTinyIntNull:
     case ast::Builtin::PRSetSmallIntNull:
     case ast::Builtin::PRSetIntNull:
@@ -2214,6 +2238,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::PRSetDoubleNull:
     case ast::Builtin::PRSetDateNull:
     case ast::Builtin::PRSetVarlenNull:
+    case ast::Builtin::PRGetBool:
     case ast::Builtin::PRGetTinyInt:
     case ast::Builtin::PRGetSmallInt:
     case ast::Builtin::PRGetInt:
@@ -2222,6 +2247,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::PRGetDouble:
     case ast::Builtin::PRGetDate:
     case ast::Builtin::PRGetVarlen:
+    case ast::Builtin::PRGetBoolNull:
     case ast::Builtin::PRGetTinyIntNull:
     case ast::Builtin::PRGetSmallIntNull:
     case ast::Builtin::PRGetIntNull:
@@ -2248,6 +2274,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinStorageInterfaceCall(call, builtin);
       break;
     }
+    case ast::Builtin::GetParamBool:
     case ast::Builtin::GetParamTinyInt:
     case ast::Builtin::GetParamSmallInt:
     case ast::Builtin::GetParamInt:

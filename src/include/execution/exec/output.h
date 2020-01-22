@@ -131,10 +131,10 @@ class OutputWriter {
   /**
    * @return number of rows printed
    */
-  uint32_t NumRows() const { return num_rows_; }
+  uint64_t NumRows() const { return num_rows_; }
 
  private:
-  uint32_t num_rows_ = 0;
+  uint64_t num_rows_ = 0;
   const common::ManagedPointer<planner::OutputSchema> schema_;
   const common::ManagedPointer<network::PostgresPacketWriter> out_;
 };
