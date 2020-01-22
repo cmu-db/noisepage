@@ -55,7 +55,7 @@ extern "C" {
   /* Primitive not-equal-to implementation */                                                              \
   VM_OP_HOT void OpNotEqual##_##type(bool *result, type lhs, type rhs) { *result = (lhs != rhs); }
 
-INT_TYPES(COMPARISONS);
+ALL_TYPES(COMPARISONS);
 
 #undef COMPARISONS
 
@@ -65,37 +65,48 @@ VM_OP_HOT void OpNot(bool *const result, const bool input) { *result = !input; }
 // Primitive arithmetic
 // ---------------------------------------------------------
 
-#define MODULAR(type, ...)                                          \
+#define ARITHMETIC(type, ...)                                                              \
+  /* Primitive addition */                                                                 \
+  VM_OP_HOT void OpAdd##_##type(type *result, type lhs, type rhs) { *result = lhs + rhs; } \
+                                                                                           \
+  /* Primitive subtraction */                                                              \
+  VM_OP_HOT void OpSub##_##type(type *result, type lhs, type rhs) { *result = lhs - rhs; } \
+                                                                                           \
+  /* Primitive multiplication */                                                           \
+  VM_OP_HOT void OpMul##_##type(type *result, type lhs, type rhs) { *result = lhs * rhs; } \
+                                                                                           \
+  /* Primitive negation */                                                                 \
+  VM_OP_HOT void OpNeg##_##type(type *result, type input) { *result = -input; }            \
+                                                                                           \
+  /* Primitive division (no zero-check) */                                                 \
+  VM_OP_HOT void OpDiv##_##type(type *result, type lhs, type rhs) {                        \
+    TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");                                   \
+    *result = lhs / rhs;                                                                   \
+  }
+
+ALL_NUMERIC_TYPES(ARITHMETIC);
+
+#undef ARITHMETIC
+
+#define INT_MODULAR(type, ...)                                      \
   /* Primitive modulo-remainder (no zero-check) */                  \
   VM_OP_HOT void OpRem##_##type(type *result, type lhs, type rhs) { \
     TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");            \
-    *result = static_cast<type>(lhs % rhs);                         \
+    *result = lhs % rhs;                                            \
   }
 
-INT_TYPES(MODULAR)
-
-#define ARITHMETIC(type, ...)                                                                                 \
-  /* Primitive addition */                                                                                    \
-  VM_OP_HOT void OpAdd##_##type(type *result, type lhs, type rhs) { *result = static_cast<type>(lhs + rhs); } \
-                                                                                                              \
-  /* Primitive subtraction */                                                                                 \
-  VM_OP_HOT void OpSub##_##type(type *result, type lhs, type rhs) { *result = static_cast<type>(lhs - rhs); } \
-                                                                                                              \
-  /* Primitive multiplication */                                                                              \
-  VM_OP_HOT void OpMul##_##type(type *result, type lhs, type rhs) { *result = static_cast<type>(lhs * rhs); } \
-                                                                                                              \
-  /* Primitive negation */                                                                                    \
-  VM_OP_HOT void OpNeg##_##type(type *result, type input) { *result = static_cast<type>(-input); }            \
-                                                                                                              \
-  /* Primitive division (no zero-check) */                                                                    \
-  VM_OP_HOT void OpDiv##_##type(type *result, type lhs, type rhs) {                                           \
-    TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");                                                      \
-    *result = static_cast<type>(lhs / rhs);                                                                   \
+#define FLOAT_MODULAR(type, ...)                                    \
+  /* Primitive modulo-remainder (no zero-check) */                  \
+  VM_OP_HOT void OpRem##_##type(type *result, type lhs, type rhs) { \
+    TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");            \
+    *result = std::fmod(lhs, rhs);                                  \
   }
 
-INT_TYPES(ARITHMETIC);
+INT_TYPES(INT_MODULAR)
+FLOAT_TYPES(FLOAT_MODULAR)
 
-#undef ARITHMETIC
+#undef FLOAT_MODULAR
+#undef INT_MODULAR
 
 // ---------------------------------------------------------
 // Bitwise operations
@@ -230,6 +241,10 @@ VM_OP_HOT void OpParallelScanTable(const uint32_t db_oid, const uint32_t table_o
   terrier::execution::sql::TableVectorIterator::ParallelScan(db_oid, table_oid, query_state, thread_states, scanner);
 }
 
+// ---------------------------------------------------------
+// Projected Columns Iterator
+// ---------------------------------------------------------
+
 VM_OP_HOT void OpPCIIsFiltered(bool *is_filtered, terrier::execution::sql::ProjectedColumnsIterator *pci) {
   *is_filtered = pci->IsFiltered();
 }
@@ -254,6 +269,17 @@ VM_OP_HOT void OpPCIResetFiltered(terrier::execution::sql::ProjectedColumnsItera
 
 VM_OP_HOT void OpPCIGetSlot(terrier::storage::TupleSlot *slot, terrier::execution::sql::ProjectedColumnsIterator *pci) {
   *slot = pci->CurrentSlot();
+}
+
+VM_OP_HOT void OpPCIGetBool(terrier::execution::sql::BoolVal *out,
+                            terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+  // Read
+  auto *ptr = iter->Get<bool, false>(col_idx, nullptr);
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read bool");
+
+  // Set
+  out->is_null_ = false;
+  out->val_ = *ptr;
 }
 
 VM_OP_HOT void OpPCIGetTinyInt(terrier::execution::sql::Integer *out,
@@ -351,6 +377,18 @@ VM_OP_HOT void OpPCIGetVarlen(terrier::execution::sql::StringVal *out,
 
   // Set
   *out = terrier::execution::sql::StringVal(reinterpret_cast<const char *>(varlen->Content()), varlen->Size());
+}
+
+VM_OP_HOT void OpPCIGetBoolNull(terrier::execution::sql::BoolVal *out,
+                                terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+  // Read
+  bool null = false;
+  auto *ptr = iter->Get<bool, true>(col_idx, &null);
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read bool");
+
+  // Set
+  out->is_null_ = null;
+  out->val_ = *ptr;
 }
 
 VM_OP_HOT void OpPCIGetTinyIntNull(terrier::execution::sql::Integer *out,
@@ -526,7 +564,7 @@ VM_OP_HOT void OpForceBoolTruth(bool *result, terrier::execution::sql::BoolVal *
   *result = input->ForceTruth();
 }
 
-VM_OP_HOT void OpInitBool(terrier::execution::sql::BoolVal *result, bool input) {
+VM_OP_HOT void OpInitBoolVal(terrier::execution::sql::BoolVal *result, bool input) {
   result->is_null_ = false;
   result->val_ = input;
 }
@@ -587,6 +625,7 @@ VM_OP_HOT void OpInitVarlen(terrier::execution::sql::StringVal *result, uintptr_
     terrier::execution::sql::ComparisonFunctions::Ne##TYPE(result, *left, *right);            \
   }
 
+GEN_SQL_COMPARISONS(BoolVal)
 GEN_SQL_COMPARISONS(Integer)
 GEN_SQL_COMPARISONS(Real)
 GEN_SQL_COMPARISONS(StringVal)
@@ -1010,6 +1049,7 @@ VM_OP_HOT void OpAvgAggregateGetResult(terrier::execution::sql::Real *result,
 }
 
 VM_OP_HOT void OpAvgAggregateFree(terrier::execution::sql::AvgAggregate *agg) { agg->~AvgAggregate(); }
+
 // ---------------------------------------------------------
 // Hash Joins
 // ---------------------------------------------------------
@@ -1400,12 +1440,14 @@ VM_OP_WARM void OpIndexIteratorGetSlot(terrier::storage::TupleSlot *slot,
     out->val_ = null ? 0 : *ptr;                                                                                \
   }
 
+GEN_PR_SCALAR_SET_CALLS(Bool, BoolVal, bool);
 GEN_PR_SCALAR_SET_CALLS(TinyInt, Integer, int8_t);
 GEN_PR_SCALAR_SET_CALLS(SmallInt, Integer, int16_t);
 GEN_PR_SCALAR_SET_CALLS(Int, Integer, int32_t);
 GEN_PR_SCALAR_SET_CALLS(BigInt, Integer, int64_t);
 GEN_PR_SCALAR_SET_CALLS(Real, Real, float);
 GEN_PR_SCALAR_SET_CALLS(Double, Real, double);
+GEN_PR_SCALAR_GET_CALLS(Bool, BoolVal, bool);
 GEN_PR_SCALAR_GET_CALLS(TinyInt, Integer, int8_t);
 GEN_PR_SCALAR_GET_CALLS(SmallInt, Integer, int16_t);
 GEN_PR_SCALAR_GET_CALLS(Int, Integer, int32_t);
@@ -1478,6 +1520,7 @@ VM_OP_HOT void OpPRGetVarlenNull(terrier::execution::sql::StringVal *out, terrie
   }
 }
 
+// ---------------------------------------------------------------
 // StorageInterface Calls
 // ---------------------------------------------------------------
 
@@ -1511,6 +1554,7 @@ VM_OP void OpStorageInterfaceIndexDelete(terrier::execution::sql::StorageInterfa
 
 VM_OP void OpStorageInterfaceFree(terrier::execution::sql::StorageInterface *storage_interface);
 
+// ---------------------------------------------------------------
 // Output Calls
 // ---------------------------------------------------------------
 
@@ -1532,6 +1576,7 @@ VM_OP void OpOutputFinalize(terrier::execution::exec::ExecutionContext *exec_ctx
     }                                                                                                         \
   }
 
+GEN_SCALAR_PARAM_GET(Bool, BoolVal, PeekBoolean)
 GEN_SCALAR_PARAM_GET(TinyInt, Integer, PeekTinyInt)
 GEN_SCALAR_PARAM_GET(SmallInt, Integer, PeekSmallInt)
 GEN_SCALAR_PARAM_GET(Int, Integer, PeekInteger)

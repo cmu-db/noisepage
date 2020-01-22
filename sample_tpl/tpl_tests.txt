@@ -24,7 +24,7 @@ param.tpl,false,10
 pointer.tpl,false,10
 point.tpl,false,-20
 short-circuit.tpl,false,1
-simple.tpl,false,44
+simple.tpl,false,1
 struct.tpl,false,10
 struct-debug.tpl,false,100000
 struct-field-use.tpl,false,30
@@ -34,6 +34,7 @@ struct-pointer.tpl,false,440
 test.tpl,false,356405
 while.tpl,false,10
 return-exp.tpl,false,2
+types/bools.tpl,false,6
 types/int_aggregators.tpl,false,0
 types/real_aggregators.tpl,false,0
 types/dates.tpl,false,0
@@ -58,6 +59,7 @@ scan-table.tpl,true,500
 scan-table-2.tpl,true,500
 scan-table-3.tpl,true,9950
 #scan-table-4.tpl,true,5 <Non deterministic>
+scan-alltypes.tpl,true,500
 scan-vpi-iter.tpl,true,500
 sort.tpl,true,2000
 vec-filter.tpl,true,3000

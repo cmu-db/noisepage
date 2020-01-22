@@ -310,6 +310,10 @@ void AstDumperImpl::VisitImplicitCastExpr(ImplicitCastExpr *node) {
         DumpPrimitive("SqlBoolToBool");
         break;
       }
+      case CastKind::BoolToSqlBool: {
+        DumpPrimitive("BoolToSqlBool");
+        break;
+      }
       case CastKind::IntegralCast: {
         DumpPrimitive("IntegralCast");
         break;
