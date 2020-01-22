@@ -349,10 +349,12 @@ void DataTable::WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<co
               *flatbuf_builder, dictionary_id, flatbuf::CreateInt(*flatbuf_builder, 8 * sizeof(uint64_t), true), false);
           dictionary_ids->emplace(col_id, dictionary_id++);
           TERRIER_FALLTHROUGH;
-        case ArrowColumnType::GATHERED_VARLEN:type = flatbuf::Type_LargeBinary;
+        case ArrowColumnType::GATHERED_VARLEN:
+          type = flatbuf::Type_LargeBinary;
           type_offset = flatbuf::CreateLargeBinary(*flatbuf_builder).Union();
           break;
-        default:throw std::runtime_error("unexpected control flow");
+        default:
+          throw std::runtime_error("unexpected control flow");
       }
     }
     // Apache Arrow supports nested logical types. For example, for type List<Int64>, the parent type is List,

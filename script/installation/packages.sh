@@ -77,6 +77,8 @@ install_mac() {
   brew ls --versions postgresql || brew install postgresql
   brew ls --versions tbb || brew install tbb
   brew ls --versions ant || brew install ant
+  #install pyarrow
+  pip show pyarrow || pip install pyarrow
 }
 
 install_linux() {
@@ -104,6 +106,8 @@ install_linux() {
       sqlite3 \
       libsqlite3-dev \
       ant
+   #install pyarrow
+   pip show pyarrow || pip install pyarrow
    #install libpqxx-6.2 manually
    apt-get -y install wget
    wget http://mirrors.kernel.org/ubuntu/pool/universe/libp/libpqxx/libpqxx-dev_6.2.4-4_amd64.deb
