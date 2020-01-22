@@ -271,7 +271,7 @@ class DataTable {
   void AtomicallyWriteVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, UndoRecord *desired);
 
   // Unlinks all of the undo records that are no longer visible.
-  void TruncateVersionChain(TupleSlot slot, transaction::timestamp_t oldest) const;
+  void TruncateVersionChain(TupleSlot slot, transaction::timestamp_t oldest);
 
   // Checks for Snapshot Isolation conflicts, used by Update
   bool HasConflict(const transaction::TransactionContext &txn, UndoRecord *version_ptr) const;
