@@ -105,25 +105,29 @@ class CompactIntsKey {
         case sizeof(int8_t): {
           auto cur = GetInteger<int8_t>(compact_ints_offsets[i]);
           auto other = rhs.GetInteger<int8_t>(compact_ints_offsets[i]);
-          if (other >= cur) return true;
+          if (cur < other) return true;
+          else if (cur > other) return false;
           break;
         }
         case sizeof(int16_t): {
           auto cur = GetInteger<int16_t>(compact_ints_offsets[i]);
           auto other = rhs.GetInteger<int16_t>(compact_ints_offsets[i]);
-          if (other >= cur) return true;
+          if (cur < other) return true;
+          else if (cur > other) return false;
           break;
         }
         case sizeof(int32_t): {
           auto cur = GetInteger<int32_t>(compact_ints_offsets[i]);
           auto other = rhs.GetInteger<int32_t>(compact_ints_offsets[i]);
-          if (other >= cur) return true;
+          if (cur < other) return true;
+          else if (cur > other) return false;
           break;
         }
         case sizeof(int64_t): {
           auto cur = GetInteger<int64_t>(compact_ints_offsets[i]);
           auto other = rhs.GetInteger<int64_t>(compact_ints_offsets[i]);
-          if (other >= cur) return true;
+          if (cur < other) return true;
+          else if (cur > other) return false;
           break;
         }
         default:

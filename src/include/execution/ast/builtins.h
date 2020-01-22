@@ -50,6 +50,7 @@ namespace terrier::execution::ast {
   F(PCIMatch, pciMatch)                                                     \
   F(PCIReset, pciReset)                                                     \
   F(PCIResetFiltered, pciResetFiltered)                                     \
+  F(PCIGetBool, pciGetBool)                                                 \
   F(PCIGetTinyInt, pciGetTinyInt)                                           \
   F(PCIGetSmallInt, pciGetSmallInt)                                         \
   F(PCIGetInt, pciGetInt)                                                   \
@@ -58,6 +59,7 @@ namespace terrier::execution::ast {
   F(PCIGetDouble, pciGetDouble)                                             \
   F(PCIGetDate, pciGetDate)                                                 \
   F(PCIGetVarlen, pciGetVarlen)                                             \
+  F(PCIGetBoolNull, pciGetBoolNull)                                         \
   F(PCIGetTinyIntNull, pciGetTinyIntNull)                                   \
   F(PCIGetSmallIntNull, pciGetSmallIntNull)                                 \
   F(PCIGetIntNull, pciGetIntNull)                                           \
@@ -162,6 +164,7 @@ namespace terrier::execution::ast {
   F(IndexIteratorFree, indexIteratorFree)                                   \
                                                                             \
   /* Projected Row Operations */                                            \
+  F(PRSetBool, prSetBool)                                                   \
   F(PRSetTinyInt, prSetTinyInt)                                             \
   F(PRSetSmallInt, prSetSmallInt)                                           \
   F(PRSetInt, prSetInt)                                                     \
@@ -170,6 +173,7 @@ namespace terrier::execution::ast {
   F(PRSetDouble, prSetDouble)                                               \
   F(PRSetDate, prSetDate)                                                   \
   F(PRSetVarlen, prSetVarlen)                                               \
+  F(PRSetBoolNull, prSetBoolNull)                                           \
   F(PRSetTinyIntNull, prSetTinyIntNull)                                     \
   F(PRSetSmallIntNull, prSetSmallIntNull)                                   \
   F(PRSetIntNull, prSetIntNull)                                             \
@@ -178,6 +182,7 @@ namespace terrier::execution::ast {
   F(PRSetDoubleNull, prSetDoubleNull)                                       \
   F(PRSetDateNull, prSetDateNull)                                           \
   F(PRSetVarlenNull, prSetVarlenNull)                                       \
+  F(PRGetBool, prGetBool)                                                   \
   F(PRGetTinyInt, prGetTinyInt)                                             \
   F(PRGetSmallInt, prGetSmallInt)                                           \
   F(PRGetInt, prGetInt)                                                     \
@@ -186,6 +191,7 @@ namespace terrier::execution::ast {
   F(PRGetDouble, prGetDouble)                                               \
   F(PRGetDate, prGetDate)                                                   \
   F(PRGetVarlen, prGetVarlen)                                               \
+  F(PRGetBoolNull, prGetBoolNull)                                           \
   F(PRGetTinyIntNull, prGetTinyIntNull)                                     \
   F(PRGetSmallIntNull, prGetSmallIntNull)                                   \
   F(PRGetIntNull, prGetIntNull)                                             \
@@ -210,6 +216,7 @@ namespace terrier::execution::ast {
   F(StorageInterfaceFree, storageInterfaceFree)                             \
                                                                             \
   /* Parameter calls */                                                     \
+  F(GetParamBool, getParamBool)                                             \
   F(GetParamTinyInt, getParamTinyInt)                                       \
   F(GetParamSmallInt, getParamSmallInt)                                     \
   F(GetParamInt, getParamInt)                                               \
