@@ -339,9 +339,18 @@ void TrafficCop::CodegenAndRunPhysicalPlan(const common::ManagedPointer<network:
 
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
     // Execution didn't set us to FAIL state, go ahead and write command complete
-    // TODO(Matt): I think the number of rows affected should be switched to the ExecutionContext since the
-    // OutputPrinter isn't invoked for INSERT, UPDATE, DELETE so we can't get the number from there.
-    out->WriteCommandComplete(query_type, writer.NumRows());
+
+    if (query_type == network::QueryType::QUERY_SELECT) {
+      // For selects we really on the OutputWriter to store the number of rows affected because sequential scan
+      // iteration can happen in multiple pipelines
+      out->WriteCommandComplete(query_type, writer.NumRows());
+
+    } else {
+      // Other queries (INSERT, UPDATE, DELETE) retrieve rows affected from the execution context since other queries
+      // might not have any output otherwise
+      out->WriteCommandComplete(query_type, exec_ctx->RowsAffected());
+    }
+
   } else {
     // TODO(Matt): We need a more verbose way to say what happened during execution (INSERT failed for key conflict,
     // etc.) I suspect we would stash that in the ExecutionContext.
