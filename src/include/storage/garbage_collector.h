@@ -96,8 +96,6 @@ class GarbageCollector {
 
   void ReclaimBufferIfVarlen(transaction::TransactionContext *txn, UndoRecord *undo_record) const;
 
-  void TruncateVersionChain(DataTable *table, TupleSlot slot, transaction::timestamp_t oldest) const;
-
   void ProcessIndexes();
 
   const common::ManagedPointer<transaction::TimestampManager> timestamp_manager_;

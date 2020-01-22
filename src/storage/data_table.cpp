@@ -354,9 +354,49 @@ void DataTable::AtomicallyWriteVersionPtr(const TupleSlot slot, const TupleAcces
   reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)->store(desired);
 }
 
-bool DataTable::Visible(const TupleSlot slot, const TupleAccessStrategy &accessor) const {
-  const bool present = accessor.Allocated(slot);
-  const bool not_deleted = !accessor.IsNull(slot, VERSION_POINTER_COLUMN_ID);
+void DataTable::TruncateVersionChain(const TupleSlot slot, const transaction::timestamp_t oldest) const {
+  UndoRecord *const version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
+  // This is a legitimate case where we truncated the version chain but had to restart because the previous head
+  // was aborted.
+  if (version_ptr == nullptr) return;
+
+  // We need to special case the head of the version chain because contention with running transactions can happen
+  // here. Instead of a blind update we will need to CAS and prune the entire version chain if the head of the version
+  // chain can be GCed.
+  if (transaction::TransactionUtil::NewerThan(oldest, version_ptr->Timestamp().load())) {
+    if (!CompareAndSwapVersionPtr(slot, accessor_, version_ptr, nullptr))
+      // Keep retrying while there are conflicts, since we only invoke truncate once per GC period for every
+      // version chain.
+      TruncateVersionChain(slot, oldest);
+    return;
+  }
+
+  // a version chain is guaranteed to not change when not at the head (assuming single-threaded GC), so we are safe
+  // to traverse and update pointers without CAS
+  UndoRecord *curr = version_ptr;
+  UndoRecord *next;
+  // Traverse until we find the earliest UndoRecord that can be unlinked.
+  while (true) {
+    next = curr->Next();
+    // This is a legitimate case where we truncated the version chain but had to restart because the previous head
+    // was aborted.
+    if (next == nullptr) return;
+    if (transaction::TransactionUtil::NewerThan(oldest, next->Timestamp().load())) break;
+    curr = next;
+  }
+  // The rest of the version chain must also be invisible to any running transactions since our version
+  // is newest-to-oldest sorted.
+  curr->Next().store(nullptr);
+
+  // If the head of the version chain was not committed, it could have been aborted and requires a retry.
+  if (curr == version_ptr && !transaction::TransactionUtil::Committed(version_ptr->Timestamp().load()) &&
+      AtomicallyReadVersionPtr(slot, accessor_) != version_ptr)
+    TruncateVersionChain(slot, oldest);
+}
+
+bool DataTable::Visible(const TupleSlot slot, const TupleAccessStrategy &accessor_) const {
+  const bool present = accessor_.Allocated(slot);
+  const bool not_deleted = !accessor_.IsNull(slot, VERSION_POINTER_COLUMN_ID);
   return present && not_deleted;
 }
 

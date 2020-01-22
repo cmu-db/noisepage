@@ -120,7 +120,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_tx
         // Each version chain needs to be traversed and truncated at most once every GC period. Check
         // if we have already visited this tuple slot; if not, proceed to prune the version chain.
         if (table != nullptr && visited_slots.insert(undo_record.Slot()).second)
-          TruncateVersionChain(table, undo_record.Slot(), oldest_txn);
+          table->TruncateVersionChain(table, undo_record.Slot(), oldest_txn);
         // Regardless of the version chain we will need to reclaim deleted slots and any dangling pointers to varlens,
         // unless the transaction is aborted, and the record holds a version that is still visible.
         if (!txn->Aborted()) {
@@ -159,49 +159,6 @@ void GarbageCollector::ProcessDeferredActions(transaction::timestamp_t oldest_tx
     // TODO(Tianyu): Eventually we will remove the GC and implement version chain pruning with deferred actions
     deferred_action_manager_->Process(oldest_txn);
   }
-}
-
-// TODO(John) Move to UndoRecord class
-void GarbageCollector::TruncateVersionChain(DataTable *const table, const TupleSlot slot,
-                                            const transaction::timestamp_t oldest) const {
-  const TupleAccessStrategy &accessor = table->accessor_;
-  UndoRecord *const version_ptr = table->AtomicallyReadVersionPtr(slot, accessor);
-  // This is a legitimate case where we truncated the version chain but had to restart because the previous head
-  // was aborted.
-  if (version_ptr == nullptr) return;
-
-  // We need to special case the head of the version chain because contention with running transactions can happen
-  // here. Instead of a blind update we will need to CAS and prune the entire version chain if the head of the version
-  // chain can be GCed.
-  if (transaction::TransactionUtil::NewerThan(oldest, version_ptr->Timestamp().load())) {
-    if (!table->CompareAndSwapVersionPtr(slot, accessor, version_ptr, nullptr))
-      // Keep retrying while there are conflicts, since we only invoke truncate once per GC period for every
-      // version chain.
-      TruncateVersionChain(table, slot, oldest);
-    return;
-  }
-
-  // a version chain is guaranteed to not change when not at the head (assuming single-threaded GC), so we are safe
-  // to traverse and update pointers without CAS
-  UndoRecord *curr = version_ptr;
-  UndoRecord *next;
-  // Traverse until we find the earliest UndoRecord that can be unlinked.
-  while (true) {
-    next = curr->Next();
-    // This is a legitimate case where we truncated the version chain but had to restart because the previous head
-    // was aborted.
-    if (next == nullptr) return;
-    if (transaction::TransactionUtil::NewerThan(oldest, next->Timestamp().load())) break;
-    curr = next;
-  }
-  // The rest of the version chain must also be invisible to any running transactions since our version
-  // is newest-to-oldest sorted.
-  curr->Next().store(nullptr);
-
-  // If the head of the version chain was not committed, it could have been aborted and requires a retry.
-  if (curr == version_ptr && !transaction::TransactionUtil::Committed(version_ptr->Timestamp().load()) &&
-      table->AtomicallyReadVersionPtr(slot, accessor) != version_ptr)
-    TruncateVersionChain(table, slot, oldest);
 }
 
 // TODO(John) Where should this live?
