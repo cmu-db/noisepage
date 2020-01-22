@@ -120,7 +120,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_tx
         // Each version chain needs to be traversed and truncated at most once every GC period. Check
         // if we have already visited this tuple slot; if not, proceed to prune the version chain.
         if (table != nullptr && visited_slots.insert(undo_record.Slot()).second)
-          table->TruncateVersionChain(table, undo_record.Slot(), oldest_txn);
+          table->TruncateVersionChain(undo_record.Slot(), oldest_txn);
         // Regardless of the version chain we will need to reclaim deleted slots and any dangling pointers to varlens,
         // unless the transaction is aborted, and the record holds a version that is still visible.
         if (!txn->Aborted()) {
