@@ -25,7 +25,7 @@ if (TERRIER_BUILD_TESTS)
     add_subdirectory(traffic_cop)
     add_subdirectory(transaction)
     add_subdirectory(type)
-    # add_subdirectory(util)
+    add_subdirectory(util)
 
 endif ()
 
