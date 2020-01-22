@@ -94,6 +94,7 @@ class CompactIntsKey {
   /**
    * Returns whether this key is less than another key up to num_attrs for comparison.
    * @param rhs other key to compare against
+   * @param metadata Index Key metadata
    * @param num_attrs attributes to compare against
    * @returns whether this is less than other
    */

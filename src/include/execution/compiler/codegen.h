@@ -438,7 +438,7 @@ class CodeGen {
   /**
    * Call indexIteratorInit(&iter, execCtx, table_oid, index_oid, col_oids)
    * @param iter The identifier of the index iterator.
-   * @param num_atrs Number of attributes
+   * @param num_attrs Number of attributes
    * @param table_oid The oid of the index's table.
    * @param index_oid The oid the index.
    * @param col_oids The identifier of the array of column oids to read.
