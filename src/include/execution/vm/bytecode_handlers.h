@@ -1319,8 +1319,8 @@ VM_OP_WARM void OpUpper(terrier::execution::exec::ExecutionContext *ctx, terrier
 // Index Iterator
 // ---------------------------------------------------------------
 VM_OP void OpIndexIteratorInit(terrier::execution::sql::IndexIterator *iter,
-                               terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
-                               uint32_t index_oid, uint32_t *col_oids, uint32_t num_oids);
+                               terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t num_attrs,
+                               uint32_t table_oid, uint32_t index_oid, uint32_t *col_oids, uint32_t num_oids);
 VM_OP void OpIndexIteratorFree(terrier::execution::sql::IndexIterator *iter);
 
 VM_OP void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *iter);

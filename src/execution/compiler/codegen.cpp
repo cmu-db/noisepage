@@ -201,17 +201,18 @@ ast::Expr *CodeGen::HTInitCall(ast::Builtin builtin, ast::Identifier object, ast
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::IndexIteratorInit(ast::Identifier iter, uint32_t table_oid, uint32_t index_oid,
+ast::Expr *CodeGen::IndexIteratorInit(ast::Identifier iter, uint32_t num_attrs, uint32_t table_oid, uint32_t index_oid,
                                       ast::Identifier col_oids) {
   // @indexIteratorInit(&iter, table_oid, index_oid, execCtx)
   ast::Expr *fun = BuiltinFunction(ast::Builtin::IndexIteratorInit);
   ast::Expr *iter_ptr = PointerTo(iter);
   ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
+  ast::Expr *num_attrs_expr = IntLiteral(static_cast<int32_t>(num_attrs));
   ast::Expr *table_oid_expr = IntLiteral(static_cast<int32_t>(table_oid));
   ast::Expr *index_oid_expr = IntLiteral(static_cast<int32_t>(index_oid));
   ast::Expr *col_oids_expr = MakeExpr(col_oids);
-  util::RegionVector<ast::Expr *> args{{iter_ptr, exec_ctx_expr, table_oid_expr, index_oid_expr, col_oids_expr},
-                                       Region()};
+  util::RegionVector<ast::Expr *> args{
+      {iter_ptr, exec_ctx_expr, num_attrs_expr, table_oid_expr, index_oid_expr, col_oids_expr}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 

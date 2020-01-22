@@ -3,9 +3,10 @@
 
 namespace terrier::execution::sql {
 
-IndexIterator::IndexIterator(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t index_oid,
-                             uint32_t *col_oids, uint32_t num_oids)
+IndexIterator::IndexIterator(exec::ExecutionContext *exec_ctx, uint32_t num_attrs, uint32_t table_oid,
+                             uint32_t index_oid, uint32_t *col_oids, uint32_t num_oids)
     : exec_ctx_(exec_ctx),
+      num_attrs_(num_attrs),
       col_oids_(col_oids, col_oids + num_oids),
       index_(exec_ctx_->GetAccessor()->GetIndex(catalog::index_oid_t(index_oid))),
       table_(exec_ctx_->GetAccessor()->GetTable(catalog::table_oid_t(table_oid))) {}
@@ -38,21 +39,21 @@ void IndexIterator::ScanAscendingClosed() {
   // Scan the index
   tuples_.clear();
   curr_index_ = 0;
-  index_->ScanAscendingClosed(*exec_ctx_->GetTxn(), *index_pr_, *hi_index_pr_, &tuples_);
+  index_->ScanAscendingClosed(*exec_ctx_->GetTxn(), num_attrs_, *index_pr_, *hi_index_pr_, &tuples_);
 }
 
 void IndexIterator::ScanAscendingOpenHigh() {
   // Scan the index
   tuples_.clear();
   curr_index_ = 0;
-  index_->ScanAscendingOpenHigh(*exec_ctx_->GetTxn(), *index_pr_, &tuples_);
+  index_->ScanAscendingOpenHigh(*exec_ctx_->GetTxn(), num_attrs_, *index_pr_, &tuples_);
 }
 
 void IndexIterator::ScanAscendingOpenLow() {
   // Scan the index
   tuples_.clear();
   curr_index_ = 0;
-  index_->ScanAscendingOpenLow(*exec_ctx_->GetTxn(), *hi_index_pr_, &tuples_);
+  index_->ScanAscendingOpenLow(*exec_ctx_->GetTxn(), num_attrs_, *hi_index_pr_, &tuples_);
 }
 
 void IndexIterator::ScanAscendingOpenBoth() {

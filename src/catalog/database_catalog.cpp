@@ -565,7 +565,7 @@ std::vector<Column> DatabaseCatalog::GetColumns(const common::ManagedPointer<tra
   *(reinterpret_cast<ClassOid *>(pr_high->AccessForceNotNull(oid_prm[indexkeycol_oid_t(1)]))) = ++class_oid;
   *(reinterpret_cast<ColOid *>(pr_high->AccessForceNotNull(oid_prm[indexkeycol_oid_t(2)]))) = ColOid(0);
   std::vector<storage::TupleSlot> index_results;
-  columns_oid_index_->ScanAscendingClosed(*txn, *pr, *pr_high, &index_results);
+  columns_oid_index_->ScanAscendingClosed(*txn, 2, *pr, *pr_high, &index_results);
 
   TERRIER_ASSERT(!index_results.empty(),
                  "Incorrect number of results from index scan. empty() implies that function was called with an oid "
@@ -616,7 +616,7 @@ bool DatabaseCatalog::DeleteColumns(const common::ManagedPointer<transaction::Tr
   *(reinterpret_cast<ClassOid *>(key_pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(1)]))) = next_oid;
   *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(2)]))) = 0;
   std::vector<storage::TupleSlot> index_results;
-  columns_oid_index_->ScanAscendingClosed(*txn, *pr, *key_pr, &index_results);
+  columns_oid_index_->ScanAscendingClosed(*txn, 2, *pr, *key_pr, &index_results);
 
   TERRIER_ASSERT(!index_results.empty(),
                  "Incorrect number of results from index scan. empty() implies that function was called with an oid "

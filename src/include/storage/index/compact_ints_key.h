@@ -91,6 +91,49 @@ class CompactIntsKey {
     }
   }
 
+  /**
+   * Returns whether this key is less than another key up to num_attrs for comparison.
+   * @param rhs other key to compare against
+   * @param num_attrs attributes to compare against
+   * @returns whether this is less than other
+   */
+  bool PartialLessThan(const CompactIntsKey<KeySize> &rhs, const IndexMetadata *metadata, size_t num_attrs) const {
+    const auto &attr_sizes = metadata->GetAttributeSizes();
+    const auto &compact_ints_offsets = metadata->GetCompactIntsOffsets();
+    for (uint8_t i = 0; i < num_attrs; i++) {
+      switch (attr_sizes[i]) {
+        case sizeof(int8_t): {
+          auto cur = GetInteger<int8_t>(compact_ints_offsets[i]);
+          auto other = rhs.GetInteger<int8_t>(compact_ints_offsets[i]);
+          if (other >= cur) return true;
+          break;
+        }
+        case sizeof(int16_t): {
+          auto cur = GetInteger<int16_t>(compact_ints_offsets[i]);
+          auto other = rhs.GetInteger<int16_t>(compact_ints_offsets[i]);
+          if (other >= cur) return true;
+          break;
+        }
+        case sizeof(int32_t): {
+          auto cur = GetInteger<int32_t>(compact_ints_offsets[i]);
+          auto other = rhs.GetInteger<int32_t>(compact_ints_offsets[i]);
+          if (other >= cur) return true;
+          break;
+        }
+        case sizeof(int64_t): {
+          auto cur = GetInteger<int64_t>(compact_ints_offsets[i]);
+          auto other = rhs.GetInteger<int64_t>(compact_ints_offsets[i]);
+          if (other >= cur) return true;
+          break;
+        }
+        default:
+          throw std::runtime_error("Invalid attribute size.");
+      }
+    }
+
+    return false;
+  }
+
  private:
   byte key_data_[KeySize];
 

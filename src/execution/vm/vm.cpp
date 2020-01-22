@@ -1381,11 +1381,12 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   OP(IndexIteratorInit) : {
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto num_attrs = READ_UIMM4();
     auto table_oid = READ_UIMM4();
     auto index_oid = READ_UIMM4();
     auto col_oids = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto num_oids = READ_UIMM4();
-    OpIndexIteratorInit(iter, exec_ctx, table_oid, index_oid, col_oids, num_oids);
+    OpIndexIteratorInit(iter, exec_ctx, num_attrs, table_oid, index_oid, col_oids, num_oids);
     DISPATCH_NEXT();
   }
 

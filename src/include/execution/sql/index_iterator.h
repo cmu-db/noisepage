@@ -15,14 +15,15 @@ class EXPORT IndexIterator {
  public:
   /**
    * Constructor
+   * @param exec_ctx execution containing of this query
+   * @param num_attrs Number of attributes in idx key
    * @param table_oid oid of the table
    * @param index_oid oid of the index to iterate over.
-   * @param exec_ctx execution containing of this query
    * @param col_oids oids of the table columns
    * @param num_oids number of oids
    */
-  explicit IndexIterator(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t index_oid, uint32_t *col_oids,
-                         uint32_t num_oids);
+  explicit IndexIterator(exec::ExecutionContext *exec_ctx, uint32_t num_attrs, uint32_t table_oid, uint32_t index_oid,
+                         uint32_t *col_oids, uint32_t num_oids);
 
   /**
    * Initialize the projected row and begin scanning.
@@ -108,6 +109,7 @@ class EXPORT IndexIterator {
 
  private:
   exec::ExecutionContext *exec_ctx_;
+  uint32_t num_attrs_;
   std::vector<catalog::col_oid_t> col_oids_;
   common::ManagedPointer<storage::index::Index> index_;
   common::ManagedPointer<storage::SqlTable> table_;

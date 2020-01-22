@@ -412,13 +412,14 @@ class BytecodeEmitter {
    * @param bytecode index initialization bytecode
    * @param iter iterator in initialize
    * @param exec_ctx the execution context
+   * @param num_attrs NUmber of attributes
    * @param table_oid oid of the table owning the index
    * @param index_oid oid of the index to use
    * @param col_oids array of oids
    * @param num_oids length of the array
    */
-  void EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t table_oid,
-                             uint32_t index_oid, LocalVar col_oids, uint32_t num_oids);
+  void EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t num_attrs,
+                             uint32_t table_oid, uint32_t index_oid, LocalVar col_oids, uint32_t num_oids);
 
   /**
    * Initialize a StringVal from a char array
