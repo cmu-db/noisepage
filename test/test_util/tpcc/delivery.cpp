@@ -103,7 +103,7 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
     *reinterpret_cast<int8_t *>(order_line_key_hi->AccessForceNotNull(ol_number_key_pr_offset_)) = 15;  // max OL_NUMBER
 
     index_scan_results.clear();
-    db->order_line_primary_index_->ScanAscendingClosed(*txn, *order_line_key_lo, *order_line_key_hi,
+    db->order_line_primary_index_->ScanAscendingClosed(*txn, 4, *order_line_key_lo, *order_line_key_hi,
                                                        &index_scan_results);
     TERRIER_ASSERT(!index_scan_results.empty() && index_scan_results.size() <= 15,
                    "There should be at least 1 Order Line item, but no more than 15.");
