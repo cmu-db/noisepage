@@ -126,6 +126,10 @@ class ExecutableQuery {
     if (query_name_ == "tpch_q5")
       params.emplace_back(type::TransientValueFactory::GetVarChar("ASIA"));
 
+    // Add the identifier for each pipeline. At most 8 query pipelines for now
+    for (int i = 0; i < 8; ++i)
+      params.emplace_back(type::TransientValueFactory::GetVarChar(query_name_ + "_p" + std::to_string(i)));
+
     return params;
   }
 
