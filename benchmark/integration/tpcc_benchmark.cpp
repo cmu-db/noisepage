@@ -19,7 +19,6 @@
 #include "transaction/transaction_manager.h"
 
 namespace terrier::tpcc {
-extern const char *logfile;
 /**
  * The behavior in these benchmarks mimics that of /test/integration/tpcc_test.cpp. If something changes here, it should
  * probably change there as well.
@@ -57,6 +56,8 @@ class TPCCBenchmark : public benchmark::Fixture {
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
   const std::chrono::milliseconds gc_period_{10};
   const std::chrono::milliseconds metrics_period_{100};
+
+  const char* logfile = (std::getenv("LOGFILE_NAME") == nullptr ? "/tmp/tpcc.log" : std::getenv("LOGFILE_NAME"));
 };
 
 // NOLINTNEXTLINE

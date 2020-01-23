@@ -23,11 +23,6 @@
 int main(int argc, char **argv) {
   terrier::LoggersUtil::Initialize();
 
-  const static char *logfile = std::getenv("LOGFILE_NAME");
-  if (logfile == nullptr) {
-    logfile = "/tmp/tpcc.log";
-  }
-
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();
 
