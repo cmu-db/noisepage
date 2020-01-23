@@ -57,7 +57,7 @@ class TPCCBenchmark : public benchmark::Fixture {
   const std::chrono::milliseconds gc_period_{10};
   const std::chrono::milliseconds metrics_period_{100};
 
-  const char *logfile = (std::getenv("LOGFILE_NAME") == nullptr ? "/tmp/tpcc.log" : std::getenv("LOGFILE_NAME"));
+  const char *logfile_ = (std::getenv("LOGFILE_NAME") == nullptr ? "/tmp/tpcc.log" : std::getenv("LOGFILE_NAME"));
 };
 
 // NOLINTNEXTLINE
@@ -73,7 +73,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
   // NOLINTNEXTLINE
   for (auto _ : state) {
     thread_pool_.Startup();
-    unlink(logfile);
+    unlink(logfile_);
     // we need transactions, TPCC database, and GC
     transaction::TimestampManager timestamp_manager;
     transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
@@ -126,7 +126,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
     thread_pool_.Shutdown();
     delete gc_;
     delete tpcc_db;
-    unlink(logfile);
+    unlink(logfile_);
   }
 
   CleanUpVarlensInPrecomputedArgs(&precomputed_args);
@@ -158,11 +158,11 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
   // NOLINTNEXTLINE
   for (auto _ : state) {
     thread_pool_.Startup();
-    unlink(logfile);
+    unlink(logfile_);
     thread_registry_ = new common::DedicatedThreadRegistry(DISABLED);
     // we need transactions, TPCC database, and GC
     log_manager_ = new storage::LogManager(
-        logfile, num_log_buffers_, log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
+        logfile_, num_log_buffers_, log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
         common::ManagedPointer(&buffer_pool_), common::ManagedPointer(thread_registry_));
     log_manager_->Start();
     transaction::TimestampManager timestamp_manager;
@@ -250,7 +250,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
   // NOLINTNEXTLINE
   for (auto _ : state) {
     thread_pool_.Startup();
-    unlink(logfile);
+    unlink(logfile_);
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager;
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
@@ -258,7 +258,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
     thread_registry_ = new common::DedicatedThreadRegistry{common::ManagedPointer(metrics_manager)};
     // we need transactions, TPCC database, and GC
     log_manager_ = new storage::LogManager(
-        logfile, num_log_buffers_, log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
+        logfile_, num_log_buffers_, log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
         common::ManagedPointer(&buffer_pool_), common::ManagedPointer(thread_registry_));
     log_manager_->Start();
     transaction::TimestampManager timestamp_manager;
@@ -350,7 +350,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
   // NOLINTNEXTLINE
   for (auto _ : state) {
     thread_pool_.Startup();
-    unlink(logfile);
+    unlink(logfile_);
     for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager;
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
