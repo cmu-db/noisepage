@@ -57,7 +57,7 @@ class TPCCBenchmark : public benchmark::Fixture {
   const std::chrono::milliseconds gc_period_{10};
   const std::chrono::milliseconds metrics_period_{100};
 
-  const char* logfile = (std::getenv("LOGFILE_NAME") == nullptr ? "/tmp/tpcc.log" : std::getenv("LOGFILE_NAME"));
+  const char *logfile = (std::getenv("LOGFILE_NAME") == nullptr ? "/tmp/tpcc.log" : std::getenv("LOGFILE_NAME"));
 };
 
 // NOLINTNEXTLINE

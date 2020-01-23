@@ -62,8 +62,8 @@ BENCHMARKS_TO_RUN = [
     "parser_benchmark",
 ]
 
-# Path to logfile for tpcc; use "/tmp/tpcc.log" for local builds and use "/mnt/ramdisk/tpcc.log" for CI
-os.environ["LOGFILE_NAME"] = "/tmp/tpcc.log"
+# Uses "/mnt/ramdisk/tpcc.log" as path to logfile for CI
+os.environ["LOGFILE_NAME"] = "/mnt/ramdisk/tpcc.log"
 # Where to find the benchmarks to execute
 BENCHMARK_PATH = "../../build/release/"
 
