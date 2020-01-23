@@ -53,8 +53,9 @@ class CompactIntsKey {
    * @param from ProjectedRow to generate CompactIntsKey representation of
    * @param metadata index information, primarily attribute sizes and the precomputed offsets to translate PR layout to
    * CompactIntsKey
+   * @param num_attrs Number of attributes
    */
-  void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata) {
+  void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata, size_t num_attrs) {
     const auto &attr_sizes = metadata.GetAttributeSizes();
     const auto &compact_ints_offsets = metadata.GetCompactIntsOffsets();
 
@@ -64,8 +65,9 @@ class CompactIntsKey {
     TERRIER_ASSERT(!attr_sizes.empty(), "attr_sizes has too few values.");
 
     // NOLINTNEXTLINE (Matt): tidy thinks this has side-effects. I disagree.
+    TERRIER_ASSERT(num_attrs > 0 && num_attrs <= from.NumColumns(), "num_attrs invariant failed");
     TERRIER_ASSERT(std::invoke([&]() -> bool {
-                     for (uint16_t i = 0; i < from.NumColumns(); i++) {
+                     for (uint16_t i = 0; i < num_attrs; i++) {
                        if (from.IsNull(i)) return false;
                      }
                      return true;
@@ -85,7 +87,7 @@ class CompactIntsKey {
     // to make sure the entire key is memset to 0
     std::memset(key_data_, 0, KeySize);
 
-    for (uint8_t i = 0; i < from.NumColumns(); i++) {
+    for (uint8_t i = 0; i < num_attrs; i++) {
       TERRIER_ASSERT(compact_ints_offsets[i] + attr_sizes[i] <= KeySize, "out of bounds");
       CopyAttrFromProjection(from, static_cast<uint16_t>(from.ColumnIds()[i]), attr_sizes[i], compact_ints_offsets[i]);
     }
@@ -144,7 +146,7 @@ class CompactIntsKey {
       }
     }
 
-    return false;
+    return true;
   }
 
  private:

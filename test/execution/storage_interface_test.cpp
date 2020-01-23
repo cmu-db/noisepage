@@ -38,8 +38,8 @@ TEST_F(StorageInterfaceTest, SimpleInsertTest) {
   std::array<uint32_t, 1> col_oids{1};
 
   // The index iterator gives us the slots to update.
-  IndexIterator index_iter1{exec_ctx_.get(), !table_oid1, !index_oid1, col_oids.data(),
-                            static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter1{
+      exec_ctx_.get(), 1, !table_oid1, !index_oid1, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
   index_iter1.Init();
 
   // Inserter.
@@ -54,11 +54,13 @@ TEST_F(StorageInterfaceTest, SimpleInsertTest) {
   hi_pr->Set<int32_t, false>(0, hi_match, false);
   index_iter1.ScanAscendingClosed();
   std::vector<uint32_t> inserted_vals;
+  int nt = 0;
   while (index_iter1.Advance()) {
     // Get tuple at the current slot
     auto *const table_pr(index_iter1.TablePR());
     auto *val_a = table_pr->Get<int32_t, false>(0, nullptr);
     inserted_vals.emplace_back(*val_a);
+    std::cout << "INS: " << *val_a << "\n";
     // Insert into table
     auto *const insert_pr(inserter.GetTablePR());
     insert_pr->Set<int32_t, false>(0, *val_a, false);
@@ -67,7 +69,9 @@ TEST_F(StorageInterfaceTest, SimpleInsertTest) {
     auto *const index_pr(inserter.GetIndexPR(index_oid0));
     index_pr->Set<int32_t, false>(0, *val_a, false);
     ASSERT_TRUE(inserter.IndexInsert());
+    nt++;
   }
+  std::cout << nt << "\n";
 
   // Try to fetch the inserted values.
   TableVectorIterator table_iter(exec_ctx_.get(), !table_oid0, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
@@ -94,8 +98,8 @@ TEST_F(StorageInterfaceTest, SimpleDeleteTest) {
   std::array<uint32_t, 1> col_oids{1};
 
   // The index iterator gives us the slots to update.
-  IndexIterator index_iter{exec_ctx_.get(), !table_oid, !index_oid, col_oids.data(),
-                           static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter{
+      exec_ctx_.get(), 1, !table_oid, !index_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
   index_iter.Init();
 
   // Deleter.
@@ -151,8 +155,8 @@ TEST_F(StorageInterfaceTest, SimpleNonIndexedUpdateTest) {
   std::array<uint32_t, 1> col_oids{2};
 
   // The index iterator gives us the slots to update.
-  IndexIterator index_iter{exec_ctx_.get(), !table_oid, !index_oid, col_oids.data(),
-                           static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter{
+      exec_ctx_.get(), 1, !table_oid, !index_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
   index_iter.Init();
 
   // Non indexed updater.
@@ -203,8 +207,8 @@ TEST_F(StorageInterfaceTest, SimpleIndexedUpdateTest) {
   std::array<uint32_t, 4> col_oids{1, 2, 3, 4};
 
   // The index iterator gives us the slots to update.
-  IndexIterator index_iter{exec_ctx_.get(), !table_oid, !index_oid, col_oids.data(),
-                           static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter{
+      exec_ctx_.get(), 1, !table_oid, !index_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
   index_iter.Init();
 
   // Indexed updater.
@@ -276,11 +280,11 @@ TEST_F(StorageInterfaceTest, MultiIndexedUpdateTest) {
   uint16_t idx_d = 2;
 
   // The index iterator gives us the slots to update.
-  IndexIterator index_iter1{exec_ctx_.get(), !table_oid, !index_oid1, col_oids.data(),
-                            static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter1{
+      exec_ctx_.get(), 1, !table_oid, !index_oid1, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
 
-  IndexIterator index_iter2{exec_ctx_.get(), !table_oid, !index_oid2, col_oids.data(),
-                            static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter2{
+      exec_ctx_.get(), 1, !table_oid, !index_oid2, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
   index_iter1.Init();
   index_iter2.Init();
 

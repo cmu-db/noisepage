@@ -40,8 +40,9 @@ class HashKey {
    * @param from ProjectedRow to generate HashKey representation of
    * @param metadata index information, primarily attribute sizes and the precomputed offsets to translate PR layout to
    * HashKey
+   * @param num_attrs Number of attributes
    */
-  void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata) {
+  void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata, UNUSED_ATTRIBUTE size_t num_attrs) {
     // we hash and compare KeySize bytes in all of our operations. Since there might be over-provisioned bytes, we want
     // to make sure the entire key is memset to 0
     std::memset(key_data_, 0, KeySize);

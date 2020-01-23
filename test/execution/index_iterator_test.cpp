@@ -36,8 +36,8 @@ TEST_F(IndexIteratorTest, SimpleIndexIteratorTest) {
   auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_1");
   std::array<uint32_t, 1> col_oids{1};
   TableVectorIterator table_iter(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
-  IndexIterator index_iter{exec_ctx_.get(), !table_oid, !index_oid, col_oids.data(),
-                           static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter{
+      exec_ctx_.get(), 1, !table_oid, !index_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
   table_iter.Init();
   index_iter.Init();
   ProjectedColumnsIterator *pci = table_iter.GetProjectedColumnsIterator();
@@ -79,8 +79,8 @@ TEST_F(IndexIteratorTest, SimpleAscendingScanTest) {
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_1");
   std::array<uint32_t, 1> col_oids{1};
-  IndexIterator index_iter{exec_ctx_.get(), !table_oid, !index_oid, col_oids.data(),
-                           static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter{
+      exec_ctx_.get(), 1, !table_oid, !index_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
   index_iter.Init();
   auto *const lo_pr(index_iter.LoPR());
   auto *const hi_pr(index_iter.HiPR());
@@ -108,8 +108,8 @@ TEST_F(IndexIteratorTest, SimpleLimitAscendingScanTest) {
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_1");
   std::array<uint32_t, 1> col_oids{1};
-  IndexIterator index_iter{exec_ctx_.get(), !table_oid, !index_oid, col_oids.data(),
-                           static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter{
+      exec_ctx_.get(), 1, !table_oid, !index_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
   index_iter.Init();
   auto *const lo_pr(index_iter.LoPR());
   auto *const hi_pr(index_iter.HiPR());
@@ -137,8 +137,8 @@ TEST_F(IndexIteratorTest, SimpleDescendingScanTest) {
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_1");
   std::array<uint32_t, 1> col_oids{1};
-  IndexIterator index_iter{exec_ctx_.get(), !table_oid, !index_oid, col_oids.data(),
-                           static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter{
+      exec_ctx_.get(), 1, !table_oid, !index_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
   index_iter.Init();
 
   // Iterate through the table.
@@ -168,8 +168,8 @@ TEST_F(IndexIteratorTest, SimpleLimitDescendingScanTest) {
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_1");
   std::array<uint32_t, 1> col_oids{1};
-  IndexIterator index_iter{exec_ctx_.get(), !table_oid, !index_oid, col_oids.data(),
-                           static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter{
+      exec_ctx_.get(), 1, !table_oid, !index_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
   index_iter.Init();
 
   // Iterate through the table.

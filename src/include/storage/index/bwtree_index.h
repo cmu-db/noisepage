@@ -49,8 +49,8 @@ class BwTreeIndex final : public Index {
 
     // Build search keys
     KeyType index_low_key, index_high_key;
-    if (low_key_exists) index_low_key.SetFromProjectedRow(low_key, metadata_);
-    if (high_key_exists) index_high_key.SetFromProjectedRow(high_key, metadata_);
+    if (low_key_exists) index_low_key.SetFromProjectedRow(low_key, metadata_, num_attrs);
+    if (high_key_exists) index_high_key.SetFromProjectedRow(high_key, metadata_, num_attrs);
 
     // Perform lookup in BwTree
     auto scan_itr = low_key_exists ? bwtree_->Begin(index_low_key) : bwtree_->Begin();
@@ -72,7 +72,7 @@ class BwTreeIndex final : public Index {
     TERRIER_ASSERT(!(metadata_.GetSchema().Unique()),
                    "This Insert is designed for secondary indexes with no uniqueness constraints.");
     KeyType index_key;
-    index_key.SetFromProjectedRow(tuple, metadata_);
+    index_key.SetFromProjectedRow(tuple, metadata_, metadata_.GetSchema().GetColumns().size());
     const bool result = bwtree_->Insert(index_key, location, false);
 
     TERRIER_ASSERT(
@@ -90,7 +90,7 @@ class BwTreeIndex final : public Index {
                     const TupleSlot location) final {
     TERRIER_ASSERT(metadata_.GetSchema().Unique(), "This Insert is designed for indexes with uniqueness constraints.");
     KeyType index_key;
-    index_key.SetFromProjectedRow(tuple, metadata_);
+    index_key.SetFromProjectedRow(tuple, metadata_, metadata_.GetSchema().GetColumns().size());
     bool predicate_satisfied = false;
 
     // The predicate checks if any matching keys have write-write conflicts or are still visible to the calling txn.
@@ -124,7 +124,7 @@ class BwTreeIndex final : public Index {
   void Delete(const common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
               const TupleSlot location) final {
     KeyType index_key;
-    index_key.SetFromProjectedRow(tuple, metadata_);
+    index_key.SetFromProjectedRow(tuple, metadata_, metadata_.GetSchema().GetColumns().size());
 
     TERRIER_ASSERT(!(location.GetBlock()->data_table_->HasConflict(*txn, location)) &&
                        !(location.GetBlock()->data_table_->IsVisible(*txn, location)),
@@ -147,7 +147,7 @@ class BwTreeIndex final : public Index {
 
     // Build search key
     KeyType index_key;
-    index_key.SetFromProjectedRow(key, metadata_);
+    index_key.SetFromProjectedRow(key, metadata_, metadata_.GetSchema().GetColumns().size());
 
     // Perform lookup in BwTree
     bwtree_->GetValue(index_key, results);
@@ -199,8 +199,8 @@ class BwTreeIndex final : public Index {
 
     // Build search keys
     KeyType index_low_key, index_high_key;
-    index_low_key.SetFromProjectedRow(low_key, metadata_);
-    index_high_key.SetFromProjectedRow(high_key, metadata_);
+    index_low_key.SetFromProjectedRow(low_key, metadata_, metadata_.GetSchema().GetColumns().size());
+    index_high_key.SetFromProjectedRow(high_key, metadata_, metadata_.GetSchema().GetColumns().size());
 
     // Perform lookup in BwTree
     auto scan_itr = bwtree_->Begin(index_high_key);
@@ -226,8 +226,8 @@ class BwTreeIndex final : public Index {
 
     // Build search keys
     KeyType index_low_key, index_high_key;
-    index_low_key.SetFromProjectedRow(low_key, metadata_);
-    index_high_key.SetFromProjectedRow(high_key, metadata_);
+    index_low_key.SetFromProjectedRow(low_key, metadata_, metadata_.GetSchema().GetColumns().size());
+    index_high_key.SetFromProjectedRow(high_key, metadata_, metadata_.GetSchema().GetColumns().size());
 
     // Perform lookup in BwTree
     auto scan_itr = bwtree_->Begin(index_low_key);
@@ -247,8 +247,8 @@ class BwTreeIndex final : public Index {
 
     // Build search keys
     KeyType index_low_key, index_high_key;
-    index_low_key.SetFromProjectedRow(low_key, metadata_);
-    index_high_key.SetFromProjectedRow(high_key, metadata_);
+    index_low_key.SetFromProjectedRow(low_key, metadata_, metadata_.GetSchema().GetColumns().size());
+    index_high_key.SetFromProjectedRow(high_key, metadata_, metadata_.GetSchema().GetColumns().size());
 
     // Perform lookup in BwTree
     auto scan_itr = bwtree_->Begin(index_high_key);
