@@ -4,7 +4,7 @@
 
 namespace terrier::network {
 
-class PostgresPortal {
+class Portal {
  public:
  private:
 };

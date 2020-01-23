@@ -12,12 +12,6 @@
 
 namespace terrier::network {
 
-/**
- * SimpleQuery always
- * @param out
- * @param connection
- * @return
- */
 static Transition FinishSimpleQueryCommand(const common::ManagedPointer<PostgresPacketWriter> out,
                                            const common::ManagedPointer<ConnectionContext> connection) {
   out->WriteReadyForQuery(connection->TransactionState());
@@ -80,9 +74,10 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
   const std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("Execute SimpleQuery: {0}", query.c_str());
 
-  const Statement statement = t_cop->ParseQuery(query, connection, out);
+  postgres_interpreter->SetUnnamedStatement(t_cop->ParseQuery(query, connection, out));
+  const auto statement = postgres_interpreter->UnnamedStatement();
 
-  if (statement.Invalid()) {
+  if (!statement->Valid()) {
     out->WriteErrorResponse("ERROR:  syntax error");
     if (connection->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
       // failing to parse fails a transaction in postgres
@@ -96,28 +91,28 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
   // handle that though since you pass the ParseResult in for binding. Maybe bind ParseResult once?
 
   // Empty queries get a special response in postgres and do not care if they're in a failed txn block
-  if (statement.Empty()) {
+  if (statement->Empty()) {
     out->WriteEmptyQueryResponse();
     return FinishSimpleQueryCommand(out, connection);
   }
 
   // Check if we're in a must-abort situation first before attempting to issue any statement other than ROLLBACK
   if (connection->TransactionState() == network::NetworkTransactionStateType::FAIL &&
-      statement.QueryType() != QueryType::QUERY_COMMIT && statement.QueryType() != QueryType::QUERY_ROLLBACK) {
+      statement->QueryType() != QueryType::QUERY_COMMIT && statement->QueryType() != QueryType::QUERY_ROLLBACK) {
     out->WriteErrorResponse("ERROR:  current transaction is aborted, commands ignored until end of transaction block");
     return FinishSimpleQueryCommand(out, connection);
   }
 
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
-  if (statement.QueryType() <= network::QueryType::QUERY_ROLLBACK) {
-    t_cop->ExecuteTransactionStatement(connection, out, statement.QueryType());
+  if (statement->QueryType() <= network::QueryType::QUERY_ROLLBACK) {
+    t_cop->ExecuteTransactionStatement(connection, out, statement->QueryType());
     return FinishSimpleQueryCommand(out, connection);
   }
 
-  if (statement.QueryType() >= network::QueryType::QUERY_RENAME) {
+  if (statement->QueryType() >= network::QueryType::QUERY_RENAME) {
     // We don't yet support query types with values greater than this
     // TODO(Matt): add a TRAFFIC_COP_LOG_INFO here
-    out->WriteCommandComplete(statement.QueryType(), 0);
+    out->WriteCommandComplete(statement->QueryType(), 0);
     return FinishSimpleQueryCommand(out, connection);
   }
 
@@ -133,15 +128,15 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
 
   // Try to bind the parsed statement
   // TODO(Matt): refactor this signature
-  const bool bind_result = t_cop->BindQuery(connection, out, statement.ParseResult(), statement.QueryType());
+  const bool bind_result = t_cop->BindQuery(connection, out, statement->ParseResult(), statement->QueryType());
   if (bind_result) {
     // Binding succeeded, optimize to generate a physical plan and then execute
     // TODO(Matt): refactor this signature
     const auto physical_plan =
-        t_cop->OptimizeBoundQuery(connection->Transaction(), connection->Accessor(), statement.ParseResult());
+        t_cop->OptimizeBoundQuery(connection->Transaction(), connection->Accessor(), statement->ParseResult());
 
     // TODO(Matt): refactor this signature
-    ExecuteStatement(connection, common::ManagedPointer(physical_plan), out, t_cop, statement.QueryType(),
+    ExecuteStatement(connection, common::ManagedPointer(physical_plan), out, t_cop, statement->QueryType(),
                      postgres_interpreter->SingleStatementTransaction());
   }
 
@@ -164,6 +159,8 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
   std::string stmt_name = in_.ReadString();
   NETWORK_LOG_TRACE("ParseCommand Statement Name: {0}", stmt_name.c_str());
 
+  TERRIER_ASSERT(stmt_name.empty(), "We only support the unnamed statement at the moment.");
+
   std::string query = in_.ReadString();
   NETWORK_LOG_INFO("ParseCommand: {0}", query);
 
@@ -174,9 +171,17 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
     param_types.emplace_back(in_.ReadValue<PostgresValueType>());
   }
 
-  const auto parse_result = t_cop->ParseQuery(query, connection, out);
+  std::unique_ptr<Statement> statement = t_cop->ParseQuery(query, connection, out);
 
-  out->WriteParseComplete();
+  if (!statement->Valid()) {
+    out->WriteErrorResponse("ERROR:  syntax error");
+    if (connection->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
+      // failing to parse fails a transaction in postgres
+      connection->Transaction()->SetMustAbort();
+    }
+    out->WriteParseComplete();
+  }
+
   return Transition::PROCEED;
 }
 

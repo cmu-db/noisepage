@@ -11,9 +11,8 @@ namespace terrier::network {
 
 class Statement {
  public:
-  explicit Statement(std::unique_ptr<parser::ParseResult> &&parse_result)
-      : parse_result_(std::move(parse_result)) {
-    if (!Invalid()) {
+  explicit Statement(std::unique_ptr<parser::ParseResult> &&parse_result) : parse_result_(std::move(parse_result)) {
+    if (Valid()) {
       TERRIER_ASSERT(parse_result_->GetStatements().size() <= 1,
                      "We currently expect one statement per string (psql and oltpbench).");
       if (!Empty()) {
@@ -23,20 +22,20 @@ class Statement {
     }
   }
 
-  bool Invalid() const { return parse_result_ == nullptr; }
+  bool Valid() const { return parse_result_ != nullptr; }
 
   bool Empty() const {
-    TERRIER_ASSERT(!Invalid(), "Attempting to check emptiness without a valid parsed result.");
+    TERRIER_ASSERT(Valid(), "Attempting to check emptiness without a valid parsed result.");
     return parse_result_->Empty();
   }
 
   common::ManagedPointer<parser::ParseResult> ParseResult() const {
-    TERRIER_ASSERT(!Invalid(), "Attempting to get parse results without a valid parsed result.");
+    TERRIER_ASSERT(Valid(), "Attempting to get parse results without a valid parsed result.");
     return common::ManagedPointer(parse_result_);
   }
 
   common::ManagedPointer<parser::SQLStatement> RootStatement() const {
-    TERRIER_ASSERT(!Invalid(), "Attempting to get root statement without a valid parsed result.");
+    TERRIER_ASSERT(Valid(), "Attempting to get root statement without a valid parsed result.");
     return common::ManagedPointer(root_statement_);
   }
 

@@ -8,9 +8,11 @@
 #include "loggers/network_logger.h"
 #include "network/connection_context.h"
 #include "network/connection_handle.h"
+#include "network/postgres/portal.h"
 #include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_network_commands.h"
 #include "network/postgres/postgres_packet_writer.h"
+#include "network/postgres/statement.h"
 #include "network/protocol_interpreter.h"
 
 namespace terrier::network {
@@ -109,6 +111,12 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
 
   void SetWaitingForSync(const bool waiting_for_sync) { waiting_for_sync_ = waiting_for_sync; }
 
+  common::ManagedPointer<network::Statement> UnnamedStatement() const {
+    return common::ManagedPointer(unnamed_statement_);
+  }
+
+  void SetUnnamedStatement(std::unique_ptr<network::Statement> &&statement) { unnamed_statement_ = std::move(statement); };
+
  protected:
   /**
    * @see ProtocolInterpreter::GetPacketHeaderSize
@@ -129,6 +137,8 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   bool implicit_txn_ = false;
 
   common::ManagedPointer<PostgresCommandFactory> command_factory_;
+  std::unique_ptr<network::Statement> unnamed_statement_ = nullptr;
+  std::unique_ptr<network::Portal> unnamed_portal_ = nullptr;
 };
 
 }  // namespace terrier::network
