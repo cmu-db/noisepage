@@ -97,6 +97,14 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
                             common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                             common::ManagedPointer<ConnectionContext> context);
 
+  bool ImplicitTransaction() const { return implicit_txn_; }
+
+  void SetImplicitTransaction(const bool implicit_txn) { implicit_txn_ = implicit_txn; }
+
+  bool WaitingForSync() const { return waiting_for_sync_; }
+
+  void SetWaitingForSync(const bool waiting_for_sync) { waiting_for_sync_ = waiting_for_sync; }
+
  protected:
   /**
    * @see ProtocolInterpreter::GetPacketHeaderSize
@@ -112,6 +120,9 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
 
  private:
   bool startup_ = true;
+  bool waiting_for_sync_ = false;
+  bool implicit_txn_ = false;
+
   common::ManagedPointer<PostgresCommandFactory> command_factory_;
 };
 

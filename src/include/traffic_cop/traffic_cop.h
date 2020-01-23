@@ -90,24 +90,18 @@ class TrafficCop {
                                                   common::ManagedPointer<network::PostgresPacketWriter> out) const;
 
   /**
-   * Given a parsed SQL statement, attempts to bind, optimize, and execute
-   * @param connection_ctx used to maintain state
-   * @param out used to write out results if necessary
-   * @param parse_result parser's valid ParseResult
-   * @param query_type type of the query, can be re-derived but should already be known
+   * @param txn used by optimizer
+   * @param accessor used by optimizer
+   * @param query bound ParseResult
+   * @param stats_storage used by optimizer
+   * @param optimizer_timeout used by optimizer
+   * @return physical plan that can be executed
    */
-  void ExecuteStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                        common::ManagedPointer<network::PostgresPacketWriter> out,
-                        common::ManagedPointer<parser::ParseResult> parse_result,
-                        terrier::network::QueryType query_type) const;
+  std::unique_ptr<planner::AbstractPlanNode> OptimizeBoundQuery(
+      common::ManagedPointer<transaction::TransactionContext> txn,
+      common::ManagedPointer<catalog::CatalogAccessor> accessor,
+      common::ManagedPointer<parser::ParseResult> query) const;
 
-  /**
-   * Adjust the TrafficCop's optimizer timeout value (for use by SettingsManager)
-   * @param optimizer_timeout time in ms to spend on a task @see optimizer::Optimizer constructor
-   */
-  void SetOptimizerTimeout(const uint64_t optimizer_timeout) { optimizer_timeout_ = optimizer_timeout; }
-
- private:
   // Internal method to handle the logic of beginning a txn. Is not responsible for outputting results, only meant to be
   // called by ExecuteTransactionStatement
   void BeginTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
@@ -146,6 +140,13 @@ class TrafficCop {
                                  common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
                                  terrier::network::QueryType query_type) const;
 
+  /**
+   * Adjust the TrafficCop's optimizer timeout value (for use by SettingsManager)
+   * @param optimizer_timeout time in ms to spend on a task @see optimizer::Optimizer constructor
+   */
+  void SetOptimizerTimeout(const uint64_t optimizer_timeout) { optimizer_timeout_ = optimizer_timeout; }
+
+ private:
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   common::ManagedPointer<catalog::Catalog> catalog_;
   // Hands logs off to replication component. TCop should forward these logs through this provider.

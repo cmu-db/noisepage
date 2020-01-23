@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
@@ -16,6 +17,13 @@
 #include "execution/vm/module.h"
 #include "network/connection_context.h"
 #include "network/postgres/postgres_packet_writer.h"
+#include "optimizer/abstract_optimizer.h"
+#include "optimizer/cost_model/trivial_cost_model.h"
+#include "optimizer/operator_expression.h"
+#include "optimizer/optimizer.h"
+#include "optimizer/properties.h"
+#include "optimizer/property_set.h"
+#include "optimizer/query_to_operator_transformer.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
@@ -109,6 +117,61 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
       UNREACHABLE("ExecuteTransactionStatement called with invalid QueryType.");
   }
   out->WriteCommandComplete(query_type, 0);
+}
+
+std::unique_ptr<planner::AbstractPlanNode> TrafficCop::OptimizeBoundQuery(
+    const common::ManagedPointer<transaction::TransactionContext> txn,
+    const common::ManagedPointer<catalog::CatalogAccessor> accessor,
+    const common::ManagedPointer<parser::ParseResult> query) const {
+  // Optimizer transforms annotated ParseResult to logical expressions (ephemeral Optimizer structure)
+  optimizer::QueryToOperatorTransformer transformer(accessor);
+  auto logical_exprs = transformer.ConvertToOpExpression(query->GetStatement(0), query.Get());
+
+  // TODO(Matt): is the cost model to use going to become an arg to this function eventually?
+  optimizer::Optimizer optimizer(std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout_);
+  optimizer::PropertySet property_set;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output;
+
+  // Build the QueryInfo object. For SELECTs this may require a bunch of other stuff from the original statement.
+  // If any more logic like this is needed in the future, we should break this into its own function somewhere since
+  // this is Optimizer-specific stuff.
+  const auto type = query->GetStatement(0)->GetType();
+  if (type == parser::StatementType::SELECT) {
+    const auto sel_stmt = query->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
+
+    // Output
+    output = sel_stmt->GetSelectColumns();  // TODO(Matt): this is making a local copy. Revisit the life cycle and
+    // immutability of all of these Optimizer inputs to reduce copies.
+
+    // PropertySort
+    if (sel_stmt->GetSelectOrderBy()) {
+      std::vector<optimizer::OrderByOrderingType> sort_dirs;
+      std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_exprs;
+      auto order_by = sel_stmt->GetSelectOrderBy();
+      auto types = order_by->GetOrderByTypes();
+      auto exprs = order_by->GetOrderByExpressions();
+      for (size_t idx = 0; idx < order_by->GetOrderByExpressionsSize(); idx++) {
+        sort_exprs.emplace_back(exprs[idx]);
+        sort_dirs.push_back(types[idx] == parser::OrderType::kOrderAsc ? optimizer::OrderByOrderingType::ASC
+                                                                       : optimizer::OrderByOrderingType::DESC);
+      }
+
+      auto sort_prop = new optimizer::PropertySort(sort_exprs, sort_dirs);
+      property_set.AddProperty(sort_prop);
+    }
+  }
+
+  auto query_info = optimizer::QueryInfo(type, std::move(output), &property_set);
+  // TODO(Matt): QueryInfo holding a raw pointer to PropertySet obfuscates the required life cycle of PropertySet
+
+  // Optimize, consuming the logical expressions in the process
+  return optimizer.BuildPlanTree(txn.Get(), accessor.Get(), stats_storage_.Get(), query_info, std::move(logical_exprs));
+  // TODO(Matt): I see a lot of copying going on in the Optimizer that maybe shouldn't be happening. BuildPlanTree's
+  // signature is copying QueryInfo object (contains a vector of output columns), which then immediately makes a local
+  // copy of that vector anyway. Presumably those are immutable expressions, in which case they should be const & to the
+  // original vector (or parent object) all the way down.
+  // TODO(Matt): Why does the Optimizer need a TransactionContext? It looks like it's an arg all the way down to the
+  // cost model. Do we expect that can be transactional?
 }
 
 void TrafficCop::ExecuteCreateStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
@@ -264,57 +327,6 @@ bool TrafficCop::BindStatement(const common::ManagedPointer<network::ConnectionC
     return false;
   }
   return true;
-}
-
-void TrafficCop::ExecuteStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                  const common::ManagedPointer<network::PostgresPacketWriter> out,
-                                  const common::ManagedPointer<parser::ParseResult> parse_result,
-                                  const terrier::network::QueryType query_type) const {
-  // This logic relies on ordering of values in the enum's definition and is documented there as well.
-  if (query_type <= network::QueryType::QUERY_ROLLBACK) {
-    ExecuteTransactionStatement(connection_ctx, out, query_type);
-    return;
-  }
-
-  if (query_type >= network::QueryType::QUERY_RENAME) {
-    // We don't yet support query types with values greater than this
-    // TODO(Matt): add a TRAFFIC_COP_LOG_INFO here
-    out->WriteCommandComplete(query_type, 0);
-    return;
-  }
-
-  const bool single_statement_txn = connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE;
-
-  // Begin a transaction if necessary
-  if (single_statement_txn) {
-    BeginTransaction(connection_ctx);
-  }
-
-  // Try to bind the parsed statement
-  if (BindStatement(connection_ctx, out, parse_result, query_type)) {
-    // Binding succeeded, optimize to generate a physical plan and then execute
-    auto physical_plan = trafficcop::TrafficCopUtil::Optimize(connection_ctx->Transaction(), connection_ctx->Accessor(),
-                                                              parse_result, stats_storage_, optimizer_timeout_);
-
-    // This logic relies on ordering of values in the enum's definition and is documented there as well.
-    if (query_type <= network::QueryType::QUERY_DELETE) {
-      // DML query to put through codegen
-      CodegenAndRunPhysicalPlan(connection_ctx, out, common::ManagedPointer(physical_plan), query_type);
-    } else if (query_type <= network::QueryType::QUERY_CREATE_VIEW) {
-      ExecuteCreateStatement(connection_ctx, out, common::ManagedPointer(physical_plan), query_type,
-                             single_statement_txn);
-    } else if (query_type <= network::QueryType::QUERY_DROP_VIEW) {
-      ExecuteDropStatement(connection_ctx, out, common::ManagedPointer(physical_plan), query_type,
-                           single_statement_txn);
-    }
-  }
-
-  if (single_statement_txn) {
-    // Single statement transaction should be ended before returning
-    // decide whether the txn should be committed or aborted based on the MustAbort flag, and then end the txn
-    EndTransaction(connection_ctx, connection_ctx->Transaction()->MustAbort() ? network::QueryType::QUERY_ROLLBACK
-                                                                              : network::QueryType::QUERY_COMMIT);
-  }
 }
 
 void TrafficCop::CodegenAndRunPhysicalPlan(const common::ManagedPointer<network::ConnectionContext> connection_ctx,

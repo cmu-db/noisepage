@@ -131,7 +131,7 @@ TEST_F(TrafficCopTests, BadBindingTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(TrafficCopTests, DISABLED_BasicTest) {
+TEST_F(TrafficCopTests, BasicTest) {
   try {
     pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
                                             port_, catalog::DEFAULT_DATABASE));
@@ -184,7 +184,7 @@ TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
 // they're disabled
 
 // NOLINTNEXTLINE
-TEST_F(TrafficCopTests, DISABLED_ManualExtendedQueryTest) {
+TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
   try {
     auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
     auto io_socket = common::ManagedPointer(io_socket_unique_ptr);
@@ -204,7 +204,7 @@ TEST_F(TrafficCopTests, DISABLED_ManualExtendedQueryTest) {
     network::ManualPacketUtil::ReadUntilReadyOrClose(io_socket);
 
     std::string stmt_name = "begin_statement";
-    std::string query = "BEGIN";
+    std::string query = "BEGIN;";
 
     writer.WriteParseCommand(stmt_name, query, std::vector<int>());
     io_socket->FlushAllWrites();
