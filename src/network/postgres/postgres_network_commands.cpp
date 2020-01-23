@@ -121,8 +121,9 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
     return FinishSimpleQueryCommand(out, connection);
   }
 
-  postgres_interpreter->SetSingleStatementTransaction(connection->TransactionState() ==
-                                                      network::NetworkTransactionStateType::IDLE);
+  if (connection->TransactionState() == network::NetworkTransactionStateType::IDLE) {
+    postgres_interpreter->SetSingleStatementTransaction(true);
+  }
 
   // Begin a transaction if necessary
   if (postgres_interpreter->SingleStatementTransaction()) {
@@ -149,8 +150,9 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
     // decide whether the txn should be committed or aborted based on the MustAbort flag, and then end the txn
     t_cop->EndTransaction(connection, connection->Transaction()->MustAbort() ? network::QueryType::QUERY_ROLLBACK
                                                                              : network::QueryType::QUERY_COMMIT);
+    postgres_interpreter->SetSingleStatementTransaction(false);
+    postgres_interpreter->SetImplicitTransaction(false);
   }
-  postgres_interpreter->SetSingleStatementTransaction(false);
 
   return FinishSimpleQueryCommand(out, connection);
 }
