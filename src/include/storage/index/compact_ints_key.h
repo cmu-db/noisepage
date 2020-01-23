@@ -63,9 +63,9 @@ class CompactIntsKey {
     TERRIER_ASSERT(attr_sizes.size() == compact_ints_offsets.size(),
                    "attr_sizes and attr_offsets must be equal in size.");
     TERRIER_ASSERT(!attr_sizes.empty(), "attr_sizes has too few values.");
+    TERRIER_ASSERT(num_attrs > 0 && num_attrs <= from.NumColumns(), "num_attrs invariant failed");
 
     // NOLINTNEXTLINE (Matt): tidy thinks this has side-effects. I disagree.
-    TERRIER_ASSERT(num_attrs > 0 && num_attrs <= from.NumColumns(), "num_attrs invariant failed");
     TERRIER_ASSERT(std::invoke([&]() -> bool {
                      for (uint16_t i = 0; i < num_attrs; i++) {
                        if (from.IsNull(i)) return false;
@@ -108,37 +108,29 @@ class CompactIntsKey {
         case sizeof(int8_t): {
           auto cur = GetInteger<int8_t>(compact_ints_offsets[i]);
           auto other = rhs.GetInteger<int8_t>(compact_ints_offsets[i]);
-          if (cur < other)
-            return true;
-          else if (cur > other)
-            return false;
+          if (cur < other) return true;
+          if (cur > other) return false;
           break;
         }
         case sizeof(int16_t): {
           auto cur = GetInteger<int16_t>(compact_ints_offsets[i]);
           auto other = rhs.GetInteger<int16_t>(compact_ints_offsets[i]);
-          if (cur < other)
-            return true;
-          else if (cur > other)
-            return false;
+          if (cur < other) return true;
+          if (cur > other) return false;
           break;
         }
         case sizeof(int32_t): {
           auto cur = GetInteger<int32_t>(compact_ints_offsets[i]);
           auto other = rhs.GetInteger<int32_t>(compact_ints_offsets[i]);
-          if (cur < other)
-            return true;
-          else if (cur > other)
-            return false;
+          if (cur < other) return true;
+          if (cur > other) return false;
           break;
         }
         case sizeof(int64_t): {
           auto cur = GetInteger<int64_t>(compact_ints_offsets[i]);
           auto other = rhs.GetInteger<int64_t>(compact_ints_offsets[i]);
-          if (cur < other)
-            return true;
-          else if (cur > other)
-            return false;
+          if (cur < other) return true;
+          if (cur > other) return false;
           break;
         }
         default:
