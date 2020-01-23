@@ -10,6 +10,8 @@
 #include "traffic_cop/traffic_cop.h"
 #include "traffic_cop/traffic_cop_util.h"
 #include "type/transient_value.h"
+#include "type/transient_value_factory.h"
+#include "type/transient_value_util.h"
 
 namespace terrier::network {
 
@@ -170,6 +172,8 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
   NETWORK_LOG_INFO("ParseCommand: {0}", query);
 
   const auto num_params = in_.ReadValue<int16_t>();
+  TERRIER_ASSERT(num_params == 0, "We don't support parameters yet.");
+  // code below is for future use, but currently shouldn't be exercised with num_params == 0
   std::vector<type::TypeId> param_types;
   param_types.reserve(num_params);
   for (uint16_t i = 0; i < num_params; i++) {
@@ -196,42 +200,31 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
                              const common::ManagedPointer<PostgresPacketWriter> out,
                              const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                              const common::ManagedPointer<ConnectionContext> connection) {
+  NETWORK_LOG_TRACE("Bind Command");
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
 
   const auto portal_name = in_.ReadString();
   TERRIER_ASSERT(portal_name.empty(), "We currently only support the unnamed portal.");
 
-  const auto statement = postgres_interpreter->UnnamedStatement();
-
   const auto statement_name = in_.ReadString();
   TERRIER_ASSERT(statement_name.empty(), "We currently only support the unnamed statement.");
 
-  NETWORK_LOG_TRACE("Bind Command");
+  const auto statement = postgres_interpreter->UnnamedStatement();
+  const auto &param_types = statement->ParamTypes();
 
   // read out the parameter formats
   const auto num_parameter_formats = static_cast<size_t>(in_.ReadValue<int16_t>());
-  std::vector<FieldFormat> parameter_formats;
-  parameter_formats.reserve(num_parameter_formats);
-  for (uint16_t i = 0; i < num_parameter_formats; i++) {
-    parameter_formats.emplace_back(static_cast<FieldFormat>(in_.ReadValue<int16_t>()));
-  }
-
+  TERRIER_ASSERT(num_parameter_formats == 0, "We currently don't support parameters.");
+  // TODO(Matt): read out parameter formats similar to result formats below
   // read the params
   const auto num_params = static_cast<size_t>(in_.ReadValue<int16_t>());
-  TERRIER_ASSERT(num_params == statement->ParamTypes().size(),
-                 "Number of parameters provided doesn't match the number required for this Statement.");
-  std::vector<type::TransientValue> params_;
-  params_.reserve(num_params);
-  for (uint32_t i = 0; i < num_params; i++) {
-    const auto param_length = in_.ReadValue<int32_t>();
-    if (param_length == -1) {
-      // parameter is NULL
-      params
-    }
-  }
+  TERRIER_ASSERT(num_params == param_types.size(), "We currently don't support parameters.");
+  // TODO(Matt): read out the parameters here when we support them using parameter_formats from above
 
   // read out the result formats
   const auto num_result_formats = static_cast<size_t>(in_.ReadValue<int16_t>());
+  // TODO(Matt): would like to assert that this is 0 (all text), 1 (all the same), or the number of output columns but
+  // we can't do that without an OutputSchema yet this early in the pipeline
   std::vector<FieldFormat> result_formats;
   result_formats.reserve(num_result_formats);
   for (uint16_t i = 0; i < num_result_formats; i++) {
