@@ -48,7 +48,7 @@ class GenericKey {
       auto *const pr = GetProjectedRow();
       generic_key_initializer.InitializeRow(pr);
 
-      const auto &key_cols = key_schema.GetColumns();
+      UNUSED_ATTRIBUTE const auto &key_cols = key_schema.GetColumns();
       TERRIER_ASSERT(num_attrs > 0 && num_attrs <= key_cols.size(), "Number of attributes violates invariant");
 
       for (uint16_t i = 0; i < num_attrs; i++) {
