@@ -151,12 +151,12 @@ void HashJoinRightTranslator::Abort(FunctionBuilder *builder) {
 }
 
 void HashJoinRightTranslator::Consume(FunctionBuilder *builder) {
-  // Create the right hash_value
-  GenHashValue(builder);
   // Materialize the probe tuple if necessary.
   if (!is_child_materializer_) {
     FillProbeRow(builder);
   }
+  // Create the right hash_value
+  GenHashValue(builder);
   // Generate the probe loop
   GenProbeLoop(builder);
   // Get the matching tuple
@@ -275,6 +275,7 @@ void HashJoinRightTranslator::GenHashValue(FunctionBuilder *builder) {
 }
 
 void HashJoinRightTranslator::FillProbeRow(FunctionBuilder *builder) {
+  builder->Append(codegen_->DeclareVariable(probe_row_, codegen_->MakeExpr(probe_struct_), nullptr));
   // Fill the ProbeRow.
   for (uint32_t attr_idx = 0; attr_idx < op_->GetChild(1)->GetOutputSchema()->GetColumns().size(); attr_idx++) {
     ast::Expr *lhs = GetProbeValue(attr_idx);
