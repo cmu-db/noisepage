@@ -101,6 +101,10 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
 
   void SetImplicitTransaction(const bool implicit_txn) { implicit_txn_ = implicit_txn; }
 
+  bool SingleStatementTransaction() const { return single_statement_txn_; }
+
+  void SetSingleStatementTransaction(const bool single_statement_txn) { single_statement_txn_ = single_statement_txn; }
+
   bool WaitingForSync() const { return waiting_for_sync_; }
 
   void SetWaitingForSync(const bool waiting_for_sync) { waiting_for_sync_ = waiting_for_sync; }
@@ -120,6 +124,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
 
  private:
   bool startup_ = true;
+  bool single_statement_txn_ = false;
   bool waiting_for_sync_ = false;
   bool implicit_txn_ = false;
 

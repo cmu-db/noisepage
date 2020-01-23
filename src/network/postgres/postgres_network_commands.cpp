@@ -24,55 +24,49 @@ static Transition FinishSimpleQueryCommand(const common::ManagedPointer<Postgres
 }
 
 static void ExecuteStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                             const common::ManagedPointer<planner::AbstractPlanNode>(physical_plan),
                              const common::ManagedPointer<network::PostgresPacketWriter> out,
                              const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
-                             const common::ManagedPointer<parser::ParseResult> parse_result,
-                             const terrier::network::QueryType query_type) {
+                             const terrier::network::QueryType query_type, const bool single_statement_txn) {
+  trafficcop::TrafficCopResult result;
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
-  if (query_type <= network::QueryType::QUERY_ROLLBACK) {
-    t_cop->ExecuteTransactionStatement(connection_ctx, out, query_type);
-    return;
-  }
-
-  if (query_type >= network::QueryType::QUERY_RENAME) {
-    // We don't yet support query types with values greater than this
-    // TODO(Matt): add a TRAFFIC_COP_LOG_INFO here
-    out->WriteCommandComplete(query_type, 0);
-    return;
-  }
-
-  const bool single_statement_txn = connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE;
-
-  // Begin a transaction if necessary
-  if (single_statement_txn) {
-    t_cop->BeginTransaction(connection_ctx);
-  }
-
-  // Try to bind the parsed statement
-  if (t_cop->BindStatement(connection_ctx, out, parse_result, query_type)) {
-    // Binding succeeded, optimize to generate a physical plan and then execute
-    auto physical_plan =
-        t_cop->OptimizeBoundQuery(connection_ctx->Transaction(), connection_ctx->Accessor(), parse_result);
-
-    // This logic relies on ordering of values in the enum's definition and is documented there as well.
-    if (query_type <= network::QueryType::QUERY_DELETE) {
-      // DML query to put through codegen
-      t_cop->CodegenAndRunPhysicalPlan(connection_ctx, out, common::ManagedPointer(physical_plan), query_type);
-    } else if (query_type <= network::QueryType::QUERY_CREATE_VIEW) {
-      t_cop->ExecuteCreateStatement(connection_ctx, out, common::ManagedPointer(physical_plan), query_type,
-                                    single_statement_txn);
-    } else if (query_type <= network::QueryType::QUERY_DROP_VIEW) {
-      t_cop->ExecuteDropStatement(connection_ctx, out, common::ManagedPointer(physical_plan), query_type,
-                                  single_statement_txn);
+  if (query_type <= network::QueryType::QUERY_DELETE) {
+    // DML query to put through codegen
+    if (query_type == network::QueryType::QUERY_SELECT)
+      out->WriteRowDescription(physical_plan->GetOutputSchema()->GetColumns());
+    result = t_cop->CodegenAndRunPhysicalPlan(connection_ctx, out, common::ManagedPointer(physical_plan), query_type);
+  } else if (query_type <= network::QueryType::QUERY_CREATE_VIEW) {
+    if (!single_statement_txn && query_type == network::QueryType::QUERY_CREATE_DB) {
+      out->WriteErrorResponse("ERROR:  CREATE DATABASE cannot run inside a transaction block");
+      connection_ctx->Transaction()->SetMustAbort();
+      return;
     }
+
+    // Right now this executor handles writing its results, so we don't need the result. Unclear if that changes in the
+    // future
+    t_cop->ExecuteCreateStatement(connection_ctx, out, common::ManagedPointer(physical_plan), query_type,
+                                  single_statement_txn);
+  } else if (query_type <= network::QueryType::QUERY_DROP_VIEW) {
+    if (!single_statement_txn && query_type == network::QueryType::QUERY_DROP_DB) {
+      out->WriteErrorResponse("ERROR:  DROP DATABASE cannot run inside a transaction block");
+      connection_ctx->Transaction()->SetMustAbort();
+      return;
+    }
+
+    // Right now this executor handles writing its results, so we don't need the result. Unclear if that changes in the
+    // future
+    t_cop->ExecuteDropStatement(connection_ctx, out, common::ManagedPointer(physical_plan), query_type,
+                                single_statement_txn);
   }
 
-  if (single_statement_txn) {
-    // Single statement transaction should be ended before returning
-    // decide whether the txn should be committed or aborted based on the MustAbort flag, and then end the txn
-    t_cop->EndTransaction(connection_ctx, connection_ctx->Transaction()->MustAbort()
-                                              ? network::QueryType::QUERY_ROLLBACK
-                                              : network::QueryType::QUERY_COMMIT);
+  if (result.type_ == trafficcop::ResultType::COMPLETE) {
+    TERRIER_ASSERT(std::holds_alternative<uint32_t>(result.extra_), "We're expecting number of rows here.");
+    out->WriteCommandComplete(query_type, std::get<uint32_t>(result.extra_));
+  } else {
+    TERRIER_ASSERT(result.type_ == trafficcop::ResultType::ERROR,
+                   "Currently only expecting COMPLETE or ERROR from TrafficCop here.");
+    TERRIER_ASSERT(std::holds_alternative<std::string>(result.extra_), "We're expecting a message here.");
+    out->WriteErrorResponse(std::get<std::string>(result.extra_));
   }
 }
 
@@ -80,6 +74,8 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
                                     const common::ManagedPointer<PostgresPacketWriter> out,
                                     const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                     const common::ManagedPointer<ConnectionContext> connection) {
+  const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
+
   const std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("Execute SimpleQuery: {0}", query.c_str());
 
@@ -97,7 +93,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
   TERRIER_ASSERT(parse_result->GetStatements().size() <= 1,
                  "We currently expect one statement per string (psql and oltpbench).");
 
-  // TODO(Matt:) some clients may send multiple statements in a single SimpleQuery packet/string. Handling that would
+  // TODO(Matt:) Clients may send multiple statements in a single SimpleQuery packet/string. Handling that would
   // probably exist here, looping over all of the elements in the ParseResult. It's not clear to me how the binder would
   // handle that though since you pass the ParseResult in for binding. Maybe bind ParseResult once?
 
@@ -118,8 +114,46 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
     return FinishSimpleQueryCommand(out, connection);
   }
 
-  // Pass the statement to be executed by the traffic cop
-  ExecuteStatement(connection, out, t_cop, common::ManagedPointer(parse_result), query_type);
+  // This logic relies on ordering of values in the enum's definition and is documented there as well.
+  if (query_type <= network::QueryType::QUERY_ROLLBACK) {
+    t_cop->ExecuteTransactionStatement(connection, out, query_type);
+    return FinishSimpleQueryCommand(out, connection);
+  }
+
+  if (query_type >= network::QueryType::QUERY_RENAME) {
+    // We don't yet support query types with values greater than this
+    // TODO(Matt): add a TRAFFIC_COP_LOG_INFO here
+    out->WriteCommandComplete(query_type, 0);
+    return FinishSimpleQueryCommand(out, connection);
+  }
+
+  postgres_interpreter->SetSingleStatementTransaction(connection->TransactionState() ==
+                                                      network::NetworkTransactionStateType::IDLE);
+
+  // Begin a transaction if necessary
+  if (postgres_interpreter->SingleStatementTransaction()) {
+    t_cop->BeginTransaction(connection);
+    postgres_interpreter->SetImplicitTransaction(true);
+  }
+
+  // Try to bind the parsed statement
+  const bool bind_result = t_cop->BindQuery(connection, out, common::ManagedPointer(parse_result), query_type);
+  if (bind_result) {
+    // Binding succeeded, optimize to generate a physical plan and then execute
+    const auto physical_plan = t_cop->OptimizeBoundQuery(connection->Transaction(), connection->Accessor(),
+                                                         common::ManagedPointer(parse_result));
+
+    ExecuteStatement(connection, common::ManagedPointer(physical_plan), out, t_cop, query_type,
+                     postgres_interpreter->SingleStatementTransaction());
+  }
+
+  if (postgres_interpreter->SingleStatementTransaction()) {
+    // Single statement transaction should be ended before returning
+    // decide whether the txn should be committed or aborted based on the MustAbort flag, and then end the txn
+    t_cop->EndTransaction(connection, connection->Transaction()->MustAbort() ? network::QueryType::QUERY_ROLLBACK
+                                                                             : network::QueryType::QUERY_COMMIT);
+  }
+  postgres_interpreter->SetSingleStatementTransaction(false);
 
   return FinishSimpleQueryCommand(out, connection);
 }

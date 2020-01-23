@@ -5,12 +5,14 @@
 #include <vector>
 
 #include "catalog/catalog.h"
+#include "common/managed_pointer.h"
 #include "network/network_defs.h"
 #include "network/postgres/postgres_protocol_utils.h"
 #include "parser/create_statement.h"
 #include "parser/drop_statement.h"
 #include "parser/transaction_statement.h"
 #include "storage/recovery/replication_log_provider.h"
+#include "traffic_cop_defs.h"
 
 namespace terrier::network {
 class ConnectionContext;
@@ -117,10 +119,10 @@ class TrafficCop {
                                    terrier::network::QueryType query_type) const;
 
   // Contains logic to reason about binding, and basic IF EXISTS logic. Responsible for outputting results.
-  bool BindStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                     common::ManagedPointer<network::PostgresPacketWriter> out,
-                     common::ManagedPointer<parser::ParseResult> parse_result,
-                     terrier::network::QueryType query_type) const;
+  bool BindQuery(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                 common::ManagedPointer<network::PostgresPacketWriter> out,
+                 common::ManagedPointer<parser::ParseResult> parse_result,
+                 terrier::network::QueryType query_type) const;
 
   // Contains the logic to reason about CREATE execution. Responsible for outputting results.
   void ExecuteCreateStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
@@ -135,10 +137,10 @@ class TrafficCop {
                             terrier::network::QueryType query_type, bool single_statement_txn) const;
 
   // Contains the logic to reason about DML execution. Responsible for outputting results.
-  void CodegenAndRunPhysicalPlan(common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                 common::ManagedPointer<network::PostgresPacketWriter> out,
-                                 common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-                                 terrier::network::QueryType query_type) const;
+  TrafficCopResult CodegenAndRunPhysicalPlan(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                             common::ManagedPointer<network::PostgresPacketWriter> out,
+                                             common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
+                                             terrier::network::QueryType query_type) const;
 
   /**
    * Adjust the TrafficCop's optimizer timeout value (for use by SettingsManager)

@@ -195,11 +195,6 @@ void TrafficCop::ExecuteCreateStatement(const common::ManagedPointer<network::Co
       break;
     }
     case network::QueryType::QUERY_CREATE_DB: {
-      if (!single_statement_txn) {
-        out->WriteErrorResponse("ERROR:  CREATE DATABASE cannot run inside a transaction block");
-        connection_ctx->Transaction()->SetMustAbort();
-        return;
-      }
       if (execution::sql::DDLExecutors::CreateDatabaseExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateDatabasePlanNode>(), connection_ctx->Accessor())) {
         out->WriteCommandComplete(query_type, 0);
@@ -252,11 +247,6 @@ void TrafficCop::ExecuteDropStatement(const common::ManagedPointer<network::Conn
       break;
     }
     case network::QueryType::QUERY_DROP_DB: {
-      if (!single_statement_txn) {
-        out->WriteErrorResponse("ERROR:  DROP DATABASE cannot run inside a transaction block");
-        connection_ctx->Transaction()->SetMustAbort();
-        return;
-      }
       if (execution::sql::DDLExecutors::DropDatabaseExecutor(
               physical_plan.CastManagedPointerTo<planner::DropDatabasePlanNode>(), connection_ctx->Accessor(),
               connection_ctx->GetDatabaseOid())) {
@@ -303,10 +293,10 @@ std::unique_ptr<parser::ParseResult> TrafficCop::ParseQuery(
   return parse_result;
 }
 
-bool TrafficCop::BindStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                               const common::ManagedPointer<network::PostgresPacketWriter> out,
-                               const common::ManagedPointer<parser::ParseResult> parse_result,
-                               const terrier::network::QueryType query_type) const {
+bool TrafficCop::BindQuery(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                           const common::ManagedPointer<network::PostgresPacketWriter> out,
+                           const common::ManagedPointer<parser::ParseResult> parse_result,
+                           const terrier::network::QueryType query_type) const {
   try {
     // TODO(Matt): I don't think the binder should need the database name. It's already bound in the ConnectionContext
     binder::BindNodeVisitor visitor(connection_ctx->Accessor(), connection_ctx->GetDatabaseName());
@@ -329,10 +319,11 @@ bool TrafficCop::BindStatement(const common::ManagedPointer<network::ConnectionC
   return true;
 }
 
-void TrafficCop::CodegenAndRunPhysicalPlan(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                           const common::ManagedPointer<network::PostgresPacketWriter> out,
-                                           const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-                                           const terrier::network::QueryType query_type) const {
+TrafficCopResult TrafficCop::CodegenAndRunPhysicalPlan(
+    const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+    const common::ManagedPointer<network::PostgresPacketWriter> out,
+    const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
+    const terrier::network::QueryType query_type) const {
   TERRIER_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
                      query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
                  "CodegenAndRunPhysicalPlan called with invalid QueryType.");
@@ -344,30 +335,23 @@ void TrafficCop::CodegenAndRunPhysicalPlan(const common::ManagedPointer<network:
 
   auto exec_query = execution::ExecutableQuery(common::ManagedPointer(physical_plan), common::ManagedPointer(exec_ctx));
 
-  if (query_type == network::QueryType::QUERY_SELECT)
-    out->WriteRowDescription(physical_plan->GetOutputSchema()->GetColumns());
-
   exec_query.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
 
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
-    // Execution didn't set us to FAIL state, go ahead and write command complete
-
+    // Execution didn't set us to FAIL state, go ahead and return command complete
     if (query_type == network::QueryType::QUERY_SELECT) {
       // For selects we really on the OutputWriter to store the number of rows affected because sequential scan
       // iteration can happen in multiple pipelines
-      out->WriteCommandComplete(query_type, writer.NumRows());
-
-    } else {
-      // Other queries (INSERT, UPDATE, DELETE) retrieve rows affected from the execution context since other queries
-      // might not have any output otherwise
-      out->WriteCommandComplete(query_type, exec_ctx->RowsAffected());
+      return {ResultType::COMPLETE, writer.NumRows()};
     }
-
-  } else {
-    // TODO(Matt): We need a more verbose way to say what happened during execution (INSERT failed for key conflict,
-    // etc.) I suspect we would stash that in the ExecutionContext.
-    out->WriteErrorResponse("Query failed.");
+    // Other queries (INSERT, UPDATE, DELETE) retrieve rows affected from the execution context since other queries
+    // might not have any output otherwise
+    return {ResultType::COMPLETE, exec_ctx->RowsAffected()};
   }
+
+  // TODO(Matt): We need a more verbose way to say what happened during execution (INSERT failed for key conflict,
+  // etc.) I suspect we would stash that in the ExecutionContext.
+  return {ResultType::ERROR, "Query failed."};
 }
 
 std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNamespace(

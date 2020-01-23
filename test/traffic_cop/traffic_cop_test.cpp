@@ -184,7 +184,7 @@ TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
 // they're disabled
 
 // NOLINTNEXTLINE
-TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
+TEST_F(TrafficCopTests, DISABLED_ManualExtendedQueryTest) {
   try {
     auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
     auto io_socket = common::ManagedPointer(io_socket_unique_ptr);
