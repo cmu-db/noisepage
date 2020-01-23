@@ -14,7 +14,7 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   // Iterate through rows with colA between 495 and 505
   // Init index iterator
   var index : IndexIterator
-  @indexIteratorInitBind(&index, execCtx, "test_1", "index_1", col_oids)
+  @indexIteratorInitBind(&index, execCtx, 1, "test_1", "index_1", col_oids)
   // Set iteration bounds
   var lo_index_pr = @indexIteratorGetLoPR(&index)
   var hi_index_pr = @indexIteratorGetHiPR(&index)
