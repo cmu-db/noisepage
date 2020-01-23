@@ -6,12 +6,25 @@
 #include "network/postgres/statement.h"
 #include "parser/postgresparser.h"
 #include "traffic_cop/traffic_cop_util.h"
+#include "type/type_id.h"
 
 namespace terrier::network {
 
 class Statement {
  public:
   explicit Statement(std::unique_ptr<parser::ParseResult> &&parse_result) : parse_result_(std::move(parse_result)) {
+    if (Valid()) {
+      TERRIER_ASSERT(parse_result_->GetStatements().size() <= 1,
+                     "We currently expect one statement per string (psql and oltpbench).");
+      if (!Empty()) {
+        root_statement_ = parse_result_->GetStatement(0);
+        type_ = trafficcop::TrafficCopUtil::QueryTypeForStatement(root_statement_);
+      }
+    }
+  }
+
+  Statement(std::unique_ptr<parser::ParseResult> &&parse_result, std::vector<type::TypeId> &&param_types)
+      : parse_result_(std::move(parse_result)), param_types_(std::move(param_types)) {
     if (Valid()) {
       TERRIER_ASSERT(parse_result_->GetStatements().size() <= 1,
                      "We currently expect one statement per string (psql and oltpbench).");
@@ -39,12 +52,15 @@ class Statement {
     return common::ManagedPointer(root_statement_);
   }
 
+  const std::vector<PostgresValueType> &ParamTypes() const { return param_types_; }
+
   QueryType QueryType() const { return type_; }
 
  private:
   const std::unique_ptr<parser::ParseResult> parse_result_ = nullptr;
+  const std::vector<type::TypeId> param_types_;
   common::ManagedPointer<parser::SQLStatement> root_statement_ = nullptr;
   enum QueryType type_ = QueryType::QUERY_INVALID;
-};  // namespace terrier::network
+};
 
 }  // namespace terrier::network

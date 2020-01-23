@@ -184,7 +184,7 @@ TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
 // they're disabled
 
 // NOLINTNEXTLINE
-TEST_F(TrafficCopTests, DISABLED_ManualExtendedQueryTest) {
+TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
   try {
     auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
     auto io_socket = common::ManagedPointer(io_socket_unique_ptr);
@@ -205,28 +205,28 @@ TEST_F(TrafficCopTests, DISABLED_ManualExtendedQueryTest) {
 
     std::string stmt_name = "begin_statement";
     std::string query = "BEGIN;";
+//
+//    writer.WriteParseCommand(stmt_name, query, std::vector<int>());
+//    io_socket->FlushAllWrites();
+//    network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_PARSE_COMPLETE);
+//
+//    {
+//      std::string portal_name = "test_portal";
+//      // Use text format, don't care about result column formats
+//      writer.WriteBindCommand(portal_name, stmt_name, {}, {}, {});
+//      io_socket->FlushAllWrites();
+//      network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_BIND_COMPLETE);
+//
+//      writer.WriteExecuteCommand(portal_name, 0);
+//      io_socket->FlushAllWrites();
+//      network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_COMMAND_COMPLETE);
+//
+//      writer.WriteSyncCommand();
+//      io_socket->FlushAllWrites();
+//      network::ManualPacketUtil::ReadUntilReadyOrClose(io_socket);
+//    }
 
-    writer.WriteParseCommand(stmt_name, query, std::vector<int>());
-    io_socket->FlushAllWrites();
-    network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_PARSE_COMPLETE);
-
-    {
-      std::string portal_name = "test_portal";
-      // Use text format, don't care about result column formats
-      writer.WriteBindCommand(portal_name, stmt_name, {}, {}, {});
-      io_socket->FlushAllWrites();
-      network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_BIND_COMPLETE);
-
-      writer.WriteExecuteCommand(portal_name, 0);
-      io_socket->FlushAllWrites();
-      network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_COMMAND_COMPLETE);
-
-      writer.WriteSyncCommand();
-      io_socket->FlushAllWrites();
-      network::ManualPacketUtil::ReadUntilReadyOrClose(io_socket);
-    }
-
-    stmt_name = "test_statement";
+    stmt_name = "";
     query = "SELECT * FROM TableA WHERE a_int = $1 AND a_dec = $2 AND a_text = $3 AND a_time = $4 AND a_bigint = $5";
 
     writer.WriteParseCommand(stmt_name, query,

@@ -9,6 +9,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "traffic_cop/traffic_cop.h"
 #include "traffic_cop/traffic_cop_util.h"
+#include "type/transient_value.h"
 
 namespace terrier::network {
 
@@ -18,11 +19,12 @@ static Transition FinishSimpleQueryCommand(const common::ManagedPointer<Postgres
   return Transition::PROCEED;
 }
 
-static void ExecuteStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                             const common::ManagedPointer<planner::AbstractPlanNode>(physical_plan),
-                             const common::ManagedPointer<network::PostgresPacketWriter> out,
-                             const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
-                             const terrier::network::QueryType query_type, const bool single_statement_txn) {
+// TODO(Matt): refactor this signature
+static void ExecutePortal(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                          const common::ManagedPointer<planner::AbstractPlanNode>(physical_plan),
+                          const common::ManagedPointer<network::PostgresPacketWriter> out,
+                          const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
+                          const terrier::network::QueryType query_type, const bool single_statement_txn) {
   trafficcop::TrafficCopResult result;
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
   if (query_type <= network::QueryType::QUERY_DELETE) {
@@ -71,10 +73,11 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
                                     const common::ManagedPointer<ConnectionContext> connection) {
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
 
-  const std::string query = in_.ReadString();
+  const auto query = in_.ReadString();
   NETWORK_LOG_TRACE("Execute SimpleQuery: {0}", query.c_str());
 
-  postgres_interpreter->SetUnnamedStatement(t_cop->ParseQuery(query, connection, out));
+  postgres_interpreter->SetUnnamedStatement(
+      std::make_unique<network::Statement>(t_cop->ParseQuery(query, connection, out)));
   const auto statement = postgres_interpreter->UnnamedStatement();
 
   if (!statement->Valid()) {
@@ -136,8 +139,8 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
         t_cop->OptimizeBoundQuery(connection->Transaction(), connection->Accessor(), statement->ParseResult());
 
     // TODO(Matt): refactor this signature
-    ExecuteStatement(connection, common::ManagedPointer(physical_plan), out, t_cop, statement->QueryType(),
-                     postgres_interpreter->SingleStatementTransaction());
+    ExecutePortal(connection, common::ManagedPointer(physical_plan), out, t_cop, statement->QueryType(),
+                  postgres_interpreter->SingleStatementTransaction());
   }
 
   if (postgres_interpreter->SingleStatementTransaction()) {
@@ -156,22 +159,26 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
                               const common::ManagedPointer<PostgresPacketWriter> out,
                               const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                               const common::ManagedPointer<ConnectionContext> connection) {
-  std::string stmt_name = in_.ReadString();
-  NETWORK_LOG_TRACE("ParseCommand Statement Name: {0}", stmt_name.c_str());
+  const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
 
-  TERRIER_ASSERT(stmt_name.empty(), "We only support the unnamed statement at the moment.");
+  const auto statement_name = in_.ReadString();
+  NETWORK_LOG_TRACE("ParseCommand Statement Name: {0}", statement_name.c_str());
 
-  std::string query = in_.ReadString();
+  TERRIER_ASSERT(statement_name.empty(), "We only support the unnamed statement at the moment.");
+
+  const auto query = in_.ReadString();
   NETWORK_LOG_INFO("ParseCommand: {0}", query);
 
   const auto num_params = in_.ReadValue<int16_t>();
-  std::vector<PostgresValueType> param_types;
+  std::vector<type::TypeId> param_types;
   param_types.reserve(num_params);
   for (uint16_t i = 0; i < num_params; i++) {
-    param_types.emplace_back(in_.ReadValue<PostgresValueType>());
+    param_types.emplace_back(PostgresValueTypeToInternalValueType(in_.ReadValue<PostgresValueType>()));
   }
 
-  std::unique_ptr<Statement> statement = t_cop->ParseQuery(query, connection, out);
+  postgres_interpreter->SetUnnamedStatement(
+      std::make_unique<network::Statement>(t_cop->ParseQuery(query, connection, out), std::move(param_types)));
+  const auto statement = postgres_interpreter->UnnamedStatement();
 
   if (!statement->Valid()) {
     out->WriteErrorResponse("ERROR:  syntax error");
@@ -189,8 +196,48 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
                              const common::ManagedPointer<PostgresPacketWriter> out,
                              const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                              const common::ManagedPointer<ConnectionContext> connection) {
-  // TODO(Matt): Implement this for prepared statement support
+  const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
+
+  const auto portal_name = in_.ReadString();
+  TERRIER_ASSERT(portal_name.empty(), "We currently only support the unnamed portal.");
+
+  const auto statement = postgres_interpreter->UnnamedStatement();
+
+  const auto statement_name = in_.ReadString();
+  TERRIER_ASSERT(statement_name.empty(), "We currently only support the unnamed statement.");
+
   NETWORK_LOG_TRACE("Bind Command");
+
+  // read out the parameter formats
+  const auto num_parameter_formats = static_cast<size_t>(in_.ReadValue<int16_t>());
+  std::vector<FieldFormat> parameter_formats;
+  parameter_formats.reserve(num_parameter_formats);
+  for (uint16_t i = 0; i < num_parameter_formats; i++) {
+    parameter_formats.emplace_back(static_cast<FieldFormat>(in_.ReadValue<int16_t>()));
+  }
+
+  // read the params
+  const auto num_params = static_cast<size_t>(in_.ReadValue<int16_t>());
+  TERRIER_ASSERT(num_params == statement->ParamTypes().size(),
+                 "Number of parameters provided doesn't match the number required for this Statement.");
+  std::vector<type::TransientValue> params_;
+  params_.reserve(num_params);
+  for (uint32_t i = 0; i < num_params; i++) {
+    const auto param_length = in_.ReadValue<int32_t>();
+    if (param_length == -1) {
+      // parameter is NULL
+      params
+    }
+  }
+
+  // read out the result formats
+  const auto num_result_formats = static_cast<size_t>(in_.ReadValue<int16_t>());
+  std::vector<FieldFormat> result_formats;
+  result_formats.reserve(num_result_formats);
+  for (uint16_t i = 0; i < num_result_formats; i++) {
+    result_formats.emplace_back(static_cast<FieldFormat>(in_.ReadValue<int16_t>()));
+  }
+
   out->WriteBindComplete();
   return Transition::PROCEED;
 }

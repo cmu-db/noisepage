@@ -115,7 +115,14 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
     return common::ManagedPointer(unnamed_statement_);
   }
 
-  void SetUnnamedStatement(std::unique_ptr<network::Statement> &&statement) { unnamed_statement_ = std::move(statement); };
+  void SetUnnamedStatement(std::unique_ptr<network::Statement> &&statement) {
+    unnamed_statement_ = std::move(statement);
+    unnamed_portal_ = nullptr;
+  };
+
+  common::ManagedPointer<network::Portal> UnnamedPortal() const { return common::ManagedPointer(unnamed_portal_); }
+
+  void SetUnnamedStatement(std::unique_ptr<network::Portal> &&portal) { unnamed_portal_ = std::move(portal); };
 
  protected:
   /**

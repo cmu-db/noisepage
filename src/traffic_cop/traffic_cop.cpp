@@ -281,7 +281,7 @@ void TrafficCop::ExecuteDropStatement(const common::ManagedPointer<network::Conn
   connection_ctx->Transaction()->SetMustAbort();
 }
 
-std::unique_ptr<network::Statement> TrafficCop::ParseQuery(
+std::unique_ptr<parser::ParseResult> TrafficCop::ParseQuery(
     const std::string &query, const common::ManagedPointer<network::ConnectionContext> connection_ctx,
     const common::ManagedPointer<network::PostgresPacketWriter> out) const {
   std::unique_ptr<parser::ParseResult> parse_result;
@@ -291,7 +291,7 @@ std::unique_ptr<network::Statement> TrafficCop::ParseQuery(
     // Failed to parse
     // TODO(Matt): handle this in some more verbose manner for the client (return more state)
   }
-  return std::make_unique<network::Statement>(std::move(parse_result));
+  return parse_result;
 }
 
 bool TrafficCop::BindQuery(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
