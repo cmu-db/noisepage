@@ -148,8 +148,8 @@ enum class QueryType : uint8_t {
   QUERY_SET,
   QUERY_SHOW,
   QUERY_OTHER,
-  QUERY_INVALID,
-  QUERY_EXPLAIN
+  QUERY_EXPLAIN,
+  QUERY_INVALID
 };
 
 enum class NetworkTransactionStateType : unsigned char {

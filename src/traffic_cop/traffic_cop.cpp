@@ -17,6 +17,7 @@
 #include "execution/vm/module.h"
 #include "network/connection_context.h"
 #include "network/postgres/postgres_packet_writer.h"
+#include "network/postgres/statement.h"
 #include "optimizer/abstract_optimizer.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/operator_expression.h"
@@ -280,9 +281,9 @@ void TrafficCop::ExecuteDropStatement(const common::ManagedPointer<network::Conn
   connection_ctx->Transaction()->SetMustAbort();
 }
 
-std::unique_ptr<parser::ParseResult> TrafficCop::ParseQuery(
-    const std::string &query, const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-    const common::ManagedPointer<network::PostgresPacketWriter> out) const {
+network::Statement TrafficCop::ParseQuery(const std::string &query,
+                                          const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                          const common::ManagedPointer<network::PostgresPacketWriter> out) const {
   std::unique_ptr<parser::ParseResult> parse_result;
   try {
     parse_result = parser::PostgresParser::BuildParseTree(query);
@@ -290,7 +291,7 @@ std::unique_ptr<parser::ParseResult> TrafficCop::ParseQuery(
     // Failed to parse
     // TODO(Matt): handle this in some more verbose manner for the client (return more state)
   }
-  return parse_result;
+  return network::Statement(std::move(parse_result));
 }
 
 bool TrafficCop::BindQuery(const common::ManagedPointer<network::ConnectionContext> connection_ctx,

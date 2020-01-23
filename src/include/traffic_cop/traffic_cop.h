@@ -17,6 +17,7 @@
 namespace terrier::network {
 class ConnectionContext;
 class PostgresPacketWriter;
+class Statement;
 }  // namespace terrier::network
 
 namespace terrier::optimizer {
@@ -87,9 +88,9 @@ class TrafficCop {
    * @param out used to write out results if necessary
    * @return parser's ParseResult, nullptr if failed
    */
-  std::unique_ptr<parser::ParseResult> ParseQuery(const std::string &query,
-                                                  common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                                  common::ManagedPointer<network::PostgresPacketWriter> out) const;
+  network::Statement ParseQuery(const std::string &query,
+                                common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                common::ManagedPointer<network::PostgresPacketWriter> out) const;
 
   /**
    * @param txn used by optimizer
