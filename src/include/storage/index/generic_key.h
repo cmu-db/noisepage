@@ -204,7 +204,7 @@ class GenericKey {
   bool PartialLessThan(const GenericKey<KeySize> &rhs, UNUSED_ATTRIBUTE const IndexMetadata *metadata,
                        size_t num_attrs) const {
     const auto &key_schema = GetIndexMetadata().GetSchema();
-    const auto &key_cols = key_schema.GetColumns();
+    UNUSED_ATTRIBUTE const auto &key_cols = key_schema.GetColumns();
     TERRIER_ASSERT(num_attrs > 0 && num_attrs <= key_cols.size(), "Invalid num_attrs for generic key");
 
     for (uint16_t i = 0; i < num_attrs; i++) {
