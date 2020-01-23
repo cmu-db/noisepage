@@ -52,7 +52,7 @@ class Statement {
     return common::ManagedPointer(root_statement_);
   }
 
-  const std::vector<PostgresValueType> &ParamTypes() const { return param_types_; }
+  const std::vector<type::TypeId> &ParamTypes() const { return param_types_; }
 
   QueryType QueryType() const { return type_; }
 
