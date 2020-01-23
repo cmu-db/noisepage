@@ -60,7 +60,6 @@ TEST_F(StorageInterfaceTest, SimpleInsertTest) {
     auto *const table_pr(index_iter1.TablePR());
     auto *val_a = table_pr->Get<int32_t, false>(0, nullptr);
     inserted_vals.emplace_back(*val_a);
-    std::cout << "INS: " << *val_a << "\n";
     // Insert into table
     auto *const insert_pr(inserter.GetTablePR());
     insert_pr->Set<int32_t, false>(0, *val_a, false);
@@ -71,7 +70,6 @@ TEST_F(StorageInterfaceTest, SimpleInsertTest) {
     ASSERT_TRUE(inserter.IndexInsert());
     nt++;
   }
-  std::cout << nt << "\n";
 
   // Try to fetch the inserted values.
   TableVectorIterator table_iter(exec_ctx_.get(), !table_oid0, col_oids.data(), static_cast<uint32_t>(col_oids.size()));

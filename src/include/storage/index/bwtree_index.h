@@ -166,26 +166,22 @@ class BwTreeIndex final : public Index {
 
   void ScanAscendingClosed(const transaction::TransactionContext &txn, size_t num_attrs, const ProjectedRow &low_key,
                            const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) final {
-    std::cout << "SCAN: BwTree ScanAscending Closed\n";
     ScanAscending(txn, num_attrs, true, low_key, true, high_key, value_list);
   }
 
   void ScanAscendingOpenHigh(const transaction::TransactionContext &txn, size_t num_attrs, const ProjectedRow &low_key,
                              std::vector<TupleSlot> *value_list) final {
     // (wz2): High key is not used so this is fine?
-    std::cout << "SCAN: BwTree ScanAscending OpenHigh\n";
     ScanAscending(txn, num_attrs, true, low_key, false, low_key, value_list);
   }
 
   void ScanAscendingOpenLow(const transaction::TransactionContext &txn, size_t num_attrs, const ProjectedRow &high_key,
                             std::vector<TupleSlot> *value_list) final {
     // (wz2): Low key is not used so this is fine?
-    std::cout << "SCAN: BwTree ScanAscending OpenLow\n";
     ScanAscending(txn, num_attrs, false, high_key, true, high_key, value_list);
   }
 
   void ScanAscendingOpenBoth(const transaction::TransactionContext &txn, std::vector<TupleSlot> *value_list) final {
-    std::cout << "SCAN: BwTree ScanAscending OpenBoth\n";
     TERRIER_ASSERT(value_list->empty(), "Result set should begin empty.");
 
     // Perform lookup in BwTree
