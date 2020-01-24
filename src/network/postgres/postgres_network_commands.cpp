@@ -9,9 +9,6 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "traffic_cop/traffic_cop.h"
 #include "traffic_cop/traffic_cop_util.h"
-#include "type/transient_value.h"
-#include "type/transient_value_factory.h"
-#include "type/transient_value_util.h"
 
 namespace terrier::network {
 
