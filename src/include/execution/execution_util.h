@@ -128,7 +128,7 @@ class ExecutableQuery {
 
     // Add the identifier for each pipeline. At most 8 query pipelines for now
     for (int i = 0; i < 8; ++i)
-      params.emplace_back(type::TransientValueFactory::GetVarChar(query_name_ + "_p" + std::to_string(i)));
+      params.emplace_back(type::TransientValueFactory::GetVarChar(query_name_ + "_p" + std::to_string(i + 1)));
 
     return params;
   }

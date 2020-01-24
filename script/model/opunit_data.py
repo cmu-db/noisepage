@@ -10,15 +10,6 @@ import data_info
 
 from type import OpUnit, ArithmeticFeature
 
-np.set_printoptions(precision=4)
-np.set_printoptions(suppress=True)
-
-'''
-pd.set_option('display.max_rows', 500)
-pd.set_option('display.max_columns', 500)
-pd.set_option('display.width', 1000)
-'''
-
 
 def write_extended_data(output_path, symbol, index_value_list, data_map):
     # clear the content of the file
@@ -148,7 +139,7 @@ def _default_get_mini_runner_data(filename):
     x = df.iloc[:, :-data_info.metrics_output_num].values
     y = df.iloc[:, -data_info.mini_model_target_num:].values
 
-    return [Data(OpUnit[file_name], x, y)]
+    return [OpUnitData(OpUnit[file_name], x, y)]
 
 
 def _execution_get_mini_runner_data(filename):
@@ -184,14 +175,14 @@ def _execution_get_mini_runner_data(filename):
         # print(np_value)
         x = np_value[:, :-data_info.metrics_output_num]
         y = np_value[:, -data_info.mini_model_target_num:]
-        data_list.append(Data(opunit, x, y))
+        data_list.append(OpUnitData(opunit, x, y))
 
     return data_list
 
 
-class Data:
+class OpUnitData:
     """
-    The class that stores data and provides basic functions to manipulate the data
+    The class that stores data and provides basic functions to manipulate the training data for the operating unit
     """
 
     def __init__(self, opunit, x, y):

@@ -9,7 +9,7 @@ import pickle
 from sklearn import model_selection
 
 import model
-import data_util
+import opunit_data
 import data_info
 import data_transform
 
@@ -52,7 +52,7 @@ class MiniTrainer:
         # First get the data for all mini runners
         for filename in glob.glob(os.path.join(self.input_path, '*.csv')):
             print(filename)
-            data_list += data_util.get_mini_runner_data(filename)
+            data_list += opunit_data.get_mini_runner_data(filename)
 
         labels = _get_result_labels()
 
@@ -66,7 +66,7 @@ class MiniTrainer:
             # Write the first header rwo to the result file
             result_path = "{}/{}.csv".format(self.model_metrics_path, data.opunit.name.lower())
             open(result_path, 'w').close()
-            data_util.write_result(result_path, "Method", labels)
+            opunit_data.write_result(result_path, "Method", labels)
 
             methods = self.ml_models
             # Only use linear regression for the arithmetic operating units
@@ -115,11 +115,11 @@ class MiniTrainer:
                     transform = " "
                     if transformer is not None:
                         transform = " transform"
-                    data_util.write_result(result_path, method + transform, results)
+                    opunit_data.write_result(result_path, method + transform, results)
 
                     print()
 
-                data_util.write_result(result_path, "", [])
+                opunit_data.write_result(result_path, "", [])
 
         '''
         data_list = get_concurrent_data_list(input_path)
