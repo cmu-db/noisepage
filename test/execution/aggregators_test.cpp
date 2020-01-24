@@ -9,18 +9,15 @@ class AggregatorsTest : public TplTest {};
 
 // NOLINTNEXTLINE
 TEST_F(AggregatorsTest, Count) {
-  //
+
   // Count on empty input
-  //
 
   {
     CountAggregate count;
     EXPECT_EQ(0, count.GetCountResult().val_);
   }
 
-  //
   // Count on mixed NULL and non-NULL input
-  //
 
   {
     // Even inputs are NULL
@@ -35,6 +32,7 @@ TEST_F(AggregatorsTest, Count) {
 
 // NOLINTNEXTLINE
 TEST_F(AggregatorsTest, CountMerge) {
+
   // Even inputs are NULL
   CountAggregate count_1, count_2;
 
@@ -57,18 +55,15 @@ TEST_F(AggregatorsTest, CountMerge) {
 
 // NOLINTNEXTLINE
 TEST_F(AggregatorsTest, SumInteger) {
-  //
+
   // SUM on empty input is null
-  //
 
   {
     IntegerSumAggregate sum;
     EXPECT_TRUE(sum.GetResultSum().is_null_);
   }
 
-  //
   // Sum on mixed NULL and non-NULL input
-  //
 
   {
     // [1, 3, 5, 7, 9]
@@ -82,9 +77,7 @@ TEST_F(AggregatorsTest, SumInteger) {
     EXPECT_EQ(25, sum.GetResultSum().val_);
   }
 
-  //
   // Sum on non-NULL input
-  //
 
   {
     // [0..9]
@@ -96,6 +89,106 @@ TEST_F(AggregatorsTest, SumInteger) {
 
     EXPECT_FALSE(sum.GetResultSum().is_null_);
     EXPECT_EQ(45, sum.GetResultSum().val_);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(AggregatorsTest, TopKInteger) {
+
+  // TopK on empty input should be nothing
+  {
+    TopKAggregate<Integer> topk(2);
+    EXPECT_TRUE(topk.GetResultTopK().empty());
+  }
+
+  // Top k where each i in 0 to 9 is inserted i times
+  {
+    TopKAggregate<Integer> topk(2);
+    for (uint32_t i = 0; i < 10; i++) {
+      for (uint32_t j = 0; j < i; j++) {
+        auto val = Integer(i);
+        topk.Advance(val);
+      }
+    }
+
+    auto result = topk.GetResultTopK();
+    EXPECT_EQ(2, result.size());
+    EXPECT_EQ(8, result[0].val_);
+    EXPECT_EQ(9, result[1].val_);
+  }
+
+  // Merging two top k test
+  {
+    TopKAggregate<Integer> topk(2);
+    TopKAggregate<Integer> topksecond(2);
+
+    for (uint32_t i = 0; i < 10; i++) {
+      auto val = Integer(i);
+      topk.Advance(val);
+    }
+
+    for (uint32_t i = 0; i < 10; i++) {
+      for (uint32_t j = i; j < 20; j++) {
+        auto val = Integer(i);
+        topksecond.Advance(val);
+      }
+    }
+
+    topk.Merge(topksecond);
+    auto result = topk.GetResultTopK();
+    EXPECT_EQ(2, result.size());
+    EXPECT_EQ(1, result[0].val_);
+    EXPECT_EQ(0, result[1].val_);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(AggregatorsTest, TopKReal) {
+
+  // TopK on empty input should be nothing
+  {
+    TopKAggregate<Real> topk(2);
+    EXPECT_TRUE(topk.GetResultTopK().empty());
+  }
+
+  // Top k where each i in 0 to 9 is inserted i times
+  {
+    TopKAggregate<Real> topk(2);
+    for (uint32_t i = 0; i < 10; i++) {
+      for (uint32_t j = 0; j < i; j++) {
+        auto val = Real(static_cast<double>(i));
+        topk.Advance(val);
+      }
+    }
+
+    auto result = topk.GetResultTopK();
+    EXPECT_EQ(2, result.size());
+    EXPECT_EQ(static_cast<double>(8), result[0].val_);
+    EXPECT_EQ(static_cast<double>(9), result[1].val_);
+  }
+
+  // Merging two top k test
+  {
+    TopKAggregate<Real> topk(2);
+    TopKAggregate<Real> topksecond(2);
+
+    for (uint32_t i = 0; i < 10; i++) {
+      auto val = Real(static_cast<double>(i));
+      topk.Advance(val);
+    }
+
+    for (uint32_t i = 0; i < 10; i++) {
+      for (uint32_t j = i; j < 20; j++) {
+        auto val = Real(static_cast<double>(i));
+        topksecond.Advance(val);
+      }
+    }
+
+    topk.Merge(topksecond);
+    auto result = topk.GetResultTopK();
+    EXPECT_EQ(2, result.size());
+    EXPECT_EQ(static_cast<double>(1), result[0].val_);
+    EXPECT_EQ(static_cast<double>(0), result[1].val_);
   }
 }
 
