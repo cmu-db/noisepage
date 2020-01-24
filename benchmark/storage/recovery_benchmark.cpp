@@ -1,6 +1,7 @@
 #include <vector>
 
 #include "benchmark/benchmark.h"
+#include "benchmark_util/benchmark_config.h"
 #include "catalog/catalog_accessor.h"
 #include "common/scoped_timer.h"
 #include "main/db_main.h"
@@ -22,7 +23,6 @@ class RecoveryBenchmark : public benchmark::Fixture {
   const uint32_t num_txns_ = 100000;
   const uint32_t num_indexes_ = 5;
   std::default_random_engine generator_;
-  const uint32_t num_concurrent_txns_ = 4;
 
   /**
    * Runs the recovery benchmark with the provided config
@@ -52,7 +52,7 @@ class RecoveryBenchmark : public benchmark::Fixture {
       // Run the test object and log all transactions
       auto *tested =
           new LargeSqlTableTestObject(config, txn_manager.Get(), catalog.Get(), block_store.Get(), &generator_);
-      tested->SimulateOltp(num_txns_, num_concurrent_txns_);
+      tested->SimulateOltp(num_txns_, BenchmarkConfig::num_threads);
       log_manager->ForceFlush();
 
       // Start a new components with logging disabled, we don't want to log the log replaying
@@ -192,8 +192,8 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     // Create and execute insert workload. We actually don't need to insert into indexes here, since we only care about
     // recovery doing it
     auto workload = [&](uint32_t id) {
-      auto start_key = num_txns_ / num_concurrent_txns_ * id;
-      auto end_key = start_key + num_txns_ / num_concurrent_txns_;
+      auto start_key = num_txns_ / BenchmarkConfig::num_threads * id;
+      auto end_key = start_key + num_txns_ / BenchmarkConfig::num_threads;
       for (auto key = start_key; key < end_key; key++) {
         auto *txn = txn_manager->BeginTransaction();
         auto redo_record = txn->StageWrite(db_oid, table_oid, initializer);
@@ -202,8 +202,8 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
         txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
     };
-    common::WorkerPool thread_pool(num_concurrent_txns_, {});
-    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_concurrent_txns_, workload);
+    common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
+    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, BenchmarkConfig::num_threads, workload);
     log_manager->ForceFlush();
 
     // Start a new components with logging disabled, we don't want to log the log replaying
@@ -238,10 +238,22 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
   state.SetItemsProcessed(num_txns_ * state.iterations());
 }
 
-BENCHMARK_REGISTER_F(RecoveryBenchmark, ReadWriteWorkload)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(10);
-
-BENCHMARK_REGISTER_F(RecoveryBenchmark, HighStress)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(10);
-
-BENCHMARK_REGISTER_F(RecoveryBenchmark, IndexRecovery)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(4);
+// ----------------------------------------------------------------------------
+// BENCHMARK REGISTRATION
+// ----------------------------------------------------------------------------
+// clang-format off
+BENCHMARK_REGISTER_F(RecoveryBenchmark, ReadWriteWorkload)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->MinTime(10);
+BENCHMARK_REGISTER_F(RecoveryBenchmark, HighStress)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->MinTime(10);
+BENCHMARK_REGISTER_F(RecoveryBenchmark, IndexRecovery)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->MinTime(4);
+// clang-format on
 
 }  // namespace terrier
