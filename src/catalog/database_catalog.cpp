@@ -1701,45 +1701,38 @@ void DatabaseCatalog::BootstrapLanguages(const common::ManagedPointer<transactio
 
 void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::TransactionContext> txn) {
 
+  auto dec_type = GetTypeOidForType(type::TypeId::DECIMAL);
   //ATan2
   CreateProcedure(txn, "atan2", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"},
-                  {type::TypeId::DECIMAL, type::TypeId::DECIMAL}, {type::TypeId::DECIMAL, type::TypeId::DECIMAL},
-                  {}, type::TypeId::DECIMAL, "", true);
+                  {dec_type, dec_type}, {dec_type, dec_type}, {}, dec_type, "", true);
 
   //ACos
   CreateProcedure(txn, "acos", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"},
-                  {type::TypeId::DECIMAL}, {type::TypeId::DECIMAL},
-                  {}, type::TypeId::DECIMAL, "", true);
+                  {dec_type}, {dec_type}, {}, dec_type, "", true);
 
   //ASin
   CreateProcedure(txn, "asin", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"},
-                  {type::TypeId::DECIMAL}, {type::TypeId::DECIMAL},
-                  {}, type::TypeId::DECIMAL, "", true);
+                  {dec_type}, {dec_type}, {}, dec_type, "", true);
 
   //ATan
   CreateProcedure(txn, "atan", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"},
-                  {type::TypeId::DECIMAL}, {type::TypeId::DECIMAL},
-                  {}, type::TypeId::DECIMAL, "", true);
+                  {dec_type}, {dec_type}, {}, dec_type, "", true);
 
   //cos
   CreateProcedure(txn, "cos", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"},
-                  {type::TypeId::DECIMAL}, {type::TypeId::DECIMAL},
-                  {}, type::TypeId::DECIMAL, "", true);
+                  {dec_type}, {dec_type}, {}, dec_type, "", true);
 
   //sin
   CreateProcedure(txn, "sin", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"},
-                  {type::TypeId::DECIMAL}, {type::TypeId::DECIMAL},
-                  {}, type::TypeId::DECIMAL, "", true);
+                  {dec_type}, {dec_type}, {}, dec_type, "", true);
 
   //tan
   CreateProcedure(txn, "tan", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"},
-                  {type::TypeId::DECIMAL}, {type::TypeId::DECIMAL},
-                  {}, type::TypeId::DECIMAL, "", true);
+                  {dec_type}, {dec_type}, {}, dec_type, "", true);
 
   //cot
   CreateProcedure(txn, "cot", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"},
-                  {type::TypeId::DECIMAL}, {type::TypeId::DECIMAL},
-                  {}, type::TypeId::DECIMAL, "", true);
+                  {dec_type}, {dec_type}, {}, dec_type, "", true);
 }
 
 bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
