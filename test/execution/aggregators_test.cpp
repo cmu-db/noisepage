@@ -101,7 +101,6 @@ TEST_F(AggregatorsTest, SumInteger) {
 
 // NOLINTNEXTLINE
 TEST_F(AggregatorsTest, TopKInteger) {
-
   //
   // TopK on empty input should be nothing
   //
@@ -155,7 +154,6 @@ TEST_F(AggregatorsTest, TopKInteger) {
 
 // NOLINTNEXTLINE
 TEST_F(AggregatorsTest, TopKReal) {
-
   //
   // TopK on empty input should be nothing
   //
