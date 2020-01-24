@@ -23,8 +23,6 @@ RUN apt-get -y update && \
       llvm-8 \
       pkg-config \
       postgresql-client \
-	  sqlite3 \
-	  libsqlite3-dev \
 	  ant && \
       apt-get -y install wget && \
       wget http://mirrors.kernel.org/ubuntu/pool/universe/libp/libpqxx/libpqxx-dev_6.2.4-4_amd64.deb && \

@@ -765,7 +765,7 @@ void PlanGenerator::Visit(const CreateTable *create_table) {
   builder.SetBlockStore(accessor_->GetBlockStore());
 
   std::vector<std::string> pk_cols;
-  std::string pk_cname = "pk";
+  std::string pk_cname = create_table->GetTableName() + "_pk";
   std::vector<catalog::Schema::Column> cols;
   for (auto col : create_table->GetColumns()) {
     if (col->IsPrimaryKey()) {

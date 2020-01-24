@@ -13,6 +13,8 @@
 #include "execution/compiler/output_schema_util.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
+#include "execution/executable_query.h"
+#include "execution/execution_util.h"
 #include "execution/sema/sema.h"
 #include "execution/sql/value.h"
 #include "execution/sql_test.h"  // NOLINT
@@ -47,48 +49,7 @@ class CompilerTest : public SqlBasedTest {
     table_generator.GenerateTestTables();
   }
 
-  static void CompileAndRun(planner::AbstractPlanNode *node, exec::ExecutionContext *exec_ctx) {
-    // Create the query object, whose region must outlive all the processing.
-    // Compile and check for errors
-    CodeGen codegen(exec_ctx);
-    Compiler compiler(&codegen, node);
-    auto root = compiler.Compile();
-    if (codegen.Reporter()->HasErrors()) {
-      EXECUTION_LOG_ERROR("Type-checking error! \n {}", codegen.Reporter()->SerializeErrors());
-    }
-
-    EXECUTION_LOG_INFO("Converted: \n {}", execution::ast::AstDump::Dump(root));
-
-    // Convert to bytecode
-    auto bytecode_module = vm::BytecodeGenerator::Compile(root, exec_ctx, "tmp-tpl");
-    auto module = std::make_unique<vm::Module>(std::move(bytecode_module));
-
-    // Run the main function
-    std::function<int64_t(exec::ExecutionContext *)> main;
-    if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
-      EXECUTION_LOG_ERROR(
-          "Missing 'main' entry function with signature "
-          "(*ExecutionContext)->int32");
-      return;
-    }
-    EXECUTION_LOG_INFO("VM main() returned: {}", main(exec_ctx));
-  }
-
-  /**
-   * Initialize all TPL subsystems
-   */
-  static void InitTPL() {
-    execution::CpuInfo::Instance();
-    execution::vm::LLVMEngine::Initialize();
-  }
-
-  /**
-   * Shutdown all TPL subsystems
-   */
-  static void ShutdownTPL() {
-    terrier::execution::vm::LLVMEngine::Shutdown();
-    terrier::LoggersUtil::ShutDown();
-  }
+  static constexpr vm::ExecutionMode MODE = vm::ExecutionMode::Interpret;
 };
 
 // NOLINTNEXTLINE
@@ -129,7 +90,6 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
                    .SetTableOid(table_oid)
                    .Build();
   }
-
   // Make the output checkers
   SingleIntComparisonChecker col1_checker(std::less<>(), 0, 500);
   SingleIntComparisonChecker col2_checker(std::greater_equal<>(), 1, 3);
@@ -143,7 +103,8 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(seq_scan.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   multi_checker.CheckCorrectness();
 }
 
@@ -210,7 +171,8 @@ TEST_F(CompilerTest, SimpleSeqScanWithProjectionTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), proj->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(proj.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(proj), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   multi_checker.CheckCorrectness();
 }
 
@@ -275,7 +237,8 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
   exec_ctx->SetParams(std::move(params));
 
   // Run & Check
-  CompileAndRun(seq_scan.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   multi_checker.CheckCorrectness();
 }
 
@@ -322,7 +285,8 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(index_scan.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   multi_checker.CheckCorrectness();
 }
 
@@ -392,7 +356,8 @@ TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(index_scan.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -461,7 +426,8 @@ TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(index_scan.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -530,7 +496,8 @@ TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(index_scan.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -599,7 +566,8 @@ TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(index_scan.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -673,7 +641,8 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(agg.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(agg), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   multi_checker.CheckCorrectness();
 }
 
@@ -760,7 +729,8 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(agg.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(agg), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -888,7 +858,8 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), hash_join->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(hash_join.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(hash_join), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -986,7 +957,8 @@ TEST_F(CompilerTest, SimpleSortTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), order_by->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(order_by.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(order_by), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -1112,7 +1084,8 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), nl_join->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(nl_join.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(nl_join), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -1218,7 +1191,8 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_join->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(index_join.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(index_join), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -1318,7 +1292,8 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_join->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(index_join.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(index_join), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -1366,7 +1341,8 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     auto exec_ctx = MakeExecCtx(std::move(callback), delete_node->GetOutputSchema().Get());
-    CompileAndRun(delete_node.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(delete_node), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
   }
 
   // Now scan through table to check content.
@@ -1400,7 +1376,8 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-    CompileAndRun(seq_scan.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 
@@ -1434,7 +1411,8 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
-    CompileAndRun(index_scan.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 }
@@ -1478,7 +1456,7 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
                     .Build();
   }
 
-  // make DeletePlanNode
+  // make UpdatePlanNode
   std::unique_ptr<planner::AbstractPlanNode> update_node;
   {
     planner::UpdatePlanNode::Builder builder;
@@ -1501,12 +1479,13 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
                       .SetIndexedUpdate(true)
                       .Build();
   }
-  // Execute delete
+  // Execute update
   {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     auto exec_ctx = MakeExecCtx(std::move(callback), update_node->GetOutputSchema().Get());
-    CompileAndRun(update_node.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(update_node), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
   }
 
   // Now scan through table to check content.
@@ -1564,7 +1543,8 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-    CompileAndRun(seq_scan.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 
@@ -1605,7 +1585,8 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
-    CompileAndRun(index_scan.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 }
@@ -1652,7 +1633,8 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     auto exec_ctx = MakeExecCtx(std::move(callback), insert->GetOutputSchema().Get());
-    CompileAndRun(insert.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(insert), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
   }
 
   // Now scan through table to check content.
@@ -1716,7 +1698,8 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-    CompileAndRun(seq_scan.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 
@@ -1762,7 +1745,8 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
-    CompileAndRun(index_scan.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 }
@@ -1834,7 +1818,8 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     params.emplace_back(type::TransientValueFactory::GetInteger(495));
     params.emplace_back(type::TransientValueFactory::GetInteger(505));
     exec_ctx->SetParams(std::move(params));
-    CompileAndRun(insert.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(insert), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
   }
 
   // Now scan through table to check content.
@@ -1896,7 +1881,8 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-    CompileAndRun(seq_scan.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 
@@ -1941,19 +1927,29 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
-    CompileAndRun(index_scan.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 }
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
-  // INSERT INTO all_types_table (string_col, date_col, real_col, int_col) VALUES (param1, param2, param3, param4),
-  // (param5, param6, param7, param8) Where the parameter values are: ("37 Strings", 1937-3-7, 37.73, 37), (73 String,
-  // 1973-7-3, 73.37, 73) Then check that the following finds the new tuples: SELECT colA, colB, colC, colD FROM test_1.
+  // INSERT INTO all_types_empty_table
+  //    (string_col, date_col, real_col, bool_col, tinyint_col, smallint_col, int_col, bigint_col)
+  // VALUES
+  //    (param1, param2, param3, param4, param5, param6, param7, param8),
+  //    (param9, param10, param11, param12, param13, param14, param15, param16);
+  //
+  // Where the parameter values are:
+  //    ("37 Strings", 1937-3-7, 37.73, true, 37, 37, 37, 37),
+  //    ("73 Strings", 1973-7-3, 73.37, false, 73, 73, 73, 73)
+  //
+  // Then check that the following finds the
+  // new tuples: SELECT colA, colB, colC, colD FROM test_1.
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
-  auto table_oid1 = accessor->GetTableOid(NSOid(), "all_types_table");
+  auto table_oid1 = accessor->GetTableOid(NSOid(), "all_types_empty_table");
   auto index_oid1 = accessor->GetIndexOid(NSOid(), "varchar_index");
   auto table_schema1 = accessor->GetSchema(table_oid1);
 
@@ -1964,8 +1960,16 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
   sql::Date date2(1973, 7, 3);
   double real1 = 37.73;
   double real2 = 73.37;
+  bool bool1 = true;
+  bool bool2 = false;
+  int8_t tinyint1 = 37;
+  int8_t tinyint2 = 73;
+  int16_t smallint1 = 37;
+  int16_t smallint2 = 73;
   int32_t int1 = 37;
   int32_t int2 = 73;
+  int64_t bigint1 = 37;
+  int64_t bigint2 = 73;
 
   // make InsertPlanNode
   std::unique_ptr<planner::AbstractPlanNode> insert;
@@ -1973,19 +1977,34 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     std::vector<ExpressionMaker::ManagedExpression> values1;
     std::vector<ExpressionMaker::ManagedExpression> values2;
 
-    values1.push_back(expr_maker.PVE(type::TypeId::VARCHAR, 0));
-    values1.push_back(expr_maker.PVE(type::TypeId::DATE, 1));
-    values1.push_back(expr_maker.PVE(type::TypeId::DECIMAL, 2));
-    values1.push_back(expr_maker.PVE(type::TypeId::INTEGER, 3));
-    values2.push_back(expr_maker.PVE(type::TypeId::VARCHAR, 4));
-    values2.push_back(expr_maker.PVE(type::TypeId::DATE, 5));
-    values2.push_back(expr_maker.PVE(type::TypeId::DECIMAL, 6));
-    values2.push_back(expr_maker.PVE(type::TypeId::INTEGER, 7));
+    int param_idx = 0;
+    values1.push_back(expr_maker.PVE(type::TypeId::VARCHAR, param_idx++));
+    values1.push_back(expr_maker.PVE(type::TypeId::DATE, param_idx++));
+    values1.push_back(expr_maker.PVE(type::TypeId::DECIMAL, param_idx++));
+    values1.push_back(expr_maker.PVE(type::TypeId::BOOLEAN, param_idx++));
+    values1.push_back(expr_maker.PVE(type::TypeId::TINYINT, param_idx++));
+    values1.push_back(expr_maker.PVE(type::TypeId::SMALLINT, param_idx++));
+    values1.push_back(expr_maker.PVE(type::TypeId::INTEGER, param_idx++));
+    values1.push_back(expr_maker.PVE(type::TypeId::BIGINT, param_idx++));
+
+    values2.push_back(expr_maker.PVE(type::TypeId::VARCHAR, param_idx++));
+    values2.push_back(expr_maker.PVE(type::TypeId::DATE, param_idx++));
+    values2.push_back(expr_maker.PVE(type::TypeId::DECIMAL, param_idx++));
+    values2.push_back(expr_maker.PVE(type::TypeId::BOOLEAN, param_idx++));
+    values2.push_back(expr_maker.PVE(type::TypeId::TINYINT, param_idx++));
+    values2.push_back(expr_maker.PVE(type::TypeId::SMALLINT, param_idx++));
+    values2.push_back(expr_maker.PVE(type::TypeId::INTEGER, param_idx++));
+    values2.push_back(expr_maker.PVE(type::TypeId::BIGINT, param_idx++));
+
     planner::InsertPlanNode::Builder builder;
     insert = builder.AddParameterInfo(table_schema1.GetColumn("varchar_col").Oid())
                  .AddParameterInfo(table_schema1.GetColumn("date_col").Oid())
                  .AddParameterInfo(table_schema1.GetColumn("real_col").Oid())
+                 .AddParameterInfo(table_schema1.GetColumn("bool_col").Oid())
+                 .AddParameterInfo(table_schema1.GetColumn("tinyint_col").Oid())
+                 .AddParameterInfo(table_schema1.GetColumn("smallint_col").Oid())
                  .AddParameterInfo(table_schema1.GetColumn("int_col").Oid())
+                 .AddParameterInfo(table_schema1.GetColumn("bigint_col").Oid())
                  .SetIndexOids({index_oid1})
                  .AddValues(std::move(values1))
                  .AddValues(std::move(values2))
@@ -1999,16 +2018,27 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     auto exec_ctx = MakeExecCtx(std::move(callback), insert->GetOutputSchema().Get());
     std::vector<type::TransientValue> params;
+    // First parameter list
     params.emplace_back(type::TransientValueFactory::GetVarChar(str1));
     params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date1.int_val_)));
     params.emplace_back(type::TransientValueFactory::GetDecimal(real1));
+    params.emplace_back(type::TransientValueFactory::GetBoolean(bool1));
+    params.emplace_back(type::TransientValueFactory::GetTinyInt(tinyint1));
+    params.emplace_back(type::TransientValueFactory::GetSmallInt(smallint1));
     params.emplace_back(type::TransientValueFactory::GetInteger(int1));
+    params.emplace_back(type::TransientValueFactory::GetBigInt(bigint1));
+    // Second parameter list
     params.emplace_back(type::TransientValueFactory::GetVarChar(str2));
     params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date2.int_val_)));
     params.emplace_back(type::TransientValueFactory::GetDecimal(real2));
+    params.emplace_back(type::TransientValueFactory::GetBoolean(bool2));
+    params.emplace_back(type::TransientValueFactory::GetTinyInt(tinyint2));
+    params.emplace_back(type::TransientValueFactory::GetSmallInt(smallint2));
     params.emplace_back(type::TransientValueFactory::GetInteger(int2));
+    params.emplace_back(type::TransientValueFactory::GetBigInt(bigint2));
     exec_ctx->SetParams(std::move(params));
-    CompileAndRun(insert.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(insert), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
   }
 
   // Now scan through table to check content.
@@ -2018,22 +2048,36 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     auto col1_oid = table_schema1.GetColumn("varchar_col").Oid();
     auto col2_oid = table_schema1.GetColumn("date_col").Oid();
     auto col3_oid = table_schema1.GetColumn("real_col").Oid();
-    auto col4_oid = table_schema1.GetColumn("int_col").Oid();
+    auto col4_oid = table_schema1.GetColumn("bool_col").Oid();
+    auto col5_oid = table_schema1.GetColumn("tinyint_col").Oid();
+    auto col6_oid = table_schema1.GetColumn("smallint_col").Oid();
+    auto col7_oid = table_schema1.GetColumn("int_col").Oid();
+    auto col8_oid = table_schema1.GetColumn("bigint_col").Oid();
+
     // Get Table columns
     auto col1 = expr_maker.CVE(col1_oid, type::TypeId::VARCHAR);
     auto col2 = expr_maker.CVE(col2_oid, type::TypeId::DATE);
     auto col3 = expr_maker.CVE(col3_oid, type::TypeId::DECIMAL);
-    auto col4 = expr_maker.CVE(col4_oid, type::TypeId::INTEGER);
+    auto col4 = expr_maker.CVE(col4_oid, type::TypeId::BOOLEAN);
+    auto col5 = expr_maker.CVE(col5_oid, type::TypeId::TINYINT);
+    auto col6 = expr_maker.CVE(col6_oid, type::TypeId::SMALLINT);
+    auto col7 = expr_maker.CVE(col7_oid, type::TypeId::INTEGER);
+    auto col8 = expr_maker.CVE(col8_oid, type::TypeId::BIGINT);
+
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     seq_scan_out.AddOutput("col3", col3);
     seq_scan_out.AddOutput("col4", col4);
+    seq_scan_out.AddOutput("col5", col5);
+    seq_scan_out.AddOutput("col6", col6);
+    seq_scan_out.AddOutput("col7", col7);
+    seq_scan_out.AddOutput("col8", col8);
     // Make predicate
     auto schema = seq_scan_out.MakeSchema();
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
-                   .SetColumnOids({col1_oid, col2_oid, col3_oid, col4_oid})
+                   .SetColumnOids({col1_oid, col2_oid, col3_oid, col4_oid, col5_oid, col6_oid, col7_oid, col8_oid})
                    .SetScanPredicate(nullptr)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -2048,20 +2092,43 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     auto col1 = static_cast<sql::StringVal *>(vals[0]);
     auto col2 = static_cast<sql::Date *>(vals[1]);
     auto col3 = static_cast<sql::Real *>(vals[2]);
-    auto col4 = static_cast<sql::Integer *>(vals[3]);
-    ASSERT_FALSE(col1->is_null_ || col2->is_null_ || col3->is_null_ || col4->is_null_);
+    auto col4 = static_cast<sql::BoolVal *>(vals[3]);
+    auto col5 = static_cast<sql::Integer *>(vals[4]);
+    auto col6 = static_cast<sql::Integer *>(vals[5]);
+    auto col7 = static_cast<sql::Integer *>(vals[6]);
+    auto col8 = static_cast<sql::Integer *>(vals[7]);
+
+    // Nobody should be null here!
+    ASSERT_FALSE(col1->is_null_);
+    ASSERT_FALSE(col2->is_null_);
+    ASSERT_FALSE(col3->is_null_);
+    ASSERT_FALSE(col4->is_null_);
+    ASSERT_FALSE(col5->is_null_);
+    ASSERT_FALSE(col6->is_null_);
+    ASSERT_FALSE(col7->is_null_);
+    ASSERT_FALSE(col8->is_null_);
+
+    // Make sure all of our values match what we inserted into the table
     if (num_output_rows == 0) {
       ASSERT_EQ(col1->len_, str1.size());
       ASSERT_EQ(std::memcmp(col1->Content(), str1.data(), col1->len_), 0);
       ASSERT_EQ(col2->ymd_, date1.ymd_);
       ASSERT_EQ(col3->val_, real1);
-      ASSERT_EQ(col4->val_, int1);
+      ASSERT_EQ(col4->val_, bool1);
+      ASSERT_EQ(col5->val_, tinyint1);
+      ASSERT_EQ(col6->val_, smallint1);
+      ASSERT_EQ(col7->val_, int1);
+      ASSERT_EQ(col8->val_, bigint1);
     } else {
       ASSERT_TRUE(col1->len_ == str2.size());
       ASSERT_EQ(std::memcmp(col1->Content(), str2.data(), col1->len_), 0);
       ASSERT_EQ(col2->ymd_, date2.ymd_);
       ASSERT_EQ(col3->val_, real2);
-      ASSERT_EQ(col4->val_, int2);
+      ASSERT_EQ(col4->val_, bool2);
+      ASSERT_EQ(col5->val_, tinyint2);
+      ASSERT_EQ(col6->val_, smallint2);
+      ASSERT_EQ(col7->val_, int2);
+      ASSERT_EQ(col8->val_, bigint2);
     }
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
@@ -2077,7 +2144,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-    CompileAndRun(seq_scan.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 
@@ -2086,24 +2154,38 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
     // OIDs
-    auto cola_oid = table_schema1.GetColumn("varchar_col").Oid();
-    auto colb_oid = table_schema1.GetColumn("date_col").Oid();
-    auto colc_oid = table_schema1.GetColumn("real_col").Oid();
-    auto cold_oid = table_schema1.GetColumn("int_col").Oid();
+    auto col1_oid = table_schema1.GetColumn("varchar_col").Oid();
+    auto col2_oid = table_schema1.GetColumn("date_col").Oid();
+    auto col3_oid = table_schema1.GetColumn("real_col").Oid();
+    auto col4_oid = table_schema1.GetColumn("bool_col").Oid();
+    auto col5_oid = table_schema1.GetColumn("tinyint_col").Oid();
+    auto col6_oid = table_schema1.GetColumn("smallint_col").Oid();
+    auto col7_oid = table_schema1.GetColumn("int_col").Oid();
+    auto col8_oid = table_schema1.GetColumn("bigint_col").Oid();
+
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::VARCHAR);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::DATE);
-    auto col3 = expr_maker.CVE(colc_oid, type::TypeId::DECIMAL);
-    auto col4 = expr_maker.CVE(cold_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(col1_oid, type::TypeId::VARCHAR);
+    auto col2 = expr_maker.CVE(col2_oid, type::TypeId::DATE);
+    auto col3 = expr_maker.CVE(col3_oid, type::TypeId::DECIMAL);
+    auto col4 = expr_maker.CVE(col4_oid, type::TypeId::BOOLEAN);
+    auto col5 = expr_maker.CVE(col5_oid, type::TypeId::TINYINT);
+    auto col6 = expr_maker.CVE(col6_oid, type::TypeId::SMALLINT);
+    auto col7 = expr_maker.CVE(col7_oid, type::TypeId::INTEGER);
+    auto col8 = expr_maker.CVE(col8_oid, type::TypeId::BIGINT);
 
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     index_scan_out.AddOutput("col3", col3);
     index_scan_out.AddOutput("col4", col4);
+    index_scan_out.AddOutput("col5", col5);
+    index_scan_out.AddOutput("col6", col6);
+    index_scan_out.AddOutput("col7", col7);
+    index_scan_out.AddOutput("col8", col8);
+
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
     index_scan = builder.SetTableOid(table_oid1)
-                     .SetColumnOids({cola_oid, colb_oid, colc_oid, cold_oid})
+                     .SetColumnOids({col1_oid, col2_oid, col3_oid, col4_oid, col5_oid, col6_oid, col7_oid, col8_oid})
                      .SetIndexOid(index_oid1)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.PVE(type::TypeId::VARCHAR, 0))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.PVE(type::TypeId::VARCHAR, 1))
@@ -2127,7 +2209,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     params.emplace_back(type::TransientValueFactory::GetVarChar(str1));
     params.emplace_back(type::TransientValueFactory::GetVarChar(str2));
     exec_ctx->SetParams(std::move(params));
-    CompileAndRun(index_scan.get(), exec_ctx.get());
+    auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
+    executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 }
@@ -2261,7 +2344,8 @@ TEST_F(CompilerTest, TPCHQ1Test) {
   exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
 
   // Run & Check
-  CompileAndRun(agg.get(), exec_ctx.get());
+  auto executable = ExecutableQuery(common::ManagedPointer(agg), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 */
@@ -2269,8 +2353,8 @@ TEST_F(CompilerTest, TPCHQ1Test) {
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
-  terrier::execution::compiler::test::CompilerTest::InitTPL();
+  terrier::execution::ExecutionUtil::InitTPL();
   int ret = RUN_ALL_TESTS();
-  terrier::execution::compiler::test::CompilerTest::ShutdownTPL();
+  terrier::execution::ExecutionUtil::ShutdownTPL();
   return ret;
 }

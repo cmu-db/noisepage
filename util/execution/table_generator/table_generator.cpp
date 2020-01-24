@@ -43,13 +43,45 @@ T *TableGenerator::CreateNumberColumnData(ColumnInsertMeta *col_meta, uint32_t n
   return val;
 }
 
+bool *TableGenerator::CreateBooleanColumnData(ColumnInsertMeta *col_meta, uint32_t num_vals) {
+  auto *val = new bool[num_vals];
+
+  switch (col_meta->dist_) {
+    case Dist::Uniform: {
+      std::mt19937 generator{};
+      std::uniform_int_distribution<int16_t> distribution(0, 1);
+      for (uint32_t i = 0; i < num_vals; i++) {
+        val[i] = distribution(generator) % 2 == 0;
+      }
+      break;
+    }
+    case Dist::Serial: {
+      // Split the false/true values by half
+      uint32_t half = num_vals / 2;
+      for (uint32_t i = 0; i < num_vals; i++) {
+        val[i] = (i >= half);
+      }
+      break;
+    }
+    default:
+      throw std::runtime_error("Unsupported distribution type for boolean columns");
+  }
+
+  return val;
+}
+
 // Generate column data
 std::pair<byte *, uint32_t *> TableGenerator::GenerateColumnData(ColumnInsertMeta *col_meta, uint32_t num_rows) {
   // Create data
   byte *col_data = nullptr;
   switch (col_meta->type_) {
     case type::TypeId::BOOLEAN: {
-      throw std::runtime_error("Implement me!");
+      col_data = reinterpret_cast<byte *>(CreateBooleanColumnData(col_meta, num_rows));
+      break;
+    }
+    case type::TypeId::TINYINT: {
+      col_data = reinterpret_cast<byte *>(CreateNumberColumnData<int8_t>(col_meta, num_rows));
+      break;
     }
     case type::TypeId::SMALLINT: {
       col_data = reinterpret_cast<byte *>(CreateNumberColumnData<int16_t>(col_meta, num_rows));
@@ -174,13 +206,29 @@ void TableGenerator::GenerateTestTables() {
        {{"colA", type::TypeId::INTEGER, false, Dist::Serial, 0, 0},
         {"colB", type::TypeId::BOOLEAN, false, Dist::Uniform, 0, 0}}},
 
-      // Empty table with columns of various types
+      // Table with all types
       {"all_types_table",
+       TABLE_ALLTYPES_SIZE,
+       {// {"varchar_col", type::TypeId::VARCHAR, false, Dist::Serial, 0, 0},
+        // {"date_col", type::TypeId::DATE, false, Dist::Serial, 0, 0},
+        // {"real_col", type::TypeId::DECIMAL, false, Dist::Serial, 0, 0},
+        {"bool_col", type::TypeId::BOOLEAN, false, Dist::Serial, 0, 0},
+        {"tinyint_col", type::TypeId::TINYINT, false, Dist::Uniform, 0, 127},
+        {"smallint_col", type::TypeId::SMALLINT, false, Dist::Serial, 0, 1000},
+        {"int_col", type::TypeId::INTEGER, false, Dist::Uniform, 0, 0},
+        {"bigint_col", type::TypeId::BIGINT, false, Dist::Uniform, 0, 1000}}},
+
+      // Empty table with columns of various types
+      {"all_types_empty_table",
        0,
        {{"varchar_col", type::TypeId::VARCHAR, false, Dist::Serial, 0, 0},
         {"date_col", type::TypeId::DATE, false, Dist::Serial, 0, 0},
         {"real_col", type::TypeId::DECIMAL, false, Dist::Serial, 0, 0},
-        {"int_col", type::TypeId::INTEGER, false, Dist::Uniform, 0, 0}}},
+        {"bool_col", type::TypeId::BOOLEAN, false, Dist::Serial, 0, 0},
+        {"tinyint_col", type::TypeId::TINYINT, false, Dist::Uniform, 0, 127},
+        {"smallint_col", type::TypeId::SMALLINT, false, Dist::Serial, 0, 1000},
+        {"int_col", type::TypeId::INTEGER, false, Dist::Uniform, 0, 0},
+        {"bigint_col", type::TypeId::BIGINT, false, Dist::Uniform, 0, 1000}}},
   };
   for (auto &table_meta : insert_meta) {
     // Create Schema.
@@ -279,7 +327,7 @@ void TableGenerator::InitTestIndexes() {
        {{"index_col1", type::TypeId::SMALLINT, false, "col1"}, {"index_col2", type::TypeId::INTEGER, true, "col2"}}},
 
       // Index on a varchar
-      {"varchar_index", "all_types_table", {{"index_varchar_col", type::TypeId::VARCHAR, false, "varchar_col"}}}};
+      {"varchar_index", "all_types_empty_table", {{"index_varchar_col", type::TypeId::VARCHAR, false, "varchar_col"}}}};
 
   storage::index::IndexBuilder index_builder;
   for (const auto &index_meta : index_metas) {
