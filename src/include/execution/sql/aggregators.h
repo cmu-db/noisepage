@@ -2,11 +2,12 @@
 
 #include <algorithm>
 #include <limits>
+#include <vector>
 
 #include "common/macros.h"
 #include "execution/sql/value.h"
 #include "execution/util/execution_common.h"
-#include <optimizer/statistics/top_k_elements.h>
+#include "optimizer/statistics/top_k_elements.h"
 
 namespace terrier::execution::sql {
 
@@ -286,15 +287,16 @@ class IntegerMaxAggregate {
 
 /*
  * TopKAggregate
-*/
+ */
 template <typename T>
 class TopKAggregate {
   using CppType = decltype(T::val_);
+
  public:
   /**
    * Constructor.
    */
-  TopKAggregate(size_t topK)  : histogram_(topK, 64) {}
+  explicit TopKAggregate(size_t topK) : histogram_(topK, 64) {}
 
   /**
    * This class cannot be copied or moved.
@@ -304,7 +306,7 @@ class TopKAggregate {
   /**
    * Advance the aggregate by the input value @em val.
    */
-  void Advance(const Integer &val) {
+  void Advance(const T &val) {
     if (val.is_null_) {
       return;
     }
@@ -312,8 +314,8 @@ class TopKAggregate {
     histogram_.Increment(val.val_, 1);
   }
 
-  // * Merge a partial max aggregate into this aggregate.
-   
+  // * Merge a partial top K aggregate into this aggregate.
+
   void Merge(const TopKAggregate &that) {
     if (that.null_) {
       return;
@@ -332,12 +334,13 @@ class TopKAggregate {
   }
 
   /**
-   * Return the result of the max.
+   * Return the result of the TopK.
    */
-  std::vector<T> GetResultMax() const {
+  std::vector<T> GetResultTopK() const {
     auto top_k_keys = histogram_.GetSortedTopKeys();
     std::vector<T> top_k_sql_type;
-    for(auto key : top_k_keys) {
+    top_k_sql_type.reserve(top_k_keys.size());
+    for (auto key : top_k_keys) {
       top_k_sql_type.push_back(T(key));
     }
     return top_k_sql_type;
@@ -346,13 +349,12 @@ class TopKAggregate {
   /**
    * Return the Histogram.
    */
-  const terrier::optimizer::TopKElements<CppType> & GetHistogram() const { return histogram_; }
+  const terrier::optimizer::TopKElements<CppType> &GetHistogram() const { return histogram_; }
 
  private:
   terrier::optimizer::TopKElements<CppType> histogram_;
   bool null_{true};
 };
-
 
 /**
  * Real Max

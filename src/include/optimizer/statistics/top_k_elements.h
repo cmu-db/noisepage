@@ -243,12 +243,12 @@ class TopKElements {
   /**
    * @return the sketch object of the top-K list
    */
-  const CountMinSketch<KeyType> & GetSketch() const {return (*sketch_);}
+  const CountMinSketch<KeyType> &GetSketch() const { return (*sketch_); }
 
   /**
    * @return the Entries-map object of the top-K list
    */
-  const std::unordered_map<KeyType, int64_t> & GetEntries() const {return entries_;}
+  const std::unordered_map<KeyType, int64_t> &GetEntries() const { return entries_; }
 
   /*
     Merge two TopK Elments objects
@@ -257,27 +257,28 @@ class TopKElements {
     // merge the sketches
     sketch_->Merge((hist.GetSketch()));
 
-    std::unordered_map <KeyType, int64_t> temp_entries;
-    for(auto entry : entries_) {
+    std::unordered_map<KeyType, int64_t> temp_entries;
+    for (auto entry : entries_) {
       temp_entries[entry.first] = entry.second;
     }
-    for(auto entry : hist.GetEntries()) {
-      if(temp_entries.find(entry.first) != temp_entries.end()) {
-        temp_entries[entry.first] += entry.second;   
+    for (auto entry : hist.GetEntries()) {
+      if (temp_entries.find(entry.first) != temp_entries.end()) {
+        temp_entries[entry.first] += entry.second;
       } else {
-        temp_entries[entry.first] = entry.second;   
+        temp_entries[entry.first] = entry.second;
       }
     }
 
     std::vector<std::pair<int64_t, KeyType>> temp_entries_vector;
-    for(auto entry : temp_entries) {
+    temp_entries_vector.reserve(temp_entries.size());
+    for (auto entry : temp_entries) {
       temp_entries_vector.push_back(std::make_pair(entry.second, entry.first));
     }
     sort(temp_entries_vector.begin(), temp_entries_vector.end());
 
     entries_.clear();
     auto vector_reverse_iterator = temp_entries_vector.rbegin();
-    for(unsigned i = 0; i < std::min(temp_entries_vector.size(), numk_); i++){
+    for (unsigned i = 0; i < std::min(temp_entries_vector.size(), numk_); i++) {
       entries_[vector_reverse_iterator->second] = vector_reverse_iterator->first;
       ++vector_reverse_iterator;
     }
@@ -286,15 +287,14 @@ class TopKElements {
     min_key_ = vector_reverse_iterator->second;
     min_count_ = vector_reverse_iterator->first;
   }
-  
+
   // Clear the topK elements object
-  
+
   void Clear() {
     sketch_->Clear();
     entries_.clear();
     min_count_ = INT64_MAX;
   }
-
 
   /**
    * @return the number of keys to keep track of in the top-k list
