@@ -153,6 +153,7 @@ void TransactionManager::LogAbort(TransactionContext *const txn) {
 }
 
 timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
+  // TODO(John:GC) defer the unlink and double-deferral the deallocation
   // Immediately clear the abort actions stack
   while (!txn->abort_actions_.empty()) {
     TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");

@@ -14,7 +14,7 @@
 
 namespace terrier::storage {
 
-// TODO(John) Figure out how we keep the illusion of this for tests but ween the
+// TODO(John:GC) Figure out how we keep the illusion of this for tests but ween the
 // main system off this.  Initial thought is we can imitate this with static
 // counters that are globally incremented in the callbacks (maybe tunable?).  It
 // would be nice if this was hooked into metrics but that's a too far for right
@@ -36,10 +36,15 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
                     static_cast<uint64_t>(last_unlinked_));
   ProcessDeferredActions(oldest_txn);
   ProcessIndexes();
+
+  // TODO(John:GC) We should be able to mimic this API interface with counters in the transaction manager that are
+  // captured by reference and incremented during the unlink and deallocate actions for the transaction contexts and
+  // then queried here.  That may require a resert mechanism and should look to eventually plug into Matt's metrics
+  // system.
   return std::make_pair(txns_deallocated, txns_unlinked);
 }
 
-// TODO(John) Refactor to be deferred inside unlinking below
+// TODO(John:GC) Refactor to be deferred inside unlinking below
 uint32_t GarbageCollector::ProcessDeallocateQueue(transaction::timestamp_t oldest_txn) {
   uint32_t txns_processed = 0;
   bool gc_metrics_enabled =
@@ -74,7 +79,7 @@ uint32_t GarbageCollector::ProcessDeallocateQueue(transaction::timestamp_t oldes
   return txns_processed;
 }
 
-// TODO(John) Move to TransactionContext class.  We defer this action at abort or commit to kick-off the GC logic.
+// TODO(John:GC) Move to TransactionContext class.  We defer this action at abort or commit to kick-off the GC logic.
 uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_txn) {
   transaction::TransactionContext *txn = nullptr;
 
@@ -161,12 +166,12 @@ void GarbageCollector::ProcessDeferredActions(transaction::timestamp_t oldest_tx
   }
 }
 
-// TODO(John) Where should this live?
+// TODO(John:GC) Where should this live?
 void GarbageCollector::ReclaimSlotIfDeleted(UndoRecord *const undo_record) const {
   if (undo_record->Type() == DeltaRecordType::DELETE) undo_record->Table()->accessor_.Deallocate(undo_record->Slot());
 }
 
-// TODO(John) Move to UndoRecord class
+// TODO(John:GC) Move to UndoRecord class
 void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *const txn,
                                              UndoRecord *const undo_record) const {
   const TupleAccessStrategy &accessor = undo_record->Table()->accessor_;
@@ -202,7 +207,7 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *co
   }
 }
 
-// TODO(John) Where should this live?
+// TODO(John:GC) Where should this live?
 void GarbageCollector::RegisterIndexForGC(const common::ManagedPointer<index::Index> index) {
   TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
   common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
@@ -210,7 +215,7 @@ void GarbageCollector::RegisterIndexForGC(const common::ManagedPointer<index::In
   indexes_.insert(index);
 }
 
-// TODO(John) Where should this live?
+// TODO(John:GC) Where should this live?
 void GarbageCollector::UnregisterIndexForGC(const common::ManagedPointer<index::Index> index) {
   TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
   common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
@@ -218,7 +223,7 @@ void GarbageCollector::UnregisterIndexForGC(const common::ManagedPointer<index::
   indexes_.erase(index);
 }
 
-// TODO(John) What is the right way to invoke this?  Should it be a periodic task in the deferred action queue or
+// TODO(John:GC) What is the right way to invoke this?  Should it be a periodic task in the deferred action queue or
 // special cased (which feels dirty)?  Frequency of call should not affect index performance just memory usage.  In
 // fact, keeping transaction processing regulare should be more important for throughput than calling this.  Also, this
 // potentially introduces a long pause in normal processing (could be bad) and could block (or be blocked by) DDL.
