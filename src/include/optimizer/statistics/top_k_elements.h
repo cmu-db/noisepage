@@ -41,7 +41,7 @@ class TopKElements {
    * @param width the size of the underlying sketch
    */
   explicit TopKElements(size_t k, uint64_t width) : numk_{k} {
-    // entries_.reserve(numk_);
+    entries_.reserve(numk_);
     sketch_ = new CountMinSketch<KeyType>(width);
   }
 
