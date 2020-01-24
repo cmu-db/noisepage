@@ -1414,14 +1414,14 @@ GEN_PR_SCALAR_GET_CALLS(Real, Real, float);
 GEN_PR_SCALAR_GET_CALLS(Double, Real, double);
 
 VM_OP_HOT void OpPRSetVarlen(terrier::storage::ProjectedRow *pr, uint16_t col_idx,
-                             terrier::execution::sql::StringVal *val) {
-  const auto varlen = terrier::execution::sql::StringVal::CreateVarlen(*val);
+                             terrier::execution::sql::StringVal *val, bool own) {
+  const auto varlen = terrier::execution::sql::StringVal::CreateVarlen(*val, own);
   pr->Set<terrier::storage::VarlenEntry, false>(col_idx, varlen, val->is_null_);
 }
 
 VM_OP_HOT void OpPRSetVarlenNull(terrier::storage::ProjectedRow *pr, uint16_t col_idx,
-                                 terrier::execution::sql::StringVal *val) {
-  const auto varlen = terrier::execution::sql::StringVal::CreateVarlen(*val);
+                                 terrier::execution::sql::StringVal *val, bool own) {
+  const auto varlen = terrier::execution::sql::StringVal::CreateVarlen(*val, own);
   pr->Set<terrier::storage::VarlenEntry, true>(col_idx, varlen, val->is_null_);
 }
 

@@ -1934,7 +1934,7 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
   // INSERT INTO all_types_table (string_col, date_col, real_col, int_col) VALUES (param1, param2, param3, param4),
-  // (param5, param6, param7, param8) Where the parameter values are: ("37 Strings", 1937-3-7, 37.73, 37), (73 String,
+  // (param5, param6, param7, param8) Where the parameter values are: (str1, 1937-3-7, 37.73, 37), (str2,
   // 1973-7-3, 73.37, 73) Then check that the following finds the new tuples: SELECT colA, colB, colC, colD FROM test_1.
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
@@ -1943,8 +1943,9 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
   auto table_schema1 = accessor->GetSchema(table_oid1);
 
   // Make the parameter values.
-  std::string str1("37 Strings");
-  std::string str2("73 Strings");
+  // Keep string longs
+  std::string str1("I am a long string with 37 characters");
+  std::string str2("I am a long string with 73 characters");
   sql::Date date1(1937, 3, 7);
   sql::Date date2(1973, 7, 3);
   double real1 = 37.73;

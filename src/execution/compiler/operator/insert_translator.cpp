@@ -128,7 +128,7 @@ void InsertTranslator::GenSetTablePR(FunctionBuilder *builder, uint32_t idx) {
     auto table_col_oid = all_oids_[i];
     const auto &table_col = table_schema_.GetColumn(table_col_oid);
     auto pr_set_call = codegen_->PRSet(codegen_->MakeExpr(insert_pr_), val->GetReturnValueType(), table_col.Nullable(),
-                                       table_pm_[table_col_oid], src);
+                                       table_pm_[table_col_oid], src, true);
     builder->Append(codegen_->MakeStmt(pr_set_call));
   }
 }
@@ -172,7 +172,7 @@ void InsertTranslator::FillPRFromChild(terrier::execution::compiler::FunctionBui
     const auto &table_col_oid = all_oids_[i];
     auto val = GetChildOutput(0, i, table_col.Type());
     auto pr_set_call = codegen_->PRSet(codegen_->MakeExpr(insert_pr_), table_col.Type(), table_col.Nullable(),
-                                       table_pm_[table_col_oid], val);
+                                       table_pm_[table_col_oid], val, true);
     builder->Append(codegen_->MakeStmt(pr_set_call));
   }
 }

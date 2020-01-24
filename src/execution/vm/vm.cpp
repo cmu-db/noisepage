@@ -1526,8 +1526,25 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   GEN_PR_SET(Real, sql::Real)
   GEN_PR_SET(Double, sql::Real)
   GEN_PR_SET(Date, sql::Date)
-  GEN_PR_SET(Varlen, sql::StringVal)
 #undef GEN_PR_SET
+
+  OP(PRSetVarlen) : {
+    auto *pr = frame->LocalAt<storage::ProjectedRow *>(READ_LOCAL_ID());
+    auto col_idx = READ_UIMM2();
+    auto val = frame->LocalAt<sql::StringVal*>(READ_LOCAL_ID());
+    auto own = frame->LocalAt<bool>(READ_LOCAL_ID());
+    OpPRSetVarlen(pr, col_idx, val, own);
+    DISPATCH_NEXT();
+  }
+
+  OP(PRSetVarlenNull) : {
+    auto *pr = frame->LocalAt<storage::ProjectedRow *>(READ_LOCAL_ID());
+    auto col_idx = READ_UIMM2();
+    auto val = frame->LocalAt<sql::StringVal*>(READ_LOCAL_ID());
+    auto own = frame->LocalAt<bool>(READ_LOCAL_ID());
+    OpPRSetVarlenNull(pr, col_idx, val, own);
+    DISPATCH_NEXT();
+  }
 
   // -------------------------------------------------------
   // StorageInterface Calls

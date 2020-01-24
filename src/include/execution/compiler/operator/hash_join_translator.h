@@ -62,6 +62,9 @@ class HashJoinLeftTranslator : public OperatorTranslator {
   // Get an attribute from attribute struct
   ast::Expr *GetBuildValue(uint32_t idx);
 
+  // Get the left semi join flag
+  ast::Expr *GetLeftSemiJoinFlag();
+
   // Build the hash table
   void GenBuildCall(FunctionBuilder *builder);
 
@@ -74,6 +77,7 @@ class HashJoinLeftTranslator : public OperatorTranslator {
   ast::Identifier build_struct_;
   ast::Identifier build_row_;
   ast::Identifier join_ht_;
+  ast::Identifier left_semi_join_flag_;
 };
 
 /**
@@ -137,6 +141,9 @@ class HashJoinRightTranslator : public OperatorTranslator {
 
   // Declare the matching tuple
   void DeclareMatch(FunctionBuilder *builder);
+
+  // If statement for left semi joins
+  void GenLeftSemiJoinCondition(FunctionBuilder *builder);
 
   // Complete the join key check function
   void GenKeyCheck(FunctionBuilder *builder);
