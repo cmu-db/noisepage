@@ -18,19 +18,21 @@
 // Modified from the Apache Arrow project for the Terrier project.
 
 #include <common/macros.h>
+
+#include <iostream>
+
 #include "benchmark/benchmark.h"
+#include "benchmark_util/benchmark_config.h"
 #include "loggers/loggers_util.h"
 
-uint32_t benchmark_num_threads;
 int main(int argc, char **argv) {
   terrier::LoggersUtil::Initialize();
 
-  const char *env_threads = std::getenv("TERRIER_BENCHMARK_CORES");
-  if (env_threads == nullptr) {
-    benchmark_num_threads = 1;
-  } else {
-    benchmark_num_threads = atoi(env_threads);
-  }
+  // Check whether the environment variable is set to specify the number of
+  // threads to use for this benchmark run.
+  const char *env_num_threads = std::getenv(terrier::ENV_NUM_THREADS);
+  terrier::BenchmarkConfig::num_threads_ = (env_num_threads != nullptr ? atoi(env_num_threads) : 1);
+  std::cout << "# of Benchmark Threads: " << terrier::BenchmarkConfig::num_threads_ << std::endl;
 
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();
