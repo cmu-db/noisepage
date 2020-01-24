@@ -789,7 +789,7 @@ class RunMicroBenchmarks(object):
         proc = subprocess.Popen([cmd], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = proc.communicate()
         ret_val = proc.returncode
-        LOG.info("OUTPUT: %s" % out)
+        LOG.debug("OUTPUT: %s" % out)
 
         # convert json results file to xml
         if ret_val == 0:
