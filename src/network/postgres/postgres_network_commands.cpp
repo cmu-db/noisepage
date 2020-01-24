@@ -207,7 +207,6 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   TERRIER_ASSERT(statement_name.empty(), "We currently only support the unnamed statement.");
 
   const auto statement = postgres_interpreter->UnnamedStatement();
-  const auto &param_types = statement->ParamTypes();
 
   // read out the parameter formats
   const auto num_parameter_formats = static_cast<size_t>(in_.ReadValue<int16_t>());
@@ -215,8 +214,10 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   // TODO(Matt): read out parameter formats similar to result formats below
   // read the params
   const auto num_params = static_cast<size_t>(in_.ReadValue<int16_t>());
-  TERRIER_ASSERT(num_params == param_types.size(), "We currently don't support parameters.");
+  TERRIER_ASSERT(num_params == 0, "We currently don't support parameters.");
   // TODO(Matt): read out the parameters here when we support them using parameter_formats from above
+  std::vector<type::TransientValue> parameters;
+  parameters.reserve(num_params);
 
   // read out the result formats
   const auto num_result_formats = static_cast<size_t>(in_.ReadValue<int16_t>());
@@ -227,6 +228,9 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   for (uint16_t i = 0; i < num_result_formats; i++) {
     result_formats.emplace_back(static_cast<FieldFormat>(in_.ReadValue<int16_t>()));
   }
+
+  postgres_interpreter->SetUnnamedPortal(
+      std::make_unique<Portal>(statement, std::move(result_formats), std::move(parameters)));
 
   out->WriteBindComplete();
   return Transition::PROCEED;
