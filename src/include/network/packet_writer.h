@@ -151,52 +151,6 @@ class PacketWriter {
   }
 
   /**
-   * Writes error responses to the client
-   * @param error_status The error messages to send
-   */
-  void WriteErrorResponse(const std::vector<std::pair<NetworkMessageType, std::string>> &error_status) {
-    BeginPacket(NetworkMessageType::PG_ERROR_RESPONSE);
-
-    for (const auto &entry : error_status) AppendRawValue(entry.first).AppendString(entry.second);
-
-    // Nul-terminate packet
-    AppendRawValue<uchar>(0).EndPacket();
-  }
-
-  /**
-   * A helper function to write a single error message without having to make a vector every time.
-   * @param type
-   * @param status
-   */
-  void WriteSingleErrorResponse(NetworkMessageType type, const std::string &status) {
-    std::vector<std::pair<NetworkMessageType, std::string>> buf;
-    buf.emplace_back(type, status);
-    WriteErrorResponse(buf);
-  }
-
-  /**
-   * Notify the client a readiness to receive a query
-   * @param txn_status
-   */
-  void WriteReadyForQuery(NetworkTransactionStateType txn_status) {
-    BeginPacket(NetworkMessageType::PG_READY_FOR_QUERY).AppendRawValue(txn_status).EndPacket();
-  }
-
-  /**
-   * Writes response to startup message
-   */
-  void WriteStartupResponse() {
-    BeginPacket(NetworkMessageType::PG_AUTHENTICATION_REQUEST).AppendValue<int32_t>(0).EndPacket();
-
-    for (auto &entry : PG_PARAMETER_STATUS_MAP)
-      BeginPacket(NetworkMessageType::PG_PARAMETER_STATUS)
-          .AppendString(entry.first)
-          .AppendString(entry.second)
-          .EndPacket();
-    WriteReadyForQuery(NetworkTransactionStateType::IDLE);
-  }
-
-  /**
    * Writes the startup message, used by clients
    */
   void WriteStartupRequest(const std::unordered_map<std::string, std::string> &config, int16_t major_version = 3) {
