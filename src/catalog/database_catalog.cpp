@@ -2022,7 +2022,7 @@ bool DatabaseCatalog::CreateLanguage(const common::ManagedPointer<transaction::T
 
 language_oid_t DatabaseCatalog::CreateLanguage(const common::ManagedPointer<transaction::TransactionContext> txn,
                                                const std::string &lanname) {
-  auto oid = language_oid_counter_++;
+  auto oid = language_oid_t{next_oid_++};
   if (!CreateLanguage(txn, lanname, oid)) {
     return INVALID_LANGUAGE_OID;
   }
@@ -2112,17 +2112,31 @@ bool DatabaseCatalog::DropLanguage(const common::ManagedPointer<transaction::Tra
   return true;
 }
 
-proc_oid_t DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                            const std::string &procname, language_oid_t lanoid, namespace_oid_t procns,
+proc_oid_t DatabaseCatalog::CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn,
+                           const std::string &procname,
+                           language_oid_t language_oid, namespace_oid_t procns,
+                           const std::vector<const std::string> &args,
+                           const std::vector<type_oid_t> &arg_types, const std::vector<type_oid_t> &all_arg_types,
+                           const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,
+                           const std::string &src, bool is_aggregate) {
+  proc_oid_t oid = proc_oid_t{next_oid_++};
+  auto result = CreateProcedure(txn, oid, procname, language_oid, procns, args, arg_types,
+      all_arg_types, arg_modes, rettype, src, is_aggregate);
+  return result ? oid : INVALID_PROC_OID;
+}
+
+bool DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                            proc_oid_t oid, const std::string &procname,
+                                            language_oid_t language_oid, namespace_oid_t procns,
                                             const std::vector<const std::string> &args,
-                                            const std::vector<type::TypeId> &arg_types,
-                                            const std::vector<type::TypeId> &all_arg_types,
+                                            const std::vector<type_oid_t> &arg_types,
+                                            const std::vector<type_oid_t> &all_arg_types,
                                             const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,
                                             const std::string &src, bool is_aggregate) {
   TERRIER_ASSERT(args.size() < UINT16_MAX, "Number of arguments must fit in a SMALLINT");
 
   // Insert into table
-  if (!TryLock(txn)) return INVALID_PROC_OID;
+  if (!TryLock(txn)) return false;
   const auto name_varlen = storage::StorageUtil::CreateVarlen(procname);
 
   std::vector<storage::VarlenEntry> arg_varlen_vec;
@@ -2137,7 +2151,6 @@ proc_oid_t DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transac
   const auto all_arg_types_varlen = storage::StorageUtil::CreateVarlen(all_arg_types);
   const auto arg_modes_varlen = storage::StorageUtil::CreateVarlen(arg_modes);
   const auto src_varlen = storage::StorageUtil::CreateVarlen(src);
-  auto oid = proc_oid_counter_++;
 
   auto *const redo = txn->StageWrite(db_oid_, postgres::PRO_TABLE_OID, pg_proc_all_cols_pri_);
   *(reinterpret_cast<storage::VarlenEntry *>(
@@ -2156,7 +2169,7 @@ proc_oid_t DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transac
   *(reinterpret_cast<proc_oid_t *>(
       redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROOID_COL_OID]))) = oid;
   *(reinterpret_cast<language_oid_t *>(
-      redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROLANG_COL_OID]))) = lanoid;
+      redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROLANG_COL_OID]))) = language_oid;
   *(reinterpret_cast<namespace_oid_t *>(
       redo->Delta()->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PRONAMESPACE_COL_OID]))) = procns;
   *(reinterpret_cast<type_oid_t *>(
@@ -2216,7 +2229,7 @@ proc_oid_t DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transac
   auto result = procs_name_index_->InsertUnique(txn, *name_pr, tuple_slot);
   if (!result) {
     delete[] buffer;
-    return INVALID_PROC_OID;
+    return false;
   }
 
   auto oid_pr = oid_pri.InitializeRow(buffer);
@@ -2225,7 +2238,7 @@ proc_oid_t DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transac
   TERRIER_ASSERT(result, "Oid insertion should be unique");
 
   delete[] buffer;
-  return oid;
+  return true;
 }
 
 bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t oid) {
@@ -2284,9 +2297,9 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
   return true;
 }
 
-proc_oid_t DatabaseCatalog::GetProcOid(const common::ManagedPointer<transaction::TransactionContext> txn,
+proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn,
                                        namespace_oid_t procns, const std::string &procname,
-                                       const std::vector<type::TypeId> &arg_types) {
+                                       const std::vector<type_oid_t> &arg_types) {
   if (!TryLock(txn)) return INVALID_PROC_OID;
 
   auto name_pri = procs_name_index_->GetProjectedRowInitializer();
@@ -2306,7 +2319,7 @@ proc_oid_t DatabaseCatalog::GetProcOid(const common::ManagedPointer<transaction:
   procs_name_index_->ScanKey(*txn, *name_pr, &results);
 
   proc_oid_t ret = INVALID_PROC_OID;
-  if (results.size() != 0) {
+  if (!results.empty()) {
     TERRIER_ASSERT(results.size() == 1, "More than one non-unique result found in unique index.");
 
     auto found_slot = results[0];
