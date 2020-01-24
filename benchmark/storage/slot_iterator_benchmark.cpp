@@ -28,7 +28,7 @@ class SlotIteratorBenchmark : public benchmark::Fixture {
     read_ = initializer_.InitializeRow(read_buffer_);
 
     // generate a vector of ProjectedRow buffers for concurrent reads
-    for (uint32_t i = 0; i < BenchmarkConfig::num_threads_; ++i) {
+    for (uint32_t i = 0; i < BenchmarkConfig::num_threads; ++i) {
       // Create read buffer
       byte *read_buffer = common::AllocationUtil::AllocateAligned(initializer_.ProjectedRowSize());
       storage::ProjectedRow *read = initializer_.InitializeRow(read_buffer);
@@ -40,7 +40,7 @@ class SlotIteratorBenchmark : public benchmark::Fixture {
   void TearDown(const benchmark::State &state) final {
     delete[] redo_buffer_;
     delete[] read_buffer_;
-    for (uint32_t i = 0; i < BenchmarkConfig::num_threads_; ++i) delete[] read_buffers_[i];
+    for (uint32_t i = 0; i < BenchmarkConfig::num_threads; ++i) delete[] read_buffers_[i];
     // google benchmark might run benchmark several iterations. We need to clear vectors.
     read_buffers_.clear();
     reads_.clear();
@@ -103,20 +103,23 @@ BENCHMARK_DEFINE_F(SlotIteratorBenchmark, ConcurrentSlotIterators)(benchmark::St
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    common::WorkerPool thread_pool(BenchmarkConfig::num_threads_, {});
+    common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      for (uint32_t j = 0; j < BenchmarkConfig::num_threads_; j++) {
+      for (uint32_t j = 0; j < BenchmarkConfig::num_threads; j++) {
         thread_pool.SubmitTask([&workload] { workload(); });
       }
       thread_pool.WaitUntilAllFinished();
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
-  state.SetItemsProcessed(state.iterations() * num_reads_ * BenchmarkConfig::num_threads_);
+  state.SetItemsProcessed(state.iterations() * num_reads_ * BenchmarkConfig::num_threads);
 }
 
+// ----------------------------------------------------------------------------
+// BENCHMARK REGISTRATION
+// ----------------------------------------------------------------------------
 // clang-format off
 BENCHMARK_REGISTER_F(SlotIteratorBenchmark, ConcurrentSlotIterators)
     ->Unit(benchmark::kMillisecond)

@@ -22,7 +22,7 @@ class BenchmarkConfig {
    * an environment variable.
    * @see terrier::ENV_NUM_THREADS
    */
-  static uint32_t num_threads_;
+  static uint32_t num_threads;
 };
 
 }  // namespace terrier
