@@ -241,22 +241,30 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementSelect)(benchmark::State &st
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
 
-BENCHMARK_REGISTER_F(LoggingBenchmark, TPCCish)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(3);
-
-BENCHMARK_REGISTER_F(LoggingBenchmark, HighAbortRate)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(10);
-
+// ----------------------------------------------------------------------------
+// BENCHMARK REGISTRATION
+// ----------------------------------------------------------------------------
+// clang-format off
+BENCHMARK_REGISTER_F(LoggingBenchmark, TPCCish)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->MinTime(3);
+BENCHMARK_REGISTER_F(LoggingBenchmark, HighAbortRate)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->MinTime(10);
 BENCHMARK_REGISTER_F(LoggingBenchmark, SingleStatementInsert)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->MinTime(3);
-
 BENCHMARK_REGISTER_F(LoggingBenchmark, SingleStatementUpdate)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->MinTime(3);
-
 BENCHMARK_REGISTER_F(LoggingBenchmark, SingleStatementSelect)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->MinTime(1);
+// clang-format on
+
 }  // namespace terrier

@@ -60,7 +60,12 @@ BENCHMARKS_TO_RUN = [
     "bwtree_benchmark",
     "cuckoomap_benchmark",
     "parser_benchmark",
+    "slot_iterator_benchmark",
 ]
+
+# The number of threads to use for multi-threaded benchmarks.
+# This parameter will be passed in as an environment variable to each benchmark.
+BENCHMARK_THREADS = 4
 
 # Where to find the benchmarks to execute
 BENCHMARK_PATH = "../../build/release/"
@@ -747,7 +752,7 @@ class RunMicroBenchmarks(object):
 
         # iterate over all benchmarks and run them
         for bench_name in config.benchmarks:
-            LOG.info("Running '%s'" % bench_name)
+            LOG.info("Running '{}' with {} threads".format(bench_name, BENCHMARK_THREADS))
             bench_ret_val = self.run_single_benchmark(bench_name)
             if bench_ret_val:
                 LOG.debug("{} terminated with {}".format(bench_name,
@@ -767,9 +772,11 @@ class RunMicroBenchmarks(object):
               " --benchmark_format=json" + \
               " --benchmark_out={}"
         cmd = cmd.format(benchmark_path, config.min_time, output_file)
+        
+        # Environment Variables
+        os.environ["TERRIER_BENCHMARK_THREADS"] = str(BENCHMARK_THREADS) # has to be a str
 
         # use all the cpus from the highest numbered numa node
-
         output = subprocess.check_output("numactl --hardware | grep 'available: ' | cut -d' ' -f2", shell=True)
         if not output:
             raise Exception("Missing numactl binary. Please install package")
@@ -777,12 +784,12 @@ class RunMicroBenchmarks(object):
         LOG.debug("Number of NUMA Nodes = {}".format(highest_cpu_node))
 
         cmd = "numactl --cpunodebind={} --preferred={} {}".format(highest_cpu_node, highest_cpu_node, cmd)
-        LOG.debug("Executing command: {}".format(cmd))
+        LOG.debug("Executing command [num_threads={}]: {}".format(BENCHMARK_THREADS, cmd))
 
         proc = subprocess.Popen([cmd], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = proc.communicate()
         ret_val = proc.returncode
-        #LOG.debug("OUTPUT: %s" % out)
+        LOG.debug("OUTPUT: %s" % out)
 
         # convert json results file to xml
         if ret_val == 0:
@@ -1044,6 +1051,12 @@ if __name__ == "__main__":
                         dest="run",
                         default=False,
                         help="Run Benchmarks")
+    
+    parser.add_argument("--num-threads",
+                        metavar='N',
+                        type=int,
+                        default=BENCHMARK_THREADS,
+                        help="# of threads to use for benchmarks")
 
     parser.add_argument("--debug",
                         action="store_true",
@@ -1057,6 +1070,7 @@ if __name__ == "__main__":
 
 
     if args.debug: LOG.setLevel(logging.DEBUG)
+    if args.num_threads: BENCHMARK_THREADS = args.num_threads
 
     # -------------------------------------------------------
 

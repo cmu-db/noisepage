@@ -199,7 +199,16 @@ BENCHMARK_DEFINE_F(IndexBenchmark, HashIndexRandomScanKey)(benchmark::State &sta
   state.SetItemsProcessed(state.iterations() * table_size_);
 }
 
-BENCHMARK_REGISTER_F(IndexBenchmark, BwTreeIndexRandomScanKey)->UseManualTime()->Unit(benchmark::kMillisecond);
-BENCHMARK_REGISTER_F(IndexBenchmark, HashIndexRandomScanKey)->UseManualTime()->Unit(benchmark::kMillisecond);
+// ----------------------------------------------------------------------------
+// BENCHMARK REGISTRATION
+// ----------------------------------------------------------------------------
+// clang-format off
+BENCHMARK_REGISTER_F(IndexBenchmark, BwTreeIndexRandomScanKey)
+    ->UseManualTime()
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_REGISTER_F(IndexBenchmark, HashIndexRandomScanKey)
+    ->UseManualTime()
+    ->Unit(benchmark::kMillisecond);
+// clang-format on
 
 }  // namespace terrier
