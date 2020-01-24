@@ -62,4 +62,16 @@ constexpr std::array<col_oid_t, NUM_PG_PROC_COLS> PG_PRO_ALL_COL_OIDS = {
     PROARGTYPES_COL_OID, PROALLARGTYPES_COL_OID, PROARGMODES_COL_OID,  PROARGDEFAULTS_COL_OID,  PROARGNAMES_COL_OID,
     PROSRC_COL_OID,      PROCONFIG_COL_OID};
 
+
+constexpr proc_oid_t ATAN2_PRO_OID = proc_oid_t(84);
+constexpr proc_oid_t ACOS_PRO_OID = proc_oid_t(85);
+constexpr proc_oid_t ASIN_PRO_OID = proc_oid_t(86);
+constexpr proc_oid_t ATAN_PRO_OID = proc_oid_t(87);
+constexpr proc_oid_t COS_PRO_OID = proc_oid_t(88);
+constexpr proc_oid_t SIN_PRO_OID = proc_oid_t(89);
+
+// TODO(tanujnay112) This overflows into the next internal oid range and will continue to do so
+constexpr proc_oid_t TAN_PRO_OID = proc_oid_t(90);
+constexpr proc_oid_t COT_PRO_OID = proc_oid_t(91);
+
 }  // namespace terrier::catalog::postgres

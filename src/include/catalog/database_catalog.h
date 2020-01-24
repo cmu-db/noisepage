@@ -353,6 +353,8 @@ class DatabaseCatalog {
   type_oid_t GetTypeOidForType(type::TypeId type);
 
  private:
+
+  // TODO(tanujnay112) Add support for other parameters
   /**
    * Creates a language entry into the pg_language table
    * @param txn transaction to use

@@ -6,11 +6,13 @@
 #include "benchmark_util/data_table_benchmark_util.h"
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
+#include "catalog/postgres/pg_proc.h"
 #include "loggers/binder_logger.h"
 #include "main/db_main.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
+#include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/subquery_expression.h"
 #include "parser/postgresparser.h"
@@ -929,6 +931,28 @@ TEST_F(BinderCorrectnessTest, CreateViewTest) {
   EXPECT_EQ(col_expr->GetReturnValueType(), type::TypeId::INTEGER);
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));
+}
+
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, SimpleFunctionCallTest) {
+  std::string query = "SELECT cot(1.0) FROM a;";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(query);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
+
+  auto select_stmt = parse_tree.GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
+
+  auto fun_expr = select_stmt->GetSelectColumns()[0].CastManagedPointerTo<parser::FunctionExpression>();
+  auto proc_oid = fun_expr->GetProcOid();
+  EXPECT_EQ(proc_oid, catalog::postgres::COT_PRO_OID);
+
+  // Make a query with wrong argument types to check correct overloading
+  query = "SELECT cot(1.0, 2.0) FROM a;";
+
+  parse_tree = parser::PostgresParser::BuildParseTree(query);
+  statement = parse_tree.GetStatements()[0];
+  EXPECT_THROW(binder_->BindNameToNode(statement, &parse_tree), BinderException);
 }
 
 }  // namespace terrier

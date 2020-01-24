@@ -1703,35 +1703,35 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
 
   auto dec_type = GetTypeOidForType(type::TypeId::DECIMAL);
   //ATan2
-  CreateProcedure(txn, "atan2", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"},
+  CreateProcedure(txn, postgres::ATAN2_PRO_OID, "atan2", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"},
                   {dec_type, dec_type}, {dec_type, dec_type}, {}, dec_type, "", true);
 
   //ACos
-  CreateProcedure(txn, "acos", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"},
+  CreateProcedure(txn, postgres::ACOS_PRO_OID, "acos", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"},
                   {dec_type}, {dec_type}, {}, dec_type, "", true);
 
   //ASin
-  CreateProcedure(txn, "asin", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"},
+  CreateProcedure(txn, postgres::ASIN_PRO_OID, "asin", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"},
                   {dec_type}, {dec_type}, {}, dec_type, "", true);
 
   //ATan
-  CreateProcedure(txn, "atan", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"},
+  CreateProcedure(txn, postgres::ATAN_PRO_OID, "atan", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"},
                   {dec_type}, {dec_type}, {}, dec_type, "", true);
 
   //cos
-  CreateProcedure(txn, "cos", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"},
+  CreateProcedure(txn, postgres::COS_PRO_OID, "cos", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"},
                   {dec_type}, {dec_type}, {}, dec_type, "", true);
 
   //sin
-  CreateProcedure(txn, "sin", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"},
+  CreateProcedure(txn, postgres::SIN_PRO_OID, "sin", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"},
                   {dec_type}, {dec_type}, {}, dec_type, "", true);
 
   //tan
-  CreateProcedure(txn, "tan", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"},
+  CreateProcedure(txn, postgres::TAN_PRO_OID,"tan", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"},
                   {dec_type}, {dec_type}, {}, dec_type, "", true);
 
   //cot
-  CreateProcedure(txn, "cot", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"},
+  CreateProcedure(txn, postgres::COT_PRO_OID, "cot", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"},
                   {dec_type}, {dec_type}, {}, dec_type, "", true);
 }
 
