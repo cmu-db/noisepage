@@ -2,7 +2,7 @@
 
 These are the microbenchmarks for the DBMS. We use [Google Benchmark](https://github.com/google/benchmark) library for all of these.
 
-See `run_micro_bench.py` on how these are executed in our nightly builds.
+**IMPORTANT:** If you add a new microbenchmark, you must add it to `run_micro_bench.py` to have it run automatically in our nightly builds.
 
 ## Usage
 
