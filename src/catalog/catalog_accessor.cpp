@@ -145,8 +145,8 @@ bool CatalogAccessor::DropLanguage(language_oid_t language_oid) { return dbc_->D
 
 proc_oid_t CatalogAccessor::CreateProcedure(const std::string &procname, language_oid_t language_oid,
                                             namespace_oid_t procns, const std::vector<const std::string> &args,
-                                            const std::vector<type::TypeId> &arg_types,
-                                            const std::vector<type::TypeId> &all_arg_types,
+                                            const std::vector<type_oid_t> &arg_types,
+                                            const std::vector<type_oid_t> &all_arg_types,
                                             const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,
                                             const std::string &src, bool is_aggregate) {
   return dbc_->CreateProcedure(txn_, procname, language_oid, procns, args, arg_types, all_arg_types, arg_modes, rettype,
@@ -155,7 +155,7 @@ proc_oid_t CatalogAccessor::CreateProcedure(const std::string &procname, languag
 
 bool CatalogAccessor::DropProcedure(proc_oid_t proc_oid) { return dbc_->DropProcedure(txn_, proc_oid); }
 
-proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname, const std::vector<type::TypeId> &arg_types) {
+proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname, const std::vector<type_oid_t> &arg_types) {
   proc_oid_t ret;
   for(auto ns_oid : search_path_) {
     ret = dbc_->GetProcOid(txn_, ns_oid, procname, arg_types);
@@ -164,6 +164,10 @@ proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname, const std::v
     }
   }
   return catalog::INVALID_PROC_OID;
+}
+
+type_oid_t CatalogAccessor::GetTypeOidFromTypeId(type::TypeId type){
+  return dbc_->GetTypeOidForType(type);
 }
 
 common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() const {

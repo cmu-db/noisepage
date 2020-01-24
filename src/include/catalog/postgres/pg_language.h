@@ -38,10 +38,7 @@ constexpr std::array<col_oid_t, NUM_PG_LANGUAGE_COLS> PG_LANGUAGE_ALL_COL_OIDS =
     LANOID_COL_OID,        LANNAME_COL_OID,   LANISPL_COL_OID,     LANPLTRUSTED_COL_OID,
     LANPLCALLFOID_COL_OID, LANINLINE_COL_OID, LANVALIDATOR_COL_OID};
 
-constexpr language_oid_t INTERNAL_LANGUAGE_OID = language_oid_t(1);
-constexpr language_oid_t PLPGSQL_LANGUAGE_OID = language_oid_t(2);
-constexpr language_oid_t INITIAL_LANGUAGE_COUNTER_OID = language_oid_t(3);
-
-constexpr proc_oid_t INITIAL_PROC_COUNTER_OID = proc_oid_t(1);
+constexpr language_oid_t INTERNAL_LANGUAGE_OID = language_oid_t(74);
+constexpr language_oid_t PLPGSQL_LANGUAGE_OID = language_oid_t(75);
 
 }  // namespace terrier::catalog::postgres

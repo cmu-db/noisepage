@@ -68,8 +68,10 @@ TEST_F(CatalogTests, LanguageTest) {
   auto txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
 
-  VerifyCatalogTables(*accessor);  // Check visibility to me
+  // Check visibility to me
+  VerifyCatalogTables(*accessor);
 
+  // make sure "internal" is bootstrapped
   auto oid = accessor->CreateLanguage("internal");
   EXPECT_EQ(oid, catalog::INVALID_LANGUAGE_OID);
 
@@ -77,6 +79,7 @@ TEST_F(CatalogTests, LanguageTest) {
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
 
+  // add custom language
   oid = accessor->CreateLanguage("test_language");
   EXPECT_NE(oid, catalog::INVALID_LANGUAGE_OID);
 
@@ -87,6 +90,7 @@ TEST_F(CatalogTests, LanguageTest) {
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
 
+  // make sure we can't add the same language again
   oid = accessor->CreateLanguage("test_language");
   EXPECT_EQ(oid, catalog::INVALID_LANGUAGE_OID);
   txn_manager_->Abort(txn);
@@ -94,6 +98,7 @@ TEST_F(CatalogTests, LanguageTest) {
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
 
+  // make sure we get the same language oid back for the custom language we created
   oid = accessor->GetLanguageOid("test_language");
   EXPECT_EQ(oid, good_oid);
 
@@ -104,6 +109,7 @@ TEST_F(CatalogTests, LanguageTest) {
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
 
+  // drop the language we made
   result = accessor->DropLanguage(good_oid);
   EXPECT_FALSE(result);
   txn_manager_->Abort(txn);
@@ -113,7 +119,8 @@ TEST_F(CatalogTests, ProcTest) {
   auto txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
 
-  VerifyCatalogTables(*accessor);  // Check visibility to me
+  // Check visibility to me
+  VerifyCatalogTables(*accessor);
 
   auto lan_oid = accessor->CreateLanguage("test_language");
   auto ns_oid = accessor->GetDefaultNamespace();
@@ -125,9 +132,12 @@ TEST_F(CatalogTests, ProcTest) {
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
 
+  // create a sample proc
   auto procname = "sample";
   std::vector<const std::string> args = {"arg1", "arg2", "arg3"};
-  std::vector<type::TypeId> arg_types = {type::TypeId::INTEGER, type::TypeId::BOOLEAN, type::TypeId::SMALLINT};
+  std::vector<catalog::type_oid_t> arg_types = {accessor->GetTypeOidFromTypeId(type::TypeId::INTEGER),
+                                         accessor->GetTypeOidFromTypeId(type::TypeId::BOOLEAN),
+                                         accessor->GetTypeOidFromTypeId(type::TypeId::SMALLINT)};
   std::vector<catalog::postgres::ProArgModes> arg_modes = {catalog::postgres::ProArgModes::IN,
                                                            catalog::postgres::ProArgModes::IN,
                                                            catalog::postgres::ProArgModes::IN};
@@ -142,8 +152,11 @@ TEST_F(CatalogTests, ProcTest) {
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
 
+  // make sure we didn't find this proc that we never added
   auto found_oid = accessor->GetProcOid("bad_proc", arg_types);
   EXPECT_EQ(found_oid, catalog::INVALID_PROC_OID);
+
+  // look for proc that we actually added
   found_oid = accessor->GetProcOid(procname, arg_types);
 
   EXPECT_EQ(found_oid, proc_oid);

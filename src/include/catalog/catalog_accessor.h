@@ -289,7 +289,7 @@ class CatalogAccessor {
   /**
    * Creates a procedure for the pg_proc table
    * @param procname name of process to add
-   * @param lanoid oid of language this process is written in
+   * @param language_oid oid of language this process is written in
    * @param procns namespace of process to add
    * @param args names of arguments to this proc
    * @param arg_types types of arguments to this proc in the same order as in args (only for in and inout
@@ -303,8 +303,8 @@ class CatalogAccessor {
    * @warning does not support variadics yet
    */
   proc_oid_t CreateProcedure(const std::string &procname, language_oid_t language_oid, namespace_oid_t procns,
-                             const std::vector<const std::string> &args, const std::vector<type::TypeId> &arg_types,
-                             const std::vector<type::TypeId> &all_arg_types,
+                             const std::vector<const std::string> &args, const std::vector<type_oid_t> &arg_types,
+                             const std::vector<type_oid_t> &all_arg_types,
                              const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,
                              const std::string &src, bool is_aggregate);
 
@@ -323,7 +323,14 @@ class CatalogAccessor {
    * @param all_arg_types vector of types of arguments of procedure to look up
    * @return the oid of the found proc if found else INVALID_PROC_OID
    */
-  proc_oid_t GetProcOid(const std::string &procname, const std::vector<type::TypeId> &all_arg_types);
+  proc_oid_t GetProcOid(const std::string &procname, const std::vector<type_oid_t> &all_arg_types);
+
+  /**
+   * Returns the type oid of the given TypeId in pg_type
+   * @param type
+   * @return type_oid of type in pg_type
+   */
+  type_oid_t GetTypeOidFromTypeId(type::TypeId type);
 
   /**
    * @return BlockStore to be used for CREATE operations

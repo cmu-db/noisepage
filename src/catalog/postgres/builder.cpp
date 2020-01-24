@@ -317,10 +317,10 @@ Schema Builder::GetLanguageTableSchema() {
   columns.emplace_back("lanname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, MakeNull(type::TypeId::VARCHAR));
   columns.back().SetOid(LANNAME_COL_OID);
 
-  columns.emplace_back("lanispl", type::TypeId::BOOLEAN, true, MakeNull(type::TypeId::BOOLEAN));
+  columns.emplace_back("lanispl", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
   columns.back().SetOid(LANISPL_COL_OID);
 
-  columns.emplace_back("lanpltrusted", type::TypeId::BOOLEAN, true, MakeNull(type::TypeId::BOOLEAN));
+  columns.emplace_back("lanpltrusted", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
   columns.back().SetOid(LANPLTRUSTED_COL_OID);
 
   columns.emplace_back("lanplcallfoid", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
@@ -716,7 +716,7 @@ IndexSchema Builder::GetProcNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(3));
 
   // Unique, not primary
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
+  IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, false, false, true);
 
   return schema;
 }

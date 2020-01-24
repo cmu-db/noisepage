@@ -278,7 +278,7 @@ class DatabaseCatalog {
    * Creates a procedure for the pg_proc table
    * @param txn transaction to use
    * @param procname name of process to add
-   * @param lanoid oid of language this process is written in
+   * @param language_oid oid of language this process is written in
    * @param procns namespace of process to add
    * @param args names of arguments to this proc
    * @param arg_types types of arguments to this proc in the same order as in args (only for in and inout
@@ -288,12 +288,41 @@ class DatabaseCatalog {
    * @param rettype oid of the type of return value
    * @param src source code of proc
    * @param is_aggregate true iff this is an aggregate procedure
-   * @return oid of created proc entry
+   * @return oid of created proc entry or INVALID_PROC_ENTRY if the creation failed
    * @warning does not support variadics yet
    */
-  proc_oid_t CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &procname,
-                             language_oid_t lanoid, namespace_oid_t procns, const std::vector<const std::string> &args,
-                             const std::vector<type::TypeId> &arg_types, const std::vector<type::TypeId> &all_arg_types,
+  proc_oid_t CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn,
+                             const std::string &procname,
+                             language_oid_t language_oid, namespace_oid_t procns,
+                             const std::vector<const std::string> &args,
+                             const std::vector<type_oid_t> &arg_types, const std::vector<type_oid_t> &all_arg_types,
+                             const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,
+                             const std::string &src, bool is_aggregate);
+
+
+  /**
+   * Creates a procedure for the pg_proc table
+   * @param txn transaction to use
+   * @param oid oid of procedure to create
+   * @param procname name of process to add
+   * @param language_oid oid of language this process is written in
+   * @param procns namespace of process to add
+   * @param args names of arguments to this proc
+   * @param arg_types types of arguments to this proc in the same order as in args (only for in and inout
+   *        arguments)
+   * @param all_arg_types types of all arguments
+   * @param arg_modes modes of arguments in the same order as in args
+   * @param rettype oid of the type of return value
+   * @param src source code of proc
+   * @param is_aggregate true iff this is an aggregate procedure
+   * @return if the creation was a success
+   * @warning does not support variadics yet
+   */
+  bool CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn,
+                             proc_oid_t oid, const std::string &procname,
+                             language_oid_t language_oid, namespace_oid_t procns,
+                             const std::vector<const std::string> &args,
+                             const std::vector<type_oid_t> &arg_types, const std::vector<type_oid_t> &all_arg_types,
                              const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,
                              const std::string &src, bool is_aggregate);
 
@@ -314,7 +343,14 @@ class DatabaseCatalog {
    * @return the oid of the found proc if found else INVALID_PROC_OID
    */
   proc_oid_t GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t procns,
-                        const std::string &procname, const std::vector<type::TypeId> &all_arg_types);
+                        const std::string &procname, const std::vector<type_oid_t> &all_arg_types);
+
+  /**
+   * Returns oid for built in type. Currently, we simply use the underlying int for the enum as the oid
+   * @param type internal type
+   * @return oid for internal type
+   */
+  type_oid_t GetTypeOidForType(type::TypeId type);
 
  private:
   /**
@@ -439,14 +475,12 @@ class DatabaseCatalog {
   storage::index::Index *languages_name_index_;  // indexed on language name and namespace
   storage::ProjectedRowInitializer pg_language_all_cols_pri_;
   storage::ProjectionMap pg_language_all_cols_prm_;
-  std::atomic<language_oid_t> language_oid_counter_{postgres::INITIAL_LANGUAGE_COUNTER_OID};
 
   storage::SqlTable *procs_;
   storage::index::Index *procs_oid_index_;
   storage::index::Index *procs_name_index_;
   storage::ProjectedRowInitializer pg_proc_all_cols_pri_;
   storage::ProjectionMap pg_proc_all_cols_prm_;
-  std::atomic<proc_oid_t> proc_oid_counter_{postgres::INITIAL_PROC_COUNTER_OID};
 
   std::atomic<uint32_t> next_oid_;
   std::atomic<transaction::timestamp_t> write_lock_;
@@ -561,13 +595,6 @@ class DatabaseCatalog {
   void InsertType(common::ManagedPointer<transaction::TransactionContext> txn, type::TypeId internal_type,
                   const std::string &name, namespace_oid_t namespace_oid, int16_t len, bool by_val,
                   postgres::Type type_category);
-
-  /**
-   * Returns oid for built in type. Currently, we simply use the underlying int for the enum as the oid
-   * @param type internal type
-   * @return oid for internal type
-   */
-  type_oid_t GetTypeOidForType(type::TypeId type);
 
   /**
    * Helper function to query the oid and kind from

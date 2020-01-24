@@ -238,6 +238,8 @@ class StorageUtil {
   static storage::VarlenEntry CreateVarlen(const std::vector<T> &vec) {
     // determine total size
     size_t total_size = sizeof(T) * vec.size() + sizeof(size_t);
+
+    // can be optimized to avoid this allocation in the inlined case if it becomes an issue
     byte *contents = common::AllocationUtil::AllocateAligned(total_size);
     *reinterpret_cast<size_t *>(contents) = vec.size();
     byte *payload = contents + sizeof(size_t);
