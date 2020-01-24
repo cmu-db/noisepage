@@ -264,13 +264,13 @@ struct StringVal : public Val {
    */
   bool operator==(const StringVal &that) const {
     if (is_null_ != that.is_null_) {
-      return false;
+      return false;;
     }
     if (is_null_) {
       return true;
     }
     if (len_ != that.len_) {
-      return false;
+      return false;;
     }
     if (len_ <= InlineThreshold()) {
       return memcmp(prefix_, that.prefix_, len_) == 0;

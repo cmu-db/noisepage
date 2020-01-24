@@ -145,6 +145,23 @@ class CountMinSketch {
    */
   size_t GetTotalCount() const { return total_count_; }
 
+  /**
+   * Clear the sketch
+   */
+  void Clear() { sketch_.clear(); }
+
+  /*
+    Return the sketch
+  */
+  const madoka::Sketch & GetSketch() const { return sketch_; }
+
+  /*
+    Merge with the rhs sketch
+  */
+  void Merge(const CountMinSketch &rhs) {
+    sketch_.merge(rhs.GetSketch());
+  }
+
  private:
   /**
    * Simple counter of the approximate number of entries we have stored.

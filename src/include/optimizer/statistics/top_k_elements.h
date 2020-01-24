@@ -11,7 +11,7 @@
 #include <set>
 #include <stack>
 #include <string>
-#include <unordered_map>
+#include <map>
 #include <utility>
 #include <vector>
 
@@ -41,7 +41,7 @@ class TopKElements {
    * @param width the size of the underlying sketch
    */
   explicit TopKElements(size_t k, uint64_t width) : numk_{k} {
-    entries_.reserve(numk_);
+    // entries_.reserve(numk_);
     sketch_ = new CountMinSketch<KeyType>(width);
   }
 
@@ -76,7 +76,7 @@ class TopKElements {
     auto entry = entries_.find(key);
     if (entry != entries_.end()) {
       entries_[key] += delta;
-      OPTIMIZER_LOG_TRACE("Increment Key[{0}] => {1} // [size={2}]", key, entries_[key], GetSize());
+      // OPTIMIZER_LOG_TRACE("Increment Key[{0}] => {1} // [size={2}]", key, entries_[key], GetSize());
 
       // If this key is the current min key, then we need
       // to go through to see whether after this update it
@@ -102,11 +102,11 @@ class TopKElements {
     if (size == numk_ && total_cnt > min_count_) {
       // Remove the current min key
       entries_.erase(min_key_);
-      OPTIMIZER_LOG_TRACE("Remove Key[{0}] => {1} // [size={2}]", min_key_, min_count_, GetSize());
+      // OPTIMIZER_LOG_TRACE("Remove Key[{0}] => {1} // [size={2}]", min_key_, min_count_, GetSize());
 
       // Then add our new key
       entries_[key] = total_cnt;
-      OPTIMIZER_LOG_TRACE("Insert Key[{0}] => {1} // [size={2}]", key, total_cnt, GetSize());
+      // OPTIMIZER_LOG_TRACE("Insert Key[{0}] => {1} // [size={2}]", key, total_cnt, GetSize());
 
       // But then we need to figure out what the new
       // min key is in our current top-k list. We don't
@@ -127,14 +127,14 @@ class TopKElements {
       // we know that we can the exact count here and not the
       // estimated count.
       entries_[key] = delta;
-      OPTIMIZER_LOG_TRACE("Insert Key[{0}] => {1} // [size={2}]", key, delta, GetSize());
+      // OPTIMIZER_LOG_TRACE("Insert Key[{0}] => {1} // [size={2}]", key, delta, GetSize());
 
       // We only need to do a direct comparison here to see
       // whether our key is the new min key.
       if (delta < min_count_) {
         min_key_ = key;
         min_count_ = delta;
-        OPTIMIZER_LOG_TRACE("Direct MinKey[{0}] => {1}", min_key_, min_count_);
+        // OPTIMIZER_LOG_TRACE("Direct MinKey[{0}] => {1}", min_key_, min_count_);
       }
     }
   }
@@ -156,7 +156,7 @@ class TopKElements {
    */
   void Decrement(const KeyType &key, const size_t key_size, uint32_t delta) {
     TERRIER_ASSERT(delta >= 0, "Invalid delta");
-    OPTIMIZER_LOG_TRACE("Decrement(key={0}, delta={1}) // [size={2}]", key, delta, GetSize());
+    // OPTIMIZER_LOG_TRACE("Decrement(key={0}, delta={1}) // [size={2}]", key, delta, GetSize());
 
     // Decrement the count for this item in the sketch
     sketch_->Decrement(key, key_size, delta);
@@ -184,7 +184,7 @@ class TopKElements {
       } else if (total_cnt < min_count_) {
         min_key_ = key;
         min_count_ = total_cnt;
-        OPTIMIZER_LOG_TRACE("MinKey[{0}] => {1}", min_key_, min_count_);
+        // OPTIMIZER_LOG_TRACE("MinKey[{0}] => {1}", min_key_, min_count_);
       }
     }
   }
@@ -203,7 +203,7 @@ class TopKElements {
    * @param key_size
    */
   void Remove(const KeyType &key, const size_t key_size) {
-    OPTIMIZER_LOG_TRACE("Remove(key={0}) // [size={2}]", key, GetSize());
+    // OPTIMIZER_LOG_TRACE("Remove(key={0}) // [size={2}]", key, GetSize());
 
     // Always remove the key from the sketch
     sketch_->Remove(key, key_size);
@@ -239,6 +239,29 @@ class TopKElements {
     // the count.
     return sketch_->EstimateItemCount(key);
   }
+
+  /**
+   * @return the sketch object of the top-K list
+   */
+  const CountMinSketch<KeyType> & GetSketch() const {return (*sketch_);}
+
+  /*
+    Merge two TopK Elments objects
+  */
+  void Merge(const terrier::optimizer::TopKElements<KeyType> &hist) {
+    sketch_->Merge((hist.GetSketch()));
+  }
+
+  
+  // Clear the topK elements object
+  
+  void Clear() {
+    sketch_->Clear();
+    entries_.clear();
+    min_count_ = INT64_MAX;
+    // min_key_ = 0;
+  }
+
 
   /**
    * @return the number of keys to keep track of in the top-k list
@@ -304,7 +327,7 @@ class TopKElements {
    * The internal top-k key list. The size of this vector
    * will not exceed k.
    */
-  std::unordered_map<KeyType, int64_t> entries_;
+  std::map<KeyType, int64_t> entries_;
 
   /**
    * The key with the smallest count that we've seen so far.
@@ -339,7 +362,7 @@ class TopKElements {
     }
     min_key_ = new_min_key;
     min_count_ = new_min_count;
-    OPTIMIZER_LOG_TRACE("Compute MinKey[{0}] => {1}", min_key_, min_count_);
+    // OPTIMIZER_LOG_TRACE("Compute MinKey[{0}] => {1}", min_key_, min_count_);
   }
 };
 

@@ -6,6 +6,7 @@
 #include "common/macros.h"
 #include "execution/sql/value.h"
 #include "execution/util/execution_common.h"
+#include <optimizer/statistics/top_k_elements.h>
 
 namespace terrier::execution::sql {
 
@@ -282,6 +283,76 @@ class IntegerMaxAggregate {
   int64_t max_{std::numeric_limits<int64_t>::min()};
   bool null_{true};
 };
+
+/*
+ * TopKAggregate
+*/
+template <typename T>
+class TopKAggregate {
+  using CppType = decltype(T::val_);
+ public:
+  /**
+   * Constructor.
+   */
+  TopKAggregate(size_t topK)  : histogram_(topK, 64) {}
+
+  /**
+   * This class cannot be copied or moved.
+   */
+  DISALLOW_COPY_AND_MOVE(TopKAggregate);
+
+  /**
+   * Advance the aggregate by the input value @em val.
+   */
+  void Advance(const Integer &val) {
+    if (val.is_null_) {
+      return;
+    }
+    null_ = false;
+    histogram_.Increment(val.val_, 1);
+  }
+
+  // * Merge a partial max aggregate into this aggregate.
+   
+  void Merge(const TopKAggregate &that) {
+    if (that.null_) {
+      return;
+    }
+    null_ = false;
+
+    histogram_.Merge(that.GetHistogram());
+  }
+
+  /**
+   * Reset the aggregate.
+   */
+  void Reset() {
+    null_ = true;
+    histogram_.Clear();
+  }
+
+  /**
+   * Return the result of the max.
+   */
+  std::vector<T> GetResultMax() const {
+    auto top_k_keys = histogram_.GetSortedTopKeys();
+    std::vector<T> top_k_sql_type;
+    for(auto key : top_k_keys) {
+      top_k_sql_type.push_back(T(key));
+    }
+    return top_k_sql_type;
+  }
+
+  /**
+   * Return the Histogram.
+   */
+  const terrier::optimizer::TopKElements<CppType> & GetHistogram() const { return histogram_; }
+
+ private:
+  terrier::optimizer::TopKElements<CppType> histogram_;
+  bool null_{true};
+};
+
 
 /**
  * Real Max

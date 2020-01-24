@@ -99,6 +99,63 @@ TEST_F(AggregatorsTest, SumInteger) {
   }
 }
 
+
+// NOLINTNEXTLINE
+TEST_F(AggregatorsTest, TopKInteger) {
+  //
+  // SUM on empty input is null
+  //
+
+  {
+    TopKAggregate<Integer> topk(2);
+    EXPECT_TRUE(topk.GetResultMax().empty());
+  }
+
+  //
+  // Sum on mixed NULL and non-NULL input
+  //
+
+  {
+    // [1, 3, 5, 7, 9]
+    TopKAggregate<Integer> topk(2);
+    for (uint32_t i = 0; i < 10; i++) {
+      for(uint32_t j = 0; j < i; j++) {
+        Integer val = Integer(i);
+        topk.Advance(val);
+      }
+    }
+
+    auto result = topk.GetResultMax();
+    EXPECT_EQ(2, result.size());
+    EXPECT_EQ(8,result[0].val_);
+    EXPECT_EQ(9,result[1].val_);
+  }
+
+  {
+    // [1, 3, 5, 7, 9]
+    TopKAggregate<Integer> topk(2);
+    TopKAggregate<Integer> topkreverse(2);
+
+    for (uint32_t i = 0; i < 10; i++) {
+        Integer val = Integer(i);
+        topk.Advance(val);
+    }
+
+    for (uint32_t i = 0; i < 10; i++) {
+      for(uint32_t j = i; j < 20; j++) {
+        Integer val = Integer(i);
+        topkreverse.Advance(val);
+      }
+    }
+
+    topk.Merge(topkreverse);
+    auto result = topk.GetResultMax();
+    EXPECT_EQ(2, result.size());
+    EXPECT_EQ(0,result[0].val_);
+    EXPECT_EQ(1,result[1].val_);
+  }
+}
+
 // NOLINTNEXTLINE
 TEST_F(AggregatorsTest, MergeSumIntegers) {
   IntegerSumAggregate sum1;
