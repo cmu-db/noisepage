@@ -324,7 +324,7 @@ class VarlenEntry {
    * @warning It is the programmer's responsibility to ensure that the returned vector doesn't outlive the VarlenEntry
    */
   template <typename T>
-  const std::vector<T> DeserializeArray() const {
+  std::vector<T> DeserializeArray() const {
     const byte *contents = Content();
     size_t num_elements = *reinterpret_cast<const size_t *>(contents);
     TERRIER_ASSERT(sizeof(T) == Size() / num_elements, "Deserializing the wrong element types from array");
@@ -339,7 +339,7 @@ class VarlenEntry {
    * @warning Assuming this varlen is serialized in the format specified by
    * StorageUtils::CreateVarlen(const std::vector<const std::string> &vec)
    */
-  const std::vector<std::string> DeserializeArray() const {
+  std::vector<std::string> DeserializeArray() const {
     std::vector<std::string> vec;
     uint32_t to_read = Size();
     uint32_t num_read = 0;

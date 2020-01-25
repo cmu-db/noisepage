@@ -2083,7 +2083,7 @@ language_oid_t DatabaseCatalog::GetLanguageOid(const common::ManagedPointer<tran
   languages_name_index_->ScanKey(*txn, *name_pr, &results);
 
   auto oid = INVALID_LANGUAGE_OID;
-  if (results.size() != 0) {
+  if (!results.empty()) {
     TERRIER_ASSERT(results.size() == 1, "Unique language name index should return <= 1 result");
 
     // extract oid from results[0]
@@ -2117,7 +2117,7 @@ bool DatabaseCatalog::DropLanguage(const common::ManagedPointer<transaction::Tra
 
   std::vector<storage::TupleSlot> results;
   languages_oid_index_->ScanKey(*txn, *index_pr, &results);
-  if (results.size() == 0) {
+  if (results.empty()) {
     delete[] buffer;
     return false;
   }
@@ -2279,9 +2279,9 @@ bool DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::
   return true;
 }
 
-bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t oid) {
+bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc) {
   if (!TryLock(txn)) return false;
-  TERRIER_ASSERT(oid != INVALID_PROC_OID, "Invalid oid passed");
+  TERRIER_ASSERT(proc != INVALID_PROC_OID, "Invalid oid passed");
 
   auto name_pri = procs_name_index_->GetProjectedRowInitializer();
   auto oid_pri = procs_oid_index_->GetProjectedRowInitializer();
@@ -2289,11 +2289,11 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
   byte *const buffer = common::AllocationUtil::AllocateAligned(pg_proc_all_cols_pri_.ProjectedRowSize());
 
   auto oid_pr = oid_pri.InitializeRow(buffer);
-  *reinterpret_cast<proc_oid_t *>(oid_pr->AccessForceNotNull(0)) = oid;
+  *reinterpret_cast<proc_oid_t *>(oid_pr->AccessForceNotNull(0)) = proc;
 
   std::vector<storage::TupleSlot> results;
   procs_oid_index_->ScanKey(*txn, *oid_pr, &results);
-  if (results.size() == 0) {
+  if (results.empty()) {
     delete[] buffer;
     return false;
   }

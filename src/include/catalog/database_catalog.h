@@ -254,7 +254,7 @@ class DatabaseCatalog {
    * @param lanname name of language to insert
    * @return oid of created entry if successful else INVALID_LANGUAGE_OID
    */
-  language_oid_t CreateLanguage(const common::ManagedPointer<transaction::TransactionContext> txn,
+  language_oid_t CreateLanguage(common::ManagedPointer<transaction::TransactionContext> txn,
                                 const std::string &lanname);
 
   /**
@@ -553,13 +553,13 @@ class DatabaseCatalog {
    * Bootstraps the built-in languages found in pg_languages
    * @param txn transaction to insert into catalog with
    */
-  void BootstrapLanguages(const common::ManagedPointer<transaction::TransactionContext> txn);
+  void BootstrapLanguages(common::ManagedPointer<transaction::TransactionContext> txn);
 
   /**
    * Bootstraps the built-in procs found in pg_procs
    * @param txn transaction to insert into catalog with
    */
-  void BootstrapProcs(const common::ManagedPointer<transaction::TransactionContext> txn);
+  void BootstrapProcs(common::ManagedPointer<transaction::TransactionContext> txn);
 
   /**
    * Creates all of the ProjectedRowInitializers and ProjectionMaps for the catalog. These can be stashed because the
