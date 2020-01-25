@@ -21,6 +21,4 @@ enum class TypeId : uint8_t {
   PARAMETER_OFFSET
 };
 
-
-
 }  // namespace terrier::type

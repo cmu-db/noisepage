@@ -291,14 +291,12 @@ class DatabaseCatalog {
    * @return oid of created proc entry or INVALID_PROC_ENTRY if the creation failed
    * @warning does not support variadics yet
    */
-  proc_oid_t CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn,
-                             const std::string &procname,
+  proc_oid_t CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &procname,
                              language_oid_t language_oid, namespace_oid_t procns,
-                             const std::vector<const std::string> &args,
-                             const std::vector<type_oid_t> &arg_types, const std::vector<type_oid_t> &all_arg_types,
+                             const std::vector<const std::string> &args, const std::vector<type_oid_t> &arg_types,
+                             const std::vector<type_oid_t> &all_arg_types,
                              const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,
                              const std::string &src, bool is_aggregate);
-
 
   /**
    * Creates a procedure for the pg_proc table
@@ -318,13 +316,12 @@ class DatabaseCatalog {
    * @return if the creation was a success
    * @warning does not support variadics yet
    */
-  bool CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn,
-                             proc_oid_t oid, const std::string &procname,
-                             language_oid_t language_oid, namespace_oid_t procns,
-                             const std::vector<const std::string> &args,
-                             const std::vector<type_oid_t> &arg_types, const std::vector<type_oid_t> &all_arg_types,
-                             const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,
-                             const std::string &src, bool is_aggregate);
+  bool CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t oid,
+                       const std::string &procname, language_oid_t language_oid, namespace_oid_t procns,
+                       const std::vector<const std::string> &args, const std::vector<type_oid_t> &arg_types,
+                       const std::vector<type_oid_t> &all_arg_types,
+                       const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype, const std::string &src,
+                       bool is_aggregate);
 
   /**
    * Drops a procedure from the pg_proc table
@@ -353,7 +350,6 @@ class DatabaseCatalog {
   type_oid_t GetTypeOidForType(type::TypeId type);
 
  private:
-
   // TODO(tanujnay112) Add support for other parameters
 
   /**

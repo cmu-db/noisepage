@@ -62,7 +62,6 @@ constexpr std::array<col_oid_t, NUM_PG_PROC_COLS> PG_PRO_ALL_COL_OIDS = {
     PROARGTYPES_COL_OID, PROALLARGTYPES_COL_OID, PROARGMODES_COL_OID,  PROARGDEFAULTS_COL_OID,  PROARGNAMES_COL_OID,
     PROSRC_COL_OID,      PROCONFIG_COL_OID};
 
-
 constexpr proc_oid_t ATAN2_PRO_OID = proc_oid_t(84);
 constexpr proc_oid_t ACOS_PRO_OID = proc_oid_t(85);
 constexpr proc_oid_t ASIN_PRO_OID = proc_oid_t(86);

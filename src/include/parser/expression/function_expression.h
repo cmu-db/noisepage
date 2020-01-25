@@ -109,17 +109,13 @@ class FunctionExpression : public AbstractExpression {
    * Sets the proc oid of this node
    * @param proc_oid proc oid to set this node to point to
    */
-  void SetProcOid(catalog::proc_oid_t proc_oid){
-    proc_oid_ = proc_oid;
-  }
+  void SetProcOid(catalog::proc_oid_t proc_oid) { proc_oid_ = proc_oid; }
 
   /**
    * Gets the bound proc_oid of the function
    * @return proc_oid of the function bound to this expression
    */
-  catalog::proc_oid_t GetProcOid(){
-    return proc_oid_;
-  }
+  catalog::proc_oid_t GetProcOid() { return proc_oid_; }
 
  private:
   /** Name of function to be invoked. */

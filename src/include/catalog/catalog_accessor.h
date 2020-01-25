@@ -310,7 +310,7 @@ class CatalogAccessor {
 
   /**
    * Drops a procedure from the pg_proc table
-   * @param proc oid of process to drop
+   * @param proc_oid oid of process to drop
    * @return true iff the process was successfully found and dropped
    */
   bool DropProcedure(proc_oid_t proc_oid);

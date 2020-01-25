@@ -1700,39 +1700,39 @@ void DatabaseCatalog::BootstrapLanguages(const common::ManagedPointer<transactio
 }
 
 void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::TransactionContext> txn) {
-
   auto dec_type = GetTypeOidForType(type::TypeId::DECIMAL);
-  //ATan2
-  CreateProcedure(txn, postgres::ATAN2_PRO_OID, "atan2", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"},
-                  {dec_type, dec_type}, {dec_type, dec_type}, {}, dec_type, "", true);
+  // ATan2
+  CreateProcedure(txn, postgres::ATAN2_PRO_OID, "atan2", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, dec_type}, {dec_type, dec_type}, {},
+                  dec_type, "", true);
 
-  //ACos
-  CreateProcedure(txn, postgres::ACOS_PRO_OID, "acos", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"},
-                  {dec_type}, {dec_type}, {}, dec_type, "", true);
+  // ACos
+  CreateProcedure(txn, postgres::ACOS_PRO_OID, "acos", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
 
-  //ASin
-  CreateProcedure(txn, postgres::ASIN_PRO_OID, "asin", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"},
-                  {dec_type}, {dec_type}, {}, dec_type, "", true);
+  // ASin
+  CreateProcedure(txn, postgres::ASIN_PRO_OID, "asin", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
 
-  //ATan
-  CreateProcedure(txn, postgres::ATAN_PRO_OID, "atan", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"},
-                  {dec_type}, {dec_type}, {}, dec_type, "", true);
+  // ATan
+  CreateProcedure(txn, postgres::ATAN_PRO_OID, "atan", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
 
-  //cos
-  CreateProcedure(txn, postgres::COS_PRO_OID, "cos", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"},
-                  {dec_type}, {dec_type}, {}, dec_type, "", true);
+  // cos
+  CreateProcedure(txn, postgres::COS_PRO_OID, "cos", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
 
-  //sin
-  CreateProcedure(txn, postgres::SIN_PRO_OID, "sin", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"},
-                  {dec_type}, {dec_type}, {}, dec_type, "", true);
+  // sin
+  CreateProcedure(txn, postgres::SIN_PRO_OID, "sin", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
 
-  //tan
-  CreateProcedure(txn, postgres::TAN_PRO_OID,"tan", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"},
-                  {dec_type}, {dec_type}, {}, dec_type, "", true);
+  // tan
+  CreateProcedure(txn, postgres::TAN_PRO_OID, "tan", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
 
-  //cot
-  CreateProcedure(txn, postgres::COT_PRO_OID, "cot", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"},
-                  {dec_type}, {dec_type}, {}, dec_type, "", true);
+  // cot
+  CreateProcedure(txn, postgres::COT_PRO_OID, "cot", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
 }
 
 void BootstrapProcs(const common::ManagedPointer<transaction::TransactionContext> txn) { (void)txn; }
@@ -2152,26 +2152,25 @@ bool DatabaseCatalog::DropLanguage(const common::ManagedPointer<transaction::Tra
 }
 
 proc_oid_t DatabaseCatalog::CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn,
-                           const std::string &procname,
-                           language_oid_t language_oid, namespace_oid_t procns,
-                           const std::vector<const std::string> &args,
-                           const std::vector<type_oid_t> &arg_types, const std::vector<type_oid_t> &all_arg_types,
-                           const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,
-                           const std::string &src, bool is_aggregate) {
-  proc_oid_t oid = proc_oid_t{next_oid_++};
-  auto result = CreateProcedure(txn, oid, procname, language_oid, procns, args, arg_types,
-      all_arg_types, arg_modes, rettype, src, is_aggregate);
-  return result ? oid : INVALID_PROC_OID;
-}
-
-bool DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                            proc_oid_t oid, const std::string &procname,
-                                            language_oid_t language_oid, namespace_oid_t procns,
-                                            const std::vector<const std::string> &args,
+                                            const std::string &procname, language_oid_t language_oid,
+                                            namespace_oid_t procns, const std::vector<const std::string> &args,
                                             const std::vector<type_oid_t> &arg_types,
                                             const std::vector<type_oid_t> &all_arg_types,
                                             const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,
                                             const std::string &src, bool is_aggregate) {
+  proc_oid_t oid = proc_oid_t{next_oid_++};
+  auto result = CreateProcedure(txn, oid, procname, language_oid, procns, args, arg_types, all_arg_types, arg_modes,
+                                rettype, src, is_aggregate);
+  return result ? oid : INVALID_PROC_OID;
+}
+
+bool DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t oid,
+                                      const std::string &procname, language_oid_t language_oid, namespace_oid_t procns,
+                                      const std::vector<const std::string> &args,
+                                      const std::vector<type_oid_t> &arg_types,
+                                      const std::vector<type_oid_t> &all_arg_types,
+                                      const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,
+                                      const std::string &src, bool is_aggregate) {
   TERRIER_ASSERT(args.size() < UINT16_MAX, "Number of arguments must fit in a SMALLINT");
 
   // Insert into table
