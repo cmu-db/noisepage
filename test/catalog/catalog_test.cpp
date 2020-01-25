@@ -159,7 +159,7 @@ TEST_F(CatalogTests, ProcTest) {
   // look for proc that we actually added
   found_oid = accessor->GetProcOid(procname, arg_types);
 
-  auto sin_oid = accessor->GetProcOid("sin", catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID);
+  auto sin_oid = accessor->GetProcOid("sin", {accessor->GetTypeOidFromTypeId(type::TypeId::DECIMAL)});
   EXPECT_NE(sin_oid, catalog::INVALID_PROC_OID);
 
   EXPECT_EQ(found_oid, proc_oid);

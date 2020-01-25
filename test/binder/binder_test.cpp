@@ -875,10 +875,10 @@ TEST_F(BinderCorrectnessTest, CreateTableSimpleForeignViolateTest) {
 TEST_F(BinderCorrectnessTest, CreateIndexTest) {
   BINDER_LOG_DEBUG("Checking create index");
 
-  std::string create_sql = "CREATE UNIQUE INDEX idx_d ON A (lower(A2), A1);";
+  std::string create_sql = "CREATE UNIQUE INDEX idx_d ON A (A2, A1);";
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
-  EXPECT_NO_THROW(binder_->BindNameToNode(statement, parse_tree.get()));
+  binder_->BindNameToNode(statement, parse_tree.get());
 }
 
 // NOLINTNEXTLINE
@@ -937,10 +937,10 @@ TEST_F(BinderCorrectnessTest, SimpleFunctionCallTest) {
   std::string query = "SELECT cot(1.0) FROM a;";
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(query);
-  auto statement = parse_tree.GetStatements()[0];
-  binder_->BindNameToNode(statement, &parse_tree);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(statement, parse_tree.get());
 
-  auto select_stmt = parse_tree.GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
+  auto select_stmt = parse_tree->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
 
   auto fun_expr = select_stmt->GetSelectColumns()[0].CastManagedPointerTo<parser::FunctionExpression>();
   auto proc_oid = fun_expr->GetProcOid();
@@ -950,8 +950,8 @@ TEST_F(BinderCorrectnessTest, SimpleFunctionCallTest) {
   query = "SELECT cot(1.0, 2.0) FROM a;";
 
   parse_tree = parser::PostgresParser::BuildParseTree(query);
-  statement = parse_tree.GetStatements()[0];
-  EXPECT_THROW(binder_->BindNameToNode(statement, &parse_tree), BinderException);
+  statement = parse_tree->GetStatements()[0];
+  EXPECT_THROW(binder_->BindNameToNode(statement, parse_tree.get()), BinderException);
 }
 
 }  // namespace terrier
