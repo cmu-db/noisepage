@@ -316,7 +316,7 @@ void BindNodeVisitor::Visit(parser::FunctionExpression *expr, parser::ParseResul
   std::vector<catalog::type_oid_t> arg_types;
   auto children = expr->GetChildren();
   arg_types.reserve(children.size());
-  for (auto &child : children) {
+  for (const auto &child : children) {
     arg_types.push_back(catalog_accessor_->GetTypeOidFromTypeId(child->GetReturnValueType()));
   }
 

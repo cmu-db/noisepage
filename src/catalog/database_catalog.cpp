@@ -2279,7 +2279,8 @@ bool DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::
   return true;
 }
 
-bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc) {
+bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                    proc_oid_t proc) {
   if (!TryLock(txn)) return false;
   TERRIER_ASSERT(proc != INVALID_PROC_OID, "Invalid oid passed");
 

@@ -199,7 +199,7 @@ class StorageUtil {
   static storage::VarlenEntry CreateVarlen(const std::vector<const std::string> &vec) {
     // determine total size
     size_t total_size = sizeof(size_t);
-    for (auto &elem : vec) {
+    for (const auto &elem : vec) {
       total_size += sizeof(size_t);
       total_size += elem.length();
     }
