@@ -96,6 +96,6 @@ int main(int argc, char *argv[]) {
   db_main->Run();
 
   terrier::LoggersUtil::ShutDown();
-  main_stat_reg->Shutdown(false);
+  main_stat_reg->Shutdown(true);
   return 0;
 }
