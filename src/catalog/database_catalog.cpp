@@ -254,6 +254,8 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
   retval = SetIndexPointer(txn, postgres::PRO_NAME_INDEX_OID, procs_name_index_);
 
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+
+  BootstrapProcs(txn);
 }
 
 void DatabaseCatalog::BootstrapPRIs() {
@@ -1695,6 +1697,42 @@ void DatabaseCatalog::BootstrapTypes(const common::ManagedPointer<transaction::T
 void DatabaseCatalog::BootstrapLanguages(const common::ManagedPointer<transaction::TransactionContext> txn) {
   CreateLanguage(txn, "plpgsql", postgres::PLPGSQL_LANGUAGE_OID);
   CreateLanguage(txn, "internal", postgres::INTERNAL_LANGUAGE_OID);
+}
+
+void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::TransactionContext> txn) {
+
+  auto dec_type = GetTypeOidForType(type::TypeId::DECIMAL);
+  //ATan2
+  CreateProcedure(txn, postgres::ATAN2_PRO_OID, "atan2", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"},
+                  {dec_type, dec_type}, {dec_type, dec_type}, {}, dec_type, "", true);
+
+  //ACos
+  CreateProcedure(txn, postgres::ACOS_PRO_OID, "acos", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"},
+                  {dec_type}, {dec_type}, {}, dec_type, "", true);
+
+  //ASin
+  CreateProcedure(txn, postgres::ASIN_PRO_OID, "asin", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"},
+                  {dec_type}, {dec_type}, {}, dec_type, "", true);
+
+  //ATan
+  CreateProcedure(txn, postgres::ATAN_PRO_OID, "atan", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"},
+                  {dec_type}, {dec_type}, {}, dec_type, "", true);
+
+  //cos
+  CreateProcedure(txn, postgres::COS_PRO_OID, "cos", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"},
+                  {dec_type}, {dec_type}, {}, dec_type, "", true);
+
+  //sin
+  CreateProcedure(txn, postgres::SIN_PRO_OID, "sin", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"},
+                  {dec_type}, {dec_type}, {}, dec_type, "", true);
+
+  //tan
+  CreateProcedure(txn, postgres::TAN_PRO_OID,"tan", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"},
+                  {dec_type}, {dec_type}, {}, dec_type, "", true);
+
+  //cot
+  CreateProcedure(txn, postgres::COT_PRO_OID, "cot", postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"},
+                  {dec_type}, {dec_type}, {}, dec_type, "", true);
 }
 
 void BootstrapProcs(const common::ManagedPointer<transaction::TransactionContext> txn) { (void)txn; }

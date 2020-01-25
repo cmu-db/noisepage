@@ -6,6 +6,7 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+#include <binder/bind_node_visitor.h>
 
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
@@ -308,6 +309,23 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
 
   delete context_;
   context_ = nullptr;
+}
+
+void BindNodeVisitor::Visit(parser::FunctionExpression *expr, parser::ParseResult *parse_result) {
+  SqlNodeVisitor::Visit(expr, parse_result);
+
+  std::vector<catalog::type_oid_t> arg_types;
+  auto children = expr->GetChildren();
+  for(auto &child : children){
+    arg_types.push_back(catalog_accessor_->GetTypeOidFromTypeId(child->GetReturnValueType()));
+  }
+
+  auto proc_oid = catalog_accessor_->GetProcOid(expr->GetFuncName(), arg_types);
+  if(proc_oid == catalog::INVALID_PROC_OID){
+    throw BINDER_EXCEPTION("Procedure not registered");
+  }
+
+  expr->SetProcOid(proc_oid);
 }
 
 void BindNodeVisitor::Visit(parser::DropStatement *node, UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {

@@ -4,6 +4,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "catalog/catalog_defs.h"
 #include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
 
@@ -103,12 +105,30 @@ class FunctionExpression : public AbstractExpression {
     return exprs;
   }
 
+  /**
+   * Sets the proc oid of this node
+   * @param proc_oid proc oid to set this node to point to
+   */
+  void SetProcOid(catalog::proc_oid_t proc_oid){
+    proc_oid_ = proc_oid;
+  }
+
+  /**
+   * Gets the bound proc_oid of the function
+   * @return proc_oid of the function bound to this expression
+   */
+  catalog::proc_oid_t GetProcOid(){
+    return proc_oid_;
+  }
+
  private:
   /** Name of function to be invoked. */
   std::string func_name_;
 
   // To quote Tianyu, "Parsers are dumb. They don't know shit."
   // We should keep it that way, resist adding codegen hacks here.
+
+  catalog::proc_oid_t proc_oid_;
 };
 
 DEFINE_JSON_DECLARATIONS(FunctionExpression);
