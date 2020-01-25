@@ -435,10 +435,9 @@ class BytecodeEmitter {
   void EmitPRSet(Bytecode bytecode, LocalVar pr, uint16_t col_idx, LocalVar val);
 
   /**
- * Emit bytecode to set a varlen within a PR
- */
+   * Emit bytecode to set a varlen within a PR
+   */
   void EmitPRSetVarlen(Bytecode bytecode, LocalVar pr, uint16_t col_idx, LocalVar val, LocalVar own);
-
 
   /**
    * Emit bytecode to get a value from a PR

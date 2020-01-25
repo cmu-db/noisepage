@@ -1253,6 +1253,9 @@ enum class CastKind : uint8_t {
   // boolean value
   SqlBoolToBool,
 
+  // Conversion of a primitive boolean into a SQL boolean
+  BoolToSqlBool,
+
   // A cast between integral types (i.e., 8-bit, 16-bit, 32-bit, or 64-bit
   // numbers), excluding to boolean! Boils down to a bitcast, a truncation,
   // a sign-extension, or a zero-extension. The same as in C/C++.

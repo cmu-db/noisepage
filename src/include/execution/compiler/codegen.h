@@ -474,7 +474,8 @@ class CodeGen {
    * @param own When inserting varchars, whether the VarlenEntry should own its content.
    * @return The expression corresponding to the builtin call.
    */
-  ast::Expr *PRSet(ast::Expr *pr, terrier::type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val, bool own = false);
+  ast::Expr *PRSet(ast::Expr *pr, terrier::type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val,
+                   bool own = false);
 
   /**
    * Call storageInterfaceInit(&storage_interface, execCtx, table_oid, col_oids, need_indexes)

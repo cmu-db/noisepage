@@ -12,6 +12,7 @@
 #include "parser/expression/derived_value_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/parameter_value_expression.h"
+#include "parser/expression/star_expression.h"
 #include "type/transient_value_factory.h"
 
 namespace terrier::execution::compiler {
@@ -90,6 +91,8 @@ class ExpressionMaker {
   ManagedExpression PVE(type::TypeId type, uint32_t param_idx) {
     return MakeManaged(std::make_unique<parser::ParameterValueExpression>(param_idx, type));
   }
+
+  ManagedExpression Star() { return MakeManaged(std::make_unique<parser::StarExpression>()); }
 
   /**
    * Create a Comparison expression
@@ -251,11 +254,6 @@ class ExpressionMaker {
   ManagedAggExpression AggCount(ManagedExpression child) {
     return AggregateTerm(parser::ExpressionType::AGGREGATE_COUNT, child);
   }
-
-  /**
-   * Create a count star aggregate expression
-   */
-  ManagedAggExpression AggCountStar() { return AggregateTerm(parser::ExpressionType::AGGREGATE_COUNT, Constant(1)); }
 
  private:
   // To ease memory management

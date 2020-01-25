@@ -243,7 +243,7 @@ struct StringVal : public Val {
   static storage::VarlenEntry CreateVarlen(const StringVal &str, bool own) {
     if (str.len_ > storage::VarlenEntry::InlineThreshold()) {
       if (own) {
-        byte* contents = common::AllocationUtil::AllocateAligned(str.len_);
+        byte *contents = common::AllocationUtil::AllocateAligned(str.len_);
         std::memcpy(contents, str.Content(), str.len_);
         return terrier::storage::VarlenEntry::Create(contents, str.len_, true);
       }

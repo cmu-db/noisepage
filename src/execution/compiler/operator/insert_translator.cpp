@@ -127,7 +127,7 @@ void InsertTranslator::GenSetTablePR(FunctionBuilder *builder, uint32_t idx) {
     auto *src = translator->DeriveExpr(this);
     auto table_col_oid = all_oids_[i];
     const auto &table_col = table_schema_.GetColumn(table_col_oid);
-    auto pr_set_call = codegen_->PRSet(codegen_->MakeExpr(insert_pr_), val->GetReturnValueType(), table_col.Nullable(),
+    auto pr_set_call = codegen_->PRSet(codegen_->MakeExpr(insert_pr_), table_col.Type(), table_col.Nullable(),
                                        table_pm_[table_col_oid], src, true);
     builder->Append(codegen_->MakeStmt(pr_set_call));
   }
