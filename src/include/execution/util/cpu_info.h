@@ -69,6 +69,11 @@ class CpuInfo {
   uint32_t GetCacheLineSize(CacheLevel level) const noexcept { return cache_line_sizes_[level]; }
 
   /**
+   * Return The number of reference cycles advanced per microsecond
+   */
+  uint64_t GetRefCyclesUs() const { return ref_cycles_us_; }
+
+  /**
    * Does the CPU have the given hardware feature?
    */
   bool HasFeature(Feature feature) const noexcept { return hardware_flags_.Test(feature); }
@@ -94,6 +99,7 @@ class CpuInfo {
   uint32_t num_cores_;
   std::string model_name_;
   double cpu_mhz_;
+  uint64_t ref_cycles_us_;
   uint32_t cache_sizes_[K_NUM_CACHE_LEVELS];
   uint32_t cache_line_sizes_[K_NUM_CACHE_LEVELS];
   util::InlinedBitVector<64> hardware_flags_;

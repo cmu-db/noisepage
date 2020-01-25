@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <memory>
 #include <string>
+#include <regex>
 
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
@@ -88,8 +89,13 @@ void CpuInfo::InitCpuInfo() {
 
     if (name.startswith("processor")) {
       num_cores_++;
-    } else if (name.startswith("model")) {
+    } else if (name.startswith("model name")) {
       model_name_ = value.str();
+      std::regex cpu_freq_regex("\\s[\\d.]+GHz");
+      std::cmatch m;
+      std::regex_search(model_name_.c_str(), m, cpu_freq_regex);
+      double base_cpu_ghz = std::stod(m[0].str());
+      ref_cycles_us_ = static_cast<uint64_t>(base_cpu_ghz * 1000);
     } else if (name.startswith("cpu MHz")) {
       double cpu_mhz;
       value.getAsDouble(cpu_mhz);

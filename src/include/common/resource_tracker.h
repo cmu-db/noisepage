@@ -4,6 +4,7 @@
 
 #include "common/perf_monitor.h"
 #include "common/rusage_monitor.h"
+#include "execution/util/cpu_info.h"
 #include "metrics/metrics_util.h"
 
 namespace terrier::execution::exec {
@@ -41,15 +42,13 @@ class ResourceTracker {
      */
     void ToCSV(std::ofstream &outfile) const {
       outfile << start_ << ", " << cpu_id_ << ", " << counters_.cpu_cycles_ << ", " << counters_.instructions_ << ", "
-              << counters_.cache_references_ << ", " << counters_.cache_misses_ << ", " << counters_.ref_cpu_cycles_
-              << ", "
-              << RusageMonitor::TimevalToMicroseconds(rusage_.ru_utime) +
-                     RusageMonitor::TimevalToMicroseconds(rusage_.ru_stime)
+              << counters_.cache_references_ << ", " << counters_.cache_misses_ << ", "
+              << counters_.ref_cpu_cycles_ / execution::CpuInfo::Instance()->GetRefCyclesUs() << ", "
               << ", " << rusage_.ru_inblock << ", " << rusage_.ru_oublock << ", " << memory_b_ << ", " << elapsed_us_;
     }
 
     static constexpr std::string_view COLUMNS = {
-        "start_time, cpu_id, cpu_cycles, instructions, cache_ref, cache_miss, ref_cpu_cycles_, cpu_time, "
+        "start_time, cpu_id, cpu_cycles, instructions, cache_ref, cache_miss, ref_cpu_cycles_, "
         "block_read, block_write, memory_b, elapsed_us"};
   };
 
