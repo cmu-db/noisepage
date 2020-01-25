@@ -248,7 +248,7 @@ struct StringVal : public Val {
         return terrier::storage::VarlenEntry::Create(contents, str.len_, true);
       }
       return terrier::storage::VarlenEntry::Create(reinterpret_cast<const terrier::byte *>(str.Content()), str.len_,
-                                                   true);
+                                                   false);
     }
     return terrier::storage::VarlenEntry::CreateInline(reinterpret_cast<const terrier::byte *>(str.Content()),
                                                        str.len_);
