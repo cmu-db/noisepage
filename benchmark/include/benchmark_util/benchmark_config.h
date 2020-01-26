@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 namespace terrier {
 /**
@@ -8,6 +9,12 @@ namespace terrier {
  * number of threads to use for benchmarks.
  */
 constexpr char ENV_NUM_THREADS[] = "TERRIER_BENCHMARK_THREADS";
+
+/**
+ * This string specifies the environment variable that we will use to set the
+ * file path of the logfile for benchmarks.
+ */
+constexpr char ENV_LOGFILE_PATH[] = "TERRIER_BENCHMARK_LOGFILE_PATH";
 
 /**
  * This class is a placeholder for any global configuration parameters for benchmarks.
@@ -23,6 +30,13 @@ class BenchmarkConfig {
    * @see terrier::ENV_NUM_THREADS
    */
   static uint32_t num_threads;
+
+  /**
+   * The path to use for the DBMS's WAL in benchmark runs.
+   * The system assumes that the directory for the logfile is writable.
+   * @see terrier::ENV_LOGFILE_PATH
+   */
+  static std::string logfile_path;
 };
 
 }  // namespace terrier

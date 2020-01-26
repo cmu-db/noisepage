@@ -67,6 +67,10 @@ BENCHMARKS_TO_RUN = [
 # This parameter will be passed in as an environment variable to each benchmark.
 BENCHMARK_THREADS = 4
 
+# The path to the logfile for the benchmarks. We want to use a ramdisk
+# on Jenkins to avoid the overhead of disk writes.
+LOGFILE_PATH = "/mnt/ramdisk/tpcc.log"
+
 # Where to find the benchmarks to execute
 BENCHMARK_PATH = "../../build/release/"
 
@@ -775,6 +779,7 @@ class RunMicroBenchmarks(object):
         
         # Environment Variables
         os.environ["TERRIER_BENCHMARK_THREADS"] = str(BENCHMARK_THREADS) # has to be a str
+        os.environ["TERRIER_BENCHMARK_LOGFILE_PATH"] = LOGFILE_PATH
 
         # use all the cpus from the highest numbered numa node
         output = subprocess.check_output("numactl --hardware | grep 'available: ' | cut -d' ' -f2", shell=True)

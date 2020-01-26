@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "benchmark/benchmark.h"
+#include "benchmark_util/benchmark_config.h"
 #include "catalog/catalog.h"
 #include "common/macros.h"
 #include "common/scoped_timer.h"
@@ -19,9 +20,6 @@
 #include "transaction/transaction_manager.h"
 
 namespace terrier::tpcc {
-
-#define LOG_FILE_NAME "/mnt/ramdisk/tpcc.log"
-
 /**
  * The behavior in these benchmarks mimics that of /test/integration/tpcc_test.cpp. If something changes here, it should
  * probably change there as well.
@@ -45,12 +43,24 @@ class TPCCBenchmark : public benchmark::Fixture {
   const std::chrono::milliseconds log_persist_interval_{10};
   const uint64_t log_persist_threshold_ = (1U << 20U);  // 1MB
 
-  const bool only_count_new_order_ = false;  // TPC-C specification is to only measure throughput for New Order in final
-                                             // result, but most academic papers use all txn types
-  const int8_t num_threads_ = 4;  // defines the number of terminals (workers running txns) and warehouses for the
-                                  // benchmark. Sometimes called scale factor
-  const uint32_t num_precomputed_txns_per_worker_ = 100000;  // Number of txns to run per terminal (worker thread)
-  TransactionWeights txn_weights_;                           // default txn_weights. See definition for values
+  /**
+   * TPC-C specification is to only measure throughput for New Order in final
+   * result, but most academic papers use all txn types
+   */
+  const bool only_count_new_order_ = false;
+
+  /**
+   * Defines the number of terminals (workers running txns) and warehouses for the
+   * benchmark. Sometimes called scale factor
+   */
+  const int8_t num_threads_ = terrier::BenchmarkConfig::num_threads;
+
+  /**
+   * Number of txns to run per terminal (worker thread)
+   * default txn_weights. See definition for values
+   */
+  const uint32_t num_precomputed_txns_per_worker_ = 100000;
+  TransactionWeights txn_weights_;
 
   common::WorkerPool thread_pool_{static_cast<uint32_t>(num_threads_), {}};
   common::DedicatedThreadRegistry *thread_registry_ = nullptr;
@@ -74,7 +84,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
   // NOLINTNEXTLINE
   for (auto _ : state) {
     thread_pool_.Startup();
-    unlink(LOG_FILE_NAME);
+    unlink(terrier::BenchmarkConfig::logfile_path.c_str());
     // we need transactions, TPCC database, and GC
     transaction::TimestampManager timestamp_manager;
     transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
@@ -127,7 +137,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
     thread_pool_.Shutdown();
     delete gc_;
     delete tpcc_db;
-    unlink(LOG_FILE_NAME);
+    unlink(terrier::BenchmarkConfig::logfile_path.c_str());
   }
 
   CleanUpVarlensInPrecomputedArgs(&precomputed_args);
@@ -159,12 +169,13 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
   // NOLINTNEXTLINE
   for (auto _ : state) {
     thread_pool_.Startup();
-    unlink(LOG_FILE_NAME);
+    unlink(terrier::BenchmarkConfig::logfile_path.c_str());
     thread_registry_ = new common::DedicatedThreadRegistry(DISABLED);
     // we need transactions, TPCC database, and GC
-    log_manager_ = new storage::LogManager(
-        LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
-        common::ManagedPointer(&buffer_pool_), common::ManagedPointer(thread_registry_));
+    log_manager_ =
+        new storage::LogManager(terrier::BenchmarkConfig::logfile_path, num_log_buffers_,
+                                log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
+                                common::ManagedPointer(&buffer_pool_), common::ManagedPointer(thread_registry_));
     log_manager_->Start();
     transaction::TimestampManager timestamp_manager;
     transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
@@ -251,16 +262,17 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
   // NOLINTNEXTLINE
   for (auto _ : state) {
     thread_pool_.Startup();
-    unlink(LOG_FILE_NAME);
+    unlink(terrier::BenchmarkConfig::logfile_path.c_str());
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager;
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
     metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
     thread_registry_ = new common::DedicatedThreadRegistry{common::ManagedPointer(metrics_manager)};
     // we need transactions, TPCC database, and GC
-    log_manager_ = new storage::LogManager(
-        LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
-        common::ManagedPointer(&buffer_pool_), common::ManagedPointer(thread_registry_));
+    log_manager_ =
+        new storage::LogManager(terrier::BenchmarkConfig::logfile_path, num_log_buffers_,
+                                log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
+                                common::ManagedPointer(&buffer_pool_), common::ManagedPointer(thread_registry_));
     log_manager_->Start();
     transaction::TimestampManager timestamp_manager;
     transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
@@ -351,7 +363,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
   // NOLINTNEXTLINE
   for (auto _ : state) {
     thread_pool_.Startup();
-    unlink(LOG_FILE_NAME);
+    unlink(terrier::BenchmarkConfig::logfile_path.c_str());
     for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager;
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
