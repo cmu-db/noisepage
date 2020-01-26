@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "benchmark/benchmark.h"
+#include "benchmark_util/benchmark_config.h"
 #include "common/scoped_timer.h"
 #include "libcuckoo/cuckoohash_map.hh"
 #include "test_util/multithread_test_util.h"
@@ -9,8 +10,10 @@
 
 namespace terrier {
 
-// Adapted from benchmarks in https://github.com/wangziqi2013/BwTree/blob/master/test/
-
+/**
+ * CuckooMap Benchmarks
+ * Adapted from benchmarks in https://github.com/wangziqi2013/BwTree/blob/master/test/
+ */
 class CuckooMapBenchmark : public benchmark::Fixture {
  public:
   void SetUp(const benchmark::State &state) final {
@@ -25,7 +28,6 @@ class CuckooMapBenchmark : public benchmark::Fixture {
 
   // Workload
   const uint32_t num_keys_ = 10000000;
-  const uint32_t num_threads_ = 4;
 
   // Test infrastructure
 
@@ -43,14 +45,14 @@ class CuckooMapBenchmark : public benchmark::Fixture {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CuckooMapBenchmark, RandomInsert)(benchmark::State &state) {
-  common::WorkerPool thread_pool(num_threads_, {});
+  common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
   // NOLINTNEXTLINE
   for (auto _ : state) {
     auto *const index = new CuckooMap(256);
 
     auto workload = [&](uint32_t id) {
-      uint32_t start_key = num_keys_ / num_threads_ * id;
-      uint32_t end_key = start_key + num_keys_ / num_threads_;
+      uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
+      uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
 
       for (uint32_t i = start_key; i < end_key; i++) {
         index->insert(key_permutation_[i], key_permutation_[i]);
@@ -60,7 +62,7 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, RandomInsert)(benchmark::State &state) {
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
+      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, BenchmarkConfig::num_threads, workload);
     }
     delete index;
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
@@ -70,14 +72,14 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, RandomInsert)(benchmark::State &state) {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CuckooMapBenchmark, SequentialInsert)(benchmark::State &state) {
-  common::WorkerPool thread_pool(num_threads_, {});
+  common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
   // NOLINTNEXTLINE
   for (auto _ : state) {
     auto *const index = new CuckooMap(256);
 
     auto workload = [&](uint32_t id) {
-      uint32_t start_key = num_keys_ / num_threads_ * id;
-      uint32_t end_key = start_key + num_keys_ / num_threads_;
+      uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
+      uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
 
       for (uint32_t i = start_key; i < end_key; i++) {
         index->insert(i, i);
@@ -87,7 +89,7 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, SequentialInsert)(benchmark::State &state
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
+      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, BenchmarkConfig::num_threads, workload);
     }
     delete index;
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
@@ -97,7 +99,7 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, SequentialInsert)(benchmark::State &state
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CuckooMapBenchmark, RandomInsertRandomRead)(benchmark::State &state) {
-  common::WorkerPool thread_pool(num_threads_, {});
+  common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
   auto *const index = new CuckooMap(256);
   for (uint32_t i = 0; i < num_keys_; i++) {
     index->insert(key_permutation_[i], key_permutation_[i]);
@@ -106,8 +108,8 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, RandomInsertRandomRead)(benchmark::State 
   // NOLINTNEXTLINE
   for (auto _ : state) {
     auto workload = [&](uint32_t id) {
-      uint32_t start_key = num_keys_ / num_threads_ * id;
-      uint32_t end_key = start_key + num_keys_ / num_threads_;
+      uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
+      uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
 
       std::vector<int64_t> values;
       values.reserve(1);
@@ -121,7 +123,7 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, RandomInsertRandomRead)(benchmark::State 
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
+      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, BenchmarkConfig::num_threads, workload);
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
@@ -132,7 +134,7 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, RandomInsertRandomRead)(benchmark::State 
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CuckooMapBenchmark, RandomInsertSequentialRead)(benchmark::State &state) {
-  common::WorkerPool thread_pool(num_threads_, {});
+  common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
   auto *const index = new CuckooMap(256);
   for (uint32_t i = 0; i < num_keys_; i++) {
     index->insert(key_permutation_[i], key_permutation_[i]);
@@ -141,8 +143,8 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, RandomInsertSequentialRead)(benchmark::St
   // NOLINTNEXTLINE
   for (auto _ : state) {
     auto workload = [&](uint32_t id) {
-      uint32_t start_key = num_keys_ / num_threads_ * id;
-      uint32_t end_key = start_key + num_keys_ / num_threads_;
+      uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
+      uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
 
       std::vector<int64_t> values;
       values.reserve(1);
@@ -156,7 +158,7 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, RandomInsertSequentialRead)(benchmark::St
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
+      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, BenchmarkConfig::num_threads, workload);
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
@@ -167,7 +169,7 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, RandomInsertSequentialRead)(benchmark::St
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CuckooMapBenchmark, SequentialInsertRandomRead)(benchmark::State &state) {
-  common::WorkerPool thread_pool(num_threads_, {});
+  common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
   auto *const index = new CuckooMap(256);
   for (uint32_t i = 0; i < num_keys_; i++) {
     index->insert(i, i);
@@ -176,8 +178,8 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, SequentialInsertRandomRead)(benchmark::St
   // NOLINTNEXTLINE
   for (auto _ : state) {
     auto workload = [&](uint32_t id) {
-      uint32_t start_key = num_keys_ / num_threads_ * id;
-      uint32_t end_key = start_key + num_keys_ / num_threads_;
+      uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
+      uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
 
       std::vector<int64_t> values;
       values.reserve(1);
@@ -191,7 +193,7 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, SequentialInsertRandomRead)(benchmark::St
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
+      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, BenchmarkConfig::num_threads, workload);
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
@@ -202,7 +204,7 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, SequentialInsertRandomRead)(benchmark::St
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CuckooMapBenchmark, SequentialInsertSequentialRead)(benchmark::State &state) {
-  common::WorkerPool thread_pool(num_threads_, {});
+  common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
   auto *const index = new CuckooMap(256);
   for (uint32_t i = 0; i < num_keys_; i++) {
     index->insert(i, i);
@@ -211,8 +213,8 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, SequentialInsertSequentialRead)(benchmark
   // NOLINTNEXTLINE
   for (auto _ : state) {
     auto workload = [&](uint32_t id) {
-      uint32_t start_key = num_keys_ / num_threads_ * id;
-      uint32_t end_key = start_key + num_keys_ / num_threads_;
+      uint32_t start_key = num_keys_ / BenchmarkConfig::num_threads * id;
+      uint32_t end_key = start_key + num_keys_ / BenchmarkConfig::num_threads;
 
       std::vector<int64_t> values;
       values.reserve(1);
@@ -226,7 +228,7 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, SequentialInsertSequentialRead)(benchmark
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
+      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, BenchmarkConfig::num_threads, workload);
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
@@ -235,8 +237,18 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, SequentialInsertSequentialRead)(benchmark
   state.SetItemsProcessed(state.iterations() * num_keys_);
 }
 
-BENCHMARK_REGISTER_F(CuckooMapBenchmark, RandomInsert)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(10);
-BENCHMARK_REGISTER_F(CuckooMapBenchmark, SequentialInsert)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(10);
+// ----------------------------------------------------------------------------
+// BENCHMARK REGISTRATION
+// ----------------------------------------------------------------------------
+// clang-format off
+BENCHMARK_REGISTER_F(CuckooMapBenchmark, RandomInsert)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->MinTime(10);
+BENCHMARK_REGISTER_F(CuckooMapBenchmark, SequentialInsert)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->MinTime(10);
 BENCHMARK_REGISTER_F(CuckooMapBenchmark, RandomInsertRandomRead)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
@@ -253,4 +265,6 @@ BENCHMARK_REGISTER_F(CuckooMapBenchmark, SequentialInsertSequentialRead)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->MinTime(3);
+// clang-format on
+
 }  // namespace terrier
