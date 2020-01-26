@@ -314,8 +314,10 @@ class TopKAggregate {
     histogram_.Increment(val.val_, 1);
   }
 
-  // * Merge a partial top K aggregate into this aggregate.
-
+  /*
+    @param const reference of a TopK object to be merged
+    Merge a partial top K aggregate into this aggregate.
+  */
   void Merge(const TopKAggregate &that) {
     if (that.null_) {
       return;
@@ -352,6 +354,7 @@ class TopKAggregate {
   const terrier::optimizer::TopKElements<CppType> &GetHistogram() const { return histogram_; }
 
  private:
+  // Histogram keeping track of the topK elements.
   terrier::optimizer::TopKElements<CppType> histogram_;
   bool null_{true};
 };
