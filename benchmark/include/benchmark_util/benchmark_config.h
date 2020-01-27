@@ -36,7 +36,7 @@ class BenchmarkConfig {
    * The system assumes that the directory for the logfile is writable.
    * @see terrier::ENV_LOGFILE_PATH
    */
-  static std::string logfile_path;
+  static std::string_view logfile_path;
 };
 
 }  // namespace terrier

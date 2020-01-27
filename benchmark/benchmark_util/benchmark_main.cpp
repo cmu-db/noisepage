@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
   if (env_num_threads != nullptr) terrier::BenchmarkConfig::num_threads = atoi(env_num_threads);
 
   const char *env_logfile_path = std::getenv(terrier::ENV_LOGFILE_PATH);
-  if (env_logfile_path != nullptr) terrier::BenchmarkConfig::logfile_path = std::string(env_logfile_path);
+  if (env_logfile_path != nullptr) terrier::BenchmarkConfig::logfile_path = std::string_view(env_logfile_path);
 
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();
