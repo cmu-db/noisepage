@@ -1150,7 +1150,13 @@ if __name__ == "__main__":
         # parse the json result file
         LOG.debug("Loading benchmark result file '%s'", filename)
         with open(filename) as fh:
-            data = json.load(fh)
+            contents = fh.read()
+            try:
+                data = json.load(contents)
+            except:
+                LOG.error("Invalid data read from benchmark result file '%s'", filename)
+                LOG.error(contents)
+                raise
         bench_results = GBFileResult(data)
 
         # iterate over (test suite, benchmark)
