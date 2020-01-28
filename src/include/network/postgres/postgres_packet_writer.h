@@ -329,6 +329,7 @@ class PostgresPacketWriter : public PacketWriter {
       }
 
       const auto type_size = execution::sql::ValUtil::GetSqlSize(col.GetType());
+      // TODO(Matt): should these sizes be defined by Postgres for client compatibility, and not our internal size?
 
       // Write the attribute
       switch (col.GetType()) {

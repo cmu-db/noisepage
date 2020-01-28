@@ -112,7 +112,9 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   void SetWaitingForSync(const bool waiting_for_sync) { waiting_for_sync_ = waiting_for_sync; }
 
   common::ManagedPointer<network::Statement> GetStatement(const std::string &name) const {
-    return common::ManagedPointer(statements_.at(name));
+    const auto it = statements_.find(name);
+    if (it != statements_.end()) return common::ManagedPointer(it->second);
+    return nullptr;
   }
 
   void SetStatement(const std::string &name, std::unique_ptr<network::Statement> &&statement) {
@@ -121,7 +123,9 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   };
 
   common::ManagedPointer<network::Portal> GetPortal(const std::string &name) const {
-    return common::ManagedPointer(portals_.at(name));
+    const auto it = portals_.find(name);
+    if (it != portals_.end()) return common::ManagedPointer(it->second);
+    return nullptr;
   }
 
   void SetPortal(const std::string &name, std::unique_ptr<network::Portal> &&portal) {

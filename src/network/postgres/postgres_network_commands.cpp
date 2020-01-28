@@ -181,7 +181,7 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
       // failing to parse fails a transaction in postgres
       connection->Transaction()->SetMustAbort();
     }
-    out->WriteParseComplete();
+    return Transition::PROCEED;
   }
 
   postgres_interpreter->SetStatement("", std::move(statement));
@@ -200,31 +200,32 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
 
   const auto statement_name = in_.ReadString();
 
-  const auto statement = postgres_interpreter->UnnamedStatement();
+  const auto statement = postgres_interpreter->GetStatement(statement_name);
 
-  // read out the parameter formats
-  const auto num_parameter_formats = static_cast<size_t>(in_.ReadValue<int16_t>());
-  TERRIER_ASSERT(num_parameter_formats == 0, "We currently don't support parameters.");
-  // TODO(Matt): read out parameter formats similar to result formats below
-  // read the params
-  const auto num_params = static_cast<size_t>(in_.ReadValue<int16_t>());
-  TERRIER_ASSERT(num_params == 0, "We currently don't support parameters.");
-  // TODO(Matt): read out the parameters here when we support them using parameter_formats from above
-  std::vector<type::TransientValue> parameters;
-  parameters.reserve(num_params);
-
-  // read out the result formats
-  const auto num_result_formats = static_cast<size_t>(in_.ReadValue<int16_t>());
-  // TODO(Matt): would like to assert that this is 0 (all text), 1 (all the same), or the number of output columns but
-  // we can't do that without an OutputSchema yet this early in the pipeline
-  std::vector<FieldFormat> result_formats;
-  result_formats.reserve(num_result_formats);
-  for (uint16_t i = 0; i < num_result_formats; i++) {
-    result_formats.emplace_back(static_cast<FieldFormat>(in_.ReadValue<int16_t>()));
+  if (statement == nullptr) {
+    out->WriteErrorResponse("ERROR:  binding failed");
+    if (connection->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
+      // failing to bind fails a transaction in postgres
+      connection->Transaction()->SetMustAbort();
+    }
+    return Transition::PROCEED;
   }
 
-  postgres_interpreter->SetUnnamedPortal(
-      std::make_unique<Portal>(statement, std::move(result_formats), std::move(parameters)));
+  // read out the parameter formats
+  const auto param_formats = PostgresPacketUtil::ReadFormatCodes(common::ManagedPointer(&in_));
+  // TODO(Matt): would like to assert that this is 0 (all text), 1 (all the same), or the number of output columns
+
+  // read the params
+  auto params =
+      PostgresPacketUtil::ReadParameters(common::ManagedPointer(&in_), statement->ParamTypes(), param_formats);
+
+  // read out the result formats
+  auto result_formats = PostgresPacketUtil::ReadFormatCodes(common::ManagedPointer(&in_));
+  // TODO(Matt): would like to assert that this is 0 (all text), 1 (all the same), or the number of output columns but
+  // we can't do that without an OutputSchema yet this early in the pipeline
+
+  postgres_interpreter->SetPortal(portal_name,
+                                  std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
 
   out->WriteBindComplete();
   return Transition::PROCEED;
