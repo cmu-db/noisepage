@@ -71,7 +71,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
   common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
   thread_pool.Startup();
   std::vector<Worker> workers;
-  std::cout << "terrier::BenchmarkConfig::num_threads: '" << terrier::BenchmarkConfig::num_threads << "'\n";
   workers.reserve(terrier::BenchmarkConfig::num_threads);
 
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
