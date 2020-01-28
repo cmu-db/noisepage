@@ -95,6 +95,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, Insert)(benchmark::State &state) {
       }
     };
     common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
+    thread_pool.Startup();
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);

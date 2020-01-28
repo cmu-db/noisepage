@@ -34,6 +34,8 @@ class BwTreeBenchmark : public benchmark::Fixture {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(BwTreeBenchmark, RandomInsert)(benchmark::State &state) {
   common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
+  thread_pool.Startup();
+
   // NOLINTNEXTLINE
   for (auto _ : state) {
     auto *const tree = BwTreeTestUtil::GetEmptyTree();
@@ -67,6 +69,8 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, RandomInsert)(benchmark::State &state) {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(BwTreeBenchmark, SequentialInsert)(benchmark::State &state) {
   common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
+  thread_pool.Startup();
+
   // NOLINTNEXTLINE
   for (auto _ : state) {
     auto *const tree = BwTreeTestUtil::GetEmptyTree();
@@ -100,6 +104,8 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, SequentialInsert)(benchmark::State &state) {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(BwTreeBenchmark, RandomInsertRandomRead)(benchmark::State &state) {
   common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
+  thread_pool.Startup();
+
   auto *const tree = BwTreeTestUtil::GetEmptyTree();
   for (uint32_t i = 0; i < num_keys_; i++) {
     tree->Insert(key_permutation_[i], key_permutation_[i]);
@@ -141,6 +147,8 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, RandomInsertRandomRead)(benchmark::State &st
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(BwTreeBenchmark, RandomInsertSequentialRead)(benchmark::State &state) {
   common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
+  thread_pool.Startup();
+
   auto *const tree = BwTreeTestUtil::GetEmptyTree();
   for (uint32_t i = 0; i < num_keys_; i++) {
     tree->Insert(key_permutation_[i], key_permutation_[i]);
@@ -182,6 +190,8 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, RandomInsertSequentialRead)(benchmark::State
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(BwTreeBenchmark, SequentialInsertRandomRead)(benchmark::State &state) {
   common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
+  thread_pool.Startup();
+
   auto *const tree = BwTreeTestUtil::GetEmptyTree();
   for (uint32_t i = 0; i < num_keys_; i++) {
     tree->Insert(i, i);
@@ -223,6 +233,8 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, SequentialInsertRandomRead)(benchmark::State
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(BwTreeBenchmark, SequentialInsertSequentialRead)(benchmark::State &state) {
   common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
+  thread_pool.Startup();
+
   auto *const tree = BwTreeTestUtil::GetEmptyTree();
   for (uint32_t i = 0; i < num_keys_; i++) {
     tree->Insert(i, i);
