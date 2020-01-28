@@ -85,6 +85,13 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    */
   void GetResult(const common::ManagedPointer<WriteQueue> out) override {}
 
+  void ResetTransactionState() {
+    single_statement_txn_ = false;
+    waiting_for_sync_ = false;
+    implicit_txn_ = false;
+    portals_.clear();
+  }
+
   /**
    * Handles all of the set up for the Postgres protocol. Currently that includes saying no to SSL support during
    * handshake, checking protocol version, parsing client arguments, and creating the temporary namespace for this

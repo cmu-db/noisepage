@@ -151,8 +151,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
     // decide whether the txn should be committed or aborted based on the MustAbort flag, and then end the txn
     t_cop->EndTransaction(connection, connection->Transaction()->MustAbort() ? network::QueryType::QUERY_ROLLBACK
                                                                              : network::QueryType::QUERY_COMMIT);
-    postgres_interpreter->SetSingleStatementTransaction(false);
-    postgres_interpreter->SetImplicitTransaction(false);
+    postgres_interpreter->ResetTransactionState();
   }
 
   return FinishSimpleQueryCommand(out, connection);
@@ -166,6 +165,17 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
 
   const auto statement_name = in_.ReadString();
   NETWORK_LOG_TRACE("ParseCommand Statement Name: {0}", statement_name.c_str());
+
+  if (!statement_name.empty() && postgres_interpreter->GetStatement(statement_name) != nullptr) {
+    out->WriteErrorResponse(
+        "ERROR:  Named prepared statements must be explicitly closed before they can be redefined by another Parse "
+        "message.");
+    if (connection->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
+      // failing to parse fails a transaction in postgres
+      connection->Transaction()->SetMustAbort();
+    }
+    return Transition::PROCEED;
+  }
 
   const auto query = in_.ReadString();
   NETWORK_LOG_INFO("ParseCommand: {0}", query);
@@ -184,7 +194,7 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
     return Transition::PROCEED;
   }
 
-  postgres_interpreter->SetStatement("", std::move(statement));
+  postgres_interpreter->SetStatement(statement_name, std::move(statement));
 
   return Transition::PROCEED;
 }
