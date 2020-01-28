@@ -1152,7 +1152,7 @@ if __name__ == "__main__":
         with open(filename) as fh:
             contents = fh.read()
             try:
-                data = json.load(contents)
+                data = json.loads(contents)
             except:
                 LOG.error("Invalid data read from benchmark result file '%s'", filename)
                 LOG.error(contents)
