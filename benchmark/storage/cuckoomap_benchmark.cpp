@@ -46,6 +46,8 @@ class CuckooMapBenchmark : public benchmark::Fixture {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CuckooMapBenchmark, RandomInsert)(benchmark::State &state) {
   common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
+  thread_pool.Startup();
+
   // NOLINTNEXTLINE
   for (auto _ : state) {
     auto *const index = new CuckooMap(256);
@@ -73,6 +75,8 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, RandomInsert)(benchmark::State &state) {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CuckooMapBenchmark, SequentialInsert)(benchmark::State &state) {
   common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
+  thread_pool.Startup();
+
   // NOLINTNEXTLINE
   for (auto _ : state) {
     auto *const index = new CuckooMap(256);
@@ -100,6 +104,8 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, SequentialInsert)(benchmark::State &state
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CuckooMapBenchmark, RandomInsertRandomRead)(benchmark::State &state) {
   common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
+  thread_pool.Startup();
+
   auto *const index = new CuckooMap(256);
   for (uint32_t i = 0; i < num_keys_; i++) {
     index->insert(key_permutation_[i], key_permutation_[i]);
@@ -135,6 +141,8 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, RandomInsertRandomRead)(benchmark::State 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CuckooMapBenchmark, RandomInsertSequentialRead)(benchmark::State &state) {
   common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
+  thread_pool.Startup();
+
   auto *const index = new CuckooMap(256);
   for (uint32_t i = 0; i < num_keys_; i++) {
     index->insert(key_permutation_[i], key_permutation_[i]);
@@ -170,6 +178,8 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, RandomInsertSequentialRead)(benchmark::St
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CuckooMapBenchmark, SequentialInsertRandomRead)(benchmark::State &state) {
   common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
+  thread_pool.Startup();
+
   auto *const index = new CuckooMap(256);
   for (uint32_t i = 0; i < num_keys_; i++) {
     index->insert(i, i);
@@ -205,6 +215,8 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, SequentialInsertRandomRead)(benchmark::St
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CuckooMapBenchmark, SequentialInsertSequentialRead)(benchmark::State &state) {
   common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
+  thread_pool.Startup();
+
   auto *const index = new CuckooMap(256);
   for (uint32_t i = 0; i < num_keys_; i++) {
     index->insert(i, i);
