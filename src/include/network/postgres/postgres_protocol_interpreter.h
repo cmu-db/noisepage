@@ -111,18 +111,22 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
 
   void SetWaitingForSync(const bool waiting_for_sync) { waiting_for_sync_ = waiting_for_sync; }
 
-  common::ManagedPointer<network::Statement> UnnamedStatement() const {
-    return common::ManagedPointer(unnamed_statement_);
+  common::ManagedPointer<network::Statement> GetStatement(const std::string &name) const {
+    return common::ManagedPointer(statements_.at(name));
   }
 
-  void SetUnnamedStatement(std::unique_ptr<network::Statement> &&statement) {
-    unnamed_statement_ = std::move(statement);
-    unnamed_portal_ = nullptr;
+  void SetStatement(const std::string &name, std::unique_ptr<network::Statement> &&statement) {
+    statements_[name] = std::move(statement);
+    portals_[name] = nullptr;
   };
 
-  common::ManagedPointer<network::Portal> UnnamedPortal() const { return common::ManagedPointer(unnamed_portal_); }
+  common::ManagedPointer<network::Portal> GetPortal(const std::string &name) const {
+    return common::ManagedPointer(portals_.at(name));
+  }
 
-  void SetUnnamedPortal(std::unique_ptr<network::Portal> &&portal) { unnamed_portal_ = std::move(portal); };
+  void SetPortal(const std::string &name, std::unique_ptr<network::Portal> &&portal) {
+    portals_[name] = std::move(portal);
+  };
 
  protected:
   /**
@@ -144,8 +148,8 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   bool implicit_txn_ = false;
 
   common::ManagedPointer<PostgresCommandFactory> command_factory_;
-  std::unique_ptr<network::Statement> unnamed_statement_ = nullptr;
-  std::unique_ptr<network::Portal> unnamed_portal_ = nullptr;
+  std::unordered_map<std::string, std::unique_ptr<network::Statement>> statements_;
+  std::unordered_map<std::string, std::unique_ptr<network::Portal>> portals_;
 };
 
 }  // namespace terrier::network
