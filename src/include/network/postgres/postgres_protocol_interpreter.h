@@ -86,6 +86,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   void GetResult(const common::ManagedPointer<WriteQueue> out) override {}
 
   void ResetTransactionState() {
+    // TODO(Matt): can't assert anything about the TransactionContext here yet, consolidate state
     single_statement_txn_ = false;
     waiting_for_sync_ = false;
     implicit_txn_ = false;
@@ -126,8 +127,9 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
 
   void SetStatement(const std::string &name, std::unique_ptr<network::Statement> &&statement) {
     statements_[name] = std::move(statement);
-    portals_[name] = nullptr;
   };
+
+  void CloseStatement(const std::string &name) { statements_.erase(name); }
 
   common::ManagedPointer<network::Portal> GetPortal(const std::string &name) const {
     const auto it = portals_.find(name);
@@ -138,6 +140,8 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   void SetPortal(const std::string &name, std::unique_ptr<network::Portal> &&portal) {
     portals_[name] = std::move(portal);
   };
+
+  void ClosePortal(const std::string &name) { portals_.erase(name); }
 
  protected:
   /**

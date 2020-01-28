@@ -10,9 +10,12 @@ namespace terrier::network {
 
 class Portal {
  public:
-  Portal(const common::ManagedPointer<Statement> statement, std::vector<type::TransientValue> &&params,
-         std::vector<FieldFormat> &&result_formats)
-      : statement_(statement), params_(std::move(params)), result_formats_(std::move(result_formats)) {}
+  Portal(const common::ManagedPointer<Statement> statement, std::unique_ptr<planner::AbstractPlanNode> &&physical_plan,
+         std::vector<type::TransientValue> &&params, std::vector<FieldFormat> &&result_formats)
+      : statement_(statement),
+        physical_plan_(std::move(physical_plan)),
+        params_(std::move(params)),
+        result_formats_(std::move(result_formats)) {}
 
   common::ManagedPointer<Statement> Statement() const { return statement_; }
 
@@ -23,6 +26,7 @@ class Portal {
 
  private:
   const common::ManagedPointer<network::Statement> statement_;
+  std::unique_ptr<planner::AbstractPlanNode> physical_plan_;
   const std::vector<type::TransientValue> params_;
   const std::vector<FieldFormat> result_formats_;
 };
