@@ -57,13 +57,6 @@ class TPCCBenchmark : public benchmark::Fixture {
    */
   const uint32_t num_precomputed_txns_per_worker_ = 100000;
   TransactionWeights txn_weights_;
-
-  /**
-   * Important: We have to set the number of threads from BenchmarkConfig
-   * after we've instantiated this object, otherwise the value is undefined.
-   * For now we'll set it to '1' and then set properly in the Setup method.
-   */
-  common::WorkerPool thread_pool{1, {}};
   common::DedicatedThreadRegistry *thread_registry_ = nullptr;
 
   storage::GarbageCollector *gc_ = nullptr;
