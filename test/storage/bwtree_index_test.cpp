@@ -53,6 +53,7 @@ class BwTreeIndexTests : public TerrierTest {
 
  protected:
   void SetUp() override {
+    thread_pool_.Startup();
     db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseGCThread(true).SetRecordBufferSegmentSize(1e6).Build();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
 
@@ -86,6 +87,7 @@ class BwTreeIndexTests : public TerrierTest {
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
   }
   void TearDown() override {
+    thread_pool_.Shutdown();
     db_main_->GetStorageLayer()->GetGarbageCollector()->UnregisterIndexForGC(
         common::ManagedPointer<Index>(unique_index_));
     db_main_->GetStorageLayer()->GetGarbageCollector()->UnregisterIndexForGC(
