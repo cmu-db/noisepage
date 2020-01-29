@@ -1368,8 +1368,7 @@ VM_OP void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *it
 VM_OP_WARM void OpIndexIteratorScanKey(terrier::execution::sql::IndexIterator *iter) { iter->ScanKey(); }
 
 VM_OP_WARM void OpIndexIteratorScanAscending(terrier::execution::sql::IndexIterator *iter,
-                                             terrier::storage::index::ScanType scan_type,
-                                             uint32_t limit) {
+                                             terrier::storage::index::ScanType scan_type, uint32_t limit) {
   iter->ScanAscending(scan_type, limit);
 }
 

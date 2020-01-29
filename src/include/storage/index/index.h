@@ -123,7 +123,8 @@ class Index {
    * @param[out] value_list the values associated with the keys
    */
   virtual void ScanAscending(const transaction::TransactionContext &txn, ScanType scan_type, uint32_t num_attrs,
-                             ProjectedRow *low_key, ProjectedRow *high_key, uint32_t limit, std::vector<TupleSlot> *value_list) {
+                             ProjectedRow *low_key, ProjectedRow *high_key, uint32_t limit,
+                             std::vector<TupleSlot> *value_list) {
     TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
   }
 
