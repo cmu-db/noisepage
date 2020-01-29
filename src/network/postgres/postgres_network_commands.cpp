@@ -21,16 +21,21 @@ static Transition FinishSimpleQueryCommand(const common::ManagedPointer<Postgres
 
 // TODO(Matt): refactor this signature
 static void ExecutePortal(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                          const common::ManagedPointer<planner::AbstractPlanNode>(physical_plan),
+                          const common::ManagedPointer<Portal> portal,
                           const common::ManagedPointer<network::PostgresPacketWriter> out,
-                          const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
-                          const terrier::network::QueryType query_type, const bool single_statement_txn) {
+                          const common::ManagedPointer<trafficcop::TrafficCop> t_cop, const bool single_statement_txn) {
   trafficcop::TrafficCopResult result;
+
+  const auto query_type = portal->Statement()->QueryType();
+  const auto physical_plan = portal->PhysicalPlan();
+
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
   if (query_type <= network::QueryType::QUERY_DELETE) {
     // DML query to put through codegen
-    if (query_type == network::QueryType::QUERY_SELECT)
+    if (query_type == network::QueryType::QUERY_SELECT) {
+      // TODO(Matt): only do this for SimpleQuery
       out->WriteRowDescription(physical_plan->GetOutputSchema()->GetColumns());
+    }
     result = t_cop->CodegenAndRunPhysicalPlan(connection_ctx, out, common::ManagedPointer(physical_plan), query_type);
   } else if (query_type <= network::QueryType::QUERY_CREATE_VIEW) {
     if (!single_statement_txn && query_type == network::QueryType::QUERY_CREATE_DB) {
@@ -78,6 +83,8 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
 
   auto statement = std::make_unique<network::Statement>(t_cop->ParseQuery(query, connection, out));
 
+  // TODO(Matt): clear the unnamed stuff
+
   if (!statement->Valid()) {
     out->WriteErrorResponse("ERROR:  syntax error");
     if (connection->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
@@ -87,37 +94,33 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
     return FinishSimpleQueryCommand(out, connection);
   }
 
-  postgres_interpreter->SetStatement("", std::move(statement));
-  const auto unnamed_statement = postgres_interpreter->GetStatement("");
-
   // TODO(Matt:) Clients may send multiple statements in a single SimpleQuery packet/string. Handling that would
   // probably exist here, looping over all of the elements in the ParseResult. It's not clear to me how the binder would
   // handle that though since you pass the ParseResult in for binding. Maybe bind ParseResult once?
 
   // Empty queries get a special response in postgres and do not care if they're in a failed txn block
-  if (unnamed_statement->Empty()) {
+  if (statement->Empty()) {
     out->WriteEmptyQueryResponse();
     return FinishSimpleQueryCommand(out, connection);
   }
 
   // Check if we're in a must-abort situation first before attempting to issue any statement other than ROLLBACK
   if (connection->TransactionState() == network::NetworkTransactionStateType::FAIL &&
-      unnamed_statement->QueryType() != QueryType::QUERY_COMMIT &&
-      unnamed_statement->QueryType() != QueryType::QUERY_ROLLBACK) {
+      statement->QueryType() != QueryType::QUERY_COMMIT && statement->QueryType() != QueryType::QUERY_ROLLBACK) {
     out->WriteErrorResponse("ERROR:  current transaction is aborted, commands ignored until end of transaction block");
     return FinishSimpleQueryCommand(out, connection);
   }
 
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
-  if (unnamed_statement->QueryType() <= network::QueryType::QUERY_ROLLBACK) {
-    t_cop->ExecuteTransactionStatement(connection, out, unnamed_statement->QueryType());
+  if (statement->QueryType() <= network::QueryType::QUERY_ROLLBACK) {
+    t_cop->ExecuteTransactionStatement(connection, out, statement->QueryType());
     return FinishSimpleQueryCommand(out, connection);
   }
 
-  if (unnamed_statement->QueryType() >= network::QueryType::QUERY_RENAME) {
+  if (statement->QueryType() >= network::QueryType::QUERY_RENAME) {
     // We don't yet support query types with values greater than this
     // TODO(Matt): add a TRAFFIC_COP_LOG_INFO here
-    out->WriteCommandComplete(unnamed_statement->QueryType(), 0);
+    out->WriteCommandComplete(statement->QueryType(), 0);
     return FinishSimpleQueryCommand(out, connection);
   }
 
@@ -130,16 +133,17 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
 
   // Try to bind the parsed statement
   // TODO(Matt): refactor this signature
-  const bool bind_result =
-      t_cop->BindQuery(connection, out, unnamed_statement->ParseResult(), unnamed_statement->QueryType());
+  const bool bind_result = t_cop->BindQuery(connection, out, statement->ParseResult(), statement->QueryType());
   if (bind_result) {
     // Binding succeeded, optimize to generate a physical plan and then execute
     // TODO(Matt): refactor this signature
-    const auto physical_plan =
-        t_cop->OptimizeBoundQuery(connection->Transaction(), connection->Accessor(), unnamed_statement->ParseResult());
+    auto physical_plan =
+        t_cop->OptimizeBoundQuery(connection->Transaction(), connection->Accessor(), statement->ParseResult());
+
+    const auto portal = std::make_unique<Portal>(common::ManagedPointer(statement), std::move(physical_plan));
 
     // TODO(Matt): refactor this signature
-    ExecutePortal(connection, common::ManagedPointer(physical_plan), out, t_cop, unnamed_statement->QueryType(),
+    ExecutePortal(connection, common::ManagedPointer(portal), out, t_cop,
                   postgres_interpreter->SingleStatementTransaction());
   }
 
@@ -160,6 +164,7 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
                               const common::ManagedPointer<ConnectionContext> connection) {
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
 
+  // TODO(Matt): Move this check up to PostgresProtocolInterpreter::Process?
   if (postgres_interpreter->WaitingForSync()) {
     // When an error is detected while processing any extended-query message, the backend issues ErrorResponse, then
     // reads and discards messages until a Sync is reached
@@ -302,7 +307,6 @@ Transition DescribeCommand::Exec(const common::ManagedPointer<ProtocolInterprete
                                  const common::ManagedPointer<PostgresPacketWriter> out,
                                  const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                  const common::ManagedPointer<ConnectionContext> connection) {
-  // TODO(Matt): Implement this for prepared statement support
   out->WriteNoData();
   NETWORK_LOG_TRACE("Describe Command");
   return Transition::PROCEED;
@@ -312,7 +316,6 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
                                 const common::ManagedPointer<PostgresPacketWriter> out,
                                 const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                 const common::ManagedPointer<ConnectionContext> connection) {
-  // TODO(Matt): Implement this for prepared statement support
   NETWORK_LOG_TRACE("Exec Command");
   out->WriteCommandComplete("");
   return Transition::PROCEED;
@@ -360,15 +363,5 @@ Transition TerminateCommand::Exec(const common::ManagedPointer<ProtocolInterpret
   // We don't do removal of the temp namespace at the Command level because it's possible that we don't receive a
   // Terminate packet to generate the Command from, and instead closed the connection due to timeout
   return Transition::TERMINATE;
-}
-
-Transition EmptyCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> interpreter,
-                              const common::ManagedPointer<PostgresPacketWriter> out,
-                              const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
-                              const common::ManagedPointer<ConnectionContext> connection) {
-  NETWORK_LOG_TRACE("Empty Command");
-  out->WriteEmptyQueryResponse();
-  out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
-  return Transition::PROCEED;
 }
 }  // namespace terrier::network

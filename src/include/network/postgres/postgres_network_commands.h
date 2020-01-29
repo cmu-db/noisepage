@@ -51,6 +51,4 @@ DEFINE_POSTGRES_COMMAND(SyncCommand, true);
 DEFINE_POSTGRES_COMMAND(CloseCommand, true);
 DEFINE_POSTGRES_COMMAND(TerminateCommand, true);
 
-DEFINE_POSTGRES_COMMAND(EmptyCommand, true);
-
 }  // namespace terrier::network

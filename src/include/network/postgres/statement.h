@@ -12,6 +12,7 @@ namespace terrier::network {
 
 class Statement {
  public:
+  // for simplyquery
   explicit Statement(std::unique_ptr<parser::ParseResult> &&parse_result) : Statement(std::move(parse_result), {}) {}
 
   Statement(std::unique_ptr<parser::ParseResult> &&parse_result, std::vector<type::TypeId> &&param_types)
