@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "execution/sql/value.h"
@@ -39,6 +40,52 @@ class PostgresPacketWriter : public PacketWriter {
    */
   PostgresPacketWriter(const common::ManagedPointer<WriteQueue> write_queue, const FieldFormat format)
       : PacketWriter(write_queue), format_(format) {}
+
+  /**
+   * Writes error responses to the client
+   * @param error_status The error messages to send
+   */
+  void WriteErrorResponse(const std::vector<std::pair<NetworkMessageType, std::string>> &error_status) {
+    BeginPacket(NetworkMessageType::PG_ERROR_RESPONSE);
+
+    for (const auto &entry : error_status) AppendRawValue(entry.first).AppendString(entry.second);
+
+    // Nul-terminate packet
+    AppendRawValue<uchar>(0).EndPacket();
+  }
+
+  /**
+   * Notify the client a readiness to receive a query
+   * @param txn_status
+   */
+  void WriteReadyForQuery(NetworkTransactionStateType txn_status) {
+    BeginPacket(NetworkMessageType::PG_READY_FOR_QUERY).AppendRawValue(txn_status).EndPacket();
+  }
+
+  /**
+   * A helper function to write a single error message without having to make a vector every time.
+   * @param type
+   * @param status
+   */
+  void WriteSingleErrorResponse(NetworkMessageType type, const std::string &status) {
+    std::vector<std::pair<NetworkMessageType, std::string>> buf;
+    buf.emplace_back(type, status);
+    WriteErrorResponse(buf);
+  }
+
+  /**
+   * Writes response to startup message
+   */
+  void WriteStartupResponse() {
+    BeginPacket(NetworkMessageType::PG_AUTHENTICATION_REQUEST).AppendValue<int32_t>(0).EndPacket();
+
+    for (auto &entry : PG_PARAMETER_STATUS_MAP)
+      BeginPacket(NetworkMessageType::PG_PARAMETER_STATUS)
+          .AppendString(entry.first)
+          .AppendString(entry.second)
+          .EndPacket();
+    WriteReadyForQuery(NetworkTransactionStateType::IDLE);
+  }
 
   /**
    * Writes a simple query

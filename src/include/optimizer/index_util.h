@@ -15,73 +15,6 @@
 namespace terrier::optimizer {
 
 /**
- * Struct defines information for IndexUtil functions that are
- * concerned with handling index-predicates.
- *
- * TODO(wz2): Support complicated predicates on non-base indexes
- * Support requires modifying PopulateMetadata/SatisfiesPredicateWithIndex.
- * In addition, also need to modify IndexScan / IndexScanPlanNode.
- * For now, based on Peloton, supports only (col comparator value)
- * on base-column indexes.
- */
-struct IndexUtilMetadata {
- public:
-  friend class IndexUtil;
-
-  /**
-   * Returns the predicate col_oid_t vector
-   * @returns vector of predicates col_oid_t
-   */
-  std::vector<catalog::col_oid_t> &GetPredicateColumnIds() { return predicate_column_ids_; }
-
-  /**
-   * Returns the predicate ExpressionType vector
-   * @returns vector of predicates ExpressionType
-   */
-  std::vector<parser::ExpressionType> &GetPredicateExprTypes() { return predicate_expr_types_; }
-
-  /**
-   * Returns the predicate TransientValue vector
-   * @returns vector of predicates TransientValue
-   */
-  std::vector<type::TransientValue> &GetPredicateValues() { return predicate_values_; }
-
- private:
-  /**
-   * Sets the predicate_column_ids_ vector
-   * @param col_ids Vector of catalog::col_oid_t for predicates
-   */
-  void SetPredicateColumnIds(std::vector<catalog::col_oid_t> &&col_ids) { predicate_column_ids_ = col_ids; }
-
-  /**
-   * Sets the predicate_expr_types_ vector
-   * @param expr_types Vector of parser::ExpressionType for predicates
-   */
-  void SetPredicateExprTypes(std::vector<parser::ExpressionType> &&expr_types) { predicate_expr_types_ = expr_types; }
-
-  /**
-   * Sets the predicate_values_ vector
-   * @param values Vector of type::TransientValue for predicates
-   */
-  void SetPredicateValues(std::vector<type::TransientValue> &&values) { predicate_values_ = std::move(values); }
-
-  /**
-   * Vector of predicate col_oid_t
-   */
-  std::vector<catalog::col_oid_t> predicate_column_ids_;
-
-  /**
-   * Vector of predicate ExpressionType
-   */
-  std::vector<parser::ExpressionType> predicate_expr_types_;
-
-  /**
-   * Vector of predicates values
-   */
-  std::vector<type::TransientValue> predicate_values_;
-};
-
-/**
  * Collection of helper functions related to working with Indexes
  * within the scope of the optimizer.
  */
@@ -129,7 +62,8 @@ class IndexUtil {
     }
 
     std::vector<catalog::col_oid_t> mapped_cols;
-    if (!GetIndexColOid(accessor, tbl_oid, index_schema, &mapped_cols)) {
+    std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> lookup;
+    if (!ConvertIndexKeyOidToColOid(accessor, tbl_oid, index_schema, &lookup, &mapped_cols)) {
       // Unable to translate indexkeycol_oid_t -> col_oid_t
       // Translation uses the IndexSchema::Column expression
       return false;
@@ -143,7 +77,7 @@ class IndexUtil {
 
     for (size_t idx = 0; idx < sort_col_size; idx++) {
       // Compare col_oid_t directly due to "Base Column" requirement
-      auto tv_expr = prop->GetSortColumn(idx).CastManagedPointerTo<const parser::ColumnValueExpression>();
+      auto tv_expr = prop->GetSortColumn(idx).CastManagedPointerTo<parser::ColumnValueExpression>();
 
       // Sort(a,b,c) cannot be fulfilled by Index(a,c,b)
       auto col_match = tv_expr->GetColumnOid() == mapped_cols[idx];
@@ -160,147 +94,182 @@ class IndexUtil {
   }
 
   /**
-   * Populates metadata using information from predicates
-   * @param predicates Predicates to populate metadata with
-   * @param metadata IndexUtilMetadata
-   */
-  static void PopulateMetadata(const std::vector<AnnotatedExpression> &predicates, IndexUtilMetadata *metadata) {
-    // List of column OIDs that predicates are built against
-    std::vector<catalog::col_oid_t> key_column_id_list;
-
-    // List of expression comparison type (i.e =, >, ...)
-    std::vector<parser::ExpressionType> expr_type_list;
-
-    // List of values compared against
-    std::vector<type::TransientValue> value_list;
-
-    for (auto &pred : predicates) {
-      auto expr = pred.GetExpr();
-      if (expr->GetChildrenSize() != 2) {
-        continue;
-      }
-
-      // Fetch column reference and value
-      auto expr_type = expr->GetExpressionType();
-      common::ManagedPointer<parser::AbstractExpression> tv_expr;
-      common::ManagedPointer<parser::AbstractExpression> value_expr;
-      if (expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-        auto r_type = expr->GetChild(1)->GetExpressionType();
-        if (r_type == parser::ExpressionType::VALUE_CONSTANT || r_type == parser::ExpressionType::VALUE_PARAMETER) {
-          tv_expr = expr->GetChild(0);
-          value_expr = expr->GetChild(1);
-        }
-      } else if (expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-        auto l_type = expr->GetChild(0)->GetExpressionType();
-        if (l_type == parser::ExpressionType::VALUE_CONSTANT || l_type == parser::ExpressionType::VALUE_PARAMETER) {
-          tv_expr = expr->GetChild(1);
-          value_expr = expr->GetChild(0);
-          expr_type = parser::ExpressionUtil::ReverseComparisonExpressionType(expr_type);
-        }
-      }
-
-      // If found valid tv_expr and value_expr, update col_id_list, expr_type_list and val_list
-      if (tv_expr != nullptr) {
-        // Get the column's col_oid_t from catalog
-        auto col_expr = tv_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
-        auto col_oid = col_expr->GetColumnOid();
-        TERRIER_ASSERT(col_oid != catalog::col_oid_t(-1), "ColumnValueExpression at scan should be bound");
-        key_column_id_list.push_back(col_oid);
-
-        // Update expr_type_list
-        expr_type_list.push_back(expr_type);
-
-        if (value_expr->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT) {
-          auto cve = value_expr.CastManagedPointerTo<parser::ConstantValueExpression>();
-          type::TransientValue value = cve->GetValue();
-          value_list.emplace_back(std::move(value));
-        } else {
-          auto poe = value_expr.CastManagedPointerTo<parser::ParameterValueExpression>();
-          value_list.push_back(type::TransientValueFactory::GetParameterOffset(poe->GetValueIdx()));
-        }
-      }
-    }
-
-    metadata->SetPredicateColumnIds(std::move(key_column_id_list));
-    metadata->SetPredicateExprTypes(std::move(expr_type_list));
-    metadata->SetPredicateValues(std::move(value_list));
-  }
-
-  /**
    * Checks whether a set of predicates can be satisfied with an index
    * @param accessor CatalogAccessor
    * @param tbl_oid OID of the table
    * @param index_oid OID of an index to check
-   * @param preds_metadata IndexUtilMetadata from PopulateMetadata on predicates
-   * @param output_metadata Output IndexUtilMetadata for creating IndexScan
+   * @param predicates List of predicates
+   * @param scan_type IndexScanType to utilize
+   * @param bounds Relevant bounds for the index scan
    * @returns Whether index can be used
    */
-  static bool SatisfiesPredicateWithIndex(catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid,
-                                          catalog::index_oid_t index_oid, IndexUtilMetadata *preds_metadata,
-                                          IndexUtilMetadata *output_metadata) {
+  static bool SatisfiesPredicateWithIndex(
+      catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
+      const std::vector<AnnotatedExpression> &predicates, planner::IndexScanType *scan_type,
+      std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> *bounds) {
     auto &index_schema = accessor->GetIndexSchema(index_oid);
     if (!SatisfiesBaseColumnRequirement(index_schema)) {
       return false;
     }
 
     std::vector<catalog::col_oid_t> mapped_cols;
-    if (!GetIndexColOid(accessor, tbl_oid, index_schema, &mapped_cols)) {
+    std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> lookup;
+    if (!ConvertIndexKeyOidToColOid(accessor, tbl_oid, index_schema, &lookup, &mapped_cols)) {
       // Unable to translate indexkeycol_oid_t -> col_oid_t
       // Translation uses the IndexSchema::Column expression
       return false;
     }
 
-    std::unordered_set<catalog::col_oid_t> index_cols;
-    for (auto &id : mapped_cols) {
-      index_cols.insert(id);
-    }
+    std::unordered_set<catalog::col_oid_t> mapped_set;
+    for (auto col : mapped_cols) mapped_set.insert(col);
 
-    std::vector<catalog::col_oid_t> output_col_list;
-    std::vector<parser::ExpressionType> output_expr_list;
-    std::vector<type::TransientValue> output_val_list;
-
-    // From predicate maetadata
-    auto &input_col_list = preds_metadata->GetPredicateColumnIds();
-    auto &input_expr_list = preds_metadata->GetPredicateExprTypes();
-    auto &input_val_list = preds_metadata->GetPredicateValues();
-    TERRIER_ASSERT(input_col_list.size() == input_expr_list.size() && input_col_list.size() == input_val_list.size(),
-                   "Predicate metadata should all be equal length vectors");
-
-    for (size_t offset = 0; offset < input_col_list.size(); offset++) {
-      auto col_id = input_col_list[offset];
-      if (index_cols.find(col_id) != index_cols.end()) {
-        output_col_list.push_back(col_id);
-        output_expr_list.push_back(input_expr_list[offset]);
-
-        type::TransientValue val = input_val_list[offset];
-        output_val_list.emplace_back(std::move(val));
-      }
-    }
-
-    bool is_empty = output_col_list.empty();
-    output_metadata->SetPredicateColumnIds(std::move(output_col_list));
-    output_metadata->SetPredicateExprTypes(std::move(output_expr_list));
-    output_metadata->SetPredicateValues(std::move(output_val_list));
-    return !is_empty;
+    return CheckPredicates(index_schema, lookup, mapped_set, predicates, scan_type, bounds);
   }
 
  private:
   /**
-   * Checks whether a Index satisfies the "base column" requirement.
-   * The base column requirement (as defined from Peloton) is where
-   * the index is built only on base table columns.
-   * @param schema IndexSchema to evaluate
-   * @returns TRUE if the "base column" requirement is met
+   * Check whether predicate can take part in index computation
+   * @param schema Index Schema
+   * @param lookup map from col_oid_t to indexkeycol_oid_t
+   * @param mapped_cols col_oid_t from index schema's indexkeycol_oid_t
+   * @param predicates Set of predicates to attempt to satisfy
+   * @param idx_scan_type IndexScanType to utilize
+   * @param bounds Relevant bounds for the index scan
+   * @returns Whether predicate can be utilized
    */
-  static bool SatisfiesBaseColumnRequirement(const catalog::IndexSchema &schema) {
-    for (auto &column : schema.GetColumns()) {
-      auto recast = const_cast<parser::AbstractExpression *>(column.StoredExpression().Get());
-      if (!IsBaseColumn(common::ManagedPointer(recast))) {
-        return false;
+  static bool CheckPredicates(
+      const catalog::IndexSchema &schema,
+      const std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> &lookup,
+      const std::unordered_set<catalog::col_oid_t> &mapped_cols, const std::vector<AnnotatedExpression> &predicates,
+      planner::IndexScanType *idx_scan_type,
+      std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> *bounds) {
+    // TODO(wz2): Eventually consider supporting concatenating/shrinking ranges
+    // Right now, this implementation only allows at most 1 range for an indexed column.
+    // To concatenate/shrink ranges, we would need to be able to compare TransientValues.
+    std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> open_highs;  // <index, low start>
+    std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> open_lows;   // <index, high end>
+    for (const auto &pred : predicates) {
+      auto expr = pred.GetExpr();
+      if (expr->HasSubquery()) return false;
+
+      auto type = expr->GetExpressionType();
+      switch (type) {
+        case parser::ExpressionType::COMPARE_EQUAL:
+        case parser::ExpressionType::COMPARE_NOT_EQUAL:
+        case parser::ExpressionType::COMPARE_LESS_THAN:
+        case parser::ExpressionType::COMPARE_GREATER_THAN:
+        case parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
+        case parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO: {
+          // TODO(wz2): Support more complex/predicates on indexes
+
+          // Currently supports [column] (=/!=/>/>=/</<=) [value/parameter]
+          // [column] = [column] will force a seq scan
+          // [value] = [value] will force a seq scan (rewriter should fix this)
+          auto ltype = expr->GetChild(0)->GetExpressionType();
+          auto rtype = expr->GetChild(1)->GetExpressionType();
+
+          common::ManagedPointer<parser::ColumnValueExpression> tv_expr;
+          common::ManagedPointer<parser::AbstractExpression> idx_expr;
+          if (ltype == parser::ExpressionType::COLUMN_VALUE &&
+              (rtype == parser::ExpressionType::VALUE_CONSTANT || rtype == parser::ExpressionType::VALUE_PARAMETER)) {
+            tv_expr = expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+            idx_expr = expr->GetChild(1);
+          } else if (rtype == parser::ExpressionType::COLUMN_VALUE &&
+                     (ltype == parser::ExpressionType::VALUE_CONSTANT ||
+                      ltype == parser::ExpressionType::VALUE_PARAMETER)) {
+            tv_expr = expr->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
+            idx_expr = expr->GetChild(0);
+            type = parser::ExpressionUtil::ReverseComparisonExpressionType(type);
+          } else {
+            // By derivation, all of these predicates should be CONJUNCTIVE_AND
+            // so, we let the scan_predicate() handle evaluating the truthfulness.
+            continue;
+          }
+
+          auto col_oid = tv_expr->GetColumnOid();
+          if (mapped_cols.find(col_oid) != mapped_cols.end()) {
+            // Try to insert into open_highs/open_lows depending on the comparison.
+            // Under iteration 1, if a bound already exists, then this fails.
+            // Revert to sequential scan
+            auto idxkey = lookup.find(col_oid)->second;
+            bool ins_success = true;
+            if (type == parser::ExpressionType::COMPARE_EQUAL) {
+              // Exact is simulated as open high of idx_expr and open low of idx_expr
+              ins_success = ins_success && open_highs.insert(std::make_pair(idxkey, idx_expr)).second;
+              ins_success = ins_success && open_lows.insert(std::make_pair(idxkey, idx_expr)).second;
+            } else if (type == parser::ExpressionType::COMPARE_LESS_THAN ||
+                       type == parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO) {
+              ins_success = open_lows.insert(std::make_pair(idxkey, idx_expr)).second;
+            } else if (type == parser::ExpressionType::COMPARE_GREATER_THAN ||
+                       type == parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO) {
+              ins_success = open_highs.insert(std::make_pair(idxkey, idx_expr)).second;
+            }
+
+            if (!ins_success) return false;
+          }
+          break;
+        }
+        default:
+          // If a predicate can enlarge the result set, then (for now), reject.
+          return false;
       }
     }
 
-    return true;
+    // No predicate can actually be used
+    if (open_highs.empty() && open_lows.empty()) return false;
+
+    // Check predicate open/close ordering
+    planner::IndexScanType scan_type = planner::IndexScanType::AscendingClosed;
+    if (open_highs.size() == open_lows.size() && open_highs.size() == schema.GetColumns().size()) {
+      // Generally on multi-column indexes, exact would result in comparing against unspecified attribute.
+      // Only try to do an exact key lookup if potentially all attributes are specified.
+      scan_type = planner::IndexScanType::Exact;
+    }
+
+    for (auto &col : schema.GetColumns()) {
+      auto oid = col.Oid();
+      if (open_highs.find(oid) == open_highs.end() && open_lows.find(oid) == open_lows.end()) {
+        // Index predicate ordering is busted
+        break;
+      }
+
+      if (open_highs.find(oid) != open_highs.end() && open_lows.find(oid) != open_lows.end()) {
+        bounds->insert(std::make_pair(oid, std::vector<planner::IndexExpression>{open_highs[oid], open_lows[oid]}));
+
+        // A range is defined but we are doing exact scans, so make ascending closed
+        // If already doing ascending closed, ascending open then it would be a matter of
+        // picking the right low/high key at the plan_generator stage of processing.
+        if (open_highs[oid] != open_lows[oid] && scan_type == planner::IndexScanType::Exact)
+          scan_type = planner::IndexScanType::AscendingClosed;
+      } else if (open_highs.find(oid) != open_highs.end()) {
+        if (scan_type == planner::IndexScanType::Exact || scan_type == planner::IndexScanType::AscendingClosed ||
+            scan_type == planner::IndexScanType::AscendingOpenHigh) {
+          scan_type = planner::IndexScanType::AscendingOpenHigh;
+        } else {
+          // OpenHigh scan is not compatible with an OpenLow scan
+          // Revert to a sequential scan
+          break;
+        }
+
+        bounds->insert(std::make_pair(
+            oid, std::vector<planner::IndexExpression>{open_highs[oid], planner::IndexExpression(nullptr)}));
+      } else if (open_lows.find(oid) != open_lows.end()) {
+        if (scan_type == planner::IndexScanType::Exact || scan_type == planner::IndexScanType::AscendingClosed ||
+            scan_type == planner::IndexScanType::AscendingOpenLow) {
+          scan_type = planner::IndexScanType::AscendingOpenLow;
+        } else {
+          // OpenLow scan is not compatible with an OpenHigh scan
+          // Revert to a sequential scan
+          break;
+        }
+
+        bounds->insert(std::make_pair(
+            oid, std::vector<planner::IndexExpression>{planner::IndexExpression(nullptr), open_lows[oid]}));
+      }
+    }
+
+    *idx_scan_type = scan_type;
+    return !bounds->empty();
   }
 
   /**
@@ -309,11 +278,14 @@ class IndexUtil {
    * @param accessor CatalogAccessor to use
    * @param tbl_oid Table the index belongs to
    * @param schema Schema
+   * @param key_map Mapping from col_oid_t to indexkeycol_oid_t
    * @param col_oids Vector to place col_oid_t translations
    * @returns TRUE if conversion successful
    */
-  static bool GetIndexColOid(catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid,
-                             const catalog::IndexSchema &schema, std::vector<catalog::col_oid_t> *col_oids) {
+  static bool ConvertIndexKeyOidToColOid(catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid,
+                                         const catalog::IndexSchema &schema,
+                                         std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> *key_map,
+                                         std::vector<catalog::col_oid_t> *col_oids) {
     TERRIER_ASSERT(SatisfiesBaseColumnRequirement(schema), "GetIndexColOid() pre-cond not satisfied");
     auto &tbl_schema = accessor->GetSchema(tbl_oid);
     if (tbl_schema.GetColumns().size() < schema.GetColumns().size()) {
@@ -331,12 +303,32 @@ class IndexUtil {
         if (tv_expr->GetColumnOid() != catalog::INVALID_COLUMN_OID) {
           // IndexSchema's expression's col_oid is bound
           col_oids->push_back(tv_expr->GetColumnOid());
+          key_map->insert(std::make_pair(tv_expr->GetColumnOid(), column.Oid()));
           continue;
         }
 
         auto it = schema_col.find(tv_expr->GetColumnName());
         TERRIER_ASSERT(it != schema_col.end(), "Inconsistency between IndexSchema and table schema");
         col_oids->push_back(it->second);
+        key_map->insert(std::make_pair(it->second, column.Oid()));
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Checks whether a Index satisfies the "base column" requirement.
+   * The base column requirement (as defined from Peloton) is where
+   * the index is built only on base table columns.
+   * @param schema IndexSchema to evaluate
+   * @returns TRUE if the "base column" requirement is met
+   */
+  static bool SatisfiesBaseColumnRequirement(const catalog::IndexSchema &schema) {
+    for (auto &column : schema.GetColumns()) {
+      auto recast = const_cast<parser::AbstractExpression *>(column.StoredExpression().Get());
+      if (!IsBaseColumn(common::ManagedPointer(recast))) {
+        return false;
       }
     }
 

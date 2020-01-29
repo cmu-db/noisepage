@@ -170,6 +170,7 @@ LargeSqlTableTestObject::~LargeSqlTableTestObject() {
 // Caller is responsible for freeing the returned results if bookkeeping is on.
 uint64_t LargeSqlTableTestObject::SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns) {
   common::WorkerPool thread_pool(num_concurrent_txns, {});
+  thread_pool.Startup();
   std::vector<RandomSqlTableTransaction *> txns(num_transactions);
   std::function<void(uint32_t)> workload;
   std::atomic<uint32_t> txns_run = 0;

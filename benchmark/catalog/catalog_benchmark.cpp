@@ -331,6 +331,11 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexObjects)(benchmark::State &state) {
   state.SetItemsProcessed(num_indexes * state.iterations());
 }
 
+// ----------------------------------------------------------------------------
+// BENCHMARK REGISTRATION
+// ----------------------------------------------------------------------------
+// clang-format off
+
 // Catalog benchmarks
 BENCHMARK_REGISTER_F(CatalogBenchmark, GetAccessor)->Unit(benchmark::kNanosecond);
 BENCHMARK_REGISTER_F(CatalogBenchmark, GetDatabaseOid)->Unit(benchmark::kNanosecond);
@@ -346,4 +351,6 @@ BENCHMARK_REGISTER_F(CatalogBenchmark, GetSchema)->Unit(benchmark::kNanosecond);
 BENCHMARK_REGISTER_F(CatalogBenchmark, GetTable)->Unit(benchmark::kNanosecond);
 BENCHMARK_REGISTER_F(CatalogBenchmark, GetTableOid)->Unit(benchmark::kNanosecond);
 BENCHMARK_REGISTER_F(CatalogBenchmark, GetIndexObjects)->Unit(benchmark::kNanosecond);
+// clang-format on
+
 }  // namespace terrier

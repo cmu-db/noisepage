@@ -1429,37 +1429,41 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
     case ast::Builtin::IndexIteratorInit: {
       // Execution context
       LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
+      // Num attrs
+      auto num_attrs = static_cast<uint32_t>(call->Arguments()[2]->As<ast::LitExpr>()->Int64Val());
       // Table OID
-      auto table_oid = static_cast<uint32_t>(call->Arguments()[2]->As<ast::LitExpr>()->Int64Val());
+      auto table_oid = static_cast<uint32_t>(call->Arguments()[3]->As<ast::LitExpr>()->Int64Val());
       // Index OID
-      auto index_oid = static_cast<uint32_t>(call->Arguments()[3]->As<ast::LitExpr>()->Int64Val());
+      auto index_oid = static_cast<uint32_t>(call->Arguments()[4]->As<ast::LitExpr>()->Int64Val());
       // Col OIDs
-      auto *arr_type = call->Arguments()[4]->GetType()->As<ast::ArrayType>();
-      LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[4]);
+      auto *arr_type = call->Arguments()[5]->GetType()->As<ast::ArrayType>();
+      LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[5]);
       // Emit the initialization codes
-      Emitter()->EmitIndexIteratorInit(Bytecode::IndexIteratorInit, iterator, exec_ctx, table_oid, index_oid, col_oids,
-                                       static_cast<uint32_t>(arr_type->Length()));
+      Emitter()->EmitIndexIteratorInit(Bytecode::IndexIteratorInit, iterator, exec_ctx, num_attrs, table_oid, index_oid,
+                                       col_oids, static_cast<uint32_t>(arr_type->Length()));
       Emitter()->Emit(Bytecode::IndexIteratorPerformInit, iterator);
       break;
     }
     case ast::Builtin::IndexIteratorInitBind: {
       // Exec Ctx
       LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
+      // Num attrs
+      auto num_attrs = static_cast<uint32_t>(call->Arguments()[2]->As<ast::LitExpr>()->Int64Val());
       // Table Name
-      std::string table_name(call->Arguments()[2]->As<ast::LitExpr>()->RawStringVal().Data());
+      std::string table_name(call->Arguments()[3]->As<ast::LitExpr>()->RawStringVal().Data());
       auto ns_oid = exec_ctx_->GetAccessor()->GetDefaultNamespace();
       auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(ns_oid, table_name);
       TERRIER_ASSERT(table_oid != terrier::catalog::INVALID_TABLE_OID, "Table does not exists");
       // Index Name
-      std::string index_name(call->Arguments()[3]->As<ast::LitExpr>()->RawStringVal().Data());
+      std::string index_name(call->Arguments()[4]->As<ast::LitExpr>()->RawStringVal().Data());
       auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(ns_oid, index_name);
       TERRIER_ASSERT(index_oid != terrier::catalog::INVALID_INDEX_OID, "Index does not exists");
       // Col OIDs
-      auto *arr_type = call->Arguments()[4]->GetType()->As<ast::ArrayType>();
-      LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[4]);
+      auto *arr_type = call->Arguments()[5]->GetType()->As<ast::ArrayType>();
+      LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[5]);
       // Emit the initialization codes
-      Emitter()->EmitIndexIteratorInit(Bytecode::IndexIteratorInit, iterator, exec_ctx, !table_oid, !index_oid,
-                                       col_oids, static_cast<uint32_t>(arr_type->Length()));
+      Emitter()->EmitIndexIteratorInit(Bytecode::IndexIteratorInit, iterator, exec_ctx, num_attrs, !table_oid,
+                                       !index_oid, col_oids, static_cast<uint32_t>(arr_type->Length()));
       Emitter()->Emit(Bytecode::IndexIteratorPerformInit, iterator);
       break;
     }
@@ -1468,16 +1472,13 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
       break;
     }
     case ast::Builtin::IndexIteratorScanAscending: {
-      Emitter()->Emit(Bytecode::IndexIteratorScanAscending, iterator);
+      auto asc_type = VisitExpressionForRValue(call->Arguments()[1]);
+      auto limit = VisitExpressionForRValue(call->Arguments()[2]);
+      Emitter()->Emit(Bytecode::IndexIteratorScanAscending, iterator, asc_type, limit);
       break;
     }
     case ast::Builtin::IndexIteratorScanDescending: {
       Emitter()->Emit(Bytecode::IndexIteratorScanDescending, iterator);
-      break;
-    }
-    case ast::Builtin::IndexIteratorScanLimitAscending: {
-      auto limit = VisitExpressionForRValue(call->Arguments()[1]);
-      Emitter()->Emit(Bytecode::IndexIteratorScanLimitAscending, iterator, limit);
       break;
     }
     case ast::Builtin::IndexIteratorScanLimitDescending: {
@@ -2068,7 +2069,6 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::IndexIteratorScanKey:
     case ast::Builtin::IndexIteratorScanAscending:
     case ast::Builtin::IndexIteratorScanDescending:
-    case ast::Builtin::IndexIteratorScanLimitAscending:
     case ast::Builtin::IndexIteratorScanLimitDescending:
     case ast::Builtin::IndexIteratorAdvance:
     case ast::Builtin::IndexIteratorFree:
