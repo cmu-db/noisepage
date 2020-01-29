@@ -101,9 +101,11 @@ BENCHMARK_DEFINE_F(SlotIteratorBenchmark, ConcurrentSlotIterators)(benchmark::St
     EXPECT_EQ(num_reads, num_reads_);
   };
 
+  common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
+  thread_pool.Startup();
+
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
