@@ -222,32 +222,28 @@ ast::Expr *CodeGen::IndexIteratorInit(ast::Identifier iter, uint32_t num_attrs, 
 ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanType scan_type, uint32_t limit) {
   // @indexIteratorScanKey(&iter)
   ast::Builtin builtin;
-  bool use_limit = false;
   bool asc_scan = false;
+  bool use_limit = false;
   storage::index::ScanType asc_type;
   switch (scan_type) {
     case planner::IndexScanType::Exact:
       builtin = ast::Builtin::IndexIteratorScanKey;
       break;
     case planner::IndexScanType::AscendingClosed:
-      asc_scan = true;
-      builtin = ast::Builtin::IndexIteratorScanAscending;
-      asc_type = storage::index::ScanType::Closed;
-      break;
     case planner::IndexScanType::AscendingOpenHigh:
-      asc_scan = true;
-      builtin = ast::Builtin::IndexIteratorScanAscending;
-      asc_type = storage::index::ScanType::OpenHigh;
-      break;
     case planner::IndexScanType::AscendingOpenLow:
-      asc_scan = true;
-      builtin = ast::Builtin::IndexIteratorScanAscending;
-      asc_type = storage::index::ScanType::OpenLow;
-      break;
     case planner::IndexScanType::AscendingOpenBoth:
       asc_scan = true;
+      use_limit = true;
       builtin = ast::Builtin::IndexIteratorScanAscending;
-      asc_type = storage::index::ScanType::OpenBoth;
+      if (scan_type == planner::IndexScanType::AscendingClosed)
+        asc_type = storage::index::ScanType::Closed;
+      else if (scan_type == planner::IndexScanType::AscendingOpenHigh)
+        asc_type = storage::index::ScanType::OpenHigh;
+      else if (scan_type == planner::IndexScanType::AscendingOpenLow)
+        asc_type = storage::index::ScanType::OpenLow;
+      else if (scan_type == planner::IndexScanType::AscendingOpenBoth)
+        asc_type = storage::index::ScanType::OpenBoth;
       break;
     case planner::IndexScanType::Descending:
       builtin = ast::Builtin::IndexIteratorScanDescending;
@@ -259,20 +255,15 @@ ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanTy
     default:
       UNREACHABLE("Unknown scan type");
   }
-  // Non limited scan
+
   if (!use_limit && !asc_scan) return OneArgCall(builtin, iter, true);
 
-  // Limited or ascending scan
   ast::Expr *fun = BuiltinFunction(builtin);
   ast::Expr *iter_ptr = PointerTo(iter);
-  ast::Expr *limit_expr = IntLiteral(limit);
   util::RegionVector<ast::Expr *> args({iter_ptr}, Region());
 
   if (asc_scan) args.push_back(IntLiteral(asc_type));
-  if (use_limit)
-    args.push_back(limit_expr);
-  else
-    args.push_back(IntLiteral(0));
+  if (use_limit) args.push_back(IntLiteral(limit));
 
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }

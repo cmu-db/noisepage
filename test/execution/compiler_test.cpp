@@ -389,7 +389,7 @@ TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
                      .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
-                     .SetScanType(planner::IndexScanType::AscendingLimit)
+                     .SetScanType(planner::IndexScanType::AscendingClosed)
                      .SetScanLimit(5)
                      .SetScanPredicate(nullptr)
                      .Build();
