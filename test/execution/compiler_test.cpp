@@ -316,7 +316,7 @@ TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
                      .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
-                     .SetScanType(planner::IndexScanType::Ascending)
+                     .SetScanType(planner::IndexScanType::AscendingClosed)
                      .SetScanLimit(0)
                      .SetScanPredicate(nullptr)
 
@@ -387,7 +387,7 @@ TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
                      .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
-                     .SetScanType(planner::IndexScanType::AscendingLimit)
+                     .SetScanType(planner::IndexScanType::AscendingClosed)
                      .SetScanLimit(5)
                      .SetScanPredicate(nullptr)
                      .Build();
@@ -1622,7 +1622,7 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
                      .SetScanPredicate(nullptr)
                      .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
-                     .SetScanType(planner::IndexScanType::Ascending)
+                     .SetScanType(planner::IndexScanType::AscendingClosed)
                      .SetScanLimit(0)
                      .Build();
   }
@@ -2416,7 +2416,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
                      .SetScanPredicate(nullptr)
                      .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
-                     .SetScanType(planner::IndexScanType::Ascending)
+                     .SetScanType(planner::IndexScanType::AscendingClosed)
                      .SetScanLimit(0)
                      .Build();
   }

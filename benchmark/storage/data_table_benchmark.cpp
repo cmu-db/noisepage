@@ -95,6 +95,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, Insert)(benchmark::State &state) {
       }
     };
     common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
+    thread_pool.Startup();
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
@@ -141,6 +142,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SelectRandom)(benchmark::State &state) {
                           reads_[id]);
     };
     common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
+    thread_pool.Startup();
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
@@ -180,6 +182,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SelectSequential)(benchmark::State &state
         read_table.Select(common::ManagedPointer(&txn), read_order[i], reads_[id]);
     };
     common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
+    thread_pool.Startup();
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
@@ -229,6 +232,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, Scan)(benchmark::State &state) {
       }
     };
     common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
+    thread_pool.Startup();
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
@@ -240,7 +244,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, Scan)(benchmark::State &state) {
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
   for (auto p : buf) {
-    delete p;
+    delete[] p;
   }
   state.SetItemsProcessed(state.iterations() * num_reads_ * BenchmarkConfig::num_threads);
 }

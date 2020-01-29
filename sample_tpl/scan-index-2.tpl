@@ -17,7 +17,7 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   var col_oids: [2]uint32
   col_oids[0] = 1 // col1
   col_oids[1] = 2 // col2
-  @indexIteratorInitBind(&index, execCtx, "test_2", "index_2", col_oids)
+  @indexIteratorInitBind(&index, execCtx, 1, "test_2", "index_2", col_oids)
 
   // Fill up index PR
   var index_pr = @indexIteratorGetPR(&index)

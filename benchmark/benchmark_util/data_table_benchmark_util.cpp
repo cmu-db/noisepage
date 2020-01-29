@@ -94,6 +94,7 @@ LargeDataTableBenchmarkObject::~LargeDataTableBenchmarkObject() {
 std::pair<uint64_t, uint64_t> LargeDataTableBenchmarkObject::SimulateOltp(
     uint32_t num_transactions, uint32_t num_concurrent_txns, metrics::MetricsManager *const metrics_manager) {
   common::WorkerPool thread_pool(num_concurrent_txns, {});
+  thread_pool.Startup();
   std::vector<RandomDataTableTransaction *> txns;
   std::function<void(uint32_t)> workload;
   std::atomic<uint32_t> txns_run = 0;

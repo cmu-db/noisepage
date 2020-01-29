@@ -103,7 +103,8 @@ void IndexJoinTranslator::DeclareIterator(FunctionBuilder *builder) {
   ast::Expr *iter_type = codegen_->BuiltinType(ast::BuiltinType::IndexIterator);
   builder->Append(codegen_->DeclareVariable(index_iter_, iter_type, nullptr));
   // Initialize: @indexIteratorInit(&index_iter, table_oid, index_oid, execCtx)
-  ast::Expr *init_call = codegen_->IndexIteratorInit(index_iter_, !op_->GetTableOid(), !op_->GetIndexOid(), col_oids_);
+  ast::Expr *init_call = codegen_->IndexIteratorInit(index_iter_, op_->GetIndexColumns().size(), !op_->GetTableOid(),
+                                                     !op_->GetIndexOid(), col_oids_);
   builder->Append(codegen_->MakeStmt(init_call));
 }
 
