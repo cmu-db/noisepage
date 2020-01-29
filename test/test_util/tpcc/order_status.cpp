@@ -126,8 +126,8 @@ bool OrderStatus::Execute(transaction::TransactionManager *const txn_manager, Da
   *reinterpret_cast<int32_t *>(order_line_high_key->AccessForceNotNull(ol_o_id_key_pr_offset_)) = o_id;
 
   index_scan_results.clear();
-  db->order_line_primary_index_->ScanAscendingClosed(*txn, 4, *order_line_low_key, *order_line_high_key,
-                                                     &index_scan_results);
+  db->order_line_primary_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 4, order_line_low_key,
+                                               order_line_high_key, 0, &index_scan_results);
 
   TERRIER_ASSERT(!index_scan_results.empty() && index_scan_results.size() <= 15,
                  "There should be at least 1 Order Line item, but no more than 15.");

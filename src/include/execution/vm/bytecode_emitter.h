@@ -412,7 +412,7 @@ class BytecodeEmitter {
    * @param bytecode index initialization bytecode
    * @param iter iterator in initialize
    * @param exec_ctx the execution context
-   * @param num_attrs NUmber of attributes
+   * @param num_attrs number attributes of key set
    * @param table_oid oid of the table owning the index
    * @param index_oid oid of the index to use
    * @param col_oids array of oids

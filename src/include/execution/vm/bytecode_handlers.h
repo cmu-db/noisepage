@@ -1367,27 +1367,13 @@ VM_OP void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *it
 
 VM_OP_WARM void OpIndexIteratorScanKey(terrier::execution::sql::IndexIterator *iter) { iter->ScanKey(); }
 
-VM_OP_WARM void OpIndexIteratorScanAscendingClosed(terrier::execution::sql::IndexIterator *iter) {
-  iter->ScanAscendingClosed();
-}
-
-VM_OP_WARM void OpIndexIteratorScanAscendingOpenHigh(terrier::execution::sql::IndexIterator *iter) {
-  iter->ScanAscendingOpenHigh();
-}
-
-VM_OP_WARM void OpIndexIteratorScanAscendingOpenLow(terrier::execution::sql::IndexIterator *iter) {
-  iter->ScanAscendingOpenLow();
-}
-
-VM_OP_WARM void OpIndexIteratorScanAscendingOpenBoth(terrier::execution::sql::IndexIterator *iter) {
-  iter->ScanAscendingOpenBoth();
+VM_OP_WARM void OpIndexIteratorScanAscending(terrier::execution::sql::IndexIterator *iter,
+                                             terrier::storage::index::ScanType scan_type,
+                                             uint32_t limit) {
+  iter->ScanAscending(scan_type, limit);
 }
 
 VM_OP_WARM void OpIndexIteratorScanDescending(terrier::execution::sql::IndexIterator *iter) { iter->ScanDescending(); }
-
-VM_OP_WARM void OpIndexIteratorScanLimitAscending(terrier::execution::sql::IndexIterator *iter, uint32_t limit) {
-  iter->ScanLimitAscending(limit);
-}
 
 VM_OP_WARM void OpIndexIteratorScanLimitDescending(terrier::execution::sql::IndexIterator *iter, uint32_t limit) {
   iter->ScanLimitDescending(limit);

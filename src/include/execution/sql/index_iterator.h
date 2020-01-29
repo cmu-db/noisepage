@@ -16,7 +16,7 @@ class EXPORT IndexIterator {
   /**
    * Constructor
    * @param exec_ctx execution containing of this query
-   * @param num_attrs Number of attributes in idx key
+   * @param num_attrs number of attributes set in key
    * @param table_oid oid of the table
    * @param index_oid oid of the index to iterate over.
    * @param col_oids oids of the table columns
@@ -41,34 +41,16 @@ class EXPORT IndexIterator {
   void ScanKey();
 
   /**
-   * Perform an ascending scan where low and high keys exist
-   */
-  void ScanAscendingClosed();
-
-  /**
-   * Perform an ascending scan from a low key
-   */
-  void ScanAscendingOpenHigh();
-
-  /**
-   * Perform an ascending scan to a high key
-   */
-  void ScanAscendingOpenLow();
-
-  /**
    * Perform an ascending scan
+   * @param scan_type Type of Scan
+   * @param limit number of tuples to limit
    */
-  void ScanAscendingOpenBoth();
+  void ScanAscending(storage::index::ScanType scan_type, uint32_t limit);
 
   /**
    * Perfrom a descending scan
    */
   void ScanDescending();
-
-  /**
-   * Perform an ascending scan with a limit
-   */
-  void ScanLimitAscending(uint32_t limit);
 
   /**
    * Perform an descending scan with a limit

@@ -1431,40 +1431,17 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
-  OP(IndexIteratorScanAscendingClosed) : {
+  OP(IndexIteratorScanAscending) : {
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
-    OpIndexIteratorScanAscendingClosed(iter);
-    DISPATCH_NEXT();
-  }
-
-  OP(IndexIteratorScanAscendingOpenHigh) : {
-    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
-    OpIndexIteratorScanAscendingOpenHigh(iter);
-    DISPATCH_NEXT();
-  }
-
-  OP(IndexIteratorScanAscendingOpenLow) : {
-    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
-    OpIndexIteratorScanAscendingOpenLow(iter);
-    DISPATCH_NEXT();
-  }
-
-  OP(IndexIteratorScanAscendingOpenBoth) : {
-    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
-    OpIndexIteratorScanAscendingOpenBoth(iter);
+    auto scan_type = frame->LocalAt<storage::index::ScanType>(READ_LOCAL_ID());
+    auto limit = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
+    OpIndexIteratorScanAscending(iter, scan_type, limit);
     DISPATCH_NEXT();
   }
 
   OP(IndexIteratorScanDescending) : {
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
     OpIndexIteratorScanDescending(iter);
-    DISPATCH_NEXT();
-  }
-
-  OP(IndexIteratorScanLimitAscending) : {
-    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
-    auto limit = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    OpIndexIteratorScanLimitAscending(iter, limit);
     DISPATCH_NEXT();
   }
 

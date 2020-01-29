@@ -1531,15 +1531,14 @@ void Sema::CheckBuiltinIndexIteratorScan(execution::ast::CallExpr *call, ast::Bu
 
   switch (builtin) {
     case ast::Builtin::IndexIteratorScanKey:
-    case ast::Builtin::IndexIteratorScanAscendingClosed:
-    case ast::Builtin::IndexIteratorScanAscendingOpenHigh:
-    case ast::Builtin::IndexIteratorScanAscendingOpenLow:
-    case ast::Builtin::IndexIteratorScanAscendingOpenBoth:
     case ast::Builtin::IndexIteratorScanDescending: {
       if (!CheckArgCount(call, 1)) return;
       break;
     }
-    case ast::Builtin::IndexIteratorScanLimitAscending:
+    case ast::Builtin::IndexIteratorScanAscending: {
+      if (!CheckArgCount(call, 3)) return;
+      break;
+    }
     case ast::Builtin::IndexIteratorScanLimitDescending: {
       if (!CheckArgCount(call, 2)) return;
       auto uint32_kind = ast::BuiltinType::Uint32;
@@ -2199,12 +2198,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::IndexIteratorScanKey:
-    case ast::Builtin::IndexIteratorScanAscendingClosed:
-    case ast::Builtin::IndexIteratorScanAscendingOpenHigh:
-    case ast::Builtin::IndexIteratorScanAscendingOpenLow:
-    case ast::Builtin::IndexIteratorScanAscendingOpenBoth:
+    case ast::Builtin::IndexIteratorScanAscending:
     case ast::Builtin::IndexIteratorScanDescending:
-    case ast::Builtin::IndexIteratorScanLimitAscending:
     case ast::Builtin::IndexIteratorScanLimitDescending: {
       CheckBuiltinIndexIteratorScan(call, builtin);
       break;

@@ -35,32 +35,11 @@ void IndexIterator::ScanKey() {
   index_->ScanKey(*exec_ctx_->GetTxn(), *index_pr_, &tuples_);
 }
 
-void IndexIterator::ScanAscendingClosed() {
+void IndexIterator::ScanAscending(storage::index::ScanType scan_type, uint32_t limit) {
   // Scan the index
   tuples_.clear();
   curr_index_ = 0;
-  index_->ScanAscendingClosed(*exec_ctx_->GetTxn(), num_attrs_, *index_pr_, *hi_index_pr_, &tuples_);
-}
-
-void IndexIterator::ScanAscendingOpenHigh() {
-  // Scan the index
-  tuples_.clear();
-  curr_index_ = 0;
-  index_->ScanAscendingOpenHigh(*exec_ctx_->GetTxn(), num_attrs_, *index_pr_, &tuples_);
-}
-
-void IndexIterator::ScanAscendingOpenLow() {
-  // Scan the index
-  tuples_.clear();
-  curr_index_ = 0;
-  index_->ScanAscendingOpenLow(*exec_ctx_->GetTxn(), num_attrs_, *hi_index_pr_, &tuples_);
-}
-
-void IndexIterator::ScanAscendingOpenBoth() {
-  // Scan the index
-  tuples_.clear();
-  curr_index_ = 0;
-  index_->ScanAscendingOpenBoth(*exec_ctx_->GetTxn(), &tuples_);
+  index_->ScanAscending(*exec_ctx_->GetTxn(), scan_type, num_attrs_, index_pr_, hi_index_pr_, limit, &tuples_);
 }
 
 void IndexIterator::ScanDescending() {
@@ -75,13 +54,6 @@ void IndexIterator::ScanLimitDescending(uint32_t limit) {
   tuples_.clear();
   curr_index_ = 0;
   index_->ScanLimitDescending(*exec_ctx_->GetTxn(), *index_pr_, *hi_index_pr_, &tuples_, limit);
-}
-
-void IndexIterator::ScanLimitAscending(uint32_t limit) {
-  // Scan the index
-  tuples_.clear();
-  curr_index_ = 0;
-  index_->ScanLimitAscending(*exec_ctx_->GetTxn(), *index_pr_, *hi_index_pr_, &tuples_, limit);
 }
 
 bool IndexIterator::Advance() {

@@ -14,6 +14,13 @@
 
 namespace terrier::storage::index {
 
+enum ScanType : uint32_t {
+  Closed,   /* [low, high] range scan */
+  OpenLow,  /* [begin(), high] range scan */
+  OpenHigh, /* [low, end()] range scan */
+  OpenBoth  /* [begin(), end()] range scan */
+};
+
 /**
  * Wrapper class for the various types of indexes in our system. Semantically, we expect updates on indexed attributes
  * to be modeled as a delete and an insert (see bwtree_index_test.cpp CommitUpdate1, CommitUpdate2, etc.). This
@@ -108,47 +115,15 @@ class Index {
   /**
    * Finds all the values between the given keys in our index, sorted in ascending order.
    * @param txn txn context for the calling txn, used for visibility checks
+   * @param scan_type Scan Type
    * @param num_attrs Number of attributes to compare
    * @param low_key the key to start at
    * @param high_key the key to end at
+   * @param limit if any
    * @param[out] value_list the values associated with the keys
    */
-  virtual void ScanAscendingClosed(const transaction::TransactionContext &txn, size_t num_attrs,
-                                   const ProjectedRow &low_key, const ProjectedRow &high_key,
-                                   std::vector<TupleSlot> *value_list) {
-    TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
-  }
-
-  /**
-   * Finds all the values from a given key in our index, sorted in ascending order.
-   * @param txn txn context for the calling txn, used for visibility checks
-   * @param num_attrs Number of attributes to compare
-   * @param low_key the key to start at
-   * @param[out] value_list the values associated with the keys
-   */
-  virtual void ScanAscendingOpenHigh(const transaction::TransactionContext &txn, size_t num_attrs,
-                                     const ProjectedRow &low_key, std::vector<TupleSlot> *value_list) {
-    TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
-  }
-
-  /**
-   * Finds all the values up to a given key in our index, sorted in ascending order.
-   * @param txn txn context for the calling txn, used for visibility checks
-   * @param num_attrs Number of attributes to compare
-   * @param high_key the key to end at
-   * @param[out] value_list the values associated with the keys
-   */
-  virtual void ScanAscendingOpenLow(const transaction::TransactionContext &txn, size_t num_attrs,
-                                    const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) {
-    TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
-  }
-
-  /**
-   * Finds all the values in our index, sorted in ascending order.
-   * @param txn txn context for the calling txn, used for visibility checks
-   * @param[out] value_list the values associated with the keys
-   */
-  virtual void ScanAscendingOpenBoth(const transaction::TransactionContext &txn, std::vector<TupleSlot> *value_list) {
+  virtual void ScanAscending(const transaction::TransactionContext &txn, ScanType scan_type, uint32_t num_attrs,
+                             ProjectedRow *low_key, ProjectedRow *high_key, uint32_t limit, std::vector<TupleSlot> *value_list) {
     TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
   }
 
@@ -161,19 +136,6 @@ class Index {
    */
   virtual void ScanDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
                               const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) {
-    TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
-  }
-
-  /**
-   * Finds the first limit # of values between the given keys in our index, sorted in ascending order.
-   * @param txn txn context for the calling txn, used for visibility checks
-   * @param low_key the key to start at
-   * @param high_key the key to end at
-   * @param[out] value_list the values associated with the keys
-   * @param limit upper bound of number of values to return
-   */
-  virtual void ScanLimitAscending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
-                                  const ProjectedRow &high_key, std::vector<TupleSlot> *value_list, uint32_t limit) {
     TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
   }
 
