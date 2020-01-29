@@ -32,7 +32,7 @@ class DefaultCostModel : public AbstractCostModel {
    * @param txn TransactionContext of query
    * @return calculated cost
    */
-  double CalculateCost(GroupExpression *gexpr, Memo *memo, transaction::TransactionContext *txn) override {
+  double CalculateCost(transaction::TransactionContext *txn, Memo *memo, GroupExpression *gexpr) override {
     gexpr_ = gexpr;
     memo_ = memo;
     txn_ = txn;
@@ -47,17 +47,20 @@ class DefaultCostModel : public AbstractCostModel {
   void Visit(const SeqScan *op) override {
     auto table_stats = stats_storage_->GetTableStats(op->GetDatabaseOID(), op->GetTableOID());
     if (table_stats->GetColumnCount() == 0) {
-      output_cost_ = 1.f;
+      output_cost_ = DEFAULT_OUTPUT_COST;
       return;
     }
     output_cost_ = table_stats->GetNumRows() * DEFAULT_TUPLE_COST;
   }
 
   /**
-   * Index scan operator to visit
+   * Index scan operator to visit. The cost is calculated by approximating the number of index
+   * entries based on the number of rows in the table and using the cost to access each index
+   * entry to calculate the total cost of accessing all the entries. This cost is also
+   * compounded by the general cost of accessing all of the tuples in the table.
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const IndexScan *op) override {
+  void Visit(const IndexScan *op) override {
     auto table_stats = stats_storage_->GetTableStats(op->GetDatabaseOID(), op->GetTableOID());
     if (table_stats->GetColumnCount() == 0 || table_stats->GetNumRows() == 0) {
       output_cost_ = 0.f;
@@ -253,6 +256,11 @@ class DefaultCostModel : public AbstractCostModel {
    * Estimate the cost of processing each index entry during an index scan.
    */
   static constexpr double DEFAULT_INDEX_TUPLE_COST = 0.005;
+
+  /**
+   * Default output cost if cost cannot be calculated.
+   */
+   static constexpr double DEFAULT_OUTPUT_COST = 1.0f;
 };
 
 }  // namespace terrier::optimizer
