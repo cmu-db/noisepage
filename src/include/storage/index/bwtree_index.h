@@ -136,7 +136,7 @@ class BwTreeIndex final : public Index {
 
   void ScanAscending(const transaction::TransactionContext &txn, ScanType scan_type, uint32_t num_attrs,
                      ProjectedRow *low_key, ProjectedRow *high_key, uint32_t limit,
-                     std::vector<TupleSlot> *value_list) {
+                     std::vector<TupleSlot> *value_list) final {
     TERRIER_ASSERT(value_list->empty(), "Result set should begin empty.");
     TERRIER_ASSERT(scan_type == ScanType::Closed || scan_type == ScanType::OpenLow || scan_type == ScanType::OpenHigh ||
                        scan_type == ScanType::OpenBoth,
