@@ -21,7 +21,6 @@ enum class ConnState {
 enum class Transition {
   NONE,
   WAKEUP,
-  STARTUP,
   PROCEED,
   NEED_READ,
   NEED_READ_TIMEOUT,

@@ -69,5 +69,6 @@ enum class PostgresValueType {
 };
 
 type::TypeId PostgresValueTypeToInternalValueType(PostgresValueType type);
+PostgresValueType InternalValueTypeToPostgresValueType(type::TypeId type);
 
 }  // namespace terrier::network

@@ -1,6 +1,8 @@
 #include "execution/compiler/operator/update_translator.h"
+
 #include <utility>
 #include <vector>
+
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/translator_factory.h"
 
@@ -24,7 +26,8 @@ void UpdateTranslator::Produce(FunctionBuilder *builder) {
 
 void UpdateTranslator::Abort(FunctionBuilder *builder) {
   GenUpdaterFree(builder);
-  if (child_translator_ != nullptr) child_translator_->Abort(builder);
+  child_translator_->Abort(builder);
+  builder->Append(codegen_->ReturnStmt(nullptr));
 }
 
 void UpdateTranslator::Consume(FunctionBuilder *builder) {
@@ -114,8 +117,10 @@ void UpdateTranslator::FillPRFromChild(terrier::execution::compiler::FunctionBui
 }
 
 void UpdateTranslator::GenTableUpdate(FunctionBuilder *builder) {
-  // if (update fails) { Abort(); }
-  auto update_call = codegen_->OneArgCall(ast::Builtin::TableInsert, updater_, true);
+  //   if (update fails) { Abort(); }
+  auto update_slot = child_translator_->GetSlot();
+  std::vector<ast::Expr *> update_args{codegen_->PointerTo(updater_), update_slot};
+  auto update_call = codegen_->BuiltinCall(ast::Builtin::TableUpdate, std::move(update_args));
 
   auto cond = codegen_->UnaryOp(parsing::Token::Type::BANG, update_call);
   builder->StartIfStmt(cond);
@@ -142,11 +147,13 @@ void UpdateTranslator::GenIndexInsert(FunctionBuilder *builder, const catalog::i
   auto index = codegen_->Accessor()->GetIndex(index_oid);
   const auto &index_pm = index->GetKeyOidToOffsetMap();
   const auto &index_schema = codegen_->Accessor()->GetIndexSchema(index_oid);
+
   pr_filler_.GenFiller(index_pm, index_schema, codegen_->MakeExpr(insert_index_pr), builder);
 
   // Insert into index
   // if (insert not successfull) { Abort(); }
-  auto index_insert_call = codegen_->OneArgCall(ast::Builtin::IndexInsert, updater_, true);
+  auto index_insert_call = codegen_->OneArgCall(
+      index_schema.Unique() ? ast::Builtin::IndexInsertUnique : ast::Builtin::IndexInsert, updater_, true);
   auto cond = codegen_->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
   builder->StartIfStmt(cond);
   Abort(builder);

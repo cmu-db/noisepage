@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+
 #include "loggers/network_logger.h"
 #include "network/connection_context.h"
 #include "network/connection_handle.h"
@@ -54,12 +55,15 @@ class ITPProtocolInterpreter : public ProtocolInterpreter {
    * @param out The WriteQueue to communicate with the client through
    * @param t_cop the traffic cop pointer
    * @param context the connection context
-   * @param callback The callback function to trigger on completion
    * @return
    */
   Transition Process(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out,
                      common::ManagedPointer<trafficcop::TrafficCop> t_cop,
-                     common::ManagedPointer<ConnectionContext> context, NetworkCallback callback) override;
+                     common::ManagedPointer<ConnectionContext> context) override;
+
+  void Teardown(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out,
+                common::ManagedPointer<trafficcop::TrafficCop> t_cop,
+                common::ManagedPointer<ConnectionContext> context) override {}
 
   /**
    * Writes result to the client

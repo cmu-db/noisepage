@@ -110,10 +110,8 @@ Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_
   scan->table_alias_ = std::move(table_alias);
   scan->is_for_update_ = is_for_update;
   scan->predicates_ = std::move(predicates);
-  scan->key_column_oid_list_ = std::move(key_column_oid_list);
-  scan->expr_type_list_ = std::move(expr_type_list);
-  scan->value_list_ = std::move(value_list);
-
+  scan->scan_type_ = scan_type;
+  scan->bounds_ = std::move(bounds);
   return Operator(std::move(scan));
 }
 
@@ -131,9 +129,21 @@ bool IndexScan::operator==(const BaseOperatorNode &r) {
   for (size_t i = 0; i < predicates_.size(); i++) {
     if (predicates_[i].GetExpr() != node.predicates_[i].GetExpr()) return false;
   }
-  if (key_column_oid_list_ != node.key_column_oid_list_) return false;
-  if (expr_type_list_ != node.expr_type_list_) return false;
-  if (value_list_ != node.value_list_) return false;
+
+  if (bounds_.size() != node.bounds_.size()) return false;
+  for (const auto &bound : bounds_) {
+    if (node.bounds_.find(bound.first) == node.bounds_.end()) return false;
+
+    std::vector<planner::IndexExpression> exprs = bound.second;
+    std::vector<planner::IndexExpression> o_exprs = node.bounds_.find(bound.first)->second;
+    if (exprs.size() != o_exprs.size()) return false;
+    for (size_t idx = 0; idx < exprs.size(); idx++) {
+      if (exprs[idx] == nullptr && o_exprs[idx] == nullptr) continue;
+      if (exprs[idx] == nullptr && o_exprs[idx] != nullptr) return false;
+      if (exprs[idx] != nullptr && o_exprs[idx] == nullptr) return false;
+      if (*exprs[idx] != *o_exprs[idx]) return false;
+    }
+  }
   return true;
 }
 
@@ -145,6 +155,7 @@ common::hash_t IndexScan::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_for_update_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(scan_type_));
   for (auto &pred : predicates_) {
     auto expr = pred.GetExpr();
     if (expr)
@@ -152,11 +163,15 @@ common::hash_t IndexScan::Hash() const {
     else
       hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
   }
-  for (const auto &col_oid : key_column_oid_list_)
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(col_oid));
-  for (const auto &expr_type : expr_type_list_)
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expr_type));
-  for (auto &val : value_list_) hash = common::HashUtil::CombineHashes(hash, val.Hash());
+
+  for (const auto &bound : bounds_) {
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(bound.first));
+    for (auto expr : bound.second) {
+      if (expr != nullptr) {
+        hash = common::HashUtil::CombineHashes(hash, expr->Hash());
+      }
+    }
+  }
   return hash;
 }
 
@@ -818,41 +833,16 @@ bool CreateDatabase::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // CreateTable
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *CreateTable::Copy() const {
-  std::vector<catalog::Schema::Column> columns;
-  for (auto &col : table_schema_->GetColumns()) {
-    columns.emplace_back(col);
-  }
-  auto schema = std::make_unique<catalog::Schema>(std::move(columns));
-  auto op = new CreateTable();
-  op->namespace_oid_ = namespace_oid_;
-  op->table_name_ = table_name_;
-  op->table_schema_ = std::move(schema);
-  op->block_store_ = block_store_;
-  op->has_primary_key_ = has_primary_key_;
-  op->primary_key_ = primary_key_;
-  op->foreign_keys_ = foreign_keys_;
-  op->con_uniques_ = con_uniques_;
-  op->con_checks_ = con_checks_;
-  return op;
-}
+BaseOperatorNode *CreateTable::Copy() const { return new CreateTable(*this); }
 
 Operator CreateTable::Make(catalog::namespace_oid_t namespace_oid, std::string table_name,
-                           std::unique_ptr<catalog::Schema> table_schema,
-                           common::ManagedPointer<storage::BlockStore> block_store, bool has_primary_key,
-                           planner::PrimaryKeyInfo primary_key, std::vector<planner::ForeignKeyInfo> &&foreign_keys,
-                           std::vector<planner::UniqueInfo> &&con_uniques,
-                           std::vector<planner::CheckInfo> &&con_checks) {
+                           std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&columns,
+                           std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&foreign_keys) {
   auto op = std::make_unique<CreateTable>();
   op->namespace_oid_ = namespace_oid;
   op->table_name_ = std::move(table_name);
-  op->table_schema_ = std::move(table_schema);
-  op->block_store_ = block_store;
-  op->has_primary_key_ = has_primary_key;
-  op->primary_key_ = std::move(primary_key);
+  op->columns_ = std::move(columns);
   op->foreign_keys_ = std::move(foreign_keys);
-  op->con_uniques_ = std::move(con_uniques);
-  op->con_checks_ = std::move(con_checks);
   return Operator(std::move(op));
 }
 
@@ -860,20 +850,9 @@ common::hash_t CreateTable::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_name_));
-  hash = common::HashUtil::CombineHashes(hash, table_schema_->Hash());
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(has_primary_key_));
-  if (has_primary_key_) {
-    hash = common::HashUtil::CombineHashes(hash, primary_key_.Hash());
-  }
-  for (const auto &foreign_key : foreign_keys_) {
-    hash = common::HashUtil::CombineHashes(hash, foreign_key.Hash());
-  }
-  for (const auto &con_unique : con_uniques_) {
-    hash = common::HashUtil::CombineHashes(hash, con_unique.Hash());
-  }
-  for (const auto &con_check : con_checks_) {
-    hash = common::HashUtil::CombineHashes(hash, con_check.Hash());
-  }
+  hash = common::HashUtil::CombineHashInRange(hash, columns_.begin(), columns_.end());
+  for (const auto &col : columns_) hash = common::HashUtil::CombineHashes(hash, col->Hash());
+  for (const auto &fk : foreign_keys_) hash = common::HashUtil::CombineHashes(hash, fk->Hash());
   return hash;
 }
 
@@ -882,13 +861,15 @@ bool CreateTable::operator==(const BaseOperatorNode &r) {
   const CreateTable &node = *dynamic_cast<const CreateTable *>(&r);
   if (namespace_oid_ != node.namespace_oid_) return false;
   if (table_name_ != node.table_name_) return false;
-  if (table_schema_ != nullptr && *table_schema_ != *node.table_schema_) return false;
-  if (table_schema_ == nullptr && node.table_schema_ != nullptr) return false;
-  if (has_primary_key_ != node.has_primary_key_) return false;
-  if (has_primary_key_ && (primary_key_ != node.primary_key_)) return false;
-  if (foreign_keys_ != node.foreign_keys_) return false;
-  if (con_uniques_ != node.con_uniques_) return false;
-  return con_checks_ == node.con_checks_;
+  if (columns_.size() != node.columns_.size()) return false;
+  for (size_t i = 0; i < columns_.size(); i++) {
+    if (*(columns_[i]) != *(node.columns_[i])) return false;
+  }
+  if (foreign_keys_.size() != node.foreign_keys_.size()) return false;
+  for (size_t i = 0; i < foreign_keys_.size(); i++) {
+    if (*(foreign_keys_[i]) != *(node.foreign_keys_[i])) return false;
+  }
+  return true;
 }
 
 //===--------------------------------------------------------------------===//

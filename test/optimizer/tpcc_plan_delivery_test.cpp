@@ -28,18 +28,6 @@ TEST_F(TpccPlanDeliveryTests, DeliveryGetOrderId) {
 TEST_F(TpccPlanDeliveryTests, DeliveryDeleteNewOrder) {
   auto check = [](TpccPlanTest *test, catalog::table_oid_t tbl_oid, std::unique_ptr<planner::AbstractPlanNode> plan) {
     auto &schema = test->accessor_->GetSchema(tbl_oid);
-    auto no_o_id_idx = -1;
-    auto no_d_id_idx = -1;
-    auto no_w_id_idx = -1;
-    for (size_t i = 0; i < schema.GetColumns().size(); i++) {
-      if (schema.GetColumns()[i].Name() == "no_o_id") {
-        no_o_id_idx = static_cast<int>(i);
-      } else if (schema.GetColumns()[i].Name() == "no_d_id") {
-        no_d_id_idx = static_cast<int>(i);
-      } else if (schema.GetColumns()[i].Name() == "no_w_id") {
-        no_w_id_idx = static_cast<int>(i);
-      }
-    }
 
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::DELETE);
     auto del_plan = reinterpret_cast<planner::DeletePlanNode *>(plan.get());
@@ -58,23 +46,6 @@ TEST_F(TpccPlanDeliveryTests, DeliveryDeleteNewOrder) {
     EXPECT_EQ(idx_scan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(idx_scan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 
-    // Check IndexScanDesc
-    auto &idx_desc = idx_scan->GetIndexScanDescription();
-    EXPECT_EQ(idx_desc.GetExpressionTypeList().size(), 3);
-    EXPECT_EQ(idx_desc.GetExpressionTypeList()[0], parser::ExpressionType::COMPARE_EQUAL);
-    EXPECT_EQ(idx_desc.GetExpressionTypeList()[1], parser::ExpressionType::COMPARE_EQUAL);
-    EXPECT_EQ(idx_desc.GetExpressionTypeList()[2], parser::ExpressionType::COMPARE_EQUAL);
-
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList().size(), 3);
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList()[0], schema.GetColumn("no_o_id").Oid());
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList()[1], schema.GetColumn("no_d_id").Oid());
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList()[2], schema.GetColumn("no_w_id").Oid());
-
-    EXPECT_EQ(idx_desc.GetValueList().size(), 3);
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(idx_desc.GetValueList()[0]), 1);
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(idx_desc.GetValueList()[1]), 2);
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(idx_desc.GetValueList()[2]), 3);
-
     // Check scan predicate binds tuples correctly
     auto scan_pred = idx_scan->GetScanPredicate();
     EXPECT_EQ(scan_pred->GetExpressionType(), parser::ExpressionType::CONJUNCTION_AND);
@@ -88,40 +59,35 @@ TEST_F(TpccPlanDeliveryTests, DeliveryDeleteNewOrder) {
     auto pll = pred_left->GetChild(0).CastManagedPointerTo<parser::ComparisonExpression>();
     auto plr = pred_left->GetChild(1).CastManagedPointerTo<parser::ComparisonExpression>();
 
-    auto plll = pll->GetChild(0).CastManagedPointerTo<parser::DerivedValueExpression>();
+    auto plll = pll->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
     auto pllr = pll->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
-    EXPECT_EQ(plll->GetTupleIdx(), 0);
-    EXPECT_EQ(plll->GetValueIdx(), no_o_id_idx);
+    EXPECT_EQ(plll->GetColumnOid(), schema.GetColumn("no_o_id").Oid());
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(pllr->GetValue()), 1);
-    auto plrl = plr->GetChild(0).CastManagedPointerTo<parser::DerivedValueExpression>();
+    auto plrl = plr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
     auto plrr = plr->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
-    EXPECT_EQ(plrl->GetTupleIdx(), 0);
-    EXPECT_EQ(plrl->GetValueIdx(), no_d_id_idx);
+    EXPECT_EQ(plrl->GetColumnOid(), schema.GetColumn("no_d_id").Oid());
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(plrr->GetValue()), 2);
 
     auto pred_right = scan_pred->GetChild(1).CastManagedPointerTo<parser::ComparisonExpression>();
-    EXPECT_EQ(pred_right->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
+    EXPECT_EQ(pred_right->GetChild(0)->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
     EXPECT_EQ(pred_right->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto prl = pred_right->GetChild(0).CastManagedPointerTo<parser::DerivedValueExpression>();
+    auto prl = pred_right->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
     auto prr = pred_right->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
-    EXPECT_EQ(prl->GetTupleIdx(), 0);
-    EXPECT_EQ(prl->GetValueIdx(), no_w_id_idx);
+    EXPECT_EQ(prl->GetColumnOid(), schema.GetColumn("no_w_id").Oid());
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(prr->GetValue()), 3);
 
     // IdxScan OutputSchema/ColumnIds
     auto idx_scan_schema = idx_scan->GetOutputSchema();
     EXPECT_EQ(idx_scan_schema->GetColumns().size(), schema.GetColumns().size());
-    EXPECT_EQ(idx_scan->GetColumnIds().size(), schema.GetColumns().size());
+    EXPECT_EQ(idx_scan->GetColumnOids().size(), schema.GetColumns().size());
 
     size_t idx = 0;
     for (auto &col : schema.GetColumns()) {
       auto idx_scan_expr = idx_scan_schema->GetColumn(idx).GetExpr();
-      EXPECT_EQ(idx_scan_expr->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
-      auto idx_scan_expr_dve = idx_scan_expr.CastManagedPointerTo<parser::DerivedValueExpression>();
-      EXPECT_EQ(idx_scan_expr_dve->GetTupleIdx(), 0);
-      EXPECT_EQ(idx_scan_expr_dve->GetValueIdx(), idx);
-
-      EXPECT_EQ(idx_scan->GetColumnIds()[idx], col.Oid());
+      EXPECT_EQ(idx_scan_expr->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
+      auto idx_scan_expr_dve = idx_scan_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
+      EXPECT_EQ(idx_scan_expr_dve->GetColumnOid(), col.Oid());
+      EXPECT_EQ(idx_scan->GetColumnOids()[idx], col.Oid());
       idx++;
     }
   };
@@ -163,37 +129,18 @@ TEST_F(TpccPlanDeliveryTests, DeliveryUpdateCarrierId) {
     EXPECT_EQ(idx_scan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(idx_scan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 
-    // Check IndexScanDesc
-    auto &idx_desc = idx_scan->GetIndexScanDescription();
-    EXPECT_EQ(idx_desc.GetExpressionTypeList().size(), 3);
-    EXPECT_EQ(idx_desc.GetExpressionTypeList()[0], parser::ExpressionType::COMPARE_EQUAL);
-    EXPECT_EQ(idx_desc.GetExpressionTypeList()[1], parser::ExpressionType::COMPARE_EQUAL);
-    EXPECT_EQ(idx_desc.GetExpressionTypeList()[2], parser::ExpressionType::COMPARE_EQUAL);
-
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList().size(), 3);
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList()[0], schema.GetColumn("o_id").Oid());
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList()[1], schema.GetColumn("o_d_id").Oid());
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList()[2], schema.GetColumn("o_w_id").Oid());
-
-    EXPECT_EQ(idx_desc.GetValueList().size(), 3);
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(idx_desc.GetValueList()[0]), 1);
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(idx_desc.GetValueList()[1]), 2);
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(idx_desc.GetValueList()[2]), 3);
-
     // IdxScan OutputSchema/ColumnIds
     auto idx_scan_schema = idx_scan->GetOutputSchema();
     EXPECT_EQ(idx_scan_schema->GetColumns().size(), schema.GetColumns().size());
-    EXPECT_EQ(idx_scan->GetColumnIds().size(), schema.GetColumns().size());
+    EXPECT_EQ(idx_scan->GetColumnOids().size(), schema.GetColumns().size());
 
     size_t idx = 0;
     for (auto &col : schema.GetColumns()) {
       auto idx_scan_expr = idx_scan_schema->GetColumn(idx).GetExpr();
-      EXPECT_EQ(idx_scan_expr->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
-      auto idx_scan_expr_dve = idx_scan_expr.CastManagedPointerTo<parser::DerivedValueExpression>();
-      EXPECT_EQ(idx_scan_expr_dve->GetTupleIdx(), 0);
-      EXPECT_EQ(idx_scan_expr_dve->GetValueIdx(), idx);
-
-      EXPECT_EQ(idx_scan->GetColumnIds()[idx], col.Oid());
+      EXPECT_EQ(idx_scan_expr->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
+      auto idx_scan_expr_dve = idx_scan_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
+      EXPECT_EQ(idx_scan_expr_dve->GetColumnOid(), col.Oid());
+      EXPECT_EQ(idx_scan->GetColumnOids()[idx], col.Oid());
       idx++;
     }
   };
@@ -230,37 +177,18 @@ TEST_F(TpccPlanDeliveryTests, DeliveryUpdateDeliveryDate) {
     EXPECT_EQ(idx_scan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(idx_scan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 
-    // Check IndexScanDesc
-    auto &idx_desc = idx_scan->GetIndexScanDescription();
-    EXPECT_EQ(idx_desc.GetExpressionTypeList().size(), 3);
-    EXPECT_EQ(idx_desc.GetExpressionTypeList()[0], parser::ExpressionType::COMPARE_EQUAL);
-    EXPECT_EQ(idx_desc.GetExpressionTypeList()[1], parser::ExpressionType::COMPARE_EQUAL);
-    EXPECT_EQ(idx_desc.GetExpressionTypeList()[2], parser::ExpressionType::COMPARE_EQUAL);
-
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList().size(), 3);
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList()[0], schema.GetColumn("ol_o_id").Oid());
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList()[1], schema.GetColumn("ol_d_id").Oid());
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList()[2], schema.GetColumn("ol_w_id").Oid());
-
-    EXPECT_EQ(idx_desc.GetValueList().size(), 3);
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(idx_desc.GetValueList()[0]), 1);
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(idx_desc.GetValueList()[1]), 2);
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(idx_desc.GetValueList()[2]), 3);
-
     // IdxScan OutputSchema/ColumnIds
     auto idx_scan_schema = idx_scan->GetOutputSchema();
     EXPECT_EQ(idx_scan_schema->GetColumns().size(), schema.GetColumns().size());
-    EXPECT_EQ(idx_scan->GetColumnIds().size(), schema.GetColumns().size());
+    EXPECT_EQ(idx_scan->GetColumnOids().size(), schema.GetColumns().size());
 
     size_t idx = 0;
     for (auto &col : schema.GetColumns()) {
       auto idx_scan_expr = idx_scan_schema->GetColumn(idx).GetExpr();
-      EXPECT_EQ(idx_scan_expr->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
-      auto idx_scan_expr_dve = idx_scan_expr.CastManagedPointerTo<parser::DerivedValueExpression>();
-      EXPECT_EQ(idx_scan_expr_dve->GetTupleIdx(), 0);
-      EXPECT_EQ(idx_scan_expr_dve->GetValueIdx(), idx);
-
-      EXPECT_EQ(idx_scan->GetColumnIds()[idx], col.Oid());
+      EXPECT_EQ(idx_scan_expr->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
+      auto idx_scan_expr_dve = idx_scan_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
+      EXPECT_EQ(idx_scan_expr_dve->GetColumnOid(), col.Oid());
+      EXPECT_EQ(idx_scan->GetColumnOids()[idx], col.Oid());
       idx++;
     }
   };
@@ -274,21 +202,6 @@ TEST_F(TpccPlanDeliveryTests, DeliverySumOrderAmount) {
   auto check = [](TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
                   std::unique_ptr<planner::AbstractPlanNode> plan) {
     auto &schema = test->accessor_->GetSchema(tbl_oid);
-    auto ol_amount_idx = -1;
-    auto ol_o_id_idx = -1;
-    auto ol_d_id_idx = -1;
-    auto ol_w_id_idx = -1;
-    for (size_t i = 0; i < schema.GetColumns().size(); i++) {
-      if (schema.GetColumns()[i].Name() == "ol_amount") {
-        ol_amount_idx = static_cast<int>(i);
-      } else if (schema.GetColumns()[i].Name() == "ol_o_id") {
-        ol_o_id_idx = static_cast<int>(i);
-      } else if (schema.GetColumns()[i].Name() == "ol_d_id") {
-        ol_d_id_idx = static_cast<int>(i);
-      } else if (schema.GetColumns()[i].Name() == "ol_w_id") {
-        ol_w_id_idx = static_cast<int>(i);
-      }
-    }
 
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::AGGREGATE);
     auto aggr = reinterpret_cast<planner::AggregatePlanNode *>(plan.get());
@@ -321,22 +234,8 @@ TEST_F(TpccPlanDeliveryTests, DeliverySumOrderAmount) {
     EXPECT_EQ(idx_scan->IsForUpdate(), false);
     EXPECT_EQ(idx_scan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(idx_scan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
-    EXPECT_EQ(idx_scan->GetColumnIds().size(), 1);
-    EXPECT_EQ(idx_scan->GetColumnIds()[0], schema.GetColumn("ol_amount").Oid());
-
-    auto &idx_desc = idx_scan->GetIndexScanDescription();
-    EXPECT_EQ(idx_desc.GetExpressionTypeList().size(), 3);
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList().size(), 3);
-    EXPECT_EQ(idx_desc.GetValueList().size(), 3);
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList()[0], schema.GetColumn("ol_o_id").Oid());
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList()[1], schema.GetColumn("ol_d_id").Oid());
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList()[2], schema.GetColumn("ol_w_id").Oid());
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(idx_desc.GetValueList()[0]), 1);
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(idx_desc.GetValueList()[1]), 2);
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(idx_desc.GetValueList()[2]), 3);
-    EXPECT_EQ(idx_desc.GetExpressionTypeList()[0], parser::ExpressionType::COMPARE_EQUAL);
-    EXPECT_EQ(idx_desc.GetExpressionTypeList()[1], parser::ExpressionType::COMPARE_EQUAL);
-    EXPECT_EQ(idx_desc.GetExpressionTypeList()[2], parser::ExpressionType::COMPARE_EQUAL);
+    EXPECT_EQ(idx_scan->GetColumnOids().size(), 1);
+    EXPECT_EQ(idx_scan->GetColumnOids()[0], schema.GetColumn("ol_amount").Oid());
 
     // Check scan predicate binds tuples correctly
     auto scan_pred = idx_scan->GetScanPredicate();
@@ -351,34 +250,30 @@ TEST_F(TpccPlanDeliveryTests, DeliverySumOrderAmount) {
     auto pll = pred_left->GetChild(0).CastManagedPointerTo<parser::ComparisonExpression>();
     auto plr = pred_left->GetChild(1).CastManagedPointerTo<parser::ComparisonExpression>();
 
-    auto plll = pll->GetChild(0).CastManagedPointerTo<parser::DerivedValueExpression>();
+    auto plll = pll->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
     auto pllr = pll->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
-    EXPECT_EQ(plll->GetTupleIdx(), 0);
-    EXPECT_EQ(plll->GetValueIdx(), ol_o_id_idx);
+    EXPECT_EQ(plll->GetColumnOid(), schema.GetColumn("ol_o_id").Oid());
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(pllr->GetValue()), 1);
-    auto plrl = plr->GetChild(0).CastManagedPointerTo<parser::DerivedValueExpression>();
+    auto plrl = plr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
     auto plrr = plr->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
-    EXPECT_EQ(plrl->GetTupleIdx(), 0);
-    EXPECT_EQ(plrl->GetValueIdx(), ol_d_id_idx);
+    EXPECT_EQ(plrl->GetColumnOid(), schema.GetColumn("ol_d_id").Oid());
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(plrr->GetValue()), 2);
 
     auto pred_right = scan_pred->GetChild(1).CastManagedPointerTo<parser::ComparisonExpression>();
-    EXPECT_EQ(pred_right->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
+    EXPECT_EQ(pred_right->GetChild(0)->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
     EXPECT_EQ(pred_right->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto prl = pred_right->GetChild(0).CastManagedPointerTo<parser::DerivedValueExpression>();
+    auto prl = pred_right->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
     auto prr = pred_right->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
-    EXPECT_EQ(prl->GetTupleIdx(), 0);
-    EXPECT_EQ(prl->GetValueIdx(), ol_w_id_idx);
+    EXPECT_EQ(prl->GetColumnOid(), schema.GetColumn("ol_w_id").Oid());
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(prr->GetValue()), 3);
 
     // IdxScan OutputSchema
     auto idx_scan_schema = idx_scan->GetOutputSchema();
     EXPECT_EQ(idx_scan_schema->GetColumns().size(), 1);
     auto idx_scan_expr = idx_scan_schema->GetColumn(0).GetExpr();
-    EXPECT_EQ(idx_scan_expr->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
-    auto idx_scan_expr_dve = idx_scan_expr.CastManagedPointerTo<parser::DerivedValueExpression>();
-    EXPECT_EQ(idx_scan_expr_dve->GetTupleIdx(), 0);
-    EXPECT_EQ(idx_scan_expr_dve->GetValueIdx(), ol_amount_idx);
+    EXPECT_EQ(idx_scan_expr->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
+    auto idx_scan_expr_dve = idx_scan_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
+    EXPECT_EQ(idx_scan_expr_dve->GetColumnOid(), schema.GetColumn("ol_amount").Oid());
   };
 
   std::string query =
@@ -393,15 +288,6 @@ TEST_F(TpccPlanDeliveryTests, UpdateCustomBalanceDeliveryCount) {
     std::vector<catalog::col_oid_t> update_oids{schema.GetColumn("c_balance").Oid(),
                                                 schema.GetColumn("c_delivery_cnt").Oid()};
 
-    std::vector<int> update_idxs(2, -1);
-    for (size_t i = 0; i < schema.GetColumns().size(); i++) {
-      if (schema.GetColumns()[i].Name() == "c_balance") {
-        update_idxs[0] = static_cast<int>(i);
-      } else if (schema.GetColumns()[i].Name() == "c_delivery_cnt") {
-        update_idxs[1] = static_cast<int>(i);
-      }
-    }
-
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::UPDATE);
     auto update = reinterpret_cast<planner::UpdatePlanNode *>(plan.get());
     EXPECT_EQ(update->GetDatabaseOid(), test->db_);
@@ -414,9 +300,8 @@ TEST_F(TpccPlanDeliveryTests, UpdateCustomBalanceDeliveryCount) {
       EXPECT_EQ(update->GetSetClauses()[idx].first, update_oids[idx]);
       auto expr = update->GetSetClauses()[idx].second;
       EXPECT_EQ(expr->GetExpressionType(), parser::ExpressionType::OPERATOR_PLUS);
-      auto dve = expr->GetChild(0).CastManagedPointerTo<parser::DerivedValueExpression>();
-      EXPECT_EQ(dve->GetTupleIdx(), 0);
-      EXPECT_EQ(dve->GetValueIdx(), update_idxs[idx]);
+      auto dve = expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+      EXPECT_EQ(dve->GetColumnOid(), update_oids[idx]);
 
       auto cve = expr->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
       EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
@@ -432,36 +317,18 @@ TEST_F(TpccPlanDeliveryTests, UpdateCustomBalanceDeliveryCount) {
     EXPECT_EQ(idx_scan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(idx_scan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 
-    // Check IndexScanDesc
-    // Under the TrivialCostModel, the index picked is the secondary
-    auto &idx_desc = idx_scan->GetIndexScanDescription();
-    EXPECT_EQ(idx_desc.GetExpressionTypeList().size(), 2);
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList().size(), 2);
-    EXPECT_EQ(idx_desc.GetValueList().size(), 2);
-    EXPECT_EQ(idx_desc.GetExpressionTypeList()[0], parser::ExpressionType::COMPARE_EQUAL);
-    EXPECT_EQ(idx_desc.GetExpressionTypeList()[1], parser::ExpressionType::COMPARE_EQUAL);
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList()[0], schema.GetColumn("c_w_id").Oid());
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList()[1], schema.GetColumn("c_d_id").Oid());
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(idx_desc.GetValueList()[0]), 1);
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(idx_desc.GetValueList()[1]), 2);
-    // EXPECT_EQ(idx_desc.GetExpressionTypeList()[2], parser::ExpressionType::COMPARE_EQUAL);
-    // EXPECT_EQ(idx_desc.GetTupleColumnIdList()[2], schema.GetColumn("c_id").Oid());
-    // EXPECT_EQ(type::TransientValuePeeker::PeekInteger(idx_desc.GetValueList()[2]), 3);
-
     // IdxScan OutputSchema/ColumnIds -> match schema
     auto idx_scan_schema = idx_scan->GetOutputSchema();
     EXPECT_EQ(idx_scan_schema->GetColumns().size(), schema.GetColumns().size());
-    EXPECT_EQ(idx_scan->GetColumnIds().size(), schema.GetColumns().size());
+    EXPECT_EQ(idx_scan->GetColumnOids().size(), schema.GetColumns().size());
 
     size_t idx = 0;
     for (auto &col : schema.GetColumns()) {
       auto idx_scan_expr = idx_scan_schema->GetColumn(idx).GetExpr();
-      EXPECT_EQ(idx_scan_expr->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
-      auto idx_scan_expr_dve = idx_scan_expr.CastManagedPointerTo<parser::DerivedValueExpression>();
-      EXPECT_EQ(idx_scan_expr_dve->GetTupleIdx(), 0);
-      EXPECT_EQ(idx_scan_expr_dve->GetValueIdx(), idx);
-
-      EXPECT_EQ(idx_scan->GetColumnIds()[idx], col.Oid());
+      EXPECT_EQ(idx_scan_expr->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
+      auto idx_scan_expr_dve = idx_scan_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
+      EXPECT_EQ(idx_scan_expr_dve->GetColumnOid(), col.Oid());
+      EXPECT_EQ(idx_scan->GetColumnOids()[idx], col.Oid());
       idx++;
     }
   };

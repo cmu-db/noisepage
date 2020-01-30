@@ -223,6 +223,10 @@ void OpStorageInterfaceIndexInsert(bool *result, terrier::execution::sql::Storag
   *result = storage_interface->IndexInsert();
 }
 
+void OpStorageInterfaceIndexInsertUnique(bool *result, terrier::execution::sql::StorageInterface *storage_interface) {
+  *result = storage_interface->IndexInsertUnique();
+}
+
 void OpStorageInterfaceIndexDelete(terrier::execution::sql::StorageInterface *storage_interface,
                                    terrier::storage::TupleSlot *tuple_slot) {
   storage_interface->IndexDelete(*tuple_slot);
@@ -245,9 +249,9 @@ void OpOutputFinalize(terrier::execution::exec::ExecutionContext *exec_ctx) { ex
 // Index Iterator
 // -------------------------------------------------------------------
 void OpIndexIteratorInit(terrier::execution::sql::IndexIterator *iter,
-                         terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t index_oid,
-                         uint32_t *col_oids, uint32_t num_oids) {
-  new (iter) terrier::execution::sql::IndexIterator(exec_ctx, table_oid, index_oid, col_oids, num_oids);
+                         terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t num_attrs, uint32_t table_oid,
+                         uint32_t index_oid, uint32_t *col_oids, uint32_t num_oids) {
+  new (iter) terrier::execution::sql::IndexIterator(exec_ctx, num_attrs, table_oid, index_oid, col_oids, num_oids);
 }
 
 void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *iter) { iter->Init(); }

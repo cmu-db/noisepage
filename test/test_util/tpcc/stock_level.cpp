@@ -49,7 +49,8 @@ bool StockLevel::Execute(transaction::TransactionManager *const txn_manager, Dat
   *reinterpret_cast<int8_t *>(order_line_key_hi->AccessForceNotNull(ol_number_key_pr_offset_)) = 15;  // max OL_NUMBER
 
   index_scan_results.clear();
-  db->order_line_primary_index_->ScanAscending(*txn, *order_line_key_lo, *order_line_key_hi, &index_scan_results);
+  db->order_line_primary_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 4, order_line_key_lo,
+                                               order_line_key_hi, 0, &index_scan_results);
   TERRIER_ASSERT(index_scan_results.size() >= 100 && index_scan_results.size() <= 300,
                  "ol_number can be between 5 and 15, and we're looking up 20 previous orders.");
 
@@ -93,7 +94,7 @@ bool StockLevel::Execute(transaction::TransactionManager *const txn_manager, Dat
     low_stock = static_cast<uint16_t>(low_stock + static_cast<uint16_t>(it.second < args.s_quantity_threshold_));
   }
 
-  txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   return true;
 }
 

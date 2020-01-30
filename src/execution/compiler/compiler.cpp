@@ -1,6 +1,8 @@
 #include "execution/compiler/compiler.h"
+
 #include <memory>
 #include <utility>
+
 #include "execution/ast/ast_dump.h"
 #include "execution/compiler/translator_factory.h"
 #include "execution/sema/sema.h"
@@ -19,7 +21,7 @@ Compiler::Compiler(CodeGen *codegen, const planner::AbstractPlanNode *plan) : co
   }
   // Finally add the main pipeline
   pipelines_.push_back(std::move(main_pipeline));
-  EXECUTION_LOG_INFO("Made {} pipelines", pipelines_.size());
+  EXECUTION_LOG_DEBUG("Made {} pipelines", pipelines_.size());
 }
 
 /*
@@ -61,7 +63,7 @@ ast::File *Compiler::Compile() {
 
   // Compile
   ast::File *compiled_file = codegen_->Compile(std::move(top_level));
-  EXECUTION_LOG_INFO("Generated File");
+  EXECUTION_LOG_DEBUG("Generated File");
   sema::Sema type_checker{codegen_->Context()};
   type_checker.Run(compiled_file);
   return compiled_file;

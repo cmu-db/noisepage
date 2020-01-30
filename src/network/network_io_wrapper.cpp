@@ -30,6 +30,7 @@ Transition NetworkIoWrapper::FillReadBuffer() {
       result = Transition::PROCEED;
     } else {
       if (bytes_read == 0) {
+        if (result == Transition::PROCEED) return result;
         return Transition::TERMINATE;
       }
       switch (errno) {

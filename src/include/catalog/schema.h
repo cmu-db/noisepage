@@ -147,7 +147,7 @@ class Schema {
      * @return default value expression
      */
     common::ManagedPointer<const parser::AbstractExpression> StoredExpression() const {
-      return common::ManagedPointer(static_cast<const parser::AbstractExpression *>(default_value_.get()));
+      return common::ManagedPointer(default_value_).CastManagedPointerTo<const parser::AbstractExpression>();
     }
 
     /**

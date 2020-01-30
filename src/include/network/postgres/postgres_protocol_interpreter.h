@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+
 #include "loggers/network_logger.h"
 #include "network/connection_context.h"
 #include "network/connection_handle.h"
@@ -15,7 +16,8 @@
 namespace terrier::network {
 
 /**
- * Interprets the network protocol for postgres clients
+ * Interprets the network protocol for postgres clients. Any state/logic that is Postgres protocol-specific should live
+ * at this layer.
  */
 class PostgresProtocolInterpreter : public ProtocolInterpreter {
  public:
@@ -51,58 +53,49 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
 
   /**
    * @see ProtocolIntepreter::Process
-   * @param in
-   * @param out
-   * @param callback
-   * @param t_cop the traffic cop pointer
-   * @param context the connection context
-   * @return
+   * @param in buffer to read packets from
+   * @param out buffer to send results back out on (doesn't really happen if TERMINATE is returned)
+   * @param t_cop non-owning pointer to the traffic cop to pass down to the command layer
+   * @param context connection-specific (not protocol) state
+   * @return next transition for ConnectionHandle's state machine
    */
   Transition Process(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out,
                      common::ManagedPointer<trafficcop::TrafficCop> t_cop,
-                     common::ManagedPointer<ConnectionContext> context, NetworkCallback callback) override;
+                     common::ManagedPointer<ConnectionContext> context) override;
+
+  /**
+   * Closes any protocol-specific state. We currently use this to remove the temporary namespace for Postgres.
+   * @param in buffer to read packets from
+   * @param out buffer to send results back out on (doesn't really happen if TERMINATE is returned)
+   * @param t_cop non-owning pointer to the traffic cop to pass down to the command layer
+   * @param context connection-specific (not protocol) state
+   */
+  void Teardown(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out,
+                common::ManagedPointer<trafficcop::TrafficCop> t_cop,
+                common::ManagedPointer<ConnectionContext> context) override;
 
   // TODO(Tianyu): Fill in the following documentation at some point
   /**
-   *
+   * (Matt): I think this was used in Peloton for asynchronous execution, after a callback wakeup the ConnectionHandle
+   * would call to the protocol interpreter to get the state of the asynchronous query after the output was already
+   * complete.
    * @param out
    */
-  void GetResult(const common::ManagedPointer<WriteQueue> out) override {
-    PostgresPacketWriter writer(out);
-    ExecQueryMessageGetResult(&writer, ResultType::SUCCESS);
-  }
+  void GetResult(const common::ManagedPointer<WriteQueue> out) override {}
 
   /**
-   *
-   * @param in
-   * @param out
-   * @param context
-   * @return
+   * Handles all of the set up for the Postgres protocol. Currently that includes saying no to SSL support during
+   * handshake, checking protocol version, parsing client arguments, and creating the temporary namespace for this
+   * connection.
+   * @param in buffer to read packets from
+   * @param out buffer to send results back out on (doesn't really happen if TERMINATE is returned)
+   * @param t_cop non-owning pointer to the traffic cop for use in any cleanup necessary
+   * @param context where to stash connection-specific state
+   * @return transition::PROCEED if it succeeded, transition::TERMINATE otherwise
    */
   Transition ProcessStartup(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out,
+                            common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                             common::ManagedPointer<ConnectionContext> context);
-
-  /**
-   *
-   * @param out
-   * @param query_type
-   * @param rows
-   */
-  void CompleteCommand(PostgresPacketWriter *out, const QueryType &query_type, int rows);
-
-  /**
-   *
-   * @param out
-   * @param status
-   */
-  void ExecQueryMessageGetResult(PostgresPacketWriter *out, ResultType status);
-
-  /**
-   *
-   * @param out
-   * @param status
-   */
-  void ExecExecuteMessageGetResult(PostgresPacketWriter *out, ResultType status);
 
  protected:
   /**

@@ -13,7 +13,7 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   var col_oids: [2]uint32
   col_oids[0] = 1 // colA
   col_oids[1] = 2 // colB
-  @indexIteratorInitBind(&index, execCtx, "test_1", "index_1", col_oids)
+  @indexIteratorInitBind(&index, execCtx, 1, "test_1", "index_1", col_oids)
 
   // Next we fill up the index's projected row
   var lo_index_pr = @indexIteratorGetLoPR(&index)
@@ -22,7 +22,7 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   @prSetInt(hi_index_pr, 0, @intToSql(505)) // Set colA in hi
 
   // Iterate through the matches in ascending order: should output 11 tuples (505 - 405 + 1)
-  for (@indexIteratorScanAscending(&index); @indexIteratorAdvance(&index);) {
+  for (@indexIteratorScanAscending(&index, 0, 0); @indexIteratorAdvance(&index);) {
     // Materialize the current match.
     var table_pr1 = @indexIteratorGetTablePR(&index)
 
@@ -46,7 +46,7 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   }
 
   // Iterate through matches in ascending order with a limit: should output 5 tuples (limit)
-  for (@indexIteratorScanLimitAscending(&index, 5); @indexIteratorAdvance(&index);) {
+  for (@indexIteratorScanAscending(&index, 0, 5); @indexIteratorAdvance(&index);) {
     // Materialize the current match.
     var table_pr3 = @indexIteratorGetTablePR(&index)
 
