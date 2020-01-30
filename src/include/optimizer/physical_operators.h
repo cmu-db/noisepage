@@ -159,9 +159,8 @@ class IndexScan : public OperatorNode<IndexScan> {
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, catalog::index_oid_t index_oid,
                        std::vector<AnnotatedExpression> &&predicates, std::string table_alias, bool is_for_update,
-                       std::vector<catalog::col_oid_t> &&key_column_oid_list,
-                       std::vector<parser::ExpressionType> &&expr_type_list,
-                       std::vector<type::TransientValue> &&value_list);
+                       planner::IndexScanType scan_type,
+                       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds);
   /**
    * Copy
    * @returns copy of this
