@@ -54,10 +54,8 @@ class DefaultCostModel : public AbstractCostModel {
   }
 
   /**
-   * Index scan operator to visit. The cost is calculated by approximating the number of index
-   * entries based on the number of rows in the table and using the cost to access each index
-   * entry to calculate the total cost of accessing all the entries. This cost is also
-   * compounded by the general cost of accessing all of the tuples in the table.
+   * Index scan operator to visit. The cost is calculated by the cost of searching
+   * for the index + the cost of performing the scan.
    * @param op operator
    */
   void Visit(const IndexScan *op) override {
@@ -260,7 +258,7 @@ class DefaultCostModel : public AbstractCostModel {
   /**
    * Default output cost if cost cannot be calculated.
    */
-   static constexpr double DEFAULT_OUTPUT_COST = 1.0f;
+  static constexpr double DEFAULT_OUTPUT_COST = 1.0f;
 };
 
 }  // namespace terrier::optimizer
