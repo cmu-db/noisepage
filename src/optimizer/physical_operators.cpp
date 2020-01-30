@@ -76,32 +76,13 @@ common::hash_t SeqScan::Hash() const {
 //===--------------------------------------------------------------------===//
 // IndexScan
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *IndexScan::Copy() const {
-  auto *scan = new IndexScan;
-  scan->database_oid_ = database_oid_;
-  scan->namespace_oid_ = namespace_oid_;
-  scan->table_oid_ = table_oid_;
-  scan->index_oid_ = index_oid_;
-  scan->table_alias_ = table_alias_;
-  scan->is_for_update_ = is_for_update_;
-  scan->predicates_ = predicates_;
-  scan->key_column_oid_list_ = key_column_oid_list_;
-  scan->expr_type_list_ = expr_type_list_;
-
-  for (auto &val : value_list_) {
-    type::TransientValue copy(val);
-    scan->value_list_.push_back(std::move(copy));
-  }
-
-  return scan;
-}
+BaseOperatorNode *IndexScan::Copy() const { return new IndexScan(*this); }
 
 Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                          catalog::table_oid_t table_oid, catalog::index_oid_t index_oid,
                          std::vector<AnnotatedExpression> &&predicates, std::string table_alias, bool is_for_update,
-                         std::vector<catalog::col_oid_t> &&key_column_oid_list,
-                         std::vector<parser::ExpressionType> &&expr_type_list,
-                         std::vector<type::TransientValue> &&value_list) {
+                         planner::IndexScanType scan_type,
+                         std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds) {
   auto scan = std::make_unique<IndexScan>();
   scan->database_oid_ = database_oid;
   scan->namespace_oid_ = namespace_oid;
@@ -120,10 +101,8 @@ bool IndexScan::operator==(const BaseOperatorNode &r) {
   const IndexScan &node = *dynamic_cast<const IndexScan *>(&r);
   if (database_oid_ != node.database_oid_ || namespace_oid_ != node.namespace_oid_ || table_oid_ != node.table_oid_ ||
       index_oid_ != node.index_oid_ || table_alias_ != node.table_alias_ ||
-      key_column_oid_list_ != node.key_column_oid_list_ || expr_type_list_ != node.expr_type_list_ ||
-      predicates_.size() != node.predicates_.size() ||
-      key_column_oid_list_.size() != node.key_column_oid_list_.size() || is_for_update_ != node.is_for_update_ ||
-      expr_type_list_.size() != node.expr_type_list_.size() || value_list_.size() != node.value_list_.size())
+      predicates_.size() != node.predicates_.size() || is_for_update_ != node.is_for_update_ ||
+      scan_type_ != node.scan_type_)
     return false;
 
   for (size_t i = 0; i < predicates_.size(); i++) {
