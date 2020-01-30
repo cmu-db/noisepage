@@ -292,9 +292,8 @@ class DatabaseCatalog {
    * @warning does not support variadics yet
    */
   proc_oid_t CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &procname,
-                             language_oid_t language_oid, namespace_oid_t procns,
-                             const std::vector<std::string> &args, const std::vector<type_oid_t> &arg_types,
-                             const std::vector<type_oid_t> &all_arg_types,
+                             language_oid_t language_oid, namespace_oid_t procns, const std::vector<std::string> &args,
+                             const std::vector<type_oid_t> &arg_types, const std::vector<type_oid_t> &all_arg_types,
                              const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,
                              const std::string &src, bool is_aggregate);
 
