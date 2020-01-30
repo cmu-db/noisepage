@@ -142,7 +142,7 @@ TEST(OperatorTests, IndexScanTest) {
 
   // different from index_scan_1 in dbOID
   Operator index_scan_01 =
-      IndexScan::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+      IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                       catalog::index_oid_t(4), std::vector<AnnotatedExpression>(), "table", false, type, {});
   // different from index_scan_1 in namespace OID
   Operator index_scan_02 =
