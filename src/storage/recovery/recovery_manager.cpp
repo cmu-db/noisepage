@@ -936,6 +936,22 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
       return db_catalog->constraints_foreigntable_index_;
     }
 
+    case (!catalog::postgres::LANGUAGE_OID_INDEX_OID): {
+      return db_catalog->languages_oid_index_;
+    }
+
+    case (!catalog::postgres::LANGUAGE_NAME_INDEX_OID): {
+      return db_catalog->languages_name_index_;
+    }
+
+    case (!catalog::postgres::PRO_OID_INDEX_OID): {
+      return db_catalog->procs_oid_index_;
+    }
+
+    case (!catalog::postgres::PRO_NAME_INDEX_OID): {
+      return db_catalog->procs_name_index_;
+    }
+
     default:
       throw std::runtime_error("This oid does not belong to any catalog index");
   }
