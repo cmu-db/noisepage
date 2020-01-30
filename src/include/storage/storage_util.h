@@ -196,10 +196,10 @@ class StorageUtil {
    * @warning checking IsInlined() to see if you need to possibly clean up a buffer
    * @warning the length of the data vector is not serialized
    */
-  static storage::VarlenEntry CreateVarlen(const std::vector<const std::string> &vec) {
+  static storage::VarlenEntry CreateVarlen(const std::vector<std::string> &vec) {
     // determine total size
     size_t total_size = sizeof(size_t);
-    for (const auto &elem : vec) {
+    for (auto &elem : vec) {
       total_size += sizeof(size_t);
       total_size += elem.length();
     }

@@ -327,20 +327,22 @@ class VarlenEntry {
   std::vector<T> DeserializeArray() const {
     const byte *contents = Content();
     size_t num_elements = *reinterpret_cast<const size_t *>(contents);
-    TERRIER_ASSERT(sizeof(T) == Size() / num_elements, "Deserializing the wrong element types from array");
-    const T *payload = contents + sizeof(size_t);
+    TERRIER_ASSERT(sizeof(T) == (Size() - sizeof(size_t)) / num_elements,
+                   "Deserializing the wrong element types from array");
+    const T *payload = reinterpret_cast<const T *>(contents + sizeof(size_t));
     return std::vector<T>(payload, payload + num_elements);
   }
 
+  // TODO(tanujnay112): Generalize to return other read-only varlen types
   /**
    * Deserializes all elements of std::string type into a returned vector from this varlen
-   * @return a vector of immutable deserialized T objects from this varlen entry
+   * @return a vector of string_view objects from this varlen entry
    * @warning It is the programmer's responsibility to ensure that the returned vector doesn't outlive the VarlenEntry
    * @warning Assuming this varlen is serialized in the format specified by
    * StorageUtils::CreateVarlen(const std::vector<const std::string> &vec)
    */
-  std::vector<std::string> DeserializeArray() const {
-    std::vector<std::string> vec;
+  std::vector<std::string_view> DeserializeArrayVarlen() const {
+    std::vector<std::string_view> vec;
     uint32_t to_read = Size();
     uint32_t num_read = 0;
 

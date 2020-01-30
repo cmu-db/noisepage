@@ -87,9 +87,14 @@ TEST(VarlenEntryTests, Array) {
   // test strings
   {
     std::vector<std::string> test_data{"hello", "world", "i am", "a test"};
+    std::vector<std::string_view> sv_test_data;
+    sv_test_data.reserve(test_data.size());
+    for (std::string &s : test_data) {
+      sv_test_data.push_back(s);
+    }
     const auto varlen_entry = storage::StorageUtil::CreateVarlen(test_data);
-    const std::vector<std::string> test_view = varlen_entry.DeserializeArray<std::string>();
-    EXPECT_EQ(test_data, test_view);
+    std::vector<std::string_view> test_view = varlen_entry.DeserializeArrayVarlen();
+    EXPECT_EQ(sv_test_data, test_view);
   }
 }
 }  // namespace terrier
