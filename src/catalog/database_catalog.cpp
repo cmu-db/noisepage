@@ -2153,7 +2153,7 @@ bool DatabaseCatalog::DropLanguage(const common::ManagedPointer<transaction::Tra
 
 proc_oid_t DatabaseCatalog::CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn,
                                             const std::string &procname, language_oid_t language_oid,
-                                            namespace_oid_t procns, const std::vector<const std::string> &args,
+                                            namespace_oid_t procns, const std::vector<std::string> &args,
                                             const std::vector<type_oid_t> &arg_types,
                                             const std::vector<type_oid_t> &all_arg_types,
                                             const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,
@@ -2166,7 +2166,7 @@ proc_oid_t DatabaseCatalog::CreateProcedure(common::ManagedPointer<transaction::
 
 bool DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t oid,
                                       const std::string &procname, language_oid_t language_oid, namespace_oid_t procns,
-                                      const std::vector<const std::string> &args,
+                                      const std::vector<std::string> &args,
                                       const std::vector<type_oid_t> &arg_types,
                                       const std::vector<type_oid_t> &all_arg_types,
                                       const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,

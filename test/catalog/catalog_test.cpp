@@ -134,7 +134,7 @@ TEST_F(CatalogTests, ProcTest) {
 
   // create a sample proc
   auto procname = "sample";
-  std::vector<const std::string> args = {"arg1", "arg2", "arg3"};
+  std::vector<std::string> args = {"arg1", "arg2", "arg3"};
   std::vector<catalog::type_oid_t> arg_types = {accessor->GetTypeOidFromTypeId(type::TypeId::INTEGER),
                                                 accessor->GetTypeOidFromTypeId(type::TypeId::BOOLEAN),
                                                 accessor->GetTypeOidFromTypeId(type::TypeId::SMALLINT)};
