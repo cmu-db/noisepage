@@ -1743,8 +1743,6 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
 }
 
-void BootstrapProcs(const common::ManagedPointer<transaction::TransactionContext> txn) { (void)txn; }
-
 bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
                                        const table_oid_t table_oid, const namespace_oid_t ns_oid,
                                        const std::string &name, const Schema &schema) {
@@ -2057,11 +2055,10 @@ bool DatabaseCatalog::CreateLanguage(const common::ManagedPointer<transaction::T
   }
 
   // Insert into oid index
-  auto oid_pr = languages_oid_index_->GetProjectedRowInitializer();
-  index_pr = name_pri.InitializeRow(buffer);
+  index_pr = oid_pri.InitializeRow(buffer);
   // Write the attributes in the ProjectedRow
   *(reinterpret_cast<language_oid_t *>(index_pr->AccessForceNotNull(0))) = oid;
-  TERRIER_ASSERT(languages_oid_index_->InsertUnique(txn, *index_pr, tuple_slot), "Duplicate OID Inserted");
+  languages_oid_index_->InsertUnique(txn, *index_pr, tuple_slot);
 
   delete[] buffer;
   return true;

@@ -101,7 +101,6 @@ TEST_F(CatalogTests, LanguageTest) {
   // make sure we get the same language oid back for the custom language we created
   oid = accessor->GetLanguageOid("test_language");
   EXPECT_EQ(oid, good_oid);
-
   auto result = accessor->DropLanguage(good_oid);
   EXPECT_TRUE(result);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
