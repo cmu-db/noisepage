@@ -295,7 +295,7 @@ void QueryToOperatorTransformer::Visit(parser::CreateStatement *op, parser::Pars
       break;
     case parser::CreateStatement::CreateType::kTable:
       create_expr = std::make_unique<OperatorExpression>(
-          LogicalCreateTable::Make(accessor_->GetDefaultNamespace(), op->GetTableName(), op->GetColumns(),
+          LogicalCreateTable::Make(accessor_->GetNamespaceOid(op->GetNamespaceName()), op->GetTableName(), op->GetColumns(),
                                    op->GetForeignKeys()),
           std::vector<std::unique_ptr<OperatorExpression>>{});
       // TODO(Ling): for other procedures to generate create table plan, refer to create_table_plan_node builder.
