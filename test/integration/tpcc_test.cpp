@@ -42,6 +42,7 @@ class TPCCTests : public TerrierTest {
 
   void RunTPCC(const bool logging_enabled, const bool metrics_enabled, const storage::index::IndexType type) {
     // one TPCC worker = one TPCC terminal = one thread
+    thread_pool_.Startup();
     std::vector<Worker> workers;
     workers.reserve(num_threads_);
 

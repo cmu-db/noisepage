@@ -53,8 +53,9 @@ class CompactIntsKey {
    * @param from ProjectedRow to generate CompactIntsKey representation of
    * @param metadata index information, primarily attribute sizes and the precomputed offsets to translate PR layout to
    * CompactIntsKey
+   * @param num_attrs Number of attributes
    */
-  void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata) {
+  void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata, size_t num_attrs) {
     const auto &attr_sizes = metadata.GetAttributeSizes();
     const auto &compact_ints_offsets = metadata.GetCompactIntsOffsets();
 
@@ -62,10 +63,11 @@ class CompactIntsKey {
     TERRIER_ASSERT(attr_sizes.size() == compact_ints_offsets.size(),
                    "attr_sizes and attr_offsets must be equal in size.");
     TERRIER_ASSERT(!attr_sizes.empty(), "attr_sizes has too few values.");
+    TERRIER_ASSERT(num_attrs > 0 && num_attrs <= from.NumColumns(), "num_attrs invariant failed");
 
     // NOLINTNEXTLINE (Matt): tidy thinks this has side-effects. I disagree.
     TERRIER_ASSERT(std::invoke([&]() -> bool {
-                     for (uint16_t i = 0; i < from.NumColumns(); i++) {
+                     for (uint16_t i = 0; i < num_attrs; i++) {
                        if (from.IsNull(i)) return false;
                      }
                      return true;
@@ -85,10 +87,58 @@ class CompactIntsKey {
     // to make sure the entire key is memset to 0
     std::memset(key_data_, 0, KeySize);
 
-    for (uint8_t i = 0; i < from.NumColumns(); i++) {
+    for (uint8_t i = 0; i < num_attrs; i++) {
       TERRIER_ASSERT(compact_ints_offsets[i] + attr_sizes[i] <= KeySize, "out of bounds");
       CopyAttrFromProjection(from, static_cast<uint16_t>(from.ColumnIds()[i]), attr_sizes[i], compact_ints_offsets[i]);
     }
+  }
+
+  /**
+   * Returns whether this key is less than another key up to num_attrs for comparison.
+   * @param rhs other key to compare against
+   * @param metadata Index Key metadata
+   * @param num_attrs attributes to compare against
+   * @returns whether this is less than other
+   */
+  bool PartialLessThan(const CompactIntsKey<KeySize> &rhs, const IndexMetadata *metadata, size_t num_attrs) const {
+    const auto &attr_sizes = metadata->GetAttributeSizes();
+    const auto &compact_ints_offsets = metadata->GetCompactIntsOffsets();
+    for (uint8_t i = 0; i < num_attrs; i++) {
+      switch (attr_sizes[i]) {
+        case sizeof(int8_t): {
+          auto cur = GetInteger<int8_t>(compact_ints_offsets[i]);
+          auto other = rhs.GetInteger<int8_t>(compact_ints_offsets[i]);
+          if (cur < other) return true;
+          if (cur > other) return false;
+          break;
+        }
+        case sizeof(int16_t): {
+          auto cur = GetInteger<int16_t>(compact_ints_offsets[i]);
+          auto other = rhs.GetInteger<int16_t>(compact_ints_offsets[i]);
+          if (cur < other) return true;
+          if (cur > other) return false;
+          break;
+        }
+        case sizeof(int32_t): {
+          auto cur = GetInteger<int32_t>(compact_ints_offsets[i]);
+          auto other = rhs.GetInteger<int32_t>(compact_ints_offsets[i]);
+          if (cur < other) return true;
+          if (cur > other) return false;
+          break;
+        }
+        case sizeof(int64_t): {
+          auto cur = GetInteger<int64_t>(compact_ints_offsets[i]);
+          auto other = rhs.GetInteger<int64_t>(compact_ints_offsets[i]);
+          if (cur < other) return true;
+          if (cur > other) return false;
+          break;
+        }
+        default:
+          throw std::runtime_error("Invalid attribute size.");
+      }
+    }
+
+    return true;
   }
 
  private:

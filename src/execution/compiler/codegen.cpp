@@ -204,37 +204,49 @@ ast::Expr *CodeGen::HTInitCall(ast::Builtin builtin, ast::Identifier object, ast
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::IndexIteratorInit(ast::Identifier iter, uint32_t table_oid, uint32_t index_oid,
+ast::Expr *CodeGen::IndexIteratorInit(ast::Identifier iter, uint32_t num_attrs, uint32_t table_oid, uint32_t index_oid,
                                       ast::Identifier col_oids) {
   // @indexIteratorInit(&iter, table_oid, index_oid, execCtx)
   ast::Expr *fun = BuiltinFunction(ast::Builtin::IndexIteratorInit);
   ast::Expr *iter_ptr = PointerTo(iter);
   ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
+  ast::Expr *num_attrs_expr = IntLiteral(static_cast<int32_t>(num_attrs));
   ast::Expr *table_oid_expr = IntLiteral(static_cast<int32_t>(table_oid));
   ast::Expr *index_oid_expr = IntLiteral(static_cast<int32_t>(index_oid));
   ast::Expr *col_oids_expr = MakeExpr(col_oids);
-  util::RegionVector<ast::Expr *> args{{iter_ptr, exec_ctx_expr, table_oid_expr, index_oid_expr, col_oids_expr},
-                                       Region()};
+  util::RegionVector<ast::Expr *> args{
+      {iter_ptr, exec_ctx_expr, num_attrs_expr, table_oid_expr, index_oid_expr, col_oids_expr}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
 ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanType scan_type, uint32_t limit) {
   // @indexIteratorScanKey(&iter)
   ast::Builtin builtin;
+  bool asc_scan = false;
   bool use_limit = false;
+  storage::index::ScanType asc_type;
   switch (scan_type) {
     case planner::IndexScanType::Exact:
       builtin = ast::Builtin::IndexIteratorScanKey;
       break;
-    case planner::IndexScanType::Ascending:
+    case planner::IndexScanType::AscendingClosed:
+    case planner::IndexScanType::AscendingOpenHigh:
+    case planner::IndexScanType::AscendingOpenLow:
+    case planner::IndexScanType::AscendingOpenBoth:
+      asc_scan = true;
+      use_limit = true;
       builtin = ast::Builtin::IndexIteratorScanAscending;
+      if (scan_type == planner::IndexScanType::AscendingClosed)
+        asc_type = storage::index::ScanType::Closed;
+      else if (scan_type == planner::IndexScanType::AscendingOpenHigh)
+        asc_type = storage::index::ScanType::OpenHigh;
+      else if (scan_type == planner::IndexScanType::AscendingOpenLow)
+        asc_type = storage::index::ScanType::OpenLow;
+      else if (scan_type == planner::IndexScanType::AscendingOpenBoth)
+        asc_type = storage::index::ScanType::OpenBoth;
       break;
     case planner::IndexScanType::Descending:
       builtin = ast::Builtin::IndexIteratorScanDescending;
-      break;
-    case planner::IndexScanType::AscendingLimit:
-      use_limit = true;
-      builtin = ast::Builtin::IndexIteratorScanLimitAscending;
       break;
     case planner::IndexScanType::DescendingLimit:
       use_limit = true;
@@ -243,13 +255,15 @@ ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanTy
     default:
       UNREACHABLE("Unknown scan type");
   }
-  // Non limited scan
-  if (!use_limit) return OneArgCall(builtin, iter, true);
-  // Limited scan
+
+  if (!use_limit && !asc_scan) return OneArgCall(builtin, iter, true);
+
   ast::Expr *fun = BuiltinFunction(builtin);
   ast::Expr *iter_ptr = PointerTo(iter);
-  ast::Expr *limit_expr = IntLiteral(limit);
-  util::RegionVector<ast::Expr *> args{{iter_ptr, limit_expr}, Region()};
+  util::RegionVector<ast::Expr *> args({iter_ptr}, Region());
+
+  if (asc_scan) args.push_back(IntLiteral(asc_type));
+  if (use_limit) args.push_back(IntLiteral(limit));
 
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }

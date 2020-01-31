@@ -126,11 +126,11 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<OperatorExp
       for (auto index : indexes) {
         if (IndexUtil::SatisfiesSortWithIndex(accessor, sort_prop, get->GetTableOid(), index)) {
           std::vector<AnnotatedExpression> preds = get->GetPredicates();
-          std::string tbl_alias = std::string(get->GetTableAlias());
-          std::vector<std::unique_ptr<OperatorExpression>> c;
-          auto result = std::make_unique<OperatorExpression>(
-              IndexScan::Make(db_oid, ns_oid, index, std::move(preds), tbl_alias, is_update, {}, {}, {}), std::move(c));
-          transformed->emplace_back(std::move(result));
+          auto op = std::make_unique<OperatorExpression>(
+              IndexScan::Make(db_oid, ns_oid, index, std::move(preds), get->GetTableAlias(), is_update,
+                              planner::IndexScanType::AscendingOpenBoth, {}),
+              std::vector<std::unique_ptr<OperatorExpression>>());
+          transformed->emplace_back(std::move(op));
         }
       }
     }
@@ -138,26 +138,18 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<OperatorExp
 
   // Check whether any index can fulfill predicate predicate evaluation
   if (!get->GetPredicates().empty()) {
-    IndexUtilMetadata metadata;
-    IndexUtil::PopulateMetadata(get->GetPredicates(), &metadata);
-
     // Find match index for the predicates
     auto indexes = accessor->GetIndexOids(get->GetTableOid());
     for (auto &index : indexes) {
-      IndexUtilMetadata output;
-      if (IndexUtil::SatisfiesPredicateWithIndex(accessor, get->GetTableOid(), index, &metadata, &output)) {
-        std::vector<AnnotatedExpression> preds = get->GetPredicates();
-        std::string tbl_alias = std::string(get->GetTableAlias());
-
-        // Consider making IndexScan take in IndexUtilMetadata
-        // instead to wrap all these vectors?
-        std::vector<std::unique_ptr<OperatorExpression>> c;
-        auto result = std::make_unique<OperatorExpression>(
-            IndexScan::Make(db_oid, ns_oid, index, std::move(preds), std::move(tbl_alias), is_update,
-                            std::move(output.GetPredicateColumnIds()), std::move(output.GetPredicateExprTypes()),
-                            std::move(output.GetPredicateValues())),
-            std::move(c));
-        transformed->emplace_back(std::move(result));
+      planner::IndexScanType scan_type;
+      std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds;
+      std::vector<AnnotatedExpression> preds = get->GetPredicates();
+      if (IndexUtil::SatisfiesPredicateWithIndex(accessor, get->GetTableOid(), index, preds, &scan_type, &bounds)) {
+        auto op = std::make_unique<OperatorExpression>(
+            IndexScan::Make(db_oid, ns_oid, index, std::move(preds), get->GetTableAlias(), is_update, scan_type,
+                            std::move(bounds)),
+            std::vector<std::unique_ptr<OperatorExpression>>());
+        transformed->emplace_back(std::move(op));
       }
     }
   }

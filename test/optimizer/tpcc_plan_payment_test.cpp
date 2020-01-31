@@ -43,17 +43,6 @@ TEST_F(TpccPlanPaymentTests, UpdateWarehouse) {
     EXPECT_EQ(idx_scan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(idx_scan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 
-    // Check IndexScanDesc
-    auto &idx_desc = idx_scan->GetIndexScanDescription();
-    EXPECT_EQ(idx_desc.GetExpressionTypeList().size(), 1);
-    EXPECT_EQ(idx_desc.GetExpressionTypeList()[0], parser::ExpressionType::COMPARE_EQUAL);
-
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList().size(), 1);
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList()[0], schema.GetColumn("w_id").Oid());
-
-    EXPECT_EQ(idx_desc.GetValueList().size(), 1);
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(idx_desc.GetValueList()[0]), 2);
-
     // IdxScan OutputSchema/ColumnIds -> match schema
     auto idx_scan_schema = idx_scan->GetOutputSchema();
     EXPECT_EQ(idx_scan_schema->GetColumns().size(), schema.GetColumns().size());
@@ -109,20 +98,6 @@ TEST_F(TpccPlanPaymentTests, UpdateDistrict) {
     EXPECT_EQ(idx_scan->IsForUpdate(), true);
     EXPECT_EQ(idx_scan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(idx_scan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
-
-    // Check IndexScanDesc
-    auto &idx_desc = idx_scan->GetIndexScanDescription();
-    EXPECT_EQ(idx_desc.GetExpressionTypeList().size(), 2);
-    EXPECT_EQ(idx_desc.GetExpressionTypeList()[0], parser::ExpressionType::COMPARE_EQUAL);
-    EXPECT_EQ(idx_desc.GetExpressionTypeList()[1], parser::ExpressionType::COMPARE_EQUAL);
-
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList().size(), 2);
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList()[0], schema.GetColumn("d_w_id").Oid());
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList()[1], schema.GetColumn("d_id").Oid());
-
-    EXPECT_EQ(idx_desc.GetValueList().size(), 2);
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(idx_desc.GetValueList()[0]), 2);
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(idx_desc.GetValueList()[1]), 3);
 
     // IdxScan OutputSchema/ColumnIds -> match schema
     auto idx_scan_schema = idx_scan->GetOutputSchema();
@@ -202,24 +177,6 @@ TEST_F(TpccPlanPaymentTests, UpdateCustomerBalance) {
     EXPECT_EQ(idx_scan->IsForUpdate(), true);
     EXPECT_EQ(idx_scan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(idx_scan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
-
-    // Check IndexScanDesc
-    // Based on TrivialCostModel, secondary index gets picked
-    auto &idx_desc = idx_scan->GetIndexScanDescription();
-    EXPECT_EQ(idx_desc.GetExpressionTypeList().size(), 2);
-    EXPECT_EQ(idx_desc.GetExpressionTypeList()[0], parser::ExpressionType::COMPARE_EQUAL);
-    EXPECT_EQ(idx_desc.GetExpressionTypeList()[1], parser::ExpressionType::COMPARE_EQUAL);
-    // EXPECT_EQ(idx_desc.GetExpressionTypeList()[2], parser::ExpressionType::COMPARE_EQUAL);
-
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList().size(), 2);
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList()[0], schema.GetColumn("c_w_id").Oid());
-    EXPECT_EQ(idx_desc.GetTupleColumnIdList()[1], schema.GetColumn("c_d_id").Oid());
-    // EXPECT_EQ(idx_desc.GetTupleColumnIdList()[2], schema.GetColumn("c_id").Oid());
-
-    EXPECT_EQ(idx_desc.GetValueList().size(), 2);
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(idx_desc.GetValueList()[0]), 1);
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(idx_desc.GetValueList()[1]), 2);
-    // EXPECT_EQ(type::TransientValuePeeker::PeekInteger(idx_desc.GetValueList()[2]), 3);
 
     // IdxScan OutputSchema/ColumnIds -> match schema
     auto idx_scan_schema = idx_scan->GetOutputSchema();
