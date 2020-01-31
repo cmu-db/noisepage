@@ -35,7 +35,8 @@ void BindNodeVisitor::BindNameToNode(common::ManagedPointer<parser::SQLStatement
 }
 
 void BindNodeVisitor::Visit(parser::SelectStatement *node, parser::ParseResult *parse_result) {
-  int magic_num = 0;
+  int magic_num = 15213;
+  printf("%d", magic_num);
   BINDER_LOG_DEBUG("Visiting SelectStatement ...");
   context_ = new BinderContext(context_);
 
