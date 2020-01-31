@@ -34,9 +34,9 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
     // DML query to put through codegen
     if (query_type == network::QueryType::QUERY_SELECT) {
       // TODO(Matt): only do this for SimpleQuery
-      out->WriteRowDescription(physical_plan->GetOutputSchema()->GetColumns());
+      out->WriteRowDescription(physical_plan->GetOutputSchema()->GetColumns(), portal->ResultFormats());
     }
-    result = t_cop->CodegenAndRunPhysicalPlan(connection_ctx, out, common::ManagedPointer(physical_plan), query_type);
+    result = t_cop->CodegenAndRunPhysicalPlan(connection_ctx, out, portal);
   } else if (query_type <= network::QueryType::QUERY_CREATE_VIEW) {
     if (!single_statement_txn && query_type == network::QueryType::QUERY_CREATE_DB) {
       out->WriteErrorResponse("ERROR:  CREATE DATABASE cannot run inside a transaction block");

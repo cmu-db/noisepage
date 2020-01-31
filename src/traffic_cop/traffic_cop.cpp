@@ -16,6 +16,7 @@
 #include "execution/sql/ddl_executors.h"
 #include "execution/vm/module.h"
 #include "network/connection_context.h"
+#include "network/postgres/portal.h"
 #include "network/postgres/postgres_packet_writer.h"
 #include "network/postgres/statement.h"
 #include "optimizer/abstract_optimizer.h"
@@ -323,12 +324,13 @@ bool TrafficCop::BindQuery(const common::ManagedPointer<network::ConnectionConte
 TrafficCopResult TrafficCop::CodegenAndRunPhysicalPlan(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
     const common::ManagedPointer<network::PostgresPacketWriter> out,
-    const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-    const terrier::network::QueryType query_type) const {
+    const common::ManagedPointer<network::Portal> portal) const {
+  const auto query_type = portal->Statement()->QueryType();
+  const auto physical_plan = portal->PhysicalPlan();
   TERRIER_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
                      query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
                  "CodegenAndRunPhysicalPlan called with invalid QueryType.");
-  execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out);
+  execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
 
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer, physical_plan->GetOutputSchema().Get(),

@@ -13,6 +13,7 @@
 #include "catalog/schema.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/util/execution_common.h"
+#include "network/network_defs.h"
 #include "parser/parser_defs.h"
 #include "planner/plannodes/output_schema.h"
 
@@ -117,8 +118,9 @@ class OutputWriter {
    * @param out packet writer to use
    */
   OutputWriter(const common::ManagedPointer<planner::OutputSchema> schema,
-               const common::ManagedPointer<network::PostgresPacketWriter> out)
-      : schema_(schema), out_(out) {}
+               const common::ManagedPointer<network::PostgresPacketWriter> out,
+               const std::vector<network::FieldFormat> &field_formats)
+      : schema_(schema), out_(out), field_formats_(field_formats) {}
 
   /**
    * Callback that prints a batch of tuples to std out.
@@ -137,6 +139,7 @@ class OutputWriter {
   uint64_t num_rows_ = 0;
   const common::ManagedPointer<planner::OutputSchema> schema_;
   const common::ManagedPointer<network::PostgresPacketWriter> out_;
+  const std::vector<network::FieldFormat> &field_formats_;
 };
 
 }  // namespace terrier::execution::exec

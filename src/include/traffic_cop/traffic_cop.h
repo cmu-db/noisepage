@@ -18,6 +18,7 @@ namespace terrier::network {
 class ConnectionContext;
 class PostgresPacketWriter;
 class Statement;
+class Portal;
 }  // namespace terrier::network
 
 namespace terrier::optimizer {
@@ -140,8 +141,7 @@ class TrafficCop {
   // Contains the logic to reason about DML execution. Responsible for outputting results.
   TrafficCopResult CodegenAndRunPhysicalPlan(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                              common::ManagedPointer<network::PostgresPacketWriter> out,
-                                             common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-                                             terrier::network::QueryType query_type) const;
+                                             common::ManagedPointer<network::Portal> portal) const;
 
   /**
    * Adjust the TrafficCop's optimizer timeout value (for use by SettingsManager)

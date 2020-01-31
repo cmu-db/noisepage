@@ -30,7 +30,7 @@ Transition PostgresProtocolInterpreter::Process(common::ManagedPointer<ReadBuffe
     return ProcessStartup(in, out, t_cop, context);
   }
   auto command = command_factory_->PacketToCommand(common::ManagedPointer<InputPacket>(&curr_input_packet_));
-  PostgresPacketWriter writer(out, FieldFormat::text);
+  PostgresPacketWriter writer(out);
   if (command->FlushOnComplete()) out->ForceFlush();
   Transition ret = command->Exec(common::ManagedPointer<ProtocolInterpreter>(this),
                                  common::ManagedPointer<PostgresPacketWriter>(&writer), t_cop, context);
