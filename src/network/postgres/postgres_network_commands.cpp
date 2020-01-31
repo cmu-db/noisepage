@@ -119,8 +119,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
 
   if (statement->QueryType() >= network::QueryType::QUERY_RENAME) {
     // We don't yet support query types with values greater than this
-    // TODO(Matt): add a TRAFFIC_COP_LOG_INFO here
-    out->WriteCommandComplete(statement->QueryType(), 0);
+    out->WriteErrorResponse("ERROR:  we don't yet support that query type.");
     return FinishSimpleQueryCommand(out, connection);
   }
 
