@@ -151,17 +151,14 @@ class IndexScan : public OperatorNode<IndexScan> {
    * @param predicates query predicates
    * @param table_alias alias of the table
    * @param is_for_update whether the scan is used for update
-   * @param key_column_oid_list OID of key columns
-   * @param expr_type_list expression types
-   * @param value_list values to be scanned
+   * @param scan_type IndexScanType
+   * @param bounds Bounds for IndexScan
    * @return an IndexScan operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::index_oid_t index_oid, std::vector<AnnotatedExpression> &&predicates,
-                       std::string table_alias, bool is_for_update,
-                       std::vector<catalog::col_oid_t> &&key_column_oid_list,
-                       std::vector<parser::ExpressionType> &&expr_type_list,
-                       std::vector<type::TransientValue> &&value_list);
+                       std::string table_alias, bool is_for_update, planner::IndexScanType scan_type,
+                       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds);
 
   /**
    * Copy
@@ -204,19 +201,16 @@ class IndexScan : public OperatorNode<IndexScan> {
   bool GetIsForUpdate() const { return is_for_update_; }
 
   /**
-   * @return List of OIDs of key columns
+   * @return index scan type
    */
-  const std::vector<catalog::col_oid_t> &GetKeyColumnOIDList() const { return key_column_oid_list_; }
+  planner::IndexScanType GetIndexScanType() const { return scan_type_; }
 
   /**
-   * @return List of expression types
+   * @return bounds
    */
-  const std::vector<parser::ExpressionType> &GetExprTypeList() const { return expr_type_list_; }
-
-  /**
-   * @return List of parameter values
-   */
-  const std::vector<type::TransientValue> &GetValueList() const { return value_list_; }
+  const std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> &GetBounds() const {
+    return bounds_;
+  }
 
  private:
   /**
@@ -250,19 +244,14 @@ class IndexScan : public OperatorNode<IndexScan> {
   bool is_for_update_;
 
   /**
-   * OIDs of key columns
+   * Scan Type
    */
-  std::vector<catalog::col_oid_t> key_column_oid_list_;
+  planner::IndexScanType scan_type_;
 
   /**
-   * Expression types
+   * Bounds
    */
-  std::vector<parser::ExpressionType> expr_type_list_;
-
-  /**
-   * Parameter values
-   */
-  std::vector<type::TransientValue> value_list_;
+  std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds_;
 };
 
 /**

@@ -26,10 +26,14 @@
 int main(int argc, char **argv) {
   terrier::LoggersUtil::Initialize();
 
-  // Check whether the environment variable is set to specify the number of
-  // threads to use for this benchmark run.
+  // Benchmark Config Environment Variables
+  // Check whether we are being passed environment variables to override configuration parameter
+  // for this benchmark run.
   const char *env_num_threads = std::getenv(terrier::ENV_NUM_THREADS);
-  terrier::BenchmarkConfig::num_threads = (env_num_threads != nullptr ? atoi(env_num_threads) : 1);
+  if (env_num_threads != nullptr) terrier::BenchmarkConfig::num_threads = atoi(env_num_threads);
+
+  const char *env_logfile_path = std::getenv(terrier::ENV_LOGFILE_PATH);
+  if (env_logfile_path != nullptr) terrier::BenchmarkConfig::logfile_path = std::string_view(env_logfile_path);
 
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();

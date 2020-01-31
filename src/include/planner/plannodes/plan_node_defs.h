@@ -112,15 +112,15 @@ enum class SetOpType { INVALID = INVALID_TYPE_ID, INTERSECT = 1, INTERSECT_ALL =
 
 using IndexExpression = common::ManagedPointer<parser::AbstractExpression>;
 /** Type of index scan. */
-enum class IndexScanType : uint8_t { Exact, Ascending, Descending, AscendingLimit, DescendingLimit };
+enum class IndexScanType : uint8_t {
+  Exact,
+  AscendingClosed,
+  AscendingOpenHigh,
+  AscendingOpenLow,
+  AscendingOpenBoth,
 
-// TODO(Gus,Wen) Tuple as a concept does not exist yet, someone need to define it in the storage layer, possibly a
-/**
- * Temporary definition of a tuple in the storage layer
- */
-class Tuple {
- public:
-  Tuple() = default;
+  Descending,
+  DescendingLimit
 };
 
 }  // namespace terrier::planner

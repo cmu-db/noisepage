@@ -67,6 +67,9 @@ BENCHMARKS_TO_RUN = [
 # This parameter will be passed in as an environment variable to each benchmark.
 BENCHMARK_THREADS = 4
 
+# The path to the logfile for the benchmarks.
+BENCHMARK_LOGFILE_PATH = "/tmp/benchmark.log"
+
 # Where to find the benchmarks to execute
 BENCHMARK_PATH = "../../build/release/"
 
@@ -775,6 +778,7 @@ class RunMicroBenchmarks(object):
         
         # Environment Variables
         os.environ["TERRIER_BENCHMARK_THREADS"] = str(BENCHMARK_THREADS) # has to be a str
+        os.environ["TERRIER_BENCHMARK_LOGFILE_PATH"] = BENCHMARK_LOGFILE_PATH
 
         # use all the cpus from the highest numbered numa node
         output = subprocess.check_output("numactl --hardware | grep 'available: ' | cut -d' ' -f2", shell=True)
@@ -1057,6 +1061,12 @@ if __name__ == "__main__":
                         type=int,
                         default=BENCHMARK_THREADS,
                         help="# of threads to use for benchmarks")
+    
+    parser.add_argument("--logfile-path",
+                        metavar='P',
+                        type=str,
+                        default=BENCHMARK_LOGFILE_PATH,
+                        help="Path to use for benchmark logfiles")
 
     parser.add_argument("--debug",
                         action="store_true",
@@ -1071,6 +1081,7 @@ if __name__ == "__main__":
 
     if args.debug: LOG.setLevel(logging.DEBUG)
     if args.num_threads: BENCHMARK_THREADS = args.num_threads
+    if args.logfile_path: BENCHMARK_LOGFILE_PATH = args.logfile_path
 
     # -------------------------------------------------------
 
@@ -1139,7 +1150,13 @@ if __name__ == "__main__":
         # parse the json result file
         LOG.debug("Loading benchmark result file '%s'", filename)
         with open(filename) as fh:
-            data = json.load(fh)
+            contents = fh.read()
+            try:
+                data = json.loads(contents)
+            except:
+                LOG.error("Invalid data read from benchmark result file '%s'", filename)
+                LOG.error(contents)
+                raise
         bench_results = GBFileResult(data)
 
         # iterate over (test suite, benchmark)
