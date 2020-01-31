@@ -142,7 +142,6 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
 
     const auto portal = std::make_unique<Portal>(common::ManagedPointer(statement), std::move(physical_plan));
 
-    // TODO(Matt): refactor this signature
     ExecutePortal(connection, common::ManagedPointer(portal), out, t_cop,
                   postgres_interpreter->SingleStatementTransaction());
   }
@@ -163,14 +162,6 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
                               const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                               const common::ManagedPointer<ConnectionContext> connection) {
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
-
-  // TODO(Matt): Move this check up to PostgresProtocolInterpreter::Process?
-  if (postgres_interpreter->WaitingForSync()) {
-    // When an error is detected while processing any extended-query message, the backend issues ErrorResponse, then
-    // reads and discards messages until a Sync is reached
-    out->WriteErrorResponse("ERROR:  Waiting for Sync command.");
-    return Transition::PROCEED;
-  }
 
   const auto statement_name = in_.ReadString();
   NETWORK_LOG_TRACE("ParseCommand Statement Name: {0}", statement_name.c_str());
@@ -200,6 +191,14 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
       // failing to parse fails a transaction in postgres
       connection->Transaction()->SetMustAbort();
     }
+    postgres_interpreter->SetWaitingForSync(true);
+    return Transition::PROCEED;
+  }
+
+  if (statement->QueryType() >= network::QueryType::QUERY_RENAME) {
+    // We don't yet support query types with values greater than this
+    out->WriteErrorResponse("ERROR:  we don't yet support that query type.");
+    postgres_interpreter->SetWaitingForSync(true);
     return Transition::PROCEED;
   }
 
@@ -214,13 +213,6 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
                              const common::ManagedPointer<ConnectionContext> connection) {
   NETWORK_LOG_TRACE("Bind Command");
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
-
-  if (postgres_interpreter->WaitingForSync()) {
-    // When an error is detected while processing any extended-query message, the backend issues ErrorResponse, then
-    // reads and discards messages until a Sync is reached
-    out->WriteErrorResponse("ERROR:  Waiting for Sync command.");
-    return Transition::PROCEED;
-  }
 
   const auto portal_name = in_.ReadString();
 
@@ -270,13 +262,9 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
   if (statement->QueryType() <= network::QueryType::QUERY_ROLLBACK) {
     // Don't begin an implicit txn in this case, and don't bind or optimize this statement
-    return Transition::PROCEED;
-  }
-
-  if (statement->QueryType() >= network::QueryType::QUERY_RENAME) {
-    // We don't yet support query types with values greater than this
-    // TODO(Matt): figure out what to do here
-    out->WriteCommandComplete(statement->QueryType(), 0);
+    postgres_interpreter->SetPortal(
+        portal_name, std::make_unique<Portal>(statement, nullptr, std::move(params), std::move(result_formats)));
+    out->WriteBindComplete();
     return Transition::PROCEED;
   }
 
@@ -286,7 +274,7 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     postgres_interpreter->SetImplicitTransaction(true);
   }
 
-  // Bind it, plan it?
+  // Bind it, plan it
   const bool bind_result = t_cop->BindQuery(connection, out, statement->ParseResult(), statement->QueryType());
   if (bind_result) {
     // Binding succeeded, optimize to generate a physical plan and then execute
@@ -307,8 +295,38 @@ Transition DescribeCommand::Exec(const common::ManagedPointer<ProtocolInterprete
                                  const common::ManagedPointer<PostgresPacketWriter> out,
                                  const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                  const common::ManagedPointer<ConnectionContext> connection) {
-  out->WriteNoData();
-  NETWORK_LOG_TRACE("Describe Command");
+  const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
+
+  const auto object_type = in_.ReadValue<DescribeCommandObjectType>();
+  const auto object_name = in_.ReadString();
+
+  if (object_type == DescribeCommandObjectType::PORTAL) {
+    const auto portal = postgres_interpreter->GetPortal(object_name);
+    if (portal == nullptr) {
+      out->WriteErrorResponse("ERROR:  Portal does not exist for Describe message.");
+    } else if (portal->Statement()->QueryType() == network::QueryType::QUERY_SELECT) {
+      out->WriteRowDescription(portal->PhysicalPlan()->GetOutputSchema()->GetColumns(), portal->ResultFormats());
+    } else {
+      out->WriteNoData();
+    }
+    return Transition::PROCEED;
+  }
+  TERRIER_ASSERT(object_type == DescribeCommandObjectType::STATEMENT, "Unknown object type passed in Close message.");
+
+  const auto statement = postgres_interpreter->GetStatement(object_name);
+
+  if (statement == nullptr) {
+    out->WriteErrorResponse("ERROR:  Statement does not exist for Describe message.");
+  } else {
+    out->WriteParameterDescription(statement->ParamTypes());
+    if (statement->QueryType() == network::QueryType::QUERY_SELECT) {
+      // TODO(Matt): we're supposed to write a RowDescription here, but we don't have an OutputSchema yet because that
+      // comes all the way after optimization
+    } else {
+      out->WriteNoData();
+    }
+  }
+
   return Transition::PROCEED;
 }
 
@@ -317,7 +335,34 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
                                 const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                 const common::ManagedPointer<ConnectionContext> connection) {
   NETWORK_LOG_TRACE("Exec Command");
-  out->WriteCommandComplete("");
+  const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
+
+  const auto portal_name = in_.ReadString();
+  const auto max_rows UNUSED_ATTRIBUTE = in_.ReadValue<int32_t>();
+  // TODO(Matt): here's where you would reason about PortalSuspend with max_rows. Maybe just the OutputWriter would
+  // buffer the results, since I'm not sure if we can actually pause execution engine
+
+  const auto portal = postgres_interpreter->GetPortal(portal_name);
+
+  if (portal == nullptr) {
+    out->WriteErrorResponse("ERROR:  Specified portal does not exist to execute.");
+    return Transition::PROCEED;
+  }
+
+  // This logic relies on ordering of values in the enum's definition and is documented there as well.
+  if (portal->Statement()->QueryType() <= network::QueryType::QUERY_ROLLBACK) {
+    t_cop->ExecuteTransactionStatement(connection, out, portal->Statement()->QueryType());
+    return Transition::PROCEED;
+  }
+
+  if (portal->Statement()->QueryType() >= network::QueryType::QUERY_RENAME) {
+    // We don't yet support query types with values greater than this
+    out->WriteCommandComplete(portal->Statement()->QueryType(), 0);
+    return Transition::PROCEED;
+  }
+
+  ExecutePortal(connection, portal, out, t_cop, postgres_interpreter->SingleStatementTransaction());
+
   return Transition::PROCEED;
 }
 

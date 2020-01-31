@@ -32,8 +32,17 @@ Transition PostgresProtocolInterpreter::Process(common::ManagedPointer<ReadBuffe
   auto command = command_factory_->PacketToCommand(common::ManagedPointer<InputPacket>(&curr_input_packet_));
   PostgresPacketWriter writer(out);
   if (command->FlushOnComplete()) out->ForceFlush();
-  Transition ret = command->Exec(common::ManagedPointer<ProtocolInterpreter>(this),
-                                 common::ManagedPointer<PostgresPacketWriter>(&writer), t_cop, context);
+
+  if (WaitingForSync()) {
+    // When an error is detected while processing any extended-query message, the backend issues ErrorResponse, then
+    // reads and discards messages until a Sync is reached
+    writer.WriteErrorResponse("ERROR:  Waiting for Sync command.");
+    curr_input_packet_.Clear();
+    return Transition::PROCEED;
+  }
+
+  const Transition ret = command->Exec(common::ManagedPointer<ProtocolInterpreter>(this),
+                                       common::ManagedPointer<PostgresPacketWriter>(&writer), t_cop, context);
   curr_input_packet_.Clear();
   return ret;
 }

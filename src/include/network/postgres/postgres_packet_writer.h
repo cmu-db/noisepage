@@ -125,11 +125,12 @@ class PostgresPacketWriter : public PacketWriter {
    * Writes parameter description (used in Describe command)
    * @param param_types The types of the parameters in the statement
    */
-  void WriteParameterDescription(const std::vector<PostgresValueType> &param_types) {
+  void WriteParameterDescription(const std::vector<type::TypeId> &param_types) {
     BeginPacket(NetworkMessageType::PG_PARAMETER_DESCRIPTION);
     AppendValue<int16_t>(static_cast<int16_t>(param_types.size()));
 
-    for (auto &type : param_types) AppendValue<int32_t>(static_cast<int32_t>(type));
+    for (auto &type : param_types)
+      AppendValue<int32_t>(static_cast<int32_t>(InternalValueTypeToPostgresValueType(type)));
 
     EndPacket();
   }
