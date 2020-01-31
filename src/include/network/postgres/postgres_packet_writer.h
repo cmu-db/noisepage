@@ -335,6 +335,11 @@ class PostgresPacketWriter : public PacketWriter {
   /**
    * Tells the client that the bind command is complete.
    */
+  void WriteCloseComplete() { BeginPacket(NetworkMessageType::PG_CLOSE_COMPLETE).EndPacket(); }
+
+  /**
+   * Tells the client that the bind command is complete.
+   */
   void WriteBindComplete() { BeginPacket(NetworkMessageType::PG_BIND_COMPLETE).EndPacket(); }
 
   /**

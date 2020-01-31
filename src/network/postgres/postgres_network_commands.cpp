@@ -204,6 +204,8 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
 
   postgres_interpreter->SetStatement(statement_name, std::move(statement));
 
+  out->WriteParseComplete();
+
   return Transition::PROCEED;
 }
 
@@ -390,12 +392,12 @@ Transition CloseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
   const auto object_name = in_.ReadString();
   if (object_type == DescribeCommandObjectType::PORTAL) {
     postgres_interpreter->ClosePortal(object_name);
-    // TODO(Matt): write CloseComplete
+    out->WriteCloseComplete();
     return Transition::PROCEED;
   }
   TERRIER_ASSERT(object_type == DescribeCommandObjectType::STATEMENT, "Unknown object type passed in Close message.");
   postgres_interpreter->CloseStatement(object_name);
-  // TODO(Matt): write CloseComplete
+  out->WriteCloseComplete();
   return Transition::PROCEED;
 }
 
