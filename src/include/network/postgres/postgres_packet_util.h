@@ -18,6 +18,11 @@ class PostgresPacketUtil {
 
   static std::vector<FieldFormat> ReadFormatCodes(const common::ManagedPointer<ReadBufferView> read_buffer) {
     const auto num_formats = read_buffer->ReadValue<int16_t>();
+
+    if (num_formats == 0) {
+      return {FieldFormat::text};
+    }
+
     std::vector<FieldFormat> formats;
     formats.reserve(num_formats);
     for (uint16_t i = 0; i < num_formats; i++) {
@@ -113,7 +118,10 @@ class PostgresPacketUtil {
     params.reserve(num_params);
     for (uint16_t i = 0; i < num_params; i++) {
       const auto param_size = read_buffer->ReadValue<int32_t>();
-      params.emplace_back(param_formats[i] == FieldFormat::text
+
+      const auto param_format = param_formats[i <= param_formats.size() ? i : 0];
+
+      params.emplace_back(param_format == FieldFormat::text
                               ? TextValueToInternalValue(read_buffer, param_size, param_types[i])
                               : BinaryValueToInternalValue(read_buffer, param_size, param_types[i]));
     }

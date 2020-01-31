@@ -242,7 +242,9 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
 
   // read out the parameter formats
   const auto param_formats = PostgresPacketUtil::ReadFormatCodes(common::ManagedPointer(&in_));
-  // TODO(Matt): would like to assert that this is 0 (all text), 1 (all the same), or the number of output columns
+  TERRIER_ASSERT(param_formats.size() == 1 || param_formats.size() == statement->ParamTypes().size(),
+                 "Incorrect number of parameter format codes. Should either be 1 (all the same) or the number of "
+                 "parameters required for this statement.");
 
   // read the params
   auto params =
