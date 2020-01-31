@@ -15,7 +15,7 @@ HashJoinLeftTranslator::HashJoinLeftTranslator(const terrier::planner::HashJoinP
       build_struct_{codegen->NewIdentifier("BuildRow")},
       build_row_{codegen->NewIdentifier("build_row")},
       join_ht_{codegen->NewIdentifier("join_ht")},
-      left_semi_join_flag_{codegen->Context()->GetIdentifier("left_semi_join_flag")} {}
+      mark_{codegen->Context()->GetIdentifier("mark")} {}
 
 void HashJoinLeftTranslator::Produce(FunctionBuilder *builder) {
   // Produce the rest of the pipeline
@@ -49,7 +49,7 @@ void HashJoinLeftTranslator::InitializeStructs(util::RegionVector<ast::Decl *> *
   GetChildOutputFields(&fields, LEFT_ATTR_NAME);
   // Add the left semi join flag.
   if (op_->GetLogicalJoinType() == planner::LogicalJoinType::LEFT_SEMI) {
-    fields.emplace_back(codegen_->MakeField(left_semi_join_flag_, codegen_->BuiltinType(ast::BuiltinType::Bool)));
+    fields.emplace_back(codegen_->MakeField(mark_, codegen_->BuiltinType(ast::BuiltinType::Bool)));
   }
   // Make the struct
   decls->emplace_back(codegen_->MakeStruct(build_struct_, std::move(fields)));
@@ -113,7 +113,7 @@ void HashJoinLeftTranslator::FillBuildRow(FunctionBuilder *builder) {
   }
   // For left semi-joins, set the flag to true.
   if (op_->GetLogicalJoinType() == planner::LogicalJoinType::LEFT_SEMI) {
-    ast::Expr *lhs = GetLeftSemiJoinFlag();
+    ast::Expr *lhs = GetMarkFlag();
     ast::Expr *rhs = codegen_->BoolLiteral(true);
     builder->Append(codegen_->Assign(lhs, rhs));
   }
@@ -124,9 +124,7 @@ ast::Expr *HashJoinLeftTranslator::GetBuildValue(uint32_t idx) {
   return codegen_->MemberExpr(build_row_, member);
 }
 
-ast::Expr *HashJoinLeftTranslator::GetLeftSemiJoinFlag() {
-  return codegen_->MemberExpr(build_row_, left_semi_join_flag_);
-}
+ast::Expr *HashJoinLeftTranslator::GetMarkFlag() { return codegen_->MemberExpr(build_row_, mark_); }
 
 ast::Expr *HashJoinLeftTranslator::GetOutput(uint32_t attr_idx) { return GetBuildValue(attr_idx); }
 
@@ -356,10 +354,10 @@ void HashJoinRightTranslator::DeclareMatch(FunctionBuilder *builder) {
 }
 
 void HashJoinRightTranslator::GenLeftSemiJoinCondition(FunctionBuilder *builder) {
-  ast::Expr *cond = left_->GetLeftSemiJoinFlag();
+  ast::Expr *cond = left_->GetMarkFlag();
   builder->StartIfStmt(cond);
   // Set flag to false to prevent further iterations.
-  ast::Expr *lhs = left_->GetLeftSemiJoinFlag();
+  ast::Expr *lhs = left_->GetMarkFlag();
   ast::Expr *rhs = codegen_->BoolLiteral(false);
   builder->Append(codegen_->Assign(lhs, rhs));
 }

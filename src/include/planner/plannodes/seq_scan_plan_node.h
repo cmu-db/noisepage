@@ -46,11 +46,6 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
      */
     Builder &SetColumnOids(std::vector<catalog::col_oid_t> &&column_oids) {
       column_oids_ = std::move(column_oids);
-      if (column_oids_.empty()) {
-        // TODO(Amadou): In the SqlTable, at least one column must be selected. But Count(*) does not need any column
-        // in particular. Is there a better way than just selecting the first one?
-        column_oids_.emplace_back(1);
-      }
       return *this;
     }
 

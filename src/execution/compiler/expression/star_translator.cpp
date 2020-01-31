@@ -9,7 +9,8 @@ StarTranslator::StarTranslator(const terrier::parser::AbstractExpression *expres
     : ExpressionTranslator(expression, codegen) {}
 
 ast::Expr *StarTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
-  // TODO(Amadou): What we return here doesn't really matter. Should StarExpression be ConstantValueExpression?
+  // TODO(Amadou): COUNT(*) will increment its counter regardless of the input we pass in.
+  // So the value we return here does not matter. The StarExpression can just be replaced by a constant.
   return codegen_->IntToSql(0);
 }
 };  // namespace terrier::execution::compiler
