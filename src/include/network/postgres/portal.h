@@ -38,13 +38,26 @@ class Portal {
         params_(std::move(params)),
         result_formats_(std::move(result_formats)) {}
 
+  /**
+   * @return Statement that this Portal references
+   */
   common::ManagedPointer<Statement> Statement() const { return statement_; }
 
+  /**
+   * @return the optimized physical plan for this query
+   */
   common::ManagedPointer<planner::AbstractPlanNode> PhysicalPlan() const {
     return common::ManagedPointer(physical_plan_);
   }
 
+  /**
+   * @return output formats for this query
+   */
   const std::vector<FieldFormat> &ResultFormats() const { return result_formats_; }
+
+  /**
+   * @return params for this query
+   */
   common::ManagedPointer<const std::vector<type::TransientValue>> Parameters() {
     return common::ManagedPointer(&params_);
   }
