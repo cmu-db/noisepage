@@ -112,6 +112,11 @@ class TranslatorFactory {
   static bool IsNullOp(parser::ExpressionType type) {
     return (type == parser::ExpressionType::OPERATOR_IS_NULL || type == parser::ExpressionType::OPERATOR_IS_NOT_NULL);
   }
+
+  /**
+   * Whether this is a Star expression.
+   */
+  static bool IsStar(parser::ExpressionType type) { return type == parser::ExpressionType::STAR; }
 };
 
 }  // namespace terrier::execution::compiler

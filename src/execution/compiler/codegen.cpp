@@ -306,7 +306,8 @@ ast::Expr *CodeGen::PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val) {
+ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val,
+                          bool own) {
   ast::Builtin builtin;
   switch (type) {
     case type::TypeId::BOOLEAN:
@@ -339,6 +340,9 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
   ast::Expr *fun = BuiltinFunction(builtin);
   ast::Expr *idx_expr = Factory()->NewIntLiteral(DUMMY_POS, attr_idx);
   util::RegionVector<ast::Expr *> args{{pr, idx_expr, val}, Region()};
+  if (type == type::TypeId::VARCHAR) {
+    args.emplace_back(BoolLiteral(own));
+  }
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 

@@ -382,7 +382,7 @@ namespace terrier::execution::vm {
   F(PRSetReal, OperandType::Local, OperandType::UImm2, OperandType::Local)                                            \
   F(PRSetDouble, OperandType::Local, OperandType::UImm2, OperandType::Local)                                          \
   F(PRSetDate, OperandType::Local, OperandType::UImm2, OperandType::Local)                                            \
-  F(PRSetVarlen, OperandType::Local, OperandType::UImm2, OperandType::Local)                                          \
+  F(PRSetVarlen, OperandType::Local, OperandType::UImm2, OperandType::Local, OperandType::Local)                      \
   F(PRSetBoolNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                        \
   F(PRSetTinyIntNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                     \
   F(PRSetSmallIntNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                    \
@@ -391,7 +391,7 @@ namespace terrier::execution::vm {
   F(PRSetRealNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                        \
   F(PRSetDoubleNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                      \
   F(PRSetDateNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                        \
-  F(PRSetVarlenNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                      \
+  F(PRSetVarlenNull, OperandType::Local, OperandType::UImm2, OperandType::Local, OperandType::Local)                  \
                                                                                                                       \
   /* StorageInterface */                                                                                              \
   F(StorageInterfaceInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,             \
