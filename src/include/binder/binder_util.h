@@ -37,27 +37,47 @@ class BinderUtil {
                    "Types already compatible!");
 
     switch (expr_type) {
+      // Looking at a ConstantValueExpression
       case parser::ExpressionType::VALUE_CONSTANT: {
         auto cexpr = expr.CastManagedPointerTo<parser::ConstantValueExpression>();
-        std::string str{type::TransientValuePeeker::PeekVarChar(cexpr->GetValue())};
 
-        if (expected_ret_type == type::TypeId::DATE) {
-          auto parsed = util::TimeConvertor::ParseDate(str);
-          if (!parsed.first) {
-            throw BINDER_EXCEPTION("Unable to parse the date.");
+        switch (expected_ret_type) {
+          // We expect to turn integers into decimals.
+          case type::TypeId::DECIMAL: {
+            if (expr_ret_type != type::TypeId::INTEGER) {
+              throw BINDER_EXCEPTION("Can't convert to DECIMAL.");
+            }
+            int32_t val{type::TransientValuePeeker::PeekInteger(cexpr->GetValue())};
+            return std::make_unique<parser::ConstantValueExpression>(
+                type::TransientValueFactory::GetDecimal(val));
           }
-          return std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetDate(parsed.second));
-        }
-
-        if (expected_ret_type == type::TypeId::TIMESTAMP) {
-          auto parsed = util::TimeConvertor::ParseTimestamp(str);
-          if (!parsed.first) {
-            throw BINDER_EXCEPTION("Unable to parse the timestamp.");
+          // We expect to turn strings into dates.
+          case type::TypeId::DATE: {
+            if (expr_ret_type != type::TypeId::VARCHAR) {
+              throw BINDER_EXCEPTION("Can't convert to DATE.");
+            }
+            std::string str{type::TransientValuePeeker::PeekVarChar(cexpr->GetValue())};
+            auto parsed = util::TimeConvertor::ParseDate(str);
+            if (!parsed.first) { throw BINDER_EXCEPTION("Unable to parse the date."); }
+            return std::make_unique<parser::ConstantValueExpression>(
+                type::TransientValueFactory::GetDate(parsed.second));
           }
-          return std::make_unique<parser::ConstantValueExpression>(
-              type::TransientValueFactory::GetTimestamp(parsed.second));
+          // We expect to turn strings into timestamps.
+          case type::TypeId::TIMESTAMP: {
+            if (expr_ret_type != type::TypeId::VARCHAR) {
+              throw BINDER_EXCEPTION("Can't convert to TIMESTAMP.");
+            }
+            std::string str{type::TransientValuePeeker::PeekVarChar(cexpr->GetValue())};
+            auto parsed = util::TimeConvertor::ParseTimestamp(str);
+            if (!parsed.first) { throw BINDER_EXCEPTION("Unable to parse the timestamp."); }
+            return std::make_unique<parser::ConstantValueExpression>(
+                type::TransientValueFactory::GetTimestamp(parsed.second));
+          }
+          default:
+            throw BINDER_EXCEPTION("Unimplemented binder conversion.");
         }
       }
+      // Looking at a TypeCastExpression
       case parser::ExpressionType::OPERATOR_CAST: {
         auto cast_expr = expr.CastManagedPointerTo<parser::TypeCastExpression>();
         TERRIER_ASSERT(cast_expr->GetChildrenSize() == 1, "Cannot type-cast multiple children.");
