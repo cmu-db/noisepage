@@ -176,11 +176,10 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCop::OptimizeBoundQuery(
   // cost model. Do we expect that can be transactional?
 }
 
-void TrafficCop::ExecuteCreateStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                        const common::ManagedPointer<network::PostgresPacketWriter> out,
-                                        const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-                                        const terrier::network::QueryType query_type,
-                                        const bool single_statement_txn) const {
+TrafficCopResult TrafficCop::ExecuteCreateStatement(
+    const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+    const common::ManagedPointer<planner::AbstractPlanNode> physical_plan, const terrier::network::QueryType query_type,
+    const bool single_statement_txn) const {
   TERRIER_ASSERT(
       query_type == network::QueryType::QUERY_CREATE_TABLE || query_type == network::QueryType::QUERY_CREATE_SCHEMA ||
           query_type == network::QueryType::QUERY_CREATE_INDEX || query_type == network::QueryType::QUERY_CREATE_DB ||
@@ -191,49 +190,43 @@ void TrafficCop::ExecuteCreateStatement(const common::ManagedPointer<network::Co
       if (execution::sql::DDLExecutors::CreateTableExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateTablePlanNode>(), connection_ctx->Accessor(),
               connection_ctx->GetDatabaseOid())) {
-        out->WriteCommandComplete(query_type, 0);
-        return;
+        return {ResultType::COMPLETE, 0};
       }
       break;
     }
     case network::QueryType::QUERY_CREATE_DB: {
       if (execution::sql::DDLExecutors::CreateDatabaseExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateDatabasePlanNode>(), connection_ctx->Accessor())) {
-        out->WriteCommandComplete(query_type, 0);
-        return;
+        return {ResultType::COMPLETE, 0};
       }
       break;
     }
     case network::QueryType::QUERY_CREATE_INDEX: {
       if (execution::sql::DDLExecutors::CreateIndexExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor())) {
-        out->WriteCommandComplete(query_type, 0);
-        return;
+        return {ResultType::COMPLETE, 0};
       }
       break;
     }
     case network::QueryType::QUERY_CREATE_SCHEMA: {
       if (execution::sql::DDLExecutors::CreateNamespaceExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateNamespacePlanNode>(), connection_ctx->Accessor())) {
-        out->WriteCommandComplete(query_type, 0);
-        return;
+        return {ResultType::COMPLETE, 0};
       }
       break;
     }
     default: {
-      out->WriteErrorResponse("ERROR:  unsupported CREATE statement type");
-      return;
+      return {ResultType::ERROR, "ERROR:  unsupported CREATE statement type"};
     }
   }
-  out->WriteErrorResponse("ERROR:  failed to execute CREATE");
   connection_ctx->Transaction()->SetMustAbort();
+  return {ResultType::ERROR, "ERROR:  failed to execute CREATE"};
 }
 
-void TrafficCop::ExecuteDropStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                      const common::ManagedPointer<network::PostgresPacketWriter> out,
-                                      const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-                                      const terrier::network::QueryType query_type,
-                                      const bool single_statement_txn) const {
+TrafficCopResult TrafficCop::ExecuteDropStatement(
+    const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+    const common::ManagedPointer<planner::AbstractPlanNode> physical_plan, const terrier::network::QueryType query_type,
+    const bool single_statement_txn) const {
   TERRIER_ASSERT(
       query_type == network::QueryType::QUERY_DROP_TABLE || query_type == network::QueryType::QUERY_DROP_SCHEMA ||
           query_type == network::QueryType::QUERY_DROP_INDEX || query_type == network::QueryType::QUERY_DROP_DB ||
@@ -243,8 +236,7 @@ void TrafficCop::ExecuteDropStatement(const common::ManagedPointer<network::Conn
     case network::QueryType::QUERY_DROP_TABLE: {
       if (execution::sql::DDLExecutors::DropTableExecutor(
               physical_plan.CastManagedPointerTo<planner::DropTablePlanNode>(), connection_ctx->Accessor())) {
-        out->WriteCommandComplete(query_type, 0);
-        return;
+        return {ResultType::COMPLETE, 0};
       }
       break;
     }
@@ -252,34 +244,30 @@ void TrafficCop::ExecuteDropStatement(const common::ManagedPointer<network::Conn
       if (execution::sql::DDLExecutors::DropDatabaseExecutor(
               physical_plan.CastManagedPointerTo<planner::DropDatabasePlanNode>(), connection_ctx->Accessor(),
               connection_ctx->GetDatabaseOid())) {
-        out->WriteCommandComplete(query_type, 0);
-        return;
+        return {ResultType::COMPLETE, 0};
       }
       break;
     }
     case network::QueryType::QUERY_DROP_INDEX: {
       if (execution::sql::DDLExecutors::DropIndexExecutor(
               physical_plan.CastManagedPointerTo<planner::DropIndexPlanNode>(), connection_ctx->Accessor())) {
-        out->WriteCommandComplete(query_type, 0);
-        return;
+        return {ResultType::COMPLETE, 0};
       }
       break;
     }
     case network::QueryType::QUERY_DROP_SCHEMA: {
       if (execution::sql::DDLExecutors::DropNamespaceExecutor(
               physical_plan.CastManagedPointerTo<planner::DropNamespacePlanNode>(), connection_ctx->Accessor())) {
-        out->WriteCommandComplete(query_type, 0);
-        return;
+        return {ResultType::COMPLETE, 0};
       }
       break;
     }
     default: {
-      out->WriteErrorResponse("ERROR:  unsupported DROP statement type");
-      break;
+      return {ResultType::ERROR, "ERROR:  unsupported DROP statement type"};
     }
   }
-  out->WriteErrorResponse("ERROR:  failed to execute DROP");
   connection_ctx->Transaction()->SetMustAbort();
+  return {ResultType::ERROR, "ERROR:  failed to execute DROP"};
 }
 
 std::unique_ptr<parser::ParseResult> TrafficCop::ParseQuery(

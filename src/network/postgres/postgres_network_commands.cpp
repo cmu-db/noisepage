@@ -46,8 +46,7 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
 
     // Right now this executor handles writing its results, so we don't need the result. Unclear if that changes in the
     // future
-    t_cop->ExecuteCreateStatement(connection_ctx, out, common::ManagedPointer(physical_plan), query_type,
-                                  single_statement_txn);
+    result = t_cop->ExecuteCreateStatement(connection_ctx, physical_plan, query_type, single_statement_txn);
   } else if (query_type <= network::QueryType::QUERY_DROP_VIEW) {
     if (!single_statement_txn && query_type == network::QueryType::QUERY_DROP_DB) {
       out->WriteErrorResponse("ERROR:  DROP DATABASE cannot run inside a transaction block");
@@ -57,8 +56,7 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
 
     // Right now this executor handles writing its results, so we don't need the result. Unclear if that changes in the
     // future
-    t_cop->ExecuteDropStatement(connection_ctx, out, common::ManagedPointer(physical_plan), query_type,
-                                single_statement_txn);
+    result = t_cop->ExecuteDropStatement(connection_ctx, physical_plan, query_type, single_statement_txn);
   }
 
   if (result.type_ == trafficcop::ResultType::COMPLETE) {
@@ -119,7 +117,8 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
 
   if (statement->QueryType() >= network::QueryType::QUERY_RENAME) {
     // We don't yet support query types with values greater than this
-    out->WriteErrorResponse("ERROR:  we don't yet support that query type.");
+    out->WriteNoticeResponse("NOTICE:  we don't yet support that query type.");
+    out->WriteCommandComplete(statement->QueryType(), 0);
     return FinishSimpleQueryCommand(out, connection);
   }
 
@@ -196,9 +195,7 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
 
   if (statement->QueryType() >= network::QueryType::QUERY_RENAME) {
     // We don't yet support query types with values greater than this
-    out->WriteErrorResponse("ERROR:  we don't yet support that query type.");
-    postgres_interpreter->SetWaitingForSync(true);
-    return Transition::PROCEED;
+    out->WriteNoticeResponse("NOTICE:  we don't yet support that query type.");
   }
 
   postgres_interpreter->SetStatement(statement_name, std::move(statement));

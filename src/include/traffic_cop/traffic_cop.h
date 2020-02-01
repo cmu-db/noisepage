@@ -126,15 +126,13 @@ class TrafficCop {
                  common::ManagedPointer<parser::ParseResult> parse_result,
                  terrier::network::QueryType query_type) const;
 
-  // Contains the logic to reason about CREATE execution. Responsible for outputting results.
-  void ExecuteCreateStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                              common::ManagedPointer<network::PostgresPacketWriter> out,
+  // Contains the logic to reason about CREATE execution.
+  TrafficCopResult ExecuteCreateStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                               common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
                               terrier::network::QueryType query_type, bool single_statement_txn) const;
 
-  // Contains the logic to reason about DROP execution. Responsible for outputting results.
-  void ExecuteDropStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                            common::ManagedPointer<network::PostgresPacketWriter> out,
+  // Contains the logic to reason about DROP execution.
+  TrafficCopResult ExecuteDropStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                             common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
                             terrier::network::QueryType query_type, bool single_statement_txn) const;
 
