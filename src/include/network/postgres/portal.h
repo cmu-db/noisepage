@@ -8,12 +8,29 @@
 
 namespace terrier::network {
 
+/**
+ * Portal is a postgres concept (see the Extended Query documentation:
+ * https://www.postgresql.org/docs/current/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY)
+ * It encapsulates a reference to its originating statement, the parameters (if any), the output formats, and the
+ * optimized physical plan. It represents a query ready to be executed.
+ */
 class Portal {
  public:
-  // for simplequery
+  /**
+   * Constructor that doesnt have params or result_formats, i.e. Simple Query protocol
+   * @param statement statement that this Portal refers to
+   * @param physical_plan optimized plan ready for execution
+   */
   Portal(const common::ManagedPointer<Statement> statement, std::unique_ptr<planner::AbstractPlanNode> &&physical_plan)
       : Portal(statement, std::move(physical_plan), {}, {FieldFormat::text}) {}
 
+  /**
+   * Constructor that doesnt have params or result_formats, i.e. Extended Query protocol
+   * @param statement statement that this Portal refers to
+   * @param physical_plan optimized plan ready for execution
+   * @param params params for this query
+   * @param result_formats output formats for this query
+   */
   Portal(const common::ManagedPointer<Statement> statement, std::unique_ptr<planner::AbstractPlanNode> &&physical_plan,
          std::vector<type::TransientValue> &&params, std::vector<FieldFormat> &&result_formats)
       : statement_(statement),

@@ -12,9 +12,17 @@ namespace terrier::network {
 
 class Statement {
  public:
-  // for simplyquery
+  /**
+   * Constructor that doesn't have parameter types, i.e. Simple Query protocol
+   * @param parse_result unbound output from postgresparser
+   */
   explicit Statement(std::unique_ptr<parser::ParseResult> &&parse_result) : Statement(std::move(parse_result), {}) {}
 
+  /**
+   * Constructor that does have parameter types, i.e. Extended Query protocol
+   * @param parse_result unbound output from postgresparser
+   * @param param_types types of the values to be bound
+   */
   Statement(std::unique_ptr<parser::ParseResult> &&parse_result, std::vector<type::TypeId> &&param_types)
       : parse_result_(std::move(parse_result)), param_types_(std::move(param_types)) {
     if (Valid()) {
@@ -26,8 +34,14 @@ class Statement {
     }
   }
 
+  /**
+   * @return true if parser succeeded and this statement is usable
+   */
   bool Valid() const { return parse_result_ != nullptr; }
 
+  /**
+   * @return true if the statement is empty
+   */
   bool Empty() const {
     TERRIER_ASSERT(Valid(), "Attempting to check emptiness without a valid parsed result.");
     return parse_result_->Empty();

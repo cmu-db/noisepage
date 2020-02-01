@@ -114,8 +114,9 @@ class OutputPrinter {
 class OutputWriter {
  public:
   /**
-   * @param schema final schema to output
+   * @param schema final schema to output for this query
    * @param out packet writer to use
+   * @param field_formats reference to the field formats for this query
    */
   OutputWriter(const common::ManagedPointer<planner::OutputSchema> schema,
                const common::ManagedPointer<network::PostgresPacketWriter> out,

@@ -306,6 +306,7 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     // failing to bind fails a transaction in postgres
     connection->Transaction()->SetMustAbort();
     out->WriteErrorResponse(std::get<std::string>(bind_result.extra_));
+    postgres_interpreter->SetWaitingForSync(true);
   }
 
   return Transition::PROCEED;
