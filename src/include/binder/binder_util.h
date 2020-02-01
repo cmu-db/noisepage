@@ -44,7 +44,7 @@ class BinderUtil {
         // TODO(WAN): There is code repetition here, but given that we intend to nuke the TransientValue
         //  in favor of Prashanth's Value system, this is probably fine and is easier to read.
         switch (expected_ret_type) {
-            // We expect to turn integers into TINYINT.
+          // We expect to turn integers into TINYINT.
           case type::TypeId::TINYINT: {
             if (expr_ret_type != type::TypeId::INTEGER) {
               throw BINDER_EXCEPTION("Can't convert to TINYINT.");

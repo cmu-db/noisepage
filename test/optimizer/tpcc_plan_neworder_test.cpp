@@ -206,7 +206,8 @@ TEST_F(TpccPlanNewOrderTests, UpdateStock) {
 TEST_F(TpccPlanNewOrderTests, InsertOrderLine) {
   std::string query =
       "INSERT INTO \"ORDER LINE\" "
-      "(OL_O_ID, OL_D_ID, OL_W_ID, OL_NUMBER, OL_I_ID, OL_SUPPLY_W_ID, OL_DELIVERY_D, OL_QUANTITY, OL_AMOUNT, OL_DIST_INFO) "
+      "(OL_O_ID, OL_D_ID, OL_W_ID, OL_NUMBER, OL_I_ID, OL_SUPPLY_W_ID, OL_DELIVERY_D, OL_QUANTITY, OL_AMOUNT, "
+      "OL_DIST_INFO) "
       "VALUES (1,2,3,4,5,6,'2020-01-02',7,8,'dist')";
   OptimizeInsert(query, tbl_order_line_);
 }
