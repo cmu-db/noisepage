@@ -337,6 +337,10 @@ void BytecodeEmitter::EmitPRSet(Bytecode bytecode, LocalVar pr, uint16_t col_idx
   EmitAll(bytecode, pr, col_idx, val);
 }
 
+void BytecodeEmitter::EmitPRSetVarlen(Bytecode bytecode, LocalVar pr, uint16_t col_idx, LocalVar val, LocalVar own) {
+  EmitAll(bytecode, pr, col_idx, val, own);
+}
+
 void BytecodeEmitter::EmitStorageInterfaceInit(Bytecode bytecode, LocalVar storage_interface, LocalVar exec_ctx,
                                                uint32_t table_oid, LocalVar col_oids, uint32_t num_oids,
                                                LocalVar need_indexes) {

@@ -473,9 +473,11 @@ class CodeGen {
    * @param nullable Whether the column being accessed is nullable.
    * @param attr_idx Index of the column being accessed.
    * @param val The value to set the column to.
+   * @param own When inserting varchars, whether the VarlenEntry should own its content.
    * @return The expression corresponding to the builtin call.
    */
-  ast::Expr *PRSet(ast::Expr *pr, terrier::type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val);
+  ast::Expr *PRSet(ast::Expr *pr, terrier::type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val,
+                   bool own = false);
 
   /**
    * Call storageInterfaceInit(&storage_interface, execCtx, table_oid, col_oids, need_indexes)
