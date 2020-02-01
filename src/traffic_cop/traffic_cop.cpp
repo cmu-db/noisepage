@@ -271,8 +271,7 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
 }
 
 std::unique_ptr<parser::ParseResult> TrafficCop::ParseQuery(
-    const std::string &query, const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-    const common::ManagedPointer<network::PostgresPacketWriter> out) const {
+    const std::string &query, const common::ManagedPointer<network::ConnectionContext> connection_ctx) const {
   std::unique_ptr<parser::ParseResult> parse_result;
   try {
     parse_result = parser::PostgresParser::BuildParseTree(query);

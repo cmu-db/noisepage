@@ -76,9 +76,8 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
 
   const auto query = in_.ReadString();
-  NETWORK_LOG_TRACE("Execute SimpleQuery: {0}", query.c_str());
 
-  auto statement = std::make_unique<network::Statement>(t_cop->ParseQuery(query, connection, out));
+  auto statement = std::make_unique<network::Statement>(t_cop->ParseQuery(query, connection));
 
   // TODO(Matt): clear the unnamed stuff
 
@@ -171,7 +170,6 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
 
   const auto statement_name = in_.ReadString();
-  NETWORK_LOG_TRACE("ParseCommand Statement Name: {0}", statement_name.c_str());
 
   if (!statement_name.empty() && postgres_interpreter->GetStatement(statement_name) != nullptr) {
     out->WriteErrorResponse(
@@ -185,12 +183,10 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
   }
 
   const auto query = in_.ReadString();
-  NETWORK_LOG_INFO("ParseCommand: {0}", query);
 
   auto param_types = PostgresPacketUtil::ReadParamTypes(common::ManagedPointer(&in_));
 
-  auto statement =
-      std::make_unique<network::Statement>(t_cop->ParseQuery(query, connection, out), std::move(param_types));
+  auto statement = std::make_unique<network::Statement>(t_cop->ParseQuery(query, connection), std::move(param_types));
 
   if (!statement->Valid()) {
     out->WriteErrorResponse("ERROR:  syntax error");
@@ -218,13 +214,10 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
                              const common::ManagedPointer<PostgresPacketWriter> out,
                              const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                              const common::ManagedPointer<ConnectionContext> connection) {
-  NETWORK_LOG_TRACE("Bind Command");
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
 
   const auto portal_name = in_.ReadString();
-
   const auto statement_name = in_.ReadString();
-
   const auto statement = postgres_interpreter->GetStatement(statement_name);
 
   if (statement == nullptr) {
@@ -365,7 +358,6 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
                                 const common::ManagedPointer<PostgresPacketWriter> out,
                                 const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                 const common::ManagedPointer<ConnectionContext> connection) {
-  NETWORK_LOG_TRACE("Exec Command");
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
 
   const auto portal_name = in_.ReadString();
@@ -439,7 +431,6 @@ Transition TerminateCommand::Exec(const common::ManagedPointer<ProtocolInterpret
                                   const common::ManagedPointer<PostgresPacketWriter> out,
                                   const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                   const common::ManagedPointer<ConnectionContext> connection) {
-  NETWORK_LOG_TRACE("Terminated");
   // Postgres doesn't send any sort of response for the Terminate command
   // We don't do removal of the temp namespace at the Command level because it's possible that we don't receive a
   // Terminate packet to generate the Command from, and instead closed the connection due to timeout
