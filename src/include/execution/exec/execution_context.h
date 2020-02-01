@@ -125,7 +125,7 @@ class EXPORT ExecutionContext {
    * Set the execution parameters.
    * @param params The exection parameters.
    */
-  void SetParams(common::ManagedPointer<std::vector<type::TransientValue>> params) { params_ = params; }
+  void SetParams(common::ManagedPointer<const std::vector<type::TransientValue>> params) { params_ = params; }
 
   /**
    * @param param_idx index of parameter to access
@@ -146,7 +146,7 @@ class EXPORT ExecutionContext {
   std::unique_ptr<OutputBuffer> buffer_;
   StringAllocator string_allocator_;
   common::ManagedPointer<catalog::CatalogAccessor> accessor_;
-  common::ManagedPointer<std::vector<type::TransientValue>> params_;
+  common::ManagedPointer<const std::vector<type::TransientValue>> params_;
   uint64_t rows_affected_ = 0;
 };
 }  // namespace terrier::execution::exec

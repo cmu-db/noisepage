@@ -317,6 +317,8 @@ TrafficCopResult TrafficCop::CodegenAndRunPhysicalPlan(
       connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer, physical_plan->GetOutputSchema().Get(),
       connection_ctx->Accessor());
 
+  exec_ctx->SetParams(portal->Parameters());
+
   auto exec_query = execution::ExecutableQuery(common::ManagedPointer(physical_plan), common::ManagedPointer(exec_ctx));
 
   exec_query.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);

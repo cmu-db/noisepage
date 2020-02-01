@@ -21,8 +21,8 @@ public class InsertTest extends PLTestBase {
   "c3 int);";
 
  /**
-  * Initialize the database and table for testing
-  */
+     * Initialize the database and table for testing
+     */
  private void InitDatabase() throws SQLException {
   Statement stmt = conn.createStatement();
   stmt.execute(SQL_DROP_TABLE);
@@ -30,8 +30,8 @@ public class InsertTest extends PLTestBase {
  }
 
  /**
-  * Get columns, for follow on value checking
-  */
+     * Get columns, for follow on value checking
+     */
  private void getResults() throws SQLException {
   Statement stmt = conn.createStatement();
   rs = stmt.executeQuery(s_sql);
@@ -56,8 +56,8 @@ public class InsertTest extends PLTestBase {
   */
 
  /**
-  * 1 tuple insert, with no column specification.
-  */
+     * 1 tuple insert, with no column specification.
+     */
  @Test
  public void test_1Tuple_NCS() throws SQLException {
 
@@ -82,8 +82,8 @@ public class InsertTest extends PLTestBase {
  }
 
  /**
-  * 1 tuple insert, with columns inserted in schema order.
-  */
+     * 1 tuple insert, with columns inserted in schema order.
+     */
  @Test
  public void test_1Tuple_CS_1() throws SQLException {
 
@@ -108,8 +108,8 @@ public class InsertTest extends PLTestBase {
  }
 
  /**
-  * 1 tuple insert, with columns inserted in different order from schema.
-  */
+     * 1 tuple insert, with columns inserted in different order from schema.
+     */
  // FIXME(Matt): issue #729
  //@Test
  public void test_1Tuple_CS_2() throws SQLException {
@@ -137,8 +137,8 @@ public class InsertTest extends PLTestBase {
  /* 2 tuple inserts */
 
  /**
-  * 2 tuple insert, with no column specification.
-  */
+     * 2 tuple insert, with no column specification.
+     */
  @Test
  public void test_2Tuple_NCS_1() throws SQLException {
 
@@ -176,9 +176,9 @@ public class InsertTest extends PLTestBase {
  }
 
  /**
-  * 2 tuple insert, with no column specification, with fewer than
-  * schema columns
-  */
+     * 2 tuple insert, with no column specification, with fewer than
+     * schema columns
+     */
  // FIXME(Matt): issue #718
  //@Test
  public void test_2Tuple_NCS_2() throws SQLException {
