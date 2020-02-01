@@ -317,7 +317,8 @@ if (${CLANG_TIDY_FOUND})
             git diff -U0 HEAD^ | ${BUILD_SUPPORT_DIR}/clang-tidy-diff.py -p1  # run LLVM's clang-tidy-diff script
 #            ${BUILD_SUPPORT_DIR}/run-clang-tidy.py                            # run LLVM's clang-tidy script
             -clang-tidy-binary ${CLANG_TIDY_BIN}                              # using our clang-tidy binary
-            -p ${CMAKE_BINARY_DIR}                                            # using cmake's generated compile commands
+            -path ${CMAKE_BINARY_DIR}                                         # using cmake's generated compile commands
+#            -p ${CMAKE_BINARY_DIR}                                            # using cmake's generated compile commands
             -j ${CLANG_TIDY_THREADS}                                          # with CLANG_TIDY_THREADS threads
             )
     if (TERRIER_BUILD_BENCHMARKS)
