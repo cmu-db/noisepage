@@ -285,19 +285,20 @@ class CodeGen {
   ast::Expr *FloatToSql(double num);
 
   /**
-   * Create a date value
+   * Create a date value.
    * @param year The year of the date.
    * @param month The month of the date.
    * @param day The day of the date
-   * @return The generate sql Date
+   * @return The generated sql Date.
    */
-  ast::Expr *DateToSql(int16_t year, uint8_t month, uint8_t day);
+  ast::Expr *DateToSql(int32_t year, uint32_t month, uint32_t day);
 
   /**
-   * @param unix_timestamp The number to convert to a sql Timestamp.
-   * @return The generated sql Timestamp
+   * Create a timestamp value.
+   * @param julian_usec The number of microseconds in Julian time.
+   * @return The generated sql Timestamp.
    */
-  ast::Expr *TimestampToSql(int64_t unix_timestamp);
+  ast::Expr *TimestampToSql(uint64_t julian_usec);
 
   /**
    * Convert a raw string to a sql StringVal.

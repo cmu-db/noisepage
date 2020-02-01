@@ -6,6 +6,7 @@
 
 #include "execution/sql/value.h"
 #include "type/transient_value_peeker.h"
+#include "util/time_util.h"
 
 namespace terrier::execution::compiler {
 
@@ -360,15 +361,17 @@ ast::Expr *CodeGen::PeekValue(const type::TransientValue &transient_val) {
       return IntToSql(val);
     }
     case type::TypeId::DATE: {
-      sql::Date date(terrier::type::TransientValuePeeker::PeekDate(transient_val));
-      int16_t year = sql::ValUtil::ExtractYear(date);
-      uint8_t month = sql::ValUtil::ExtractMonth(date);
-      uint8_t day = sql::ValUtil::ExtractDay(date);
+      auto val = terrier::type::TransientValuePeeker::PeekDate(transient_val);
+      auto ymd = terrier::util::TimeConvertor::YMDFromDate(val);
+      auto year = static_cast<int32_t>(ymd.year());
+      auto month = static_cast<uint32_t>(ymd.month());
+      auto day = static_cast<uint32_t>(ymd.day());
       return DateToSql(year, month, day);
     }
     case type::TypeId::TIMESTAMP: {
-      auto val = type::TransientValuePeeker::PeekBigInt(transient_val);
-      return TimestampToSql(val);
+      auto val = type::TransientValuePeeker::PeekTimestamp(transient_val);
+      auto julian_usec = terrier::util::TimeConvertor::ExtractJulianMicroseconds(val);
+      return TimestampToSql(julian_usec);
     }
     case type::TypeId::DECIMAL: {
       auto val = type::TransientValuePeeker::PeekDecimal(transient_val);
@@ -496,7 +499,7 @@ ast::Expr *CodeGen::FloatToSql(double num) {
   return OneArgCall(ast::Builtin::FloatToSql, float_lit);
 }
 
-ast::Expr *CodeGen::DateToSql(int16_t year, uint8_t month, uint8_t day) {
+ast::Expr *CodeGen::DateToSql(int32_t year, uint32_t month, uint32_t day) {
   ast::Expr *fun = BuiltinFunction(ast::Builtin::DateToSql);
   ast::Expr *year_lit = IntLiteral(year);
   ast::Expr *month_lit = IntLiteral(month);
@@ -505,9 +508,9 @@ ast::Expr *CodeGen::DateToSql(int16_t year, uint8_t month, uint8_t day) {
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::TimestampToSql(int64_t unix_timestamp) {
-  ast::Expr *timestamp_lit = IntLiteral(unix_timestamp);
-  return OneArgCall(ast::Builtin::TimestampToSql, timestamp_lit);
+ast::Expr *CodeGen::TimestampToSql(uint64_t julian_usec) {
+  ast::Expr *usec_expr = IntLiteral(julian_usec);
+  return OneArgCall(ast::Builtin::TimestampToSql, usec_expr);
 }
 
 ast::Expr *CodeGen::StringToSql(std::string_view str) {

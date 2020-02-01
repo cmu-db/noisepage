@@ -174,17 +174,6 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
     return {built_ret_type(left->GetType()), left, new_right};
   }
 
-  // Primitive timestamp -> Sql Timestamp
-  if (left->GetType()->IsBoolType() && right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Boolean)) {
-    auto new_left = ImplCastExprToType(left, right->GetType(), ast::CastKind::BoolToSqlBool);
-    return {built_ret_type(right->GetType()), new_left, right};
-  }
-  // Sql Boolean <- Primitive bool
-  if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::Boolean) && right->GetType()->IsBoolType()) {
-    auto new_right = ImplCastExprToType(right, left->GetType(), ast::CastKind::BoolToSqlBool);
-    return {built_ret_type(left->GetType()), left, new_right};
-  }
-
   // If neither input expression is arithmetic, it's an ill-formed operation
   if (!left->GetType()->IsArithmetic() || !right->GetType()->IsArithmetic()) {
     GetErrorReporter()->Report(pos, ErrorMessages::kIllegalTypesForBinary, op, left->GetType(), right->GetType());

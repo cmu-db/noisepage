@@ -1273,11 +1273,10 @@ enum class CastKind : uint8_t {
   // 64 bit float To Sql Real
   FloatToSqlReal,
 
-  // Conversion of a SQL timestamp value (potentially nullable) into a primitive
-  // timestamp value
+  // Conversion of a SQL timestamp value (potentially nullable) into a primitive timestamp value
   SqlTimestampToTimestamp,
 
-  // Conversion of a primitive boolean into a SQL boolean
+  // Conversion of a primitive timestamp valueinto a SQL timestamp
   TimestampToSqlTimestamp,
 };
 

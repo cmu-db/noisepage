@@ -5,6 +5,7 @@
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/util/region.h"
 #include "parser/expression/abstract_expression.h"
+#include "parser/expression_defs.h"
 #include "planner/plannodes/abstract_plan_node.h"
 namespace terrier::execution::compiler {
 
@@ -112,6 +113,11 @@ class TranslatorFactory {
   static bool IsNullOp(parser::ExpressionType type) {
     return (type == parser::ExpressionType::OPERATOR_IS_NULL || type == parser::ExpressionType::OPERATOR_IS_NOT_NULL);
   }
+
+  /**
+   * Whether this is a cast operation
+   */
+  static bool IsCastOp(parser::ExpressionType type) { return type == parser::ExpressionType::OPERATOR_CAST; }
 };
 
 }  // namespace terrier::execution::compiler

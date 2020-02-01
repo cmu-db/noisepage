@@ -8,8 +8,10 @@
 #include "common/math_util.h"
 #include "date/date.h"
 #include "execution/exec/execution_context.h"
+#include "execution/sql/runtime_types.h"
 #include "execution/util/execution_common.h"
 #include "type/type_id.h"
+#include "util/time_util.h"
 
 namespace terrier::execution::sql {
 
@@ -333,77 +335,58 @@ struct StringVal : public Val {
 };
 
 /**
- * Date
+ * A NULL-able SQL date value.
  */
-struct Date : public Val {
-  /**
-   * Date value
-   * Can be represented by an int32 (for the storage layer), or by a year-month-day struct.
-   */
-  union {
-    date::year_month_day ymd_;
-    uint32_t int_val_;
-  };
+struct DateVal : public Val {
+  /** The date value. */
+  Date val_;
 
   /**
-   * Constructor
-   * @param date date value
+   * Construct a non-NULL date with the given date value.
+   * @param val The date value.
    */
-  explicit Date(uint32_t date) noexcept : Val(false), int_val_{date} {}
+  explicit DateVal(Date val) noexcept : Val(false), val_(val) {}
 
   /**
-   * Constructor
-   * @param date date value from a TransientValue
+   * Construct a non-NULL date with the given date value.
+   * @param val The raw date value.
    */
-  explicit Date(type::date_t date) noexcept : Val(false), int_val_{!date} {}
+  explicit DateVal(Date::NativeType val) noexcept : DateVal(Date{val}) {}
 
   /**
-   * Constructor
-   * @param year year value
-   * @param month month value
-   * @param day day value
+   * @return A NULL date.
    */
-  Date(date::year year, date::month month, date::day day) noexcept : Val(false), ymd_{year, month, day} {}
-
-  /**
-   * Constructor
-   * @param year year value
-   * @param month month value
-   * @param day day value
-   */
-  Date(int16_t year, uint8_t month, uint8_t day) noexcept
-      : Val(false), ymd_{date::year(year) / date::month(month) / date::day(day)} {}
-
-  /**
-   * @return a NULL Date.
-   */
-  static Date Null() {
-    Date date(0);
+  static DateVal Null() {
+    DateVal date(Date{});
     date.is_null_ = true;
     return date;
   }
 };
 
 /**
- * Timestamp
+ * A NULL-able SQL timestamp value.
  */
-struct Timestamp : public Val {
-  /**
-   * Time value
-   */
-  timespec time_;
+struct TimestampVal : public Val {
+  /** The timestamp value. */
+  Timestamp val_;
 
   /**
-   * Constructor
-   * @param time time value
+   * Construct a non-NULL timestamp with the given value.
+   * @param val The timestamp value.
    */
-  explicit Timestamp(timespec time) noexcept : Val(false), time_(time) {}
+  explicit TimestampVal(Timestamp val) noexcept : Val(false), val_(val) {}
 
   /**
-   * @return a NULL Timestamp
+   * Construct a non-NULL timestamp with the given raw timestamp value.
+   * @param val The raw timestamp value.
    */
-  static Timestamp Null() {
-    Timestamp timestamp({0, 0});
+  explicit TimestampVal(Timestamp::NativeType val) noexcept : TimestampVal(Timestamp{val}) {}
+
+  /**
+   * @return A NULL timestamp.
+   */
+  static TimestampVal Null() {
+    TimestampVal timestamp(Timestamp{0});
     timestamp.is_null_ = true;
     return timestamp;
   }
@@ -427,10 +410,11 @@ struct ValUtil {
       case type::TypeId::BOOLEAN:
         return static_cast<uint32_t>(common::MathUtil::AlignTo(sizeof(BoolVal), 8));
       case type::TypeId::DATE:
+        return static_cast<uint32_t>(common::MathUtil::AlignTo(sizeof(DateVal), 8));
       case type::TypeId::TIMESTAMP:
-        return static_cast<uint32_t>(common::MathUtil::AlignTo(sizeof(Date), 8));
+        return static_cast<uint32_t>(common::MathUtil::AlignTo(sizeof(TimestampVal), 8));
       case type::TypeId::DECIMAL:
-        // TODO(Amadou): We only support reals for now. Switch to Decima once it's implemented
+        // TODO(Amadou): We only support reals for now. Switch to Decimal once it's implemented
         return static_cast<uint32_t>(common::MathUtil::AlignTo(sizeof(Real), 8));
       case type::TypeId::VARCHAR:
       case type::TypeId::VARBINARY:
@@ -438,49 +422,6 @@ struct ValUtil {
       default:
         return 0;
     }
-  }
-
-  /**
-   * Convert a date to a string
-   * @param date date to convert
-   * @return the date in the yyyy-mm-dd format
-   */
-  static std::string DateToString(const Date &date) {
-    std::stringstream ss;
-    ss << date.ymd_;
-    return ss.str();
-  }
-
-  /**
-   * Return the year part of the date
-   */
-  static int16_t ExtractYear(const Date &date) { return int16_t(static_cast<int>(date.ymd_.year())); }
-
-  /**
-   * Return the month part of the date
-   */
-  static uint8_t ExtractMonth(const Date &date) { return uint8_t(static_cast<unsigned>(date.ymd_.month())); }
-
-  /**
-   * Return the day part of the date
-   */
-  static uint8_t ExtractDay(const Date &date) { return uint8_t(static_cast<unsigned>(date.ymd_.day())); }
-
-  /**
-   * Construct a date object from a string
-   * @param str string representation of the date
-   * @return the constructed date object
-   */
-  static Date StringToDate(const std::string &str) {
-    std::stringstream ss(str);
-    int16_t year, month, day;
-    // Token to dismiss the '-' character
-    // Am using the int16_t type to prevent the string stream from returning ascii codes.
-    char tok;
-    ss >> year >> tok;
-    ss >> month >> tok;
-    ss >> day;
-    return Date(int16_t(year), uint8_t(month), uint8_t(day));
   }
 };
 

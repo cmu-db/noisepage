@@ -235,4 +235,11 @@ void BinderContext::GenerateAllColumnExpressions(
   }
 }
 
+common::ManagedPointer<BinderContext::TableMetadata> BinderContext::GetTableMapping(const std::string &table_name) {
+  if (regular_table_alias_map_.find(table_name) == regular_table_alias_map_.end()) {
+    return nullptr;
+  }
+  return common::ManagedPointer(&regular_table_alias_map_[table_name]);
+}
+
 }  // namespace terrier::binder
