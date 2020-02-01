@@ -41,8 +41,34 @@ class BinderUtil {
       case parser::ExpressionType::VALUE_CONSTANT: {
         auto cexpr = expr.CastManagedPointerTo<parser::ConstantValueExpression>();
 
+        // TODO(WAN): There is code repetition here, but given that we intend to nuke the TransientValue
+        //  in favor of Prashanth's Value system, this is probably fine and is easier to read.
         switch (expected_ret_type) {
-          // We expect to turn integers into decimals.
+            // We expect to turn integers into TINYINT.
+          case type::TypeId::TINYINT: {
+            if (expr_ret_type != type::TypeId::INTEGER) {
+              throw BINDER_EXCEPTION("Can't convert to TINYINT.");
+            }
+            int32_t val{type::TransientValuePeeker::PeekInteger(cexpr->GetValue())};
+            return std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(val));
+          }
+          // We expect to turn integers into SMALLINT.
+          case type::TypeId::SMALLINT: {
+            if (expr_ret_type != type::TypeId::INTEGER) {
+              throw BINDER_EXCEPTION("Can't convert to SMALLINT.");
+            }
+            int32_t val{type::TransientValuePeeker::PeekInteger(cexpr->GetValue())};
+            return std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetSmallInt(val));
+          }
+          // We expect to turn integers into BIGINT.
+          case type::TypeId::BIGINT: {
+            if (expr_ret_type != type::TypeId::INTEGER) {
+              throw BINDER_EXCEPTION("Can't convert to BIGINT.");
+            }
+            int32_t val{type::TransientValuePeeker::PeekInteger(cexpr->GetValue())};
+            return std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetBigInt(val));
+          }
+          // We expect to turn integers into DECIMAL.
           case type::TypeId::DECIMAL: {
             if (expr_ret_type != type::TypeId::INTEGER) {
               throw BINDER_EXCEPTION("Can't convert to DECIMAL.");
@@ -50,7 +76,7 @@ class BinderUtil {
             int32_t val{type::TransientValuePeeker::PeekInteger(cexpr->GetValue())};
             return std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetDecimal(val));
           }
-          // We expect to turn strings into dates.
+          // We expect to turn strings into DATE.
           case type::TypeId::DATE: {
             if (expr_ret_type != type::TypeId::VARCHAR) {
               throw BINDER_EXCEPTION("Can't convert to DATE.");
@@ -63,7 +89,7 @@ class BinderUtil {
             return std::make_unique<parser::ConstantValueExpression>(
                 type::TransientValueFactory::GetDate(parsed.second));
           }
-          // We expect to turn strings into timestamps.
+          // We expect to turn strings into TIMESTAMP.
           case type::TypeId::TIMESTAMP: {
             if (expr_ret_type != type::TypeId::VARCHAR) {
               throw BINDER_EXCEPTION("Can't convert to TIMESTAMP.");

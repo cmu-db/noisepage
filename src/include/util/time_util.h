@@ -85,6 +85,7 @@ class TimeConvertor {
     bool parse_ok = false;
 
     // TODO(WAN): what formats does postgres support?
+    parse_ok = parse_ok || Parse("%F", str, &tp);       // 2020-01-01
     parse_ok = parse_ok || Parse("%F %T%z", str, &tp);  // 2020-01-01 11:11:11.123-0500
     parse_ok = parse_ok || Parse("%F %TZ", str, &tp);   // 2020-01-01 11:11:11.123Z
     parse_ok = parse_ok || Parse("%F %T", str, &tp);    // 2020-01-01 11:11:11.123
