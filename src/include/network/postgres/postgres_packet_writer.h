@@ -156,7 +156,7 @@ class PostgresPacketWriter : public PacketWriter {
         AppendValue<int16_t>(type::TypeUtil::GetTypeSize(col_type));  // data type size
       }
 
-      const auto field_format = field_formats[i <= field_formats.size() ? i : 0];
+      const auto field_format = field_formats[i < field_formats.size() ? i : 0];
 
       AppendValue<int32_t>(-1)  // type modifier, generally -1 (see pg_attribute.atttypmod)
           .AppendValue<int16_t>(
@@ -361,7 +361,7 @@ class PostgresPacketWriter : public PacketWriter {
         continue;
       }
 
-      const auto field_format = field_formats[i <= field_formats.size() ? i : 0];
+      const auto field_format = field_formats[i < field_formats.size() ? i : 0];
 
       const auto type_size = field_format == FieldFormat::text ? WriteTextAttribute(val, columns[i].GetType())
                                                                : WriteBinaryAttribute(val, columns[i].GetType());
