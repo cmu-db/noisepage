@@ -283,30 +283,24 @@ std::unique_ptr<parser::ParseResult> TrafficCop::ParseQuery(
   return parse_result;
 }
 
-bool TrafficCop::BindQuery(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                           const common::ManagedPointer<network::PostgresPacketWriter> out,
-                           const common::ManagedPointer<parser::ParseResult> parse_result,
-                           const terrier::network::QueryType query_type) const {
+TrafficCopResult TrafficCop::BindQuery(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                       const common::ManagedPointer<network::Statement> statement) const {
   try {
     // TODO(Matt): I don't think the binder should need the database name. It's already bound in the ConnectionContext
     binder::BindNodeVisitor visitor(connection_ctx->Accessor(), connection_ctx->GetDatabaseName());
-    visitor.BindNameToNode(parse_result->GetStatement(0), parse_result.Get());
+    visitor.BindNameToNode(statement->RootStatement(), statement->ParseResult().Get());
   } catch (...) {
     // Failed to bind
     // TODO(Matt): this is a hack to get IF EXISTS to work with our tests, we actually need better support in
     // PostgresParser and the binder should return more state back to the TrafficCop to figure out what to do
-    if ((parse_result->GetStatement(0)->GetType() == parser::StatementType::DROP &&
-         parse_result->GetStatement(0).CastManagedPointerTo<parser::DropStatement>()->IsIfExists())) {
-      out->WriteNoticeResponse("NOTICE:  binding failed with an IF EXISTS clause, skipping statement");
-      out->WriteCommandComplete(query_type, 0);
+    if ((statement->RootStatement()->GetType() == parser::StatementType::DROP &&
+         statement->RootStatement().CastManagedPointerTo<parser::DropStatement>()->IsIfExists())) {
+      return {ResultType::NOTICE, "NOTICE:  binding failed with an IF EXISTS clause, skipping statement"};
     } else {
-      out->WriteErrorResponse("ERROR:  binding failed");
-      // failing to bind fails a transaction in postgres
-      connection_ctx->Transaction()->SetMustAbort();
+      return {ResultType::ERROR, "ERROR:  binding failed"};
     }
-    return false;
   }
-  return true;
+  return {ResultType::COMPLETE, 0};
 }
 
 TrafficCopResult TrafficCop::CodegenAndRunPhysicalPlan(

@@ -19,11 +19,11 @@ static Transition FinishSimpleQueryCommand(const common::ManagedPointer<Postgres
   return Transition::PROCEED;
 }
 
-// TODO(Matt): refactor this signature
 static void ExecutePortal(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
                           const common::ManagedPointer<Portal> portal,
                           const common::ManagedPointer<network::PostgresPacketWriter> out,
-                          const common::ManagedPointer<trafficcop::TrafficCop> t_cop, const bool single_statement_txn) {
+                          const common::ManagedPointer<trafficcop::TrafficCop> t_cop, const bool simple_query,
+                          const bool single_statement_txn) {
   trafficcop::TrafficCopResult result;
 
   const auto query_type = portal->Statement()->QueryType();
@@ -32,8 +32,7 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
   if (query_type <= network::QueryType::QUERY_DELETE) {
     // DML query to put through codegen
-    if (query_type == network::QueryType::QUERY_SELECT) {
-      // TODO(Matt): only do this for SimpleQuery
+    if (simple_query && query_type == network::QueryType::QUERY_SELECT) {
       out->WriteRowDescription(physical_plan->GetOutputSchema()->GetColumns(), portal->ResultFormats());
     }
     result = t_cop->CodegenAndRunPhysicalPlan(connection_ctx, out, portal);
@@ -131,17 +130,27 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
 
   // Try to bind the parsed statement
   // TODO(Matt): refactor this signature
-  const bool bind_result = t_cop->BindQuery(connection, out, statement->ParseResult(), statement->QueryType());
-  if (bind_result) {
+  const auto bind_result = t_cop->BindQuery(connection, common::ManagedPointer(statement));
+  if (bind_result.type_ == trafficcop::ResultType::COMPLETE) {
     // Binding succeeded, optimize to generate a physical plan and then execute
-    // TODO(Matt): refactor this signature
     auto physical_plan =
         t_cop->OptimizeBoundQuery(connection->Transaction(), connection->Accessor(), statement->ParseResult());
 
     const auto portal = std::make_unique<Portal>(common::ManagedPointer(statement), std::move(physical_plan));
 
-    ExecutePortal(connection, common::ManagedPointer(portal), out, t_cop,
+    ExecutePortal(connection, common::ManagedPointer(portal), out, t_cop, true,
                   postgres_interpreter->SingleStatementTransaction());
+  } else if (bind_result.type_ == trafficcop::ResultType::NOTICE) {
+    TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
+    out->WriteNoticeResponse(std::get<std::string>(bind_result.extra_));
+    out->WriteCommandComplete(statement->QueryType(), 0);
+  } else {
+    TERRIER_ASSERT(bind_result.type_ == trafficcop::ResultType::ERROR,
+                   "I don't think we expect any other ResultType at this point.");
+    TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
+    // failing to bind fails a transaction in postgres
+    connection->Transaction()->SetMustAbort();
+    out->WriteErrorResponse(std::get<std::string>(bind_result.extra_));
   }
 
   if (postgres_interpreter->SingleStatementTransaction()) {
@@ -268,6 +277,16 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     return Transition::PROCEED;
   }
 
+  if (statement->QueryType() >= network::QueryType::QUERY_RENAME) {
+    // We don't yet support query types with values greater than this
+    // Don't begin an implicit txn in this case, and don't bind or optimize this statement
+    postgres_interpreter->SetPortal(
+        portal_name, std::make_unique<Portal>(statement, nullptr, std::move(params), std::move(result_formats)));
+    out->WriteNoticeResponse("NOTICE:  we don't yet support that query type.");
+    out->WriteBindComplete();
+    return Transition::PROCEED;
+  }
+
   // Begin a transaction if necessary
   if (connection->TransactionState() == network::NetworkTransactionStateType::IDLE) {
     t_cop->BeginTransaction(connection);
@@ -275,10 +294,9 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   }
 
   // Bind it, plan it
-  const bool bind_result = t_cop->BindQuery(connection, out, statement->ParseResult(), statement->QueryType());
-  if (bind_result) {
+  const auto bind_result = t_cop->BindQuery(connection, statement);
+  if (bind_result.type_ == trafficcop::ResultType::COMPLETE) {
     // Binding succeeded, optimize to generate a physical plan and then execute
-    // TODO(Matt): refactor this signature
     auto physical_plan =
         t_cop->OptimizeBoundQuery(connection->Transaction(), connection->Accessor(), statement->ParseResult());
 
@@ -286,6 +304,19 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
         portal_name,
         std::make_unique<Portal>(statement, std::move(physical_plan), std::move(params), std::move(result_formats)));
     out->WriteBindComplete();
+  } else if (bind_result.type_ == trafficcop::ResultType::NOTICE) {
+    TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
+    postgres_interpreter->SetPortal(
+        portal_name, std::make_unique<Portal>(statement, nullptr, std::move(params), std::move(result_formats)));
+    out->WriteNoticeResponse(std::get<std::string>(bind_result.extra_));
+    out->WriteBindComplete();
+  } else {
+    TERRIER_ASSERT(bind_result.type_ == trafficcop::ResultType::ERROR,
+                   "I don't think we expect any other ResultType at this point.");
+    TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
+    // failing to bind fails a transaction in postgres
+    connection->Transaction()->SetMustAbort();
+    out->WriteErrorResponse(std::get<std::string>(bind_result.extra_));
   }
 
   return Transition::PROCEED;
@@ -361,7 +392,12 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
     return Transition::PROCEED;
   }
 
-  ExecutePortal(connection, portal, out, t_cop, postgres_interpreter->SingleStatementTransaction());
+  if (portal->PhysicalPlan() != nullptr) {
+    // This happens in the event of a noop generated earlier (like in binding with an IF EXISTS);
+    ExecutePortal(connection, portal, out, t_cop, false, postgres_interpreter->SingleStatementTransaction());
+  } else {
+    out->WriteCommandComplete(portal->Statement()->QueryType(), 0);
+  }
 
   return Transition::PROCEED;
 }
