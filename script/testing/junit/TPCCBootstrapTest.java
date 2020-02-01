@@ -138,28 +138,28 @@ public class TPCCBootstrapTest extends PLTestBase {
  private void CreateTPCCTablesAndIndexes() throws SQLException {
   DropTPCCTablesAndIndexes();
   Statement stmt = conn.createStatement();
-  stmt.execute(SQL_CREATE_ITEM);
-  stmt.execute(SQL_CREATE_WAREHOUSE);
-  stmt.execute(SQL_CREATE_STOCK);
-  stmt.execute(SQL_CREATE_DISTRICT);
-  stmt.execute(SQL_CREATE_CUSTOMER);
-  stmt.execute(SQL_CREATE_HISTORY);
-  stmt.execute(SQL_CREATE_NEW_ORDER);
-  stmt.execute(SQL_CREATE_ORDER);
-  stmt.execute(SQL_CREATE_ORDER_LINE);
+  stmt.executeUpdate(SQL_CREATE_ITEM);
+  stmt.executeUpdate(SQL_CREATE_WAREHOUSE);
+  stmt.executeUpdate(SQL_CREATE_STOCK);
+  stmt.executeUpdate(SQL_CREATE_DISTRICT);
+  stmt.executeUpdate(SQL_CREATE_CUSTOMER);
+  stmt.executeUpdate(SQL_CREATE_HISTORY);
+  stmt.executeUpdate(SQL_CREATE_NEW_ORDER);
+  stmt.executeUpdate(SQL_CREATE_ORDER);
+  stmt.executeUpdate(SQL_CREATE_ORDER_LINE);
  }
 
  private void DropTPCCTablesAndIndexes() throws SQLException {
   Statement stmt = conn.createStatement();
-  stmt.execute("DROP TABLE IF EXISTS item;");
-  stmt.execute("DROP TABLE IF EXISTS warehouse;");
-  stmt.execute("DROP TABLE IF EXISTS stock;");
-  stmt.execute("DROP TABLE IF EXISTS district;");
-  stmt.execute("DROP TABLE IF EXISTS customer;");
-  stmt.execute("DROP TABLE IF EXISTS history;");
-  stmt.execute("DROP TABLE IF EXISTS new_order;");
-  stmt.execute("DROP TABLE IF EXISTS oorder;");
-  stmt.execute("DROP TABLE IF EXISTS order_line;");
+  stmt.executeUpdate("DROP TABLE IF EXISTS item;");
+  stmt.executeUpdate("DROP TABLE IF EXISTS warehouse;");
+  stmt.executeUpdate("DROP TABLE IF EXISTS stock;");
+  stmt.executeUpdate("DROP TABLE IF EXISTS district;");
+  stmt.executeUpdate("DROP TABLE IF EXISTS customer;");
+  stmt.executeUpdate("DROP TABLE IF EXISTS history;");
+  stmt.executeUpdate("DROP TABLE IF EXISTS new_order;");
+  stmt.executeUpdate("DROP TABLE IF EXISTS oorder;");
+  stmt.executeUpdate("DROP TABLE IF EXISTS order_line;");
  }
 
  @Before
