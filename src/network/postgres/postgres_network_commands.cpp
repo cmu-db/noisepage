@@ -73,7 +73,9 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
 
   auto statement = std::make_unique<network::Statement>(t_cop->ParseQuery(query, connection));
 
-  // TODO(Matt): clear the unnamed stuff
+  // A SimpleQuery clears the unnamed statement and portal
+  postgres_interpreter->CloseStatement("");
+  postgres_interpreter->ClosePortal("");
 
   if (!statement->Valid()) {
     out->WriteErrorResponse("ERROR:  syntax error");
