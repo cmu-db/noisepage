@@ -237,13 +237,18 @@ struct StringVal : public Val {
   }
 
   /**
-   * Helper method to turn a StringVal into a VarlenEntry. Note that the VarlenEntry does not take ownership of the
-   * buffer if it is not inlined. This merely wraps a StringVal with a VarlenEntry.
+   * Helper method to turn a StringVal into a VarlenEntry.
    * @param str input to be turned into a VarlenEntry
+   * @param own whether the varlen entry to own the string
    * @return VarlenEntry representing StringVal
    */
-  static storage::VarlenEntry CreateVarlen(const StringVal &str) {
+  static storage::VarlenEntry CreateVarlen(const StringVal &str, bool own) {
     if (str.len_ > storage::VarlenEntry::InlineThreshold()) {
+      if (own) {
+        byte *contents = common::AllocationUtil::AllocateAligned(str.len_);
+        std::memcpy(contents, str.Content(), str.len_);
+        return terrier::storage::VarlenEntry::Create(contents, str.len_, true);
+      }
       return terrier::storage::VarlenEntry::Create(reinterpret_cast<const terrier::byte *>(str.Content()), str.len_,
                                                    false);
     }

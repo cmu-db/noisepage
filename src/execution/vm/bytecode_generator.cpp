@@ -471,11 +471,8 @@ void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin
       auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::StringVal));
       // Copy data into the execution context's buffer.
       auto input = call->Arguments()[0]->As<ast::LitExpr>()->RawStringVal();
-      auto input_length = input.Length();
-      auto *data = exec_ctx_->GetStringAllocator()->Allocate(input_length);
-      std::memcpy(data, input.Data(), input_length);
       // Assign the pointer to a local variable
-      Emitter()->EmitInitString(Bytecode::InitString, dest, input_length, reinterpret_cast<uintptr_t>(data));
+      Emitter()->EmitInitString(Bytecode::InitString, dest, input.Length(), reinterpret_cast<uintptr_t>(input.Data()));
       break;
     }
     case ast::Builtin::VarlenToSql: {
@@ -1619,7 +1616,8 @@ void BytecodeGenerator::VisitBuiltinPRCall(ast::CallExpr *call, ast::Builtin bui
     case ast::Builtin::PRSetVarlen: {
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
       LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
-      Emitter()->EmitPRSet(Bytecode::PRSetVarlen, pr, col_idx, val);
+      LocalVar own = VisitExpressionForRValue(call->Arguments()[3]);
+      Emitter()->EmitPRSetVarlen(Bytecode::PRSetVarlen, pr, col_idx, val, own);
       break;
     }
     case ast::Builtin::PRSetBoolNull: {
@@ -1679,7 +1677,8 @@ void BytecodeGenerator::VisitBuiltinPRCall(ast::CallExpr *call, ast::Builtin bui
     case ast::Builtin::PRSetVarlenNull: {
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
       LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
-      Emitter()->EmitPRSet(Bytecode::PRSetVarlenNull, pr, col_idx, val);
+      LocalVar own = VisitExpressionForRValue(call->Arguments()[3]);
+      Emitter()->EmitPRSetVarlen(Bytecode::PRSetVarlenNull, pr, col_idx, val, own);
       break;
     }
     case ast::Builtin::PRGetBool: {

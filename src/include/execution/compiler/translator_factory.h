@@ -115,9 +115,9 @@ class TranslatorFactory {
   }
 
   /**
-   * Whether this is a cast operation
+   * Whether this is a Star expression.
    */
-  static bool IsCastOp(parser::ExpressionType type) { return type == parser::ExpressionType::OPERATOR_CAST; }
+  static bool IsStar(parser::ExpressionType type) { return type == parser::ExpressionType::STAR; }
 };
 
 }  // namespace terrier::execution::compiler

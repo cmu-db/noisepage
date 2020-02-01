@@ -1686,6 +1686,8 @@ void Sema::CheckBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin) {
   if (!CheckArgCountAtLeast(call, 2)) {
     return;
   }
+  // Calls to set varlen take an extra boolean to indicate ownership.
+  bool is_set_varlen = false;
   bool is_set_call = false;
   // Type of the input or output sql value
   ast::BuiltinType::Kind sql_type;
@@ -1731,6 +1733,7 @@ void Sema::CheckBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin) {
     case ast::Builtin::PRSetVarlen:
     case ast::Builtin::PRSetVarlenNull: {
       is_set_call = true;
+      is_set_varlen = true;
       sql_type = ast::BuiltinType::StringVal;
       break;
     }
@@ -1788,13 +1791,21 @@ void Sema::CheckBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin) {
     return;
   }
   if (is_set_call) {
-    if (!CheckArgCount(call, 3)) {
+    if (!CheckArgCount(call, is_set_varlen ? 4 : 3)) {
       return;
     }
     // Third argument depends of call
     if (GetBuiltinType(sql_type) != call->Arguments()[2]->GetType()) {
       ReportIncorrectCallArg(call, 2, GetBuiltinType(sql_type));
       return;
+    }
+    // For varlens, there is a fourth boolean argument.
+    if (is_set_varlen) {
+      auto bool_kind = ast::BuiltinType::Bool;
+      if (!call->Arguments()[3]->GetType()->IsSpecificBuiltin(bool_kind)) {
+        ReportIncorrectCallArg(call, 3, GetBuiltinType(bool_kind));
+        return;
+      }
     }
     // Return nothing
     call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
