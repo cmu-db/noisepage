@@ -1,28 +1,78 @@
 #include <gflags/gflags.h>
 
+#include <csignal>
 #include <memory>
 #include <unordered_map>
 #include <utility>
 
-#include "execution/sql/ddl_executors.h"
+#include "common/managed_pointer.h"
 #include "loggers/loggers_util.h"
 #include "main/db_main.h"
-#include "planner/plannodes/create_table_plan_node.h"
 #include "settings/settings_manager.h"
-#include "type/transient_value_factory.h"
+
+/**
+ * Need a global pointer to access from SignalHandler, unfortunately. Do not remove from this anonymous namespace since
+ * the pointer is meant only for the signal handler. If you think you need a global pointer to db_main somewhere else in
+ * the system, you're probably doing something wrong.
+ */
+namespace {
+terrier::common::ManagedPointer<terrier::DBMain> db_main_handler_ptr = nullptr;
+}
+
+/**
+ * The signal handler to be invoked for SIGINT and SIGTERM
+ * @param sig_num portable signal number passed to the handler by the kernel
+ */
+void SignalHandler(int32_t sig_num) {
+  if ((sig_num == SIGINT || sig_num == SIGTERM) && db_main_handler_ptr != nullptr) {
+    db_main_handler_ptr->ForceShutdown();
+  }
+}
+
+/**
+ * Register SignalHandler for SIGINT and SIGTERM
+ * @return 0 if successful, otherwise errno
+ */
+int32_t RegisterSignalHandler() {
+  // Initialize a signal handler to call SignalHandler()
+  struct sigaction sa;  // NOLINT
+  sa.sa_handler = &SignalHandler;
+  sa.sa_flags = SA_RESTART;
+
+  sigfillset(&sa.sa_mask);
+
+  // Terminal interrupt signal (usually from ^c, portable number is 2)
+  if (sigaction(SIGINT, &sa, nullptr) == -1) {
+    return errno;
+  }
+
+  // Terminate signal from administrator (portable number is 15)
+  if (sigaction(SIGTERM, &sa, nullptr) == -1) {
+    return errno;
+  }
+
+  return 0;
+}
 
 int main(int argc, char *argv[]) {
-  // initialize loggers
+  // Register signal handler so we can kill the server once it's running
+  const auto register_result = RegisterSignalHandler();
+  if (register_result != 0) {
+    return register_result;
+  }
+
   // Parse Setting Values
   ::google::SetUsageMessage("Usage Info: \n");
   ::google::ParseCommandLineFlags(&argc, &argv, true);
 
+  // Initialize debug loggers
   terrier::LoggersUtil::Initialize();
 
   // initialize stat registry
   auto main_stat_reg =
       std::make_unique<terrier::common::StatisticsRegistry>();  // TODO(Matt): do we still want this thing?
 
+  // Generate Settings Manager map
   std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> param_map;
   terrier::settings::SettingsManager::ConstructParamMap(param_map);
 
@@ -41,7 +91,11 @@ int main(int argc, char *argv[]) {
                      .SetUseNetwork(true)
                      .Build();
 
+  db_main_handler_ptr = db_main.get();
+
   db_main->Run();
 
   terrier::LoggersUtil::ShutDown();
+
+  return 0;
 }

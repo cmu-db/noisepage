@@ -352,12 +352,11 @@ namespace terrier::execution::vm {
                                                                                                                       \
   /* Index Iterator */                                                                                                \
   F(IndexIteratorInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::UImm4,                \
-    OperandType::Local, OperandType::UImm4)                                                                           \
+    OperandType::UImm4, OperandType::Local, OperandType::UImm4)                                                       \
   F(IndexIteratorPerformInit, OperandType::Local)                                                                     \
   F(IndexIteratorScanKey, OperandType::Local)                                                                         \
-  F(IndexIteratorScanAscending, OperandType::Local)                                                                   \
+  F(IndexIteratorScanAscending, OperandType::Local, OperandType::Local, OperandType::Local)                           \
   F(IndexIteratorScanDescending, OperandType::Local)                                                                  \
-  F(IndexIteratorScanLimitAscending, OperandType::Local, OperandType::Local)                                          \
   F(IndexIteratorScanLimitDescending, OperandType::Local, OperandType::Local)                                         \
   F(IndexIteratorFree, OperandType::Local)                                                                            \
   F(IndexIteratorAdvance, OperandType::Local, OperandType::Local)                                                     \

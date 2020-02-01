@@ -445,12 +445,14 @@ class CodeGen {
   /**
    * Call indexIteratorInit(&iter, execCtx, table_oid, index_oid, col_oids)
    * @param iter The identifier of the index iterator.
+   * @param num_attrs Number of attributes
    * @param table_oid The oid of the index's table.
    * @param index_oid The oid the index.
    * @param col_oids The identifier of the array of column oids to read.
    * @return The expression corresponding to the builtin call.
    */
-  ast::Expr *IndexIteratorInit(ast::Identifier iter, uint32_t table_oid, uint32_t index_oid, ast::Identifier col_oids);
+  ast::Expr *IndexIteratorInit(ast::Identifier iter, uint32_t num_attrs, uint32_t table_oid, uint32_t index_oid,
+                               ast::Identifier col_oids);
 
   /**
    * Call IndexIteratorScanType(&iter[, limit])

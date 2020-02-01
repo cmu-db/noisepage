@@ -1508,7 +1508,7 @@ void Sema::CheckBuiltinIndexIteratorInit(execution::ast::CallExpr *call, ast::Bu
   }
   switch (builtin) {
     case ast::Builtin::IndexIteratorInit: {
-      if (!CheckArgCount(call, 5)) {
+      if (!CheckArgCount(call, 6)) {
         return;
       }
       // The second argument is an execution context
@@ -1517,30 +1517,35 @@ void Sema::CheckBuiltinIndexIteratorInit(execution::ast::CallExpr *call, ast::Bu
         ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
         return;
       }
-      // The third argument is a table oid
+      // The third argument is num_attrs
       if (!call->Arguments()[2]->IsIntegerLiteral()) {
         ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Int32));
         return;
       }
-      // The fourth argument is an index oid
+      // The fourth argument is a table oid
       if (!call->Arguments()[3]->IsIntegerLiteral()) {
         ReportIncorrectCallArg(call, 3, GetBuiltinType(ast::BuiltinType::Int32));
         return;
       }
-      // The fifth argument is a uint32_t array
-      if (!call->Arguments()[4]->GetType()->IsArrayType()) {
-        ReportIncorrectCallArg(call, 4, "Fifth argument should be a fixed length uint32 array");
+      // The fifth argument is an index oid
+      if (!call->Arguments()[4]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 4, GetBuiltinType(ast::BuiltinType::Int32));
         return;
       }
-      auto *arr_type = call->Arguments()[4]->GetType()->SafeAs<ast::ArrayType>();
+      // The sixth argument is a uint32_t array
+      if (!call->Arguments()[5]->GetType()->IsArrayType()) {
+        ReportIncorrectCallArg(call, 5, "Sixth argument should be a fixed length uint32 array");
+        return;
+      }
+      auto *arr_type = call->Arguments()[5]->GetType()->SafeAs<ast::ArrayType>();
       auto uint32_t_kind = ast::BuiltinType::Uint32;
       if (!arr_type->ElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
-        ReportIncorrectCallArg(call, 4, "Fifth argument should be a fixed length uint32 array");
+        ReportIncorrectCallArg(call, 5, "Sixth argument should be a fixed length uint32 array");
       }
       break;
     }
     case ast::Builtin::IndexIteratorInitBind: {
-      if (!CheckArgCount(call, 5)) {
+      if (!CheckArgCount(call, 6)) {
         return;
       }
       // The second call argument must an execution context
@@ -1549,25 +1554,30 @@ void Sema::CheckBuiltinIndexIteratorInit(execution::ast::CallExpr *call, ast::Bu
         ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
         return;
       }
-      // The third argument must be the table's name
-      if (!call->Arguments()[2]->GetType()->IsStringType()) {
-        ReportIncorrectCallArg(call, 2, ast::StringType::Get(GetContext()));
+      // The third argument is number of attributes set
+      if (!call->Arguments()[2]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Int32));
         return;
       }
-      // The fourth argument is the index's name
+      // The fourth argument must be the table's name
       if (!call->Arguments()[3]->GetType()->IsStringType()) {
         ReportIncorrectCallArg(call, 3, ast::StringType::Get(GetContext()));
         return;
       }
-      // The fifth argument is a uint32_t array
-      if (!call->Arguments()[4]->GetType()->IsArrayType()) {
-        ReportIncorrectCallArg(call, 4, "Fifth argument should be a fixed length uint32 array");
+      // The fifth argument is the index's name
+      if (!call->Arguments()[4]->GetType()->IsStringType()) {
+        ReportIncorrectCallArg(call, 4, ast::StringType::Get(GetContext()));
         return;
       }
-      auto *arr_type = call->Arguments()[4]->GetType()->SafeAs<ast::ArrayType>();
+      // The sixth argument is a uint32_t array
+      if (!call->Arguments()[5]->GetType()->IsArrayType()) {
+        ReportIncorrectCallArg(call, 5, "Sixth argument should be a fixed length uint32 array");
+        return;
+      }
+      auto *arr_type = call->Arguments()[5]->GetType()->SafeAs<ast::ArrayType>();
       auto uint32_t_kind = ast::BuiltinType::Uint32;
       if (!arr_type->ElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
-        ReportIncorrectCallArg(call, 4, "Fifth argument should be a fixed length uint32 array");
+        ReportIncorrectCallArg(call, 5, "Sixth argument should be a fixed length uint32 array");
       }
       break;
     }
@@ -1592,12 +1602,14 @@ void Sema::CheckBuiltinIndexIteratorScan(execution::ast::CallExpr *call, ast::Bu
 
   switch (builtin) {
     case ast::Builtin::IndexIteratorScanKey:
-    case ast::Builtin::IndexIteratorScanAscending:
     case ast::Builtin::IndexIteratorScanDescending: {
       if (!CheckArgCount(call, 1)) return;
       break;
     }
-    case ast::Builtin::IndexIteratorScanLimitAscending:
+    case ast::Builtin::IndexIteratorScanAscending: {
+      if (!CheckArgCount(call, 3)) return;
+      break;
+    }
     case ast::Builtin::IndexIteratorScanLimitDescending: {
       if (!CheckArgCount(call, 2)) return;
       auto uint32_kind = ast::BuiltinType::Uint32;
@@ -2278,7 +2290,6 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::IndexIteratorScanKey:
     case ast::Builtin::IndexIteratorScanAscending:
     case ast::Builtin::IndexIteratorScanDescending:
-    case ast::Builtin::IndexIteratorScanLimitAscending:
     case ast::Builtin::IndexIteratorScanLimitDescending: {
       CheckBuiltinIndexIteratorScan(call, builtin);
       break;

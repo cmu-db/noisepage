@@ -42,7 +42,7 @@ namespace terrier::execution::ast {
   F(TableIterReset, tableIterReset)                                     \
   F(TableIterParallel, iterateTableParallel)                            \
                                                                         \
-  /* Projected Column Iterator (PCI) */                                 \
+  /* PCI */                                                             \
   F(PCIIsFiltered, pciIsFiltered)                                       \
   F(PCIHasNext, pciHasNext)                                             \
   F(PCIHasNextFiltered, pciHasNextFiltered)                             \
@@ -154,7 +154,6 @@ namespace terrier::execution::ast {
   F(IndexIteratorScanKey, indexIteratorScanKey)                         \
   F(IndexIteratorScanAscending, indexIteratorScanAscending)             \
   F(IndexIteratorScanDescending, indexIteratorScanDescending)           \
-  F(IndexIteratorScanLimitAscending, indexIteratorScanLimitAscending)   \
   F(IndexIteratorScanLimitDescending, indexIteratorScanLimitDescending) \
   F(IndexIteratorAdvance, indexIteratorAdvance)                         \
   F(IndexIteratorGetPR, indexIteratorGetPR)                             \
