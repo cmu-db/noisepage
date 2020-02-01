@@ -86,7 +86,6 @@ class TrafficCop {
   /**
    * @param query SQL string to be parsed
    * @param connection_ctx used to maintain state
-   * @param out used to write out results if necessary
    * @return parser's ParseResult, nullptr if failed
    */
   std::unique_ptr<parser::ParseResult> ParseQuery(
@@ -105,12 +104,10 @@ class TrafficCop {
       common::ManagedPointer<catalog::CatalogAccessor> accessor,
       common::ManagedPointer<parser::ParseResult> query) const;
 
-  // Internal method to handle the logic of beginning a txn. Is not responsible for outputting results, only meant to be
-  // called by ExecuteTransactionStatement
+  // Handle the logic of beginning a txn
   void BeginTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
 
-  // Internal method to handle the logic of ending a txn. Is not responsible for outputting results, only meant to be
-  // called by ExecuteTransactionStatement
+  // Handle the logic of ending a txn
   void EndTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                       network::QueryType query_type) const;
 

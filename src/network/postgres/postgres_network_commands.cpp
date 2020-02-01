@@ -42,9 +42,6 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
       connection_ctx->Transaction()->SetMustAbort();
       return;
     }
-
-    // Right now this executor handles writing its results, so we don't need the result. Unclear if that changes in the
-    // future
     result = t_cop->ExecuteCreateStatement(connection_ctx, physical_plan, query_type, single_statement_txn);
   } else if (query_type <= network::QueryType::QUERY_DROP_VIEW) {
     if (!single_statement_txn && query_type == network::QueryType::QUERY_DROP_DB) {
@@ -52,9 +49,6 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
       connection_ctx->Transaction()->SetMustAbort();
       return;
     }
-
-    // Right now this executor handles writing its results, so we don't need the result. Unclear if that changes in the
-    // future
     result = t_cop->ExecuteDropStatement(connection_ctx, physical_plan, query_type, single_statement_txn);
   }
 
