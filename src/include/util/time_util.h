@@ -64,6 +64,7 @@ class TimeConvertor {
     date::sys_time<std::chrono::microseconds> tp;
     bool parse_ok = false;
 
+    // WARNING: Must go from most restrictive to least restrictive!
     parse_ok = parse_ok || Parse("%F", str, &tp);  // 2020-01-01
 
     if (!parse_ok) {
@@ -85,13 +86,14 @@ class TimeConvertor {
     bool parse_ok = false;
 
     // TODO(WAN): what formats does postgres support?
-    parse_ok = parse_ok || Parse("%F", str, &tp);       // 2020-01-01
+    // WARNING: Must go from most restrictive to least restrictive!
     parse_ok = parse_ok || Parse("%F %T%z", str, &tp);  // 2020-01-01 11:11:11.123-0500
     parse_ok = parse_ok || Parse("%F %TZ", str, &tp);   // 2020-01-01 11:11:11.123Z
     parse_ok = parse_ok || Parse("%F %T", str, &tp);    // 2020-01-01 11:11:11.123
     parse_ok = parse_ok || Parse("%FT%T%z", str, &tp);  // 2020-01-01T11:11:11.123-0500
     parse_ok = parse_ok || Parse("%FT%TZ", str, &tp);   // 2020-01-01T11:11:11.123Z
     parse_ok = parse_ok || Parse("%FT%T", str, &tp);    // 2020-01-01T11:11:11.123
+    parse_ok = parse_ok || Parse("%F", str, &tp);       // 2020-01-01
 
     if (!parse_ok) {
       return std::make_pair(false, type::timestamp_t{0});
