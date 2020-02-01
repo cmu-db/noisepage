@@ -48,8 +48,7 @@ class BinderUtil {
               throw BINDER_EXCEPTION("Can't convert to DECIMAL.");
             }
             int32_t val{type::TransientValuePeeker::PeekInteger(cexpr->GetValue())};
-            return std::make_unique<parser::ConstantValueExpression>(
-                type::TransientValueFactory::GetDecimal(val));
+            return std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetDecimal(val));
           }
           // We expect to turn strings into dates.
           case type::TypeId::DATE: {
@@ -58,7 +57,9 @@ class BinderUtil {
             }
             std::string str{type::TransientValuePeeker::PeekVarChar(cexpr->GetValue())};
             auto parsed = util::TimeConvertor::ParseDate(str);
-            if (!parsed.first) { throw BINDER_EXCEPTION("Unable to parse the date."); }
+            if (!parsed.first) {
+              throw BINDER_EXCEPTION("Unable to parse the date.");
+            }
             return std::make_unique<parser::ConstantValueExpression>(
                 type::TransientValueFactory::GetDate(parsed.second));
           }
@@ -69,7 +70,9 @@ class BinderUtil {
             }
             std::string str{type::TransientValuePeeker::PeekVarChar(cexpr->GetValue())};
             auto parsed = util::TimeConvertor::ParseTimestamp(str);
-            if (!parsed.first) { throw BINDER_EXCEPTION("Unable to parse the timestamp."); }
+            if (!parsed.first) {
+              throw BINDER_EXCEPTION("Unable to parse the timestamp.");
+            }
             return std::make_unique<parser::ConstantValueExpression>(
                 type::TransientValueFactory::GetTimestamp(parsed.second));
           }

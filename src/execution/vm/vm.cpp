@@ -1583,7 +1583,6 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   GEN_PR_SET(Double, sql::Real)
   GEN_PR_SET(DateVal, sql::DateVal)
   GEN_PR_SET(TimestampVal, sql::TimestampVal)
-  GEN_PR_SET(Varlen, sql::StringVal)
 #undef GEN_PR_SET
 
   OP(PRSetVarlen) : {
