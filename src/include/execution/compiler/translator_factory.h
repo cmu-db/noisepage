@@ -5,6 +5,7 @@
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/util/region.h"
 #include "parser/expression/abstract_expression.h"
+#include "parser/expression_defs.h"
 #include "planner/plannodes/abstract_plan_node.h"
 namespace terrier::execution::compiler {
 

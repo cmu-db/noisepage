@@ -6,6 +6,7 @@
 
 #include "execution/sql/value.h"
 #include "type/transient_value_peeker.h"
+#include "util/time_util.h"
 
 namespace terrier::execution::compiler {
 
@@ -136,6 +137,9 @@ ast::Expr *CodeGen::PCIGet(ast::Identifier pci, type::TypeId type, bool nullable
       break;
     case type::TypeId::DATE:
       builtin = nullable ? ast::Builtin ::PCIGetDateNull : ast::Builtin::PCIGetDate;
+      break;
+    case type::TypeId::TIMESTAMP:
+      builtin = nullable ? ast::Builtin ::PCIGetTimestampNull : ast::Builtin::PCIGetTimestamp;
       break;
     case type::TypeId::VARCHAR:
       builtin = nullable ? ast::Builtin ::PCIGetVarlenNull : ast::Builtin::PCIGetVarlen;
@@ -293,6 +297,9 @@ ast::Expr *CodeGen::PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
     case type::TypeId::DATE:
       builtin = nullable ? ast::Builtin::PRGetDateNull : ast::Builtin::PRGetDate;
       break;
+    case type::TypeId::TIMESTAMP:
+      builtin = nullable ? ast::Builtin::PRGetTimestampNull : ast::Builtin::PRGetTimestamp;
+      break;
     case type::TypeId::VARCHAR:
       builtin = nullable ? ast::Builtin::PRGetVarlenNull : ast::Builtin::PRGetVarlen;
       break;
@@ -330,6 +337,9 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
       break;
     case type::TypeId::DATE:
       builtin = nullable ? ast::Builtin::PRSetDateNull : ast::Builtin::PRSetDate;
+      break;
+    case type::TypeId::TIMESTAMP:
+      builtin = nullable ? ast::Builtin::PRSetTimestampNull : ast::Builtin::PRSetTimestamp;
       break;
     case type::TypeId::VARCHAR:
       builtin = nullable ? ast::Builtin::PRSetVarlenNull : ast::Builtin::PRSetVarlen;
@@ -369,11 +379,17 @@ ast::Expr *CodeGen::PeekValue(const type::TransientValue &transient_val) {
       return IntToSql(val);
     }
     case type::TypeId::DATE: {
-      sql::Date date(terrier::type::TransientValuePeeker::PeekDate(transient_val));
-      int16_t year = sql::ValUtil::ExtractYear(date);
-      uint8_t month = sql::ValUtil::ExtractMonth(date);
-      uint8_t day = sql::ValUtil::ExtractDay(date);
+      auto val = terrier::type::TransientValuePeeker::PeekDate(transient_val);
+      auto ymd = terrier::util::TimeConvertor::YMDFromDate(val);
+      auto year = static_cast<int32_t>(ymd.year());
+      auto month = static_cast<uint32_t>(ymd.month());
+      auto day = static_cast<uint32_t>(ymd.day());
       return DateToSql(year, month, day);
+    }
+    case type::TypeId::TIMESTAMP: {
+      auto val = type::TransientValuePeeker::PeekTimestamp(transient_val);
+      auto julian_usec = terrier::util::TimeConvertor::ExtractJulianMicroseconds(val);
+      return TimestampToSql(julian_usec);
     }
     case type::TypeId::DECIMAL: {
       auto val = type::TransientValuePeeker::PeekDecimal(transient_val);
@@ -383,7 +399,6 @@ ast::Expr *CodeGen::PeekValue(const type::TransientValue &transient_val) {
       auto val = terrier::type::TransientValuePeeker::PeekVarChar(transient_val);
       return StringToSql(val);
     }
-    case type::TypeId::TIMESTAMP:
     case type::TypeId::VARBINARY:
     default:
       // TODO(Amadou): Add support for these types.
@@ -402,12 +417,13 @@ ast::Expr *CodeGen::TplType(type::TypeId type) {
       return BuiltinType(ast::BuiltinType::Kind::Integer);
     case type::TypeId::DATE:
       return BuiltinType(ast::BuiltinType::Kind::Date);
+    case type::TypeId::TIMESTAMP:
+      return BuiltinType(ast::BuiltinType::Kind::Timestamp);
     case type::TypeId::DECIMAL:
       return BuiltinType(ast::BuiltinType::Kind::Real);
     case type::TypeId::VARCHAR:
       return BuiltinType(ast::BuiltinType::Kind::StringVal);
     case type::TypeId::VARBINARY:
-    case type::TypeId::TIMESTAMP:
     default:
       UNREACHABLE("Cannot codegen unsupported type.");
   }
@@ -501,13 +517,18 @@ ast::Expr *CodeGen::FloatToSql(double num) {
   return OneArgCall(ast::Builtin::FloatToSql, float_lit);
 }
 
-ast::Expr *CodeGen::DateToSql(int16_t year, uint8_t month, uint8_t day) {
+ast::Expr *CodeGen::DateToSql(int32_t year, uint32_t month, uint32_t day) {
   ast::Expr *fun = BuiltinFunction(ast::Builtin::DateToSql);
   ast::Expr *year_lit = IntLiteral(year);
   ast::Expr *month_lit = IntLiteral(month);
   ast::Expr *day_lit = IntLiteral(day);
   util::RegionVector<ast::Expr *> args{{year_lit, month_lit, day_lit}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+}
+
+ast::Expr *CodeGen::TimestampToSql(uint64_t julian_usec) {
+  ast::Expr *usec_expr = IntLiteral(julian_usec);
+  return OneArgCall(ast::Builtin::TimestampToSql, usec_expr);
 }
 
 ast::Expr *CodeGen::StringToSql(std::string_view str) {

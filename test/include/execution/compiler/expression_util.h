@@ -54,9 +54,9 @@ class ExpressionMaker {
   /**
    * Create a date constant expression
    */
-  ManagedExpression Constant(int16_t year, uint8_t month, uint8_t day) {
-    sql::Date date(year, month, day);
-    type::date_t int_val(date.int_val_);
+  ManagedExpression Constant(int32_t year, uint32_t month, uint32_t day) {
+    sql::DateVal date(sql::Date::FromYMD(year, month, day));
+    type::date_t int_val(date.val_.ToNative());
     return MakeManaged(
         std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetDate(int_val)));
   }
@@ -65,10 +65,10 @@ class ExpressionMaker {
    * Create a date constant expression
    */
   ManagedExpression Constant(date::year_month_day ymd) {
-    sql::Date date(ymd.year(), ymd.month(), ymd.day());
-    type::date_t int_val(date.int_val_);
-    return MakeManaged(
-        std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetDate(int_val)));
+    auto year = static_cast<int32_t>(ymd.year());
+    auto month = static_cast<uint32_t>(ymd.month());
+    auto day = static_cast<uint32_t>(ymd.day());
+    return Constant(year, month, day);
   }
 
   /**

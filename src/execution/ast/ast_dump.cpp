@@ -334,6 +334,14 @@ void AstDumperImpl::VisitImplicitCastExpr(ImplicitCastExpr *node) {
         DumpPrimitive("FloatToSqlReal");
         break;
       }
+      case CastKind::SqlTimestampToTimestamp: {
+        DumpPrimitive("SqlTimestampToTimestamp");
+        break;
+      }
+      case CastKind::TimestampToSqlTimestamp: {
+        DumpPrimitive("TimestampToSqlTimestamp");
+        break;
+      }
     }
   }
   DumpPrimitive(">");

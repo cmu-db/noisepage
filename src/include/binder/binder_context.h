@@ -35,6 +35,9 @@ namespace binder {
  */
 class BinderContext {
  public:
+  /** TableMetadata is currently a tuple of database oid, table oid, and schema of the table. */
+  using TableMetadata = std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema>;
+
   /**
    * Initializes the BinderContext object which has an empty regular table map and an empty nested table map.
    * It also takes in a pointer to the binder context's upper context, and the constructor determines the depth of the
@@ -169,12 +172,18 @@ class BinderContext {
   void GenerateAllColumnExpressions(parser::ParseResult *parse_result,
                                     std::vector<common::ManagedPointer<parser::AbstractExpression>> *exprs);
 
+  /**
+   * Return the binder context's metadata for the provided @p table_name.
+   * @param table_name the name of the table to look up
+   * @return pointer to the {database oid, table oid, schema} corresponding to @p table_name, nullptr if not found
+   */
+  common::ManagedPointer<TableMetadata> GetTableMapping(const std::string &table_name);
+
  private:
   /**
-   * Map table alias to a tuple of database oid, table oid, and schema of the table
+   * Map table alias to its metadata
    */
-  std::unordered_map<std::string, std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema>>
-      regular_table_alias_map_;
+  std::unordered_map<std::string, TableMetadata> regular_table_alias_map_;
 
   /**
    * Map the table alias to maps which is from table alias to the value type
