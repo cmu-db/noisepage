@@ -1,5 +1,7 @@
 #include "traffic_cop/traffic_cop.h"
 
+#include <network/postgres/postgres_protocol_interpreter.h>
+
 #include <future>  // NOLINT
 #include <memory>
 #include <string>
@@ -79,6 +81,7 @@ void TrafficCop::HandBufferToReplication(std::unique_ptr<network::ReadBuffer> bu
 
 void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                              const common::ManagedPointer<network::PostgresPacketWriter> out,
+                                             const bool explicit_txn_block,
                                              const terrier::network::QueryType query_type) const {
   TERRIER_ASSERT(query_type == network::QueryType::QUERY_COMMIT || query_type == network::QueryType::QUERY_ROLLBACK ||
                      query_type == network::QueryType::QUERY_BEGIN,
@@ -87,15 +90,14 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
     case network::QueryType::QUERY_BEGIN: {
       TERRIER_ASSERT(connection_ctx->TransactionState() != network::NetworkTransactionStateType::FAIL,
                      "We're in an aborted state. This should have been caught already before calling this function.");
-      if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
+      if (explicit_txn_block) {
         out->WriteNoticeResponse("WARNING:  there is already a transaction in progress");
         break;
       }
-      BeginTransaction(connection_ctx);
       break;
     }
     case network::QueryType::QUERY_COMMIT: {
-      if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE) {
+      if (!explicit_txn_block) {
         out->WriteNoticeResponse("WARNING:  there is no transaction in progress");
         break;
       }
@@ -108,7 +110,7 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
       break;
     }
     case network::QueryType::QUERY_ROLLBACK: {
-      if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE) {
+      if (!explicit_txn_block) {
         out->WriteNoticeResponse("WARNING:  there is no transaction in progress");
         break;
       }
@@ -178,8 +180,7 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCop::OptimizeBoundQuery(
 
 TrafficCopResult TrafficCop::ExecuteCreateStatement(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-    const common::ManagedPointer<planner::AbstractPlanNode> physical_plan, const terrier::network::QueryType query_type,
-    const bool single_statement_txn) const {
+    const common::ManagedPointer<planner::AbstractPlanNode> physical_plan, const terrier::network::QueryType query_type) const {
   TERRIER_ASSERT(
       query_type == network::QueryType::QUERY_CREATE_TABLE || query_type == network::QueryType::QUERY_CREATE_SCHEMA ||
           query_type == network::QueryType::QUERY_CREATE_INDEX || query_type == network::QueryType::QUERY_CREATE_DB ||
@@ -225,8 +226,7 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
 
 TrafficCopResult TrafficCop::ExecuteDropStatement(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-    const common::ManagedPointer<planner::AbstractPlanNode> physical_plan, const terrier::network::QueryType query_type,
-    const bool single_statement_txn) const {
+    const common::ManagedPointer<planner::AbstractPlanNode> physical_plan, const terrier::network::QueryType query_type) const {
   TERRIER_ASSERT(
       query_type == network::QueryType::QUERY_DROP_TABLE || query_type == network::QueryType::QUERY_DROP_SCHEMA ||
           query_type == network::QueryType::QUERY_DROP_INDEX || query_type == network::QueryType::QUERY_DROP_DB ||

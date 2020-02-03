@@ -113,7 +113,7 @@ class TrafficCop {
 
   // Contains the logic to reason about BEGIN, COMMIT, ROLLBACK execution. Responsible for outputting results.
   void ExecuteTransactionStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                   common::ManagedPointer<network::PostgresPacketWriter> out,
+                                   common::ManagedPointer<network::PostgresPacketWriter> out, bool explicit_txn_block,
                                    terrier::network::QueryType query_type) const;
 
   // Contains logic to reason about binding, and basic IF EXISTS logic.
@@ -123,12 +123,12 @@ class TrafficCop {
   // Contains the logic to reason about CREATE execution.
   TrafficCopResult ExecuteCreateStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                           common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-                                          terrier::network::QueryType query_type, bool single_statement_txn) const;
+                                          terrier::network::QueryType query_type) const;
 
   // Contains the logic to reason about DROP execution.
   TrafficCopResult ExecuteDropStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                         common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-                                        terrier::network::QueryType query_type, bool single_statement_txn) const;
+                                        terrier::network::QueryType query_type) const;
 
   // Contains the logic to reason about DML execution. Responsible for outputting results.
   TrafficCopResult CodegenAndRunPhysicalPlan(common::ManagedPointer<network::ConnectionContext> connection_ctx,

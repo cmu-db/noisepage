@@ -86,10 +86,8 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   void GetResult(const common::ManagedPointer<WriteQueue> out) override {}
 
   void ResetTransactionState() {
-    // TODO(Matt): can't assert anything about the TransactionContext here yet, consolidate state
-    single_statement_txn_ = false;
     waiting_for_sync_ = false;
-    implicit_txn_ = false;
+    explicit_txn_block_ = false;
     portals_.clear();
   }
 
@@ -107,13 +105,9 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
                             common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                             common::ManagedPointer<ConnectionContext> context);
 
-  bool ImplicitTransaction() const { return implicit_txn_; }
+  bool ExplicitTransactionBlock() const { return explicit_txn_block_; }
 
-  void SetImplicitTransaction(const bool implicit_txn) { implicit_txn_ = implicit_txn; }
-
-  bool SingleStatementTransaction() const { return single_statement_txn_; }
-
-  void SetSingleStatementTransaction(const bool single_statement_txn) { single_statement_txn_ = single_statement_txn; }
+  void SetExplicitTransactionBlock(const bool explicit_txn_block) { explicit_txn_block_ = explicit_txn_block; }
 
   bool WaitingForSync() const { return waiting_for_sync_; }
 
@@ -158,9 +152,8 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
 
  private:
   bool startup_ = true;
-  bool single_statement_txn_ = false;
   bool waiting_for_sync_ = false;
-  bool implicit_txn_ = false;
+  bool explicit_txn_block_ = false;
 
   common::ManagedPointer<PostgresCommandFactory> command_factory_;
   std::unordered_map<std::string, std::unique_ptr<network::Statement>> statements_;
