@@ -95,8 +95,8 @@ class Context;
   SQL(Real, terrier::execution::sql::Real)                                                      \
   SQL(Decimal, terrier::execution::sql::Decimal)                                                \
   SQL(StringVal, terrier::execution::sql::StringVal)                                            \
-  SQL(Date, terrier::execution::sql::Date)                                                      \
-  SQL(Timestamp, terrier::execution::sql::Timestamp)
+  SQL(Date, terrier::execution::sql::DateVal)                                                   \
+  SQL(Timestamp, terrier::execution::sql::TimestampVal)
 
 // Ignore a builtin
 #define IGNORE_BUILTIN_TYPE (...)
