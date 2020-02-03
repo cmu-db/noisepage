@@ -138,11 +138,16 @@ endif ()
 
 set(CLANG_TOOLS_VERSION "8")
 find_package(ClangTools)
+message("CMAKE_EXPORT_COMPILE_COMMANDS: ")
+message($ENV{CMAKE_EXPORT_COMPILE_COMMANDS})
+message("CLANG_TIDY_FOUND: ")
+message(${CLANG_TIDY_FOUND})
 if ("$ENV{CMAKE_EXPORT_COMPILE_COMMANDS}" STREQUAL "1" OR CLANG_TIDY_FOUND)
     # Generate a Clang compile_commands.json "compilation database" file for use
     # with various development tools, such as Vim's YouCompleteMe plugin.
     # See http://clang.llvm.org/docs/JSONCompilationDatabase.html
     set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+    message("CMAKE_EXPORT_COMPILE_COMMANDS set to 1")
 endif ()
 
 ############################################################
