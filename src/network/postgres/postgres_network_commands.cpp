@@ -418,7 +418,8 @@ Transition SyncCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpr
                              common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                              common::ManagedPointer<ConnectionContext> connection) {
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
-  if (!postgres_interpreter->ExplicitTransactionBlock()) {
+  if (!postgres_interpreter->ExplicitTransactionBlock() &&
+      connection->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
     t_cop->EndTransaction(connection, connection->Transaction()->MustAbort() ? network::QueryType::QUERY_ROLLBACK
                                                                              : network::QueryType::QUERY_COMMIT);
     postgres_interpreter->ResetTransactionState();
