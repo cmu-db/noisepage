@@ -55,8 +55,6 @@ namespace terrier::tpcc {
         auto accessor = catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_);
         ns_oid_ = accessor->GetDefaultNamespace();
 
-        std::cout << "after populate, before load queries" << std::endl;
-
         // Make the execution context
         execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
                                                    nullptr, nullptr, common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
@@ -78,8 +76,6 @@ namespace terrier::tpcc {
             static_cast<uint64_t>(db_main_->GetSettingsManager()->GetInt(settings::Param::task_execution_timeout)),
             tpcc_db_);
 
-        std::cout << "got plan_generator" << std::endl;
-
         for (auto &txn_name : txn_names) {
             auto curr = queries_.emplace(txn_name, std::vector<execution::ExecutableQuery> {});
             std::ifstream ifs_sql(file_root + txn_name + ".sql");
@@ -89,9 +85,10 @@ namespace terrier::tpcc {
 
             while (getline(ifs_sql, query)) {
                 getline(ifs_tbl, tbl);
-                curr.first->second.emplace_back(
-                        execution::ExecutableQuery(common::ManagedPointer<planner::AbstractPlanNode>(plan_generator.Generate(query, tbl)),
-                                common::ManagedPointer<execution::exec::ExecutionContext>(exec_ctx)));
+                auto plan = plan_generator.Generate(query, tbl);
+                std::cout << "generated" << std::endl;
+                curr.first->second.emplace_back(execution::ExecutableQuery(common::ManagedPointer<planner::AbstractPlanNode>(plan),
+                        common::ManagedPointer<execution::exec::ExecutionContext>(exec_ctx)));
 
                 std::cout << "got sql?" << std::endl;
             }
