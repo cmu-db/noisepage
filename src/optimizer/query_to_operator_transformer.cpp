@@ -248,7 +248,8 @@ void QueryToOperatorTransformer::Visit(parser::TableRef *node, parser::ParseResu
 
     // TODO(Ling): how should we determine the value of `is_for_update` field of logicalGet constructor?
     output_expr_ = std::make_unique<OperatorExpression>(
-        LogicalGet::Make(accessor_->GetDatabaseOid(node->GetDatabaseName()), accessor_->GetDefaultNamespace(),
+        LogicalGet::Make(accessor_->GetDatabaseOid(node->GetDatabaseName()),
+                         accessor_->GetNamespaceOid(node->GetNamespaceName()),
                          accessor_->GetTableOid(node->GetTableName()), {}, node->GetAlias(), false),
         std::vector<std::unique_ptr<OperatorExpression>>{});
   }
@@ -325,8 +326,9 @@ void QueryToOperatorTransformer::Visit(parser::CreateStatement *op, parser::Pars
         }
       }
       create_expr = std::make_unique<OperatorExpression>(
-          LogicalCreateIndex::Make(accessor_->GetDefaultNamespace(), accessor_->GetTableOid(op->GetTableName()),
-                                   op->GetIndexType(), op->IsUniqueIndex(), op->GetIndexName(), std::move(entries)),
+          LogicalCreateIndex::Make(accessor_->GetNamespaceOid(op->GetNamespaceName()),
+                                   accessor_->GetTableOid(op->GetTableName()), op->GetIndexType(), op->IsUniqueIndex(),
+                                   op->GetIndexName(), std::move(entries)),
           std::vector<std::unique_ptr<OperatorExpression>>{});
       break;
     }
@@ -348,8 +350,9 @@ void QueryToOperatorTransformer::Visit(parser::CreateStatement *op, parser::Pars
       break;
     case parser::CreateStatement::CreateType::kView:
       create_expr = std::make_unique<OperatorExpression>(
-          LogicalCreateView::Make(accessor_->GetDatabaseOid(op->GetDatabaseName()), accessor_->GetDefaultNamespace(),
-                                  op->GetViewName(), op->GetViewQuery()),
+          LogicalCreateView::Make(accessor_->GetDatabaseOid(op->GetDatabaseName()),
+                                  accessor_->GetNamespaceOid(op->GetNamespaceName()), op->GetViewName(),
+                                  op->GetViewQuery()),
           std::vector<std::unique_ptr<OperatorExpression>>{});
       break;
   }
