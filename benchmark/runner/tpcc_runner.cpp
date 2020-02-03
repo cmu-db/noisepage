@@ -8,8 +8,8 @@
 namespace terrier::runner {
     class TPCCRunner : public benchmark::Fixture {
     public:
-        const int8_t num_threads_ = 1;                             // defines the number of terminals (workers threads)
-        const uint32_t num_precomputed_txns_per_worker_ = 1;  // Number of txns to run per terminal (worker thread)
+        const int8_t num_threads_ = 10;                             // defines the number of terminals (workers threads)
+        const uint32_t num_precomputed_txns_per_worker_ = 10;  // Number of txns to run per terminal (worker thread)
         const execution::vm::ExecutionMode mode_ = execution::vm::ExecutionMode::Compiled;
 
         std::unique_ptr<DBMain> db_main_;
@@ -35,8 +35,8 @@ namespace terrier::runner {
                     .SetUseGCThread(true)
                     .SetUseMetrics(true)
                     .SetUseMetricsThread(true)
-                    .SetBlockStoreSize(1000)
-                    .SetBlockStoreReuse(1000)
+                    .SetBlockStoreSize(1000000)
+                    .SetBlockStoreReuse(1000000)
                     .SetRecordBufferSegmentSize(1000000)
                     .SetRecordBufferSegmentReuse(1000000);
 
@@ -57,15 +57,14 @@ namespace terrier::runner {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(TPCCRunner, Runner)(benchmark::State &state) {
+    // Load the TPCC tables and compile the queries
+    tpcc_workload_ = std::make_unique<tpcc::WorkloadCached>(common::ManagedPointer<DBMain>(db_main_),
+                                                            tpcc_file_root_, tpcc_txn_names_, num_threads_);
+    std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
     // NOLINTNEXTLINE
     for (auto _ : state) {
         thread_pool_.Startup();
-
-        // Load the TPCC tables and compile the queries
-        tpcc_workload_ = std::make_unique<tpcc::WorkloadCached>(common::ManagedPointer<DBMain>(db_main_),
-                tpcc_file_root_, tpcc_txn_names_, &thread_pool_, num_threads_);
-        std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
         // run the TPCC workload to completion, timing the execution
         uint64_t elapsed_ms;

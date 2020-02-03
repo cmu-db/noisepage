@@ -41,7 +41,7 @@ namespace terrier::tpcc {
     class WorkloadCached {
     public:
         WorkloadCached(common::ManagedPointer<DBMain> db_main, const std::string &table_root,
-                 const std::vector<std::string> &txn_names, common::WorkerPool * thread_pool, int8_t num_threads);
+                 const std::vector<std::string> &txn_names, int8_t num_threads);
 
         /**
          * Function to invoke for a single worker thread to invoke the TPCH queries

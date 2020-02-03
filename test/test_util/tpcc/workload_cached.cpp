@@ -23,7 +23,7 @@
 namespace terrier::tpcc {
 
     WorkloadCached::WorkloadCached(common::ManagedPointer<DBMain> db_main, const std::string &table_root,
-                       const std::vector<std::string> &txn_names, common::WorkerPool * thread_pool, int8_t num_threads) {
+                       const std::vector<std::string> &txn_names, int8_t num_threads) {
         // cache db main and members
         db_main_ = db_main;
         txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
@@ -43,6 +43,8 @@ namespace terrier::tpcc {
 
         std::cout << "after build, before populate" << std::endl;
 
+        common::WorkerPool thread_pool{static_cast<uint32_t>(num_threads), {}};
+
         // prepare the workers
         std::vector<Worker> workers;
         workers.reserve(num_threads);
@@ -52,14 +54,14 @@ namespace terrier::tpcc {
         }
 
         // populate the tables and indexes
-        Loader::PopulateDatabase(txn_manager_, tpcc_db_, &workers, thread_pool);
+        Loader::PopulateDatabase(txn_manager_, tpcc_db_, &workers, &thread_pool);
+
+        std::cout << "after populate, before load queries" << std::endl;
         db_oid_ = tpcc_db_->db_oid_;
 
         // db_oid_ = catalog_->CreateDatabase(common::ManagedPointer<transaction::TransactionContext>(txn), db_name, true);
         auto accessor = catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_);
         ns_oid_ = accessor->GetDefaultNamespace();
-
-        std::cout << "after populate, before load queries" << std::endl;
 
         // Make the execution context
         execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
