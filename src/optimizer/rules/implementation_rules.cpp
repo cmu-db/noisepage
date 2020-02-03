@@ -127,7 +127,7 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<OperatorExp
         if (IndexUtil::SatisfiesSortWithIndex(accessor, sort_prop, get->GetTableOid(), index)) {
           std::vector<AnnotatedExpression> preds = get->GetPredicates();
           auto op = std::make_unique<OperatorExpression>(
-              IndexScan::Make(db_oid, ns_oid, index, std::move(preds), get->GetTableAlias(), is_update,
+              IndexScan::Make(db_oid, ns_oid, get->GetTableOid(), index, std::move(preds), is_update,
                               planner::IndexScanType::AscendingOpenBoth, {}),
               std::vector<std::unique_ptr<OperatorExpression>>());
           transformed->emplace_back(std::move(op));
@@ -146,7 +146,7 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<OperatorExp
       std::vector<AnnotatedExpression> preds = get->GetPredicates();
       if (IndexUtil::SatisfiesPredicateWithIndex(accessor, get->GetTableOid(), index, preds, &scan_type, &bounds)) {
         auto op = std::make_unique<OperatorExpression>(
-            IndexScan::Make(db_oid, ns_oid, index, std::move(preds), get->GetTableAlias(), is_update, scan_type,
+            IndexScan::Make(db_oid, ns_oid, get->GetTableOid(), index, std::move(preds), is_update, scan_type,
                             std::move(bounds)),
             std::vector<std::unique_ptr<OperatorExpression>>());
         transformed->emplace_back(std::move(op));
