@@ -20,6 +20,11 @@ class PostgresPacketUtil {
  public:
   PostgresPacketUtil() = delete;
 
+  /**
+   * Given a read buffer that starts at the format codes for a Parse or Bind message, reads the values out
+   * @param read_buffer incoming postgres packet with next fields as format codes
+   * @return vector of format codes for the attributes
+   */
   static std::vector<FieldFormat> ReadFormatCodes(const common::ManagedPointer<ReadBufferView> read_buffer) {
     const auto num_formats = read_buffer->ReadValue<int16_t>();
 
@@ -35,6 +40,11 @@ class PostgresPacketUtil {
     return formats;
   }
 
+  /**
+   * Given a read buffer that starts at the parameter types for a Parse message, reads the values out
+   * @param read_buffer incoming postgres packet with next fields as parameter types
+   * @return vector of internal types for the parameters
+   */
   static std::vector<type::TypeId> ReadParamTypes(const common::ManagedPointer<ReadBufferView> read_buffer) {
     const auto num_params = read_buffer->ReadValue<int16_t>();
     std::vector<type::TypeId> param_types;
@@ -45,6 +55,13 @@ class PostgresPacketUtil {
     return param_types;
   }
 
+  /**
+   * Given a read buffer that starts at a text value, consumes it and returns an internal TransientValue for that type
+   * @param read_buffer incoming postgres packet with next field as a value
+   * @param size size of the value
+   * @param type internal type of the value
+   * @return TransientValue containing the value from the packet
+   */
   static type::TransientValue TextValueToInternalValue(const common::ManagedPointer<ReadBufferView> read_buffer,
                                                        const int32_t size, const type::TypeId type) {
     if (size == -1) {
@@ -74,10 +91,18 @@ class PostgresPacketUtil {
       case type::TypeId::VARCHAR:
         return type::TransientValueFactory::GetVarChar(string_val);
       default:
+        // TODO(Matt): Note that not all types are handled yet. Add them as we support them.
         UNREACHABLE("Unsupported type for parameter.");
     }
   }
 
+  /**
+   * Given a read buffer that starts at a binary value, consumes it and returns an internal TransientValue for that type
+   * @param read_buffer incoming postgres packet with next field as a value
+   * @param size size of the value
+   * @param type internal type of the value
+   * @return TransientValue containing the value from the packet
+   */
   static type::TransientValue BinaryValueToInternalValue(const common::ManagedPointer<ReadBufferView> read_buffer,
                                                          const int32_t size, const type::TypeId type) {
     if (size == -1) {
@@ -110,14 +135,25 @@ class PostgresPacketUtil {
         // TODO(Matt): from looking at JDBC source code, DATE is the only other possible binary value
         // https://github.com/pgjdbc/pgjdbc/blob/db228a4ffd8b356a9028363b35b0eb9055ea53f0/pgjdbc/src/main/java/org/postgresql/jdbc/PgPreparedStatement.java
         // line 1272
+        // TODO(Matt): Note that not all types are handled yet. Add them as we support them.
         UNREACHABLE("Unsupported type for parameter.");
     }
   }
 
+  /**
+   * Given a read buffer that starts at the parameter types for a Parse message, reads the values out
+   * @param read_buffer incoming postgres packet with next fields as parameter types
+   * @param param_types
+   * @param param_formats
+   * @return vector of internal types for the parameters
+   */
   static std::vector<type::TransientValue> ReadParameters(const common::ManagedPointer<ReadBufferView> read_buffer,
                                                           const std::vector<type::TypeId> &param_types,
                                                           const std::vector<FieldFormat> &param_formats) {
     const auto num_params = static_cast<size_t>(read_buffer->ReadValue<int16_t>());
+    TERRIER_ASSERT(num_params == param_types.size(),
+                   "We don't support type inference on parameters yet, so the size of param_types should equal the "
+                   "number of parameters.");
     std::vector<type::TransientValue> params;
     params.reserve(num_params);
     for (uint16_t i = 0; i < num_params; i++) {

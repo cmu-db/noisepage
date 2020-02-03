@@ -256,8 +256,8 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
 
   // read out the result formats
   auto result_formats = PostgresPacketUtil::ReadFormatCodes(common::ManagedPointer(&in_));
-  // TODO(Matt): would like to assert that this is 0 (all text), 1 (all the same), or the number of output columns but
-  // we can't do that without an OutputSchema yet this early in the pipeline
+  // TODO(Matt): would like to assert here that this is 0 (all text), 1 (all the same), or the number of output columns
+  // but we can't do that without an OutputSchema yet this early in the pipeline
 
   // Check if we're in a must-abort situation first before attempting to issue any statement other than ROLLBACK
   if (connection->TransactionState() == network::NetworkTransactionStateType::FAIL &&
@@ -304,6 +304,8 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
         std::make_unique<Portal>(statement, std::move(physical_plan), std::move(params), std::move(result_formats)));
     out->WriteBindComplete();
   } else if (bind_result.type_ == trafficcop::ResultType::NOTICE) {
+    // Binding generated a NOTICE, i.e. IF EXISTS failed, so we're not going to generate a physical plan of nullptr and
+    // handle that case in Execute
     TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
     postgres_interpreter->SetPortal(
         portal_name, std::make_unique<Portal>(statement, nullptr, std::move(params), std::move(result_formats)));

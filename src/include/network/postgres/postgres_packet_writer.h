@@ -139,6 +139,7 @@ class PostgresPacketWriter : public PacketWriter {
   /**
    * Writes row description, as the first packet of sending query results
    * @param columns the column information from the OutputSchema
+   * @param field_formats vector formats for the attributes to write
    */
   void WriteRowDescription(const std::vector<planner::OutputSchema::Column> &columns,
                            const std::vector<FieldFormat> &field_formats) {
@@ -157,6 +158,7 @@ class PostgresPacketWriter : public PacketWriter {
         AppendValue<int16_t>(type::TypeUtil::GetTypeSize(col_type));  // data type size
       }
 
+      // Field formats can either be the size of the number of columns, or size 1 where they all use the same format
       const auto field_format = field_formats[i < field_formats.size() ? i : 0];
 
       AppendValue<int32_t>(-1)  // type modifier, generally -1 (see pg_attribute.atttypmod)
@@ -347,6 +349,7 @@ class PostgresPacketWriter : public PacketWriter {
    * Write a data row from the execution engine back to the client
    * @param tuple pointer to the start of the row
    * @param columns OutputSchema describing the tuple
+   * @param field_formats vector formats for the attributes to write
    */
   void WriteDataRow(const byte *const tuple, const std::vector<planner::OutputSchema::Column> &columns,
                     const std::vector<FieldFormat> &field_formats) {
@@ -362,6 +365,7 @@ class PostgresPacketWriter : public PacketWriter {
         continue;
       }
 
+      // Field formats can either be the size of the number of columns, or size 1 where they all use the same format
       const auto field_format = field_formats[i < field_formats.size() ? i : 0];
 
       const auto type_size = field_format == FieldFormat::text ? WriteTextAttribute(val, columns[i].GetType())
