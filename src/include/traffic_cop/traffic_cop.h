@@ -32,13 +32,11 @@ class AbstractPlanNode;
 namespace terrier::trafficcop {
 
 /**
- *
- * Traffic Cop of the database. It provides access to all the backend components.
- *
- * *Should be a singleton*
- *
+ * The TrafficCop acts as a translation layer between protocol implementations at at the front-end and execution of
+ * queries in the back-end. We strive to encapsulate protocol-agnostic behavior at this layer (i.e. nothing
+ * Postgres-specific). Anything protocol specific should be done at the network's protocol interpreter or command
+ * processing layers.
  */
-
 class TrafficCop {
  public:
   /**
