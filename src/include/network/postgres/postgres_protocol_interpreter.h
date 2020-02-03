@@ -85,6 +85,9 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    */
   void GetResult(const common::ManagedPointer<WriteQueue> out) override {}
 
+  /**
+   * Used to clear the waiting for sync, explicit txn block, and portals. Call whenever a transaction is ended.
+   */
   void ResetTransactionState() {
     waiting_for_sync_ = false;
     explicit_txn_block_ = false;
@@ -105,36 +108,86 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
                             common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                             common::ManagedPointer<ConnectionContext> context);
 
+  /**
+   * @return true if the current transaction was initiated with a BEGIN statement
+   */
   bool ExplicitTransactionBlock() const { return explicit_txn_block_; }
 
-  void SetExplicitTransactionBlock(const bool explicit_txn_block) { explicit_txn_block_ = explicit_txn_block; }
+  /**
+   * @param explicit_txn_block true if the current transaction was initiated with a BEGIN statement, false otherwise
+   */
+  void SetExplicitTransactionBlock() {
+    TERRIER_ASSERT(!explicit_txn_block_, "Explicit transaction block flag is already set. That seems wrong.");
+    explicit_txn_block_ = true;
+  }
 
+  /**
+   * @return true if the system should ignore all messages until a Sync is received, caused by an error state in the
+   * Extended Query protocol
+   */
   bool WaitingForSync() const { return waiting_for_sync_; }
 
-  void SetWaitingForSync(const bool waiting_for_sync) { waiting_for_sync_ = waiting_for_sync; }
+  /**
+   * Sets the flag that we are now waiting for a Sync command, caused by an error state in the Extended Query protocol
+   */
+  void SetWaitingForSync() {
+    TERRIER_ASSERT(!explicit_txn_block_, "Waiting for sync flag is already set. That seems wrong.");
+    waiting_for_sync_ = true;
+  }
 
+  /**
+   * @param name statement to look up
+   * @return managed pointer to statement if it exists, nullptr otherwise
+   */
   common::ManagedPointer<network::Statement> GetStatement(const std::string &name) const {
     const auto it = statements_.find(name);
     if (it != statements_.end()) return common::ManagedPointer(it->second);
     return nullptr;
   }
 
+  /**
+   * @param name key
+   * @param statement statement to take ownerships of
+   */
   void SetStatement(const std::string &name, std::unique_ptr<network::Statement> &&statement) {
     statements_[name] = std::move(statement);
   }
 
-  void CloseStatement(const std::string &name) { statements_.erase(name); }
+  /**
+   * close a Statement. We don't care about return value since it's not an error to call Close on non-existent
+   * statement. Also closes any portals constructed from this statement (if any)
+   * @param name statement to be removed
+   */
+  void CloseStatement(const std::string &name) {
+    const auto it = statements_.find(name);
+    if (it != statements_.end()) {
+      ClosePortalsConstructedFromStatement(common::ManagedPointer(it->second));
+      statements_.erase(it);
+    }
+  }
 
+  /**
+   * @param name portal to look up
+   * @return managed pointer to portal if it exists, nullptr otherwise
+   */
   common::ManagedPointer<network::Portal> GetPortal(const std::string &name) const {
     const auto it = portals_.find(name);
     if (it != portals_.end()) return common::ManagedPointer(it->second);
     return nullptr;
   }
 
+  /**
+   * @param name key
+   * @param statement statement to take ownerships of
+   */
   void SetPortal(const std::string &name, std::unique_ptr<network::Portal> &&portal) {
     portals_[name] = std::move(portal);
   }
 
+  /**
+   * close a Portal. We don't care about return value since it's not an error to call Close on non-existent portal
+   * @param name portal to be removed
+   */
   void ClosePortal(const std::string &name) { portals_.erase(name); }
 
  protected:
@@ -158,6 +211,21 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   common::ManagedPointer<PostgresCommandFactory> command_factory_;
   std::unordered_map<std::string, std::unique_ptr<network::Statement>> statements_;
   std::unordered_map<std::string, std::unique_ptr<network::Portal>> portals_;
+
+  /**
+   * close all Portals constructed from a Statement. We don't care about return value since it's not an error to call
+   * Close on non-existent statement
+   * @param statement
+   */
+  void ClosePortalsConstructedFromStatement(const common::ManagedPointer<Statement> statement) {
+    for (auto it = portals_.begin(); it != portals_.end();) {
+      if (it->second->Statement() == statement) {
+        it = portals_.erase(it);
+      } else {
+        it++;
+      }
+    }
+  }
 };
 
 }  // namespace terrier::network

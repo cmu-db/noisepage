@@ -111,7 +111,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
   if (statement->QueryType() <= network::QueryType::QUERY_ROLLBACK) {
     t_cop->ExecuteTransactionStatement(connection, out, postgres_interpreter->ExplicitTransactionBlock(), query_type);
     if (statement->QueryType() == network::QueryType::QUERY_BEGIN) {
-      postgres_interpreter->SetExplicitTransactionBlock(true);
+      postgres_interpreter->SetExplicitTransactionBlock();
     } else {
       postgres_interpreter->ResetTransactionState();
     }
@@ -197,7 +197,7 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
       // failing to parse fails a transaction in postgres
       connection->Transaction()->SetMustAbort();
     }
-    postgres_interpreter->SetWaitingForSync(true);
+    postgres_interpreter->SetWaitingForSync();
     return Transition::PROCEED;
   }
 
@@ -318,7 +318,7 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     // failing to bind fails a transaction in postgres
     connection->Transaction()->SetMustAbort();
     out->WriteErrorResponse(std::get<std::string>(bind_result.extra_));
-    postgres_interpreter->SetWaitingForSync(true);
+    postgres_interpreter->SetWaitingForSync();
   }
 
   return Transition::PROCEED;
@@ -392,7 +392,7 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
   if (query_type <= network::QueryType::QUERY_ROLLBACK) {
     t_cop->ExecuteTransactionStatement(connection, out, postgres_interpreter->ExplicitTransactionBlock(), query_type);
     if (query_type == network::QueryType::QUERY_BEGIN) {
-      postgres_interpreter->SetExplicitTransactionBlock(true);
+      postgres_interpreter->SetExplicitTransactionBlock();
     } else {
       postgres_interpreter->ResetTransactionState();
     }
@@ -440,11 +440,13 @@ Transition CloseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
   const auto object_name = in_.ReadString();
   if (object_type == DescribeCommandObjectType::PORTAL) {
     postgres_interpreter->ClosePortal(object_name);
+    // "It is not an error to issue Close against a nonexistent statement or portal name."
     out->WriteCloseComplete();
     return Transition::PROCEED;
   }
   TERRIER_ASSERT(object_type == DescribeCommandObjectType::STATEMENT, "Unknown object type passed in Close message.");
   postgres_interpreter->CloseStatement(object_name);
+  // "It is not an error to issue Close against a nonexistent statement or portal name."
   out->WriteCloseComplete();
   return Transition::PROCEED;
 }
