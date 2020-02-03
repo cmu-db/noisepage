@@ -12,7 +12,7 @@
 #include "parser/drop_statement.h"
 #include "parser/transaction_statement.h"
 #include "storage/recovery/replication_log_provider.h"
-#include "traffic_cop_defs.h"
+#include "traffic_cop/traffic_cop_defs.h"
 
 namespace terrier::network {
 class ConnectionContext;

@@ -1,12 +1,13 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include "execution/util/execution_common.h"
 #include "network/network_io_utils.h"
 #include "network/postgres/postgres_defs.h"
-#include "postgres_packet_writer.h"
-#include "postgres_protocol_utils.h"
+#include "network/postgres/postgres_packet_writer.h"
+#include "network/postgres/postgres_protocol_utils.h"
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
 

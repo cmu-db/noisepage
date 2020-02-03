@@ -5,7 +5,6 @@
 
 namespace terrier::trafficcop {
 
-
 network::QueryType TrafficCopUtil::QueryTypeForStatement(const common::ManagedPointer<parser::SQLStatement> statement) {
   const auto statement_type = statement->GetType();
   switch (statement_type) {

@@ -1,5 +1,9 @@
 #pragma once
 
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "common/managed_pointer.h"
 #include "network/postgres/postgres_defs.h"
 #include "network/postgres/statement.h"

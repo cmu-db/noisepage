@@ -121,7 +121,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
 
   void SetStatement(const std::string &name, std::unique_ptr<network::Statement> &&statement) {
     statements_[name] = std::move(statement);
-  };
+  }
 
   void CloseStatement(const std::string &name) { statements_.erase(name); }
 
@@ -133,7 +133,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
 
   void SetPortal(const std::string &name, std::unique_ptr<network::Portal> &&portal) {
     portals_[name] = std::move(portal);
-  };
+  }
 
   void ClosePortal(const std::string &name) { portals_.erase(name); }
 

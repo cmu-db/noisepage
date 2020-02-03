@@ -180,7 +180,8 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCop::OptimizeBoundQuery(
 
 TrafficCopResult TrafficCop::ExecuteCreateStatement(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-    const common::ManagedPointer<planner::AbstractPlanNode> physical_plan, const terrier::network::QueryType query_type) const {
+    const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
+    const terrier::network::QueryType query_type) const {
   TERRIER_ASSERT(
       query_type == network::QueryType::QUERY_CREATE_TABLE || query_type == network::QueryType::QUERY_CREATE_SCHEMA ||
           query_type == network::QueryType::QUERY_CREATE_INDEX || query_type == network::QueryType::QUERY_CREATE_DB ||
@@ -226,7 +227,8 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
 
 TrafficCopResult TrafficCop::ExecuteDropStatement(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-    const common::ManagedPointer<planner::AbstractPlanNode> physical_plan, const terrier::network::QueryType query_type) const {
+    const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
+    const terrier::network::QueryType query_type) const {
   TERRIER_ASSERT(
       query_type == network::QueryType::QUERY_DROP_TABLE || query_type == network::QueryType::QUERY_DROP_SCHEMA ||
           query_type == network::QueryType::QUERY_DROP_INDEX || query_type == network::QueryType::QUERY_DROP_DB ||
