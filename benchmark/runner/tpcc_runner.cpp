@@ -18,8 +18,8 @@ namespace terrier::runner {
 
         // TPCC setup
         const std::vector<std::string> tpcc_txn_names_ = {
-                "delivery", "index_scan", "neworder", "orderstatus", "payment",
-                "seq_scan", "stocklevel", "temp"
+                "delivery" //, "index_scan", "neworder", "orderstatus", "payment",
+                //"seq_scan", "stocklevel", "temp"
         };
         const std::string tpcc_file_root_ = "../../tpcc_files/raw/";
         const std::string tpcc_database_name_ = "tpcc_db";
@@ -38,7 +38,8 @@ namespace terrier::runner {
                     .SetBlockStoreSize(1000000)
                     .SetBlockStoreReuse(1000000)
                     .SetRecordBufferSegmentSize(1000000)
-                    .SetRecordBufferSegmentReuse(1000000);
+                    .SetRecordBufferSegmentReuse(1000000)
+                    .SetUseSettingsManager(true);
 
             db_main_ = db_main_builder.Build();
 
