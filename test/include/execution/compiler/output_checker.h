@@ -302,7 +302,12 @@ class OutputStore {
             break;
           }
           case terrier::type::TypeId::DATE: {
-            auto *val = reinterpret_cast<sql::Date *>(tuples + row * tuple_size + curr_offset);
+            auto *val = reinterpret_cast<sql::DateVal *>(tuples + row * tuple_size + curr_offset);
+            vals.emplace_back(val);
+            break;
+          }
+          case terrier::type::TypeId::TIMESTAMP: {
+            auto *val = reinterpret_cast<sql::TimestampVal *>(tuples + row * tuple_size + curr_offset);
             vals.emplace_back(val);
             break;
           }

@@ -79,14 +79,15 @@ common::hash_t SeqScan::Hash() const {
 BaseOperatorNode *IndexScan::Copy() const { return new IndexScan(*this); }
 
 Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                         catalog::index_oid_t index_oid, std::vector<AnnotatedExpression> &&predicates,
-                         std::string table_alias, bool is_for_update, planner::IndexScanType scan_type,
+                         catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
+                         std::vector<AnnotatedExpression> &&predicates, bool is_for_update,
+                         planner::IndexScanType scan_type,
                          std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds) {
   auto scan = std::make_unique<IndexScan>();
   scan->database_oid_ = database_oid;
   scan->namespace_oid_ = namespace_oid;
+  scan->tbl_oid_ = tbl_oid;
   scan->index_oid_ = index_oid;
-  scan->table_alias_ = std::move(table_alias);
   scan->is_for_update_ = is_for_update;
   scan->predicates_ = std::move(predicates);
   scan->scan_type_ = scan_type;
@@ -98,7 +99,7 @@ bool IndexScan::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::INDEXSCAN) return false;
   const IndexScan &node = *dynamic_cast<const IndexScan *>(&r);
   if (database_oid_ != node.database_oid_ || namespace_oid_ != node.namespace_oid_ || index_oid_ != node.index_oid_ ||
-      table_alias_ != node.table_alias_ || predicates_.size() != node.predicates_.size() ||
+      tbl_oid_ != node.tbl_oid_ || predicates_.size() != node.predicates_.size() ||
       is_for_update_ != node.is_for_update_ || scan_type_ != node.scan_type_)
     return false;
 
@@ -127,8 +128,8 @@ common::hash_t IndexScan::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(tbl_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_for_update_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(scan_type_));
   for (auto &pred : predicates_) {

@@ -8,6 +8,7 @@
 #include "execution/sql/value.h"
 #include "network/packet_writer.h"
 #include "planner/plannodes/output_schema.h"
+#include "util/time_util.h"
 
 namespace terrier::network {
 
@@ -398,9 +399,13 @@ class PostgresPacketWriter : public PacketWriter {
         break;
       }
       case type::TypeId::DATE: {
-        auto *date_val = reinterpret_cast<const execution::sql::Date *const>(val);
-        // TODO(Matt): would we ever use the ymd_ format for the wire?
-        AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<uint32_t>(date_val->int_val_);
+        auto *date_val = reinterpret_cast<const execution::sql::DateVal *const>(val);
+        AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<uint32_t>(date_val->val_.ToNative());
+        break;
+      }
+      case type::TypeId::TIMESTAMP: {
+        auto *ts_val = reinterpret_cast<const execution::sql::TimestampVal *const>(val);
+        AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<uint64_t>(ts_val->val_.ToNative());
         break;
       }
       case type::TypeId::VARCHAR: {
@@ -443,9 +448,13 @@ class PostgresPacketWriter : public PacketWriter {
         break;
       }
       case type::TypeId::DATE: {
-        auto *date_val = reinterpret_cast<const execution::sql::Date *const>(val);
-        // TODO(Matt): would we ever use the ymd_ format for the wire?
-        string_value = std::to_string(date_val->int_val_);
+        auto *date_val = reinterpret_cast<const execution::sql::DateVal *const>(val);
+        string_value = date_val->val_.ToString();
+        break;
+      }
+      case type::TypeId::TIMESTAMP: {
+        auto *ts_val = reinterpret_cast<const execution::sql::TimestampVal *const>(val);
+        string_value = ts_val->val_.ToString();
         break;
       }
       case type::TypeId::VARCHAR: {

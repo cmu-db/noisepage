@@ -205,7 +205,7 @@ TEST_F(TpccPlanPaymentTests, InsertHistory) {
   std::string query =
       "INSERT INTO HISTORY "
       "(H_C_D_ID, H_C_W_ID, H_C_ID, H_D_ID, H_W_ID, H_DATE, H_AMOUNT, H_DATA) "
-      "VALUES (1,2,3,4,5,0,7,'data')";
+      "VALUES (1,2,3,4,5,'2020-01-02',7,'data')";
   OptimizeInsert(query, tbl_history_);
 }
 

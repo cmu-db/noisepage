@@ -57,11 +57,11 @@ void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple
           break;
         }
         case type::TypeId::DATE: {
-          auto *val = reinterpret_cast<sql::Date *>(tuples + row * tuple_size + curr_offset);
+          auto *val = reinterpret_cast<sql::DateVal *>(tuples + row * tuple_size + curr_offset);
           if (val->is_null_) {
             ss << "NULL";
           } else {
-            ss << sql::ValUtil::DateToString(*val);
+            ss << val->val_.ToString();
           }
           break;
         }

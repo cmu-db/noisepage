@@ -248,7 +248,7 @@ class TransientValue {
    */
   explicit TransientValue(const TypeId type) : type_(type), data_(0) { SetNull(true); }
 
-  // The following tests make sure that json serialization  works, so they need to
+  // The following tests make sure that json serialization works, so they need to
   // be friends of the TransientValue class.
   FRIEND_TEST(ValueTests, BooleanJsonTest);
   FRIEND_TEST(ValueTests, TinyIntJsonTest);
