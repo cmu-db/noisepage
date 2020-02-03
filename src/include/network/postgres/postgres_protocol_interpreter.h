@@ -131,7 +131,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    * Sets the flag that we are now waiting for a Sync command, caused by an error state in the Extended Query protocol
    */
   void SetWaitingForSync() {
-    TERRIER_ASSERT(!explicit_txn_block_, "Waiting for sync flag is already set. That seems wrong.");
+    TERRIER_ASSERT(!waiting_for_sync_, "Waiting for sync flag is already set. That seems wrong.");
     waiting_for_sync_ = true;
   }
 
