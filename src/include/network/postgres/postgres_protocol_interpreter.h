@@ -114,7 +114,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   bool ExplicitTransactionBlock() const { return explicit_txn_block_; }
 
   /**
-   * @param explicit_txn_block true if the current transaction was initiated with a BEGIN statement, false otherwise
+   * Sets the flag that the current transaction was initiated with a BEGIN statement, false otherwise
    */
   void SetExplicitTransactionBlock() {
     TERRIER_ASSERT(!explicit_txn_block_, "Explicit transaction block flag is already set. That seems wrong.");
