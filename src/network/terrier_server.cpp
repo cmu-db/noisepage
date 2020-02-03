@@ -52,14 +52,23 @@ void TerrierServer::RunServer() {
   listen_fd_ = socket(AF_INET, SOCK_STREAM, 0);
 
   if (listen_fd_ < 0) {
-    throw NETWORK_PROCESS_EXCEPTION("Failed to create listen socket");
+    NETWORK_LOG_ERROR("Failed to open socket: {}", strerror(errno));
+    throw NETWORK_PROCESS_EXCEPTION("Failed to open socket.");
   }
 
   int reuse = 1;
   setsockopt(listen_fd_, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
 
-  bind(listen_fd_, reinterpret_cast<struct sockaddr *>(&sin), sizeof(sin));
-  listen(listen_fd_, conn_backlog);
+  int retval = bind(listen_fd_, reinterpret_cast<struct sockaddr *>(&sin), sizeof(sin));
+  if (retval < 0) {
+    NETWORK_LOG_ERROR("Failed to bind socket: {}", strerror(errno));
+    throw NETWORK_PROCESS_EXCEPTION("Failed to bind socket.");
+  }
+  retval = listen(listen_fd_, conn_backlog);
+  if (retval < 0) {
+    NETWORK_LOG_ERROR("Failed to create listen socket: {}", strerror(errno));
+    throw NETWORK_PROCESS_EXCEPTION("Failed to create listen socket.");
+  }
 
   dispatcher_task_ = thread_registry_->RegisterDedicatedThread<ConnectionDispatcherTask>(
       this /* requester */, max_connections_, listen_fd_, this, common::ManagedPointer(provider_.Get()),
