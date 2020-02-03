@@ -204,7 +204,7 @@ void PlanGenerator::Visit(const SeqScan *op) {
 }
 
 void PlanGenerator::Visit(const IndexScan *op) {
-  catalog::table_oid_t tbl_oid = accessor_->GetTableOid(op->GetNamespaceOID(), op->GetTableAlias());
+  auto tbl_oid = op->GetTableOID();
   auto output_schema = GenerateScanOutputSchema(tbl_oid);
 
   // Generate the predicate in the scan

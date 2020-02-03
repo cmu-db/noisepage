@@ -2180,8 +2180,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
   // Keep string longs to avoid inlining
   std::string str1("I am a long string with 37 characters");
   std::string str2("I am a long string with 73 characters");
-  sql::Date date1(1937, 3, 7);
-  sql::Date date2(1973, 7, 3);
+  sql::DateVal date1(sql::Date::FromYMD(1937, 3, 7));
+  sql::DateVal date2(sql::Date::FromYMD(1973, 7, 3));
   double real1 = 37.73;
   double real2 = 73.37;
   bool bool1 = true;
@@ -2244,7 +2244,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     std::vector<type::TransientValue> params;
     // First parameter list
     params.emplace_back(type::TransientValueFactory::GetVarChar(str1));
-    params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date1.int_val_)));
+    params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date1.val_.ToNative())));
     params.emplace_back(type::TransientValueFactory::GetDecimal(real1));
     params.emplace_back(type::TransientValueFactory::GetBoolean(bool1));
     params.emplace_back(type::TransientValueFactory::GetTinyInt(tinyint1));
@@ -2253,7 +2253,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     params.emplace_back(type::TransientValueFactory::GetBigInt(bigint1));
     // Second parameter list
     params.emplace_back(type::TransientValueFactory::GetVarChar(str2));
-    params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date2.int_val_)));
+    params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date2.val_.ToNative())));
     params.emplace_back(type::TransientValueFactory::GetDecimal(real2));
     params.emplace_back(type::TransientValueFactory::GetBoolean(bool2));
     params.emplace_back(type::TransientValueFactory::GetTinyInt(tinyint2));
@@ -2314,7 +2314,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
   RowChecker row_checker = [&](const std::vector<sql::Val *> &vals) {
     // Read cols
     auto col1 = static_cast<sql::StringVal *>(vals[0]);
-    auto col2 = static_cast<sql::Date *>(vals[1]);
+    auto col2 = static_cast<sql::DateVal *>(vals[1]);
     auto col3 = static_cast<sql::Real *>(vals[2]);
     auto col4 = static_cast<sql::BoolVal *>(vals[3]);
     auto col5 = static_cast<sql::Integer *>(vals[4]);
@@ -2336,7 +2336,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     if (num_output_rows == 0) {
       ASSERT_EQ(col1->len_, str1.size());
       ASSERT_EQ(std::memcmp(col1->Content(), str1.data(), col1->len_), 0);
-      ASSERT_EQ(col2->ymd_, date1.ymd_);
+      ASSERT_EQ(col2->val_, date1.val_);
       ASSERT_EQ(col3->val_, real1);
       ASSERT_EQ(col4->val_, bool1);
       ASSERT_EQ(col5->val_, tinyint1);
@@ -2346,7 +2346,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     } else {
       ASSERT_TRUE(col1->len_ == str2.size());
       ASSERT_EQ(std::memcmp(col1->Content(), str2.data(), col1->len_), 0);
-      ASSERT_EQ(col2->ymd_, date2.ymd_);
+      ASSERT_EQ(col2->val_, date2.val_);
       ASSERT_EQ(col3->val_, real2);
       ASSERT_EQ(col4->val_, bool2);
       ASSERT_EQ(col5->val_, tinyint2);

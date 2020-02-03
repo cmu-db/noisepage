@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include "binder/binder_util.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "common/exception.h"
@@ -16,12 +17,17 @@
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
 #include "parser/expression/column_value_expression.h"
+#include "parser/expression/constant_value_expression.h"
 #include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/star_expression.h"
 #include "parser/expression/subquery_expression.h"
+#include "parser/expression/type_cast_expression.h"
 #include "parser/sql_statement.h"
+#include "type/transient_value_factory.h"
+#include "type/transient_value_peeker.h"
 #include "type/type_id.h"
+#include "util/time_util.h"
 
 namespace terrier::binder {
 
@@ -35,7 +41,7 @@ void BindNodeVisitor::BindNameToNode(common::ManagedPointer<parser::SQLStatement
 }
 
 void BindNodeVisitor::Visit(parser::SelectStatement *node, parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting SelectStatement ...");
+  BINDER_LOG_TRACE("Visiting SelectStatement ...");
   context_ = new BinderContext(context_);
 
   if (node->GetSelectTable() != nullptr) node->GetSelectTable()->Accept(this, parse_result);
@@ -52,7 +58,7 @@ void BindNodeVisitor::Visit(parser::SelectStatement *node, parser::ParseResult *
   if (node->GetSelectGroupBy() != nullptr) node->GetSelectGroupBy()->Accept(this, parse_result);
 
   std::vector<common::ManagedPointer<parser::AbstractExpression>> new_select_list;
-  BINDER_LOG_DEBUG("Gathering select columns...");
+  BINDER_LOG_TRACE("Gathering select columns...");
   for (auto &select_element : node->GetSelectColumns()) {
     if (select_element->GetExpressionType() == parser::ExpressionType::STAR) {
       context_->GenerateAllColumnExpressions(parse_result, &new_select_list);
@@ -82,7 +88,7 @@ void BindNodeVisitor::Visit(parser::SelectStatement *node, parser::ParseResult *
 
 // Some sub query nodes inside SelectStatement
 void BindNodeVisitor::Visit(parser::JoinDefinition *node, parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting JoinDefinition ...");
+  BINDER_LOG_TRACE("Visiting JoinDefinition ...");
   // The columns in join condition can only bind to the join tables
   node->GetLeftTable()->Accept(this, parse_result);
   node->GetRightTable()->Accept(this, parse_result);
@@ -90,7 +96,7 @@ void BindNodeVisitor::Visit(parser::JoinDefinition *node, parser::ParseResult *p
 }
 
 void BindNodeVisitor::Visit(parser::TableRef *node, parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting TableRef ...");
+  BINDER_LOG_TRACE("Visiting TableRef ...");
   node->TryBindDatabaseName(default_database_name_);
   if (node->GetSelect() != nullptr) {
     if (node->GetAlias().empty()) throw BINDER_EXCEPTION("Alias not found for query derived table");
@@ -118,19 +124,19 @@ void BindNodeVisitor::Visit(parser::TableRef *node, parser::ParseResult *parse_r
 }
 
 void BindNodeVisitor::Visit(parser::GroupByDescription *node, parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting GroupByDescription ...");
+  BINDER_LOG_TRACE("Visiting GroupByDescription ...");
   for (auto &col : node->GetColumns()) col->Accept(this, parse_result);
   if (node->GetHaving() != nullptr) node->GetHaving()->Accept(this, parse_result);
 }
 
 void BindNodeVisitor::Visit(parser::OrderByDescription *node, parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting OrderByDescription ...");
+  BINDER_LOG_TRACE("Visiting OrderByDescription ...");
   for (auto &expr : node->GetOrderByExpressions())
     if (expr != nullptr) expr->Accept(this, parse_result);
 }
 
 void BindNodeVisitor::Visit(parser::UpdateStatement *node, parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting UpdateStatement ...");
+  BINDER_LOG_TRACE("Visiting UpdateStatement ...");
   context_ = new BinderContext(nullptr);
 
   node->GetUpdateTable()->Accept(this, parse_result);
@@ -144,7 +150,7 @@ void BindNodeVisitor::Visit(parser::UpdateStatement *node, parser::ParseResult *
 }
 
 void BindNodeVisitor::Visit(parser::DeleteStatement *node, parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting DeleteStatement ...");
+  BINDER_LOG_TRACE("Visiting DeleteStatement ...");
   context_ = new BinderContext(nullptr);
   node->GetDeletionTable()->TryBindDatabaseName(default_database_name_);
   auto table = node->GetDeletionTable();
@@ -161,11 +167,11 @@ void BindNodeVisitor::Visit(parser::DeleteStatement *node, parser::ParseResult *
 
 void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::LimitDescription *node,
                             UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting LimitDescription ...");
+  BINDER_LOG_TRACE("Visiting LimitDescription ...");
 }
 
 void BindNodeVisitor::Visit(parser::CopyStatement *node, parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting CopyStatement ...");
+  BINDER_LOG_TRACE("Visiting CopyStatement ...");
   context_ = new BinderContext(nullptr);
   if (node->GetCopyTable() != nullptr) {
     node->GetCopyTable()->Accept(this, parse_result);
@@ -185,11 +191,11 @@ void BindNodeVisitor::Visit(parser::CopyStatement *node, parser::ParseResult *pa
 
 void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::CreateFunctionStatement *node,
                             UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting CreateFunctionStatement ...");
+  BINDER_LOG_TRACE("Visiting CreateFunctionStatement ...");
 }
 
 void BindNodeVisitor::Visit(parser::CreateStatement *node, parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting CreateStatement ...");
+  BINDER_LOG_TRACE("Visiting CreateStatement ...");
   context_ = new BinderContext(context_);
 
   auto create_type = node->GetCreateType();
@@ -297,21 +303,88 @@ void BindNodeVisitor::Visit(parser::CreateStatement *node, parser::ParseResult *
 }
 
 void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting InsertStatement ...");
+  BINDER_LOG_TRACE("Visiting InsertStatement ...");
   context_ = new BinderContext(nullptr);
   node->GetInsertionTable()->TryBindDatabaseName(default_database_name_);
+
+  // TODO(WAN): It is unclear what this visitor pattern really buys us. Because of the
+  //  Visit -> Accept [ -> AcceptChildren] -> Visit loop, we lose the context of what we're currently
+  //  binding. Consider binding "INSERT INTO foo VALUES (1, 'a', '2020-01-01'::date);" for input values validation.
+  //  The BinderContext can be extended to maintain the table name that we are currently binding, but by the time
+  //  the visitor pattern sends you to the actual values, we will have lost track of whether we are currently binding
+  //  the first, second, or third column of foo. More generally, the structure of the binder and the expressions it
+  //  uses does not seem to allow for easy non-global reasoning. I could also just be missing something?
+  //  In any case, this is currently how transforming strings to dates is done.
 
   auto table = node->GetInsertionTable();
   context_->AddRegularTable(catalog_accessor_, table->GetDatabaseName(), table->GetNamespaceName(),
                             table->GetTableName(), table->GetTableName());
-  if (node->GetSelect() != nullptr) node->GetSelect()->Accept(this, parse_result);
+
+  if (node->GetSelect() != nullptr) {  // INSERT FROM SELECT
+    node->GetSelect()->Accept(this, parse_result);
+  } else {  // RAW INSERT
+    // Perform input validation and parsing of strings into dates.
+    auto binder_table_data = context_->GetTableMapping(table->GetTableName());
+    const auto &table_schema = std::get<2>(*binder_table_data);
+
+    auto insert_columns = node->GetInsertColumns();
+    // Validate input columns.
+    {
+      // Test that all the insert columns exist.
+      for (const auto &col : *insert_columns) {
+        if (!BinderContext::ColumnInSchema(table_schema, col)) {
+          throw BINDER_EXCEPTION("Insert column does not exist");
+        }
+      }
+    }
+
+    auto num_schema_columns = table_schema.GetColumns().size();
+    auto num_insert_columns = insert_columns->size();  // potentially 0 if unspecified by query
+    auto insert_values = node->GetValues();
+    // Validate input values.
+    {
+      for (auto &values : *insert_values) {
+        size_t num_values = values.size();
+        // Test that they have the same number of columns.
+        {
+          bool is_insert_cols_specified = num_insert_columns != 0;
+          bool insert_cols_ok = is_insert_cols_specified && num_values == num_insert_columns;
+          bool insert_schema_ok = !is_insert_cols_specified && num_values == num_schema_columns;
+          if (!(insert_cols_ok || insert_schema_ok)) {
+            throw BINDER_EXCEPTION("Mismatch in number of insert columns and number of insert values.");
+          }
+        }
+        // Test that the column values are of the right type.
+        for (size_t i = 0; i < num_values; ++i) {
+          // TODO(WAN): handle additional cases, possibly think about calling DeriveReturnValueType
+          //  so that we handle (1+2) type of expressions
+          //  ADDENDUM. So I thought DeriveReturnValueType would actually derive the return value type.
+          //  This appears to be a bad assumption. We should rename it to DeriveReturnValueTypeForAggregates()
+          //  or else fix up any other codepaths. I've currently fixed it for ConstantValueExpression.
+          auto expr = values[i];
+          auto ret_type = expr->GetReturnValueType();
+          auto expected_ret_type = table_schema.GetColumn(i).Type();
+
+          auto is_cast_expression = expr->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
+          auto mismatched_type = ret_type != expected_ret_type;
+
+          if (is_cast_expression || mismatched_type) {
+            auto converted = BinderUtil::Convert(values[i], expected_ret_type);
+            TERRIER_ASSERT(converted != nullptr, "Conversion cannot be null!");
+            values[i] = common::ManagedPointer(converted);
+            parse_result->AddExpression(std::move(converted));
+          }
+        }
+      }
+    }
+  }
 
   delete context_;
   context_ = nullptr;
 }
 
 void BindNodeVisitor::Visit(parser::DropStatement *node, UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting DropStatement ...");
+  BINDER_LOG_TRACE("Visiting DropStatement ...");
   context_ = new BinderContext(context_);
 
   auto drop_type = node->GetDropType();
@@ -347,28 +420,35 @@ void BindNodeVisitor::Visit(parser::DropStatement *node, UNUSED_ATTRIBUTE parser
 }
 void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::PrepareStatement *node,
                             UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting PrepareStatement ...");
+  BINDER_LOG_TRACE("Visiting PrepareStatement ...");
 }
 void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::ExecuteStatement *node,
                             UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting ExecuteStatement ...");
+  BINDER_LOG_TRACE("Visiting ExecuteStatement ...");
 }
 void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::TransactionStatement *node,
                             UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting TransactionStatement ...");
+  BINDER_LOG_TRACE("Visiting TransactionStatement ...");
 }
 void BindNodeVisitor::Visit(parser::AnalyzeStatement *node, UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting AnalyzeStatement ...");
+  BINDER_LOG_TRACE("Visiting AnalyzeStatement ...");
   node->GetAnalyzeTable()->TryBindDatabaseName(default_database_name_);
 }
 
 void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::ConstantValueExpression *expr,
                             UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting ConstantValueExpression ...");
+  BINDER_LOG_TRACE("Visiting ConstantValueExpression ...");
+  // TODO(WAN): see comment in Visit(InsertStatement *, ParseResult*)
+}
+
+void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::TypeCastExpression *expr,
+                            UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
+  BINDER_LOG_TRACE("Visiting TypeCastExpression...");
+  // TODO(WAN): see comment in Visit(InsertStatement *, ParseResult*)
 }
 
 void BindNodeVisitor::Visit(parser::ColumnValueExpression *expr, UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting ColumnValueExpression ...");
+  BINDER_LOG_TRACE("Visiting ColumnValueExpression ...");
   // TODO(Ling): consider remove precondition check if the *_oid_ will never be initialized till binder
   //  That is, the object would not be initialized using ColumnValueExpression(database_oid, table_oid, column_oid)
   //  at this point
@@ -401,20 +481,20 @@ void BindNodeVisitor::Visit(parser::ColumnValueExpression *expr, UNUSED_ATTRIBUT
 }
 
 void BindNodeVisitor::Visit(parser::CaseExpression *expr, parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting CaseExpression ...");
+  BINDER_LOG_TRACE("Visiting CaseExpression ...");
   for (size_t i = 0; i < expr->GetWhenClauseSize(); ++i) {
     expr->GetWhenClauseCondition(i)->Accept(this, parse_result);
   }
 }
 
 void BindNodeVisitor::Visit(parser::SubqueryExpression *expr, parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting SubqueryExpression ...");
+  BINDER_LOG_TRACE("Visiting SubqueryExpression ...");
   expr->GetSubselect()->Accept(this, parse_result);
 }
 
 void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::StarExpression *expr,
                             UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting StarExpression ...");
+  BINDER_LOG_TRACE("Visiting StarExpression ...");
   if (context_ == nullptr || !context_->HasTables()) {
     throw BINDER_EXCEPTION("Invalid [Expression :: STAR].");
   }
@@ -422,12 +502,12 @@ void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::StarExpression *expr,
 
 // Derive value type for these expressions
 void BindNodeVisitor::Visit(parser::OperatorExpression *expr, parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting OperatorExpression ...");
+  BINDER_LOG_TRACE("Visiting OperatorExpression ...");
   SqlNodeVisitor::Visit(expr, parse_result);
   expr->DeriveReturnValueType();
 }
 void BindNodeVisitor::Visit(parser::AggregateExpression *expr, parser::ParseResult *parse_result) {
-  BINDER_LOG_DEBUG("Visiting AggregateExpression ...");
+  BINDER_LOG_TRACE("Visiting AggregateExpression ...");
   SqlNodeVisitor::Visit(expr, parse_result);
   expr->DeriveReturnValueType();
 }
