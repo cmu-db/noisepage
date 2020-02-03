@@ -12,6 +12,12 @@
 
 namespace terrier::network {
 
+/**
+ * Statement is a postgres concept (see the Extended Query documentation:
+ * https://www.postgresql.org/docs/current/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY)
+ * It encapsulates a parsed statement, the parameter types (if any). It represents a statement ready to be turned into a
+ * Portal with a Bind message.
+ */
 class Statement {
  public:
   /**
@@ -49,18 +55,30 @@ class Statement {
     return parse_result_->Empty();
   }
 
+  /**
+   * @return managed pointer to the output of the parser for this statement
+   */
   common::ManagedPointer<parser::ParseResult> ParseResult() const {
     TERRIER_ASSERT(Valid(), "Attempting to get parse results without a valid parsed result.");
     return common::ManagedPointer(parse_result_);
   }
 
+  /**
+   * @return managed pointer to the  root statement of the ParseResult. Just shorthand for ParseResult->GetStatement(0)
+   */
   common::ManagedPointer<parser::SQLStatement> RootStatement() const {
     TERRIER_ASSERT(Valid(), "Attempting to get root statement without a valid parsed result.");
     return common::ManagedPointer(root_statement_);
   }
 
+  /**
+   * @return vector of the statements parameters (if any)
+   */
   const std::vector<type::TypeId> &ParamTypes() const { return param_types_; }
 
+  /**
+   * @return QueryType of the root statement of the ParseResult
+   */
   QueryType QueryType() const { return type_; }
 
  private:

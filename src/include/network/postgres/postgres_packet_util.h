@@ -13,6 +13,9 @@
 
 namespace terrier::network {
 
+/**
+ * Static helper class for dealing with the Postgres wire protocol
+ */
 class PostgresPacketUtil {
  public:
   PostgresPacketUtil() = delete;
