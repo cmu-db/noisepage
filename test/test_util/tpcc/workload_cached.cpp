@@ -31,18 +31,14 @@ namespace terrier::tpcc {
         catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
         txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
 
-
         // Create database catalog and namespace
         Builder tpcc_builder{block_store_, catalog_, txn_manager_};
 
         // build the TPCC database using HashMaps where possible
         tpcc_db_ = tpcc_builder.Build(storage::index::IndexType::HASHMAP);
 
-        std::cout << "after build, before populate" << std::endl;
-
+        // prepare the thread pool and workers
         common::WorkerPool thread_pool{static_cast<uint32_t>(num_threads), {}};
-
-        // prepare the workers
         std::vector<Worker> workers;
         workers.reserve(num_threads);
         workers.clear();
@@ -52,19 +48,14 @@ namespace terrier::tpcc {
 
         // populate the tables and indexes
         Loader::PopulateDatabase(txn_manager_, tpcc_db_, &workers, &thread_pool);
-
         db_oid_ = tpcc_db_->db_oid_;
-        std::cout << "after populate, before load queries" << std::endl;
 
         auto txn = txn_manager_->BeginTransaction();
         // db_oid_ = catalog_->CreateDatabase(common::ManagedPointer<transaction::TransactionContext>(txn), db_name, true);
         auto accessor = catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_);
-
-        std::cout << "got accessor" << std::endl;
-
         ns_oid_ = accessor->GetDefaultNamespace();
 
-        std::cout << "got ns_oid" << std::endl;
+        std::cout << "after populate, before load queries" << std::endl;
 
         // Make the execution context
         execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
@@ -80,7 +71,6 @@ namespace terrier::tpcc {
 
     void WorkloadCached::LoadTPCCQueries(execution::exec::ExecutionContext *exec_ctx, const std::string &file_root,
             const std::vector<std::string> &txn_names) {
-
         std::string query;
         std::string tbl;
 
@@ -88,15 +78,22 @@ namespace terrier::tpcc {
             static_cast<uint64_t>(db_main_->GetSettingsManager()->GetInt(settings::Param::task_execution_timeout)),
             tpcc_db_);
 
+        std::cout << "got plan_generator" << std::endl;
+
         for (auto &txn_name : txn_names) {
             auto curr = queries_.emplace(txn_name, std::vector<execution::ExecutableQuery> {});
             std::ifstream ifs_sql(file_root + txn_name + ".sql");
             std::ifstream ifs_tbl("tpcc_files/raw/" + txn_name + ".txt");
+
+            std::cout << "got sqls" << std::endl;
+
             while (getline(ifs_sql, query)) {
                 getline(ifs_tbl, tbl);
                 curr.first->second.emplace_back(
                         execution::ExecutableQuery(common::ManagedPointer<planner::AbstractPlanNode>(plan_generator.Generate(query, tbl)),
                                 common::ManagedPointer<execution::exec::ExecutionContext>(exec_ctx)));
+
+                std::cout << "got sql?" << std::endl;
             }
             ifs_sql.close();
             ifs_tbl.close();
