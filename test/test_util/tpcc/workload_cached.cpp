@@ -31,9 +31,6 @@ namespace terrier::tpcc {
         catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
         txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
 
-        auto txn = txn_manager_->BeginTransaction();
-
-        std::cout << "before build" << std::endl;
 
         // Create database catalog and namespace
         Builder tpcc_builder{block_store_, catalog_, txn_manager_};
@@ -56,12 +53,18 @@ namespace terrier::tpcc {
         // populate the tables and indexes
         Loader::PopulateDatabase(txn_manager_, tpcc_db_, &workers, &thread_pool);
 
-        std::cout << "after populate, before load queries" << std::endl;
         db_oid_ = tpcc_db_->db_oid_;
+        std::cout << "after populate, before load queries" << std::endl;
 
+        auto txn = txn_manager_->BeginTransaction();
         // db_oid_ = catalog_->CreateDatabase(common::ManagedPointer<transaction::TransactionContext>(txn), db_name, true);
         auto accessor = catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_);
+
+        std::cout << "got accessor" << std::endl;
+
         ns_oid_ = accessor->GetDefaultNamespace();
+
+        std::cout << "got ns_oid" << std::endl;
 
         // Make the execution context
         execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
@@ -69,6 +72,8 @@ namespace terrier::tpcc {
 
         // compile the queries
         LoadTPCCQueries(&exec_ctx, table_root, txn_names);
+
+        std::cout << "queries loaded" << std::endl;
 
         txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     }
