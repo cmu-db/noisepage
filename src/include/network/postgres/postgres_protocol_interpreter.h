@@ -147,7 +147,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
 
   /**
    * @param name key
-   * @param statement statement to take ownerships of
+   * @param statement statement to take ownership of
    */
   void SetStatement(const std::string &name, std::unique_ptr<network::Statement> &&statement) {
     statements_[name] = std::move(statement);
@@ -178,7 +178,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
 
   /**
    * @param name key
-   * @param statement statement to take ownerships of
+   * @param portal portal to take ownership of
    */
   void SetPortal(const std::string &name, std::unique_ptr<network::Portal> &&portal) {
     portals_[name] = std::move(portal);

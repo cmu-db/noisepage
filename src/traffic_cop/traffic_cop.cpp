@@ -124,11 +124,12 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
 }
 
 std::unique_ptr<planner::AbstractPlanNode> TrafficCop::OptimizeBoundQuery(
-    const common::ManagedPointer<transaction::TransactionContext> txn,
-    const common::ManagedPointer<catalog::CatalogAccessor> accessor,
+    const common::ManagedPointer<network::ConnectionContext> connection_ctx,
     const common::ManagedPointer<parser::ParseResult> query) const {
+  TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
+                 "Not in a valid txn. This should have been caught before calling this function.");
   // Optimizer transforms annotated ParseResult to logical expressions (ephemeral Optimizer structure)
-  optimizer::QueryToOperatorTransformer transformer(accessor);
+  optimizer::QueryToOperatorTransformer transformer(connection_ctx->Accessor());
   auto logical_exprs = transformer.ConvertToOpExpression(query->GetStatement(0), query.Get());
 
   // TODO(Matt): is the cost model to use going to become an arg to this function eventually?
@@ -169,7 +170,8 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCop::OptimizeBoundQuery(
   // TODO(Matt): QueryInfo holding a raw pointer to PropertySet obfuscates the required life cycle of PropertySet
 
   // Optimize, consuming the logical expressions in the process
-  return optimizer.BuildPlanTree(txn.Get(), accessor.Get(), stats_storage_.Get(), query_info, std::move(logical_exprs));
+  return optimizer.BuildPlanTree(connection_ctx->Transaction().Get(), connection_ctx->Accessor().Get(),
+                                 stats_storage_.Get(), query_info, std::move(logical_exprs));
   // TODO(Matt): I see a lot of copying going on in the Optimizer that maybe shouldn't be happening. BuildPlanTree's
   // signature is copying QueryInfo object (contains a vector of output columns), which then immediately makes a local
   // copy of that vector anyway. Presumably those are immutable expressions, in which case they should be const & to the
@@ -182,6 +184,8 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
     const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
     const terrier::network::QueryType query_type) const {
+  TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
+                 "Not in a valid txn. This should have been caught before calling this function.");
   TERRIER_ASSERT(
       query_type == network::QueryType::QUERY_CREATE_TABLE || query_type == network::QueryType::QUERY_CREATE_SCHEMA ||
           query_type == network::QueryType::QUERY_CREATE_INDEX || query_type == network::QueryType::QUERY_CREATE_DB ||
@@ -229,6 +233,8 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
     const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
     const terrier::network::QueryType query_type) const {
+  TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
+                 "Not in a valid txn. This should have been caught before calling this function.");
   TERRIER_ASSERT(
       query_type == network::QueryType::QUERY_DROP_TABLE || query_type == network::QueryType::QUERY_DROP_SCHEMA ||
           query_type == network::QueryType::QUERY_DROP_INDEX || query_type == network::QueryType::QUERY_DROP_DB ||
@@ -286,6 +292,8 @@ std::unique_ptr<parser::ParseResult> TrafficCop::ParseQuery(
 
 TrafficCopResult TrafficCop::BindQuery(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                        const common::ManagedPointer<network::Statement> statement) const {
+  TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
+                 "Not in a valid txn. This should have been caught before calling this function.");
   try {
     // TODO(Matt): I don't think the binder should need the database name. It's already bound in the ConnectionContext
     binder::BindNodeVisitor visitor(connection_ctx->Accessor(), connection_ctx->GetDatabaseName());
@@ -308,6 +316,8 @@ TrafficCopResult TrafficCop::CodegenAndRunPhysicalPlan(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
     const common::ManagedPointer<network::PostgresPacketWriter> out,
     const common::ManagedPointer<network::Portal> portal) const {
+  TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
+                 "Not in a valid txn. This should have been caught before calling this function.");
   const auto query_type = portal->Statement()->QueryType();
   const auto physical_plan = portal->PhysicalPlan();
   TERRIER_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||

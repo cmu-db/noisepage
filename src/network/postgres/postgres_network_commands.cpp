@@ -131,8 +131,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
   const auto bind_result = t_cop->BindQuery(connection, common::ManagedPointer(statement));
   if (bind_result.type_ == trafficcop::ResultType::COMPLETE) {
     // Binding succeeded, optimize to generate a physical plan and then execute
-    auto physical_plan =
-        t_cop->OptimizeBoundQuery(connection->Transaction(), connection->Accessor(), statement->ParseResult());
+    auto physical_plan = t_cop->OptimizeBoundQuery(connection, statement->ParseResult());
 
     const auto portal = std::make_unique<Portal>(common::ManagedPointer(statement), std::move(physical_plan));
 
@@ -296,8 +295,7 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   const auto bind_result = t_cop->BindQuery(connection, statement);
   if (bind_result.type_ == trafficcop::ResultType::COMPLETE) {
     // Binding succeeded, optimize to generate a physical plan and then execute
-    auto physical_plan =
-        t_cop->OptimizeBoundQuery(connection->Transaction(), connection->Accessor(), statement->ParseResult());
+    auto physical_plan = t_cop->OptimizeBoundQuery(connection, statement->ParseResult());
 
     postgres_interpreter->SetPortal(
         portal_name,

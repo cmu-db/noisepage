@@ -90,45 +90,79 @@ class TrafficCop {
       const std::string &query, common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
 
   /**
-   * @param txn used by optimizer
-   * @param accessor used by optimizer
+   * @param connection_ctx context containg txn and catalog accessor to be used
    * @param query bound ParseResult
-   * @param stats_storage used by optimizer
-   * @param optimizer_timeout used by optimizer
    * @return physical plan that can be executed
    */
   std::unique_ptr<planner::AbstractPlanNode> OptimizeBoundQuery(
-      common::ManagedPointer<transaction::TransactionContext> txn,
-      common::ManagedPointer<catalog::CatalogAccessor> accessor,
+      common::ManagedPointer<network::ConnectionContext> connection_ctx,
       common::ManagedPointer<parser::ParseResult> query) const;
 
-  // Handle the logic of beginning a txn
+  /**
+   * Calls to txn manager to begin txn, and updates ConnectionContext state
+   * @param connection_ctx context to own this txn
+   */
   void BeginTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
 
-  // Handle the logic of ending a txn
+  /**
+   * Calls to txn manager to end txn, and updates ConnectionContext state
+   * @param connection_ctx context to release its txn
+   * @param query_type if the txn is being ended with COMMIT or ROLLBACK
+   */
   void EndTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                       network::QueryType query_type) const;
 
-  // Contains the logic to reason about BEGIN, COMMIT, ROLLBACK execution. Responsible for outputting results.
+  /**
+   * Contains the logic to reason about BEGIN, COMMIT, ROLLBACK execution. Responsible for outputting results, since we
+   * need to be able to do more than return a single TrafficCopResult (i.e. we may need a NOTICE and a COMPLETE)
+   * @param connection_ctx context to be modified by changing txn state
+   * @param out packet writer for writing results
+   * @param explicit_txn_block true if in a txn from BEGIN, false otherwise
+   * @param query_type BEGIN, COMMIT, or ROLLBACK
+   */
   void ExecuteTransactionStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                    common::ManagedPointer<network::PostgresPacketWriter> out, bool explicit_txn_block,
                                    terrier::network::QueryType query_type) const;
 
-  // Contains logic to reason about binding, and basic IF EXISTS logic.
+  /**
+   * Contains logic to reason about binding, and basic IF EXISTS logic.
+   * @param connection_ctx context to be used to access the internal txn
+   * @param statement parse result to be bound
+   * @return result of the operation
+   */
   TrafficCopResult BindQuery(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                              const common::ManagedPointer<network::Statement> statement) const;
 
-  // Contains the logic to reason about CREATE execution.
+  /**
+   * Contains the logic to reason about CREATE execution.
+   * @param connection_ctx
+   * @param physical_plan
+   * @param query_type
+   * @return result of the operation
+   */
   TrafficCopResult ExecuteCreateStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                           common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
                                           terrier::network::QueryType query_type) const;
 
-  // Contains the logic to reason about DROP execution.
+  /**
+   * Contains the logic to reason about DROP execution.
+   * @param connection_ctx
+   * @param physical_plan
+   * @param query_type
+   * @return result of the operation
+   */
   TrafficCopResult ExecuteDropStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                         common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
                                         terrier::network::QueryType query_type) const;
 
-  // Contains the logic to reason about DML execution. Responsible for outputting results.
+  /**
+   * Contains the logic to reason about DML execution. Responsible for outputting results because we don't want to
+   * (can't) stick it in TrafficCopResult.
+   * @param connection_ctx
+   * @param out
+   * @param portal
+   * @return result of the operation
+   */
   TrafficCopResult CodegenAndRunPhysicalPlan(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                              common::ManagedPointer<network::PostgresPacketWriter> out,
                                              common::ManagedPointer<network::Portal> portal) const;
