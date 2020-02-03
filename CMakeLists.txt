@@ -310,16 +310,20 @@ add_custom_target(check-format ${BUILD_SUPPORT_DIR}/run_clang_format.py
 # "make check-clang-tidy" target
 ###########################################################
 if (${CLANG_TIDY_FOUND})
-    set(CLANG_TIDY_THREADS 4)
-    # runs clang-tidy-diff and exits with a non-zero exit code if any errors are found.
+    # runs clang-tidy and exits with a non-zero exit code if any errors are found.
     # note that clang-tidy automatically looks for a .clang-tidy file in parent directories
     add_custom_target(check-clang-tidy
+            ${BUILD_SUPPORT_DIR}/run-clang-tidy.py                            # run LLVM's clang-tidy script
+            -clang-tidy-binary ${CLANG_TIDY_BIN}                              # using our clang-tidy binary
+            -p ${CMAKE_BINARY_DIR}                                            # using cmake's generated compile commands
+            )
+    # runs clang-tidy-diff and exits with a non-zero exit code if any errors are found.
+    # note that clang-tidy automatically looks for a .clang-tidy file in parent directories
+    add_custom_target(check-clang-tidy-diff
             git diff -U0 HEAD^ | ${BUILD_SUPPORT_DIR}/clang-tidy-diff.py -p1  # run LLVM's clang-tidy-diff script
-#            ${BUILD_SUPPORT_DIR}/run-clang-tidy.py                            # run LLVM's clang-tidy script
             -clang-tidy-binary ${CLANG_TIDY_BIN}                              # using our clang-tidy binary
             -path ${CMAKE_BINARY_DIR}                                         # using cmake's generated compile commands
-#            -p ${CMAKE_BINARY_DIR}                                            # using cmake's generated compile commands
-            -j ${CLANG_TIDY_THREADS}                                          # with CLANG_TIDY_THREADS threads
+            -j 0                                                              # with as many threads as possible
             )
     if (TERRIER_BUILD_BENCHMARKS)
         add_dependencies(check-clang-tidy benchmark gtest gflags)               # clang-tidy needs their headers to exist
