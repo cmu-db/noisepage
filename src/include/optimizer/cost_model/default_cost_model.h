@@ -47,10 +47,10 @@ class DefaultCostModel : public AbstractCostModel {
   void Visit(const SeqScan *op) override {
     auto table_stats = stats_storage_->GetTableStats(op->GetDatabaseOID(), op->GetTableOID());
     if (table_stats->GetColumnCount() == 0) {
-      output_cost_ = DEFAULT_OUTPUT_COST;
+      output_cost_ += DEFAULT_OUTPUT_COST;
       return;
     }
-    output_cost_ = table_stats->GetNumRows() * DEFAULT_TUPLE_COST;
+    output_cost_ += table_stats->GetNumRows() * DEFAULT_TUPLE_COST;
   }
 
   /**
@@ -61,10 +61,10 @@ class DefaultCostModel : public AbstractCostModel {
   void Visit(const IndexScan *op) override {
     auto table_stats = stats_storage_->GetTableStats(op->GetDatabaseOID(), op->GetTableOID());
     if (table_stats->GetColumnCount() == 0 || table_stats->GetNumRows() == 0) {
-      output_cost_ = 0.f;
+      output_cost_ += 0.f;
       return;
     }
-    output_cost_ = std::log2(table_stats->GetNumRows()) * DEFAULT_INDEX_TUPLE_COST +
+    output_cost_ += std::log2(table_stats->GetNumRows()) * DEFAULT_INDEX_TUPLE_COST +
                    memo_->GetGroupByID(gexpr_->GetGroupID())->GetNumRows() * DEFAULT_TUPLE_COST;
   }
 
@@ -87,7 +87,7 @@ class DefaultCostModel : public AbstractCostModel {
   void Visit(const Limit *op) override {
     auto child_num_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(0))->GetNumRows();
 
-    output_cost_ = std::min((size_t)child_num_rows, (size_t)op->GetLimit()) * DEFAULT_TUPLE_COST;
+    output_cost_ += std::min((size_t)child_num_rows, (size_t)op->GetLimit()) * DEFAULT_TUPLE_COST;
   }
 
   /**
@@ -98,7 +98,7 @@ class DefaultCostModel : public AbstractCostModel {
     auto left_child_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(0))->GetNumRows();
     auto right_child_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(1))->GetNumRows();
 
-    output_cost_ = left_child_rows * right_child_rows * DEFAULT_TUPLE_COST;
+    output_cost_ += left_child_rows * right_child_rows * DEFAULT_TUPLE_COST;
   }
 
   /**
@@ -126,7 +126,7 @@ class DefaultCostModel : public AbstractCostModel {
   void Visit(UNUSED_ATTRIBUTE const InnerHashJoin *op) override {
     auto left_child_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(0))->GetNumRows();
     auto right_child_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(1))->GetNumRows();
-    output_cost_ = (left_child_rows + right_child_rows) * DEFAULT_TUPLE_COST;
+    output_cost_ += (left_child_rows + right_child_rows) * DEFAULT_TUPLE_COST;
   }
 
   /**
@@ -175,19 +175,19 @@ class DefaultCostModel : public AbstractCostModel {
    * Hash group by operator to visit
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const HashGroupBy *op) override { output_cost_ = HashCost() + GroupByCost(); }
+  void Visit(UNUSED_ATTRIBUTE const HashGroupBy *op) override { output_cost_ += HashCost() + GroupByCost(); }
 
   /**
    * Sort group by operator to visit
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const SortGroupBy *op) override { output_cost_ = GroupByCost(); }
+  void Visit(UNUSED_ATTRIBUTE const SortGroupBy *op) override { output_cost_ += GroupByCost(); }
 
   /**
    * Aggregate operator to visit
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const Aggregate *op) override { output_cost_ = HashCost() + GroupByCost(); }
+  void Visit(UNUSED_ATTRIBUTE const Aggregate *op) override { output_cost_ += HashCost() + GroupByCost(); }
 
  private:
   /**
