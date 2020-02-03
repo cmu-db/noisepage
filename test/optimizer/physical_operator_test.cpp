@@ -141,42 +141,42 @@ TEST(OperatorTests, IndexScanTest) {
   auto type = planner::IndexScanType::AscendingClosed;
 
   // different from index_scan_1 in dbOID
-  Operator index_scan_01 = IndexScan::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
-                                           std::vector<AnnotatedExpression>(), "table", false, type, {});
+  Operator index_scan_01 = IndexScan::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::table_oid_t(4), catalog::index_oid_t(3),
+                                           std::vector<AnnotatedExpression>(), false, type, {});
   // different from index_scan_1 in namespace OID
-  Operator index_scan_02 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(3), catalog::index_oid_t(3),
-                                           std::vector<AnnotatedExpression>(), "table", false, type, {});
+  Operator index_scan_02 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(3), catalog::table_oid_t(4), catalog::index_oid_t(3),
+                                           std::vector<AnnotatedExpression>(), false, type, {});
   // different from index_scan_1 in index OID
-  Operator index_scan_03 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(4),
-                                           std::vector<AnnotatedExpression>(), "table", false, type, {});
+  Operator index_scan_03 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4), catalog::index_oid_t(4),
+                                           std::vector<AnnotatedExpression>(), false, type, {});
   // different from index_scan_1 in table alias
-  Operator index_scan_04 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
-                                           std::vector<AnnotatedExpression>(), "tableTable", false, type, {});
+  Operator index_scan_04 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(5), catalog::index_oid_t(3),
+                                           std::vector<AnnotatedExpression>(), false, type, {});
   // different from index_scan_1 in 'is for update'
-  Operator index_scan_05 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
-                                           std::vector<AnnotatedExpression>(), "table", true, type, {});
-  Operator index_scan_1 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
-                                          std::vector<AnnotatedExpression>(), "table", false, type, {});
-  Operator index_scan_2 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
-                                          std::vector<AnnotatedExpression>(), "table", false, type, {});
+  Operator index_scan_05 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4), catalog::index_oid_t(3),
+                                           std::vector<AnnotatedExpression>(), true, type, {});
+  Operator index_scan_1 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4), catalog::index_oid_t(3),
+                                          std::vector<AnnotatedExpression>(), false, type, {});
+  Operator index_scan_2 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4), catalog::index_oid_t(3),
+                                          std::vector<AnnotatedExpression>(), false, type, {});
   // different from index_scan_1 in predicates
-  Operator index_scan_3 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
-                                          std::vector<AnnotatedExpression>{annotated_expr_0}, "table", false, type, {});
-  Operator index_scan_4 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
-                                          std::vector<AnnotatedExpression>{annotated_expr_1}, "table", false, type, {});
-  Operator index_scan_5 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
-                                          std::vector<AnnotatedExpression>{annotated_expr_2}, "table", false, type, {});
-  Operator index_scan_6 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
-                                          std::vector<AnnotatedExpression>{annotated_expr_3}, "table", false, type, {});
+  Operator index_scan_3 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4), catalog::index_oid_t(3),
+                                          std::vector<AnnotatedExpression>{annotated_expr_0}, false, type, {});
+  Operator index_scan_4 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4), catalog::index_oid_t(3),
+                                          std::vector<AnnotatedExpression>{annotated_expr_1}, false, type, {});
+  Operator index_scan_5 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4), catalog::index_oid_t(3),
+                                          std::vector<AnnotatedExpression>{annotated_expr_2}, false, type, {});
+  Operator index_scan_6 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4), catalog::index_oid_t(3),
+                                          std::vector<AnnotatedExpression>{annotated_expr_3}, false, type, {});
 
   EXPECT_EQ(index_scan_1.GetType(), OpType::INDEXSCAN);
   EXPECT_EQ(index_scan_1.As<IndexScan>()->GetDatabaseOID(), catalog::db_oid_t(1));
   EXPECT_EQ(index_scan_1.As<IndexScan>()->GetNamespaceOID(), catalog::namespace_oid_t(2));
+  EXPECT_EQ(index_scan_1.As<IndexScan>()->GetTableOID(), catalog::table_oid_t(4));
   EXPECT_EQ(index_scan_1.As<IndexScan>()->GetIndexOID(), catalog::index_oid_t(3));
   EXPECT_EQ(index_scan_1.As<IndexScan>()->GetPredicates(), std::vector<AnnotatedExpression>());
   EXPECT_EQ(index_scan_3.As<IndexScan>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_0});
   EXPECT_EQ(index_scan_4.As<IndexScan>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
-  EXPECT_EQ(index_scan_1.As<IndexScan>()->GetTableAlias(), "table");
   EXPECT_EQ(index_scan_1.As<IndexScan>()->GetIsForUpdate(), false);
   EXPECT_EQ(index_scan_1.GetName(), "IndexScan");
   EXPECT_TRUE(index_scan_1 == index_scan_2);
