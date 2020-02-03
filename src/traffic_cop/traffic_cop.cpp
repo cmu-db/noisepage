@@ -1,7 +1,5 @@
 #include "traffic_cop/traffic_cop.h"
 
-#include <network/postgres/postgres_protocol_interpreter.h>
-
 #include <future>  // NOLINT
 #include <memory>
 #include <string>
@@ -20,6 +18,7 @@
 #include "network/connection_context.h"
 #include "network/postgres/portal.h"
 #include "network/postgres/postgres_packet_writer.h"
+#include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/postgres/statement.h"
 #include "optimizer/abstract_optimizer.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
