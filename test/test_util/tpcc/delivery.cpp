@@ -27,8 +27,8 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
     *reinterpret_cast<int8_t *>(new_order_key_hi->AccessForceNotNull(no_d_id_key_pr_offset_)) = d_id;
     *reinterpret_cast<int32_t *>(new_order_key_hi->AccessForceNotNull(no_o_id_key_pr_offset_)) = 10000000;  // max O_ID
 
-    db->new_order_primary_index_->ScanLimitAscending(*txn, *new_order_key_lo, *new_order_key_hi, &index_scan_results,
-                                                     1);
+    db->new_order_primary_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 3, new_order_key_lo,
+                                                new_order_key_hi, 1, &index_scan_results);
     // If no matching row is found, then the delivery is skipped
     if (index_scan_results.empty()) {
       continue;
@@ -103,7 +103,8 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
     *reinterpret_cast<int8_t *>(order_line_key_hi->AccessForceNotNull(ol_number_key_pr_offset_)) = 15;  // max OL_NUMBER
 
     index_scan_results.clear();
-    db->order_line_primary_index_->ScanAscending(*txn, *order_line_key_lo, *order_line_key_hi, &index_scan_results);
+    db->order_line_primary_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 4, order_line_key_lo,
+                                                 order_line_key_hi, 0, &index_scan_results);
     TERRIER_ASSERT(!index_scan_results.empty() && index_scan_results.size() <= 15,
                    "There should be at least 1 Order Line item, but no more than 15.");
 
@@ -157,7 +158,7 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
                    "Customer update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
   }
 
-  txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   return true;
 }
 

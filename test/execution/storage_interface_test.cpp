@@ -38,8 +38,8 @@ TEST_F(StorageInterfaceTest, SimpleInsertTest) {
   std::array<uint32_t, 1> col_oids{1};
 
   // The index iterator gives us the slots to update.
-  IndexIterator index_iter1{exec_ctx_.get(), !table_oid1, !index_oid1, col_oids.data(),
-                            static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter1{
+      exec_ctx_.get(), 1, !table_oid1, !index_oid1, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
   index_iter1.Init();
 
   // Inserter.
@@ -52,8 +52,9 @@ TEST_F(StorageInterfaceTest, SimpleInsertTest) {
   auto *const hi_pr(index_iter1.HiPR());
   lo_pr->Set<int32_t, false>(0, lo_match, false);
   hi_pr->Set<int32_t, false>(0, hi_match, false);
-  index_iter1.ScanAscending();
+  index_iter1.ScanAscending(storage::index::ScanType::Closed, 0);
   std::vector<uint32_t> inserted_vals;
+  int nt = 0;
   while (index_iter1.Advance()) {
     // Get tuple at the current slot
     auto *const table_pr(index_iter1.TablePR());
@@ -67,6 +68,7 @@ TEST_F(StorageInterfaceTest, SimpleInsertTest) {
     auto *const index_pr(inserter.GetIndexPR(index_oid0));
     index_pr->Set<int32_t, false>(0, *val_a, false);
     ASSERT_TRUE(inserter.IndexInsert());
+    nt++;
   }
 
   // Try to fetch the inserted values.
@@ -94,8 +96,8 @@ TEST_F(StorageInterfaceTest, SimpleDeleteTest) {
   std::array<uint32_t, 1> col_oids{1};
 
   // The index iterator gives us the slots to update.
-  IndexIterator index_iter{exec_ctx_.get(), !table_oid, !index_oid, col_oids.data(),
-                           static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter{
+      exec_ctx_.get(), 1, !table_oid, !index_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
   index_iter.Init();
 
   // Deleter.
@@ -108,7 +110,7 @@ TEST_F(StorageInterfaceTest, SimpleDeleteTest) {
   auto *const hi_pr(index_iter.HiPR());
   lo_pr->Set<int32_t, false>(0, lo_match, false);
   hi_pr->Set<int32_t, false>(0, hi_match, false);
-  index_iter.ScanAscending();
+  index_iter.ScanAscending(storage::index::ScanType::Closed, 0);
   while (index_iter.Advance()) {
     // Get tuple at the current slot
     auto *const table_pr(index_iter.TablePR());
@@ -125,7 +127,7 @@ TEST_F(StorageInterfaceTest, SimpleDeleteTest) {
   // Now try reading the deleted rows from the index. They should not be found
   lo_pr->Set<int32_t, false>(0, lo_match, false);
   hi_pr->Set<int32_t, false>(0, hi_match, false);
-  index_iter.ScanAscending();
+  index_iter.ScanAscending(storage::index::ScanType::Closed, 0);
   ASSERT_FALSE(index_iter.Advance());
 
   // Try scanning through the table. There should be less elements.
@@ -151,8 +153,8 @@ TEST_F(StorageInterfaceTest, SimpleNonIndexedUpdateTest) {
   std::array<uint32_t, 1> col_oids{2};
 
   // The index iterator gives us the slots to update.
-  IndexIterator index_iter{exec_ctx_.get(), !table_oid, !index_oid, col_oids.data(),
-                           static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter{
+      exec_ctx_.get(), 1, !table_oid, !index_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
   index_iter.Init();
 
   // Non indexed updater.
@@ -165,7 +167,7 @@ TEST_F(StorageInterfaceTest, SimpleNonIndexedUpdateTest) {
   auto *const hi_pr(index_iter.HiPR());
   lo_pr->Set<int32_t, false>(0, lo_match, false);
   hi_pr->Set<int32_t, false>(0, hi_match, false);
-  index_iter.ScanAscending();
+  index_iter.ScanAscending(storage::index::ScanType::Closed, 0);
   std::vector<uint32_t> old_vals;
   while (index_iter.Advance()) {
     // Get tuple at the current slot
@@ -183,7 +185,7 @@ TEST_F(StorageInterfaceTest, SimpleNonIndexedUpdateTest) {
   // The updated values should be found.
   lo_pr->Set<int32_t, false>(0, lo_match, false);
   hi_pr->Set<int32_t, false>(0, hi_match, false);
-  index_iter.ScanAscending();
+  index_iter.ScanAscending(storage::index::ScanType::Closed, 0);
   uint32_t num_matches = 0;
   while (index_iter.Advance()) {
     auto *const table_pr(index_iter.TablePR());
@@ -203,8 +205,8 @@ TEST_F(StorageInterfaceTest, SimpleIndexedUpdateTest) {
   std::array<uint32_t, 4> col_oids{1, 2, 3, 4};
 
   // The index iterator gives us the slots to update.
-  IndexIterator index_iter{exec_ctx_.get(), !table_oid, !index_oid, col_oids.data(),
-                           static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter{
+      exec_ctx_.get(), 1, !table_oid, !index_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
   index_iter.Init();
 
   // Indexed updater.
@@ -217,7 +219,7 @@ TEST_F(StorageInterfaceTest, SimpleIndexedUpdateTest) {
   auto *const hi_pr(index_iter.HiPR());
   lo_pr->Set<int32_t, false>(0, lo_match, false);
   hi_pr->Set<int32_t, false>(0, hi_match, false);
-  index_iter.ScanAscending();
+  index_iter.ScanAscending(storage::index::ScanType::Closed, 0);
   std::vector<uint32_t> old_vals;
   while (index_iter.Advance()) {
     // Get tuple at the current slot
@@ -249,7 +251,7 @@ TEST_F(StorageInterfaceTest, SimpleIndexedUpdateTest) {
   // The updated values should be found.
   lo_pr->Set<int32_t, false>(0, lo_match + TEST1_SIZE, false);
   hi_pr->Set<int32_t, false>(0, hi_match + TEST1_SIZE, false);
-  index_iter.ScanAscending();
+  index_iter.ScanAscending(storage::index::ScanType::Closed, 0);
   uint32_t num_matches = 0;
   while (index_iter.Advance()) {
     auto *const table_pr(index_iter.TablePR());
@@ -276,11 +278,11 @@ TEST_F(StorageInterfaceTest, MultiIndexedUpdateTest) {
   uint16_t idx_d = 2;
 
   // The index iterator gives us the slots to update.
-  IndexIterator index_iter1{exec_ctx_.get(), !table_oid, !index_oid1, col_oids.data(),
-                            static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter1{
+      exec_ctx_.get(), 1, !table_oid, !index_oid1, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
 
-  IndexIterator index_iter2{exec_ctx_.get(), !table_oid, !index_oid2, col_oids.data(),
-                            static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter2{
+      exec_ctx_.get(), 1, !table_oid, !index_oid2, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
   index_iter1.Init();
   index_iter2.Init();
 
@@ -295,7 +297,7 @@ TEST_F(StorageInterfaceTest, MultiIndexedUpdateTest) {
   auto *hi_pr(index_iter1.HiPR());
   lo_pr->Set<int16_t, false>(0, lo_match, false);
   hi_pr->Set<int16_t, false>(0, hi_match, false);
-  index_iter1.ScanAscending();
+  index_iter1.ScanAscending(storage::index::ScanType::Closed, 0);
   std::vector<uint16_t> old_vals;
   uint32_t num_updates = 0;
   while (index_iter1.Advance()) {
@@ -349,7 +351,7 @@ TEST_F(StorageInterfaceTest, MultiIndexedUpdateTest) {
   {
     lo_pr->Set<int16_t, false>(0, lo_match + update_val, false);
     hi_pr->Set<int16_t, false>(0, hi_match + update_val, false);
-    index_iter1.ScanAscending();
+    index_iter1.ScanAscending(storage::index::ScanType::Closed, 0);
     uint32_t num_matches = 0;
     while (index_iter1.Advance()) {
       auto *const table_pr(index_iter1.TablePR());
@@ -372,7 +374,7 @@ TEST_F(StorageInterfaceTest, MultiIndexedUpdateTest) {
     lo_pr->Set<int32_t, false>(0, 0, false);
     hi_pr->Set<int16_t, false>(1, hi_match + update_val, false);
     hi_pr->Set<int32_t, false>(0, 0, false);
-    index_iter2.ScanAscending();
+    index_iter2.ScanAscending(storage::index::ScanType::Closed, 0);
     uint32_t num_matches = 0;
     while (index_iter2.Advance()) {
       auto *const table_pr(index_iter2.TablePR());

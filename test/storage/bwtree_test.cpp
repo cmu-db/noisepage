@@ -35,6 +35,7 @@ TEST_F(BwTreeTests, ReproduceNewOrderMemoryLeak) {
   // This defines the key space (0 ~ (1M - 1))
   const uint32_t key_num = 1024 * 1024 * num_threads_;
   common::WorkerPool thread_pool(num_threads_, {});
+  thread_pool.Startup();
   auto *const tree = new third_party::bwtree::BwTree<int64_t, int64_t>;
 
   std::vector<int64_t> keys;
@@ -227,6 +228,7 @@ TEST_F(BwTreeTests, ConcurrentRandomInsert) {
   std::atomic<size_t> insert_success_counter = 0;
 
   common::WorkerPool thread_pool(num_threads_, {});
+  thread_pool.Startup();
   auto *const tree = BwTreeTestUtil::GetEmptyTree();
 
   // Inserts in a 1M key space randomly until all keys has been inserted
@@ -276,6 +278,7 @@ TEST_F(BwTreeTests, ConcurrentMixed) {
   const uint32_t key_num = 1024 * 1024;
 
   common::WorkerPool thread_pool(num_threads_, {});
+  thread_pool.Startup();
   auto *const tree = BwTreeTestUtil::GetEmptyTree();
 
   auto workload = [&](uint32_t id) {
@@ -321,6 +324,7 @@ TEST_F(BwTreeTests, Interleaved) {
   const uint32_t basic_test_key_num = 128 * 1024;
 
   common::WorkerPool thread_pool(num_threads_, {});
+  thread_pool.Startup();
   auto *const tree = BwTreeTestUtil::GetEmptyTree();
 
   /*
@@ -480,6 +484,7 @@ TEST_F(BwTreeTests, Interleaved) {
 // NOLINTNEXTLINE
 TEST_F(BwTreeTests, EpochManager) {
   common::WorkerPool thread_pool(num_threads_, {});
+  thread_pool.Startup();
   auto *const tree = BwTreeTestUtil::GetEmptyTree();
 
   auto workload = [&](uint32_t id) {

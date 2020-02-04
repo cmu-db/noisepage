@@ -958,7 +958,7 @@ TEST(ExpressionTests, StarExpressionJsonTest) {
 
   auto original_expr = new StarExpression();
   EXPECT_EQ(original_expr->GetExpressionType(), ExpressionType::STAR);
-  EXPECT_EQ(original_expr->GetReturnValueType(), type::TypeId::INVALID);
+  EXPECT_EQ(original_expr->GetReturnValueType(), type::TypeId::INTEGER);
   original_expr->DeriveExpressionName();
   EXPECT_EQ(original_expr->GetExpressionName(), "STAR");
 
@@ -1008,17 +1008,17 @@ TEST(ExpressionTests, SubqueryExpressionTest) {
   // subselect's select columns, where condition, and distinct flag
   auto stmts0 = parser::PostgresParser::BuildParseTree(
       "SELECT * FROM foo INNER JOIN bar ON foo.a = bar.a WHERE foo.a > 0 GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
-  EXPECT_EQ(stmts0.GetStatements().size(), 1);
-  EXPECT_EQ(stmts0.GetStatement(0)->GetType(), StatementType::SELECT);
+  EXPECT_EQ(stmts0->GetStatements().size(), 1);
+  EXPECT_EQ(stmts0->GetStatement(0)->GetType(), StatementType::SELECT);
 
   auto select0 = std::unique_ptr<SelectStatement>(
-      reinterpret_cast<SelectStatement *>(stmts0.TakeStatementsOwnership()[0].release()));
+      reinterpret_cast<SelectStatement *>(stmts0->TakeStatementsOwnership()[0].release()));
   auto subselect_expr0 = new SubqueryExpression(std::move(select0));
 
   auto stmts1 = parser::PostgresParser::BuildParseTree(
       "SELECT * FROM foo INNER JOIN bar ON foo.a = bar.a WHERE foo.a > 0 GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
   auto select1 = std::unique_ptr<SelectStatement>(
-      reinterpret_cast<SelectStatement *>(stmts1.TakeStatementsOwnership()[0].release()));
+      reinterpret_cast<SelectStatement *>(stmts1->TakeStatementsOwnership()[0].release()));
   auto subselect_expr1 = new SubqueryExpression(std::move(select1));
 
   // different in select columns
@@ -1026,7 +1026,7 @@ TEST(ExpressionTests, SubqueryExpressionTest) {
       "SELECT a, b FROM foo INNER JOIN bar ON foo.a = bar.a WHERE foo.a > 0 GROUP BY foo.b ORDER BY bar.b ASC LIMIT "
       "5;");
   auto select2 = std::unique_ptr<SelectStatement>(
-      reinterpret_cast<SelectStatement *>(stmts2.TakeStatementsOwnership()[0].release()));
+      reinterpret_cast<SelectStatement *>(stmts2->TakeStatementsOwnership()[0].release()));
   auto subselect_expr2 = new SubqueryExpression(std::move(select2));
 
   // different in distinct flag
@@ -1034,20 +1034,20 @@ TEST(ExpressionTests, SubqueryExpressionTest) {
       "SELECT DISTINCT a, b FROM foo INNER JOIN bar ON foo.a = bar.a WHERE foo.a > 0 GROUP BY foo.b ORDER BY bar.b ASC "
       "LIMIT 5;");
   auto select3 = std::unique_ptr<SelectStatement>(
-      reinterpret_cast<SelectStatement *>(stmts3.TakeStatementsOwnership()[0].release()));
+      reinterpret_cast<SelectStatement *>(stmts3->TakeStatementsOwnership()[0].release()));
   auto subselect_expr3 = new SubqueryExpression(std::move(select3));
 
   // different in where
   auto stmts4 = parser::PostgresParser::BuildParseTree(
       "SELECT * FROM foo INNER JOIN bar ON foo.b = bar.a WHERE foo.b > 0 GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
   auto select4 = std::unique_ptr<SelectStatement>(
-      reinterpret_cast<SelectStatement *>(stmts4.TakeStatementsOwnership()[0].release()));
+      reinterpret_cast<SelectStatement *>(stmts4->TakeStatementsOwnership()[0].release()));
   auto subselect_expr4 = new SubqueryExpression(std::move(select4));
 
   // different in where
   auto stmts5 = parser::PostgresParser::BuildParseTree("SELECT * FROM foo INNER JOIN bar ON foo.b = bar.a;");
   auto select5 = std::unique_ptr<SelectStatement>(
-      reinterpret_cast<SelectStatement *>(stmts5.TakeStatementsOwnership()[0].release()));
+      reinterpret_cast<SelectStatement *>(stmts5->TakeStatementsOwnership()[0].release()));
   auto subselect_expr5 = new SubqueryExpression(std::move(select5));
 
   // depth is still -1 after deriveDepth, as the depth is set in binder
@@ -1077,11 +1077,11 @@ TEST(ExpressionTests, SubqueryExpressionTest) {
 TEST(ExpressionTests, SimpleSubqueryExpressionJsonTest) {
   // Create expression
   auto result = parser::PostgresParser::BuildParseTree("SELECT * FROM foo;");
-  EXPECT_EQ(result.GetStatements().size(), 1);
-  EXPECT_EQ(result.GetStatement(0)->GetType(), StatementType::SELECT);
+  EXPECT_EQ(result->GetStatements().size(), 1);
+  EXPECT_EQ(result->GetStatement(0)->GetType(), StatementType::SELECT);
 
   auto select = std::unique_ptr<SelectStatement>(
-      reinterpret_cast<SelectStatement *>(result.TakeStatementsOwnership()[0].release()));
+      reinterpret_cast<SelectStatement *>(result->TakeStatementsOwnership()[0].release()));
   auto original_expr = std::make_unique<SubqueryExpression>(std::move(select));
   EXPECT_EQ(*original_expr, *(original_expr->Copy()));
 
@@ -1109,11 +1109,11 @@ TEST(ExpressionTests, ComplexSubqueryExpressionJsonTest) {
   // Create expression
   auto result = parser::PostgresParser::BuildParseTree(
       "SELECT * FROM foo INNER JOIN bar ON foo.a = bar.a GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
-  EXPECT_EQ(result.GetStatements().size(), 1);
-  EXPECT_EQ(result.GetStatements()[0]->GetType(), StatementType::SELECT);
+  EXPECT_EQ(result->GetStatements().size(), 1);
+  EXPECT_EQ(result->GetStatements()[0]->GetType(), StatementType::SELECT);
 
   auto select = std::unique_ptr<SelectStatement>(
-      reinterpret_cast<SelectStatement *>(result.TakeStatementsOwnership()[0].release()));
+      reinterpret_cast<SelectStatement *>(result->TakeStatementsOwnership()[0].release()));
   auto original_expr = std::make_unique<SubqueryExpression>(std::move(select));
 
   // Serialize expression

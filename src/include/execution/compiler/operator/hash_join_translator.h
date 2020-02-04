@@ -1,8 +1,8 @@
 #pragma once
 
-#include <planner/plannodes/hash_join_plan_node.h>
 #include "execution/compiler/expression/expression_translator.h"
 #include "execution/compiler/operator/operator_translator.h"
+#include "planner/plannodes/hash_join_plan_node.h"
 
 namespace terrier::execution::compiler {
 
@@ -62,6 +62,9 @@ class HashJoinLeftTranslator : public OperatorTranslator {
   // Get an attribute from attribute struct
   ast::Expr *GetBuildValue(uint32_t idx);
 
+  // Get the mark flag
+  ast::Expr *GetMarkFlag();
+
   // Build the hash table
   void GenBuildCall(FunctionBuilder *builder);
 
@@ -74,6 +77,9 @@ class HashJoinLeftTranslator : public OperatorTranslator {
   ast::Identifier build_struct_;
   ast::Identifier build_row_;
   ast::Identifier join_ht_;
+  // This boolean is used for semi and anti joins.
+  // It indicates whether a tuple has been matched or not.
+  ast::Identifier mark_;
 };
 
 /**
@@ -137,6 +143,9 @@ class HashJoinRightTranslator : public OperatorTranslator {
 
   // Declare the matching tuple
   void DeclareMatch(FunctionBuilder *builder);
+
+  // If statement for left semi joins
+  void GenLeftSemiJoinCondition(FunctionBuilder *builder);
 
   // Complete the join key check function
   void GenKeyCheck(FunctionBuilder *builder);

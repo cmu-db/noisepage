@@ -42,7 +42,7 @@ class BwTreeIndex final : public Index {
     TERRIER_ASSERT(!(metadata_.GetSchema().Unique()),
                    "This Insert is designed for secondary indexes with no uniqueness constraints.");
     KeyType index_key;
-    index_key.SetFromProjectedRow(tuple, metadata_);
+    index_key.SetFromProjectedRow(tuple, metadata_, metadata_.GetSchema().GetColumns().size());
     const bool result = bwtree_->Insert(index_key, location, false);
 
     TERRIER_ASSERT(
@@ -60,7 +60,7 @@ class BwTreeIndex final : public Index {
                     const TupleSlot location) final {
     TERRIER_ASSERT(metadata_.GetSchema().Unique(), "This Insert is designed for indexes with uniqueness constraints.");
     KeyType index_key;
-    index_key.SetFromProjectedRow(tuple, metadata_);
+    index_key.SetFromProjectedRow(tuple, metadata_, metadata_.GetSchema().GetColumns().size());
     bool predicate_satisfied = false;
 
     // The predicate checks if any matching keys have write-write conflicts or are still visible to the calling txn.
@@ -85,7 +85,7 @@ class BwTreeIndex final : public Index {
       // Presumably you've already made modifications to a DataTable (the source of the TupleSlot argument to this
       // function) however, the index found a constraint violation and cannot allow that operation to succeed. For MVCC
       // correctness, this txn must now abort for the GC to clean up the version chain in the DataTable correctly.
-      txn->MustAbort();
+      txn->SetMustAbort();
     }
 
     return result;
@@ -94,7 +94,7 @@ class BwTreeIndex final : public Index {
   void Delete(const common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
               const TupleSlot location) final {
     KeyType index_key;
-    index_key.SetFromProjectedRow(tuple, metadata_);
+    index_key.SetFromProjectedRow(tuple, metadata_, metadata_.GetSchema().GetColumns().size());
 
     TERRIER_ASSERT(!(location.GetBlock()->data_table_->HasConflict(*txn, location)) &&
                        !(location.GetBlock()->data_table_->IsVisible(*txn, location)),
@@ -117,7 +117,7 @@ class BwTreeIndex final : public Index {
 
     // Build search key
     KeyType index_key;
-    index_key.SetFromProjectedRow(key, metadata_);
+    index_key.SetFromProjectedRow(key, metadata_, metadata_.GetSchema().GetColumns().size());
 
     // Perform lookup in BwTree
     bwtree_->GetValue(index_key, results);
@@ -134,18 +134,28 @@ class BwTreeIndex final : public Index {
                    "Invalid number of results for unique index.");
   }
 
-  void ScanAscending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
-                     const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) final {
+  void ScanAscending(const transaction::TransactionContext &txn, ScanType scan_type, uint32_t num_attrs,
+                     ProjectedRow *low_key, ProjectedRow *high_key, uint32_t limit,
+                     std::vector<TupleSlot> *value_list) final {
     TERRIER_ASSERT(value_list->empty(), "Result set should begin empty.");
+    TERRIER_ASSERT(scan_type == ScanType::Closed || scan_type == ScanType::OpenLow || scan_type == ScanType::OpenHigh ||
+                       scan_type == ScanType::OpenBoth,
+                   "Invalid scan_type passed into BwTreeIndex::Scan");
+
+    bool low_key_exists = (scan_type == ScanType::Closed || scan_type == ScanType::OpenHigh);
+    bool high_key_exists = (scan_type == ScanType::Closed || scan_type == ScanType::OpenLow);
 
     // Build search keys
     KeyType index_low_key, index_high_key;
-    index_low_key.SetFromProjectedRow(low_key, metadata_);
-    index_high_key.SetFromProjectedRow(high_key, metadata_);
+    if (low_key_exists) index_low_key.SetFromProjectedRow(*low_key, metadata_, num_attrs);
+    if (high_key_exists) index_high_key.SetFromProjectedRow(*high_key, metadata_, num_attrs);
 
     // Perform lookup in BwTree
-    auto scan_itr = bwtree_->Begin(index_low_key);
-    while (!scan_itr.IsEnd() && (bwtree_->KeyCmpLessEqual(scan_itr->first, index_high_key))) {
+    auto scan_itr = low_key_exists ? bwtree_->Begin(index_low_key) : bwtree_->Begin();
+
+    // Limit of 0 indicates "no limit"
+    while ((limit == 0 || value_list->size() < limit) && !scan_itr.IsEnd() &&
+           (!high_key_exists || scan_itr->first.PartialLessThan(index_high_key, &metadata_, num_attrs))) {
       // Perform visibility check on result
       if (IsVisible(txn, scan_itr->second)) value_list->emplace_back(scan_itr->second);
       scan_itr++;
@@ -158,8 +168,8 @@ class BwTreeIndex final : public Index {
 
     // Build search keys
     KeyType index_low_key, index_high_key;
-    index_low_key.SetFromProjectedRow(low_key, metadata_);
-    index_high_key.SetFromProjectedRow(high_key, metadata_);
+    index_low_key.SetFromProjectedRow(low_key, metadata_, metadata_.GetSchema().GetColumns().size());
+    index_high_key.SetFromProjectedRow(high_key, metadata_, metadata_.GetSchema().GetColumns().size());
 
     // Perform lookup in BwTree
     auto scan_itr = bwtree_->Begin(index_high_key);
@@ -177,27 +187,6 @@ class BwTreeIndex final : public Index {
     }
   }
 
-  void ScanLimitAscending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
-                          const ProjectedRow &high_key, std::vector<TupleSlot> *value_list,
-                          const uint32_t limit) final {
-    TERRIER_ASSERT(value_list->empty(), "Result set should begin empty.");
-    TERRIER_ASSERT(limit > 0, "Limit must be greater than 0.");
-
-    // Build search keys
-    KeyType index_low_key, index_high_key;
-    index_low_key.SetFromProjectedRow(low_key, metadata_);
-    index_high_key.SetFromProjectedRow(high_key, metadata_);
-
-    // Perform lookup in BwTree
-    auto scan_itr = bwtree_->Begin(index_low_key);
-    while (value_list->size() < limit && !scan_itr.IsEnd() &&
-           (bwtree_->KeyCmpLessEqual(scan_itr->first, index_high_key))) {
-      // Perform visibility check on result
-      if (IsVisible(txn, scan_itr->second)) value_list->emplace_back(scan_itr->second);
-      scan_itr++;
-    }
-  }
-
   void ScanLimitDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
                            const ProjectedRow &high_key, std::vector<TupleSlot> *value_list,
                            const uint32_t limit) final {
@@ -206,8 +195,8 @@ class BwTreeIndex final : public Index {
 
     // Build search keys
     KeyType index_low_key, index_high_key;
-    index_low_key.SetFromProjectedRow(low_key, metadata_);
-    index_high_key.SetFromProjectedRow(high_key, metadata_);
+    index_low_key.SetFromProjectedRow(low_key, metadata_, metadata_.GetSchema().GetColumns().size());
+    index_high_key.SetFromProjectedRow(high_key, metadata_, metadata_.GetSchema().GetColumns().size());
 
     // Perform lookup in BwTree
     auto scan_itr = bwtree_->Begin(index_high_key);

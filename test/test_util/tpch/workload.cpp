@@ -4,6 +4,7 @@
 
 #include "execution/exec/execution_context.h"
 #include "execution/execution_util.h"
+#include "execution/executable_query.h"
 #include "execution/table_generator/table_generator.h"
 #include "main/db_main.h"
 

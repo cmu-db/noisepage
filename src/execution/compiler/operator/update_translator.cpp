@@ -26,7 +26,8 @@ void UpdateTranslator::Produce(FunctionBuilder *builder) {
 
 void UpdateTranslator::Abort(FunctionBuilder *builder) {
   GenUpdaterFree(builder);
-  if (child_translator_ != nullptr) child_translator_->Abort(builder);
+  child_translator_->Abort(builder);
+  builder->Append(codegen_->ReturnStmt(nullptr));
 }
 
 void UpdateTranslator::Consume(FunctionBuilder *builder) {
@@ -110,14 +111,16 @@ void UpdateTranslator::FillPRFromChild(terrier::execution::compiler::FunctionBui
     auto translator = TranslatorFactory::CreateExpressionTranslator(clause.second.Get(), codegen_);
     auto clause_expr = translator->DeriveExpr(this);
     auto pr_set_call = codegen_->PRSet(codegen_->MakeExpr(update_pr_), table_col.Type(), table_col.Nullable(),
-                                       table_pm_[table_col_oid], clause_expr);
+                                       table_pm_[table_col_oid], clause_expr, true);
     builder->Append(codegen_->MakeStmt(pr_set_call));
   }
 }
 
 void UpdateTranslator::GenTableUpdate(FunctionBuilder *builder) {
-  // if (update fails) { Abort(); }
-  auto update_call = codegen_->OneArgCall(ast::Builtin::TableInsert, updater_, true);
+  //   if (update fails) { Abort(); }
+  auto update_slot = child_translator_->GetSlot();
+  std::vector<ast::Expr *> update_args{codegen_->PointerTo(updater_), update_slot};
+  auto update_call = codegen_->BuiltinCall(ast::Builtin::TableUpdate, std::move(update_args));
 
   auto cond = codegen_->UnaryOp(parsing::Token::Type::BANG, update_call);
   builder->StartIfStmt(cond);

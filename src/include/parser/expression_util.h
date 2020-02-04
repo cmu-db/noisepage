@@ -176,7 +176,7 @@ class ExpressionUtil {
       for (auto &child_expr_map : child_expr_maps) {
         if (child_expr->GetExpressionType() != ExpressionType::COLUMN_VALUE && child_expr_map.count(child_expr) != 0U) {
           auto type = child_expr->GetReturnValueType();
-          auto iter = child_expr_map.find(expr);
+          auto iter = child_expr_map.find(child_expr);
           TERRIER_ASSERT(iter != child_expr_map.end(), "Missing ColumnValueExpression...");
 
           // Add to children directly because DerivedValueExpression has no children
@@ -423,9 +423,6 @@ class ExpressionUtil {
       auto type = case_expr->GetReturnValueType();
       return std::make_unique<CaseExpression>(type, std::move(clauses), std::move(def_cond));
     }
-
-    TERRIER_ASSERT(expr->GetExpressionType() != ExpressionType::VALUE_TUPLE,
-                   "DerivedValueExpression should not be present");
 
     return expr->CopyWithChildren(std::move(children));
   }

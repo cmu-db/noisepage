@@ -1,20 +1,21 @@
 #pragma once
 #include "network/network_command.h"
 
-#define DEFINE_POSTGRES_COMMAND(name, flush)                                                                  \
-  class name : public PostgresNetworkCommand {                                                                \
-   public:                                                                                                    \
-    explicit name(const common::ManagedPointer<InputPacket> in) : PostgresNetworkCommand(in, flush) {}        \
-    Transition Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,                                  \
-                    common::ManagedPointer<PostgresPacketWriter> out,                                         \
-                    common::ManagedPointer<trafficcop::TrafficCop> t_cop,                                     \
-                    common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) override; \
+#define DEFINE_POSTGRES_COMMAND(name, flush)                                                           \
+  class name : public PostgresNetworkCommand {                                                         \
+   public:                                                                                             \
+    explicit name(const common::ManagedPointer<InputPacket> in) : PostgresNetworkCommand(in, flush) {} \
+    Transition Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,                           \
+                    common::ManagedPointer<PostgresPacketWriter> out,                                  \
+                    common::ManagedPointer<trafficcop::TrafficCop> t_cop,                              \
+                    common::ManagedPointer<ConnectionContext> connection) override;                    \
   }
 
 namespace terrier::network {
 
 /**
- * Interface for the execution of the standard PostgresNetworkCommands for the postgres protocol
+ * Interface for the execution of the standard PostgresNetworkCommands for the postgres protocol. Any state/logic that
+ * is Postgres command-specific should live at this layer.
  */
 class PostgresNetworkCommand : public NetworkCommand {
  public:
@@ -24,13 +25,12 @@ class PostgresNetworkCommand : public NetworkCommand {
    * @param out The Writer on which to construct output packets for the client
    * @param t_cop The traffic cop pointer
    * @param connection The ConnectionContext which contains connection information
-   * @param callback The callback function to trigger after
    * @return The next transition for the client's state machine
    */
   virtual Transition Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,
                           common::ManagedPointer<PostgresPacketWriter> out,
                           common::ManagedPointer<trafficcop::TrafficCop> t_cop,
-                          common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) = 0;
+                          common::ManagedPointer<ConnectionContext> connection) = 0;
 
  protected:
   /**

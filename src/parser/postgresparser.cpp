@@ -40,7 +40,7 @@
 
 namespace terrier::parser {
 
-ParseResult PostgresParser::BuildParseTree(const std::string &query_string) {
+std::unique_ptr<parser::ParseResult> PostgresParser::BuildParseTree(const std::string &query_string) {
   auto text = query_string.c_str();
   auto ctx = pg_query_parse_init();
   auto result = pg_query_parse(text);
@@ -50,13 +50,15 @@ ParseResult PostgresParser::BuildParseTree(const std::string &query_string) {
     PARSER_LOG_DEBUG("BuildParseTree error: msg {}, curpos {}", result.error->message, result.error->cursorpos);
     pg_query_parse_finish(ctx);
     pg_query_free_parse_result(result);
+    // TODO(Matt): we just destroyed all of the information we probably wanted to return to the client to match
+    // postgres' behavior
     throw PARSER_EXCEPTION("BuildParseTree error");
   }
 
   // Transform the Postgres parse tree to a Terrier representation.
-  ParseResult parse_result;
+  auto parse_result = std::make_unique<ParseResult>();
   try {
-    ListTransform(&parse_result, result.tree);
+    ListTransform(parse_result.get(), result.tree);
   } catch (const Exception &e) {
     pg_query_parse_finish(ctx);
     pg_query_free_parse_result(result);
@@ -1117,7 +1119,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateTransform(ParseResult *parse
   RangeVar *relation = root->relation_;
   auto table_name = relation->relname_ != nullptr ? relation->relname_ : "";
   auto schema_name = relation->schemaname_ != nullptr ? relation->schemaname_ : "";
-  auto database_name = relation->schemaname_ != nullptr ? relation->catalogname_ : "";
+  auto database_name = relation->catalogname_ != nullptr ? relation->catalogname_ : "";
   std::unique_ptr<TableInfo> table_info = std::make_unique<TableInfo>(table_name, schema_name, database_name);
 
   std::unordered_set<std::string> primary_keys;
@@ -1279,13 +1281,30 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateFunctionTransform(ParseResul
 // Postgres.IndexStmt -> terrier.CreateStatement
 std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(ParseResult *parse_result, IndexStmt *root) {
   auto unique = root->unique_;
-  auto index_name = root->idxname_;
+
+  TERRIER_ASSERT(root->relation_->relname_ != nullptr, "It can't be empty. See postgres spec.");
+
+  auto table_name = root->relation_->relname_;
+  auto schema_name = root->relation_->schemaname_ == nullptr ? "" : root->relation_->schemaname_;
+  auto database_name = root->relation_->catalogname_ == nullptr ? "" : root->relation_->catalogname_;
+  auto table_info = std::make_unique<TableInfo>(table_name, schema_name, database_name);
+
+  const bool no_name = root->idxname_ == nullptr;
+  std::string index_name;
+  if (!no_name) {
+    index_name = root->idxname_;
+  } else {
+    index_name = table_name;
+  }
 
   std::vector<IndexAttr> index_attrs;
   for (auto cell = root->index_params_->head; cell != nullptr; cell = cell->next) {
     auto *index_elem = reinterpret_cast<IndexElem *>(cell->data.ptr_value);
     if (index_elem->expr_ == nullptr) {
       index_attrs.emplace_back(index_elem->name_);
+      if (no_name) {
+        index_name += "_" + std::string(index_elem->name_);
+      }
     } else {
       auto expr = ExprTransform(parse_result, index_elem->expr_, nullptr);
       auto expr_ptr = common::ManagedPointer(expr);
@@ -1294,10 +1313,9 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(ParseResult *
     }
   }
 
-  auto table_name = root->relation_->relname_ == nullptr ? "" : root->relation_->relname_;
-  auto schema_name = root->relation_->schemaname_ == nullptr ? "" : root->relation_->schemaname_;
-  auto database_name = root->relation_->catalogname_ == nullptr ? "" : root->relation_->catalogname_;
-  auto table_info = std::make_unique<TableInfo>(table_name, schema_name, database_name);
+  if (no_name) {
+    index_name += "_idx";
+  }
 
   char *access_method = root->access_method_;
   IndexType index_type;

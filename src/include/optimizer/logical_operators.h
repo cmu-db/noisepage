@@ -1434,15 +1434,15 @@ class LogicalCreateTable : public OperatorNode<LogicalCreateTable> {
    */
   const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
   /**
-   * @return the name of the database we want to create
+   * @return the name of the table we want to create
    */
   const std::string &GetTableName() const { return table_name_; }
   /**
-   * @return the name of the database we want to create
+   * @return column definitions for the table
    */
   const std::vector<common::ManagedPointer<parser::ColumnDefinition>> &GetColumns() const { return columns_; }
   /**
-   * @return the name of the database we want to create
+   * @return foreign key references for the table
    */
   const std::vector<common::ManagedPointer<parser::ColumnDefinition>> &GetForeignKeys() const { return foreign_keys_; }
 

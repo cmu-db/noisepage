@@ -121,7 +121,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   if (txn_metrics_enabled) {
     common::thread_context.resource_tracker_.Stop();
     auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-    common::thread_context.metrics_store_->RecordCommitData(txn->IsReadOnly(), resource_metrics);
+    common::thread_context.metrics_store_->RecordCommitData(static_cast<uint64_t>(txn->IsReadOnly()), resource_metrics);
   }
 
   return result;
