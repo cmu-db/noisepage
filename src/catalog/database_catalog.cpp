@@ -1316,13 +1316,14 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
     }
   }
 
-  auto dbc_nuke = [=, tables{std::move(tables)}, indexes{std::move(indexes)}, table_schemas{std::move(table_schemas)},
-                   index_schemas{std::move(index_schemas)}, expressions{std::move(expressions)}]() {
+  auto dbc_nuke = [=, garbage_collector{garbage_collector_}, tables{std::move(tables)}, indexes{std::move(indexes)},
+                   table_schemas{std::move(table_schemas)}, index_schemas{std::move(index_schemas)},
+                   expressions{std::move(expressions)}]() {
     for (auto table : tables) delete table;
 
     for (auto index : indexes) {
       if (index->Type() == storage::index::IndexType::BWTREE)
-        garbage_collector_->UnregisterIndexForGC(common::ManagedPointer(index));
+        garbage_collector->UnregisterIndexForGC(common::ManagedPointer(index));
       delete index;
     }
 
