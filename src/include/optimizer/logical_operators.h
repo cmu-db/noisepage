@@ -1951,4 +1951,70 @@ class LogicalDropView : public OperatorNode<LogicalDropView> {
   bool if_exists_;
 };
 
+/**
+ * Logical operator for Analyze
+ */
+class LogicalAnalyze : public OperatorNode<LogicalAnalyze> {
+  public:
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param table_oid OID of the table
+   * @param columns OIDs of Analyze columns
+   * @return
+   */
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override;
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the database
+   */
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return OID of the table
+   */
+  const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
+
+  /**
+   * @return trigger columns
+   */
+  std::vector<catalog::col_oid_t> GetColumns() const { return columns_; }
+
+ private:
+  /**
+  * OID of the database
+  */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * OID of the target table
+   */
+  catalog::table_oid_t table_oid_;
+
+  /**
+   * Vector of column to Analyze
+   */
+  std::vector<catalog::col_oid_t> columns_;
+};
+
 }  // namespace terrier::optimizer

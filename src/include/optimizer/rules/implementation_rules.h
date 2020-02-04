@@ -820,4 +820,33 @@ class LogicalDropViewToPhysicalDropView : public Rule {
                  OptimizationContext *context) const override;
 };
 
+/**
+ * Rule transforms Logical Analyze -> Physical Analyze
+ */
+class LogicalAnalyzeToPhysicalAnalyze : public Rule {
+ public:
+  /**
+   * Constructor
+   */
+  LogicalAnalyzeToPhysicalAnalyze();
+
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizationContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizationContext executing under
+   */
+  void Transform(common::ManagedPointer<OperatorExpression> input,
+                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+                 OptimizationContext *context) const override;
+};
+
 }  // namespace terrier::optimizer

@@ -584,9 +584,20 @@ void QueryToOperatorTransformer::Visit(parser::CopyStatement *op, parser::ParseR
   }
 }
 
-void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::AnalyzeStatement *op,
+void QueryToOperatorTransformer::Visit(parser::AnalyzeStatement *op,
                                        UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
   OPTIMIZER_LOG_DEBUG("Transforming AnalyzeStatement to operators ...");
+  std::vector<catalog::col_oid_t> columns;
+  auto tb_oid = accessor_->GetTableOid(op->GetAnalyzeTable()->GetTableName());
+  auto schema = accessor_->GetSchema(tb_oid);
+  for (const auto &col : *(op->GetColumns())) columns.emplace_back(schema.GetColumn(col).Oid());
+  auto analyze_expr = std::make_unique<OperatorExpression>(
+      LogicalAnalyze::Make(
+        accessor_->GetDatabaseOid(op->GetAnalyzeTable()->GetDatabaseName()),
+        accessor_->GetNamespaceOid(op->GetAnalyzeTable()->GetNamespaceName()),
+        tb_oid,
+        std::move(columns)), std::vector<std::unique_ptr<OperatorExpression>>{});
+  output_expr_ = std::move(analyze_expr);
 }
 
 void QueryToOperatorTransformer::Visit(parser::ComparisonExpression *expr, parser::ParseResult *parse_result) {

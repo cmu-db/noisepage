@@ -1226,6 +1226,41 @@ bool DropView::operator==(const BaseOperatorNode &r) {
 }
 
 //===--------------------------------------------------------------------===//
+// LogicalCreateTrigger
+//===--------------------------------------------------------------------===//
+BaseOperatorNode *Analyze::Copy() const { return new Analyze(*this); }
+
+Operator Analyze::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                                    catalog::table_oid_t table_oid,
+                                    std::vector<catalog::col_oid_t> && columns) {
+  auto op = std::make_unique<Analyze>();
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  op->table_oid_ = table_oid;
+  op->columns_ = std::move(columns);
+  return Operator(std::move(op));
+}
+
+common::hash_t Analyze::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
+  hash = common::HashUtil::CombineHashInRange(hash, columns_.begin(), columns_.end());
+  return hash;
+}
+
+bool Analyze::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::ANALYZE) return false;
+  const Analyze &node = *dynamic_cast<const Analyze *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  if (table_oid_ != node.table_oid_) return false;
+  if (columns_ != node.columns_) return false;
+  return true;
+}
+
+//===--------------------------------------------------------------------===//
 template <typename T>
 void OperatorNode<T>::Accept(common::ManagedPointer<OperatorVisitor> v) const {
   v->Visit(reinterpret_cast<const T *>(this));
@@ -1304,6 +1339,8 @@ template <>
 const char *OperatorNode<DropTrigger>::name = "DropTrigger";
 template <>
 const char *OperatorNode<DropView>::name = "DropView";
+template <>
+const char *OperatorNode<Analyze>::name = "Analyze";
 
 //===--------------------------------------------------------------------===//
 template <>
@@ -1378,6 +1415,8 @@ template <>
 OpType OperatorNode<DropTrigger>::type = OpType::DROPTRIGGER;
 template <>
 OpType OperatorNode<DropView>::type = OpType::DROPVIEW;
+template <>
+OpType OperatorNode<Analyze>::type = OpType::ANALYZE;
 
 template <typename T>
 bool OperatorNode<T>::IsLogical() const {
