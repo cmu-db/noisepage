@@ -58,7 +58,7 @@ class HashIndexTests : public TerrierTest {
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(1));
     table_schema_ = catalog::Schema({col});
-    sql_table_ = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), table_schema_);
+    sql_table_ = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), table_schema_);
     tuple_initializer_ = sql_table_->InitializerForProjectedRow({catalog::col_oid_t(1)});
 
     std::vector<catalog::IndexSchema::Column> keycols;

@@ -2,6 +2,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "common/object_pool.h"
 #include "storage/data_table.h"
 #include "storage/storage_defs.h"
@@ -42,7 +43,7 @@ TEST_F(DeltaRecordTests, UndoChainAccess) {
       tested.InitializeRawBlock(nullptr, raw_block_, storage::layout_version_t(0));
 
       // get data table
-      storage::DataTable data_table(&block_store_, layout, storage::layout_version_t(0));
+      storage::DataTable data_table(common::ManagedPointer(&block_store_), layout, storage::layout_version_t(0));
 
       // get tuple slot
       storage::TupleSlot slot;
@@ -87,7 +88,7 @@ TEST_F(DeltaRecordTests, UndoGetProjectedRow) {
     // projected row
 
     // get data table
-    storage::DataTable data_table(&block_store_, layout, storage::layout_version_t(0));
+    storage::DataTable data_table(common::ManagedPointer(&block_store_), layout, storage::layout_version_t(0));
 
     // get tuple slot
     storage::TupleSlot slot;
