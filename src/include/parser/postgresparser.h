@@ -48,6 +48,11 @@ class ParseResult {
   }
 
   /**
+   * @return size of internal statements_ vector
+   */
+  uint32_t NumStatements() const { return statements_.size(); }
+
+  /**
    * @return the statement at a particular index
    */
   common::ManagedPointer<SQLStatement> GetStatement(size_t idx) { return common::ManagedPointer(statements_[idx]); }

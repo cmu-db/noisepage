@@ -63,12 +63,15 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
                                     const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                     const common::ManagedPointer<ConnectionContext> connection) {
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
+  TERRIER_ASSERT(!postgres_interpreter->WaitingForSync(),
+                 "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
+                 "caught at the protocol interpreter Process() level.");
 
   const auto query = in_.ReadString();
 
   auto statement = std::make_unique<network::Statement>(t_cop->ParseQuery(query, connection));
 
-  // A SimpleQuery clears the unnamed statement and portal
+  // Parsing a SimpleQuery clears the unnamed statement and portal
   postgres_interpreter->CloseStatement("");
   postgres_interpreter->ClosePortal("");
 
@@ -127,7 +130,6 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
   }
 
   // Try to bind the parsed statement
-  // TODO(Matt): refactor this signature
   const auto bind_result = t_cop->BindQuery(connection, common::ManagedPointer(statement));
   if (bind_result.type_ == trafficcop::ResultType::COMPLETE) {
     // Binding succeeded, optimize to generate a physical plan and then execute
@@ -170,6 +172,9 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
                               const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                               const common::ManagedPointer<ConnectionContext> connection) {
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
+  TERRIER_ASSERT(!postgres_interpreter->WaitingForSync(),
+                 "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
+                 "caught at the protocol interpreter Process() level.");
 
   const auto statement_name = in_.ReadString();
 
@@ -190,7 +195,8 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
 
   auto statement = std::make_unique<network::Statement>(t_cop->ParseQuery(query, connection), std::move(param_types));
 
-  if (!statement->Valid()) {
+  // Extended Query protocol doesn't allow for more than one statement per query string
+  if (!statement->Valid() || statement->ParseResult()->NumStatements() > 1) {
     out->WriteErrorResponse("ERROR:  syntax error");
     if (connection->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
       // failing to parse fails a transaction in postgres
@@ -217,6 +223,9 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
                              const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                              const common::ManagedPointer<ConnectionContext> connection) {
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
+  TERRIER_ASSERT(!postgres_interpreter->WaitingForSync(),
+                 "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
+                 "caught at the protocol interpreter Process() level.");
 
   const auto portal_name = in_.ReadString();
   const auto statement_name = in_.ReadString();
@@ -327,6 +336,9 @@ Transition DescribeCommand::Exec(const common::ManagedPointer<ProtocolInterprete
                                  const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                  const common::ManagedPointer<ConnectionContext> connection) {
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
+  TERRIER_ASSERT(!postgres_interpreter->WaitingForSync(),
+                 "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
+                 "caught at the protocol interpreter Process() level.");
 
   const auto object_type = in_.ReadValue<DescribeCommandObjectType>();
   const auto object_name = in_.ReadString();
@@ -366,6 +378,9 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
                                 const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                 const common::ManagedPointer<ConnectionContext> connection) {
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
+  TERRIER_ASSERT(!postgres_interpreter->WaitingForSync(),
+                 "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
+                 "caught at the protocol interpreter Process() level.");
 
   const auto portal_name = in_.ReadString();
   const auto max_rows UNUSED_ATTRIBUTE = in_.ReadValue<int32_t>();
@@ -422,6 +437,10 @@ Transition SyncCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpr
                                                                              : network::QueryType::QUERY_COMMIT);
     postgres_interpreter->ResetTransactionState();
   }
+  TERRIER_ASSERT(connection->TransactionState() == network::NetworkTransactionStateType::IDLE ||
+                     (connection->TransactionState() == network::NetworkTransactionStateType::BLOCK &&
+                      postgres_interpreter->ExplicitTransactionBlock()),
+                 "These are the only two possible states after Sync command.");
   out->WriteReadyForQuery(connection->TransactionState());
   return Transition::PROCEED;
 }
@@ -431,6 +450,9 @@ Transition CloseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
                               const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                               const common::ManagedPointer<ConnectionContext> connection) {
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
+  TERRIER_ASSERT(!postgres_interpreter->WaitingForSync(),
+                 "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
+                 "caught at the protocol interpreter Process() level.");
 
   const auto object_type = in_.ReadValue<DescribeCommandObjectType>();
   const auto object_name = in_.ReadString();
