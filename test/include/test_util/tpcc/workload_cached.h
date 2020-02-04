@@ -7,6 +7,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "storage/storage_defs.h"
 #include "execution/vm/module.h"
+#include "execution/executable_query.h"
 
 namespace terrier::execution::exec {
     class ExecutionContext;

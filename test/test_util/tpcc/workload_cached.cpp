@@ -36,7 +36,7 @@ namespace terrier::tpcc {
         Builder tpcc_builder{block_store_, catalog_, txn_manager_};
         tpcc_db_ = tpcc_builder.Build(storage::index::IndexType::HASHMAP);
         db_oid_ = tpcc_db_->db_oid_;
-
+/*
         // populate the tables and indexes
         // prepare the thread pool and workers
         common::WorkerPool thread_pool{static_cast<uint32_t>(num_threads), {}};
@@ -46,7 +46,7 @@ namespace terrier::tpcc {
         for (int8_t i = 0; i < num_threads; i++) {
             workers.emplace_back(tpcc_db_);
         }
-        Loader::PopulateDatabase(txn_manager_, tpcc_db_, &workers, &thread_pool);
+        Loader::PopulateDatabase(txn_manager_, tpcc_db_, &workers, &thread_pool);*/
 
         // compile the queries
         LoadTPCCQueries(table_root, txn_names);
