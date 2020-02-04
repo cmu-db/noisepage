@@ -147,21 +147,19 @@ class IndexScan : public OperatorNode<IndexScan> {
   /**
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
+   * @param tbl_oid OID of the table
    * @param index_oid OID of the index
    * @param predicates query predicates
-   * @param table_alias alias of the table
    * @param is_for_update whether the scan is used for update
-   * @param key_column_oid_list OID of key columns
-   * @param expr_type_list expression types
-   * @param value_list values to be scanned
+   * @param scan_type IndexScanType
+   * @param bounds Bounds for IndexScan
    * @return an IndexScan operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::index_oid_t index_oid, std::vector<AnnotatedExpression> &&predicates,
-                       std::string table_alias, bool is_for_update,
-                       std::vector<catalog::col_oid_t> &&key_column_oid_list,
-                       std::vector<parser::ExpressionType> &&expr_type_list,
-                       std::vector<type::TransientValue> &&value_list);
+                       catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
+                       std::vector<AnnotatedExpression> &&predicates, bool is_for_update,
+                       planner::IndexScanType scan_type,
+                       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds);
 
   /**
    * Copy
@@ -186,6 +184,11 @@ class IndexScan : public OperatorNode<IndexScan> {
   /**
    * @return the OID of the table
    */
+  const catalog::table_oid_t &GetTableOID() const { return tbl_oid_; }
+
+  /**
+   * @return the OID of the index
+   */
   const catalog::index_oid_t &GetIndexOID() const { return index_oid_; }
 
   /**
@@ -194,29 +197,21 @@ class IndexScan : public OperatorNode<IndexScan> {
   const std::vector<AnnotatedExpression> &GetPredicates() const { return predicates_; }
 
   /**
-   * @return the alias of the table to get from
-   */
-  const std::string &GetTableAlias() const { return table_alias_; }
-
-  /**
    * @return whether the get operation is used for update
    */
   bool GetIsForUpdate() const { return is_for_update_; }
 
   /**
-   * @return List of OIDs of key columns
+   * @return index scan type
    */
-  const std::vector<catalog::col_oid_t> &GetKeyColumnOIDList() const { return key_column_oid_list_; }
+  planner::IndexScanType GetIndexScanType() const { return scan_type_; }
 
   /**
-   * @return List of expression types
+   * @return bounds
    */
-  const std::vector<parser::ExpressionType> &GetExprTypeList() const { return expr_type_list_; }
-
-  /**
-   * @return List of parameter values
-   */
-  const std::vector<type::TransientValue> &GetValueList() const { return value_list_; }
+  const std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> &GetBounds() const {
+    return bounds_;
+  }
 
  private:
   /**
@@ -230,6 +225,11 @@ class IndexScan : public OperatorNode<IndexScan> {
   catalog::namespace_oid_t namespace_oid_;
 
   /**
+   * OID of the table
+   */
+  catalog::table_oid_t tbl_oid_;
+
+  /**
    * OID of the index
    */
   catalog::index_oid_t index_oid_;
@@ -240,29 +240,19 @@ class IndexScan : public OperatorNode<IndexScan> {
   std::vector<AnnotatedExpression> predicates_;
 
   /**
-   * Table alias
-   */
-  std::string table_alias_;
-
-  /**
    * Whether the scan is used for update
    */
   bool is_for_update_;
 
   /**
-   * OIDs of key columns
+   * Scan Type
    */
-  std::vector<catalog::col_oid_t> key_column_oid_list_;
+  planner::IndexScanType scan_type_;
 
   /**
-   * Expression types
+   * Bounds
    */
-  std::vector<parser::ExpressionType> expr_type_list_;
-
-  /**
-   * Parameter values
-   */
-  std::vector<type::TransientValue> value_list_;
+  std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds_;
 };
 
 /**
@@ -1328,20 +1318,13 @@ class CreateTable : public OperatorNode<CreateTable> {
   /**
    * @param namespace_oid OID of the namespace
    * @param table_name Name of the table to be created
-   * @param table_schema Schema of the table to be created
-   * @param block_store Block store for the new table
-   * @param has_primary_key If the table has a primary key
-   * @param primary_key Primary key information of the table
-   * @param foreign_keys List of foreign key reference in the table
-   * @param con_uniques Information of unique columns in the table
-   * @param con_checks Information of check constrations on columns in the table
+   * @param columns Vector of definitions of the columns in the new table
+   * @param foreign_keys Vector of definitions of foreign key columns in the new table
    * @return
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid, std::string table_name,
-                       std::unique_ptr<catalog::Schema> table_schema,
-                       common::ManagedPointer<storage::BlockStore> block_store, bool has_primary_key,
-                       planner::PrimaryKeyInfo primary_key, std::vector<planner::ForeignKeyInfo> &&foreign_keys,
-                       std::vector<planner::UniqueInfo> &&con_uniques, std::vector<planner::CheckInfo> &&con_checks);
+                       std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&columns,
+                       std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&foreign_keys);
 
   /**
    * Copy
@@ -1353,53 +1336,25 @@ class CreateTable : public OperatorNode<CreateTable> {
   common::hash_t Hash() const override;
 
   /**
-   * @return OID of the namespace to create table in
+   * @return OID of the namespace
    */
-  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
-
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
   /**
-   * @return name of the table
+   * @return the name of the table we want to create
    */
   const std::string &GetTableName() const { return table_name_; }
-
   /**
-   * @return block store to be used when constructing this table
+   * @return column definitions for the table
    */
-  common::ManagedPointer<storage::BlockStore> GetBlockStore() const { return block_store_; }
-
+  const std::vector<common::ManagedPointer<parser::ColumnDefinition>> &GetColumns() const { return columns_; }
   /**
-   * @return pointer to the schema
+   * @return foreign key references for the table
    */
-  common::ManagedPointer<catalog::Schema> GetSchema() const { return common::ManagedPointer(table_schema_); }
-
-  /**
-   * @return true if index/table has primary key
-   */
-  bool HasPrimaryKey() const { return has_primary_key_; }
-
-  /**
-   * @return primary key meta-data
-   */
-  const planner::PrimaryKeyInfo &GetPrimaryKey() const { return primary_key_; }
-
-  /**
-   * @return foreign keys meta-data
-   */
-  const std::vector<planner::ForeignKeyInfo> &GetForeignKeys() const { return foreign_keys_; }
-
-  /**
-   * @return unique constraints
-   */
-  const std::vector<planner::UniqueInfo> &GetUniqueConstraints() const { return con_uniques_; }
-
-  /**
-   * @return check constraints
-   */
-  const std::vector<planner::CheckInfo> &GetCheckConstraints() const { return con_checks_; }
+  const std::vector<common::ManagedPointer<parser::ColumnDefinition>> &GetForeignKeys() const { return foreign_keys_; }
 
  private:
   /**
-   * OID of the schema/namespace
+   * OID of the namespace
    */
   catalog::namespace_oid_t namespace_oid_;
 
@@ -1409,40 +1364,14 @@ class CreateTable : public OperatorNode<CreateTable> {
   std::string table_name_;
 
   /**
-   * Table Schema
+   * Vector of column definitions of the new table
    */
-  std::unique_ptr<catalog::Schema> table_schema_;
+  std::vector<common::ManagedPointer<parser::ColumnDefinition>> columns_;
 
   /**
-   * block store to be used when constructing this table
+   * Vector of foreign key references of the new table
    */
-  common::ManagedPointer<storage::BlockStore> block_store_;
-
-  /**
-   * ColumnDefinition for multi-column constraints (including foreign key)
-   * Whether the table/index has primary key
-   */
-  bool has_primary_key_ = false;
-
-  /**
-   * Primary key information
-   */
-  planner::PrimaryKeyInfo primary_key_;
-
-  /**
-   * Foreign keys information
-   */
-  std::vector<planner::ForeignKeyInfo> foreign_keys_;
-
-  /**
-   * Unique constraints
-   */
-  std::vector<planner::UniqueInfo> con_uniques_;
-
-  /**
-   * Check constraints
-   */
-  std::vector<planner::CheckInfo> con_checks_;
+  std::vector<common::ManagedPointer<parser::ColumnDefinition>> foreign_keys_;
 };
 
 /**
@@ -1584,7 +1513,7 @@ class CreateView : public OperatorNode<CreateView> {
   /**
    * @return view query
    */
-  common::ManagedPointer<parser::SelectStatement> GetViewQuery() { return common::ManagedPointer(view_query_); }
+  common::ManagedPointer<parser::SelectStatement> GetViewQuery() const { return common::ManagedPointer(view_query_); }
 
  private:
   /**

@@ -277,8 +277,3 @@ endif ()
 llvm_map_components_to_libnames(LLVM_LIBRARIES core mcjit nativecodegen native ipo)
 include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
 list(APPEND TERRIER_LINK_LIBS ${LLVM_LIBRARIES})
-
-# Sqlite 3
-find_package(Sqlite3 REQUIRED)
-include_directories(SYSTEM ${SQLITE3_INCLUDE_DIRS})
-list(APPEND TERRIER_LINK_LIBS ${SQLITE3_LIBRARIES})

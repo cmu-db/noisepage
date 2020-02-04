@@ -39,7 +39,7 @@ fun pipeline0(state : *State, execCtx : *ExecutionContext) -> nil {
   col_oids2[2] = 3 // col3 (raw offset = 0)
   col_oids2[3] = 4 // col4 (raw offset = 2)
   var index : IndexIterator
-  @indexIteratorInitBind(&index, execCtx, "test_2", "index_2_multi", col_oids2)
+  @indexIteratorInitBind(&index, execCtx, 2, "test_2", "index_2_multi", col_oids2)
 
   // Iterate through table
   for (@tableIterAdvance(&tvi)) {

@@ -155,7 +155,7 @@ struct Loader {
         TERRIER_ASSERT(index_insert_result, "Item index insertion failed.");
       }
     }
-    txn_manager->Commit(item_txn, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager->Commit(item_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     // Populate the other tables in parallel
     for (int8_t w_id = 0; w_id < num_warehouses; w_id++) {
@@ -369,7 +369,7 @@ struct Loader {
           }
         }
 
-        txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+        txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       });
     }
     thread_pool->WaitUntilAllFinished();

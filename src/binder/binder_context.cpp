@@ -30,14 +30,22 @@ void BinderContext::AddRegularTable(const common::ManagedPointer<catalog::Catalo
     throw BINDER_EXCEPTION(("Unknown database name " + db_name).c_str());
   }
 
-  auto namespace_id = accessor->GetNamespaceOid(namespace_name);
-  if (namespace_id == catalog::INVALID_NAMESPACE_OID) {
-    throw BINDER_EXCEPTION(("Unknown namespace name " + namespace_name).c_str());
-  }
+  catalog::table_oid_t table_id;
+  if (!namespace_name.empty()) {
+    auto namespace_id = accessor->GetNamespaceOid(namespace_name);
+    if (namespace_id == catalog::INVALID_NAMESPACE_OID) {
+      throw BINDER_EXCEPTION(("Unknown namespace name " + namespace_name).c_str());
+    }
 
-  auto table_id = accessor->GetTableOid(namespace_id, table_name);
-  if (table_id == catalog::INVALID_TABLE_OID) {
-    throw BINDER_EXCEPTION(("Unknown table name " + table_name).c_str());
+    table_id = accessor->GetTableOid(namespace_id, table_name);
+    if (table_id == catalog::INVALID_TABLE_OID) {
+      throw BINDER_EXCEPTION(("Unknown table name " + table_name).c_str());
+    }
+  } else {
+    table_id = accessor->GetTableOid(table_name);
+    if (table_id == catalog::INVALID_TABLE_OID) {
+      throw BINDER_EXCEPTION(("Unknown table name " + table_name).c_str());
+    }
   }
 
   auto schema = accessor->GetSchema(table_id);
@@ -233,6 +241,13 @@ void BinderContext::GenerateAllColumnExpressions(
       exprs->push_back(new_tv_expr);
     }
   }
+}
+
+common::ManagedPointer<BinderContext::TableMetadata> BinderContext::GetTableMapping(const std::string &table_name) {
+  if (regular_table_alias_map_.find(table_name) == regular_table_alias_map_.end()) {
+    return nullptr;
+  }
+  return common::ManagedPointer(&regular_table_alias_map_[table_name]);
 }
 
 }  // namespace terrier::binder

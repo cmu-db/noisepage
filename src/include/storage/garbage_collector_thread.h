@@ -1,11 +1,10 @@
 #pragma once
 
-#include <transaction/deferred_action_manager.h>
-
 #include <chrono>  //NOLINT
 #include <thread>  //NOLINT
 
 #include "storage/garbage_collector.h"
+#include "transaction/deferred_action_manager.h"
 
 namespace terrier::settings {
 class MetricsManager;

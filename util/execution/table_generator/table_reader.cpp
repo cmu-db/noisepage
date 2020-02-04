@@ -163,8 +163,8 @@ void TableReader::WriteTableCol(storage::ProjectedRow *insert_pr, uint16_t col_o
       break;
     }
     case type::TypeId::DATE: {
-      auto val = sql::ValUtil::StringToDate(field->get<std::string>());
-      std::memcpy(insert_offset, &val.int_val_, sizeof(uint32_t));
+      auto val = sql::Date::FromString(field->get<std::string>());
+      std::memcpy(insert_offset, &val, sizeof(uint32_t));
       break;
     }
     case type::TypeId::VARCHAR: {

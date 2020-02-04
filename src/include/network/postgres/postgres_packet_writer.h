@@ -2,11 +2,26 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
+#include "execution/sql/value.h"
 #include "network/packet_writer.h"
+#include "planner/plannodes/output_schema.h"
+#include "util/time_util.h"
 
 namespace terrier::network {
+
+/**
+ * The string value to use for 'true' boolean values
+ */
+constexpr char POSTGRES_BOOLEAN_STR_TRUE[] = "t";
+
+/**
+ * The string value to use for 'false' boolean values
+ */
+constexpr char POSTGRES_BOOLEAN_STR_FALSE[] = "f";
+
 /**
  * Wrapper around an I/O layer WriteQueue to provide Postgres-specific
  * helper methods.
@@ -14,26 +29,63 @@ namespace terrier::network {
 class PostgresPacketWriter : public PacketWriter {
  public:
   /**
-   * Instantiates a new PostgresPacketWriter backed by the given WriteQueue
+   * Normal constructor for PostgresPacketWriter
+   * @param write_queue backing data structure for this packet writer
    */
   explicit PostgresPacketWriter(const common::ManagedPointer<WriteQueue> write_queue) : PacketWriter(write_queue) {}
 
   /**
-   * Write out a packet with a single type that is associated with SSL.
-   * (PG_SSL_YES, PG_SSL_NO)
-   * @param type Type of message to write out
+   * Constructor if you want to override the result wire format
+   * @param write_queue backing data structure for this packet writer
+   * @param format text or binary format
    */
-  void WriteSSLPacket(NetworkMessageType type) {
-    // Make sure no active packet being constructed
-    TERRIER_ASSERT(IsPacketEmpty(), "packet length is null");
-    switch (type) {
-      case NetworkMessageType::PG_SSL_YES:
-      case NetworkMessageType::PG_SSL_NO:
-        WriteType(type);
-        break;
-      default:
-        BeginPacket(type).EndPacket();
-    }
+  PostgresPacketWriter(const common::ManagedPointer<WriteQueue> write_queue, const FieldFormat format)
+      : PacketWriter(write_queue), format_(format) {}
+
+  /**
+   * Writes error responses to the client
+   * @param error_status The error messages to send
+   */
+  void WriteErrorResponse(const std::vector<std::pair<NetworkMessageType, std::string>> &error_status) {
+    BeginPacket(NetworkMessageType::PG_ERROR_RESPONSE);
+
+    for (const auto &entry : error_status) AppendRawValue(entry.first).AppendString(entry.second);
+
+    // Nul-terminate packet
+    AppendRawValue<uchar>(0).EndPacket();
+  }
+
+  /**
+   * Notify the client a readiness to receive a query
+   * @param txn_status
+   */
+  void WriteReadyForQuery(NetworkTransactionStateType txn_status) {
+    BeginPacket(NetworkMessageType::PG_READY_FOR_QUERY).AppendRawValue(txn_status).EndPacket();
+  }
+
+  /**
+   * A helper function to write a single error message without having to make a vector every time.
+   * @param type
+   * @param status
+   */
+  void WriteSingleErrorResponse(NetworkMessageType type, const std::string &status) {
+    std::vector<std::pair<NetworkMessageType, std::string>> buf;
+    buf.emplace_back(type, status);
+    WriteErrorResponse(buf);
+  }
+
+  /**
+   * Writes response to startup message
+   */
+  void WriteStartupResponse() {
+    BeginPacket(NetworkMessageType::PG_AUTHENTICATION_REQUEST).AppendValue<int32_t>(0).EndPacket();
+
+    for (auto &entry : PG_PARAMETER_STATUS_MAP)
+      BeginPacket(NetworkMessageType::PG_PARAMETER_STATUS)
+          .AppendString(entry.first)
+          .AppendString(entry.second)
+          .EndPacket();
+    WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   }
 
   /**
@@ -42,6 +94,30 @@ class PostgresPacketWriter : public PacketWriter {
    */
   void WriteSimpleQuery(const std::string &query) {
     BeginPacket(NetworkMessageType::PG_SIMPLE_QUERY_COMMAND).AppendString(query).EndPacket();
+  }
+
+  /**
+   * Writes a Postgres notice response
+   * @param message human readable message
+   */
+  void WriteNoticeResponse(const std::string &message) {
+    BeginPacket(NetworkMessageType::PG_NOTICE_RESPONSE)
+        .AppendRawValue(NetworkMessageType::PG_HUMAN_READABLE_ERROR)
+        .AppendString(message)
+        .AppendRawValue<uchar>(0)
+        .EndPacket();  // Nul-terminate packet
+  }
+
+  /**
+   * Writes a Postgres error response
+   * @param message human readable message
+   */
+  void WriteErrorResponse(const std::string &message) {
+    BeginPacket(NetworkMessageType::PG_ERROR_RESPONSE)
+        .AppendRawValue(NetworkMessageType::PG_HUMAN_READABLE_ERROR)
+        .AppendString(message)
+        .AppendRawValue<uchar>(0)
+        .EndPacket();  // Nul-terminate packet
   }
 
   /**
@@ -69,47 +145,24 @@ class PostgresPacketWriter : public PacketWriter {
 
   /**
    * Writes row description, as the first packet of sending query results
-   * @param columns the column names
+   * @param columns the column information from the OutputSchema
    */
-  void WriteRowDescription(const std::vector<std::string> &columns) {
-    // TODO(Weichen): fill correct OIDs here. This depends on the catalog.
+  void WriteRowDescription(const std::vector<planner::OutputSchema::Column> &columns) {
     BeginPacket(NetworkMessageType::PG_ROW_DESCRIPTION).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
-    for (auto &col_name : columns) {
-      AppendString(col_name)
-          .AppendValue<int32_t>(0)                                     // table oid, 0 for now
-          .AppendValue<int16_t>(0)                                     // column oid, 0 for now
-          .AppendValue(static_cast<int32_t>(PostgresValueType::TEXT))  // type oid
-          .AppendValue<int16_t>(-1)                                    // Variable Length
-          .AppendValue<int32_t>(-1)                                    // pg_attribute.attrmod, generally -1
-          .AppendValue<int16_t>(0);                                    // text=0
-    }
-
-    EndPacket();
-  }
-
-  /**
-   * Writes a data row.
-   * @param values a row's values.
-   */
-  void WriteDataRow(const trafficcop::Row &values) {
-    using type::TransientValuePeeker;
-    using type::TypeId;
-
-    BeginPacket(NetworkMessageType::PG_DATA_ROW).AppendValue<int16_t>(static_cast<int16_t>(values.size()));
-    for (auto &value : values) {
-      // use text to represent values for now
-      std::string ret;
-      if (value.Type() == TypeId::INTEGER)
-        ret = std::to_string(TransientValuePeeker::PeekInteger(value));
-      else if (value.Type() == TypeId::DECIMAL)
-        ret = std::to_string(TransientValuePeeker::PeekDecimal(value));
-      else if (value.Type() == TypeId::VARCHAR)
-        ret = TransientValuePeeker::PeekVarChar(value);
-      if (ret == "NULL") {
-        AppendValue<int32_t>(static_cast<int32_t>(-1));
+    for (const auto &col : columns) {
+      const auto col_type = col.GetType();
+      // TODO(Matt): Figure out how to get table oid and column oids in the OutputSchema (Optimizer's job?)
+      AppendString(col.GetName())
+          .AppendValue<int32_t>(0)  // table oid (if it's a column from a table), 0 otherwise
+          .AppendValue<int16_t>(0)  // column oid (if it's a column from a table), 0 otherwise
+          .AppendValue(static_cast<int32_t>(InternalValueTypeToPostgresValueType(col_type)));  // type oid
+      if (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY) {
+        AppendValue<int16_t>(-1);  // variable length
       } else {
-        AppendValue<int32_t>(static_cast<int32_t>(ret.length())).AppendString(ret, false);
+        AppendValue<int16_t>(type::TypeUtil::GetTypeSize(col_type));  // data type size
       }
+      AppendValue<int32_t>(-1)  // type modifier, generally -1 (see pg_attribute.atttypmod)
+          .AppendValue<int16_t>(static_cast<int16_t>(format_));  // format code for the field, 0 for text, 1 for binary
     }
     EndPacket();
   }
@@ -120,6 +173,67 @@ class PostgresPacketWriter : public PacketWriter {
    */
   void WriteCommandComplete(const std::string &tag) {
     BeginPacket(NetworkMessageType::PG_COMMAND_COMPLETE).AppendString(tag).EndPacket();
+  }
+
+  /**
+   * Writes Postgres command complete
+   * @param query_type what type of query this was
+   * @param num_rows number of rows for the queries that need it in their output
+   */
+  void WriteCommandComplete(const QueryType query_type, const uint32_t num_rows) {
+    switch (query_type) {
+      case QueryType::QUERY_BEGIN:
+        WriteCommandComplete("BEGIN");
+        break;
+      case QueryType::QUERY_COMMIT:
+        WriteCommandComplete("COMMIT");
+        break;
+      case QueryType::QUERY_ROLLBACK:
+        WriteCommandComplete("ROLLBACK");
+        break;
+      case QueryType::QUERY_INSERT:
+        WriteCommandComplete("INSERT 0 " + std::to_string(num_rows));
+        break;
+      case QueryType::QUERY_DELETE:
+        WriteCommandComplete("DELETE " + std::to_string(num_rows));
+        break;
+      case QueryType::QUERY_UPDATE:
+        WriteCommandComplete("UPDATE " + std::to_string(num_rows));
+        break;
+      case QueryType::QUERY_SELECT:
+        WriteCommandComplete("SELECT " + std::to_string(num_rows));
+        break;
+      case QueryType::QUERY_CREATE_DB:
+        WriteCommandComplete("CREATE DATABASE");
+        break;
+      case QueryType::QUERY_CREATE_TABLE:
+        WriteCommandComplete("CREATE TABLE");
+        break;
+      case QueryType::QUERY_CREATE_INDEX:
+        WriteCommandComplete("CREATE INDEX");
+        break;
+      case QueryType::QUERY_CREATE_SCHEMA:
+        WriteCommandComplete("CREATE SCHEMA");
+        break;
+      case QueryType::QUERY_DROP_DB:
+        WriteCommandComplete("DROP DATABASE");
+        break;
+      case QueryType::QUERY_DROP_TABLE:
+        WriteCommandComplete("DROP TABLE");
+        break;
+      case QueryType::QUERY_DROP_INDEX:
+        WriteCommandComplete("DROP INDEX");
+        break;
+      case QueryType::QUERY_DROP_SCHEMA:
+        WriteCommandComplete("DROP SCHEMA");
+        break;
+      case QueryType::QUERY_SET:
+        WriteCommandComplete("SET");
+        break;
+      default:
+        WriteCommandComplete("This QueryType needs a completion message!");
+        break;
+    }
   }
 
   /**
@@ -224,6 +338,161 @@ class PostgresPacketWriter : public PacketWriter {
    * Tells the client that the bind command is complete.
    */
   void WriteBindComplete() { BeginPacket(NetworkMessageType::PG_BIND_COMPLETE).EndPacket(); }
+
+  /**
+   * Write a data row from the execution engine back to the client
+   * @param tuple pointer to the start of the row
+   * @param columns OutputSchema describing the tuple
+   */
+  void WriteDataRow(const byte *const tuple, const std::vector<planner::OutputSchema::Column> &columns) {
+    if (format_ == FieldFormat::text) {
+      WriteTextDataRow(tuple, columns);
+      return;
+    }
+    WriteBinaryDataRow(tuple, columns);
+  }
+
+ private:
+  // Maybe make this mutable in the future if we want to reuse these objects? Otherwise since it seems like its life
+  // cycle is tied to a query, we only need to instantiate the value once.
+  const FieldFormat format_ = FieldFormat::text;
+
+  /**
+   * Write a data row in Postgres' binary format coming from an OutputBuffer in the execution engine. Unclear when the
+   * server should use this just yet.
+   * @param tuple pointer to the start of the row
+   * @param columns OutputSchema describing the tuple
+   */
+  void WriteBinaryDataRow(const byte *const tuple, const std::vector<planner::OutputSchema::Column> &columns) {
+    BeginPacket(NetworkMessageType::PG_DATA_ROW).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
+    uint32_t curr_offset = 0;
+    for (const auto &col : columns) {
+      // Reinterpret to a base value type first and check if it's NULL
+      const auto *const val = reinterpret_cast<const execution::sql::Val *const>(tuple + curr_offset);
+
+      if (val->is_null_) {
+        // write a -1 for the length of the column value and continue to the next value
+        AppendValue<int32_t>(static_cast<int32_t>(-1));
+        continue;
+      }
+
+      const auto type_size = execution::sql::ValUtil::GetSqlSize(col.GetType());
+
+      // Write the attribute
+      switch (col.GetType()) {
+        case type::TypeId::TINYINT:
+        case type::TypeId::SMALLINT:
+        case type::TypeId::BIGINT:
+        case type::TypeId::INTEGER: {
+          auto *int_val = reinterpret_cast<const execution::sql::Integer *const>(val);
+          AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<int64_t>(int_val->val_);
+          break;
+        }
+        case type::TypeId::BOOLEAN: {
+          auto *bool_val = reinterpret_cast<const execution::sql::BoolVal *const>(val);
+          AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<bool>(bool_val->val_);
+          break;
+        }
+        case type::TypeId::DECIMAL: {
+          auto *real_val = reinterpret_cast<const execution::sql::Real *const>(val);
+          AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<double>(real_val->val_);
+          break;
+        }
+        case type::TypeId::DATE: {
+          auto *date_val = reinterpret_cast<const execution::sql::DateVal *const>(val);
+          AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<uint32_t>(date_val->val_.ToNative());
+          break;
+        }
+        case type::TypeId::TIMESTAMP: {
+          auto *ts_val = reinterpret_cast<const execution::sql::TimestampVal *const>(val);
+          AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<uint64_t>(ts_val->val_.ToNative());
+          break;
+        }
+        case type::TypeId::VARCHAR: {
+          auto *string_val = reinterpret_cast<const execution::sql::StringVal *const>(val);
+          AppendValue<int32_t>(static_cast<int32_t>(string_val->len_))
+              .AppendStringView(string_val->StringView(), false);
+          break;
+        }
+        default:
+          UNREACHABLE("Cannot output unsupported type!!!");
+      }
+      // Advance in the buffer based on the execution engine's type size
+      curr_offset += type_size;
+    }
+    EndPacket();
+  }
+
+  /**
+   * Write a data row in Postgres' text format coming from an OutputBuffer in the execution engine. Simple Query
+   * messages always reply with text format data.
+   * @param tuple pointer to the start of the row
+   * @param columns OutputSchema describing the tuple
+   */
+  void WriteTextDataRow(const byte *const tuple, const std::vector<planner::OutputSchema::Column> &columns) {
+    BeginPacket(NetworkMessageType::PG_DATA_ROW).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
+    uint32_t curr_offset = 0;
+    for (const auto &col : columns) {
+      // Reinterpret to a base value type first and check if it's NULL
+      const auto *const val = reinterpret_cast<const execution::sql::Val *const>(tuple + curr_offset);
+
+      if (val->is_null_) {
+        // write a -1 for the length of the column value and continue to the next value
+        AppendValue<int32_t>(static_cast<int32_t>(-1));
+        continue;
+      }
+
+      // Convert the field to text format
+      std::string string_value;
+      switch (col.GetType()) {
+        case type::TypeId::TINYINT:
+        case type::TypeId::SMALLINT:
+        case type::TypeId::BIGINT:
+        case type::TypeId::INTEGER: {
+          auto *int_val = reinterpret_cast<const execution::sql::Integer *const>(val);
+          string_value = std::to_string(int_val->val_);
+          break;
+        }
+        case type::TypeId::BOOLEAN: {
+          auto *bool_val = reinterpret_cast<const execution::sql::BoolVal *const>(val);
+          string_value = (static_cast<bool>(bool_val->val_) ? POSTGRES_BOOLEAN_STR_TRUE : POSTGRES_BOOLEAN_STR_FALSE);
+          break;
+        }
+        case type::TypeId::DECIMAL: {
+          auto *real_val = reinterpret_cast<const execution::sql::Real *const>(val);
+          string_value = std::to_string(real_val->val_);
+          break;
+        }
+        case type::TypeId::DATE: {
+          auto *date_val = reinterpret_cast<const execution::sql::DateVal *const>(val);
+          string_value = date_val->val_.ToString();
+          break;
+        }
+        case type::TypeId::TIMESTAMP: {
+          auto *ts_val = reinterpret_cast<const execution::sql::TimestampVal *const>(val);
+          string_value = ts_val->val_.ToString();
+          break;
+        }
+        case type::TypeId::VARCHAR: {
+          // Don't allocate an actual string for a VARCHAR, just wrap a std::string_view, write the value directly, and
+          // continue
+          auto *string_val = reinterpret_cast<const execution::sql::StringVal *const>(val);
+          AppendValue<int32_t>(static_cast<int32_t>(string_val->len_))
+              .AppendRaw(string_val->Content(), string_val->len_);
+          curr_offset += execution::sql::ValUtil::GetSqlSize(col.GetType());
+          continue;
+        }
+        default:
+          UNREACHABLE("Cannot output unsupported type!!!");
+      }
+
+      AppendValue<int32_t>(static_cast<int32_t>(string_value.length())).AppendString(string_value, false);
+
+      // Advance in the buffer based on the execution engine's type size
+      curr_offset += execution::sql::ValUtil::GetSqlSize(col.GetType());
+    }
+    EndPacket();
+  }
 };
 
 }  // namespace terrier::network

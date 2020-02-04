@@ -63,7 +63,7 @@ void RandomDataTableTransaction::Finish() {
   if (aborted_)
     test_object_->txn_manager_.Abort(txn_);
   else
-    commit_time_ = test_object_->txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    commit_time_ = test_object_->txn_manager_.Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 LargeDataTableBenchmarkObject::LargeDataTableBenchmarkObject(const std::vector<uint16_t> &attr_sizes,
@@ -96,6 +96,7 @@ std::pair<uint64_t, uint64_t> LargeDataTableBenchmarkObject::SimulateOltp(uint32
                                                                           metrics::MetricsManager *const metrics_manager,
                                                                           uint32_t submit_interval_us) {
   common::WorkerPool thread_pool(num_concurrent_txns, {});
+  thread_pool.Startup();
   std::vector<RandomDataTableTransaction *> txns;
   std::function<void(uint32_t)> workload;
   std::atomic<uint32_t> txns_run = 0;
@@ -174,6 +175,6 @@ void LargeDataTableBenchmarkObject::PopulateInitialTable(uint32_t num_tuples, Ra
     redo->SetTupleSlot(inserted);
     inserted_tuples_.emplace_back(inserted);
   }
-  txn_manager_.Commit(initial_txn_, TestCallbacks::EmptyCallback, nullptr);
+  txn_manager_.Commit(initial_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 }  // namespace terrier

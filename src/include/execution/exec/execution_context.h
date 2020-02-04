@@ -158,6 +158,12 @@ class EXPORT ExecutionContext {
    */
   const type::TransientValue &GetParam(uint32_t param_idx) const { return params_[param_idx]; }
 
+  /**
+   * INSERT, UPDATE, and DELETE queries return a number for the rows affected, so this should be incremented in the root
+   * nodes of the query
+   */
+  uint64_t &RowsAffected() { return rows_affected_; }
+
  private:
   catalog::db_oid_t db_oid_;
   common::ManagedPointer<transaction::TransactionContext> txn_;
@@ -168,5 +174,6 @@ class EXPORT ExecutionContext {
   common::ManagedPointer<catalog::CatalogAccessor> accessor_;
   uint8_t execution_mode_;
   std::vector<type::TransientValue> params_;
+  uint64_t rows_affected_ = 0;
 };
 }  // namespace terrier::execution::exec

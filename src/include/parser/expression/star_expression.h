@@ -13,7 +13,7 @@ class StarExpression : public AbstractExpression {
   /**
    * Instantiates a new star expression, e.g. as in COUNT(*).
    */
-  StarExpression() : AbstractExpression(ExpressionType::STAR, type::TypeId::INVALID, {}) {}
+  StarExpression() : AbstractExpression(ExpressionType::STAR, type::TypeId::INTEGER, {}) {}
 
   /**
    * Copies this StarExpression

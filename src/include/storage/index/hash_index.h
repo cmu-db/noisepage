@@ -94,7 +94,7 @@ class HashIndex final : public Index {
     TERRIER_ASSERT(!(metadata_.GetSchema().Unique()),
                    "This Insert is designed for secondary indexes with no uniqueness constraints.");
     KeyType index_key;
-    index_key.SetFromProjectedRow(tuple, metadata_);
+    index_key.SetFromProjectedRow(tuple, metadata_, metadata_.GetSchema().GetColumns().size());
 
     bool UNUSED_ATTRIBUTE insert_result = false;
 
@@ -141,7 +141,7 @@ class HashIndex final : public Index {
                     const TupleSlot location) final {
     TERRIER_ASSERT(metadata_.GetSchema().Unique(), "This Insert is designed for indexes with uniqueness constraints.");
     KeyType index_key;
-    index_key.SetFromProjectedRow(tuple, metadata_);
+    index_key.SetFromProjectedRow(tuple, metadata_, metadata_.GetSchema().GetColumns().size());
     bool predicate_satisfied = false;
 
     // The predicate checks if any matching keys have write-write conflicts or are still visible to the calling txn.
@@ -210,7 +210,7 @@ class HashIndex final : public Index {
       // Presumably you've already made modifications to a DataTable (the source of the TupleSlot argument to this
       // function) however, the index found a constraint violation and cannot allow that operation to succeed. For MVCC
       // correctness, this txn must now abort for the GC to clean up the version chain in the DataTable correctly.
-      txn->MustAbort();
+      txn->SetMustAbort();
     }
 
     return overall_result;
@@ -219,7 +219,7 @@ class HashIndex final : public Index {
   void Delete(const common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
               const TupleSlot location) final {
     KeyType index_key;
-    index_key.SetFromProjectedRow(tuple, metadata_);
+    index_key.SetFromProjectedRow(tuple, metadata_, metadata_.GetSchema().GetColumns().size());
 
     TERRIER_ASSERT(!(location.GetBlock()->data_table_->HasConflict(*txn, location)) &&
                        !(location.GetBlock()->data_table_->IsVisible(*txn, location)),
@@ -237,7 +237,7 @@ class HashIndex final : public Index {
 
     // Build search key
     KeyType index_key;
-    index_key.SetFromProjectedRow(key, metadata_);
+    index_key.SetFromProjectedRow(key, metadata_, metadata_.GetSchema().GetColumns().size());
 
     /**
      * See the underlying container's API for more details, but the lambda below is invoked when the key is found.

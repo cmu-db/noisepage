@@ -1,14 +1,12 @@
 #pragma once
 
 #include <arpa/inet.h>
-#include <netinet/tcp.h>
-#include <sys/file.h>
-
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
 #include <event2/event.h>
 #include <event2/listener.h>
-#include <unordered_map>
+#include <netinet/tcp.h>
+#include <sys/file.h>
 
 #include <csignal>
 #include <cstdio>
@@ -16,13 +14,13 @@
 #include <cstring>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include "common/exception.h"
 #include "common/managed_pointer.h"
 #include "loggers/network_logger.h"
-
 #include "network/connection_context.h"
 #include "network/connection_handler_task.h"
 #include "network/network_io_wrapper.h"
@@ -30,7 +28,6 @@
 #include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/protocol_interpreter.h"
-
 #include "traffic_cop/traffic_cop.h"
 namespace terrier::network {
 
@@ -39,6 +36,8 @@ namespace terrier::network {
  * a client connection for its entire duration. This includes a state machine
  * and the necessary libevent infrastructure for a handler to work on this
  * connection.
+ *
+ * State not related to the network state machine probably doesn't belong here, but rather in the ConnectionContext.
  */
 class ConnectionHandle {
  public:
@@ -55,7 +54,10 @@ class ConnectionHandle {
       : io_wrapper_(std::make_unique<NetworkIoWrapper>(sock_fd)),
         conn_handler_(handler),
         traffic_cop_(tcop),
-        protocol_interpreter_(std::move(interpreter)) {}
+        protocol_interpreter_(std::move(interpreter)) {
+    context_.SetCallback(Callback, this);
+    context_.SetConnectionID(static_cast<connection_id_t>(sock_fd));
+  }
 
   ~ConnectionHandle() { context_.Reset(); }
 
@@ -95,28 +97,6 @@ class ConnectionHandle {
     state_machine_.Accept(t, common::ManagedPointer<ConnectionHandle>(this));
   }
 
-  /* State Machine Actions */
-  /**
-   * @brief Actions performed after receiving startup packet
-   * @return The transition to trigger in the state machine after
-   */
-  Transition StartUp() {
-    std::string db_name = catalog::DEFAULT_DATABASE;
-    if (context_.cmdline_args_.find("database") != context_.cmdline_args_.end()) {
-      if (!context_.cmdline_args_["database"].empty()) {
-        db_name = context_.cmdline_args_["database"];
-      }
-    }
-
-    auto oids = traffic_cop_->CreateTempNamespace(io_wrapper_->GetSocketFd(), db_name);
-    while (oids.first == catalog::INVALID_DATABASE_OID || oids.second == catalog::INVALID_NAMESPACE_OID) {
-      oids = traffic_cop_->CreateTempNamespace(io_wrapper_->GetSocketFd(), db_name);
-    }
-    context_.db_oid_ = oids.first;
-    context_.temp_namespace_oid_ = oids.second;
-    return Transition::PROCEED;
-  }
-
   /**
    * @brief Tries to read from the event port onto the read buffer
    * @return The transition to trigger in the state machine after
@@ -139,16 +119,7 @@ class ConnectionHandle {
    */
   Transition Process() {
     auto transition = protocol_interpreter_->Process(io_wrapper_->GetReadBuffer(), io_wrapper_->GetWriteQueue(),
-                                                     traffic_cop_, common::ManagedPointer(&context_),
-                                                     [=] { event_active(workpool_event_, EV_WRITE, 0); });
-
-    /**
-     * Additional processing for starting up a new connection. This is an intermediate state that does not wait for
-     * an event from libevent
-     */
-    if (transition == Transition::STARTUP) {
-      transition = StartUp();
-    }
+                                                     traffic_cop_, common::ManagedPointer(&context_));
     return transition;
   }
 
@@ -193,6 +164,17 @@ class ConnectionHandle {
    */
   void StopReceivingNetworkEvent() { EventUtil::EventDel(network_event_); }
 
+  /**
+   * issues a libevent to wake up the state machine in the WAIT_ON_TERRIER state
+   * @param callback_args this for a ConnectionHandle in WAIT_ON_TERRIER state
+   */
+  static void Callback(void *callback_args) {
+    auto *const handle = reinterpret_cast<ConnectionHandle *>(callback_args);
+    TERRIER_ASSERT(handle->state_machine_.CurrentState() == ConnState::PROCESS,
+                   "Should be waking up a ConnectionHandle that's in PROCESS state waiting on query result.");
+    event_active(handle->workpool_event_, EV_WRITE, 0);
+  }
+
  private:
   /**
    * A state machine is defined to be a set of states, a set of symbols it
@@ -234,6 +216,8 @@ class ConnectionHandle {
      * @param connection the network connection object to apply actions to
      */
     void Accept(Transition action, common::ManagedPointer<ConnectionHandle> connection);
+
+    ConnState CurrentState() const { return current_state_; }
 
    private:
     /**
