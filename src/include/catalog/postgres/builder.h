@@ -39,7 +39,7 @@ class Builder {
    * @param oid of the database which is used for populating the field in redo records
    * @return an initialized DatabaseCatalog
    */
-  static DatabaseCatalog *CreateDatabaseCatalog(storage::BlockStore *block_store, db_oid_t oid);
+  static DatabaseCatalog *CreateDatabaseCatalog(common::ManagedPointer<storage::BlockStore> block_store, db_oid_t oid);
 
   /**
    * @return schema object for pg_attribute table

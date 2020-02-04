@@ -18,8 +18,12 @@
 namespace terrier::catalog {
 
 Catalog::Catalog(const common::ManagedPointer<transaction::TransactionManager> txn_manager,
-                 const common::ManagedPointer<storage::BlockStore> block_store)
-    : txn_manager_(txn_manager.Get()), catalog_block_store_(block_store.Get()), next_oid_(1) {
+                 const common::ManagedPointer<storage::BlockStore> block_store,
+                 const common::ManagedPointer<storage::GarbageCollector> garbage_collector)
+    : txn_manager_(txn_manager.Get()),
+      catalog_block_store_(block_store.Get()),
+      garbage_collector_(garbage_collector),
+      next_oid_(1) {
   databases_ = new storage::SqlTable(catalog_block_store_, postgres::Builder::GetDatabaseTableSchema());
   databases_oid_index_ = postgres::Builder::BuildUniqueIndex(postgres::Builder::GetDatabaseOidIndexSchema(),
                                                              postgres::DATABASE_OID_INDEX_OID);

@@ -585,7 +585,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
               // Use of the -> operator is ok here, since we are the ones who wrapped the table with the ManagedPointer
               sql_table = GetSqlTable(txn, redo_record->GetDatabaseOid(), catalog::table_oid_t(class_oid)).operator->();
             } else {
-              sql_table = new SqlTable(block_store_.Get(), *schema);
+              sql_table = new SqlTable(block_store_, *schema);
             }
             result =
                 db_catalog->SetTablePointer(common::ManagedPointer(txn), catalog::table_oid_t(class_oid), sql_table);

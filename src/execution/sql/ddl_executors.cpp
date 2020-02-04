@@ -45,7 +45,7 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
   // Get the canonical Schema from the Catalog now that column oids have been assigned
   const auto &schema = accessor->GetSchema(table_oid);
   // Instantiate a SqlTable and update the pointer in the Catalog
-  auto *const table = new storage::SqlTable(node->GetBlockStore().Get(), schema);
+  auto *const table = new storage::SqlTable(node->GetBlockStore(), schema);
   bool result UNUSED_ATTRIBUTE = accessor->SetTablePointer(table_oid, table);
   TERRIER_ASSERT(result, "CreateTable succeeded, SetTablePointer must also succeed.");
 

@@ -12,6 +12,14 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 
+namespace terrier::transaction {
+class TransactionManager;
+}
+
+namespace terrier::storage {
+class GarbageCollector;
+}
+
 namespace terrier::catalog {
 
 class CatalogAccessor;
@@ -40,7 +48,8 @@ class Catalog {
    * tables if it is disabled.
    */
   Catalog(common::ManagedPointer<transaction::TransactionManager> txn_manager,
-          common::ManagedPointer<storage::BlockStore> block_store);
+          common::ManagedPointer<storage::BlockStore> block_store,
+          common::ManagedPointer<storage::GarbageCollector> garbage_collector);
 
   /**
    * Handles destruction of the catalog's members by calling the destructor on
@@ -122,8 +131,9 @@ class Catalog {
  private:
   DISALLOW_COPY_AND_MOVE(Catalog);
   friend class storage::RecoveryManager;
-  transaction::TransactionManager *txn_manager_;
-  storage::BlockStore *catalog_block_store_;
+  const common::ManagedPointer<transaction::TransactionManager> txn_manager_;
+  const common::ManagedPointer<storage::BlockStore> catalog_block_store_;
+  const common::ManagedPointer<storage::GarbageCollector> garbage_collector_;
   std::atomic<db_oid_t> next_oid_;
 
   storage::SqlTable *databases_;
