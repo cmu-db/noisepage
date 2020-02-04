@@ -1070,9 +1070,7 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
   // Everything succeeded from an MVCC standpoint, so register a deferred action for the GC to delete the index with txn
   // manager. See base function comment.
   txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-    if (garbage_collector_ != DISABLED) {
-      garbage_collector_->UnregisterIndexForGC(common::ManagedPointer(index_ptr));
-    }
+    garbage_collector_->UnregisterIndexForGC(common::ManagedPointer(index_ptr));
     deferred_action_manager->RegisterDeferredAction([=]() {
       deferred_action_manager->RegisterDeferredAction([=]() {
         delete schema_ptr;
@@ -1140,9 +1138,7 @@ bool DatabaseCatalog::SetIndexPointer(const common::ManagedPointer<transaction::
   TERRIER_ASSERT(write_lock_.load() == txn->FinishTime(),
                  "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
                  "should already have the lock.");
-  if (garbage_collector_ != DISABLED) {
-    txn->RegisterCommitAction([=]() { garbage_collector_->RegisterIndexForGC(common::ManagedPointer(index_ptr)); });
-  }
+  txn->RegisterCommitAction([=]() { garbage_collector_->RegisterIndexForGC(common::ManagedPointer(index_ptr)); });
   // This needs to be deferred because if any items were subsequently inserted into this index, they will have deferred
   // abort actions that will be above this action on the abort stack.  The defer ensures we execute after them.
   txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
@@ -1322,10 +1318,10 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
                    index_schemas{std::move(index_schemas)}, expressions{std::move(expressions)}]() {
     for (auto table : tables) delete table;
 
-    for (auto index : indexes)
-      if (garbage_collector_ != DISABLED) garbage_collector_->UnregisterIndexForGC(common::ManagedPointer(index));
-
-    for (auto index : indexes) delete index;
+    for (auto index : indexes) {
+      garbage_collector_->UnregisterIndexForGC(common::ManagedPointer(index));
+      delete index;
+    }
 
     for (auto schema : table_schemas) delete schema;
 
