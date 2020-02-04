@@ -6,6 +6,7 @@
 #include "common/managed_pointer.h"
 #include "storage/storage_defs.h"
 #include "execution/vm/module.h"
+#include "execution/executable_query.h"
 
 namespace terrier::execution::exec {
 class ExecutionContext;
@@ -17,10 +18,6 @@ class Catalog;
 
 namespace terrier::transaction {
 class TransactionManager;
-}
-
-namespace terrier::execution {
-class ExecutableQuery;
 }
 
 namespace terrier {
