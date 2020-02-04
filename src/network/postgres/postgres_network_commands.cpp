@@ -24,7 +24,7 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
                           const common::ManagedPointer<trafficcop::TrafficCop> t_cop, const bool explicit_txn_block) {
   trafficcop::TrafficCopResult result;
 
-  const auto query_type = portal->Statement()->QueryType();
+  const auto query_type = portal->Statement()->GetQueryType();
   const auto physical_plan = portal->PhysicalPlan();
 
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
@@ -91,7 +91,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
     return FinishSimpleQueryCommand(out, connection);
   }
 
-  const auto query_type = statement->QueryType();
+  const auto query_type = statement->GetQueryType();
 
   // Check if we're in a must-abort situation first before attempting to issue any statement other than ROLLBACK
   if (connection->TransactionState() == network::NetworkTransactionStateType::FAIL &&
@@ -108,9 +108,9 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
   }
 
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
-  if (statement->QueryType() <= network::QueryType::QUERY_ROLLBACK) {
+  if (query_type <= network::QueryType::QUERY_ROLLBACK) {
     t_cop->ExecuteTransactionStatement(connection, out, postgres_interpreter->ExplicitTransactionBlock(), query_type);
-    if (statement->QueryType() == network::QueryType::QUERY_BEGIN) {
+    if (query_type == network::QueryType::QUERY_BEGIN) {
       postgres_interpreter->SetExplicitTransactionBlock();
     } else {
       postgres_interpreter->ResetTransactionState();
@@ -119,10 +119,10 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
   }
 
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
-  if (statement->QueryType() >= network::QueryType::QUERY_RENAME) {
+  if (query_type >= network::QueryType::QUERY_RENAME) {
     // We don't yet support query types with values greater than this
     out->WriteNoticeResponse("NOTICE:  we don't yet support that query type.");
-    out->WriteCommandComplete(statement->QueryType(), 0);
+    out->WriteCommandComplete(query_type, 0);
     return FinishSimpleQueryCommand(out, connection);
   }
 
@@ -135,7 +135,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
 
     const auto portal = std::make_unique<Portal>(common::ManagedPointer(statement), std::move(physical_plan));
 
-    if (statement->QueryType() == network::QueryType::QUERY_SELECT) {
+    if (query_type == network::QueryType::QUERY_SELECT) {
       out->WriteRowDescription(portal->PhysicalPlan()->GetOutputSchema()->GetColumns(), portal->ResultFormats());
     }
 
@@ -144,7 +144,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
   } else if (bind_result.type_ == trafficcop::ResultType::NOTICE) {
     TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
     out->WriteNoticeResponse(std::get<std::string>(bind_result.extra_));
-    out->WriteCommandComplete(statement->QueryType(), 0);
+    out->WriteCommandComplete(query_type, 0);
   } else {
     TERRIER_ASSERT(bind_result.type_ == trafficcop::ResultType::ERROR,
                    "I don't think we expect any other ResultType at this point.");
@@ -200,7 +200,7 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
     return Transition::PROCEED;
   }
 
-  if (statement->QueryType() >= network::QueryType::QUERY_RENAME) {
+  if (statement->GetQueryType() >= network::QueryType::QUERY_RENAME) {
     // We don't yet support query types with values greater than this
     out->WriteNoticeResponse("NOTICE:  we don't yet support that query type.");
   }
@@ -231,7 +231,7 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     return Transition::PROCEED;
   }
 
-  const auto query_type = statement->QueryType();
+  const auto query_type = statement->GetQueryType();
 
   if (!portal_name.empty() && postgres_interpreter->GetPortal(statement_name) != nullptr) {
     out->WriteErrorResponse(
@@ -335,7 +335,7 @@ Transition DescribeCommand::Exec(const common::ManagedPointer<ProtocolInterprete
     const auto portal = postgres_interpreter->GetPortal(object_name);
     if (portal == nullptr) {
       out->WriteErrorResponse("ERROR:  Portal does not exist for Describe message.");
-    } else if (portal->Statement()->QueryType() == network::QueryType::QUERY_SELECT) {
+    } else if (portal->Statement()->GetQueryType() == network::QueryType::QUERY_SELECT) {
       out->WriteRowDescription(portal->PhysicalPlan()->GetOutputSchema()->GetColumns(), portal->ResultFormats());
     } else {
       out->WriteNoData();
@@ -346,13 +346,11 @@ Transition DescribeCommand::Exec(const common::ManagedPointer<ProtocolInterprete
 
   const auto statement = postgres_interpreter->GetStatement(object_name);
 
-  const auto query_type = statement->QueryType();
-
   if (statement == nullptr) {
     out->WriteErrorResponse("ERROR:  Statement does not exist for Describe message.");
   } else {
     out->WriteParameterDescription(statement->ParamTypes());
-    if (query_type == network::QueryType::QUERY_SELECT) {
+    if (statement->GetQueryType() == network::QueryType::QUERY_SELECT) {
       // TODO(Matt): we're supposed to write a RowDescription here, but we don't have an OutputSchema yet because that
       // comes all the way after optimization
     } else {
@@ -382,7 +380,7 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
   }
 
   const auto statement = portal->Statement();
-  const auto query_type = statement->QueryType();
+  const auto query_type = statement->GetQueryType();
 
   // TODO(Matt): Probably handle EmptyStatement around here somewhere, maybe somewhere more general purpose though?
 
@@ -457,5 +455,16 @@ Transition TerminateCommand::Exec(const common::ManagedPointer<ProtocolInterpret
   // We don't do removal of the temp namespace at the Command level because it's possible that we don't receive a
   // Terminate packet to generate the Command from, and instead closed the connection due to timeout
   return Transition::TERMINATE;
+}
+
+// (Matt): this seems to only exist for testing
+Transition EmptyCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,
+                              common::ManagedPointer<PostgresPacketWriter> out,
+                              common::ManagedPointer<trafficcop::TrafficCop> t_cop,
+                              common::ManagedPointer<ConnectionContext> connection) {
+  NETWORK_LOG_TRACE("Empty Command");
+  out->WriteEmptyQueryResponse();
+  out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
+  return Transition::PROCEED;
 }
 }  // namespace terrier::network

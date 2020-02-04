@@ -50,5 +50,6 @@ DEFINE_POSTGRES_COMMAND(ExecuteCommand, true);
 DEFINE_POSTGRES_COMMAND(SyncCommand, true);
 DEFINE_POSTGRES_COMMAND(CloseCommand, true);
 DEFINE_POSTGRES_COMMAND(TerminateCommand, true);
+DEFINE_POSTGRES_COMMAND(EmptyCommand, true);  // (Matt): This seems to be only for testing? Not a big fan of that.
 
 }  // namespace terrier::network

@@ -79,7 +79,7 @@ class Statement {
   /**
    * @return QueryType of the root statement of the ParseResult
    */
-  QueryType QueryType() const { return type_; }
+  QueryType GetQueryType() const { return type_; }
 
  private:
   const std::unique_ptr<parser::ParseResult> parse_result_ = nullptr;
