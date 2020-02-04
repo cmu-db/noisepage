@@ -203,6 +203,12 @@ class TransactionContext {
    */
   void SetMustAbort() { must_abort_ = true; }
 
+  /**
+   * Add varlen content to transaction context for later deallocation
+   * @param content Content of the varlen entry
+   */
+  void AddReclaimableVarlen(const byte *content) { loose_ptrs_.push_back(content); }
+
  private:
   friend class storage::GarbageCollector;
   friend class TransactionManager;

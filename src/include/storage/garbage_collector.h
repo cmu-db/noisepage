@@ -92,10 +92,6 @@ class GarbageCollector {
    */
   void ProcessDeferredActions(transaction::timestamp_t oldest_txn);
 
-  void ReclaimSlotIfDeleted(UndoRecord *undo_record) const;
-
-  void ReclaimBufferIfVarlen(transaction::TransactionContext *txn, UndoRecord *undo_record) const;
-
   void ProcessIndexes();
 
   const common::ManagedPointer<transaction::TimestampManager> timestamp_manager_;

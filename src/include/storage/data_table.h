@@ -217,6 +217,11 @@ class DataTable {
    */
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
 
+  /**
+   * @return reference to this DataTable's accessor
+   */
+  const TupleAccessStrategy &GetAccessor() const { return accessor_; }
+
  private:
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains
   friend class GarbageCollector;

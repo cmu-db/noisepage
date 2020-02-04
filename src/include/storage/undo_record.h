@@ -183,6 +183,17 @@ class UndoRecord {
     return result;
   }
 
+  /**
+   * Reclaim the tuple slot of this UndoRecord if it is a DELETE undo record
+   */
+  void ReclaimSlotIfDeleted() const;
+
+  /**
+   * Reclaim the buffer if this UndoRecord contains a varlen
+   * @param txn context of the transaction
+   */
+  void ReclaimBufferIfVarlen(transaction::TransactionContext *txn) const;
+
  private:
   DeltaRecordType type_;
   std::atomic<UndoRecord *> next_;
