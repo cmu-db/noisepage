@@ -137,32 +137,62 @@ class EXPORT ComparisonFunctions {
   /**
    * Sets result = (v1 == v2)
    */
-  static void EqDate(BoolVal *result, const Date &v1, const Date &v2);
+  static void EqDateVal(BoolVal *result, const DateVal &v1, const DateVal &v2);
 
   /**
    * Sets result = (v1 >= v2)
    */
-  static void GeDate(BoolVal *result, const Date &v1, const Date &v2);
+  static void GeDateVal(BoolVal *result, const DateVal &v1, const DateVal &v2);
 
   /**
    * Sets result = (v1 > v2)
    */
-  static void GtDate(BoolVal *result, const Date &v1, const Date &v2);
+  static void GtDateVal(BoolVal *result, const DateVal &v1, const DateVal &v2);
 
   /**
    * Sets result = (v1 <= v2)
    */
-  static void LeDate(BoolVal *result, const Date &v1, const Date &v2);
+  static void LeDateVal(BoolVal *result, const DateVal &v1, const DateVal &v2);
 
   /**
    * Sets result = (v1 < v2)
    */
-  static void LtDate(BoolVal *result, const Date &v1, const Date &v2);
+  static void LtDateVal(BoolVal *result, const DateVal &v1, const DateVal &v2);
 
   /**
    * Sets result = (v1 != v2)
    */
-  static void NeDate(BoolVal *result, const Date &v1, const Date &v2);
+  static void NeDateVal(BoolVal *result, const DateVal &v1, const DateVal &v2);
+
+  /**
+   * Sets result = (v1 == v2)
+   */
+  static void EqTimestampVal(BoolVal *result, const TimestampVal &v1, const TimestampVal &v2);
+
+  /**
+   * Sets result = (v1 >= v2)
+   */
+  static void GeTimestampVal(BoolVal *result, const TimestampVal &v1, const TimestampVal &v2);
+
+  /**
+   * Sets result = (v1 > v2)
+   */
+  static void GtTimestampVal(BoolVal *result, const TimestampVal &v1, const TimestampVal &v2);
+
+  /**
+   * Sets result = (v1 <= v2)
+   */
+  static void LeTimestampVal(BoolVal *result, const TimestampVal &v1, const TimestampVal &v2);
+
+  /**
+   * Sets result = (v1 < v2)
+   */
+  static void LtTimestampVal(BoolVal *result, const TimestampVal &v1, const TimestampVal &v2);
+
+  /**
+   * Sets result = (v1 != v2)
+   */
+  static void NeTimestampVal(BoolVal *result, const TimestampVal &v1, const TimestampVal &v2);
 
   /**
    * Compare two raw strings. Returns:
@@ -235,22 +265,13 @@ class EXPORT ComparisonFunctions {
     *result = BoolVal(Compare(v1, v2) OP 0);                                                     \
   }
 
-#define BINARY_COMPARISON_DATE_FN_HIDE_NULL(NAME, TYPE, OP)                                      \
-  inline void ComparisonFunctions::NAME##TYPE(BoolVal *result, const TYPE &v1, const TYPE &v2) { \
-    if (v1.is_null_ || v2.is_null_) {                                                            \
-      *result = BoolVal::Null();                                                                 \
-      return;                                                                                    \
-    }                                                                                            \
-    result->is_null_ = false;                                                                    \
-    result->val_ = v1.ymd_ OP v2.ymd_;                                                           \
-  }
-
 #define BINARY_COMPARISON_ALL_TYPES(NAME, OP)                \
   BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, BoolVal, OP)  \
   BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, Integer, OP)  \
   BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, Real, OP)     \
   BINARY_COMPARISON_STRING_FN_HIDE_NULL(NAME, StringVal, OP) \
-  BINARY_COMPARISON_DATE_FN_HIDE_NULL(NAME, Date, OP)
+  BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, DateVal, OP)  \
+  BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, TimestampVal, OP)
 
 BINARY_COMPARISON_ALL_TYPES(Eq, ==);
 BINARY_COMPARISON_ALL_TYPES(Ge, >=);
@@ -263,5 +284,4 @@ BINARY_COMPARISON_ALL_TYPES(Ne, !=);
 #undef BINARY_COMPARISON_STRING_FN_HIDE_NULL
 #undef BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL
 #undef BINARY_COMPARISON_DATE_FN_HIDE_NULL
-
 }  // namespace terrier::execution::sql

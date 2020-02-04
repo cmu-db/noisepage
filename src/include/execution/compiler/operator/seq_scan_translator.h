@@ -101,6 +101,20 @@ class SeqScanTranslator : public OperatorTranslator {
   // Generated vectorized filters
   void GenVectorizedPredicate(FunctionBuilder *builder, const terrier::parser::AbstractExpression *predicate);
 
+  // Create the input oids used for the scans.
+  // When the plan's oid list is empty (like in "SELECT COUNT(*)"), then we just read the first column of the table.
+  // Otherwise we just read the plan's oid list.
+  // This is because the storage layer needs to read at least one column.
+  // TODO(Amadou): Create a special code path for COUNT(*).
+  // This requires a new table iterator that doesn't materialize tuples as well as a few builtins.
+  static std::vector<catalog::col_oid_t> MakeInputOids(const catalog::Schema &schema,
+                                                       const planner::SeqScanPlanNode *op_) {
+    if (op_->GetColumnOids().empty()) {
+      return {schema.GetColumn(0).Oid()};
+    }
+    return op_->GetColumnOids();
+  }
+
  private:
   const planner::SeqScanPlanNode *op_;
   const catalog::Schema &schema_;

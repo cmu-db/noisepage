@@ -3,6 +3,7 @@
 #include <memory>
 #include <utility>
 #include <vector>
+#include "binder/bind_node_visitor.h"
 #include "common/hash_util.h"
 #include "parser/expression/abstract_expression.h"
 #include "type/transient_value.h"
@@ -55,6 +56,8 @@ class ConstantValueExpression : public AbstractExpression {
     return Copy();
   }
 
+  void DeriveReturnValueType() override { return_value_type_ = GetValue().Type(); }
+
   void DeriveExpressionName() override {
     if (!this->GetAlias().empty()) {
       this->SetExpressionName(this->GetAlias());
@@ -93,6 +96,7 @@ class ConstantValueExpression : public AbstractExpression {
   }
 
  private:
+  friend class binder::BindNodeVisitor; /* value_ may be modified, e.g., when parsing dates. */
   /** The constant held inside this ConstantValueExpression. */
   type::TransientValue value_;
 };
