@@ -107,7 +107,8 @@ class MiniTrainer:
 
                         # Record the model with the lowest elapsed time prediction (since that might be the most
                         # important prediction)
-                        if i == 1 and percentage_error[elapsed_us_index] < min_percentage_error:
+                        if (i == 1 and percentage_error[elapsed_us_index] < min_percentage_error and transformer ==
+                                transformers[-1]):
                             min_percentage_error = percentage_error[elapsed_us_index]
                             model_map[data.opunit] = regressor
 
