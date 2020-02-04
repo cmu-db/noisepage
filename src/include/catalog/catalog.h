@@ -44,6 +44,7 @@ class Catalog {
    * action framework in the destructor.
    * @param txn_manager for spawning read-only transactions in destructors
    * @param block_store to use to back catalog tables
+   * @param garbage_collector injected GC to register and deregister indexes. Temporary?
    * @warning The catalog requires garbage collection and will leak catalog
    * tables if it is disabled.
    */
