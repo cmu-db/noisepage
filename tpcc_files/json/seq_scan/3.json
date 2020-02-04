@@ -1,0 +1,90 @@
+{
+    "children": [
+        {
+            "children": [],
+            "column_oids": [
+                1
+            ],
+            "database_oid": 1,
+            "is_for_update": false,
+            "namespace_oid": 15,
+            "output_schema": {
+                "columns": [
+                    {
+                        "expr": {
+                            "alias": "",
+                            "children": [],
+                            "depth": -1,
+                            "expression_name": "",
+                            "expression_type": 28,
+                            "has_subquery": false,
+                            "return_value_type": 4,
+                            "tuple_idx": 0,
+                            "value_idx": 0
+                        },
+                        "name": "o_id",
+                        "type": 4
+                    }
+                ]
+            },
+            "plan_node_type": 1,
+            "scan_predicate": {
+                "alias": "",
+                "children": [
+                    {
+                        "alias": "",
+                        "children": [],
+                        "depth": -1,
+                        "expression_name": "",
+                        "expression_type": 28,
+                        "has_subquery": false,
+                        "return_value_type": 2,
+                        "tuple_idx": 0,
+                        "value_idx": 5
+                    },
+                    {
+                        "alias": "",
+                        "children": [],
+                        "depth": -1,
+                        "expression_name": "",
+                        "expression_type": 26,
+                        "has_subquery": false,
+                        "return_value_type": 4,
+                        "value": {
+                            "data": 5,
+                            "type": 4
+                        }
+                    }
+                ],
+                "depth": 0,
+                "expression_name": "",
+                "expression_type": 13,
+                "has_subquery": false,
+                "return_value_type": 1
+            },
+            "table_oid": 1008
+        }
+    ],
+    "limit": 1,
+    "offset": 2,
+    "output_schema": {
+        "columns": [
+            {
+                "expr": {
+                    "alias": "",
+                    "children": [],
+                    "depth": -1,
+                    "expression_name": "",
+                    "expression_type": 28,
+                    "has_subquery": false,
+                    "return_value_type": 4,
+                    "tuple_idx": 0,
+                    "value_idx": 0
+                },
+                "name": "o_id",
+                "type": 4
+            }
+        ]
+    },
+    "plan_node_type": 27
+}

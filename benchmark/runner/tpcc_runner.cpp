@@ -22,7 +22,7 @@ namespace terrier::runner {
                 "delivery" //, "index_scan", "neworder", "orderstatus", "payment",
                 // "seq_scan", "stocklevel", "temp"
         };
-        const std::string tpcc_file_root_ = "../../tpcc_files/raw/";
+        const std::string tpcc_file_root_ = "../tpcc_files/raw/";
 
         void SetUp(const benchmark::State &state) final {
             terrier::execution::ExecutionUtil::InitTPL();

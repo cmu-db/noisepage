@@ -1,0 +1,10 @@
+tbl_customer_
+tbl_warehouse_
+tbl_district_
+tbl_new_order_
+tbl_district_
+tbl_order_
+tbl_item_
+tbl_stock_
+tbl_stock_
+tbl_order_line_
