@@ -37,9 +37,11 @@ class Builder {
    * Allocates a new database catalog that roughly conforms to PostgreSQL's catalog layout
    * @param block_store for backing the new catalog tables
    * @param oid of the database which is used for populating the field in redo records
+   * @param garbage_collector injected GC to register and deregister indexes. Temporary?
    * @return an initialized DatabaseCatalog
    */
-  static DatabaseCatalog *CreateDatabaseCatalog(common::ManagedPointer<storage::BlockStore> block_store, db_oid_t oid);
+  static DatabaseCatalog *CreateDatabaseCatalog(common::ManagedPointer<storage::BlockStore> block_store, db_oid_t oid,
+                                                common::ManagedPointer<storage::GarbageCollector> garbage_collector);
 
   /**
    * @return schema object for pg_attribute table

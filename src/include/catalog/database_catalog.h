@@ -358,8 +358,10 @@ class DatabaseCatalog {
   std::atomic<transaction::timestamp_t> write_lock_;
 
   const db_oid_t db_oid_;
+  const common::ManagedPointer<storage::GarbageCollector> garbage_collector_;
 
-  explicit DatabaseCatalog(db_oid_t oid) : write_lock_(transaction::INITIAL_TXN_TIMESTAMP), db_oid_(oid) {}
+  DatabaseCatalog(const db_oid_t oid, const common::ManagedPointer<storage::GarbageCollector> garbage_collector)
+      : write_lock_(transaction::INITIAL_TXN_TIMESTAMP), db_oid_(oid), garbage_collector_(garbage_collector) {}
 
   void TearDown(common::ManagedPointer<transaction::TransactionContext> txn);
   bool CreateTableEntry(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table_oid,
