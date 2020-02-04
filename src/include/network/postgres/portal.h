@@ -45,7 +45,7 @@ class Portal {
   /**
    * @return Statement that this Portal references
    */
-  common::ManagedPointer<Statement> Statement() const { return statement_; }
+  common::ManagedPointer<Statement> GetStatement() const { return statement_; }
 
   /**
    * @return the optimized physical plan for this query

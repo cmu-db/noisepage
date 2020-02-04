@@ -219,7 +219,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    */
   void ClosePortalsConstructedFromStatement(const common::ManagedPointer<Statement> statement) {
     for (auto it = portals_.begin(); it != portals_.end();) {
-      if (it->second->Statement() == statement) {
+      if (it->second->GetStatement() == statement) {
         it = portals_.erase(it);
       } else {
         it++;

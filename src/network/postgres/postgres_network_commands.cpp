@@ -24,7 +24,7 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
                           const common::ManagedPointer<trafficcop::TrafficCop> t_cop, const bool explicit_txn_block) {
   trafficcop::TrafficCopResult result;
 
-  const auto query_type = portal->Statement()->GetQueryType();
+  const auto query_type = portal->GetStatement()->GetQueryType();
   const auto physical_plan = portal->PhysicalPlan();
 
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
@@ -347,7 +347,7 @@ Transition DescribeCommand::Exec(const common::ManagedPointer<ProtocolInterprete
     const auto portal = postgres_interpreter->GetPortal(object_name);
     if (portal == nullptr) {
       out->WriteErrorResponse("ERROR:  Portal does not exist for Describe message.");
-    } else if (portal->Statement()->GetQueryType() == network::QueryType::QUERY_SELECT) {
+    } else if (portal->GetStatement()->GetQueryType() == network::QueryType::QUERY_SELECT) {
       out->WriteRowDescription(portal->PhysicalPlan()->GetOutputSchema()->GetColumns(), portal->ResultFormats());
     } else {
       out->WriteNoData();
@@ -394,7 +394,7 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
     return Transition::PROCEED;
   }
 
-  const auto statement = portal->Statement();
+  const auto statement = portal->GetStatement();
   const auto query_type = statement->GetQueryType();
 
   // TODO(Matt): Probably handle EmptyStatement around here somewhere, maybe somewhere more general purpose though?
