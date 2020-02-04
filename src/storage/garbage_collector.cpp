@@ -186,9 +186,11 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *co
         if (layout.IsVarlen(col_id)) {
           auto *varlen = reinterpret_cast<VarlenEntry *>(accessor.AccessWithNullCheck(undo_record->Slot(), col_id));
           if (varlen != nullptr && varlen->NeedReclaim()) txn->loose_ptrs_.push_back(varlen->Content());
-        } else {
-          break;  // Once done with varlens we won't see them again.
         }
+//        // TODO(Ling): this assumption is not true
+//        else {
+//          break;  // Once done with varlens we won't see them again.
+//        }
       }
       break;
     case DeltaRecordType::UPDATE:
@@ -197,9 +199,10 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *co
         if (layout.IsVarlen(col_id)) {
           auto *varlen = reinterpret_cast<VarlenEntry *>(undo_record->Delta()->AccessWithNullCheck(i));
           if (varlen != nullptr && varlen->NeedReclaim()) txn->loose_ptrs_.push_back(varlen->Content());
-        } else {
-          break;  // Once done with varlens we won't see them again.
         }
+//        else {
+//          break;  // Once done with varlens we won't see them again.
+//        }
       }
       break;
     default:
