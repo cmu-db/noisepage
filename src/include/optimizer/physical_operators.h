@@ -234,11 +234,6 @@ class IndexScan : public OperatorNode<IndexScan> {
   catalog::index_oid_t index_oid_;
 
   /**
-   * OID of the table
-   */
-  catalog::table_oid_t table_oid_;
-
-  /**
    * Query predicates
    */
   std::vector<AnnotatedExpression> predicates_;
