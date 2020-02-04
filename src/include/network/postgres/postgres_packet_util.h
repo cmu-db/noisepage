@@ -10,6 +10,7 @@
 #include "network/postgres/postgres_protocol_utils.h"
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
+#include "util/time_util.h"
 
 namespace terrier::network {
 
@@ -90,6 +91,16 @@ class PostgresPacketUtil {
         return type::TransientValueFactory::GetDecimal(std::stod(string_val));
       case type::TypeId::VARCHAR:
         return type::TransientValueFactory::GetVarChar(string_val);
+      case type::TypeId::TIMESTAMP: {
+        const auto [parse_okay, julian_timestamp] = util::TimeConvertor::ParseTimestamp(string_val);
+        TERRIER_ASSERT(parse_okay, "Failed to parse the timestamp.");
+        return type::TransientValueFactory::GetTimestamp(julian_timestamp);
+      }
+      case type::TypeId::DATE: {
+        const auto [parse_okay, julian_date] = util::TimeConvertor::ParseDate(string_val);
+        TERRIER_ASSERT(parse_okay, "Failed to parse the date.");
+        return type::TransientValueFactory::GetDate(julian_date);
+      }
       default:
         // TODO(Matt): Note that not all types are handled yet. Add them as we support them.
         UNREACHABLE("Unsupported type for parameter.");
@@ -131,11 +142,12 @@ class PostgresPacketUtil {
         TERRIER_ASSERT(size == 8, "Unexpected size for this type.");
         return type::TransientValueFactory::GetDecimal(read_buffer->ReadValue<double>());
       }
+      case type::TypeId::DATE: {
+        // TODO(Matt): unsure if this is correct. Need tests.
+        return type::TransientValueFactory::GetDate(static_cast<type::date_t>(read_buffer->ReadValue<int32_t>()));
+      }
       default:
-        // TODO(Matt): from looking at JDBC source code, DATE is the only other possible binary value
-        // https://github.com/pgjdbc/pgjdbc/blob/db228a4ffd8b356a9028363b35b0eb9055ea53f0/pgjdbc/src/main/java/org/postgresql/jdbc/PgPreparedStatement.java
-        // line 1272
-        // TODO(Matt): Note that not all types are handled yet. Add them as we support them.
+        // (Matt): from looking at jdbc source code, that seems like all the possible binary types
         UNREACHABLE("Unsupported type for parameter.");
     }
   }
