@@ -120,6 +120,46 @@ public class InsertPSTest extends PLTestBase {
  }
 
  /**
+  * Prepared statement, a bunch of inserts to try to get a switch to binary protocol
+  */
+ @Test
+ public void testPS_1Tuple_CS_Binary() throws SQLException {
+
+  String sql = "INSERT INTO tbl (c1, c2, c3) VALUES (?, ?, ?);";
+  PreparedStatement pstmt = conn.prepareStatement(sql);
+
+
+  for (int i = 0; i < 10; i++) {
+   setValues(pstmt, new int[] {
+    1 * i,
+     2 * i,
+     3 * i
+   });
+   pstmt.addBatch();
+  }
+  pstmt.executeBatch();
+
+  getResultsPS();
+
+
+  for (int i = 0; i < 10; i++) {
+   rs.next();
+   checkRow(rs,
+    new String[] {
+     "c1",
+     "c2",
+     "c3"
+    },
+    new int[] {
+     1 * i,
+      2 * i,
+      3 * i
+    });
+  }
+  assertNoMoreRows(rs);
+ }
+
+ /**
   * Prepared statement, 1 tuple insert, with columns inserted
   * in different order from schema.
   */

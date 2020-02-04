@@ -18,10 +18,10 @@ static Transition FinishSimpleQueryCommand(const common::ManagedPointer<Postgres
   return Transition::PROCEED;
 }
 
-static void ExecutePortal(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                          const common::ManagedPointer<Portal> portal,
-                          const common::ManagedPointer<network::PostgresPacketWriter> out,
-                          const common::ManagedPointer<trafficcop::TrafficCop> t_cop, const bool explicit_txn_block) {
+static trafficcop::TrafficCopResult ExecutePortal(
+    const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+    const common::ManagedPointer<Portal> portal, const common::ManagedPointer<network::PostgresPacketWriter> out,
+    const common::ManagedPointer<trafficcop::TrafficCop> t_cop, const bool explicit_txn_block) {
   trafficcop::TrafficCopResult result;
 
   const auto query_type = portal->GetStatement()->GetQueryType();
@@ -35,14 +35,16 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
     if (explicit_txn_block && query_type == network::QueryType::QUERY_CREATE_DB) {
       out->WriteErrorResponse("ERROR:  CREATE DATABASE cannot run inside a transaction block");
       connection_ctx->Transaction()->SetMustAbort();
-      return;
+      return {trafficcop::ResultType::ERROR,
+              0};  // Writing results is already done, we just want to signal ERROR to the caller
     }
     result = t_cop->ExecuteCreateStatement(connection_ctx, physical_plan, query_type);
   } else if (query_type <= network::QueryType::QUERY_DROP_VIEW) {
     if (explicit_txn_block && query_type == network::QueryType::QUERY_DROP_DB) {
       out->WriteErrorResponse("ERROR:  DROP DATABASE cannot run inside a transaction block");
       connection_ctx->Transaction()->SetMustAbort();
-      return;
+      return {trafficcop::ResultType::ERROR,
+              0};  // Writing results is already done, we just want to signal ERROR to the caller
     }
     result = t_cop->ExecuteDropStatement(connection_ctx, physical_plan, query_type);
   }
@@ -56,6 +58,8 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
     TERRIER_ASSERT(std::holds_alternative<std::string>(result.extra_), "We're expecting a message here.");
     out->WriteErrorResponse(std::get<std::string>(result.extra_));
   }
+
+  return result;  // Writing results is already done, we just want to signal result to the caller
 }
 
 Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> interpreter,
@@ -418,7 +422,10 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
 
   if (portal->PhysicalPlan() != nullptr) {
     // This happens in the event of a noop generated earlier (like in binding with an IF EXISTS);
-    ExecutePortal(connection, portal, out, t_cop, postgres_interpreter->ExplicitTransactionBlock());
+    const auto result = ExecutePortal(connection, portal, out, t_cop, postgres_interpreter->ExplicitTransactionBlock());
+    if (result.type_ == trafficcop::ResultType::ERROR) {
+      postgres_interpreter->SetWaitingForSync();
+    }
   } else {
     out->WriteCommandComplete(query_type, 0);
   }
