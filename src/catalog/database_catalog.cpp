@@ -1070,6 +1070,7 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
   // Everything succeeded from an MVCC standpoint, so register a deferred action for the GC to delete the index with txn
   // manager. See base function comment.
   txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
+    garbage_collector_->UnregisterIndexForGC(common::ManagedPointer(index_ptr));
     deferred_action_manager->RegisterDeferredAction([=]() {
       deferred_action_manager->RegisterDeferredAction([=]() {
         delete schema_ptr;
@@ -1133,10 +1134,11 @@ bool DatabaseCatalog::SetClassPointer(const common::ManagedPointer<transaction::
 }
 
 bool DatabaseCatalog::SetIndexPointer(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                      const index_oid_t index, const storage::index::Index *const index_ptr) {
+                                      const index_oid_t index, storage::index::Index *const index_ptr) {
   TERRIER_ASSERT(write_lock_.load() == txn->FinishTime(),
                  "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
                  "should already have the lock.");
+  txn->RegisterCommitAction([=]() { garbage_collector_->RegisterIndexForGC(common::ManagedPointer(index_ptr)); });
   // This needs to be deferred because if any items were subsequently inserted into this index, they will have deferred
   // abort actions that will be above this action on the abort stack.  The defer ensures we execute after them.
   txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {

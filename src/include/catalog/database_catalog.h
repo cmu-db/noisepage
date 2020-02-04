@@ -225,7 +225,7 @@ class DatabaseCatalog {
    * this function regardless of the return status.
    */
   bool SetIndexPointer(common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t index,
-                       const storage::index::Index *index_ptr);
+                       storage::index::Index *index_ptr);
 
   /**
    * Obtain the pointer to the index
