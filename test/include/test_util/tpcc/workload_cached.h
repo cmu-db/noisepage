@@ -40,6 +40,7 @@ namespace terrier::tpcc {
  */
     class WorkloadCached {
     public:
+
         WorkloadCached(common::ManagedPointer<DBMain> db_main, const std::string &table_root,
                  const std::vector<std::string> &txn_names, int8_t num_threads);
 
@@ -50,15 +51,13 @@ namespace terrier::tpcc {
         void Execute(int8_t worker_id, uint32_t num_precomputed_txns_per_worker, execution::vm::ExecutionMode mode);
 
     private:
-        void LoadTPCCQueries(execution::exec::ExecutionContext *exec_ctx, const std::string &file_root,
-                const std::vector<std::string> &queries);
+        void LoadTPCCQueries(const std::string &file_root, const std::vector<std::string> &queries);
 
         common::ManagedPointer<DBMain> db_main_;
         common::ManagedPointer<storage::BlockStore> block_store_;
         common::ManagedPointer<catalog::Catalog> catalog_;
         common::ManagedPointer<transaction::TransactionManager> txn_manager_;
         catalog::db_oid_t db_oid_;
-        catalog::namespace_oid_t ns_oid_;
         Database *tpcc_db_;
 
         std::map<std::string, std::vector<execution::ExecutableQuery> > queries_;

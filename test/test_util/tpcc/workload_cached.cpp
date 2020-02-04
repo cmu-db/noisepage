@@ -19,6 +19,7 @@
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "test_util/test_harness.h"
 #include "test_util/tpcc/plan_generator.h"
+#include "execution/execution_util.h"
 
 namespace terrier::tpcc {
 
@@ -31,12 +32,12 @@ namespace terrier::tpcc {
         catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
         txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
 
-        // Create database catalog and namespace
-        Builder tpcc_builder{block_store_, catalog_, txn_manager_};
-
         // build the TPCC database using HashMaps where possible
+        Builder tpcc_builder{block_store_, catalog_, txn_manager_};
         tpcc_db_ = tpcc_builder.Build(storage::index::IndexType::HASHMAP);
+        db_oid_ = tpcc_db_->db_oid_;
 
+        // populate the tables and indexes
         // prepare the thread pool and workers
         common::WorkerPool thread_pool{static_cast<uint32_t>(num_threads), {}};
         std::vector<Worker> workers;
@@ -45,30 +46,13 @@ namespace terrier::tpcc {
         for (int8_t i = 0; i < num_threads; i++) {
             workers.emplace_back(tpcc_db_);
         }
-
-        // populate the tables and indexes
         Loader::PopulateDatabase(txn_manager_, tpcc_db_, &workers, &thread_pool);
-        db_oid_ = tpcc_db_->db_oid_;
-
-        auto txn = txn_manager_->BeginTransaction();
-        // db_oid_ = catalog_->CreateDatabase(common::ManagedPointer<transaction::TransactionContext>(txn), db_name, true);
-        auto accessor = catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_);
-        ns_oid_ = accessor->GetDefaultNamespace();
-
-        // Make the execution context
-        execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
-                                                   nullptr, nullptr, common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
 
         // compile the queries
-        LoadTPCCQueries(&exec_ctx, table_root, txn_names);
-
-        std::cout << "queries loaded" << std::endl;
-
-        txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+        LoadTPCCQueries(table_root, txn_names);
     }
 
-    void WorkloadCached::LoadTPCCQueries(execution::exec::ExecutionContext *exec_ctx, const std::string &file_root,
-            const std::vector<std::string> &txn_names) {
+    void WorkloadCached::LoadTPCCQueries(const std::string &file_root, const std::vector<std::string> &txn_names) {
         std::string query;
         std::string tbl;
 
@@ -77,23 +61,33 @@ namespace terrier::tpcc {
             tpcc_db_);
 
         for (auto &txn_name : txn_names) {
+            // read queries and tbls from files
             auto curr = queries_.emplace(txn_name, std::vector<execution::ExecutableQuery> {});
             std::ifstream ifs_sql(file_root + txn_name + ".sql");
-            std::ifstream ifs_tbl("tpcc_files/raw/" + txn_name + ".txt");
-
-            std::cout << "got sqls" << std::endl;
+            std::ifstream ifs_tbl(file_root + txn_name + ".txt");
 
             while (getline(ifs_sql, query)) {
                 getline(ifs_tbl, tbl);
-                auto plan = plan_generator.Generate(query, tbl);
-                std::cout << "generated" << std::endl;
-                curr.first->second.emplace_back(execution::ExecutableQuery(common::ManagedPointer<planner::AbstractPlanNode>(plan),
-                        common::ManagedPointer<execution::exec::ExecutionContext>(exec_ctx)));
 
-                std::cout << "got sql?" << std::endl;
+                plan_generator.BeginTransaction();
+                // generate plan node
+                execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(plan_generator.GetTxn()),
+                                                           nullptr, nullptr, common::ManagedPointer<catalog::CatalogAccessor>(plan_generator.GetAccessor())};
+
+                std::unique_ptr<planner::AbstractPlanNode> plan_node = plan_generator.Optimize(
+                        query, plan_generator.GetTbl(tbl), plan_generator.GetStmt(query));
+
+                std::cout << std::setw(4) << plan_node->ToJson() << std::endl;
+
+                // generate executable query and emplace it into the vector; break down here
+                curr.first->second.emplace_back(execution::ExecutableQuery{common::ManagedPointer<planner::AbstractPlanNode>(plan_node),
+                                                                           common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx)});
+                plan_generator.EndTransaction(true);
             }
             ifs_sql.close();
             ifs_tbl.close();
+
+            // record the name of transaction
             txn_names_.push_back(txn_name);
         }
     }
@@ -126,5 +120,4 @@ namespace terrier::tpcc {
         // Unregister from the metrics manager
         db_main_->GetMetricsManager()->UnregisterThread();
     }
-
 }  // namespace terrier::tpcc

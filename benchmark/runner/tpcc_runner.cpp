@@ -6,6 +6,7 @@
 #include "execution/vm/module.h"
 
 namespace terrier::runner {
+    // Modified from TPCHRunner
     class TPCCRunner : public benchmark::Fixture {
     public:
         const int8_t num_threads_ = 10;                             // defines the number of terminals (workers threads)
@@ -19,10 +20,9 @@ namespace terrier::runner {
         // TPCC setup
         const std::vector<std::string> tpcc_txn_names_ = {
                 "delivery" //, "index_scan", "neworder", "orderstatus", "payment",
-                //"seq_scan", "stocklevel", "temp"
+                // "seq_scan", "stocklevel", "temp"
         };
         const std::string tpcc_file_root_ = "../../tpcc_files/raw/";
-        const std::string tpcc_database_name_ = "tpcc_db";
 
         void SetUp(const benchmark::State &state) final {
             terrier::execution::ExecutionUtil::InitTPL();
@@ -39,7 +39,8 @@ namespace terrier::runner {
                     .SetBlockStoreReuse(1000000)
                     .SetRecordBufferSegmentSize(1000000)
                     .SetRecordBufferSegmentReuse(1000000)
-                    .SetUseSettingsManager(true);
+                    .SetUseSettingsManager(true)
+                    .SetUseStatsStorage(true);
 
             db_main_ = db_main_builder.Build();
 

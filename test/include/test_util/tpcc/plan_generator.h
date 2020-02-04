@@ -22,6 +22,11 @@ namespace terrier {
         class Database;
     };
 
+    namespace execution {
+        class ExecutableQuery;
+    };
+
+    // Modified from TpccPlanTest
     class PlanGenerator {
     public:
         PlanGenerator(common::ManagedPointer<catalog::Catalog> catalog,
@@ -36,12 +41,30 @@ namespace terrier {
         std::unique_ptr<planner::AbstractPlanNode> Optimize(const std::string &query, catalog::table_oid_t tbl_oid,
                                                             parser::StatementType stmt_type);
 
-        std::unique_ptr<planner::AbstractPlanNode> Generate(const std::string &query, const std::string &tbl) {
-            BeginTransaction();
-            std::unique_ptr<planner::AbstractPlanNode> plan_node = Optimize(
-                    query, tbl_map_.find(tbl)->second, stmt_map_.find(query[0])->second);
-            EndTransaction(true);
-            return plan_node;
+        transaction::TransactionContext *GetTxn() {
+            return txn_;
+        }
+
+        catalog::CatalogAccessor *GetAccessor() {
+            return accessor_;
+        }
+
+        /**
+         * convert table name to table oid
+         * @param tbl name of table
+         * @return table oid
+         */
+        catalog::table_oid_t GetTbl(const std::string &tbl) {
+            return tbl_map_.find(tbl)->second;
+        }
+
+        /**
+         * convert statement name to statement type
+         * @param stmt name of statement
+         * @return statement type
+         */
+        parser::StatementType GetStmt(const std::string &stmt) {
+            return stmt_map_.find(stmt[0])->second;
         }
 
         // Infrastucture
