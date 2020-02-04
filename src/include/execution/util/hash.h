@@ -27,11 +27,11 @@ class EXPORT Hasher {
  public:
   /**
    * Compute the hash value of an arithmetic input. The input is allowed to be
-   * either an integral numbers (8- to 64-bits) or floating pointer numbers.
+   * either an integral numbers (8- to 64-bits) or floating point numbers.
    * @tparam METHOD The hash method to use.
    * @tparam T The input arithmetic type.
    * @param val The input value to hash.
-   * @return The compute hash.
+   * @return The computed hash.
    */
   template <HashMethod METHOD = HashMethod::Crc, typename T>
   static auto Hash(const T val) -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
@@ -44,6 +44,25 @@ class EXPORT Hasher {
         return HashMurmur2(val);
       case HashMethod::xxHash3:
         return HashXX3(val);
+    }
+  }
+
+  /**
+   * Compute the hash value of an arithmetic input. The input is allowed to be
+   * either an integral numbers (8- to 64-bits) or floating pointer numbers.
+   * @tparam METHOD The hash method to use.
+   * @tparam T The input arithmetic type.
+   * @param val The input value to hash.
+   * @param seed The hash seed.
+   * @return The computed hash.
+   */
+  template <HashMethod METHOD = HashMethod::Crc, typename T>
+  static auto Hash(const T val, const hash_t seed) -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
+    switch (METHOD) {
+      case HashMethod::Crc:
+        return HashCrc(val, seed);
+      case HashMethod::Murmur2:
+        return HashMurmur2(val, seed);
     }
   }
 

@@ -147,18 +147,17 @@ class IndexScan : public OperatorNode<IndexScan> {
   /**
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
-   * @param table_oid OID of the table
+   * @param tbl_oid OID of the table
    * @param index_oid OID of the index
    * @param predicates query predicates
-   * @param table_alias alias of the table
    * @param is_for_update whether the scan is used for update
    * @param scan_type IndexScanType
    * @param bounds Bounds for IndexScan
    * @return an IndexScan operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, catalog::index_oid_t index_oid,
-                       std::vector<AnnotatedExpression> &&predicates, std::string table_alias, bool is_for_update,
+                       catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
+                       std::vector<AnnotatedExpression> &&predicates, bool is_for_update,
                        planner::IndexScanType scan_type,
                        std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds);
   /**
@@ -184,22 +183,17 @@ class IndexScan : public OperatorNode<IndexScan> {
   /**
    * @return the OID of the index
    */
-  const catalog::index_oid_t &GetIndexOID() const { return index_oid_; }
+  const catalog::table_oid_t &GetTableOID() const { return tbl_oid_; }
 
   /**
-   * @return the OID of the table
+   * @return the OID of the index
    */
-  const catalog::table_oid_t &GetTableOID() const { return table_oid_; }
+  const catalog::index_oid_t &GetIndexOID() const { return index_oid_; }
 
   /**
    * @return the vector of predicates for get
    */
   const std::vector<AnnotatedExpression> &GetPredicates() const { return predicates_; }
-
-  /**
-   * @return the alias of the table to get from
-   */
-  const std::string &GetTableAlias() const { return table_alias_; }
 
   /**
    * @return whether the get operation is used for update
@@ -230,6 +224,11 @@ class IndexScan : public OperatorNode<IndexScan> {
   catalog::namespace_oid_t namespace_oid_;
 
   /**
+   * OID of the table
+   */
+  catalog::table_oid_t tbl_oid_;
+
+  /**
    * OID of the index
    */
   catalog::index_oid_t index_oid_;
@@ -243,11 +242,6 @@ class IndexScan : public OperatorNode<IndexScan> {
    * Query predicates
    */
   std::vector<AnnotatedExpression> predicates_;
-
-  /**
-   * Table alias
-   */
-  std::string table_alias_;
 
   /**
    * Whether the scan is used for update

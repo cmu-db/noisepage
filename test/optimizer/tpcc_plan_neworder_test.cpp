@@ -94,7 +94,7 @@ TEST_F(TpccPlanNewOrderTests, UpdateDistrict) {
 TEST_F(TpccPlanNewOrderTests, InsertOOrder) {
   std::string query =
       "INSERT INTO \"ORDER\" (O_ID, O_D_ID, O_W_ID, O_C_ID, O_ENTRY_D, O_OL_CNT, O_ALL_LOCAL) "
-      "VALUES (1,2,3,4,0,6,7)";
+      "VALUES (1,2,3,4,'2020-01-02',6,7)";
   OptimizeInsert(query, tbl_order_);
 }
 
@@ -206,8 +206,9 @@ TEST_F(TpccPlanNewOrderTests, UpdateStock) {
 TEST_F(TpccPlanNewOrderTests, InsertOrderLine) {
   std::string query =
       "INSERT INTO \"ORDER LINE\" "
-      "(OL_O_ID, OL_D_ID, OL_W_ID, OL_NUMBER, OL_I_ID, OL_SUPPLY_W_ID, OL_QUANTITY, OL_AMOUNT, OL_DIST_INFO) "
-      "VALUES (1,2,3,4,5,6,7,8,'dist')";
+      "(OL_O_ID, OL_D_ID, OL_W_ID, OL_NUMBER, OL_I_ID, OL_SUPPLY_W_ID, OL_DELIVERY_D, OL_QUANTITY, OL_AMOUNT, "
+      "OL_DIST_INFO) "
+      "VALUES (1,2,3,4,5,6,'2020-01-02',7,8,'dist')";
   OptimizeInsert(query, tbl_order_line_);
 }
 

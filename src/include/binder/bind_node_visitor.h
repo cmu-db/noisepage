@@ -76,6 +76,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
   // void Visit(parser::FunctionExpression *expr, parser::ParseResult *parse_result) override;
   void Visit(parser::OperatorExpression *expr, parser::ParseResult *parse_result) override;
   void Visit(parser::AggregateExpression *expr, parser::ParseResult *parse_result) override;
+  void Visit(parser::TypeCastExpression *expr, parser::ParseResult *parse_result) override;
 
  private:
   /** Current context of the query or subquery */
