@@ -61,14 +61,14 @@ class ExecutableQuery {
   const planner::OutputSchema *GetOutputSchema() const { return sample_output_->GetSchema(query_name_);; }
   const exec::OutputPrinter &GetPrinter() const { return *printer_; }
 
+  const std::string &GetQueryName() const {return query_name_; }
+
  private:
   static std::string GetFileName(const std::string &path) {
     std::size_t size = path.size();
     std::size_t found = path.find_last_of("/\\");
     return path.substr(found + 1, size - found - 5);
   }
-
-  std::vector<type::TransientValue> GetQueryParams();
 
   // TPL bytecodes for this query.
   std::unique_ptr<vm::Module> tpl_module_ = nullptr;

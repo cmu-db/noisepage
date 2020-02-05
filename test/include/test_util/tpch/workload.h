@@ -45,6 +45,8 @@ class Workload {
 
   void LoadTPCHQueries(execution::exec::ExecutionContext *exec_ctx, const std::vector<std::string> &queries);
 
+  std::vector<type::TransientValue> GetQueryParams(const std::string &query_name);
+
   common::ManagedPointer<DBMain> db_main_;
   common::ManagedPointer<storage::BlockStore> block_store_;
   common::ManagedPointer<catalog::Catalog> catalog_;
