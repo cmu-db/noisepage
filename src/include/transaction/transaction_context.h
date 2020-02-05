@@ -211,7 +211,6 @@ class TransactionContext {
 
   void Unlink(timestamp_t oldest_txn);
 
-
  private:
   friend class storage::GarbageCollector;
   friend class TransactionManager;

@@ -283,9 +283,9 @@ TEST_F(CatalogTests, UserTableTest) {
   // cannot add a table with same name
   std::vector<catalog::Schema::Column> cols2;
   cols2.emplace_back("id", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+                     parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
   cols2.emplace_back("user_col_1", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+                     parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
   auto tmp_schema2 = catalog::Schema(cols2);
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);

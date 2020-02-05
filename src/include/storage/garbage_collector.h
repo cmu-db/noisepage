@@ -77,12 +77,12 @@ class GarbageCollector {
  private:
   void ProcessIndexes();
 
-  const common::ManagedPointer<transaction::TimestampManager> timestamp_manager_;
+  const common::ManagedPointer<transaction::TimestampManager> UNUSED_ATTRIBUTE timestamp_manager_;
   const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;
   const common::ManagedPointer<transaction::TransactionManager> txn_manager_;
-  AccessObserver *observer_;
+  AccessObserver *observer_ UNUSED_ATTRIBUTE;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
-  transaction::timestamp_t last_unlinked_;
+  transaction::timestamp_t last_unlinked_ UNUSED_ATTRIBUTE;
   // queue of txns that have been unlinked, and should possible be deleted on next GC run
   transaction::TransactionQueue txns_to_deallocate_;
   // queue of txns that need to be unlinked

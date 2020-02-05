@@ -12,7 +12,8 @@ void UndoRecord::ReclaimBufferIfVarlen(transaction::TransactionContext *const tx
   const TupleAccessStrategy &accessor = table_->GetAccessor();
   const BlockLayout &layout = table_->GetBlockLayout();
   switch (type_) {
-    case DeltaRecordType::INSERT:return;  // no possibility of outdated varlen to gc
+    case DeltaRecordType::INSERT:
+      return;  // no possibility of outdated varlen to gc
     case DeltaRecordType::DELETE:
       for (uint16_t i = 0; i < layout.NumColumns(); i++) {
         col_id_t col_id(i);
@@ -21,10 +22,10 @@ void UndoRecord::ReclaimBufferIfVarlen(transaction::TransactionContext *const tx
           auto *varlen = reinterpret_cast<VarlenEntry *>(accessor.AccessWithNullCheck(slot_, col_id));
           if (varlen != nullptr && varlen->NeedReclaim()) txn->AddReclaimableVarlen(varlen->Content());
         }
-//        // TODO(Ling): this assumption is not true; causing mem leak
-//        else {
-//          break;  // Once done with varlens we won't see them again.
-//        }
+        //        // TODO(Ling): this assumption is not true; causing mem leak
+        //        else {
+        //          break;  // Once done with varlens we won't see them again.
+        //        }
       }
       break;
     case DeltaRecordType::UPDATE: {
@@ -36,12 +37,12 @@ void UndoRecord::ReclaimBufferIfVarlen(transaction::TransactionContext *const tx
           if (varlen != nullptr && varlen->NeedReclaim()) txn->AddReclaimableVarlen(varlen->Content());
         }
         // TODO(Ling): this might be true? need more investigation
-//        else {
-//          break;  // Once done with varlens we won't see them again.
-//        }
+        //        else {
+        //          break;  // Once done with varlens we won't see them again.
+        //        }
       }
       break;
-  }
+    }
     default:
       throw std::runtime_error("unexpected delta record type");
   }

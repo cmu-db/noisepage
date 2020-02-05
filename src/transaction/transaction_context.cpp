@@ -12,7 +12,7 @@ void TransactionContext::Unlink(timestamp_t oldest_txn) {
       undo_record.ReclaimSlotIfDeleted();
       undo_record.ReclaimBufferIfVarlen(this);
     }
-    //if (observer_ != nullptr) observer_->ObserveWrite(undo_record.Slot().GetBlock());
+    // if (observer_ != nullptr) observer_->ObserveWrite(undo_record.Slot().GetBlock());
   }
 }
 }  // namespace terrier::transaction

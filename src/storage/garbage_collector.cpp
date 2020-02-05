@@ -20,7 +20,6 @@ namespace terrier::storage {
 // would be nice if this was hooked into metrics but that's a too far for right
 // now.
 std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
-
   if (deferred_action_manager_ != DISABLED) deferred_action_manager_->Process();
   ProcessIndexes();
 
