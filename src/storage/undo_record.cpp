@@ -36,10 +36,10 @@ void UndoRecord::ReclaimBufferIfVarlen(transaction::TransactionContext *const tx
           auto *varlen = reinterpret_cast<const VarlenEntry *>(delta->AccessWithNullCheck(i));
           if (varlen != nullptr && varlen->NeedReclaim()) txn->AddReclaimableVarlen(varlen->Content());
         }
-        // TODO(Ling): this might be true? need more investigation
-        //        else {
-        //          break;  // Once done with varlens we won't see them again.
-        //        }
+        // // TODO(Ling): this might be true? need more investigation
+        // else {
+        //   break;  // Once done with varlens we won't see them again.
+        // }
       }
       break;
     }

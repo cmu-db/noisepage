@@ -70,7 +70,16 @@ class TransactionManager {
    */
   bool GCEnabled() const { return gc_enabled_; }
 
+  /**
+   * TODO(Ling): hack for fake gc; remove it in the future
+   * @return number of transactions unlinked in this gc period
+   */
   uint32_t NumUnlinked() { return num_unlinked_.exchange(0); }
+
+  /**
+   * TODO(Ling): hack for fake gc; remove it in the future
+   * @return number of transactions deallocated in this gc period
+   */
   uint32_t NumDeallocated() { return num_deallocated_.exchange(0); }
 
  private:

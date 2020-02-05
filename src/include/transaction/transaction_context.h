@@ -209,6 +209,10 @@ class TransactionContext {
    */
   void AddReclaimableVarlen(const byte *content) { loose_ptrs_.push_back(content); }
 
+  /**
+   * Unlink the transactionContext
+   * @param oldest_txn timestamp of current running oldest transaction
+   */
   void Unlink(timestamp_t oldest_txn);
 
  private:
