@@ -147,21 +147,19 @@ class IndexScan : public OperatorNode<IndexScan> {
   /**
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
+   * @param tbl_oid OID of the table
    * @param index_oid OID of the index
    * @param predicates query predicates
-   * @param table_alias alias of the table
    * @param is_for_update whether the scan is used for update
-   * @param key_column_oid_list OID of key columns
-   * @param expr_type_list expression types
-   * @param value_list values to be scanned
+   * @param scan_type IndexScanType
+   * @param bounds Bounds for IndexScan
    * @return an IndexScan operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::index_oid_t index_oid, std::vector<AnnotatedExpression> &&predicates,
-                       std::string table_alias, bool is_for_update,
-                       std::vector<catalog::col_oid_t> &&key_column_oid_list,
-                       std::vector<parser::ExpressionType> &&expr_type_list,
-                       std::vector<type::TransientValue> &&value_list);
+                       catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
+                       std::vector<AnnotatedExpression> &&predicates, bool is_for_update,
+                       planner::IndexScanType scan_type,
+                       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds);
 
   /**
    * Copy
@@ -186,6 +184,11 @@ class IndexScan : public OperatorNode<IndexScan> {
   /**
    * @return the OID of the table
    */
+  const catalog::table_oid_t &GetTableOID() const { return tbl_oid_; }
+
+  /**
+   * @return the OID of the index
+   */
   const catalog::index_oid_t &GetIndexOID() const { return index_oid_; }
 
   /**
@@ -194,29 +197,21 @@ class IndexScan : public OperatorNode<IndexScan> {
   const std::vector<AnnotatedExpression> &GetPredicates() const { return predicates_; }
 
   /**
-   * @return the alias of the table to get from
-   */
-  const std::string &GetTableAlias() const { return table_alias_; }
-
-  /**
    * @return whether the get operation is used for update
    */
   bool GetIsForUpdate() const { return is_for_update_; }
 
   /**
-   * @return List of OIDs of key columns
+   * @return index scan type
    */
-  const std::vector<catalog::col_oid_t> &GetKeyColumnOIDList() const { return key_column_oid_list_; }
+  planner::IndexScanType GetIndexScanType() const { return scan_type_; }
 
   /**
-   * @return List of expression types
+   * @return bounds
    */
-  const std::vector<parser::ExpressionType> &GetExprTypeList() const { return expr_type_list_; }
-
-  /**
-   * @return List of parameter values
-   */
-  const std::vector<type::TransientValue> &GetValueList() const { return value_list_; }
+  const std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> &GetBounds() const {
+    return bounds_;
+  }
 
  private:
   /**
@@ -230,6 +225,11 @@ class IndexScan : public OperatorNode<IndexScan> {
   catalog::namespace_oid_t namespace_oid_;
 
   /**
+   * OID of the table
+   */
+  catalog::table_oid_t tbl_oid_;
+
+  /**
    * OID of the index
    */
   catalog::index_oid_t index_oid_;
@@ -240,29 +240,19 @@ class IndexScan : public OperatorNode<IndexScan> {
   std::vector<AnnotatedExpression> predicates_;
 
   /**
-   * Table alias
-   */
-  std::string table_alias_;
-
-  /**
    * Whether the scan is used for update
    */
   bool is_for_update_;
 
   /**
-   * OIDs of key columns
+   * Scan Type
    */
-  std::vector<catalog::col_oid_t> key_column_oid_list_;
+  planner::IndexScanType scan_type_;
 
   /**
-   * Expression types
+   * Bounds
    */
-  std::vector<parser::ExpressionType> expr_type_list_;
-
-  /**
-   * Parameter values
-   */
-  std::vector<type::TransientValue> value_list_;
+  std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds_;
 };
 
 /**

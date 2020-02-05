@@ -32,9 +32,10 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const SeqScan *op) {
 
 void ChildPropertyDeriver::Visit(const IndexScan *op) {
   // Use GetIndexOids() to get all indexes on table_alias
-  auto tbl_id = accessor_->GetTableOid(op->GetNamespaceOID(), op->GetTableAlias());
+  auto tbl_id = op->GetTableOID();
   std::vector<catalog::index_oid_t> tbl_indexes = accessor_->GetIndexOids(tbl_id);
 
+  auto *property_set = new PropertySet();
   for (auto prop : requirements_->Properties()) {
     if (prop->Type() == PropertyType::SORT) {
       auto sort_prop = prop->As<PropertySort>();
@@ -42,22 +43,14 @@ void ChildPropertyDeriver::Visit(const IndexScan *op) {
         continue;
       }
 
-      // Iterate through all the table indexes and check whether any
-      // of the indexes can be used to satisfy the sort property.
-      for (auto &index : tbl_indexes) {
-        if (IndexUtil::SatisfiesSortWithIndex(accessor_, sort_prop, tbl_id, index)) {
-          auto prop = requirements_->Copy();
-          output_.emplace_back(prop, std::vector<PropertySet *>{});
-          break;
-        }
+      auto idx_oid = op->GetIndexOID();
+      if (IndexUtil::SatisfiesSortWithIndex(accessor_, sort_prop, tbl_id, idx_oid)) {
+        property_set->AddProperty(prop->Copy());
       }
     }
   }
 
-  if (output_.empty()) {
-    // No index can be used, so output provides no properties
-    output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
-  }
+  output_.emplace_back(property_set, std::vector<PropertySet *>{});
 }
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const ExternalFileScan *op) {

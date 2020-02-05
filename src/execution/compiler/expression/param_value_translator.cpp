@@ -13,6 +13,9 @@ ast::Expr *ParamValueTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
   auto param_idx = param_val->GetValueIdx();
   ast::Builtin builtin;
   switch (param_val->GetReturnValueType()) {
+    case type::TypeId::BOOLEAN:
+      builtin = ast::Builtin::GetParamBool;
+      break;
     case type::TypeId::TINYINT:
       builtin = ast::Builtin::GetParamTinyInt;
       break;
@@ -30,6 +33,9 @@ ast::Expr *ParamValueTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
       break;
     case type::TypeId::DATE:
       builtin = ast::Builtin::GetParamDate;
+      break;
+    case type::TypeId::TIMESTAMP:
+      builtin = ast::Builtin::GetParamTimestamp;
       break;
     case type::TypeId::VARCHAR:
       builtin = ast::Builtin::GetParamString;
