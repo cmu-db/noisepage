@@ -2103,7 +2103,7 @@ language_oid_t DatabaseCatalog::GetLanguageOid(const common::ManagedPointer<tran
         all_cols_pr->AccessForceNotNull(pg_language_all_cols_prm_[postgres::LANOID_COL_OID]));
   }
 
-  if(name_varlen.NeedReclaim()){
+  if (name_varlen.NeedReclaim()) {
     delete[] name_varlen.Content();
   }
 
