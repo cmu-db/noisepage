@@ -62,7 +62,9 @@ class DeferredActionManager {
    * Clear the queue and apply as many actions as possible
    * @return numbers of deferred actions processed
    */
-  uint32_t Process(transaction::timestamp_t oldest_txn) {
+  uint32_t Process() {
+    timestamp_manager_->CheckOutTimestamp();
+    const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
     // Check out a timestamp from the transaction manager to determine the progress of
     // running transactions in the system.
     const auto backlog_size = static_cast<uint32_t>(back_log_.size());

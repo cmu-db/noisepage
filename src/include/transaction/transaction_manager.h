@@ -70,11 +70,8 @@ class TransactionManager {
    */
   bool GCEnabled() const { return gc_enabled_; }
 
-  /**
-   * Return a copy of the completed txns queue and empty the local version
-   * @return copy of the completed txns for the GC to process
-   */
-  TransactionQueue CompletedTransactionsForGC();
+  uint32_t NumUnlinked() { return num_unlinked_.exchange(0); }
+  uint32_t NumDeallocated() { return num_deallocated_.exchange(0); }
 
  private:
   const common::ManagedPointer<TimestampManager> timestamp_manager_;
@@ -86,8 +83,9 @@ class TransactionManager {
   bool gc_enabled_ = false;
   TransactionQueue completed_txns_;
   const common::ManagedPointer<storage::LogManager> log_manager_;
-  uint32_t num_unlinked_ = 0;
-  uint32_t num_deallocated_= 0;
+
+  std::atomic<int> num_unlinked_{0};
+  std::atomic<int> num_deallocated_{0};
 
   timestamp_t UpdatingCommitCriticalSection(TransactionContext *txn);
 

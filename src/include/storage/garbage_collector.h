@@ -75,23 +75,6 @@ class GarbageCollector {
   void UnregisterIndexForGC(common::ManagedPointer<index::Index> index);
 
  private:
-  /**
-   * Process the deallocate queue
-   * @return number of txns (not UndoRecords) processed for debugging/testing
-   */
-  uint32_t ProcessDeallocateQueue(transaction::timestamp_t oldest_txn);
-
-  /**
-   * Process the unlink queue
-   * @return number of txns (not UndoRecords) processed for debugging/testing
-   */
-  uint32_t ProcessUnlinkQueue(transaction::timestamp_t oldest_txn);
-
-  /**
-   * Process deferred actions
-   */
-  void ProcessDeferredActions(transaction::timestamp_t oldest_txn);
-
   void ProcessIndexes();
 
   const common::ManagedPointer<transaction::TimestampManager> timestamp_manager_;

@@ -245,11 +245,6 @@ void TransactionManager::GCLastUpdateOnAbort(TransactionContext *const txn) {
   }
 }
 
-TransactionQueue TransactionManager::CompletedTransactionsForGC() {
-  common::SpinLatch::ScopedSpinLatch guard(&timestamp_manager_->curr_running_txns_latch_);
-  return std::move(completed_txns_);
-}
-
 void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRecord &record) const {
   // No latch required for transaction-local operation
   storage::DataTable *const table = record.Table();
