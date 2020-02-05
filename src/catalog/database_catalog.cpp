@@ -1140,10 +1140,12 @@ bool DatabaseCatalog::SetIndexPointer(const common::ManagedPointer<transaction::
                  "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
                  "should already have the lock.");
   if (index_ptr->Type() == storage::index::IndexType::BWTREE)
-    txn->RegisterCommitAction([=]() { garbage_collector_->RegisterIndexForGC(common::ManagedPointer(index_ptr)); });
+    garbage_collector_->RegisterIndexForGC(common::ManagedPointer(index_ptr));
   // This needs to be deferred because if any items were subsequently inserted into this index, they will have deferred
   // abort actions that will be above this action on the abort stack.  The defer ensures we execute after them.
   txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
+    if (index_ptr->Type() == storage::index::IndexType::BWTREE)
+      garbage_collector_->UnregisterIndexForGC(common::ManagedPointer(index_ptr));
     deferred_action_manager->RegisterDeferredAction([=]() { delete index_ptr; });
   });
   return SetClassPointer(txn, index, index_ptr, postgres::REL_PTR_COL_OID);
