@@ -1069,16 +1069,17 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
 
   // Everything succeeded from an MVCC standpoint, so register a deferred action for the GC to delete the index with txn
   // manager. See base function comment.
-  txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-    if (index_ptr->Type() == storage::index::IndexType::BWTREE)
-      garbage_collector_->UnregisterIndexForGC(common::ManagedPointer(index_ptr));
-    deferred_action_manager->RegisterDeferredAction([=]() {
-      deferred_action_manager->RegisterDeferredAction([=]() {
-        delete schema_ptr;
-        delete index_ptr;
+  txn->RegisterCommitAction(
+      [=, garbage_collector{garbage_collector_}](transaction::DeferredActionManager *deferred_action_manager) {
+        if (index_ptr->Type() == storage::index::IndexType::BWTREE)
+          garbage_collector->UnregisterIndexForGC(common::ManagedPointer(index_ptr));
+        deferred_action_manager->RegisterDeferredAction([=]() {
+          deferred_action_manager->RegisterDeferredAction([=]() {
+            delete schema_ptr;
+            delete index_ptr;
+          });
+        });
       });
-    });
-  });
 
   delete[] buffer;
   return true;
@@ -1143,11 +1144,12 @@ bool DatabaseCatalog::SetIndexPointer(const common::ManagedPointer<transaction::
     garbage_collector_->RegisterIndexForGC(common::ManagedPointer(index_ptr));
   // This needs to be deferred because if any items were subsequently inserted into this index, they will have deferred
   // abort actions that will be above this action on the abort stack.  The defer ensures we execute after them.
-  txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-    if (index_ptr->Type() == storage::index::IndexType::BWTREE)
-      garbage_collector_->UnregisterIndexForGC(common::ManagedPointer(index_ptr));
-    deferred_action_manager->RegisterDeferredAction([=]() { delete index_ptr; });
-  });
+  txn->RegisterAbortAction(
+      [=, garbage_collector{garbage_collector_}](transaction::DeferredActionManager *deferred_action_manager) {
+        if (index_ptr->Type() == storage::index::IndexType::BWTREE)
+          garbage_collector->UnregisterIndexForGC(common::ManagedPointer(index_ptr));
+        deferred_action_manager->RegisterDeferredAction([=]() { delete index_ptr; });
+      });
   return SetClassPointer(txn, index, index_ptr, postgres::REL_PTR_COL_OID);
 }
 
