@@ -175,19 +175,19 @@ class DefaultCostModel : public AbstractCostModel {
    * Hash group by operator to visit
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const HashGroupBy *op) override { output_cost_ += HashCost() + GroupByCost(); }
+  void Visit(UNUSED_ATTRIBUTE const HashGroupBy *op) override { output_cost_ = HashCost() + GroupByCost(); }
 
   /**
    * Sort group by operator to visit
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const SortGroupBy *op) override { output_cost_ += GroupByCost(); }
+  void Visit(UNUSED_ATTRIBUTE const SortGroupBy *op) override { output_cost_ = GroupByCost(); }
 
   /**
    * Aggregate operator to visit
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const Aggregate *op) override { output_cost_ += HashCost() + GroupByCost(); }
+  void Visit(UNUSED_ATTRIBUTE const Aggregate *op) override { output_cost_ = HashCost() + GroupByCost(); }
 
  private:
   /**
