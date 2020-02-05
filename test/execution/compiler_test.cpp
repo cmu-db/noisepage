@@ -110,7 +110,7 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleSeqScanWithProjectionTest) {
-  // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1 WHERE col1 < 500 AND col2 >= 3;
+  // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1 WHERE col1 < 500;
   // This test first selects col1 and col2, and then constructs the 4 output columns.
   auto accessor = MakeAccessor();
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
@@ -129,9 +129,7 @@ TEST_F(CompilerTest, SimpleSeqScanWithProjectionTest) {
     seq_scan_out.AddOutput("col2", common::ManagedPointer(col2));
     auto schema = seq_scan_out.MakeSchema();
     // Make predicate
-    auto comp1 = expr_maker.ComparisonLt(col1, expr_maker.Constant(500));
-    auto comp2 = expr_maker.ComparisonGe(col2, expr_maker.Constant(3));
-    auto predicate = expr_maker.ConjunctionAnd(comp1, comp2);
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(500));
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
@@ -159,10 +157,10 @@ TEST_F(CompilerTest, SimpleSeqScanWithProjectionTest) {
   }
 
   // Make the output checkers
+  NumChecker num_checker(500);
   SingleIntComparisonChecker col1_checker(std::less<>(), 0, 500);
-  SingleIntComparisonChecker col2_checker(std::greater_equal<>(), 1, 3);
 
-  MultiChecker multi_checker{std::vector<OutputChecker *>{&col1_checker, &col2_checker}};
+  MultiChecker multi_checker{std::vector<OutputChecker *>{&num_checker, &col1_checker}};
 
   // Create the execution context
   OutputStore store{&multi_checker, proj->GetOutputSchema().Get()};
@@ -292,7 +290,7 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
-  // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505;
+  // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505 ORDER BY colA;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
@@ -363,7 +361,7 @@ TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
-  // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505;
+  // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505 ORDER BY colA LIMIT 5;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
@@ -433,7 +431,7 @@ TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
-  // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505;
+  // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505 ORDER BY colA DESC;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
@@ -503,7 +501,7 @@ TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
-  // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505;
+  // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505 ORDER BY colA DESC LIMIT 5;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
   auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
@@ -632,6 +630,63 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
   // Make the checkers
   NumChecker num_checker{10};
   SingleIntSumChecker sum_checker{1, (1000 * 999) / 2};
+  MultiChecker multi_checker{std::vector<OutputChecker *>{&num_checker, &sum_checker}};
+
+  // Compile and Run
+  OutputStore store{&multi_checker, agg->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(agg->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
+
+  // Run & Check
+  auto executable = ExecutableQuery(common::ManagedPointer(agg), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  multi_checker.CheckCorrectness();
+}
+
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, CountStarTest) {
+  // SELECT COUNT(*) FROM test_1;
+  // Get accessor
+  auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
+  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+  auto table_schema = accessor->GetSchema(table_oid);
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
+  {
+    auto schema = seq_scan_out.MakeSchema();
+    // Build
+    planner::SeqScanPlanNode::Builder builder;
+    seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({})
+                   .SetScanPredicate(nullptr)
+                   .SetIsForUpdateFlag(false)
+                   .SetNamespaceOid(NSOid())
+                   .SetTableOid(table_oid)
+                   .Build();
+  }
+  // Make the aggregate
+  std::unique_ptr<planner::AbstractPlanNode> agg;
+  OutputSchemaHelper agg_out{0, &expr_maker};
+  {
+    // Add aggregates
+    agg_out.AddAggTerm("count_star", expr_maker.AggCount(expr_maker.Star()));
+    // Make the output expressions
+    agg_out.AddOutput("count_star", agg_out.GetAggTermForOutput("count_star"));
+    auto schema = agg_out.MakeSchema();
+    // Build
+    planner::AggregatePlanNode::Builder builder;
+    agg = builder.SetOutputSchema(std::move(schema))
+              .AddAggregateTerm(agg_out.GetAggTerm("count_star"))
+              .AddChild(std::move(seq_scan))
+              .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
+              .SetHavingClausePredicate(nullptr)
+              .Build();
+  }
+  // Make the checkers
+  NumChecker num_checker{1};
+  SingleIntComparisonChecker sum_checker{std::equal_to<>(), 0, sql::TEST1_SIZE};
   MultiChecker multi_checker{std::vector<OutputChecker *>{&num_checker, &sum_checker}};
 
   // Compile and Run
@@ -859,6 +914,174 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
 
   // Run & Check
   auto executable = ExecutableQuery(common::ManagedPointer(hash_join), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  checker.CheckCorrectness();
+}
+
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, MultiWayHashJoinTest) {
+  // SELECT t1.col1, t2.col1, t3.col1, t1.col1 + t2.col1 + t3.col1
+  // FROM test_1 AS t1, test_2 AS t2, test_2 AS t3
+  // WHERE t1.col1 = t2.col1 AND t1.col1 = t3.col1 AND t1.col1 < 100 AND t2.col1 < 100 AND t2.col1 < 100
+  // The sum is to make sure that codegen can traverse the query tree correctly.
+  // Get accessor
+  auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
+  auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
+  auto table_oid2 = accessor->GetTableOid(NSOid(), "test_2");
+  auto table_schema1 = accessor->GetSchema(table_oid1);
+  auto table_schema2 = accessor->GetSchema(table_oid2);
+
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan1;
+  OutputSchemaHelper seq_scan_out1{0, &expr_maker};
+  {
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("colA").Oid();
+    // Get Table columns
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    seq_scan_out1.AddOutput("col1", col1);
+    auto schema = seq_scan_out1.MakeSchema();
+    // Make predicate
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(100));
+    // Build
+    planner::SeqScanPlanNode::Builder builder;
+    seq_scan1 = builder.SetOutputSchema(std::move(schema))
+                    .SetColumnOids({cola_oid})
+                    .SetScanPredicate(predicate)
+                    .SetIsForUpdateFlag(false)
+                    .SetNamespaceOid(NSOid())
+                    .SetTableOid(table_oid1)
+                    .Build();
+  }
+  // Make the second seq scan
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan2;
+  OutputSchemaHelper seq_scan_out2{1, &expr_maker};
+  {
+    // OIDs
+    auto cola_oid = table_schema2.GetColumn("col1").Oid();
+    // Get Table columns
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::SMALLINT);
+    seq_scan_out2.AddOutput("col1", col1);
+    auto schema = seq_scan_out2.MakeSchema();
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(100));
+    // Build
+    planner::SeqScanPlanNode::Builder builder;
+    seq_scan2 = builder.SetOutputSchema(std::move(schema))
+                    .SetColumnOids({cola_oid})
+                    .SetScanPredicate(predicate)
+                    .SetIsForUpdateFlag(false)
+                    .SetNamespaceOid(NSOid())
+                    .SetTableOid(table_oid2)
+                    .Build();
+  }
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan3;
+  OutputSchemaHelper seq_scan_out3{0, &expr_maker};
+  {
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("colA").Oid();
+    // Get Table columns
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    seq_scan_out3.AddOutput("col1", col1);
+    auto schema = seq_scan_out3.MakeSchema();
+    // Make predicate
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(100));
+    // Build
+    planner::SeqScanPlanNode::Builder builder;
+    seq_scan3 = builder.SetOutputSchema(std::move(schema))
+                    .SetColumnOids({cola_oid})
+                    .SetScanPredicate(predicate)
+                    .SetIsForUpdateFlag(false)
+                    .SetNamespaceOid(NSOid())
+                    .SetTableOid(table_oid1)
+                    .Build();
+  }
+  // Make first hash join
+  std::unique_ptr<planner::AbstractPlanNode> hash_join1;
+  OutputSchemaHelper hash_join_out1{1, &expr_maker};
+  {
+    // Left column
+    auto t1_col1 = seq_scan_out1.GetOutput("col1");
+    // Right column
+    auto t2_col1 = seq_scan_out2.GetOutput("col1");
+    // Output Schema
+    hash_join_out1.AddOutput("t1.col1", t1_col1);
+    hash_join_out1.AddOutput("t2.col1", t2_col1);
+    auto schema = hash_join_out1.MakeSchema();
+    // Predicate
+    auto predicate = expr_maker.ComparisonEq(t1_col1, t2_col1);
+    // Build
+    planner::HashJoinPlanNode::Builder builder;
+    hash_join1 = builder.AddChild(std::move(seq_scan1))
+                     .AddChild(std::move(seq_scan2))
+                     .SetOutputSchema(std::move(schema))
+                     .AddLeftHashKey(t1_col1)
+                     .AddRightHashKey(t2_col1)
+                     .SetJoinType(planner::LogicalJoinType::INNER)
+                     .SetJoinPredicate(predicate)
+                     .Build();
+  }
+  // Make second hash join
+  std::unique_ptr<planner::AbstractPlanNode> hash_join2;
+  OutputSchemaHelper hash_join_out2{0, &expr_maker};
+  {
+    // Left column
+    auto t3_col1 = seq_scan_out3.GetOutput("col1");
+    // Right columns
+    auto t1_col1 = hash_join_out1.GetOutput("t1.col1");
+    auto t2_col1 = hash_join_out1.GetOutput("t2.col1");
+    // Make sum
+    auto sum = expr_maker.OpSum(t1_col1, expr_maker.OpSum(t2_col1, t3_col1));
+    // Output Schema
+    hash_join_out2.AddOutput("t1.col1", t1_col1);
+    hash_join_out2.AddOutput("t2.col1", t2_col1);
+    hash_join_out2.AddOutput("t3.col1", t3_col1);
+    hash_join_out2.AddOutput("sum", sum);
+    auto schema = hash_join_out2.MakeSchema();
+    // Predicate
+    auto predicate = expr_maker.ComparisonEq(t3_col1, t1_col1);
+    // Build
+    planner::HashJoinPlanNode::Builder builder;
+    hash_join2 = builder.AddChild(std::move(seq_scan3))
+                     .AddChild(std::move(hash_join1))
+                     .SetOutputSchema(std::move(schema))
+                     .AddLeftHashKey(t3_col1)
+                     .AddRightHashKey(t1_col1)
+                     .SetJoinType(planner::LogicalJoinType::INNER)
+                     .SetJoinPredicate(predicate)
+                     .Build();
+  }
+  // Compile and Run
+  uint32_t num_output_rows{0};
+  uint32_t num_expected_rows{100};
+  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> &vals) {
+    // Read cols
+    auto t1_col1 = static_cast<sql::Integer *>(vals[0]);
+    auto t2_col1 = static_cast<sql::Integer *>(vals[1]);
+    auto t3_col1 = static_cast<sql::Integer *>(vals[2]);
+    auto sum = static_cast<sql::Integer *>(vals[3]);
+    ASSERT_FALSE(t1_col1->is_null_ || t2_col1->is_null_ || t3_col1->is_null_ || sum->is_null_);
+    // Check join cols
+    ASSERT_EQ(t1_col1->val_, t2_col1->val_);
+    ASSERT_EQ(t1_col1->val_, t3_col1->val_);
+    // Check sum
+    ASSERT_EQ(sum->val_, 3 * t1_col1->val_);
+    // Check the number of output row
+    num_output_rows++;
+    ASSERT_LE(num_output_rows, num_expected_rows);
+  };
+  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+    ASSERT_EQ(num_output_rows, num_expected_rows);
+  };
+
+  GenericChecker checker(row_checker, correcteness_fn);
+
+  OutputStore store{&checker, hash_join2->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(hash_join2->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), hash_join2->GetOutputSchema().Get());
+
+  // Run & Check
+  auto executable = ExecutableQuery(common::ManagedPointer(hash_join2), common::ManagedPointer(exec_ctx));
   executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
@@ -1942,8 +2165,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
   //    (param9, param10, param11, param12, param13, param14, param15, param16);
   //
   // Where the parameter values are:
-  //    ("37 Strings", 1937-3-7, 37.73, true, 37, 37, 37, 37),
-  //    ("73 Strings", 1973-7-3, 73.37, false, 73, 73, 73, 73)
+  //    ("I am a long string with 37 characters", 1937-3-7, 37.73, true, 37, 37, 37, 37),
+  //    ("I am a long string with 73 characters", 1973-7-3, 73.37, false, 73, 73, 73, 73)
   //
   // Then check that the following finds the
   // new tuples: SELECT colA, colB, colC, colD FROM test_1.
@@ -1954,10 +2177,11 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
   auto table_schema1 = accessor->GetSchema(table_oid1);
 
   // Make the parameter values.
-  std::string str1("37 Strings");
-  std::string str2("73 Strings");
-  sql::Date date1(1937, 3, 7);
-  sql::Date date2(1973, 7, 3);
+  // Keep string longs to avoid inlining
+  std::string str1("I am a long string with 37 characters");
+  std::string str2("I am a long string with 73 characters");
+  sql::DateVal date1(sql::Date::FromYMD(1937, 3, 7));
+  sql::DateVal date2(sql::Date::FromYMD(1973, 7, 3));
   double real1 = 37.73;
   double real2 = 73.37;
   bool bool1 = true;
@@ -2020,7 +2244,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     std::vector<type::TransientValue> params;
     // First parameter list
     params.emplace_back(type::TransientValueFactory::GetVarChar(str1));
-    params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date1.int_val_)));
+    params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date1.val_.ToNative())));
     params.emplace_back(type::TransientValueFactory::GetDecimal(real1));
     params.emplace_back(type::TransientValueFactory::GetBoolean(bool1));
     params.emplace_back(type::TransientValueFactory::GetTinyInt(tinyint1));
@@ -2029,7 +2253,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     params.emplace_back(type::TransientValueFactory::GetBigInt(bigint1));
     // Second parameter list
     params.emplace_back(type::TransientValueFactory::GetVarChar(str2));
-    params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date2.int_val_)));
+    params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date2.val_.ToNative())));
     params.emplace_back(type::TransientValueFactory::GetDecimal(real2));
     params.emplace_back(type::TransientValueFactory::GetBoolean(bool2));
     params.emplace_back(type::TransientValueFactory::GetTinyInt(tinyint2));
@@ -2090,7 +2314,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
   RowChecker row_checker = [&](const std::vector<sql::Val *> &vals) {
     // Read cols
     auto col1 = static_cast<sql::StringVal *>(vals[0]);
-    auto col2 = static_cast<sql::Date *>(vals[1]);
+    auto col2 = static_cast<sql::DateVal *>(vals[1]);
     auto col3 = static_cast<sql::Real *>(vals[2]);
     auto col4 = static_cast<sql::BoolVal *>(vals[3]);
     auto col5 = static_cast<sql::Integer *>(vals[4]);
@@ -2112,7 +2336,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     if (num_output_rows == 0) {
       ASSERT_EQ(col1->len_, str1.size());
       ASSERT_EQ(std::memcmp(col1->Content(), str1.data(), col1->len_), 0);
-      ASSERT_EQ(col2->ymd_, date1.ymd_);
+      ASSERT_EQ(col2->val_, date1.val_);
       ASSERT_EQ(col3->val_, real1);
       ASSERT_EQ(col4->val_, bool1);
       ASSERT_EQ(col5->val_, tinyint1);
@@ -2122,7 +2346,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     } else {
       ASSERT_TRUE(col1->len_ == str2.size());
       ASSERT_EQ(std::memcmp(col1->Content(), str2.data(), col1->len_), 0);
-      ASSERT_EQ(col2->ymd_, date2.ymd_);
+      ASSERT_EQ(col2->val_, date2.val_);
       ASSERT_EQ(col3->val_, real2);
       ASSERT_EQ(col4->val_, bool2);
       ASSERT_EQ(col5->val_, tinyint2);

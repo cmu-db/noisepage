@@ -39,6 +39,7 @@ types/int_aggregators.tpl,false,0
 types/real_aggregators.tpl,false,0
 types/dates.tpl,false,0
 types/strings.tpl,false,0
+types/timestamps.tpl,false,0
 #scope.tpl,false,3 <Add after merging Wan's scoping PR>
 #scope-2.tpl,false,42 <Add after merging Wan's scoping PR>
 
