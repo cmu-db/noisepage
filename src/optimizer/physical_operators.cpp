@@ -1231,8 +1231,7 @@ bool DropView::operator==(const BaseOperatorNode &r) {
 BaseOperatorNode *Analyze::Copy() const { return new Analyze(*this); }
 
 Operator Analyze::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                                    catalog::table_oid_t table_oid,
-                                    std::vector<catalog::col_oid_t> && columns) {
+                       catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns) {
   auto op = std::make_unique<Analyze>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;

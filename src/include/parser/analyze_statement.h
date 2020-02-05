@@ -35,9 +35,7 @@ class AnalyzeStatement : public SQLStatement {
   common::ManagedPointer<TableRef> GetAnalyzeTable() { return common::ManagedPointer(analyze_table_); }
 
   /** @return analyze columns */
-  common::ManagedPointer<std::vector<std::string>> GetColumns() {
-    return common::ManagedPointer(analyze_columns_);
-  }
+  common::ManagedPointer<std::vector<std::string>> GetColumns() { return common::ManagedPointer(analyze_columns_); }
 
  private:
   std::unique_ptr<TableRef> analyze_table_;

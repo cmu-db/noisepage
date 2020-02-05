@@ -1192,15 +1192,13 @@ bool LogicalDropView::operator==(const BaseOperatorNode &r) {
   return node.namespace_oid_ == namespace_oid_;
 }
 
-
 //===--------------------------------------------------------------------===//
 // LogicalCreateTrigger
 //===--------------------------------------------------------------------===//
 BaseOperatorNode *LogicalAnalyze::Copy() const { return new LogicalAnalyze(*this); }
 
 Operator LogicalAnalyze::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                                    catalog::table_oid_t table_oid,
-                                    std::vector<catalog::col_oid_t> && columns) {
+                              catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns) {
   auto op = std::make_unique<LogicalAnalyze>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;

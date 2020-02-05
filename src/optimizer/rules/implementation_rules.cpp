@@ -967,20 +967,20 @@ LogicalAnalyzeToPhysicalAnalyze::LogicalAnalyzeToPhysicalAnalyze() {
 }
 
 bool LogicalAnalyzeToPhysicalAnalyze::Check(common::ManagedPointer<OperatorExpression> plan,
-                                                        OptimizationContext *context) const {
+                                            OptimizationContext *context) const {
   return true;
 }
 
-void LogicalAnalyzeToPhysicalAnalyze::Transform(
-    common::ManagedPointer<OperatorExpression> input, std::vector<std::unique_ptr<OperatorExpression>> *transformed,
-    UNUSED_ATTRIBUTE OptimizationContext *context) const {
+void LogicalAnalyzeToPhysicalAnalyze::Transform(common::ManagedPointer<OperatorExpression> input,
+                                                std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+                                                UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto logical_op = input->GetOp().As<LogicalAnalyze>();
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalAnalyze should have 0 children");
 
-  auto op = std::make_unique<OperatorExpression>(
-      Analyze::Make(logical_op->GetDatabaseOid(), logical_op->GetNamespaceOid(), logical_op->GetTableOid(),
-                          logical_op->GetColumns()),
-      std::vector<std::unique_ptr<OperatorExpression>>());
+  auto op =
+      std::make_unique<OperatorExpression>(Analyze::Make(logical_op->GetDatabaseOid(), logical_op->GetNamespaceOid(),
+                                                         logical_op->GetTableOid(), logical_op->GetColumns()),
+                                           std::vector<std::unique_ptr<OperatorExpression>>());
 
   transformed->emplace_back(std::move(op));
 }

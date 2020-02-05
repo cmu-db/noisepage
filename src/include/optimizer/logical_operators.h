@@ -1955,7 +1955,7 @@ class LogicalDropView : public OperatorNode<LogicalDropView> {
  * Logical operator for Analyze
  */
 class LogicalAnalyze : public OperatorNode<LogicalAnalyze> {
-  public:
+ public:
   /**
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
@@ -1997,8 +1997,8 @@ class LogicalAnalyze : public OperatorNode<LogicalAnalyze> {
 
  private:
   /**
-  * OID of the database
-  */
+   * OID of the database
+   */
   catalog::db_oid_t database_oid_;
 
   /**

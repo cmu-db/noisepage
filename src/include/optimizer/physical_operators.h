@@ -2065,7 +2065,7 @@ class DropView : public OperatorNode<DropView> {
  * Physical operator for Analyze
  */
 class Analyze : public OperatorNode<Analyze> {
-  public:
+ public:
   /**
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
@@ -2107,8 +2107,8 @@ class Analyze : public OperatorNode<Analyze> {
 
  private:
   /**
-  * OID of the database
-  */
+   * OID of the database
+   */
   catalog::db_oid_t database_oid_;
 
   /**
