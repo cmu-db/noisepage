@@ -2104,7 +2104,7 @@ language_oid_t DatabaseCatalog::GetLanguageOid(const common::ManagedPointer<tran
   }
 
   if(name_varlen.NeedReclaim()){
-    delete name_varlen.Content();
+    delete[] name_varlen.Content();
   }
 
   delete[] buffer;

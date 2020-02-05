@@ -74,6 +74,7 @@ TEST(VarlenEntryTests, Array) {
     const auto varlen_entry = storage::StorageUtil::CreateVarlen(test_data);
     const std::vector<int32_t> test_view = varlen_entry.DeserializeArray<int32_t>();
     EXPECT_EQ(test_data, test_view);
+    delete[] varlen_entry.Content();
   }
 
   // test inline
@@ -95,6 +96,7 @@ TEST(VarlenEntryTests, Array) {
     const auto varlen_entry = storage::StorageUtil::CreateVarlen(test_data);
     std::vector<std::string_view> test_view = varlen_entry.DeserializeArrayVarlen();
     EXPECT_EQ(sv_test_data, test_view);
+    delete[] varlen_entry.Content();
   }
 }
 }  // namespace terrier
