@@ -663,7 +663,7 @@ Schema Builder::GetProcTableSchema() {
   columns.emplace_back("prorettype", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
   columns.back().SetOid(PRORETTYPE_COL_OID);
 
-  columns.emplace_back("proargtypes", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("proargtypes", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));
   columns.back().SetOid(PROARGTYPES_COL_OID);
 
   columns.emplace_back("proallargtypes", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));

@@ -2181,14 +2181,14 @@ bool DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::
   if (!TryLock(txn)) return false;
   const auto name_varlen = storage::StorageUtil::CreateVarlen(procname);
 
-  std::vector<storage::VarlenEntry> arg_varlen_vec;
-  arg_varlen_vec.reserve(args.size() * sizeof(storage::VarlenEntry));
+  std::vector<std::string> arg_name_vec;
+  arg_name_vec.reserve(args.size() * sizeof(storage::VarlenEntry));
 
   for (auto &arg : args) {
-    arg_varlen_vec.push_back(storage::StorageUtil::CreateVarlen(arg));
+    arg_name_vec.push_back(arg);
   }
 
-  const auto arg_names_varlen = storage::StorageUtil::CreateVarlen(arg_varlen_vec);
+  const auto arg_names_varlen = storage::StorageUtil::CreateVarlen(arg_name_vec);
   const auto arg_types_varlen = storage::StorageUtil::CreateVarlen(arg_types);
   const auto all_arg_types_varlen = storage::StorageUtil::CreateVarlen(all_arg_types);
   const auto arg_modes_varlen = storage::StorageUtil::CreateVarlen(arg_modes);
