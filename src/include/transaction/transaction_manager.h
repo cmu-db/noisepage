@@ -86,6 +86,8 @@ class TransactionManager {
   bool gc_enabled_ = false;
   TransactionQueue completed_txns_;
   const common::ManagedPointer<storage::LogManager> log_manager_;
+  uint32_t num_unlinked_ = 0;
+  uint32_t num_deallocated_= 0;
 
   timestamp_t UpdatingCommitCriticalSection(TransactionContext *txn);
 
@@ -103,5 +105,7 @@ class TransactionManager {
   void DeallocateInsertedTupleIfVarlen(TransactionContext *txn, storage::UndoRecord *undo,
                                        const storage::TupleAccessStrategy &accessor) const;
   void GCLastUpdateOnAbort(TransactionContext *txn);
+
+  void CleanTransaction(TransactionContext *txn);
 };
 }  // namespace terrier::transaction

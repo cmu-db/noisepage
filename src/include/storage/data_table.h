@@ -223,8 +223,12 @@ class DataTable {
   const TupleAccessStrategy &GetAccessor() const { return accessor_; }
 
  private:
-  // The GarbageCollector needs to modify VersionPtrs when pruning version chains
+  // The TransactionContext needs to modify VersionPtrs when pruning version chains
+  friend class transaction::TransactionContext;
+  // TODO(Ling): remove this after deferred action is installed
+  // The TransactionContext needs to modify VersionPtrs when pruning version chains
   friend class GarbageCollector;
+
   // The TransactionManager needs to modify VersionPtrs when rolling back aborts
   friend class transaction::TransactionManager;
   // The index wrappers need access to IsVisible and HasConflict

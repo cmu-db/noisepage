@@ -6,6 +6,7 @@
 #include "common/scoped_timer.h"
 #include "common/thread_context.h"
 #include "metrics/metrics_store.h"
+#include "transaction/deferred_action_manager.h"
 
 namespace terrier::transaction {
 TransactionContext *TransactionManager::BeginTransaction() {
@@ -96,6 +97,14 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
     TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
     txn->commit_actions_.front()(deferred_action_manager_.Get());
     txn->commit_actions_.pop_front();
+    // We hand off txn to GC, however, it won't be GC'd until the LogManager marks it as serialized
+    if (gc_enabled_) {
+      // common::SpinLatch::ScopedSpinLatch guard(&timestamp_manager_->curr_running_txns_latch_);
+
+      // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
+      // the critical path there anyway
+      deferred_action_manager_->RegisterDeferredAction([=]() { CleanTransaction(txn); });
+    }
   }
 
   // If logging is enabled and our txn is not read only, we need to persist the oldest active txn at the time we
@@ -108,14 +117,6 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
     oldest_active_txn = timestamp_manager_->CachedOldestTransactionStartTime();
   }
   LogCommit(txn, result, callback, callback_arg, oldest_active_txn);
-
-  // We hand off txn to GC, however, it won't be GC'd until the LogManager marks it as serialized
-  if (gc_enabled_) {
-    common::SpinLatch::ScopedSpinLatch guard(&timestamp_manager_->curr_running_txns_latch_);
-    // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
-    // the critical path there anyway
-    // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
-    completed_txns_.push_front(txn);
   }
 
   if (txn_metrics_enabled) {
@@ -125,6 +126,22 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   }
 
   return result;
+}
+
+void TransactionManager::CleanTransaction(TransactionContext *txn) {
+  num_unlinked_++;
+  if (txn->IsReadOnly()) {
+    // This is a read-only transaction so this is safe to immediately delete
+    delete txn;
+  } else {
+    timestamp_manager_->CheckOutTimestamp();
+    const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
+    txn->Unlink(oldest_txn);
+    deferred_action_manager_->RegisterDeferredAction([=]() {
+      num_deallocated_++;
+      delete txn;
+    });
+  }
 }
 
 void TransactionManager::LogAbort(TransactionContext *const txn) {
@@ -153,7 +170,6 @@ void TransactionManager::LogAbort(TransactionContext *const txn) {
 }
 
 timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
-  // TODO(John:GC) defer the unlink and double-deferral the deallocation
   // Immediately clear the abort actions stack
   while (!txn->abort_actions_.empty()) {
     TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
@@ -189,11 +205,7 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
 
   // We hand off txn to GC, however, it won't be GC'd until the LogManager marks it as serialized
   if (gc_enabled_) {
-    common::SpinLatch::ScopedSpinLatch guard(&timestamp_manager_->curr_running_txns_latch_);
-    // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
-    // the critical path there anyway
-    // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
-    completed_txns_.push_front(txn);
+    deferred_action_manager_->RegisterDeferredAction([=]() { CleanTransaction(txn); });
   }
 
   return abort_time;

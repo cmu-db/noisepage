@@ -209,6 +209,9 @@ class TransactionContext {
    */
   void AddReclaimableVarlen(const byte *content) { loose_ptrs_.push_back(content); }
 
+  void Unlink(timestamp_t oldest_txn);
+
+
  private:
   friend class storage::GarbageCollector;
   friend class TransactionManager;
