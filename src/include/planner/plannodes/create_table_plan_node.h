@@ -204,9 +204,9 @@ struct ForeignKeyInfo {
  */
 struct UniqueInfo {
   /**
-   * Columns that need to have unique values
+   * Column name with unique constraint. // TODO(Matt): it is TYOOL 2020 and we still have names in physical plan nodes
    */
-  std::vector<std::string> unique_cols_;
+  std::string unique_cols_;
   /**
    * Name of this constraint
    */
@@ -227,7 +227,7 @@ struct UniqueInfo {
    * @param j serialized json of UniqueInfo
    */
   void FromJson(const nlohmann::json &j) {
-    unique_cols_ = j.at("unique_cols").get<std::vector<std::string>>();
+    unique_cols_ = j.at("unique_cols").get<std::string>();
     constraint_name_ = j.at("constraint_name").get<std::string>();
   }
 
@@ -517,8 +517,8 @@ class CreateTablePlanNode : public AbstractPlanNode {
     Builder &ProcessUniqueConstraint(const common::ManagedPointer<parser::ColumnDefinition> col) {
       UniqueInfo unique_info;
 
-      unique_info.unique_cols_ = {col->GetColumnName()};
-      unique_info.constraint_name_ = "con_unique";
+      unique_info.unique_cols_ = col->GetColumnName();
+      unique_info.constraint_name_ = table_name_ + "_" + col->GetColumnName() + "_key";
 
       con_uniques_.push_back(unique_info);
       return *this;
