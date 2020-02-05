@@ -32,8 +32,8 @@ TEST_F(TpccPlanIndexScanTests, SimplePredicateIndexScan) {
     EXPECT_EQ(plan->GetChildrenSize(), 0);
     auto index_plan = reinterpret_cast<planner::IndexScanPlanNode *>(plan.get());
     EXPECT_EQ(index_plan->GetIndexOid(), test->pk_new_order_);
-    EXPECT_EQ(index_plan->GetColumnOids().size(), 1);
-    EXPECT_EQ(index_plan->GetColumnOids()[0], schema.GetColumn("no_o_id").Oid());
+    test->CheckOids(index_plan->GetColumnOids(),
+                    {schema.GetColumn("no_o_id").Oid(), schema.GetColumn("no_w_id").Oid()});
     EXPECT_EQ(index_plan->IsForUpdate(), false);
     EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(index_plan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
@@ -67,8 +67,8 @@ TEST_F(TpccPlanIndexScanTests, SimplePredicateFlippedIndexScan) {
     EXPECT_EQ(plan->GetChildrenSize(), 0);
     auto index_plan = reinterpret_cast<planner::IndexScanPlanNode *>(plan.get());
     EXPECT_EQ(index_plan->GetIndexOid(), test->pk_new_order_);
-    EXPECT_EQ(index_plan->GetColumnOids().size(), 1);
-    EXPECT_EQ(index_plan->GetColumnOids()[0], schema.GetColumn("no_o_id").Oid());
+    test->CheckOids(index_plan->GetColumnOids(),
+                    {schema.GetColumn("no_o_id").Oid(), schema.GetColumn("no_w_id").Oid()});
     EXPECT_EQ(index_plan->IsForUpdate(), false);
     EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(index_plan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
@@ -102,8 +102,7 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSort) {
     EXPECT_EQ(plan->GetChildrenSize(), 0);
     auto index_plan = reinterpret_cast<planner::IndexScanPlanNode *>(plan.get());
     EXPECT_EQ(index_plan->GetIndexOid(), test->pk_new_order_);
-    EXPECT_EQ(index_plan->GetColumnOids().size(), 1);
-    EXPECT_EQ(index_plan->GetColumnOids()[0], schema.GetColumn("no_o_id").Oid());
+    test->CheckOids(index_plan->GetColumnOids(), {schema.GetColumn("no_o_id").Oid()});
     EXPECT_EQ(index_plan->IsForUpdate(), false);
     EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(index_plan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
@@ -141,8 +140,8 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicate) {
     EXPECT_EQ(plan->GetChildrenSize(), 0);
     auto index_plan = reinterpret_cast<planner::IndexScanPlanNode *>(plan.get());
     EXPECT_EQ(index_plan->GetIndexOid(), test->pk_new_order_);
-    EXPECT_EQ(index_plan->GetColumnOids().size(), 1);
-    EXPECT_EQ(index_plan->GetColumnOids()[0], schema.GetColumn("no_o_id").Oid());
+    test->CheckOids(index_plan->GetColumnOids(),
+                    {schema.GetColumn("no_o_id").Oid(), schema.GetColumn("no_w_id").Oid()});
     EXPECT_EQ(index_plan->IsForUpdate(), false);
     EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(index_plan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
@@ -204,9 +203,9 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicateWithLimitOffset) {
     EXPECT_EQ(plani->GetChildrenSize(), 0);
     auto index_plan = reinterpret_cast<const planner::IndexScanPlanNode *>(plani);
     EXPECT_EQ(index_plan->GetIndexOid(), test->pk_new_order_);
-    EXPECT_EQ(index_plan->GetColumnOids().size(), 2);
-    EXPECT_EQ(index_plan->GetColumnOids()[0], schema.GetColumn("no_w_id").Oid());
-    EXPECT_EQ(index_plan->GetColumnOids()[1], schema.GetColumn("no_o_id").Oid());
+    test->CheckOids(index_plan->GetColumnOids(),
+                    {schema.GetColumn("no_o_id").Oid(), schema.GetColumn("no_w_id").Oid()});
+
     EXPECT_EQ(index_plan->IsForUpdate(), false);
     EXPECT_EQ(index_plan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(index_plan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());

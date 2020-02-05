@@ -76,14 +76,16 @@ TEST_F(TpccPlanNewOrderTests, UpdateDistrict) {
     EXPECT_EQ(idx_scan->GetColumnOids().size(), schema.GetColumns().size());
 
     size_t idx = 0;
+    std::vector<catalog::col_oid_t> oids;
     for (auto &col : schema.GetColumns()) {
       auto idx_scan_expr = idx_scan_schema->GetColumn(idx).GetExpr();
       EXPECT_EQ(idx_scan_expr->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
       auto idx_scan_expr_dve = idx_scan_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
       EXPECT_EQ(idx_scan_expr_dve->GetColumnOid(), col.Oid());
-      EXPECT_EQ(idx_scan->GetColumnOids()[idx], col.Oid());
+      oids.emplace_back(col.Oid());
       idx++;
     }
+    test->CheckOids(idx_scan->GetColumnOids(), oids);
   };
 
   std::string query = "UPDATE DISTRICT SET D_NEXT_O_ID = D_NEXT_O_ID + 1 WHERE D_W_ID = 1 AND D_ID = 2";
@@ -185,14 +187,16 @@ TEST_F(TpccPlanNewOrderTests, UpdateStock) {
     EXPECT_EQ(idx_scan->GetColumnOids().size(), schema.GetColumns().size());
 
     size_t idx = 0;
+    std::vector<catalog::col_oid_t> oids;
     for (auto &col : schema.GetColumns()) {
       auto idx_scan_expr = idx_scan_schema->GetColumn(idx).GetExpr();
       EXPECT_EQ(idx_scan_expr->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
       auto idx_scan_expr_dve = idx_scan_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
       EXPECT_EQ(idx_scan_expr_dve->GetColumnOid(), col.Oid());
-      EXPECT_EQ(idx_scan->GetColumnOids()[idx], col.Oid());
+      oids.emplace_back(col.Oid());
       idx++;
     }
+    test->CheckOids(idx_scan->GetColumnOids(), oids);
   };
 
   std::string query =
