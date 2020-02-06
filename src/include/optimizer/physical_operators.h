@@ -181,7 +181,7 @@ class IndexScan : public OperatorNode<IndexScan> {
   const catalog::namespace_oid_t &GetNamespaceOID() const { return namespace_oid_; }
 
   /**
-   * @return the OID of the index
+   * @return the OID of the table
    */
   const catalog::table_oid_t &GetTableOID() const { return tbl_oid_; }
 
