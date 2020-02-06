@@ -70,7 +70,7 @@ PostgresValueType InternalValueTypeToPostgresValueType(const type::TypeId type) 
       return PostgresValueType::DATE;
 
     case type::TypeId::VARCHAR:
-      return PostgresValueType::TEXT;
+      return PostgresValueType::VARCHAR2;
 
     case type::TypeId::VARBINARY:
       return PostgresValueType::VARBINARY;
