@@ -76,14 +76,16 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
     // TODO(Matt): we should add support in Catalog to update pg_constraint in this case
     // Create the IndexSchema Columns by referencing the Columns in the canonical table Schema from the Catalog
     std::vector<catalog::IndexSchema::Column> key_cols;
-    const auto &table_col = schema.GetColumn(unique_constraint.unique_cols_);
-    if (table_col.Type() == type::TypeId::VARCHAR || table_col.Type() == type::TypeId::VARBINARY) {
-      key_cols.emplace_back(table_col.Name(), table_col.Type(), table_col.MaxVarlenSize(), table_col.Nullable(),
-                            parser::ColumnValueExpression(connection_db, table_oid, table_col.Oid()));
+    for (const auto &unique_col : unique_constraint.unique_cols_) {
+      const auto &table_col = schema.GetColumn(unique_col);
+      if (table_col.Type() == type::TypeId::VARCHAR || table_col.Type() == type::TypeId::VARBINARY) {
+        key_cols.emplace_back(table_col.Name(), table_col.Type(), table_col.MaxVarlenSize(), table_col.Nullable(),
+                              parser::ColumnValueExpression(connection_db, table_oid, table_col.Oid()));
 
-    } else {
-      key_cols.emplace_back(table_col.Name(), table_col.Type(), table_col.Nullable(),
-                            parser::ColumnValueExpression(connection_db, table_oid, table_col.Oid()));
+      } else {
+        key_cols.emplace_back(table_col.Name(), table_col.Type(), table_col.Nullable(),
+                              parser::ColumnValueExpression(connection_db, table_oid, table_col.Oid()));
+      }
     }
     catalog::IndexSchema index_schema(key_cols, storage::index::IndexType::BWTREE, true, false, false, true);
 
