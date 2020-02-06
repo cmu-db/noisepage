@@ -95,12 +95,13 @@ void VM::InvokeFunction(const Module *module, const FunctionId func_id, const ui
   // The function's info
   const FunctionInfo *func_info = module->GetFuncInfoById(func_id);
   TERRIER_ASSERT(func_info != nullptr, "Function doesn't exist in module!");
-  const std::size_t frame_size = func_info->FrameSize();
+  std::size_t frame_size = func_info->FrameSize();
   // Let's try to get some space
   bool used_heap = false;
   uint8_t *raw_frame = nullptr;
   if (frame_size > K_MAX_STACK_ALLOC_SIZE) {
     used_heap = true;
+    frame_size = common::MathUtil::AlignTo(frame_size, alignof(uint64_t));
     raw_frame = static_cast<uint8_t *>(util::MallocAligned(frame_size, alignof(uint64_t)));
   } else if (frame_size > K_SOFT_MAX_STACK_ALLOC_SIZE) {
     // TODO(pmenon): Check stack before allocation

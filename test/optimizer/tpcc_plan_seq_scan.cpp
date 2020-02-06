@@ -35,8 +35,7 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelect) {
     auto &schema = test->accessor_->GetSchema(tbl_oid);
     EXPECT_EQ(seq->GetTableOid(), test->tbl_new_order_);
 
-    EXPECT_EQ(seq->GetColumnOids().size(), 1);
-    EXPECT_EQ(seq->GetColumnOids()[0], schema.GetColumn("no_o_id").Oid());
+    test->CheckOids(seq->GetColumnOids(), {schema.GetColumn("no_o_id").Oid()});
   };
 
   std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\"";
@@ -57,8 +56,7 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicate) {
     EXPECT_EQ(seq->GetDatabaseOid(), test->db_);
     EXPECT_EQ(seq->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
     EXPECT_EQ(seq->GetTableOid(), test->tbl_order_);
-    EXPECT_EQ(seq->GetColumnOids().size(), 1);
-    EXPECT_EQ(seq->GetColumnOids()[0], schema.GetColumn("o_id").Oid());
+    test->CheckOids(seq->GetColumnOids(), {schema.GetColumn("o_id").Oid(), schema.GetColumn("o_carrier_id").Oid()});
 
     // Check Scan Predicate
     auto scan_pred = seq->GetScanPredicate();
@@ -112,9 +110,8 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderBy) {
     EXPECT_EQ(seq->GetDatabaseOid(), test->db_);
     EXPECT_EQ(seq->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
     EXPECT_EQ(seq->GetTableOid(), test->tbl_order_);
-    EXPECT_EQ(seq->GetColumnOids().size(), 2);
-    EXPECT_EQ(seq->GetColumnOids()[0], schema.GetColumn("o_ol_cnt").Oid());
-    EXPECT_EQ(seq->GetColumnOids()[1], schema.GetColumn("o_id").Oid());
+    test->CheckOids(seq->GetColumnOids(), {schema.GetColumn("o_ol_cnt").Oid(), schema.GetColumn("o_id").Oid(),
+                                           schema.GetColumn("o_carrier_id").Oid()});
 
     // Check scan predicate
     auto scan_pred = seq->GetScanPredicate();
@@ -156,8 +153,7 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateLimit) {
     EXPECT_EQ(seq->GetDatabaseOid(), test->db_);
     EXPECT_EQ(seq->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
     EXPECT_EQ(seq->GetTableOid(), test->tbl_order_);
-    EXPECT_EQ(seq->GetColumnOids().size(), 1);
-    EXPECT_EQ(seq->GetColumnOids()[0], schema.GetColumn("o_id").Oid());
+    test->CheckOids(seq->GetColumnOids(), {schema.GetColumn("o_id").Oid(), schema.GetColumn("o_carrier_id").Oid()});
 
     // Check scan predicate
     auto scan_pred = seq->GetScanPredicate();
@@ -219,9 +215,8 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderByLimit) {
     EXPECT_EQ(seq->GetDatabaseOid(), test->db_);
     EXPECT_EQ(seq->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
     EXPECT_EQ(seq->GetTableOid(), test->tbl_order_);
-    EXPECT_EQ(seq->GetColumnOids().size(), 2);
-    EXPECT_EQ(seq->GetColumnOids()[0], schema.GetColumn("o_ol_cnt").Oid());
-    EXPECT_EQ(seq->GetColumnOids()[1], schema.GetColumn("o_id").Oid());
+    test->CheckOids(seq->GetColumnOids(), {schema.GetColumn("o_id").Oid(), schema.GetColumn("o_ol_cnt").Oid(),
+                                           schema.GetColumn("o_carrier_id").Oid()});
 
     // Check scan predicate
     auto scan_pred = seq->GetScanPredicate();
