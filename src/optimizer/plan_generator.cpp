@@ -131,8 +131,8 @@ void PlanGenerator::Visit(UNUSED_ATTRIBUTE const TableFreeScan *op) {
 ///////////////////////////////////////////////////////////////////////////////
 
 // Generate columns for scan plan
-std::vector<catalog::col_oid_t> PlanGenerator::GenerateColumnsForScan() {
-  std::vector<catalog::col_oid_t> column_ids;
+std::vector<catalog::col_oid_t> PlanGenerator::GenerateColumnsForScan(const parser::AbstractExpression *predicate) {
+  std::unordered_set<catalog::col_oid_t> unique_oids;
   for (auto &output_expr : output_cols_) {
     TERRIER_ASSERT(output_expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE,
                    "Scan columns should all be base table columns");
@@ -141,10 +141,27 @@ std::vector<catalog::col_oid_t> PlanGenerator::GenerateColumnsForScan() {
     auto col_id = tve->GetColumnOid();
 
     TERRIER_ASSERT(col_id != catalog::INVALID_COLUMN_OID, "TVE should be base");
-    column_ids.push_back(col_id);
+    unique_oids.emplace(col_id);
   }
+  // Add the oids contained in the scan.
+  GenerateColumnsFromExpression(&unique_oids, predicate);
 
+  // Make the output vector
+  std::vector<catalog::col_oid_t> column_ids;
+  column_ids.insert(column_ids.end(), unique_oids.begin(), unique_oids.end());
   return column_ids;
+}
+
+void PlanGenerator::GenerateColumnsFromExpression(std::unordered_set<catalog::col_oid_t> *oids,
+                                                  const parser::AbstractExpression *expr) {
+  if (expr == nullptr) return;
+  if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
+    auto cve = static_cast<const parser::ColumnValueExpression *>(expr);
+    oids->emplace(cve->GetColumnOid());
+  }
+  for (const auto &child_expr : expr->GetChildren()) {
+    GenerateColumnsFromExpression(oids, child_expr.Get());
+  }
 }
 
 std::unique_ptr<planner::OutputSchema> PlanGenerator::GenerateScanOutputSchema(catalog::table_oid_t tbl_oid) {
@@ -165,12 +182,12 @@ std::unique_ptr<planner::OutputSchema> PlanGenerator::GenerateScanOutputSchema(c
 }
 
 void PlanGenerator::Visit(const SeqScan *op) {
-  // Generate output column IDs for plan
-  std::vector<catalog::col_oid_t> column_ids = GenerateColumnsForScan();
-
   // Generate the predicate in the scan
   auto predicate = parser::ExpressionUtil::JoinAnnotatedExprs(op->GetPredicates()).release();
   RegisterPointerCleanup<parser::AbstractExpression>(predicate, true, true);
+
+  // Generate output column IDs for plan
+  std::vector<catalog::col_oid_t> column_ids = GenerateColumnsForScan(predicate);
 
   // OutputSchema
   auto output_schema = GenerateScanOutputSchema(op->GetTableOID());
@@ -188,42 +205,49 @@ void PlanGenerator::Visit(const SeqScan *op) {
 }
 
 void PlanGenerator::Visit(const IndexScan *op) {
-  // Generate ouptut column IDs for plan
-  // An IndexScan (for now at least) will output all columns of its table
-  std::vector<catalog::col_oid_t> column_ids = GenerateColumnsForScan();
-
-  catalog::table_oid_t tbl_oid = accessor_->GetTableOid(op->GetNamespaceOID(), op->GetTableAlias());
+  auto tbl_oid = op->GetTableOID();
   auto output_schema = GenerateScanOutputSchema(tbl_oid);
 
   // Generate the predicate in the scan
   auto predicate = parser::ExpressionUtil::JoinAnnotatedExprs(op->GetPredicates()).release();
   RegisterPointerCleanup<parser::AbstractExpression>(predicate, true, true);
 
-  // Create index scan desc
-  // Can destructively move from physical operator since we won't need them anymore
-  auto tuple_oids = std::vector<catalog::col_oid_t>(op->GetKeyColumnOIDList());
-  auto expr_list = std::vector<parser::ExpressionType>(op->GetExprTypeList());
+  // Generate ouptut column IDs for plan
+  // An IndexScan (for now at least) will output all columns of its table
+  std::vector<catalog::col_oid_t> column_ids = GenerateColumnsForScan(predicate);
 
-  // We do a copy since const_cast is not good
-  std::vector<type::TransientValue> value_list;
-  for (auto &value : op->GetValueList()) {
-    auto val_copy = type::TransientValue(value);
-    value_list.push_back(std::move(val_copy));
+  auto builder = planner::IndexScanPlanNode::Builder();
+  builder.SetOutputSchema(std::move(output_schema));
+  builder.SetScanPredicate(common::ManagedPointer(predicate));
+  builder.SetIsForUpdateFlag(op->GetIsForUpdate());
+  builder.SetDatabaseOid(op->GetDatabaseOID());
+  builder.SetNamespaceOid(op->GetNamespaceOID());
+  builder.SetIndexOid(op->GetIndexOID());
+  builder.SetTableOid(tbl_oid);
+  builder.SetColumnOids(std::move(column_ids));
+
+  auto type = op->GetIndexScanType();
+  builder.SetScanType(type);
+  for (auto bound : op->GetBounds()) {
+    if (type == planner::IndexScanType::Exact) {
+      // Exact lookup
+      builder.AddIndexColumn(bound.first, bound.second[0]);
+    } else if (type == planner::IndexScanType::AscendingClosed) {
+      // Range lookup, so use lo and hi
+      builder.AddLoIndexColumn(bound.first, bound.second[0]);
+      builder.AddHiIndexColumn(bound.first, bound.second[1]);
+    } else if (type == planner::IndexScanType::AscendingOpenHigh) {
+      // Open high scan, so use only lo
+      builder.AddLoIndexColumn(bound.first, bound.second[0]);
+    } else if (type == planner::IndexScanType::AscendingOpenLow) {
+      // Open low scan, so use only high
+      builder.AddHiIndexColumn(bound.first, bound.second[1]);
+    } else if (type == planner::IndexScanType::AscendingOpenBoth) {
+      // No bounds need to be set
+    }
   }
 
-  auto index_desc = planner::IndexScanDescription(std::move(tuple_oids), std::move(expr_list), std::move(value_list));
-
-  output_plan_ = planner::IndexScanPlanNode::Builder()
-                     .SetOutputSchema(std::move(output_schema))
-                     .SetScanPredicate(common::ManagedPointer(predicate))
-                     .SetIsForUpdateFlag(op->GetIsForUpdate())
-                     .SetDatabaseOid(op->GetDatabaseOID())
-                     .SetNamespaceOid(op->GetNamespaceOID())
-                     .SetIndexOid(op->GetIndexOID())
-                     .SetTableOid(tbl_oid)
-                     .SetColumnOids(std::move(column_ids))
-                     .SetIndexScanDescription(std::move(index_desc))
-                     .Build();
+  output_plan_ = builder.Build();
 }
 
 void PlanGenerator::Visit(const ExternalFileScan *op) {

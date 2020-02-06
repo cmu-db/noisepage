@@ -212,7 +212,10 @@ BENCHMARK_DEFINE_F(ParserBenchmark, NOOPs)(benchmark::State &state) {
   state.SetItemsProcessed(state.iterations());
 }
 
-// Parser Benchmarks!
+// ----------------------------------------------------------------------------
+// BENCHMARK REGISTRATION
+// ----------------------------------------------------------------------------
+// clang-format off
 BENCHMARK_REGISTER_F(ParserBenchmark, SelectsSimple)->Unit(benchmark::kNanosecond);
 BENCHMARK_REGISTER_F(ParserBenchmark, SelectsComplex)->Unit(benchmark::kNanosecond);
 BENCHMARK_REGISTER_F(ParserBenchmark, UpdatesSimple)->Unit(benchmark::kNanosecond);
@@ -222,5 +225,6 @@ BENCHMARK_REGISTER_F(ParserBenchmark, InsertsComplex)->Unit(benchmark::kNanoseco
 BENCHMARK_REGISTER_F(ParserBenchmark, DeletesSimple)->Unit(benchmark::kNanosecond);
 BENCHMARK_REGISTER_F(ParserBenchmark, DeletesComplex)->Unit(benchmark::kNanosecond);
 BENCHMARK_REGISTER_F(ParserBenchmark, NOOPs)->Unit(benchmark::kNanosecond);
+// clang-format on
 
 }  // namespace terrier

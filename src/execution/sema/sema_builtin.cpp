@@ -38,29 +38,95 @@ bool AreAllFunctions(const ArgTypes... type) {
 void Sema::CheckBuiltinMapCall(UNUSED_ATTRIBUTE ast::CallExpr *call) {}
 
 void Sema::CheckBuiltinSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
+  // SQL Date.
   if (builtin == ast::Builtin::DateToSql) {
     if (!CheckArgCountAtLeast(call, 3)) return;
-    auto uint16_t_kind = ast::BuiltinType::Uint16;
-    auto uint8_t_kind = ast::BuiltinType::Uint8;
-    // First argument (year) is a uint16_t
+    auto int32_t_kind = ast::BuiltinType::Int32;
+    auto uint32_t_kind = ast::BuiltinType::Uint32;
+    // First argument (year) is a int32_t
     if (!call->Arguments()[0]->GetType()->IsIntegerType()) {
-      ReportIncorrectCallArg(call, 0, GetBuiltinType(uint16_t_kind));
+      ReportIncorrectCallArg(call, 0, GetBuiltinType(int32_t_kind));
       return;
     }
-    // First argument (month) is a uint8_t
+    // Second argument (month) is a uint32_t
     if (!call->Arguments()[1]->GetType()->IsIntegerType()) {
-      ReportIncorrectCallArg(call, 1, GetBuiltinType(uint8_t_kind));
+      ReportIncorrectCallArg(call, 1, GetBuiltinType(uint32_t_kind));
       return;
     }
-    // First argument (day) is a uint8_t
+    // Third argument (day) is a uint32_t
     if (!call->Arguments()[2]->GetType()->IsIntegerType()) {
-      ReportIncorrectCallArg(call, 2, GetBuiltinType(uint8_t_kind));
+      ReportIncorrectCallArg(call, 2, GetBuiltinType(uint32_t_kind));
       return;
     }
     // Return a date type
     call->SetType(GetBuiltinType(ast::BuiltinType::Date));
     return;
   }
+
+  // SQL Timestamp.
+  if (builtin == ast::Builtin::TimestampToSql) {
+    if (!CheckArgCountAtLeast(call, 1)) {
+      return;
+    }
+    auto uint64_t_kind = ast::BuiltinType::Uint64;
+    // First argument (julian_usec) is a uint64_t
+    if (!call->Arguments()[0]->GetType()->IsIntegerType()) {
+      ReportIncorrectCallArg(call, 0, GetBuiltinType(uint64_t_kind));
+      return;
+    }
+    call->SetType(GetBuiltinType(ast::BuiltinType::Timestamp));
+    return;
+  }
+
+  // SQL Timestamp, HMSu.
+  if (builtin == ast::Builtin::TimestampToSqlHMSu) {
+    if (!CheckArgCountAtLeast(call, 7)) {
+      return;
+    }
+    auto int32_t_kind = ast::BuiltinType::Int32;
+    auto uint8_t_kind = ast::BuiltinType::Uint8;
+    auto uint32_t_kind = ast::BuiltinType::Uint32;
+    auto uint64_t_kind = ast::BuiltinType::Uint64;
+    // First argument (year) is a int32_t
+    if (!call->Arguments()[0]->GetType()->IsIntegerType()) {
+      ReportIncorrectCallArg(call, 0, GetBuiltinType(int32_t_kind));
+      return;
+    }
+    // Second argument (month) is a uint32_t
+    if (!call->Arguments()[1]->GetType()->IsIntegerType()) {
+      ReportIncorrectCallArg(call, 1, GetBuiltinType(uint32_t_kind));
+      return;
+    }
+    // Third argument (day) is a uint32_t
+    if (!call->Arguments()[2]->GetType()->IsIntegerType()) {
+      ReportIncorrectCallArg(call, 2, GetBuiltinType(uint32_t_kind));
+      return;
+    }
+    // Fourth argument (hour) is a uint8_t
+    if (!call->Arguments()[3]->GetType()->IsIntegerType()) {
+      ReportIncorrectCallArg(call, 3, GetBuiltinType(uint8_t_kind));
+      return;
+    }
+    // Fifth argument (minute) is a uint8_t
+    if (!call->Arguments()[4]->GetType()->IsIntegerType()) {
+      ReportIncorrectCallArg(call, 4, GetBuiltinType(uint8_t_kind));
+      return;
+    }
+    // Sixth argument (second) is a uint8_t
+    if (!call->Arguments()[5]->GetType()->IsIntegerType()) {
+      ReportIncorrectCallArg(call, 5, GetBuiltinType(uint8_t_kind));
+      return;
+    }
+    // Seventh argument (microsecond) is a uint64_t
+    if (!call->Arguments()[6]->GetType()->IsIntegerType()) {
+      ReportIncorrectCallArg(call, 6, GetBuiltinType(uint64_t_kind));
+      return;
+    }
+    call->SetType(GetBuiltinType(ast::BuiltinType::Timestamp));
+    return;
+  }
+
+  // One arg functions below.
   if (!CheckArgCount(call, 1)) {
     return;
   }
@@ -1013,6 +1079,11 @@ void Sema::CheckBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::TupleSlot));
       break;
     }
+    case ast::Builtin::PCIGetBool:
+    case ast::Builtin::PCIGetBoolNull: {
+      call->SetType(GetBuiltinType(ast::BuiltinType::Boolean));
+      break;
+    }
     case ast::Builtin::PCIGetTinyInt:
     case ast::Builtin::PCIGetTinyIntNull:
     case ast::Builtin::PCIGetSmallInt:
@@ -1034,6 +1105,11 @@ void Sema::CheckBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin) {
     case ast::Builtin::PCIGetDate:
     case ast::Builtin::PCIGetDateNull: {
       call->SetType(GetBuiltinType(ast::BuiltinType::Date));
+      break;
+    }
+    case ast::Builtin::PCIGetTimestamp:
+    case ast::Builtin::PCIGetTimestampNull: {
+      call->SetType(GetBuiltinType(ast::BuiltinType::Timestamp));
       break;
     }
     case ast::Builtin::PCIGetVarlen:
@@ -1432,7 +1508,7 @@ void Sema::CheckBuiltinIndexIteratorInit(execution::ast::CallExpr *call, ast::Bu
   }
   switch (builtin) {
     case ast::Builtin::IndexIteratorInit: {
-      if (!CheckArgCount(call, 5)) {
+      if (!CheckArgCount(call, 6)) {
         return;
       }
       // The second argument is an execution context
@@ -1441,30 +1517,35 @@ void Sema::CheckBuiltinIndexIteratorInit(execution::ast::CallExpr *call, ast::Bu
         ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
         return;
       }
-      // The third argument is a table oid
+      // The third argument is num_attrs
       if (!call->Arguments()[2]->IsIntegerLiteral()) {
         ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Int32));
         return;
       }
-      // The fourth argument is an index oid
+      // The fourth argument is a table oid
       if (!call->Arguments()[3]->IsIntegerLiteral()) {
         ReportIncorrectCallArg(call, 3, GetBuiltinType(ast::BuiltinType::Int32));
         return;
       }
-      // The fifth argument is a uint32_t array
-      if (!call->Arguments()[4]->GetType()->IsArrayType()) {
-        ReportIncorrectCallArg(call, 4, "Fifth argument should be a fixed length uint32 array");
+      // The fifth argument is an index oid
+      if (!call->Arguments()[4]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 4, GetBuiltinType(ast::BuiltinType::Int32));
         return;
       }
-      auto *arr_type = call->Arguments()[4]->GetType()->SafeAs<ast::ArrayType>();
+      // The sixth argument is a uint32_t array
+      if (!call->Arguments()[5]->GetType()->IsArrayType()) {
+        ReportIncorrectCallArg(call, 5, "Sixth argument should be a fixed length uint32 array");
+        return;
+      }
+      auto *arr_type = call->Arguments()[5]->GetType()->SafeAs<ast::ArrayType>();
       auto uint32_t_kind = ast::BuiltinType::Uint32;
       if (!arr_type->ElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
-        ReportIncorrectCallArg(call, 4, "Fifth argument should be a fixed length uint32 array");
+        ReportIncorrectCallArg(call, 5, "Sixth argument should be a fixed length uint32 array");
       }
       break;
     }
     case ast::Builtin::IndexIteratorInitBind: {
-      if (!CheckArgCount(call, 5)) {
+      if (!CheckArgCount(call, 6)) {
         return;
       }
       // The second call argument must an execution context
@@ -1473,25 +1554,30 @@ void Sema::CheckBuiltinIndexIteratorInit(execution::ast::CallExpr *call, ast::Bu
         ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
         return;
       }
-      // The third argument must be the table's name
-      if (!call->Arguments()[2]->GetType()->IsStringType()) {
-        ReportIncorrectCallArg(call, 2, ast::StringType::Get(GetContext()));
+      // The third argument is number of attributes set
+      if (!call->Arguments()[2]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Int32));
         return;
       }
-      // The fourth argument is the index's name
+      // The fourth argument must be the table's name
       if (!call->Arguments()[3]->GetType()->IsStringType()) {
         ReportIncorrectCallArg(call, 3, ast::StringType::Get(GetContext()));
         return;
       }
-      // The fifth argument is a uint32_t array
-      if (!call->Arguments()[4]->GetType()->IsArrayType()) {
-        ReportIncorrectCallArg(call, 4, "Fifth argument should be a fixed length uint32 array");
+      // The fifth argument is the index's name
+      if (!call->Arguments()[4]->GetType()->IsStringType()) {
+        ReportIncorrectCallArg(call, 4, ast::StringType::Get(GetContext()));
         return;
       }
-      auto *arr_type = call->Arguments()[4]->GetType()->SafeAs<ast::ArrayType>();
+      // The sixth argument is a uint32_t array
+      if (!call->Arguments()[5]->GetType()->IsArrayType()) {
+        ReportIncorrectCallArg(call, 5, "Sixth argument should be a fixed length uint32 array");
+        return;
+      }
+      auto *arr_type = call->Arguments()[5]->GetType()->SafeAs<ast::ArrayType>();
       auto uint32_t_kind = ast::BuiltinType::Uint32;
       if (!arr_type->ElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
-        ReportIncorrectCallArg(call, 4, "Fifth argument should be a fixed length uint32 array");
+        ReportIncorrectCallArg(call, 5, "Sixth argument should be a fixed length uint32 array");
       }
       break;
     }
@@ -1516,12 +1602,14 @@ void Sema::CheckBuiltinIndexIteratorScan(execution::ast::CallExpr *call, ast::Bu
 
   switch (builtin) {
     case ast::Builtin::IndexIteratorScanKey:
-    case ast::Builtin::IndexIteratorScanAscending:
     case ast::Builtin::IndexIteratorScanDescending: {
       if (!CheckArgCount(call, 1)) return;
       break;
     }
-    case ast::Builtin::IndexIteratorScanLimitAscending:
+    case ast::Builtin::IndexIteratorScanAscending: {
+      if (!CheckArgCount(call, 3)) return;
+      break;
+    }
     case ast::Builtin::IndexIteratorScanLimitDescending: {
       if (!CheckArgCount(call, 2)) return;
       auto uint32_kind = ast::BuiltinType::Uint32;
@@ -1598,10 +1686,18 @@ void Sema::CheckBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin) {
   if (!CheckArgCountAtLeast(call, 2)) {
     return;
   }
+  // Calls to set varlen take an extra boolean to indicate ownership.
+  bool is_set_varlen = false;
   bool is_set_call = false;
   // Type of the input or output sql value
   ast::BuiltinType::Kind sql_type;
   switch (builtin) {
+    case ast::Builtin::PRSetBool:
+    case ast::Builtin::PRSetBoolNull: {
+      is_set_call = true;
+      sql_type = ast::BuiltinType::Bool;
+      break;
+    }
     case ast::Builtin::PRSetTinyInt:
     case ast::Builtin::PRSetSmallInt:
     case ast::Builtin::PRSetInt:
@@ -1628,10 +1724,22 @@ void Sema::CheckBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin) {
       sql_type = ast::BuiltinType::Date;
       break;
     }
+    case ast::Builtin::PRSetTimestamp:
+    case ast::Builtin::PRSetTimestampNull: {
+      is_set_call = true;
+      sql_type = ast::BuiltinType::Timestamp;
+      break;
+    }
     case ast::Builtin::PRSetVarlen:
     case ast::Builtin::PRSetVarlenNull: {
       is_set_call = true;
+      is_set_varlen = true;
       sql_type = ast::BuiltinType::StringVal;
+      break;
+    }
+    case ast::Builtin::PRGetBool:
+    case ast::Builtin::PRGetBoolNull: {
+      sql_type = ast::BuiltinType::Bool;
       break;
     }
     case ast::Builtin::PRGetTinyInt:
@@ -1657,6 +1765,11 @@ void Sema::CheckBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin) {
       sql_type = ast::BuiltinType::Date;
       break;
     }
+    case ast::Builtin::PRGetTimestamp:
+    case ast::Builtin::PRGetTimestampNull: {
+      sql_type = ast::BuiltinType::Timestamp;
+      break;
+    }
     case ast::Builtin::PRGetVarlen:
     case ast::Builtin::PRGetVarlenNull: {
       sql_type = ast::BuiltinType::StringVal;
@@ -1678,13 +1791,21 @@ void Sema::CheckBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin) {
     return;
   }
   if (is_set_call) {
-    if (!CheckArgCount(call, 3)) {
+    if (!CheckArgCount(call, is_set_varlen ? 4 : 3)) {
       return;
     }
     // Third argument depends of call
     if (GetBuiltinType(sql_type) != call->Arguments()[2]->GetType()) {
       ReportIncorrectCallArg(call, 2, GetBuiltinType(sql_type));
       return;
+    }
+    // For varlens, there is a fourth boolean argument.
+    if (is_set_varlen) {
+      auto bool_kind = ast::BuiltinType::Bool;
+      if (!call->Arguments()[3]->GetType()->IsSpecificBuiltin(bool_kind)) {
+        ReportIncorrectCallArg(call, 3, GetBuiltinType(bool_kind));
+        return;
+      }
     }
     // Return nothing
     call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
@@ -1921,6 +2042,10 @@ void Sema::CheckBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin) {
   // Type output sql value
   ast::BuiltinType::Kind sql_type;
   switch (builtin) {
+    case ast::Builtin::GetParamBool: {
+      sql_type = ast::BuiltinType::Bool;
+      break;
+    }
     case ast::Builtin::GetParamTinyInt:
     case ast::Builtin::GetParamSmallInt:
     case ast::Builtin::GetParamInt:
@@ -1935,6 +2060,10 @@ void Sema::CheckBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin) {
     }
     case ast::Builtin::GetParamDate: {
       sql_type = ast::BuiltinType::Date;
+      break;
+    }
+    case ast::Builtin::GetParamTimestamp: {
+      sql_type = ast::BuiltinType::Timestamp;
       break;
     }
     case ast::Builtin::GetParamString: {
@@ -1977,6 +2106,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::StringToSql:
     case ast::Builtin::VarlenToSql:
     case ast::Builtin::DateToSql:
+    case ast::Builtin::TimestampToSql:
+    case ast::Builtin::TimestampToSqlHMSu:
     case ast::Builtin::SqlToBool: {
       CheckBuiltinSqlConversionCall(call, builtin);
       break;
@@ -2023,6 +2154,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::PCIMatch:
     case ast::Builtin::PCIReset:
     case ast::Builtin::PCIResetFiltered:
+    case ast::Builtin::PCIGetBool:
+    case ast::Builtin::PCIGetBoolNull:
     case ast::Builtin::PCIGetTinyInt:
     case ast::Builtin::PCIGetTinyIntNull:
     case ast::Builtin::PCIGetSmallInt:
@@ -2037,6 +2170,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::PCIGetDoubleNull:
     case ast::Builtin::PCIGetDate:
     case ast::Builtin::PCIGetDateNull:
+    case ast::Builtin::PCIGetTimestamp:
+    case ast::Builtin::PCIGetTimestampNull:
     case ast::Builtin::PCIGetVarlen:
     case ast::Builtin::PCIGetVarlenNull: {
       CheckBuiltinPCICall(call, builtin);
@@ -2166,7 +2301,6 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::IndexIteratorScanKey:
     case ast::Builtin::IndexIteratorScanAscending:
     case ast::Builtin::IndexIteratorScanDescending:
-    case ast::Builtin::IndexIteratorScanLimitAscending:
     case ast::Builtin::IndexIteratorScanLimitDescending: {
       CheckBuiltinIndexIteratorScan(call, builtin);
       break;
@@ -2198,6 +2332,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckMathTrigCall(call, builtin);
       break;
     }
+    case ast::Builtin::PRSetBool:
     case ast::Builtin::PRSetTinyInt:
     case ast::Builtin::PRSetSmallInt:
     case ast::Builtin::PRSetInt:
@@ -2205,7 +2340,9 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::PRSetReal:
     case ast::Builtin::PRSetDouble:
     case ast::Builtin::PRSetDate:
+    case ast::Builtin::PRSetTimestamp:
     case ast::Builtin::PRSetVarlen:
+    case ast::Builtin::PRSetBoolNull:
     case ast::Builtin::PRSetTinyIntNull:
     case ast::Builtin::PRSetSmallIntNull:
     case ast::Builtin::PRSetIntNull:
@@ -2213,7 +2350,9 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::PRSetRealNull:
     case ast::Builtin::PRSetDoubleNull:
     case ast::Builtin::PRSetDateNull:
+    case ast::Builtin::PRSetTimestampNull:
     case ast::Builtin::PRSetVarlenNull:
+    case ast::Builtin::PRGetBool:
     case ast::Builtin::PRGetTinyInt:
     case ast::Builtin::PRGetSmallInt:
     case ast::Builtin::PRGetInt:
@@ -2221,7 +2360,9 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::PRGetReal:
     case ast::Builtin::PRGetDouble:
     case ast::Builtin::PRGetDate:
+    case ast::Builtin::PRGetTimestamp:
     case ast::Builtin::PRGetVarlen:
+    case ast::Builtin::PRGetBoolNull:
     case ast::Builtin::PRGetTinyIntNull:
     case ast::Builtin::PRGetSmallIntNull:
     case ast::Builtin::PRGetIntNull:
@@ -2229,6 +2370,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::PRGetRealNull:
     case ast::Builtin::PRGetDoubleNull:
     case ast::Builtin::PRGetDateNull:
+    case ast::Builtin::PRGetTimestampNull:
     case ast::Builtin::PRGetVarlenNull: {
       CheckBuiltinPRCall(call, builtin);
       break;
@@ -2248,6 +2390,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinStorageInterfaceCall(call, builtin);
       break;
     }
+    case ast::Builtin::GetParamBool:
     case ast::Builtin::GetParamTinyInt:
     case ast::Builtin::GetParamSmallInt:
     case ast::Builtin::GetParamInt:
@@ -2255,6 +2398,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::GetParamReal:
     case ast::Builtin::GetParamDouble:
     case ast::Builtin::GetParamDate:
+    case ast::Builtin::GetParamTimestamp:
     case ast::Builtin::GetParamString: {
       CheckBuiltinParamCall(call, builtin);
       break;

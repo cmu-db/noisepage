@@ -93,6 +93,8 @@ TEST_F(DataTableConcurrentTests, ConcurrentInsert) {
   const uint16_t max_columns = 20;
   const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
   common::WorkerPool thread_pool(num_threads, {});
+  thread_pool.Startup();
+
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(max_columns, &generator_);
     storage::DataTable tested(&block_store_, layout, storage::layout_version_t(0));
@@ -130,6 +132,8 @@ TEST_F(DataTableConcurrentTests, ConcurrentUpdateOneWriterWins) {
   const uint16_t max_columns = 20;
   const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
   common::WorkerPool thread_pool(num_threads, {});
+  thread_pool.Startup();
+
   for (uint32_t iteration = 0; iteration < num_iterations; iteration++) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayoutNoVarlen(max_columns, &generator_);
     storage::DataTable tested(&block_store_, layout, storage::layout_version_t(0));
