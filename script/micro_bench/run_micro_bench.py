@@ -42,26 +42,39 @@ LOG.setLevel(logging.INFO)
 # Jenkins URL
 JENKINS_URL = "http://jenkins.db.cs.cmu.edu:8080"
 
+# Default failure threshold
+# The regression threshold determines how much the benchmark is allowed to get
+# slower from the previous runs before it counts as a failure if we are 
+# using historical data (i.e., if min_ref_values are available).
+# You really should not be messing with this value without asking somebody else first.
+DEFAULT_FAILURE_THRESHOLD = 10
+
 # LIST OF BENCHMARKS
-# Add the name of your benchmark in the list below and
-# it will automatically get executed when this script runs.
-BENCHMARKS_TO_RUN = [
-    "catalog_benchmark",
-    "data_table_benchmark",
-    "garbage_collector_benchmark",
-    "large_transaction_benchmark",
-    "index_wrapper_benchmark",
-    "logging_benchmark",
-    "recovery_benchmark",
-    "large_transaction_metrics_benchmark",
-    "logging_metrics_benchmark",
-    "tuple_access_strategy_benchmark",
-    "tpcc_benchmark",
-    "bwtree_benchmark",
-    "cuckoomap_benchmark",
-    "parser_benchmark",
-    "slot_iterator_benchmark",
-]
+# Add the name of your benchmark in the list below and it will automatically 
+# get executed when this script runs. Some benchmarks are more sensitive / non-deterministic 
+# and we get a lot of spurious failures due to funkiness on the jenkins cluster.
+# So we will use a higher threshold for now. 
+#
+# Format:
+#   benchmark_name => regression threshold
+
+BENCHMARKS_TO_RUN = {
+    "catalog_benchmark":                    20,
+    "data_table_benchmark":                 DEFAULT_FAILURE_THRESHOLD,
+    "garbage_collector_benchmark":          DEFAULT_FAILURE_THRESHOLD,
+    "large_transaction_benchmark":          DEFAULT_FAILURE_THRESHOLD,
+    "index_wrapper_benchmark":              DEFAULT_FAILURE_THRESHOLD,
+    "logging_benchmark":                    DEFAULT_FAILURE_THRESHOLD,
+    "recovery_benchmark":                   DEFAULT_FAILURE_THRESHOLD,
+    "large_transaction_metrics_benchmark":  DEFAULT_FAILURE_THRESHOLD,
+    "logging_metrics_benchmark":            DEFAULT_FAILURE_THRESHOLD,
+    "tuple_access_strategy_benchmark":      DEFAULT_FAILURE_THRESHOLD,
+    "tpcc_benchmark":                       DEFAULT_FAILURE_THRESHOLD,
+    "bwtree_benchmark":                     DEFAULT_FAILURE_THRESHOLD,
+    "cuckoomap_benchmark":                  DEFAULT_FAILURE_THRESHOLD,
+    "parser_benchmark":                     20,
+    "slot_iterator_benchmark":              DEFAULT_FAILURE_THRESHOLD,
+}
 
 # The number of threads to use for multi-threaded benchmarks.
 # This parameter will be passed in as an environment variable to each benchmark.
@@ -85,10 +98,6 @@ class Config(object):
 
         # how many historical values are "required".
         self.min_ref_values = 10
-
-        # percentage difference permissible, if using historical data
-        # i.e. if min_ref_values are available
-        self.ref_tolerance = 10
 
         # if fewer than min_ref_values are available
         self.lax_tolerance = 30
@@ -946,6 +955,9 @@ class ReferenceValue(object):
             #pprint(x.__dict__)
         #sys.exit(1)
 
+        name = gbrp.get_suite_name()
+        assert name in BENCHMARKS_TO_RUN
+        
         key = (gbrp.get_suite_name(), gbrp.get_test_name())
         assert key == in_key
         ret_obj = cls()
@@ -954,7 +966,7 @@ class ReferenceValue(object):
         ret_obj.time = gbrp.get_mean_time()
         ret_obj.iterations = 888
         ret_obj.ref_ips = gbrp.get_mean_items_per_second()
-        ret_obj.tolerance = config.ref_tolerance
+        ret_obj.tolerance = BENCHMARKS_TO_RUN[name]
         ret_obj.reference_type = "history"
         return ret_obj
 
@@ -1186,7 +1198,7 @@ if __name__ == "__main__":
     tt.add_column("iterations", col_format="%d")
     tt.add_column("reference", col_format="%01.4g")
     tt.add_column("tolerance", "% tol.")
-    tt.add_column("p_diff", col_format="%+3d")
+    tt.add_column("p_diff", "% diff", col_format="%+3d")
     # add # ref values
     # hist, cfg
     tt.add_column("reference_type", "ref type")
