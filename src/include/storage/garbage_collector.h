@@ -24,32 +24,19 @@ class GarbageCollector {
   /**
    * Constructor for the Garbage Collector that requires a pointer to the TransactionManager. This is necessary for the
    * GC to invoke the TM's function for handing off the completed transactions queue.
-   * @param timestamp_manager source of timestamps in the system
    * @param deferred_action_manager pointer to deferred action manager of the system
    * @param txn_manager pointer to the TransactionManager
-   * @param observer the access observer attached to this GC. The GC reports every record gc-ed to the observer if
-   *                 it is not null. The observer can then gain insight invoke other components to perform actions.
-   *                 The observer's function implementation needs to be lightweight because it is called on the GC
-   *                 thread.
    */
   // TODO(Tianyu): Eventually the GC will be re-written to be purely on the deferred action manager. which will
   //  eliminate this perceived redundancy of taking in a transaction manager.
-  GarbageCollector(const common::ManagedPointer<transaction::TimestampManager> timestamp_manager,
-                   const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager,
-                   const common::ManagedPointer<transaction::TransactionManager> txn_manager, AccessObserver *observer)
-      : timestamp_manager_(timestamp_manager),
-        deferred_action_manager_(deferred_action_manager),
-        txn_manager_(txn_manager),
-        observer_(observer),
-        last_unlinked_{0} {
+  GarbageCollector(const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager,
+                   const common::ManagedPointer<transaction::TransactionManager> txn_manager)
+      : deferred_action_manager_(deferred_action_manager), txn_manager_(txn_manager) {
     TERRIER_ASSERT(txn_manager_->GCEnabled(),
                    "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
   }
 
-  ~GarbageCollector() {
-    TERRIER_ASSERT(txns_to_deallocate_.empty(), "Not all txns have been deallocated");
-    TERRIER_ASSERT(txns_to_unlink_.empty(), "Not all txns have been unlinked");
-  }
+  ~GarbageCollector() = default;
 
   /**
    * Deallocates transactions that can no longer be referenced by running transactions, and unlinks UndoRecords that
@@ -77,16 +64,10 @@ class GarbageCollector {
  private:
   void ProcessIndexes();
 
-  const common::ManagedPointer<transaction::TimestampManager> UNUSED_ATTRIBUTE timestamp_manager_;
   const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;
   const common::ManagedPointer<transaction::TransactionManager> txn_manager_;
-  AccessObserver *observer_ UNUSED_ATTRIBUTE;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
-  transaction::timestamp_t last_unlinked_ UNUSED_ATTRIBUTE;
-  // queue of txns that have been unlinked, and should possible be deleted on next GC run
-  transaction::TransactionQueue txns_to_deallocate_;
-  // queue of txns that need to be unlinked
-  transaction::TransactionQueue txns_to_unlink_;
+  // transaction::timestamp_t last_unlinked_;
 
   std::unordered_set<common::ManagedPointer<index::Index>> indexes_;
   common::SharedLatch indexes_latch_;

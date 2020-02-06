@@ -92,9 +92,8 @@ TEST_F(BlockCompactorTest, CompactionTest) {
     transaction::TransactionManager txn_manager{common::ManagedPointer(&timestamp_manager),
                                                 common::ManagedPointer(&deferred_action_manager),
                                                 common::ManagedPointer(&buffer_pool_), true, DISABLED};
-    storage::GarbageCollector gc{common::ManagedPointer(&timestamp_manager),
-                                 common::ManagedPointer(&deferred_action_manager), common::ManagedPointer(&txn_manager),
-                                 DISABLED};
+    storage::GarbageCollector gc{common::ManagedPointer(&deferred_action_manager),
+                                 common::ManagedPointer(&txn_manager)};
 
     auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
     auto num_tuples = tuples.size();
@@ -176,9 +175,8 @@ TEST_F(BlockCompactorTest, GatherTest) {
     transaction::TransactionManager txn_manager{common::ManagedPointer(&timestamp_manager),
                                                 common::ManagedPointer(&deferred_action_manager),
                                                 common::ManagedPointer(&buffer_pool_), true, DISABLED};
-    storage::GarbageCollector gc{common::ManagedPointer(&timestamp_manager),
-                                 common::ManagedPointer(&deferred_action_manager), common::ManagedPointer(&txn_manager),
-                                 DISABLED};
+    storage::GarbageCollector gc{common::ManagedPointer(&deferred_action_manager),
+                                 common::ManagedPointer(&txn_manager)};
 
     auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
     auto num_tuples = tuples.size();
@@ -283,9 +281,8 @@ TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
     transaction::TransactionManager txn_manager{common::ManagedPointer(&timestamp_manager),
                                                 common::ManagedPointer(&deferred_action_manager),
                                                 common::ManagedPointer(&buffer_pool_), true, DISABLED};
-    storage::GarbageCollector gc{common::ManagedPointer(&timestamp_manager),
-                                 common::ManagedPointer(&deferred_action_manager), common::ManagedPointer(&txn_manager),
-                                 DISABLED};
+    storage::GarbageCollector gc{common::ManagedPointer(&deferred_action_manager),
+                                 common::ManagedPointer(&txn_manager)};
 
     auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
     auto num_tuples = tuples.size();

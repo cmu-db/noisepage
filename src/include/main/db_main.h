@@ -126,9 +126,8 @@ class DBMain {
                  const common::ManagedPointer<storage::LogManager> log_manager)
         : deferred_action_manager_(txn_layer->GetDeferredActionManager()), log_manager_(log_manager) {
       if (use_gc)
-        garbage_collector_ = std::make_unique<storage::GarbageCollector>(txn_layer->GetTimestampManager(),
-                                                                         txn_layer->GetDeferredActionManager(),
-                                                                         txn_layer->GetTransactionManager(), DISABLED);
+        garbage_collector_ = std::make_unique<storage::GarbageCollector>(txn_layer->GetDeferredActionManager(),
+                                                                         txn_layer->GetTransactionManager());
 
       block_store_ = std::make_unique<storage::BlockStore>(block_store_size_limit, block_store_reuse_limit);
     }

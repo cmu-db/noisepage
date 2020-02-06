@@ -40,8 +40,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, TPCCish)(benchmark::State &
 
     LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                          &block_store_, &buffer_pool_, &generator_, true);
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
-                                        common::ManagedPointer(tested.GetTxnManager()), DISABLED);
+    gc_ = new storage::GarbageCollector(DISABLED, common::ManagedPointer(tested.GetTxnManager()));
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, terrier::BenchmarkConfig::num_threads, metrics_manager);
     abort_count += result.first;
@@ -72,8 +71,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, HighAbortRate)(benchmark::S
     // use a smaller table to make aborts more likely
     LargeDataTableBenchmarkObject tested(attr_sizes_, 1000, txn_length, insert_update_select_ratio, &block_store_,
                                          &buffer_pool_, &generator_, true);
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
-                                        common::ManagedPointer(tested.GetTxnManager()), DISABLED);
+    gc_ = new storage::GarbageCollector(DISABLED, common::ManagedPointer(tested.GetTxnManager()));
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, terrier::BenchmarkConfig::num_threads, metrics_manager);
     abort_count += result.first;
@@ -104,8 +102,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, SingleStatementInsert)(benc
     // don't need any initial tuples
     LargeDataTableBenchmarkObject tested(attr_sizes_, 0, txn_length, insert_update_select_ratio, &block_store_,
                                          &buffer_pool_, &generator_, true);
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
-                                        common::ManagedPointer(tested.GetTxnManager()), DISABLED);
+    gc_ = new storage::GarbageCollector(DISABLED, common::ManagedPointer(tested.GetTxnManager()));
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, terrier::BenchmarkConfig::num_threads, metrics_manager);
     abort_count += result.first;
@@ -135,8 +132,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, SingleStatementUpdate)(benc
 
     LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                          &block_store_, &buffer_pool_, &generator_, true);
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
-                                        common::ManagedPointer(tested.GetTxnManager()), DISABLED);
+    gc_ = new storage::GarbageCollector(DISABLED, common::ManagedPointer(tested.GetTxnManager()));
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, terrier::BenchmarkConfig::num_threads, metrics_manager);
     abort_count += result.first;
@@ -166,8 +162,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, SingleStatementSelect)(benc
 
     LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                          &block_store_, &buffer_pool_, &generator_, true);
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
-                                        common::ManagedPointer(tested.GetTxnManager()), DISABLED);
+    gc_ = new storage::GarbageCollector(DISABLED, common::ManagedPointer(tested.GetTxnManager()));
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, terrier::BenchmarkConfig::num_threads, metrics_manager);
     abort_count += result.first;

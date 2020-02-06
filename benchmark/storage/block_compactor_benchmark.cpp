@@ -13,6 +13,7 @@
 namespace terrier {
 class BlockCompactorBenchmark : public benchmark::Fixture {
  protected:
+  BlockCompactorBenchmark() = default;
   storage::BlockStore block_store_{5000, 5000};
   std::default_random_engine generator_;
   storage::RecordBufferSegmentPool buffer_pool_{100000, 100000};
@@ -25,9 +26,8 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
   transaction::TransactionManager txn_manager_{common::ManagedPointer(&timestamp_manager_),
                                                common::ManagedPointer(&deferred_action_manager_),
                                                common::ManagedPointer(&buffer_pool_), true, DISABLED};
-  storage::GarbageCollector gc_{common::ManagedPointer(&timestamp_manager_),
-                                common::ManagedPointer(&deferred_action_manager_),
-                                common::ManagedPointer(&txn_manager_), nullptr};
+  storage::GarbageCollector gc_{common::ManagedPointer(&deferred_action_manager_),
+                                common::ManagedPointer(&txn_manager_)};
   storage::BlockCompactor compactor_;
 
   uint32_t num_blocks_ = 500;

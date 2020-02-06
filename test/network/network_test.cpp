@@ -55,9 +55,8 @@ class NetworkTests : public TerrierTest {
     txn_manager_ = new transaction::TransactionManager(common::ManagedPointer(timestamp_manager_),
                                                        common::ManagedPointer(deferred_action_manager_),
                                                        common::ManagedPointer(&buffer_pool_), true, DISABLED);
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(timestamp_manager_),
-                                        common::ManagedPointer(deferred_action_manager_),
-                                        common::ManagedPointer(txn_manager_), DISABLED);
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(deferred_action_manager_),
+                                        common::ManagedPointer(txn_manager_));
 
     catalog_ = new catalog::Catalog(common::ManagedPointer(txn_manager_), common::ManagedPointer(&block_store_),
                                     common::ManagedPointer(gc_));
