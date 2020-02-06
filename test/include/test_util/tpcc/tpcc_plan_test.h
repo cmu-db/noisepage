@@ -53,6 +53,8 @@ class TpccPlanTest : public TerrierTest {
                      void (*Check)(TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
                                    std::unique_ptr<planner::AbstractPlanNode> plan));
 
+  void CheckOids(const std::vector<catalog::col_oid_t> &lhs, const std::vector<catalog::col_oid_t> &rhs);
+
   // Infrastucture
   common::ManagedPointer<catalog::Catalog> catalog_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;

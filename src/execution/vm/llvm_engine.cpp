@@ -74,6 +74,8 @@ class LLVMEngine::TPLMemoryManager : public llvm::SectionMemoryManager {
     EXECUTION_LOG_DEBUG("Symbol '{}' not found in cache, checking process ...", name);
 
     llvm::JITSymbol symbol = llvm::SectionMemoryManager::findSymbol(name);
+    // If you're here because you tripped the assertion, check that you have EXPORT'd symbol definitions.
+    // Symptoms may include your code working in interpreted, adaptive, and codegen, but not in JIT.
     TERRIER_ASSERT(symbol.getAddress().get() != 0, "Resolved symbol has no address!");
     symbols_[name] = {symbol.getAddress().get(), symbol.getFlags()};
     return symbol;

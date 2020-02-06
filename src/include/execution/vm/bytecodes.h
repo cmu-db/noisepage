@@ -64,7 +64,7 @@ namespace terrier::execution::vm {
   CREATE_FOR_ALL_TYPES(F, LessThan, OperandType::Local, OperandType::Local, OperandType::Local)                       \
   CREATE_FOR_ALL_TYPES(F, LessThanEqual, OperandType::Local, OperandType::Local, OperandType::Local)                  \
   CREATE_FOR_ALL_TYPES(F, NotEqual, OperandType::Local, OperandType::Local, OperandType::Local)                       \
-  /* Boolean compliment */                                                                                            \
+  /* Boolean complement */                                                                                            \
   F(Not, OperandType::Local, OperandType::Local)                                                                      \
                                                                                                                       \
   /* Branching */                                                                                                     \
@@ -136,7 +136,8 @@ namespace terrier::execution::vm {
   F(PCIGetReal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                           \
   F(PCIGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
   F(PCIGetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
-  F(PCIGetDate, OperandType::Local, OperandType::Local, OperandType::UImm2)                                           \
+  F(PCIGetDateVal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
+  F(PCIGetTimestampVal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                   \
   F(PCIGetVarlen, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
   F(PCIGetBoolNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                       \
   F(PCIGetTinyIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
@@ -146,7 +147,8 @@ namespace terrier::execution::vm {
   F(PCIGetRealNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                       \
   F(PCIGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                     \
   F(PCIGetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
-  F(PCIGetDateNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                       \
+  F(PCIGetDateValNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
+  F(PCIGetTimestampValNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                               \
   F(PCIGetVarlenNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                     \
   F(PCIFilterEqual, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1, OperandType::Imm8) \
   F(PCIFilterGreaterThan, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1,              \
@@ -174,6 +176,9 @@ namespace terrier::execution::vm {
   F(InitInteger, OperandType::Local, OperandType::Local)                                                              \
   F(InitReal, OperandType::Local, OperandType::Local)                                                                 \
   F(InitDate, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
+  F(InitTimestamp, OperandType::Local, OperandType::Local)                                                            \
+  F(InitTimestampHMSu, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,                \
+    OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
   F(InitString, OperandType::Local, OperandType::Imm8, OperandType::Imm8)                                             \
   F(InitVarlen, OperandType::Local, OperandType::Local)                                                               \
   F(LessThanBoolVal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
@@ -200,12 +205,18 @@ namespace terrier::execution::vm {
   F(GreaterThanEqualStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                            \
   F(EqualStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                       \
   F(NotEqualStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
-  F(LessThanDate, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
-  F(LessThanEqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
-  F(GreaterThanDate, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
-  F(GreaterThanEqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
-  F(EqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
-  F(NotEqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
+  F(LessThanDateVal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(LessThanEqualDateVal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
+  F(GreaterThanDateVal, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
+  F(GreaterThanEqualDateVal, OperandType::Local, OperandType::Local, OperandType::Local)                              \
+  F(EqualDateVal, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
+  F(NotEqualDateVal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(LessThanTimestampVal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
+  F(LessThanEqualTimestampVal, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  F(GreaterThanTimestampVal, OperandType::Local, OperandType::Local, OperandType::Local)                              \
+  F(GreaterThanEqualTimestampVal, OperandType::Local, OperandType::Local, OperandType::Local)                         \
+  F(EqualTimestampVal, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
+  F(NotEqualTimestampVal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
                                                                                                                       \
   /* SQL value unary operations */                                                                                    \
   F(AbsInteger, OperandType::Local, OperandType::Local)                                                               \
@@ -341,12 +352,11 @@ namespace terrier::execution::vm {
                                                                                                                       \
   /* Index Iterator */                                                                                                \
   F(IndexIteratorInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::UImm4,                \
-    OperandType::Local, OperandType::UImm4)                                                                           \
+    OperandType::UImm4, OperandType::Local, OperandType::UImm4)                                                       \
   F(IndexIteratorPerformInit, OperandType::Local)                                                                     \
   F(IndexIteratorScanKey, OperandType::Local)                                                                         \
-  F(IndexIteratorScanAscending, OperandType::Local)                                                                   \
+  F(IndexIteratorScanAscending, OperandType::Local, OperandType::Local, OperandType::Local)                           \
   F(IndexIteratorScanDescending, OperandType::Local)                                                                  \
-  F(IndexIteratorScanLimitAscending, OperandType::Local, OperandType::Local)                                          \
   F(IndexIteratorScanLimitDescending, OperandType::Local, OperandType::Local)                                         \
   F(IndexIteratorFree, OperandType::Local)                                                                            \
   F(IndexIteratorAdvance, OperandType::Local, OperandType::Local)                                                     \
@@ -364,7 +374,8 @@ namespace terrier::execution::vm {
   F(PRGetBigInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                          \
   F(PRGetReal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                            \
   F(PRGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm2)                                          \
-  F(PRGetDate, OperandType::Local, OperandType::Local, OperandType::UImm2)                                            \
+  F(PRGetDateVal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
+  F(PRGetTimestampVal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
   F(PRGetVarlen, OperandType::Local, OperandType::Local, OperandType::UImm2)                                          \
   F(PRGetBoolNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
   F(PRGetTinyIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                     \
@@ -373,7 +384,8 @@ namespace terrier::execution::vm {
   F(PRGetBigIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                      \
   F(PRGetRealNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
   F(PRGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                      \
-  F(PRGetDateNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
+  F(PRGetDateValNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                     \
+  F(PRGetTimestampValNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                \
   F(PRGetVarlenNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                      \
   F(PRSetBool, OperandType::Local, OperandType::UImm2, OperandType::Local)                                            \
   F(PRSetTinyInt, OperandType::Local, OperandType::UImm2, OperandType::Local)                                         \
@@ -382,8 +394,9 @@ namespace terrier::execution::vm {
   F(PRSetBigInt, OperandType::Local, OperandType::UImm2, OperandType::Local)                                          \
   F(PRSetReal, OperandType::Local, OperandType::UImm2, OperandType::Local)                                            \
   F(PRSetDouble, OperandType::Local, OperandType::UImm2, OperandType::Local)                                          \
-  F(PRSetDate, OperandType::Local, OperandType::UImm2, OperandType::Local)                                            \
-  F(PRSetVarlen, OperandType::Local, OperandType::UImm2, OperandType::Local)                                          \
+  F(PRSetDateVal, OperandType::Local, OperandType::UImm2, OperandType::Local)                                         \
+  F(PRSetTimestampVal, OperandType::Local, OperandType::UImm2, OperandType::Local)                                    \
+  F(PRSetVarlen, OperandType::Local, OperandType::UImm2, OperandType::Local, OperandType::Local)                      \
   F(PRSetBoolNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                        \
   F(PRSetTinyIntNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                     \
   F(PRSetSmallIntNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                    \
@@ -391,8 +404,9 @@ namespace terrier::execution::vm {
   F(PRSetBigIntNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                      \
   F(PRSetRealNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                        \
   F(PRSetDoubleNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                      \
-  F(PRSetDateNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                        \
-  F(PRSetVarlenNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                      \
+  F(PRSetDateValNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                     \
+  F(PRSetTimestampValNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                \
+  F(PRSetVarlenNull, OperandType::Local, OperandType::UImm2, OperandType::Local, OperandType::Local)                  \
                                                                                                                       \
   /* StorageInterface */                                                                                              \
   F(StorageInterfaceInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,             \
@@ -462,7 +476,8 @@ namespace terrier::execution::vm {
   F(GetParamBigInt, OperandType::Local, OperandType::Local, OperandType::Local)                                       \
   F(GetParamReal, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
   F(GetParamDouble, OperandType::Local, OperandType::Local, OperandType::Local)                                       \
-  F(GetParamDate, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
+  F(GetParamDateVal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(GetParamTimestampVal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
   F(GetParamString, OperandType::Local, OperandType::Local, OperandType::Local)
 
 /**

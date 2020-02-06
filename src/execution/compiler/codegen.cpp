@@ -6,6 +6,7 @@
 
 #include "execution/sql/value.h"
 #include "type/transient_value_peeker.h"
+#include "util/time_util.h"
 
 namespace terrier::execution::compiler {
 
@@ -137,6 +138,9 @@ ast::Expr *CodeGen::PCIGet(ast::Identifier pci, type::TypeId type, bool nullable
     case type::TypeId::DATE:
       builtin = nullable ? ast::Builtin ::PCIGetDateNull : ast::Builtin::PCIGetDate;
       break;
+    case type::TypeId::TIMESTAMP:
+      builtin = nullable ? ast::Builtin ::PCIGetTimestampNull : ast::Builtin::PCIGetTimestamp;
+      break;
     case type::TypeId::VARCHAR:
       builtin = nullable ? ast::Builtin ::PCIGetVarlenNull : ast::Builtin::PCIGetVarlen;
       break;
@@ -204,37 +208,49 @@ ast::Expr *CodeGen::HTInitCall(ast::Builtin builtin, ast::Identifier object, ast
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::IndexIteratorInit(ast::Identifier iter, uint32_t table_oid, uint32_t index_oid,
+ast::Expr *CodeGen::IndexIteratorInit(ast::Identifier iter, uint32_t num_attrs, uint32_t table_oid, uint32_t index_oid,
                                       ast::Identifier col_oids) {
   // @indexIteratorInit(&iter, table_oid, index_oid, execCtx)
   ast::Expr *fun = BuiltinFunction(ast::Builtin::IndexIteratorInit);
   ast::Expr *iter_ptr = PointerTo(iter);
   ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
+  ast::Expr *num_attrs_expr = IntLiteral(static_cast<int32_t>(num_attrs));
   ast::Expr *table_oid_expr = IntLiteral(static_cast<int32_t>(table_oid));
   ast::Expr *index_oid_expr = IntLiteral(static_cast<int32_t>(index_oid));
   ast::Expr *col_oids_expr = MakeExpr(col_oids);
-  util::RegionVector<ast::Expr *> args{{iter_ptr, exec_ctx_expr, table_oid_expr, index_oid_expr, col_oids_expr},
-                                       Region()};
+  util::RegionVector<ast::Expr *> args{
+      {iter_ptr, exec_ctx_expr, num_attrs_expr, table_oid_expr, index_oid_expr, col_oids_expr}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
 ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanType scan_type, uint32_t limit) {
   // @indexIteratorScanKey(&iter)
   ast::Builtin builtin;
+  bool asc_scan = false;
   bool use_limit = false;
+  storage::index::ScanType asc_type;
   switch (scan_type) {
     case planner::IndexScanType::Exact:
       builtin = ast::Builtin::IndexIteratorScanKey;
       break;
-    case planner::IndexScanType::Ascending:
+    case planner::IndexScanType::AscendingClosed:
+    case planner::IndexScanType::AscendingOpenHigh:
+    case planner::IndexScanType::AscendingOpenLow:
+    case planner::IndexScanType::AscendingOpenBoth:
+      asc_scan = true;
+      use_limit = true;
       builtin = ast::Builtin::IndexIteratorScanAscending;
+      if (scan_type == planner::IndexScanType::AscendingClosed)
+        asc_type = storage::index::ScanType::Closed;
+      else if (scan_type == planner::IndexScanType::AscendingOpenHigh)
+        asc_type = storage::index::ScanType::OpenHigh;
+      else if (scan_type == planner::IndexScanType::AscendingOpenLow)
+        asc_type = storage::index::ScanType::OpenLow;
+      else if (scan_type == planner::IndexScanType::AscendingOpenBoth)
+        asc_type = storage::index::ScanType::OpenBoth;
       break;
     case planner::IndexScanType::Descending:
       builtin = ast::Builtin::IndexIteratorScanDescending;
-      break;
-    case planner::IndexScanType::AscendingLimit:
-      use_limit = true;
-      builtin = ast::Builtin::IndexIteratorScanLimitAscending;
       break;
     case planner::IndexScanType::DescendingLimit:
       use_limit = true;
@@ -243,13 +259,15 @@ ast::Expr *CodeGen::IndexIteratorScan(ast::Identifier iter, planner::IndexScanTy
     default:
       UNREACHABLE("Unknown scan type");
   }
-  // Non limited scan
-  if (!use_limit) return OneArgCall(builtin, iter, true);
-  // Limited scan
+
+  if (!use_limit && !asc_scan) return OneArgCall(builtin, iter, true);
+
   ast::Expr *fun = BuiltinFunction(builtin);
   ast::Expr *iter_ptr = PointerTo(iter);
-  ast::Expr *limit_expr = IntLiteral(limit);
-  util::RegionVector<ast::Expr *> args{{iter_ptr, limit_expr}, Region()};
+  util::RegionVector<ast::Expr *> args({iter_ptr}, Region());
+
+  if (asc_scan) args.push_back(IntLiteral(asc_type));
+  if (use_limit) args.push_back(IntLiteral(limit));
 
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
@@ -279,6 +297,9 @@ ast::Expr *CodeGen::PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
     case type::TypeId::DATE:
       builtin = nullable ? ast::Builtin::PRGetDateNull : ast::Builtin::PRGetDate;
       break;
+    case type::TypeId::TIMESTAMP:
+      builtin = nullable ? ast::Builtin::PRGetTimestampNull : ast::Builtin::PRGetTimestamp;
+      break;
     case type::TypeId::VARCHAR:
       builtin = nullable ? ast::Builtin::PRGetVarlenNull : ast::Builtin::PRGetVarlen;
       break;
@@ -292,7 +313,8 @@ ast::Expr *CodeGen::PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val) {
+ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val,
+                          bool own) {
   ast::Builtin builtin;
   switch (type) {
     case type::TypeId::BOOLEAN:
@@ -316,6 +338,9 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
     case type::TypeId::DATE:
       builtin = nullable ? ast::Builtin::PRSetDateNull : ast::Builtin::PRSetDate;
       break;
+    case type::TypeId::TIMESTAMP:
+      builtin = nullable ? ast::Builtin::PRSetTimestampNull : ast::Builtin::PRSetTimestamp;
+      break;
     case type::TypeId::VARCHAR:
       builtin = nullable ? ast::Builtin::PRSetVarlenNull : ast::Builtin::PRSetVarlen;
       break;
@@ -325,6 +350,9 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
   ast::Expr *fun = BuiltinFunction(builtin);
   ast::Expr *idx_expr = Factory()->NewIntLiteral(DUMMY_POS, attr_idx);
   util::RegionVector<ast::Expr *> args{{pr, idx_expr, val}, Region()};
+  if (type == type::TypeId::VARCHAR) {
+    args.emplace_back(BoolLiteral(own));
+  }
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
@@ -351,11 +379,17 @@ ast::Expr *CodeGen::PeekValue(const type::TransientValue &transient_val) {
       return IntToSql(val);
     }
     case type::TypeId::DATE: {
-      sql::Date date(terrier::type::TransientValuePeeker::PeekDate(transient_val));
-      int16_t year = sql::ValUtil::ExtractYear(date);
-      uint8_t month = sql::ValUtil::ExtractMonth(date);
-      uint8_t day = sql::ValUtil::ExtractDay(date);
+      auto val = terrier::type::TransientValuePeeker::PeekDate(transient_val);
+      auto ymd = terrier::util::TimeConvertor::YMDFromDate(val);
+      auto year = static_cast<int32_t>(ymd.year());
+      auto month = static_cast<uint32_t>(ymd.month());
+      auto day = static_cast<uint32_t>(ymd.day());
       return DateToSql(year, month, day);
+    }
+    case type::TypeId::TIMESTAMP: {
+      auto val = type::TransientValuePeeker::PeekTimestamp(transient_val);
+      auto julian_usec = terrier::util::TimeConvertor::ExtractJulianMicroseconds(val);
+      return TimestampToSql(julian_usec);
     }
     case type::TypeId::DECIMAL: {
       auto val = type::TransientValuePeeker::PeekDecimal(transient_val);
@@ -365,7 +399,6 @@ ast::Expr *CodeGen::PeekValue(const type::TransientValue &transient_val) {
       auto val = terrier::type::TransientValuePeeker::PeekVarChar(transient_val);
       return StringToSql(val);
     }
-    case type::TypeId::TIMESTAMP:
     case type::TypeId::VARBINARY:
     default:
       // TODO(Amadou): Add support for these types.
@@ -384,12 +417,13 @@ ast::Expr *CodeGen::TplType(type::TypeId type) {
       return BuiltinType(ast::BuiltinType::Kind::Integer);
     case type::TypeId::DATE:
       return BuiltinType(ast::BuiltinType::Kind::Date);
+    case type::TypeId::TIMESTAMP:
+      return BuiltinType(ast::BuiltinType::Kind::Timestamp);
     case type::TypeId::DECIMAL:
       return BuiltinType(ast::BuiltinType::Kind::Real);
     case type::TypeId::VARCHAR:
       return BuiltinType(ast::BuiltinType::Kind::StringVal);
     case type::TypeId::VARBINARY:
-    case type::TypeId::TIMESTAMP:
     default:
       UNREACHABLE("Cannot codegen unsupported type.");
   }
@@ -483,13 +517,18 @@ ast::Expr *CodeGen::FloatToSql(double num) {
   return OneArgCall(ast::Builtin::FloatToSql, float_lit);
 }
 
-ast::Expr *CodeGen::DateToSql(int16_t year, uint8_t month, uint8_t day) {
+ast::Expr *CodeGen::DateToSql(int32_t year, uint32_t month, uint32_t day) {
   ast::Expr *fun = BuiltinFunction(ast::Builtin::DateToSql);
   ast::Expr *year_lit = IntLiteral(year);
   ast::Expr *month_lit = IntLiteral(month);
   ast::Expr *day_lit = IntLiteral(day);
   util::RegionVector<ast::Expr *> args{{year_lit, month_lit, day_lit}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+}
+
+ast::Expr *CodeGen::TimestampToSql(uint64_t julian_usec) {
+  ast::Expr *usec_expr = IntLiteral(julian_usec);
+  return OneArgCall(ast::Builtin::TimestampToSql, usec_expr);
 }
 
 ast::Expr *CodeGen::StringToSql(std::string_view str) {
