@@ -1193,7 +1193,7 @@ bool LogicalDropView::operator==(const BaseOperatorNode &r) {
 }
 
 //===--------------------------------------------------------------------===//
-// LogicalCreateTrigger
+// LogicalAnalyze
 //===--------------------------------------------------------------------===//
 BaseOperatorNode *LogicalAnalyze::Copy() const { return new LogicalAnalyze(*this); }
 

@@ -1226,7 +1226,7 @@ bool DropView::operator==(const BaseOperatorNode &r) {
 }
 
 //===--------------------------------------------------------------------===//
-// LogicalCreateTrigger
+// Analyze
 //===--------------------------------------------------------------------===//
 BaseOperatorNode *Analyze::Copy() const { return new Analyze(*this); }
 

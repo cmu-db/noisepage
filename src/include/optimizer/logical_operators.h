@@ -1991,7 +1991,7 @@ class LogicalAnalyze : public OperatorNode<LogicalAnalyze> {
   const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
 
   /**
-   * @return trigger columns
+   * @return columns
    */
   std::vector<catalog::col_oid_t> GetColumns() const { return columns_; }
 
