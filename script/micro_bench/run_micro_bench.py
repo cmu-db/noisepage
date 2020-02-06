@@ -68,7 +68,7 @@ BENCHMARKS_TO_RUN = {
     "recovery_benchmark":                   DEFAULT_FAILURE_THRESHOLD,
     "large_transaction_metrics_benchmark":  DEFAULT_FAILURE_THRESHOLD,
     "logging_metrics_benchmark":            DEFAULT_FAILURE_THRESHOLD,
-    "tuple_access_strategy_benchmark":      DEFAULT_FAILURE_THRESHOLD,
+    "tuple_access_strategy_benchmark":      12,
     "tpcc_benchmark":                       DEFAULT_FAILURE_THRESHOLD,
     "bwtree_benchmark":                     DEFAULT_FAILURE_THRESHOLD,
     "cuckoomap_benchmark":                  DEFAULT_FAILURE_THRESHOLD,
@@ -144,9 +144,9 @@ class TextTable(object):
         """
         col_dict = {}
         col_dict['name'] = column
-        if col_format:
+        if not col_format is None:
             col_dict['format'] = " " + col_format + " "
-        if heading:
+        if not heading is None:
             col_dict['heading'] = heading
         if right_justify:
             col_dict['right_justify'] = True
