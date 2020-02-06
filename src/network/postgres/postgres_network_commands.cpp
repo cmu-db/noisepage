@@ -126,34 +126,33 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
     // We don't yet support query types with values greater than this
     out->WriteNoticeResponse("NOTICE:  we don't yet support that query type.");
     out->WriteCommandComplete(query_type, 0);
-    return FinishSimpleQueryCommand(out, connection);
-  }
-
-  // Try to bind the parsed statement
-  const auto bind_result = t_cop->BindQuery(connection, common::ManagedPointer(statement));
-  if (bind_result.type_ == trafficcop::ResultType::COMPLETE) {
-    // Binding succeeded, optimize to generate a physical plan and then execute
-    auto physical_plan = t_cop->OptimizeBoundQuery(connection, statement->ParseResult());
-
-    const auto portal = std::make_unique<Portal>(common::ManagedPointer(statement), std::move(physical_plan));
-
-    if (query_type == network::QueryType::QUERY_SELECT) {
-      out->WriteRowDescription(portal->PhysicalPlan()->GetOutputSchema()->GetColumns(), portal->ResultFormats());
-    }
-
-    ExecutePortal(connection, common::ManagedPointer(portal), out, t_cop,
-                  postgres_interpreter->ExplicitTransactionBlock());
-  } else if (bind_result.type_ == trafficcop::ResultType::NOTICE) {
-    TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
-    out->WriteNoticeResponse(std::get<std::string>(bind_result.extra_));
-    out->WriteCommandComplete(query_type, 0);
   } else {
-    TERRIER_ASSERT(bind_result.type_ == trafficcop::ResultType::ERROR,
-                   "I don't think we expect any other ResultType at this point.");
-    TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
-    // failing to bind fails a transaction in postgres
-    connection->Transaction()->SetMustAbort();
-    out->WriteErrorResponse(std::get<std::string>(bind_result.extra_));
+    // Try to bind the parsed statement
+    const auto bind_result = t_cop->BindQuery(connection, common::ManagedPointer(statement));
+    if (bind_result.type_ == trafficcop::ResultType::COMPLETE) {
+      // Binding succeeded, optimize to generate a physical plan and then execute
+      auto physical_plan = t_cop->OptimizeBoundQuery(connection, statement->ParseResult());
+
+      const auto portal = std::make_unique<Portal>(common::ManagedPointer(statement), std::move(physical_plan));
+
+      if (query_type == network::QueryType::QUERY_SELECT) {
+        out->WriteRowDescription(portal->PhysicalPlan()->GetOutputSchema()->GetColumns(), portal->ResultFormats());
+      }
+
+      ExecutePortal(connection, common::ManagedPointer(portal), out, t_cop,
+                    postgres_interpreter->ExplicitTransactionBlock());
+    } else if (bind_result.type_ == trafficcop::ResultType::NOTICE) {
+      TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
+      out->WriteNoticeResponse(std::get<std::string>(bind_result.extra_));
+      out->WriteCommandComplete(query_type, 0);
+    } else {
+      TERRIER_ASSERT(bind_result.type_ == trafficcop::ResultType::ERROR,
+                     "I don't think we expect any other ResultType at this point.");
+      TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
+      // failing to bind fails a transaction in postgres
+      connection->Transaction()->SetMustAbort();
+      out->WriteErrorResponse(std::get<std::string>(bind_result.extra_));
+    }
   }
 
   if (!postgres_interpreter->ExplicitTransactionBlock()) {
