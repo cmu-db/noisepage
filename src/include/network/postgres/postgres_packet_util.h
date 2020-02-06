@@ -92,14 +92,14 @@ class PostgresPacketUtil {
       case type::TypeId::VARCHAR:
         return type::TransientValueFactory::GetVarChar(string_val);
       case type::TypeId::TIMESTAMP: {
-        const auto [parse_okay, julian_timestamp] = util::TimeConvertor::ParseTimestamp(string_val);
-        TERRIER_ASSERT(parse_okay, "Failed to parse the timestamp.");
-        return type::TransientValueFactory::GetTimestamp(julian_timestamp);
+        const auto parse_result = util::TimeConvertor::ParseTimestamp(string_val);
+        TERRIER_ASSERT(parse_result.first, "Failed to parse the timestamp.");
+        return type::TransientValueFactory::GetTimestamp(parse_result.second);
       }
       case type::TypeId::DATE: {
-        const auto [parse_okay, julian_date] = util::TimeConvertor::ParseDate(string_val);
-        TERRIER_ASSERT(parse_okay, "Failed to parse the date.");
-        return type::TransientValueFactory::GetDate(julian_date);
+        const auto parse_result = util::TimeConvertor::ParseDate(string_val);
+        TERRIER_ASSERT(parse_result.first, "Failed to parse the date.");
+        return type::TransientValueFactory::GetDate(parse_result.second);
       }
       default:
         // TODO(Matt): Note that not all types are handled yet. Add them as we support them.
