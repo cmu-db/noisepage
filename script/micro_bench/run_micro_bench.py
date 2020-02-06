@@ -56,8 +56,8 @@ DEFAULT_FAILURE_THRESHOLD = 10
 # So we will use a higher threshold for now. 
 #
 # Format:
-#   benchmark_name => regression threshold
-
+#   benchmark_file => RegressionThreshold
+#
 BENCHMARKS_TO_RUN = {
     "catalog_benchmark":                    20,
     "data_table_benchmark":                 DEFAULT_FAILURE_THRESHOLD,
@@ -391,13 +391,19 @@ class ArtifactProcessor(object):
                 True: have them
                 False: need more
         """
-        keys = self.results.keys()
-        for key in keys:
-            suite_name, test_name = key
+        if not self.required_num_items:
+            LOG.debug("No required num of results is set???")
+            return False
+        
+        # If there are no results at all, then presumably we don't have enough??
+        if len(self.results) == 0:
+            LOG.debug("No results are available")
+            return False
+        
+        for suite_name, test_name in self.results.keys():
             result = self.get_result(suite_name, test_name)
-            if not self.required_num_items:
-                return False
-            elif result.get_num_items() < self.required_num_items:
+            LOG.debug("# of results for %s.%s: %d [required=%d]", suite_name, test_name, result.get_num_items(), self.required_num_items)
+            if result.get_num_items() < self.required_num_items:
                 return False
         return True
 
@@ -763,13 +769,15 @@ class RunMicroBenchmarks(object):
         ret_val = 0
 
         # iterate over all benchmarks and run them
-        for bench_name in config.benchmarks:
-            LOG.info("Running '{}' with {} threads".format(bench_name, BENCHMARK_THREADS))
+        cnt = 1
+        for bench_name in sorted(config.benchmarks):
+            LOG.info("Running '{}' with {} threads [{}/{}]".format(bench_name, BENCHMARK_THREADS, cnt, len(config.benchmarks)))
             bench_ret_val = self.run_single_benchmark(bench_name)
             if bench_ret_val:
                 LOG.debug("{} terminated with {}".format(bench_name,
                                                          bench_ret_val))
                 ret_val = bench_ret_val
+            cnt += 1
 
         # return fail, if any of the benchmarks failed to run or complete
         return ret_val
@@ -845,6 +853,8 @@ class Jenkins(object):
             #data = eval(urllib.urlopen(python_url).read())
             data = json.loads(urllib.urlopen(json_url).read())
         except:
+            LOG.error("Unexpected error when retrieving Jenkins data")
+            LOG.error(err)
             return []
 
         # Return a list of build dictionaries. These appear to be by
@@ -859,6 +869,7 @@ class Jenkins(object):
         ret_list = []
         for item in data['builds']:
             build_url = "{}/api/json".format(item['url'])
+            LOG.debug("Retrieving build #%d data from %s" % (item['number'], item['url']))
             data = json.loads(urllib.urlopen(build_url).read())
             ret_list.append(Build(data))
 
@@ -946,7 +957,7 @@ class ReferenceValue(object):
         return
 
     @classmethod
-    def historical(cls, in_key, config, gbrp):
+    def historical(cls, bench_name, in_key, config, gbrp):
         """ Return a ReferenceValue constructed from historical
             benchmark data
         """
@@ -955,29 +966,34 @@ class ReferenceValue(object):
             #pprint(x.__dict__)
         #sys.exit(1)
 
-        name = gbrp.get_suite_name()
-        assert name in BENCHMARKS_TO_RUN
-        
-        key = (gbrp.get_suite_name(), gbrp.get_test_name())
+        suite_name = gbrp.get_suite_name()
+        test_name = gbrp.get_test_name()
+        LOG.debug("Loading history data for %s.%s [%s]" % (suite_name, test_name, bench_name))
+        key = (suite_name, test_name)
         assert key == in_key
+        
         ret_obj = cls()
         ret_obj.key = key
         ret_obj.num_results = gbrp.get_num_items()
         ret_obj.time = gbrp.get_mean_time()
         ret_obj.iterations = 888
         ret_obj.ref_ips = gbrp.get_mean_items_per_second()
-        ret_obj.tolerance = BENCHMARKS_TO_RUN[name]
+        ret_obj.tolerance = BENCHMARKS_TO_RUN[bench_name]
         ret_obj.reference_type = "history"
         return ret_obj
 
     @classmethod
-    def lax(cls, in_key, config, gbrp):
+    def lax(cls, bench_name, in_key, config, gbrp):
         """ Return a ReferenceValue constructed from historical
             benchmark data, where fewer historical results are available
             than required. Checks are therefore less strict.
         """
-        key = (gbrp.get_suite_name(), gbrp.get_test_name())
+        suite_name = gbrp.get_suite_name()
+        test_name = gbrp.get_test_name()
+        LOG.debug("Loading laxed history data for %s.%s [%s]" % (suite_name, test_name, bench_name))
+        key = (suite_name, test_name)
         assert key == in_key
+        
         ret_obj = cls()
         ret_obj.key = key
         ret_obj.num_results = gbrp.get_num_items()
@@ -989,10 +1005,16 @@ class ReferenceValue(object):
         return ret_obj
 
     @classmethod
-    def config(cls, key, config):
+    def config(cls, bench_name, key, config):
         """ Return a ReferenceValue constructed from configuration
             data
         """
+        suite_name = gbrp.get_suite_name()
+        test_name = gbrp.get_test_name()
+        LOG.debug("Loading configuration(?) data for %s.%s [%s]" % (suite_name, test_name, bench_name))
+        key = (suite_name, test_name)
+        assert key == in_key
+        
         ret_obj = cls()
         ret_obj.key = key
         ret_obj.num_results = 0
@@ -1035,7 +1057,7 @@ class ReferenceValueProvider(object):
         self.ap = ap
         return
 
-    def get_reference(self, key):
+    def get_reference(self, key, bench_name):
         """ Return reference value(s) """
         if self.ap.results.has_key(key):
             n_desired = self.config.min_ref_values
@@ -1046,13 +1068,13 @@ class ReferenceValueProvider(object):
 
             if n_actual >= n_desired:
                 # normal
-                return ReferenceValue.historical(key, self.config, gbrp)
+                return ReferenceValue.historical(bench_name, key, self.config, gbrp)
             else:
                 # relaxed
-                return ReferenceValue.lax(key, self.config, gbrp)
+                return ReferenceValue.lax(bench_name, key, self.config, gbrp)
 
         # no checking
-        return ReferenceValue.config(key, self.config)
+        return ReferenceValue.config(bench_name, key, self.config)
 
 ## =========================================================
 ## MAIN
@@ -1111,10 +1133,11 @@ if __name__ == "__main__":
 
     # need <n> benchmark results to compare against
     ap = ArtifactProcessor(config.min_ref_values)
+    LOG.debug("min_ref_values: %d" % config.min_ref_values)
     h = Jenkins(JENKINS_URL)
 
     data_src_list = config.ref_data_sources
-    more = True
+    need_more_builds = True
     for repo_dict in data_src_list:
         project = repo_dict.get("project")
         branch = repo_dict.get("branch")
@@ -1137,10 +1160,10 @@ if __name__ == "__main__":
             # Determine if we have enough history. Stop collecting
             # information if we do
             if ap.have_min_history():
-                more = False
+                need_more_builds = False
                 break
 
-        if more is False:
+        if need_more_builds is False:
             break
 
     """
@@ -1157,10 +1180,10 @@ if __name__ == "__main__":
     tt = TextTable()
 
     # parse all the result files and compare current results vs. reference
-    for bench in config.benchmarks:
-        filename = "{}.json".format(bench)
+    for bench_name in sorted(config.benchmarks):
+        filename = "{}.json".format(bench_name)
         # parse the json result file
-        LOG.debug("Loading benchmark result file '%s'", filename)
+        LOG.debug("Loading local benchmark result file '%s'", filename)
         with open(filename) as fh:
             contents = fh.read()
             try:
@@ -1172,13 +1195,13 @@ if __name__ == "__main__":
         bench_results = GBFileResult(data)
 
         # iterate over (test suite, benchmark)
-        for key in bench_results.get_keys():
+        for key in sorted(bench_results.get_keys()):
             # get the GBBenchResult object
             result = bench_results.get_result(key)
-            LOG.debug("%s Result:\n%s", bench, result)
+            LOG.debug("%s Result:\n%s", bench_name, result)
 
             # get reference value to compare against
-            reference = rvp.get_reference(key)
+            reference = rvp.get_reference(key, bench_name)
 
             # if reference.reference_type == "history":
             reference.set_ips(result.get_items_per_second())
@@ -1193,16 +1216,16 @@ if __name__ == "__main__":
 
     # benchmark key, value, reference, tolerance, reference type, pass
     # add difference
-    tt.add_column("pass", "    ")
+    tt.add_column("pass", heading="    ")
     tt.add_column("value", col_format="%01.4g")
     tt.add_column("iterations", col_format="%d")
     tt.add_column("reference", col_format="%01.4g")
-    tt.add_column("tolerance", "% tol.")
-    tt.add_column("p_diff", "% diff", col_format="%+3d")
+    tt.add_column("tolerance", heading="%tolerance")
+    tt.add_column("p_diff", heading="%change", col_format="%+3d")
     # add # ref values
     # hist, cfg
-    tt.add_column("reference_type", "ref type")
-    tt.add_column("num_results", "nres")
+    tt.add_column("reference_type", heading="ref type")
+    tt.add_column("num_results", heading="nres")
     tt.add_column("suite")
     tt.add_column("test")
     print("")
