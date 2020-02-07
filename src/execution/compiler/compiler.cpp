@@ -53,7 +53,7 @@ ast::File *Compiler::Compile() {
   // Step 2: For each pipeline: Generate a pipeline function that performs the produce, consume logic
   // TODO(Amadou): This can actually be combined with the previous step to avoid the additional pass
   // over the list of pipelines. However, I find this easier to debug for now.
-  uint32_t pipeline_idx = 0;
+  pipeline_id_t pipeline_idx = pipeline_id_t{0};
   for (auto &pipeline : pipelines_) {
     top_level.emplace_back(pipeline->Produce(pipeline_idx++));
   }

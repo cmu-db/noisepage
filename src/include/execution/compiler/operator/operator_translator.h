@@ -4,6 +4,7 @@
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/expression/expression_translator.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "brain/brain_defs.h"
 
 namespace terrier::execution::compiler {
 
@@ -18,8 +19,10 @@ class OperatorTranslator : public ExpressionEvaluator {
   /**
    * Constructor
    * @param codegen The code generator to use
+   * @param feature Feature Type
    */
-  explicit OperatorTranslator(CodeGen *codegen) : codegen_(codegen) {}
+  explicit OperatorTranslator(CodeGen *codegen, brain::OperatingUnitFeatureType feature)
+    : codegen_(codegen), feature_type_(feature) {}
 
   /**
    * Destructor
@@ -161,11 +164,21 @@ class OperatorTranslator : public ExpressionEvaluator {
    */
   virtual const planner::AbstractPlanNode *Op() = 0;
 
+  /**
+   * @return feature type
+   */
+  brain::OperatingUnitFeatureType GetFeatureType() const { return feature_type_; }
+
  protected:
   /**
    * The code generator to use
    */
   CodeGen *codegen_;
+
+  /**
+   * OperatingUnitFeatureType
+   */
+  brain::OperatingUnitFeatureType feature_type_{brain::OperatingUnitFeatureType::INVALID};
 
   /**
    * The child operator translator.
