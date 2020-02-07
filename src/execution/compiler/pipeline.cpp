@@ -26,7 +26,7 @@ void Pipeline::Initialize(util::RegionVector<ast::Decl *> *decls, util::RegionVe
   }
 }
 
-ast::Decl *Pipeline::Produce(pipeline_id_t pipeline_idx) {
+ast::Decl *Pipeline::Produce(query_id_t query_id, pipeline_id_t pipeline_idx) {
   pipeline_idx_ = pipeline_idx;
   // Function name
   ast::Identifier fn_name = GetPipelineName();

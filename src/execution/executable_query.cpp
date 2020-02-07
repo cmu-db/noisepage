@@ -13,11 +13,16 @@
 
 namespace terrier::execution {
 
+std::atomic<query_id_t> ExecutableQuery::query_identifier_{query_id_t{0}};
+
 ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
                                  const common::ManagedPointer<exec::ExecutionContext> exec_ctx) {
+  // Generate a query id using std::atomic<>.fetch_add()
+  query_id_ = ExecutableQuery::query_identifier_++;
+
   // Compile and check for errors
   compiler::CodeGen codegen(exec_ctx.Get());
-  compiler::Compiler compiler(&codegen, physical_plan.Get());
+  compiler::Compiler compiler(query_id_, &codegen, physical_plan.Get());
   auto root = compiler.Compile();
   if (codegen.Reporter()->HasErrors()) {
     EXECUTION_LOG_ERROR("Type-checking error! \n {}", codegen.Reporter()->SerializeErrors());

@@ -10,7 +10,7 @@
 
 namespace terrier::execution::compiler {
 
-Compiler::Compiler(CodeGen *codegen, const planner::AbstractPlanNode *plan) : codegen_(codegen), plan_(plan) {
+Compiler::Compiler(query_id_t query_id, CodeGen *codegen, const planner::AbstractPlanNode *plan) : query_identifier_(query_id), codegen_(codegen), plan_(plan) {
   // Make the pipelines
   auto main_pipeline = std::make_unique<Pipeline>(codegen_);
   MakePipelines(*plan, main_pipeline.get());
@@ -55,7 +55,7 @@ ast::File *Compiler::Compile() {
   // over the list of pipelines. However, I find this easier to debug for now.
   pipeline_id_t pipeline_idx = pipeline_id_t{0};
   for (auto &pipeline : pipelines_) {
-    top_level.emplace_back(pipeline->Produce(pipeline_idx++));
+    top_level.emplace_back(pipeline->Produce(query_identifier_, pipeline_idx++));
   }
 
   // Step 3: Make the main function
