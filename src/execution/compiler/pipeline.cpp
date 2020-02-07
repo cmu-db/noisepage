@@ -41,7 +41,8 @@ ast::Decl *Pipeline::Produce(query_id_t query_id, pipeline_id_t pipeline_idx) {
 
   // Inject StartResourceTracker()
   std::vector<ast::Expr *> args{codegen_->MakeExpr(codegen_->GetExecCtxVar())};
-  codegen_->BuiltinCall(ast::Builtin::ExecutionContextStartResourceTracker, std::move(args));
+  auto start_call = codegen_->BuiltinCall(ast::Builtin::ExecutionContextStartResourceTracker, std::move(args));
+  builder.Append(codegen_->MakeStmt(start_call));
 
   // for (const auto & translator: pipeline_) {
   pipeline_[pipeline_.size() - 1]->Produce(&builder);
@@ -57,7 +58,8 @@ ast::Decl *Pipeline::Produce(query_id_t query_id, pipeline_id_t pipeline_idx) {
   args.push_back(codegen_->IntLiteral(!query_id));
   args.push_back(codegen_->IntLiteral(!pipeline_idx));
   args.push_back(codegen_->MakeExpr(strg));
-  codegen_->BuiltinCall(ast::Builtin::ExecutionContextEndPipelineTracker, std::move(args));
+  auto end_call = codegen_->BuiltinCall(ast::Builtin::ExecutionContextEndPipelineTracker, std::move(args));
+  builder.Append(codegen_->MakeStmt(end_call));
   return builder.Finish();
 }
 

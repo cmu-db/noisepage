@@ -804,7 +804,7 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, UNUSED_ATTRIBUT
   }
 
   if (builtin == ast::Builtin::ExecutionContextEndPipelineTracker) {
-    expected_arg_count = 3;
+    expected_arg_count = 4;
   }
 
   if (!CheckArgCount(call, expected_arg_count)) {
