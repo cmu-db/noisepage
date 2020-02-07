@@ -35,4 +35,15 @@ void ExecutionContext::EndResourceTracker(const char *name, uint32_t len) {
   }
 }
 
+void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pipeline, const brain::OperatingUnitsStorage &storage) {
+  TERRIER_ASSERT(0, "Unimplemented EndPipelineTracker()");
+  if (common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::EXECUTION)) {
+    common::thread_context.resource_tracker_.Stop();
+    common::thread_context.resource_tracker_.SetMemory(mem_tracker_->GetAllocatedSize());
+    // auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+    // common::thread_context.metrics_store_->RecordExecutionData(name, len, execution_mode_, resource_metrics);
+  }
+}
+
 }  // namespace terrier::execution::exec

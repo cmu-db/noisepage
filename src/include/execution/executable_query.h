@@ -7,6 +7,7 @@
 #include "execution/ast/context.h"
 #include "execution/table_generator/sample_output.h"
 #include "execution/exec_defs.h"
+#include "brain/operating_unit.h"
 
 namespace terrier::planner {
 class AbstractPlanNode;
@@ -82,6 +83,7 @@ class ExecutableQuery {
   // together.
   std::unique_ptr<util::Region> region_;
   std::unique_ptr<ast::Context> ast_ctx_;
+  std::unique_ptr<brain::OperatingUnitsStorage> operating_units_storage_;
 
   // Used to specify the output for this query
   std::unique_ptr<exec::SampleOutput> sample_output_;

@@ -59,6 +59,7 @@ class Context;
   NON_PRIM(AggOverflowPartIter, terrier::execution::sql::AggregationOverflowPartitionIterator)  \
   NON_PRIM(BloomFilter, terrier::execution::sql::BloomFilter)                                   \
   NON_PRIM(ExecutionContext, terrier::execution::exec::ExecutionContext)                        \
+  NON_PRIM(OperatingUnitsStorage, terrier::brain::OperatingUnitsStorage)                        \
   NON_PRIM(FilterManager, terrier::execution::sql::FilterManager)                               \
   NON_PRIM(HashTableEntry, terrier::execution::sql::HashTableEntry)                             \
   NON_PRIM(JoinHashTable, terrier::execution::sql::JoinHashTable)                               \

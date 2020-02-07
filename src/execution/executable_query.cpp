@@ -37,6 +37,7 @@ ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractP
   tpl_module_ = std::make_unique<vm::Module>(std::move(bytecode_module));
   region_ = codegen.ReleaseRegion();
   ast_ctx_ = codegen.ReleaseContext();
+  operating_units_storage_ = codegen.ReleaseOperatingUnitsStorage();
 }
 
 ExecutableQuery::ExecutableQuery(const std::string &filename, const common::ManagedPointer<exec::ExecutionContext>

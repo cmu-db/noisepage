@@ -39,9 +39,25 @@ ast::Decl *Pipeline::Produce(query_id_t query_id, pipeline_id_t pipeline_idx) {
 
   FunctionBuilder builder{codegen_, fn_name, std::move(params), ret_type};
 
+  // Inject StartResourceTracker()
+  std::vector<ast::Expr *> args{codegen_->MakeExpr(codegen_->GetExecCtxVar())};
+  codegen_->BuiltinCall(ast::Builtin::ExecutionContextStartResourceTracker, std::move(args));
+
   // for (const auto & translator: pipeline_) {
   pipeline_[pipeline_.size() - 1]->Produce(&builder);
   //}
+
+  // Inject EndPipelineTracker();
+  auto ctx = codegen_->GetOperatingUnitsStorage();
+  auto strg = codegen_->NewIdentifier("oustorage");
+  ast::Expr *ptr_type = codegen_->PointerType(codegen_->BuiltinType(ast::BuiltinType::OperatingUnitsStorage));
+  builder.Append(codegen_->DeclareVariable(strg, ptr_type, codegen_->IntLiteral((uint64_t)ctx)));
+
+  args = {codegen_->MakeExpr(codegen_->GetExecCtxVar())};
+  args.push_back(codegen_->IntLiteral(!query_id));
+  args.push_back(codegen_->IntLiteral(!pipeline_idx));
+  args.push_back(codegen_->MakeExpr(strg));
+  codegen_->BuiltinCall(ast::Builtin::ExecutionContextEndPipelineTracker, std::move(args));
   return builder.Finish();
 }
 

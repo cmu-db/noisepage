@@ -803,6 +803,10 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, UNUSED_ATTRIBUT
     expected_arg_count = 2;
   }
 
+  if (builtin == ast::Builtin::ExecutionContextEndPipelineTracker) {
+    expected_arg_count = 3;
+  }
+
   if (!CheckArgCount(call, expected_arg_count)) {
     return;
   }
@@ -820,6 +824,24 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, UNUSED_ATTRIBUT
       // Second argument is a string name
       if (!call_args[1]->GetType()->IsSqlValueType()) {
         ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::StringVal));
+        return;
+      }
+    }
+    case ast::Builtin::ExecutionContextEndPipelineTracker: {
+      // query_id
+      if (!call_args[1]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint64));
+        return;
+      }
+      // pipeline_id
+      if (!call_args[2]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Uint64));
+        return;
+      }
+      // OperatingUnitsStorage
+      auto oustorage_kind = ast::BuiltinType::OperatingUnitsStorage;
+      if (!call_args[3]->GetType()->IsPointerType() && !call_args[3]->GetType()->IsNilType()) {
+        ReportIncorrectCallArg(call, 3, GetBuiltinType(oustorage_kind)->PointerTo());
         return;
       }
     }
@@ -2148,7 +2170,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     }
     case ast::Builtin::ExecutionContextGetMemoryPool:
     case ast::Builtin::ExecutionContextStartResourceTracker:
-    case ast::Builtin::ExecutionContextEndResourceTracker: {
+    case ast::Builtin::ExecutionContextEndResourceTracker:
+    case ast::Builtin::ExecutionContextEndPipelineTracker: {
       CheckBuiltinExecutionContextCall(call, builtin);
       break;
     }

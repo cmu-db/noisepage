@@ -27,6 +27,7 @@
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/value.h"
 #include "execution/util/execution_common.h"
+#include "brain/operating_unit.h"
 
 namespace terrier::execution::ast {
 

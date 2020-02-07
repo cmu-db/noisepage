@@ -205,6 +205,14 @@ VM_OP_HOT void OpExecutionContextEndResourceTracker(terrier::execution::exec::Ex
   exec_ctx->EndResourceTracker(name.Content(), name.len_);
 }
 
+VM_OP_HOT void OpExecutionContextEndPipelineTracker(
+    terrier::execution::exec::ExecutionContext *const exec_ctx,
+    terrier::execution::query_id_t query_id,
+    terrier::execution::pipeline_id_t pipeline_id,
+    terrier::brain::OperatingUnitsStorage *storage) {
+  exec_ctx->EndPipelineTracker(query_id, pipeline_id, *storage);
+}
+
 void OpThreadStateContainerInit(terrier::execution::sql::ThreadStateContainer *thread_state_container,
                                 terrier::execution::sql::MemoryPool *memory);
 

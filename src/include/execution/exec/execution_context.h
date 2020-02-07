@@ -13,6 +13,11 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 #include "type/transient_value.h"
+#include "execution/exec_defs.h"
+
+namespace terrier::brain {
+class OperatingUnitsStorage;
+}  // namespace terrier::brain
 
 namespace terrier::execution::exec {
 /**
@@ -126,6 +131,14 @@ class EXPORT ExecutionContext {
    * @param len the length of the string name
    */
   void EndResourceTracker(const char *name, uint32_t len);
+
+  /**
+   * End the resource tracker for a pipeline and record the metrics
+   * @param query_id query identifier
+   * @param pipeline_id id of the pipeline
+   * @param storage Storage of static-analysis OperatingUnits
+   */
+  void EndPipelineTracker(query_id_t query_id, pipeline_id_t pipeline_id, const brain::OperatingUnitsStorage &storage);
 
   /**
    * @return the db oid

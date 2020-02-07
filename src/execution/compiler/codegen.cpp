@@ -7,6 +7,7 @@
 #include "execution/sql/value.h"
 #include "type/transient_value_peeker.h"
 #include "util/time_util.h"
+#include "brain/operating_unit.h"
 
 namespace terrier::execution::compiler {
 
@@ -16,6 +17,7 @@ CodeGen::CodeGen(exec::ExecutionContext *exec_ctx)
       ast_ctx_(std::make_unique<ast::Context>(region_.get(), &error_reporter_)),
       factory_(region_.get()),
       exec_ctx_(exec_ctx),
+      operating_units_storage_(std::make_unique<brain::OperatingUnitsStorage>()),
       state_struct_{Context()->GetIdentifier("State")},
       state_var_{Context()->GetIdentifier("state")},
       exec_ctx_var_(Context()->GetIdentifier("execCtx")),

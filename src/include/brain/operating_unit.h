@@ -2,8 +2,8 @@
 #include <memory>
 #include <vector>
 #include "brain/brain_defs.h"
-#include "execution/compiler/compiler.h"
 #include "execution/vm/module.h"
+#include "execution/exec_defs.h"
 
 namespace terrier::brain {
 
@@ -27,14 +27,14 @@ class OperatingUnitFeature {
 
 class OperatingUnit {
  public:
-  OperatingUnit(execution::compiler::pipeline_id_t pipeline_idx, std::vector<OperatingUnitFeature> &&features)
+  OperatingUnit(execution::pipeline_id_t pipeline_idx, std::vector<OperatingUnitFeature> &&features)
       : pipeline_idx_(pipeline_idx), features_(features) {}
 
-  execution::compiler::pipeline_id_t GetPipelineIdx() const { return pipeline_idx_; }
+  execution::pipeline_id_t GetPipelineIdx() const { return pipeline_idx_; }
   const std::vector<OperatingUnitFeature> &GetFeatures() const { return features_; }
 
  private:
-  execution::compiler::pipeline_id_t pipeline_idx_;
+  execution::pipeline_id_t pipeline_idx_;
   std::vector<OperatingUnitFeature> features_;
 };
 
@@ -42,19 +42,19 @@ class OperatingUnitsStorage {
  public:
   OperatingUnitsStorage() {}
 
-  void RecordPipeline(execution::compiler::pipeline_id_t pipeline, std::vector<OperatingUnitFeature> &&features) {
-    UNUSED_ATTRIBUTE auto res = units.emplace(std::pair(pipeline, OperatingUnit{pipeline, std::move(features)}));
+  void RecordPipeline(execution::pipeline_id_t pipeline, std::vector<OperatingUnitFeature> &&features) {
+    UNUSED_ATTRIBUTE auto res = units_.insert(std::make_pair(pipeline, OperatingUnit{pipeline, std::move(features)}));
     TERRIER_ASSERT(res.second, "Recording duplicate pipeline into OperatingUnitsStorage");
   }
 
-  const OperatingUnit &GetPipeline(execution::compiler::pipeline_id_t pipeline) const {
+  const OperatingUnit &GetPipeline(execution::pipeline_id_t pipeline) const {
     UNUSED_ATTRIBUTE auto itr = units_.find(pipeline);
     TERRIER_ASSERT(itr != units_.end(), "Requested pipeline could not be found in OperatingUnitsStorage");
     return itr->second;
   }
 
  private:
-  std::unordered_map<execution::compiler::pipeline_id_t, OperatingUnit> units_{};
+  std::unordered_map<execution::pipeline_id_t, OperatingUnit> units_{};
 
 };
 

@@ -18,6 +18,7 @@
 #include "type/transient_value.h"
 #include "type/transient_value_peeker.h"
 #include "type/type_id.h"
+#include "brain/operating_unit.h"
 
 namespace terrier::execution::compiler {
 
@@ -98,6 +99,10 @@ class CodeGen {
    * @return the exec ctx's identifier
    */
   ast::Identifier GetExecCtxVar() { return exec_ctx_var_; }
+
+  std::unique_ptr<brain::OperatingUnitsStorage> ReleaseOperatingUnitsStorage() { return std::move(operating_units_storage_); }
+  brain::OperatingUnitsStorage *GetOperatingUnitsStorage() { return operating_units_storage_.get(); }
+
 
   /**
    * Creates the File node for the query
@@ -549,6 +554,7 @@ class CodeGen {
   std::unique_ptr<ast::Context> ast_ctx_;
   ast::AstNodeFactory factory_;
   exec::ExecutionContext *exec_ctx_;
+  std::unique_ptr<brain::OperatingUnitsStorage> operating_units_storage_;
 
   // Identifiers that are always needed
   // Identifier of the state struct

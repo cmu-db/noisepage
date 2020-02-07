@@ -16,6 +16,7 @@
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/value.h"
+#include "brain/operating_unit.h"
 
 namespace terrier::execution::ast {
 
