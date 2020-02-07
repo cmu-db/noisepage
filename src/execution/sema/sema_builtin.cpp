@@ -1326,8 +1326,8 @@ void Sema::CheckBuiltinSorterInit(ast::CallExpr *call) {
   call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
 }
 
-void Sema::CheckBuiltinSorterInsert(ast::CallExpr *call) {
-  if (!CheckArgCount(call, 1)) {
+void Sema::CheckBuiltinSorterInsert(ast::CallExpr *call, ast::Builtin builtin) {
+  if (!CheckArgCountAtLeast(call, 1)) {
     return;
   }
 
@@ -1338,8 +1338,43 @@ void Sema::CheckBuiltinSorterInsert(ast::CallExpr *call) {
     return;
   }
 
-  // This call returns nothing
-  call->SetType(GetBuiltinType(ast::BuiltinType::Uint8)->PointerTo());
+  switch (builtin) {
+    case ast::Builtin::SorterInsert: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+      // This call returns a byte buffer
+      call->SetType(GetBuiltinType(ast::BuiltinType::Uint8)->PointerTo());
+      break;
+    }
+    case ast::Builtin::SorterInsertTopK: {
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+      // Second argument is the limit
+      if (!call->Arguments()[1]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint64));
+        return;
+      }
+      // This call returns a byte buffer
+      call->SetType(GetBuiltinType(ast::BuiltinType::Uint8)->PointerTo());
+      break;
+    }
+    case ast::Builtin::SorterInsertTopKFinish:
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+      // Second argument is the limit
+      if (!call->Arguments()[1]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint64));
+        return;
+      }
+      // This call returns nothing
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    default:
+      UNREACHABLE("Impossible sorter insert call");
+  }
 }
 
 void Sema::CheckBuiltinSorterSort(ast::CallExpr *call, ast::Builtin builtin) {
@@ -2259,8 +2294,10 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinSorterInit(call);
       break;
     }
-    case ast::Builtin::SorterInsert: {
-      CheckBuiltinSorterInsert(call);
+    case ast::Builtin::SorterInsert:
+    case ast::Builtin::SorterInsertTopK:
+    case ast::Builtin::SorterInsertTopKFinish: {
+      CheckBuiltinSorterInsert(call, builtin);
       break;
     }
     case ast::Builtin::SorterSort:

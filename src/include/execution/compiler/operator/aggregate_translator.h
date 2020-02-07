@@ -2,6 +2,7 @@
 
 #include <utility>
 #include "execution/compiler/operator/operator_translator.h"
+#include "execution/compiler/operator/aggregate_util.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 
 namespace terrier::execution::compiler {
@@ -128,14 +129,12 @@ class AggregateBottomTranslator : public OperatorTranslator {
   // The number of group by terms.
   uint32_t num_group_by_terms_;
   const planner::AggregatePlanNode *op_;
+  AggregateHelper helper_;
 
   // Structs, Functions, and local variables needed.
   // TODO(Amadou): This list is blowing up. Figure out a different to manage local variable names.
   static constexpr const char *GROUP_BY_TERM_NAMES = "group_by_term";
   static constexpr const char *AGG_TERM_NAMES = "agg_term";
-  ast::Identifier hash_val_;
-  ast::Identifier agg_values_;
-  ast::Identifier values_struct_;
   ast::Identifier payload_struct_;
   ast::Identifier agg_payload_;
   ast::Identifier key_check_;

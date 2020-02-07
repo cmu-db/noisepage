@@ -343,6 +343,7 @@ void PlanGenerator::Visit(const Limit *op) {
     order_build.SetOutputSchema(std::move(output_schema));
     order_build.AddChild(std::move(output_plan_));
     order_build.SetLimit(op->GetLimit());
+    std::cout << "OFF " << op->GetOffset() << std::endl;
     order_build.SetOffset(op->GetOffset());
 
     auto &sort_columns = op->GetSortExpressions();

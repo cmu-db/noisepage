@@ -10,6 +10,7 @@ AggregateBottomTranslator::AggregateBottomTranslator(const terrier::planner::Agg
     : OperatorTranslator(codegen),
       num_group_by_terms_{static_cast<uint32_t>(op->GetGroupByTerms().size())},
       op_(op),
+      helper_(codegen, op)
       hash_val_(codegen->NewIdentifier("hash_val")),
       agg_values_(codegen->NewIdentifier("agg_value")),
       values_struct_(codegen->NewIdentifier("AggValues")),
@@ -18,36 +19,49 @@ AggregateBottomTranslator::AggregateBottomTranslator(const terrier::planner::Agg
       key_check_(codegen->NewIdentifier("aggKeyCheckFn")),
       agg_ht_(codegen->NewIdentifier("agg_ht")) {}
 
-// Declare the hash table
+// Declare the hash tables
 void AggregateBottomTranslator::InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) {
-  // agg_hash_table : AggregationHashTable
+  // Declare the op's hash table
   ast::Expr *ht_type = codegen_->BuiltinType(ast::BuiltinType::Kind::AggregationHashTable);
   state_fields->emplace_back(codegen_->MakeField(agg_ht_, ht_type));
+  // Each distinct aggregate needs a hash table.
+  helper_.GenDistinctStateFields(state_fields);
 }
 
 // Declare payload and decls struct
 void AggregateBottomTranslator::InitializeStructs(util::RegionVector<ast::Decl *> *decls) {
+  // Declare the payload struct for the op's hash table.
   GenPayloadStruct(decls);
-  GenValuesStruct(decls);
+  // Declare the values.
+  helper_.GenValuesStructs(decls);
+  // Declare the struct of each distinct aggregate.
+  helper_.GenDistinctStructs(decls);
 }
 
 // Create the key check function.
 void AggregateBottomTranslator::InitializeHelperFunctions(util::RegionVector<ast::Decl *> *decls) {
+  // Generate the key check of the global hash table.
   GenSingleKeyCheckFn(decls);
+  // Generate each distinct key check.
+  helper_.GenDistinctKeyChecks(decls);
 }
 
 // Call @aggHTInit on the hash table
 void AggregateBottomTranslator::InitializeSetup(util::RegionVector<ast::Stmt *> *setup_stmts) {
-  // @aggHTInit(&state.agg_hash_table, @execCtxGetMem(execCtx), @sizeOf(AggPayload))
+  // Initialize the op's hash table.
   ast::Expr *init_call = codegen_->HTInitCall(ast::Builtin::AggHashTableInit, agg_ht_, payload_struct_);
-  // Add it the setup statements
   setup_stmts->emplace_back(codegen_->MakeStmt(init_call));
+  // Distinct aggregates each initialize their hash tables.
+  helper_.InitDistinctTables(setup_stmts);
 }
 
 // Call @aggHTFree
 void AggregateBottomTranslator::InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) {
+  // Free the global hash table.
   ast::Expr *free_call = codegen_->OneArgStateCall(ast::Builtin::AggHashTableFree, agg_ht_);
   teardown_stmts->emplace_back(codegen_->MakeStmt(free_call));
+  // Free each distinct hash table.
+  helper_.FreeDistinctTables(teardown_stmts);
 }
 
 void AggregateBottomTranslator::Produce(FunctionBuilder *builder) { child_translator_->Produce(builder); }
@@ -56,15 +70,18 @@ void AggregateBottomTranslator::Abort(FunctionBuilder *builder) { child_translat
 
 void AggregateBottomTranslator::Consume(FunctionBuilder *builder) {
   // Generate values to aggregate
-  FillValues(builder);
-  // Hash Call
-  GenHashCall(builder);
-  // Make Lookup call
+  helper_.FillValues(builder);
+
+  // Check if
+  helper_.GenGlobalHashCall(builder);
+  helper_.GenGlobalL(builder);
   GenLookupCall(builder);
   // Construct aggregates if needed
   GenConstruct(builder);
+
+
   // Advance aggregates
-  GenAdvance(builder);
+  helper_.GenAdvanceAggs(builder);
 }
 
 ast::Expr *AggregateBottomTranslator::GetOutput(uint32_t attr_idx) {
@@ -81,22 +98,6 @@ ast::Expr *AggregateBottomTranslator::GetOutput(uint32_t attr_idx) {
 ast::Expr *AggregateBottomTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx,
                                                      terrier::type::TypeId type) {
   return child_translator_->GetOutput(attr_idx);
-}
-
-ast::Expr *AggregateBottomTranslator::GetGroupByTerm(ast::Identifier object, uint32_t idx) {
-  ast::Identifier member = codegen_->Context()->GetIdentifier(GROUP_BY_TERM_NAMES + std::to_string(idx));
-  return codegen_->MemberExpr(object, member);
-}
-
-ast::Expr *AggregateBottomTranslator::GetAggTerm(ast::Identifier object, uint32_t idx, bool ptr) {
-  ast::Identifier member = codegen_->Context()->GetIdentifier(AGG_TERM_NAMES + std::to_string(idx));
-  ast::Expr *agg_term = codegen_->MemberExpr(object, member);
-  if (ptr) {
-    // Return a pointer to the term
-    return codegen_->UnaryOp(parsing::Token::Type::AMPERSAND, agg_term);
-  }
-  // Return the term itself
-  return agg_term;
 }
 
 /*
@@ -126,33 +127,6 @@ void AggregateBottomTranslator::GenPayloadStruct(util::RegionVector<ast::Decl *>
   decls->emplace_back(codegen_->MakeStruct(payload_struct_, std::move(fields)));
 }
 
-/*
- * Generate the aggregation's input values
- */
-void AggregateBottomTranslator::GenValuesStruct(util::RegionVector<ast::Decl *> *decls) {
-  util::RegionVector<ast::FieldDecl *> fields{codegen_->Region()};
-  // Create a field for every group by term
-  uint32_t term_idx = 0;
-  for (const auto &term : op_->GetGroupByTerms()) {
-    ast::Identifier field_name = codegen_->Context()->GetIdentifier(GROUP_BY_TERM_NAMES + std::to_string(term_idx));
-    ast::Expr *type = codegen_->TplType(term->GetReturnValueType());
-    fields.emplace_back(codegen_->MakeField(field_name, type));
-    term_idx++;
-  }
-
-  // Create a field of every aggregate term.
-  // Unlike the payload, these are scalar types, not aggregate types
-  term_idx = 0;
-  for (const auto &term : op_->GetAggregateTerms()) {
-    ast::Identifier field_name = codegen_->Context()->GetIdentifier(AGG_TERM_NAMES + std::to_string(term_idx));
-    ast::Expr *type = codegen_->TplType(term->GetChild(0)->GetReturnValueType());
-    fields.emplace_back(codegen_->MakeField(field_name, type));
-    term_idx++;
-  }
-
-  // Make the struct
-  decls->emplace_back(codegen_->MakeStruct(values_struct_, std::move(fields)));
-}
 
 /*
  * Generate the key check logic
@@ -254,6 +228,7 @@ void AggregateBottomTranslator::GenConstruct(FunctionBuilder *builder) {
  */
 void AggregateBottomTranslator::GenAdvance(FunctionBuilder *builder) {
   // Call @aggAdvance(&agg_payload.expr_i) for each expression
+  helper_.GenAdd
   for (uint32_t term_idx = 0; term_idx < op_->GetAggregateTerms().size(); term_idx++) {
     ast::Expr *arg1 = GetAggTerm(agg_payload_, term_idx, true);
     ast::Expr *arg2 = GetAggTerm(agg_values_, term_idx, true);

@@ -142,6 +142,13 @@ void BindNodeVisitor::Visit(parser::UpdateStatement *node, parser::ParseResult *
   node->GetUpdateTable()->Accept(this, parse_result);
   if (node->GetUpdateCondition() != nullptr) node->GetUpdateCondition()->Accept(this, parse_result);
   for (auto &update : node->GetUpdateClauses()) {
+    auto is_cast_expression = update->GetUpdateValue()->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
+    if (is_cast_expression) {
+      auto converted = BinderUtil::Convert(update->GetUpdateValue(), update->GetUpdateValue()->GetReturnValueType());
+      TERRIER_ASSERT(converted != nullptr, "Conversion cannot be null!");
+      update->ResetValue(common::ManagedPointer<parser::AbstractExpression>(converted));
+      parse_result->AddExpression(std::move(converted));
+    }
     update->GetUpdateValue()->Accept(this, parse_result);
   }
 

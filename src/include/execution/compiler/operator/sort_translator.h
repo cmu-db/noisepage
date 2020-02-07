@@ -62,6 +62,8 @@ class SortBottomTranslator : public OperatorTranslator {
   ast::Expr *GetAttribute(ast::Identifier object, uint32_t attr_idx);
   // Insert into sorter
   void GenSorterInsert(FunctionBuilder *builder);
+  // Gen top k finish
+  void GenFinishTopK(FunctionBuilder *builder);
   // Fill the sorter row
   void FillSorterRow(FunctionBuilder *builder);
   // Call Sort()
@@ -71,6 +73,10 @@ class SortBottomTranslator : public OperatorTranslator {
 
   // The sort plan node
   const planner::OrderByPlanNode *op_;
+  // Whether to use topK.
+  // This will be true when there is a limit and the offset is 0. We can build a bounded heap instead of sorting all
+  // values.
+  bool use_top_k_;
 
   /**
    * GetChildOutput will need to return different results depending on the calling function.
@@ -153,12 +159,16 @@ class SortTopTranslator : public OperatorTranslator {
 
   // The sort plan node
   const planner::OrderByPlanNode *op_;
+  // Whether to explicitly limit the number of output row.
+  // This will be true when there is a limit and an offset, because we can't use the bounded heap with an offset.
+  bool use_limit_;
 
   // The bottom translator
   SortBottomTranslator *bottom_;
 
   // Local variables
   ast::Identifier sort_iter_;
+  ast::Identifier num_tuples_;
 };
 
 }  // namespace terrier::execution::compiler

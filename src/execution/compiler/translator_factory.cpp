@@ -15,11 +15,13 @@
 #include "execution/compiler/expression/tuple_value_translator.h"
 #include "execution/compiler/expression/unary_translator.h"
 #include "execution/compiler/operator/aggregate_translator.h"
+#include "execution/compiler/operator/static_aggregate_translator.h"
 #include "execution/compiler/operator/delete_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
 #include "execution/compiler/operator/index_join_translator.h"
 #include "execution/compiler/operator/index_scan_translator.h"
 #include "execution/compiler/operator/insert_translator.h"
+#include "execution/compiler/operator/limit_translator.h"
 #include "execution/compiler/operator/nested_loop_translator.h"
 #include "execution/compiler/operator/projection_translator.h"
 #include "execution/compiler/operator/seq_scan_translator.h"
@@ -55,6 +57,9 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateRegularTranslator(
     case terrier::planner::PlanNodeType::PROJECTION: {
       return std::make_unique<ProjectionTranslator>(static_cast<const planner::ProjectionPlanNode *>(op), codegen);
     }
+    case terrier::planner::PlanNodeType::LIMIT: {
+      return std::make_unique<LimitTranslator>(static_cast<const planner::LimitPlanNode *>(op), codegen);
+    }
     default:
       UNREACHABLE("Unsupported plan nodes");
   }
@@ -63,8 +68,13 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateRegularTranslator(
 std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateBottomTranslator(
     const terrier::planner::AbstractPlanNode *op, CodeGen *codegen) {
   switch (op->GetPlanNodeType()) {
-    case terrier::planner::PlanNodeType::AGGREGATE:
-      return std::make_unique<AggregateBottomTranslator>(static_cast<const planner::AggregatePlanNode *>(op), codegen);
+    case terrier::planner::PlanNodeType::AGGREGATE: {
+      auto agg_op = static_cast<const planner::AggregatePlanNode *>(op);
+      if (agg_op->GetGroupByTerms().empty()) {
+        return std::make_unique<StaticAggregateBottomTranslator>(agg_op, codegen);
+      }
+      return std::make_unique<AggregateBottomTranslator>(agg_op, codegen);
+    }
     case terrier::planner::PlanNodeType::ORDERBY:
       return std::make_unique<SortBottomTranslator>(static_cast<const planner::OrderByPlanNode *>(op), codegen);
     default:
@@ -76,9 +86,13 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateTopTranslator(const
                                                                            OperatorTranslator *bottom,
                                                                            CodeGen *codegen) {
   switch (op->GetPlanNodeType()) {
-    case terrier::planner::PlanNodeType::AGGREGATE:
-      return std::make_unique<AggregateTopTranslator>(static_cast<const planner::AggregatePlanNode *>(op), codegen,
-                                                      bottom);
+    case terrier::planner::PlanNodeType::AGGREGATE: {
+      auto agg_op = static_cast<const planner::AggregatePlanNode *>(op);
+      if (agg_op->GetGroupByTerms().empty()) {
+        return std::make_unique<StaticAggregateTopTranslator>(agg_op, codegen, bottom);
+      }
+      return std::make_unique<AggregateTopTranslator>(agg_op, codegen, bottom);
+    }
     case terrier::planner::PlanNodeType::ORDERBY:
       return std::make_unique<SortTopTranslator>(static_cast<const planner::OrderByPlanNode *>(op), codegen, bottom);
     default:
