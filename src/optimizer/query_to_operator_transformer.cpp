@@ -14,7 +14,7 @@
 #include "common/managed_pointer.h"
 #include "loggers/optimizer_logger.h"
 #include "optimizer/logical_operators.h"
-#include "optimizer/operator_expression.h"
+#include "optimizer/operator_node.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/operator_expression.h"

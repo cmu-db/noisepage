@@ -9,7 +9,7 @@
 
 #include "catalog/catalog_accessor.h"
 #include "common/exception.h"
-#include "optimizer/operator_expression.h"
+#include "optimizer/operator_node.h"
 #include "optimizer/properties.h"
 #include "optimizer/property_set.h"
 #include "optimizer/util.h"

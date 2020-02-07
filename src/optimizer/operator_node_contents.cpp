@@ -1,4 +1,4 @@
-#include "optimizer/operator_node.h"
+#include "optimizer/operator_node_contents.h"
 #include <memory>
 #include <string>
 #include <utility>

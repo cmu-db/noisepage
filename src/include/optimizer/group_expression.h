@@ -9,7 +9,7 @@
 
 #include "common/hash_util.h"
 #include "optimizer/group.h"
-#include "optimizer/operator_node.h"
+#include "optimizer/operator_node_contents.h"
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/property_set.h"
 #include "optimizer/rule.h"

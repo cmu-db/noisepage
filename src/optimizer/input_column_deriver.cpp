@@ -4,7 +4,7 @@
 
 #include "optimizer/input_column_deriver.h"
 #include "optimizer/memo.h"
-#include "optimizer/operator_expression.h"
+#include "optimizer/operator_node.h"
 #include "optimizer/physical_operators.h"
 #include "optimizer/properties.h"
 #include "optimizer/util.h"

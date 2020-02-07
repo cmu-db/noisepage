@@ -7,7 +7,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 #include "optimizer/logical_operators.h"
-#include "optimizer/operator_expression.h"
+#include "optimizer/operator_node.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/update_statement.h"

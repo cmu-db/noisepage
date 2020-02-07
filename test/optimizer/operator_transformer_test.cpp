@@ -13,7 +13,7 @@
 #include "optimizer/cost_model/abstract_cost_model.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/logical_operators.h"
-#include "optimizer/operator_expression.h"
+#include "optimizer/operator_node.h"
 #include "optimizer/optimization_context.h"
 #include "optimizer/optimizer_context.h"
 #include "optimizer/plan_generator.h"

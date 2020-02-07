@@ -10,8 +10,8 @@
 
 #include "optimizer/group.h"
 #include "optimizer/memo.h"
-#include "optimizer/operator_expression.h"
 #include "optimizer/operator_node.h"
+#include "optimizer/operator_node_contents.h"
 #include "optimizer/pattern.h"
 
 namespace terrier::optimizer {

@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "optimizer/operator_expression.h"
+#include "optimizer/operator_node.h"
 #include "optimizer/optimization_context.h"
 #include "optimizer/pattern.h"
 

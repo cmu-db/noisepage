@@ -11,7 +11,7 @@
 
 #include "settings/settings_manager.h"
 
-#include "optimizer/operator_expression.h"
+#include "optimizer/operator_node.h"
 #include "optimizer/property_set.h"
 #include "optimizer/statistics/stats_storage.h"
 

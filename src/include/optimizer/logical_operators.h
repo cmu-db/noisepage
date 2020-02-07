@@ -8,7 +8,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
-#include "optimizer/operator_node.h"
+#include "optimizer/operator_node_contents.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 #include "parser/parser_defs.h"
