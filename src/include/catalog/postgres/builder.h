@@ -72,6 +72,16 @@ class Builder {
   static Schema GetTypeTableSchema();
 
   /**
+   * @return schema object for pg_language table
+   */
+  static Schema GetLanguageTableSchema();
+
+  /**
+   * @return schema object for pg_proc table
+   */
+  static Schema GetProcTableSchema();
+
+  /**
    * @param db oid in which the indexed table exists
    * @return schema object for the oid index on pg_namespace
    */
@@ -178,6 +188,30 @@ class Builder {
    * @return schema object for the foreign key index on pg_constraint
    */
   static IndexSchema GetConstraintForeignTableIndexSchema(db_oid_t db);
+
+  /**
+   * @param db oid in which the indexed table exists
+   * @return schema object for the oid index on pg_language
+   */
+  static IndexSchema GetLanguageOidIndexSchema(db_oid_t db);
+
+  /**
+   * @param db oid in which the indexed table exists
+   * @return schema object for the name index on pg_language
+   */
+  static IndexSchema GetLanguageNameIndexSchema(db_oid_t db);
+
+  /**
+   * @param db oid in which the indexed table exists
+   * @return schema object for the oid index on pg_proc
+   */
+  static IndexSchema GetProcOidIndexSchema(db_oid_t db);
+
+  /**
+   * @param db oid in which the indexed table exists
+   * @return schema object for the name index on pg_proc
+   */
+  static IndexSchema GetProcNameIndexSchema(db_oid_t db);
 
   /**
    * Instantiate a new unique index with the given schema and oid
