@@ -34,6 +34,9 @@ ast::Expr *ParamValueTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
     case type::TypeId::DATE:
       builtin = ast::Builtin::GetParamDate;
       break;
+    case type::TypeId::TIMESTAMP:
+      builtin = ast::Builtin::GetParamTimestamp;
+      break;
     case type::TypeId::VARCHAR:
       builtin = ast::Builtin::GetParamString;
       break;

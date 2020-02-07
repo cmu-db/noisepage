@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "catalog/schema.h"
@@ -298,10 +299,18 @@ class PlanGenerator : public OperatorVisitor {
 
   /**
    * Generate the column oids vector for a scan plan
-   *
+   * @param predicate Predicate of the scan
    * @return a vector of column oid indicating which columns to scan
    */
-  std::vector<catalog::col_oid_t> GenerateColumnsForScan();
+  std::vector<catalog::col_oid_t> GenerateColumnsForScan(const parser::AbstractExpression *predicate);
+
+  /**
+   * Read the oids contained in an expression.
+   * @param oids Oids contained in the given expression.
+   * @param expr Expression to read.
+   */
+  void GenerateColumnsFromExpression(std::unordered_set<catalog::col_oid_t> *oids,
+                                     const parser::AbstractExpression *expr);
 
   /**
    * Generates the OutputSchema for a scan.
