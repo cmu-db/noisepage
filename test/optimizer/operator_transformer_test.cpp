@@ -1037,7 +1037,7 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   EXPECT_EQ(ctpn->GetUniqueConstraints().size(), 1);
   EXPECT_EQ(ctpn->GetUniqueConstraints()[0].unique_cols_.size(), 1);
   EXPECT_EQ(ctpn->GetUniqueConstraints()[0].unique_cols_[0], "c2");
-  EXPECT_EQ(ctpn->GetUniqueConstraints()[0].constraint_name_, "con_unique");
+  EXPECT_EQ(ctpn->GetUniqueConstraints()[0].constraint_name_, "c_c2_key");
   EXPECT_EQ(ctpn->GetCheckConstraints().size(), 1);
   EXPECT_EQ(ctpn->GetCheckConstraints()[0].check_cols_.size(), 1);
   EXPECT_EQ(ctpn->GetCheckConstraints()[0].check_cols_[0], "c4");
