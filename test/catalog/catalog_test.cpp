@@ -42,6 +42,8 @@ struct CatalogTests : public TerrierTest {
     VerifyTablePresent(accessor, ns_oid, "pg_index");
     VerifyTablePresent(accessor, ns_oid, "pg_namespace");
     VerifyTablePresent(accessor, ns_oid, "pg_type");
+    VerifyTablePresent(accessor, ns_oid, "pg_language");
+    VerifyTablePresent(accessor, ns_oid, "pg_proc");
   }
 
   void VerifyTablePresent(const catalog::CatalogAccessor &accessor, catalog::namespace_oid_t ns_oid,
@@ -61,6 +63,108 @@ struct CatalogTests : public TerrierTest {
   common::ManagedPointer<catalog::Catalog> catalog_;
   catalog::db_oid_t db_;
 };
+
+TEST_F(CatalogTests, LanguageTest) {
+  auto txn = txn_manager_->BeginTransaction();
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+
+  // Check visibility to me
+  VerifyCatalogTables(*accessor);
+
+  // make sure "internal" is bootstrapped
+  auto oid = accessor->CreateLanguage("internal");
+  EXPECT_EQ(oid, catalog::INVALID_LANGUAGE_OID);
+
+  txn_manager_->Abort(txn);
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+
+  // add custom language
+  oid = accessor->CreateLanguage("test_language");
+  EXPECT_NE(oid, catalog::INVALID_LANGUAGE_OID);
+
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  auto good_oid = oid;
+
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+
+  // make sure we can't add the same language again
+  oid = accessor->CreateLanguage("test_language");
+  EXPECT_EQ(oid, catalog::INVALID_LANGUAGE_OID);
+  txn_manager_->Abort(txn);
+
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+
+  // make sure we get the same language oid back for the custom language we created
+  oid = accessor->GetLanguageOid("test_language");
+  EXPECT_EQ(oid, good_oid);
+  auto result = accessor->DropLanguage(good_oid);
+  EXPECT_TRUE(result);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+
+  // drop the language we made
+  result = accessor->DropLanguage(good_oid);
+  EXPECT_FALSE(result);
+  txn_manager_->Abort(txn);
+}
+
+TEST_F(CatalogTests, ProcTest) {
+  auto txn = txn_manager_->BeginTransaction();
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+
+  // Check visibility to me
+  VerifyCatalogTables(*accessor);
+
+  auto lan_oid = accessor->CreateLanguage("test_language");
+  auto ns_oid = accessor->GetDefaultNamespace();
+
+  EXPECT_NE(lan_oid, catalog::INVALID_LANGUAGE_OID);
+
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+
+  // create a sample proc
+  auto procname = "sample";
+  std::vector<std::string> args = {"arg1", "arg2", "arg3"};
+  std::vector<catalog::type_oid_t> arg_types = {accessor->GetTypeOidFromTypeId(type::TypeId::INTEGER),
+                                                accessor->GetTypeOidFromTypeId(type::TypeId::BOOLEAN),
+                                                accessor->GetTypeOidFromTypeId(type::TypeId::SMALLINT)};
+  std::vector<catalog::postgres::ProArgModes> arg_modes = {
+      catalog::postgres::ProArgModes::IN, catalog::postgres::ProArgModes::IN, catalog::postgres::ProArgModes::IN};
+  auto src = "int sample(arg1, arg2, arg3){return 2;}";
+
+  auto proc_oid =
+      accessor->CreateProcedure(procname, lan_oid, ns_oid, args, arg_types, arg_types, arg_modes,
+                                catalog::type_oid_t(static_cast<uint8_t>(type::TypeId::INTEGER)), src, false);
+  EXPECT_NE(proc_oid, catalog::INVALID_PROC_OID);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+
+  // make sure we didn't find this proc that we never added
+  auto found_oid = accessor->GetProcOid("bad_proc", arg_types);
+  EXPECT_EQ(found_oid, catalog::INVALID_PROC_OID);
+
+  // look for proc that we actually added
+  found_oid = accessor->GetProcOid(procname, arg_types);
+
+  auto sin_oid = accessor->GetProcOid("sin", {accessor->GetTypeOidFromTypeId(type::TypeId::DECIMAL)});
+  EXPECT_NE(sin_oid, catalog::INVALID_PROC_OID);
+
+  EXPECT_EQ(found_oid, proc_oid);
+  auto result = accessor->DropProcedure(found_oid);
+  EXPECT_TRUE(result);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+}
 
 /*
  * Create and delete a database

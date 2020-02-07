@@ -33,4 +33,5 @@ enum class TypeId : uint8_t {
   VARBINARY,
   PARAMETER_OFFSET
 };
+
 }  // namespace terrier::type
