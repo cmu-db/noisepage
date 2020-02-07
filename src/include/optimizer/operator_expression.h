@@ -14,41 +14,41 @@ namespace terrier::optimizer {
  * by the binder by visiting the abstract syntax tree (AST) produced by the parser and servers
  * as the input to the query optimizer.
  */
-class OperatorExpression {
+class OperatorNode {
  public:
   /**
-   * Create an OperatorExpression
-   * @param op an operator to bind to this OperatorExpression node
-   * @param children children of this OperatorExpression
+   * Create an OperatorNode
+   * @param op an operator to bind to this OperatorNode node
+   * @param children children of this OperatorNode
    */
-  explicit OperatorExpression(Operator op, std::vector<std::unique_ptr<OperatorExpression>> &&children)
+  explicit OperatorNode(Operator op, std::vector<std::unique_ptr<OperatorNode>> &&children)
       : op_(std::move(op)), children_(std::move(children)) {}
 
   /**
    * Copy
    */
-  std::unique_ptr<OperatorExpression> Copy() {
-    std::vector<std::unique_ptr<OperatorExpression>> child;
+  std::unique_ptr<OperatorNode> Copy() {
+    std::vector<std::unique_ptr<OperatorNode>> child;
     for (const auto &op : children_) {
       child.emplace_back(op->Copy());
     }
-    return std::make_unique<OperatorExpression>(Operator(op_), std::move(child));
+    return std::make_unique<OperatorNode>(Operator(op_), std::move(child));
   }
 
   /**
    * Equality comparison
-   * @param other OperatorExpression to compare against
+   * @param other OperatorNode to compare against
    * @returns true if equal
    */
-  bool operator==(const OperatorExpression &other) const {
+  bool operator==(const OperatorNode &other) const {
     if (op_ != other.op_) return false;
     if (children_.size() != other.children_.size()) return false;
 
     for (size_t idx = 0; idx < children_.size(); idx++) {
       auto &child = children_[idx];
       auto &other_child = other.children_[idx];
-      TERRIER_ASSERT(child != nullptr, "OperatorExpression should not have null children");
-      TERRIER_ASSERT(other_child != nullptr, "OperatorExpression should not have null children");
+      TERRIER_ASSERT(child != nullptr, "OperatorNode should not have null children");
+      TERRIER_ASSERT(other_child != nullptr, "OperatorNode should not have null children");
 
       if (*child != *other_child) return false;
     }
@@ -58,22 +58,22 @@ class OperatorExpression {
 
   /**
    * Not equal comparison
-   * @param other OperatorExpression to compare against
+   * @param other OperatorNode to compare against
    * @returns true if not equal
    */
-  bool operator!=(const OperatorExpression &other) const { return !(*this == other); }
+  bool operator!=(const OperatorNode &other) const { return !(*this == other); }
 
   /**
    * Move constructor
    * @param op other to construct from
    */
-  OperatorExpression(OperatorExpression &&op) noexcept : op_(std::move(op.op_)), children_(std::move(op.children_)) {}
+  OperatorNode(OperatorNode &&op) noexcept : op_(std::move(op.op_)), children_(std::move(op.children_)) {}
 
   /**
    * @return vector of children
    */
-  std::vector<common::ManagedPointer<OperatorExpression>> GetChildren() const {
-    std::vector<common::ManagedPointer<OperatorExpression>> result;
+  std::vector<common::ManagedPointer<OperatorNode>> GetChildren() const {
+    std::vector<common::ManagedPointer<OperatorNode>> result;
     result.reserve(children_.size());
     for (auto &i : children_) result.emplace_back(i);
     return result;
@@ -88,7 +88,7 @@ class OperatorExpression {
    * Add a operator expression as child
    * @param child_op The operator expression to be added as child
    */
-  void PushChild(std::unique_ptr<OperatorExpression> child_op) { children_.emplace_back(std::move(child_op)); }
+  void PushChild(std::unique_ptr<OperatorNode> child_op) { children_.emplace_back(std::move(child_op)); }
 
  private:
   /**
@@ -99,7 +99,7 @@ class OperatorExpression {
   /**
    * Vector of children
    */
-  std::vector<std::unique_ptr<OperatorExpression>> children_;
+  std::vector<std::unique_ptr<OperatorNode>> children_;
 };
 
 }  // namespace terrier::optimizer

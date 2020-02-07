@@ -41,9 +41,9 @@ class BindingIterator {
 
   /**
    * Virtual function for getting the next binding
-   * @returns next OperatorExpression that matches
+   * @returns next OperatorNode that matches
    */
-  virtual std::unique_ptr<OperatorExpression> Next() = 0;
+  virtual std::unique_ptr<OperatorNode> Next() = 0;
 
  protected:
   /**
@@ -82,9 +82,9 @@ class GroupBindingIterator : public BindingIterator {
 
   /**
    * Virtual function for getting the next binding
-   * @returns next OperatorExpression that matches
+   * @returns next OperatorNode that matches
    */
-  std::unique_ptr<OperatorExpression> Next() override;
+  std::unique_ptr<OperatorNode> Next() override;
 
  private:
   /**
@@ -141,9 +141,9 @@ class GroupExprBindingIterator : public BindingIterator {
   /**
    * Virtual function for getting the next binding
    * Pointer returned must be deleted by caller when done.
-   * @returns next OperatorExpression that matches
+   * @returns next OperatorNode that matches
    */
-  std::unique_ptr<OperatorExpression> Next() override {
+  std::unique_ptr<OperatorNode> Next() override {
     TERRIER_ASSERT(current_binding_, "binding must exist");
     return std::move(current_binding_);
   }
@@ -167,12 +167,12 @@ class GroupExprBindingIterator : public BindingIterator {
   /**
    * Current binding
    */
-  std::unique_ptr<OperatorExpression> current_binding_;
+  std::unique_ptr<OperatorNode> current_binding_;
 
   /**
    * Stored bindings for children expressions
    */
-  std::vector<std::vector<std::unique_ptr<OperatorExpression>>> children_bindings_;
+  std::vector<std::vector<std::unique_ptr<OperatorNode>>> children_bindings_;
 
   /**
    * Position indicators tracking progress within children_bindings_

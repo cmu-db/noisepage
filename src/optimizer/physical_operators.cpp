@@ -15,17 +15,17 @@ namespace terrier::optimizer {
 //===--------------------------------------------------------------------===//
 // TableFreeScan
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *TableFreeScan::Copy() const { return new TableFreeScan(*this); }
+BaseOperatorNodeContents *TableFreeScan::Copy() const { return new TableFreeScan(*this); }
 
 Operator TableFreeScan::Make() { return Operator(std::make_unique<TableFreeScan>()); }
 
-bool TableFreeScan::operator==(const BaseOperatorNode &r) {
+bool TableFreeScan::operator==(const BaseOperatorNodeContents &r) {
   return (r.GetType() == OpType::TABLEFREESCAN);
   // Again, there isn't any internal data so I guess we're always equal!
 }
 
 common::hash_t TableFreeScan::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   // I guess every TableFreeScan object hashes to the same thing?
   return hash;
 }
@@ -33,7 +33,7 @@ common::hash_t TableFreeScan::Hash() const {
 //===--------------------------------------------------------------------===//
 // SeqScan
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *SeqScan::Copy() const { return new SeqScan(*this); }
+BaseOperatorNodeContents *SeqScan::Copy() const { return new SeqScan(*this); }
 
 Operator SeqScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> &&predicates,
@@ -48,7 +48,7 @@ Operator SeqScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t 
   return Operator(std::move(scan));
 }
 
-bool SeqScan::operator==(const BaseOperatorNode &r) {
+bool SeqScan::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::SEQSCAN) return false;
   const SeqScan &node = *dynamic_cast<const SeqScan *>(&r);
   if (database_oid_ != node.database_oid_) return false;
@@ -63,7 +63,7 @@ bool SeqScan::operator==(const BaseOperatorNode &r) {
 }
 
 common::hash_t SeqScan::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
@@ -76,7 +76,7 @@ common::hash_t SeqScan::Hash() const {
 //===--------------------------------------------------------------------===//
 // IndexScan
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *IndexScan::Copy() const { return new IndexScan(*this); }
+BaseOperatorNodeContents *IndexScan::Copy() const { return new IndexScan(*this); }
 
 Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                          catalog::index_oid_t index_oid, std::vector<AnnotatedExpression> &&predicates,
@@ -94,7 +94,7 @@ Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_
   return Operator(std::move(scan));
 }
 
-bool IndexScan::operator==(const BaseOperatorNode &r) {
+bool IndexScan::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::INDEXSCAN) return false;
   const IndexScan &node = *dynamic_cast<const IndexScan *>(&r);
   if (database_oid_ != node.database_oid_ || namespace_oid_ != node.namespace_oid_ || index_oid_ != node.index_oid_ ||
@@ -124,7 +124,7 @@ bool IndexScan::operator==(const BaseOperatorNode &r) {
 }
 
 common::hash_t IndexScan::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_oid_));
@@ -136,7 +136,7 @@ common::hash_t IndexScan::Hash() const {
     if (expr)
       hash = common::HashUtil::SumHashes(hash, expr->Hash());
     else
-      hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+      hash = common::HashUtil::SumHashes(hash, BaseOperatorNodeContents::Hash());
   }
 
   for (const auto &bound : bounds_) {
@@ -153,7 +153,7 @@ common::hash_t IndexScan::Hash() const {
 //===--------------------------------------------------------------------===//
 // External file scan
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *ExternalFileScan::Copy() const { return new ExternalFileScan(*this); }
+BaseOperatorNodeContents *ExternalFileScan::Copy() const { return new ExternalFileScan(*this); }
 
 Operator ExternalFileScan::Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
                                 char escape) {
@@ -166,7 +166,7 @@ Operator ExternalFileScan::Make(parser::ExternalFileFormat format, std::string f
   return Operator(std::move(get));
 }
 
-bool ExternalFileScan::operator==(const BaseOperatorNode &r) {
+bool ExternalFileScan::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::EXTERNALFILESCAN) return false;
   const auto &get = *dynamic_cast<const ExternalFileScan *>(&r);
   return (format_ == get.format_ && file_name_ == get.file_name_ && delimiter_ == get.delimiter_ &&
@@ -174,7 +174,7 @@ bool ExternalFileScan::operator==(const BaseOperatorNode &r) {
 }
 
 common::hash_t ExternalFileScan::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(format_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(file_name_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(delimiter_));
@@ -186,7 +186,7 @@ common::hash_t ExternalFileScan::Hash() const {
 //===--------------------------------------------------------------------===//
 // Query derived scan
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *QueryDerivedScan::Copy() const { return new QueryDerivedScan(*this); }
+BaseOperatorNodeContents *QueryDerivedScan::Copy() const { return new QueryDerivedScan(*this); }
 
 Operator QueryDerivedScan::Make(
     std::string table_alias,
@@ -198,7 +198,7 @@ Operator QueryDerivedScan::Make(
   return Operator(std::move(get));
 }
 
-bool QueryDerivedScan::operator==(const BaseOperatorNode &r) {
+bool QueryDerivedScan::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::QUERYDERIVEDSCAN) return false;
   const QueryDerivedScan &node = *static_cast<const QueryDerivedScan *>(&r);
   if (table_alias_ != node.table_alias_) return false;
@@ -206,7 +206,7 @@ bool QueryDerivedScan::operator==(const BaseOperatorNode &r) {
 }
 
 common::hash_t QueryDerivedScan::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   for (auto &iter : alias_to_expr_map_) {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter.first));
@@ -218,17 +218,17 @@ common::hash_t QueryDerivedScan::Hash() const {
 //===--------------------------------------------------------------------===//
 // OrderBy
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *OrderBy::Copy() const { return new OrderBy(*this); }
+BaseOperatorNodeContents *OrderBy::Copy() const { return new OrderBy(*this); }
 
 Operator OrderBy::Make() { return Operator(std::make_unique<OrderBy>()); }
 
-bool OrderBy::operator==(const BaseOperatorNode &r) {
+bool OrderBy::operator==(const BaseOperatorNodeContents &r) {
   return (r.GetType() == OpType::ORDERBY);
   // Again, there isn't any internal data so I guess we're always equal!
 }
 
 common::hash_t OrderBy::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   // I guess every OrderBy object hashes to the same thing?
   return hash;
 }
@@ -236,7 +236,7 @@ common::hash_t OrderBy::Hash() const {
 //===--------------------------------------------------------------------===//
 // PhysicalLimit
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *Limit::Copy() const { return new Limit(*this); }
+BaseOperatorNodeContents *Limit::Copy() const { return new Limit(*this); }
 
 Operator Limit::Make(size_t offset, size_t limit,
                      std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
@@ -249,7 +249,7 @@ Operator Limit::Make(size_t offset, size_t limit,
   return Operator(std::move(limit_op));
 }
 
-bool Limit::operator==(const BaseOperatorNode &r) {
+bool Limit::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::LIMIT) return false;
   const Limit &node = *static_cast<const Limit *>(&r);
   if (offset_ != node.offset_) return false;
@@ -260,7 +260,7 @@ bool Limit::operator==(const BaseOperatorNode &r) {
 }
 
 common::hash_t Limit::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(offset_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(limit_));
   hash = common::HashUtil::CombineHashInRange(hash, sort_exprs_.begin(), sort_exprs_.end());
@@ -271,7 +271,7 @@ common::hash_t Limit::Hash() const {
 //===--------------------------------------------------------------------===//
 // InnerNLJoin
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *InnerNLJoin::Copy() const { return new InnerNLJoin(*this); }
+BaseOperatorNodeContents *InnerNLJoin::Copy() const { return new InnerNLJoin(*this); }
 
 Operator InnerNLJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
                            std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
@@ -285,7 +285,7 @@ Operator InnerNLJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
 }
 
 common::hash_t InnerNLJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   for (auto &expr : left_keys_) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
   for (auto &expr : right_keys_) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
   for (auto &pred : join_predicates_) {
@@ -293,12 +293,12 @@ common::hash_t InnerNLJoin::Hash() const {
     if (expr)
       hash = common::HashUtil::SumHashes(hash, expr->Hash());
     else
-      hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+      hash = common::HashUtil::SumHashes(hash, BaseOperatorNodeContents::Hash());
   }
   return hash;
 }
 
-bool InnerNLJoin::operator==(const BaseOperatorNode &r) {
+bool InnerNLJoin::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::INNERNLJOIN) return false;
   const InnerNLJoin &node = *dynamic_cast<const InnerNLJoin *>(&r);
   if (left_keys_.size() != node.left_keys_.size() || right_keys_.size() != node.right_keys_.size() ||
@@ -317,7 +317,7 @@ bool InnerNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // LeftNLJoin
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *LeftNLJoin::Copy() const { return new LeftNLJoin(*this); }
+BaseOperatorNodeContents *LeftNLJoin::Copy() const { return new LeftNLJoin(*this); }
 
 Operator LeftNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto join = std::make_unique<LeftNLJoin>();
@@ -326,12 +326,12 @@ Operator LeftNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> joi
 }
 
 common::hash_t LeftNLJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
   return hash;
 }
 
-bool LeftNLJoin::operator==(const BaseOperatorNode &r) {
+bool LeftNLJoin::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::LEFTNLJOIN) return false;
   const LeftNLJoin &node = *static_cast<const LeftNLJoin *>(&r);
   return (*join_predicate_ == *(node.join_predicate_));
@@ -339,7 +339,7 @@ bool LeftNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // RightNLJoin
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *RightNLJoin::Copy() const { return new RightNLJoin(*this); }
+BaseOperatorNodeContents *RightNLJoin::Copy() const { return new RightNLJoin(*this); }
 
 Operator RightNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto join = std::make_unique<RightNLJoin>();
@@ -348,12 +348,12 @@ Operator RightNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> jo
 }
 
 common::hash_t RightNLJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
   return hash;
 }
 
-bool RightNLJoin::operator==(const BaseOperatorNode &r) {
+bool RightNLJoin::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::RIGHTNLJOIN) return false;
   const RightNLJoin &node = *static_cast<const RightNLJoin *>(&r);
   return (*join_predicate_ == *(node.join_predicate_));
@@ -362,7 +362,7 @@ bool RightNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // OuterNLJoin
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *OuterNLJoin::Copy() const { return new OuterNLJoin(*this); }
+BaseOperatorNodeContents *OuterNLJoin::Copy() const { return new OuterNLJoin(*this); }
 
 Operator OuterNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto join = std::make_unique<OuterNLJoin>();
@@ -371,12 +371,12 @@ Operator OuterNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> jo
 }
 
 common::hash_t OuterNLJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
   return hash;
 }
 
-bool OuterNLJoin::operator==(const BaseOperatorNode &r) {
+bool OuterNLJoin::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::OUTERNLJOIN) return false;
   const OuterNLJoin &node = *static_cast<const OuterNLJoin *>(&r);
   return (*join_predicate_ == *(node.join_predicate_));
@@ -385,7 +385,7 @@ bool OuterNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // InnerHashJoin
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *InnerHashJoin::Copy() const { return new InnerHashJoin(*this); }
+BaseOperatorNodeContents *InnerHashJoin::Copy() const { return new InnerHashJoin(*this); }
 
 Operator InnerHashJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
                              std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
@@ -398,7 +398,7 @@ Operator InnerHashJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
 }
 
 common::hash_t InnerHashJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   for (auto &expr : left_keys_) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
   for (auto &expr : right_keys_) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
   for (auto &pred : join_predicates_) {
@@ -406,12 +406,12 @@ common::hash_t InnerHashJoin::Hash() const {
     if (expr)
       hash = common::HashUtil::SumHashes(hash, expr->Hash());
     else
-      hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+      hash = common::HashUtil::SumHashes(hash, BaseOperatorNodeContents::Hash());
   }
   return hash;
 }
 
-bool InnerHashJoin::operator==(const BaseOperatorNode &r) {
+bool InnerHashJoin::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::INNERHASHJOIN) return false;
   const InnerHashJoin &node = *dynamic_cast<const InnerHashJoin *>(&r);
   if (left_keys_.size() != node.left_keys_.size() || right_keys_.size() != node.right_keys_.size() ||
@@ -430,7 +430,7 @@ bool InnerHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // LeftHashJoin
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *LeftHashJoin::Copy() const { return new LeftHashJoin(*this); }
+BaseOperatorNodeContents *LeftHashJoin::Copy() const { return new LeftHashJoin(*this); }
 
 Operator LeftHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto join = std::make_unique<LeftHashJoin>();
@@ -439,12 +439,12 @@ Operator LeftHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> j
 }
 
 common::hash_t LeftHashJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
   return hash;
 }
 
-bool LeftHashJoin::operator==(const BaseOperatorNode &r) {
+bool LeftHashJoin::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::LEFTHASHJOIN) return false;
   const LeftHashJoin &node = *static_cast<const LeftHashJoin *>(&r);
   return (*join_predicate_ == *(node.join_predicate_));
@@ -453,7 +453,7 @@ bool LeftHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // RightHashJoin
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *RightHashJoin::Copy() const { return new RightHashJoin(*this); }
+BaseOperatorNodeContents *RightHashJoin::Copy() const { return new RightHashJoin(*this); }
 
 Operator RightHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto join = std::make_unique<RightHashJoin>();
@@ -462,12 +462,12 @@ Operator RightHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> 
 }
 
 common::hash_t RightHashJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
   return hash;
 }
 
-bool RightHashJoin::operator==(const BaseOperatorNode &r) {
+bool RightHashJoin::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::RIGHTHASHJOIN) return false;
   const RightHashJoin &node = *static_cast<const RightHashJoin *>(&r);
   return (*join_predicate_ == *(node.join_predicate_));
@@ -476,7 +476,7 @@ bool RightHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // OuterHashJoin
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *OuterHashJoin::Copy() const { return new OuterHashJoin(*this); }
+BaseOperatorNodeContents *OuterHashJoin::Copy() const { return new OuterHashJoin(*this); }
 
 Operator OuterHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto join = std::make_unique<OuterHashJoin>();
@@ -485,12 +485,12 @@ Operator OuterHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> 
 }
 
 common::hash_t OuterHashJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
   return hash;
 }
 
-bool OuterHashJoin::operator==(const BaseOperatorNode &r) {
+bool OuterHashJoin::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::OUTERHASHJOIN) return false;
   const OuterHashJoin &node = *static_cast<const OuterHashJoin *>(&r);
   return (*join_predicate_ == *(node.join_predicate_));
@@ -499,7 +499,7 @@ bool OuterHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // Insert
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *Insert::Copy() const { return new Insert(*this); }
+BaseOperatorNodeContents *Insert::Copy() const { return new Insert(*this); }
 
 Operator Insert::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                       catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
@@ -524,7 +524,7 @@ Operator Insert::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t n
 }
 
 common::hash_t Insert::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
@@ -538,7 +538,7 @@ common::hash_t Insert::Hash() const {
   return hash;
 }
 
-bool Insert::operator==(const BaseOperatorNode &r) {
+bool Insert::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::INSERT) return false;
   const Insert &node = *dynamic_cast<const Insert *>(&r);
   if (database_oid_ != node.database_oid_) return false;
@@ -552,7 +552,7 @@ bool Insert::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // InsertSelect
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *InsertSelect::Copy() const { return new InsertSelect(*this); }
+BaseOperatorNodeContents *InsertSelect::Copy() const { return new InsertSelect(*this); }
 
 Operator InsertSelect::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                             catalog::table_oid_t table_oid, std::vector<catalog::index_oid_t> &&index_oids) {
@@ -565,14 +565,14 @@ Operator InsertSelect::Make(catalog::db_oid_t database_oid, catalog::namespace_o
 }
 
 common::hash_t InsertSelect::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   return hash;
 }
 
-bool InsertSelect::operator==(const BaseOperatorNode &r) {
+bool InsertSelect::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::INSERTSELECT) return false;
   const InsertSelect &node = *dynamic_cast<const InsertSelect *>(&r);
   if (database_oid_ != node.database_oid_) return false;
@@ -584,7 +584,7 @@ bool InsertSelect::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // Delete
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *Delete::Copy() const { return new Delete(*this); }
+BaseOperatorNodeContents *Delete::Copy() const { return new Delete(*this); }
 
 Operator Delete::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
                       catalog::table_oid_t table_oid) {
@@ -597,7 +597,7 @@ Operator Delete::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t n
 }
 
 common::hash_t Delete::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
@@ -605,7 +605,7 @@ common::hash_t Delete::Hash() const {
   return hash;
 }
 
-bool Delete::operator==(const BaseOperatorNode &r) {
+bool Delete::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::DELETE) return false;
   const Delete &node = *dynamic_cast<const Delete *>(&r);
   if (database_oid_ != node.database_oid_) return false;
@@ -616,7 +616,7 @@ bool Delete::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // Update
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *Update::Copy() const { return new Update(*this); }
+BaseOperatorNodeContents *Update::Copy() const { return new Update(*this); }
 
 Operator Update::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
                       catalog::table_oid_t table_oid,
@@ -631,7 +631,7 @@ Operator Update::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t n
 }
 
 common::hash_t Update::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
@@ -640,7 +640,7 @@ common::hash_t Update::Hash() const {
   return hash;
 }
 
-bool Update::operator==(const BaseOperatorNode &r) {
+bool Update::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::UPDATE) return false;
   const Update &node = *dynamic_cast<const Update *>(&r);
   if (database_oid_ != node.database_oid_) return false;
@@ -653,7 +653,7 @@ bool Update::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // ExportExternalFile
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *ExportExternalFile::Copy() const { return new ExportExternalFile(*this); }
+BaseOperatorNodeContents *ExportExternalFile::Copy() const { return new ExportExternalFile(*this); }
 
 Operator ExportExternalFile::Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
                                   char escape) {
@@ -666,7 +666,7 @@ Operator ExportExternalFile::Make(parser::ExternalFileFormat format, std::string
   return Operator(std::move(export_op));
 }
 
-bool ExportExternalFile::operator==(const BaseOperatorNode &r) {
+bool ExportExternalFile::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::EXPORTEXTERNALFILE) return false;
   const auto &export_op = *dynamic_cast<const ExportExternalFile *>(&r);
   return (format_ == export_op.format_ && file_name_ == export_op.file_name_ && delimiter_ == export_op.delimiter_ &&
@@ -674,7 +674,7 @@ bool ExportExternalFile::operator==(const BaseOperatorNode &r) {
 }
 
 common::hash_t ExportExternalFile::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(format_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(file_name_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(delimiter_));
@@ -686,7 +686,7 @@ common::hash_t ExportExternalFile::Hash() const {
 //===--------------------------------------------------------------------===//
 // HashGroupBy
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *HashGroupBy::Copy() const { return new HashGroupBy(*this); }
+BaseOperatorNodeContents *HashGroupBy::Copy() const { return new HashGroupBy(*this); }
 
 Operator HashGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
                            std::vector<AnnotatedExpression> &&having) {
@@ -696,7 +696,7 @@ Operator HashGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractEx
   return Operator(std::move(agg));
 }
 
-bool HashGroupBy::operator==(const BaseOperatorNode &r) {
+bool HashGroupBy::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::HASHGROUPBY) return false;
   const HashGroupBy &node = *static_cast<const HashGroupBy *>(&r);
   if (having_.size() != node.having_.size() || columns_.size() != node.columns_.size()) return false;
@@ -710,13 +710,13 @@ bool HashGroupBy::operator==(const BaseOperatorNode &r) {
 }
 
 common::hash_t HashGroupBy::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   for (auto &pred : having_) {
     auto expr = pred.GetExpr();
     if (expr)
       hash = common::HashUtil::SumHashes(hash, expr->Hash());
     else
-      hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+      hash = common::HashUtil::SumHashes(hash, BaseOperatorNodeContents::Hash());
   }
   for (auto &expr : columns_) hash = common::HashUtil::SumHashes(hash, expr->Hash());
   return hash;
@@ -725,7 +725,7 @@ common::hash_t HashGroupBy::Hash() const {
 //===--------------------------------------------------------------------===//
 // SortGroupBy
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *SortGroupBy::Copy() const { return new SortGroupBy(*this); }
+BaseOperatorNodeContents *SortGroupBy::Copy() const { return new SortGroupBy(*this); }
 
 Operator SortGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
                            std::vector<AnnotatedExpression> &&having) {
@@ -735,7 +735,7 @@ Operator SortGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractEx
   return Operator(std::move(agg));
 }
 
-bool SortGroupBy::operator==(const BaseOperatorNode &r) {
+bool SortGroupBy::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::SORTGROUPBY) return false;
   const SortGroupBy &node = *static_cast<const SortGroupBy *>(&r);
   if (having_.size() != node.having_.size() || columns_.size() != node.columns_.size()) return false;
@@ -749,13 +749,13 @@ bool SortGroupBy::operator==(const BaseOperatorNode &r) {
 }
 
 common::hash_t SortGroupBy::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   for (auto &pred : having_) {
     auto expr = pred.GetExpr();
     if (expr)
       hash = common::HashUtil::SumHashes(hash, expr->Hash());
     else
-      hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+      hash = common::HashUtil::SumHashes(hash, BaseOperatorNodeContents::Hash());
   }
   for (auto &expr : columns_) hash = common::HashUtil::SumHashes(hash, expr->Hash());
   return hash;
@@ -764,20 +764,20 @@ common::hash_t SortGroupBy::Hash() const {
 //===--------------------------------------------------------------------===//
 // Aggregate
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *Aggregate::Copy() const { return new Aggregate(*this); }
+BaseOperatorNodeContents *Aggregate::Copy() const { return new Aggregate(*this); }
 
 Operator Aggregate::Make() {
   auto agg = std::make_unique<Aggregate>();
   return Operator(std::move(agg));
 }
 
-bool Aggregate::operator==(const BaseOperatorNode &r) {
+bool Aggregate::operator==(const BaseOperatorNodeContents &r) {
   return (r.GetType() == OpType::AGGREGATE);
   // Again, there isn't any internal data so I guess we're always equal!
 }
 
 common::hash_t Aggregate::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   // I guess every Aggregate object hashes to the same thing?
   return hash;
 }
@@ -785,7 +785,7 @@ common::hash_t Aggregate::Hash() const {
 //===--------------------------------------------------------------------===//
 // CreateDatabase
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *CreateDatabase::Copy() const { return new CreateDatabase(*this); }
+BaseOperatorNodeContents *CreateDatabase::Copy() const { return new CreateDatabase(*this); }
 
 Operator CreateDatabase::Make(std::string database_name) {
   auto op = std::make_unique<CreateDatabase>();
@@ -794,12 +794,12 @@ Operator CreateDatabase::Make(std::string database_name) {
 }
 
 common::hash_t CreateDatabase::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_name_));
   return hash;
 }
 
-bool CreateDatabase::operator==(const BaseOperatorNode &r) {
+bool CreateDatabase::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::CREATEDATABASE) return false;
   const CreateDatabase &node = *dynamic_cast<const CreateDatabase *>(&r);
   return node.database_name_ == database_name_;
@@ -808,7 +808,7 @@ bool CreateDatabase::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // CreateTable
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *CreateTable::Copy() const { return new CreateTable(*this); }
+BaseOperatorNodeContents *CreateTable::Copy() const { return new CreateTable(*this); }
 
 Operator CreateTable::Make(catalog::namespace_oid_t namespace_oid, std::string table_name,
                            std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&columns,
@@ -822,7 +822,7 @@ Operator CreateTable::Make(catalog::namespace_oid_t namespace_oid, std::string t
 }
 
 common::hash_t CreateTable::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_name_));
   hash = common::HashUtil::CombineHashInRange(hash, columns_.begin(), columns_.end());
@@ -831,7 +831,7 @@ common::hash_t CreateTable::Hash() const {
   return hash;
 }
 
-bool CreateTable::operator==(const BaseOperatorNode &r) {
+bool CreateTable::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::CREATETABLE) return false;
   const CreateTable &node = *dynamic_cast<const CreateTable *>(&r);
   if (namespace_oid_ != node.namespace_oid_) return false;
@@ -850,7 +850,7 @@ bool CreateTable::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // CreateIndex
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *CreateIndex::Copy() const {
+BaseOperatorNodeContents *CreateIndex::Copy() const {
   std::vector<catalog::IndexSchema::Column> columns;
   for (auto &col : schema_->GetColumns()) {
     columns.emplace_back(col);
@@ -877,7 +877,7 @@ Operator CreateIndex::Make(catalog::namespace_oid_t namespace_oid, catalog::tabl
 }
 
 common::hash_t CreateIndex::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_name_));
@@ -885,7 +885,7 @@ common::hash_t CreateIndex::Hash() const {
   return hash;
 }
 
-bool CreateIndex::operator==(const BaseOperatorNode &r) {
+bool CreateIndex::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::CREATEINDEX) return false;
   const CreateIndex &node = *dynamic_cast<const CreateIndex *>(&r);
   if (namespace_oid_ != node.namespace_oid_) return false;
@@ -899,7 +899,7 @@ bool CreateIndex::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // CreateNamespace
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *CreateNamespace::Copy() const { return new CreateNamespace(*this); }
+BaseOperatorNodeContents *CreateNamespace::Copy() const { return new CreateNamespace(*this); }
 
 Operator CreateNamespace::Make(std::string namespace_name) {
   auto op = std::make_unique<CreateNamespace>();
@@ -908,12 +908,12 @@ Operator CreateNamespace::Make(std::string namespace_name) {
 }
 
 common::hash_t CreateNamespace::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_name_));
   return hash;
 }
 
-bool CreateNamespace::operator==(const BaseOperatorNode &r) {
+bool CreateNamespace::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::CREATENAMESPACE) return false;
   const CreateNamespace &node = *dynamic_cast<const CreateNamespace *>(&r);
   return node.namespace_name_ == namespace_name_;
@@ -922,7 +922,7 @@ bool CreateNamespace::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // CreateTrigger
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *CreateTrigger::Copy() const { return new CreateTrigger(*this); }
+BaseOperatorNodeContents *CreateTrigger::Copy() const { return new CreateTrigger(*this); }
 
 Operator CreateTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                              catalog::table_oid_t table_oid, std::string trigger_name,
@@ -943,7 +943,7 @@ Operator CreateTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_
 }
 
 common::hash_t CreateTrigger::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
@@ -956,7 +956,7 @@ common::hash_t CreateTrigger::Hash() const {
   return hash;
 }
 
-bool CreateTrigger::operator==(const BaseOperatorNode &r) {
+bool CreateTrigger::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::CREATETRIGGER) return false;
   const CreateTrigger &node = *dynamic_cast<const CreateTrigger *>(&r);
   if (database_oid_ != node.database_oid_) return false;
@@ -974,7 +974,7 @@ bool CreateTrigger::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // CreateView
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *CreateView::Copy() const { return new CreateView(*this); }
+BaseOperatorNodeContents *CreateView::Copy() const { return new CreateView(*this); }
 
 Operator CreateView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string view_name,
                           common::ManagedPointer<parser::SelectStatement> view_query) {
@@ -987,7 +987,7 @@ Operator CreateView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid
 }
 
 common::hash_t CreateView::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(view_name_));
@@ -995,7 +995,7 @@ common::hash_t CreateView::Hash() const {
   return hash;
 }
 
-bool CreateView::operator==(const BaseOperatorNode &r) {
+bool CreateView::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::CREATEVIEW) return false;
   const CreateView &node = *dynamic_cast<const CreateView *>(&r);
   if (database_oid_ != node.database_oid_) return false;
@@ -1008,7 +1008,7 @@ bool CreateView::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // CreateFunction
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *CreateFunction::Copy() const { return new CreateFunction(*this); }
+BaseOperatorNodeContents *CreateFunction::Copy() const { return new CreateFunction(*this); }
 
 Operator CreateFunction::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                               std::string function_name, parser::PLType language,
@@ -1032,7 +1032,7 @@ Operator CreateFunction::Make(catalog::db_oid_t database_oid, catalog::namespace
 }
 
 common::hash_t CreateFunction::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(function_name_));
@@ -1046,7 +1046,7 @@ common::hash_t CreateFunction::Hash() const {
   return hash;
 }
 
-bool CreateFunction::operator==(const BaseOperatorNode &r) {
+bool CreateFunction::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::CREATEFUNCTION) return false;
   const CreateFunction &node = *dynamic_cast<const CreateFunction *>(&r);
   if (database_oid_ != node.database_oid_) return false;
@@ -1064,7 +1064,7 @@ bool CreateFunction::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // DropDatabase
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *DropDatabase::Copy() const { return new DropDatabase(*this); }
+BaseOperatorNodeContents *DropDatabase::Copy() const { return new DropDatabase(*this); }
 
 Operator DropDatabase::Make(catalog::db_oid_t db_oid) {
   auto op = std::make_unique<DropDatabase>();
@@ -1073,12 +1073,12 @@ Operator DropDatabase::Make(catalog::db_oid_t db_oid) {
 }
 
 common::hash_t DropDatabase::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(db_oid_));
   return hash;
 }
 
-bool DropDatabase::operator==(const BaseOperatorNode &r) {
+bool DropDatabase::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::DROPDATABASE) return false;
   const DropDatabase &node = *dynamic_cast<const DropDatabase *>(&r);
   return node.db_oid_ == db_oid_;
@@ -1087,7 +1087,7 @@ bool DropDatabase::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // DropTable
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *DropTable::Copy() const { return new DropTable(*this); }
+BaseOperatorNodeContents *DropTable::Copy() const { return new DropTable(*this); }
 
 Operator DropTable::Make(catalog::table_oid_t table_oid) {
   auto op = std::make_unique<DropTable>();
@@ -1096,12 +1096,12 @@ Operator DropTable::Make(catalog::table_oid_t table_oid) {
 }
 
 common::hash_t DropTable::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   return hash;
 }
 
-bool DropTable::operator==(const BaseOperatorNode &r) {
+bool DropTable::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::DROPTABLE) return false;
   const DropTable &node = *dynamic_cast<const DropTable *>(&r);
   return node.table_oid_ == table_oid_;
@@ -1110,7 +1110,7 @@ bool DropTable::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // DropIndex
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *DropIndex::Copy() const { return new DropIndex(*this); }
+BaseOperatorNodeContents *DropIndex::Copy() const { return new DropIndex(*this); }
 
 Operator DropIndex::Make(catalog::index_oid_t index_oid) {
   auto op = std::make_unique<DropIndex>();
@@ -1119,12 +1119,12 @@ Operator DropIndex::Make(catalog::index_oid_t index_oid) {
 }
 
 common::hash_t DropIndex::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_oid_));
   return hash;
 }
 
-bool DropIndex::operator==(const BaseOperatorNode &r) {
+bool DropIndex::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::DROPINDEX) return false;
   const DropIndex &node = *dynamic_cast<const DropIndex *>(&r);
   return node.index_oid_ == index_oid_;
@@ -1133,7 +1133,7 @@ bool DropIndex::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // DropNamespace
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *DropNamespace::Copy() const { return new DropNamespace(*this); }
+BaseOperatorNodeContents *DropNamespace::Copy() const { return new DropNamespace(*this); }
 
 Operator DropNamespace::Make(catalog::namespace_oid_t namespace_oid) {
   auto op = std::make_unique<DropNamespace>();
@@ -1142,12 +1142,12 @@ Operator DropNamespace::Make(catalog::namespace_oid_t namespace_oid) {
 }
 
 common::hash_t DropNamespace::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   return hash;
 }
 
-bool DropNamespace::operator==(const BaseOperatorNode &r) {
+bool DropNamespace::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::DROPNAMESPACE) return false;
   const DropNamespace &node = *dynamic_cast<const DropNamespace *>(&r);
   return node.namespace_oid_ == namespace_oid_;
@@ -1156,7 +1156,7 @@ bool DropNamespace::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // DropTrigger
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *DropTrigger::Copy() const { return new DropTrigger(*this); }
+BaseOperatorNodeContents *DropTrigger::Copy() const { return new DropTrigger(*this); }
 
 Operator DropTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                            catalog::trigger_oid_t trigger_oid, bool if_exists) {
@@ -1169,7 +1169,7 @@ Operator DropTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_oi
 }
 
 common::hash_t DropTrigger::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(trigger_oid_));
@@ -1177,7 +1177,7 @@ common::hash_t DropTrigger::Hash() const {
   return hash;
 }
 
-bool DropTrigger::operator==(const BaseOperatorNode &r) {
+bool DropTrigger::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::DROPTRIGGER) return false;
   const DropTrigger &node = *dynamic_cast<const DropTrigger *>(&r);
   if (database_oid_ != node.database_oid_) return false;
@@ -1189,7 +1189,7 @@ bool DropTrigger::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // DropView
 //===--------------------------------------------------------------------===//
-BaseOperatorNode *DropView::Copy() const { return new DropView(*this); }
+BaseOperatorNodeContents *DropView::Copy() const { return new DropView(*this); }
 
 Operator DropView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                         catalog::view_oid_t view_oid, bool if_exists) {
@@ -1202,7 +1202,7 @@ Operator DropView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t
 }
 
 common::hash_t DropView::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(view_oid_));
@@ -1210,7 +1210,7 @@ common::hash_t DropView::Hash() const {
   return hash;
 }
 
-bool DropView::operator==(const BaseOperatorNode &r) {
+bool DropView::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::DROPVIEW) return false;
   const DropView &node = *dynamic_cast<const DropView *>(&r);
   if (database_oid_ != node.database_oid_) return false;
@@ -1221,165 +1221,165 @@ bool DropView::operator==(const BaseOperatorNode &r) {
 
 //===--------------------------------------------------------------------===//
 template <typename T>
-void OperatorNode<T>::Accept(common::ManagedPointer<OperatorVisitor> v) const {
+void OperatorNodeContents<T>::Accept(common::ManagedPointer<OperatorVisitor> v) const {
   v->Visit(reinterpret_cast<const T *>(this));
 }
 
 //===--------------------------------------------------------------------===//
 template <>
-const char *OperatorNode<TableFreeScan>::name = "TableFreeScan";
+const char *OperatorNodeContents<TableFreeScan>::name = "TableFreeScan";
 template <>
-const char *OperatorNode<SeqScan>::name = "SeqScan";
+const char *OperatorNodeContents<SeqScan>::name = "SeqScan";
 template <>
-const char *OperatorNode<IndexScan>::name = "IndexScan";
+const char *OperatorNodeContents<IndexScan>::name = "IndexScan";
 template <>
-const char *OperatorNode<ExternalFileScan>::name = "ExternalFileScan";
+const char *OperatorNodeContents<ExternalFileScan>::name = "ExternalFileScan";
 template <>
-const char *OperatorNode<QueryDerivedScan>::name = "QueryDerivedScan";
+const char *OperatorNodeContents<QueryDerivedScan>::name = "QueryDerivedScan";
 template <>
-const char *OperatorNode<OrderBy>::name = "OrderBy";
+const char *OperatorNodeContents<OrderBy>::name = "OrderBy";
 template <>
-const char *OperatorNode<Limit>::name = "Limit";
+const char *OperatorNodeContents<Limit>::name = "Limit";
 template <>
-const char *OperatorNode<InnerNLJoin>::name = "InnerNLJoin";
+const char *OperatorNodeContents<InnerNLJoin>::name = "InnerNLJoin";
 template <>
-const char *OperatorNode<LeftNLJoin>::name = "LeftNLJoin";
+const char *OperatorNodeContents<LeftNLJoin>::name = "LeftNLJoin";
 template <>
-const char *OperatorNode<RightNLJoin>::name = "RightNLJoin";
+const char *OperatorNodeContents<RightNLJoin>::name = "RightNLJoin";
 template <>
-const char *OperatorNode<OuterNLJoin>::name = "OuterNLJoin";
+const char *OperatorNodeContents<OuterNLJoin>::name = "OuterNLJoin";
 template <>
-const char *OperatorNode<InnerHashJoin>::name = "InnerHashJoin";
+const char *OperatorNodeContents<InnerHashJoin>::name = "InnerHashJoin";
 template <>
-const char *OperatorNode<LeftHashJoin>::name = "LeftHashJoin";
+const char *OperatorNodeContents<LeftHashJoin>::name = "LeftHashJoin";
 template <>
-const char *OperatorNode<RightHashJoin>::name = "RightHashJoin";
+const char *OperatorNodeContents<RightHashJoin>::name = "RightHashJoin";
 template <>
-const char *OperatorNode<OuterHashJoin>::name = "OuterHashJoin";
+const char *OperatorNodeContents<OuterHashJoin>::name = "OuterHashJoin";
 template <>
-const char *OperatorNode<Insert>::name = "Insert";
+const char *OperatorNodeContents<Insert>::name = "Insert";
 template <>
-const char *OperatorNode<InsertSelect>::name = "InsertSelect";
+const char *OperatorNodeContents<InsertSelect>::name = "InsertSelect";
 template <>
-const char *OperatorNode<Delete>::name = "Delete";
+const char *OperatorNodeContents<Delete>::name = "Delete";
 template <>
-const char *OperatorNode<Update>::name = "Update";
+const char *OperatorNodeContents<Update>::name = "Update";
 template <>
-const char *OperatorNode<HashGroupBy>::name = "HashGroupBy";
+const char *OperatorNodeContents<HashGroupBy>::name = "HashGroupBy";
 template <>
-const char *OperatorNode<SortGroupBy>::name = "SortGroupBy";
+const char *OperatorNodeContents<SortGroupBy>::name = "SortGroupBy";
 template <>
-const char *OperatorNode<Aggregate>::name = "Aggregate";
+const char *OperatorNodeContents<Aggregate>::name = "Aggregate";
 template <>
-const char *OperatorNode<ExportExternalFile>::name = "ExportExternalFile";
+const char *OperatorNodeContents<ExportExternalFile>::name = "ExportExternalFile";
 template <>
-const char *OperatorNode<CreateDatabase>::name = "CreateDatabase";
+const char *OperatorNodeContents<CreateDatabase>::name = "CreateDatabase";
 template <>
-const char *OperatorNode<CreateTable>::name = "CreateTable";
+const char *OperatorNodeContents<CreateTable>::name = "CreateTable";
 template <>
-const char *OperatorNode<CreateIndex>::name = "CreateIndex";
+const char *OperatorNodeContents<CreateIndex>::name = "CreateIndex";
 template <>
-const char *OperatorNode<CreateFunction>::name = "CreateFunction";
+const char *OperatorNodeContents<CreateFunction>::name = "CreateFunction";
 template <>
-const char *OperatorNode<CreateNamespace>::name = "CreateNamespace";
+const char *OperatorNodeContents<CreateNamespace>::name = "CreateNamespace";
 template <>
-const char *OperatorNode<CreateTrigger>::name = "CreateTrigger";
+const char *OperatorNodeContents<CreateTrigger>::name = "CreateTrigger";
 template <>
-const char *OperatorNode<CreateView>::name = "CreateView";
+const char *OperatorNodeContents<CreateView>::name = "CreateView";
 template <>
-const char *OperatorNode<DropDatabase>::name = "DropDatabase";
+const char *OperatorNodeContents<DropDatabase>::name = "DropDatabase";
 template <>
-const char *OperatorNode<DropTable>::name = "DropTable";
+const char *OperatorNodeContents<DropTable>::name = "DropTable";
 template <>
-const char *OperatorNode<DropIndex>::name = "DropIndex";
+const char *OperatorNodeContents<DropIndex>::name = "DropIndex";
 template <>
-const char *OperatorNode<DropNamespace>::name = "DropNamespace";
+const char *OperatorNodeContents<DropNamespace>::name = "DropNamespace";
 template <>
-const char *OperatorNode<DropTrigger>::name = "DropTrigger";
+const char *OperatorNodeContents<DropTrigger>::name = "DropTrigger";
 template <>
-const char *OperatorNode<DropView>::name = "DropView";
+const char *OperatorNodeContents<DropView>::name = "DropView";
 
 //===--------------------------------------------------------------------===//
 template <>
-OpType OperatorNode<TableFreeScan>::type = OpType::TABLEFREESCAN;
+OpType OperatorNodeContents<TableFreeScan>::type = OpType::TABLEFREESCAN;
 template <>
-OpType OperatorNode<SeqScan>::type = OpType::SEQSCAN;
+OpType OperatorNodeContents<SeqScan>::type = OpType::SEQSCAN;
 template <>
-OpType OperatorNode<IndexScan>::type = OpType::INDEXSCAN;
+OpType OperatorNodeContents<IndexScan>::type = OpType::INDEXSCAN;
 template <>
-OpType OperatorNode<ExternalFileScan>::type = OpType::EXTERNALFILESCAN;
+OpType OperatorNodeContents<ExternalFileScan>::type = OpType::EXTERNALFILESCAN;
 template <>
-OpType OperatorNode<QueryDerivedScan>::type = OpType::QUERYDERIVEDSCAN;
+OpType OperatorNodeContents<QueryDerivedScan>::type = OpType::QUERYDERIVEDSCAN;
 template <>
-OpType OperatorNode<OrderBy>::type = OpType::ORDERBY;
+OpType OperatorNodeContents<OrderBy>::type = OpType::ORDERBY;
 template <>
-OpType OperatorNode<Limit>::type = OpType::LIMIT;
+OpType OperatorNodeContents<Limit>::type = OpType::LIMIT;
 template <>
-OpType OperatorNode<InnerNLJoin>::type = OpType::INNERNLJOIN;
+OpType OperatorNodeContents<InnerNLJoin>::type = OpType::INNERNLJOIN;
 template <>
-OpType OperatorNode<LeftNLJoin>::type = OpType::LEFTNLJOIN;
+OpType OperatorNodeContents<LeftNLJoin>::type = OpType::LEFTNLJOIN;
 template <>
-OpType OperatorNode<RightNLJoin>::type = OpType::RIGHTNLJOIN;
+OpType OperatorNodeContents<RightNLJoin>::type = OpType::RIGHTNLJOIN;
 template <>
-OpType OperatorNode<OuterNLJoin>::type = OpType::OUTERNLJOIN;
+OpType OperatorNodeContents<OuterNLJoin>::type = OpType::OUTERNLJOIN;
 template <>
-OpType OperatorNode<InnerHashJoin>::type = OpType::INNERHASHJOIN;
+OpType OperatorNodeContents<InnerHashJoin>::type = OpType::INNERHASHJOIN;
 template <>
-OpType OperatorNode<LeftHashJoin>::type = OpType::LEFTHASHJOIN;
+OpType OperatorNodeContents<LeftHashJoin>::type = OpType::LEFTHASHJOIN;
 template <>
-OpType OperatorNode<RightHashJoin>::type = OpType::RIGHTHASHJOIN;
+OpType OperatorNodeContents<RightHashJoin>::type = OpType::RIGHTHASHJOIN;
 template <>
-OpType OperatorNode<OuterHashJoin>::type = OpType::OUTERHASHJOIN;
+OpType OperatorNodeContents<OuterHashJoin>::type = OpType::OUTERHASHJOIN;
 template <>
-OpType OperatorNode<Insert>::type = OpType::INSERT;
+OpType OperatorNodeContents<Insert>::type = OpType::INSERT;
 template <>
-OpType OperatorNode<InsertSelect>::type = OpType::INSERTSELECT;
+OpType OperatorNodeContents<InsertSelect>::type = OpType::INSERTSELECT;
 template <>
-OpType OperatorNode<Delete>::type = OpType::DELETE;
+OpType OperatorNodeContents<Delete>::type = OpType::DELETE;
 template <>
-OpType OperatorNode<Update>::type = OpType::UPDATE;
+OpType OperatorNodeContents<Update>::type = OpType::UPDATE;
 template <>
-OpType OperatorNode<HashGroupBy>::type = OpType::HASHGROUPBY;
+OpType OperatorNodeContents<HashGroupBy>::type = OpType::HASHGROUPBY;
 template <>
-OpType OperatorNode<SortGroupBy>::type = OpType::SORTGROUPBY;
+OpType OperatorNodeContents<SortGroupBy>::type = OpType::SORTGROUPBY;
 template <>
-OpType OperatorNode<Aggregate>::type = OpType::AGGREGATE;
+OpType OperatorNodeContents<Aggregate>::type = OpType::AGGREGATE;
 template <>
-OpType OperatorNode<ExportExternalFile>::type = OpType::EXPORTEXTERNALFILE;
+OpType OperatorNodeContents<ExportExternalFile>::type = OpType::EXPORTEXTERNALFILE;
 template <>
-OpType OperatorNode<CreateDatabase>::type = OpType::CREATEDATABASE;
+OpType OperatorNodeContents<CreateDatabase>::type = OpType::CREATEDATABASE;
 template <>
-OpType OperatorNode<CreateTable>::type = OpType::CREATETABLE;
+OpType OperatorNodeContents<CreateTable>::type = OpType::CREATETABLE;
 template <>
-OpType OperatorNode<CreateIndex>::type = OpType::CREATEINDEX;
+OpType OperatorNodeContents<CreateIndex>::type = OpType::CREATEINDEX;
 template <>
-OpType OperatorNode<CreateFunction>::type = OpType::CREATEFUNCTION;
+OpType OperatorNodeContents<CreateFunction>::type = OpType::CREATEFUNCTION;
 template <>
-OpType OperatorNode<CreateNamespace>::type = OpType::CREATENAMESPACE;
+OpType OperatorNodeContents<CreateNamespace>::type = OpType::CREATENAMESPACE;
 template <>
-OpType OperatorNode<CreateTrigger>::type = OpType::CREATETRIGGER;
+OpType OperatorNodeContents<CreateTrigger>::type = OpType::CREATETRIGGER;
 template <>
-OpType OperatorNode<CreateView>::type = OpType::CREATEVIEW;
+OpType OperatorNodeContents<CreateView>::type = OpType::CREATEVIEW;
 template <>
-OpType OperatorNode<DropDatabase>::type = OpType::DROPDATABASE;
+OpType OperatorNodeContents<DropDatabase>::type = OpType::DROPDATABASE;
 template <>
-OpType OperatorNode<DropTable>::type = OpType::DROPTABLE;
+OpType OperatorNodeContents<DropTable>::type = OpType::DROPTABLE;
 template <>
-OpType OperatorNode<DropIndex>::type = OpType::DROPINDEX;
+OpType OperatorNodeContents<DropIndex>::type = OpType::DROPINDEX;
 template <>
-OpType OperatorNode<DropNamespace>::type = OpType::DROPNAMESPACE;
+OpType OperatorNodeContents<DropNamespace>::type = OpType::DROPNAMESPACE;
 template <>
-OpType OperatorNode<DropTrigger>::type = OpType::DROPTRIGGER;
+OpType OperatorNodeContents<DropTrigger>::type = OpType::DROPTRIGGER;
 template <>
-OpType OperatorNode<DropView>::type = OpType::DROPVIEW;
+OpType OperatorNodeContents<DropView>::type = OpType::DROPVIEW;
 
 template <typename T>
-bool OperatorNode<T>::IsLogical() const {
+bool OperatorNodeContents<T>::IsLogical() const {
   return type < OpType::LOGICALPHYSICALDELIMITER;
 }
 
 template <typename T>
-bool OperatorNode<T>::IsPhysical() const {
+bool OperatorNodeContents<T>::IsPhysical() const {
   return type > OpType::LOGICALPHYSICALDELIMITER;
 }
 

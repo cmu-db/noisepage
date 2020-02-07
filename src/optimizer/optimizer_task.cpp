@@ -161,12 +161,12 @@ void ApplyRule::Execute() {
     }
 
     // Caller frees after
-    std::vector<std::unique_ptr<OperatorExpression>> after;
+    std::vector<std::unique_ptr<OperatorNode>> after;
     rule_->Transform(common::ManagedPointer(before.get()), &after, context_);
     for (const auto &new_expr : after) {
       GroupExpression *new_gexpr = nullptr;
       auto g_id = group_expr_->GetGroupID();
-      if (context_->GetOptimizerContext()->RecordOperatorExpressionIntoGroup(common::ManagedPointer(new_expr.get()),
+      if (context_->GetOptimizerContext()->RecordOperatorNodeIntoGroup(common::ManagedPointer(new_expr.get()),
                                                                              &new_gexpr, g_id)) {
         // A new group expression is generated
         if (new_gexpr->Op().IsLogical()) {
@@ -396,7 +396,7 @@ void TopDownRewrite::Execute() {
     if (iterator.HasNext()) {
       auto before = iterator.Next();
       TERRIER_ASSERT(!iterator.HasNext(), "there should only be 1 binding");
-      std::vector<std::unique_ptr<OperatorExpression>> after;
+      std::vector<std::unique_ptr<OperatorNode>> after;
       rule->Transform(common::ManagedPointer(before.get()), &after, context_);
 
       // Rewrite rule should provide at most 1 expression
@@ -453,7 +453,7 @@ void BottomUpRewrite::Execute() {
     if (iterator.HasNext()) {
       auto before = iterator.Next();
       TERRIER_ASSERT(!iterator.HasNext(), "should only bind to 1");
-      std::vector<std::unique_ptr<OperatorExpression>> after;
+      std::vector<std::unique_ptr<OperatorNode>> after;
       rule->Transform(common::ManagedPointer(before.get()), &after, context_);
 
       // Rewrite rule should provide at most 1 expression

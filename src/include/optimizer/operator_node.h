@@ -17,23 +17,23 @@ class OperatorVisitor;
 /**
  * Base class for operators
  */
-class BaseOperatorNode {
+class BaseOperatorNodeContents {
  public:
   /**
    * Default constructor
    */
-  BaseOperatorNode() = default;
+  BaseOperatorNodeContents() = default;
 
   /**
    * Default destructor
    */
-  virtual ~BaseOperatorNode() = default;
+  virtual ~BaseOperatorNodeContents() = default;
 
   /**
    * Copy
    * @returns copy of this
    */
-  virtual BaseOperatorNode *Copy() const = 0;
+  virtual BaseOperatorNodeContents *Copy() const = 0;
 
   /**
    * Utility method for visitor pattern
@@ -74,14 +74,14 @@ class BaseOperatorNode {
    * @param r other
    * @return true if this operator is logically equal to other, false otherwise
    */
-  virtual bool operator==(const BaseOperatorNode &r) { return GetType() == r.GetType(); }
+  virtual bool operator==(const BaseOperatorNodeContents &r) { return GetType() == r.GetType(); }
 
   /**
    * Inequality check
    * @param r other
    * @return true if this operator is logically not equal to other, false otherwise
    */
-  virtual bool operator!=(const BaseOperatorNode &r) { return !operator==(r); }
+  virtual bool operator!=(const BaseOperatorNodeContents &r) { return !operator==(r); }
 };
 
 /**
@@ -89,7 +89,7 @@ class BaseOperatorNode {
  * @tparam T an operator type
  */
 template <typename T>
-class OperatorNode : public BaseOperatorNode {
+class OperatorNodeContents : public BaseOperatorNodeContents {
  protected:
   /**
    * Utility method for applying visitor pattern on the underlying operator
@@ -101,7 +101,7 @@ class OperatorNode : public BaseOperatorNode {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override = 0;
+  BaseOperatorNodeContents *Copy() const override = 0;
 
   /**
    * @return string name of the underlying operator
@@ -149,7 +149,7 @@ class Operator {
    * Create a new operator from a BaseOperatorNode
    * @param node a BaseOperatorNode that specifies basic information about the operator to be created
    */
-  explicit Operator(std::unique_ptr<BaseOperatorNode> node);
+  explicit Operator(std::unique_ptr<BaseOperatorNodeContents> node);
 
   /**
    * Move constructor
@@ -160,7 +160,7 @@ class Operator {
   /**
    * Copy constructor for Operator
    */
-  Operator(const Operator &op) : node_(op.node_->Copy()) {}
+  Operator(const Operator &op) : contents_(op.contents_->Copy()) {}
 
   /**
    * Calls corresponding visitor to this operator node
@@ -218,10 +218,10 @@ class Operator {
    */
   template <typename T>
   common::ManagedPointer<T> As() const {
-    if (node_) {
-      auto &n = *node_;
+    if (contents_) {
+      auto &n = *contents_;
       if (typeid(n) == typeid(T)) {
-        return common::ManagedPointer<T>(reinterpret_cast<T *>(node_.get()));
+        return common::ManagedPointer<T>(reinterpret_cast<T *>(contents_.get()));
       }
     }
     return nullptr;
@@ -231,7 +231,7 @@ class Operator {
   /**
    * Pointer to the base operator
    */
-  std::unique_ptr<BaseOperatorNode> node_;
+  std::unique_ptr<BaseOperatorNodeContents> contents_;
 };
 }  // namespace terrier::optimizer
 
@@ -241,11 +241,11 @@ namespace std {
  * Hash function object of a BaseOperatorNode
  */
 template <>
-struct hash<terrier::optimizer::BaseOperatorNode> {
+struct hash<terrier::optimizer::BaseOperatorNodeContents> {
   /**
    * Argument type of the base operator
    */
-  using argument_type = terrier::optimizer::BaseOperatorNode;
+  using argument_type = terrier::optimizer::BaseOperatorNodeContents;
 
   /**
    * Result type of the base operator

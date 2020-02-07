@@ -19,7 +19,7 @@ namespace terrier::optimizer {
 /**
  * GroupExpression used to represent a particular logical or physical
  * operator expression within a group that abstracts away the specific
- * OperatorExpression of a Group.
+ * OperatorNode of a Group.
  */
 class GroupExpression {
  public:
