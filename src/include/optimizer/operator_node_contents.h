@@ -149,7 +149,7 @@ class Operator {
    * Create a new operator from a BaseOperatorNode
    * @param node a BaseOperatorNode that specifies basic information about the operator to be created
    */
-  explicit Operator(std::unique_ptr<BaseOperatorNodeContents> node);
+  explicit Operator(std::unique_ptr<BaseOperatorNodeContents> contents);
 
   /**
    * Move constructor

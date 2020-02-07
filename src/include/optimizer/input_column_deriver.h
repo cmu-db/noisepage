@@ -13,7 +13,7 @@ namespace terrier::optimizer {
 
 class PropertySet;
 class GroupExpression;
-class OperatorExpression;
+class OperatorNode;
 class Memo;
 
 /**
