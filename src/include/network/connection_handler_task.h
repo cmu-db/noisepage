@@ -51,16 +51,19 @@ class ConnectionHandlerTask : public common::NotifiableTask {
    * This method will create the necessary data structure for the client and
    * register its event base to receive updates with appropriate callbacks
    * when the client writes to the socket.
-   *
+   *[
    * @param new_conn_recv_fd the socket fd of the new connection
    * @param flags unused. For compliance with libevent callback interface.
    */
   void HandleDispatch(int new_conn_recv_fd, int16_t flags);
 
  private:
-  // TODO(Tianyu): This is broken and needs to be fixed. See #413
-  int client_fd_;
-  std::unique_ptr<ProtocolInterpreter> protocol_interpreter_;
+  // using this instead of the Common::ConcurrentQueue as the overhead is not worth
+  // for the common case where there is no contention
+  common::SpinLatch jobs_latch_;
+  std::deque<std::pair<int, std::unique_ptr<ProtocolInterpreter>>> jobs_;
+  //  client_fd_;
+  //  std::unique_ptr<ProtocolInterpreter> protocol_interpreter_;
   event *notify_event_;
   common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory_;
 };

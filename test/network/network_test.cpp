@@ -2,6 +2,7 @@
 #include <memory>
 #include <pqxx/pqxx>  // NOLINT
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "common/managed_pointer.h"
@@ -243,6 +244,27 @@ TEST_F(NetworkTests, LargePacketsTest) {
     NETWORK_LOG_ERROR("[LargePacketstest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
+}
+
+// NOLINTNEXTLINE
+TEST_F(NetworkTests, RacerTest) {
+  std::vector<std::thread> threads;
+  for (size_t i = 0; i < 8; i++) {
+    threads.emplace_back([=] {
+      try {
+        auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
+        auto io_socket = common::ManagedPointer(io_socket_unique_ptr);
+        ManualPacketUtil::TerminateConnection(io_socket->GetSocketFd());
+        io_socket->Close();
+      } catch (const std::exception &e) {
+        EXPECT_TRUE(false);
+      }
+    });
+  }
+  for (auto &t : threads) {
+    t.join();
+  }
+  EXPECT_TRUE(true);
 }
 
 /**
