@@ -146,8 +146,8 @@ class Operator {
   Operator() noexcept;
 
   /**
-   * Create a new operator from a BaseOperatorNode
-   * @param node a BaseOperatorNode that specifies basic information about the operator to be created
+   * Create a new operator from a BaseOperatorNodeContents
+   * @param contents a BaseOperatorNodeContents that specifies basic info about the operator to be created
    */
   explicit Operator(std::unique_ptr<BaseOperatorNodeContents> contents);
 
@@ -238,7 +238,7 @@ class Operator {
 namespace std {
 
 /**
- * Hash function object of a BaseOperatorNode
+ * Hash function object of a BaseOperatorNodeContents
  */
 template <>
 struct hash<terrier::optimizer::BaseOperatorNodeContents> {
@@ -253,8 +253,8 @@ struct hash<terrier::optimizer::BaseOperatorNodeContents> {
   using result_type = std::size_t;
 
   /**
-   * std::hash operator for BaseOperatorNode
-   * @param s a BaseOperatorNode
+   * std::hash operator for BaseOperatorNodeContents
+   * @param s a BaseOperatorNodeContents
    * @return hashed value
    */
   result_type operator()(argument_type const &s) const { return s.Hash(); }
