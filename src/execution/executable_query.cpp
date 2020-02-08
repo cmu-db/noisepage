@@ -38,6 +38,7 @@ ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractP
   region_ = codegen.ReleaseRegion();
   ast_ctx_ = codegen.ReleaseContext();
   operating_units_storage_ = codegen.ReleaseOperatingUnitsStorage();
+  exec_ctx->SetOperatingUnitsStorage(common::ManagedPointer(operating_units_storage_));
 }
 
 ExecutableQuery::ExecutableQuery(const std::string &filename, const common::ManagedPointer<exec::ExecutionContext>
@@ -103,6 +104,7 @@ void ExecutableQuery::Run(const common::ManagedPointer<exec::ExecutionContext> e
   }
   auto result = main(exec_ctx.Get());
   EXECUTION_LOG_DEBUG("main() returned: {}", result);
+  exec_ctx->SetOperatingUnitsStorage(nullptr);
 }
 
 }  // namespace terrier::execution

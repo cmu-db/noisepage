@@ -804,7 +804,7 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, UNUSED_ATTRIBUT
   }
 
   if (builtin == ast::Builtin::ExecutionContextEndPipelineTracker) {
-    expected_arg_count = 4;
+    expected_arg_count = 3;
   }
 
   if (!CheckArgCount(call, expected_arg_count)) {
@@ -836,12 +836,6 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, UNUSED_ATTRIBUT
       // pipeline_id
       if (!call_args[2]->IsIntegerLiteral()) {
         ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Uint64));
-        return;
-      }
-      // OperatingUnitsStorage
-      auto oustorage_kind = ast::BuiltinType::OperatingUnitsStorage;
-      if (!call_args[3]->GetType()->IsPointerType() && !call_args[3]->GetType()->IsNilType()) {
-        ReportIncorrectCallArg(call, 3, GetBuiltinType(oustorage_kind)->PointerTo());
         return;
       }
     }

@@ -49,15 +49,9 @@ ast::Decl *Pipeline::Produce(query_id_t query_id, pipeline_id_t pipeline_idx) {
   //}
 
   // Inject EndPipelineTracker();
-  auto ctx = codegen_->GetOperatingUnitsStorage();
-  auto strg = codegen_->NewIdentifier("oustorage");
-  ast::Expr *ptr_type = codegen_->PointerType(codegen_->BuiltinType(ast::BuiltinType::OperatingUnitsStorage));
-  builder.Append(codegen_->DeclareVariable(strg, ptr_type, codegen_->IntLiteral((uint64_t)ctx)));
-
   args = {codegen_->MakeExpr(codegen_->GetExecCtxVar())};
   args.push_back(codegen_->IntLiteral(!query_id));
   args.push_back(codegen_->IntLiteral(!pipeline_idx));
-  args.push_back(codegen_->MakeExpr(strg));
   auto end_call = codegen_->BuiltinCall(ast::Builtin::ExecutionContextEndPipelineTracker, std::move(args));
   builder.Append(codegen_->MakeStmt(end_call));
   return builder.Finish();

@@ -35,7 +35,7 @@ void ExecutionContext::EndResourceTracker(const char *name, uint32_t len) {
   }
 }
 
-void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pipeline, const brain::OperatingUnitsStorage &storage) {
+void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pipeline) {
   TERRIER_ASSERT(0, "Unimplemented EndPipelineTracker()");
   if (common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::EXECUTION)) {

@@ -136,9 +136,8 @@ class EXPORT ExecutionContext {
    * End the resource tracker for a pipeline and record the metrics
    * @param query_id query identifier
    * @param pipeline_id id of the pipeline
-   * @param storage Storage of static-analysis OperatingUnits
    */
-  void EndPipelineTracker(query_id_t query_id, pipeline_id_t pipeline_id, const brain::OperatingUnitsStorage &storage);
+  void EndPipelineTracker(query_id_t query_id, pipeline_id_t pipeline_id);
 
   /**
    * @return the db oid
@@ -177,6 +176,12 @@ class EXPORT ExecutionContext {
    */
   uint64_t &RowsAffected() { return rows_affected_; }
 
+  /**
+   * Set the OperatingUnitsStorage
+   * @param op OperatingUnitsStorage for executing the given query
+   */
+  void SetOperatingUnitsStorage(common::ManagedPointer<brain::OperatingUnitsStorage> op) { operating_units_storage_ = op; }
+
  private:
   catalog::db_oid_t db_oid_;
   common::ManagedPointer<transaction::TransactionContext> txn_;
@@ -184,6 +189,7 @@ class EXPORT ExecutionContext {
   std::unique_ptr<sql::MemoryPool> mem_pool_;
   std::unique_ptr<OutputBuffer> buffer_;
   StringAllocator string_allocator_;
+  common::ManagedPointer<brain::OperatingUnitsStorage> operating_units_storage_;
   common::ManagedPointer<catalog::CatalogAccessor> accessor_;
   uint8_t execution_mode_;
   std::vector<type::TransientValue> params_;
