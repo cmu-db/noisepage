@@ -58,4 +58,4 @@ class NameBuilder {
     }
 
 };
-}
+} // namespace terrier::catalog::postgres
