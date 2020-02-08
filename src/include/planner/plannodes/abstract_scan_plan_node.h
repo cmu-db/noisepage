@@ -101,7 +101,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   /**
    * Default constructor used for deserialization
    */
-  // AbstractScanPlanNode() {}// = default;
+  AbstractScanPlanNode() {}
 
   DISALLOW_COPY_AND_MOVE(AbstractScanPlanNode)
 

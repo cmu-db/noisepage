@@ -26,7 +26,7 @@ class AbstractPlanNode {
   template <class ConcreteType>
   class Builder {
    public:
-    Builder(plan_node_id_t plan_node_id):plan_node_id_(plan_node_id) {}
+    Builder() = default;
     virtual ~Builder() = default;
 
     /**
@@ -47,15 +47,6 @@ class AbstractPlanNode {
       return *dynamic_cast<ConcreteType *>(this);
     }
 
-    /**
-     * @param output_schema output plan node id for plan node
-     * @return builder object
-     */
-    ConcreteType &SetPlanNodeId(plan_node_id_t plan_node_id) {
-      plan_node_id_ = plan_node_id;
-      return *dynamic_cast<ConcreteType *>(this);
-    }
-
    protected:
     /**
      * child plans
@@ -68,7 +59,7 @@ class AbstractPlanNode {
     /**
      * plan node id
      */
-    plan_node_id_t plan_node_id_;
+    plan_node_id_t  plan_node_id_;
   };
 
   /**
@@ -76,8 +67,8 @@ class AbstractPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    */
-  AbstractPlanNode(std::vector<AbstractPlanNode> &&children, std::unique_ptr<OutputSchema> output_schema,
-                   plan_node_id_t plan_node_id)
+  AbstractPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                   std::unique_ptr<OutputSchema> output_schema, plan_node_id_t plan_node_id)
       : children_(std::move(children)), output_schema_(std::move(output_schema)), plan_node_id_(plan_node_id) {}
 
  public:

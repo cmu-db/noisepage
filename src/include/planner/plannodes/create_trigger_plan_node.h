@@ -117,7 +117,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
       return std::unique_ptr<CreateTriggerPlanNode>(new CreateTriggerPlanNode(
           std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, table_oid_,
           std::move(trigger_name_), std::move(trigger_funcnames_), std::move(trigger_args_),
-          std::move(trigger_columns_), trigger_when_, trigger_type_), plan_node_id_);
+          std::move(trigger_columns_), trigger_when_, trigger_type_, plan_node_id_));
     }
 
    protected:

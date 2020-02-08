@@ -18,11 +18,17 @@ class OperatorVisitor;
  * Base class for operators
  */
 class BaseOperatorNode {
- public:
+ private:
   /**
    * Default constructor
    */
   BaseOperatorNode(plan_node_id_t plan_node_id):plan_node_id_(plan_node_id) {}
+
+ public:
+  /**
+   * Default constructor
+   */
+  BaseOperatorNode() = default;
 
   /**
    * Default destructor
