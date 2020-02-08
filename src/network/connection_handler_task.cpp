@@ -15,6 +15,9 @@ ConnectionHandlerTask::ConnectionHandlerTask(const int task_id,
 
 void ConnectionHandlerTask::Notify(int conn_fd, std::unique_ptr<ProtocolInterpreter> protocol_interpreter) {
   {
+    /**
+     * this latch is needed to avoid a race condition with HandleDispatch consuming this deque in another thread
+     */
     common::SpinLatch::ScopedSpinLatch guard(&jobs_latch_);
     jobs_.emplace_back(conn_fd, std::move(protocol_interpreter));
   }

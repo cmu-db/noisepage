@@ -2,7 +2,7 @@
 #include <memory>
 #include <pqxx/pqxx>  // NOLINT
 #include <string>
-#include <thread>
+#include <thread>  // NOLINT
 #include <vector>
 
 #include "common/managed_pointer.h"
@@ -246,10 +246,16 @@ TEST_F(NetworkTests, LargePacketsTest) {
   }
 }
 
+/**
+ * This is meant to overload the network layer with multiple concurrent client threads. It was made to uncover
+ * a bug where ConnectionHandlerTask had a few race conditions amongst its fields. Two threads using the same
+ * ConnectionHandlerTask instance could corrupt its fields.
+ */
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, RacerTest) {
   std::vector<std::thread> threads;
-  for (size_t i = 0; i < 8; i++) {
+  threads.reserve(CONNECTION_THREAD_COUNT * 2);
+  for (size_t i = 0; i < CONNECTION_THREAD_COUNT * 2; i++) {
     threads.emplace_back([=] {
       try {
         auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
