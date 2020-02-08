@@ -81,7 +81,8 @@ class AggregatePlanNode : public AbstractPlanNode {
     std::unique_ptr<AggregatePlanNode> Build() {
       return std::unique_ptr<AggregatePlanNode>(
           new AggregatePlanNode(std::move(children_), std::move(output_schema_), std::move(groupby_terms_),
-                                having_clause_predicate_, std::move(aggregate_terms_), aggregate_strategy_));
+                                having_clause_predicate_, std::move(aggregate_terms_), aggregate_strategy_,
+                                plan_node_id_));
     }
 
    protected:
@@ -115,8 +116,9 @@ class AggregatePlanNode : public AbstractPlanNode {
   AggregatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                     std::unique_ptr<OutputSchema> output_schema, std::vector<GroupByTerm> groupby_terms,
                     common::ManagedPointer<parser::AbstractExpression> having_clause_predicate,
-                    std::vector<AggregateTerm> aggregate_terms, AggregateStrategyType aggregate_strategy)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)),
+                    std::vector<AggregateTerm> aggregate_terms, AggregateStrategyType aggregate_strategy,
+                    plan_node_id_t plan_node_id)
+      : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
         groupby_terms_(std::move(groupby_terms)),
         having_clause_predicate_(having_clause_predicate),
         aggregate_terms_(std::move(aggregate_terms)),

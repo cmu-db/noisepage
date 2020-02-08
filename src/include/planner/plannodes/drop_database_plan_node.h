@@ -41,7 +41,7 @@ class DropDatabasePlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<DropDatabasePlanNode> Build() {
       return std::unique_ptr<DropDatabasePlanNode>(
-          new DropDatabasePlanNode(std::move(children_), std::move(output_schema_), database_oid_));
+          new DropDatabasePlanNode(std::move(children_), std::move(output_schema_), database_oid_, plan_node_id_));
     }
 
    protected:
@@ -58,8 +58,9 @@ class DropDatabasePlanNode : public AbstractPlanNode {
    * @param database_oid OID of the database to drop
    */
   DropDatabasePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                       std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)), database_oid_(database_oid) {}
+                       std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+                       plan_node_id_t plan_node_id)
+      : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id), database_oid_(database_oid) {}
 
  public:
   /**

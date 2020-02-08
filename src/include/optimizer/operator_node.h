@@ -22,7 +22,7 @@ class BaseOperatorNode {
   /**
    * Default constructor
    */
-  BaseOperatorNode() = default;
+  BaseOperatorNode(plan_node_id_t plan_node_id):plan_node_id_(plan_node_id) {}
 
   /**
    * Default destructor
@@ -62,6 +62,11 @@ class BaseOperatorNode {
   virtual bool IsPhysical() const = 0;
 
   /**
+   * @return the operator's plan node id
+   */
+  const plan_node_id_t GetPlanNodeId() const {return plan_node_id_;}
+
+  /**
    * @return the hashed value of this operator
    */
   virtual common::hash_t Hash() const {
@@ -82,6 +87,9 @@ class BaseOperatorNode {
    * @return true if this operator is logically not equal to other, false otherwise
    */
   virtual bool operator!=(const BaseOperatorNode &r) { return !operator==(r); }
+
+ protected:
+   plan_node_id_t plan_node_id_;
 };
 
 /**

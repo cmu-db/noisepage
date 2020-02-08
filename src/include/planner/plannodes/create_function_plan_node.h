@@ -125,7 +125,7 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
       return std::unique_ptr<CreateFunctionPlanNode>(new CreateFunctionPlanNode(
           std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, language_,
           std::move(function_param_names_), std::move(function_param_types_), std::move(function_body_), is_replace_,
-          std::move(function_name_), return_type_, param_count_));
+          std::move(function_name_), return_type_, param_count_,plan_node_id_));
     }
 
    protected:
@@ -201,8 +201,9 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
                          std::vector<std::string> &&function_param_names,
                          std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
                          std::vector<std::string> &&function_body, bool is_replace, std::string function_name,
-                         parser::BaseFunctionParameter::DataType return_type, int param_count)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)),
+                         parser::BaseFunctionParameter::DataType return_type, int param_count,
+                         plan_node_id_t plan_node_id)
+      : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
         database_oid_(database_oid),
         namespace_oid_(namespace_oid),
         language_(language),

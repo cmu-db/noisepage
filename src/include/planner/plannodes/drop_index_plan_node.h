@@ -41,7 +41,7 @@ class DropIndexPlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<DropIndexPlanNode> Build() {
       return std::unique_ptr<DropIndexPlanNode>(
-          new DropIndexPlanNode(std::move(children_), std::move(output_schema_), index_oid_));
+          new DropIndexPlanNode(std::move(children_), std::move(output_schema_), index_oid_, plan_node_id_));
     }
 
    protected:
@@ -60,8 +60,9 @@ class DropIndexPlanNode : public AbstractPlanNode {
    * @param index_oid OID of the index to drop
    */
   DropIndexPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                    std::unique_ptr<OutputSchema> output_schema, catalog::index_oid_t index_oid)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)), index_oid_(index_oid) {}
+                    std::unique_ptr<OutputSchema> output_schema, catalog::index_oid_t index_oid,
+                    plan_node_id_t plan_node_id)
+      : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id), index_oid_(index_oid) {}
 
  public:
   /**

@@ -276,7 +276,7 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
       // 1. Collect stats needed and cache them in the group
       // 2. Calculate cost based on children's stats
       cur_total_cost_ += context_->GetOptimizerContext()->GetCostModel()->CalculateCost(
-          context_->GetOptimizerContext()->GetTxn(), &context_->GetOptimizerContext()->GetMemo(), group_expr_);
+          context_->GetOptimizerContext()->GetTxn(), &context_->GetOptimizerContext()->GetMemo(), group_expr_).cost_;
     }
 
     for (; cur_child_idx_ < static_cast<int>(group_expr_->GetChildrenGroupsSize()); cur_child_idx_++) {
@@ -349,7 +349,7 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
           extended_prop_set->AddProperty(prop->Copy());
           cur_total_cost_ += context_->GetOptimizerContext()->GetCostModel()->CalculateCost(
               context_->GetOptimizerContext()->GetTxn(), &context_->GetOptimizerContext()->GetMemo(),
-              memo_enforced_expr);
+              memo_enforced_expr).cost_;
 
           // Update hash tables for group and group expression
           memo_enforced_expr->SetLocalHashTable(extended_prop_set, {pre_output_prop_set}, cur_total_cost_);

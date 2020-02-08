@@ -14,6 +14,17 @@ class GroupExpression;
 class Memo;
 
 /**
+ * Storing statistics about a cost model
+ * Including cost and cardinalities of all plan nodes
+ */
+struct CostModelEstimate {
+  double cost_;
+  std::unordered_map<plan_node_id_t ,double> cardinalities_;
+
+  CostModelEstimate(double cost, std::unordered_map<plan_node_id_t ,double> &cardinalities)
+                  :cost_(cost), cardinalities_(cardinalities) {}
+};
+/**
  * Interface defining a cost model.
  * A cost model's primary entrypoint is CalculateCost()
  */
@@ -25,7 +36,7 @@ class AbstractCostModel : public OperatorVisitor {
    * @param memo Memo object containing all relevant groups
    * @param gexpr GroupExpression to calculate cost for
    */
-  virtual double CalculateCost(transaction::TransactionContext *txn, Memo *memo, GroupExpression *gexpr) = 0;
+  virtual CostModelEstimate CalculateCost(transaction::TransactionContext *txn, Memo *memo, GroupExpression *gexpr) = 0;
 };
 
 }  // namespace optimizer

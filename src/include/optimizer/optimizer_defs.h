@@ -16,6 +16,11 @@
 namespace terrier::optimizer {
 
 /**
+ * typedef for PlanNodeID
+ */
+STRONG_TYPEDEF(plan_node_id_t, int32_t);
+
+/**
  * typedef for GroupID
  */
 STRONG_TYPEDEF(group_id_t, int32_t);

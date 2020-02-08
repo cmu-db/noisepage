@@ -95,7 +95,7 @@ class PlanGenerator : public OperatorVisitor {
   void Visit(const QueryDerivedScan *op) override;
 
   /**
-   * Visitor function for a OrdreBy operator
+   * Visitor function for a OrderBy operator
    * @param op OrderBy operator being visited
    */
   void Visit(const OrderBy *op) override;
