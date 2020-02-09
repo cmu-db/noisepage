@@ -25,35 +25,51 @@ main() {
     echo "Script complete."
 }
 
+give_up() {
+    set +x
+    OS=$1
+    VERSION=$2
+    if [ ! -z "$VERSION" ]; then
+        VERSION=" $VERSION"
+    fi
+    
+    echo
+    echo "Unsupported distribution '${OS}${VERSION}'"
+    echo "Please contact our support team for additional help."
+    echo "Be sure to include the contents of this message."
+    echo "Platform: $(uname -a)"
+    echo
+    echo "https://github.com/cmu-db/terrier/issues"
+    echo
+    exit 1
+}
+
 install() {
   set -x
   UNAME=$(uname | tr "[:lower:]" "[:upper:]" )
+  VERSION=""
 
   case $UNAME in
     DARWIN) install_mac ;;
 
     LINUX)
-      version=$(cat /etc/os-release | grep VERSION_ID | cut -d '"' -f 2)
-      case $version in
-        18.04) install_linux ;;
-        *) give_up ;;
+      DISTRO=$(cat /etc/os-release | grep '^ID=' | cut -d '=' -f 2 | tr "[:lower:]" "[:upper:]" | tr -d '"')
+      VERSION=$(cat /etc/os-release | grep '^VERSION_ID=' | cut -d '"' -f 2)
+      
+      # We only support Ubuntu right now
+      [ "$DISTRO" != "UBUNTU" ] && give_up $DISTRO $VERSION
+      
+      # Check Ubuntu version
+      case $VERSION in
+        X8.04) install_linux ;;
+        19.04) install_linux ;;
+        X9.10) install_linux ;;
+        *) give_up $DISTRO $VERSION;;
       esac
       ;;
 
-    *) give_up ;;
+    *) give_up $UNAME $VERSION;;
   esac
-}
-
-give_up() {
-  set +x
-  echo "Unsupported distribution '$UNAME'"
-  echo "Please contact our support team for additional help."
-  echo "Be sure to include the contents of this message."
-  echo "Platform: $(uname -a)"
-  echo
-  echo "https://github.com/cmu-db/terrier/issues"
-  echo
-  exit 1
 }
 
 install_mac() {
