@@ -7,6 +7,7 @@
 #include "execution/compiler/translator_factory.h"
 #include "execution/sema/sema.h"
 #include "loggers/execution_logger.h"
+#include "brain/operating_unit_recorder.h"
 
 namespace terrier::execution::compiler {
 
@@ -53,9 +54,22 @@ ast::File *Compiler::Compile() {
   // Step 2: For each pipeline: Generate a pipeline function that performs the produce, consume logic
   // TODO(Amadou): This can actually be combined with the previous step to avoid the additional pass
   // over the list of pipelines. However, I find this easier to debug for now.
-  pipeline_id_t pipeline_idx = pipeline_id_t{0};
+  pipeline_id_t pipeline_cnt = pipeline_id_t{0};
   for (auto &pipeline : pipelines_) {
-    top_level.emplace_back(pipeline->Produce(query_identifier_, pipeline_idx++));
+    auto pipeline_idx = pipeline_cnt++;
+
+    brain::OperatingUnitRecorder recorder;
+    auto &translators = pipeline->GetTranslators();
+    for (const auto &translator : translators) {
+      recorder.RecordFromTranslator(common::ManagedPointer(translator));
+    }
+
+    // Record features
+    brain::OperatingUnit op_unit{pipeline_idx, recorder.ReleaseFeatures()};
+    codegen_->GetOperatingUnitsStorage()->RecordOperatingUnit(pipeline_idx, std::move(op_unit));
+
+    // Produce the actual pipeline
+    top_level.emplace_back(pipeline->Produce(query_identifier_, pipeline_idx));
   }
 
   // Step 3: Make the main function

@@ -826,6 +826,8 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, UNUSED_ATTRIBUT
         ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::StringVal));
         return;
       }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
     }
     case ast::Builtin::ExecutionContextEndPipelineTracker: {
       // query_id
@@ -838,6 +840,8 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, UNUSED_ATTRIBUT
         ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Uint64));
         return;
       }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
     }
     case ast::Builtin::ExecutionContextStartResourceTracker: {
       // Init returns nil

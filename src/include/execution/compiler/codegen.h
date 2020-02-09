@@ -101,6 +101,11 @@ class CodeGen {
   ast::Identifier GetExecCtxVar() { return exec_ctx_var_; }
 
   /**
+   * @return OperatingUnitsStorage instance
+   */
+  brain::OperatingUnitsStorage *GetOperatingUnitsStorage() { return operating_units_storage_.get(); }
+
+  /**
    * @return release ownership of the OperatingUnitsStorage instance
    */
   std::unique_ptr<brain::OperatingUnitsStorage> ReleaseOperatingUnitsStorage() { return std::move(operating_units_storage_); }

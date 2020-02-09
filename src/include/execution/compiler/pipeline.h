@@ -58,6 +58,12 @@ class Pipeline {
    */
   ast::Decl *Produce(query_id_t query_id, pipeline_id_t pipeline_idx);
 
+  /**
+   * Gets the vector of operators that make up the pipeline
+   * @return vector of pipeline operators
+   */
+  const std::vector<std::unique_ptr<OperatorTranslator>> &GetTranslators() const { return pipeline_; }
+
  private:
   CodeGen *codegen_;
   std::vector<std::unique_ptr<OperatorTranslator>> pipeline_{};

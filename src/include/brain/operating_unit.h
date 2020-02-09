@@ -42,9 +42,9 @@ class OperatingUnitsStorage {
  public:
   OperatingUnitsStorage() {}
 
-  void RecordPipeline(execution::pipeline_id_t pipeline, std::vector<OperatingUnitFeature> &&features) {
-    UNUSED_ATTRIBUTE auto res = units_.insert(std::make_pair(pipeline, OperatingUnit{pipeline, std::move(features)}));
-    TERRIER_ASSERT(res.second, "Recording duplicate pipeline into OperatingUnitsStorage");
+  void RecordOperatingUnit(execution::pipeline_id_t pipeline, OperatingUnit &&unit) {
+    UNUSED_ATTRIBUTE auto res = units_.insert(std::make_pair(pipeline, std::move(unit)));
+    TERRIER_ASSERT(res.second, "Recording duplicate pipeline entry into OperatingUnitsStorage");
   }
 
   const OperatingUnit &GetPipeline(execution::pipeline_id_t pipeline) const {
@@ -55,7 +55,6 @@ class OperatingUnitsStorage {
 
  private:
   std::unordered_map<execution::pipeline_id_t, OperatingUnit> units_{};
-
 };
 
 }  // namespace terrier::brain
