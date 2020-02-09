@@ -37,8 +37,8 @@ ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractP
   tpl_module_ = std::make_unique<vm::Module>(std::move(bytecode_module));
   region_ = codegen.ReleaseRegion();
   ast_ctx_ = codegen.ReleaseContext();
-  operating_units_storage_ = codegen.ReleaseOperatingUnitsStorage();
-  exec_ctx->SetOperatingUnitsStorage(common::ManagedPointer(operating_units_storage_));
+  operating_units_ = codegen.ReleaseOperatingUnits();
+  exec_ctx->SetOperatingUnits(common::ManagedPointer(operating_units_));
 }
 
 ExecutableQuery::ExecutableQuery(const std::string &filename, const common::ManagedPointer<exec::ExecutionContext>
@@ -93,6 +93,7 @@ ExecutableQuery::ExecutableQuery(const std::string &filename, const common::Mana
 
 void ExecutableQuery::Run(const common::ManagedPointer<exec::ExecutionContext> exec_ctx, const vm::ExecutionMode mode) {
   TERRIER_ASSERT(tpl_module_ != nullptr, "Trying to run a module that failed to compile.");
+  operating_units_->SetExecutionMode(mode);
 
   // Run the main function
   std::function<int64_t(exec::ExecutionContext *)> main;
@@ -104,7 +105,7 @@ void ExecutableQuery::Run(const common::ManagedPointer<exec::ExecutionContext> e
   }
   auto result = main(exec_ctx.Get());
   EXECUTION_LOG_DEBUG("main() returned: {}", result);
-  exec_ctx->SetOperatingUnitsStorage(nullptr);
+  exec_ctx->SetOperatingUnits(nullptr);
 }
 
 }  // namespace terrier::execution

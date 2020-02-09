@@ -83,7 +83,7 @@ class ExecutableQuery {
   // together.
   std::unique_ptr<util::Region> region_;
   std::unique_ptr<ast::Context> ast_ctx_;
-  std::unique_ptr<brain::OperatingUnitsStorage> operating_units_storage_;
+  std::unique_ptr<brain::OperatingUnits> operating_units_;
 
   // Used to specify the output for this query
   std::unique_ptr<exec::SampleOutput> sample_output_;

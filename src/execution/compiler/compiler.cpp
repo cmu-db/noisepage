@@ -65,8 +65,7 @@ ast::File *Compiler::Compile() {
     }
 
     // Record features
-    brain::OperatingUnit op_unit{pipeline_idx, recorder.ReleaseFeatures()};
-    codegen_->GetOperatingUnitsStorage()->RecordOperatingUnit(pipeline_idx, std::move(op_unit));
+    codegen_->GetOperatingUnits()->RecordOperatingUnit(pipeline_idx, recorder.ReleaseFeatures());
 
     // Produce the actual pipeline
     top_level.emplace_back(pipeline->Produce(query_identifier_, pipeline_idx));
