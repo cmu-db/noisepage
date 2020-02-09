@@ -134,8 +134,8 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
       }
     }
     auto limit_expr = std::make_unique<OperatorExpression>(
-        LogicalLimit::Make(op->GetSelectLimit()->GetOffset(), op->GetSelectLimit()->GetLimit(), std::move(sort_exprs),
-                           std::move(sort_direction)),
+        LogicalLimit::Make(std::max(op->GetSelectLimit()->GetOffset(), static_cast<int64_t>(0)),
+                           op->GetSelectLimit()->GetLimit(), std::move(sort_exprs), std::move(sort_direction)),
         std::vector<std::unique_ptr<OperatorExpression>>{});
     limit_expr->PushChild(std::move(output_expr_));
     output_expr_ = std::move(limit_expr);
