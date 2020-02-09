@@ -95,6 +95,11 @@ class AHTInfo {
  */
 class AggregateHelper {
  public:
+  /**
+   * Constructor
+   * @param codegen The code generator
+   * @param op The aggregate plan node
+   */
   AggregateHelper(CodeGen *codegen, const planner::AggregatePlanNode *op);
 
   /**

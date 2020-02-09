@@ -1543,7 +1543,6 @@ TEST_F(CompilerTest, SortWithLimitTest) {
                    .SetLimit(10)
                    .Build();
   }
-  std::cout << "LIMIT: " << static_cast<const planner::OrderByPlanNode *>(order_by.get())->HasLimit() << std::endl;
   // Checkers:
   // There should be 10 output rows because of the limit.
   // The output should be sorted by col2 ASC, then col1 DESC.
