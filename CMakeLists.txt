@@ -326,11 +326,12 @@ if (${CLANG_TIDY_FOUND})
     # note that clang-tidy automatically looks for a .clang-tidy file in parent directories
     add_custom_target(check-clang-tidy-diff
             git diff -U0 HEAD^ | ${BUILD_SUPPORT_DIR}/clang-tidy-diff.py -p1  # run LLVM's clang-tidy-diff script
-            -checks="$(cat ../.clang-tidy)"
+            -checks="$(cat ../.clang-tidy)"                                   # with checks in the current directory
             -clang-tidy-binary ${CLANG_TIDY_BIN}                              # using our clang-tidy binary
             -path ${CMAKE_BINARY_DIR}                                         # using cmake's generated compile commands
             -j 0                                                              # with as many threads as possible
-            WORKING_DIRECTORY ../
+            WORKING_DIRECTORY ../                                             # in the directory which contains the
+                                                                              #   source files
             )
     if (TERRIER_BUILD_BENCHMARKS)
         add_dependencies(check-clang-tidy benchmark gtest gflags)             # clang-tidy needs their headers to exist
