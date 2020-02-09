@@ -7,6 +7,7 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 #include "binder/binder_util.h"
 #include "catalog/catalog_accessor.h"
@@ -356,36 +357,36 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
           }
         }
 
-        std::vector<std::tuple<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>>> cols;
-        if (num_insert_columns == 0) {
+        std::vector<std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>>> cols;
+        if (num_insert_columns == 0) {  //already ordered
           // acc to schema
           // todo: insert into cols from shema cols and values
           for (int i = 0; i < num_values; i++) {
-            std::tuple<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> tuple =
-                std::make_tuple(table_schema.GetColumn(node->GetInsertColumns()->at(i)), values[i]);
-            cols.push_back(tuple);
+            std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> pair =
+                std::make_pair(table_schema.GetColumns()[i], values[i]);
+            cols.push_back(pair);
           }
         } else {
           // common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<AbstractExpression>>>>
           for (int i = 0; i < num_insert_columns; i++) {
-            std::tuple<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> tuple =
-                std::make_tuple(table_schema.GetColumn(node->GetInsertColumns()->at(i)), values[i]);
-            cols.push_back(tuple);
+            std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> pair =
+                std::make_pair(table_schema.GetColumn(node->GetInsertColumns()->at(i)), values[i]);
+            cols.push_back(pair);
           }
 
           sort(cols.begin(), cols.end(),
-               [](const std::tuple<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> &a,
-                  const std::tuple<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> &b)
-                   -> bool { return std::get<0>(a).Oid() < std::get<0>(b).Oid(); });
+               [](const std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> &a,
+                  const std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> &b)
+                   -> bool { return a.first.Oid() < b.first.Oid(); });
 
           // insert_columns->clear();
           // insert_values->clear();
 
           std::vector<std::string> ins_col;
           std::vector<common::ManagedPointer<parser::AbstractExpression>> ins_val;
-          for (auto tuple : cols) {
-            ins_col.push_back(std::get<0>(tuple).Name());
-            ins_val.push_back(std::get<1>(tuple));
+          for (auto pair : cols) {
+            ins_col.push_back(pair.first.Name());
+            ins_val.push_back(pair.second);
           }
 
           insert_columns = &ins_col;
@@ -393,8 +394,8 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
         }
 
         for (size_t i = 0; i < cols.size(); i++) {
-          auto ins_col = std::get<0>(cols[i]);
-          auto ins_val = std::get<1>(cols[i]);
+          auto ins_col = cols[i].first;
+          auto ins_val = cols[i].second;
 
           auto ret_type = ins_val->GetReturnValueType();
           auto expected_ret_type = ins_col.Type();
@@ -403,17 +404,18 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
           auto mismatched_type = ret_type != expected_ret_type;
 
           if (is_cast_expression || mismatched_type) {
-            auto converted = BinderUtil::Convert(values[i], expected_ret_type);
-            TERRIER_ASSERT(converted != nullptr, "Conversion cannot be null!");
-            values[i] = common::ManagedPointer(converted);
-            parse_result->AddExpression(std::move(converted));
-          }
+            if (ins_val->GetExpressionType() == parser::ExpressionType::VALUE_DEFAULT) {
+              std::unique_ptr<parser::AbstractExpression> temp = ins_col.StoredExpression()->Copy();
 
-          if (ins_val->GetExpressionType() == parser::ExpressionType::VALUE_DEFAULT) {
-            std::unique_ptr<parser::AbstractExpression> temp = ins_col.StoredExpression()->Copy();
-
-            values[i] = common::ManagedPointer(temp);
-            parse_result->AddExpression(std::move(temp));
+              values[i] = common::ManagedPointer(temp);
+              parse_result->AddExpression(std::move(temp));
+            }
+            else {
+              auto converted = BinderUtil::Convert(values[i], expected_ret_type);
+              TERRIER_ASSERT(converted != nullptr, "Conversion cannot be null!");
+              values[i] = common::ManagedPointer(converted);
+              parse_result->AddExpression(std::move(converted));
+            }
           }
         }
 
