@@ -20,7 +20,7 @@ struct DistinctEntry {
 
 
 fun distinctKeyCheck(old: *DistinctEntry, new: *Values) -> bool {
-  return old.elem == new.sum
+  return @sqlToBool(old.elem == new.sum)
 }
 
 
@@ -53,9 +53,8 @@ fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
         // Update the sum only if the value is distinct.
         var agg = @ptrCast(*DistinctEntry, @aggHTInsert(&state.distinct_table, hash_val))
         agg.elem = values.sum
-        @aggAdvance(&state.sum, &values.sum)
-      } else {
-        state.count = state.count + 1
+	var i = @intToSql(1)
+        @aggAdvance(&state.sum, &agg.elem)
       }
     }
   }
@@ -65,7 +64,9 @@ fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
 fun pipeline_2(execCtx: *ExecutionContext, state: *State) -> nil {
   var out = @ptrCast(*Values, @outputAlloc(execCtx))
   out.sum = @aggResult(&state.sum)
-  state.count = state.count + 1
+  for (var i : int64 = 0; @sqlToBool(i < out.sum); i = i + 1) {
+    state.count = state.count + 1
+  }
   @outputFinalize(execCtx)
 }
 

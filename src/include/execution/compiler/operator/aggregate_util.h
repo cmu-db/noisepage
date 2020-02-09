@@ -1,37 +1,90 @@
 #pragma once
 
+#include <memory>
+#include <unordered_map>
 #include <utility>
-#include "planner/plannodes/aggregate_plan_node.h"
+#include <vector>
 #include "execution/compiler/operator/operator_translator.h"
-
+#include "planner/plannodes/aggregate_plan_node.h"
 
 namespace terrier::execution::compiler {
 
 /**
  * Contains all information needed for an aggregation hash table..
  */
-class DistinctInfo {
+class AHTInfo {
  public:
-  explicit DistinctInfo(CodeGen *codegen)
-      : ht_(codegen->NewIdentifier("distinct_ht")),
-        struct_(codegen->NewIdentifier("DistinctStruct")),
-        key_check_(codegen->NewIdentifier("distictKeyCheckFn")),
-        entry_(codegen->NewIdentifier("distinct_entry")),
-        hash_val_(codegen->NewIdentifier("distinct_hash_val")) {}
+  /**
+   * Non distinct constructor.
+   * @param codegen The code generator
+   */
+  explicit AHTInfo(CodeGen *codegen) : AHTInfo(codegen, false, 0) {}
 
+  /**
+   * Generic constructor
+   * @param codegen The code generator
+   * @param is_distinct Whether this hash table is for a distinct aggregate.
+   * @param term_idx Index of the distinct aggregate.
+   */
+  explicit AHTInfo(CodeGen *codegen, bool is_distinct, uint32_t term_idx)
+      : is_distinct_(is_distinct),
+        term_idx_(term_idx),
+        ht_(codegen->NewIdentifier("aht")),
+        struct_(codegen->NewIdentifier("AHTStruct")),
+        key_check_(codegen->NewIdentifier("ahtKeyCheckFn")),
+        entry_(codegen->NewIdentifier("aht_entry")),
+        hash_val_(codegen->NewIdentifier("aht_hash_val")) {}
+
+  /**
+   * @return Whether the hash table is for a distinct aggregate.
+   */
+  bool IsDistinct() const { return is_distinct_; }
+
+  /**
+   * @return Index of the distinct aggregate.
+   */
+  uint32_t TermIdx() const {
+    TERRIER_ASSERT(is_distinct_, "Only Valid for distinct aggregates");
+    return term_idx_;
+  }
+
+  /**
+   * @return The hash table identifier
+   */
   const ast::Identifier &HT() const { return ht_; }
+
+  /**
+   * @return The type of the struct
+   */
   const ast::Identifier &StructType() const { return struct_; }
+
+  /**
+   * @return The key check function
+   */
   const ast::Identifier &KeyCheck() const { return key_check_; }
+
+  /**
+   * @return Identifier of a hash table entry
+   */
   const ast::Identifier &Entry() const { return entry_; }
+
+  /**
+   * @return Identifier of the hash value
+   */
   const ast::Identifier &HashVal() const { return hash_val_; }
+
  private:
-  // Hash table to check for duplicates.
+  // Whether this is a distinct aggregate
+  bool is_distinct_;
+  // Index of the distinct aggregate.
+  uint32_t term_idx_;
+  // Name of the hash table.
   ast::Identifier ht_;
-  // Types of entries of the hash hash table
+  // Types of entries of the hash table
   ast::Identifier struct_;
   // Key check function
   ast::Identifier key_check_;
-  // Single entry from the hash table
+  // Single entry from the hash table.
   ast::Identifier entry_;
   // Hash values for the hash table
   ast::Identifier hash_val_;
@@ -44,61 +97,111 @@ class AggregateHelper {
  public:
   AggregateHelper(CodeGen *codegen, const planner::AggregatePlanNode *op);
 
-
-  void InitDistinctTables(util::RegionVector<ast::Stmt *> *stmts);
-  void FreeDistinctTables(util::RegionVector<ast::Stmt *> *stmts);
+  /**
+   * Initialize all hash tables.
+   * @param stmts List of setup statements.
+   */
+  void InitAHTs(util::RegionVector<ast::Stmt *> *stmts);
 
   /**
-   * Generate the hash value for a distinct aggregate
-   * @param builder Current function builder
-   * @param term_idx index of the distinct aggregate.
+   * Free all hash tables.
+   * @param stmts List of teardown statements.
    */
-  void GenDistinctHashCall(FunctionBuilder* builder, uint32_t term_idx);
+  void FreeAHTs(util::RegionVector<ast::Stmt *> *stmts);
 
-  void GenGlobalHashCall(FunctionBuilder* builder);
+  /**
+   * Declare all hash tables.
+   * @param fields List of state fields.
+   */
+  void DeclareAHTs(util::RegionVector<ast::FieldDecl *> *fields);
 
-  void GenLookup(FunctionBuilder *builder,
-                 const ast::Identifier &ht,
-                 const ast::Identifier &hash_val,
-                 const ast::Identifier key_check_fn);
+  /**
+   * Generate the key check function of each hash table.
+   * @param decls List of top level declarations.
+   */
+  void GenKeyChecks(util::RegionVector<ast::Decl *> *decls);
 
-  void GenDistinctLookup(FunctionBuilder *builder, uint32_t term_idx);
+  /**
+   * Generate the input structs of each hash table.
+   * @param decls List of top level declarations.
+   */
+  void GenAHTStructs(util::RegionVector<ast::Decl *> *decls);
 
-  void GenDistinctStateFields(util::RegionVector<ast::FieldDecl *> *fields);
+  /**
+   * Generate the struct containing the values to aggregate and groub by.
+   * @param decls List of top level declarations.
+   */
+  void GenValuesStruct(util::RegionVector<ast::Decl *> *decls);
 
-  void GenAdvanceAggs(FunctionBuilder* builder);
+  /**
+   * Generate the hash value for each hash table.
+   * @param builder Current function builder
+   */
+  void GenHashCalls(FunctionBuilder *builder);
 
-  void GenHTStruct(util::RegionVector<ast::Decl *> *decls, const ast::Identifier& struct_name);
-  void GenDistinctStructs(util::RegionVector<ast::Decl *> *decls);
-  void GenValuesStructs(util::RegionVector<ast::Decl *> *decls);
+  /**
+   * Generate code to construct new hash table entries
+   * @param builder Current function builder
+   */
+  void GenConstruct(FunctionBuilder *builder);
 
-  void FillValues(FunctionBuilder *builder);
+  /**
+   * Fill the values that will be used to aggregate and group
+   * @param builder Current function builder
+   * @param translator The translator requesting the values.
+   */
+  void FillValues(FunctionBuilder *builder, OperatorTranslator *translator);
 
-  void GenDistinctKeyChecks(util::RegionVector<ast::Decl *> *decls);
+  /**
+   * Unconditionally advance non distinct aggregates.
+   * @param builder Current function builder.
+   */
+  void GenAdvanceNonDistinct(FunctionBuilder *builder);
 
+  /**
+   * @param term_idx Index of the aggregate.
+   * @return The identifier of the aggregate term.
+   */
+  const ast::Identifier &GetAggregate(uint32_t term_idx) const { return aggregates_[term_idx]; }
 
-  const ast::Identifier& GetAggregate(uint32_t term_idx) {return aggregates_[term_idx];}
-  const ast::Identifier& GetGroupBy(uint32_t term_idx) {return group_bys_[term_idx];}
-  const DistinctInfo* GetDistinctInfo(uint32_t term_idx) {return distinct_aggs_.at(term_idx).get(); }
+  /**
+   * @param term_idx Index of the group by term.
+   * @return The identifer of the group by term.
+   */
+  const ast::Identifier &GetGroupBy(uint32_t term_idx) const { return group_bys_[term_idx]; }
+
+  /**
+   * @return The info of the global hash table.
+   */
+  const AHTInfo *GetGlobalAHT() const { return &global_info_; }
 
  private:
+  /**
+   * Set groub by values in the given hash table entry.
+   * @param builder Current function builder.
+   * @param info The hash table to initialize
+   */
+  void InitGroupByValues(FunctionBuilder *builder, const AHTInfo *info);
 
-  void GenKeyCheckComparison(FunctionBuilder *builder, const ast::Identifier &entry);
-  void InitGroupByValues(FunctionBuilder* builder, const ast::Identifier& entry);
-  void AdvanceAgg(FunctionBuilder* builder, uint32_t term_idx);
+  /**
+   * Advance a distinct aggregate.
+   * @param builder Current function builder.
+   * @param info The hash table of the distinct aggregate
+   */
+  void AdvanceDistinct(FunctionBuilder *builder, const AHTInfo *info);
 
+  /**
+   * Initialize the aggregates of the global hash table.
+   * @param builder Current function builder.
+   */
+  void InitGlobalAggregates(FunctionBuilder *builder);
+
+  // The code generator
   CodeGen *codegen_;
+  // The aggregate operator
   const planner::AggregatePlanNode *op_;
-
   // An entry into the global hash table.
-  ast::Identifier global_entry_;
-  // The global struct type
-  ast::Identifier global_struct_;
-  // The global key check function
-  ast::Identifier global_key_check_;
-  // The global hash table.
-  ast::Identifier global_ht_;
-
+  AHTInfo global_info_;
   // Values that will be aggregated.
   ast::Identifier agg_values_;
   // Type of the values' struct.
@@ -108,6 +211,6 @@ class AggregateHelper {
   // Name of the groub by aggregate terms
   std::vector<ast::Identifier> aggregates_;
   // Information about distinct aggregates.
-  std::unordered_map<uint32_t, std::unique_ptr<DistinctInfo>> distinct_aggs_;
+  std::unordered_map<uint32_t, std::unique_ptr<AHTInfo>> distinct_aggs_;
 };
-}
+}  // namespace terrier::execution::compiler

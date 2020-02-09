@@ -53,7 +53,6 @@ class CompilerTest : public SqlBasedTest {
   static constexpr vm::ExecutionMode MODE = vm::ExecutionMode::Interpret;
 };
 
-/*
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleSeqScanTest) {
   // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1 WHERE col1 < 500 AND col2 >= 3;
@@ -623,7 +622,7 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
     planner::AggregatePlanNode::Builder builder;
     agg = builder.SetOutputSchema(std::move(schema))
               .AddGroupByTerm(agg_out.GetGroupByTerm("col2"))
-              .AddAggregateTerm(agg_out.GetAggTerm("col1"))
+              .AddAggregateTerm(agg_out.GetAggTerm("sum_col1"))
               .AddChild(std::move(seq_scan))
               .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
               .SetHavingClausePredicate(nullptr)
@@ -645,9 +644,98 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
   executable.Run(common::ManagedPointer(exec_ctx), MODE);
   multi_checker.CheckCorrectness();
 }
-*/
 
-/*
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, AggregateWithDistinctAndGroupByTest) {
+  // SELECT col2, SUM(col1), COUNT(DISTINCT col2), SUM(DISTINCT col1) FROM test_1 WHERE col1 < 1000 GROUP BY col2;
+  // Get accessor
+  auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
+  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+  auto table_schema = accessor->GetSchema(table_oid);
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
+  {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
+    // Get Table columns
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    seq_scan_out.AddOutput("col1", col1);
+    seq_scan_out.AddOutput("col2", col2);
+    auto schema = seq_scan_out.MakeSchema();
+    // Make predicate
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(1000));
+    // Build
+    planner::SeqScanPlanNode::Builder builder;
+    seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid})
+                   .SetScanPredicate(predicate)
+                   .SetIsForUpdateFlag(false)
+                   .SetNamespaceOid(NSOid())
+                   .SetTableOid(table_oid)
+                   .Build();
+  }
+  // Make the aggregate
+  std::unique_ptr<planner::AbstractPlanNode> agg;
+  OutputSchemaHelper agg_out{0, &expr_maker};
+  {
+    // Read previous output
+    auto col1 = seq_scan_out.GetOutput("col1");
+    auto col2 = seq_scan_out.GetOutput("col2");
+    // Add group by term
+    agg_out.AddGroupByTerm("col2", col2);
+    // Add aggregates
+    auto sum_col1 = expr_maker.AggSum(col1);
+    agg_out.AddAggTerm("sum_col1", sum_col1);
+    auto count_distinct_col2 = expr_maker.AggCount(col2, true);
+    agg_out.AddAggTerm("count_distinct_col2", count_distinct_col2);
+    auto sum_distinct_col1 = expr_maker.AggSum(col1, true);
+    agg_out.AddAggTerm("sum_distinct_col1", sum_distinct_col1);
+
+    // Make the output expressions
+    agg_out.AddOutput("col2", agg_out.GetGroupByTermForOutput("col2"));
+    agg_out.AddOutput("sum_col1", agg_out.GetAggTermForOutput("sum_col1"));
+    agg_out.AddOutput("count_distinct_col2", agg_out.GetAggTermForOutput("count_distinct_col2"));
+    agg_out.AddOutput("sum_distinct_col1", agg_out.GetAggTermForOutput("sum_distinct_col1"));
+    auto schema = agg_out.MakeSchema();
+    // Build
+    planner::AggregatePlanNode::Builder builder;
+    agg = builder.SetOutputSchema(std::move(schema))
+              .AddGroupByTerm(agg_out.GetGroupByTerm("col2"))
+              .AddAggregateTerm(agg_out.GetAggTerm("sum_col1"))
+              .AddAggregateTerm(agg_out.GetAggTerm("count_distinct_col2"))
+              .AddAggregateTerm(agg_out.GetAggTerm("sum_distinct_col1"))
+              .AddChild(std::move(seq_scan))
+              .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
+              .SetHavingClausePredicate(nullptr)
+              .Build();
+  }
+  // Make the checkers
+  // There should be 10 output rows.
+  NumChecker num_checker{10};
+  // The sum should be from 0 to 1000.
+  SingleIntSumChecker sum_checker{1, (1000 * 999) / 2};
+  // Group by key and count distinct aggregate are the same. So the output shouls always be one.
+  SingleIntComparisonChecker distinct_count_checker{std::equal_to<>(), 2, 1};
+  // Every key in col1 is unique, the sum and the sum(distinct) should be the same.
+  SingleIntSumChecker distinct_sum_checker{3, (1000 * 999) / 2};
+  MultiChecker multi_checker{
+      std::vector<OutputChecker *>{&num_checker, &sum_checker, &distinct_count_checker, &distinct_sum_checker}};
+
+  // Compile and Run
+  OutputStore store{&multi_checker, agg->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(agg->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
+
+  // Run & Check
+  auto executable = ExecutableQuery(common::ManagedPointer(agg), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  multi_checker.CheckCorrectness();
+}
+
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, CountStarTest) {
   // SELECT COUNT(*) FROM test_1;
@@ -725,12 +813,12 @@ TEST_F(CompilerTest, StaticAggregateTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetColumnOids({})
-        .SetScanPredicate(nullptr)
-        .SetIsForUpdateFlag(false)
-        .SetNamespaceOid(NSOid())
-        .SetTableOid(table_oid)
-        .Build();
+                   .SetColumnOids({})
+                   .SetScanPredicate(nullptr)
+                   .SetIsForUpdateFlag(false)
+                   .SetNamespaceOid(NSOid())
+                   .SetTableOid(table_oid)
+                   .Build();
   }
   // Make the aggregate
   std::unique_ptr<planner::AbstractPlanNode> agg;
@@ -749,12 +837,12 @@ TEST_F(CompilerTest, StaticAggregateTest) {
     // Build
     planner::AggregatePlanNode::Builder builder;
     agg = builder.SetOutputSchema(std::move(schema))
-        .AddAggregateTerm(agg_out.GetAggTerm("count_star"))
-        .AddAggregateTerm(agg_out.GetAggTerm("sum_col1"))
-        .AddChild(std::move(seq_scan))
-        .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
-        .SetHavingClausePredicate(nullptr)
-        .Build();
+              .AddAggregateTerm(agg_out.GetAggTerm("count_star"))
+              .AddAggregateTerm(agg_out.GetAggTerm("sum_col1"))
+              .AddChild(std::move(seq_scan))
+              .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
+              .SetHavingClausePredicate(nullptr)
+              .Build();
   }
   // Make the checkers
   // There should be only one output
@@ -776,11 +864,10 @@ TEST_F(CompilerTest, StaticAggregateTest) {
   executable.Run(common::ManagedPointer(exec_ctx), MODE);
   multi_checker.CheckCorrectness();
 }
-*/
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DistinctAggregateTest) {
-  // SELECT COUNT(DISTINCT colb), SUM(DISTINCT colb) FROM test_1;
+TEST_F(CompilerTest, StaticDistinctAggregateTest) {
+  // SELECT COUNT(DISTINCT colb), SUM(DISTINCT colb), COUNT(*) FROM test_1;
   // Get accessor
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
@@ -796,12 +883,12 @@ TEST_F(CompilerTest, DistinctAggregateTest) {
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
-        .SetColumnOids({colb_oid})
-        .SetScanPredicate(nullptr)
-        .SetIsForUpdateFlag(false)
-        .SetNamespaceOid(NSOid())
-        .SetTableOid(table_oid)
-        .Build();
+                   .SetColumnOids({colb_oid})
+                   .SetScanPredicate(nullptr)
+                   .SetIsForUpdateFlag(false)
+                   .SetNamespaceOid(NSOid())
+                   .SetTableOid(table_oid)
+                   .Build();
   }
   // Make the aggregate
   std::unique_ptr<planner::AbstractPlanNode> agg;
@@ -814,28 +901,34 @@ TEST_F(CompilerTest, DistinctAggregateTest) {
     auto distinct_sum1 = expr_maker.AggSum(col1, true);
     agg_out.AddAggTerm("distinct_count1", distinct_count1);
     agg_out.AddAggTerm("distinct_sum1", distinct_sum1);
+    agg_out.AddAggTerm("count_star", expr_maker.AggCount(expr_maker.Star()));
     // Make the output expressions
     agg_out.AddOutput("distinct_count1", agg_out.GetAggTermForOutput("distinct_count1"));
     agg_out.AddOutput("distinct_sum1", agg_out.GetAggTermForOutput("distinct_sum1"));
+    agg_out.AddOutput("count_star", agg_out.GetAggTermForOutput("count_star"));
     auto schema = agg_out.MakeSchema();
     // Build
     planner::AggregatePlanNode::Builder builder;
     agg = builder.SetOutputSchema(std::move(schema))
-        .AddAggregateTerm(agg_out.GetAggTerm("distinct_count1"))
-        .AddAggregateTerm(agg_out.GetAggTerm("distinct_sum1"))
-        .AddChild(std::move(seq_scan))
-        .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
-        .SetHavingClausePredicate(nullptr)
-        .Build();
+              .AddAggregateTerm(agg_out.GetAggTerm("distinct_count1"))
+              .AddAggregateTerm(agg_out.GetAggTerm("distinct_sum1"))
+              .AddAggregateTerm(agg_out.GetAggTerm("count_star"))
+              .AddChild(std::move(seq_scan))
+              .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
+              .SetHavingClausePredicate(nullptr)
+              .Build();
   }
   // Make the checkers
   // There should be only one output
   NumChecker num_checker{1};
-  // The count should be the size of the table.
+  // The count distinct should be the number of distinct elements (10).
   SingleIntComparisonChecker distinct_count_checker{std::equal_to<>(), 0, 10};
-  // The sum should be from 1 to 10, which is 45.
+  // The sum  should be from 1 to 10, which is 45.
   SingleIntComparisonChecker distinct_sum_checker{std::equal_to<>(), 1, 45};
-  MultiChecker multi_checker{std::vector<OutputChecker *>{&num_checker, &distinct_count_checker, &distinct_sum_checker}};
+  // The count star should be the size of the table
+  SingleIntComparisonChecker count_star_checker{std::equal_to<>(), 2, sql::TEST1_SIZE};
+  MultiChecker multi_checker{
+      std::vector<OutputChecker *>{&num_checker, &distinct_count_checker, &distinct_sum_checker, &count_star_checker}};
 
   // Compile and Run
   OutputStore store{&multi_checker, agg->GetOutputSchema().Get()};
@@ -849,7 +942,6 @@ TEST_F(CompilerTest, DistinctAggregateTest) {
   multi_checker.CheckCorrectness();
 }
 
-/*
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleAggregateHavingTest) {
   // SELECT col2, SUM(col1) FROM test_1 WHERE col1 < 1000 GROUP BY col2 HAVING col2 >= 3 AND SUM(col1) < 50000;
@@ -906,7 +998,7 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
     planner::AggregatePlanNode::Builder builder;
     agg = builder.SetOutputSchema(std::move(schema))
               .AddGroupByTerm(agg_out.GetGroupByTerm("col2"))
-              .AddAggregateTerm(agg_out.GetAggTerm("col1"))
+              .AddAggregateTerm(agg_out.GetAggTerm("sum_col1"))
               .AddChild(std::move(seq_scan))
               .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
               .SetHavingClausePredicate(having)
@@ -937,9 +1029,67 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
   executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
-*/
 
-/*
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, StaticAggregateHavingTest) {
+  // SELECT COUNT(*) FROM test_1 HAVING COUNT(*) < 0;
+  // Get accessor
+  auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
+  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+  auto table_schema = accessor->GetSchema(table_oid);
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
+  {
+    auto schema = seq_scan_out.MakeSchema();
+    // Build
+    planner::SeqScanPlanNode::Builder builder;
+    seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({})
+                   .SetScanPredicate(nullptr)
+                   .SetIsForUpdateFlag(false)
+                   .SetNamespaceOid(NSOid())
+                   .SetTableOid(table_oid)
+                   .Build();
+  }
+  // Make the aggregate
+  std::unique_ptr<planner::AbstractPlanNode> agg;
+  OutputSchemaHelper agg_out{0, &expr_maker};
+  {
+    // Add aggregates
+    agg_out.AddAggTerm("count_star", expr_maker.AggCount(expr_maker.Star()));
+    // Make the output expressions
+    agg_out.AddOutput("count_star", agg_out.GetAggTermForOutput("count_star"));
+    auto schema = agg_out.MakeSchema();
+    // Having
+    auto having = expr_maker.ComparisonLt(agg_out.GetAggTermForOutput("count_star"), expr_maker.Constant(0));
+    // Build
+    planner::AggregatePlanNode::Builder builder;
+    agg = builder.SetOutputSchema(std::move(schema))
+              .AddAggregateTerm(agg_out.GetAggTerm("count_star"))
+              .AddChild(std::move(seq_scan))
+              .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
+              .SetHavingClausePredicate(having)
+              .Build();
+  }
+  // Make the checkers
+  // Should not output anything
+  NumChecker num_checker{0};
+  // The count should be the size of the table.
+  MultiChecker multi_checker{std::vector<OutputChecker *>{&num_checker}};
+
+  // Compile and Run
+  OutputStore store{&multi_checker, agg->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(agg->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
+
+  // Run & Check
+  auto executable = ExecutableQuery(common::ManagedPointer(agg), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  multi_checker.CheckCorrectness();
+}
+
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleHashJoinTest) {
   // SELECT t1.col1, t2.col1, t2.col2, t1.col1 + t2.col2 FROM t1 INNER JOIN t2 ON t1.col1=t2.col1
@@ -1236,7 +1386,6 @@ TEST_F(CompilerTest, MultiWayHashJoinTest) {
   executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
-
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleSortTest) {
@@ -2065,6 +2214,7 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleUpdateTest) {
   // UPDATE test_1 SET colA = -colA, colB = 500 WHERE colA BETWEEN 495 AND 505
   // Then check that the following finds the tuples:
@@ -2863,7 +3013,6 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     checker.CheckCorrectness();
   }
 }
-*/
 
 /*
 // NOLINTNEXTLINE

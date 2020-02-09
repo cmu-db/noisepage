@@ -49,7 +49,7 @@ class SortBottomTranslator : public OperatorTranslator {
   }
 
   // Return the payload and its type
-  std::pair<ast::Identifier *, ast::Identifier *> GetMaterializedTuple() override {
+  std::pair<const ast::Identifier *, const ast::Identifier *> GetMaterializedTuple() override {
     return {&sorter_row_, &sorter_struct_};
   }
 
@@ -141,7 +141,7 @@ class SortTopTranslator : public OperatorTranslator {
   }
 
   // Return the payload and its type
-  std::pair<ast::Identifier *, ast::Identifier *> GetMaterializedTuple() override {
+  std::pair<const ast::Identifier *, const ast::Identifier *> GetMaterializedTuple() override {
     return {&bottom_->sorter_row_, &bottom_->sorter_struct_};
   }
 

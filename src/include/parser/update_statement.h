@@ -37,14 +37,11 @@ class UpdateClause {
    */
   common::ManagedPointer<AbstractExpression> GetUpdateValue() const { return value_; }
 
-
   /**
    * Reset the update value.
    * @param new_value New value of the update expression
    */
-  void ResetValue(common::ManagedPointer<AbstractExpression> new_value) {
-    value_ = new_value;
-  }
+  void ResetValue(common::ManagedPointer<AbstractExpression> new_value) { value_ = new_value; }
 
   /**
    * Logical equality check

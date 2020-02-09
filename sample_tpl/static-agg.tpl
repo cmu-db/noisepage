@@ -40,7 +40,9 @@ fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
 fun pipeline_2(execCtx: *ExecutionContext, state: *State) -> nil {
   var out = @ptrCast(*Values, @outputAlloc(execCtx))
   out.sum = @aggResult(&state.sum)
-  state.count = state.count + 1
+  for (var i : int64 = 0; @sqlToBool(i < out.sum); i = i + 1) {
+    state.count = state.count + 1
+  }
   @outputFinalize(execCtx)
 }
 

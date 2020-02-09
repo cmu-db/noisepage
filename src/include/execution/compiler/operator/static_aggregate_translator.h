@@ -2,15 +2,14 @@
 
 #include <unordered_map>
 #include <utility>
-#include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/operator/aggregate_util.h"
+#include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 
 namespace terrier::execution::compiler {
 
 // Forward declare
 class StaticAggregateTopTranslator;
-
 
 /**
  * A static aggregation is one in which there is no group by term. It differs from a regular aggregation in that
@@ -41,9 +40,9 @@ class StaticAggregateBottomTranslator : public OperatorTranslator {
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override;
 
   // Pass Through
-  void Produce(FunctionBuilder *builder) override {child_translator_->Produce(builder);};
+  void Produce(FunctionBuilder *builder) override { child_translator_->Produce(builder); };
   // Pass Through
-  void Abort(FunctionBuilder *builder) override {child_translator_->Abort(builder);}
+  void Abort(FunctionBuilder *builder) override { child_translator_->Abort(builder); }
   void Consume(FunctionBuilder *builder) override;
 
   // Pass through to the child
@@ -53,7 +52,7 @@ class StaticAggregateBottomTranslator : public OperatorTranslator {
 
   // Return the attribute at idx
   ast::Expr *GetOutput(uint32_t attr_idx) override {
-    ast::Expr *agg = codegen_->GetStateMemberPtr(aggregates_[attr_idx]);
+    ast::Expr *agg = codegen_->GetStateMemberPtr(helper_.GetAggregate(attr_idx));
     return codegen_->OneArgCall(ast::Builtin::AggResult, agg);
   }
 
@@ -65,6 +64,9 @@ class StaticAggregateBottomTranslator : public OperatorTranslator {
   AggregateHelper helper_;
 };
 
+/**
+ * The iteration side of the static aggregate.
+ */
 class StaticAggregateTopTranslator : public OperatorTranslator {
  public:
   /**
@@ -73,10 +75,9 @@ class StaticAggregateTopTranslator : public OperatorTranslator {
    * @param codegen The code generator
    * @param bottom The corresponding bottom translator
    */
-  StaticAggregateTopTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen, OperatorTranslator *bottom)
-      : OperatorTranslator(codegen),
-        op_(op),
-        bottom_(static_cast<StaticAggregateBottomTranslator *>(bottom)) {}
+  StaticAggregateTopTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen,
+                               OperatorTranslator *bottom)
+      : OperatorTranslator(codegen), op_(op), bottom_(static_cast<StaticAggregateBottomTranslator *>(bottom)) {}
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
@@ -102,9 +103,7 @@ class StaticAggregateTopTranslator : public OperatorTranslator {
   }
 
   // Pass through
-  void Consume(FunctionBuilder *builder) override {
-    parent_translator_->Consume(builder);
-  }
+  void Consume(FunctionBuilder *builder) override { parent_translator_->Consume(builder); }
 
   // Pass through to the child
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {
@@ -114,11 +113,11 @@ class StaticAggregateTopTranslator : public OperatorTranslator {
   // Return the attribute at idx
   ast::Expr *GetOutput(uint32_t attr_idx) override;
 
-
   const planner::AbstractPlanNode *Op() override { return op_; }
+
  private:
   const planner::AggregatePlanNode *op_;
   StaticAggregateBottomTranslator *bottom_;
 };
 
-}
+}  // namespace terrier::execution::compiler

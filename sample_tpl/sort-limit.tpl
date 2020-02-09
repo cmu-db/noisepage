@@ -2,7 +2,7 @@
 //
 // SELECT colA, colB FROM test_1 WHERE colA < 2000 ORDER BY colA LIMIT 100
 //
-// Should return 2000 (number of output tuples).
+// Should return 100 (number of output tuples).
 
 struct State {
   sorter: Sorter
