@@ -227,4 +227,8 @@ JSONDeserializeNodeIntermediate DeserializePlanNode(const nlohmann::json &json) 
   return JSONDeserializeNodeIntermediate{std::move(plan_node), std::move(non_owned_exprs)};
 }
 
+void AbstractPlanNode::Accept(common::ManagedPointer<PlanVisitor> v) const {
+  this->Accept(v);
+}
+
 }  // namespace terrier::planner

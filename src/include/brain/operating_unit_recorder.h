@@ -4,27 +4,18 @@
 #include <unordered_map>
 
 #include "common/managed_pointer.h"
+#include "planner/plannodes/plan_visitor.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "brain/operating_unit.h"
 
 namespace terrier::brain {
 
-class OperatingUnitRecorder {
+class OperatingUnitRecorder : planner::PlanVisitor {
  public:
-  OperatingUnitRecorder() {}
-
-  void RecordFromTranslator(common::ManagedPointer<execution::compiler::OperatorTranslator> translator);
-
-  /**
-   * Destructively gets the features vector.
-   * Utilizes the move operator
-   * @return features vector
-   */
-  std::vector<OperatingUnitFeature> ReleaseFeatures() { return std::move(features); }
+  OperatingUnitFeatureVector RecordTranslators(const std::vector<std::unique_ptr<execution::compiler::OperatorTranslator>> &translators);
 
  private:
-  std::vector<OperatingUnitFeature> features;
-  std::unordered_map<OperatingUnitFeatureType, uint32_t> feature_idx;
+  std::unordered_map<OperatingUnitFeatureType, OperatingUnitFeature> features_;
 };
 
 }  // namespace terrier::brain
