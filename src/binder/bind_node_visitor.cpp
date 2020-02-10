@@ -1,5 +1,6 @@
 #include "binder/bind_node_visitor.h"
 
+#include <term.h>
 #include <algorithm>
 #include <memory>
 #include <string>
