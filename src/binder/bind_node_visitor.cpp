@@ -1,13 +1,11 @@
 #include "binder/bind_node_visitor.h"
 
-#include <term.h>
 #include <algorithm>
 #include <memory>
 #include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
-#include <iostream>
 
 #include "binder/binder_util.h"
 #include "catalog/catalog_accessor.h"
@@ -345,7 +343,8 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
     auto insert_values = node->GetValues();
     // Validate input values.
     {
-      for (auto &values : *insert_values) {  // value is a row(tuple) to insert
+      for (auto &values : *insert_values) {
+        // value is a row(tuple) to insert
         size_t num_values = values.size();
         // Test that they have the same number of columns.
         {
@@ -359,15 +358,12 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
 
         std::vector<std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>>> cols;
         if (num_insert_columns == 0) {  //already ordered
-          // acc to schema
-          // todo: insert into cols from shema cols and values
           for (int i = 0; i < num_values; i++) {
             std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> pair =
                 std::make_pair(table_schema.GetColumns()[i], values[i]);
             cols.push_back(pair);
           }
         } else {
-          // common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<AbstractExpression>>>>
           for (int i = 0; i < num_insert_columns; i++) {
             std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> pair =
                 std::make_pair(table_schema.GetColumn(node->GetInsertColumns()->at(i)), values[i]);
@@ -378,9 +374,6 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
                [](const std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> &a,
                   const std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> &b)
                    -> bool { return a.first.Oid() < b.first.Oid(); });
-
-          // insert_columns->clear();
-          // insert_values->clear();
 
           std::vector<std::string> ins_col;
           std::vector<common::ManagedPointer<parser::AbstractExpression>> ins_val;
@@ -418,33 +411,6 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
             }
           }
         }
-
-        /*// Test that the column values are of the right type.
-        for (size_t i = 0; i < num_values; ++i) {
-          // TODO(WAN): handle additional cases, possibly think about calling DeriveReturnValueType
-          //  so that we handle (1+2) type of expressions
-          //  ADDENDUM. So I thought DeriveReturnValueType would actually derive the return value type.
-          //  This appears to be a bad assumption. We should rename it to DeriveReturnValueTypeForAggregates()
-          //  or else fix up any other codepaths. I've currently fixed it for ConstantValueExpression.
-
-
-
-
-
-          auto expr = values[i];
-          auto ret_type = expr->GetReturnValueType();
-          auto expected_ret_type = table_schema.GetColumn(i).Type();
-
-          auto is_cast_expression = expr->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
-          auto mismatched_type = ret_type != expected_ret_type;
-
-          if (is_cast_expression || mismatched_type) {
-            auto converted = BinderUtil::Convert(values[i], expected_ret_type);
-            TERRIER_ASSERT(converted != nullptr, "Conversion cannot be null!");
-            values[i] = common::ManagedPointer(converted);
-            parse_result->AddExpression(std::move(converted));
-          }
-        }*/
       }
     }
   }
