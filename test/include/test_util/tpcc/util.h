@@ -18,34 +18,6 @@ namespace terrier::tpcc {
 struct Util {
   Util() = delete;
 
-  static void RegisterIndexesForGC(const common::ManagedPointer<storage::GarbageCollector> gc,
-                                   const common::ManagedPointer<Database> tpcc_db) {
-    gc->RegisterIndexForGC(tpcc_db->item_primary_index_);
-    gc->RegisterIndexForGC(tpcc_db->warehouse_primary_index_);
-    gc->RegisterIndexForGC(tpcc_db->stock_primary_index_);
-    gc->RegisterIndexForGC(tpcc_db->district_primary_index_);
-    gc->RegisterIndexForGC(tpcc_db->customer_primary_index_);
-    gc->RegisterIndexForGC(tpcc_db->customer_secondary_index_);
-    gc->RegisterIndexForGC(tpcc_db->new_order_primary_index_);
-    gc->RegisterIndexForGC(tpcc_db->order_primary_index_);
-    gc->RegisterIndexForGC(tpcc_db->order_secondary_index_);
-    gc->RegisterIndexForGC(tpcc_db->order_line_primary_index_);
-  }
-
-  static void UnregisterIndexesForGC(const common::ManagedPointer<storage::GarbageCollector> gc,
-                                     const common::ManagedPointer<Database> tpcc_db) {
-    gc->UnregisterIndexForGC(tpcc_db->item_primary_index_);
-    gc->UnregisterIndexForGC(tpcc_db->warehouse_primary_index_);
-    gc->UnregisterIndexForGC(tpcc_db->stock_primary_index_);
-    gc->UnregisterIndexForGC(tpcc_db->district_primary_index_);
-    gc->UnregisterIndexForGC(tpcc_db->customer_primary_index_);
-    gc->UnregisterIndexForGC(tpcc_db->customer_secondary_index_);
-    gc->UnregisterIndexForGC(tpcc_db->new_order_primary_index_);
-    gc->UnregisterIndexForGC(tpcc_db->order_primary_index_);
-    gc->UnregisterIndexForGC(tpcc_db->order_secondary_index_);
-    gc->UnregisterIndexForGC(tpcc_db->order_line_primary_index_);
-  }
-
   static std::vector<catalog::col_oid_t> AllColOidsForSchema(const catalog::Schema &schema) {
     const auto &cols = schema.GetColumns();
     std::vector<catalog::col_oid_t> col_oids;

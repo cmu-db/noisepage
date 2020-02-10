@@ -1,9 +1,10 @@
+#include "catalog/postgres/builder.h"
+
 #include <utility>
 #include <vector>
 
 #include "catalog/database_catalog.h"
 #include "catalog/index_schema.h"
-#include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_attribute.h"
 #include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_constraint.h"
@@ -73,8 +74,10 @@ IndexSchema Builder::GetDatabaseNameIndexSchema() {
   return schema;
 }
 
-DatabaseCatalog *Builder::CreateDatabaseCatalog(storage::BlockStore *block_store, db_oid_t oid) {
-  auto dbc = new DatabaseCatalog(oid);
+DatabaseCatalog *Builder::CreateDatabaseCatalog(
+    const common::ManagedPointer<storage::BlockStore> block_store, const db_oid_t oid,
+    const common::ManagedPointer<storage::GarbageCollector> garbage_collector) {
+  auto dbc = new DatabaseCatalog(oid, garbage_collector);
 
   dbc->namespaces_ = new storage::SqlTable(block_store, Builder::GetNamespaceTableSchema());
   dbc->classes_ = new storage::SqlTable(block_store, Builder::GetClassTableSchema());
