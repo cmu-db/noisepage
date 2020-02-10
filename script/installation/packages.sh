@@ -113,8 +113,7 @@ install_linux() {
       sqlite3 \
       libsqlite3-dev \
       ant \
-      python-pip \
-      python-pip3
+      python-pip
    #install pyarrow
    pip show pyarrow || pip install pyarrow
    #install libpqxx-6.2 manually
