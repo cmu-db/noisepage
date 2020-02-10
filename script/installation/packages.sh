@@ -56,6 +56,12 @@ give_up() {
   exit 1
 }
 
+install_pip() {
+  curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+  python get-pip.py
+  rm get-pip.py
+}
+
 install_mac() {
   # Install Homebrew.
   if test ! $(which brew); then
@@ -77,6 +83,7 @@ install_mac() {
   brew ls --versions postgresql || brew install postgresql
   brew ls --versions tbb || brew install tbb
   brew ls --versions ant || brew install ant
+  python -m pip --version || install_pip()
   #install pyarrow
   pip show pyarrow || pip install pyarrow
 }
@@ -105,7 +112,9 @@ install_linux() {
       postgresql-client \
       sqlite3 \
       libsqlite3-dev \
-      ant
+      ant \
+      python-pip \
+      python-pip3
    #install pyarrow
    pip show pyarrow || pip install pyarrow
    #install libpqxx-6.2 manually
