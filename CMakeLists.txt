@@ -325,6 +325,7 @@ if (${CLANG_TIDY_FOUND})
     # runs clang-tidy-diff and exits with a non-zero exit code if any errors are found.
     # note that clang-tidy automatically looks for a .clang-tidy file in parent directories
     add_custom_target(check-clang-tidy-diff
+            git diff -U0 HEAD^ &&                                             # first outputs diff for logging, then
             git diff -U0 HEAD^ | ${BUILD_SUPPORT_DIR}/clang-tidy-diff.py -p1  # run LLVM's clang-tidy-diff script
             -checks="$(cat ../.clang-tidy)"                                   # with checks in the current directory
             -clang-tidy-binary ${CLANG_TIDY_BIN}                              # using our clang-tidy binary
