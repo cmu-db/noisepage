@@ -15,14 +15,157 @@
 #define EXPORT_TABLE_NAME "test_table.arrow"
 #define CSV_TABLE_NAME "test_table.csv"
 #define PYSCRIPT_NAME "transform_table.py"
-#define PYSCRIPT "import pyarrow as pa\n"                                                        \
-                 "pa_table = pa.ipc.open_stream('" EXPORT_TABLE_NAME "').read_next_batch()\n"    \
-                 "pandas_table = pa_table.to_pandas()\n"                                         \
-                 "pandas_table.to_csv('" CSV_TABLE_NAME "', index=False, header=False)\n"
+#define PYSCRIPT                                      \
+  "import pyarrow as pa\n"                            \
+  "pa_table = pa.ipc.open_stream('" EXPORT_TABLE_NAME \
+  "').read_next_batch()\n"                            \
+  "pa_table = pa_table.to_pandas()\n"                 \
+  "pa_table.to_csv('" CSV_TABLE_NAME "', index=False, header=False)\n"
 
 namespace terrier {
 
 struct ExportTableTest : public ::terrier::TerrierTest {
+  bool parse_next(std::ifstream &csv_file, char stop_char, char &tmp_char) {
+    csv_file.get(tmp_char);
+    bool end = false;
+    switch (tmp_char) {
+      case '\\':
+        csv_file.get(tmp_char);
+        if (tmp_char == 'x') {
+          char hex_char;
+          csv_file.get(hex_char);
+          tmp_char = (hex_char >= 'a' ? (hex_char - 'a' + 10) : hex_char - '0') << 4;
+          csv_file.get(hex_char);
+          tmp_char += (hex_char >= 'a' ? (hex_char - 'a' + 10) : hex_char - '0');
+        } else {
+          switch (tmp_char) {
+            case '\\':
+              tmp_char = '\\';
+              break;
+            case 'r':
+              tmp_char = '\r';
+              break;
+            case 't':
+              tmp_char = '\t';
+              break;
+            case 'n':
+              tmp_char = '\n';
+              break;
+          }
+        }
+        break;
+      case '"':
+        csv_file.get(tmp_char);
+        if (tmp_char == ',' || tmp_char == '\n') {
+          end = true;
+        }
+        break;
+      case ',':
+        if (stop_char == ',') {
+          end = true;
+        }
+        break;
+      default:
+        break;
+    }
+    return end;
+  }
+
+  bool check_content(std::ifstream &csv_file, transaction::TransactionManager &txn_manager,
+                     const storage::BlockLayout &layout,
+                     const std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> &tuples,
+                     const storage::DataTable &table, storage::RawBlock *block) {
+    auto initializer =
+        storage::ProjectedRowInitializer::Create(layout, StorageTestUtil::ProjectionListAllColumns(layout));
+    byte *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    auto *read_row = initializer.InitializeRow(buffer);
+    // This transaction is guaranteed to start after the compacting one commits
+    transaction::TransactionContext *txn = txn_manager.BeginTransaction();
+    auto num_tuples = tuples.size();
+    for (uint32_t i = 0; i < layout.NumSlots(); i++) {
+      storage::TupleSlot slot(block, i);
+      if (i < num_tuples) {
+        table.Select(common::ManagedPointer(txn), slot, read_row);
+        for (uint32_t j = 0; j < read_row->NumColumns(); j++) {
+          auto col_id = read_row->ColumnIds()[j];
+
+          std::string integer;
+          std::vector<byte> bytes;
+          char tmp_char;
+          csv_file.get(tmp_char);
+          switch (tmp_char) {
+            case '"':
+              csv_file.seekg(1, std::ios_base::cur);
+              while (!parse_next(csv_file, '"', tmp_char)) {
+                bytes.emplace_back(static_cast<byte>(tmp_char));
+              }
+              break;
+            case 'b':
+              while (!parse_next(csv_file, ',', tmp_char)) {
+                bytes.emplace_back(static_cast<byte>(tmp_char));
+              }
+              break;
+            case ',':
+              break;
+            case '\n':
+              break;
+            default:
+              if (j == read_row->NumColumns() - 1) {
+                std::getline(csv_file, integer, '\n');
+              } else {
+                std::getline(csv_file, integer, ',');
+              }
+              integer = tmp_char + integer;
+              break;
+          }
+          auto data = read_row->AccessWithNullCheck(j);
+          if (data == nullptr) {
+            if (bytes.size() != 0 || integer.length() != 0) {
+              return false;
+            }
+          } else {
+            if (layout.IsVarlen(col_id)) {
+              auto *varlen = reinterpret_cast<storage::VarlenEntry *>(data);
+              auto content = varlen->Content();
+              auto content_len = varlen->Size();
+              if (content_len != bytes.size() - 2) {
+                return false;
+              }
+              // the first and last element of bytes are always useless
+              for (uint32_t k = 0; k < content_len; ++k) {
+                if (bytes[k + 1] != content[k]) {
+                  return false;
+                }
+              }
+            } else {
+              int64_t true_integer;
+              switch (layout.AttrSize(col_id)) {
+                case 1:
+                  true_integer = *reinterpret_cast<int8_t *>(data);
+                  break;
+                case 2:
+                  true_integer = *reinterpret_cast<int16_t *>(data);
+                  break;
+                case 4:
+                  true_integer = *reinterpret_cast<int32_t *>(data);
+                  break;
+                case 8:
+                  true_integer = *reinterpret_cast<int64_t *>(data);
+                  break;
+              }
+              if (std::fabs(1 - (std::stof(integer) + 1e-6) / (1e-6 + true_integer)) > 1e-6) {
+                return false;
+              }
+            }
+          }
+        }
+      }
+    }
+    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    delete[] buffer;
+    return true;
+  }
+
   storage::BlockStore block_store_{5000, 5000};
   std::default_random_engine generator_;
   storage::RecordBufferSegmentPool buffer_pool_{100000, 100000};
@@ -57,7 +200,6 @@ TEST_F(ExportTableTest, ExportDictionaryCompressedTableTest) {
                                common::ManagedPointer(&deferred_action_manager), common::ManagedPointer(&txn_manager),
                                DISABLED};
   auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
-  auto num_tuples = tuples.size();
 
   // Manually populate the block header's arrow metadata for test initialization
   auto &arrow_metadata = accessor.GetArrowBlockMetadata(block);
@@ -88,41 +230,8 @@ TEST_F(ExportTableTest, ExportDictionaryCompressedTableTest) {
   system((std::string("python ") + PYSCRIPT_NAME).c_str());
 
   std::ifstream csv_file(CSV_TABLE_NAME, std::ios_base::in);
-  auto initializer =
-      storage::ProjectedRowInitializer::Create(layout, StorageTestUtil::ProjectionListAllColumns(layout));
-  byte *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
-  auto *read_row = initializer.InitializeRow(buffer);
-  // This transaction is guaranteed to start after the compacting one commits
-  transaction::TransactionContext *txn = txn_manager.BeginTransaction();
-  std::string line;
-  std::stringstream  lineStream(line);
-  std::string item;
-
-  for (uint32_t i = 0; i < layout.NumSlots(); i++) {
-    storage::TupleSlot slot(block, i);
-    if (i < num_tuples) {
-      EXPECT_TRUE(table.Select(common::ManagedPointer(txn), slot, read_row));  // Should be filled after compaction
-      for (uint32_t j = 0; j < layout.NumColumns(); j++) {
-        auto col_id = read_row->ColumnIds()[j];
-        std::getline(lineStream, item, ',');
-        auto data = read_row->AccessWithNullCheck(j);
-        if (data == nullptr) {
-          EXPECT_EQ(item, "");
-        } else {
-          if (layout.IsVarlen(col_id)) {
-            auto *varlen = reinterpret_cast<storage::VarlenEntry *>(data);
-            EXPECT_EQ(item, std::string(reinterpret_cast<const char *>(varlen->Content())));
-          } else {
-            auto integer = *reinterpret_cast<int64_t *>(data);
-            EXPECT_EQ(std::stol(item), integer);
-          }
-        }
-      }
-    }
-  }
-  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  EXPECT_TRUE(check_content(csv_file, txn_manager, layout, tuples, table, block));
   csv_file.close();
-  delete[] buffer;
 
   unlink(EXPORT_TABLE_NAME);
   for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
@@ -186,6 +295,10 @@ TEST_F(ExportTableTest, ExportVarlenTableTest) {
 
   table.ExportTable(EXPORT_TABLE_NAME, &column_types);
   system((std::string("python ") + PYSCRIPT_NAME).c_str());
+
+  std::ifstream csv_file(CSV_TABLE_NAME, std::ios_base::in);
+  EXPECT_TRUE(check_content(csv_file, txn_manager, layout, tuples, table, block));
+  csv_file.close();
 
   unlink(EXPORT_TABLE_NAME);
   for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
