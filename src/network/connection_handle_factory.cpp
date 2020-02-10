@@ -24,6 +24,7 @@ ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd,
   reused_handle.protocol_interpreter_ = std::move(interpreter);
   reused_handle.state_machine_ = ConnectionHandle::StateMachine();
   reused_handle.context_.Reset();
+  reused_handle.context_.SetConnectionID(static_cast<connection_id_t>(conn_fd));
   TERRIER_ASSERT(reused_handle.network_event_ == nullptr, "network_event_ != nullptr");
   TERRIER_ASSERT(reused_handle.workpool_event_ == nullptr, "network_event_ != nullptr");
   return reused_handle;

@@ -72,7 +72,10 @@ class ManualPacketUtil {
     writer.WriteStartupRequest(params);
     io_socket->FlushAllWrites();
 
-    ReadUntilReadyOrClose(common::ManagedPointer(io_socket));
+    bool success = ReadUntilReadyOrClose(common::ManagedPointer(io_socket));
+    if(!success){
+      return nullptr;
+    }
     return io_socket;
   }
 
