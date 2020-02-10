@@ -1,5 +1,6 @@
 #include "test_util/tpcc/tpcc_plan_test.h"
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -99,16 +100,16 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
   // Bind + Transform
   auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn_), db_);
   auto *binder = new binder::BindNodeVisitor(common::ManagedPointer(accessor), "tpcc");
-  binder->BindNameToNode(stmt_list.GetStatement(0), &stmt_list);
+  binder->BindNameToNode(stmt_list->GetStatement(0), stmt_list.get());
   auto *transformer = new optimizer::QueryToOperatorTransformer(common::ManagedPointer(accessor));
-  auto plan = transformer->ConvertToOpExpression(stmt_list.GetStatement(0), &stmt_list);
+  auto plan = transformer->ConvertToOpExpression(stmt_list->GetStatement(0), stmt_list.get());
   delete binder;
   delete transformer;
 
   auto optimizer = new optimizer::Optimizer(std::make_unique<optimizer::TrivialCostModel>(), task_execution_timeout_);
   std::unique_ptr<planner::AbstractPlanNode> out_plan;
   if (stmt_type == parser::StatementType::SELECT) {
-    auto sel_stmt = stmt_list.GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
+    auto sel_stmt = stmt_list->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
 
     // Output
     auto output = sel_stmt->GetSelectColumns();
@@ -135,7 +136,7 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
     out_plan = optimizer->BuildPlanTree(txn_, accessor_, stats_storage_.Get(), query_info, std::move(plan));
     delete property_set;
   } else if (stmt_type == parser::StatementType::INSERT) {
-    auto ins_stmt = stmt_list.GetStatement(0).CastManagedPointerTo<parser::InsertStatement>();
+    auto ins_stmt = stmt_list->GetStatement(0).CastManagedPointerTo<parser::InsertStatement>();
 
     auto &schema = accessor_->GetSchema(tbl_oid);
     std::vector<catalog::col_oid_t> col_oids;
@@ -206,10 +207,19 @@ void TpccPlanTest::OptimizeQuery(const std::string &query, catalog::table_oid_t 
                                                std::unique_ptr<planner::AbstractPlanNode> plan)) {
   BeginTransaction();
   auto stmt_list = parser::PostgresParser::BuildParseTree(query);
-  auto sel_stmt = stmt_list.GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
+  auto sel_stmt = stmt_list->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
   auto plan = Optimize(query, tbl_oid, parser::StatementType::SELECT);
   Check(this, sel_stmt.Get(), tbl_oid, std::move(plan));
   EndTransaction(true);
+}
+
+void TpccPlanTest::CheckOids(const std::vector<catalog::col_oid_t> &lhs, const std::vector<catalog::col_oid_t> &rhs) {
+  ASSERT_EQ(lhs.size(), rhs.size());
+  std::vector<catalog::col_oid_t> copy_lhs(lhs);
+  std::vector<catalog::col_oid_t> copy_rhs(rhs);
+  std::sort(copy_lhs.begin(), copy_lhs.end());
+  std::sort(copy_rhs.begin(), copy_rhs.end());
+  ASSERT_EQ(copy_lhs, copy_rhs);
 }
 
 }  // namespace terrier

@@ -58,8 +58,8 @@ class OutputSchemaHelper {
   ExpressionMaker::ManagedExpression GetAggTermForOutput(const std::string &agg_name) {
     const auto &agg = aggs_[name_to_agg_[agg_name]];
     auto ret_type = agg->GetChild(0)->GetReturnValueType();
-    auto tve_idx = name_to_agg_[agg_name] + uint32_t(gbys_.size());
-    return expr_maker_->DVE(ret_type, 0, tve_idx);
+    auto tve_idx = name_to_agg_[agg_name];
+    return expr_maker_->DVE(ret_type, 1, tve_idx);
   }
 
   /**

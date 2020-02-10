@@ -47,15 +47,20 @@ storage::ProjectedRow *StorageInterface::GetIndexPR(catalog::index_oid_t index_o
   return index_pr_;
 }
 
-storage::TupleSlot StorageInterface::TableInsert() { return table_->Insert(exec_ctx_->GetTxn(), table_redo_); }
+storage::TupleSlot StorageInterface::TableInsert() {
+  exec_ctx_->RowsAffected()++;  // believe this should only happen in root plan nodes, so should reflect count of query
+  return table_->Insert(exec_ctx_->GetTxn(), table_redo_);
+}
 
 bool StorageInterface::TableDelete(storage::TupleSlot table_tuple_slot) {
+  exec_ctx_->RowsAffected()++;  // believe this should only happen in root plan nodes, so should reflect count of query
   auto txn = exec_ctx_->GetTxn();
   txn->StageDelete(exec_ctx_->DBOid(), table_oid_, table_tuple_slot);
   return table_->Delete(exec_ctx_->GetTxn(), table_tuple_slot);
 }
 
 bool StorageInterface::TableUpdate(storage::TupleSlot table_tuple_slot) {
+  exec_ctx_->RowsAffected()++;  // believe this should only happen in root plan nodes, so should reflect count of query
   table_redo_->SetTupleSlot(table_tuple_slot);
   return table_->Update(exec_ctx_->GetTxn(), table_redo_);
 }
@@ -63,6 +68,11 @@ bool StorageInterface::TableUpdate(storage::TupleSlot table_tuple_slot) {
 bool StorageInterface::IndexInsert() {
   TERRIER_ASSERT(need_indexes_, "Index PR not allocated!");
   return curr_index_->Insert(exec_ctx_->GetTxn(), *index_pr_, table_redo_->GetTupleSlot());
+}
+
+bool StorageInterface::IndexInsertUnique() {
+  TERRIER_ASSERT(need_indexes_, "Index PR not allocated!");
+  return curr_index_->InsertUnique(exec_ctx_->GetTxn(), *index_pr_, table_redo_->GetTupleSlot());
 }
 
 void StorageInterface::IndexDelete(storage::TupleSlot table_tuple_slot) {

@@ -1,6 +1,8 @@
 #include "execution/compiler/operator/insert_translator.h"
+
 #include <utility>
 #include <vector>
+
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/translator_factory.h"
 
@@ -48,6 +50,7 @@ void InsertTranslator::Produce(FunctionBuilder *builder) {
 void InsertTranslator::Abort(FunctionBuilder *builder) {
   GenInserterFree(builder);
   if (child_translator_ != nullptr) child_translator_->Abort(builder);
+  builder->Append(codegen_->ReturnStmt(nullptr));
 }
 
 void InsertTranslator::Consume(FunctionBuilder *builder) {
@@ -124,8 +127,8 @@ void InsertTranslator::GenSetTablePR(FunctionBuilder *builder, uint32_t idx) {
     auto *src = translator->DeriveExpr(this);
     auto table_col_oid = all_oids_[i];
     const auto &table_col = table_schema_.GetColumn(table_col_oid);
-    auto pr_set_call = codegen_->PRSet(codegen_->MakeExpr(insert_pr_), val->GetReturnValueType(), table_col.Nullable(),
-                                       table_pm_[table_col_oid], src);
+    auto pr_set_call = codegen_->PRSet(codegen_->MakeExpr(insert_pr_), table_col.Type(), table_col.Nullable(),
+                                       table_pm_[table_col_oid], src, true);
     builder->Append(codegen_->MakeStmt(pr_set_call));
   }
 }
@@ -153,7 +156,8 @@ void InsertTranslator::GenIndexInsert(FunctionBuilder *builder, const catalog::i
 
   // Insert into index
   // if (insert not successfull) { Abort(); }
-  auto index_insert_call = codegen_->OneArgCall(ast::Builtin::IndexInsert, inserter_, true);
+  auto index_insert_call = codegen_->OneArgCall(
+      index_schema.Unique() ? ast::Builtin::IndexInsertUnique : ast::Builtin::IndexInsert, inserter_, true);
   auto cond = codegen_->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
   builder->StartIfStmt(cond);
   Abort(builder);
@@ -168,7 +172,7 @@ void InsertTranslator::FillPRFromChild(terrier::execution::compiler::FunctionBui
     const auto &table_col_oid = all_oids_[i];
     auto val = GetChildOutput(0, i, table_col.Type());
     auto pr_set_call = codegen_->PRSet(codegen_->MakeExpr(insert_pr_), table_col.Type(), table_col.Nullable(),
-                                       table_pm_[table_col_oid], val);
+                                       table_pm_[table_col_oid], val, true);
     builder->Append(codegen_->MakeStmt(pr_set_call));
   }
 }

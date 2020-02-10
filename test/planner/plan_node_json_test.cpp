@@ -176,7 +176,7 @@ TEST(PlanNodeJsonTest, CreateFunctionPlanNodeTest) {
                        .SetLanguage(parser::PLType::PL_PGSQL)
                        .SetFunctionParamNames({"i"})
                        .SetFunctionParamTypes({parser::BaseFunctionParameter::DataType::INT})
-                       .SetColumnNames({"RETURN i+1;"})
+                       .SetBody({"RETURN i+1;"})
                        .SetIsReplace(true)
                        .SetFunctionName("test_func")
                        .SetReturnType(parser::BaseFunctionParameter::DataType::INT)

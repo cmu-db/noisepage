@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "catalog/schema.h"
@@ -201,6 +202,83 @@ class PlanGenerator : public OperatorVisitor {
    */
   void Visit(const ExportExternalFile *op) override;
 
+  /**
+   * Visit a CreateDatabase operator
+   * @param create_database operator
+   */
+  void Visit(const CreateDatabase *create_database) override;
+
+  /**
+   * Visit a CreateFunction operator
+   * @param create_function operator
+   */
+  void Visit(const CreateFunction *create_function) override;
+
+  /**
+   * Visit a CreateIndex operator
+   * @param create_index operator
+   */
+  void Visit(const CreateIndex *create_index) override;
+
+  /**
+   * Visit a CreateTable operator
+   * @param create_table operator
+   */
+  void Visit(const CreateTable *create_table) override;
+
+  /**
+   * Visit a CreateNamespace operator
+   * @param create_namespace operator
+   */
+  void Visit(const CreateNamespace *create_namespace) override;
+
+  /**
+   * Visit a CreateTrigger operator
+   * @param create_trigger operator
+   */
+  void Visit(const CreateTrigger *create_trigger) override;
+
+  /**
+   * Visit a CreateView operator
+   * @param create_view operator
+   */
+  void Visit(const CreateView *create_view) override;
+  /**
+   * Visit a DropDatabase operator
+   * @param drop_database operator
+   */
+  void Visit(const DropDatabase *drop_database) override;
+
+  /**
+   * Visit a DropTable operator
+   * @param drop_table operator
+   */
+  void Visit(const DropTable *drop_table) override;
+
+  /**
+   * Visit a DropIndex operator
+   * @param drop_index operator
+   */
+  void Visit(const DropIndex *drop_index) override;
+
+  /**
+   * Visit a DropNamespace operator
+   * @param drop_namespace operator
+   */
+  void Visit(const DropNamespace *drop_namespace) override;
+
+  /**
+   * Visit a DropTrigger operator
+   * @param drop_trigger operator
+   */
+  void Visit(const DropTrigger *drop_trigger) override;
+
+  /**
+   * Visit a DropView operator
+   * @param drop_view operator
+   */
+  void Visit(const DropView *drop_view) override;
+
  private:
   /**
    * Register a pointer to be deleted on transaction commit/abort
@@ -221,10 +299,18 @@ class PlanGenerator : public OperatorVisitor {
 
   /**
    * Generate the column oids vector for a scan plan
-   *
+   * @param predicate Predicate of the scan
    * @return a vector of column oid indicating which columns to scan
    */
-  std::vector<catalog::col_oid_t> GenerateColumnsForScan();
+  std::vector<catalog::col_oid_t> GenerateColumnsForScan(const parser::AbstractExpression *predicate);
+
+  /**
+   * Read the oids contained in an expression.
+   * @param oids Oids contained in the given expression.
+   * @param expr Expression to read.
+   */
+  void GenerateColumnsFromExpression(std::unordered_set<catalog::col_oid_t> *oids,
+                                     const parser::AbstractExpression *expr);
 
   /**
    * Generates the OutputSchema for a scan.
@@ -233,21 +319,6 @@ class PlanGenerator : public OperatorVisitor {
    * @returns OutputSchema
    */
   std::unique_ptr<planner::OutputSchema> GenerateScanOutputSchema(catalog::table_oid_t tbl_oid);
-
-  /**
-   * Generate a predicate expression for scan plans
-   *
-   * @param predicate_expr the original expression
-   * @param alias the table alias
-   * @param db_oid Database OID
-   * @param tbl_oid Table OID for catalog lookup
-   *
-   * @return a predicate that is already evaluated, which could be used to
-   * generate a scan plan i.e. all tuple idx are set
-   */
-  std::unique_ptr<parser::AbstractExpression> GeneratePredicateForScan(
-      common::ManagedPointer<parser::AbstractExpression> predicate_expr, const std::string &alias,
-      catalog::db_oid_t db_oid, catalog::table_oid_t tbl_oid);
 
   /**
    * Generate projection info and projection schema for join

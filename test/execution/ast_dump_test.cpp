@@ -43,9 +43,10 @@ class ExtractKindNames : public AstTraversalVisitor<ExtractKindNames<FindInfinit
   // EXTRACT_KINDNAME_METHOD(FieldDecl);
   // EXTRACT_KINDNAME_METHOD(FunctionTypeRepr);
   // EXTRACT_KINDNAME_METHOD(IdentifierExpr);
+  // EXTRACT_KINDNAME_METHOD(DeclStmt);
+  // EXTRACT_KINDNAME_METHOD(ArrayTypeRepr);
 
   EXTRACT_KINDNAME_METHOD(FunctionDecl);
-  EXTRACT_KINDNAME_METHOD(ArrayTypeRepr);
   EXTRACT_KINDNAME_METHOD(BlockStmt);
   EXTRACT_KINDNAME_METHOD(StructDecl);
   EXTRACT_KINDNAME_METHOD(VariableDecl);
@@ -61,7 +62,6 @@ class ExtractKindNames : public AstTraversalVisitor<ExtractKindNames<FindInfinit
   EXTRACT_KINDNAME_METHOD(BinaryOpExpr);
   EXTRACT_KINDNAME_METHOD(LitExpr);
   EXTRACT_KINDNAME_METHOD(StructTypeRepr);
-  EXTRACT_KINDNAME_METHOD(DeclStmt);
   EXTRACT_KINDNAME_METHOD(PointerTypeRepr);
   EXTRACT_KINDNAME_METHOD(ComparisonOpExpr);
   EXTRACT_KINDNAME_METHOD(IfStmt);
@@ -100,6 +100,7 @@ class AstDumpTest : public TplTest {
     parsing::Parser parser(&scanner, &ctx);
 
     if (error.HasErrors()) {
+      EXECUTION_LOG_ERROR(error.SerializeErrors());
       return nullptr;
     }
 
@@ -109,6 +110,7 @@ class AstDumpTest : public TplTest {
     auto check = sema.Run(root);
 
     if (error.HasErrors()) {
+      EXECUTION_LOG_ERROR(error.SerializeErrors());
       return nullptr;
     }
 
@@ -128,6 +130,7 @@ class AstDumpTest : public TplTest {
     // Create the AST
     EXECUTION_LOG_DEBUG("Generating AST:\n{}", src);
     auto *root = GenerateAst(src);
+    ASSERT_NE(root, nullptr);
 
     // Get the expected token strings
     ExtractKindNames extractor(root);
@@ -141,6 +144,7 @@ class AstDumpTest : public TplTest {
 
     // Check that the expected tokens and constants are in the dump
     for (const auto &token : tokens) {
+      EXECUTION_LOG_DEBUG("Looking for token '{}'", token);
       EXPECT_NE(dump.find(token), std::string::npos) << "Missing token '" << token << "'";
     }
     for (const auto &constant : constants) {
@@ -198,6 +202,81 @@ TEST_F(AstDumpTest, FunctionTest) {
   std::vector<std::string> constants = {
       "XXXXXX",
       "yyyyyy",
+  };
+
+  CheckDump(src, constants);
+}
+
+// NOLINTNEXTLINE
+TEST_F(AstDumpTest, VariableTest) {
+  const auto src = R"(
+    fun main() -> int64 {
+      var a: int8 = 99
+      var b: int16 = 999
+      var c: int32 = 9999
+      var d: int64 = 99999
+      return a + b + c + d
+    })";
+
+  std::vector<std::string> constants = {
+      "99",
+      "999",
+      "9999",
+      "99999",
+  };
+
+  CheckDump(src, constants);
+}
+
+// NOLINTNEXTLINE
+TEST_F(AstDumpTest, CallTest) {
+  const auto src = R"(
+    fun AAAA(yyyy: int) -> int {
+      var date1 = @dateToSql(2019, 10, 04)
+      var date2 = @dateToSql(2019, 10, 4)
+      if (date1 != date2) {
+        return yyyy
+      }
+      return 1
+    }
+    fun main() -> int {
+      var xxxx = 10
+      return AAAA(xxxx)
+    })";
+
+  std::vector<std::string> constants = {
+      "AAAA", "xxxx", "yyyy", "date1", "date2",
+  };
+
+  CheckDump(src, constants);
+}
+
+// NOLINTNEXTLINE
+TEST_F(AstDumpTest, TypeTest) {
+  const auto src = R"(
+      fun main() -> int {
+        var res : int = 0
+
+        var boolVar1 : bool = true
+        var boolVar2 = @boolToSql(true)
+
+        var intVar1 = @intToSql(5)
+        var intVar2 : int = 5.5 // FloatToInt
+
+        var floatVar1 = @floatToSql(5.5)
+        var floatVar2 : float = intVar2 // IntToFloat
+
+        var stringVar = @stringToSql("5555")
+
+        var intArray: [2]uint32
+        intArray[0] = 1
+        intArray[1] = 2
+
+        return res
+      })";
+
+  std::vector<std::string> constants = {
+      "res",
   };
 
   CheckDump(src, constants);

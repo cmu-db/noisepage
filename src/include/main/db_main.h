@@ -10,6 +10,7 @@
 #include "common/managed_pointer.h"
 #include "common/stat_registry.h"
 #include "common/worker_pool.h"
+#include "execution/execution_util.h"
 #include "metrics/metrics_thread.h"
 #include "network/terrier_server.h"
 #include "optimizer/statistics/stats_storage.h"
@@ -252,6 +253,16 @@ class DBMain {
   };
 
   /**
+   * Currently doesn't hold any objects. The constructor and destructor are just used to orchestrate the setup and
+   * teardown for TPL.
+   */
+  class ExecutionLayer {
+   public:
+    ExecutionLayer() { execution::ExecutionUtil::InitTPL(); }
+    ~ExecutionLayer() { execution::ExecutionUtil::ShutdownTPL(); }
+  };
+
+  /**
    * Creates DBMain objects
    */
   class Builder {
@@ -289,7 +300,7 @@ class DBMain {
       std::unique_ptr<storage::LogManager> log_manager = DISABLED;
       if (use_logging_) {
         log_manager = std::make_unique<storage::LogManager>(
-            log_file_path_, num_log_manager_buffers_, std::chrono::milliseconds{log_serialization_interval_},
+            log_file_path_, num_log_manager_buffers_, std::chrono::microseconds{log_serialization_interval_},
             std::chrono::milliseconds{log_persist_interval_}, log_persist_threshold_,
             common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(thread_registry));
         log_manager->Start();
@@ -318,17 +329,25 @@ class DBMain {
                                                                       std::chrono::milliseconds{gc_interval_});
       }
 
+      std::unique_ptr<optimizer::StatsStorage> stats_storage = DISABLED;
+      if (use_stats_storage_) {
+        stats_storage = std::make_unique<optimizer::StatsStorage>();
+      }
+
+      std::unique_ptr<ExecutionLayer> execution_layer = DISABLED;
+      if (use_execution_) {
+        execution_layer = std::make_unique<ExecutionLayer>();
+      }
+
       std::unique_ptr<trafficcop::TrafficCop> traffic_cop = DISABLED;
       if (use_traffic_cop_) {
         TERRIER_ASSERT(use_catalog_ && catalog_layer->GetCatalog() != DISABLED,
                        "TrafficCopLayer needs the CatalogLayer.");
-        traffic_cop =
-            std::make_unique<trafficcop::TrafficCop>(txn_layer->GetTransactionManager(), catalog_layer->GetCatalog());
-      }
-
-      std::unique_ptr<optimizer::StatsStorage> stats_storage = DISABLED;
-      if (use_stats_storage_) {
-        stats_storage = std::make_unique<optimizer::StatsStorage>();
+        TERRIER_ASSERT(use_stats_storage_ && stats_storage != DISABLED, "TrafficCopLayer needs StatsStorage.");
+        TERRIER_ASSERT(use_execution_ && execution_layer != DISABLED, "TrafficCopLayer needs ExecutionLayer.");
+        traffic_cop = std::make_unique<trafficcop::TrafficCop>(
+            txn_layer->GetTransactionManager(), catalog_layer->GetCatalog(), DISABLED,
+            common::ManagedPointer(stats_storage), optimizer_timeout_);
       }
 
       std::unique_ptr<NetworkLayer> network_layer = DISABLED;
@@ -348,8 +367,9 @@ class DBMain {
       db_main->storage_layer_ = std::move(storage_layer);
       db_main->catalog_layer_ = std::move(catalog_layer);
       db_main->gc_thread_ = std::move(gc_thread);
-      db_main->traffic_cop_ = std::move(traffic_cop);
       db_main->stats_storage_ = std::move(stats_storage);
+      db_main->execution_layer_ = std::move(execution_layer);
+      db_main->traffic_cop_ = std::move(traffic_cop);
       db_main->network_layer_ = std::move(network_layer);
 
       return db_main;
@@ -553,6 +573,24 @@ class DBMain {
       return *this;
     }
 
+    /**
+     * @param value TrafficCop argument
+     * @return self reference for chaining
+     */
+    Builder &SetOptimizerTimeout(const uint64_t value) {
+      optimizer_timeout_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value use component
+     * @return self reference for chaining
+     */
+    Builder &SetUseExecution(const bool value) {
+      use_execution_ = value;
+      return *this;
+    }
+
    private:
     std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
 
@@ -579,8 +617,10 @@ class DBMain {
     uint64_t block_store_reuse_ = 1e3;
     int32_t gc_interval_ = 10;
     bool use_gc_thread_ = false;
-    bool use_traffic_cop_ = false;
     bool use_stats_storage_ = false;
+    bool use_execution_ = false;
+    bool use_traffic_cop_ = false;
+    uint64_t optimizer_timeout_ = 5000;
     uint16_t network_port_ = 15721;
     bool use_network_ = false;
 
@@ -611,6 +651,7 @@ class DBMain {
       gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
 
       network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
+      optimizer_timeout_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::task_execution_timeout));
 
       return settings_manager;
     }
@@ -695,6 +736,11 @@ class DBMain {
    */
   common::ManagedPointer<NetworkLayer> GetNetworkLayer() const { return common::ManagedPointer(network_layer_); }
 
+  /**
+   * @return ManagedPointer to the component, can be nullptr if disabled
+   */
+  common::ManagedPointer<ExecutionLayer> GetExecutionLayer() const { return common::ManagedPointer(execution_layer_); }
+
  private:
   // Order matters here for destruction order
   std::unique_ptr<settings::SettingsManager> settings_manager_;
@@ -709,6 +755,7 @@ class DBMain {
   std::unique_ptr<storage::GarbageCollectorThread>
       gc_thread_;  // thread needs to die before manual invocations of GC in CatalogLayer and others
   std::unique_ptr<optimizer::StatsStorage> stats_storage_;
+  std::unique_ptr<ExecutionLayer> execution_layer_;
   std::unique_ptr<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<NetworkLayer> network_layer_;
 };

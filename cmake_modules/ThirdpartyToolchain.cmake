@@ -279,4 +279,4 @@ include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
 list(APPEND TERRIER_LINK_LIBS ${LLVM_LIBRARIES})
 
 #flatbuffers
-include_directories(SYSTEM "${THIRDPARTY_DIR}/flatbuffers/include")
+include_directories(SYSTEM "${THIRDPARTY_DIR}/flatbuffers/include"

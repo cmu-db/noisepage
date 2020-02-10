@@ -1,6 +1,7 @@
 #include "execution/tpl.h"
 
 #include <gflags/gflags.h>
+#include <tbb/task_scheduler_init.h>
 #include <unistd.h>
 
 #include <algorithm>
@@ -37,7 +38,6 @@
 #include "main/db_main.h"
 #include "settings/settings_manager.h"
 #include "storage/garbage_collector.h"
-#include "tbb/task_scheduler_init.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/timestamp_manager.h"
 
@@ -92,11 +92,11 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   exec::ExecutionContext exec_ctx{db_oid, common::ManagedPointer(txn), printer, output_schema,
                                   common::ManagedPointer(accessor)};
   // Add dummy parameters for tests
-  sql::Date date(1937, 3, 7);
+  sql::DateVal date(sql::Date::FromYMD(1937, 3, 7));
   std::vector<type::TransientValue> params;
   params.emplace_back(type::TransientValueFactory::GetInteger(37));
   params.emplace_back(type::TransientValueFactory::GetDecimal(37.73));
-  params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date.int_val_)));
+  params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date.val_.ToNative())));
   params.emplace_back(type::TransientValueFactory::GetVarChar("37 Strings"));
   exec_ctx.SetParams(std::move(params));
 

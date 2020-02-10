@@ -1,3 +1,4 @@
+#include <future>  // NOLINT
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -45,6 +46,11 @@ class WriteAheadLoggingTests : public TerrierTest {
                             // running, so we'll just restart it
     // Delete log file
     unlink(LOG_FILE_NAME);
+  }
+
+  static void TestCommitCallback(void *const callback_arg) {
+    auto *const promise = reinterpret_cast<std::promise<bool> *const>(callback_arg);
+    promise->set_value(true);
   }
 
   /**
@@ -408,6 +414,38 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
     delete[] reinterpret_cast<byte *>(log_record);
   }
   EXPECT_FALSE(found_abort_record);
+
+  // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
+  // DeferredAction
+  db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table; });
+}
+
+// Verify that we invoke the callback even for read-only txns. This test checks a bug that was found when sending
+// BEGIN; COMMIT; across PSQL and noticing that COMMIT blocked forever with a real callback.
+TEST_F(WriteAheadLoggingTests, ReadOnlyCallbackTest) {
+  // Create SQLTable
+  auto col = catalog::Schema::Column(
+      "attribute", type::TypeId::INTEGER, false,
+      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(0));
+  auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
+  auto *const sql_table = new storage::SqlTable(store_.Get(), table_schema);
+
+  // Initialize first transaction, this txn will write a single tuple
+  auto *const txn = txn_manager_->BeginTransaction();
+
+  // Call commit with a real callback that modifies a future
+  std::promise<bool> promise;
+  auto future = promise.get_future();
+  EXPECT_TRUE(future.valid());
+  txn_manager_->Commit(txn, TestCommitCallback, &promise);
+
+  // Shut down log manager
+  log_manager_->PersistAndStop();
+
+  // We probably won't end up waiting at all since the PersistAndStop likely flushed it already, but we just want to
+  // verify that it was invoked
+  EXPECT_TRUE(future.get());
 
   // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
   // DeferredAction

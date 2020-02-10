@@ -9,10 +9,10 @@ namespace terrier::storage {
 /**
  * ProjectedColumns represents partial images of a collection of tuples, where columns from different
  * tuples are laid out continuously. This can be considered a collection of ProjectedRows, but optimized
- * for continuous column access like PAX. However, a ProjecetedRow is almost always externally coupled to a known
+ * for continuous column access like PAX. However, a ProjectedRow is almost always externally coupled to a known
  * tuple slot, so it is more compact in layout than MaterializedColumns, which has to also store the
  * TupleSlot information for each tuple. The inner class RowView provides access to the underlying logical
- * projected rows with the same interface as a real ProjecetedRow.
+ * projected rows with the same interface as a real ProjectedRow.
  * -------------------------------------------------------------------------------------
  * | size | max_tuples | num_tuples | num_cols | attr_end[4] | col_id1 | col_id2 | ... |
  * -------------------------------------------------------------------------------------

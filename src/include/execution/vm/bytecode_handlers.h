@@ -15,12 +15,14 @@
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/projected_columns_iterator.h"
+#include "execution/sql/runtime_types.h"
 #include "execution/sql/sorter.h"
 #include "execution/sql/storage_interface.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/execution_common.h"
 #include "execution/util/hash.h"
+#include "util/time_util.h"
 
 // All VM terrier::bytecode op handlers must use this macro
 #define VM_OP EXPORT
@@ -55,7 +57,7 @@ extern "C" {
   /* Primitive not-equal-to implementation */                                                              \
   VM_OP_HOT void OpNotEqual##_##type(bool *result, type lhs, type rhs) { *result = (lhs != rhs); }
 
-INT_TYPES(COMPARISONS);
+ALL_TYPES(COMPARISONS);
 
 #undef COMPARISONS
 
@@ -65,37 +67,48 @@ VM_OP_HOT void OpNot(bool *const result, const bool input) { *result = !input; }
 // Primitive arithmetic
 // ---------------------------------------------------------
 
-#define MODULAR(type, ...)                                          \
+#define ARITHMETIC(type, ...)                                                              \
+  /* Primitive addition */                                                                 \
+  VM_OP_HOT void OpAdd##_##type(type *result, type lhs, type rhs) { *result = lhs + rhs; } \
+                                                                                           \
+  /* Primitive subtraction */                                                              \
+  VM_OP_HOT void OpSub##_##type(type *result, type lhs, type rhs) { *result = lhs - rhs; } \
+                                                                                           \
+  /* Primitive multiplication */                                                           \
+  VM_OP_HOT void OpMul##_##type(type *result, type lhs, type rhs) { *result = lhs * rhs; } \
+                                                                                           \
+  /* Primitive negation */                                                                 \
+  VM_OP_HOT void OpNeg##_##type(type *result, type input) { *result = -input; }            \
+                                                                                           \
+  /* Primitive division (no zero-check) */                                                 \
+  VM_OP_HOT void OpDiv##_##type(type *result, type lhs, type rhs) {                        \
+    TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");                                   \
+    *result = lhs / rhs;                                                                   \
+  }
+
+ALL_NUMERIC_TYPES(ARITHMETIC);
+
+#undef ARITHMETIC
+
+#define INT_MODULAR(type, ...)                                      \
   /* Primitive modulo-remainder (no zero-check) */                  \
   VM_OP_HOT void OpRem##_##type(type *result, type lhs, type rhs) { \
     TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");            \
-    *result = static_cast<type>(lhs % rhs);                         \
+    *result = lhs % rhs;                                            \
   }
 
-INT_TYPES(MODULAR)
-
-#define ARITHMETIC(type, ...)                                                                                 \
-  /* Primitive addition */                                                                                    \
-  VM_OP_HOT void OpAdd##_##type(type *result, type lhs, type rhs) { *result = static_cast<type>(lhs + rhs); } \
-                                                                                                              \
-  /* Primitive subtraction */                                                                                 \
-  VM_OP_HOT void OpSub##_##type(type *result, type lhs, type rhs) { *result = static_cast<type>(lhs - rhs); } \
-                                                                                                              \
-  /* Primitive multiplication */                                                                              \
-  VM_OP_HOT void OpMul##_##type(type *result, type lhs, type rhs) { *result = static_cast<type>(lhs * rhs); } \
-                                                                                                              \
-  /* Primitive negation */                                                                                    \
-  VM_OP_HOT void OpNeg##_##type(type *result, type input) { *result = static_cast<type>(-input); }            \
-                                                                                                              \
-  /* Primitive division (no zero-check) */                                                                    \
-  VM_OP_HOT void OpDiv##_##type(type *result, type lhs, type rhs) {                                           \
-    TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");                                                      \
-    *result = static_cast<type>(lhs / rhs);                                                                   \
+#define FLOAT_MODULAR(type, ...)                                    \
+  /* Primitive modulo-remainder (no zero-check) */                  \
+  VM_OP_HOT void OpRem##_##type(type *result, type lhs, type rhs) { \
+    TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");            \
+    *result = std::fmod(lhs, rhs);                                  \
   }
 
-INT_TYPES(ARITHMETIC);
+INT_TYPES(INT_MODULAR)
+FLOAT_TYPES(FLOAT_MODULAR)
 
-#undef ARITHMETIC
+#undef FLOAT_MODULAR
+#undef INT_MODULAR
 
 // ---------------------------------------------------------
 // Bitwise operations
@@ -230,6 +243,10 @@ VM_OP_HOT void OpParallelScanTable(const uint32_t db_oid, const uint32_t table_o
   terrier::execution::sql::TableVectorIterator::ParallelScan(db_oid, table_oid, query_state, thread_states, scanner);
 }
 
+// ---------------------------------------------------------
+// Projected Columns Iterator
+// ---------------------------------------------------------
+
 VM_OP_HOT void OpPCIIsFiltered(bool *is_filtered, terrier::execution::sql::ProjectedColumnsIterator *pci) {
   *is_filtered = pci->IsFiltered();
 }
@@ -254,6 +271,17 @@ VM_OP_HOT void OpPCIResetFiltered(terrier::execution::sql::ProjectedColumnsItera
 
 VM_OP_HOT void OpPCIGetSlot(terrier::storage::TupleSlot *slot, terrier::execution::sql::ProjectedColumnsIterator *pci) {
   *slot = pci->CurrentSlot();
+}
+
+VM_OP_HOT void OpPCIGetBool(terrier::execution::sql::BoolVal *out,
+                            terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+  // Read
+  auto *ptr = iter->Get<bool, false>(col_idx, nullptr);
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read bool");
+
+  // Set
+  out->is_null_ = false;
+  out->val_ = *ptr;
 }
 
 VM_OP_HOT void OpPCIGetTinyInt(terrier::execution::sql::Integer *out,
@@ -332,15 +360,26 @@ VM_OP_HOT void OpPCIGetDecimal(terrier::execution::sql::Decimal *out,
   out->val_ = 0;
 }
 
-VM_OP_HOT void OpPCIGetDate(terrier::execution::sql::Date *out, terrier::execution::sql::ProjectedColumnsIterator *iter,
-                            uint16_t col_idx) {
+VM_OP_HOT void OpPCIGetDateVal(terrier::execution::sql::DateVal *out,
+                               terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
   // Read
   auto *ptr = iter->Get<uint32_t, false>(col_idx, nullptr);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
 
   // Set
   out->is_null_ = false;
-  out->int_val_ = *ptr;
+  out->val_ = terrier::execution::sql::Date::FromNative(*ptr);
+}
+
+VM_OP_HOT void OpPCIGetTimestampVal(terrier::execution::sql::TimestampVal *out,
+                                    terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+  // Read
+  auto *ptr = iter->Get<uint64_t, false>(col_idx, nullptr);
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
+
+  // Set
+  out->is_null_ = false;
+  out->val_ = terrier::execution::sql::Timestamp::FromNative(*ptr);
 }
 
 VM_OP_HOT void OpPCIGetVarlen(terrier::execution::sql::StringVal *out,
@@ -351,6 +390,18 @@ VM_OP_HOT void OpPCIGetVarlen(terrier::execution::sql::StringVal *out,
 
   // Set
   *out = terrier::execution::sql::StringVal(reinterpret_cast<const char *>(varlen->Content()), varlen->Size());
+}
+
+VM_OP_HOT void OpPCIGetBoolNull(terrier::execution::sql::BoolVal *out,
+                                terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+  // Read
+  bool null = false;
+  auto *ptr = iter->Get<bool, true>(col_idx, &null);
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read bool");
+
+  // Set
+  out->is_null_ = null;
+  out->val_ = *ptr;
 }
 
 VM_OP_HOT void OpPCIGetTinyIntNull(terrier::execution::sql::Integer *out,
@@ -431,8 +482,8 @@ VM_OP_HOT void OpPCIGetDecimalNull(terrier::execution::sql::Decimal *out,
   out->is_null_ = false;
 }
 
-VM_OP_HOT void OpPCIGetDateNull(terrier::execution::sql::Date *out,
-                                terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpPCIGetDateValNull(terrier::execution::sql::DateVal *out,
+                                   terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<uint32_t, true>(col_idx, &null);
@@ -440,7 +491,19 @@ VM_OP_HOT void OpPCIGetDateNull(terrier::execution::sql::Date *out,
 
   // Set
   out->is_null_ = null;
-  out->int_val_ = *ptr;
+  out->val_ = null ? terrier::execution::sql::Date() : terrier::execution::sql::Date::FromNative(*ptr);
+}
+
+VM_OP_HOT void OpPCIGetTimestampValNull(terrier::execution::sql::TimestampVal *out,
+                                        terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+  // Read
+  bool null = false;
+  auto *ptr = iter->Get<uint64_t, true>(col_idx, &null);
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
+
+  // Set
+  out->is_null_ = null;
+  out->val_ = null ? terrier::execution::sql::Timestamp() : terrier::execution::sql::Timestamp::FromNative(*ptr);
 }
 
 VM_OP_HOT void OpPCIGetVarlenNull(terrier::execution::sql::StringVal *out,
@@ -526,7 +589,7 @@ VM_OP_HOT void OpForceBoolTruth(bool *result, terrier::execution::sql::BoolVal *
   *result = input->ForceTruth();
 }
 
-VM_OP_HOT void OpInitBool(terrier::execution::sql::BoolVal *result, bool input) {
+VM_OP_HOT void OpInitBoolVal(terrier::execution::sql::BoolVal *result, bool input) {
   result->is_null_ = false;
   result->val_ = input;
 }
@@ -541,9 +604,20 @@ VM_OP_HOT void OpInitReal(terrier::execution::sql::Real *result, double input) {
   result->val_ = input;
 }
 
-VM_OP_HOT void OpInitDate(terrier::execution::sql::Date *result, int16_t year, uint8_t month, uint8_t day) {
+VM_OP_HOT void OpInitDate(terrier::execution::sql::DateVal *result, int32_t year, uint32_t month, uint32_t day) {
   result->is_null_ = false;
-  result->ymd_ = date::year(year) / month / day;
+  result->val_ = terrier::execution::sql::Date::FromYMD(year, month, day);
+}
+
+VM_OP_HOT void OpInitTimestamp(terrier::execution::sql::TimestampVal *result, uint64_t usec) {
+  result->is_null_ = false;
+  result->val_ = terrier::execution::sql::Timestamp::FromMicroseconds(usec);
+}
+
+VM_OP_HOT void OpInitTimestampHMSu(terrier::execution::sql::TimestampVal *result, int32_t year, uint32_t month,
+                                   uint32_t day, uint8_t hour, uint8_t minute, uint8_t sec, uint64_t usec) {
+  result->is_null_ = false;
+  result->val_ = terrier::execution::sql::Timestamp::FromHMSu(year, month, day, hour, minute, sec, usec);
 }
 
 VM_OP_HOT void OpInitString(terrier::execution::sql::StringVal *result, uint64_t length, uintptr_t data) {
@@ -587,10 +661,12 @@ VM_OP_HOT void OpInitVarlen(terrier::execution::sql::StringVal *result, uintptr_
     terrier::execution::sql::ComparisonFunctions::Ne##TYPE(result, *left, *right);            \
   }
 
+GEN_SQL_COMPARISONS(BoolVal)
 GEN_SQL_COMPARISONS(Integer)
 GEN_SQL_COMPARISONS(Real)
 GEN_SQL_COMPARISONS(StringVal)
-GEN_SQL_COMPARISONS(Date)
+GEN_SQL_COMPARISONS(DateVal)
+GEN_SQL_COMPARISONS(TimestampVal)
 #undef GEN_SQL_COMPARISONS
 
 // ----------------------------------
@@ -1010,6 +1086,7 @@ VM_OP_HOT void OpAvgAggregateGetResult(terrier::execution::sql::Real *result,
 }
 
 VM_OP_HOT void OpAvgAggregateFree(terrier::execution::sql::AvgAggregate *agg) { agg->~AvgAggregate(); }
+
 // ---------------------------------------------------------
 // Hash Joins
 // ---------------------------------------------------------
@@ -1319,21 +1396,20 @@ VM_OP_WARM void OpUpper(terrier::execution::exec::ExecutionContext *ctx, terrier
 // Index Iterator
 // ---------------------------------------------------------------
 VM_OP void OpIndexIteratorInit(terrier::execution::sql::IndexIterator *iter,
-                               terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
-                               uint32_t index_oid, uint32_t *col_oids, uint32_t num_oids);
+                               terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t num_attrs,
+                               uint32_t table_oid, uint32_t index_oid, uint32_t *col_oids, uint32_t num_oids);
 VM_OP void OpIndexIteratorFree(terrier::execution::sql::IndexIterator *iter);
 
 VM_OP void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *iter);
 
 VM_OP_WARM void OpIndexIteratorScanKey(terrier::execution::sql::IndexIterator *iter) { iter->ScanKey(); }
 
-VM_OP_WARM void OpIndexIteratorScanAscending(terrier::execution::sql::IndexIterator *iter) { iter->ScanAscending(); }
+VM_OP_WARM void OpIndexIteratorScanAscending(terrier::execution::sql::IndexIterator *iter,
+                                             terrier::storage::index::ScanType scan_type, uint32_t limit) {
+  iter->ScanAscending(scan_type, limit);
+}
 
 VM_OP_WARM void OpIndexIteratorScanDescending(terrier::execution::sql::IndexIterator *iter) { iter->ScanDescending(); }
-
-VM_OP_WARM void OpIndexIteratorScanLimitAscending(terrier::execution::sql::IndexIterator *iter, uint32_t limit) {
-  iter->ScanLimitAscending(limit);
-}
 
 VM_OP_WARM void OpIndexIteratorScanLimitDescending(terrier::execution::sql::IndexIterator *iter, uint32_t limit) {
   iter->ScanLimitDescending(limit);
@@ -1400,12 +1476,14 @@ VM_OP_WARM void OpIndexIteratorGetSlot(terrier::storage::TupleSlot *slot,
     out->val_ = null ? 0 : *ptr;                                                                                \
   }
 
+GEN_PR_SCALAR_SET_CALLS(Bool, BoolVal, bool);
 GEN_PR_SCALAR_SET_CALLS(TinyInt, Integer, int8_t);
 GEN_PR_SCALAR_SET_CALLS(SmallInt, Integer, int16_t);
 GEN_PR_SCALAR_SET_CALLS(Int, Integer, int32_t);
 GEN_PR_SCALAR_SET_CALLS(BigInt, Integer, int64_t);
 GEN_PR_SCALAR_SET_CALLS(Real, Real, float);
 GEN_PR_SCALAR_SET_CALLS(Double, Real, double);
+GEN_PR_SCALAR_GET_CALLS(Bool, BoolVal, bool);
 GEN_PR_SCALAR_GET_CALLS(TinyInt, Integer, int8_t);
 GEN_PR_SCALAR_GET_CALLS(SmallInt, Integer, int16_t);
 GEN_PR_SCALAR_GET_CALLS(Int, Integer, int32_t);
@@ -1414,44 +1492,82 @@ GEN_PR_SCALAR_GET_CALLS(Real, Real, float);
 GEN_PR_SCALAR_GET_CALLS(Double, Real, double);
 
 VM_OP_HOT void OpPRSetVarlen(terrier::storage::ProjectedRow *pr, uint16_t col_idx,
-                             terrier::execution::sql::StringVal *val) {
-  const auto varlen = terrier::execution::sql::StringVal::CreateVarlen(*val);
+                             terrier::execution::sql::StringVal *val, bool own) {
+  const auto varlen = terrier::execution::sql::StringVal::CreateVarlen(*val, own);
   pr->Set<terrier::storage::VarlenEntry, false>(col_idx, varlen, val->is_null_);
 }
 
 VM_OP_HOT void OpPRSetVarlenNull(terrier::storage::ProjectedRow *pr, uint16_t col_idx,
-                                 terrier::execution::sql::StringVal *val) {
-  const auto varlen = terrier::execution::sql::StringVal::CreateVarlen(*val);
+                                 terrier::execution::sql::StringVal *val, bool own) {
+  const auto varlen = terrier::execution::sql::StringVal::CreateVarlen(*val, own);
   pr->Set<terrier::storage::VarlenEntry, true>(col_idx, varlen, val->is_null_);
 }
 
-VM_OP_HOT void OpPRSetDate(terrier::storage::ProjectedRow *pr, uint16_t col_idx, terrier::execution::sql::Date *val) {
-  pr->Set<uint32_t, false>(col_idx, val->int_val_, val->is_null_);
+VM_OP_HOT void OpPRSetDateVal(terrier::storage::ProjectedRow *pr, uint16_t col_idx,
+                              terrier::execution::sql::DateVal *val) {
+  auto pr_val = val->val_.ToNative();
+  pr->Set<uint32_t, false>(col_idx, pr_val, val->is_null_);
 }
 
-VM_OP_HOT void OpPRSetDateNull(terrier::storage::ProjectedRow *pr, uint16_t col_idx,
-                               terrier::execution::sql::Date *val) {
-  pr->Set<uint32_t, true>(col_idx, val->int_val_, val->is_null_);
+VM_OP_HOT void OpPRSetDateValNull(terrier::storage::ProjectedRow *pr, uint16_t col_idx,
+                                  terrier::execution::sql::DateVal *val) {
+  auto pr_val = val->is_null_ ? 0 : val->val_.ToNative();
+  pr->Set<uint32_t, true>(col_idx, pr_val, val->is_null_);
 }
 
-VM_OP_HOT void OpPRGetDate(terrier::execution::sql::Date *out, terrier::storage::ProjectedRow *pr, uint16_t col_idx) {
+VM_OP_HOT void OpPRSetTimestampVal(terrier::storage::ProjectedRow *pr, uint16_t col_idx,
+                                   terrier::execution::sql::TimestampVal *val) {
+  auto pr_val = val->val_.ToNative();
+  pr->Set<uint64_t, false>(col_idx, pr_val, val->is_null_);
+}
+
+VM_OP_HOT void OpPRSetTimestampValNull(terrier::storage::ProjectedRow *pr, uint16_t col_idx,
+                                       terrier::execution::sql::TimestampVal *val) {
+  auto pr_val = val->is_null_ ? 0 : val->val_.ToNative();
+  pr->Set<uint64_t, true>(col_idx, pr_val, val->is_null_);
+}
+
+VM_OP_HOT void OpPRGetDateVal(terrier::execution::sql::DateVal *out, terrier::storage::ProjectedRow *pr,
+                              uint16_t col_idx) {
   // Read
   auto *ptr = pr->Get<uint32_t, false>(col_idx, nullptr);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
   // Set
   out->is_null_ = false;
-  out->int_val_ = *ptr;
+  out->val_ = terrier::execution::sql::Date::FromNative(*ptr);
 }
 
-VM_OP_HOT void OpPRGetDateNull(terrier::execution::sql::Date *out, terrier::storage::ProjectedRow *pr,
-                               uint16_t col_idx) {
+VM_OP_HOT void OpPRGetDateValNull(terrier::execution::sql::DateVal *out, terrier::storage::ProjectedRow *pr,
+                                  uint16_t col_idx) {
   // Read
   bool null = false;
   auto *ptr = pr->Get<uint32_t, true>(col_idx, &null);
 
   // Set
   out->is_null_ = null;
-  out->int_val_ = null ? 0 : *ptr;
+  out->val_ = null ? terrier::execution::sql::Date() : terrier::execution::sql::Date::FromNative(*ptr);
+}
+
+VM_OP_HOT void OpPRGetTimestampVal(terrier::execution::sql::TimestampVal *out, terrier::storage::ProjectedRow *pr,
+                                   uint16_t col_idx) {
+  // Read
+  auto *ptr = pr->Get<uint64_t, false>(col_idx, nullptr);
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
+
+  // Set
+  out->is_null_ = false;
+  out->val_ = terrier::execution::sql::Timestamp::FromNative(*ptr);
+}
+
+VM_OP_HOT void OpPRGetTimestampValNull(terrier::execution::sql::TimestampVal *out, terrier::storage::ProjectedRow *pr,
+                                       uint16_t col_idx) {
+  // Read
+  bool null = false;
+  auto *ptr = pr->Get<uint64_t, true>(col_idx, &null);
+
+  // Set
+  out->is_null_ = null;
+  out->val_ = null ? terrier::execution::sql::Timestamp() : terrier::execution::sql::Timestamp::FromNative(*ptr);
 }
 
 VM_OP_HOT void OpPRGetVarlen(terrier::execution::sql::StringVal *out, terrier::storage::ProjectedRow *pr,
@@ -1478,6 +1594,7 @@ VM_OP_HOT void OpPRGetVarlenNull(terrier::execution::sql::StringVal *out, terrie
   }
 }
 
+// ---------------------------------------------------------------
 // StorageInterface Calls
 // ---------------------------------------------------------------
 
@@ -1503,11 +1620,15 @@ VM_OP void OpStorageInterfaceGetIndexPR(terrier::storage::ProjectedRow **pr_resu
 
 VM_OP void OpStorageInterfaceIndexInsert(bool *result, terrier::execution::sql::StorageInterface *storage_interface);
 
+VM_OP void OpStorageInterfaceIndexInsertUnique(bool *result,
+                                               terrier::execution::sql::StorageInterface *storage_interface);
+
 VM_OP void OpStorageInterfaceIndexDelete(terrier::execution::sql::StorageInterface *storage_interface,
                                          terrier::storage::TupleSlot *tuple_slot);
 
 VM_OP void OpStorageInterfaceFree(terrier::execution::sql::StorageInterface *storage_interface);
 
+// ---------------------------------------------------------------
 // Output Calls
 // ---------------------------------------------------------------
 
@@ -1529,6 +1650,7 @@ VM_OP void OpOutputFinalize(terrier::execution::exec::ExecutionContext *exec_ctx
     }                                                                                                         \
   }
 
+GEN_SCALAR_PARAM_GET(Bool, BoolVal, PeekBoolean)
 GEN_SCALAR_PARAM_GET(TinyInt, Integer, PeekTinyInt)
 GEN_SCALAR_PARAM_GET(SmallInt, Integer, PeekSmallInt)
 GEN_SCALAR_PARAM_GET(Int, Integer, PeekInteger)
@@ -1537,13 +1659,27 @@ GEN_SCALAR_PARAM_GET(Real, Real, PeekDecimal)
 GEN_SCALAR_PARAM_GET(Double, Real, PeekDecimal)
 #undef GEN_SCALAR_PARAM_GET
 
-VM_OP_HOT void OpGetParamDate(terrier::execution::sql::Date *ret, terrier::execution::exec::ExecutionContext *exec_ctx,
-                              uint32_t param_idx) {
+VM_OP_HOT void OpGetParamDateVal(terrier::execution::sql::DateVal *ret,
+                                 terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t param_idx) {
   const auto &trans_val = exec_ctx->GetParam(param_idx);
   if (trans_val.Null()) {
-    ret->is_null_ = false;
+    ret->is_null_ = true;
   } else {
-    *ret = terrier::execution::sql::Date(terrier::type::TransientValuePeeker::PeekDate(trans_val));
+    auto date = terrier::type::TransientValuePeeker::PeekDate(trans_val);
+    *ret = terrier::execution::sql::DateVal(!date);
+    ret->is_null_ = false;
+  }
+}
+
+VM_OP_HOT void OpGetParamTimestampVal(terrier::execution::sql::TimestampVal *ret,
+                                      terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t param_idx) {
+  const auto &trans_val = exec_ctx->GetParam(param_idx);
+  if (trans_val.Null()) {
+    ret->is_null_ = true;
+  } else {
+    auto ts = terrier::type::TransientValuePeeker::PeekTimestamp(trans_val);
+    *ret = terrier::execution::sql::TimestampVal(!ts);
+    ret->is_null_ = false;
   }
 }
 
@@ -1551,10 +1687,11 @@ VM_OP_HOT void OpGetParamString(terrier::execution::sql::StringVal *ret,
                                 terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t param_idx) {
   const auto &trans_val = exec_ctx->GetParam(param_idx);
   if (trans_val.Null()) {
-    ret->is_null_ = false;
+    ret->is_null_ = true;
   } else {
     auto val = terrier::type::TransientValuePeeker::PeekVarChar(trans_val);
     *ret = terrier::execution::sql::StringVal(val.data(), static_cast<uint32_t>(val.size()));
+    ret->is_null_ = false;
   }
 }
 

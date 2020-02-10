@@ -145,9 +145,6 @@ if ("$ENV{CMAKE_EXPORT_COMPILE_COMMANDS}" STREQUAL "1" OR CLANG_TIDY_FOUND)
     set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 endif ()
 
-# data directory for SSL
-set(DATA_DIR "${PROJECT_SOURCE_DIR}/data")
-
 ############################################################
 # Compiler flags
 ############################################################

@@ -6,17 +6,18 @@
 #include "benchmark_util/data_table_benchmark_util.h"
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
+#include "catalog/postgres/pg_proc.h"
 #include "loggers/binder_logger.h"
 #include "main/db_main.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
+#include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/subquery_expression.h"
 #include "parser/postgresparser.h"
 #include "storage/garbage_collector.h"
 #include "test_util/test_harness.h"
-#include "traffic_cop/statement.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
@@ -47,7 +48,7 @@ class BinderCorrectnessTest : public TerrierTest {
     BINDER_LOG_DEBUG("Creating database %s", default_database_name_.c_str());
     db_oid_ = catalog_->CreateDatabase(common::ManagedPointer(txn_), default_database_name_, true);
     // commit the transactions
-    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
     BINDER_LOG_DEBUG("database %s created!", default_database_name_.c_str());
 
     // get default values of the columns
@@ -69,7 +70,7 @@ class BinderCorrectnessTest : public TerrierTest {
     auto table_a = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), schema_a);
     EXPECT_TRUE(accessor_->SetTablePointer(table_a_oid_, table_a));
 
-    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
     accessor_.reset(nullptr);
 
     // create Table B
@@ -85,7 +86,7 @@ class BinderCorrectnessTest : public TerrierTest {
     table_b_oid_ = accessor_->CreateTable(accessor_->GetDefaultNamespace(), "b", schema_b);
     auto table_b = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), schema_b);
     EXPECT_TRUE(accessor_->SetTablePointer(table_b_oid_, table_b));
-    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
     accessor_.reset(nullptr);
   }
 
@@ -102,7 +103,7 @@ class BinderCorrectnessTest : public TerrierTest {
   }
 
   void TearDown() override {
-    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+    txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
     accessor_.reset(nullptr);
     delete binder_;
   }
@@ -115,8 +116,8 @@ TEST_F(BinderCorrectnessTest, SelectStatementInvalidTableTest) {
   std::string select_sql = "SELECT a1 FROM c;";
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  EXPECT_THROW(binder_->BindNameToNode(statement, &parse_tree), BinderException);
+  auto statement = parse_tree->GetStatements()[0];
+  EXPECT_THROW(binder_->BindNameToNode(statement, parse_tree.get()), BinderException);
 }
 
 // NOLINTNEXTLINE
@@ -126,8 +127,8 @@ TEST_F(BinderCorrectnessTest, SelectStatementInvalidColumnTest) {
   std::string select_sql = "SELECT a8 FROM a;";
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  EXPECT_THROW(binder_->BindNameToNode(statement, &parse_tree), BinderException);
+  auto statement = parse_tree->GetStatements()[0];
+  EXPECT_THROW(binder_->BindNameToNode(statement, parse_tree.get()), BinderException);
 }
 
 // NOLINTNEXTLINE
@@ -139,8 +140,8 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
       "GROUP BY A.a1, B.b2 HAVING a1 > 50 ORDER BY a1";
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  binder_->BindNameToNode(statement, &parse_tree);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(statement, parse_tree.get());
   auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
   EXPECT_EQ(0, select_stmt->GetDepth());
 
@@ -236,8 +237,8 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarTest) {
 
   std::string select_sql = "SELECT * FROM A LEFT OUTER JOIN B ON A.A1 < B.B1";
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  binder_->BindNameToNode(statement, &parse_tree);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(statement, parse_tree.get());
   auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
   EXPECT_EQ(0, select_stmt->GetDepth());
 
@@ -300,8 +301,8 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
   std::string select_sql =
       "SELECT * FROM A LEFT OUTER JOIN (SELECT * FROM B INNER JOIN A ON B1 = A1) AS C ON C.B2 = a.A1";
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  binder_->BindNameToNode(statement, &parse_tree);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(statement, parse_tree.get());
   auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
   EXPECT_EQ(0, select_stmt->GetDepth());
 
@@ -481,8 +482,8 @@ TEST_F(BinderCorrectnessTest, SelectStatementNestedColumnTest) {
 
   std::string select_sql = "SELECT A1, (SELECT B2 FROM B where B2 IS NULL LIMIT 1) FROM A";
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  binder_->BindNameToNode(statement, &parse_tree);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(statement, parse_tree.get());
   auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
   EXPECT_EQ(0, select_stmt->GetDepth());
 
@@ -529,8 +530,8 @@ TEST_F(BinderCorrectnessTest, SelectStatementDupAliasTest) {
 
   std::string select_sql = "SELECT * FROM A, B as A";
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
-  auto select_stmt = parse_tree.GetStatements()[0];
-  EXPECT_THROW(binder_->BindNameToNode(select_stmt, &parse_tree), BinderException);
+  auto select_stmt = parse_tree->GetStatements()[0];
+  EXPECT_THROW(binder_->BindNameToNode(select_stmt, parse_tree.get()), BinderException);
 }
 
 // NOLINTNEXTLINE
@@ -538,8 +539,8 @@ TEST_F(BinderCorrectnessTest, SelectStatementDiffTableSameSchemaTest) {
   // Test select from different table instances from the same physical schema
   std::string select_sql = "SELECT * FROM A, A as AA where A.a1 = AA.a2";
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  binder_->BindNameToNode(statement, &parse_tree);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(statement, parse_tree.get());
   auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
   BINDER_LOG_DEBUG("Checking where clause");
   auto col_expr = select_stmt->GetSelectCondition()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
@@ -560,8 +561,8 @@ TEST_F(BinderCorrectnessTest, SelectStatementSelectListAliasTest) {
 
   std::string select_sql = "SELECT AA.a1, b2 FROM A as AA, B WHERE AA.a1 = B.b1";
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  binder_->BindNameToNode(statement, &parse_tree);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(statement, parse_tree.get());
   auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
   auto col_expr = select_stmt->GetSelectColumns()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // AA.a1
@@ -578,8 +579,8 @@ TEST_F(BinderCorrectnessTest, SelectStatementSelectListAliasTest) {
 TEST_F(BinderCorrectnessTest, UpdateStatementSimpleTest) {
   std::string update_sql = "UPDATE A SET A1 = 999 WHERE A1 >= 1";
   auto parse_tree = parser::PostgresParser::BuildParseTree(update_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  binder_->BindNameToNode(statement, &parse_tree);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(statement, parse_tree.get());
   auto update_stmt = statement.CastManagedPointerTo<parser::UpdateStatement>();
 
   BINDER_LOG_DEBUG("Checking update clause");
@@ -600,8 +601,8 @@ TEST_F(BinderCorrectnessTest, UpdateStatementSimpleTest) {
 TEST_F(BinderCorrectnessTest, DeleteStatementWhereTest) {
   std::string delete_sql = "DELETE FROM b WHERE 1 = b1 AND b2 = 'str'";
   auto parse_tree = parser::PostgresParser::BuildParseTree(delete_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  binder_->BindNameToNode(statement, &parse_tree);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(statement, parse_tree.get());
   auto delete_stmt = statement.CastManagedPointerTo<parser::DeleteStatement>();
 
   BINDER_LOG_DEBUG("Checking first condition in where clause");
@@ -626,8 +627,8 @@ TEST_F(BinderCorrectnessTest, AggregateSimpleTest) {
 
   std::string select_sql = "SELECT MAX(b1) FROM B;";
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  binder_->BindNameToNode(statement, &parse_tree);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(statement, parse_tree.get());
   auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
   EXPECT_EQ(0, select_stmt->GetDepth());
 
@@ -650,8 +651,8 @@ TEST_F(BinderCorrectnessTest, AggregateComplexTest) {
 
   std::string select_sql = "SELECT A.a1 FROM A WHERE A.a1 IN (SELECT MAX(b1) FROM B);";
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  binder_->BindNameToNode(statement, &parse_tree);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(statement, parse_tree.get());
   auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
   EXPECT_EQ(0, select_stmt->GetDepth());
 
@@ -677,8 +678,8 @@ TEST_F(BinderCorrectnessTest, OperatorComplexTest) {
 
   std::string select_sql = "SELECT A.a1 FROM A WHERE 2 * A.a1 IN (SELECT b1+1 FROM B);";
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  binder_->BindNameToNode(statement, &parse_tree);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(statement, parse_tree.get());
   auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
   EXPECT_EQ(0, select_stmt->GetDepth());
 
@@ -717,8 +718,8 @@ TEST_F(BinderCorrectnessTest, BindDepthTest) {
       "SELECT A.a1 FROM A WHERE A.a1 IN (SELECT b1 FROM B WHERE b1 = 2 AND "
       "b2 > (SELECT a1 FROM A WHERE a2 > 0)) AND EXISTS (SELECT b1 FROM B WHERE B.b1 = A.a1)";
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  binder_->BindNameToNode(statement, &parse_tree);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(statement, parse_tree.get());
   auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
 
   // Check select depthGetSelectCondition
@@ -822,8 +823,8 @@ TEST_F(BinderCorrectnessTest, CreateDatabaseTest) {
 
   std::string create_sql = "CREATE DATABASE C;";
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  EXPECT_NO_THROW(binder_->BindNameToNode(statement, &parse_tree));
+  auto statement = parse_tree->GetStatements()[0];
+  EXPECT_NO_THROW(binder_->BindNameToNode(statement, parse_tree.get()));
 }
 
 // NOLINTNEXTLINE
@@ -834,8 +835,8 @@ TEST_F(BinderCorrectnessTest, CreateTableTest) {
       "CREATE TABLE C ( C1 int NOT NULL, C2 varchar(255) NOT NULL UNIQUE, C3 INT REFERENCES A(A1), C4 INT DEFAULT 14 "
       "CHECK (C4<100), PRIMARY KEY(C1));";
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  binder_->BindNameToNode(statement, &parse_tree);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(statement, parse_tree.get());
 
   auto create_stmt = statement.CastManagedPointerTo<parser::CreateStatement>();
   EXPECT_TRUE(create_stmt != nullptr);
@@ -854,8 +855,8 @@ TEST_F(BinderCorrectnessTest, CreateTableSimpleForeignTest) {
       "CREATE TABLE D ( D1 int NOT NULL, D2 varchar(255) NOT NULL UNIQUE, D3 INT UNIQUE, D4 VARCHAR(20) UNIQUE, "
       "PRIMARY KEY(D1, D2), FOREIGN KEY(D3, D4) REFERENCES A(A1, A2));";
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  EXPECT_NO_THROW(binder_->BindNameToNode(statement, &parse_tree));
+  auto statement = parse_tree->GetStatements()[0];
+  EXPECT_NO_THROW(binder_->BindNameToNode(statement, parse_tree.get()));
 }
 
 // NOLINTNEXTLINE
@@ -866,18 +867,18 @@ TEST_F(BinderCorrectnessTest, CreateTableSimpleForeignViolateTest) {
       "CREATE TABLE D ( D1 int NOT NULL, D2 varchar(255) NOT NULL UNIQUE, D3 INT UNIQUE, D4 INT UNIQUE, PRIMARY "
       "KEY(D1, D2), FOREIGN KEY(D4, D3) REFERENCES A(A1, A2));";
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  EXPECT_THROW(binder_->BindNameToNode(statement, &parse_tree), BinderException);
+  auto statement = parse_tree->GetStatements()[0];
+  EXPECT_THROW(binder_->BindNameToNode(statement, parse_tree.get()), BinderException);
 }
 
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, CreateIndexTest) {
   BINDER_LOG_DEBUG("Checking create index");
 
-  std::string create_sql = "CREATE UNIQUE INDEX idx_d ON A (lower(A2), A1);";
+  std::string create_sql = "CREATE UNIQUE INDEX idx_d ON A (A2, A1);";
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  EXPECT_NO_THROW(binder_->BindNameToNode(statement, &parse_tree));
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(statement, parse_tree.get());
 }
 
 // NOLINTNEXTLINE
@@ -891,9 +892,9 @@ TEST_F(BinderCorrectnessTest, CreateTriggerTest) {
       "WHEN (OLD.a1 <> NEW.a1) "
       "EXECUTE PROCEDURE check_account_update(update_date);";
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
-  auto statement = parse_tree.GetStatements()[0];
+  auto statement = parse_tree->GetStatements()[0];
   auto create_stmt = statement.CastManagedPointerTo<parser::CreateStatement>();
-  EXPECT_NO_THROW(binder_->BindNameToNode(statement, &parse_tree));
+  EXPECT_NO_THROW(binder_->BindNameToNode(statement, parse_tree.get()));
   auto col1 = create_stmt->GetTriggerWhen()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
   auto col2 = create_stmt->GetTriggerWhen()->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col1->GetTableOid(), table_a_oid_);
@@ -909,8 +910,8 @@ TEST_F(BinderCorrectnessTest, CreateViewTest) {
   std::string create_sql = "CREATE VIEW a_view AS SELECT * FROM a WHERE a1 = 4;";
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  binder_->BindNameToNode(statement, &parse_tree);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(statement, parse_tree.get());
 
   // Test logical create
   auto create_stmt = statement.CastManagedPointerTo<parser::CreateStatement>();
@@ -929,6 +930,28 @@ TEST_F(BinderCorrectnessTest, CreateViewTest) {
   EXPECT_EQ(col_expr->GetReturnValueType(), type::TypeId::INTEGER);
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));
+}
+
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, SimpleFunctionCallTest) {
+  std::string query = "SELECT cot(1.0) FROM a;";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(query);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(statement, parse_tree.get());
+
+  auto select_stmt = parse_tree->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
+
+  auto fun_expr = select_stmt->GetSelectColumns()[0].CastManagedPointerTo<parser::FunctionExpression>();
+  auto proc_oid = fun_expr->GetProcOid();
+  EXPECT_EQ(proc_oid, catalog::postgres::COT_PRO_OID);
+
+  // Make a query with wrong argument types to check correct overloading
+  query = "SELECT cot(1.0, 2.0) FROM a;";
+
+  parse_tree = parser::PostgresParser::BuildParseTree(query);
+  statement = parse_tree->GetStatements()[0];
+  EXPECT_THROW(binder_->BindNameToNode(statement, parse_tree.get()), BinderException);
 }
 
 }  // namespace terrier

@@ -265,6 +265,79 @@ class CatalogAccessor {
   common::ManagedPointer<storage::index::Index> GetIndex(index_oid_t index) const;
 
   /**
+   * Adds a language to the catalog (with default parameters for now) if
+   * it doesn't exist in pg_language already
+   * @param lanname name of language
+   * @return oid of added language if it didn't exist before or INVALID_LANGUAGE_OID if else
+   */
+  language_oid_t CreateLanguage(const std::string &lanname);
+
+  /**
+   * Gets a language's oid from the catalog if it exists in pg_language
+   * @param lanname name of language
+   * @return oid of requested language if it exists or INVALID_LANGUAGE_OID if else
+   */
+  language_oid_t GetLanguageOid(const std::string &lanname);
+
+  /**
+   * Drops a language from the catalog
+   * @param language_oid oid of the language to drop
+   * @return true iff the langauge was successfully found and dropped
+   */
+  bool DropLanguage(language_oid_t language_oid);
+
+  /**
+   * Creates a procedure for the pg_proc table
+   * @param procname name of process to add
+   * @param language_oid oid of language this process is written in
+   * @param procns namespace of process to add
+   * @param args names of arguments to this proc
+   * @param arg_types types of arguments to this proc in the same order as in args (only for in and inout
+   *        arguments)
+   * @param all_arg_types types of all arguments
+   * @param arg_modes modes of arguments in the same order as in args
+   * @param rettype oid of the type of return value
+   * @param src source code of proc
+   * @param is_aggregate true iff this is an aggregate procedure
+   * @return oid of created proc entry
+   * @warning does not support variadics yet
+   */
+  proc_oid_t CreateProcedure(const std::string &procname, language_oid_t language_oid, namespace_oid_t procns,
+                             const std::vector<std::string> &args, const std::vector<type_oid_t> &arg_types,
+                             const std::vector<type_oid_t> &all_arg_types,
+                             const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,
+                             const std::string &src, bool is_aggregate);
+
+  /**
+   * Drops a procedure from the pg_proc table
+   * @param proc_oid oid of process to drop
+   * @return true iff the process was successfully found and dropped
+   */
+  bool DropProcedure(proc_oid_t proc_oid);
+
+  /**
+   * Gets the oid of a procedure from pg_proc given a requested name and namespace
+   * This lookup will return the first one found through a sequential scan through
+   * the current search path
+   * @param procname name of the proc to lookup
+   * @param all_arg_types vector of types of arguments of procedure to look up
+   * @return the oid of the found proc if found else INVALID_PROC_OID
+   */
+  proc_oid_t GetProcOid(const std::string &procname, const std::vector<type_oid_t> &all_arg_types);
+
+  /**
+   * Returns the type oid of the given TypeId in pg_type
+   * @param type
+   * @return type_oid of type in pg_type
+   */
+  type_oid_t GetTypeOidFromTypeId(type::TypeId type);
+
+  /**
+   * @return BlockStore to be used for CREATE operations
+   */
+  common::ManagedPointer<storage::BlockStore> GetBlockStore() const;
+
+  /**
    * Instantiates a new accessor into the catalog for the given database.
    * @param catalog pointer to the catalog being accessed
    * @param dbc pointer to the database catalog being accessed

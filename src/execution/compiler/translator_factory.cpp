@@ -11,6 +11,7 @@
 #include "execution/compiler/expression/derived_value_translator.h"
 #include "execution/compiler/expression/null_check_translator.h"
 #include "execution/compiler/expression/param_value_translator.h"
+#include "execution/compiler/expression/star_translator.h"
 #include "execution/compiler/expression/tuple_value_translator.h"
 #include "execution/compiler/expression/unary_translator.h"
 #include "execution/compiler/operator/aggregate_translator.h"
@@ -20,6 +21,7 @@
 #include "execution/compiler/operator/index_scan_translator.h"
 #include "execution/compiler/operator/insert_translator.h"
 #include "execution/compiler/operator/nested_loop_translator.h"
+#include "execution/compiler/operator/projection_translator.h"
 #include "execution/compiler/operator/seq_scan_translator.h"
 #include "execution/compiler/operator/sort_translator.h"
 #include "execution/compiler/operator/update_translator.h"
@@ -49,6 +51,9 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateRegularTranslator(
     }
     case terrier::planner::PlanNodeType::INDEXSCAN: {
       return std::make_unique<IndexScanTranslator>(static_cast<const planner::IndexScanPlanNode *>(op), codegen);
+    }
+    case terrier::planner::PlanNodeType::PROJECTION: {
+      return std::make_unique<ProjectionTranslator>(static_cast<const planner::ProjectionPlanNode *>(op), codegen);
     }
     default:
       UNREACHABLE("Unsupported plan nodes");
@@ -137,6 +142,9 @@ std::unique_ptr<ExpressionTranslator> TranslatorFactory::CreateExpressionTransla
   }
   if (IsNullOp(type)) {
     return std::make_unique<NullCheckTranslator>(expression, codegen);
+  }
+  if (IsStar(type)) {
+    return std::make_unique<StarTranslator>(expression, codegen);
   }
   UNREACHABLE("Unsupported expression");
 }

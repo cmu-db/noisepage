@@ -28,6 +28,9 @@ ast::Expr *ComparisonTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
     case terrier::parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
       op_token = parsing::Token::Type::LESS_EQUAL;
       break;
+    case terrier::parser::ExpressionType::COMPARE_NOT_EQUAL:
+      op_token = parsing::Token::Type::BANG_EQUAL;
+      break;
     default:
       UNREACHABLE("Unsupported expression");
   }
