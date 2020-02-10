@@ -44,7 +44,8 @@ class Catalog {
    * action framework in the destructor.
    * @param txn_manager for spawning read-only transactions in destructors
    * @param block_store to use to back catalog tables
-   * @param garbage_collector injected GC to register and deregister indexes. Temporary?
+   * @param garbage_collector injected GC to register and deregister indexes. Temporary if we change the GC mechanism
+   * for BwTree, or replace it entirely?
    * @warning The catalog requires garbage collection and will leak catalog
    * tables if it is disabled.
    */

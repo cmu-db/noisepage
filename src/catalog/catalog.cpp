@@ -101,8 +101,7 @@ bool Catalog::CreateDatabase(const common::ManagedPointer<transaction::Transacti
     delete dbc;
   });
   bool success = Catalog::CreateDatabaseEntry(common::ManagedPointer(txn), db_oid, name, dbc);
-  // TODO(Matt): should this be if (success && bootstrap), or should we bootstrap regardless of db name uniqueness?
-  if (bootstrap) dbc->Bootstrap(txn);  // If creation succeed, bootstrap the created database
+  if (bootstrap) dbc->Bootstrap(txn);  // Bootstrap the created database
   return success;
 }
 
