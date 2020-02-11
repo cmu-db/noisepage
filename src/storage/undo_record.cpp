@@ -21,11 +21,9 @@ void UndoRecord::ReclaimBufferIfVarlen(transaction::TransactionContext *const tx
         if (layout.IsVarlen(col_id)) {
           auto *varlen = reinterpret_cast<VarlenEntry *>(accessor.AccessWithNullCheck(slot_, col_id));
           if (varlen != nullptr && varlen->NeedReclaim()) txn->AddReclaimableVarlen(varlen->Content());
+        } else if (i > 0) {
+          break;  // Once done with varlens we won't see them again.
         }
-        //        // TODO(Ling): this assumption is not true; causing mem leak
-        //        else {
-        //          break;  // Once done with varlens we won't see them again.
-        //        }
       }
       break;
     case DeltaRecordType::UPDATE: {
@@ -35,11 +33,9 @@ void UndoRecord::ReclaimBufferIfVarlen(transaction::TransactionContext *const tx
         if (layout.IsVarlen(col_id)) {
           auto *varlen = reinterpret_cast<const VarlenEntry *>(delta->AccessWithNullCheck(i));
           if (varlen != nullptr && varlen->NeedReclaim()) txn->AddReclaimableVarlen(varlen->Content());
+        } else if (i > 0) {
+          break;  // Once done with varlens we won't see them again.
         }
-        // // TODO(Ling): this might be true? need more investigation
-        // else {
-        //   break;  // Once done with varlens we won't see them again.
-        // }
       }
       break;
     }
