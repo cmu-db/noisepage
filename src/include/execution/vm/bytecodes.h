@@ -172,6 +172,15 @@ namespace terrier::execution::vm {
                                                                                                                       \
   /* SQL type comparisons */                                                                                          \
   F(ForceBoolTruth, OperandType::Local, OperandType::Local)                                                           \
+  F(IsNull, OperandType::Local, OperandType::Local)                                                                   \
+  F(IsNotNull, OperandType::Local, OperandType::Local)                                                                \
+  F(InitNullBool, OperandType::Local)                                                                                 \
+  F(InitNullInt, OperandType::Local)                                                                                  \
+  F(InitNullReal, OperandType::Local)                                                                                 \
+  F(InitNullDecimal, OperandType::Local)                                                                              \
+  F(InitNullString, OperandType::Local)                                                                               \
+  F(InitNullDate, OperandType::Local)                                                                                 \
+  F(InitNullTimestamp, OperandType::Local)                                                                            \
   F(InitBoolVal, OperandType::Local, OperandType::Local)                                                              \
   F(InitInteger, OperandType::Local, OperandType::Local)                                                              \
   F(InitReal, OperandType::Local, OperandType::Local)                                                                 \

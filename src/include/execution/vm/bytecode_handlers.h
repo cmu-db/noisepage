@@ -589,6 +589,38 @@ VM_OP_HOT void OpForceBoolTruth(bool *result, terrier::execution::sql::BoolVal *
   *result = input->ForceTruth();
 }
 
+VM_OP_HOT void OpIsNull(bool *result, terrier::execution::sql::Val *sql_val) { *result = sql_val->is_null_; }
+
+VM_OP_HOT void OpIsNotNull(bool *result, terrier::execution::sql::Val *sql_val) { *result = !sql_val->is_null_; }
+
+VM_OP_HOT void OpInitNullBool(terrier::execution::sql::BoolVal *result) {
+  *result = terrier::execution::sql::BoolVal::Null();
+}
+
+VM_OP_HOT void OpInitNullInt(terrier::execution::sql::Integer *result) {
+  *result = terrier::execution::sql::Integer::Null();
+}
+
+VM_OP_HOT void OpInitNullReal(terrier::execution::sql::Real *result) {
+  *result = terrier::execution::sql::Real::Null();
+}
+
+VM_OP_HOT void OpInitNullDecimal(terrier::execution::sql::Decimal *result) {
+  *result = terrier::execution::sql::Decimal::Null();
+}
+
+VM_OP_HOT void OpInitNullString(terrier::execution::sql::StringVal *result) {
+  *result = terrier::execution::sql::StringVal::Null();
+}
+
+VM_OP_HOT void OpInitNullDate(terrier::execution::sql::DateVal *result) {
+  *result = terrier::execution::sql::DateVal::Null();
+}
+
+VM_OP_HOT void OpInitNullTimestamp(terrier::execution::sql::TimestampVal *result) {
+  *result = terrier::execution::sql::TimestampVal::Null();
+}
+
 VM_OP_HOT void OpInitBoolVal(terrier::execution::sql::BoolVal *result, bool input) {
   result->is_null_ = false;
   result->val_ = input;

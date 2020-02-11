@@ -273,6 +273,52 @@ class CodeGen {
   ast::Expr *MemberExpr(ast::Identifier lhs, ast::Identifier rhs);
 
   /**
+   * @return The generated sql NULL bool.
+   */
+  ast::Expr *NullBool();
+
+  /**
+   * @return The generated sql NULL int.
+   */
+  ast::Expr *NullInt();
+
+  /**
+   * @return The generated sql NULL real.
+   */
+  ast::Expr *NullReal();
+
+  /**
+   * @return The generated sql NULL decimal.
+   */
+  ast::Expr *NullDecimal();
+
+  /**
+   * @return The generated sql NULL string.
+   */
+  ast::Expr *NullString();
+
+  /**
+   * @return The generated sql NULL date.
+   */
+  ast::Expr *NullDate();
+
+  /**
+   * @return The generated sql NULL timestamp.
+   */
+  ast::Expr *NullTimestamp();
+
+  /**
+   * @param expr The expression to be checked.
+   * @return The generated null check.
+   */
+  ast::Expr *IsNull(ast::Expr *expr);
+
+  /**
+   * @param expr The expression to be checked.
+   * @return The generated not-null check.
+   */
+  ast::Expr *IsNotNull(ast::Expr *expr);
+  /**
    * @param num The number to convert to a sql Integer.
    * @return The generated sql Integer
    */
@@ -538,6 +584,13 @@ class CodeGen {
    * @return The expression corresponding to the builtin call.
    */
   ast::Expr *OneArgCall(ast::Builtin builtin, ast::Expr *arg);
+
+  /**
+   * Generic way to call functions that take in no arguments
+   * @param builtin builtin function to call
+   * @return The expression corresponding to the builtin call.
+   */
+  ast::Expr *ZeroArgCall(ast::Builtin builtin);
 
  private:
   // Counter for the identifiers. Allows the creation of unique names.

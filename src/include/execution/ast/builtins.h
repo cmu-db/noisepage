@@ -7,6 +7,16 @@ namespace terrier::execution::ast {
 // The list of all builtin functions
 // Args: internal name, function name
 #define BUILTINS_LIST(F)                                                \
+  /* SQL NULL. */                                                       \
+  F(IsNull, isNull)                                                     \
+  F(IsNotNull, isNotNull)                                               \
+  F(NullBool, nullBool)                                                 \
+  F(NullInt, nullInt)                                                   \
+  F(NullReal, nullReal)                                                 \
+  F(NullDecimal, nullDecimal)                                           \
+  F(NullString, nullString)                                             \
+  F(NullDate, nullDate)                                                 \
+  F(NullTimestamp, nullTimestamp)                                       \
   /* Primitive <-> SQL */                                               \
   F(IntToSql, intToSql)                                                 \
   F(BoolToSql, boolToSql)                                               \

@@ -765,6 +765,62 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
+  OP(IsNull) : {
+    auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
+    auto *sql_val = frame->LocalAt<sql::Val *>(READ_LOCAL_ID());
+    OpIsNull(result, sql_val);
+    DISPATCH_NEXT();
+  }
+
+  OP(IsNotNull) : {
+    auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
+    auto *sql_val = frame->LocalAt<sql::Val *>(READ_LOCAL_ID());
+    OpIsNotNull(result, sql_val);
+    DISPATCH_NEXT();
+  }
+
+  OP(InitNullBool) : {
+    auto *sql_null = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());
+    OpInitNullBool(sql_null);
+    DISPATCH_NEXT();
+  }
+
+  OP(InitNullInt) : {
+    auto *sql_null = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
+    OpInitNullInt(sql_null);
+    DISPATCH_NEXT();
+  }
+
+  OP(InitNullReal) : {
+    auto *sql_null = frame->LocalAt<sql::Real *>(READ_LOCAL_ID());
+    OpInitNullReal(sql_null);
+    DISPATCH_NEXT();
+  }
+
+  OP(InitNullDecimal) : {
+    auto *sql_null = frame->LocalAt<sql::Decimal *>(READ_LOCAL_ID());
+    OpInitNullDecimal(sql_null);
+    DISPATCH_NEXT();
+  }
+
+  OP(InitNullString) : {
+    auto *sql_null = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    OpInitNullString(sql_null);
+    DISPATCH_NEXT();
+  }
+
+  OP(InitNullDate) : {
+    auto *sql_null = frame->LocalAt<sql::DateVal *>(READ_LOCAL_ID());
+    OpInitNullDate(sql_null);
+    DISPATCH_NEXT();
+  }
+
+  OP(InitNullTimestamp) : {
+    auto *sql_null = frame->LocalAt<sql::TimestampVal *>(READ_LOCAL_ID());
+    OpInitNullTimestamp(sql_null);
+    DISPATCH_NEXT();
+  }
+
   OP(InitBoolVal) : {
     auto *sql_bool = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());
     auto val = frame->LocalAt<bool>(READ_LOCAL_ID());

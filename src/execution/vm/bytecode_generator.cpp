@@ -442,6 +442,55 @@ void BytecodeGenerator::VisitReturnStmt(ast::ReturnStmt *node) {
 void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
   ast::Context *ctx = call->GetType()->GetContext();
   switch (builtin) {
+    case ast::Builtin::IsNull: {
+      auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      auto input = VisitExpressionForRValue(call->Arguments()[0]);
+      Emitter()->Emit(Bytecode::IsNull, dest, input);
+      ExecutionResult()->SetDestination(dest.ValueOf());
+      break;
+    }
+    case ast::Builtin::IsNotNull: {
+      auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      auto input = VisitExpressionForRValue(call->Arguments()[0]);
+      Emitter()->Emit(Bytecode::IsNotNull, dest, input);
+      ExecutionResult()->SetDestination(dest.ValueOf());
+      break;
+    }
+    case ast::Builtin::NullBool: {
+      auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Boolean));
+      Emitter()->Emit(Bytecode::InitNullBool, dest);
+      break;
+    }
+    case ast::Builtin::NullInt: {
+      auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
+      Emitter()->Emit(Bytecode::InitNullInt, dest);
+      break;
+    }
+    case ast::Builtin::NullReal: {
+      auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Real));
+      Emitter()->Emit(Bytecode::InitNullReal, dest);
+      break;
+    }
+    case ast::Builtin::NullDecimal: {
+      auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Decimal));
+      Emitter()->Emit(Bytecode::InitNullDecimal, dest);
+      break;
+    }
+    case ast::Builtin::NullString: {
+      auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::StringVal));
+      Emitter()->Emit(Bytecode::InitNullString, dest);
+      break;
+    }
+    case ast::Builtin::NullDate: {
+      auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Date));
+      Emitter()->Emit(Bytecode::InitNullDate, dest);
+      break;
+    }
+    case ast::Builtin::NullTimestamp: {
+      auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Timestamp));
+      Emitter()->Emit(Bytecode::InitNullTimestamp, dest);
+      break;
+    }
     case ast::Builtin::BoolToSql: {
       auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Boolean));
       auto input = VisitExpressionForRValue(call->Arguments()[0]);
@@ -1950,6 +1999,15 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
   ctx->IsBuiltinFunction(call->GetFuncName(), &builtin);
 
   switch (builtin) {
+    case ast::Builtin::IsNull:
+    case ast::Builtin::IsNotNull:
+    case ast::Builtin::NullBool:
+    case ast::Builtin::NullInt:
+    case ast::Builtin::NullReal:
+    case ast::Builtin::NullDecimal:
+    case ast::Builtin::NullString:
+    case ast::Builtin::NullDate:
+    case ast::Builtin::NullTimestamp:
     case ast::Builtin::BoolToSql:
     case ast::Builtin::IntToSql:
     case ast::Builtin::FloatToSql:
@@ -2273,7 +2331,7 @@ void BytecodeGenerator::VisitFile(ast::File *node) {
 }
 
 void BytecodeGenerator::VisitLitExpr(ast::LitExpr *node) {
-  TERRIER_ASSERT(ExecutionResult()->IsRValue(), "Literal expressions cannot be R-Values!");
+  TERRIER_ASSERT(ExecutionResult()->IsRValue(), "Literal expressions should be R-Values!");
 
   LocalVar target = ExecutionResult()->GetOrCreateDestination(node->GetType());
   switch (node->LiteralKind()) {
