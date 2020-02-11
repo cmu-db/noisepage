@@ -1,3 +1,4 @@
+#include "brain/operating_unit.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/value.h"
 
@@ -36,13 +37,15 @@ void ExecutionContext::EndResourceTracker(const char *name, uint32_t len) {
 }
 
 void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pipeline) {
-  TERRIER_ASSERT(0, "Unimplemented EndPipelineTracker()");
   if (common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::EXECUTION)) {
     common::thread_context.resource_tracker_.Stop();
     common::thread_context.resource_tracker_.SetMemory(mem_tracker_->GetAllocatedSize());
-    // auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-    // common::thread_context.metrics_store_->RecordExecutionData(name, len, execution_mode_, resource_metrics);
+    auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+
+    // TODO(wz2): With a query cahce, see if we can avoid this copy
+    brain::OperatingUnitFeatureVector features(operating_units_->GetPipelineFeatures(pipeline));
+    common::thread_context.metrics_store_->RecordPipelineData(query_id, pipeline, execution_mode_, std::move(features), resource_metrics);
   }
 }
 

@@ -2,28 +2,29 @@
 #include <memory>
 #include <vector>
 #include "brain/brain_defs.h"
-#include "execution/vm/module.h"
 #include "execution/exec_defs.h"
 
 namespace terrier::brain {
 
+class OperatingUnitRecorder;
+
 class OperatingUnitFeature {
  friend class OperatingUnits;
+ friend class OperatingUnitRecorder;
 
  public:
   OperatingUnitFeature(OperatingUnitFeatureType feature, size_t num_rows, double cardinality)
       : feature_(feature), num_rows_(num_rows), cardinality_(cardinality) {}
 
   OperatingUnitFeatureType GetOperatingUnitFeatureType() const { return feature_; }
-  execution::vm::ExecutionMode GetExecutionMode() const { return exec_mode_; }
   size_t GetNumRows() const { return num_rows_; }
   double GetCardinality() const { return cardinality_; }
 
  private:
-  void SetExecutionMode(execution::vm::ExecutionMode exec_mode) { exec_mode_ = exec_mode; }
+  void SetNumRows(size_t num_rows) { num_rows_ = num_rows; }
+  void SetCardinality(double cardinality) { cardinality_ = cardinality; }
 
   OperatingUnitFeatureType feature_;
-  execution::vm::ExecutionMode exec_mode_;
   size_t num_rows_;
   double cardinality_;
 };
@@ -43,14 +44,6 @@ class OperatingUnits {
     UNUSED_ATTRIBUTE auto itr = units_.find(pipeline);
     TERRIER_ASSERT(itr != units_.end(), "Requested pipeline could not be found in OperatingUnitsStorage");
     return itr->second;
-  }
-
-  void SetExecutionMode(execution::vm::ExecutionMode exec_mode) {
-    for (auto &unit : units_) {
-      for (auto &feature : unit.second) {
-        feature.SetExecutionMode(exec_mode);
-      }
-    }
   }
 
  private:

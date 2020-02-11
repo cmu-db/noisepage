@@ -15,6 +15,7 @@ MetricsStore::MetricsStore(const common::ManagedPointer<metrics::MetricsManager>
   txn_metric_ = std::make_unique<TransactionMetric>();
   gc_metric_ = std::make_unique<GarbageCollectionMetric>();
   execution_metric_ = std::make_unique<ExecutionMetric>();
+  pipeline_metric_ = std::make_unique<PipelineMetric>();
 }
 
 std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> MetricsStore::GetDataToAggregate() {
@@ -49,6 +50,13 @@ std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> MetricsStore::GetDa
               execution_metric_!= nullptr,
               "ExecutionMetric cannot be a nullptr. Check the MetricsStore constructor that it was allocated.");
           result[component] = execution_metric_->Swap();
+          break;
+        }
+        case MetricsComponent::EXECUTION_PIPELINE: {
+          TERRIER_ASSERT(
+              pipeline_metric_!=nullptr,
+              "PipelineMetric cannot be a nullptr. Check the MetricsStore constructor that it was allocated.");
+          result[component] = pipeline_metric_->Swap();
           break;
         }
       }

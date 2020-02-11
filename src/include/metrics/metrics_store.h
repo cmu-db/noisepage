@@ -4,6 +4,7 @@
 #include <memory>
 #include <unordered_map>
 #include <vector>
+#include "execution/exec_defs.h"
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 #include "metrics/abstract_metric.h"
@@ -13,6 +14,7 @@
 #include "metrics/logging_metric.h"
 #include "metrics/metrics_defs.h"
 #include "metrics/transaction_metric.h"
+#include "metrics/pipeline_metric.h"
 
 namespace terrier::metrics {
 
@@ -113,6 +115,22 @@ class MetricsStore {
   }
 
   /**
+   * Record metrics for the execution engine when finish a pipeline
+   * @param query_id Query Identifier
+   * @param pipeline_id Pipeline Identifier
+   * @param execution_mode Execution Mode
+   * @param features Feature Vector
+   * @param resource-metrics Metrics
+   */
+  void RecordPipelineData(execution::query_id_t query_id, execution::pipeline_id_t pipeline_id,
+                          uint8_t execution_mode, std::vector<brain::OperatingUnitFeature> &&features,
+                          const common::ResourceTracker::Metrics &resource_metrics) {
+    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::EXECUTION_PIPELINE), "PipelineMMetric not enabled.");
+    TERRIER_ASSERT(pipeline_metric_ != nullptr, "PipelineMetric not allocated. Check MetricsStore constructor.");
+    pipeline_metric_->RecordPipelineData(query_id, pipeline_id, execution_mode, std::move(features), resource_metrics);
+  }
+
+  /**
    * @param component metrics component to test
    * @return true if metrics enabled for this component, false otherwise
    */
@@ -155,6 +173,7 @@ class MetricsStore {
   std::unique_ptr<TransactionMetric> txn_metric_;
   std::unique_ptr<GarbageCollectionMetric> gc_metric_;
   std::unique_ptr<ExecutionMetric> execution_metric_;
+  std::unique_ptr<PipelineMetric> pipeline_metric_;
 
   const std::bitset<NUM_COMPONENTS> &enabled_metrics_;
   const std::array<uint32_t, NUM_COMPONENTS> &sample_interval_;
