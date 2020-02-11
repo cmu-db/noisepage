@@ -33,15 +33,15 @@ LogicalInnerJoinCommutativity::LogicalInnerJoinCommutativity() {
   match_pattern_->AddChild(right_child);
 }
 
-bool LogicalInnerJoinCommutativity::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalInnerJoinCommutativity::Check(common::ManagedPointer<OperatorNode> plan,
                                           OptimizationContext *context) const {
   (void)context;
   (void)plan;
   return true;
 }
 
-void LogicalInnerJoinCommutativity::Transform(common::ManagedPointer<OperatorExpression> input,
-                                              std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalInnerJoinCommutativity::Transform(common::ManagedPointer<OperatorNode> input,
+                                              std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                               UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto join_op = input->GetOp().As<LogicalInnerJoin>();
   auto join_predicates = std::vector<AnnotatedExpression>(join_op->GetJoinPredicates());
@@ -51,12 +51,12 @@ void LogicalInnerJoinCommutativity::Transform(common::ManagedPointer<OperatorExp
   OPTIMIZER_LOG_TRACE("Reorder left child with op {0} and right child with op {1} for inner join",
                       children[0]->GetOp().GetName().c_str(), children[1]->GetOp().GetName().c_str());
 
-  std::vector<std::unique_ptr<OperatorExpression>> new_child;
+  std::vector<std::unique_ptr<OperatorNode>> new_child;
   new_child.emplace_back(children[1]->Copy());
   new_child.emplace_back(children[0]->Copy());
 
   auto result_plan =
-      std::make_unique<OperatorExpression>(LogicalInnerJoin::Make(std::move(join_predicates)), std::move(new_child));
+      std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates)), std::move(new_child));
   transformed->emplace_back(std::move(result_plan));
 }
 
@@ -78,15 +78,15 @@ LogicalInnerJoinAssociativity::LogicalInnerJoinAssociativity() {
   match_pattern_->AddChild(right_child);
 }
 
-bool LogicalInnerJoinAssociativity::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalInnerJoinAssociativity::Check(common::ManagedPointer<OperatorNode> plan,
                                           OptimizationContext *context) const {
   (void)context;
   (void)plan;
   return true;
 }
 
-void LogicalInnerJoinAssociativity::Transform(common::ManagedPointer<OperatorExpression> input,
-                                              std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalInnerJoinAssociativity::Transform(common::ManagedPointer<OperatorNode> input,
+                                              std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                               OptimizationContext *context) const {
   // NOTE: Transforms (left JOIN middle) JOIN right -> left JOIN (middle JOIN
   // right) Variables are named accordingly to above transformation
@@ -135,17 +135,17 @@ void LogicalInnerJoinAssociativity::Transform(common::ManagedPointer<OperatorExp
   }
 
   // Construct new child join operator
-  std::vector<std::unique_ptr<OperatorExpression>> child_children;
+  std::vector<std::unique_ptr<OperatorNode>> child_children;
   child_children.emplace_back(middle->Copy());
   child_children.emplace_back(right->Copy());
-  auto new_child_join = std::make_unique<OperatorExpression>(
+  auto new_child_join = std::make_unique<OperatorNode>(
       LogicalInnerJoin::Make(std::move(new_child_join_predicates)), std::move(child_children));
 
   // Construct new parent join operator
-  std::vector<std::unique_ptr<OperatorExpression>> parent_children;
+  std::vector<std::unique_ptr<OperatorNode>> parent_children;
   parent_children.emplace_back(left->Copy());
   parent_children.emplace_back(std::move(new_child_join));
-  auto new_parent_join = std::make_unique<OperatorExpression>(
+  auto new_parent_join = std::make_unique<OperatorNode>(
       LogicalInnerJoin::Make(std::move(new_parent_join_predicates)), std::move(parent_children));
 
   transformed->emplace_back(std::move(new_parent_join));
