@@ -22,7 +22,7 @@
 #include "network/postgres/statement.h"
 #include "optimizer/abstract_optimizer.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
-#include "optimizer/operator_expression.h"
+#include "optimizer/operator_node.h"
 #include "optimizer/optimizer.h"
 #include "optimizer/properties.h"
 #include "optimizer/property_set.h"
