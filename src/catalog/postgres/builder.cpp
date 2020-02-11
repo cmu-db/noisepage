@@ -1,15 +1,18 @@
+#include "catalog/postgres/builder.h"
+
 #include <utility>
 #include <vector>
 
 #include "catalog/database_catalog.h"
 #include "catalog/index_schema.h"
-#include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_attribute.h"
 #include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_constraint.h"
 #include "catalog/postgres/pg_database.h"
 #include "catalog/postgres/pg_index.h"
+#include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_namespace.h"
+#include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
 #include "parser/expression/abstract_expression.h"
@@ -71,8 +74,10 @@ IndexSchema Builder::GetDatabaseNameIndexSchema() {
   return schema;
 }
 
-DatabaseCatalog *Builder::CreateDatabaseCatalog(storage::BlockStore *block_store, db_oid_t oid) {
-  auto dbc = new DatabaseCatalog(oid);
+DatabaseCatalog *Builder::CreateDatabaseCatalog(
+    const common::ManagedPointer<storage::BlockStore> block_store, const db_oid_t oid,
+    const common::ManagedPointer<storage::GarbageCollector> garbage_collector) {
+  auto dbc = new DatabaseCatalog(oid, garbage_collector);
 
   dbc->namespaces_ = new storage::SqlTable(block_store, Builder::GetNamespaceTableSchema());
   dbc->classes_ = new storage::SqlTable(block_store, Builder::GetClassTableSchema());
@@ -80,6 +85,8 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(storage::BlockStore *block_store
   dbc->columns_ = new storage::SqlTable(block_store, Builder::GetColumnTableSchema());
   dbc->types_ = new storage::SqlTable(block_store, Builder::GetTypeTableSchema());
   dbc->constraints_ = new storage::SqlTable(block_store, Builder::GetConstraintTableSchema());
+  dbc->languages_ = new storage::SqlTable(block_store, Builder::GetLanguageTableSchema());
+  dbc->procs_ = new storage::SqlTable(block_store, Builder::GetProcTableSchema());
 
   // Indexes on pg_namespace
   dbc->namespaces_oid_index_ =
@@ -120,6 +127,16 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(storage::BlockStore *block_store
       Builder::BuildLookupIndex(Builder::GetConstraintIndexIndexSchema(oid), CONSTRAINT_INDEX_INDEX_OID);
   dbc->constraints_foreigntable_index_ =
       Builder::BuildLookupIndex(Builder::GetConstraintForeignTableIndexSchema(oid), CONSTRAINT_FOREIGNTABLE_INDEX_OID);
+
+  // Indexes on pg_language
+  dbc->languages_oid_index_ =
+      Builder::BuildUniqueIndex(Builder::GetLanguageOidIndexSchema(oid), LANGUAGE_OID_INDEX_OID);
+  dbc->languages_name_index_ =
+      Builder::BuildUniqueIndex(Builder::GetLanguageNameIndexSchema(oid), LANGUAGE_NAME_INDEX_OID);
+
+  // Indexes on pg_proc
+  dbc->procs_oid_index_ = Builder::BuildUniqueIndex(Builder::GetProcOidIndexSchema(oid), PRO_OID_INDEX_OID);
+  dbc->procs_name_index_ = Builder::BuildUniqueIndex(Builder::GetProcNameIndexSchema(oid), PRO_NAME_INDEX_OID);
 
   dbc->next_oid_.store(START_OID);
 
@@ -290,6 +307,33 @@ Schema Builder::GetTypeTableSchema() {
 
   columns.emplace_back("typtype", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
   columns.back().SetOid(TYPTYPE_COL_OID);
+
+  return Schema(columns);
+}
+
+Schema Builder::GetLanguageTableSchema() {
+  std::vector<Schema::Column> columns;
+
+  columns.emplace_back("lanoid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(LANOID_COL_OID);
+
+  columns.emplace_back("lanname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, MakeNull(type::TypeId::VARCHAR));
+  columns.back().SetOid(LANNAME_COL_OID);
+
+  columns.emplace_back("lanispl", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.back().SetOid(LANISPL_COL_OID);
+
+  columns.emplace_back("lanpltrusted", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.back().SetOid(LANPLTRUSTED_COL_OID);
+
+  columns.emplace_back("lanplcallfoid", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(LANPLCALLFOID_COL_OID);
+
+  columns.emplace_back("laninline", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(LANINLINE_COL_OID);
+
+  columns.emplace_back("lanvalidator", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(LANVALIDATOR_COL_OID);
 
   return Schema(columns);
 }
@@ -544,6 +588,138 @@ IndexSchema Builder::GetConstraintForeignTableIndexSchema(db_oid_t db) {
 
   // Not unique
   IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
+
+  return schema;
+}
+
+IndexSchema Builder::GetLanguageOidIndexSchema(db_oid_t db) {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back("lanoid", type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, LANGUAGE_TABLE_OID, LANOID_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(1));
+
+  // Primary
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
+
+  return schema;
+}
+
+IndexSchema Builder::GetLanguageNameIndexSchema(db_oid_t db) {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back("lanname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
+                       parser::ColumnValueExpression(db, LANGUAGE_TABLE_OID, LANNAME_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(1));
+
+  // Unique, not primary
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
+
+  return schema;
+}
+
+Schema Builder::GetProcTableSchema() {
+  std::vector<Schema::Column> columns;
+
+  columns.emplace_back("prooid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(PROOID_COL_OID);
+
+  columns.emplace_back("proname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, MakeNull(type::TypeId::VARCHAR));
+  columns.back().SetOid(PRONAME_COL_OID);
+
+  columns.emplace_back("pronamespace", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(PRONAMESPACE_COL_OID);
+
+  columns.emplace_back("prolang", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(PROLANG_COL_OID);
+
+  columns.emplace_back("procost", type::TypeId::DECIMAL, true, MakeNull(type::TypeId::DECIMAL));
+  columns.back().SetOid(PROCOST_COL_OID);
+
+  columns.emplace_back("prorows", type::TypeId::DECIMAL, true, MakeNull(type::TypeId::DECIMAL));
+  columns.back().SetOid(PROROWS_COL_OID);
+
+  columns.emplace_back("provariadic", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(PROVARIADIC_COL_OID);
+
+  columns.emplace_back("proisagg", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.back().SetOid(PROISAGG_COL_OID);
+
+  columns.emplace_back("proiswindow", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.back().SetOid(PROISWINDOW_COL_OID);
+
+  columns.emplace_back("proisstrict", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.back().SetOid(PROISSTRICT_COL_OID);
+
+  columns.emplace_back("proretset", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.back().SetOid(PRORETSET_COL_OID);
+
+  columns.emplace_back("provolatile", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.back().SetOid(PROVOLATILE_COL_OID);
+
+  columns.emplace_back("pronargs", type::TypeId::SMALLINT, false, MakeNull(type::TypeId::TINYINT));
+  columns.back().SetOid(PRONARGS_COL_OID);
+
+  columns.emplace_back("pronargdefaults", type::TypeId::SMALLINT, false, MakeNull(type::TypeId::TINYINT));
+  columns.back().SetOid(PRONARGDEFAULTS_COL_OID);
+
+  columns.emplace_back("prorettype", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(PRORETTYPE_COL_OID);
+
+  columns.emplace_back("proargtypes", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));
+  columns.back().SetOid(PROARGTYPES_COL_OID);
+
+  columns.emplace_back("proallargtypes", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));
+  columns.back().SetOid(PROALLARGTYPES_COL_OID);
+
+  columns.emplace_back("proargmodes", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));
+  columns.back().SetOid(PROARGMODES_COL_OID);
+
+  columns.emplace_back("proargdefaults", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARCHAR));
+  columns.back().SetOid(PROARGDEFAULTS_COL_OID);
+
+  columns.emplace_back("proargnames", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));
+  columns.back().SetOid(PROARGNAMES_COL_OID);
+
+  columns.emplace_back("prosrc", type::TypeId::VARCHAR, 4096, false, MakeNull(type::TypeId::VARCHAR));
+  columns.back().SetOid(PROSRC_COL_OID);
+
+  columns.emplace_back("proconfig", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));
+  columns.back().SetOid(PROCONFIG_COL_OID);
+
+  return Schema(columns);
+}
+
+IndexSchema Builder::GetProcOidIndexSchema(db_oid_t db) {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back("prooid", type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, PRO_TABLE_OID, PROOID_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(1));
+
+  // Primary
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
+
+  return schema;
+}
+
+IndexSchema Builder::GetProcNameIndexSchema(db_oid_t db) {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back("pronamespace", type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, PRO_TABLE_OID, PRONAMESPACE_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(1));
+
+  columns.emplace_back("proname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
+                       parser::ColumnValueExpression(db, PRO_TABLE_OID, PRONAME_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(2));
+
+  columns.emplace_back("proallargs", type::TypeId::VARBINARY, MAX_NAME_LENGTH, false,
+                       parser::ColumnValueExpression(db, PRO_TABLE_OID, PROALLARGTYPES_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(3));
+
+  // Unique, not primary
+  IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, false, false, true);
 
   return schema;
 }

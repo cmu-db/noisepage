@@ -24,14 +24,14 @@ void Optimizer::Reset() { context_ = std::make_unique<OptimizerContext>(common::
 std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(transaction::TransactionContext *txn,
                                                                     catalog::CatalogAccessor *accessor,
                                                                     StatsStorage *storage, QueryInfo query_info,
-                                                                    std::unique_ptr<OperatorExpression> op_tree) {
+                                                                    std::unique_ptr<OperatorNode> op_tree) {
   context_->SetTxn(txn);
   context_->SetCatalogAccessor(accessor);
   context_->SetStatsStorage(storage);
 
   // Generate initial operator tree from query tree
   GroupExpression *gexpr = nullptr;
-  UNUSED_ATTRIBUTE bool insert = context_->RecordOperatorExpressionIntoGroup(common::ManagedPointer(op_tree), &gexpr);
+  UNUSED_ATTRIBUTE bool insert = context_->RecordOperatorNodeIntoGroup(common::ManagedPointer(op_tree), &gexpr);
   TERRIER_ASSERT(insert && gexpr, "Logical expression tree should insert");
 
   group_id_t root_id = gexpr->GetGroupID();
@@ -105,11 +105,11 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   }
 
   // Derive root plan
-  OperatorExpression *op = new OperatorExpression(Operator(gexpr->Op()), {});
+  OperatorNode *op = new OperatorNode(Operator(gexpr->Op()), {});
 
   PlanGenerator generator;
-  auto plan = generator.ConvertOpExpression(txn, accessor, op, required_props, required_cols, output_cols,
-                                            std::move(children_plans), std::move(children_expr_map));
+  auto plan = generator.ConvertOpNode(txn, accessor, op, required_props, required_cols, output_cols,
+                                      std::move(children_plans), std::move(children_expr_map));
   OPTIMIZER_LOG_TRACE("Finish Choosing best plan for group {0}", id);
 
   delete op;

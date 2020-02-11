@@ -128,19 +128,19 @@ class OptimizerContext {
   }
 
   /**
-   * Converts an OperatorExpression into a GroupExpression.
+   * Converts an OperatorNode into a GroupExpression.
    * The GroupExpression is internal tracking that is focused on the concept
-   * of groups rather than operators like OperatorExpression.
+   * of groups rather than operators like OperatorNode.
    *
-   * Subtrees of the OperatorExpression are individually converted to
+   * Subtrees of the OperatorNode are individually converted to
    * GroupExpressions and inserted into Memo, which allows for duplicate
    * detection. The root GroupExpression, however, is not automatically
    * inserted into Memo.
    *
-   * @param expr OperatorExpression to convert
-   * @returns GroupExpression representing OperatorExpression
+   * @param expr OperatorNode to convert
+   * @returns GroupExpression representing OperatorNode
    */
-  GroupExpression *MakeGroupExpression(common::ManagedPointer<OperatorExpression> expr) {
+  GroupExpression *MakeGroupExpression(common::ManagedPointer<OperatorNode> expr) {
     std::vector<group_id_t> child_groups;
     for (auto &child : expr->GetChildren()) {
       if (child->GetOp().GetType() == OpType::LEAF) {
@@ -168,29 +168,29 @@ class OptimizerContext {
   }
 
   /**
-   * A group contains all logical/physically equivalent OperatorExpressions.
-   * Function try to add an equivalent OperatorExpression by creating a new group.
+   * A group contains all logical/physically equivalent OperatorNodes.
+   * Function try to add an equivalent OperatorNode by creating a new group.
    *
-   * @param expr OperatorExpression to add
+   * @param expr OperatorNode to add
    * @param gexpr Existing GroupExpression or new GroupExpression
-   * @returns Whether the OperatorExpression has been added before
+   * @returns Whether the OperatorNode has been added before
    */
-  bool RecordOperatorExpressionIntoGroup(common::ManagedPointer<OperatorExpression> expr, GroupExpression **gexpr) {
-    return RecordOperatorExpressionIntoGroup(expr, gexpr, UNDEFINED_GROUP);
+  bool RecordOperatorNodeIntoGroup(common::ManagedPointer<OperatorNode> expr, GroupExpression **gexpr) {
+    return RecordOperatorNodeIntoGroup(expr, gexpr, UNDEFINED_GROUP);
   }
 
   /**
-   * A group contains all logical/physically equivalent OperatorExpressions.
-   * Function adds a logically/physically equivalent OperatorExpression to the specified group.
+   * A group contains all logical/physically equivalent OperatorNodes.
+   * Function adds a logically/physically equivalent OperatorNode to the specified group.
    * This function is invoked by tasks which explore the plan search space
    * through rules (recording all "equivalent" expressions for cost/selection later).
    *
-   * @param expr OperatorExpression to record into the group
+   * @param expr OperatorNode to record into the group
    * @param gexpr Existing GroupExpression or new GroupExpression
-   * @param target_group ID of the Group that the OperatorExpression belongs to
-   * @returns Whether the OperatorExpression has been added before
+   * @param target_group ID of the Group that the OperatorNode belongs to
+   * @returns Whether the OperatorNode has been added before
    */
-  bool RecordOperatorExpressionIntoGroup(common::ManagedPointer<OperatorExpression> expr, GroupExpression **gexpr,
+  bool RecordOperatorNodeIntoGroup(common::ManagedPointer<OperatorNode> expr, GroupExpression **gexpr,
                                          group_id_t target_group) {
     auto new_gexpr = MakeGroupExpression(expr);
     auto ptr = memo_.InsertExpression(new_gexpr, target_group, false);
@@ -201,14 +201,14 @@ class OptimizerContext {
   }
 
   /**
-   * Replaces the OperatorExpression in a given group.
+   * Replaces the OperatorNode in a given group.
    * This is used primarily for the rewrite stage of the Optimizer
    * (i.e predicate push-down, query unnesting)
    *
-   * @param expr OperatorExpression to store into the group
+   * @param expr OperatorNode to store into the group
    * @param target_group ID of the Group to replace
    */
-  void ReplaceRewriteExpression(common::ManagedPointer<OperatorExpression> expr, group_id_t target_group) {
+  void ReplaceRewriteExpression(common::ManagedPointer<OperatorNode> expr, group_id_t target_group) {
     memo_.EraseExpression(target_group);
     UNUSED_ATTRIBUTE auto ret = memo_.InsertExpression(MakeGroupExpression(expr), target_group, false);
     TERRIER_ASSERT(ret, "Root expr should always be inserted");

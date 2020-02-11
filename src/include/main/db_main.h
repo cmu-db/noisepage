@@ -185,7 +185,8 @@ class DBMain {
           log_manager_(log_manager) {
       TERRIER_ASSERT(garbage_collector_ != DISABLED, "Required component missing.");
 
-      catalog_ = std::make_unique<catalog::Catalog>(txn_layer->GetTransactionManager(), storage_layer->GetBlockStore());
+      catalog_ = std::make_unique<catalog::Catalog>(txn_layer->GetTransactionManager(), storage_layer->GetBlockStore(),
+                                                    garbage_collector_);
 
       // Bootstrap the default database in the catalog.
       if (create_default_database) {
