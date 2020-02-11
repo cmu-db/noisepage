@@ -14,17 +14,25 @@ ConnectionHandlerTask::ConnectionHandlerTask(const int task_id,
 }
 
 void ConnectionHandlerTask::Notify(int conn_fd, std::unique_ptr<ProtocolInterpreter> protocol_interpreter) {
-  client_fd_ = conn_fd;
-  protocol_interpreter_ = std::move(protocol_interpreter);
+  {
+    /**
+     * this latch is needed to avoid a race condition with HandleDispatch consuming this deque in another thread
+     */
+    common::SpinLatch::ScopedSpinLatch guard(&jobs_latch_);
+    jobs_.emplace_back(conn_fd, std::move(protocol_interpreter));
+  }
   int res = 0;         // Flags, unused attribute in event_active
   int16_t ncalls = 0;  // Unused attribute in event_active
   event_active(notify_event_, res, ncalls);
 }
 
 void ConnectionHandlerTask::HandleDispatch(int, int16_t) {  // NOLINT as we don't use the flags arg nor the fd
-  connection_handle_factory_
-      ->NewConnectionHandle(client_fd_, std::move(protocol_interpreter_), common::ManagedPointer(this))
-      .RegisterToReceiveEvents();
+  common::SpinLatch::ScopedSpinLatch guard(&jobs_latch_);
+  for (auto &job : jobs_) {
+    connection_handle_factory_->NewConnectionHandle(job.first, std::move(job.second), common::ManagedPointer(this))
+        .RegisterToReceiveEvents();
+  }
+  jobs_.clear();
 }
 
 }  // namespace terrier::network
