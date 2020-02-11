@@ -5,7 +5,9 @@
 #include <event2/event.h>
 #include <event2/listener.h>
 #include <unistd.h>
+#include <deque>
 #include <memory>
+#include <utility>
 
 #include "common/exception.h"
 #include "common/notifiable_task.h"
@@ -58,9 +60,15 @@ class ConnectionHandlerTask : public common::NotifiableTask {
   void HandleDispatch(int new_conn_recv_fd, int16_t flags);
 
  private:
-  // TODO(Tianyu): This is broken and needs to be fixed. See #413
-  int client_fd_;
-  std::unique_ptr<ProtocolInterpreter> protocol_interpreter_;
+  /**
+   * Using this latch+deque instead of the Common::ConcurrentQueue as the overhead is not worth
+   * for the common case where there is no contention
+   */
+  common::SpinLatch jobs_latch_;
+  /**
+   * each pair is represents <connection fd, ProtocolInterpreter>
+   */
+  std::deque<std::pair<int, std::unique_ptr<ProtocolInterpreter>>> jobs_;
   event *notify_event_;
   common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory_;
 };

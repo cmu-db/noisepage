@@ -82,14 +82,16 @@ TEST_F(TpccPlanDeliveryTests, DeliveryDeleteNewOrder) {
     EXPECT_EQ(idx_scan->GetColumnOids().size(), schema.GetColumns().size());
 
     size_t idx = 0;
+    std::vector<catalog::col_oid_t> oids;
     for (auto &col : schema.GetColumns()) {
       auto idx_scan_expr = idx_scan_schema->GetColumn(idx).GetExpr();
       EXPECT_EQ(idx_scan_expr->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
       auto idx_scan_expr_dve = idx_scan_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
       EXPECT_EQ(idx_scan_expr_dve->GetColumnOid(), col.Oid());
-      EXPECT_EQ(idx_scan->GetColumnOids()[idx], col.Oid());
+      oids.emplace_back(col.Oid());
       idx++;
     }
+    test->CheckOids(idx_scan->GetColumnOids(), oids);
   };
 
   std::string query = "DELETE FROM \"NEW ORDER\" WHERE NO_O_ID = 1 AND NO_D_ID = 2 AND NO_W_ID = 3";
@@ -135,14 +137,16 @@ TEST_F(TpccPlanDeliveryTests, DeliveryUpdateCarrierId) {
     EXPECT_EQ(idx_scan->GetColumnOids().size(), schema.GetColumns().size());
 
     size_t idx = 0;
+    std::vector<catalog::col_oid_t> oids;
     for (auto &col : schema.GetColumns()) {
       auto idx_scan_expr = idx_scan_schema->GetColumn(idx).GetExpr();
       EXPECT_EQ(idx_scan_expr->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
       auto idx_scan_expr_dve = idx_scan_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
       EXPECT_EQ(idx_scan_expr_dve->GetColumnOid(), col.Oid());
-      EXPECT_EQ(idx_scan->GetColumnOids()[idx], col.Oid());
+      oids.emplace_back(col.Oid());
       idx++;
     }
+    test->CheckOids(idx_scan->GetColumnOids(), oids);
   };
 
   std::string query = "UPDATE \"ORDER\" SET O_CARRIER_ID = 1 WHERE O_ID = 1 AND O_D_ID = 2 AND O_W_ID = 3";
@@ -183,14 +187,16 @@ TEST_F(TpccPlanDeliveryTests, DeliveryUpdateDeliveryDate) {
     EXPECT_EQ(idx_scan->GetColumnOids().size(), schema.GetColumns().size());
 
     size_t idx = 0;
+    std::vector<catalog::col_oid_t> oids;
     for (auto &col : schema.GetColumns()) {
       auto idx_scan_expr = idx_scan_schema->GetColumn(idx).GetExpr();
       EXPECT_EQ(idx_scan_expr->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
       auto idx_scan_expr_dve = idx_scan_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
       EXPECT_EQ(idx_scan_expr_dve->GetColumnOid(), col.Oid());
-      EXPECT_EQ(idx_scan->GetColumnOids()[idx], col.Oid());
+      oids.emplace_back(col.Oid());
       idx++;
     }
+    test->CheckOids(idx_scan->GetColumnOids(), oids);
   };
 
   std::string query = "UPDATE \"ORDER LINE\" SET OL_DELIVERY_D = 1 WHERE OL_O_ID = 1 AND OL_D_ID = 2 AND OL_W_ID = 3";
@@ -234,8 +240,8 @@ TEST_F(TpccPlanDeliveryTests, DeliverySumOrderAmount) {
     EXPECT_EQ(idx_scan->IsForUpdate(), false);
     EXPECT_EQ(idx_scan->GetDatabaseOid(), test->db_);
     EXPECT_EQ(idx_scan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
-    EXPECT_EQ(idx_scan->GetColumnOids().size(), 1);
-    EXPECT_EQ(idx_scan->GetColumnOids()[0], schema.GetColumn("ol_amount").Oid());
+    test->CheckOids(idx_scan->GetColumnOids(), {schema.GetColumn("ol_amount").Oid(), schema.GetColumn("ol_o_id").Oid(),
+                                                schema.GetColumn("ol_d_id").Oid(), schema.GetColumn("ol_w_id").Oid()});
 
     // Check scan predicate binds tuples correctly
     auto scan_pred = idx_scan->GetScanPredicate();
@@ -323,14 +329,16 @@ TEST_F(TpccPlanDeliveryTests, UpdateCustomBalanceDeliveryCount) {
     EXPECT_EQ(idx_scan->GetColumnOids().size(), schema.GetColumns().size());
 
     size_t idx = 0;
+    std::vector<catalog::col_oid_t> oids;
     for (auto &col : schema.GetColumns()) {
       auto idx_scan_expr = idx_scan_schema->GetColumn(idx).GetExpr();
       EXPECT_EQ(idx_scan_expr->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
       auto idx_scan_expr_dve = idx_scan_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
       EXPECT_EQ(idx_scan_expr_dve->GetColumnOid(), col.Oid());
-      EXPECT_EQ(idx_scan->GetColumnOids()[idx], col.Oid());
+      oids.emplace_back(col.Oid());
       idx++;
     }
+    test->CheckOids(idx_scan->GetColumnOids(), oids);
   };
 
   std::string query =
