@@ -16,7 +16,7 @@ class NameBuilder {
   /**
    *  FK: foreign key, KEY: UNIQUE, EMPTY: empty input
    */
-  enum Types { FK, KEY, EMPTY };
+  enum ObjectType { FOREIGN_KEY, UNIQUE_KEY, NONE };
   /**
    * Construct an object name
    * @param table_name name of the table to get foreign key constraints
@@ -24,13 +24,13 @@ class NameBuilder {
    * @param type name of the type
    * @return name of the object
    */
-  static std::string MakeName(const std::string &table_name, const std::string &field_name, const Types type_name) {
+  static std::string MakeName(const std::string &table_name, const std::string &field_name, const ObjectType type) {
     // initial values
     auto underscore = 0;
     auto table_name_length = table_name.length();
     auto field_name_length = field_name.length();
-    auto type = GetType(type_name);
-    auto type_length = type.length();
+    auto type_name = GetTypeName(type);
+    auto type_length = type_name.length();
     auto total_length = table_name_length;
     // check field_name and type
     if (field_name_length != 0) {
@@ -57,7 +57,7 @@ class NameBuilder {
       name += "_" + field_name.substr(0, field_name_length);
     }
     if (type_length != 0) {
-      name += "_" + type;
+      name += "_" + type_name;
     }
     return name;
   }
@@ -65,16 +65,16 @@ class NameBuilder {
  private:
   /**
    * Extract string from enum class
-   * @param type_name: enum class variable
+   * @param type: enum class variable
    * @return corresponding string
    */
-  static std::string GetType(const Types type_name) {
-    switch (type_name) {
-      case FK:
-        return "FK";
-      case KEY:
-        return "KEY";
-      case EMPTY:
+  static std::string GetTypeName(const ObjectType type) {
+    switch (type) {
+      case FOREIGN_KEY:
+        return "FOREIGN_KEY";
+      case UNIQUE_KEY:
+        return "UNIQUE_KEY";
+      case NONE:
         return "";
       default:
         throw CATALOG_EXCEPTION("Type name not recognized, add it to enum class if needed");
