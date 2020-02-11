@@ -31,8 +31,7 @@ class LogicalInnerJoinCommutativity : public Rule {
    * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorNode> input,
-                 std::vector<std::unique_ptr<OperatorNode>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -61,8 +60,7 @@ class LogicalInnerJoinAssociativity : public Rule {
    * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorNode> input,
-                 std::vector<std::unique_ptr<OperatorNode>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
