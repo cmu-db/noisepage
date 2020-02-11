@@ -34,8 +34,7 @@ class RewritePushImplicitFilterThroughJoin : public Rule {
    * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorNode> input,
-                 std::vector<std::unique_ptr<OperatorNode>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -66,8 +65,7 @@ class RewritePushExplicitFilterThroughJoin : public Rule {
    * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorNode> input,
-                 std::vector<std::unique_ptr<OperatorNode>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -95,8 +93,7 @@ class RewriteCombineConsecutiveFilter : public Rule {
    * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorNode> input,
-                 std::vector<std::unique_ptr<OperatorNode>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -125,8 +122,7 @@ class RewritePushFilterThroughAggregation : public Rule {
    * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorNode> input,
-                 std::vector<std::unique_ptr<OperatorNode>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -156,8 +152,7 @@ class RewriteEmbedFilterIntoGet : public Rule {
    * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorNode> input,
-                 std::vector<std::unique_ptr<OperatorNode>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -192,8 +187,7 @@ class RewritePullFilterThroughMarkJoin : public Rule {
    * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorNode> input,
-                 std::vector<std::unique_ptr<OperatorNode>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -228,8 +222,7 @@ class RewritePullFilterThroughAggregation : public Rule {
    * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorNode> input,
-                 std::vector<std::unique_ptr<OperatorNode>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
