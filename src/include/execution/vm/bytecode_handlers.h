@@ -23,6 +23,7 @@
 #include "execution/util/execution_common.h"
 #include "execution/util/hash.h"
 #include "util/time_util.h"
+#include "metrics/metrics_defs.h"
 
 // All VM terrier::bytecode op handlers must use this macro
 #define VM_OP EXPORT
@@ -196,8 +197,9 @@ VM_OP_HOT void OpExecutionContextGetMemoryPool(terrier::execution::sql::MemoryPo
   *memory = exec_ctx->GetMemoryPool();
 }
 
-VM_OP_HOT void OpExecutionContextStartResourceTracker(terrier::execution::exec::ExecutionContext *const exec_ctx) {
-  exec_ctx->StartResourceTracker();
+VM_OP_HOT void OpExecutionContextStartResourceTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                                      terrier::metrics::MetricsComponent component) {
+  exec_ctx->StartResourceTracker(component);
 }
 
 VM_OP_HOT void OpExecutionContextEndResourceTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,

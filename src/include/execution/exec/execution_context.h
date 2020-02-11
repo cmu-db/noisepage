@@ -14,10 +14,7 @@
 #include "transaction/transaction_manager.h"
 #include "type/transient_value.h"
 #include "execution/exec_defs.h"
-
-namespace terrier::brain {
-class OperatingUnits;
-}  // namespace terrier::brain
+#include "metrics/metrics_defs.h"
 
 namespace terrier::execution::exec {
 /**
@@ -123,7 +120,7 @@ class EXPORT ExecutionContext {
   /**
    * Start the resource tracker
    */
-  void StartResourceTracker();
+  void StartResourceTracker(metrics::MetricsComponent component);
 
   /**
    * End the resource tracker and record the metrics

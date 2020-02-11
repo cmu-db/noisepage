@@ -99,7 +99,7 @@ namespace terrier::execution::vm {
                                                                                                                       \
   /* Execution Context */                                                                                             \
   F(ExecutionContextGetMemoryPool, OperandType::Local, OperandType::Local)                                            \
-  F(ExecutionContextStartResourceTracker, OperandType::Local)                                                         \
+  F(ExecutionContextStartResourceTracker, OperandType::Local, OperandType::Local)                                     \
   F(ExecutionContextEndResourceTracker, OperandType::Local, OperandType::Local)                                       \
   F(ExecutionContextEndPipelineTracker, OperandType::Local, OperandType::Local, OperandType::Local)                   \
                                                                                                                       \

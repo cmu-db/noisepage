@@ -472,7 +472,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
 
   OP(ExecutionContextStartResourceTracker) : {
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    OpExecutionContextStartResourceTracker(exec_ctx);
+    auto cmp = static_cast<metrics::MetricsComponent>(frame->LocalAt<uint64_t>(READ_LOCAL_ID()));
+    OpExecutionContextStartResourceTracker(exec_ctx, cmp);
     DISPATCH_NEXT();
   }
 

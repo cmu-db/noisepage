@@ -799,11 +799,12 @@ void Sema::CheckBuiltinJoinHashTableIterClose(execution::ast::CallExpr *call) {
 void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, UNUSED_ATTRIBUTE ast::Builtin builtin) {
   uint32_t expected_arg_count = 1;
 
-  if (builtin == ast::Builtin::ExecutionContextEndResourceTracker) {
+  if (builtin == ast::Builtin::ExecutionContextStartResourceTracker) {
     expected_arg_count = 2;
   }
-
-  if (builtin == ast::Builtin::ExecutionContextEndPipelineTracker) {
+  else if (builtin == ast::Builtin::ExecutionContextEndResourceTracker) {
+    expected_arg_count = 2;
+  } else if (builtin == ast::Builtin::ExecutionContextEndPipelineTracker) {
     expected_arg_count = 3;
   }
 
@@ -844,6 +845,11 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, UNUSED_ATTRIBUT
       break;
     }
     case ast::Builtin::ExecutionContextStartResourceTracker: {
+      // MetricsComponent
+      if (!call_args[1]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint64));
+        return;
+      }
       // Init returns nil
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;

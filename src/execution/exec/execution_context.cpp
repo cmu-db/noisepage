@@ -17,9 +17,14 @@ uint32_t ExecutionContext::ComputeTupleSize(const planner::OutputSchema *schema)
   return tuple_size;
 }
 
-void ExecutionContext::StartResourceTracker() {
+void ExecutionContext::StartResourceTracker(metrics::MetricsComponent component) {
+  TERRIER_ASSERT(
+      component == metrics::MetricsComponent::EXECUTION ||
+      component == metrics::MetricsComponent::EXECUTION_PIPELINE,
+      "StartResourceTracker() invoked with incorrect MetricsComponent");
+
   if (common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::EXECUTION)) {
+      common::thread_context.metrics_store_->ComponentToRecord(component)) {
     // start the operating unit resource tracker
     common::thread_context.resource_tracker_.Start();
     mem_tracker_->Reset();

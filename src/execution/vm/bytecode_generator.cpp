@@ -1336,7 +1336,8 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, UNUSED_AT
 
   switch (builtin) {
     case ast::Builtin::ExecutionContextStartResourceTracker:{
-      Emitter()->Emit(Bytecode::ExecutionContextStartResourceTracker, exec_ctx);
+      LocalVar cmp = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::ExecutionContextStartResourceTracker, exec_ctx, cmp);
       break;
     }
     case ast::Builtin::ExecutionContextEndResourceTracker: {
