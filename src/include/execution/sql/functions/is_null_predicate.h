@@ -17,12 +17,12 @@ class EXPORT IsNullPredicate {
   /**
    * Set result to true iff val is null
    */
-  static void IsNull(BoolVal *result, const Val &val) { *result = BoolVal(val.is_null_); }
+  static void IsNull(bool *result, const Val &val) { *result = val.is_null_; }
 
   /**
    * Set result to true iff val is not null
    */
-  static void IsNotNull(BoolVal *result, const Val &val) { *result = BoolVal(!val.is_null_); }
+  static void IsNotNull(bool *result, const Val &val) { *result = !val.is_null_; }
 };
 
 }  // namespace terrier::execution::sql
