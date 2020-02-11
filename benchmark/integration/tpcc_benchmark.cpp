@@ -276,9 +276,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
     transaction::TransactionManager txn_manager{
         common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
         common::ManagedPointer(&buffer_pool_), true, common::ManagedPointer(log_manager_)};
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(&timestamp_manager),
-                                        common::ManagedPointer(&deferred_action_manager),
-                                        common::ManagedPointer(&txn_manager), DISABLED);
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(&deferred_action_manager),
+                                        common::ManagedPointer(&txn_manager));
     catalog::Catalog catalog{common::ManagedPointer(&txn_manager), common::ManagedPointer(&block_store_),
                              common::ManagedPointer(gc_)};
     Builder tpcc_builder{common::ManagedPointer(&block_store_), common::ManagedPointer(&catalog),
