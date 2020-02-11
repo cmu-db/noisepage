@@ -85,7 +85,7 @@ install_mac() {
   brew ls --versions ant || brew install ant
   python -m pip --version || install_pip
   #install pyarrow
-  pip show pyarrow || pip install pyarrow
+  python -m pip show pyarrow || python -m pip install pyarrow
 }
 
 install_linux() {
@@ -115,7 +115,7 @@ install_linux() {
       ant \
       python-pip
    #install pyarrow
-   pip show pyarrow || pip install pyarrow
+   python -m pip show pyarrow || python -m pip install pyarrow
    #install libpqxx-6.2 manually
    apt-get -y install wget
    wget http://mirrors.kernel.org/ubuntu/pool/universe/libp/libpqxx/libpqxx-dev_6.2.4-4_amd64.deb
