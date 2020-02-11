@@ -224,7 +224,7 @@ class IndexKeyTests : public TerrierTest {
     columns.emplace_back("attribute", type::TypeId ::INTEGER, false,
                          parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     catalog::Schema schema{columns};
-    auto *sql_table = new storage::SqlTable(db_main->GetStorageLayer()->GetBlockStore().Get(), schema);
+    auto *sql_table = new storage::SqlTable(db_main->GetStorageLayer()->GetBlockStore(), schema);
     const auto &tuple_initializer = sql_table->InitializerForProjectedRow({catalog::col_oid_t(0)});
 
     auto *const txn = txn_manager->BeginTransaction();

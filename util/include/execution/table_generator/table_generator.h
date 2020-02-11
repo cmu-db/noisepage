@@ -5,6 +5,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog.h"
 #include "execution/exec/execution_context.h"
 #include "parser/expression/constant_value_expression.h"
@@ -39,7 +40,8 @@ class TableGenerator {
    * @param store block store to use when creating tables
    * @param ns_oid oid of the namespace
    */
-  explicit TableGenerator(exec::ExecutionContext *exec_ctx, storage::BlockStore *store, catalog::namespace_oid_t ns_oid)
+  explicit TableGenerator(exec::ExecutionContext *exec_ctx, common::ManagedPointer<storage::BlockStore> store,
+                          catalog::namespace_oid_t ns_oid)
       : exec_ctx_{exec_ctx}, store_{store}, ns_oid_{ns_oid} {}
 
   /**
@@ -49,7 +51,7 @@ class TableGenerator {
 
  private:
   exec::ExecutionContext *exec_ctx_;
-  storage::BlockStore *store_;
+  const common::ManagedPointer<storage::BlockStore> store_;
   catalog::namespace_oid_t ns_oid_;
 
   /**

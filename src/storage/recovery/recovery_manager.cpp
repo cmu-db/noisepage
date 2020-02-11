@@ -1,5 +1,6 @@
 #include "storage/recovery/recovery_manager.h"
 
+#include <catalog/postgres/pg_proc.h>
 #include <algorithm>
 #include <string>
 #include <unordered_map>
@@ -12,6 +13,7 @@
 #include "catalog/postgres/pg_constraint.h"
 #include "catalog/postgres/pg_database.h"
 #include "catalog/postgres/pg_index.h"
+#include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/postgres/pg_type.h"
 #include "storage/index/index_builder.h"
@@ -273,6 +275,22 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
                                  db_catalog_ptr->types_name_index_->metadata_.GetSchema());
       index_objects.emplace_back(db_catalog_ptr->types_namespace_index_,
                                  db_catalog_ptr->types_namespace_index_->metadata_.GetSchema());
+      break;
+    }
+
+    case (!catalog::postgres::LANGUAGE_TABLE_OID): {
+      index_objects.emplace_back(db_catalog_ptr->languages_oid_index_,
+                                 db_catalog_ptr->languages_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->languages_name_index_,
+                                 db_catalog_ptr->languages_name_index_->metadata_.GetSchema());
+      break;
+    }
+
+    case (!catalog::postgres::PRO_TABLE_OID): {
+      index_objects.emplace_back(db_catalog_ptr->procs_oid_index_,
+                                 db_catalog_ptr->procs_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->procs_name_index_,
+                                 db_catalog_ptr->procs_name_index_->metadata_.GetSchema());
       break;
     }
 
@@ -585,7 +603,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
               // Use of the -> operator is ok here, since we are the ones who wrapped the table with the ManagedPointer
               sql_table = GetSqlTable(txn, redo_record->GetDatabaseOid(), catalog::table_oid_t(class_oid)).operator->();
             } else {
-              sql_table = new SqlTable(block_store_.Get(), *schema);
+              sql_table = new SqlTable(block_store_, *schema);
             }
             result =
                 db_catalog->SetTablePointer(common::ManagedPointer(txn), catalog::table_oid_t(class_oid), sql_table);
@@ -812,6 +830,14 @@ common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transacti
       table_ptr = common::ManagedPointer(db_catalog_ptr->types_);
       break;
     }
+    case (!catalog::postgres::LANGUAGE_TABLE_OID): {
+      table_ptr = common::ManagedPointer(db_catalog_ptr->languages_);
+      break;
+    }
+    case (!catalog::postgres::PRO_TABLE_OID): {
+      table_ptr = common::ManagedPointer(db_catalog_ptr->procs_);
+      break;
+    }
     default:
       table_ptr = db_catalog_ptr->GetTable(common::ManagedPointer(txn), table_oid);
   }
@@ -908,6 +934,22 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
 
     case (!catalog::postgres::CONSTRAINT_FOREIGNTABLE_INDEX_OID): {
       return db_catalog->constraints_foreigntable_index_;
+    }
+
+    case (!catalog::postgres::LANGUAGE_OID_INDEX_OID): {
+      return db_catalog->languages_oid_index_;
+    }
+
+    case (!catalog::postgres::LANGUAGE_NAME_INDEX_OID): {
+      return db_catalog->languages_name_index_;
+    }
+
+    case (!catalog::postgres::PRO_OID_INDEX_OID): {
+      return db_catalog->procs_oid_index_;
+    }
+
+    case (!catalog::postgres::PRO_NAME_INDEX_OID): {
+      return db_catalog->procs_name_index_;
     }
 
     default:

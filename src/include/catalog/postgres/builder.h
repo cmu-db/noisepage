@@ -37,9 +37,11 @@ class Builder {
    * Allocates a new database catalog that roughly conforms to PostgreSQL's catalog layout
    * @param block_store for backing the new catalog tables
    * @param oid of the database which is used for populating the field in redo records
+   * @param garbage_collector injected GC to register and deregister indexes. Temporary?
    * @return an initialized DatabaseCatalog
    */
-  static DatabaseCatalog *CreateDatabaseCatalog(storage::BlockStore *block_store, db_oid_t oid);
+  static DatabaseCatalog *CreateDatabaseCatalog(common::ManagedPointer<storage::BlockStore> block_store, db_oid_t oid,
+                                                common::ManagedPointer<storage::GarbageCollector> garbage_collector);
 
   /**
    * @return schema object for pg_attribute table
@@ -70,6 +72,16 @@ class Builder {
    * @return schema object for pg_type table
    */
   static Schema GetTypeTableSchema();
+
+  /**
+   * @return schema object for pg_language table
+   */
+  static Schema GetLanguageTableSchema();
+
+  /**
+   * @return schema object for pg_proc table
+   */
+  static Schema GetProcTableSchema();
 
   /**
    * @param db oid in which the indexed table exists
@@ -178,6 +190,30 @@ class Builder {
    * @return schema object for the foreign key index on pg_constraint
    */
   static IndexSchema GetConstraintForeignTableIndexSchema(db_oid_t db);
+
+  /**
+   * @param db oid in which the indexed table exists
+   * @return schema object for the oid index on pg_language
+   */
+  static IndexSchema GetLanguageOidIndexSchema(db_oid_t db);
+
+  /**
+   * @param db oid in which the indexed table exists
+   * @return schema object for the name index on pg_language
+   */
+  static IndexSchema GetLanguageNameIndexSchema(db_oid_t db);
+
+  /**
+   * @param db oid in which the indexed table exists
+   * @return schema object for the oid index on pg_proc
+   */
+  static IndexSchema GetProcOidIndexSchema(db_oid_t db);
+
+  /**
+   * @param db oid in which the indexed table exists
+   * @return schema object for the name index on pg_proc
+   */
+  static IndexSchema GetProcNameIndexSchema(db_oid_t db);
 
   /**
    * Instantiate a new unique index with the given schema and oid
