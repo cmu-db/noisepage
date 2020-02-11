@@ -43,7 +43,7 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
    * @return Pointer to the logical operator AST
    */
   std::unique_ptr<OperatorNode> ConvertToOpExpression(common::ManagedPointer<parser::SQLStatement> op,
-                                                            parser::ParseResult *parse_result);
+                                                      parser::ParseResult *parse_result);
 
   void Visit(parser::SelectStatement *op, parser::ParseResult *parse_result) override;
   void Visit(parser::TableRef *node, parser::ParseResult *parse_result) override;

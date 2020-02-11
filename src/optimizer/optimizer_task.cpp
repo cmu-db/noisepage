@@ -167,7 +167,7 @@ void ApplyRule::Execute() {
       GroupExpression *new_gexpr = nullptr;
       auto g_id = group_expr_->GetGroupID();
       if (context_->GetOptimizerContext()->RecordOperatorNodeIntoGroup(common::ManagedPointer(new_expr.get()),
-                                                                             &new_gexpr, g_id)) {
+                                                                       &new_gexpr, g_id)) {
         // A new group expression is generated
         if (new_gexpr->Op().IsLogical()) {
           // Derive stats for the *logical expression*
