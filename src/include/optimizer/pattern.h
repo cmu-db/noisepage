@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-#include "optimizer/operator_node.h"
+#include "optimizer/operator_node_contents.h"
 
 namespace terrier::optimizer {
 
