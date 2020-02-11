@@ -590,11 +590,11 @@ VM_OP_HOT void OpForceBoolTruth(bool *result, terrier::execution::sql::BoolVal *
 }
 
 VM_OP_HOT void OpIsNull(bool *result, terrier::execution::sql::Val *sql_val) {
-  terrier::execution::sql::IsNullPredicate::IsNull(result, *sql_val);
+  *result = terrier::execution::sql::IsNullPredicate::IsNull(*sql_val);
 }
 
 VM_OP_HOT void OpIsNotNull(bool *result, terrier::execution::sql::Val *sql_val) {
-  terrier::execution::sql::IsNullPredicate::IsNotNull(result, *sql_val);
+  *result = terrier::execution::sql::IsNullPredicate::IsNotNull(*sql_val);
 }
 
 VM_OP_HOT void OpInitNullBool(terrier::execution::sql::BoolVal *result) {
@@ -1336,14 +1336,12 @@ VM_OP_WARM void OpPow(terrier::execution::sql::Real *result, const terrier::exec
 // ---------------------------------------------------------
 
 VM_OP_WARM void OpValIsNull(terrier::execution::sql::BoolVal *result, const terrier::execution::sql::Val *val) {
-  bool is_null;
-  terrier::execution::sql::IsNullPredicate::IsNull(&is_null, *val);
+  bool is_null = terrier::execution::sql::IsNullPredicate::IsNull(*val);
   *result = terrier::execution::sql::BoolVal(is_null);
 }
 
 VM_OP_WARM void OpValIsNotNull(terrier::execution::sql::BoolVal *result, const terrier::execution::sql::Val *val) {
-  bool is_not_null;
-  terrier::execution::sql::IsNullPredicate::IsNotNull(&is_not_null, *val);
+  bool is_not_null = terrier::execution::sql::IsNullPredicate::IsNotNull(*val);
   *result = terrier::execution::sql::BoolVal(is_not_null);
 }
 
