@@ -7,8 +7,8 @@
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/operator/operator_translator.h"
-#include "execution/util/region.h"
 #include "execution/exec_defs.h"
+#include "execution/util/region.h"
 
 namespace terrier::execution::compiler {
 

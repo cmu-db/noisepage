@@ -801,8 +801,7 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, UNUSED_ATTRIBUT
 
   if (builtin == ast::Builtin::ExecutionContextStartResourceTracker) {
     expected_arg_count = 2;
-  }
-  else if (builtin == ast::Builtin::ExecutionContextEndResourceTracker) {
+  } else if (builtin == ast::Builtin::ExecutionContextEndResourceTracker) {
     expected_arg_count = 2;
   } else if (builtin == ast::Builtin::ExecutionContextEndPipelineTracker) {
     expected_arg_count = 3;
@@ -855,12 +854,13 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, UNUSED_ATTRIBUT
       break;
     }
     case ast::Builtin::ExecutionContextGetMemoryPool: {
-
       auto mem_pool_kind = ast::BuiltinType::MemoryPool;
       call->SetType(GetBuiltinType(mem_pool_kind)->PointerTo());
       break;
     }
-    default: { UNREACHABLE("Impossible execution context call"); }
+    default: {
+      UNREACHABLE("Impossible execution context call");
+    }
   }
 }
 

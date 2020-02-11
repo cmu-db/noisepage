@@ -4,17 +4,17 @@
 #include <chrono>  //NOLINT
 #include <fstream>
 #include <list>
+#include <sstream>
 #include <utility>
 #include <vector>
-#include <sstream>
 
+#include "brain/brain_util.h"
+#include "brain/operating_unit.h"
 #include "catalog/catalog_defs.h"
 #include "common/resource_tracker.h"
 #include "metrics/abstract_metric.h"
 #include "metrics/metrics_util.h"
 #include "transaction/transaction_defs.h"
-#include "brain/operating_unit.h"
-#include "brain/brain_util.h"
 
 namespace terrier::metrics {
 
@@ -42,8 +42,8 @@ class PipelineMetricRawData : public AbstractRawData {
   void ToCSV(std::vector<std::ofstream> *const outfiles) final {
     TERRIER_ASSERT(outfiles->size() == FILES.size(), "Number of files passed to metric is wrong.");
     TERRIER_ASSERT(std::count_if(outfiles->cbegin(), outfiles->cend(),
-          [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
-        "Not all files are open.");
+                                 [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
+                   "Not all files are open.");
 
     auto &outfile = (*outfiles)[0];
 
@@ -71,26 +71,28 @@ class PipelineMetricRawData : public AbstractRawData {
    * Columns to use for writing to CSV.
    * Note: This includes the columns for the input feature, but not the output (resource counters)
    */
-  static constexpr std::array<std::string_view, 7> FEATURE_COLUMNS =
-    {"query_id", "pipeline_id", "exec_mode", "num_features", "features", "est_output_rows", "est_cardinalities"};
+  static constexpr std::array<std::string_view, 7> FEATURE_COLUMNS = {
+      "query_id", "pipeline_id", "exec_mode", "num_features", "features", "est_output_rows", "est_cardinalities"};
 
  private:
   friend class PipelineMetric;
   struct PipelineData;
 
-  void RecordPipelineData(execution::query_id_t query_id, execution::pipeline_id_t pipeline_id,
-                          uint8_t execution_mode, std::vector<brain::OperatingUnitFeature> &&features,
+  void RecordPipelineData(execution::query_id_t query_id, execution::pipeline_id_t pipeline_id, uint8_t execution_mode,
+                          std::vector<brain::OperatingUnitFeature> &&features,
                           const common::ResourceTracker::Metrics &resource_metrics) {
     pipeline_data_.emplace_front(query_id, pipeline_id, execution_mode, std::move(features), resource_metrics);
   }
 
   struct PipelineData {
-    PipelineData(execution::query_id_t query_id, execution::pipeline_id_t pipeline_id,
-                 uint8_t execution_mode, std::vector<brain::OperatingUnitFeature> &&features,
+    PipelineData(execution::query_id_t query_id, execution::pipeline_id_t pipeline_id, uint8_t execution_mode,
+                 std::vector<brain::OperatingUnitFeature> &&features,
                  const common::ResourceTracker::Metrics &resource_metrics)
-        : query_id_(query_id), pipeline_id_(pipeline_id),
+        : query_id_(query_id),
+          pipeline_id_(pipeline_id),
           execution_mode_(execution_mode),
-          features_(features), resource_metrics_(resource_metrics) {}
+          features_(features),
+          resource_metrics_(resource_metrics) {}
 
     std::string GetFeatureVectorString() {
       std::stringstream sstream;
@@ -142,8 +144,8 @@ class PipelineMetric : public AbstractMetric<PipelineMetricRawData> {
  private:
   friend class MetricsStore;
 
-  void RecordPipelineData(execution::query_id_t query_id, execution::pipeline_id_t pipeline_id,
-                          uint8_t execution_mode, std::vector<brain::OperatingUnitFeature> &&features,
+  void RecordPipelineData(execution::query_id_t query_id, execution::pipeline_id_t pipeline_id, uint8_t execution_mode,
+                          std::vector<brain::OperatingUnitFeature> &&features,
                           const common::ResourceTracker::Metrics &resource_metrics) {
     GetRawData()->RecordPipelineData(query_id, pipeline_id, execution_mode, std::move(features), resource_metrics);
   }

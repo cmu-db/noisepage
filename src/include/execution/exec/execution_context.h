@@ -6,15 +6,15 @@
 #include "catalog/catalog_accessor.h"
 #include "common/managed_pointer.h"
 #include "execution/exec/output.h"
+#include "execution/exec_defs.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/memory_tracker.h"
 #include "execution/util/region.h"
+#include "metrics/metrics_defs.h"
 #include "planner/plannodes/output_schema.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 #include "type/transient_value.h"
-#include "execution/exec_defs.h"
-#include "metrics/metrics_defs.h"
 
 namespace terrier::execution::exec {
 /**
@@ -35,7 +35,7 @@ class EXPORT ExecutionContext {
     /**
      * Create a new allocator
      */
-    StringAllocator(common::ManagedPointer<sql::MemoryTracker> tracker) : region_(""), tracker_(tracker) {}
+    explicit StringAllocator(common::ManagedPointer<sql::MemoryTracker> tracker) : region_(""), tracker_(tracker) {}
 
     /**
      * This class cannot be copied or moved.

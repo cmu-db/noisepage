@@ -327,9 +327,9 @@ void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> ind
 
 std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerTableMetas() {
   std::vector<TableInsertMeta> table_metas;
-  std::vector<uint32_t> row_nums = {1, 5, 10, 50, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000,
-                                    200000, 500000, 1000000};
-  //std::vector<uint32_t> row_nums = {1000000};
+  std::vector<uint32_t> row_nums = {1,    5,     10,    50,    100,    500,    1000,   2000,
+                                    5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
+  // std::vector<uint32_t> row_nums = {1000000};
   // Cardinality of the last column in percentage
   std::vector<uint32_t> cardinalities = {1, 2, 5, 10, 50, 100};
   std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
@@ -345,14 +345,15 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
               type_name = "Integer";
               break;
             }
-            case type::TypeId::DECIMAL:{
+            case type::TypeId::DECIMAL: {
               type_name = "Real";
               // Only need the largest decimal for now
-              if (row_num != 1000000 or cardinality != 100)
-                skip = true;
+              if (row_num != 1000000 || cardinality != 100) skip = true;
               break;
             }
-            default: { throw std::runtime_error("Implement me!"); }
+            default: {
+              throw std::runtime_error("Implement me!");
+            }
           }
           if (skip) continue;
           table_name << type_name << "Col" << col_num << "Row" << row_num << "Car" << cardinality;
@@ -365,8 +366,7 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
               col_metas.emplace_back(col_name.str(), type, false, Dist::Serial, 0, 0);
             } else if (j == col_num) {
               // The last column is related to the cardinality
-              col_metas.emplace_back(col_name.str(), type, false, Dist::Rotate, 0, row_num
-                  * cardinality / 100);
+              col_metas.emplace_back(col_name.str(), type, false, Dist::Rotate, 0, row_num * cardinality / 100);
             } else {
               // All the rest of the columns are uniformly distributed
               col_metas.emplace_back(col_name.str(), type, false, Dist::Uniform, 0, row_num - 1);
@@ -376,7 +376,6 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
         }
       }
     }
-
   }
   return table_metas;
 }

@@ -3,15 +3,16 @@
 #include <memory>
 #include <utility>
 
+#include "brain/operating_unit_recorder.h"
 #include "execution/ast/ast_dump.h"
 #include "execution/compiler/translator_factory.h"
 #include "execution/sema/sema.h"
 #include "loggers/execution_logger.h"
-#include "brain/operating_unit_recorder.h"
 
 namespace terrier::execution::compiler {
 
-Compiler::Compiler(query_id_t query_id, CodeGen *codegen, const planner::AbstractPlanNode *plan) : query_identifier_(query_id), codegen_(codegen), plan_(plan) {
+Compiler::Compiler(query_id_t query_id, CodeGen *codegen, const planner::AbstractPlanNode *plan)
+    : query_identifier_(query_id), codegen_(codegen), plan_(plan) {
   // Make the pipelines
   auto main_pipeline = std::make_unique<Pipeline>(codegen_);
   MakePipelines(*plan, main_pipeline.get());

@@ -27,7 +27,8 @@ Workload::Workload(common::ManagedPointer<DBMain> db_main, const std::string &db
 
   // Make the execution context
   execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
-      nullptr, nullptr, common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
+                                             nullptr, nullptr,
+                                             common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
 
   // create the TPCH database and compile the queries
   GenerateTPCHTables(&exec_ctx, table_root);
@@ -81,11 +82,12 @@ void Workload::Execute(int8_t worker_id, uint32_t num_precomputed_txns_per_worke
     auto accessor = catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_);
     execution::ExecutableQuery &query = queries_[index[counter]];
     execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
-        query.GetPrinter(), query.GetOutputSchema(), common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
+                                               query.GetPrinter(), query.GetOutputSchema(),
+                                               common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
     auto params = GetQueryParams(query.GetQueryName());
     exec_ctx.SetParams(std::move(params));
     query.Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
-    counter = counter == num_queries - 1 ? 0:counter + 1 ;
+    counter = counter == num_queries - 1 ? 0 : counter + 1;
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 

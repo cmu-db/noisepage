@@ -12,6 +12,7 @@
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/StringMap.h"
 
+#include "brain/operating_unit.h"
 #include "common/math_util.h"
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/builtins.h"
@@ -27,7 +28,6 @@
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/value.h"
 #include "execution/util/execution_common.h"
-#include "brain/operating_unit.h"
 
 namespace terrier::execution::ast {
 

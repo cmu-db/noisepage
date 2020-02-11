@@ -1,12 +1,14 @@
 #pragma once
 
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
-#include "storage/storage_defs.h"
-#include "execution/vm/module.h"
 #include "execution/executable_query.h"
+#include "execution/vm/module.h"
+#include "storage/storage_defs.h"
 
 namespace terrier::execution::exec {
 class ExecutionContext;

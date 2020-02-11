@@ -1,5 +1,5 @@
-#include "brain/operating_unit.h"
 #include "execution/exec/execution_context.h"
+#include "brain/operating_unit.h"
 #include "execution/sql/value.h"
 
 namespace terrier::execution::exec {
@@ -19,8 +19,7 @@ uint32_t ExecutionContext::ComputeTupleSize(const planner::OutputSchema *schema)
 
 void ExecutionContext::StartResourceTracker(metrics::MetricsComponent component) {
   TERRIER_ASSERT(
-      component == metrics::MetricsComponent::EXECUTION ||
-      component == metrics::MetricsComponent::EXECUTION_PIPELINE,
+      component == metrics::MetricsComponent::EXECUTION || component == metrics::MetricsComponent::EXECUTION_PIPELINE,
       "StartResourceTracker() invoked with incorrect MetricsComponent");
 
   if (common::thread_context.metrics_store_ != nullptr &&
@@ -50,7 +49,8 @@ void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pip
 
     // TODO(wz2): With a query cahce, see if we can avoid this copy
     brain::OperatingUnitFeatureVector features(operating_units_->GetPipelineFeatures(pipeline));
-    common::thread_context.metrics_store_->RecordPipelineData(query_id, pipeline, execution_mode_, std::move(features), resource_metrics);
+    common::thread_context.metrics_store_->RecordPipelineData(query_id, pipeline, execution_mode_, std::move(features),
+                                                              resource_metrics);
   }
 }
 

@@ -91,10 +91,9 @@ LargeDataTableBenchmarkObject::~LargeDataTableBenchmarkObject() {
 }
 
 // Caller is responsible for freeing the returned results if bookkeeping is on.
-std::pair<uint64_t, uint64_t> LargeDataTableBenchmarkObject::SimulateOltp(uint32_t num_transactions,
-                                                                          uint32_t num_concurrent_txns,
-                                                                          metrics::MetricsManager *const metrics_manager,
-                                                                          uint32_t submit_interval_us) {
+std::pair<uint64_t, uint64_t> LargeDataTableBenchmarkObject::SimulateOltp(
+    uint32_t num_transactions, uint32_t num_concurrent_txns, metrics::MetricsManager *const metrics_manager,
+    uint32_t submit_interval_us) {
   common::WorkerPool thread_pool(num_concurrent_txns, {});
   thread_pool.Startup();
   std::vector<RandomDataTableTransaction *> txns;

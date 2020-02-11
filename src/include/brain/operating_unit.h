@@ -1,5 +1,7 @@
 #pragma once
 #include <memory>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 #include "brain/brain_defs.h"
 #include "execution/exec_defs.h"
@@ -9,8 +11,8 @@ namespace terrier::brain {
 class OperatingUnitRecorder;
 
 class OperatingUnitFeature {
- friend class OperatingUnits;
- friend class OperatingUnitRecorder;
+  friend class OperatingUnits;
+  friend class OperatingUnitRecorder;
 
  public:
   OperatingUnitFeature(OperatingUnitFeatureType feature, size_t num_rows, double cardinality)
@@ -33,7 +35,7 @@ using OperatingUnitFeatureVector = std::vector<OperatingUnitFeature>;
 
 class OperatingUnits {
  public:
-  OperatingUnits() {}
+  OperatingUnits() = default;
 
   void RecordOperatingUnit(execution::pipeline_id_t pipeline, OperatingUnitFeatureVector &&features) {
     UNUSED_ATTRIBUTE auto res = units_.insert(std::make_pair(pipeline, std::move(features)));

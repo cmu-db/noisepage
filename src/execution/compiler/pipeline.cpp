@@ -40,8 +40,9 @@ ast::Decl *Pipeline::Produce(query_id_t query_id, pipeline_id_t pipeline_idx) {
   FunctionBuilder builder{codegen_, fn_name, std::move(params), ret_type};
 
   // Inject StartResourceTracker()
-  std::vector<ast::Expr *> args{codegen_->MakeExpr(codegen_->GetExecCtxVar()),
-                                codegen_->IntLiteral(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE))};
+  std::vector<ast::Expr *> args{
+      codegen_->MakeExpr(codegen_->GetExecCtxVar()),
+      codegen_->IntLiteral(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE))};
   auto start_call = codegen_->BuiltinCall(ast::Builtin::ExecutionContextStartResourceTracker, std::move(args));
   builder.Append(codegen_->MakeStmt(start_call));
 

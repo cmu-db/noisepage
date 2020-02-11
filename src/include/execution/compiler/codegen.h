@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "brain/operating_unit.h"
 #include "catalog/catalog_accessor.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_node_factory.h"
@@ -18,7 +19,6 @@
 #include "type/transient_value.h"
 #include "type/transient_value_peeker.h"
 #include "type/type_id.h"
-#include "brain/operating_unit.h"
 
 namespace terrier::execution::compiler {
 

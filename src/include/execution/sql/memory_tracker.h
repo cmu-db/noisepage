@@ -13,17 +13,12 @@ class MemoryTracker {
 
   void Reset() { allocated_bytes_ = 0; }
 
-  size_t GetAllocatedSize() {
-    return allocated_bytes_;
-  }
+  size_t GetAllocatedSize() { return allocated_bytes_; }
 
-  void Increment(size_t size) {
-    allocated_bytes_ += size;
-  }
+  void Increment(size_t size) { allocated_bytes_ += size; }
 
-  void Decrement(size_t size) {
-    allocated_bytes_ -= size;
-  }
+  void Decrement(size_t size) { allocated_bytes_ -= size; }
+
  private:
   struct Stats {};
   tbb::enumerable_thread_specific<Stats> stats_;

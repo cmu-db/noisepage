@@ -1,13 +1,14 @@
 #pragma once
 #include <memory>
+#include <string>
 #include <utility>
 
+#include "brain/operating_unit.h"
 #include "common/managed_pointer.h"
 #include "common/strong_typedef.h"
 #include "execution/ast/context.h"
-#include "execution/table_generator/sample_output.h"
 #include "execution/exec_defs.h"
-#include "brain/operating_unit.h"
+#include "execution/table_generator/sample_output.h"
 
 namespace terrier::planner {
 class AbstractPlanNode;
@@ -61,10 +62,10 @@ class ExecutableQuery {
    */
   void Run(common::ManagedPointer<exec::ExecutionContext> exec_ctx, vm::ExecutionMode mode);
 
-  const planner::OutputSchema *GetOutputSchema() const { return sample_output_->GetSchema(query_name_);; }
+  const planner::OutputSchema *GetOutputSchema() const { return sample_output_->GetSchema(query_name_); }
   const exec::OutputPrinter &GetPrinter() const { return *printer_; }
 
-  const std::string &GetQueryName() const {return query_name_; }
+  const std::string &GetQueryName() const { return query_name_; }
 
   query_id_t GetQueryId() const { return query_id_; }
 
@@ -90,6 +91,6 @@ class ExecutableQuery {
   std::unique_ptr<exec::OutputPrinter> printer_;
   std::string query_name_;
   query_id_t query_id_;
-  static std::atomic<query_id_t> query_identifier_;
+  static std::atomic<query_id_t> query_identifier;
 };
 }  // namespace terrier::execution

@@ -1,5 +1,5 @@
-#include "brain/operating_unit.h"
 #include "brain/operating_unit_recorder.h"
+#include "brain/operating_unit.h"
 #include "parser/expression_defs.h"
 #include "planner/plannodes/plan_visitor.h"
 
@@ -7,21 +7,33 @@ namespace terrier::brain {
 
 OperatingUnitFeatureType OperatingUnitRecorder::ConvertExpressionType(parser::ExpressionType etype) {
   switch (etype) {
-    case parser::ExpressionType::OPERATOR_PLUS: return OperatingUnitFeatureType::OP_ADD;
-    case parser::ExpressionType::OPERATOR_MINUS: return OperatingUnitFeatureType::OP_SUBTRACT;
-    case parser::ExpressionType::OPERATOR_MULTIPLY: return OperatingUnitFeatureType::OP_MULTIPLY;
-    case parser::ExpressionType::OPERATOR_DIVIDE: return OperatingUnitFeatureType::OP_DIVIDE;
-    case parser::ExpressionType::COMPARE_EQUAL: return OperatingUnitFeatureType::OP_COMPARE_EQ;
-    case parser::ExpressionType::COMPARE_NOT_EQUAL: return OperatingUnitFeatureType::OP_COMPARE_NEQ;
-    case parser::ExpressionType::COMPARE_LESS_THAN: return OperatingUnitFeatureType::OP_COMPARE_LT;
-    case parser::ExpressionType::COMPARE_GREATER_THAN: return OperatingUnitFeatureType::OP_COMPARE_GT;
-    case parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO: return OperatingUnitFeatureType::OP_COMPARE_LTE;
-    case parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO: return OperatingUnitFeatureType::OP_COMPARE_GTE;
-    default: return OperatingUnitFeatureType::INVALID;
+    case parser::ExpressionType::OPERATOR_PLUS:
+      return OperatingUnitFeatureType::OP_ADD;
+    case parser::ExpressionType::OPERATOR_MINUS:
+      return OperatingUnitFeatureType::OP_SUBTRACT;
+    case parser::ExpressionType::OPERATOR_MULTIPLY:
+      return OperatingUnitFeatureType::OP_MULTIPLY;
+    case parser::ExpressionType::OPERATOR_DIVIDE:
+      return OperatingUnitFeatureType::OP_DIVIDE;
+    case parser::ExpressionType::COMPARE_EQUAL:
+      return OperatingUnitFeatureType::OP_COMPARE_EQ;
+    case parser::ExpressionType::COMPARE_NOT_EQUAL:
+      return OperatingUnitFeatureType::OP_COMPARE_NEQ;
+    case parser::ExpressionType::COMPARE_LESS_THAN:
+      return OperatingUnitFeatureType::OP_COMPARE_LT;
+    case parser::ExpressionType::COMPARE_GREATER_THAN:
+      return OperatingUnitFeatureType::OP_COMPARE_GT;
+    case parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
+      return OperatingUnitFeatureType::OP_COMPARE_LTE;
+    case parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
+      return OperatingUnitFeatureType::OP_COMPARE_GTE;
+    default:
+      return OperatingUnitFeatureType::INVALID;
   }
 }
 
-std::unordered_set<OperatingUnitFeatureType> OperatingUnitRecorder::ExtractFeaturesFromExpression(common::ManagedPointer<parser::AbstractExpression> expr) {
+std::unordered_set<OperatingUnitFeatureType> OperatingUnitRecorder::ExtractFeaturesFromExpression(
+    common::ManagedPointer<parser::AbstractExpression> expr) {
   std::unordered_set<OperatingUnitFeatureType> feature_types;
   std::queue<common::ManagedPointer<parser::AbstractExpression>> work;
   work.push(expr);
@@ -79,23 +91,17 @@ void OperatingUnitRecorder::Visit(const planner::InsertPlanNode *plan) {
 void OperatingUnitRecorder::Visit(const planner::UpdatePlanNode *plan) {
   VisitAbstractPlanNode(plan);
 
-  for (auto & clause : plan->GetSetClauses()) {
+  for (auto &clause : plan->GetSetClauses()) {
     auto features = ExtractFeaturesFromExpression(clause.second);
     plan_features_.insert(features.begin(), features.end());
   }
 }
 
-void OperatingUnitRecorder::Visit(const planner::DeletePlanNode *plan) {
-  VisitAbstractPlanNode(plan);
-}
+void OperatingUnitRecorder::Visit(const planner::DeletePlanNode *plan) { VisitAbstractPlanNode(plan); }
 
-void OperatingUnitRecorder::Visit(const planner::CSVScanPlanNode *plan) {
-  VisitAbstractScanPlanNode(plan);
-}
+void OperatingUnitRecorder::Visit(const planner::CSVScanPlanNode *plan) { VisitAbstractScanPlanNode(plan); }
 
-void OperatingUnitRecorder::Visit(const planner::SeqScanPlanNode *plan) {
-  VisitAbstractScanPlanNode(plan);
-}
+void OperatingUnitRecorder::Visit(const planner::SeqScanPlanNode *plan) { VisitAbstractScanPlanNode(plan); }
 
 void OperatingUnitRecorder::Visit(const planner::IndexScanPlanNode *plan) {
   VisitAbstractScanPlanNode(plan);
@@ -139,25 +145,16 @@ void OperatingUnitRecorder::Visit(const planner::NestedLoopJoinPlanNode *plan) {
   }
 }
 
-void OperatingUnitRecorder::Visit(const planner::LimitPlanNode *plan) {
-  VisitAbstractPlanNode(plan);
-}
+void OperatingUnitRecorder::Visit(const planner::LimitPlanNode *plan) { VisitAbstractPlanNode(plan); }
 
-void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) {
-  VisitAbstractPlanNode(plan);
-}
+void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) { VisitAbstractPlanNode(plan); }
 
-void OperatingUnitRecorder::Visit(const planner::ProjectionPlanNode *plan) {
-  VisitAbstractPlanNode(plan);
-}
+void OperatingUnitRecorder::Visit(const planner::ProjectionPlanNode *plan) { VisitAbstractPlanNode(plan); }
 
-void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
-  VisitAbstractPlanNode(plan);
-}
+void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) { VisitAbstractPlanNode(plan); }
 
 OperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
     const std::vector<std::unique_ptr<execution::compiler::OperatorTranslator>> &translators) {
-
   // Note that OperatorTranslators are roughly 1:1 with a plan node
   // As such, just emplace directly into feature vector
   std::vector<OperatingUnitFeature> results{};
@@ -192,13 +189,15 @@ OperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
         // most amount of tuples)
         num_rows = std::max(num_rows, itr->second.GetNumRows());
         cardinality = std::max(cardinality, itr->second.GetCardinality());
+        itr->second.SetNumRows(num_rows);
+        itr->second.SetCardinality(cardinality);
       }
     }
   }
 
   // Consolidate final features
   for (auto &feature : features) {
-    results.emplace_back(std::move(feature.second));
+    results.emplace_back(feature.second);
   }
 
   return results;

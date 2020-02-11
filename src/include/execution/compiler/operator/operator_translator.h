@@ -1,10 +1,10 @@
 #pragma once
 #include <string>
 #include <utility>
+#include "brain/brain_defs.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/expression/expression_translator.h"
 #include "planner/plannodes/abstract_plan_node.h"
-#include "brain/brain_defs.h"
 
 namespace terrier::execution::compiler {
 
@@ -22,7 +22,7 @@ class OperatorTranslator : public ExpressionEvaluator {
    * @param feature Feature Type
    */
   explicit OperatorTranslator(CodeGen *codegen, brain::OperatingUnitFeatureType feature)
-    : codegen_(codegen), feature_type_(feature) {}
+      : codegen_(codegen), feature_type_(feature) {}
 
   /**
    * Destructor

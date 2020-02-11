@@ -22,8 +22,8 @@
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/execution_common.h"
 #include "execution/util/hash.h"
-#include "util/time_util.h"
 #include "metrics/metrics_defs.h"
+#include "util/time_util.h"
 
 // All VM terrier::bytecode op handlers must use this macro
 #define VM_OP EXPORT
@@ -203,14 +203,13 @@ VM_OP_HOT void OpExecutionContextStartResourceTracker(terrier::execution::exec::
 }
 
 VM_OP_HOT void OpExecutionContextEndResourceTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
-                                          terrier::execution::sql::StringVal &name) {
+                                                    const terrier::execution::sql::StringVal &name) {
   exec_ctx->EndResourceTracker(name.Content(), name.len_);
 }
 
-VM_OP_HOT void OpExecutionContextEndPipelineTracker(
-    terrier::execution::exec::ExecutionContext *const exec_ctx,
-    terrier::execution::query_id_t query_id,
-    terrier::execution::pipeline_id_t pipeline_id) {
+VM_OP_HOT void OpExecutionContextEndPipelineTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                                    terrier::execution::query_id_t query_id,
+                                                    terrier::execution::pipeline_id_t pipeline_id) {
   exec_ctx->EndPipelineTracker(query_id, pipeline_id);
 }
 

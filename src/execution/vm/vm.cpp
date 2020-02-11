@@ -479,7 +479,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
 
   OP(ExecutionContextEndResourceTracker) : {
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto *name = frame->LocalAt<sql::StringVal*>(READ_LOCAL_ID());
+    auto *name = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
     OpExecutionContextEndResourceTracker(exec_ctx, *name);
     DISPATCH_NEXT();
   }

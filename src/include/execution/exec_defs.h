@@ -7,4 +7,4 @@ namespace terrier::execution {
 STRONG_TYPEDEF(query_id_t, uint64_t);
 STRONG_TYPEDEF(pipeline_id_t, uint64_t);
 
-}  // terrier::execution
+}  // namespace terrier::execution

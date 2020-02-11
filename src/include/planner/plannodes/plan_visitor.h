@@ -35,7 +35,7 @@ class PlanVisitor {
  public:
   virtual ~PlanVisitor() = default;
 
-  virtual void Visit(const AggregatePlanNode *plan) {} 
+  virtual void Visit(const AggregatePlanNode *plan) {}
   virtual void Visit(const AnalyzePlanNode *plan) {}
   virtual void Visit(const CreateDatabasePlanNode *plan) {}
   virtual void Visit(const CreateFunctionPlanNode *plan) {}
@@ -63,7 +63,6 @@ class PlanVisitor {
   virtual void Visit(const ProjectionPlanNode *plan) {}
   virtual void Visit(const SeqScanPlanNode *plan) {}
   virtual void Visit(const UpdatePlanNode *plan) {}
-
 };
 
 }  // namespace terrier::planner

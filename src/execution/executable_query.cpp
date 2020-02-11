@@ -13,12 +13,12 @@
 
 namespace terrier::execution {
 
-std::atomic<query_id_t> ExecutableQuery::query_identifier_{query_id_t{0}};
+std::atomic<query_id_t> ExecutableQuery::query_identifier{query_id_t{0}};
 
 ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
                                  const common::ManagedPointer<exec::ExecutionContext> exec_ctx) {
   // Generate a query id using std::atomic<>.fetch_add()
-  query_id_ = ExecutableQuery::query_identifier_++;
+  query_id_ = ExecutableQuery::query_identifier++;
 
   // Compile and check for errors
   compiler::CodeGen codegen(exec_ctx.Get());
@@ -41,8 +41,8 @@ ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractP
   exec_ctx->SetOperatingUnits(common::ManagedPointer(operating_units_));
 }
 
-ExecutableQuery::ExecutableQuery(const std::string &filename, const common::ManagedPointer<exec::ExecutionContext>
-    exec_ctx) {
+ExecutableQuery::ExecutableQuery(const std::string &filename,
+                                 const common::ManagedPointer<exec::ExecutionContext> exec_ctx) {
   auto file = llvm::MemoryBuffer::getFile(filename);
   if (std::error_code error = file.getError()) {
     EXECUTION_LOG_ERROR("There was an error reading file '{}': {}", filename, error.message());
@@ -89,7 +89,6 @@ ExecutableQuery::ExecutableQuery(const std::string &filename, const common::Mana
   auto output_schema = sample_output_->GetSchema(query_name_);
   printer_ = std::make_unique<exec::OutputPrinter>(output_schema);
 }
-
 
 void ExecutableQuery::Run(const common::ManagedPointer<exec::ExecutionContext> exec_ctx, const vm::ExecutionMode mode) {
   TERRIER_ASSERT(tpl_module_ != nullptr, "Trying to run a module that failed to compile.");

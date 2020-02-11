@@ -3,18 +3,19 @@
 #include <bitset>
 #include <memory>
 #include <unordered_map>
+#include <utility>
 #include <vector>
-#include "execution/exec_defs.h"
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
+#include "execution/exec_defs.h"
 #include "metrics/abstract_metric.h"
 #include "metrics/abstract_raw_data.h"
 #include "metrics/execution_metric.h"
 #include "metrics/garbage_collection_metric.h"
 #include "metrics/logging_metric.h"
 #include "metrics/metrics_defs.h"
-#include "metrics/transaction_metric.h"
 #include "metrics/pipeline_metric.h"
+#include "metrics/transaction_metric.h"
 
 namespace terrier::metrics {
 
@@ -122,8 +123,8 @@ class MetricsStore {
    * @param features Feature Vector
    * @param resource-metrics Metrics
    */
-  void RecordPipelineData(execution::query_id_t query_id, execution::pipeline_id_t pipeline_id,
-                          uint8_t execution_mode, std::vector<brain::OperatingUnitFeature> &&features,
+  void RecordPipelineData(execution::query_id_t query_id, execution::pipeline_id_t pipeline_id, uint8_t execution_mode,
+                          std::vector<brain::OperatingUnitFeature> &&features,
                           const common::ResourceTracker::Metrics &resource_metrics) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::EXECUTION_PIPELINE), "PipelineMMetric not enabled.");
     TERRIER_ASSERT(pipeline_metric_ != nullptr, "PipelineMetric not allocated. Check MetricsStore constructor.");

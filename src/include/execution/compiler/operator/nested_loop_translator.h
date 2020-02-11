@@ -72,7 +72,9 @@ class NestedLoopRightTranslator : public OperatorTranslator {
    */
   NestedLoopRightTranslator(const terrier::planner::NestedLoopJoinPlanNode *op, CodeGen *codegen,
                             OperatorTranslator *left)
-      : OperatorTranslator(codegen, brain::OperatingUnitFeatureType::NLJOIN_RIGHT), op_(op), left_(dynamic_cast<NestedLoopLeftTranslator *>(left)) {}
+      : OperatorTranslator(codegen, brain::OperatingUnitFeatureType::NLJOIN_RIGHT),
+        op_(op),
+        left_(dynamic_cast<NestedLoopLeftTranslator *>(left)) {}
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
