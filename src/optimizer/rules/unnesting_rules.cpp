@@ -35,7 +35,7 @@ RulePromise UnnestMarkJoinToInnerJoin::Promise(GroupExpression *group_expr) cons
   return RulePromise::LOGICAL_PROMISE;
 }
 
-bool UnnestMarkJoinToInnerJoin::Check(common::ManagedPointer<OperatorExpression> plan,
+bool UnnestMarkJoinToInnerJoin::Check(common::ManagedPointer<OperatorNode> plan,
                                       OptimizationContext *context) const {
   (void)context;
   (void)plan;
@@ -45,18 +45,18 @@ bool UnnestMarkJoinToInnerJoin::Check(common::ManagedPointer<OperatorExpression>
   return true;
 }
 
-void UnnestMarkJoinToInnerJoin::Transform(common::ManagedPointer<OperatorExpression> input,
-                                          std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void UnnestMarkJoinToInnerJoin::Transform(common::ManagedPointer<OperatorNode> input,
+                                          std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                           UNUSED_ATTRIBUTE OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("UnnestMarkJoinToInnerJoin::Transform");
   UNUSED_ATTRIBUTE auto mark_join = input->GetOp().As<LogicalMarkJoin>();
   TERRIER_ASSERT(mark_join->GetJoinPredicates().empty(), "MarkJoin should have 0 predicates");
 
   auto join_children = input->GetChildren();
-  std::vector<std::unique_ptr<OperatorExpression>> c;
+  std::vector<std::unique_ptr<OperatorNode>> c;
   c.emplace_back(join_children[0]->Copy());
   c.emplace_back(join_children[1]->Copy());
-  auto output = std::make_unique<OperatorExpression>(LogicalInnerJoin::Make(), std::move(c));
+  auto output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(c));
   transformed->emplace_back(std::move(output));
 }
 
@@ -75,7 +75,7 @@ RulePromise UnnestSingleJoinToInnerJoin::Promise(GroupExpression *group_expr) co
   return RulePromise::LOGICAL_PROMISE;
 }
 
-bool UnnestSingleJoinToInnerJoin::Check(common::ManagedPointer<OperatorExpression> plan,
+bool UnnestSingleJoinToInnerJoin::Check(common::ManagedPointer<OperatorNode> plan,
                                         OptimizationContext *context) const {
   (void)context;
   (void)plan;
@@ -85,18 +85,18 @@ bool UnnestSingleJoinToInnerJoin::Check(common::ManagedPointer<OperatorExpressio
   return true;
 }
 
-void UnnestSingleJoinToInnerJoin::Transform(common::ManagedPointer<OperatorExpression> input,
-                                            std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void UnnestSingleJoinToInnerJoin::Transform(common::ManagedPointer<OperatorNode> input,
+                                            std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                             UNUSED_ATTRIBUTE OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("UnnestSingleJoinToInnerJoin::Transform");
   UNUSED_ATTRIBUTE auto single_join = input->GetOp().As<LogicalSingleJoin>();
   TERRIER_ASSERT(single_join->GetJoinPredicates().empty(), "SingleJoin should have no predicates");
 
   auto join_children = input->GetChildren();
-  std::vector<std::unique_ptr<OperatorExpression>> c;
+  std::vector<std::unique_ptr<OperatorNode>> c;
   c.emplace_back(join_children[0]->Copy());
   c.emplace_back(join_children[1]->Copy());
-  auto output = std::make_unique<OperatorExpression>(LogicalInnerJoin::Make(), std::move(c));
+  auto output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(c));
   transformed->emplace_back(std::move(output));
 }
 

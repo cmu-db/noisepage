@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "optimizer/group_expression.h"
-#include "optimizer/operator_node.h"
+#include "optimizer/operator_node_contents.h"
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/property.h"
 #include "optimizer/property_set.h"
