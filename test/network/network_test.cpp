@@ -69,7 +69,7 @@ class NetworkTests : public TerrierTest {
     catalog_->CreateDatabase(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE, true);
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    network_logger->set_level(spdlog::level::trace);
+    network_logger->set_level(spdlog::level::info);
     spdlog::flush_every(std::chrono::seconds(1));
 
     try {
@@ -287,56 +287,47 @@ TEST_F(NetworkTests, MultipleConnectionTest) {
  */
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, RacerTest) {
-  std::vector<std::thread> threads;
-  threads.reserve(CONNECTION_THREAD_COUNT);
-
   //  due to issue #766 PostgresProtocolHandler cannot consistently handle
-  //  simultaneous client requestsso for now we are allowing for some failure tolerance
+  //  simultaneous client requests so for now we are allowing for some failure tolerance
 
-  uint32_t successes = 0;
-  for (size_t i = 0; i < CONNECTION_THREAD_COUNT; i++) {
-    threads.emplace_back([this, &successes] {
-      try {
-        auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
-        if (io_socket_unique_ptr == nullptr) {
-          return;
-        }
-        successes++;
-        auto io_socket = common::ManagedPointer(io_socket_unique_ptr);
-        ManualPacketUtil::TerminateConnection(io_socket->GetSocketFd());
-        io_socket->Close();
-      } catch (const std::exception &e) {
-        EXPECT_TRUE(false);
-      }
-    });
-  }
-  for (auto &t : threads) {
-    t.join();
-  }
-  threads.clear();
-  EXPECT_EQ(successes, CONNECTION_THREAD_COUNT);
+  // The number of threads to use in each trial
+  std::vector<size_t> thread_counts = {
+      // clang-format off
+      2,
+      CONNECTION_THREAD_COUNT,
+      CONNECTION_THREAD_COUNT * 2,
+      CONNECTION_THREAD_COUNT * 3
+      // clang-format on
+  };
 
-  successes = 0;
-  for (size_t i = 0; i < 2 * CONNECTION_THREAD_COUNT; i++) {
-    threads.emplace_back([this, &successes] {
-      try {
-        auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
-        if (io_socket_unique_ptr == nullptr) {
-          return;
+  for (auto num_threads : thread_counts) {
+    std::vector<std::thread> threads;
+    threads.reserve(num_threads);
+    NETWORK_LOG_INFO("Number of threads: {0}", num_threads);
+
+    std::atomic_int successes = 0;
+    for (size_t i = 0; i < num_threads; i++) {
+      threads.emplace_back([this, &successes] {
+        try {
+          auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
+          if (io_socket_unique_ptr == nullptr) {
+            return;
+          }
+          successes++;
+          auto io_socket = common::ManagedPointer(io_socket_unique_ptr);
+          ManualPacketUtil::TerminateConnection(io_socket->GetSocketFd());
+          io_socket->Close();
+        } catch (const std::exception &e) {
+          EXPECT_TRUE(false);
         }
-        successes++;
-        auto io_socket = common::ManagedPointer(io_socket_unique_ptr);
-        ManualPacketUtil::TerminateConnection(io_socket->GetSocketFd());
-        io_socket->Close();
-      } catch (const std::exception &e) {
-        EXPECT_TRUE(false);
-      }
-    });
+      });
+    }
+    for (auto &t : threads) {
+      t.join();
+    }
+    threads.clear();
+    EXPECT_EQ(successes, num_threads);
   }
-  for (auto &t : threads) {
-    t.join();
-  }
-  EXPECT_EQ(successes, 2 * CONNECTION_THREAD_COUNT);
 }
 
 /**
