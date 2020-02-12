@@ -101,7 +101,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   exec_ctx.SetParams(std::move(params));
 
   // Generate test tables
-  sql::TableGenerator table_generator{&exec_ctx, db_main->GetStorageLayer()->GetBlockStore().Get(), ns_oid};
+  sql::TableGenerator table_generator{&exec_ctx, db_main->GetStorageLayer()->GetBlockStore(), ns_oid};
   table_generator.GenerateTestTables();
 
   // Let's scan the source
