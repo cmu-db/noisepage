@@ -519,7 +519,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
       UniqueInfo unique_info;
 
       unique_info.unique_cols_ = {col->GetColumnName()};
-      unique_info.constraint_name_ = "con_unique";
+      unique_info.constraint_name_ = table_name_ + "_" + col->GetColumnName() + "_key";
 
       con_uniques_.push_back(unique_info);
       return *this;

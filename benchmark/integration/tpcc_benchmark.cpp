@@ -86,7 +86,11 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
     transaction::TransactionManager txn_manager{
         common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
         common::ManagedPointer(&buffer_pool_), true, common::ManagedPointer(log_manager_)};
-    catalog::Catalog catalog{common::ManagedPointer(&txn_manager), common::ManagedPointer(&block_store_)};
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(&timestamp_manager),
+                                        common::ManagedPointer(&deferred_action_manager),
+                                        common::ManagedPointer(&txn_manager), DISABLED);
+    catalog::Catalog catalog{common::ManagedPointer(&txn_manager), common::ManagedPointer(&block_store_),
+                             common::ManagedPointer(gc_)};
     Builder tpcc_builder{common::ManagedPointer(&block_store_), common::ManagedPointer(&catalog),
                          common::ManagedPointer(&txn_manager)};
 
@@ -125,7 +129,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 
     // cleanup
-    Util::UnregisterIndexesForGC(common::ManagedPointer(gc_), common::ManagedPointer(tpcc_db));
     delete gc_thread_;
     catalog.TearDown();
     deferred_action_manager.FullyPerformGC(common::ManagedPointer(gc_), DISABLED);
@@ -179,7 +182,11 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     transaction::TransactionManager txn_manager{
         common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
         common::ManagedPointer(&buffer_pool_), true, common::ManagedPointer(log_manager_)};
-    catalog::Catalog catalog{common::ManagedPointer(&txn_manager), common::ManagedPointer(&block_store_)};
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(&timestamp_manager),
+                                        common::ManagedPointer(&deferred_action_manager),
+                                        common::ManagedPointer(&txn_manager), DISABLED);
+    catalog::Catalog catalog{common::ManagedPointer(&txn_manager), common::ManagedPointer(&block_store_),
+                             common::ManagedPointer(gc_)};
     Builder tpcc_builder{common::ManagedPointer(&block_store_), common::ManagedPointer(&catalog),
                          common::ManagedPointer(&txn_manager)};
 
@@ -218,7 +225,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 
     // cleanup
-    Util::UnregisterIndexesForGC(common::ManagedPointer(gc_), common::ManagedPointer(tpcc_db));
     delete gc_thread_;
     catalog.TearDown();
     deferred_action_manager.FullyPerformGC(common::ManagedPointer(gc_), common::ManagedPointer(log_manager_));
@@ -278,7 +284,11 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
     transaction::TransactionManager txn_manager{
         common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
         common::ManagedPointer(&buffer_pool_), true, common::ManagedPointer(log_manager_)};
-    catalog::Catalog catalog{common::ManagedPointer(&txn_manager), common::ManagedPointer(&block_store_)};
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(&timestamp_manager),
+                                        common::ManagedPointer(&deferred_action_manager),
+                                        common::ManagedPointer(&txn_manager), DISABLED);
+    catalog::Catalog catalog{common::ManagedPointer(&txn_manager), common::ManagedPointer(&block_store_),
+                             common::ManagedPointer(gc_)};
     Builder tpcc_builder{common::ManagedPointer(&block_store_), common::ManagedPointer(&catalog),
                          common::ManagedPointer(&txn_manager)};
 
@@ -319,7 +329,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 
     // cleanup
-    Util::UnregisterIndexesForGC(common::ManagedPointer(gc_), common::ManagedPointer(tpcc_db));
     delete gc_thread_;
     catalog.TearDown();
     deferred_action_manager.FullyPerformGC(common::ManagedPointer(gc_), common::ManagedPointer(log_manager_));
@@ -375,7 +384,11 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
     transaction::TransactionManager txn_manager{
         common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
         common::ManagedPointer(&buffer_pool_), true, common::ManagedPointer(log_manager_)};
-    catalog::Catalog catalog{common::ManagedPointer(&txn_manager), common::ManagedPointer(&block_store_)};
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(&timestamp_manager),
+                                        common::ManagedPointer(&deferred_action_manager),
+                                        common::ManagedPointer(&txn_manager), DISABLED);
+    catalog::Catalog catalog{common::ManagedPointer(&txn_manager), common::ManagedPointer(&block_store_),
+                             common::ManagedPointer(gc_)};
     Builder tpcc_builder{common::ManagedPointer(&block_store_), common::ManagedPointer(&catalog),
                          common::ManagedPointer(&txn_manager)};
 
@@ -413,7 +426,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 
     // cleanup
-    Util::UnregisterIndexesForGC(common::ManagedPointer(gc_), common::ManagedPointer(tpcc_db));
     delete gc_thread_;
     catalog.TearDown();
     deferred_action_manager.FullyPerformGC(common::ManagedPointer(gc_), common::ManagedPointer(log_manager_));

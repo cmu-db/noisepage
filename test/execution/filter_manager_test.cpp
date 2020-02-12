@@ -1,3 +1,5 @@
+#include "execution/sql/filter_manager.h"
+
 #include <chrono>  // NOLINT
 #include <limits>
 #include <memory>
@@ -7,11 +9,9 @@
 #include <utility>
 #include <vector>
 
-#include "execution/sql_test.h"
-
 #include "catalog/catalog.h"
-#include "execution/sql/filter_manager.h"
 #include "execution/sql/table_vector_iterator.h"
+#include "execution/sql_test.h"
 #include "type/type_id.h"
 
 namespace terrier::execution::sql::test {
