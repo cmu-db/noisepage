@@ -62,11 +62,27 @@ class ExecutableQuery {
    */
   void Run(common::ManagedPointer<exec::ExecutionContext> exec_ctx, vm::ExecutionMode mode);
 
-  const planner::OutputSchema *GetOutputSchema() const { return sample_output_->GetSchema(query_name_); }
-  const exec::OutputPrinter &GetPrinter() const { return *printer_; }
+  /**
+   * @note function should only be used from test
+   * @returns output schema
+   */
+  const planner::OutputSchema *GetTestOutputSchema() const { return sample_output_->GetSchema(query_name_); }
 
-  const std::string &GetQueryName() const { return query_name_; }
+  /**
+   * @note function should only be used from test
+   * @returns output printer
+   */
+  const exec::OutputPrinter &GetTestPrinter() const { return *printer_; }
 
+  /**
+   * @note function should only be used from test
+   * @returns the query name
+   */
+  const std::string &GetTestQueryName() const { return query_name_; }
+
+  /**
+   * @returns the query identifier
+   */
   query_id_t GetQueryId() const { return query_id_; }
 
  private:

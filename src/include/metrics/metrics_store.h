@@ -107,6 +107,8 @@ class MetricsStore {
    * Record metrics for the execution engine when finish a pipeline
    * @param feature first entry of execution datapoint
    * @param len second entry of execution datapoint
+   * @param execution_mode Execution mode
+   * @param resource_metrics Metrics
    */
   void RecordExecutionData(const char *feature, uint32_t len, uint8_t execution_mode,
                            const common::ResourceTracker::Metrics &resource_metrics) {
@@ -121,7 +123,7 @@ class MetricsStore {
    * @param pipeline_id Pipeline Identifier
    * @param execution_mode Execution Mode
    * @param features Feature Vector
-   * @param resource-metrics Metrics
+   * @param resource_metrics Metrics
    */
   void RecordPipelineData(execution::query_id_t query_id, execution::pipeline_id_t pipeline_id, uint8_t execution_mode,
                           std::vector<brain::OperatingUnitFeature> &&features,

@@ -197,6 +197,10 @@ class AbstractPlanNode {
    */
   bool operator!=(const AbstractPlanNode &rhs) const { return !(*this == rhs); }
 
+  /**
+   * Visitor pattern for plan nodes
+   * @param v Visitor
+   */
   virtual void Accept(common::ManagedPointer<PlanVisitor> v) const;
 
  private:

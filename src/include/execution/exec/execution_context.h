@@ -149,7 +149,7 @@ class EXPORT ExecutionContext {
    */
   void SetExecutionMode(uint8_t mode) { execution_mode_ = mode; }
 
-  /*
+  /**
    * Set the accessor
    * @param accessor The catalog accessor.
    */

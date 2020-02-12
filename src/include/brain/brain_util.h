@@ -4,8 +4,15 @@
 
 namespace terrier::brain {
 
+/**
+ * Utility class for helper functions
+ */
 class BrainUtil {
  public:
+  /**
+   * Converts an OperatingUnitFeatureType enum to string representation
+   * @param f OperatingUnitFeatureType to convert
+   */
   static std::string OperatingUnitFeatureTypeToString(OperatingUnitFeatureType f) {
     switch (f) {
       case OperatingUnitFeatureType::INVALID:
