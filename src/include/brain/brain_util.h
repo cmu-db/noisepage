@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include "brain/brain_defs.h"
 
 namespace terrier::brain {
