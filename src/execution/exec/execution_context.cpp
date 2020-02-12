@@ -42,7 +42,7 @@ void ExecutionContext::EndResourceTracker(const char *name, uint32_t len) {
 
 void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pipeline) {
   if (common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::EXECUTION)) {
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::EXECUTION_PIPELINE)) {
     common::thread_context.resource_tracker_.Stop();
     common::thread_context.resource_tracker_.SetMemory(mem_tracker_->GetAllocatedSize());
     auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();

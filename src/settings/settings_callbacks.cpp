@@ -82,4 +82,15 @@ void Callbacks::MetricsTransaction(void *const old_value, void *const new_value,
   action_context->SetState(common::ActionState::SUCCESS);
 }
 
+void Callbacks::MetricsPipeline(void *const old_value, void *const new_value, DBMain *const db_main,
+                                common::ManagedPointer<common::ActionContext> action_context) {
+  action_context->SetState(common::ActionState::IN_PROGRESS);
+  bool new_status = *static_cast<bool *>(new_value);
+  if (new_status)
+    db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
+  else
+    db_main->GetMetricsManager()->DisableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
+  action_context->SetState(common::ActionState::SUCCESS);
+}
+
 }  // namespace terrier::settings

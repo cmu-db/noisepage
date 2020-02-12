@@ -71,8 +71,8 @@ class PipelineMetricRawData : public AbstractRawData {
    * Columns to use for writing to CSV.
    * Note: This includes the columns for the input feature, but not the output (resource counters)
    */
-  static constexpr std::array<std::string_view, 7> FEATURE_COLUMNS = {
-      "query_id", "pipeline_id", "exec_mode", "num_features", "features", "est_output_rows", "est_cardinalities"};
+  static constexpr std::array<std::string_view, 1> FEATURE_COLUMNS = {
+      "query_id, pipeline_id, exec_mode, num_features, features, est_output_rows, est_cardinalities"};
 
  private:
   friend class PipelineMetric;
