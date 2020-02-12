@@ -84,6 +84,7 @@ void Workload::Execute(int8_t worker_id, uint32_t num_precomputed_txns_per_worke
         query.GetPrinter(), query.GetOutputSchema(), common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
     auto params = GetQueryParams(query.GetQueryName());
     exec_ctx.SetParams(std::move(params));
+    exec_ctx.SetExecutionMode(static_cast<uint8_t>(mode));
     query.Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
     counter = counter == num_queries - 1 ? 0:counter + 1 ;
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
