@@ -41,7 +41,7 @@ class SqlBasedTest : public TplTest {
 
   catalog::namespace_oid_t NSOid() { return test_ns_oid_; }
 
-  storage::BlockStore *BlockStore() { return block_store_.Get(); }
+  common::ManagedPointer<storage::BlockStore> BlockStore() { return block_store_; }
 
   std::unique_ptr<exec::ExecutionContext> MakeExecCtx(exec::OutputCallback &&callback = nullptr,
                                                       const planner::OutputSchema *schema = nullptr) {
@@ -50,7 +50,7 @@ class SqlBasedTest : public TplTest {
   }
 
   void GenerateTestTables(exec::ExecutionContext *exec_ctx) {
-    sql::TableGenerator table_generator{exec_ctx, block_store_.Get(), test_ns_oid_};
+    sql::TableGenerator table_generator{exec_ctx, block_store_, test_ns_oid_};
     table_generator.GenerateTestTables(false);
   }
 

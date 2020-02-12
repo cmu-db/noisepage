@@ -262,7 +262,7 @@ void TableGenerator::GenerateTestTables(bool is_mini_runner) {
     // Create Table.
     auto table_oid = exec_ctx_->GetAccessor()->CreateTable(ns_oid_, table_meta.name_, tmp_schema);
     auto &schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
-    auto *tmp_table = new storage::SqlTable(store_, schema);
+    auto *tmp_table = new storage::SqlTable(common::ManagedPointer(store_), schema);
     exec_ctx_->GetAccessor()->SetTablePointer(table_oid, tmp_table);
     auto table = exec_ctx_->GetAccessor()->GetTable(table_oid);
     FillTable(table_oid, table, schema, &table_meta);
