@@ -83,7 +83,18 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const common::ManagedPoin
       NETWORK_LOG_TRACE(db_name);
     }
   }
+
   auto oids = t_cop->CreateTempNamespace(context->GetConnectionID(), db_name);
+
+  uint32_t sleep_time = 2;
+  while((oids.first == catalog::INVALID_DATABASE_OID ||
+      oids.second == catalog::INVALID_NAMESPACE_OID) &&
+      sleep_time <= 25) {
+    sleep(sleep_time);
+    oids = t_cop->CreateTempNamespace(context->GetConnectionID(), db_name);
+    sleep_time *= 2;
+  }
+
   if (oids.first == catalog::INVALID_DATABASE_OID) {
     // Invalid database name
     // TODO(Matt): need to actually return an error to the client

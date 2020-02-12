@@ -9,6 +9,8 @@ namespace terrier::network {
 ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd,
                                                                std::unique_ptr<ProtocolInterpreter> interpreter,
                                                                common::ManagedPointer<ConnectionHandlerTask> handler) {
+  common::SpinLatch::ScopedSpinLatch guard(&reusable_handles_latch_);
+
   auto it = reusable_handles_.find(conn_fd);
   if (it == reusable_handles_.end()) {
     auto ret = reusable_handles_.try_emplace(conn_fd, conn_fd, handler, traffic_cop_, std::move(interpreter));

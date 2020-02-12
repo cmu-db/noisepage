@@ -246,24 +246,36 @@ TEST_F(NetworkTests, LargePacketsTest) {
   }
 }
 
+/**
+ * This is a less "parallelized" version of RacerTest that tests the network layers functionality
+ * on multiple synchronous clients in two batches
+ */
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, MultipleConnectionTest) {
-  std::vector<std::thread> threads;
-  threads.reserve(CONNECTION_THREAD_COUNT);
-  for (size_t i = 0; i < CONNECTION_THREAD_COUNT; i++) {
-    threads.emplace_back([=] {
-      try {
-        auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
-        auto io_socket = common::ManagedPointer(io_socket_unique_ptr);
-        ManualPacketUtil::TerminateConnection(io_socket->GetSocketFd());
-        io_socket->Close();
-      } catch (const std::exception &e) {
-        EXPECT_TRUE(false);
-      }
-    });
+  std::vector<std::unique_ptr<NetworkIoWrapper>> io_sockets;
+  io_sockets.reserve(CONNECTION_THREAD_COUNT*2);
+
+  for(size_t i = 0;i < CONNECTION_THREAD_COUNT*2;i++){
+    auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
+    EXPECT_NE(io_socket_unique_ptr, nullptr);
+    io_sockets.emplace_back(std::move(io_socket_unique_ptr));
   }
-  for (auto &t : threads) {
-    t.join();
+
+  for(auto &socket : io_sockets){
+    ManualPacketUtil::TerminateConnection(socket->GetSocketFd());
+    socket->Close();
+  }
+
+  for(size_t i = 0;i < CONNECTION_THREAD_COUNT*2;i++){
+    auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
+    EXPECT_NE(io_socket_unique_ptr, nullptr);
+    io_sockets.emplace_back(std::move(io_socket_unique_ptr));
+  }
+  io_sockets.clear();
+
+  for(auto &socket : io_sockets){
+    ManualPacketUtil::TerminateConnection(socket->GetSocketFd());
+    socket->Close();
   }
 }
 
@@ -301,10 +313,10 @@ TEST_F(NetworkTests, RacerTest) {
     t.join();
   }
   threads.clear();
-  EXPECT_GE(successes, CONNECTION_THREAD_COUNT/2);
+  EXPECT_EQ(successes, CONNECTION_THREAD_COUNT);
 
   successes = 0;
-  for (size_t i = 0; i < CONNECTION_THREAD_COUNT; i++) {
+  for (size_t i = 0; i < 2*CONNECTION_THREAD_COUNT; i++) {
     threads.emplace_back([this, &successes] {
       try {
         auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
@@ -323,7 +335,7 @@ TEST_F(NetworkTests, RacerTest) {
   for (auto &t : threads) {
     t.join();
   }
-  EXPECT_GE(successes, CONNECTION_THREAD_COUNT/2);
+  EXPECT_EQ(successes, 2*CONNECTION_THREAD_COUNT);
 }
 
 /**
