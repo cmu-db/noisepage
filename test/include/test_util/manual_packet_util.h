@@ -91,7 +91,7 @@ class ManualPacketUtil {
     out_buffer[0] = 'X';
     int len = sizeof(int32_t) + sizeof(char);
     reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(len);
-    const auto result = write(socket_fd, out_buffer, len + 1);
+    UNUSED_ATTRIBUTE auto result = write(socket_fd, out_buffer, len + 1);
     TERRIER_ASSERT(result == len + 1, "Unsuccessful write");
   }
 
