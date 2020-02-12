@@ -111,7 +111,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
                                         common::ManagedPointer(&deferred_action_manager),
                                         common::ManagedPointer(&txn_manager), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
-    Util::RegisterIndexesForGC(common::ManagedPointer(gc_), common::ManagedPointer(tpcc_db));
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
     // run the TPCC workload to completion, timing the execution
@@ -206,7 +205,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
                                         common::ManagedPointer(&deferred_action_manager),
                                         common::ManagedPointer(&txn_manager), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
-    Util::RegisterIndexesForGC(common::ManagedPointer(gc_), common::ManagedPointer(tpcc_db));
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
     // run the TPCC workload to completion, timing the execution
@@ -310,7 +308,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
                                         common::ManagedPointer(&deferred_action_manager),
                                         common::ManagedPointer(&txn_manager), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
-    Util::RegisterIndexesForGC(common::ManagedPointer(gc_), common::ManagedPointer(tpcc_db));
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
     // run the TPCC workload to completion, timing the execution
@@ -407,7 +404,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
                                         common::ManagedPointer(&deferred_action_manager),
                                         common::ManagedPointer(&txn_manager), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
-    Util::RegisterIndexesForGC(common::ManagedPointer(gc_), common::ManagedPointer(tpcc_db));
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
     // run the TPCC workload to completion, timing the execution

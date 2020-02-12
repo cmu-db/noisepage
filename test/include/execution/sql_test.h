@@ -50,7 +50,7 @@ class SqlBasedTest : public TplTest {
   }
 
   void GenerateTestTables(exec::ExecutionContext *exec_ctx) {
-    sql::TableGenerator table_generator{exec_ctx, block_store_.Get(), test_ns_oid_};
+    sql::TableGenerator table_generator{exec_ctx, block_store_, test_ns_oid_};
     table_generator.GenerateTestTables(false);
   }
 
