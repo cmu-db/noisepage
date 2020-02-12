@@ -32,6 +32,21 @@ struct {
     {CpuInfo::AVX512, {"avx512f", "avx512cd"}},
 };
 
+int CpuInfo::GetCpu() {
+#ifdef __APPLE__
+  int result = -1;
+  uint32_t cpu_info[4];
+  __cpuid(cpu_info, 1);
+  // Check APIC
+  if (cpu_info[3] & (1 << 9)) {
+    result = static_cast<int>((cpu_info[1] >> 24));
+  }
+  return result;
+#else
+  return sched_getcpu();
+#endif
+}
+
 void CpuInfo::ParseCpuFlags(llvm::StringRef flags) {
   for (const auto &[feature, names] : features) {
     bool has_feature = true;
