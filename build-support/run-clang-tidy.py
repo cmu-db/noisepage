@@ -220,7 +220,7 @@ def main():
     parser.add_argument('-export-fixes', metavar='filename', dest='export_fixes',
                         help='Create a yaml file to store suggested fixes in, '
                              'which can be applied with clang-apply-replacements.')
-    parser.add_argument('-j', type=int, default=4,
+    parser.add_argument('-j', type=int, default=0,
                         help='number of tidy instances to be run in parallel.')
     parser.add_argument('files', nargs='*', default=['.*'],
                         help='files to be processed (regex on path)')
