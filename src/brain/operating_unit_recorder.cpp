@@ -1,7 +1,35 @@
 #include "brain/operating_unit_recorder.h"
 #include "brain/operating_unit.h"
 #include "parser/expression_defs.h"
+#include "planner/plannodes/aggregate_plan_node.h"
+#include "planner/plannodes/analyze_plan_node.h"
+#include "planner/plannodes/create_database_plan_node.h"
+#include "planner/plannodes/create_function_plan_node.h"
+#include "planner/plannodes/create_index_plan_node.h"
+#include "planner/plannodes/create_namespace_plan_node.h"
+#include "planner/plannodes/create_table_plan_node.h"
+#include "planner/plannodes/create_trigger_plan_node.h"
+#include "planner/plannodes/create_view_plan_node.h"
+#include "planner/plannodes/csv_scan_plan_node.h"
+#include "planner/plannodes/delete_plan_node.h"
+#include "planner/plannodes/drop_database_plan_node.h"
+#include "planner/plannodes/drop_index_plan_node.h"
+#include "planner/plannodes/drop_namespace_plan_node.h"
+#include "planner/plannodes/drop_table_plan_node.h"
+#include "planner/plannodes/drop_trigger_plan_node.h"
+#include "planner/plannodes/drop_view_plan_node.h"
+#include "planner/plannodes/export_external_file_plan_node.h"
+#include "planner/plannodes/hash_join_plan_node.h"
+#include "planner/plannodes/index_join_plan_node.h"
+#include "planner/plannodes/index_scan_plan_node.h"
+#include "planner/plannodes/insert_plan_node.h"
+#include "planner/plannodes/limit_plan_node.h"
+#include "planner/plannodes/nested_loop_join_plan_node.h"
+#include "planner/plannodes/order_by_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
+#include "planner/plannodes/projection_plan_node.h"
+#include "planner/plannodes/seq_scan_plan_node.h"
+#include "planner/plannodes/update_plan_node.h"
 
 namespace terrier::brain {
 
@@ -34,6 +62,8 @@ OperatingUnitFeatureType OperatingUnitRecorder::ConvertExpressionType(parser::Ex
 
 std::unordered_set<OperatingUnitFeatureType> OperatingUnitRecorder::ExtractFeaturesFromExpression(
     common::ManagedPointer<parser::AbstractExpression> expr) {
+  if (expr == nullptr) return std::unordered_set<OperatingUnitFeatureType>();
+
   std::unordered_set<OperatingUnitFeatureType> feature_types;
   std::queue<common::ManagedPointer<parser::AbstractExpression>> work;
   work.push(expr);
@@ -57,9 +87,11 @@ std::unordered_set<OperatingUnitFeatureType> OperatingUnitRecorder::ExtractFeatu
 
 void OperatingUnitRecorder::VisitAbstractPlanNode(const planner::AbstractPlanNode *plan) {
   auto schema = plan->GetOutputSchema();
-  for (auto &column : schema->GetColumns()) {
-    auto features = ExtractFeaturesFromExpression(column.GetExpr());
-    plan_features_.insert(features.begin(), features.end());
+  if (schema != nullptr) {
+    for (auto &column : schema->GetColumns()) {
+      auto features = ExtractFeaturesFromExpression(column.GetExpr());
+      plan_features_.insert(features.begin(), features.end());
+    }
   }
 }
 
@@ -164,8 +196,10 @@ OperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
     auto feature_type = translator->GetFeatureType();
     auto num_rows = 0;
     auto cardinality = 0.0;
-    plan_nodes.insert(translator->Op());
-    results.emplace_back(feature_type, num_rows, cardinality);
+    if (feature_type != OperatingUnitFeatureType::INVALID && feature_type != OperatingUnitFeatureType::OUTPUT) {
+      plan_nodes.insert(translator->Op());
+      results.emplace_back(feature_type, num_rows, cardinality);
+    }
   }
 
   std::unordered_map<OperatingUnitFeatureType, OperatingUnitFeature> features;

@@ -201,7 +201,7 @@ class AbstractPlanNode {
    * Visitor pattern for plan nodes
    * @param v Visitor
    */
-  virtual void Accept(common::ManagedPointer<PlanVisitor> v) const;
+  virtual void Accept(common::ManagedPointer<PlanVisitor> v) const = 0;
 
  private:
   std::vector<std::unique_ptr<AbstractPlanNode>> children_;

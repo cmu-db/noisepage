@@ -8,6 +8,7 @@
 #include "brain/operating_unit.h"
 #include "common/managed_pointer.h"
 #include "execution/compiler/operator/operator_translator.h"
+#include "planner/plannodes/abstract_join_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
 namespace terrier::brain {
