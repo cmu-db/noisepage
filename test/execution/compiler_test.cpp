@@ -47,7 +47,6 @@ class CompilerTest : public SqlBasedTest {
     auto exec_ctx = MakeExecCtx();
     sql::TableGenerator table_generator{exec_ctx.get(), BlockStore(), NSOid()};
     table_generator.GenerateTestTables(false);
-    printf("Calling setup!!\n");
   }
 
   static constexpr vm::ExecutionMode MODE = vm::ExecutionMode::Interpret;
