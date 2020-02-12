@@ -15,9 +15,9 @@
 
 namespace terrier::network {
 
-#define INITIAL_BACKOFF_TIME 2
-#define BACKOFF_FACTOR 2
-#define MAX_BACKOFF_TIME 20
+constexpr uint32_t INITIAL_BACKOFF_TIME = 2;
+constexpr uint32_t BACKOFF_FACTOR = 2;
+constexpr uint32_t MAX_BACKOFF_TIME = 20;
 
 /**
  * Interprets the network protocol for postgres clients. Any state/logic that is Postgres protocol-specific should live
