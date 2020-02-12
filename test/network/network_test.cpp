@@ -253,27 +253,27 @@ TEST_F(NetworkTests, LargePacketsTest) {
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, MultipleConnectionTest) {
   std::vector<std::unique_ptr<NetworkIoWrapper>> io_sockets;
-  io_sockets.reserve(CONNECTION_THREAD_COUNT*2);
+  io_sockets.reserve(CONNECTION_THREAD_COUNT * 2);
 
-  for(size_t i = 0;i < CONNECTION_THREAD_COUNT*2;i++){
+  for (size_t i = 0; i < CONNECTION_THREAD_COUNT * 2; i++) {
     auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
     EXPECT_NE(io_socket_unique_ptr, nullptr);
     io_sockets.emplace_back(std::move(io_socket_unique_ptr));
   }
 
-  for(auto &socket : io_sockets){
+  for (auto &socket : io_sockets) {
     ManualPacketUtil::TerminateConnection(socket->GetSocketFd());
     socket->Close();
   }
 
-  for(size_t i = 0;i < CONNECTION_THREAD_COUNT*2;i++){
+  for (size_t i = 0; i < CONNECTION_THREAD_COUNT * 2; i++) {
     auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
     EXPECT_NE(io_socket_unique_ptr, nullptr);
     io_sockets.emplace_back(std::move(io_socket_unique_ptr));
   }
   io_sockets.clear();
 
-  for(auto &socket : io_sockets){
+  for (auto &socket : io_sockets) {
     ManualPacketUtil::TerminateConnection(socket->GetSocketFd());
     socket->Close();
   }
@@ -297,7 +297,7 @@ TEST_F(NetworkTests, RacerTest) {
     threads.emplace_back([this, &successes] {
       try {
         auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
-        if(io_socket_unique_ptr == nullptr){
+        if (io_socket_unique_ptr == nullptr) {
           return;
         }
         successes++;
@@ -316,11 +316,11 @@ TEST_F(NetworkTests, RacerTest) {
   EXPECT_EQ(successes, CONNECTION_THREAD_COUNT);
 
   successes = 0;
-  for (size_t i = 0; i < 2*CONNECTION_THREAD_COUNT; i++) {
+  for (size_t i = 0; i < 2 * CONNECTION_THREAD_COUNT; i++) {
     threads.emplace_back([this, &successes] {
       try {
         auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
-        if(io_socket_unique_ptr == nullptr){
+        if (io_socket_unique_ptr == nullptr) {
           return;
         }
         successes++;
@@ -335,7 +335,7 @@ TEST_F(NetworkTests, RacerTest) {
   for (auto &t : threads) {
     t.join();
   }
-  EXPECT_EQ(successes, 2*CONNECTION_THREAD_COUNT);
+  EXPECT_EQ(successes, 2 * CONNECTION_THREAD_COUNT);
 }
 
 /**

@@ -74,7 +74,7 @@ class ManualPacketUtil {
     io_socket->FlushAllWrites();
 
     bool success = ReadUntilReadyOrClose(common::ManagedPointer(io_socket));
-    if(!success){
+    if (!success) {
       return nullptr;
     }
     return io_socket;

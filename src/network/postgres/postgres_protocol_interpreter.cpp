@@ -86,13 +86,12 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const common::ManagedPoin
 
   auto oids = t_cop->CreateTempNamespace(context->GetConnectionID(), db_name);
 
-  uint32_t sleep_time = 2;
-  while((oids.first == catalog::INVALID_DATABASE_OID ||
-      oids.second == catalog::INVALID_NAMESPACE_OID) &&
-      sleep_time <= 25) {
+  uint32_t sleep_time = INITIAL_BACKOFF_TIME;
+  while ((oids.first == catalog::INVALID_DATABASE_OID || oids.second == catalog::INVALID_NAMESPACE_OID) &&
+         sleep_time <= MAX_BACKOFF_TIME) {
     sleep(sleep_time);
     oids = t_cop->CreateTempNamespace(context->GetConnectionID(), db_name);
-    sleep_time *= 2;
+    sleep_time *= BACKOFF_FACTOR;
   }
 
   if (oids.first == catalog::INVALID_DATABASE_OID) {
