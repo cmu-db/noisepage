@@ -163,12 +163,6 @@ def run_tidy(args, tmpdir, build_path, queue, lock, failed_files):
                                          tmpdir, build_path, args.header_filter,
                                          args.extra_arg, args.extra_arg_before,
                                          args.quiet, args.config)
-        cc = CheckConfig()
-        # name is the full path of the file for clang-tidy to check
-        if cc.should_skip(name):
-            queue.task_done()
-            continue
-
         proc = subprocess.Popen(invocation, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, err = proc.communicate()
         if proc.returncode != 0:
@@ -281,6 +275,8 @@ def main():
 
     return_code = 0
     try:
+        # Initialize file blacklist 
+        cc = CheckConfig()
         # Spin up a bunch of tidy-launching threads.
         task_queue = queue.Queue(max_task)
         # List of files with a non-zero return code.
@@ -310,6 +306,9 @@ def main():
 
         # Fill the queue with files.
         for i, name in enumerate(files):
+            if cc.should_skip(name): 
+                continue
+
             put_file = False
             while not put_file:
                 try:
