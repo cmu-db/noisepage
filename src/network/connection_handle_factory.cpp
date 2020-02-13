@@ -9,13 +9,16 @@ namespace terrier::network {
 ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd,
                                                                std::unique_ptr<ProtocolInterpreter> interpreter,
                                                                common::ManagedPointer<ConnectionHandlerTask> handler) {
-  common::SpinLatch::ScopedSpinLatch guard(&reusable_handles_latch_);
+  std::unordered_map<int, ConnectionHandle>::iterator it;
+  {
+    common::SpinLatch::ScopedSpinLatch guard(&reusable_handles_latch_);
 
-  auto it = reusable_handles_.find(conn_fd);
-  if (it == reusable_handles_.end()) {
-    auto ret = reusable_handles_.try_emplace(conn_fd, conn_fd, handler, traffic_cop_, std::move(interpreter));
-    TERRIER_ASSERT(ret.second, "ret.second false");
-    return ret.first->second;
+    it = reusable_handles_.find(conn_fd);
+    if (it == reusable_handles_.end()) {
+      auto ret = reusable_handles_.try_emplace(conn_fd, conn_fd, handler, traffic_cop_, std::move(interpreter));
+      TERRIER_ASSERT(ret.second, "ret.second false");
+      return ret.first->second;
+    }
   }
 
   auto &reused_handle = it->second;
