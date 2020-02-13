@@ -103,7 +103,7 @@ class TableGenerator {
      * Constructor
      */
     ColumnInsertMeta(std::string name, const type::TypeId type, bool nullable, Dist dist, uint64_t min, uint64_t max)
-        : name_(name), type_(type), nullable_(nullable), dist_(dist), min_(min), max_(max) {}
+        : name_(std::move(name)), type_(type), nullable_(nullable), dist_(dist), min_(min), max_(max) {}
   };
 
   /**
@@ -128,7 +128,7 @@ class TableGenerator {
      * Constructor
      */
     TableInsertMeta(std::string name, uint32_t num_rows, std::vector<ColumnInsertMeta> col_meta)
-        : name_(name), num_rows_(num_rows), col_meta_(std::move(col_meta)) {}
+        : name_(std::move(name)), num_rows_(num_rows), col_meta_(std::move(col_meta)) {}
   };
 
   /**

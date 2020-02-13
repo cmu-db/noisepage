@@ -58,6 +58,7 @@ void Workload::LoadTPCHQueries(execution::exec::ExecutionContext *exec_ctx, cons
 
 std::vector<type::TransientValue> Workload::GetQueryParams(const std::string &query_name) {
   std::vector<type::TransientValue> params;
+  params.reserve(8);
 
   // Add the identifier for each pipeline. At most 8 query pipelines for now
   for (int i = 0; i < 8; ++i)

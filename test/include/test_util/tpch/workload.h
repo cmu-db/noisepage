@@ -43,7 +43,7 @@ class Workload {
   void Execute(int8_t worker_id, uint32_t num_precomputed_txns_per_worker, execution::vm::ExecutionMode mode);
 
  private:
-  void GenerateTPCHTables(execution::exec::ExecutionContext *exec_ctx, const std::string &table_root);
+  void GenerateTPCHTables(execution::exec::ExecutionContext *exec_ctx, const std::string &dir_name);
 
   void LoadTPCHQueries(execution::exec::ExecutionContext *exec_ctx, const std::vector<std::string> &queries);
 
