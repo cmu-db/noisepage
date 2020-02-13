@@ -256,27 +256,18 @@ TEST_F(NetworkTests, MultipleConnectionTest) {
   std::vector<std::unique_ptr<NetworkIoWrapper>> io_sockets;
   io_sockets.reserve(CONNECTION_THREAD_COUNT * 2);
 
-  for (size_t i = 0; i < CONNECTION_THREAD_COUNT * 2; i++) {
-    auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
-    EXPECT_NE(io_socket_unique_ptr, nullptr);
-    io_sockets.emplace_back(std::move(io_socket_unique_ptr));
-  }
+  for (size_t i = 0; i < 2; i++) {
+    for (size_t i = 0; i < CONNECTION_THREAD_COUNT * 2; i++) {
+      auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
+      EXPECT_NE(io_socket_unique_ptr, nullptr);
+      io_sockets.emplace_back(std::move(io_socket_unique_ptr));
+    }
 
-  for (auto &socket : io_sockets) {
-    ManualPacketUtil::TerminateConnection(socket->GetSocketFd());
-    socket->Close();
-  }
-
-  for (size_t i = 0; i < CONNECTION_THREAD_COUNT * 2; i++) {
-    auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
-    EXPECT_NE(io_socket_unique_ptr, nullptr);
-    io_sockets.emplace_back(std::move(io_socket_unique_ptr));
-  }
-  io_sockets.clear();
-
-  for (auto &socket : io_sockets) {
-    ManualPacketUtil::TerminateConnection(socket->GetSocketFd());
-    socket->Close();
+    for (auto &socket : io_sockets) {
+      ManualPacketUtil::TerminateConnection(socket->GetSocketFd());
+      socket->Close();
+    }
+    io_sockets.clear();
   }
 }
 

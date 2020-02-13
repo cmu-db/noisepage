@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <memory>
 #include <string>
+#include <thread>  // NOLINT
 #include <utility>
 
 #include "network/network_defs.h"
@@ -84,15 +85,23 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const common::ManagedPoin
     }
   }
 
-  auto oids = t_cop->CreateTempNamespace(context->GetConnectionID(), db_name);
+  std::pair<catalog::db_oid_t, catalog::namespace_oid_t> oids;
 
   uint32_t sleep_time = INITIAL_BACKOFF_TIME;
-  while ((oids.first == catalog::INVALID_DATABASE_OID || oids.second == catalog::INVALID_NAMESPACE_OID) &&
-         sleep_time <= MAX_BACKOFF_TIME) {
-    sleep(sleep_time);
+  bool failed_once = false;
+
+  // we loop with exponential backoff because in case there are multiple other pg connections also starting
+  // at the same time, creating DDL conflicts when creating the temp namespace
+  do {
+    // this is so that we don't sleep on our first attempt
+    if (failed_once) {
+      std::this_thread::sleep_for(std::chrono::milliseconds{sleep_time});
+      sleep_time *= BACKOFF_FACTOR;
+    }
     oids = t_cop->CreateTempNamespace(context->GetConnectionID(), db_name);
-    sleep_time *= BACKOFF_FACTOR;
-  }
+    failed_once = true;
+  } while ((oids.first == catalog::INVALID_DATABASE_OID || oids.second == catalog::INVALID_NAMESPACE_OID) &&
+           sleep_time <= MAX_BACKOFF_TIME);
 
   if (oids.first == catalog::INVALID_DATABASE_OID) {
     // Invalid database name
