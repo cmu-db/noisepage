@@ -34,9 +34,9 @@ def generate_build_side(col_num, row_num, cardinality):
     print("  var tvi: TableVectorIterator")
     print("  var col_oids : [{}]uint32".format(col_num))
     for i in range(0, col_num):
-        print("  col_oids[{}] = {}".format(i, 5 - i))
+        print("  col_oids[{}] = {}".format(i, 15 - i))
 
-    print("  @tableIterInitBind(&tvi, execCtx, \"IntegerCol15Row{}Car{}\", col_oids)".format(row_num, cardinality))
+    print("  @tableIterInitBind(&tvi, execCtx, \"INTEGERCol15Row{}Car{}\", col_oids)".format(row_num, cardinality))
 
     print("  for (@tableIterAdvance(&tvi)) {")
     print("    var vec = @tableIterGetPCI(&tvi)")
@@ -146,7 +146,7 @@ def generate_all():
             cardinalities = [1]
             while cardinalities[-1] < row_num:
                 cardinalities.append(cardinalities[-1] * 2)
-            cardinalities.append(row_num)
+            cardinalities[-1] = row_num
             for cardinality in cardinalities:
                 fun_names.append(generate_build_side(col_num, row_num, cardinality))
                 fun_names.append(generate_probe_side(col_num, row_num, cardinality))

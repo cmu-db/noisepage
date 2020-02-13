@@ -334,6 +334,7 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
     for (uint32_t row_num : row_nums) {
       // Cardinality of the last column
       std::vector<uint32_t> cardinalities;
+      // Generate different cardinalities exponentially
       for (uint32_t i = 1; i < row_num; i *= 2)
         cardinalities.emplace_back(i);
       cardinalities.emplace_back(row_num);

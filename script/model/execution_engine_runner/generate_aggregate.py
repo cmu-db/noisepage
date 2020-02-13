@@ -2,19 +2,24 @@
 
 
 def get_type_info(value_type):
+    # The name we should use after "@pciGet...", like "@pciGetInt"
     get_name = None
-    type_feature = None
     type_size = None
     if value_type == 'Integer':
         get_name = "Int"
-        type_feature = "1, 0, 0, 0"
         type_size = 4
     if value_type == 'Real':
         get_name = "Double"
-        type_feature = "0, 1, 0, 0"
         type_size = 8
 
-    return get_name, type_feature, type_size
+    return get_name, type_size
+
+
+def tpl_type_to_terrier_type(value_type):
+    if value_type == 'Integer':
+        return "INTEGER"
+    if value_type == 'Real':
+        return "DECIMAL"
 
 
 def generate_build_key(col_num, value_type):
@@ -35,7 +40,7 @@ def generate_build_row(col_num, value_type):
 
 
 def generate_key_check(col_num, value_type):
-    get_name, _, _ = get_type_info(value_type)
+    get_name, _ = get_type_info(value_type)
 
     print("fun keyCheck{}{}(row: *BuildRow{}{}, pci: *ProjectedColumnsIterator) -> bool {{".format(value_type, col_num,
                                                                                                    value_type, col_num))
@@ -46,7 +51,7 @@ def generate_key_check(col_num, value_type):
 
 
 def generate_build_side(col_num, row_num, cardinality, value_type):
-    get_name, _, type_size = get_type_info(value_type)
+    get_name, type_size = get_type_info(value_type)
 
     fun_name = "build{}Col{}Row{}Car{}".format(value_type, col_num, row_num, cardinality)
     print("fun {}(execCtx: *ExecutionContext, state: *State) -> nil {{".format(fun_name))
@@ -58,10 +63,10 @@ def generate_build_side(col_num, row_num, cardinality, value_type):
     print("  var tvi: TableVectorIterator")
     print("  var col_oids : [{}]uint32".format(col_num))
     for i in range(0, col_num):
-        print("  col_oids[{}] = {}".format(i, 5 - i))
+        print("  col_oids[{}] = {}".format(i, 15 - i))
 
-    print("  @tableIterInitBind(&tvi, execCtx, \"{}Col5Row{}Car{}\", col_oids)".format(value_type, row_num,
-                                                                                       cardinality))
+    print("  @tableIterInitBind(&tvi, execCtx, \"{}Col15Row{}Car{}\", col_oids)".format(tpl_type_to_terrier_type(
+        value_type), row_num, cardinality))
 
     print("  for (@tableIterAdvance(&tvi)) {")
     print("    var vec = @tableIterGetPCI(&tvi)")
@@ -100,7 +105,7 @@ def generate_build_side(col_num, row_num, cardinality, value_type):
 
 
 def generate_probe_side(col_num, row_num, cardinality, value_type):
-    _, _, type_size = get_type_info(value_type)
+    _, type_size = get_type_info(value_type)
 
     fun_name = "probe{}Col{}Row{}Car{}".format(value_type, col_num, row_num, cardinality)
     print("fun {}(execCtx: *ExecutionContext, state: *State) -> nil {{".format(fun_name))
@@ -175,10 +180,9 @@ def generate_main_fun(fun_names):
 
 def generate_all():
     fun_names = []
-    col_nums = range(1, 6)
-    row_nums = [1, 5, 10, 50, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000,
-                200000, 500000, 1000000]
-    cardinalities = [1, 2, 5, 10, 50, 100]
+    col_nums = range(1, 16, 2)
+    row_nums = [1, 3, 5, 7, 10, 50, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000]
+    # Specified by the type name in tpl
     types = ['Integer']
     # types = ['Integer', "Real"]
 
@@ -194,6 +198,10 @@ def generate_all():
 
     for col_num in col_nums:
         for row_num in row_nums:
+            cardinalities = [1]
+            while cardinalities[-1] < row_num:
+                cardinalities.append(cardinalities[-1] * 2)
+            cardinalities[-1] = row_num
             for cardinality in cardinalities:
                 for value_type in types:
                     fun_names.append(generate_build_side(col_num, row_num, cardinality, value_type))
