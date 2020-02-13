@@ -34,14 +34,13 @@ struct {
 
 int CpuInfo::GetCpu() {
 #ifdef __APPLE__
-  int result = -1;
-  uint32_t cpu_info[4];
-  __cpuid(cpu_info, 1);
-  // Check APIC
-  if (cpu_info[3] & (1 << 9)) {
-    result = static_cast<int>((cpu_info[1] >> 24));
+  uint32_t cpuinfo[4];
+  __cpuid_count(1, 0, cpuinfo[0], cpuinfo[1], cpuinfo[2], cpuinfo[3]);
+  if ((cpu_info[3] & (1 << 9)) == 0) {
+    return -1;
   }
-  return result;
+
+  return (cpuinfo[3] >> 24);
 #else
   return sched_getcpu();
 #endif
