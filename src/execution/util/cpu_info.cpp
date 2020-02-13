@@ -11,6 +11,7 @@
 #if __APPLE__
 #include <sys/sysctl.h>
 #include <sys/types.h>
+#include <cpuid.h>
 #endif
 
 #include <unistd.h>
@@ -36,7 +37,7 @@ int CpuInfo::GetCpu() {
 #ifdef __APPLE__
   uint32_t cpuinfo[4];
   __cpuid_count(1, 0, cpuinfo[0], cpuinfo[1], cpuinfo[2], cpuinfo[3]);
-  if ((cpu_info[3] & (1 << 9)) == 0) {
+  if ((cpuinfo[3] & (1 << 9)) == 0) {
     return -1;
   }
 
