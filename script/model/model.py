@@ -81,7 +81,7 @@ class Model:
         if self._log_transform == 1:
             x = np.log(x + _LOGTRANS_EPS)
         if self._normalize:
-            x = self._xscaler.fit_transform(x)
+            x = self._xscaler.transform(x)
 
         # make prediction
         y = self._base_model.predict(x)

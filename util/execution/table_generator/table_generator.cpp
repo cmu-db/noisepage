@@ -327,34 +327,21 @@ void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> ind
 
 std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerTableMetas() {
   std::vector<TableInsertMeta> table_metas;
-  std::vector<uint32_t> row_nums = {1, 5, 10, 50, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000,
+  std::vector<uint32_t> row_nums = {1, 3, 5, 7, 10, 50, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000,
                                     200000, 500000, 1000000};
-  //std::vector<uint32_t> row_nums = {1000000};
-  // Cardinality of the last column in percentage
-  std::vector<uint32_t> cardinalities = {1, 2, 5, 10, 50, 100};
-  std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
-  for (int col_num = 5; col_num <= 5; col_num++) {
+  std::vector<type::TypeId> types = {type::TypeId::INTEGER};
+  for (int col_num = 15; col_num <= 15; col_num++) {
     for (uint32_t row_num : row_nums) {
+      // Cardinality of the last column
+      std::vector<uint32_t> cardinalities;
+      for (uint32_t i = 1; i < row_num; i *= 2)
+        cardinalities.emplace_back(i);
+      cardinalities.emplace_back(row_num);
+
       for (uint32_t cardinality : cardinalities) {
         for (type::TypeId type : types) {
           std::stringstream table_name;
-          std::string type_name;
-          bool skip = false;
-          switch (type) {
-            case type::TypeId::INTEGER: {
-              type_name = "Integer";
-              break;
-            }
-            case type::TypeId::DECIMAL:{
-              type_name = "Real";
-              // Only need the largest decimal for now
-              if (row_num != 1000000 or cardinality != 100)
-                skip = true;
-              break;
-            }
-            default: { throw std::runtime_error("Implement me!"); }
-          }
-          if (skip) continue;
+          std::string type_name = type::TypeUtil::TypeIdToString(type);
           table_name << type_name << "Col" << col_num << "Row" << row_num << "Car" << cardinality;
           std::vector<ColumnInsertMeta> col_metas;
           for (int j = 1; j <= col_num; j++) {

@@ -65,7 +65,9 @@ class MiniTrainer:
 
             # Write the first header rwo to the result file
             result_path = "{}/{}.csv".format(self.model_metrics_path, data.opunit.name.lower())
+            prediction_path = "{}/{}_prediction.csv".format(self.model_metrics_path, data.opunit.name.lower())
             open(result_path, 'w').close()
+            open(prediction_path, 'w').close()
             opunit_data.write_result(result_path, "Method", labels)
 
             methods = self.ml_models
@@ -80,6 +82,7 @@ class MiniTrainer:
                 transformers.append(modeling_transformer)
 
             min_percentage_error = 1
+            pred_results = None
             elapsed_us_index = data_info.target_csv_index[Target.ELAPSED_US]
 
             for transformer in transformers:
@@ -111,6 +114,7 @@ class MiniTrainer:
                                 transformers[-1]):
                             min_percentage_error = percentage_error[elapsed_us_index]
                             model_map[data.opunit] = regressor
+                            pred_results = (evaluate_x, evaluate_y, y_pred)
 
                     # Dump the prediction results
                     transform = " "
@@ -121,6 +125,13 @@ class MiniTrainer:
                     print()
 
                 opunit_data.write_result(result_path, "", [])
+
+            # Record the best prediction results on the test data
+            num_data = pred_results[0].shape[0]
+            for i in range(num_data):
+                result_list = (list(pred_results[0][i]) + [""] + list(pred_results[1][i]) + [""]
+                               + list(pred_results[2][i]))
+                opunit_data.write_result(prediction_path, "", result_list)
 
         '''
         data_list = get_concurrent_data_list(input_path)

@@ -36,7 +36,7 @@ def generate_build_side(col_num, row_num, cardinality):
     for i in range(0, col_num):
         print("  col_oids[{}] = {}".format(i, 5 - i))
 
-    print("  @tableIterInitBind(&tvi, execCtx, \"IntegerCol5Row{}Car{}\", col_oids)".format(row_num, cardinality))
+    print("  @tableIterInitBind(&tvi, execCtx, \"IntegerCol15Row{}Car{}\", col_oids)".format(row_num, cardinality))
 
     print("  for (@tableIterAdvance(&tvi)) {")
     print("    var vec = @tableIterGetPCI(&tvi)")
@@ -126,10 +126,8 @@ def generate_main_fun(fun_names):
 
 
 def generate_all():
-    col_nums = range(1, 6)
-    row_nums = [1, 5, 10, 50, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000,
-                200000, 500000, 1000000]
-    cardinalities = [1, 2, 5, 10, 50, 100]
+    col_nums = range(1, 16, 2)
+    row_nums = [1, 3, 5, 7, 10, 50, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000]
     fun_names = []
 
     for col_num in col_nums:
@@ -145,6 +143,10 @@ def generate_all():
 
     for col_num in col_nums:
         for row_num in row_nums:
+            cardinalities = [1]
+            while cardinalities[-1] < row_num:
+                cardinalities.append(cardinalities[-1] * 2)
+            cardinalities.append(row_num)
             for cardinality in cardinalities:
                 fun_names.append(generate_build_side(col_num, row_num, cardinality))
                 fun_names.append(generate_probe_side(col_num, row_num, cardinality))
