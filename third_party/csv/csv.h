@@ -5565,7 +5565,7 @@ int get_col_pos(
 CSVFileInfo get_file_info(const std::string& filename) {
   CSVReader reader(filename);
   CSVFormat format = reader.get_format();
-  for (auto& row : reader) {
+  for (UNUSED_ATTRIBUTE auto& row : reader) {
 #ifndef NDEBUG
     SUPPRESS_UNUSED_WARNING(row);
 #endif

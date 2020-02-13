@@ -71,7 +71,7 @@ class BrainUtil {
       case OperatingUnitFeatureType::OP_COMPARE_GTE:
         return "OP_COMPARE_GTE";
       default:
-        TERRIER_ASSERT(0, "Undefined OperatingUnitFeatureType encountered");
+        UNREACHABLE("Undefined OperatingUnitFeatureType encountered");
         break;
     }
   }
