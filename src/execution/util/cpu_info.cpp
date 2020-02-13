@@ -9,9 +9,9 @@
 #include "llvm/ADT/StringRef.h"
 
 #if __APPLE__
+#include <cpuid.h>
 #include <sys/sysctl.h>
 #include <sys/types.h>
-#include <cpuid.h>
 #endif
 
 #include <unistd.h>

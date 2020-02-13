@@ -41,10 +41,11 @@ class ResourceTracker {
      * @param outfile opened ofstream to write to
      */
     void ToCSV(std::ofstream &outfile) const {
+      auto ref_cycles = execution::CpuInfo::Instance()->GetRefCyclesUs();
       outfile << start_ << ", " << cpu_id_ << ", " << counters_.cpu_cycles_ << ", " << counters_.instructions_ << ", "
               << counters_.cache_references_ << ", " << counters_.cache_misses_ << ", "
-              << counters_.ref_cpu_cycles_ / execution::CpuInfo::Instance()->GetRefCyclesUs() << ", "
-              << rusage_.ru_inblock << ", " << rusage_.ru_oublock << ", " << memory_b_ << ", " << elapsed_us_;
+              << ((ref_cycles == 0) ? 0 : counters_.ref_cpu_cycles_ / ref_cycles) << ", " << rusage_.ru_inblock << ", "
+              << rusage_.ru_oublock << ", " << memory_b_ << ", " << elapsed_us_;
     }
 
     /** Column headers to emit when writing to CSV */
