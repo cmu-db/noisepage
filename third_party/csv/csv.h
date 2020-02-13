@@ -4088,9 +4088,9 @@ class CSVReader {
   ///@}
 
   CSVReader(const CSVReader&) = delete; // No copy constructor
-  CSVReader(CSVReader&&) = default;     // Move constructor
+  CSVReader(CSVReader&&) = delete;      // No move constructor
   CSVReader& operator=(const CSVReader&) = delete; // No copy assignment
-  CSVReader& operator=(CSVReader&& other) = default;
+  CSVReader& operator=(CSVReader&& other) = delete;
   ~CSVReader() { this->close(); }
 
   /** @name Reading In-Memory Strings
