@@ -553,7 +553,6 @@ std::unique_ptr<AbstractExpression> PostgresParser::ConstTransform(ParseResult *
   if (root == nullptr) {
     return nullptr;
   }
-
   return ValueTransform(parse_result, root->val_);
 }
 
@@ -1823,6 +1822,7 @@ std::unique_ptr<ExplainStatement> PostgresParser::ExplainTransform(ParseResult *
 // Postgres.InsertStmt -> terrier.InsertStatement
 std::unique_ptr<InsertStatement> PostgresParser::InsertTransform(ParseResult *parse_result, InsertStmt *root) {
   TERRIER_ASSERT(root->select_stmt_ != nullptr, "Selects from table or directly selects some values.");
+
   std::unique_ptr<InsertStatement> result;
 
   auto column_names = ColumnNameTransform(root->cols_);
