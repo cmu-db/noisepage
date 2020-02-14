@@ -5,7 +5,7 @@
 
 #include "common/exception.h"
 #include "network/network_defs.h"
-#include "postgres_defs.h"
+#include "network/postgres/postgres_defs.h"
 
 namespace terrier::network {
 
