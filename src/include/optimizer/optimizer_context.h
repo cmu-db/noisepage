@@ -191,7 +191,7 @@ class OptimizerContext {
    * @returns Whether the OperatorNode has been added before
    */
   bool RecordOperatorNodeIntoGroup(common::ManagedPointer<OperatorNode> expr, GroupExpression **gexpr,
-                                         group_id_t target_group) {
+                                   group_id_t target_group) {
     auto new_gexpr = MakeGroupExpression(expr);
     auto ptr = memo_.InsertExpression(new_gexpr, target_group, false);
     TERRIER_ASSERT(ptr, "Root of expr should not fail insertion");

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <memory>
 #include <string>
+#include <thread>  // NOLINT
 #include <utility>
 
 #include "network/network_defs.h"
@@ -91,7 +92,20 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const common::ManagedPoin
       NETWORK_LOG_TRACE(db_name);
     }
   }
-  auto oids = t_cop->CreateTempNamespace(context->GetConnectionID(), db_name);
+
+  std::pair<catalog::db_oid_t, catalog::namespace_oid_t> oids;
+
+  uint32_t sleep_time = INITIAL_BACKOFF_TIME;
+
+  // we loop with exponential backoff because in case there are multiple other pg connections also starting
+  // at the same time, creating DDL conflicts when creating the temp namespace
+  do {
+    oids = t_cop->CreateTempNamespace(context->GetConnectionID(), db_name);
+    if (oids.first == catalog::INVALID_DATABASE_OID || oids.second != catalog::INVALID_NAMESPACE_OID) break;
+    std::this_thread::sleep_for(std::chrono::milliseconds{sleep_time});
+    sleep_time *= BACKOFF_FACTOR;
+  } while (sleep_time <= MAX_BACKOFF_TIME);
+
   if (oids.first == catalog::INVALID_DATABASE_OID) {
     // Invalid database name
     writer.WriteErrorResponse("ERROR:  Specified database does not exist.");

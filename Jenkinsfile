@@ -22,7 +22,6 @@ pipeline {
                         sh 'cd build && timeout 1h make check-format'
                         sh 'cd build && timeout 1h make check-lint'
                         sh 'cd build && timeout 1h make check-censored'
-                        sh 'cd build && make -j4'
                     }
                     post {
                         cleanup {
@@ -47,7 +46,6 @@ pipeline {
                         sh 'cd build && timeout 1h make check-format'
                         sh 'cd build && timeout 1h make check-lint'
                         sh 'cd build && timeout 1h make check-censored'
-                        sh 'cd build && make -j$(nproc)'
                     }
                     post {
                         cleanup {
@@ -76,7 +74,6 @@ pipeline {
                         sh 'cd build && timeout 1h make check-format'
                         sh 'cd build && timeout 1h make check-lint'
                         sh 'cd build && timeout 1h make check-censored'
-                        sh 'cd build  && make -j$(nproc)'
                     }
                     post {
                         cleanup {

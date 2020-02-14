@@ -105,8 +105,7 @@ void RewritePushImplicitFilterThroughJoin::Transform(common::ManagedPointer<Oper
     std::vector<std::unique_ptr<OperatorNode>> c;
     c.emplace_back(std::move(left_branch));
     c.emplace_back(std::move(right_branch));
-    auto output =
-        std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates)), std::move(c));
+    auto output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates)), std::move(c));
     transformed->emplace_back(std::move(output));
   }
 }
@@ -329,8 +328,7 @@ RewriteEmbedFilterIntoGet::RewriteEmbedFilterIntoGet() {
   match_pattern_->AddChild(child);
 }
 
-bool RewriteEmbedFilterIntoGet::Check(common::ManagedPointer<OperatorNode> plan,
-                                      OptimizationContext *context) const {
+bool RewriteEmbedFilterIntoGet::Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const {
   (void)context;
   (void)plan;
   return true;
@@ -343,10 +341,10 @@ void RewriteEmbedFilterIntoGet::Transform(common::ManagedPointer<OperatorNode> i
   std::string tbl_alias = std::string(get->GetTableAlias());
   std::vector<AnnotatedExpression> predicates = input->GetOp().As<LogicalFilter>()->GetPredicates();
   std::vector<std::unique_ptr<OperatorNode>> c;
-  auto output = std::make_unique<OperatorNode>(
-      LogicalGet::Make(get->GetDatabaseOid(), get->GetNamespaceOid(), get->GetTableOid(), predicates, tbl_alias,
-                       get->GetIsForUpdate()),
-      std::move(c));
+  auto output =
+      std::make_unique<OperatorNode>(LogicalGet::Make(get->GetDatabaseOid(), get->GetNamespaceOid(), get->GetTableOid(),
+                                                      predicates, tbl_alias, get->GetIsForUpdate()),
+                                     std::move(c));
   transformed->emplace_back(std::move(output));
 }
 
@@ -485,8 +483,7 @@ void RewritePullFilterThroughAggregation::Transform(common::ManagedPointer<Opera
 
   std::vector<std::unique_ptr<OperatorNode>> ca;
   ca.emplace_back(std::move(new_aggr));
-  auto output =
-      std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(correlated_predicates)), std::move(ca));
+  auto output = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(correlated_predicates)), std::move(ca));
   transformed->emplace_back(std::move(output));
 }
 
