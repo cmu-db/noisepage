@@ -3,8 +3,8 @@
 #include <string>
 #include <utility>
 
-#include "network/network_defs.h"
 #include "common/exception.h"
+#include "network/network_defs.h"
 #include "postgres_defs.h"
 
 namespace terrier::network {
@@ -32,6 +32,5 @@ class PostgresProtocolUtil {
    */
   static PostgresValueType InternalValueTypeToPostgresValueType(type::TypeId type);
 };
-
 
 }  // namespace terrier::network
