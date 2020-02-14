@@ -218,6 +218,12 @@ void TestParallelSort(const std::vector<uint32_t> &sorter_sizes_) {
   }
 }
 
+void *p;
+void BadFunction() {
+  p = malloc(7);
+  p = 0; // The memory is leaked here.
+}
+
 // NOLINTNEXTLINE
 TEST_F(SorterTest, BalancedParallelSortTest) {
   {
