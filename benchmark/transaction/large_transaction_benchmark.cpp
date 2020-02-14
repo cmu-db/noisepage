@@ -1,6 +1,7 @@
 #include <vector>
 
 #include "benchmark/benchmark.h"
+#include "benchmark_util/benchmark_config.h"
 #include "benchmark_util/data_table_benchmark_util.h"
 #include "storage/garbage_collector_thread.h"
 
@@ -14,7 +15,6 @@ class LargeTransactionBenchmark : public benchmark::Fixture {
   storage::BlockStore block_store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   std::default_random_engine generator_;
-  const uint32_t num_concurrent_txns_ = 4;
   storage::GarbageCollector *gc_;
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
   const std::chrono::milliseconds gc_period_{10};
@@ -35,7 +35,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, TPCCish)(benchmark::State &state) 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    const auto result = tested.SimulateOltp(num_txns_, BenchmarkConfig::num_threads);
     abort_count += result.first;
     state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
     delete gc_thread_;
@@ -60,7 +60,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, HighAbortRate)(benchmark::State &s
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    const auto result = tested.SimulateOltp(num_txns_, BenchmarkConfig::num_threads);
     abort_count += result.first;
     state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
     delete gc_thread_;
@@ -85,7 +85,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementInsert)(benchmark::
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    const auto result = tested.SimulateOltp(num_txns_, BenchmarkConfig::num_threads);
     abort_count += result.first;
     state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
     delete gc_thread_;
@@ -109,7 +109,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementUpdate)(benchmark::
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    const auto result = tested.SimulateOltp(num_txns_, BenchmarkConfig::num_threads);
     abort_count += result.first;
     state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
     delete gc_thread_;
@@ -133,7 +133,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementSelect)(benchmark::
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    const auto result = tested.SimulateOltp(num_txns_, BenchmarkConfig::num_threads);
     abort_count += result.first;
     state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
     delete gc_thread_;
@@ -142,25 +142,30 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementSelect)(benchmark::
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
 
-BENCHMARK_REGISTER_F(LargeTransactionBenchmark, TPCCish)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(3);
-
+// ----------------------------------------------------------------------------
+// BENCHMARK REGISTRATION
+// ----------------------------------------------------------------------------
+// clang-format off
+BENCHMARK_REGISTER_F(LargeTransactionBenchmark, TPCCish)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->MinTime(3);
 BENCHMARK_REGISTER_F(LargeTransactionBenchmark, HighAbortRate)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->MinTime(10);
-
 BENCHMARK_REGISTER_F(LargeTransactionBenchmark, SingleStatementInsert)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->MinTime(2);
-
 BENCHMARK_REGISTER_F(LargeTransactionBenchmark, SingleStatementUpdate)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->MinTime(1);
-
 BENCHMARK_REGISTER_F(LargeTransactionBenchmark, SingleStatementSelect)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->MinTime(1);
+// clang-format on
+
 }  // namespace terrier

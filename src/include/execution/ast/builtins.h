@@ -15,6 +15,8 @@ namespace terrier::execution::ast {
   F(StringToSql, stringToSql)                                           \
   F(VarlenToSql, varlenToSql)                                           \
   F(DateToSql, dateToSql)                                               \
+  F(TimestampToSql, timestampToSql)                                     \
+  F(TimestampToSqlHMSu, timestampToSqlHMSu)                             \
                                                                         \
   /* Vectorized Filters */                                              \
   F(FilterEq, filterEq)                                                 \
@@ -40,7 +42,7 @@ namespace terrier::execution::ast {
   F(TableIterReset, tableIterReset)                                     \
   F(TableIterParallel, iterateTableParallel)                            \
                                                                         \
-  /* Projected Column Iterator (PCI) */                                 \
+  /* PCI */                                                             \
   F(PCIIsFiltered, pciIsFiltered)                                       \
   F(PCIHasNext, pciHasNext)                                             \
   F(PCIHasNextFiltered, pciHasNextFiltered)                             \
@@ -58,6 +60,7 @@ namespace terrier::execution::ast {
   F(PCIGetReal, pciGetReal)                                             \
   F(PCIGetDouble, pciGetDouble)                                         \
   F(PCIGetDate, pciGetDate)                                             \
+  F(PCIGetTimestamp, pciGetTimestamp)                                   \
   F(PCIGetVarlen, pciGetVarlen)                                         \
   F(PCIGetBoolNull, pciGetBoolNull)                                     \
   F(PCIGetTinyIntNull, pciGetTinyIntNull)                               \
@@ -67,6 +70,7 @@ namespace terrier::execution::ast {
   F(PCIGetRealNull, pciGetRealNull)                                     \
   F(PCIGetDoubleNull, pciGetDoubleNull)                                 \
   F(PCIGetDateNull, pciGetDateNull)                                     \
+  F(PCIGetTimestampNull, pciGetTimestampNull)                           \
   F(PCIGetVarlenNull, pciGetVarlenNull)                                 \
                                                                         \
   /* Hashing */                                                         \
@@ -150,7 +154,6 @@ namespace terrier::execution::ast {
   F(IndexIteratorScanKey, indexIteratorScanKey)                         \
   F(IndexIteratorScanAscending, indexIteratorScanAscending)             \
   F(IndexIteratorScanDescending, indexIteratorScanDescending)           \
-  F(IndexIteratorScanLimitAscending, indexIteratorScanLimitAscending)   \
   F(IndexIteratorScanLimitDescending, indexIteratorScanLimitDescending) \
   F(IndexIteratorAdvance, indexIteratorAdvance)                         \
   F(IndexIteratorGetPR, indexIteratorGetPR)                             \
@@ -169,6 +172,7 @@ namespace terrier::execution::ast {
   F(PRSetReal, prSetReal)                                               \
   F(PRSetDouble, prSetDouble)                                           \
   F(PRSetDate, prSetDate)                                               \
+  F(PRSetTimestamp, prSetTimestamp)                                     \
   F(PRSetVarlen, prSetVarlen)                                           \
   F(PRSetBoolNull, prSetBoolNull)                                       \
   F(PRSetTinyIntNull, prSetTinyIntNull)                                 \
@@ -178,6 +182,7 @@ namespace terrier::execution::ast {
   F(PRSetRealNull, prSetRealNull)                                       \
   F(PRSetDoubleNull, prSetDoubleNull)                                   \
   F(PRSetDateNull, prSetDateNull)                                       \
+  F(PRSetTimestampNull, prSetTimestampNull)                             \
   F(PRSetVarlenNull, prSetVarlenNull)                                   \
   F(PRGetBool, prGetBool)                                               \
   F(PRGetTinyInt, prGetTinyInt)                                         \
@@ -187,6 +192,7 @@ namespace terrier::execution::ast {
   F(PRGetReal, prGetReal)                                               \
   F(PRGetDouble, prGetDouble)                                           \
   F(PRGetDate, prGetDate)                                               \
+  F(PRGetTimestamp, prGetTimestamp)                                     \
   F(PRGetVarlen, prGetVarlen)                                           \
   F(PRGetBoolNull, prGetBoolNull)                                       \
   F(PRGetTinyIntNull, prGetTinyIntNull)                                 \
@@ -196,6 +202,7 @@ namespace terrier::execution::ast {
   F(PRGetRealNull, prGetRealNull)                                       \
   F(PRGetDoubleNull, prGetDoubleNull)                                   \
   F(PRGetDateNull, prGetDateNull)                                       \
+  F(PRGetTimestampNull, prGetTimestampNull)                             \
   F(PRGetVarlenNull, prGetVarlenNull)                                   \
                                                                         \
   /* SQL Table Calls */                                                 \
@@ -221,6 +228,7 @@ namespace terrier::execution::ast {
   F(GetParamReal, getParamReal)                                         \
   F(GetParamDouble, getParamDouble)                                     \
   F(GetParamDate, getParamDate)                                         \
+  F(GetParamTimestamp, getParamTimestamp)                               \
   F(GetParamString, getParamString)
 
 /**

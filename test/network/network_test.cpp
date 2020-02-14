@@ -2,6 +2,7 @@
 #include <memory>
 #include <pqxx/pqxx>  // NOLINT
 #include <string>
+#include <thread>  // NOLINT
 #include <vector>
 
 #include "common/managed_pointer.h"
@@ -58,7 +59,8 @@ class NetworkTests : public TerrierTest {
                                         common::ManagedPointer(deferred_action_manager_),
                                         common::ManagedPointer(txn_manager_), DISABLED);
 
-    catalog_ = new catalog::Catalog(common::ManagedPointer(txn_manager_), common::ManagedPointer(&block_store_));
+    catalog_ = new catalog::Catalog(common::ManagedPointer(txn_manager_), common::ManagedPointer(&block_store_),
+                                    common::ManagedPointer(gc_));
 
     tcop_ = new trafficcop::TrafficCop(common::ManagedPointer(txn_manager_), common::ManagedPointer(catalog_), DISABLED,
                                        DISABLED, 0);
@@ -67,7 +69,7 @@ class NetworkTests : public TerrierTest {
     catalog_->CreateDatabase(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE, true);
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    network_logger->set_level(spdlog::level::trace);
+    network_logger->set_level(spdlog::level::info);
     spdlog::flush_every(std::chrono::seconds(1));
 
     try {
@@ -242,6 +244,80 @@ TEST_F(NetworkTests, LargePacketsTest) {
   } catch (const std::exception &e) {
     NETWORK_LOG_ERROR("[LargePacketstest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
+  }
+}
+
+/**
+ * This is a less "parallelized" version of RacerTest that tests the network layers functionality
+ * on multiple synchronous clients in two batches
+ */
+// NOLINTNEXTLINE
+TEST_F(NetworkTests, MultipleConnectionTest) {
+  std::vector<std::unique_ptr<NetworkIoWrapper>> io_sockets;
+  io_sockets.reserve(CONNECTION_THREAD_COUNT * 2);
+
+  for (size_t i = 0; i < 2; i++) {
+    for (size_t i = 0; i < CONNECTION_THREAD_COUNT * 2; i++) {
+      auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
+      EXPECT_NE(io_socket_unique_ptr, nullptr);
+      io_sockets.emplace_back(std::move(io_socket_unique_ptr));
+    }
+
+    for (auto &socket : io_sockets) {
+      ManualPacketUtil::TerminateConnection(socket->GetSocketFd());
+      socket->Close();
+    }
+    io_sockets.clear();
+  }
+}
+
+/**
+ * This is meant to overload the network layer with multiple concurrent client threads. It was made to uncover
+ * a bug where ConnectionHandlerTask had a few race conditions amongst its fields. Two threads using the same
+ * ConnectionHandlerTask instance could corrupt its fields.
+ */
+// NOLINTNEXTLINE
+TEST_F(NetworkTests, RacerTest) {
+  //  due to issue #766 PostgresProtocolHandler cannot consistently handle
+  //  simultaneous client requests so for now we are allowing for some failure tolerance
+
+  // The number of threads to use in each trial
+  std::vector<size_t> thread_counts = {
+      // clang-format off
+      2,
+      CONNECTION_THREAD_COUNT,
+      CONNECTION_THREAD_COUNT * 2,
+      CONNECTION_THREAD_COUNT * 3
+      // clang-format on
+  };
+
+  for (auto num_threads : thread_counts) {
+    std::vector<std::thread> threads;
+    threads.reserve(num_threads);
+    NETWORK_LOG_INFO("Number of threads: {0}", num_threads);
+
+    std::atomic_int successes = 0;
+    for (size_t i = 0; i < num_threads; i++) {
+      threads.emplace_back([this, &successes] {
+        try {
+          auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
+          if (io_socket_unique_ptr == nullptr) {
+            return;
+          }
+          successes++;
+          auto io_socket = common::ManagedPointer(io_socket_unique_ptr);
+          ManualPacketUtil::TerminateConnection(io_socket->GetSocketFd());
+          io_socket->Close();
+        } catch (const std::exception &e) {
+          EXPECT_TRUE(false);
+        }
+      });
+    }
+    for (auto &t : threads) {
+      t.join();
+    }
+    threads.clear();
+    EXPECT_EQ(successes, num_threads);
   }
 }
 

@@ -33,10 +33,7 @@ using TaskQueue = std::queue<std::function<void()>>;
 class WorkerPool {
  public:
   /**
-   * Initialize the worker pool. Once the number of worker is set by the constructor
-   * it cannot be changed.
-   *
-   * After initialization, the worker pool automatically starts up.
+   * Initialize the worker pool. You have to call StartUp if you want the threadpool to start.
    *
    * @param num_workers the number of workers in this pool
    * @param task_queue a queue of tasks
@@ -44,7 +41,7 @@ class WorkerPool {
   // NOLINTNEXTLINE  lint thinks it has only one arguement
   WorkerPool(uint32_t num_workers, TaskQueue task_queue)
       : num_workers_(num_workers), is_running_(false), task_queue_(std::move(task_queue)), busy_workers_{0} {
-    Startup();
+    // Walk it off, son. We have nothing else to do here...
   }
 
   /**
@@ -63,6 +60,7 @@ class WorkerPool {
    * workers will be put into sleep.
    */
   void Startup() {
+    TERRIER_ASSERT(!is_running_, "Trying to start a WorkerPool that is already running");
     {
       std::lock_guard lock(task_lock_);
       is_running_ = true;

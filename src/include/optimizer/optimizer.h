@@ -25,7 +25,7 @@ class TransactionContext;
 
 namespace optimizer {
 
-class OperatorExpression;
+class OperatorNode;
 
 /**
  * Optimizer class that implements the AbstractOptimizer abstract class
@@ -59,7 +59,7 @@ class Optimizer : public AbstractOptimizer {
   std::unique_ptr<planner::AbstractPlanNode> BuildPlanTree(transaction::TransactionContext *txn,
                                                            catalog::CatalogAccessor *accessor, StatsStorage *storage,
                                                            QueryInfo query_info,
-                                                           std::unique_ptr<OperatorExpression> op_tree) override;
+                                                           std::unique_ptr<OperatorNode> op_tree) override;
 
   /**
    * Reset the optimizer state

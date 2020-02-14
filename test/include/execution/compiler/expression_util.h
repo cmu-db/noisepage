@@ -12,6 +12,7 @@
 #include "parser/expression/derived_value_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/parameter_value_expression.h"
+#include "parser/expression/star_expression.h"
 #include "type/transient_value_factory.h"
 
 namespace terrier::execution::compiler {
@@ -53,9 +54,9 @@ class ExpressionMaker {
   /**
    * Create a date constant expression
    */
-  ManagedExpression Constant(int16_t year, uint8_t month, uint8_t day) {
-    sql::Date date(year, month, day);
-    type::date_t int_val(date.int_val_);
+  ManagedExpression Constant(int32_t year, uint32_t month, uint32_t day) {
+    sql::DateVal date(sql::Date::FromYMD(year, month, day));
+    type::date_t int_val(date.val_.ToNative());
     return MakeManaged(
         std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetDate(int_val)));
   }
@@ -64,10 +65,10 @@ class ExpressionMaker {
    * Create a date constant expression
    */
   ManagedExpression Constant(date::year_month_day ymd) {
-    sql::Date date(ymd.year(), ymd.month(), ymd.day());
-    type::date_t int_val(date.int_val_);
-    return MakeManaged(
-        std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetDate(int_val)));
+    auto year = static_cast<int32_t>(ymd.year());
+    auto month = static_cast<uint32_t>(ymd.month());
+    auto day = static_cast<uint32_t>(ymd.day());
+    return Constant(year, month, day);
   }
 
   /**
@@ -90,6 +91,8 @@ class ExpressionMaker {
   ManagedExpression PVE(type::TypeId type, uint32_t param_idx) {
     return MakeManaged(std::make_unique<parser::ParameterValueExpression>(param_idx, type));
   }
+
+  ManagedExpression Star() { return MakeManaged(std::make_unique<parser::StarExpression>()); }
 
   /**
    * Create a Comparison expression
@@ -251,11 +254,6 @@ class ExpressionMaker {
   ManagedAggExpression AggCount(ManagedExpression child) {
     return AggregateTerm(parser::ExpressionType::AGGREGATE_COUNT, child);
   }
-
-  /**
-   * Create a count star aggregate expression
-   */
-  ManagedAggExpression AggCountStar() { return AggregateTerm(parser::ExpressionType::AGGREGATE_COUNT, Constant(1)); }
 
  private:
   // To ease memory management

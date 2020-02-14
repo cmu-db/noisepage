@@ -111,7 +111,7 @@ void UpdateTranslator::FillPRFromChild(terrier::execution::compiler::FunctionBui
     auto translator = TranslatorFactory::CreateExpressionTranslator(clause.second.Get(), codegen_);
     auto clause_expr = translator->DeriveExpr(this);
     auto pr_set_call = codegen_->PRSet(codegen_->MakeExpr(update_pr_), table_col.Type(), table_col.Nullable(),
-                                       table_pm_[table_col_oid], clause_expr);
+                                       table_pm_[table_col_oid], clause_expr, true);
     builder->Append(codegen_->MakeStmt(pr_set_call));
   }
 }

@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "catalog/schema.h"
@@ -31,7 +32,7 @@ class CatalogAccessor;
 namespace optimizer {
 
 class PropertySet;
-class OperatorExpression;
+class OperatorNode;
 
 /**
  * Plan Generator for generating plans from Operators
@@ -44,11 +45,11 @@ class PlanGenerator : public OperatorVisitor {
   PlanGenerator();
 
   /**
-   * Converts an operator expression into a plan node.
+   * Converts an operator node into a plan node.
    *
    * @param txn TransactionContext
    * @param accessor CatalogAccessor
-   * @param op OperatorExpression to convert
+   * @param op OperatorNode to convert
    * @param required_props Required properties
    * @param required_cols Columns that are required to be output
    * @param output_cols Columns output by the Operator
@@ -56,8 +57,8 @@ class PlanGenerator : public OperatorVisitor {
    * @param children_expr_map Vector of children expression -> col offset mapping
    * @returns Output plan node
    */
-  std::unique_ptr<planner::AbstractPlanNode> ConvertOpExpression(
-      transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, OperatorExpression *op,
+  std::unique_ptr<planner::AbstractPlanNode> ConvertOpNode(
+      transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, OperatorNode *op,
       PropertySet *required_props, const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
       const std::vector<common::ManagedPointer<parser::AbstractExpression>> &output_cols,
       std::vector<std::unique_ptr<planner::AbstractPlanNode>> &&children_plans,
@@ -298,10 +299,18 @@ class PlanGenerator : public OperatorVisitor {
 
   /**
    * Generate the column oids vector for a scan plan
-   *
+   * @param predicate Predicate of the scan
    * @return a vector of column oid indicating which columns to scan
    */
-  std::vector<catalog::col_oid_t> GenerateColumnsForScan();
+  std::vector<catalog::col_oid_t> GenerateColumnsForScan(const parser::AbstractExpression *predicate);
+
+  /**
+   * Read the oids contained in an expression.
+   * @param oids Oids contained in the given expression.
+   * @param expr Expression to read.
+   */
+  void GenerateColumnsFromExpression(std::unordered_set<catalog::col_oid_t> *oids,
+                                     const parser::AbstractExpression *expr);
 
   /**
    * Generates the OutputSchema for a scan.

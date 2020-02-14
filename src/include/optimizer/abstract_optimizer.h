@@ -11,7 +11,7 @@
 
 #include "settings/settings_manager.h"
 
-#include "optimizer/operator_expression.h"
+#include "optimizer/operator_node.h"
 #include "optimizer/property_set.h"
 #include "optimizer/statistics/stats_storage.h"
 
@@ -106,7 +106,7 @@ class AbstractOptimizer {
   virtual std::unique_ptr<planner::AbstractPlanNode> BuildPlanTree(transaction::TransactionContext *txn,
                                                                    catalog::CatalogAccessor *accessor,
                                                                    StatsStorage *storage, QueryInfo query_info,
-                                                                   std::unique_ptr<OperatorExpression> op_tree) = 0;
+                                                                   std::unique_ptr<OperatorNode> op_tree) = 0;
 
   /**
    * Reset the optimizer's internal state

@@ -15,14 +15,15 @@ class EXPORT IndexIterator {
  public:
   /**
    * Constructor
+   * @param exec_ctx execution containing of this query
+   * @param num_attrs number of attributes set in key
    * @param table_oid oid of the table
    * @param index_oid oid of the index to iterate over.
-   * @param exec_ctx execution containing of this query
    * @param col_oids oids of the table columns
    * @param num_oids number of oids
    */
-  explicit IndexIterator(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t index_oid, uint32_t *col_oids,
-                         uint32_t num_oids);
+  explicit IndexIterator(exec::ExecutionContext *exec_ctx, uint32_t num_attrs, uint32_t table_oid, uint32_t index_oid,
+                         uint32_t *col_oids, uint32_t num_oids);
 
   /**
    * Initialize the projected row and begin scanning.
@@ -41,18 +42,15 @@ class EXPORT IndexIterator {
 
   /**
    * Perform an ascending scan
+   * @param scan_type Type of Scan
+   * @param limit number of tuples to limit
    */
-  void ScanAscending();
+  void ScanAscending(storage::index::ScanType scan_type, uint32_t limit);
 
   /**
    * Perfrom a descending scan
    */
   void ScanDescending();
-
-  /**
-   * Perform an ascending scan with a limit
-   */
-  void ScanLimitAscending(uint32_t limit);
 
   /**
    * Perform an descending scan with a limit
@@ -93,6 +91,7 @@ class EXPORT IndexIterator {
 
  private:
   exec::ExecutionContext *exec_ctx_;
+  uint32_t num_attrs_;
   std::vector<catalog::col_oid_t> col_oids_;
   common::ManagedPointer<storage::index::Index> index_;
   common::ManagedPointer<storage::SqlTable> table_;
