@@ -71,9 +71,9 @@ class NameBuilder {
   static std::string GetTypeName(const ObjectType type) {
     switch (type) {
       case FOREIGN_KEY:
-        return "FOREIGN_KEY";
+        return "fkey";
       case UNIQUE_KEY:
-        return "UNIQUE_KEY";
+        return "key";
       case NONE:
         return "";
       default:

@@ -10,14 +10,14 @@ TEST_F(NameBuilderTests, ForeignKeyTest) {
   auto table_name = "foo";
   auto field_name = "bar";
   auto type = catalog::postgres::NameBuilder::FOREIGN_KEY;
-  EXPECT_EQ("foo_bar_FOREIGN_KEY", catalog::postgres::NameBuilder::MakeName(table_name, field_name, type));
+  EXPECT_EQ("foo_bar_fkey", catalog::postgres::NameBuilder::MakeName(table_name, field_name, type));
 }
 
 TEST_F(NameBuilderTests, UniquenKeyTest) {
   auto table_name = "foo";
   auto field_name = "bar";
   auto type = catalog::postgres::NameBuilder::UNIQUE_KEY;
-  EXPECT_EQ("foo_bar_UNIQUE_KEY", catalog::postgres::NameBuilder::MakeName(table_name, field_name, type));
+  EXPECT_EQ("foo_bar_key", catalog::postgres::NameBuilder::MakeName(table_name, field_name, type));
 }
 
 TEST_F(NameBuilderTests, NoneTest) {
@@ -34,7 +34,7 @@ TEST_F(NameBuilderTests, LongNameTest) {
   }
   auto field_name = "bar";
   auto type = catalog::postgres::NameBuilder::FOREIGN_KEY;
-  EXPECT_EQ("01234567891011121314151617181920212223242526272_bar_FOREIGN_KEY",
+  EXPECT_EQ("01234567891011121314151617181920212223242526272_bar_fkey",
             catalog::postgres::NameBuilder::MakeName(table_name, field_name, type));
 }
 
