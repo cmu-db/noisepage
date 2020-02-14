@@ -218,12 +218,6 @@ void TestParallelSort(const std::vector<uint32_t> &sorter_sizes_) {
   }
 }
 
-void *p;
-void BadFunction() {
-  p = malloc(7);
-  p = 0; // The memory is leaked here.
-}
-
 // NOLINTNEXTLINE
 TEST_F(SorterTest, BalancedParallelSortTest) {
   {
@@ -237,7 +231,7 @@ TEST_F(SorterTest, BalancedParallelSortTest) {
   // memory right away when the tbb:task_scheduler goes out of scope. So we're
   // just going to sleep for 50ms. This seems to be enough time.
   // Without this sleep, then this test will fail randomly because of leaks.
-//  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
 }
 
 // NOLINTNEXTLINE
@@ -254,7 +248,7 @@ TEST_F(SorterTest, SingleThreadLocalParallelSortTest) {
   // memory right away when the tbb:task_scheduler goes out of scope. So we're
   // just going to sleep for 50ms. This seems to be enough time.
   // Without this sleep, then this test will fail randomly because of leaks.
-//  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
 }
 
 // NOLINTNEXTLINE
@@ -274,7 +268,7 @@ TEST_F(SorterTest, UnbalancedParallelSortTest) {
   // memory right away when the tbb:task_scheduler goes out of scope. So we're
   // just going to sleep for 50ms. This seems to be enough time.
   // Without this sleep, then this test will fail randomly because of leaks.
-//  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
 }
 
 }  // namespace terrier::execution::sql::test
