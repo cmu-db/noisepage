@@ -1880,16 +1880,16 @@ PostgresParser::ValueListsTransform(ParseResult *parse_result, List *root) {
           expr = ConstTransform(parse_result, reinterpret_cast<A_Const *>(expr_pg));
           break;
         }
+        case T_A_Expr: {
+          expr = AExprTransform(parse_result, reinterpret_cast<A_Expr *>(expr_pg));
+          break;
+        }
         case T_TypeCast: {
           expr = TypeCastTransform(parse_result, reinterpret_cast<TypeCast *>(expr_pg));
           break;
         }
         case T_SetToDefault: {
           expr = std::make_unique<DefaultValueExpression>();
-          break;
-        }
-        case T_A_Expr: {
-          expr = AExprTransform(parse_result, reinterpret_cast<A_Expr *>(expr_pg));
           break;
         }
         default: {
