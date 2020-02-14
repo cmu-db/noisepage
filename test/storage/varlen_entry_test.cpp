@@ -1,8 +1,11 @@
 #include <random>
 #include <string>
 #include <string_view>  // NOLINT
+#include <vector>
+
 #include "common/allocator.h"
 #include "storage/storage_defs.h"
+#include "storage/storage_util.h"
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
 
@@ -59,5 +62,41 @@ TEST(VarlenEntryTests, StringView) {
   auto non_inlined_string_view = non_inlined_entry.StringView();
   EXPECT_EQ(non_inlined_string_view, not_hello_world);
   delete[] large_buffer;
+}
+
+/**
+ * Simple test to demonstrate array serialization and deserialization.
+ */
+// NOLINTNEXTLINE
+TEST(VarlenEntryTests, Array) {
+  {
+    std::vector<int32_t> test_data{2, 5, 6, 7, 2};
+    const auto varlen_entry = storage::StorageUtil::CreateVarlen(test_data);
+    const std::vector<int32_t> test_view = varlen_entry.DeserializeArray<int32_t>();
+    EXPECT_EQ(test_data, test_view);
+    delete[] varlen_entry.Content();
+  }
+
+  // test inline
+  {
+    std::vector<int32_t> test_data{2};
+    const auto varlen_entry = storage::StorageUtil::CreateVarlen(test_data);
+    const std::vector<int32_t> test_view = varlen_entry.DeserializeArray<int32_t>();
+    EXPECT_EQ(test_data, test_view);
+  }
+
+  // test strings
+  {
+    std::vector<std::string> test_data{"hello", "world", "i am", "a test"};
+    std::vector<std::string_view> sv_test_data;
+    sv_test_data.reserve(test_data.size());
+    for (std::string &s : test_data) {
+      sv_test_data.push_back(s);
+    }
+    const auto varlen_entry = storage::StorageUtil::CreateVarlen(test_data);
+    std::vector<std::string_view> test_view = varlen_entry.DeserializeArrayVarlen();
+    EXPECT_EQ(sv_test_data, test_view);
+    delete[] varlen_entry.Content();
+  }
 }
 }  // namespace terrier
