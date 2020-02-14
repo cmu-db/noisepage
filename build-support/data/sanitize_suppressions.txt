@@ -22,3 +22,7 @@
 # Seen error:
 # thirdparty/gmock-1.7.0/include/gmock/gmock-spec-builders.h:1529:12: runtime error: member call on null pointer of type 'testing::internal::ActionResultHolder<void>'
 fun:*testing*internal*InvokeWith*
+
+# TBB leaks when using parallel_for
+# https://software.intel.com/en-us/forums/intel-threading-building-blocks/topic/593232
+leak:libtbb.so

@@ -8,6 +8,5 @@ it.
 
 * `bad_words.txt` -- Keywords that cannot appear in the source code.
 * `clangformat_suppressions.txt` -- Files/directory to ignore when we run clang-format.
-* `lsan_suppressions.txt` -- Source to ignore for memory leaks.
-* `sanitize_suppressions.txt` -- Source to ignore with the sanitizers.
-* `valgrind_suppressions.txt` -- Source to ignore with Valgrind. This is currently not used.
+* `sanitize_suppressions.txt` -- Targets to ignore with the sanitizers.
+* `valgrind_suppressions.txt` -- Targets to ignore with Valgrind. This is currently not used.
