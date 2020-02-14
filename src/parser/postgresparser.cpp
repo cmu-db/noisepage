@@ -1889,8 +1889,7 @@ PostgresParser::ValueListsTransform(ParseResult *parse_result, List *root) {
           break;
         }
         case T_A_Expr: {
-          auto node = reinterpret_cast<A_Expr *>(cell->data.ptr_value);
-          expr = AExprTransform(parse_result, node);
+          expr = AExprTransform(parse_result, reinterpret_cast<A_Expr *>(expr_pg));
           break;
         }
         default: {
