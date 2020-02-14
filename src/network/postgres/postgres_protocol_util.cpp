@@ -1,10 +1,10 @@
-#include "network/postgres/postgres_protocol_utils.h"
+#include "network/postgres/postgres_protocol_util.h"
 
 #include "loggers/network_logger.h"
 
 namespace terrier::network {
 
-type::TypeId PostgresValueTypeToInternalValueType(const PostgresValueType type) {
+type::TypeId PostgresProtocolUtil::PostgresValueTypeToInternalValueType(const PostgresValueType type) {
   switch (type) {
     case PostgresValueType::BOOLEAN:
       return type::TypeId::BOOLEAN;
@@ -46,7 +46,7 @@ type::TypeId PostgresValueTypeToInternalValueType(const PostgresValueType type) 
   }
 }
 
-PostgresValueType InternalValueTypeToPostgresValueType(const type::TypeId type) {
+PostgresValueType PostgresProtocolUtil::InternalValueTypeToPostgresValueType(const type::TypeId type) {
   switch (type) {
     case type::TypeId::INVALID:
       return PostgresValueType::INVALID;

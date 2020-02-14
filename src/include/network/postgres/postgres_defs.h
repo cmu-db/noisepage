@@ -1,14 +1,10 @@
 #pragma once
 
-#include <memory>
-#include <string>
 #include <unordered_map>
-#include <utility>
-#include <vector>
 
+#include "common/macros.h"
 #include "network/network_defs.h"
-#include "network/network_io_utils.h"
-#include "type/transient_value_peeker.h"
+#include "type/type_id.h"
 
 namespace terrier::network {
 
@@ -63,8 +59,5 @@ enum class PostgresValueType {
   FLOADT4_ARRAY = 1021,  // FLOADT4ARRAYOID in postgres code
   DECIMAL = 1700
 };
-
-type::TypeId PostgresValueTypeToInternalValueType(PostgresValueType type);
-PostgresValueType InternalValueTypeToPostgresValueType(type::TypeId type);
 
 }  // namespace terrier::network

@@ -1,15 +1,15 @@
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "network/postgres/postgres_protocol_utils.h"
+#include "network/postgres/postgres_protocol_util.h"
 #include "test_util/test_harness.h"
 
 namespace terrier::network {
 
-class PostgresProtocolUtilsTests : public TerrierTest {};
+class PostgresProtocolUtilTests : public TerrierTest {};
 
 // NOLINTNEXTLINE
-TEST_F(PostgresProtocolUtilsTests, TypeConversionTest) {
+TEST_F(PostgresProtocolUtilTests, TypeConversionTest) {
   // Check that we can correctly convert our types back and forth from Postgres types
 
   // I hate C++ enums so much. Just give me a fucking iterator...
@@ -27,15 +27,15 @@ TEST_F(PostgresProtocolUtilsTests, TypeConversionTest) {
       type::TypeId::VARBINARY,
   };
   for (type::TypeId orig_internal_type : all_types) {
-    auto postgres_type = InternalValueTypeToPostgresValueType(orig_internal_type);
-    auto internal_type = PostgresValueTypeToInternalValueType(postgres_type);
+    auto postgres_type = PostgresProtocolUtil::InternalValueTypeToPostgresValueType(orig_internal_type);
+    auto internal_type = PostgresProtocolUtil::PostgresValueTypeToInternalValueType(postgres_type);
 
     EXPECT_NE(PostgresValueType::INVALID, postgres_type);
     EXPECT_EQ(internal_type, orig_internal_type);
   }
 
   // Check that we get an exception if we try to cast something that we don't handle
-  EXPECT_THROW(PostgresValueTypeToInternalValueType(PostgresValueType::INVALID), NetworkProcessException);
+  EXPECT_THROW(PostgresProtocolUtil::PostgresValueTypeToInternalValueType(PostgresValueType::INVALID), NetworkProcessException);
 }
 
 }  // namespace terrier::network
