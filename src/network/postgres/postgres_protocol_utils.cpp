@@ -27,16 +27,22 @@ type::TypeId PostgresValueTypeToInternalValueType(const PostgresValueType type) 
     case PostgresValueType::TEXT:
       return type::TypeId::VARCHAR;
 
+    case PostgresValueType::VARBINARY:
+      return type::TypeId::VARBINARY;
+
     case PostgresValueType::DATE:
+      return type::TypeId::DATE;
     case PostgresValueType::TIMESTAMPS:
     case PostgresValueType::TIMESTAMPS2:
       return type::TypeId::TIMESTAMP;
 
     case PostgresValueType::DECIMAL:
       return type::TypeId::DECIMAL;
-    default:
-      NETWORK_LOG_ERROR(fmt::format("No TypeId conversion for PostgresValueType value '%d'", static_cast<int>(type)));
-      throw NETWORK_PROCESS_EXCEPTION("");
+    default: {
+      std::ostringstream os;
+      os << "No TypeId conversion for PostgresValueType '" << static_cast<int>(type) << "'";
+      throw NETWORK_PROCESS_EXCEPTION(os.str().c_str());
+    }
   }
 }
 
@@ -75,9 +81,11 @@ PostgresValueType InternalValueTypeToPostgresValueType(const type::TypeId type) 
     case type::TypeId::VARBINARY:
       return PostgresValueType::VARBINARY;
 
-    default:
-      NETWORK_LOG_ERROR(fmt::format("No TypeId conversion for PostgresValueType value '%d'", static_cast<int>(type)));
-      throw NETWORK_PROCESS_EXCEPTION("");
+    default: {
+      std::ostringstream os;
+      os << "No PostgresValueType conversion for TypeId '" << static_cast<int>(type) << "'";
+      throw NETWORK_PROCESS_EXCEPTION(os.str().c_str());
+    }
   }
 }
 

@@ -1,10 +1,9 @@
 #include <algorithm>
-#include <chrono>
+#include <chrono>  // NOLINT
 #include <limits>
-#include <memory>
 #include <queue>
 #include <random>
-#include <thread>
+#include <thread>  // NOLINT
 #include <vector>
 
 #include "execution/tpl_test.h"
