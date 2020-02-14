@@ -19,3 +19,7 @@
 
 # False positive from atexit() registration in libc
 leak:*__new_exitfn*
+
+# TBB leaks when using parallel_for
+# https://software.intel.com/en-us/forums/intel-threading-building-blocks/topic/593232
+leak:libtbb.so
