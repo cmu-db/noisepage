@@ -293,7 +293,7 @@ string(CONCAT FORMAT_DIRS
 # runs clang format and updates files in place.
 add_custom_target(format ${BUILD_SUPPORT_DIR}/run_clang_format.py
         ${CLANG_FORMAT_BIN}
-        ${BUILD_SUPPORT_DATA_DIR}/clang-format-exclusions.txt
+        ${BUILD_SUPPORT_DATA_DIR}/clangformat_suppressions.txt
         --source_dirs
         ${FORMAT_DIRS}
         --fix
@@ -302,7 +302,7 @@ add_custom_target(format ${BUILD_SUPPORT_DIR}/run_clang_format.py
 # runs clang format and exits with a non-zero exit code if any files need to be reformatted
 add_custom_target(check-format ${BUILD_SUPPORT_DIR}/run_clang_format.py
         ${CLANG_FORMAT_BIN}
-        ${BUILD_SUPPORT_DATA_DIR}/clang-format-exclusions.txt
+        ${BUILD_SUPPORT_DATA_DIR}/clangformat_suppressions.txt
         --source_dirs
         ${FORMAT_DIRS}
         ${TERRIER_LINT_QUIET})
