@@ -206,6 +206,7 @@ class SqlTable {
    * Export a sql table to disk. The dumped table should be aware of concrete column types, e.g., INTEGER, DECIMAL,
    * TIMESTAMP, and so on, instead of just fixed-length or varlen.
    * @param file_name the file that the table will be exported to
+   * @param schema the schema of this sql table
    */
   void ExportTable(const std::string &file_name, const catalog::Schema &schema);
 

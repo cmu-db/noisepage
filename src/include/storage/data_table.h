@@ -251,6 +251,8 @@ class DataTable {
    * pinpoint and read the corresponding data.
    *
    * @param file_name the file that the table will be exported to
+   * @param col_types since in the data table level, we don't know the type of each column. We need to use this
+   *        parameter that is provided to get the types of columns.
    */
   void ExportTable(const std::string &file_name, std::vector<terrier::type::TypeId> *col_types);
 

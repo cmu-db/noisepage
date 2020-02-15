@@ -1,10 +1,9 @@
-#include "storage/block_compactor.h"
-
 #include <unordered_map>
 #include <vector>
 
 #include "common/hash_util.h"
 #include "storage/block_access_controller.h"
+#include "storage/block_compactor.h"
 #include "storage/garbage_collector.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
@@ -25,38 +24,38 @@
 namespace terrier {
 
 struct ExportTableTest : public ::terrier::TerrierTest {
-  bool parse_next(std::ifstream &csv_file, char stop_char, char &tmp_char) {
-    csv_file.get(tmp_char);
+  bool parse_next(std::ifstream &csv_file, char stop_char, char *tmp_char) {
+    csv_file.get(*tmp_char);
     bool end = false;
-    switch (tmp_char) {
+    switch (*tmp_char) {
       case '\\':
-        csv_file.get(tmp_char);
-        if (tmp_char == 'x') {
+        csv_file.get(*tmp_char);
+        if (*tmp_char == 'x') {
           char hex_char;
           csv_file.get(hex_char);
-          tmp_char = (hex_char >= 'a' ? (hex_char - 'a' + 10) : hex_char - '0') << 4;
+          *tmp_char = (hex_char >= 'a' ? (hex_char - 'a' + 10) : hex_char - '0') << 4;
           csv_file.get(hex_char);
-          tmp_char += (hex_char >= 'a' ? (hex_char - 'a' + 10) : hex_char - '0');
+          *tmp_char += (hex_char >= 'a' ? (hex_char - 'a' + 10) : hex_char - '0');
         } else {
-          switch (tmp_char) {
+          switch (*tmp_char) {
             case '\\':
-              tmp_char = '\\';
+              *tmp_char = '\\';
               break;
             case 'r':
-              tmp_char = '\r';
+              *tmp_char = '\r';
               break;
             case 't':
-              tmp_char = '\t';
+              *tmp_char = '\t';
               break;
             case 'n':
-              tmp_char = '\n';
+              *tmp_char = '\n';
               break;
           }
         }
         break;
       case '"':
-        csv_file.get(tmp_char);
-        if (tmp_char == ',' || tmp_char == '\n') {
+        csv_file.get(*tmp_char);
+        if (*tmp_char == ',' || *tmp_char == '\n') {
           end = true;
         }
         break;
@@ -71,7 +70,7 @@ struct ExportTableTest : public ::terrier::TerrierTest {
     return end;
   }
 
-  bool check_content(std::ifstream &csv_file, transaction::TransactionManager &txn_manager,
+  bool check_content(std::ifstream &csv_file, transaction::TransactionManager *txn_manager,
                      const storage::BlockLayout &layout,
                      const std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> &tuples,
                      const storage::DataTable &table, storage::RawBlock *block) {
@@ -80,7 +79,7 @@ struct ExportTableTest : public ::terrier::TerrierTest {
     byte *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     auto *read_row = initializer.InitializeRow(buffer);
     // This transaction is guaranteed to start after the compacting one commits
-    transaction::TransactionContext *txn = txn_manager.BeginTransaction();
+    transaction::TransactionContext *txn = txn_manager->BeginTransaction();
     auto num_tuples = tuples.size();
     for (uint32_t i = 0; i < layout.NumSlots(); i++) {
       storage::TupleSlot slot(block, i);
@@ -96,12 +95,12 @@ struct ExportTableTest : public ::terrier::TerrierTest {
           switch (tmp_char) {
             case '"':
               csv_file.seekg(1, std::ios_base::cur);
-              while (!parse_next(csv_file, '"', tmp_char)) {
+              while (!parse_next(csv_file, '"', &tmp_char)) {
                 bytes.emplace_back(static_cast<byte>(tmp_char));
               }
               break;
             case 'b':
-              while (!parse_next(csv_file, ',', tmp_char)) {
+              while (!parse_next(csv_file, ',', &tmp_char)) {
                 bytes.emplace_back(static_cast<byte>(tmp_char));
               }
               break;
@@ -161,7 +160,7 @@ struct ExportTableTest : public ::terrier::TerrierTest {
         }
       }
     }
-    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     delete[] buffer;
     return true;
   }
@@ -186,7 +185,8 @@ TEST_F(ExportTableTest, ExportDictionaryCompressedTableTest) {
   storage::BlockLayout layout = StorageTestUtil::RandomLayoutWithVarlens(100, &generator_);
   storage::TupleAccessStrategy accessor(layout);
   // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
-  storage::DataTable table(&block_store_, layout, storage::layout_version_t(0));
+  storage::DataTable table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout,
+                           storage::layout_version_t(0));
   storage::RawBlock *block = table.begin()->GetBlock();
   accessor.InitializeRawBlock(&table, block, storage::layout_version_t(0));
 
@@ -230,7 +230,7 @@ TEST_F(ExportTableTest, ExportDictionaryCompressedTableTest) {
   system((std::string("python ") + PYSCRIPT_NAME).c_str());
 
   std::ifstream csv_file(CSV_TABLE_NAME, std::ios_base::in);
-  EXPECT_TRUE(check_content(csv_file, txn_manager, layout, tuples, table, block));
+  EXPECT_TRUE(check_content(csv_file, &txn_manager, layout, tuples, table, block));
   csv_file.close();
 
   unlink(EXPORT_TABLE_NAME);
@@ -253,7 +253,8 @@ TEST_F(ExportTableTest, ExportVarlenTableTest) {
   storage::BlockLayout layout = StorageTestUtil::RandomLayoutWithVarlens(100, &generator_);
   storage::TupleAccessStrategy accessor(layout);
   // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
-  storage::DataTable table(&block_store_, layout, storage::layout_version_t(0));
+  storage::DataTable table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout,
+                           storage::layout_version_t(0));
   storage::RawBlock *block = table.begin()->GetBlock();
   accessor.InitializeRawBlock(&table, block, storage::layout_version_t(0));
 
@@ -297,7 +298,7 @@ TEST_F(ExportTableTest, ExportVarlenTableTest) {
   system((std::string("python ") + PYSCRIPT_NAME).c_str());
 
   std::ifstream csv_file(CSV_TABLE_NAME, std::ios_base::in);
-  EXPECT_TRUE(check_content(csv_file, txn_manager, layout, tuples, table, block));
+  EXPECT_TRUE(check_content(csv_file, &txn_manager, layout, tuples, table, block));
   csv_file.close();
 
   unlink(EXPORT_TABLE_NAME);
