@@ -112,7 +112,7 @@ class RecoveryTests : public TerrierTest {
     auto table_oid = db_catalog->CreateTable(common::ManagedPointer(txn), ns_oid, table_name, table_schema);
     EXPECT_TRUE(table_oid != catalog::INVALID_TABLE_OID);
     const auto catalog_schema = db_catalog->GetSchema(common::ManagedPointer(txn), table_oid);
-    auto *table_ptr = new storage::SqlTable(block_store_.Get(), catalog_schema);
+    auto *table_ptr = new storage::SqlTable(block_store_, catalog_schema);
     EXPECT_TRUE(db_catalog->SetTablePointer(common::ManagedPointer(txn), table_oid, table_ptr));
     return table_oid;
   }

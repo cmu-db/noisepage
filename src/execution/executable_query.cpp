@@ -83,23 +83,9 @@ ExecutableQuery::ExecutableQuery(const std::string &filename, const common::Mana
   printer_ = std::make_unique<exec::OutputPrinter>(output_schema);
 }
 
-std::vector<type::TransientValue> ExecutableQuery::GetQueryParams() {
-  std::vector<type::TransientValue> params;
-  if (query_name_ == "tpch_q5")
-    params.emplace_back(type::TransientValueFactory::GetVarChar("ASIA"));
-
-  // Add the identifier for each pipeline. At most 8 query pipelines for now
-  for (int i = 0; i < 8; ++i)
-    params.emplace_back(type::TransientValueFactory::GetVarChar(query_name_ + "_p" + std::to_string(i + 1)));
-
-  return params;
-}
 
 void ExecutableQuery::Run(const common::ManagedPointer<exec::ExecutionContext> exec_ctx, const vm::ExecutionMode mode) {
   TERRIER_ASSERT(tpl_module_ != nullptr, "Trying to run a module that failed to compile.");
-
-  auto params = GetQueryParams();
-  exec_ctx->SetParams(std::move(params));
 
   // Run the main function
   std::function<int64_t(exec::ExecutionContext *)> main;

@@ -1,4 +1,4 @@
-#include "optimizer/operator_node.h"
+#include "optimizer/operator_node_contents.h"
 #include <memory>
 #include <string>
 #include <utility>
@@ -8,22 +8,22 @@ namespace terrier::optimizer {
 
 Operator::Operator() noexcept = default;
 
-Operator::Operator(std::unique_ptr<BaseOperatorNode> node) : node_(std::move(node)) {}
+Operator::Operator(std::unique_ptr<BaseOperatorNodeContents> contents) : contents_(std::move(contents)) {}
 
-Operator::Operator(Operator &&o) noexcept : node_(std::move(o.node_)) {}
+Operator::Operator(Operator &&o) noexcept : contents_(std::move(o.contents_)) {}
 
-void Operator::Accept(common::ManagedPointer<OperatorVisitor> v) const { node_->Accept(v); }
+void Operator::Accept(common::ManagedPointer<OperatorVisitor> v) const { contents_->Accept(v); }
 
 std::string Operator::GetName() const {
   if (IsDefined()) {
-    return node_->GetName();
+    return contents_->GetName();
   }
   return "Undefined";
 }
 
 OpType Operator::GetType() const {
   if (IsDefined()) {
-    return node_->GetType();
+    return contents_->GetType();
   }
 
   return OpType::UNDEFINED;
@@ -31,33 +31,33 @@ OpType Operator::GetType() const {
 
 bool Operator::IsLogical() const {
   if (IsDefined()) {
-    return node_->IsLogical();
+    return contents_->IsLogical();
   }
   return false;
 }
 
 bool Operator::IsPhysical() const {
   if (IsDefined()) {
-    return node_->IsPhysical();
+    return contents_->IsPhysical();
   }
   return false;
 }
 
 common::hash_t Operator::Hash() const {
   if (IsDefined()) {
-    return node_->Hash();
+    return contents_->Hash();
   }
   return 0;
 }
 
 bool Operator::operator==(const Operator &rhs) const {
   if (IsDefined() && rhs.IsDefined()) {
-    return *node_ == *rhs.node_;
+    return *contents_ == *rhs.contents_;
   }
 
   return !IsDefined() && !rhs.IsDefined();
 }
 
-bool Operator::IsDefined() const { return node_ != nullptr; }
+bool Operator::IsDefined() const { return contents_ != nullptr; }
 
 }  // namespace terrier::optimizer

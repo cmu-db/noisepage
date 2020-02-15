@@ -74,7 +74,7 @@ catalog::table_oid_t TableReader::CreateTable(TableInfo *info) {
   catalog::Schema tmp_schema{info->cols_};
   auto table_oid = exec_ctx_->GetAccessor()->CreateTable(ns_oid_, info->table_name_, tmp_schema);
   auto &schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
-  auto sql_table = new storage::SqlTable(store_, schema);
+  auto sql_table = new storage::SqlTable(common::ManagedPointer<storage::BlockStore>(store_), schema);
   exec_ctx_->GetAccessor()->SetTablePointer(table_oid, sql_table);
   return table_oid;
 }

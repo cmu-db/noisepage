@@ -55,6 +55,16 @@ void Workload::LoadTPCHQueries(execution::exec::ExecutionContext *exec_ctx, cons
   }
 }
 
+std::vector<type::TransientValue> Workload::GetQueryParams(const std::string &query_name) {
+  std::vector<type::TransientValue> params;
+
+  // Add the identifier for each pipeline. At most 8 query pipelines for now
+  for (int i = 0; i < 8; ++i)
+    params.emplace_back(type::TransientValueFactory::GetVarChar(query_name + "_p" + std::to_string(i + 1)));
+
+  return params;
+}
+
 void Workload::Execute(int8_t worker_id, uint32_t num_precomputed_txns_per_worker, execution::vm::ExecutionMode mode) {
   // Shuffle the queries randomly for each thread
   auto num_queries = queries_.size();
@@ -72,6 +82,9 @@ void Workload::Execute(int8_t worker_id, uint32_t num_precomputed_txns_per_worke
     execution::ExecutableQuery &query = queries_[index[counter]];
     execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
         query.GetPrinter(), query.GetOutputSchema(), common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
+    auto params = GetQueryParams(query.GetQueryName());
+    exec_ctx.SetParams(std::move(params));
+    exec_ctx.SetExecutionMode(static_cast<uint8_t>(mode));
     query.Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
     counter = counter == num_queries - 1 ? 0:counter + 1 ;
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);

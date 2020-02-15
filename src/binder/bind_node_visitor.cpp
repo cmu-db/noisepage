@@ -383,6 +383,24 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
   context_ = nullptr;
 }
 
+void BindNodeVisitor::Visit(parser::FunctionExpression *expr, parser::ParseResult *parse_result) {
+  SqlNodeVisitor::Visit(expr, parse_result);
+
+  std::vector<catalog::type_oid_t> arg_types;
+  auto children = expr->GetChildren();
+  arg_types.reserve(children.size());
+  for (const auto &child : children) {
+    arg_types.push_back(catalog_accessor_->GetTypeOidFromTypeId(child->GetReturnValueType()));
+  }
+
+  auto proc_oid = catalog_accessor_->GetProcOid(expr->GetFuncName(), arg_types);
+  if (proc_oid == catalog::INVALID_PROC_OID) {
+    throw BINDER_EXCEPTION("Procedure not registered");
+  }
+
+  expr->SetProcOid(proc_oid);
+}
+
 void BindNodeVisitor::Visit(parser::DropStatement *node, UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
   BINDER_LOG_TRACE("Visiting DropStatement ...");
   context_ = new BinderContext(context_);

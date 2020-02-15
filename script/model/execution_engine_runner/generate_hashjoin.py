@@ -10,11 +10,10 @@ def generate_build_key(col_num):
     print()
 
 
-def generate_build_row(col_num, agg_type):
+def generate_build_row(col_num):
     # Generate the join struct(key and value)
     print("struct BuildRow{} {{".format(col_num))
     print("  key: BuildKey{}".format(col_num))
-    print("  agg: {}".format(agg_type))
     print("}")
     print()
 
@@ -39,9 +38,9 @@ def generate_build_side(col_num, row_num, cardinality):
     print("  var tvi: TableVectorIterator")
     print("  var col_oids : [{}]uint32".format(col_num))
     for i in range(0, col_num):
-        print("  col_oids[{}] = {}".format(i, 5 - i))
+        print("  col_oids[{}] = {}".format(i, 15 - i))
 
-    print("  @tableIterInitBind(&tvi, execCtx, \"IntegerCol5Row{}Car{}\", col_oids)".format(row_num, cardinality))
+    print("  @tableIterInitBind(&tvi, execCtx, \"INTEGERCol15Row{}Car{}\", col_oids)".format(row_num, cardinality))
 
     print("  for (@tableIterAdvance(&tvi)) {")
     print("    var vec = @tableIterGetPCI(&tvi)")
@@ -88,8 +87,8 @@ def generate_probe_side(col_num, row_num, cardinality):
     print("  var tvi: TableVectorIterator")
     print("  var col_oids : [{}]uint32".format(col_num))
     for i in range(0, col_num):
-        print("  col_oids[{}] = {}".format(i, 5 - i))
-    print("  @tableIterInitBind(&tvi, execCtx, \"IntegerCol5Row{}Car{}\", col_oids)".format(row_num, cardinality))
+        print("  col_oids[{}] = {}".format(i, 15 - i))
+    print("  @tableIterInitBind(&tvi, execCtx, \"INTEGERCol15Row{}Car{}\", col_oids)".format(row_num, cardinality))
 
     print("  for (@tableIterAdvance(&tvi)) {")
     print("    var vec = @tableIterGetPCI(&tvi)")
@@ -166,19 +165,15 @@ def generate_main_fun(fun_names):
 
 
 def generate_all():
-    agg_types = ['IntegerSumAggregate', 'CountStarAggregate', 'IntegerAvgAggregate', 'IntegerMinAggregate',
-                 'IntegerMaxAggregate']
     fun_names = []
-    col_nums = range(1, 6)
-    row_nums = [1, 5, 10, 50, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000,
-                200000, 500000, 1000000]
-    cardinalities = [1, 2, 5, 10, 50, 100]
+    col_nums = range(1, 16, 2)
+    row_nums = [1, 3, 5, 7, 10, 50, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000]
 
     for col_num in col_nums:
         generate_build_key(col_num)
 
     for col_num in col_nums:
-        generate_build_row(col_num, agg_types[col_num - 1])
+        generate_build_row(col_num)
 
     generate_state(col_nums)
     generate_setup(col_nums)
@@ -189,6 +184,10 @@ def generate_all():
 
     for col_num in col_nums:
         for row_num in row_nums:
+            cardinalities = [1]
+            while cardinalities[-1] < row_num:
+                cardinalities.append(cardinalities[-1] * 2)
+            cardinalities[-1] = row_num
             for cardinality in cardinalities:
                 fun_names.append(generate_build_side(col_num, row_num, cardinality))
                 fun_names.append(generate_probe_side(col_num, row_num, cardinality))
