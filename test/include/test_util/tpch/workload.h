@@ -7,6 +7,7 @@
 #include "storage/storage_defs.h"
 #include "execution/vm/module.h"
 #include "execution/executable_query.h"
+#include "execution/table_generator/sample_output.h"
 
 namespace terrier::execution::exec {
 class ExecutionContext;
@@ -55,6 +56,7 @@ class Workload {
   catalog::namespace_oid_t ns_oid_;
 
   std::vector<execution::ExecutableQuery> queries_;
+  execution::exec::SampleOutput sample_output_;
 };
 
 }  // namespace terrier::tpch
