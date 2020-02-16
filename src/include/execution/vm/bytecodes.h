@@ -289,7 +289,13 @@ namespace terrier::execution::vm {
   F(RealMinAggregateMerge, OperandType::Local, OperandType::Local)                                                    \
   F(RealMinAggregateReset, OperandType::Local)                                                                        \
   F(RealMinAggregateGetResult, OperandType::Local, OperandType::Local)                                                \
-  F(RealMinAggregateFree, OperandType::Local)                                                                         \
+  F(RealMinAggregateFree, OperandType::Local)
+  F(IntegerTopKAggregateInit, OperandType::Local, OperandType::Local)                                                                         \
+  F(IntegerTopKAggregateAdvance, OperandType::Local, OperandType::Local)                                                  \
+  F(IntegerTopKAggregateMerge, OperandType::Local, OperandType::Local)                                                    \
+  F(IntegerTopKAggregateReset, OperandType::Local)                                                                        \
+  F(IntegerTopKAggregateGetResult, OperandType::Local, OperandType::Local)                                                \
+  F(IntegerTopKAggregateFree, OperandType::Local)                                                                         \
                                                                                                                       \
   /* Hash Joins */                                                                                                    \
   F(JoinHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local)                                    \

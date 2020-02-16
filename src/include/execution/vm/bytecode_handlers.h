@@ -980,6 +980,37 @@ VM_OP_HOT void OpRealMinAggregateGetResult(terrier::execution::sql::Real *result
 VM_OP_HOT void OpRealMinAggregateFree(terrier::execution::sql::RealMinAggregate *agg) { agg->~RealMinAggregate(); }
 
 //
+// TopKAggregate(Integer)
+//
+
+//
+// MIN(real_type)
+//
+
+VM_OP_HOT void OpIntegerTopKAggregateInit(terrier::execution::sql::IntegerTopKAggregate *agg, size_t topK) {
+  new (agg) terrier::execution::sql::IntegerTopKAggregate(topK);
+}
+
+VM_OP_HOT void OpIntegerTopKAggregateAdvance(terrier::execution::sql::IntegerTopKAggregate *agg,
+                                         const terrier::execution::sql::Integer *val) {
+  agg->Advance(*val);
+}
+
+VM_OP_HOT void OpIntegerTopKAggregateMerge(terrier::execution::sql::IntegerTopKAggregate *agg_1,
+                                       const terrier::execution::sql::IntegerTopKAggregate *agg_2) {
+  agg_1->Merge(*agg_2);
+}
+
+VM_OP_HOT void OpIntegerTopKAggregateReset(terrier::execution::sql::IntegerTopKAggregate *agg) { agg->Reset(); }
+
+VM_OP_HOT void OpIntegerTopKAggregateGetResult(terrier::execution::sql::Integer *result,
+                                           const terrier::execution::sql::IntegerTopKAggregate *agg) {
+  *result = agg->GetResultTopK();
+}
+
+VM_OP_HOT void OpIntegerTopKAggregateFree(terrier::execution::sql::IntegerTopKAggregate *agg) { agg->~IntegerTopKAggregate(); }
+
+//
 // AVG
 //
 

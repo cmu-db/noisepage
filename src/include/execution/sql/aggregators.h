@@ -286,6 +286,11 @@ class IntegerMaxAggregate {
 };
 
 /*
+Integer Top K aggregate
+*/
+class IntegerTopKAggregate : TopKAggregate<Integer> {};
+
+/*
  * TopKAggregate
  */
 template <typename T>
@@ -338,14 +343,14 @@ class TopKAggregate {
   /**
    * Return the result of the TopK.
    */
-  std::vector<T> GetResultTopK() const {
+  /*std::vector<*/T/*>*/ GetResult() const {
     auto top_k_keys = histogram_.GetSortedTopKeys();
     std::vector<T> top_k_sql_type;
     top_k_sql_type.reserve(top_k_keys.size());
     for (auto key : top_k_keys) {
       top_k_sql_type.push_back(T(key));
     }
-    return top_k_sql_type;
+    return top_k_sql_type[0];
   }
 
   /**

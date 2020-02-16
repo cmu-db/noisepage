@@ -83,6 +83,7 @@ class Context;
   NON_PRIM(RealMaxAggregate, terrier::execution::sql::RealMaxAggregate)                         \
   NON_PRIM(RealMinAggregate, terrier::execution::sql::RealMinAggregate)                         \
   NON_PRIM(RealSumAggregate, terrier::execution::sql::RealSumAggregate)                         \
+  NON_PRIM(IntegerTopKAggregate, terrier::execution::sql::IntegerTopKAggregate)                 \
                                                                                                 \
   /* SQL Table operations */                                                                    \
   NON_PRIM(ProjectedRow, terrier::storage::ProjectedRow)                                        \

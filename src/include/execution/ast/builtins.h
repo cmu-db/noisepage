@@ -99,6 +99,11 @@ namespace terrier::execution::ast {
   F(AggMerge, aggMerge)                                                 \
   F(AggReset, aggReset)                                                 \
   F(AggResult, aggResult)                                               \
+  F(TopKAggInit, topkaggInit)                                           \
+  F(TopKAggAdvance, topkaggAdvance)                                     \
+  F(TopKAggMerge, topkaggMerge)                                         \
+  F(TopKAggReset, topkaggReset)                                         \
+  F(TopKAggResult, topkaggResult)                                       \
                                                                         \
   /* Joins */                                                           \
   F(JoinHashTableInit, joinHTInit)                                      \
