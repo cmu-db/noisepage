@@ -34,7 +34,7 @@ TEST_F(NameBuilderTests, LongNameTest) {
   }
   auto field_name = "bar";
   auto type = catalog::postgres::NameBuilder::FOREIGN_KEY;
-  EXPECT_EQ("01234567891011121314151617181920212223242526272_bar_fkey",
+  EXPECT_EQ("012345678910111213141516171819202122232425262728293031_bar_fkey",
             catalog::postgres::NameBuilder::MakeName(table_name, field_name, type));
 }
 
