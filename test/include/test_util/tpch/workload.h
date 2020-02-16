@@ -7,6 +7,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 #include "execution/executable_query.h"
+#include "execution/table_generator/sample_output.h"
 #include "execution/vm/module.h"
 #include "storage/storage_defs.h"
 
@@ -57,6 +58,7 @@ class Workload {
   catalog::namespace_oid_t ns_oid_;
 
   std::vector<execution::ExecutableQuery> queries_;
+  execution::exec::SampleOutput sample_output_;
 };
 
 }  // namespace terrier::tpch

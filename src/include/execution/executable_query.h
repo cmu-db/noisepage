@@ -8,7 +8,6 @@
 #include "common/strong_typedef.h"
 #include "execution/ast/context.h"
 #include "execution/exec_defs.h"
-#include "execution/table_generator/sample_output.h"
 
 namespace terrier::planner {
 class AbstractPlanNode;
@@ -64,21 +63,9 @@ class ExecutableQuery {
 
   /**
    * @note function should only be used from test
-   * @returns output schema
-   */
-  const planner::OutputSchema *GetTestOutputSchema() const { return sample_output_->GetSchema(query_name_); }
-
-  /**
-   * @note function should only be used from test
-   * @returns output printer
-   */
-  const exec::OutputPrinter &GetTestPrinter() const { return *printer_; }
-
-  /**
-   * @note function should only be used from test
    * @returns the query name
    */
-  const std::string &GetTestQueryName() const { return query_name_; }
+  const std::string &GetQueryName() const { return query_name_; }
 
   /**
    * @returns the query identifier
@@ -102,9 +89,6 @@ class ExecutableQuery {
   std::unique_ptr<ast::Context> ast_ctx_;
   std::unique_ptr<brain::OperatingUnits> operating_units_;
 
-  // Used to specify the output for this query
-  std::unique_ptr<exec::SampleOutput> sample_output_;
-  std::unique_ptr<exec::OutputPrinter> printer_;
   std::string query_name_;
   query_id_t query_id_;
   static std::atomic<query_id_t> query_identifier;

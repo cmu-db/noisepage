@@ -84,10 +84,6 @@ ExecutableQuery::ExecutableQuery(const std::string &filename,
 
   // acquire the output format
   query_name_ = GetFileName(filename);
-  sample_output_ = std::make_unique<exec::SampleOutput>();
-  sample_output_->InitTestOutput();
-  auto output_schema = sample_output_->GetSchema(query_name_);
-  printer_ = std::make_unique<exec::OutputPrinter>(output_schema);
 }
 
 void ExecutableQuery::Run(const common::ManagedPointer<exec::ExecutionContext> exec_ctx, const vm::ExecutionMode mode) {
