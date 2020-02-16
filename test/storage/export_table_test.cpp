@@ -80,8 +80,8 @@ struct ExportTableTest : public ::terrier::TerrierTest {
     auto *read_row = initializer.InitializeRow(buffer);
     // This transaction is guaranteed to start after the compacting one commits
     transaction::TransactionContext *txn = txn_manager->BeginTransaction();
-    auto num_tuples = tuples.size();
-    for (int i = 0; i < layout.NumSlots(); i++) {
+    int num_tuples = tuples.size();
+    for (int i = 0; i < static_cast<int>(layout.NumSlots()); i++) {
       storage::TupleSlot slot(block, i);
       if (i < num_tuples) {
         table.Select(common::ManagedPointer(txn), slot, read_row);
@@ -131,7 +131,7 @@ struct ExportTableTest : public ::terrier::TerrierTest {
                 return false;
               }
               // the first and last element of bytes are always useless
-              for (int k = 0; k < content_len; ++k) {
+              for (int k = 0; k < static_cast<int>(content_len); ++k) {
                 if (bytes[k + 1] != content[k]) {
                   return false;
                 }
