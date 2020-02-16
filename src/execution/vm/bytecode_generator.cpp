@@ -1128,41 +1128,38 @@ void BytecodeGenerator::VisitBuiltinAggregatorCall(ast::CallExpr *call, ast::Bui
 
 void BytecodeGenerator::VisitBuiltinTopKAggregatorCall(ast::CallExpr *call, ast::Builtin builtin) {
   switch (builtin) {
-    case ast::Builtin::TopKAggInit:
+    case ast::Builtin::TopKAggInit: {
       LocalVar topK_aggr = VisitExpressionForRValue(call->Arguments()[0]);
-      LocalVar topK = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar topK = VisitExpressionForRValue(call->Arguments()[1]);
       Emitter()->Emit(Bytecode::IntegerTopKAggregateInit, topK_aggr, topK);
       break;
+    }
     case ast::Builtin::TopKAggReset: {
       for (const auto &arg : call->Arguments()) {
-        const auto agg_kind = arg->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind();
         LocalVar input = VisitExpressionForRValue(arg);
-        Emitter()->Emit(Bytecode::IntegerTopKAggregateReset>(agg_kind), input);
+        Emitter()->Emit(Bytecode::IntegerTopKAggregateReset, input);
       }
       break;
     }
     case ast::Builtin::TopKAggAdvance: {
       const auto &args = call->Arguments();
-      const auto agg_kind = args[0]->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind();
       LocalVar agg = VisitExpressionForRValue(args[0]);
       LocalVar input = VisitExpressionForRValue(args[1]);
-      Emitter()->Emit(Bytecode::IntegerTopKAggregate::Advance>(agg_kind), agg, input);
+      Emitter()->Emit(Bytecode::IntegerTopKAggregateAdvance, agg, input);
       break;
     }
     case ast::Builtin::TopKAggMerge: {
       const auto &args = call->Arguments();
-      const auto agg_kind = args[0]->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind();
       LocalVar agg_1 = VisitExpressionForRValue(args[0]);
       LocalVar agg_2 = VisitExpressionForRValue(args[1]);
-      Emitter()->Emit(Bytecode::IntegerTopKAggregate::Merge>(agg_kind), agg_1, agg_2);
+      Emitter()->Emit(Bytecode::IntegerTopKAggregateMerge, agg_1, agg_2);
       break;
     }
     case ast::Builtin::TopKAggResult: {
       const auto &args = call->Arguments();
-      const auto agg_kind = args[0]->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind();
-      LocalVar result = ExecutionResult()->GetOrCreateDestination(call->GetType());
       LocalVar agg = VisitExpressionForRValue(args[0]);
-      Emitter()->Emit(Bytecode::IntegerTopKAggregate::GetResult>(agg_kind), result, agg);
+      LocalVar result = ExecutionResult()->GetOrCreateDestination(call->GetType());
+      Emitter()->Emit(Bytecode::IntegerTopKAggregateGetResult, result, agg);
       break;
     }
     default: {

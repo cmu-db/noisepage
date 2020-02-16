@@ -285,10 +285,6 @@ class IntegerMaxAggregate {
   bool null_{true};
 };
 
-/*
-Integer Top K aggregate
-*/
-class IntegerTopKAggregate : TopKAggregate<Integer> {};
 
 /*
  * TopKAggregate
@@ -364,6 +360,13 @@ class TopKAggregate {
   bool null_{true};
 };
 
+/*
+Integer Top K aggregate
+*/
+class IntegerTopKAggregate : public TopKAggregate<Integer> {
+  public:
+  explicit IntegerTopKAggregate(size_t topK) : TopKAggregate<Integer>(topK) {}
+};
 /**
  * Real Max
  */

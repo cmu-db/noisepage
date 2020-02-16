@@ -1005,7 +1005,7 @@ VM_OP_HOT void OpIntegerTopKAggregateReset(terrier::execution::sql::IntegerTopKA
 
 VM_OP_HOT void OpIntegerTopKAggregateGetResult(terrier::execution::sql::Integer *result,
                                            const terrier::execution::sql::IntegerTopKAggregate *agg) {
-  *result = agg->GetResultTopK();
+  *result = agg->GetResult();
 }
 
 VM_OP_HOT void OpIntegerTopKAggregateFree(terrier::execution::sql::IntegerTopKAggregate *agg) { agg->~IntegerTopKAggregate(); }

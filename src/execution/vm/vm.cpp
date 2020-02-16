@@ -1142,11 +1142,11 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
 
 #undef Gen_TopK_Aggregate
 
-#define Gen_TopK_Aggregate(SQL_TYPE, AGG_TYPE)                            \
+#define Gen_TopK_Aggregate(SQL_TYPE, AGG_TYPE)                       \
   OP(AGG_TYPE##Init) : {                                             \
     auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());    \
-    auto topK = frame->LocalAt<size_t>(READ_LOCAL_ID())      \
-    Op##AGG_TYPE##Init(agg, topK);                                         \
+    auto topK = frame->LocalAt<size_t>(READ_LOCAL_ID());             \
+    Op##AGG_TYPE##Init(agg, topK);                                   \
     DISPATCH_NEXT();                                                 \
   }                                                                  \
   OP(AGG_TYPE##Advance) : {                                          \
