@@ -98,7 +98,11 @@ TEST_F(AggregatorsTest, TopKInteger) {
   // TopK on empty input should be nothing
   {
     TopKAggregate<Integer> topk(2);
-    EXPECT_TRUE(topk.GetResultTopK().empty());
+    std::vector<Integer> result;
+    while(topk.HasResult()) {
+      result.push_back(topk.GetResult());
+    }
+    EXPECT_TRUE(result.empty());
   }
 
   // Top k where each i in 0 to 9 is inserted i times
@@ -111,7 +115,10 @@ TEST_F(AggregatorsTest, TopKInteger) {
       }
     }
 
-    auto result = topk.GetResultTopK();
+    std::vector<Integer> result;
+    while(topk.HasResult()) {
+      result.push_back(topk.GetResult());
+    }
     EXPECT_EQ(2, result.size());
     EXPECT_EQ(8, result[0].val_);
     EXPECT_EQ(9, result[1].val_);
@@ -135,7 +142,10 @@ TEST_F(AggregatorsTest, TopKInteger) {
     }
 
     topk.Merge(topksecond);
-    auto result = topk.GetResultTopK();
+    std::vector<Integer> result;
+    while(topk.HasResult()) {
+      result.push_back(topk.GetResult());
+    }
     EXPECT_EQ(2, result.size());
     EXPECT_EQ(1, result[0].val_);
     EXPECT_EQ(0, result[1].val_);
@@ -148,7 +158,11 @@ TEST_F(AggregatorsTest, TopKReal) {
   // TopK on empty input should be nothing
   {
     TopKAggregate<Real> topk(2);
-    EXPECT_TRUE(topk.GetResultTopK().empty());
+    std::vector<Real> result;
+    while(topk.HasResult()) {
+      result.push_back(topk.GetResult());
+    }
+    EXPECT_TRUE(result.empty());
   }
 
   // Top k where each i in 0 to 9 is inserted i times
@@ -161,7 +175,10 @@ TEST_F(AggregatorsTest, TopKReal) {
       }
     }
 
-    auto result = topk.GetResultTopK();
+    std::vector<Real> result;
+    while(topk.HasResult()) {
+      result.push_back(topk.GetResult());
+    }
     EXPECT_EQ(2, result.size());
     EXPECT_EQ(static_cast<double>(8), result[0].val_);
     EXPECT_EQ(static_cast<double>(9), result[1].val_);
@@ -185,7 +202,10 @@ TEST_F(AggregatorsTest, TopKReal) {
     }
 
     topk.Merge(topksecond);
-    auto result = topk.GetResultTopK();
+    std::vector<Real> result;
+    while(topk.HasResult()) {
+      result.push_back(topk.GetResult());
+    }
     EXPECT_EQ(2, result.size());
     EXPECT_EQ(static_cast<double>(1), result[0].val_);
     EXPECT_EQ(static_cast<double>(0), result[1].val_);

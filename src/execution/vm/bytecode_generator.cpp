@@ -1230,6 +1230,108 @@ void BytecodeGenerator::VisitBuiltinAggregatorCall(ast::CallExpr *call, ast::Bui
   }
 }
 
+void BytecodeGenerator::VisitBuiltinTopKAggregatorCall(ast::CallExpr *call, ast::Builtin builtin) {
+  switch (builtin) {
+    case ast::Builtin::IntegerTopKAggInit: {
+      LocalVar topK_aggr = VisitExpressionForRValue(call->Arguments()[0]);
+      LocalVar topK = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::IntegerTopKAggregateInit, topK_aggr, topK);
+      break;
+    }
+    case ast::Builtin::IntegerTopKAggReset: {
+      for (const auto &arg : call->Arguments()) {
+        LocalVar input = VisitExpressionForRValue(arg);
+        Emitter()->Emit(Bytecode::IntegerTopKAggregateReset, input);
+      }
+      break;
+    }
+    case ast::Builtin::IntegerTopKAggAdvance: {
+      const auto &args = call->Arguments();
+      LocalVar agg = VisitExpressionForRValue(args[0]);
+      LocalVar input = VisitExpressionForRValue(args[1]);
+      Emitter()->Emit(Bytecode::IntegerTopKAggregateAdvance, agg, input);
+      break;
+    }
+    case ast::Builtin::IntegerTopKAggMerge: {
+      const auto &args = call->Arguments();
+      LocalVar agg_1 = VisitExpressionForRValue(args[0]);
+      LocalVar agg_2 = VisitExpressionForRValue(args[1]);
+      Emitter()->Emit(Bytecode::IntegerTopKAggregateMerge, agg_1, agg_2);
+      break;
+    }
+    case ast::Builtin::IntegerTopKAggResult: {
+      const auto &args = call->Arguments();
+      LocalVar agg = VisitExpressionForRValue(args[0]);
+      LocalVar result = ExecutionResult()->GetOrCreateDestination(call->GetType());
+      Emitter()->Emit(Bytecode::IntegerTopKAggregateGetResult, result, agg);
+      break;
+    }
+    case ast::Builtin::IntegerTopKAggHasResult: {
+      const auto &args = call->Arguments();
+      LocalVar agg = VisitExpressionForRValue(args[0]);
+      LocalVar result = ExecutionResult()->GetOrCreateDestination(call->GetType());
+      Emitter()->Emit(Bytecode::IntegerTopKAggregateHasResult, result, agg);
+      ExecutionResult()->SetDestination(result.ValueOf());
+      break;
+    }
+    case ast::Builtin::IntegerTopKAggFree: {
+      LocalVar agg = VisitExpressionForRValue(call->Arguments()[0]);
+      Emitter()->Emit(Bytecode::IntegerTopKAggregateFree, agg);
+      break;
+    }
+    case ast::Builtin::RealTopKAggInit: {
+      LocalVar topK_aggr = VisitExpressionForRValue(call->Arguments()[0]);
+      LocalVar topK = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::RealTopKAggregateInit, topK_aggr, topK);
+      break;
+    }
+    case ast::Builtin::RealTopKAggReset: {
+      for (const auto &arg : call->Arguments()) {
+        LocalVar input = VisitExpressionForRValue(arg);
+        Emitter()->Emit(Bytecode::RealTopKAggregateReset, input);
+      }
+      break;
+    }
+    case ast::Builtin::RealTopKAggAdvance: {
+      const auto &args = call->Arguments();
+      LocalVar agg = VisitExpressionForRValue(args[0]);
+      LocalVar input = VisitExpressionForRValue(args[1]);
+      Emitter()->Emit(Bytecode::RealTopKAggregateAdvance, agg, input);
+      break;
+    }
+    case ast::Builtin::RealTopKAggMerge: {
+      const auto &args = call->Arguments();
+      LocalVar agg_1 = VisitExpressionForRValue(args[0]);
+      LocalVar agg_2 = VisitExpressionForRValue(args[1]);
+      Emitter()->Emit(Bytecode::RealTopKAggregateMerge, agg_1, agg_2);
+      break;
+    }
+    case ast::Builtin::RealTopKAggResult: {
+      const auto &args = call->Arguments();
+      LocalVar agg = VisitExpressionForRValue(args[0]);
+      LocalVar result = ExecutionResult()->GetOrCreateDestination(call->GetType());
+      Emitter()->Emit(Bytecode::RealTopKAggregateGetResult, result, agg);
+      break;
+    }
+    case ast::Builtin::RealTopKAggHasResult: {
+      const auto &args = call->Arguments();
+      LocalVar agg = VisitExpressionForRValue(args[0]);
+      LocalVar result = ExecutionResult()->GetOrCreateDestination(call->GetType());
+      Emitter()->Emit(Bytecode::RealTopKAggregateHasResult, result, agg);
+      ExecutionResult()->SetDestination(result.ValueOf());
+      break;
+    }
+    case ast::Builtin::RealTopKAggFree: {
+      LocalVar agg = VisitExpressionForRValue(call->Arguments()[0]);
+      Emitter()->Emit(Bytecode::RealTopKAggregateFree, agg);
+      break;
+    }
+    default: {
+      UNREACHABLE("Impossible aggregator call");
+    }
+  }
+}
+
 void BytecodeGenerator::VisitBuiltinJoinHashTableCall(ast::CallExpr *call, ast::Builtin builtin) {
   switch (builtin) {
     case ast::Builtin::JoinHashTableInit: {
@@ -2194,6 +2296,23 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::AggReset:
     case ast::Builtin::AggResult: {
       VisitBuiltinAggregatorCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::IntegerTopKAggInit:
+    case ast::Builtin::IntegerTopKAggAdvance:
+    case ast::Builtin::IntegerTopKAggMerge:
+    case ast::Builtin::IntegerTopKAggReset:
+    case ast::Builtin::IntegerTopKAggHasResult:
+    case ast::Builtin::IntegerTopKAggFree:
+    case ast::Builtin::IntegerTopKAggResult:
+    case ast::Builtin::RealTopKAggInit:
+    case ast::Builtin::RealTopKAggAdvance:
+    case ast::Builtin::RealTopKAggMerge:
+    case ast::Builtin::RealTopKAggReset:
+    case ast::Builtin::RealTopKAggHasResult:
+    case ast::Builtin::RealTopKAggFree:
+    case ast::Builtin::RealTopKAggResult: {
+      VisitBuiltinTopKAggregatorCall(call, builtin);
       break;
     }
     case ast::Builtin::JoinHashTableInit:
