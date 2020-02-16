@@ -799,12 +799,21 @@ void Sema::CheckBuiltinJoinHashTableIterClose(execution::ast::CallExpr *call) {
 void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, UNUSED_ATTRIBUTE ast::Builtin builtin) {
   uint32_t expected_arg_count = 1;
 
-  if (builtin == ast::Builtin::ExecutionContextStartResourceTracker) {
-    expected_arg_count = 2;
-  } else if (builtin == ast::Builtin::ExecutionContextEndResourceTracker) {
-    expected_arg_count = 2;
-  } else if (builtin == ast::Builtin::ExecutionContextEndPipelineTracker) {
-    expected_arg_count = 3;
+  switch (builtin) {
+    case ast::Builtin::ExecutionContextStartResourceTracker:
+      expected_arg_count = 2;
+      break;
+    case ast::Builtin::ExecutionContextEndResourceTracker:
+      expected_arg_count = 2;
+      break;
+    case ast::Builtin::ExecutionContextEndPipelineTracker:
+      expected_arg_count = 3;
+      break;
+    case ast::Builtin::ExecutionContextGetMemoryPool:
+      expected_arg_count = 1;
+      break;
+    default:
+      UNREACHABLE("Impossible execution context call");
   }
 
   if (!CheckArgCount(call, expected_arg_count)) {

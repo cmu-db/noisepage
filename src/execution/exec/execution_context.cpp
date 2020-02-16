@@ -47,7 +47,8 @@ void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pip
     common::thread_context.resource_tracker_.SetMemory(mem_tracker_->GetAllocatedSize());
     auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
 
-    // TODO(wz2): With a query cahce, see if we can avoid this copy
+    // TODO(wz2): With a query cache, see if we can avoid this copy
+    TERRIER_ASSERT(operating_units_ != nullptr, "OperatingUnits should not be null");
     brain::OperatingUnitFeatureVector features(operating_units_->GetPipelineFeatures(pipeline));
     common::thread_context.metrics_store_->RecordPipelineData(query_id, pipeline, execution_mode_, std::move(features),
                                                               resource_metrics);

@@ -56,7 +56,7 @@ class CpuInfo {
   /**
    * Get CPU
    */
-  static int GetCpu();
+  static int GetCpuId();
 
   /**
    * Return the number of logical cores in the system

@@ -73,7 +73,7 @@ class ResourceTracker {
     rusage_monitor_.Stop();
     metrics_.counters_ = perf_monitor_.Counters();
     metrics_.rusage_ = rusage_monitor_.Usage();
-    metrics_.cpu_id_ = execution::CpuInfo::GetCpu();
+    metrics_.cpu_id_ = execution::CpuInfo::GetCpuId();
   }
 
   /**
