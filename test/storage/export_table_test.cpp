@@ -130,7 +130,7 @@ struct ExportTableTest : public ::terrier::TerrierTest {
               if (content_len != bytes.size() - 2) {
                 return false;
               }
-              // the first and last element of bytes are always useless
+              // the first and last element of bytes are always useless.
               for (int k = 0; k < static_cast<int>(content_len); ++k) {
                 if (bytes[k + 1] != content[k]) {
                   return false;
