@@ -1126,6 +1126,51 @@ void BytecodeGenerator::VisitBuiltinAggregatorCall(ast::CallExpr *call, ast::Bui
   }
 }
 
+void BytecodeGenerator::VisitBuiltinTopKAggregatorCall(ast::CallExpr *call, ast::Builtin builtin) {
+  switch (builtin) {
+    case ast::Builtin::TopKAggInit:
+      LocalVar topK_aggr = VisitExpressionForRValue(call->Arguments()[0]);
+      LocalVar topK = VisitExpressionForRValue(call->Arguments()[2]);
+      Emitter()->Emit(Bytecode::IntegerTopKAggregateInit, topK_aggr, topK);
+      break;
+    case ast::Builtin::TopKAggReset: {
+      for (const auto &arg : call->Arguments()) {
+        const auto agg_kind = arg->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind();
+        LocalVar input = VisitExpressionForRValue(arg);
+        Emitter()->Emit(Bytecode::IntegerTopKAggregateReset>(agg_kind), input);
+      }
+      break;
+    }
+    case ast::Builtin::TopKAggAdvance: {
+      const auto &args = call->Arguments();
+      const auto agg_kind = args[0]->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind();
+      LocalVar agg = VisitExpressionForRValue(args[0]);
+      LocalVar input = VisitExpressionForRValue(args[1]);
+      Emitter()->Emit(Bytecode::IntegerTopKAggregate::Advance>(agg_kind), agg, input);
+      break;
+    }
+    case ast::Builtin::TopKAggMerge: {
+      const auto &args = call->Arguments();
+      const auto agg_kind = args[0]->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind();
+      LocalVar agg_1 = VisitExpressionForRValue(args[0]);
+      LocalVar agg_2 = VisitExpressionForRValue(args[1]);
+      Emitter()->Emit(Bytecode::IntegerTopKAggregate::Merge>(agg_kind), agg_1, agg_2);
+      break;
+    }
+    case ast::Builtin::TopKAggResult: {
+      const auto &args = call->Arguments();
+      const auto agg_kind = args[0]->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind();
+      LocalVar result = ExecutionResult()->GetOrCreateDestination(call->GetType());
+      LocalVar agg = VisitExpressionForRValue(args[0]);
+      Emitter()->Emit(Bytecode::IntegerTopKAggregate::GetResult>(agg_kind), result, agg);
+      break;
+    }
+    default: {
+      UNREACHABLE("Impossible aggregator call");
+    }
+  }
+}
+
 void BytecodeGenerator::VisitBuiltinJoinHashTableCall(ast::CallExpr *call, ast::Builtin builtin) {
   switch (builtin) {
     case ast::Builtin::JoinHashTableInit: {
@@ -1961,6 +2006,14 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::AggReset:
     case ast::Builtin::AggResult: {
       VisitBuiltinAggregatorCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::TopKAggInit:
+    case ast::Builtin::TopKAggAdvance:
+    case ast::Builtin::TopKAggMerge:
+    case ast::Builtin::TopKAggReset:
+    case ast::Builtin::TopKAggResult: {
+      VisitBuiltinTopKAggregatorCall(call, builtin);
       break;
     }
     case ast::Builtin::JoinHashTableInit:
