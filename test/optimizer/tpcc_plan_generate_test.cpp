@@ -44,7 +44,7 @@ namespace terrier {
     stmt_map['D'] = parser::StatementType::DELETE;
     stmt_map['U'] = parser::StatementType::UPDATE;
 
-    const std::string tpcc_file_root = "../../tpcc2/";
+    const std::string tpcc_file_root = "../tpcc_files/";
 
     std::string query;
     std::string tbl;

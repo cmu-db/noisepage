@@ -37,10 +37,12 @@ namespace terrier::tpcc {
     db_oid_ = tpcc_db_->db_oid_;
 
     GenerateTPCCTables(num_threads);
+    std::cout << "Generated TPCC tables" << std::endl;
 
     // initialize and compile the queries
     InitializeSQLs();
     LoadTPCCQueries(txn_names);
+    std::cout << "Queries loaded" << std::endl;
   }
 
   void WorkloadCached::GenerateTPCCTables(int8_t num_threads) {
@@ -62,34 +64,27 @@ namespace terrier::tpcc {
     for (auto &txn_name : txn_names) {
       // read queries from files
       auto curr = queries_.emplace(txn_name, std::vector<execution::ExecutableQuery> {});
-      auto &vec = sqls_.find(txn_name)->second;
-      std::cout << vec.size() << std::endl;
 
       for (auto &query : sqls_.find(txn_name)->second) {
-        std::cout << query << std::endl;
         std::unique_ptr<parser::ParseResult> parse_result = parser::PostgresParser::BuildParseTree(query);
         transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
-        catalog::CatalogAccessor *accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_).release();
+        auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_).release();
 
         // generate plan node
         execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
                                                    nullptr, nullptr, common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
 
-        planner::AbstractPlanNode *plan_node = trafficcop::TrafficCopUtil::Optimize(
+        auto plan_node = trafficcop::TrafficCopUtil::Optimize(
             common::ManagedPointer<transaction::TransactionContext>(txn),
             common::ManagedPointer<catalog::CatalogAccessor>(accessor),
             common::ManagedPointer<parser::ParseResult>(parse_result),
             common::ManagedPointer<optimizer::StatsStorage>(db_main_->GetStatsStorage()),
             optimizer_timeout
-        ).release();
-
-        std::cout << std::setw(4) << plan_node->ToJson() << std::endl;
+        );
 
         // generate executable query and emplace it into the vector; break down here
         curr.first->second.emplace_back(execution::ExecutableQuery{common::ManagedPointer<planner::AbstractPlanNode>(plan_node),
                                                                    common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx)});
-        delete accessor;
-        delete plan_node;
         txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
 

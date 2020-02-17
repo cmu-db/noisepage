@@ -9,7 +9,7 @@ namespace terrier::runner {
   // Modified from TPCHRunner
   class TPCCRunner : public benchmark::Fixture {
   public:
-    const int8_t num_threads_ = 10;                             // defines the number of terminals (workers threads)
+    const int8_t num_threads_ = 1;                             // defines the number of terminals (workers threads)
     const uint32_t num_precomputed_txns_per_worker_ = 10;  // Number of txns to run per terminal (worker thread)
     const execution::vm::ExecutionMode mode_ = execution::vm::ExecutionMode::Compiled;
 
