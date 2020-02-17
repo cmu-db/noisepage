@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "brain/operating_unit_recorder.h"
 #include "brain/operating_unit.h"
 #include "parser/expression_defs.h"
@@ -31,8 +33,6 @@
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
 
-#include <utility>
-
 namespace terrier::brain {
 
 ExecutionOperatingUnitType OperatingUnitRecorder::ConvertExpressionType(parser::ExpressionType etype) {
@@ -51,6 +51,16 @@ ExecutionOperatingUnitType OperatingUnitRecorder::ConvertExpressionType(parser::
     case parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
     case parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
       return ExecutionOperatingUnitType::OP_COMPARE;
+    case parser::ExpressionType::AGGREGATE_COUNT:
+      return ExecutionOperatingUnitType::OP_AGGREGATE_COUNT;
+    case parser::ExpressionType::AGGREGATE_SUM:
+      return ExecutionOperatingUnitType::OP_AGGREGATE_SUM;
+    case parser::ExpressionType::AGGREGATE_MIN:
+      return ExecutionOperatingUnitType::OP_AGGREGATE_MIN;
+    case parser::ExpressionType::AGGREGATE_MAX:
+      return ExecutionOperatingUnitType::OP_AGGREGATE_MAX;
+    case parser::ExpressionType::AGGREGATE_AVG:
+      return ExecutionOperatingUnitType::OP_AGGREGATE_AVG;
     default:
       return ExecutionOperatingUnitType::INVALID;
   }
