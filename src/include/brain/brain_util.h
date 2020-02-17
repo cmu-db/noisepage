@@ -56,18 +56,8 @@ class BrainUtil {
         return "OP_MULTIPLY";
       case ExecutionOperatingUnitType::OP_DIVIDE:
         return "OP_DIVIDE";
-      case ExecutionOperatingUnitType::OP_COMPARE_EQ:
-        return "OP_COMPARE_EQ";
-      case ExecutionOperatingUnitType::OP_COMPARE_NEQ:
-        return "OP_COMPARE_NEQ";
-      case ExecutionOperatingUnitType::OP_COMPARE_LT:
-        return "OP_COMPARE_LT";
-      case ExecutionOperatingUnitType::OP_COMPARE_GT:
-        return "OP_COMPARE_GT";
-      case ExecutionOperatingUnitType::OP_COMPARE_LTE:
-        return "OP_COMPARE_LTE";
-      case ExecutionOperatingUnitType::OP_COMPARE_GTE:
-        return "OP_COMPARE_GTE";
+      case ExecutionOperatingUnitType::OP_COMPARE:
+        return "OP_COMPARE";
       default:
         UNREACHABLE("Undefined ExecutionOperatingUnitType encountered");
         break;

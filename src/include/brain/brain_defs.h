@@ -31,12 +31,7 @@ enum class ExecutionOperatingUnitType : uint32_t {
   OP_PLUS_OR_MINUS,
   OP_MULTIPLY,
   OP_DIVIDE,
-  OP_COMPARE_EQ,
-  OP_COMPARE_NEQ,
-  OP_COMPARE_LT,
-  OP_COMPARE_GT,
-  OP_COMPARE_LTE,
-  OP_COMPARE_GTE,
+  OP_COMPARE,
 };
 
 }  // namespace terrier::brain

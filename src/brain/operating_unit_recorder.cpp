@@ -43,17 +43,12 @@ ExecutionOperatingUnitType OperatingUnitRecorder::ConvertExpressionType(parser::
     case parser::ExpressionType::OPERATOR_DIVIDE:
       return ExecutionOperatingUnitType::OP_DIVIDE;
     case parser::ExpressionType::COMPARE_EQUAL:
-      return ExecutionOperatingUnitType::OP_COMPARE_EQ;
     case parser::ExpressionType::COMPARE_NOT_EQUAL:
-      return ExecutionOperatingUnitType::OP_COMPARE_NEQ;
     case parser::ExpressionType::COMPARE_LESS_THAN:
-      return ExecutionOperatingUnitType::OP_COMPARE_LT;
     case parser::ExpressionType::COMPARE_GREATER_THAN:
-      return ExecutionOperatingUnitType::OP_COMPARE_GT;
     case parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
-      return ExecutionOperatingUnitType::OP_COMPARE_LTE;
     case parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
-      return ExecutionOperatingUnitType::OP_COMPARE_GTE;
+      return ExecutionOperatingUnitType::OP_COMPARE;
     default:
       return ExecutionOperatingUnitType::INVALID;
   }
