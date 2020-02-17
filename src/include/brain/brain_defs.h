@@ -28,8 +28,7 @@ enum class ExecutionOperatingUnitType : uint32_t {
   PROJECTION,
   OUTPUT,
 
-  OP_ADD,
-  OP_SUBTRACT,
+  OP_PLUS_OR_MINUS,
   OP_MULTIPLY,
   OP_DIVIDE,
   OP_COMPARE_EQ,

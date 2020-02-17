@@ -36,9 +36,8 @@ namespace terrier::brain {
 ExecutionOperatingUnitType OperatingUnitRecorder::ConvertExpressionType(parser::ExpressionType etype) {
   switch (etype) {
     case parser::ExpressionType::OPERATOR_PLUS:
-      return ExecutionOperatingUnitType::OP_ADD;
     case parser::ExpressionType::OPERATOR_MINUS:
-      return ExecutionOperatingUnitType::OP_SUBTRACT;
+      return ExecutionOperatingUnitType::OP_PLUS_OR_MINUS;
     case parser::ExpressionType::OPERATOR_MULTIPLY:
       return ExecutionOperatingUnitType::OP_MULTIPLY;
     case parser::ExpressionType::OPERATOR_DIVIDE:

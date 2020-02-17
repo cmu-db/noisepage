@@ -50,10 +50,8 @@ class BrainUtil {
         return "PROJECTION";
       case ExecutionOperatingUnitType::OUTPUT:
         return "OUTPUT";
-      case ExecutionOperatingUnitType::OP_ADD:
-        return "OP_ADD";
-      case ExecutionOperatingUnitType::OP_SUBTRACT:
-        return "OP_SUBTRACT";
+      case ExecutionOperatingUnitType::OP_PLUS_OR_MINUS:
+        return "OP_PLUS_OR_MINUS";
       case ExecutionOperatingUnitType::OP_MULTIPLY:
         return "OP_MULTIPLY";
       case ExecutionOperatingUnitType::OP_DIVIDE:
