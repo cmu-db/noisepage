@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "../include/catalog/schema.h"
 #include "binder/binder_util.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
@@ -358,14 +359,43 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
         }
 
         std::vector<std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>>> cols;
-        if (num_insert_columns == 0) {  // already ordered
+        if (num_insert_columns == 0) {  // already schema ordered
           for (int i = 0; i < num_values; i++) {
             std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> pair =
                 std::make_pair(table_schema.GetColumns()[i], values[i]);
             cols.push_back(pair);
           }
         } else {
-          for (int i = 0; i < num_insert_columns; i++) {
+          for (int i = 0; i < table_schema.GetColumns().size(); i++) {
+            catalog::Schema::Column schemaColumn = table_schema.GetColumns[i];
+            auto it = std::find(insert_columns.begin(), insert_columns.end(), schemaColumn.Name());
+            if (it != insert_columns.end()) {
+              // find the index now
+              auto index = std::distance(insert_columns.begin(), it);
+              std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> pair =
+                  std::make_pair(schemaColumn, values[index]);
+              cols.push_back(pair);
+            } else {
+              //check if default value present
+              if (schemaColumn.StoredExpression() != nullptr) {
+                std::unique_ptr<parser::AbstractExpression> temp = schemaColumn.StoredExpression()->Copy();
+                std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> pair =
+                    std::make_pair(schemaColumn, common::ManagedPointer(temp));
+                cols.push_back(pair);
+              }
+              //check if nullable field
+              else if (schemaColumn.Nullable()) {
+                std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> pair =
+                    std::make_pair(schemaColumn, nullptr);
+                cols.push_back(pair);
+              }
+              else {
+                //throw the error
+                throw BINDER_EXCEPTION("Column not present, does not have a default and is non nullable");
+              }
+            }
+          }
+          /*for (int i = 0; i < num_insert_columns; i++) {
             std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> pair =
                 std::make_pair(table_schema.GetColumn(node->GetInsertColumns()->at(i)), values[i]);
             cols.push_back(pair);
@@ -375,7 +405,7 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
                [](const std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> &a,
                   const std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> &b)
                    -> bool { return a.first.Oid() < b.first.Oid(); });
-
+*/
           std::vector<std::string> ins_col;
           std::vector<common::ManagedPointer<parser::AbstractExpression>> ins_val;
           for (auto const &pair : cols) {
