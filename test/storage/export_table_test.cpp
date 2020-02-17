@@ -78,7 +78,7 @@ struct ExportTableTest : public ::terrier::TerrierTest {
         storage::ProjectedRowInitializer::Create(layout, StorageTestUtil::ProjectionListAllColumns(layout));
     byte *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
     auto *read_row = initializer.InitializeRow(buffer);
-    // This transaction is guaranteed to start after the compacting one commits
+    // This transaction is guaranteed to start after the compacting one commits.
     transaction::TransactionContext *txn = txn_manager->BeginTransaction();
     int num_tuples = tuples.size();
     for (int i = 0; i < static_cast<int>(layout.NumSlots()); i++) {
