@@ -28,7 +28,7 @@ TEST_F(NameBuilderTests, NoneTest) {
 }
 
 TEST_F(NameBuilderTests, LongNameTest) {
-  std::string table_name = "";
+  std::string table_name;
   for (auto i = 0; i < 40; i++) {
     table_name += std::to_string(i);
   }
