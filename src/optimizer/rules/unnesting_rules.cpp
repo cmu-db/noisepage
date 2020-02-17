@@ -35,8 +35,7 @@ RulePromise UnnestMarkJoinToInnerJoin::Promise(GroupExpression *group_expr) cons
   return RulePromise::LOGICAL_PROMISE;
 }
 
-bool UnnestMarkJoinToInnerJoin::Check(common::ManagedPointer<OperatorNode> plan,
-                                      OptimizationContext *context) const {
+bool UnnestMarkJoinToInnerJoin::Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const {
   (void)context;
   (void)plan;
 
@@ -75,8 +74,7 @@ RulePromise UnnestSingleJoinToInnerJoin::Promise(GroupExpression *group_expr) co
   return RulePromise::LOGICAL_PROMISE;
 }
 
-bool UnnestSingleJoinToInnerJoin::Check(common::ManagedPointer<OperatorNode> plan,
-                                        OptimizationContext *context) const {
+bool UnnestSingleJoinToInnerJoin::Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const {
   (void)context;
   (void)plan;
 

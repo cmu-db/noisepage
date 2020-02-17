@@ -52,8 +52,7 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
     op->GetSelectTable()->Accept(this, parse_result);
   } else {
     // SELECT without FROM
-    output_expr_ =
-        std::make_unique<OperatorNode>(LogicalGet::Make(), std::vector<std::unique_ptr<OperatorNode>>{});
+    output_expr_ = std::make_unique<OperatorNode>(LogicalGet::Make(), std::vector<std::unique_ptr<OperatorNode>>{});
   }
 
   if (op->GetSelectCondition() != nullptr) {
@@ -63,7 +62,7 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
 
   if (!predicates_.empty()) {
     auto filter_expr = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(predicates_)),
-                                                            std::vector<std::unique_ptr<OperatorNode>>{});
+                                                      std::vector<std::unique_ptr<OperatorNode>>{});
     filter_expr->PushChild(std::move(output_expr_));
     predicates_.clear();
     output_expr_ = std::move(filter_expr);
@@ -76,7 +75,7 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
     if (op->GetSelectGroupBy() == nullptr) {
       // TODO(boweic): aggregation without groupby could still have having clause
       agg_expr = std::make_unique<OperatorNode>(LogicalAggregateAndGroupBy::Make(),
-                                                      std::vector<std::unique_ptr<OperatorNode>>{});
+                                                std::vector<std::unique_ptr<OperatorNode>>{});
       agg_expr->PushChild(std::move(output_expr_));
       output_expr_ = std::move(agg_expr);
     } else {
@@ -86,7 +85,7 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
         group_by_cols[i] = common::ManagedPointer<parser::AbstractExpression>(op->GetSelectGroupBy()->GetColumns()[i]);
       }
       agg_expr = std::make_unique<OperatorNode>(LogicalAggregateAndGroupBy::Make(std::move(group_by_cols)),
-                                                      std::vector<std::unique_ptr<OperatorNode>>{});
+                                                std::vector<std::unique_ptr<OperatorNode>>{});
       agg_expr->PushChild(std::move(output_expr_));
       output_expr_ = std::move(agg_expr);
 
@@ -96,7 +95,7 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
       }
       if (!having.empty()) {
         auto filter_expr = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(having)),
-                                                                std::vector<std::unique_ptr<OperatorNode>>{});
+                                                          std::vector<std::unique_ptr<OperatorNode>>{});
         filter_expr->PushChild(std::move(output_expr_));
         output_expr_ = std::move(filter_expr);
       }
@@ -161,35 +160,35 @@ void QueryToOperatorTransformer::Visit(parser::JoinDefinition *node, parser::Par
   switch (node->GetJoinType()) {
     case parser::JoinType::INNER: {
       join_expr = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates)),
-                                                       std::vector<std::unique_ptr<OperatorNode>>{});
+                                                 std::vector<std::unique_ptr<OperatorNode>>{});
       join_expr->PushChild(std::move(left_expr));
       join_expr->PushChild(std::move(right_expr));
       break;
     }
     case parser::JoinType::OUTER: {
       join_expr = std::make_unique<OperatorNode>(LogicalOuterJoin::Make(std::move(join_predicates)),
-                                                       std::vector<std::unique_ptr<OperatorNode>>{});
+                                                 std::vector<std::unique_ptr<OperatorNode>>{});
       join_expr->PushChild(std::move(left_expr));
       join_expr->PushChild(std::move(right_expr));
       break;
     }
     case parser::JoinType::LEFT: {
       join_expr = std::make_unique<OperatorNode>(LogicalLeftJoin::Make(std::move(join_predicates)),
-                                                       std::vector<std::unique_ptr<OperatorNode>>{});
+                                                 std::vector<std::unique_ptr<OperatorNode>>{});
       join_expr->PushChild(std::move(left_expr));
       join_expr->PushChild(std::move(right_expr));
       break;
     }
     case parser::JoinType::RIGHT: {
       join_expr = std::make_unique<OperatorNode>(LogicalRightJoin::Make(std::move(join_predicates)),
-                                                       std::vector<std::unique_ptr<OperatorNode>>{});
+                                                 std::vector<std::unique_ptr<OperatorNode>>{});
       join_expr->PushChild(std::move(left_expr));
       join_expr->PushChild(std::move(right_expr));
       break;
     }
     case parser::JoinType::SEMI: {
       join_expr = std::make_unique<OperatorNode>(LogicalSemiJoin::Make(std::move(join_predicates)),
-                                                       std::vector<std::unique_ptr<OperatorNode>>{});
+                                                 std::vector<std::unique_ptr<OperatorNode>>{});
       join_expr->PushChild(std::move(left_expr));
       join_expr->PushChild(std::move(right_expr));
       break;
@@ -219,7 +218,7 @@ void QueryToOperatorTransformer::Visit(parser::TableRef *node, parser::ParseResu
     auto child_expr = std::move(output_expr_);
     output_expr_ =
         std::make_unique<OperatorNode>(LogicalQueryDerivedGet::Make(table_alias, std::move(alias_to_expr_map)),
-                                             std::vector<std::unique_ptr<OperatorNode>>{});
+                                       std::vector<std::unique_ptr<OperatorNode>>{});
     output_expr_->PushChild(std::move(child_expr));
   } else if (node->GetJoin() != nullptr) {
     // Explicit Join
@@ -234,8 +233,8 @@ void QueryToOperatorTransformer::Visit(parser::TableRef *node, parser::ParseResu
       // Start at i = 1 due to the Accept() above
       auto list_elem = node->GetList().at(i);
       list_elem->Accept(this, parse_result);
-      auto join_expr = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(),
-                                                            std::vector<std::unique_ptr<OperatorNode>>{});
+      auto join_expr =
+          std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::vector<std::unique_ptr<OperatorNode>>{});
       join_expr->PushChild(std::move(prev_expr));
       join_expr->PushChild(std::move(output_expr_));
       TERRIER_ASSERT(join_expr->GetChildren().size() == 2, "The join expr should have exactly 2 elements");
@@ -291,7 +290,7 @@ void QueryToOperatorTransformer::Visit(parser::CreateStatement *op, parser::Pars
   switch (create_type) {
     case parser::CreateStatement::CreateType::kDatabase:
       create_expr = std::make_unique<OperatorNode>(LogicalCreateDatabase::Make(op->GetDatabaseName()),
-                                                         std::vector<std::unique_ptr<OperatorNode>>{});
+                                                   std::vector<std::unique_ptr<OperatorNode>>{});
       break;
     case parser::CreateStatement::CreateType::kTable:
       create_expr = std::make_unique<OperatorNode>(
@@ -344,7 +343,7 @@ void QueryToOperatorTransformer::Visit(parser::CreateStatement *op, parser::Pars
     }
     case parser::CreateStatement::CreateType::kSchema:
       create_expr = std::make_unique<OperatorNode>(LogicalCreateNamespace::Make(op->GetNamespaceName()),
-                                                         std::vector<std::unique_ptr<OperatorNode>>{});
+                                                   std::vector<std::unique_ptr<OperatorNode>>{});
       break;
     case parser::CreateStatement::CreateType::kView:
       create_expr = std::make_unique<OperatorNode>(
@@ -366,7 +365,7 @@ void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::Pars
   if (op->GetInsertType() == parser::InsertType::SELECT) {
     auto insert_expr =
         std::make_unique<OperatorNode>(LogicalInsertSelect::Make(target_db_id, target_ns_id, target_table_id),
-                                             std::vector<std::unique_ptr<OperatorNode>>{});
+                                       std::vector<std::unique_ptr<OperatorNode>>{});
     op->GetSelect()->Accept(this, parse_result);
     insert_expr->PushChild(std::move(output_expr_));
     output_expr_ = std::move(insert_expr);
@@ -475,24 +474,22 @@ void QueryToOperatorTransformer::Visit(parser::DropStatement *op, parser::ParseR
   std::unique_ptr<OperatorNode> drop_expr;
   switch (drop_type) {
     case parser::DropStatement::DropType::kDatabase:
-      drop_expr = std::make_unique<OperatorNode>(
-          LogicalDropDatabase::Make(accessor_->GetDatabaseOid(op->GetDatabaseName())),
-          std::vector<std::unique_ptr<OperatorNode>>{});
+      drop_expr =
+          std::make_unique<OperatorNode>(LogicalDropDatabase::Make(accessor_->GetDatabaseOid(op->GetDatabaseName())),
+                                         std::vector<std::unique_ptr<OperatorNode>>{});
       break;
     case parser::DropStatement::DropType::kTable:
-      drop_expr =
-          std::make_unique<OperatorNode>(LogicalDropTable::Make(accessor_->GetTableOid(op->GetTableName())),
-                                               std::vector<std::unique_ptr<OperatorNode>>{});
+      drop_expr = std::make_unique<OperatorNode>(LogicalDropTable::Make(accessor_->GetTableOid(op->GetTableName())),
+                                                 std::vector<std::unique_ptr<OperatorNode>>{});
       break;
     case parser::DropStatement::DropType::kIndex:
-      drop_expr =
-          std::make_unique<OperatorNode>(LogicalDropIndex::Make(accessor_->GetIndexOid(op->GetIndexName())),
-                                               std::vector<std::unique_ptr<OperatorNode>>{});
+      drop_expr = std::make_unique<OperatorNode>(LogicalDropIndex::Make(accessor_->GetIndexOid(op->GetIndexName())),
+                                                 std::vector<std::unique_ptr<OperatorNode>>{});
       break;
     case parser::DropStatement::DropType::kSchema:
-      drop_expr = std::make_unique<OperatorNode>(
-          LogicalDropNamespace::Make(accessor_->GetNamespaceOid(op->GetNamespaceName())),
-          std::vector<std::unique_ptr<OperatorNode>>{});
+      drop_expr =
+          std::make_unique<OperatorNode>(LogicalDropNamespace::Make(accessor_->GetNamespaceOid(op->GetNamespaceName())),
+                                         std::vector<std::unique_ptr<OperatorNode>>{});
       break;
     case parser::DropStatement::DropType::kTrigger:
     case parser::DropStatement::DropType::kView:
@@ -752,12 +749,10 @@ bool QueryToOperatorTransformer::GenerateSubqueryTree(parser::AbstractExpression
   // Construct join
   std::unique_ptr<OperatorNode> op_expr;
   if (single_join) {
-    op_expr = std::make_unique<OperatorNode>(LogicalSingleJoin::Make(),
-                                                   std::vector<std::unique_ptr<OperatorNode>>{});
+    op_expr = std::make_unique<OperatorNode>(LogicalSingleJoin::Make(), std::vector<std::unique_ptr<OperatorNode>>{});
     op_expr->PushChild(std::move(output_expr_));
   } else {
-    op_expr = std::make_unique<OperatorNode>(LogicalMarkJoin::Make(),
-                                                   std::vector<std::unique_ptr<OperatorNode>>{});
+    op_expr = std::make_unique<OperatorNode>(LogicalMarkJoin::Make(), std::vector<std::unique_ptr<OperatorNode>>{});
     op_expr->PushChild(std::move(output_expr_));
   }
 

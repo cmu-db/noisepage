@@ -53,6 +53,7 @@ class ManualPacketUtil {
   static std::unique_ptr<NetworkIoWrapper> StartConnection(uint16_t port) {
     // Manually open a socket
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+    TERRIER_ASSERT(socket_fd >= 0, "Failed to create socket");
 
     struct sockaddr_in serv_addr;
     memset(&serv_addr, 0, sizeof(serv_addr));
@@ -72,7 +73,10 @@ class ManualPacketUtil {
     writer.WriteStartupRequest(params);
     io_socket->FlushAllWrites();
 
-    ReadUntilReadyOrClose(common::ManagedPointer(io_socket));
+    bool success = ReadUntilReadyOrClose(common::ManagedPointer(io_socket));
+    if (!success) {
+      return nullptr;
+    }
     return io_socket;
   }
 
@@ -87,7 +91,8 @@ class ManualPacketUtil {
     out_buffer[0] = 'X';
     int len = sizeof(int32_t) + sizeof(char);
     reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(len);
-    const auto result UNUSED_ATTRIBUTE = write(socket_fd, nullptr, len + 1);
+    UNUSED_ATTRIBUTE auto result = write(socket_fd, out_buffer, len + 1);
+    TERRIER_ASSERT(result == len + 1, "Unsuccessful write");
   }
 
  private:
