@@ -274,7 +274,7 @@ TEST_F(CatalogTests, UserTableTest) {
   EXPECT_NE(schema.GetColumn("user_col_1").Oid(), catalog::INVALID_COLUMN_OID);
 
   // Verify we can instantiate a storage object with the generated schema
-  auto table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), schema);
+  auto table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), schema);
 
   EXPECT_TRUE(accessor->SetTablePointer(table_oid, table));
   EXPECT_EQ(common::ManagedPointer(table), accessor->GetTable(table_oid));
@@ -310,7 +310,7 @@ TEST_F(CatalogTests, UserIndexTest) {
 
   auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
   auto schema = accessor->GetSchema(table_oid);
-  auto table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), schema);
+  auto table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), schema);
 
   EXPECT_TRUE(accessor->SetTablePointer(table_oid, table));
 
@@ -363,7 +363,7 @@ TEST_F(CatalogTests, CascadingDropTableTest) {
 
   auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
   auto schema = accessor->GetSchema(table_oid);
-  auto table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), schema);
+  auto table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), schema);
 
   EXPECT_TRUE(accessor->SetTablePointer(table_oid, table));
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -429,7 +429,7 @@ TEST_F(CatalogTests, CascadingDropNamespaceTest) {
   EXPECT_NE(accessor, nullptr);
   auto table_oid = accessor->CreateTable(ns_oid, "test_table", tmp_schema);
   auto schema = accessor->GetSchema(table_oid);
-  auto table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), schema);
+  auto table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), schema);
 
   EXPECT_TRUE(accessor->SetTablePointer(table_oid, table));
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -496,7 +496,7 @@ TEST_F(CatalogTests, CascadingDropNamespaceWithIndexOnOtherNamespaceTest) {
   EXPECT_NE(accessor, nullptr);
   auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
   auto schema = accessor->GetSchema(table_oid);
-  auto table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), schema);
+  auto table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), schema);
 
   EXPECT_TRUE(accessor->SetTablePointer(table_oid, table));
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -572,14 +572,14 @@ TEST_F(CatalogTests, UserSearchPathTest) {
   auto public_table_oid = accessor->CreateTable(public_ns_oid, "test_table", tmp_schema);
   EXPECT_NE(public_table_oid, catalog::INVALID_TABLE_OID);
   auto schema = accessor->GetSchema(public_table_oid);
-  auto table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), schema);
+  auto table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), schema);
   EXPECT_TRUE(accessor->SetTablePointer(public_table_oid, table));
 
   // Insert a table into "test"
   auto test_table_oid = accessor->CreateTable(test_ns_oid, "test_table", tmp_schema);
   EXPECT_NE(test_table_oid, catalog::INVALID_TABLE_OID);
   schema = accessor->GetSchema(test_table_oid);
-  table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), schema);
+  table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), schema);
   EXPECT_TRUE(accessor->SetTablePointer(test_table_oid, table));
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -685,7 +685,7 @@ TEST_F(CatalogTests, GetIndexesTest) {
 
   auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
   auto schema = accessor->GetSchema(table_oid);
-  auto table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), schema);
+  auto table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), schema);
   EXPECT_TRUE(accessor->SetTablePointer(table_oid, table));
 
   // Create the index
@@ -730,7 +730,7 @@ TEST_F(CatalogTests, GetIndexObjectsTest) {
 
   auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
   auto schema = accessor->GetSchema(table_oid);
-  auto table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), schema);
+  auto table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), schema);
   EXPECT_TRUE(accessor->SetTablePointer(table_oid, table));
 
   // Create the a couple of index
