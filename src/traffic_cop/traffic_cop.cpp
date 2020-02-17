@@ -304,9 +304,8 @@ TrafficCopResult TrafficCop::BindQuery(const common::ManagedPointer<network::Con
     if ((statement->RootStatement()->GetType() == parser::StatementType::DROP &&
          statement->RootStatement().CastManagedPointerTo<parser::DropStatement>()->IsIfExists())) {
       return {ResultType::NOTICE, "NOTICE:  binding failed with an IF EXISTS clause, skipping statement"};
-    } else {
-      return {ResultType::ERROR, "ERROR:  binding failed"};
     }
+    return {ResultType::ERROR, "ERROR:  binding failed"};
   }
   return {ResultType::COMPLETE, 0};
 }

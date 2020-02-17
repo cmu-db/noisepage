@@ -159,6 +159,7 @@ enum class NetworkTransactionStateType : unsigned char {
   FAIL = 'E',   // In a failed transaction
 };
 
-enum class FieldFormat : bool { text = 0, binary = 1 };
+// postgres uses 0 for text, 1 for binary, so this is fine
+enum class FieldFormat : bool { text = false, binary = true };
 
 }  // namespace terrier::network
