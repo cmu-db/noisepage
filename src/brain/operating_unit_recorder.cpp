@@ -1,7 +1,7 @@
 #include <utility>
 
-#include "brain/operating_unit_recorder.h"
 #include "brain/operating_unit.h"
+#include "brain/operating_unit_recorder.h"
 #include "parser/expression_defs.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/analyze_plan_node.h"
@@ -68,9 +68,9 @@ ExecutionOperatingUnitType OperatingUnitRecorder::ConvertExpressionType(parser::
 
 std::vector<ExecutionOperatingUnitType> OperatingUnitRecorder::ExtractFeaturesFromExpression(
     common::ManagedPointer<parser::AbstractExpression> expr) {
-  if (expr == nullptr) return std::unordered_set<ExecutionOperatingUnitType>();
+  if (expr == nullptr) return std::vector<ExecutionOperatingUnitType>();
 
-  std::unordered_set<ExecutionOperatingUnitType> feature_types;
+  std::vector<ExecutionOperatingUnitType> feature_types;
   std::queue<common::ManagedPointer<parser::AbstractExpression>> work;
   work.push(expr);
 

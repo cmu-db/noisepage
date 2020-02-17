@@ -58,7 +58,7 @@ class BrainUtil {
         return "OP_DIVIDE";
       case ExecutionOperatingUnitType::OP_COMPARE:
         return "OP_COMPARE";
-      case ExecutionOperatingUnitType::OP_AGGREGEATE_COUNT:
+      case ExecutionOperatingUnitType::OP_AGGREGATE_COUNT:
         return "OP_AGGREGATE_COUNT";
       case ExecutionOperatingUnitType::OP_AGGREGATE_SUM:
         return "OP_AGGREGATE_SUM";
