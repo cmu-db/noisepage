@@ -21,7 +21,7 @@ class OperatorTranslator : public ExpressionEvaluator {
    * @param codegen The code generator to use
    * @param feature Feature Type
    */
-  explicit OperatorTranslator(CodeGen *codegen, brain::OperatingUnitFeatureType feature)
+  explicit OperatorTranslator(CodeGen *codegen, brain::ExecutionOperatingUnitType feature)
       : codegen_(codegen), feature_type_(feature) {}
 
   /**
@@ -167,7 +167,7 @@ class OperatorTranslator : public ExpressionEvaluator {
   /**
    * @return feature type
    */
-  brain::OperatingUnitFeatureType GetFeatureType() const { return feature_type_; }
+  brain::ExecutionOperatingUnitType GetFeatureType() const { return feature_type_; }
 
  protected:
   /**
@@ -176,9 +176,9 @@ class OperatorTranslator : public ExpressionEvaluator {
   CodeGen *codegen_;
 
   /**
-   * OperatingUnitFeatureType
+   * ExecutionOperatingUnitType
    */
-  brain::OperatingUnitFeatureType feature_type_{brain::OperatingUnitFeatureType::INVALID};
+  brain::ExecutionOperatingUnitType feature_type_{brain::ExecutionOperatingUnitType::INVALID};
 
   /**
    * The child operator translator.

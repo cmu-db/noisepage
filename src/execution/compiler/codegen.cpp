@@ -17,7 +17,7 @@ CodeGen::CodeGen(exec::ExecutionContext *exec_ctx)
       ast_ctx_(std::make_unique<ast::Context>(region_.get(), &error_reporter_)),
       factory_(region_.get()),
       exec_ctx_(exec_ctx),
-      operating_units_(std::make_unique<brain::OperatingUnits>()),
+      pipeline_operating_units_(std::make_unique<brain::PipelineOperatingUnits>()),
       state_struct_{Context()->GetIdentifier("State")},
       state_var_{Context()->GetIdentifier("state")},
       exec_ctx_var_(Context()->GetIdentifier("execCtx")),

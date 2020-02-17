@@ -11,67 +11,67 @@ namespace terrier::brain {
 class BrainUtil {
  public:
   /**
-   * Converts an OperatingUnitFeatureType enum to string representation
-   * @param f OperatingUnitFeatureType to convert
+   * Converts an ExecutionOperatingUnitType enum to string representation
+   * @param f ExecutionOperatingUnitType to convert
    */
-  static std::string OperatingUnitFeatureTypeToString(OperatingUnitFeatureType f) {
+  static std::string ExecutionOperatingUnitTypeToString(ExecutionOperatingUnitType f) {
     switch (f) {
-      case OperatingUnitFeatureType::INVALID:
+      case ExecutionOperatingUnitType::INVALID:
         return "INVALID";
-      case OperatingUnitFeatureType::AGGREGATE_BUILD:
+      case ExecutionOperatingUnitType::AGGREGATE_BUILD:
         return "AGG_BUILD";
-      case OperatingUnitFeatureType::AGGREGATE_ITERATE:
+      case ExecutionOperatingUnitType::AGGREGATE_ITERATE:
         return "AGG_ITERATE";
-      case OperatingUnitFeatureType::HASHJOIN_BUILD:
+      case ExecutionOperatingUnitType::HASHJOIN_BUILD:
         return "HASHJOIN_BUILD";
-      case OperatingUnitFeatureType::HASHJOIN_PROBE:
+      case ExecutionOperatingUnitType::HASHJOIN_PROBE:
         return "HASHJOIN_PROBE";
-      case OperatingUnitFeatureType::NLJOIN_LEFT:
+      case ExecutionOperatingUnitType::NLJOIN_LEFT:
         return "NLJOIN_LEFT";
-      case OperatingUnitFeatureType::NLJOIN_RIGHT:
+      case ExecutionOperatingUnitType::NLJOIN_RIGHT:
         return "NLJOIN_RIGHT";
-      case OperatingUnitFeatureType::IDXJOIN:
+      case ExecutionOperatingUnitType::IDXJOIN:
         return "IDXJOIN";
-      case OperatingUnitFeatureType::SORT_BUILD:
+      case ExecutionOperatingUnitType::SORT_BUILD:
         return "SORT_BUILD";
-      case OperatingUnitFeatureType::SORT_ITERATE:
+      case ExecutionOperatingUnitType::SORT_ITERATE:
         return "SORT_ITERATE";
-      case OperatingUnitFeatureType::SEQ_SCAN:
+      case ExecutionOperatingUnitType::SEQ_SCAN:
         return "SEQ_SCAN";
-      case OperatingUnitFeatureType::IDX_SCAN:
+      case ExecutionOperatingUnitType::IDX_SCAN:
         return "IDX_SCAN";
-      case OperatingUnitFeatureType::INSERT:
+      case ExecutionOperatingUnitType::INSERT:
         return "INSERT";
-      case OperatingUnitFeatureType::UPDATE:
+      case ExecutionOperatingUnitType::UPDATE:
         return "UPDATE";
-      case OperatingUnitFeatureType::DELETE:
+      case ExecutionOperatingUnitType::DELETE:
         return "DELETE";
-      case OperatingUnitFeatureType::PROJECTION:
+      case ExecutionOperatingUnitType::PROJECTION:
         return "PROJECTION";
-      case OperatingUnitFeatureType::OUTPUT:
+      case ExecutionOperatingUnitType::OUTPUT:
         return "OUTPUT";
-      case OperatingUnitFeatureType::OP_ADD:
+      case ExecutionOperatingUnitType::OP_ADD:
         return "OP_ADD";
-      case OperatingUnitFeatureType::OP_SUBTRACT:
+      case ExecutionOperatingUnitType::OP_SUBTRACT:
         return "OP_SUBTRACT";
-      case OperatingUnitFeatureType::OP_MULTIPLY:
+      case ExecutionOperatingUnitType::OP_MULTIPLY:
         return "OP_MULTIPLY";
-      case OperatingUnitFeatureType::OP_DIVIDE:
+      case ExecutionOperatingUnitType::OP_DIVIDE:
         return "OP_DIVIDE";
-      case OperatingUnitFeatureType::OP_COMPARE_EQ:
+      case ExecutionOperatingUnitType::OP_COMPARE_EQ:
         return "OP_COMPARE_EQ";
-      case OperatingUnitFeatureType::OP_COMPARE_NEQ:
+      case ExecutionOperatingUnitType::OP_COMPARE_NEQ:
         return "OP_COMPARE_NEQ";
-      case OperatingUnitFeatureType::OP_COMPARE_LT:
+      case ExecutionOperatingUnitType::OP_COMPARE_LT:
         return "OP_COMPARE_LT";
-      case OperatingUnitFeatureType::OP_COMPARE_GT:
+      case ExecutionOperatingUnitType::OP_COMPARE_GT:
         return "OP_COMPARE_GT";
-      case OperatingUnitFeatureType::OP_COMPARE_LTE:
+      case ExecutionOperatingUnitType::OP_COMPARE_LTE:
         return "OP_COMPARE_LTE";
-      case OperatingUnitFeatureType::OP_COMPARE_GTE:
+      case ExecutionOperatingUnitType::OP_COMPARE_GTE:
         return "OP_COMPARE_GTE";
       default:
-        UNREACHABLE("Undefined OperatingUnitFeatureType encountered");
+        UNREACHABLE("Undefined ExecutionOperatingUnitType encountered");
         break;
     }
   }

@@ -8,7 +8,7 @@
 
 namespace terrier::execution::compiler {
 UpdateTranslator::UpdateTranslator(const terrier::planner::UpdatePlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(codegen, brain::OperatingUnitFeatureType::UPDATE),
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::UPDATE),
       op_(op),
       updater_(codegen->NewIdentifier("updater")),
       update_pr_(codegen->NewIdentifier("update_pr")),

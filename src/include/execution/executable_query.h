@@ -87,7 +87,7 @@ class ExecutableQuery {
   // together.
   std::unique_ptr<util::Region> region_;
   std::unique_ptr<ast::Context> ast_ctx_;
-  std::unique_ptr<brain::OperatingUnits> operating_units_;
+  std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units_;
 
   std::string query_name_;
   query_id_t query_id_;

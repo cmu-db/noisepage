@@ -33,38 +33,38 @@
 
 namespace terrier::brain {
 
-OperatingUnitFeatureType OperatingUnitRecorder::ConvertExpressionType(parser::ExpressionType etype) {
+ExecutionOperatingUnitType OperatingUnitRecorder::ConvertExpressionType(parser::ExpressionType etype) {
   switch (etype) {
     case parser::ExpressionType::OPERATOR_PLUS:
-      return OperatingUnitFeatureType::OP_ADD;
+      return ExecutionOperatingUnitType::OP_ADD;
     case parser::ExpressionType::OPERATOR_MINUS:
-      return OperatingUnitFeatureType::OP_SUBTRACT;
+      return ExecutionOperatingUnitType::OP_SUBTRACT;
     case parser::ExpressionType::OPERATOR_MULTIPLY:
-      return OperatingUnitFeatureType::OP_MULTIPLY;
+      return ExecutionOperatingUnitType::OP_MULTIPLY;
     case parser::ExpressionType::OPERATOR_DIVIDE:
-      return OperatingUnitFeatureType::OP_DIVIDE;
+      return ExecutionOperatingUnitType::OP_DIVIDE;
     case parser::ExpressionType::COMPARE_EQUAL:
-      return OperatingUnitFeatureType::OP_COMPARE_EQ;
+      return ExecutionOperatingUnitType::OP_COMPARE_EQ;
     case parser::ExpressionType::COMPARE_NOT_EQUAL:
-      return OperatingUnitFeatureType::OP_COMPARE_NEQ;
+      return ExecutionOperatingUnitType::OP_COMPARE_NEQ;
     case parser::ExpressionType::COMPARE_LESS_THAN:
-      return OperatingUnitFeatureType::OP_COMPARE_LT;
+      return ExecutionOperatingUnitType::OP_COMPARE_LT;
     case parser::ExpressionType::COMPARE_GREATER_THAN:
-      return OperatingUnitFeatureType::OP_COMPARE_GT;
+      return ExecutionOperatingUnitType::OP_COMPARE_GT;
     case parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
-      return OperatingUnitFeatureType::OP_COMPARE_LTE;
+      return ExecutionOperatingUnitType::OP_COMPARE_LTE;
     case parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
-      return OperatingUnitFeatureType::OP_COMPARE_GTE;
+      return ExecutionOperatingUnitType::OP_COMPARE_GTE;
     default:
-      return OperatingUnitFeatureType::INVALID;
+      return ExecutionOperatingUnitType::INVALID;
   }
 }
 
-std::unordered_set<OperatingUnitFeatureType> OperatingUnitRecorder::ExtractFeaturesFromExpression(
+std::unordered_set<ExecutionOperatingUnitType> OperatingUnitRecorder::ExtractFeaturesFromExpression(
     common::ManagedPointer<parser::AbstractExpression> expr) {
-  if (expr == nullptr) return std::unordered_set<OperatingUnitFeatureType>();
+  if (expr == nullptr) return std::unordered_set<ExecutionOperatingUnitType>();
 
-  std::unordered_set<OperatingUnitFeatureType> feature_types;
+  std::unordered_set<ExecutionOperatingUnitType> feature_types;
   std::queue<common::ManagedPointer<parser::AbstractExpression>> work;
   work.push(expr);
 
@@ -73,7 +73,7 @@ std::unordered_set<OperatingUnitFeatureType> OperatingUnitRecorder::ExtractFeatu
     work.pop();
 
     auto feature = ConvertExpressionType(head->GetExpressionType());
-    if (feature != OperatingUnitFeatureType::INVALID) {
+    if (feature != ExecutionOperatingUnitType::INVALID) {
       feature_types.insert(feature);
     }
 
@@ -185,24 +185,24 @@ void OperatingUnitRecorder::Visit(const planner::ProjectionPlanNode *plan) { Vis
 
 void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) { VisitAbstractPlanNode(plan); }
 
-OperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
+ExecutionOperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
     const std::vector<std::unique_ptr<execution::compiler::OperatorTranslator>> &translators) {
   // Note that OperatorTranslators are roughly 1:1 with a plan node
   // As such, just emplace directly into feature vector
-  std::vector<OperatingUnitFeature> results{};
+  std::vector<ExecutionOperatingUnitFeature> results{};
   std::unordered_set<const planner::AbstractPlanNode *> plan_nodes;
   for (const auto &translator : translators) {
     // TODO(wz2): Populate actual num_rows/cardinality after #759
     auto feature_type = translator->GetFeatureType();
     auto num_rows = 0;
     auto cardinality = 0.0;
-    if (feature_type != OperatingUnitFeatureType::INVALID && feature_type != OperatingUnitFeatureType::OUTPUT) {
+    if (feature_type != ExecutionOperatingUnitType::INVALID && feature_type != ExecutionOperatingUnitType::OUTPUT) {
       plan_nodes.insert(translator->Op());
       results.emplace_back(feature_type, num_rows, cardinality);
     }
   }
 
-  std::unordered_map<OperatingUnitFeatureType, OperatingUnitFeature> features;
+  std::unordered_map<ExecutionOperatingUnitType, ExecutionOperatingUnitFeature> features;
   for (auto *plan : plan_nodes) {
     // Consolidate the features based on OutputSchema
     plan_features_ = {};
@@ -214,7 +214,7 @@ OperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
       auto cardinality = 0.0;
       auto itr = features.find(feature);
       if (itr == features.end()) {
-        features.insert(std::make_pair(feature, OperatingUnitFeature(feature, num_rows, cardinality)));
+        features.insert(std::make_pair(feature, ExecutionOperatingUnitFeature(feature, num_rows, cardinality)));
       } else {
         // For now, we just record the max cardinality/max estimated rows
         // for cases of duplicate fatures (i.e ADD). In the future, may

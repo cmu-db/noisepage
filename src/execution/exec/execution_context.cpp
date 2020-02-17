@@ -48,8 +48,8 @@ void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pip
     auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
 
     // TODO(wz2): With a query cache, see if we can avoid this copy
-    TERRIER_ASSERT(operating_units_ != nullptr, "OperatingUnits should not be null");
-    brain::OperatingUnitFeatureVector features(operating_units_->GetPipelineFeatures(pipeline));
+    TERRIER_ASSERT(pipeline_operating_units_ != nullptr, "PipelineOperatingUnits should not be null");
+    brain::ExecutionOperatingUnitFeatureVector features(pipeline_operating_units_->GetPipelineFeatures(pipeline));
     common::thread_context.metrics_store_->RecordPipelineData(query_id, pipeline, execution_mode_, std::move(features),
                                                               resource_metrics);
   }

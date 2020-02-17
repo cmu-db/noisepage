@@ -174,10 +174,10 @@ class EXPORT ExecutionContext {
   uint64_t &RowsAffected() { return rows_affected_; }
 
   /**
-   * Set the OperatingUnits
-   * @param op OperatingUnits for executing the given query
+   * Set the PipelineOperatingUnits
+   * @param op PipelineOperatingUnits for executing the given query
    */
-  void SetOperatingUnits(common::ManagedPointer<brain::OperatingUnits> op) { operating_units_ = op; }
+  void SetPipelineOperatingUnits(common::ManagedPointer<brain::PipelineOperatingUnits> op) { pipeline_operating_units_ = op; }
 
  private:
   catalog::db_oid_t db_oid_;
@@ -186,7 +186,7 @@ class EXPORT ExecutionContext {
   std::unique_ptr<sql::MemoryPool> mem_pool_;
   std::unique_ptr<OutputBuffer> buffer_;
   StringAllocator string_allocator_;
-  common::ManagedPointer<brain::OperatingUnits> operating_units_;
+  common::ManagedPointer<brain::PipelineOperatingUnits> pipeline_operating_units_;
   common::ManagedPointer<catalog::CatalogAccessor> accessor_;
   uint8_t execution_mode_;
   std::vector<type::TransientValue> params_;

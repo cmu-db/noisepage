@@ -126,7 +126,7 @@ class MetricsStore {
    * @param resource_metrics Metrics
    */
   void RecordPipelineData(execution::query_id_t query_id, execution::pipeline_id_t pipeline_id, uint8_t execution_mode,
-                          std::vector<brain::OperatingUnitFeature> &&features,
+                          std::vector<brain::ExecutionOperatingUnitFeature> &&features,
                           const common::ResourceTracker::Metrics &resource_metrics) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::EXECUTION_PIPELINE), "PipelineMMetric not enabled.");
     TERRIER_ASSERT(pipeline_metric_ != nullptr, "PipelineMetric not allocated. Check MetricsStore constructor.");

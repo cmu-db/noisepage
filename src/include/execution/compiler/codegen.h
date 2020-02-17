@@ -101,14 +101,14 @@ class CodeGen {
   ast::Identifier GetExecCtxVar() { return exec_ctx_var_; }
 
   /**
-   * @return OperatingUnits instance
+   * @return PipelineOperatingUnits instance
    */
-  brain::OperatingUnits *GetOperatingUnits() { return operating_units_.get(); }
+  brain::PipelineOperatingUnits *GetPipelineOperatingUnits() { return pipeline_operating_units_.get(); }
 
   /**
-   * @return release ownership of the OperatingUnits instance
+   * @return release ownership of the PipelineOperatingUnits instance
    */
-  std::unique_ptr<brain::OperatingUnits> ReleaseOperatingUnits() { return std::move(operating_units_); }
+  std::unique_ptr<brain::PipelineOperatingUnits> ReleasePipelineOperatingUnits() { return std::move(pipeline_operating_units_); }
 
   /**
    * Creates the File node for the query
@@ -560,7 +560,7 @@ class CodeGen {
   std::unique_ptr<ast::Context> ast_ctx_;
   ast::AstNodeFactory factory_;
   exec::ExecutionContext *exec_ctx_;
-  std::unique_ptr<brain::OperatingUnits> operating_units_;
+  std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units_;
 
   // Identifiers that are always needed
   // Identifier of the state struct

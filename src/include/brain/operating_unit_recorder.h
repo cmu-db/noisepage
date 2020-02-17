@@ -14,7 +14,7 @@
 namespace terrier::brain {
 
 /**
- * OperatingUnitRecorder extracts all relevant OperatingUnitFeature
+ * OperatingUnitRecorder extracts all relevant ExecutionOperatingUnitFeature
  * from a given vector of OperatorTranslators.
  */
 class OperatingUnitRecorder : planner::PlanVisitor {
@@ -22,23 +22,23 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   /**
    * Extracts features from OperatorTranslators
    * @param translators Vector of OperatorTranslators to extract from
-   * @returns Vector of extracted features (OperatingUnitFeature)
+   * @returns Vector of extracted features (ExecutionOperatingUnitFeature)
    */
-  OperatingUnitFeatureVector RecordTranslators(
+  ExecutionOperatingUnitFeatureVector RecordTranslators(
       const std::vector<std::unique_ptr<execution::compiler::OperatorTranslator>> &translators);
 
  private:
   /**
-   * Converts a parser::ExpressionType to brain::OperatingUnitFeatureType
+   * Converts a parser::ExpressionType to brain::ExecutionOperatingUnitType
    *
-   * Function returns brain::OperatingUnitFeatureType::INVALID if the
+   * Function returns brain::ExecutionOperatingUnitType::INVALID if the
    * parser::ExpressionType does not have an equivalent conversion.
    *
    * @param etype ExpressionType to convert
-   * @returns converted equivalent brain::OperatingUnitFeatureType
+   * @returns converted equivalent brain::ExecutionOperatingUnitType
    */
-  OperatingUnitFeatureType ConvertExpressionType(parser::ExpressionType etype);
-  std::unordered_set<OperatingUnitFeatureType> ExtractFeaturesFromExpression(
+  ExecutionOperatingUnitType ConvertExpressionType(parser::ExpressionType etype);
+  std::unordered_set<ExecutionOperatingUnitType> ExtractFeaturesFromExpression(
       common::ManagedPointer<parser::AbstractExpression> expr);
 
   /**
@@ -74,7 +74,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   /**
    * Structure used to store features for a single plan visit
    */
-  std::unordered_set<OperatingUnitFeatureType> plan_features_;
+  std::unordered_set<ExecutionOperatingUnitType> plan_features_;
 };
 
 }  // namespace terrier::brain

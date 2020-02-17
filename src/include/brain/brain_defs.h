@@ -2,7 +2,7 @@
 
 namespace terrier::brain {
 
-enum class OperatingUnitFeatureType : uint32_t {
+enum class ExecutionOperatingUnitType : uint32_t {
   INVALID,
 
   AGGREGATE_BUILD,

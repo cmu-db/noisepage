@@ -63,7 +63,7 @@ ast::File *Compiler::Compile() {
     brain::OperatingUnitRecorder recorder;
     auto &translators = pipeline->GetTranslators();
     auto features = recorder.RecordTranslators(translators);
-    codegen_->GetOperatingUnits()->RecordOperatingUnit(pipeline_idx, std::move(features));
+    codegen_->GetPipelineOperatingUnits()->RecordOperatingUnit(pipeline_idx, std::move(features));
 
     // Produce the actual pipeline
     top_level.emplace_back(pipeline->Produce(query_identifier_, pipeline_idx));

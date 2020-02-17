@@ -155,7 +155,7 @@ class AggregateTopTranslator : public OperatorTranslator {
    * @param bottom The corresponding bottom translator
    */
   AggregateTopTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen, OperatorTranslator *bottom)
-      : OperatorTranslator(codegen, brain::OperatingUnitFeatureType::AGGREGATE_ITERATE),
+      : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE),
         op_(op),
         bottom_(dynamic_cast<AggregateBottomTranslator *>(bottom)),
         agg_iterator_("agg_iter") {}

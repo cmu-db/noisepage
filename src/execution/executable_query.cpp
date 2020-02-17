@@ -37,8 +37,8 @@ ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractP
   tpl_module_ = std::make_unique<vm::Module>(std::move(bytecode_module));
   region_ = codegen.ReleaseRegion();
   ast_ctx_ = codegen.ReleaseContext();
-  operating_units_ = codegen.ReleaseOperatingUnits();
-  exec_ctx->SetOperatingUnits(common::ManagedPointer(operating_units_));
+  pipeline_operating_units_ = codegen.ReleasePipelineOperatingUnits();
+  exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(pipeline_operating_units_));
 }
 
 ExecutableQuery::ExecutableQuery(const std::string &filename,
@@ -100,7 +100,7 @@ void ExecutableQuery::Run(const common::ManagedPointer<exec::ExecutionContext> e
   }
   auto result = main(exec_ctx.Get());
   EXECUTION_LOG_DEBUG("main() returned: {}", result);
-  exec_ctx->SetOperatingUnits(nullptr);
+  exec_ctx->SetPipelineOperatingUnits(nullptr);
 }
 
 }  // namespace terrier::execution
