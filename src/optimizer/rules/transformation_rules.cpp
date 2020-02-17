@@ -93,7 +93,7 @@ void LogicalInnerJoinAssociativity::Transform(common::ManagedPointer<OperatorNod
   auto parent_join = input->GetOp().As<LogicalInnerJoin>();
   const auto &children = input->GetChildren();
   TERRIER_ASSERT(children.size() == 2, "There should be 2 children");
-  TERRIER_ASSERT(children[0]->GetOp().GetType() == OpType::LOGICALINNERJOIN, "Left should be join");
+  TERRIER_ASSERT(children[0]->GetOp().GetOpType() == OpType::LOGICALINNERJOIN, "Left should be join");
   TERRIER_ASSERT(children[0]->GetChildren().size() == 2, "Left join should have 2 children");
 
   auto child_join = children[0]->GetOp().As<LogicalInnerJoin>();

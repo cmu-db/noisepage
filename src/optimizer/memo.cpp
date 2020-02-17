@@ -10,7 +10,7 @@ namespace terrier::optimizer {
 
 GroupExpression *Memo::InsertExpression(GroupExpression *gexpr, group_id_t target_group, bool enforced) {
   // If leaf, then just return
-  if (gexpr->Op().GetType() == OpType::LEAF) {
+  if (gexpr->Op().GetOpType() == OpType::LEAF) {
     const auto leaf = gexpr->Op().As<LeafOperator>();
     TERRIER_ASSERT(target_group == UNDEFINED_GROUP || target_group == leaf->GetOriginGroup(),
                    "target_group does not match the LeafOperator's group");
@@ -50,7 +50,7 @@ group_id_t Memo::AddNewGroup(GroupExpression *gexpr) {
 
   // Find out the table alias that this group represents
   std::unordered_set<std::string> table_aliases;
-  auto op_type = gexpr->Op().GetType();
+  auto op_type = gexpr->Op().GetOpType();
   if (op_type == OpType::LOGICALGET) {
     // For base group, the table alias can get directly from logical get
     const auto logical_get = gexpr->Op().As<LogicalGet>();

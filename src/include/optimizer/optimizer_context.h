@@ -143,7 +143,7 @@ class OptimizerContext {
   GroupExpression *MakeGroupExpression(common::ManagedPointer<OperatorNode> expr) {
     std::vector<group_id_t> child_groups;
     for (auto &child : expr->GetChildren()) {
-      if (child->GetOp().GetType() == OpType::LEAF) {
+      if (child->GetOp().GetOpType() == OpType::LEAF) {
         // Special case for LEAF
         const auto leaf = child->GetOp().As<LeafOperator>();
         auto child_group = leaf->GetOriginGroup();

@@ -21,7 +21,7 @@ void OptimizerTask::ConstructValidRules(GroupExpression *group_expr, const std::
                                         std::vector<RuleWithPromise> *valid_rules) {
   for (auto &rule : rules) {
     // Check if we can apply the rule
-    bool root_pattern_mismatch = group_expr->Op().GetType() != rule->GetMatchPattern()->Type();
+    bool root_pattern_mismatch = group_expr->Op().GetOpType() != rule->GetMatchPattern()->Type();
     bool already_explored = group_expr->HasRuleExplored(rule);
 
     // This check exists only as an "early" reject. As is evident, we do not check
@@ -83,7 +83,7 @@ void OptimizeExpression::Execute() {
 
   std::sort(valid_rules.begin(), valid_rules.end());
   OPTIMIZER_LOG_DEBUG("OptimizeExpression::execute() op {0}, valid rules : {1}",
-                      static_cast<int>(group_expr_->Op().GetType()), valid_rules.size());
+                      static_cast<int>(group_expr_->Op().GetOpType()), valid_rules.size());
   // Apply rule
   for (auto &r : valid_rules) {
     PushTask(new ApplyRule(group_expr_, r.GetRule(), context_));

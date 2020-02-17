@@ -6,6 +6,7 @@
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
 #include "optimizer/optimizer_defs.h"
+#include "optimizer/abstract_optimizer_node_contents.h"
 
 namespace terrier::optimizer {
 
@@ -17,7 +18,7 @@ class OperatorVisitor;
 /**
  * Base class for operators
  */
-class BaseOperatorNodeContents {
+class BaseOperatorNodeContents : AbstractOptimizerNodeContents {
  public:
   /**
    * Default constructor
@@ -49,7 +50,7 @@ class BaseOperatorNodeContents {
   /**
    * @return the type of this operator
    */
-  virtual OpType GetType() const = 0;
+  virtual OpType GetOpType() const = 0;
 
   /**
    * @return whether this operator is logical
@@ -65,7 +66,7 @@ class BaseOperatorNodeContents {
    * @return the hashed value of this operator
    */
   virtual common::hash_t Hash() const {
-    OpType t = GetType();
+    OpType t = GetOpType();
     return common::HashUtil::Hash(t);
   }
 
@@ -74,7 +75,7 @@ class BaseOperatorNodeContents {
    * @param r other
    * @return true if this operator is logically equal to other, false otherwise
    */
-  virtual bool operator==(const BaseOperatorNodeContents &r) { return GetType() == r.GetType(); }
+  virtual bool operator==(const BaseOperatorNodeContents &r) { return GetOpType() == r.GetOpType(); }
 
   /**
    * Inequality check
@@ -111,7 +112,7 @@ class OperatorNodeContents : public BaseOperatorNodeContents {
   /**
    * @return type of the underlying operator
    */
-  OpType GetType() const override { return type; }
+  OpType GetOpType() const override { return type; }
 
   /**
    * @return whether the underlying operator is logical
@@ -175,7 +176,7 @@ class Operator {
   /**
    * @return type of this operator
    */
-  OpType GetType() const;
+  OpType GetOpType() const;
 
   /**
    * @return hashed value of this operator

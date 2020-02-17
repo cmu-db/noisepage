@@ -21,9 +21,9 @@ std::string Operator::GetName() const {
   return "Undefined";
 }
 
-OpType Operator::GetType() const {
+OpType Operator::GetOpType() const {
   if (IsDefined()) {
-    return contents_->GetType();
+    return contents_->GetOpType();
   }
 
   return OpType::UNDEFINED;

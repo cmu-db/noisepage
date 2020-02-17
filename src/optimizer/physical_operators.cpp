@@ -20,7 +20,7 @@ BaseOperatorNodeContents *TableFreeScan::Copy() const { return new TableFreeScan
 Operator TableFreeScan::Make() { return Operator(std::make_unique<TableFreeScan>()); }
 
 bool TableFreeScan::operator==(const BaseOperatorNodeContents &r) {
-  return (r.GetType() == OpType::TABLEFREESCAN);
+  return (r.GetOpType() == OpType::TABLEFREESCAN);
   // Again, there isn't any internal data so I guess we're always equal!
 }
 
@@ -49,7 +49,7 @@ Operator SeqScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t 
 }
 
 bool SeqScan::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::SEQSCAN) return false;
+  if (r.GetOpType() != OpType::SEQSCAN) return false;
   const SeqScan &node = *dynamic_cast<const SeqScan *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
@@ -96,7 +96,7 @@ Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_
 }
 
 bool IndexScan::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::INDEXSCAN) return false;
+  if (r.GetOpType() != OpType::INDEXSCAN) return false;
   const IndexScan &node = *dynamic_cast<const IndexScan *>(&r);
   if (database_oid_ != node.database_oid_ || namespace_oid_ != node.namespace_oid_ || index_oid_ != node.index_oid_ ||
       tbl_oid_ != node.tbl_oid_ || predicates_.size() != node.predicates_.size() ||
@@ -168,7 +168,7 @@ Operator ExternalFileScan::Make(parser::ExternalFileFormat format, std::string f
 }
 
 bool ExternalFileScan::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::EXTERNALFILESCAN) return false;
+  if (r.GetOpType() != OpType::EXTERNALFILESCAN) return false;
   const auto &get = *dynamic_cast<const ExternalFileScan *>(&r);
   return (format_ == get.format_ && file_name_ == get.file_name_ && delimiter_ == get.delimiter_ &&
           quote_ == get.quote_ && escape_ == get.escape_);
@@ -200,7 +200,7 @@ Operator QueryDerivedScan::Make(
 }
 
 bool QueryDerivedScan::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::QUERYDERIVEDSCAN) return false;
+  if (r.GetOpType() != OpType::QUERYDERIVEDSCAN) return false;
   const QueryDerivedScan &node = *static_cast<const QueryDerivedScan *>(&r);
   if (table_alias_ != node.table_alias_) return false;
   return alias_to_expr_map_ == node.alias_to_expr_map_;
@@ -224,7 +224,7 @@ BaseOperatorNodeContents *OrderBy::Copy() const { return new OrderBy(*this); }
 Operator OrderBy::Make() { return Operator(std::make_unique<OrderBy>()); }
 
 bool OrderBy::operator==(const BaseOperatorNodeContents &r) {
-  return (r.GetType() == OpType::ORDERBY);
+  return (r.GetOpType() == OpType::ORDERBY);
   // Again, there isn't any internal data so I guess we're always equal!
 }
 
@@ -251,7 +251,7 @@ Operator Limit::Make(size_t offset, size_t limit,
 }
 
 bool Limit::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::LIMIT) return false;
+  if (r.GetOpType() != OpType::LIMIT) return false;
   const Limit &node = *static_cast<const Limit *>(&r);
   if (offset_ != node.offset_) return false;
   if (limit_ != node.limit_) return false;
@@ -300,7 +300,7 @@ common::hash_t InnerNLJoin::Hash() const {
 }
 
 bool InnerNLJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::INNERNLJOIN) return false;
+  if (r.GetOpType() != OpType::INNERNLJOIN) return false;
   const InnerNLJoin &node = *dynamic_cast<const InnerNLJoin *>(&r);
   if (left_keys_.size() != node.left_keys_.size() || right_keys_.size() != node.right_keys_.size() ||
       join_predicates_.size() != node.join_predicates_.size())
@@ -333,7 +333,7 @@ common::hash_t LeftNLJoin::Hash() const {
 }
 
 bool LeftNLJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::LEFTNLJOIN) return false;
+  if (r.GetOpType() != OpType::LEFTNLJOIN) return false;
   const LeftNLJoin &node = *static_cast<const LeftNLJoin *>(&r);
   return (*join_predicate_ == *(node.join_predicate_));
 }
@@ -355,7 +355,7 @@ common::hash_t RightNLJoin::Hash() const {
 }
 
 bool RightNLJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::RIGHTNLJOIN) return false;
+  if (r.GetOpType() != OpType::RIGHTNLJOIN) return false;
   const RightNLJoin &node = *static_cast<const RightNLJoin *>(&r);
   return (*join_predicate_ == *(node.join_predicate_));
 }
@@ -378,7 +378,7 @@ common::hash_t OuterNLJoin::Hash() const {
 }
 
 bool OuterNLJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::OUTERNLJOIN) return false;
+  if (r.GetOpType() != OpType::OUTERNLJOIN) return false;
   const OuterNLJoin &node = *static_cast<const OuterNLJoin *>(&r);
   return (*join_predicate_ == *(node.join_predicate_));
 }
@@ -413,7 +413,7 @@ common::hash_t InnerHashJoin::Hash() const {
 }
 
 bool InnerHashJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::INNERHASHJOIN) return false;
+  if (r.GetOpType() != OpType::INNERHASHJOIN) return false;
   const InnerHashJoin &node = *dynamic_cast<const InnerHashJoin *>(&r);
   if (left_keys_.size() != node.left_keys_.size() || right_keys_.size() != node.right_keys_.size() ||
       join_predicates_.size() != node.join_predicates_.size())
@@ -446,7 +446,7 @@ common::hash_t LeftHashJoin::Hash() const {
 }
 
 bool LeftHashJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::LEFTHASHJOIN) return false;
+  if (r.GetOpType() != OpType::LEFTHASHJOIN) return false;
   const LeftHashJoin &node = *static_cast<const LeftHashJoin *>(&r);
   return (*join_predicate_ == *(node.join_predicate_));
 }
@@ -469,7 +469,7 @@ common::hash_t RightHashJoin::Hash() const {
 }
 
 bool RightHashJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::RIGHTHASHJOIN) return false;
+  if (r.GetOpType() != OpType::RIGHTHASHJOIN) return false;
   const RightHashJoin &node = *static_cast<const RightHashJoin *>(&r);
   return (*join_predicate_ == *(node.join_predicate_));
 }
@@ -492,7 +492,7 @@ common::hash_t OuterHashJoin::Hash() const {
 }
 
 bool OuterHashJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::OUTERHASHJOIN) return false;
+  if (r.GetOpType() != OpType::OUTERHASHJOIN) return false;
   const OuterHashJoin &node = *static_cast<const OuterHashJoin *>(&r);
   return (*join_predicate_ == *(node.join_predicate_));
 }
@@ -540,7 +540,7 @@ common::hash_t Insert::Hash() const {
 }
 
 bool Insert::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::INSERT) return false;
+  if (r.GetOpType() != OpType::INSERT) return false;
   const Insert &node = *dynamic_cast<const Insert *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
@@ -574,7 +574,7 @@ common::hash_t InsertSelect::Hash() const {
 }
 
 bool InsertSelect::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::INSERTSELECT) return false;
+  if (r.GetOpType() != OpType::INSERTSELECT) return false;
   const InsertSelect &node = *dynamic_cast<const InsertSelect *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
@@ -607,7 +607,7 @@ common::hash_t Delete::Hash() const {
 }
 
 bool Delete::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::DELETE) return false;
+  if (r.GetOpType() != OpType::DELETE) return false;
   const Delete &node = *dynamic_cast<const Delete *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
@@ -642,7 +642,7 @@ common::hash_t Update::Hash() const {
 }
 
 bool Update::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::UPDATE) return false;
+  if (r.GetOpType() != OpType::UPDATE) return false;
   const Update &node = *dynamic_cast<const Update *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
@@ -668,7 +668,7 @@ Operator ExportExternalFile::Make(parser::ExternalFileFormat format, std::string
 }
 
 bool ExportExternalFile::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::EXPORTEXTERNALFILE) return false;
+  if (r.GetOpType() != OpType::EXPORTEXTERNALFILE) return false;
   const auto &export_op = *dynamic_cast<const ExportExternalFile *>(&r);
   return (format_ == export_op.format_ && file_name_ == export_op.file_name_ && delimiter_ == export_op.delimiter_ &&
           quote_ == export_op.quote_ && escape_ == export_op.escape_);
@@ -698,7 +698,7 @@ Operator HashGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractEx
 }
 
 bool HashGroupBy::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::HASHGROUPBY) return false;
+  if (r.GetOpType() != OpType::HASHGROUPBY) return false;
   const HashGroupBy &node = *static_cast<const HashGroupBy *>(&r);
   if (having_.size() != node.having_.size() || columns_.size() != node.columns_.size()) return false;
   for (size_t i = 0; i < having_.size(); i++) {
@@ -737,7 +737,7 @@ Operator SortGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractEx
 }
 
 bool SortGroupBy::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::SORTGROUPBY) return false;
+  if (r.GetOpType() != OpType::SORTGROUPBY) return false;
   const SortGroupBy &node = *static_cast<const SortGroupBy *>(&r);
   if (having_.size() != node.having_.size() || columns_.size() != node.columns_.size()) return false;
   for (size_t i = 0; i < having_.size(); i++) {
@@ -773,7 +773,7 @@ Operator Aggregate::Make() {
 }
 
 bool Aggregate::operator==(const BaseOperatorNodeContents &r) {
-  return (r.GetType() == OpType::AGGREGATE);
+  return (r.GetOpType() == OpType::AGGREGATE);
   // Again, there isn't any internal data so I guess we're always equal!
 }
 
@@ -801,7 +801,7 @@ common::hash_t CreateDatabase::Hash() const {
 }
 
 bool CreateDatabase::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::CREATEDATABASE) return false;
+  if (r.GetOpType() != OpType::CREATEDATABASE) return false;
   const CreateDatabase &node = *dynamic_cast<const CreateDatabase *>(&r);
   return node.database_name_ == database_name_;
 }
@@ -833,7 +833,7 @@ common::hash_t CreateTable::Hash() const {
 }
 
 bool CreateTable::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::CREATETABLE) return false;
+  if (r.GetOpType() != OpType::CREATETABLE) return false;
   const CreateTable &node = *dynamic_cast<const CreateTable *>(&r);
   if (namespace_oid_ != node.namespace_oid_) return false;
   if (table_name_ != node.table_name_) return false;
@@ -887,7 +887,7 @@ common::hash_t CreateIndex::Hash() const {
 }
 
 bool CreateIndex::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::CREATEINDEX) return false;
+  if (r.GetOpType() != OpType::CREATEINDEX) return false;
   const CreateIndex &node = *dynamic_cast<const CreateIndex *>(&r);
   if (namespace_oid_ != node.namespace_oid_) return false;
   if (table_oid_ != node.table_oid_) return false;
@@ -915,7 +915,7 @@ common::hash_t CreateNamespace::Hash() const {
 }
 
 bool CreateNamespace::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::CREATENAMESPACE) return false;
+  if (r.GetOpType() != OpType::CREATENAMESPACE) return false;
   const CreateNamespace &node = *dynamic_cast<const CreateNamespace *>(&r);
   return node.namespace_name_ == namespace_name_;
 }
@@ -958,7 +958,7 @@ common::hash_t CreateTrigger::Hash() const {
 }
 
 bool CreateTrigger::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::CREATETRIGGER) return false;
+  if (r.GetOpType() != OpType::CREATETRIGGER) return false;
   const CreateTrigger &node = *dynamic_cast<const CreateTrigger *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
@@ -997,7 +997,7 @@ common::hash_t CreateView::Hash() const {
 }
 
 bool CreateView::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::CREATEVIEW) return false;
+  if (r.GetOpType() != OpType::CREATEVIEW) return false;
   const CreateView &node = *dynamic_cast<const CreateView *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
@@ -1048,7 +1048,7 @@ common::hash_t CreateFunction::Hash() const {
 }
 
 bool CreateFunction::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::CREATEFUNCTION) return false;
+  if (r.GetOpType() != OpType::CREATEFUNCTION) return false;
   const CreateFunction &node = *dynamic_cast<const CreateFunction *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
@@ -1080,7 +1080,7 @@ common::hash_t DropDatabase::Hash() const {
 }
 
 bool DropDatabase::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::DROPDATABASE) return false;
+  if (r.GetOpType() != OpType::DROPDATABASE) return false;
   const DropDatabase &node = *dynamic_cast<const DropDatabase *>(&r);
   return node.db_oid_ == db_oid_;
 }
@@ -1103,7 +1103,7 @@ common::hash_t DropTable::Hash() const {
 }
 
 bool DropTable::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::DROPTABLE) return false;
+  if (r.GetOpType() != OpType::DROPTABLE) return false;
   const DropTable &node = *dynamic_cast<const DropTable *>(&r);
   return node.table_oid_ == table_oid_;
 }
@@ -1126,7 +1126,7 @@ common::hash_t DropIndex::Hash() const {
 }
 
 bool DropIndex::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::DROPINDEX) return false;
+  if (r.GetOpType() != OpType::DROPINDEX) return false;
   const DropIndex &node = *dynamic_cast<const DropIndex *>(&r);
   return node.index_oid_ == index_oid_;
 }
@@ -1149,7 +1149,7 @@ common::hash_t DropNamespace::Hash() const {
 }
 
 bool DropNamespace::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::DROPNAMESPACE) return false;
+  if (r.GetOpType() != OpType::DROPNAMESPACE) return false;
   const DropNamespace &node = *dynamic_cast<const DropNamespace *>(&r);
   return node.namespace_oid_ == namespace_oid_;
 }
@@ -1179,7 +1179,7 @@ common::hash_t DropTrigger::Hash() const {
 }
 
 bool DropTrigger::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::DROPTRIGGER) return false;
+  if (r.GetOpType() != OpType::DROPTRIGGER) return false;
   const DropTrigger &node = *dynamic_cast<const DropTrigger *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (trigger_oid_ != node.trigger_oid_) return false;
@@ -1212,7 +1212,7 @@ common::hash_t DropView::Hash() const {
 }
 
 bool DropView::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::DROPVIEW) return false;
+  if (r.GetOpType() != OpType::DROPVIEW) return false;
   const DropView &node = *dynamic_cast<const DropView *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (view_oid_ != node.view_oid_) return false;
