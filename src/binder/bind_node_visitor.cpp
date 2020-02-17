@@ -358,7 +358,7 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
         }
 
         std::vector<std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>>> cols;
-        if (num_insert_columns == 0) {  //already ordered
+        if (num_insert_columns == 0) {  // already ordered
           for (int i = 0; i < num_values; i++) {
             std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> pair =
                 std::make_pair(table_schema.GetColumns()[i], values[i]);
@@ -378,7 +378,7 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
 
           std::vector<std::string> ins_col;
           std::vector<common::ManagedPointer<parser::AbstractExpression>> ins_val;
-          for (auto pair : cols) {
+          for (auto const &pair : cols) {
             ins_col.push_back(pair.first.Name());
             ins_val.push_back(pair.second);
           }
@@ -403,8 +403,7 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
 
               values[i] = common::ManagedPointer(temp);
               parse_result->AddExpression(std::move(temp));
-            }
-            else {
+            } else {
               auto converted = BinderUtil::Convert(values[i], expected_ret_type);
               TERRIER_ASSERT(converted != nullptr, "Conversion cannot be null!");
               values[i] = common::ManagedPointer(converted);
