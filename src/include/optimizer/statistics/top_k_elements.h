@@ -304,7 +304,7 @@ class TopKElements {
   /**
    * @return the current size of the top-k list. This can be less than k.
    */
-  size_t GetSize() const { return entries_.size(); }
+  size_t GetSize() { return entries_.size(); }
 
   /**
    * Generate a vector of the top-k keys sorted by their current counts
@@ -332,6 +332,14 @@ class TopKElements {
     }
 
     return keys;
+  }
+
+  /**
+   * Returns the number of elements in the sketch (Can be less than K)
+   * @return the number of elements
+   */
+  size_t GetSize() const {
+    return entries_.size();
   }
 
   /**

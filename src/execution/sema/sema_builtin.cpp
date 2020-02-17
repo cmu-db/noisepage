@@ -574,10 +574,10 @@ void Sema::CheckBuiltinTopKAggregatorCall(ast::CallExpr *call, ast::Builtin buil
         return;
       }
       // Argument must be a SQL aggregator
-      if (!IsPointerToAggregatorValue(args[0]->GetType())) {
-        GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[0]->GetType());
-        return;
-      }
+      // if (!IsPointerToAggregatorValue(args[0]->GetType())) {
+      //   GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[0]->GetType());
+      //   return;
+      // }
       // Set the return type according to the aggregate type.
       switch (args[0]->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind()) {
         case ast::BuiltinType::Kind::IntegerTopKAggregate:
