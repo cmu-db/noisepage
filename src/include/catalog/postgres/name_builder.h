@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "catalog/postgres/pg_defs.h"
+#include "network/postgres/postgres_defs.h"
 #include "common/exception.h"
 
 namespace terrier::catalog::postgres {
@@ -43,7 +43,7 @@ class NameBuilder {
     }
 
     // truncate to the max length
-    while (total_length + underscore > MAX_NAME_LENGTH) {
+    while (total_length + underscore > network::MAX_NAME_LENGTH) {
       if (table_name_length > field_name_length)
         table_name_length--;
       else
