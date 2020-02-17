@@ -132,7 +132,7 @@ class PostgresPacketWriter : public PacketWriter {
     AppendValue<int16_t>(static_cast<int16_t>(param_types.size()));
 
     for (auto &type : param_types)
-      AppendValue<int32_t>(static_cast<int32_t>(InternalValueTypeToPostgresValueType(type)));
+      AppendValue<int32_t>(static_cast<int32_t>(PostgresProtocolUtil::InternalValueTypeToPostgresValueType(type)));
 
     EndPacket();
   }

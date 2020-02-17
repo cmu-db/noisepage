@@ -7,7 +7,7 @@
 #include "network/network_io_utils.h"
 #include "network/postgres/postgres_defs.h"
 #include "network/postgres/postgres_packet_writer.h"
-#include "network/postgres/postgres_protocol_utils.h"
+#include "network/postgres/postgres_protocol_util.h"
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
 #include "util/time_util.h"
@@ -51,7 +51,8 @@ class PostgresPacketUtil {
     std::vector<type::TypeId> param_types;
     param_types.reserve(num_params);
     for (uint16_t i = 0; i < num_params; i++) {
-      param_types.emplace_back(PostgresValueTypeToInternalValueType(read_buffer->ReadValue<PostgresValueType>()));
+      param_types.emplace_back(
+          PostgresProtocolUtil::PostgresValueTypeToInternalValueType(read_buffer->ReadValue<PostgresValueType>()));
     }
     return param_types;
   }
