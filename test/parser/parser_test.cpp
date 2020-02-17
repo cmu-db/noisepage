@@ -342,7 +342,7 @@ TEST_F(ParserTestBase, InsertTest) {
   EXPECT_EQ(insert_stmt->GetInsertColumns()->size(), 3);
   EXPECT_EQ((*insert_stmt->GetValues())[0][0]->GetExpressionType(), ExpressionType::VALUE_DEFAULT);
 
-  result = parser::PostgresParser::BuildParseTree("INSERT INTO foo VALUES (1, 1+1, 1+2);");
+  result = parser::PostgresParser::BuildParseTree("INSERT INTO foo VALUES (1, 1+1, 1+3);");
   insert_stmt = result->GetStatement(0).CastManagedPointerTo<InsertStatement>();
   EXPECT_EQ(insert_stmt->GetInsertionTable()->GetTableName(), "foo");
   EXPECT_EQ(insert_stmt->GetInsertColumns()->size(), 0);
