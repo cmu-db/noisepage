@@ -32,15 +32,15 @@ RewritePushImplicitFilterThroughJoin::RewritePushImplicitFilterThroughJoin() {
   match_pattern_->AddChild(new Pattern(OpType::LEAF));
 }
 
-bool RewritePushImplicitFilterThroughJoin::Check(common::ManagedPointer<OperatorExpression> plan,
+bool RewritePushImplicitFilterThroughJoin::Check(common::ManagedPointer<OperatorNode> plan,
                                                  OptimizationContext *context) const {
   (void)plan;
   (void)context;
   return true;
 }
 
-void RewritePushImplicitFilterThroughJoin::Transform(common::ManagedPointer<OperatorExpression> input,
-                                                     std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void RewritePushImplicitFilterThroughJoin::Transform(common::ManagedPointer<OperatorNode> input,
+                                                     std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                      UNUSED_ATTRIBUTE OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("RewritePushImplicitFilterThroughJoin::Transform");
 
@@ -74,17 +74,17 @@ void RewritePushImplicitFilterThroughJoin::Transform(common::ManagedPointer<Oper
     }
   }
 
-  std::unique_ptr<OperatorExpression> left_branch;
-  std::unique_ptr<OperatorExpression> right_branch;
+  std::unique_ptr<OperatorNode> left_branch;
+  std::unique_ptr<OperatorNode> right_branch;
   bool pushed_down = false;
 
   // Construct left filter if any
   if (!left_predicates.empty()) {
     pushed_down = true;
-    std::vector<std::unique_ptr<OperatorExpression>> c;
+    std::vector<std::unique_ptr<OperatorNode>> c;
     auto left_child = join_op_expr->GetChildren()[0]->Copy();
     c.emplace_back(std::move(left_child));
-    left_branch = std::make_unique<OperatorExpression>(LogicalFilter::Make(std::move(left_predicates)), std::move(c));
+    left_branch = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(left_predicates)), std::move(c));
   } else {
     left_branch = join_op_expr->GetChildren()[0]->Copy();
   }
@@ -92,21 +92,20 @@ void RewritePushImplicitFilterThroughJoin::Transform(common::ManagedPointer<Oper
   // Construct right filter if any
   if (!right_predicates.empty()) {
     pushed_down = true;
-    std::vector<std::unique_ptr<OperatorExpression>> c;
+    std::vector<std::unique_ptr<OperatorNode>> c;
     auto right_child = join_op_expr->GetChildren()[1]->Copy();
     c.emplace_back(std::move(right_child));
-    right_branch = std::make_unique<OperatorExpression>(LogicalFilter::Make(std::move(right_predicates)), std::move(c));
+    right_branch = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(right_predicates)), std::move(c));
   } else {
     right_branch = join_op_expr->GetChildren()[1]->Copy();
   }
 
   // Only construct the output if either filter has been pushed down
   if (pushed_down) {
-    std::vector<std::unique_ptr<OperatorExpression>> c;
+    std::vector<std::unique_ptr<OperatorNode>> c;
     c.emplace_back(std::move(left_branch));
     c.emplace_back(std::move(right_branch));
-    auto output =
-        std::make_unique<OperatorExpression>(LogicalInnerJoin::Make(std::move(join_predicates)), std::move(c));
+    auto output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates)), std::move(c));
     transformed->emplace_back(std::move(output));
   }
 }
@@ -126,15 +125,15 @@ RewritePushExplicitFilterThroughJoin::RewritePushExplicitFilterThroughJoin() {
   match_pattern_->AddChild(join_pattern);
 }
 
-bool RewritePushExplicitFilterThroughJoin::Check(common::ManagedPointer<OperatorExpression> plan,
+bool RewritePushExplicitFilterThroughJoin::Check(common::ManagedPointer<OperatorNode> plan,
                                                  OptimizationContext *context) const {
   (void)plan;
   (void)context;
   return true;
 }
 
-void RewritePushExplicitFilterThroughJoin::Transform(common::ManagedPointer<OperatorExpression> input,
-                                                     std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void RewritePushExplicitFilterThroughJoin::Transform(common::ManagedPointer<OperatorNode> input,
+                                                     std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                      UNUSED_ATTRIBUTE OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("RewritePushExplicitFilterThroughJoin::Transform");
 
@@ -178,33 +177,33 @@ void RewritePushExplicitFilterThroughJoin::Transform(common::ManagedPointer<Oper
     }
   }
 
-  std::unique_ptr<OperatorExpression> left_branch;
-  std::unique_ptr<OperatorExpression> right_branch;
+  std::unique_ptr<OperatorNode> left_branch;
+  std::unique_ptr<OperatorNode> right_branch;
 
   // Construct left filter if any
   if (!left_predicates.empty()) {
-    std::vector<std::unique_ptr<OperatorExpression>> c;
+    std::vector<std::unique_ptr<OperatorNode>> c;
     auto left_child = join_op_expr->GetChildren()[0]->Copy();
     c.emplace_back(std::move(left_child));
-    left_branch = std::make_unique<OperatorExpression>(LogicalFilter::Make(std::move(left_predicates)), std::move(c));
+    left_branch = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(left_predicates)), std::move(c));
   } else {
     left_branch = join_op_expr->GetChildren()[0]->Copy();
   }
 
   // Construct right filter if any
   if (!right_predicates.empty()) {
-    std::vector<std::unique_ptr<OperatorExpression>> c;
+    std::vector<std::unique_ptr<OperatorNode>> c;
     auto right_child = join_op_expr->GetChildren()[1]->Copy();
     c.emplace_back(std::move(right_child));
-    right_branch = std::make_unique<OperatorExpression>(LogicalFilter::Make(std::move(right_predicates)), std::move(c));
+    right_branch = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(right_predicates)), std::move(c));
   } else {
     right_branch = join_op_expr->GetChildren()[1]->Copy();
   }
 
-  std::vector<std::unique_ptr<OperatorExpression>> c;
+  std::vector<std::unique_ptr<OperatorNode>> c;
   c.emplace_back(std::move(left_branch));
   c.emplace_back(std::move(right_branch));
-  auto output = std::make_unique<OperatorExpression>(LogicalInnerJoin::Make(std::move(join_predicates)), std::move(c));
+  auto output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates)), std::move(c));
   transformed->emplace_back(std::move(output));
 }
 
@@ -224,15 +223,15 @@ RewritePushFilterThroughAggregation::RewritePushFilterThroughAggregation() {
   match_pattern_->AddChild(child);
 }
 
-bool RewritePushFilterThroughAggregation::Check(common::ManagedPointer<OperatorExpression> plan,
+bool RewritePushFilterThroughAggregation::Check(common::ManagedPointer<OperatorNode> plan,
                                                 OptimizationContext *context) const {
   (void)plan;
   (void)context;
   return true;
 }
 
-void RewritePushFilterThroughAggregation::Transform(common::ManagedPointer<OperatorExpression> input,
-                                                    std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void RewritePushFilterThroughAggregation::Transform(common::ManagedPointer<OperatorNode> input,
+                                                    std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                     UNUSED_ATTRIBUTE OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("RewritePushFilterThroughAggregation::Transform");
   auto aggregation_op = input->GetChildren()[0]->GetOp().As<LogicalAggregateAndGroupBy>();
@@ -260,24 +259,24 @@ void RewritePushFilterThroughAggregation::Transform(common::ManagedPointer<Opera
 
   // Original leaf
   auto leaf = input->GetChildren()[0]->GetChildren()[0]->Copy();
-  std::unique_ptr<OperatorExpression> pushdown;
+  std::unique_ptr<OperatorNode> pushdown;
 
   // Construct filter if needed
   if (!pushdown_predicates.empty()) {
-    std::vector<std::unique_ptr<OperatorExpression>> c;
+    std::vector<std::unique_ptr<OperatorNode>> c;
     c.emplace_back(std::move(leaf));
-    pushdown = std::make_unique<OperatorExpression>(LogicalFilter::Make(std::move(pushdown_predicates)), std::move(c));
+    pushdown = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(pushdown_predicates)), std::move(c));
   }
 
   std::vector<common::ManagedPointer<parser::AbstractExpression>> cols = aggregation_op->GetColumns();
 
-  std::vector<std::unique_ptr<OperatorExpression>> c;
+  std::vector<std::unique_ptr<OperatorNode>> c;
   if (pushdown != nullptr)
     c.emplace_back(std::move(pushdown));
   else
     c.emplace_back(std::move(leaf));
 
-  auto output = std::make_unique<OperatorExpression>(
+  auto output = std::make_unique<OperatorNode>(
       LogicalAggregateAndGroupBy::Make(std::move(cols), std::move(embedded_predicates)), std::move(c));
   transformed->emplace_back(std::move(output));
 }
@@ -295,25 +294,25 @@ RewriteCombineConsecutiveFilter::RewriteCombineConsecutiveFilter() {
   match_pattern_->AddChild(child);
 }
 
-bool RewriteCombineConsecutiveFilter::Check(common::ManagedPointer<OperatorExpression> plan,
+bool RewriteCombineConsecutiveFilter::Check(common::ManagedPointer<OperatorNode> plan,
                                             OptimizationContext *context) const {
   (void)context;
   (void)plan;
   return true;
 }
 
-void RewriteCombineConsecutiveFilter::Transform(common::ManagedPointer<OperatorExpression> input,
-                                                std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void RewriteCombineConsecutiveFilter::Transform(common::ManagedPointer<OperatorNode> input,
+                                                std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                 UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto child_filter = input->GetChildren()[0];
   std::vector<AnnotatedExpression> root_predicates = input->GetOp().As<LogicalFilter>()->GetPredicates();
   std::vector<AnnotatedExpression> child_predicates = child_filter->GetOp().As<LogicalFilter>()->GetPredicates();
   root_predicates.insert(root_predicates.end(), child_predicates.begin(), child_predicates.end());
 
-  std::vector<std::unique_ptr<OperatorExpression>> c;
+  std::vector<std::unique_ptr<OperatorNode>> c;
   auto child = child_filter->GetChildren()[0]->Copy();
   c.emplace_back(std::move(child));
-  auto output = std::make_unique<OperatorExpression>(LogicalFilter::Make(std::move(root_predicates)), std::move(c));
+  auto output = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(root_predicates)), std::move(c));
   transformed->emplace_back(std::move(output));
 }
 
@@ -329,24 +328,23 @@ RewriteEmbedFilterIntoGet::RewriteEmbedFilterIntoGet() {
   match_pattern_->AddChild(child);
 }
 
-bool RewriteEmbedFilterIntoGet::Check(common::ManagedPointer<OperatorExpression> plan,
-                                      OptimizationContext *context) const {
+bool RewriteEmbedFilterIntoGet::Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const {
   (void)context;
   (void)plan;
   return true;
 }
 
-void RewriteEmbedFilterIntoGet::Transform(common::ManagedPointer<OperatorExpression> input,
-                                          std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void RewriteEmbedFilterIntoGet::Transform(common::ManagedPointer<OperatorNode> input,
+                                          std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                           UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto get = input->GetChildren()[0]->GetOp().As<LogicalGet>();
   std::string tbl_alias = std::string(get->GetTableAlias());
   std::vector<AnnotatedExpression> predicates = input->GetOp().As<LogicalFilter>()->GetPredicates();
-  std::vector<std::unique_ptr<OperatorExpression>> c;
-  auto output = std::make_unique<OperatorExpression>(
-      LogicalGet::Make(get->GetDatabaseOid(), get->GetNamespaceOid(), get->GetTableOid(), predicates, tbl_alias,
-                       get->GetIsForUpdate()),
-      std::move(c));
+  std::vector<std::unique_ptr<OperatorNode>> c;
+  auto output =
+      std::make_unique<OperatorNode>(LogicalGet::Make(get->GetDatabaseOid(), get->GetNamespaceOid(), get->GetTableOid(),
+                                                      predicates, tbl_alias, get->GetIsForUpdate()),
+                                     std::move(c));
   transformed->emplace_back(std::move(output));
 }
 
@@ -367,7 +365,7 @@ RulePromise RewritePullFilterThroughMarkJoin::Promise(GroupExpression *group_exp
   return RulePromise::UNNEST_PROMISE_HIGH;
 }
 
-bool RewritePullFilterThroughMarkJoin::Check(common::ManagedPointer<OperatorExpression> plan,
+bool RewritePullFilterThroughMarkJoin::Check(common::ManagedPointer<OperatorNode> plan,
                                              OptimizationContext *context) const {
   (void)context;
   (void)plan;
@@ -380,8 +378,8 @@ bool RewritePullFilterThroughMarkJoin::Check(common::ManagedPointer<OperatorExpr
   return true;
 }
 
-void RewritePullFilterThroughMarkJoin::Transform(common::ManagedPointer<OperatorExpression> input,
-                                                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void RewritePullFilterThroughMarkJoin::Transform(common::ManagedPointer<OperatorNode> input,
+                                                 std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                  UNUSED_ATTRIBUTE OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("RewritePullFilterThroughMarkJoin::Transform");
   UNUSED_ATTRIBUTE auto mark_join = input->GetOp().As<LogicalMarkJoin>();
@@ -390,14 +388,14 @@ void RewritePullFilterThroughMarkJoin::Transform(common::ManagedPointer<Operator
   auto join_children = input->GetChildren();
   auto filter_children = join_children[1]->GetChildren();
 
-  std::vector<std::unique_ptr<OperatorExpression>> c;
+  std::vector<std::unique_ptr<OperatorNode>> c;
   c.emplace_back(join_children[0]->Copy());
   c.emplace_back(filter_children[0]->Copy());
-  auto join = std::make_unique<OperatorExpression>(Operator(input->GetOp()), std::move(c));
+  auto join = std::make_unique<OperatorNode>(Operator(input->GetOp()), std::move(c));
 
-  std::vector<std::unique_ptr<OperatorExpression>> cc;
+  std::vector<std::unique_ptr<OperatorNode>> cc;
   cc.emplace_back(std::move(join));
-  auto output = std::make_unique<OperatorExpression>(Operator(join_children[1]->GetOp()), std::move(cc));
+  auto output = std::make_unique<OperatorNode>(Operator(join_children[1]->GetOp()), std::move(cc));
   transformed->emplace_back(std::move(output));
 }
 
@@ -417,7 +415,7 @@ RulePromise RewritePullFilterThroughAggregation::Promise(GroupExpression *group_
   return RulePromise::UNNEST_PROMISE_HIGH;
 }
 
-bool RewritePullFilterThroughAggregation::Check(common::ManagedPointer<OperatorExpression> plan,
+bool RewritePullFilterThroughAggregation::Check(common::ManagedPointer<OperatorNode> plan,
                                                 OptimizationContext *context) const {
   (void)context;
   (void)plan;
@@ -430,8 +428,8 @@ bool RewritePullFilterThroughAggregation::Check(common::ManagedPointer<OperatorE
   return true;
 }
 
-void RewritePullFilterThroughAggregation::Transform(common::ManagedPointer<OperatorExpression> input,
-                                                    std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void RewritePullFilterThroughAggregation::Transform(common::ManagedPointer<OperatorNode> input,
+                                                    std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                     UNUSED_ATTRIBUTE OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("RewritePullFilterThroughAggregation::Transform");
   auto &memo = context->GetOptimizerContext()->GetMemo();
@@ -471,22 +469,21 @@ void RewritePullFilterThroughAggregation::Transform(common::ManagedPointer<Opera
 
   auto aggr_child = filter_expr->GetChildren()[0]->Copy();
   if (!normal_predicates.empty()) {
-    std::vector<std::unique_ptr<OperatorExpression>> c;
+    std::vector<std::unique_ptr<OperatorNode>> c;
     c.emplace_back(std::move(aggr_child));
-    aggr_child = std::make_unique<OperatorExpression>(LogicalFilter::Make(std::move(normal_predicates)), std::move(c));
+    aggr_child = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(normal_predicates)), std::move(c));
   }
 
-  std::vector<std::unique_ptr<OperatorExpression>> c;
+  std::vector<std::unique_ptr<OperatorNode>> c;
   c.emplace_back(std::move(aggr_child));
 
   std::vector<AnnotatedExpression> new_having = aggregation->GetHaving();
-  auto new_aggr = std::make_unique<OperatorExpression>(
+  auto new_aggr = std::make_unique<OperatorNode>(
       LogicalAggregateAndGroupBy::Make(std::move(new_groupby_cols), std::move(new_having)), std::move(c));
 
-  std::vector<std::unique_ptr<OperatorExpression>> ca;
+  std::vector<std::unique_ptr<OperatorNode>> ca;
   ca.emplace_back(std::move(new_aggr));
-  auto output =
-      std::make_unique<OperatorExpression>(LogicalFilter::Make(std::move(correlated_predicates)), std::move(ca));
+  auto output = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(correlated_predicates)), std::move(ca));
   transformed->emplace_back(std::move(output));
 }
 
