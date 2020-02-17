@@ -108,7 +108,9 @@ class CodeGen {
   /**
    * @return release ownership of the PipelineOperatingUnits instance
    */
-  std::unique_ptr<brain::PipelineOperatingUnits> ReleasePipelineOperatingUnits() { return std::move(pipeline_operating_units_); }
+  std::unique_ptr<brain::PipelineOperatingUnits> ReleasePipelineOperatingUnits() {
+    return std::move(pipeline_operating_units_);
+  }
 
   /**
    * Creates the File node for the query

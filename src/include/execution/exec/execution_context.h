@@ -177,7 +177,9 @@ class EXPORT ExecutionContext {
    * Set the PipelineOperatingUnits
    * @param op PipelineOperatingUnits for executing the given query
    */
-  void SetPipelineOperatingUnits(common::ManagedPointer<brain::PipelineOperatingUnits> op) { pipeline_operating_units_ = op; }
+  void SetPipelineOperatingUnits(common::ManagedPointer<brain::PipelineOperatingUnits> op) {
+    pipeline_operating_units_ = op;
+  }
 
  private:
   catalog::db_oid_t db_oid_;

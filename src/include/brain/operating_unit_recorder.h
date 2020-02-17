@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #include "brain/operating_unit.h"
@@ -38,7 +37,13 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * @returns converted equivalent brain::ExecutionOperatingUnitType
    */
   ExecutionOperatingUnitType ConvertExpressionType(parser::ExpressionType etype);
-  std::unordered_set<ExecutionOperatingUnitType> ExtractFeaturesFromExpression(
+
+  /**
+   * Extracts features from an expression into a vector
+   * @param expr Expression to extract features from
+   * @return vector of extracted features
+   */
+  std::vector<ExecutionOperatingUnitType> ExtractFeaturesFromExpression(
       common::ManagedPointer<parser::AbstractExpression> expr);
 
   /**
@@ -74,7 +79,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   /**
    * Structure used to store features for a single plan visit
    */
-  std::unordered_set<ExecutionOperatingUnitType> plan_features_;
+  std::vector<ExecutionOperatingUnitType> plan_features_;
 };
 
 }  // namespace terrier::brain
