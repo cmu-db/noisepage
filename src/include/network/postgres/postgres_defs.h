@@ -1,6 +1,32 @@
 #pragma once
 
+#include <string>
+#include <unordered_map>
+
+#include "common/macros.h"
+#include "network/network_defs.h"
+#include "type/type_id.h"
+
 namespace terrier::network {
+
+/**
+ * Hardcoded server parameter values to send to the client
+ */
+// clang-format off
+const std::unordered_map<std::string, std::string> PG_PARAMETER_STATUS_MAP = {
+    {"application_name", "psql"},
+    {"client_encoding", "UTF8"},
+    {"DateStyle", "ISO, MDY"},
+    {"integer_datetimes", "on"},
+    {"IntervalStyle", "postgres"},
+    {"is_superuser", "on"},
+    {"server_encoding", "UTF8"},
+    {"server_version", "9.5devel"},
+    {"session_authorization", "terrier"},
+    {"standard_conforming_strings", "on"},
+    {"TimeZone", "US/Eastern"}
+};
+// clang-format on
 
 /**
  * Postgres Value Types

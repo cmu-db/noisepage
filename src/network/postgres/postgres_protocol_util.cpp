@@ -1,10 +1,10 @@
-#include "network/postgres/postgres_protocol_utils.h"
+#include "network/postgres/postgres_protocol_util.h"
 
 #include "loggers/network_logger.h"
 
 namespace terrier::network {
 
-type::TypeId PostgresValueTypeToInternalValueType(const PostgresValueType type) {
+type::TypeId PostgresProtocolUtil::PostgresValueTypeToInternalValueType(const PostgresValueType type) {
   switch (type) {
     case PostgresValueType::BOOLEAN:
       return type::TypeId::BOOLEAN;
@@ -27,20 +27,26 @@ type::TypeId PostgresValueTypeToInternalValueType(const PostgresValueType type) 
     case PostgresValueType::TEXT:
       return type::TypeId::VARCHAR;
 
+    case PostgresValueType::VARBINARY:
+      return type::TypeId::VARBINARY;
+
     case PostgresValueType::DATE:
+      return type::TypeId::DATE;
     case PostgresValueType::TIMESTAMPS:
     case PostgresValueType::TIMESTAMPS2:
       return type::TypeId::TIMESTAMP;
 
     case PostgresValueType::DECIMAL:
       return type::TypeId::DECIMAL;
-    default:
-      NETWORK_LOG_ERROR(fmt::format("No TypeId conversion for PostgresValueType value '%d'", static_cast<int>(type)));
-      throw NETWORK_PROCESS_EXCEPTION("");
+    default: {
+      std::ostringstream os;
+      os << "No TypeId conversion for PostgresValueType '" << static_cast<int>(type) << "'";
+      throw NETWORK_PROCESS_EXCEPTION(os.str().c_str());
+    }
   }
 }
 
-PostgresValueType InternalValueTypeToPostgresValueType(const type::TypeId type) {
+PostgresValueType PostgresProtocolUtil::InternalValueTypeToPostgresValueType(const type::TypeId type) {
   switch (type) {
     case type::TypeId::INVALID:
       return PostgresValueType::INVALID;
@@ -75,9 +81,11 @@ PostgresValueType InternalValueTypeToPostgresValueType(const type::TypeId type) 
     case type::TypeId::VARBINARY:
       return PostgresValueType::VARBINARY;
 
-    default:
-      NETWORK_LOG_ERROR(fmt::format("No TypeId conversion for PostgresValueType value '%d'", static_cast<int>(type)));
-      throw NETWORK_PROCESS_EXCEPTION("");
+    default: {
+      std::ostringstream os;
+      os << "No PostgresValueType conversion for TypeId '" << static_cast<int>(type) << "'";
+      throw NETWORK_PROCESS_EXCEPTION(os.str().c_str());
+    }
   }
 }
 
