@@ -20,7 +20,7 @@ struct TrafficCopResult {
   /**
    * Classifies the result to help decide what to do with the result
    */
-  ResultType type_;
+  ResultType type_ = ResultType::UNKNOWN;
   /**
    * The number is envisioned for operations that return a number (INSERT, UPDATE, DELETE) or the string can be used to
    * return error messages.
