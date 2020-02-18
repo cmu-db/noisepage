@@ -35,6 +35,7 @@ namespace terrier::tpcc {
     Builder tpcc_builder{block_store_, catalog_, txn_manager_};
     tpcc_db_ = tpcc_builder.Build(storage::index::IndexType::HASHMAP);
     db_oid_ = tpcc_db_->db_oid_;
+    std::cout << "Built DB" << std::endl;
 
     GenerateTPCCTables(num_threads);
     std::cout << "Generated TPCC tables" << std::endl;
@@ -55,6 +56,7 @@ namespace terrier::tpcc {
     for (int8_t i = 0; i < num_threads; i++) {
       workers.emplace_back(tpcc_db_);
     }
+    thread_pool.Startup();
     Loader::PopulateDatabase(txn_manager_, tpcc_db_, &workers, &thread_pool);
   }
 
@@ -66,25 +68,28 @@ namespace terrier::tpcc {
       auto curr = queries_.emplace(txn_name, std::vector<execution::ExecutableQuery> {});
 
       for (auto &query : sqls_.find(txn_name)->second) {
-        std::unique_ptr<parser::ParseResult> parse_result = parser::PostgresParser::BuildParseTree(query);
+        const auto parse_result = parser::PostgresParser::BuildParseTree(query);
         transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
         auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_).release();
 
         // generate plan node
-        execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
-                                                   nullptr, nullptr, common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
-
-        auto plan_node = trafficcop::TrafficCopUtil::Optimize(
-            common::ManagedPointer<transaction::TransactionContext>(txn),
-            common::ManagedPointer<catalog::CatalogAccessor>(accessor),
-            common::ManagedPointer<parser::ParseResult>(parse_result),
-            common::ManagedPointer<optimizer::StatsStorage>(db_main_->GetStatsStorage()),
+        std::unique_ptr<planner::AbstractPlanNode> plan_node = trafficcop::TrafficCopUtil::Optimize(
+            common::ManagedPointer(txn),
+            common::ManagedPointer(accessor),
+            common::ManagedPointer(parse_result),
+            common::ManagedPointer(db_main_->GetStatsStorage()),
             optimizer_timeout
         );
 
+        auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid_, common::ManagedPointer(txn),
+                nullptr, nullptr, common::ManagedPointer(accessor));
+
         // generate executable query and emplace it into the vector; break down here
-        curr.first->second.emplace_back(execution::ExecutableQuery{common::ManagedPointer<planner::AbstractPlanNode>(plan_node),
-                                                                   common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx)});
+        auto executable = execution::ExecutableQuery(common::ManagedPointer(plan_node),
+                                                    common::ManagedPointer(exec_ctx));
+        curr.first->second.emplace_back(std::move(executable));
+
+        delete accessor;
         txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
 
