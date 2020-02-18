@@ -871,7 +871,7 @@ TEST_F(OperatorTransformerTest, CreateDatabaseTest) {
   rule.Transform(optree_ptr, &transformed, op_ctx);
 
   auto op = transformed[0]->GetOp();
-  EXPECT_EQ(op.GetType(), optimizer::OpType::CREATEDATABASE);
+  EXPECT_EQ(op.GetOpType(), optimizer::OpType::CREATEDATABASE);
   EXPECT_TRUE(op.IsPhysical());
   EXPECT_EQ(op.GetName(), "CreateDatabase");
   auto cd = op.As<optimizer::CreateDatabase>();
@@ -926,7 +926,7 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   rule.Transform(optree_ptr, &transformed, op_ctx);
 
   auto op = transformed[0]->GetOp();
-  EXPECT_EQ(op.GetType(), optimizer::OpType::CREATETABLE);
+  EXPECT_EQ(op.GetOpType(), optimizer::OpType::CREATETABLE);
   EXPECT_TRUE(op.IsPhysical());
   EXPECT_EQ(op.GetName(), "CreateTable");
   auto ct = op.As<optimizer::CreateTable>();
@@ -1096,7 +1096,7 @@ TEST_F(OperatorTransformerTest, CreateIndexTest) {
   rule.Transform(optree_ptr, &transformed, op_ctx);
 
   auto op = transformed[0]->GetOp();
-  EXPECT_EQ(op.GetType(), optimizer::OpType::CREATEINDEX);
+  EXPECT_EQ(op.GetOpType(), optimizer::OpType::CREATEINDEX);
   EXPECT_TRUE(op.IsPhysical());
   EXPECT_EQ(op.GetName(), "CreateIndex");
   auto ci = op.As<optimizer::CreateIndex>();
@@ -1185,7 +1185,7 @@ TEST_F(OperatorTransformerTest, CreateFunctionTest) {
   rule.Transform(optree_ptr, &transformed, op_ctx);
 
   auto op = transformed[0]->GetOp();
-  EXPECT_EQ(op.GetType(), optimizer::OpType::CREATEFUNCTION);
+  EXPECT_EQ(op.GetOpType(), optimizer::OpType::CREATEFUNCTION);
   EXPECT_TRUE(op.IsPhysical());
   EXPECT_EQ(op.GetName(), "CreateFunction");
   auto cf = op.As<optimizer::CreateFunction>();
@@ -1255,7 +1255,7 @@ TEST_F(OperatorTransformerTest, CreateNamespaceTest) {
   rule.Transform(optree_ptr, &transformed, op_ctx);
 
   auto op = transformed[0]->GetOp();
-  EXPECT_EQ(op.GetType(), optimizer::OpType::CREATENAMESPACE);
+  EXPECT_EQ(op.GetOpType(), optimizer::OpType::CREATENAMESPACE);
   EXPECT_TRUE(op.IsPhysical());
   EXPECT_EQ(op.GetName(), "CreateNamespace");
   auto cn = op.As<optimizer::CreateNamespace>();
@@ -1307,7 +1307,7 @@ TEST_F(OperatorTransformerTest, CreateViewTest) {
   rule.Transform(optree_ptr, &transformed, op_ctx);
 
   auto op = transformed[0]->GetOp();
-  EXPECT_EQ(op.GetType(), optimizer::OpType::CREATEVIEW);
+  EXPECT_EQ(op.GetOpType(), optimizer::OpType::CREATEVIEW);
   EXPECT_TRUE(op.IsPhysical());
   EXPECT_EQ(op.GetName(), "CreateView");
   auto cv = op.As<optimizer::CreateView>();
@@ -1402,7 +1402,7 @@ TEST_F(OperatorTransformerTest, CreateTriggerTest) {
   rule.Transform(optree_ptr, &transformed, op_ctx);
 
   auto op = transformed[0]->GetOp();
-  EXPECT_EQ(op.GetType(), optimizer::OpType::CREATETRIGGER);
+  EXPECT_EQ(op.GetOpType(), optimizer::OpType::CREATETRIGGER);
   EXPECT_TRUE(op.IsPhysical());
   EXPECT_EQ(op.GetName(), "CreateTrigger");
   auto ct = op.As<optimizer::CreateTrigger>();
@@ -1483,7 +1483,7 @@ TEST_F(OperatorTransformerTest, DropDatabaseTest) {
   rule.Transform(optree_ptr, &transformed, op_ctx);
 
   auto op = transformed[0]->GetOp();
-  EXPECT_EQ(op.GetType(), optimizer::OpType::DROPDATABASE);
+  EXPECT_EQ(op.GetOpType(), optimizer::OpType::DROPDATABASE);
   EXPECT_TRUE(op.IsPhysical());
   EXPECT_EQ(op.GetName(), "DropDatabase");
   auto dd = op.As<optimizer::DropDatabase>();
@@ -1532,7 +1532,7 @@ TEST_F(OperatorTransformerTest, DropTableTest) {
   rule.Transform(optree_ptr, &transformed, op_ctx);
 
   auto op = transformed[0]->GetOp();
-  EXPECT_EQ(op.GetType(), optimizer::OpType::DROPTABLE);
+  EXPECT_EQ(op.GetOpType(), optimizer::OpType::DROPTABLE);
   EXPECT_TRUE(op.IsPhysical());
   EXPECT_EQ(op.GetName(), "DropTable");
   auto dt = op.As<optimizer::DropTable>();
@@ -1580,7 +1580,7 @@ TEST_F(OperatorTransformerTest, DropIndexTest) {
   rule.Transform(optree_ptr, &transformed, op_ctx);
 
   auto op = transformed[0]->GetOp();
-  EXPECT_EQ(op.GetType(), optimizer::OpType::DROPINDEX);
+  EXPECT_EQ(op.GetOpType(), optimizer::OpType::DROPINDEX);
   EXPECT_TRUE(op.IsPhysical());
   EXPECT_EQ(op.GetName(), "DropIndex");
   auto di = op.As<optimizer::DropIndex>();
@@ -1627,7 +1627,7 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereExistTest) {
   rule.Transform(optree_ptr, &transformed, op_ctx);
 
   auto op = transformed[0]->GetOp();
-  EXPECT_EQ(op.GetType(), optimizer::OpType::DROPNAMESPACE);
+  EXPECT_EQ(op.GetOpType(), optimizer::OpType::DROPNAMESPACE);
   EXPECT_TRUE(op.IsPhysical());
   EXPECT_EQ(op.GetName(), "DropNamespace");
   auto dn = op.As<optimizer::DropNamespace>();
@@ -1674,7 +1674,7 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereNotExistTest) {
   rule.Transform(optree_ptr, &transformed, op_ctx);
 
   auto op = transformed[0]->GetOp();
-  EXPECT_EQ(op.GetType(), optimizer::OpType::DROPNAMESPACE);
+  EXPECT_EQ(op.GetOpType(), optimizer::OpType::DROPNAMESPACE);
   EXPECT_TRUE(op.IsPhysical());
   EXPECT_EQ(op.GetName(), "DropNamespace");
   auto dn = op.As<optimizer::DropNamespace>();
@@ -1721,7 +1721,7 @@ TEST_F(OperatorTransformerTest, DISABLED_DropTriggerIfExistsWhereNotExistTest) {
   rule.Transform(optree_ptr, &transformed, op_ctx);
 
   auto op = transformed[0]->GetOp();
-  EXPECT_EQ(op.GetType(), optimizer::OpType::DROPVIEW);
+  EXPECT_EQ(op.GetOpType(), optimizer::OpType::DROPVIEW);
   EXPECT_TRUE(op.IsPhysical());
   EXPECT_EQ(op.GetName(), "DropTrigger");
   auto dt = op.As<optimizer::DropTrigger>();
@@ -1768,7 +1768,7 @@ TEST_F(OperatorTransformerTest, DISABLED_DropViewIfExistsWhereNotExistTest) {
   rule.Transform(optree_ptr, &transformed, op_ctx);
 
   auto op = transformed[0]->GetOp();
-  EXPECT_EQ(op.GetType(), optimizer::OpType::DROPVIEW);
+  EXPECT_EQ(op.GetOpType(), optimizer::OpType::DROPVIEW);
   EXPECT_TRUE(op.IsPhysical());
   EXPECT_EQ(op.GetName(), "DropView");
   auto dv = op.As<optimizer::DropView>();

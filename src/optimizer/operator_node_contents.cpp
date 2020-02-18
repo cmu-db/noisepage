@@ -29,6 +29,8 @@ OpType Operator::GetOpType() const {
   return OpType::UNDEFINED;
 }
 
+parser::ExpressionType Operator::GetExpType() const { return parser::ExpressionType::INVALID; }
+
 bool Operator::IsLogical() const {
   if (IsDefined()) {
     return contents_->IsLogical();

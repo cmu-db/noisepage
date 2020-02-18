@@ -13,10 +13,10 @@ namespace terrier::optimizer {
 class OperatorVisitor;
 
 class AbstractOptimizerNodeContents {
-public:
+ public:
   AbstractOptimizerNodeContents() {}
-  explicit AbstractOptimizerNodeContents(common::ManagedPointer<AbstractOptimizerNodeContents> contents) :
-    contents_(contents) {}
+  explicit AbstractOptimizerNodeContents(common::ManagedPointer<AbstractOptimizerNodeContents> contents)
+      : contents_(contents) {}
 
   ~AbstractOptimizerNodeContents() {}
 
@@ -39,7 +39,7 @@ public:
   /**
    * @return ExpressionType of the node contents
    */
-  //virtual parser::ExpressionType GetExpType() const = 0;
+  virtual parser::ExpressionType GetExpType() const = 0;
 
   /**
    * @return Whether node contents represent a physical operator / expression
@@ -49,32 +49,32 @@ public:
   /**
    * @return Whether node represents a logical operator / expression
    */
-   virtual bool IsLogical() const = 0;
+  virtual bool IsLogical() const = 0;
 
-   /**
-    * Base definition of whether two AbstractOptimizerNodeContents objects are
-    * equal -- simply checks whether OpType and ExpressionType match
-    */
-   virtual bool operator==(const AbstractOptimizerNodeContents &r) {
-     //return GetOpType() == r.GetOpType() && GetExpType() == r.GetExpType();
-     return GetOpType() == r.GetOpType();
-   }
+  /**
+   * Base definition of whether two AbstractOptimizerNodeContents objects are
+   * equal -- simply checks whether OpType and ExpressionType match
+   */
+  virtual bool operator==(const AbstractOptimizerNodeContents &r) {
+    // return GetOpType() == r.GetOpType() && GetExpType() == r.GetExpType();
+    return GetOpType() == r.GetOpType();
+  }
 
-   /**
-    * @return True if the contained contents are non-null, false otherwise
-    */
-   virtual bool IsDefined() const { return contents_ != nullptr; }
+  /**
+   * @return True if the contained contents are non-null, false otherwise
+   */
+  virtual bool IsDefined() const { return contents_ != nullptr; }
 
-   template <typename T>
-   const T *As() const {
-     if (contents_ && typeid(*contents_) == typeid(T)) {
-       return (const T *)contents_.Get();
-     }
-     return nullptr;
-   }
+  template <typename T>
+  const T *As() const {
+    if (contents_ && typeid(*contents_) == typeid(T)) {
+      return (const T *)contents_.Get();
+    }
+    return nullptr;
+  }
 
-private:
+ private:
   common::ManagedPointer<AbstractOptimizerNodeContents> contents_;
 };
 
-} // namespace terrier::optimizer
+}  // namespace terrier::optimizer

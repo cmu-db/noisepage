@@ -5,8 +5,8 @@
 #include <vector>
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
-#include "optimizer/optimizer_defs.h"
 #include "optimizer/abstract_optimizer_node_contents.h"
+#include "optimizer/optimizer_defs.h"
 
 namespace terrier::optimizer {
 
@@ -51,6 +51,11 @@ class BaseOperatorNodeContents : AbstractOptimizerNodeContents {
    * @return the type of this operator
    */
   virtual OpType GetOpType() const = 0;
+
+  /**
+   * @return the ExpressionType of this operator (invalid expression type)
+   */
+  virtual parser::ExpressionType GetExpType() const = 0;
 
   /**
    * @return whether this operator is logical
@@ -115,6 +120,11 @@ class OperatorNodeContents : public BaseOperatorNodeContents {
   OpType GetOpType() const override { return type; }
 
   /**
+   * @return ExpressionType of the operator (invalid expression type)
+   */
+  parser::ExpressionType GetExpType() const override { return parser::ExpressionType::INVALID; }
+
+  /**
    * @return whether the underlying operator is logical
    */
   bool IsLogical() const override;
@@ -177,6 +187,11 @@ class Operator {
    * @return type of this operator
    */
   OpType GetOpType() const;
+
+  /**
+   * @return ExpressionType for operator (Invalid expression type)
+   */
+  parser::ExpressionType GetExpType() const;
 
   /**
    * @return hashed value of this operator
