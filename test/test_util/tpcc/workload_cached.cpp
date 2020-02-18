@@ -70,7 +70,8 @@ namespace terrier::tpcc {
       for (auto &query : sqls_.find(txn_name)->second) {
         const auto parse_result = parser::PostgresParser::BuildParseTree(query);
         transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
-        auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_).release();
+
+        auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
 
         // generate plan node
         std::unique_ptr<planner::AbstractPlanNode> plan_node = trafficcop::TrafficCopUtil::Optimize(
@@ -85,11 +86,9 @@ namespace terrier::tpcc {
                 nullptr, nullptr, common::ManagedPointer(accessor));
 
         // generate executable query and emplace it into the vector; break down here
-        auto executable = execution::ExecutableQuery(common::ManagedPointer(plan_node),
-                                                    common::ManagedPointer(exec_ctx));
+        execution::ExecutableQuery executable{common::ManagedPointer(plan_node), common::ManagedPointer(exec_ctx)};
         curr.first->second.emplace_back(std::move(executable));
 
-        delete accessor;
         txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
 
