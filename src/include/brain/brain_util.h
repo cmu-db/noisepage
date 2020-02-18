@@ -50,14 +50,24 @@ class BrainUtil {
         return "PROJECTION";
       case ExecutionOperatingUnitType::OUTPUT:
         return "OUTPUT";
-      case ExecutionOperatingUnitType::OP_PLUS_OR_MINUS:
-        return "OP_PLUS_OR_MINUS";
-      case ExecutionOperatingUnitType::OP_MULTIPLY:
-        return "OP_MULTIPLY";
-      case ExecutionOperatingUnitType::OP_DIVIDE:
-        return "OP_DIVIDE";
-      case ExecutionOperatingUnitType::OP_COMPARE:
-        return "OP_COMPARE";
+      case ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS:
+        return "OP_INTEGER_PLUS_OR_MINUS";
+      case ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY:
+        return "OP_INTEGER_MULTIPLY";
+      case ExecutionOperatingUnitType::OP_INTEGER_DIVIDE:
+        return "OP_INTEGER_DIVIDE";
+      case ExecutionOperatingUnitType::OP_INTEGER_COMPARE:
+        return "OP_INTEGER_COMPARE";
+      case ExecutionOperatingUnitType::OP_DECIMAL_PLUS_OR_MINUS:
+        return "OP_DECIMAL_PLUS_OR_MINUS";
+      case ExecutionOperatingUnitType::OP_DECIMAL_MULTIPLY:
+        return "OP_DECIMAL_MULTIPLY";
+      case ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE:
+        return "OP_DECIMAL_DIVIDE";
+      case ExecutionOperatingUnitType::OP_DECIMAL_COMPARE:
+        return "OP_DECIMAL_COMPARE";
+      case ExecutionOperatingUnitType::OP_BOOL_COMPARE:
+        return "OP_BOOL_COMPARE";
       case ExecutionOperatingUnitType::OP_AGGREGATE_COUNT:
         return "OP_AGGREGATE_COUNT";
       case ExecutionOperatingUnitType::OP_AGGREGATE_SUM:

@@ -72,6 +72,13 @@ class ExecutableQuery {
    */
   query_id_t GetQueryId() const { return query_id_; }
 
+  /**
+   * @returns Pipeline Units
+   */
+  common::ManagedPointer<brain::PipelineOperatingUnits> GetPipelineOperatingUnits() {
+    return common::ManagedPointer(pipeline_operating_units_);
+  }
+
  private:
   static std::string GetFileName(const std::string &path) {
     std::size_t size = path.size();

@@ -6,6 +6,10 @@
 #include "brain/brain_defs.h"
 #include "execution/exec_defs.h"
 
+namespace terrier::execution::compiler::test {
+class OperatingUnitRecorderTest_SimpleSeqScanTest_Test;
+}
+
 namespace terrier::brain {
 
 class OperatingUnitRecorder;
@@ -82,6 +86,8 @@ using ExecutionOperatingUnitFeatureVector = std::vector<ExecutionOperatingUnitFe
  */
 class PipelineOperatingUnits {
  public:
+   friend class terrier::execution::compiler::test::OperatingUnitRecorderTest_SimpleSeqScanTest_Test;
+
   /**
    * Constructor
    */

@@ -32,25 +32,98 @@
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
+#include "type/type_id.h"
 
 namespace terrier::brain {
 
-ExecutionOperatingUnitType OperatingUnitRecorder::ConvertExpressionType(parser::ExpressionType etype) {
-  switch (etype) {
+type::TypeId OperatingUnitRecorder::DeriveComputation(common::ManagedPointer<parser::AbstractExpression> expr) {
+  auto lchild = expr->GetChild(0);
+  if (lchild->GetReturnValueType() != type::TypeId::INVALID &&
+      lchild->GetReturnValueType() != type::TypeId::PARAMETER_OFFSET) {
+    return lchild->GetReturnValueType();
+  }
+
+  if (expr->GetChildrenSize() > 1) {
+    auto rchild = expr->GetChild(1);
+    if (rchild->GetReturnValueType() != type::TypeId::INVALID &&
+        rchild->GetReturnValueType() != type::TypeId::PARAMETER_OFFSET) {
+      return rchild->GetReturnValueType();
+    }
+  }
+
+  return type::TypeId::INVALID;
+}
+
+ExecutionOperatingUnitType OperatingUnitRecorder::ConvertExpressionType(
+    common::ManagedPointer<parser::AbstractExpression> expr) {
+  switch (expr->GetExpressionType()) {
     case parser::ExpressionType::OPERATOR_PLUS:
-    case parser::ExpressionType::OPERATOR_MINUS:
-      return ExecutionOperatingUnitType::OP_PLUS_OR_MINUS;
-    case parser::ExpressionType::OPERATOR_MULTIPLY:
-      return ExecutionOperatingUnitType::OP_MULTIPLY;
-    case parser::ExpressionType::OPERATOR_DIVIDE:
-      return ExecutionOperatingUnitType::OP_DIVIDE;
+    case parser::ExpressionType::OPERATOR_MINUS: {
+      switch (DeriveComputation(expr)) {
+        case type::TypeId::TINYINT:
+        case type::TypeId::SMALLINT:
+        case type::TypeId::INTEGER:
+        case type::TypeId::BIGINT:
+          return ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS;
+        case type::TypeId::DECIMAL:
+          return ExecutionOperatingUnitType::OP_DECIMAL_PLUS_OR_MINUS;
+        default:
+          return ExecutionOperatingUnitType::INVALID;
+      }
+    }
+    case parser::ExpressionType::OPERATOR_MULTIPLY: {
+      switch (DeriveComputation(expr)) {
+        case type::TypeId::TINYINT:
+        case type::TypeId::SMALLINT:
+        case type::TypeId::INTEGER:
+        case type::TypeId::BIGINT:
+          return ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY;
+        case type::TypeId::DECIMAL:
+          return ExecutionOperatingUnitType::OP_DECIMAL_MULTIPLY;
+        default:
+          return ExecutionOperatingUnitType::INVALID;
+      }
+    }
+    case parser::ExpressionType::OPERATOR_DIVIDE: {
+      switch (DeriveComputation(expr)) {
+        case type::TypeId::TINYINT:
+        case type::TypeId::SMALLINT:
+        case type::TypeId::INTEGER:
+        case type::TypeId::BIGINT:
+          return ExecutionOperatingUnitType::OP_INTEGER_DIVIDE;
+        case type::TypeId::DECIMAL:
+          return ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE;
+        default:
+          return ExecutionOperatingUnitType::INVALID;
+      }
+    }
     case parser::ExpressionType::COMPARE_EQUAL:
     case parser::ExpressionType::COMPARE_NOT_EQUAL:
     case parser::ExpressionType::COMPARE_LESS_THAN:
     case parser::ExpressionType::COMPARE_GREATER_THAN:
     case parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
-    case parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
-      return ExecutionOperatingUnitType::OP_COMPARE;
+    case parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO: {
+      switch (DeriveComputation(expr)) {
+        case type::TypeId::BOOLEAN:
+          return ExecutionOperatingUnitType::OP_BOOL_COMPARE;
+        case type::TypeId::TINYINT:
+        case type::TypeId::SMALLINT:
+        case type::TypeId::INTEGER:
+        case type::TypeId::BIGINT:
+          return ExecutionOperatingUnitType::OP_INTEGER_COMPARE;
+        case type::TypeId::DECIMAL:
+          return ExecutionOperatingUnitType::OP_DECIMAL_COMPARE;
+        case type::TypeId::TIMESTAMP:
+        case type::TypeId::DATE:
+          return ExecutionOperatingUnitType::OP_INTEGER_COMPARE;
+        case type::TypeId::VARCHAR:
+        case type::TypeId::VARBINARY:
+          // TODO(wz2): Revisit this since VARCHAR/VARBINARY is more than just integer
+          return ExecutionOperatingUnitType::OP_INTEGER_COMPARE;
+        default:
+          return ExecutionOperatingUnitType::INVALID;
+      }
+    }
     case parser::ExpressionType::AGGREGATE_COUNT:
       return ExecutionOperatingUnitType::OP_AGGREGATE_COUNT;
     case parser::ExpressionType::AGGREGATE_SUM:
@@ -78,7 +151,7 @@ std::vector<ExecutionOperatingUnitType> OperatingUnitRecorder::ExtractFeaturesFr
     auto head = work.front();
     work.pop();
 
-    auto feature = ConvertExpressionType(head->GetExpressionType());
+    auto feature = ConvertExpressionType(head);
     if (feature != ExecutionOperatingUnitType::INVALID) {
       feature_types.push_back(feature);
     }

@@ -28,15 +28,22 @@ class OperatingUnitRecorder : planner::PlanVisitor {
 
  private:
   /**
-   * Converts a parser::ExpressionType to brain::ExecutionOperatingUnitType
+   * Derive the type of computation
+   * @param expr Expression
+   * @returns type of computation
+   */
+  type::TypeId DeriveComputation(common::ManagedPointer<parser::AbstractExpression> expr);
+
+  /**
+   * Converts a expression to brain::ExecutionOperatingUnitType
    *
    * Function returns brain::ExecutionOperatingUnitType::INVALID if the
    * parser::ExpressionType does not have an equivalent conversion.
    *
-   * @param etype ExpressionType to convert
+   * @param expr Expression
    * @returns converted equivalent brain::ExecutionOperatingUnitType
    */
-  ExecutionOperatingUnitType ConvertExpressionType(parser::ExpressionType etype);
+  ExecutionOperatingUnitType ConvertExpressionType(common::ManagedPointer<parser::AbstractExpression> expr);
 
   /**
    * Extracts features from an expression into a vector
