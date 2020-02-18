@@ -40,37 +40,37 @@ class BaseOperatorNodeContents : AbstractOptimizerNodeContents {
    * Utility method for visitor pattern
    * @param v operator visitor for visitor pattern
    */
-  virtual void Accept(common::ManagedPointer<OperatorVisitor> v) const = 0;
+  void Accept(common::ManagedPointer<OperatorVisitor> v) const override = 0;
 
   /**
    * @return the string name of this operator
    */
-  virtual std::string GetName() const = 0;
+  std::string GetName() const override = 0;
 
   /**
    * @return the type of this operator
    */
-  virtual OpType GetOpType() const = 0;
+  OpType GetOpType() const override = 0;
 
   /**
    * @return the ExpressionType of this operator (invalid expression type)
    */
-  virtual parser::ExpressionType GetExpType() const = 0;
+  parser::ExpressionType GetExpType() const override = 0;
 
   /**
    * @return whether this operator is logical
    */
-  virtual bool IsLogical() const = 0;
+  bool IsLogical() const override = 0;
 
   /**
    * @return whether this operator is physical
    */
-  virtual bool IsPhysical() const = 0;
+  bool IsPhysical() const override = 0;
 
   /**
    * @return the hashed value of this operator
    */
-  virtual common::hash_t Hash() const {
+  common::hash_t Hash() const {
     OpType t = GetOpType();
     return common::HashUtil::Hash(t);
   }

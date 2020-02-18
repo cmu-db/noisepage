@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
 #include "common/managed_pointer.h"
 #include "optimizer/abstract_optimizer_node_contents.h"
 #include "parser/expression/abstract_expression.h"
@@ -7,21 +10,39 @@
 
 namespace terrier::optimizer {
 
+/**
+ * A wrapper for an AbstractExpression for the query rewriter.
+ */
 class ExpressionNodeContents : public AbstractOptimizerNodeContents {
  public:
-  // Default constructors
+  /**
+   * Default constructor
+   */
   ExpressionNodeContents() = default;
-  ExpressionNodeContents(const ExpressionNodeContenst &other) : AbstractOptimizerNodeContents() { expr_ = other.expr_; }
+
+  /**
+   * Copy constructor
+   * @param other The other node contents we're copying from
+   */
+  explicit ExpressionNodeContents(const ExpressionNodeContents &other) : AbstractOptimizerNodeContents() {
+    expr_ = other.expr_;
+  }
 
   /**
    * Constructor based on an abstract expression pointer -- wraps that pointer
    * in an ExpressionNodeContents object
    * @param expr The expression to be wrapped
    */
-  ExpressionNodeContents(common::ManagedPointer<parser::AbstractExpression> expr) { expr_ = expr; }
+  explicit ExpressionNodeContents(common::ManagedPointer<parser::AbstractExpression> expr) { expr_ = expr; }
 
+  /**
+   * @return The invalid OpType, since this is an ExpressionNodeContents
+   */
   OpType GetOpType() const { return OpType::UNDEFINED; }
 
+  /**
+   * @return This expression node content's expression type
+   */
   parser::ExpressionType GetExpType() const {
     if (IsDefined()) {
       return expr->GetExpressionType();
@@ -29,15 +50,30 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
     return parser::ExpressionType::INVALID;
   }
 
+  /**
+   * @return The contained expression within the
+   */
   common::ManagedPointer<parser::AbstractExpression> GetExpr() const { return expr_; }
 
-  // Dummy Accept
+  /**
+   * Dummy Accept method
+   * @param v An OperatorVisitor. Goes unused
+   */
   void Accept(OperatorVisitor *v) const { (void)v; }
 
-  bool IsLogical() const { return true; }
+  /**
+   * @return whether or not this expression is logical (which it always is)
+   */
+  bool IsLogical() const override { return true; }
 
-  bool IsPhysical() const { return false; }
+  /**
+   * @return whether or not this expression is physical (which it always isn't)
+   */
+  bool IsPhysical() const override { return false; }
 
+  /**
+   * @return The name of this expression
+   */
   std::string GetName() const {
     if (IsDefined()) {
       return expr_->GetExpressionName();
@@ -45,6 +81,9 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
     throw OptimizerException("Undefined expression name.");
   }
 
+  /**
+   * @return The hash of this ExpressionNodeContents
+   */
   common::hash_t Hash() const {
     if (IsDefined()) {
       return expr_->Hash();
@@ -52,6 +91,10 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
     return 0;
   }
 
+  /**
+   * @param r The other (abstract) node contents to be compared
+   * @return Whether or not this is equal to the other node contents
+   */
   bool operator==(const AbstractOptimizerNodeContents &r) {
     if (r.GetExpType() != parser::ExpressionType::INVALID) {
       const ExpressionNodeContents &contents = dynamic_cast<const ExpressionNodeContents &>(r);
@@ -60,8 +103,12 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
     return false;
   }
 
+  /**
+   * @param r The other (expression) node contents to be compared
+   * @return Whether or not this is equal to the other node contents
+   */
   bool operator==(const ExpressionNodeContents &r) {
-    // TODO(): proper equality check
+    // TODO(esargent): proper equality check
     // Equality check relies on performing the following:
     // - Check each node's ExpressionType
     // - Check other parameters for a given node
@@ -78,8 +125,17 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
     return false;
   }
 
-  bool IsDefined() const { return (expr_ != nullptr); }
+  /**
+   * @return Whether or not this node contents contains a defined expression
+   */
+  bool IsDefined() const override { return (expr_ != nullptr); }
 
+  /**
+   * Produces a copy of this expression node contents, with the provided
+   * child expressions
+   * @param children A vector of the copy expression's children
+   * @return A copied expression with the provided children.
+   */
   common::ManagedPointer<parser::AbstractExpression> CopyWithChildren(
       std::vector<common::ManagedPointer<parser::AbstractExpression>> children);
 

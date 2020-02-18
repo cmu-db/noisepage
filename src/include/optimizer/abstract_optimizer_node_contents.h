@@ -14,11 +14,11 @@ class OperatorVisitor;
 
 class AbstractOptimizerNodeContents {
  public:
-  AbstractOptimizerNodeContents() {}
+  AbstractOptimizerNodeContents() = default;
   explicit AbstractOptimizerNodeContents(common::ManagedPointer<AbstractOptimizerNodeContents> contents)
       : contents_(contents) {}
 
-  ~AbstractOptimizerNodeContents() {}
+  ~AbstractOptimizerNodeContents() = default;
 
   /**
    * Accepts a visitor
