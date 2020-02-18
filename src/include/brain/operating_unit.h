@@ -6,6 +6,30 @@
 #include "brain/brain_defs.h"
 #include "execution/exec_defs.h"
 
+namespace terrier::execution::compiler::test {
+class CompilerTest_SimpleSeqScanTest_Test;
+class CompilerTest_SimpleSeqScanWithProjectionTest_Test;
+class CompilerTest_SimpleSeqScanWithParamsTest_Test;
+class CompilerTest_SimpleIndexScanTest_Test;
+class CompilerTest_SimpleIndexScanAsendingTest_Test;
+class CompilerTest_SimpleIndexScanLimitAsendingTest_Test;
+class CompilerTest_SimpleIndexScanDesendingTest_Test;
+class CompilerTest_SimpleIndexScanLimitDesendingTest_Test;
+class CompilerTest_SimpleAggregateTest_Test;
+class CompilerTest_CountStarTest_Test;
+class CompilerTest_SimpleAggregateHavingTest_Test;
+class CompilerTest_SimpleHashJoinTest_Test;
+class CompilerTest_MultiWayHashJoinTest_Test;
+class CompilerTest_SimpleNestedLoopJoinTest_Test;
+class CompilerTest_SimpleIndexNestedLoopJoinTest_Test;
+class CompilerTest_SimpleIndexNestedLoopJoinMultiColumnTest_Test;
+class CompilerTest_SimpleDeleteTest_Test;
+class CompilerTest_SimpleUpdateTest_Test;
+class CompilerTest_SimpleInsertTest_Test;
+class CompilerTest_InsertIntoSelectWithParamTest_Test;
+class CompilerTest_SimpleInsertWithParamsTest_Test;
+}  // namespace terrier::execution::compiler::test
+
 namespace terrier::brain {
 
 class OperatingUnitRecorder;
@@ -82,6 +106,28 @@ using ExecutionOperatingUnitFeatureVector = std::vector<ExecutionOperatingUnitFe
  */
 class PipelineOperatingUnits {
  public:
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleSeqScanTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleSeqScanWithProjectionTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleSeqScanWithParamsTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanAsendingTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanLimitAsendingTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanDesendingTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanLimitDesendingTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleAggregateTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_CountStarTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleAggregateHavingTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleHashJoinTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_MultiWayHashJoinTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleNestedLoopJoinTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexNestedLoopJoinTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexNestedLoopJoinMultiColumnTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleDeleteTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleUpdateTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleInsertTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_InsertIntoSelectWithParamTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleInsertWithParamsTest_Test;
+
   /**
    * Constructor
    */

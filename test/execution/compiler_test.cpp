@@ -49,6 +49,21 @@ class CompilerTest : public SqlBasedTest {
     table_generator.GenerateTestTables(false);
   }
 
+  bool CheckFeatureVectorEquality(const std::vector<brain::ExecutionOperatingUnitType> &vec_a,
+                                  const std::vector<brain::ExecutionOperatingUnitType> &vec_b) {
+    std::unordered_set<brain::ExecutionOperatingUnitType> set_a;
+    std::unordered_set<brain::ExecutionOperatingUnitType> set_b;
+    for (auto e : vec_a) {
+      set_a.insert(e);
+    }
+
+    for (auto e : vec_b) {
+      set_b.insert(e);
+    }
+
+    return set_a == set_b;
+  }
+
   static constexpr vm::ExecutionMode MODE = vm::ExecutionMode::Interpret;
 };
 
@@ -106,6 +121,25 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
   auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
   executable.Run(common::ManagedPointer(exec_ctx), MODE);
   multi_checker.CheckCorrectness();
+
+  // Pipeline Units
+  auto pipeline = executable.GetPipelineOperatingUnits();
+  EXPECT_EQ(pipeline->units_.size(), 1);
+
+  std::vector<brain::ExecutionOperatingUnitType> features;
+  auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
+  features.reserve(feature_vec.size());
+  for (auto &feature : feature_vec) {
+    features.push_back(feature.GetExecutionOperatingUnitType());
+  }
+
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{
+      brain::ExecutionOperatingUnitType::SEQ_SCAN,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY,
+  };
+
+  EXPECT_TRUE(CheckFeatureVectorEquality(features, exp_vec));
 }
 
 // NOLINTNEXTLINE
@@ -172,6 +206,26 @@ TEST_F(CompilerTest, SimpleSeqScanWithProjectionTest) {
   auto executable = ExecutableQuery(common::ManagedPointer(proj), common::ManagedPointer(exec_ctx));
   executable.Run(common::ManagedPointer(exec_ctx), MODE);
   multi_checker.CheckCorrectness();
+
+  // Pipeline Units
+  auto pipeline = executable.GetPipelineOperatingUnits();
+  EXPECT_EQ(pipeline->units_.size(), 1);
+
+  std::vector<brain::ExecutionOperatingUnitType> features;
+  auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
+  features.reserve(feature_vec.size());
+  for (auto &feature : feature_vec) {
+    features.push_back(feature.GetExecutionOperatingUnitType());
+  }
+
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{
+      brain::ExecutionOperatingUnitType::SEQ_SCAN,
+      brain::ExecutionOperatingUnitType::PROJECTION,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY,
+  };
+
+  EXPECT_TRUE(CheckFeatureVectorEquality(features, exp_vec));
 }
 
 // NOLINTNEXTLINE
@@ -238,6 +292,25 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
   auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
   executable.Run(common::ManagedPointer(exec_ctx), MODE);
   multi_checker.CheckCorrectness();
+
+  // Pipeline Units
+  auto pipeline = executable.GetPipelineOperatingUnits();
+  EXPECT_EQ(pipeline->units_.size(), 1);
+
+  std::vector<brain::ExecutionOperatingUnitType> features;
+  auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
+  features.reserve(feature_vec.size());
+  for (auto &feature : feature_vec) {
+    features.push_back(feature.GetExecutionOperatingUnitType());
+  }
+
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{
+      brain::ExecutionOperatingUnitType::SEQ_SCAN,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY,
+  };
+
+  EXPECT_TRUE(CheckFeatureVectorEquality(features, exp_vec));
 }
 
 // NOLINTNEXTLINE
@@ -286,6 +359,20 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
   auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
   executable.Run(common::ManagedPointer(exec_ctx), MODE);
   multi_checker.CheckCorrectness();
+
+  // Pipeline Units
+  auto pipeline = executable.GetPipelineOperatingUnits();
+  EXPECT_EQ(pipeline->units_.size(), 1);
+
+  std::vector<brain::ExecutionOperatingUnitType> features;
+  auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
+  features.reserve(feature_vec.size());
+  for (auto &feature : feature_vec) {
+    features.push_back(feature.GetExecutionOperatingUnitType());
+  }
+
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN};
+  EXPECT_TRUE(CheckFeatureVectorEquality(features, exp_vec));
 }
 
 // NOLINTNEXTLINE
