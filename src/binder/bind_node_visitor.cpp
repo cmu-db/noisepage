@@ -367,21 +367,22 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
           }
         } else {
           for (int i = 0; i < table_schema.GetColumns().size(); i++) {
-            catalog::Schema::Column schemaColumn = table_schema.GetColumns[i];
-            auto it = std::find(insert_columns.begin(), insert_columns.end(), schemaColumn.Name());
-            if (it != insert_columns.end()) {
+            catalog::Schema::Column schemaColumn = table_schema.GetColumns()[i];
+            auto it = std::find(insert_columns->begin(), insert_columns->end(), schemaColumn.Name());
+            if (it != insert_columns->end()) {
               // find the index now
-              auto index = std::distance(insert_columns.begin(), it);
+              auto index = std::distance(insert_columns->begin(), it);
               std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> pair =
                   std::make_pair(schemaColumn, values[index]);
               cols.push_back(pair);
             } else {
               //check if default value present
               if (schemaColumn.StoredExpression() != nullptr) {
-                std::unique_ptr<parser::AbstractExpression> temp = schemaColumn.StoredExpression()->Copy();
+                std::unique_ptr<parser::AbstractExpression> cur_value = schemaColumn.StoredExpression()->Copy();
                 std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> pair =
-                    std::make_pair(schemaColumn, common::ManagedPointer(temp));
+                    std::make_pair(schemaColumn, common::ManagedPointer(cur_value));
                 cols.push_back(pair);
+                parse_result->AddExpression(std::move(cur_value));
               }
               //check if nullable field
               else if (schemaColumn.Nullable()) {
@@ -395,26 +396,12 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
               }
             }
           }
-          /*for (int i = 0; i < num_insert_columns; i++) {
-            std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> pair =
-                std::make_pair(table_schema.GetColumn(node->GetInsertColumns()->at(i)), values[i]);
-            cols.push_back(pair);
+          insert_columns->clear();
+          values.clear();
+          for (std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> pair : cols) {
+            insert_columns->push_back(pair.first.Name());
+            values.push_back(pair.second);
           }
-
-          sort(cols.begin(), cols.end(),
-               [](const std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> &a,
-                  const std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> &b)
-                   -> bool { return a.first.Oid() < b.first.Oid(); });
-*/
-          std::vector<std::string> ins_col;
-          std::vector<common::ManagedPointer<parser::AbstractExpression>> ins_val;
-          for (auto const &pair : cols) {
-            ins_col.push_back(pair.first.Name());
-            ins_val.push_back(pair.second);
-          }
-
-          insert_columns = &ins_col;
-          values = ins_val;
         }
 
         for (size_t i = 0; i < cols.size(); i++) {
