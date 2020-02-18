@@ -227,7 +227,7 @@ TEST_F(ExportTableTest, ExportDictionaryCompressedTableTest) {
   compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
 
   table.ExportTable(EXPORT_TABLE_NAME, &column_types);
-  system((std::string("python ") + PYSCRIPT_NAME).c_str());
+  system((std::string("python3 ") + PYSCRIPT_NAME).c_str());
 
   std::ifstream csv_file(CSV_TABLE_NAME, std::ios_base::in);
   EXPECT_TRUE(check_content(csv_file, &txn_manager, layout, tuples, table, block));
@@ -295,7 +295,7 @@ TEST_F(ExportTableTest, ExportVarlenTableTest) {
   compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
 
   table.ExportTable(EXPORT_TABLE_NAME, &column_types);
-  system((std::string("python ") + PYSCRIPT_NAME).c_str());
+  system((std::string("python3 ") + PYSCRIPT_NAME).c_str());
 
   std::ifstream csv_file(CSV_TABLE_NAME, std::ios_base::in);
   EXPECT_TRUE(check_content(csv_file, &txn_manager, layout, tuples, table, block));
