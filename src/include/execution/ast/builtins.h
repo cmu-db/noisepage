@@ -8,15 +8,9 @@ namespace terrier::execution::ast {
 // Args: internal name, function name
 #define BUILTINS_LIST(F)                                                \
   /* SQL NULL. */                                                       \
-  F(IsNull, isNull)                                                     \
-  F(IsNotNull, isNotNull)                                               \
-  F(NullBool, nullBool)                                                 \
-  F(NullInt, nullInt)                                                   \
-  F(NullReal, nullReal)                                                 \
-  F(NullDecimal, nullDecimal)                                           \
-  F(NullString, nullString)                                             \
-  F(NullDate, nullDate)                                                 \
-  F(NullTimestamp, nullTimestamp)                                       \
+  F(IsSqlNull, isSqlNull)                                               \
+  F(IsSqlNotNull, isSqlNotNull)                                         \
+  F(NullToSql, nullToSql)                                               \
   /* Primitive <-> SQL */                                               \
   F(IntToSql, intToSql)                                                 \
   F(BoolToSql, boolToSql)                                               \

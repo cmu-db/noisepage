@@ -439,58 +439,38 @@ void BytecodeGenerator::VisitReturnStmt(ast::ReturnStmt *node) {
   Emitter()->EmitReturn();
 }
 
+void BytecodeGenerator::VisitSqlNullCall(ast::CallExpr *call, ast::Builtin builtin) {
+  ast::Context *ctx = call->GetType()->GetContext();
+  switch (builtin) {
+    case ast::Builtin::IsSqlNull: {
+      auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      auto input = VisitExpressionForRValue(call->Arguments()[0]);
+      Emitter()->Emit(Bytecode::ValIsNull, dest, input);
+      ExecutionResult()->SetDestination(dest.ValueOf());
+      break;
+    }
+    case ast::Builtin::IsSqlNotNull: {
+      auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      auto input = VisitExpressionForRValue(call->Arguments()[0]);
+      Emitter()->Emit(Bytecode::ValIsNotNull, dest, input);
+      ExecutionResult()->SetDestination(dest.ValueOf());
+      break;
+    }
+    case ast::Builtin::NullToSql: {
+      // The type of NULL to be created should have been set in sema.
+      auto dest = ExecutionResult()->GetOrCreateDestination(call->GetType());
+      auto input_type = reinterpret_cast<uintptr_t>(call->GetType());
+      Emitter()->EmitAll(Bytecode::InitSqlNull, dest, input_type);
+      break;
+    }
+    default:
+      UNREACHABLE("Unsupported NULL-related builtin.");
+  }
+}
+
 void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
   ast::Context *ctx = call->GetType()->GetContext();
   switch (builtin) {
-    case ast::Builtin::IsNull: {
-      auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
-      auto input = VisitExpressionForRValue(call->Arguments()[0]);
-      Emitter()->Emit(Bytecode::IsNull, dest, input);
-      ExecutionResult()->SetDestination(dest.ValueOf());
-      break;
-    }
-    case ast::Builtin::IsNotNull: {
-      auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
-      auto input = VisitExpressionForRValue(call->Arguments()[0]);
-      Emitter()->Emit(Bytecode::IsNotNull, dest, input);
-      ExecutionResult()->SetDestination(dest.ValueOf());
-      break;
-    }
-    case ast::Builtin::NullBool: {
-      auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Boolean));
-      Emitter()->Emit(Bytecode::InitNullBool, dest);
-      break;
-    }
-    case ast::Builtin::NullInt: {
-      auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
-      Emitter()->Emit(Bytecode::InitNullInt, dest);
-      break;
-    }
-    case ast::Builtin::NullReal: {
-      auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Real));
-      Emitter()->Emit(Bytecode::InitNullReal, dest);
-      break;
-    }
-    case ast::Builtin::NullDecimal: {
-      auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Decimal));
-      Emitter()->Emit(Bytecode::InitNullDecimal, dest);
-      break;
-    }
-    case ast::Builtin::NullString: {
-      auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::StringVal));
-      Emitter()->Emit(Bytecode::InitNullString, dest);
-      break;
-    }
-    case ast::Builtin::NullDate: {
-      auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Date));
-      Emitter()->Emit(Bytecode::InitNullDate, dest);
-      break;
-    }
-    case ast::Builtin::NullTimestamp: {
-      auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Timestamp));
-      Emitter()->Emit(Bytecode::InitNullTimestamp, dest);
-      break;
-    }
     case ast::Builtin::BoolToSql: {
       auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Boolean));
       auto input = VisitExpressionForRValue(call->Arguments()[0]);
@@ -520,8 +500,13 @@ void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin
       auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::StringVal));
       // Copy data into the execution context's buffer.
       auto input = call->Arguments()[0]->As<ast::LitExpr>()->RawStringVal();
-      // Assign the pointer to a local variable
-      Emitter()->EmitInitString(Bytecode::InitString, dest, input.Length(), reinterpret_cast<uintptr_t>(input.Data()));
+      if (input.Data() != nullptr) {
+        // Assign the pointer to a local variable
+        Emitter()->EmitInitString(Bytecode::InitString, dest, input.Length(),
+                                  reinterpret_cast<uintptr_t>(input.Data()));
+      } else {
+        Emitter()->EmitInitString(Bytecode::InitString, dest, 0, reinterpret_cast<uintptr_t>(0UL));
+      }
       break;
     }
     case ast::Builtin::VarlenToSql: {
@@ -1999,15 +1984,12 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
   ctx->IsBuiltinFunction(call->GetFuncName(), &builtin);
 
   switch (builtin) {
-    case ast::Builtin::IsNull:
-    case ast::Builtin::IsNotNull:
-    case ast::Builtin::NullBool:
-    case ast::Builtin::NullInt:
-    case ast::Builtin::NullReal:
-    case ast::Builtin::NullDecimal:
-    case ast::Builtin::NullString:
-    case ast::Builtin::NullDate:
-    case ast::Builtin::NullTimestamp:
+    case ast::Builtin::IsSqlNull:
+    case ast::Builtin::IsSqlNotNull:
+    case ast::Builtin::NullToSql: {
+      VisitSqlNullCall(call, builtin);
+      break;
+    }
     case ast::Builtin::BoolToSql:
     case ast::Builtin::IntToSql:
     case ast::Builtin::FloatToSql:

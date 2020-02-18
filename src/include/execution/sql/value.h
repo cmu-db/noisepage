@@ -243,6 +243,9 @@ struct StringVal : public Val {
    * @return VarlenEntry representing StringVal
    */
   static storage::VarlenEntry CreateVarlen(const StringVal &str, bool own) {
+    if (str.is_null_) {
+      return terrier::storage::VarlenEntry::CreateInline(static_cast<const terrier::byte *>(nullptr), 0);
+    }
     if (str.len_ > storage::VarlenEntry::InlineThreshold()) {
       if (own) {
         byte *contents = common::AllocationUtil::AllocateAligned(str.len_);

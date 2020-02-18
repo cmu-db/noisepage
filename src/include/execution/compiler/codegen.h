@@ -273,51 +273,22 @@ class CodeGen {
   ast::Expr *MemberExpr(ast::Identifier lhs, ast::Identifier rhs);
 
   /**
-   * @return The generated sql NULL bool.
-   */
-  ast::Expr *NullBool();
-
-  /**
-   * @return The generated sql NULL int.
-   */
-  ast::Expr *NullInt();
-
-  /**
-   * @return The generated sql NULL real.
-   */
-  ast::Expr *NullReal();
-
-  /**
-   * @return The generated sql NULL decimal.
-   */
-  ast::Expr *NullDecimal();
-
-  /**
-   * @return The generated sql NULL string.
-   */
-  ast::Expr *NullString();
-
-  /**
-   * @return The generated sql NULL date.
-   */
-  ast::Expr *NullDate();
-
-  /**
-   * @return The generated sql NULL timestamp.
-   */
-  ast::Expr *NullTimestamp();
-
-  /**
    * @param expr The expression to be checked.
    * @return The generated null check.
    */
-  ast::Expr *IsNull(ast::Expr *expr);
+  ast::Expr *IsSqlNull(ast::Expr *expr);
 
   /**
    * @param expr The expression to be checked.
-   * @return The generated not-null check.
+   * @return The generated not null check.
    */
-  ast::Expr *IsNotNull(ast::Expr *expr);
+  ast::Expr *IsSqlNotNull(ast::Expr *expr);
+
+  /**
+   * @param expr An expression whose type is the type of NULL to create.
+   * @return The generated NULL.
+   */
+  ast::Expr *NullToSql(ast::Expr *expr);
   /**
    * @param num The number to convert to a sql Integer.
    * @return The generated sql Integer

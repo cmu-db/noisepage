@@ -376,26 +376,33 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
 
 ast::Expr *CodeGen::PeekValue(const type::TransientValue &transient_val) {
   if (transient_val.Null()) {
+    // NullToSql(&expr) produces a NULL of expr's type.
+    ast::Expr *dummy_expr;
     switch (transient_val.Type()) {
       case type::TypeId::BOOLEAN:
-        return NullBool();
+        dummy_expr = BoolLiteral(false);
+        break;
       case type::TypeId::TINYINT:  /* fall-through */
       case type::TypeId::SMALLINT: /* fall-through */
       case type::TypeId::INTEGER:  /* fall-through */
       case type::TypeId::BIGINT:   /* fall-through */
-        return NullInt();
+        dummy_expr = IntToSql(0);
+        break;
       case type::TypeId::DATE:
-        return NullDate();
+        dummy_expr = DateToSql(0, 0, 0);
+        break;
       case type::TypeId::TIMESTAMP:
-        return NullTimestamp();
-      case type::TypeId::DECIMAL:
-        return NullDecimal();
+        dummy_expr = TimestampToSql(0);
+        break;
       case type::TypeId::VARCHAR:
-        return NullString();
+        dummy_expr = StringToSql("");
+        break;
+      case type::TypeId::DECIMAL:
       case type::TypeId::VARBINARY:
       default:
         UNREACHABLE("Unsupported NULL type!");
     }
+    return OneArgCall(ast::Builtin::NullToSql, dummy_expr);
   }
 
   switch (transient_val.Type()) {
@@ -548,23 +555,11 @@ ast::Expr *CodeGen::MemberExpr(ast::Identifier lhs, ast::Identifier rhs) {
   return Factory()->NewMemberExpr(DUMMY_POS, object, member);
 }
 
-ast::Expr *CodeGen::NullBool() { return ZeroArgCall(ast::Builtin::NullBool); }
+ast::Expr *CodeGen::IsSqlNull(ast::Expr *expr) { return OneArgCall(ast::Builtin::IsSqlNull, expr); }
 
-ast::Expr *CodeGen::NullInt() { return ZeroArgCall(ast::Builtin::NullInt); }
+ast::Expr *CodeGen::IsSqlNotNull(ast::Expr *expr) { return OneArgCall(ast::Builtin::IsSqlNotNull, expr); }
 
-ast::Expr *CodeGen::NullReal() { return ZeroArgCall(ast::Builtin::NullReal); }
-
-ast::Expr *CodeGen::NullDecimal() { return ZeroArgCall(ast::Builtin::NullDecimal); }
-
-ast::Expr *CodeGen::NullString() { return ZeroArgCall(ast::Builtin::NullString); }
-
-ast::Expr *CodeGen::NullDate() { return ZeroArgCall(ast::Builtin::NullDate); }
-
-ast::Expr *CodeGen::NullTimestamp() { return ZeroArgCall(ast::Builtin::NullTimestamp); }
-
-ast::Expr *CodeGen::IsNull(ast::Expr *expr) { return OneArgCall(ast::Builtin::IsNull, expr); }
-
-ast::Expr *CodeGen::IsNotNull(ast::Expr *expr) { return OneArgCall(ast::Builtin::IsNotNull, expr); }
+ast::Expr *CodeGen::NullToSql(ast::Expr *expr) { return OneArgCall(ast::Builtin::NullToSql, expr); }
 
 ast::Expr *CodeGen::IntToSql(int64_t num) {
   ast::Expr *int_lit = IntLiteral(num);

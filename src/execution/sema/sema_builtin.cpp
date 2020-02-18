@@ -37,6 +37,26 @@ bool AreAllFunctions(const ArgTypes... type) {
 
 void Sema::CheckBuiltinMapCall(UNUSED_ATTRIBUTE ast::CallExpr *call) {}
 
+void Sema::CheckBuiltinSqlNullCall(ast::CallExpr *call, ast::Builtin builtin) {
+  if (!CheckArgCount(call, 1)) {
+    return;
+  }
+  auto input_type = call->Arguments()[0]->GetType();
+  switch (builtin) {
+    case ast::Builtin::IsSqlNull: /* fall-through */
+    case ast::Builtin::IsSqlNotNull: {
+      call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
+      break;
+    }
+    case ast::Builtin::NullToSql: {
+      call->SetType(input_type);
+      break;
+    }
+    default:
+      UNREACHABLE("Unsupported NULL type.");
+  }
+}
+
 void Sema::CheckBuiltinSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
   // SQL Date.
   if (builtin == ast::Builtin::DateToSql) {
@@ -126,45 +146,12 @@ void Sema::CheckBuiltinSqlConversionCall(ast::CallExpr *call, ast::Builtin built
     return;
   }
 
-  // Null checks.
-  switch (builtin) {
-    case ast::Builtin::NullBool:
-      call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
-      return;
-    case ast::Builtin::NullInt:
-      call->SetType(GetBuiltinType(ast::BuiltinType::Integer));
-      return;
-    case ast::Builtin::NullReal:
-      call->SetType(GetBuiltinType(ast::BuiltinType::Real));
-      return;
-    case ast::Builtin::NullDecimal:
-      call->SetType(GetBuiltinType(ast::BuiltinType::Decimal));
-      return;
-    case ast::Builtin::NullString:
-      call->SetType(GetBuiltinType(ast::BuiltinType::StringVal));
-      return;
-    case ast::Builtin::NullDate:
-      call->SetType(GetBuiltinType(ast::BuiltinType::Date));
-      return;
-    case ast::Builtin::NullTimestamp:
-      call->SetType(GetBuiltinType(ast::BuiltinType::Timestamp));
-      return;
-    default:
-      break;
-  }
-
   // One arg functions below.
   if (!CheckArgCount(call, 1)) {
     return;
   }
   auto input_type = call->Arguments()[0]->GetType();
   switch (builtin) {
-    case ast::Builtin::IsNull:    /* fall through */
-    case ast::Builtin::IsNotNull: /* fall through */
-    {
-      call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
-      break;
-    }
     case ast::Builtin::BoolToSql: {
       if (!input_type->IsSpecificBuiltin(ast::BuiltinType::Bool)) {
         GetErrorReporter()->Report(call->Position(), ErrorMessages::kInvalidSqlCastToBool, input_type);
@@ -2133,15 +2120,12 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
   }
 
   switch (builtin) {
-    case ast::Builtin::IsNull:
-    case ast::Builtin::IsNotNull:
-    case ast::Builtin::NullBool:
-    case ast::Builtin::NullInt:
-    case ast::Builtin::NullReal:
-    case ast::Builtin::NullDecimal:
-    case ast::Builtin::NullString:
-    case ast::Builtin::NullDate:
-    case ast::Builtin::NullTimestamp:
+    case ast::Builtin::IsSqlNull:
+    case ast::Builtin::IsSqlNotNull:
+    case ast::Builtin::NullToSql: {
+      CheckBuiltinSqlNullCall(call, builtin);
+      break;
+    }
     case ast::Builtin::BoolToSql:
     case ast::Builtin::IntToSql:
     case ast::Builtin::FloatToSql:

@@ -1,6 +1,5 @@
 #include "execution/compiler/expression/null_check_translator.h"
 
-#include "execution/ast/type.h"
 #include "execution/compiler/translator_factory.h"
 
 namespace terrier::execution::compiler {
@@ -14,9 +13,9 @@ ast::Expr *NullCheckTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
 
   ast::Expr *ret;
   if (type == terrier::parser::ExpressionType::OPERATOR_IS_NULL) {
-    ret = codegen_->IsNull(child_expr);
+    ret = codegen_->IsSqlNull(child_expr);
   } else if (type == terrier::parser::ExpressionType::OPERATOR_IS_NOT_NULL) {
-    ret = codegen_->IsNotNull(child_expr);
+    ret = codegen_->IsSqlNotNull(child_expr);
   } else {
     TERRIER_ASSERT(false, "Unsupported expression");
   }

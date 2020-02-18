@@ -4,6 +4,7 @@
 
 #include "common/macros.h"
 #include "common/strong_typedef.h"
+#include "execution/ast/type.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/aggregation_hash_table.h"
 #include "execution/sql/aggregators.h"
@@ -589,40 +590,17 @@ VM_OP_HOT void OpForceBoolTruth(bool *result, terrier::execution::sql::BoolVal *
   *result = input->ForceTruth();
 }
 
-VM_OP_HOT void OpIsNull(bool *result, terrier::execution::sql::Val *sql_val) {
-  *result = terrier::execution::sql::IsNullPredicate::IsNull(*sql_val);
-}
+VM_OP_HOT void OpInitSqlNull(terrier::execution::sql::Val *result, uintptr_t type) {
+  auto type_ptr = reinterpret_cast<terrier::execution::ast::Type *>(type);
 
-VM_OP_HOT void OpIsNotNull(bool *result, terrier::execution::sql::Val *sql_val) {
-  *result = terrier::execution::sql::IsNullPredicate::IsNotNull(*sql_val);
-}
+#define INIT_SQL_NULL(BUILTIN_TYPE, SQL_VAL_TYPE)                                        \
+  if (type_ptr->IsSpecificBuiltin(terrier::execution::ast::BuiltinType::BUILTIN_TYPE)) { \
+    *result = SQL_VAL_TYPE::Null();                                                      \
+  }
 
-VM_OP_HOT void OpInitNullBool(terrier::execution::sql::BoolVal *result) {
-  *result = terrier::execution::sql::BoolVal::Null();
-}
+  SQL_BUILTIN_TYPE_LIST(INIT_SQL_NULL);
 
-VM_OP_HOT void OpInitNullInt(terrier::execution::sql::Integer *result) {
-  *result = terrier::execution::sql::Integer::Null();
-}
-
-VM_OP_HOT void OpInitNullReal(terrier::execution::sql::Real *result) {
-  *result = terrier::execution::sql::Real::Null();
-}
-
-VM_OP_HOT void OpInitNullDecimal(terrier::execution::sql::Decimal *result) {
-  *result = terrier::execution::sql::Decimal::Null();
-}
-
-VM_OP_HOT void OpInitNullString(terrier::execution::sql::StringVal *result) {
-  *result = terrier::execution::sql::StringVal::Null();
-}
-
-VM_OP_HOT void OpInitNullDate(terrier::execution::sql::DateVal *result) {
-  *result = terrier::execution::sql::DateVal::Null();
-}
-
-VM_OP_HOT void OpInitNullTimestamp(terrier::execution::sql::TimestampVal *result) {
-  *result = terrier::execution::sql::TimestampVal::Null();
+#undef INIT_SQL_NULL
 }
 
 VM_OP_HOT void OpInitBoolVal(terrier::execution::sql::BoolVal *result, bool input) {
@@ -1335,14 +1313,12 @@ VM_OP_WARM void OpPow(terrier::execution::sql::Real *result, const terrier::exec
 // Null/Not Null predicates
 // ---------------------------------------------------------
 
-VM_OP_WARM void OpValIsNull(terrier::execution::sql::BoolVal *result, const terrier::execution::sql::Val *val) {
-  bool is_null = terrier::execution::sql::IsNullPredicate::IsNull(*val);
-  *result = terrier::execution::sql::BoolVal(is_null);
+VM_OP_WARM void OpValIsNull(bool *result, const terrier::execution::sql::Val *val) {
+  *result = terrier::execution::sql::IsNullPredicate::IsNull(*val);
 }
 
-VM_OP_WARM void OpValIsNotNull(terrier::execution::sql::BoolVal *result, const terrier::execution::sql::Val *val) {
-  bool is_not_null = terrier::execution::sql::IsNullPredicate::IsNotNull(*val);
-  *result = terrier::execution::sql::BoolVal(is_not_null);
+VM_OP_WARM void OpValIsNotNull(bool *result, const terrier::execution::sql::Val *val) {
+  *result = terrier::execution::sql::IsNullPredicate::IsNotNull(*val);
 }
 
 // ---------------------------------------------------------
