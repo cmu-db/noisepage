@@ -7,7 +7,7 @@ struct output_struct {
 fun pipeline_1(execCtx: *ExecutionContext) -> nil {
   var inttopK: IntegerTopKAggregate
   var address = &inttopK
-  @topkaggInit(address, 2)
+  @integertopkaggInit(address, 100)
 
   var tvi: TableVectorIterator
   var col_oids : [2]uint32
@@ -18,11 +18,17 @@ fun pipeline_1(execCtx: *ExecutionContext) -> nil {
     var vec = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(vec); @pciAdvance(vec)) {
       var cola = @pciGetInt(vec, 0)
-      if (cola < 10) {
-        @topkaggAdvance(address,&cola)
-      }
+        @integertopkaggAdvance(address,&cola)
     }
   }
+
+  for(@integertopkaggHasResult(address)) {
+    var out : *output_struct
+    out = @ptrCast(*output_struct, @outputAlloc(execCtx))
+    out.col1 = @integertopkaggResult(address)
+    @outputFinalize(execCtx)
+  }
+
   @tableIterClose(&tvi)
 }
 

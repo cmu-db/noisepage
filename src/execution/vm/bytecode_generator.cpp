@@ -1167,6 +1167,7 @@ void BytecodeGenerator::VisitBuiltinTopKAggregatorCall(ast::CallExpr *call, ast:
       LocalVar agg = VisitExpressionForRValue(args[0]);
       LocalVar result = ExecutionResult()->GetOrCreateDestination(call->GetType());
       Emitter()->Emit(Bytecode::IntegerTopKAggregateHasResult, result, agg);
+      ExecutionResult()->SetDestination(result.ValueOf());
       break;
     }
     case ast::Builtin::IntegerTopKAggFree: {
@@ -1213,6 +1214,7 @@ void BytecodeGenerator::VisitBuiltinTopKAggregatorCall(ast::CallExpr *call, ast:
       LocalVar agg = VisitExpressionForRValue(args[0]);
       LocalVar result = ExecutionResult()->GetOrCreateDestination(call->GetType());
       Emitter()->Emit(Bytecode::RealTopKAggregateHasResult, result, agg);
+      ExecutionResult()->SetDestination(result.ValueOf());
       break;
     }
     case ast::Builtin::RealTopKAggFree: {
