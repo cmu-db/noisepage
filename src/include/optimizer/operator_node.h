@@ -1,263 +1,105 @@
 #pragma once
 
+#include "optimizer/operator_node_contents.h"
+
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
-#include "common/hash_util.h"
-#include "common/managed_pointer.h"
-#include "optimizer/optimizer_defs.h"
 
 namespace terrier::optimizer {
 
 /**
- * Utility class for visiting the operator tree
+ * This class is used to represent nodes in the operator tree. The operator tree is generated
+ * by the binder by visiting the abstract syntax tree (AST) produced by the parser and servers
+ * as the input to the query optimizer.
  */
-class OperatorVisitor;
-
-/**
- * Base class for operators
- */
-class BaseOperatorNode {
+class OperatorNode {
  public:
   /**
-   * Default constructor
+   * Create an OperatorNode
+   * @param op an operator to bind to this OperatorNode node
+   * @param children children of this OperatorNode
    */
-  BaseOperatorNode() = default;
-
-  /**
-   * Default destructor
-   */
-  virtual ~BaseOperatorNode() = default;
+  explicit OperatorNode(Operator op, std::vector<std::unique_ptr<OperatorNode>> &&children)
+      : op_(std::move(op)), children_(std::move(children)) {}
 
   /**
    * Copy
-   * @returns copy of this
    */
-  virtual BaseOperatorNode *Copy() const = 0;
-
-  /**
-   * Utility method for visitor pattern
-   * @param v operator visitor for visitor pattern
-   */
-  virtual void Accept(common::ManagedPointer<OperatorVisitor> v) const = 0;
-
-  /**
-   * @return the string name of this operator
-   */
-  virtual std::string GetName() const = 0;
-
-  /**
-   * @return the type of this operator
-   */
-  virtual OpType GetType() const = 0;
-
-  /**
-   * @return whether this operator is logical
-   */
-  virtual bool IsLogical() const = 0;
-
-  /**
-   * @return whether this operator is physical
-   */
-  virtual bool IsPhysical() const = 0;
-
-  /**
-   * @return the hashed value of this operator
-   */
-  virtual common::hash_t Hash() const {
-    OpType t = GetType();
-    return common::HashUtil::Hash(t);
+  std::unique_ptr<OperatorNode> Copy() {
+    std::vector<std::unique_ptr<OperatorNode>> child;
+    for (const auto &op : children_) {
+      child.emplace_back(op->Copy());
+    }
+    return std::make_unique<OperatorNode>(Operator(op_), std::move(child));
   }
 
   /**
-   * Equality check
-   * @param r other
-   * @return true if this operator is logically equal to other, false otherwise
+   * Equality comparison
+   * @param other OperatorNode to compare against
+   * @returns true if equal
    */
-  virtual bool operator==(const BaseOperatorNode &r) { return GetType() == r.GetType(); }
+  bool operator==(const OperatorNode &other) const {
+    if (op_ != other.op_) return false;
+    if (children_.size() != other.children_.size()) return false;
+
+    for (size_t idx = 0; idx < children_.size(); idx++) {
+      auto &child = children_[idx];
+      auto &other_child = other.children_[idx];
+      TERRIER_ASSERT(child != nullptr, "OperatorNode should not have null children");
+      TERRIER_ASSERT(other_child != nullptr, "OperatorNode should not have null children");
+
+      if (*child != *other_child) return false;
+    }
+
+    return true;
+  }
 
   /**
-   * Inequality check
-   * @param r other
-   * @return true if this operator is logically not equal to other, false otherwise
+   * Not equal comparison
+   * @param other OperatorNode to compare against
+   * @returns true if not equal
    */
-  virtual bool operator!=(const BaseOperatorNode &r) { return !operator==(r); }
-};
-
-/**
- * A wrapper around operators to provide a universal interface for accessing the data within
- * @tparam T an operator type
- */
-template <typename T>
-class OperatorNode : public BaseOperatorNode {
- protected:
-  /**
-   * Utility method for applying visitor pattern on the underlying operator
-   * @param v operator visitor for visitor pattern
-   */
-  void Accept(common::ManagedPointer<OperatorVisitor> v) const override;
-
-  /**
-   * Copy
-   * @returns copy of this
-   */
-  BaseOperatorNode *Copy() const override = 0;
-
-  /**
-   * @return string name of the underlying operator
-   */
-  std::string GetName() const override { return std::string(name); }
-
-  /**
-   * @return type of the underlying operator
-   */
-  OpType GetType() const override { return type; }
-
-  /**
-   * @return whether the underlying operator is logical
-   */
-  bool IsLogical() const override;
-
-  /**
-   * @return whether the underlying operator is physical
-   */
-  bool IsPhysical() const override;
-
- private:
-  /**
-   * Name of the operator
-   */
-  static const char *name;
-
-  /**
-   * Type of the operator
-   */
-  static OpType type;
-};
-
-/**
- * Logical and physical operators
- */
-class Operator {
- public:
-  /**
-   * Default constructor
-   */
-  Operator() noexcept;
-
-  /**
-   * Create a new operator from a BaseOperatorNode
-   * @param node a BaseOperatorNode that specifies basic information about the operator to be created
-   */
-  explicit Operator(std::unique_ptr<BaseOperatorNode> node);
+  bool operator!=(const OperatorNode &other) const { return !(*this == other); }
 
   /**
    * Move constructor
-   * @param o other to construct from
+   * @param op other to construct from
    */
-  Operator(Operator &&o) noexcept;
+  OperatorNode(OperatorNode &&op) noexcept : op_(std::move(op.op_)), children_(std::move(op.children_)) {}
 
   /**
-   * Copy constructor for Operator
+   * @return vector of children
    */
-  Operator(const Operator &op) : node_(op.node_->Copy()) {}
-
-  /**
-   * Calls corresponding visitor to this operator node
-   */
-  void Accept(common::ManagedPointer<OperatorVisitor> v) const;
-
-  /**
-   * @return string name of this operator
-   */
-  std::string GetName() const;
-
-  /**
-   * @return type of this operator
-   */
-  OpType GetType() const;
-
-  /**
-   * @return hashed value of this operator
-   */
-  common::hash_t Hash() const;
-
-  /**
-   * Logical equality check
-   * @param rhs other
-   * @return true if the two operators are logically equal, false otherwise
-   */
-  bool operator==(const Operator &rhs) const;
-
-  /**
-   * Logical inequality check
-   * @param rhs other
-   * @return true if the two operators are logically not equal, false otherwise
-   */
-  bool operator!=(const Operator &rhs) const { return !operator==(rhs); }
-
-  /**
-   * @return true if the operator is defined, false otherwise
-   */
-  bool IsDefined() const;
-
-  /**
-   * @return true if the operator is logical, false otherwise
-   */
-  bool IsLogical() const;
-
-  /**
-   * @return true if the operator is physical, false otherwise
-   */
-  bool IsPhysical() const;
-
-  /**
-   * Re-interpret the operator
-   * @tparam T the type of the operator to be re-interpreted as
-   * @return pointer to the re-interpreted operator, nullptr if the types mismatch
-   */
-  template <typename T>
-  common::ManagedPointer<T> As() const {
-    if (node_) {
-      auto &n = *node_;
-      if (typeid(n) == typeid(T)) {
-        return common::ManagedPointer<T>(reinterpret_cast<T *>(node_.get()));
-      }
-    }
-    return nullptr;
+  std::vector<common::ManagedPointer<OperatorNode>> GetChildren() const {
+    std::vector<common::ManagedPointer<OperatorNode>> result;
+    result.reserve(children_.size());
+    for (auto &i : children_) result.emplace_back(i);
+    return result;
   }
+
+  /**
+   * @return underlying operator
+   */
+  const Operator &GetOp() const { return op_; }
+
+  /**
+   * Add a operator expression as child
+   * @param child_op The operator expression to be added as child
+   */
+  void PushChild(std::unique_ptr<OperatorNode> child_op) { children_.emplace_back(std::move(child_op)); }
 
  private:
   /**
-   * Pointer to the base operator
+   * Underlying operator
    */
-  std::unique_ptr<BaseOperatorNode> node_;
+  Operator op_;
+
+  /**
+   * Vector of children
+   */
+  std::vector<std::unique_ptr<OperatorNode>> children_;
 };
+
 }  // namespace terrier::optimizer
-
-namespace std {
-
-/**
- * Hash function object of a BaseOperatorNode
- */
-template <>
-struct hash<terrier::optimizer::BaseOperatorNode> {
-  /**
-   * Argument type of the base operator
-   */
-  using argument_type = terrier::optimizer::BaseOperatorNode;
-
-  /**
-   * Result type of the base operator
-   */
-  using result_type = std::size_t;
-
-  /**
-   * std::hash operator for BaseOperatorNode
-   * @param s a BaseOperatorNode
-   * @return hashed value
-   */
-  result_type operator()(argument_type const &s) const { return s.Hash(); }
-};
-
-}  // namespace std

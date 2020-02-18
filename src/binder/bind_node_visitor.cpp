@@ -369,6 +369,7 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
           //  This appears to be a bad assumption. We should rename it to DeriveReturnValueTypeForAggregates()
           //  or else fix up any other codepaths. I've currently fixed it for ConstantValueExpression.
           auto expr = values[i];
+          expr->DeriveReturnValueType();
           auto ret_type = expr->GetReturnValueType();
           auto expected_ret_type = table_schema.GetColumn(i).Type();
 

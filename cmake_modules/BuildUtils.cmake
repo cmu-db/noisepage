@@ -312,8 +312,12 @@ function(ADD_TERRIER_TEST REL_TEST_NAME)
         COMPILE_FLAGS " -DTERRIER_VALGRIND")
     add_test(${TEST_NAME}
         bash -c "cd '${CMAKE_SOURCE_DIR}'; \
-               valgrind --suppressions=valgrind.supp --tool=memcheck --gen-suppressions=all \
-                 --leak-check=full --leak-check-heuristics=stdstring --error-exitcode=1 ${TEST_PATH}")
+               valgrind --suppressions=${BUILD_SUPPORT_DIR}/valgrind_suppressions.txt \
+                 --tool=memcheck \
+                 --gen-suppressions=all \
+                 --leak-check=full \
+                 --leak-check-heuristics=stdstring \
+                 --error-exitcode=1 ${TEST_PATH}")
   else ()
     add_test(${TEST_NAME}
         ${BUILD_SUPPORT_DIR}/run-test.sh ${CMAKE_BINARY_DIR} test ${TEST_PATH})

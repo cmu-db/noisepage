@@ -45,6 +45,10 @@ class ConnectionHandleFactory {
                                         common::ManagedPointer<ConnectionHandlerTask> handler);
 
  private:
+  /**
+   * latch needed to protect multiple threads accessing reusable_handles_
+   */
+  common::SpinLatch reusable_handles_latch_;
   std::unordered_map<int, ConnectionHandle> reusable_handles_;
   common::ManagedPointer<trafficcop::TrafficCop> traffic_cop_;
 };
