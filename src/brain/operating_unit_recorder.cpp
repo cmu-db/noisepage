@@ -376,6 +376,7 @@ ExecutionOperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
 
   // Consolidate final features
   std::vector<ExecutionOperatingUnitFeature> results{};
+  results.reserve(features.size());
   for (auto &feature : features) {
     results.emplace_back(feature.second);
   }
