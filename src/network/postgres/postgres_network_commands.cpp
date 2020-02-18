@@ -13,8 +13,8 @@
 namespace terrier::network {
 
 static Transition FinishSimpleQueryCommand(const common::ManagedPointer<PostgresPacketWriter> out,
-                                           const network::NetworkTransactionStateType txn_status) {
-  out->WriteReadyForQuery(txn_status);
+                                           const common::ManagedPointer<ConnectionContext> connection) {
+  out->WriteReadyForQuery(connection->TransactionState());
   return Transition::PROCEED;
 }
 
