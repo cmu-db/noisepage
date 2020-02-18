@@ -39,12 +39,12 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
   /**
    * @return The invalid OpType, since this is an ExpressionNodeContents
    */
-  OpType GetOpType() const { return OpType::UNDEFINED; }
+  OpType GetOpType() const override { return OpType::UNDEFINED; }
 
   /**
    * @return This expression node content's expression type
    */
-  parser::ExpressionType GetExpType() const {
+  parser::ExpressionType GetExpType() const override {
     if (IsDefined()) {
       return expr_->GetExpressionType();
     }
@@ -60,7 +60,7 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
    * Dummy Accept method
    * @param v An OperatorVisitor. Goes unused
    */
-  void Accept(OperatorVisitor *v) const { (void)v; }
+  void Accept(OperatorVisitor *v) const override { (void)v; }
 
   /**
    * @return whether or not this expression is logical (which it always is)
@@ -75,7 +75,7 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
   /**
    * @return The name of this expression
    */
-  std::string GetName() const {
+  std::string GetName() const override {
     if (IsDefined()) {
       return expr_->GetExpressionName();
     }
@@ -96,7 +96,7 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
    * @param r The other (abstract) node contents to be compared
    * @return Whether or not this is equal to the other node contents
    */
-  bool operator==(const AbstractOptimizerNodeContents &r) {
+  bool operator==(const AbstractOptimizerNodeContents &r) override {
     if (r.GetExpType() != parser::ExpressionType::INVALID) {
       const ExpressionNodeContents &contents = dynamic_cast<const ExpressionNodeContents &>(r);
       return (*this == contents);
