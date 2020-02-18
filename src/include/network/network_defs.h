@@ -152,13 +152,14 @@ enum class QueryType : uint8_t {
   QUERY_INVALID
 };
 
+// TODO(Matt): move this to postgres_defs.h
 enum class NetworkTransactionStateType : unsigned char {
-  INVALID = static_cast<unsigned char>(INVALID_TYPE_ID),
   IDLE = 'I',   // Not in a transaction block
   BLOCK = 'T',  // In a transaction block
   FAIL = 'E',   // In a failed transaction
 };
 
+// TODO(Matt): move this to postgres_defs.h
 // postgres uses 0 for text, 1 for binary, so this is fine
 enum class FieldFormat : bool { text = false, binary = true };
 
