@@ -56,8 +56,7 @@ class AbstractOptimizerNodeContents {
    * equal -- simply checks whether OpType and ExpressionType match
    */
   virtual bool operator==(const AbstractOptimizerNodeContents &r) {
-    // return GetOpType() == r.GetOpType() && GetExpType() == r.GetExpType();
-    return GetOpType() == r.GetOpType();
+    return GetOpType() == r.GetOpType() && GetExpType() == r.GetExpType();
   }
 
   /**

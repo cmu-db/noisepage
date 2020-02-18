@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -45,7 +46,7 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
    */
   parser::ExpressionType GetExpType() const {
     if (IsDefined()) {
-      return expr->GetExpressionType();
+      return expr_->GetExpressionType();
     }
     return parser::ExpressionType::INVALID;
   }
@@ -78,7 +79,7 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
     if (IsDefined()) {
       return expr_->GetExpressionName();
     }
-    throw OptimizerException("Undefined expression name.");
+    throw OPTIMIZER_EXCEPTION("Undefined expression name.");
   }
 
   /**
@@ -137,7 +138,7 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
    * @return A copied expression with the provided children.
    */
   common::ManagedPointer<parser::AbstractExpression> CopyWithChildren(
-      std::vector<common::ManagedPointer<parser::AbstractExpression>> children);
+      std::vector<std::unique_ptr<parser::AbstractExpression>> children);
 
  private:
   common::ManagedPointer<parser::AbstractExpression> expr_;

@@ -16,6 +16,7 @@
 namespace terrier::optimizer {
 class OptimizerUtil;
 class QueryToOperatorTransformer;
+class ExpressionNodeContents;
 }  // namespace terrier::optimizer
 
 namespace terrier::binder {
@@ -33,6 +34,7 @@ class ParseResult;
  */
 class AbstractExpression {
   friend class optimizer::OptimizerUtil;
+  friend class optimizer::ExpressionNodeContents;
 
  protected:
   /**
