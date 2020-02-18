@@ -126,6 +126,8 @@ ast::Expr *CodeGen::PCIGet(ast::Identifier pci, type::TypeId type, bool nullable
   switch (type) {
     case type::TypeId::BOOLEAN:
       builtin = nullable ? ast::Builtin::PCIGetBoolNull : ast::Builtin::PCIGetBool;
+      // TODO(WAN): pmenon points out that this should be Boolean, throughout codegen.cpp,
+      // but that we will hold off on the change until codegen v2
       ast_type = ast::BuiltinType::Get(Context(), ast::BuiltinType::Bool);
       break;
     case type::TypeId::TINYINT:
