@@ -12,9 +12,18 @@ namespace terrier::optimizer {
 
 class OperatorVisitor;
 
+/**
+ * Abstract class for the contents of expression-based and operator-based nodes
+ * for the rewriter and optimizer, respectively.
+ */
 class AbstractOptimizerNodeContents {
  public:
   AbstractOptimizerNodeContents() = default;
+
+  /**
+   * Copy constructor.
+   * @param contents The node contents to copy from.
+   */
   explicit AbstractOptimizerNodeContents(common::ManagedPointer<AbstractOptimizerNodeContents> contents)
       : contents_(contents) {}
 

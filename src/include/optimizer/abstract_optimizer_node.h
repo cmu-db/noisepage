@@ -10,6 +10,10 @@
 
 namespace terrier::optimizer {
 
+/**
+ * An abstract class for expression-based and operator-based nodes for the rewriter
+ * and optimizer, respectively
+ */
 class AbstractOptimizerNode {
  public:
   AbstractOptimizerNode();

@@ -88,14 +88,14 @@ common::ManagedPointer<parser::AbstractExpression> ExpressionNodeContents::CopyW
       return common::ManagedPointer<parser::AbstractExpression>(expr_copy);
     }
 
-      // Rewriting for these 2 uses special matching patterns.
-      // As such, when building as an output, we just copy directly.
+    // Rewriting for these 2 uses special matching patterns.
+    // As such, when building as an output, we just copy directly.
     case parser::ExpressionType::ROW_SUBQUERY:
     case parser::ExpressionType::OPERATOR_CASE_EXPR: {
       return common::ManagedPointer<parser::AbstractExpression>(expr_->Copy());
     }
 
-      // These ExpressionTypes are never instantiated as a type
+    // These ExpressionTypes are never instantiated as a type
     case parser::ExpressionType::PLACEHOLDER:
     case parser::ExpressionType::COLUMN_REF:
     case parser::ExpressionType::FUNCTION_REF:
