@@ -60,7 +60,7 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
    * Dummy Accept method
    * @param v An OperatorVisitor. Goes unused
    */
-  void Accept(OperatorVisitor *v) const override { (void)v; }
+  void Accept(common::ManagedPointer<OperatorVisitor> v) const override;
 
   /**
    * @return whether or not this expression is logical (which it always is)

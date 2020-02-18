@@ -111,4 +111,6 @@ common::ManagedPointer<parser::AbstractExpression> ExpressionNodeContents::CopyW
     }
   }
 }
+
+    void ExpressionNodeContents::Accept(common::ManagedPointer<OperatorVisitor> v) const { (void)v; }
 }  // namespace terrier::optimizer
