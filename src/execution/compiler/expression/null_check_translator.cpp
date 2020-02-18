@@ -17,8 +17,9 @@ ast::Expr *NullCheckTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
   } else if (type == terrier::parser::ExpressionType::OPERATOR_IS_NOT_NULL) {
     ret = codegen_->IsSqlNotNull(child_expr);
   } else {
-    TERRIER_ASSERT(false, "Unsupported expression");
+    UNREACHABLE("Unsupported expression");
   }
+
   return ret;
 }
 };  // namespace terrier::execution::compiler
