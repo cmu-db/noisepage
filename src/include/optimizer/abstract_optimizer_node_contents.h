@@ -65,10 +65,18 @@ class AbstractOptimizerNodeContents {
    */
   virtual bool IsDefined() const { return contents_ != nullptr; }
 
+  /**
+   * Re-interpret the node contents
+   * @tparam T the type of the node contents to be re-interpreted as
+   * @return pointer to the re-interpreted node contents, nullptr if the types mismatch
+   */
   template <typename T>
-  const T *As() const {
-    if (contents_ && typeid(*contents_) == typeid(T)) {
-      return (const T *)contents_.Get();
+  common::ManagedPointer<T> As() const {
+    if (contents_) {
+      auto &n = *contents_;
+      if (typeid(n) == typeid(T)) {
+        return common::ManagedPointer<T>(reinterpret_cast<T *>(contents_.Get()));
+      }
     }
     return nullptr;
   }

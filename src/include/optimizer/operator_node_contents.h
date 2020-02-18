@@ -82,7 +82,7 @@ class BaseOperatorNodeContents : AbstractOptimizerNodeContents {
    */
   bool operator==(const AbstractOptimizerNodeContents &r) override {
     if (r.GetOpType() != OpType::UNDEFINED) {
-      const BaseOperatorNodeContents &contents = dynamic_cast<const BaseOperatorNodeContents&>(r);
+      const BaseOperatorNodeContents &contents = dynamic_cast<const BaseOperatorNodeContents &>(r);
       return (*this == contents);
     }
     return false;
@@ -93,9 +93,7 @@ class BaseOperatorNodeContents : AbstractOptimizerNodeContents {
    * @param r The other (abstract) node contents
    * @return false if this operator is logically equal to the other, true otherwise
    */
-  bool operator!=(const AbstractOptimizerNodeContents &r) {
-    return !(operator==(r));
-  }
+  bool operator!=(const AbstractOptimizerNodeContents &r) { return !(operator==(r)); }
 
   /**
    * Equality check
