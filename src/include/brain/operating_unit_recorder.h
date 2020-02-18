@@ -76,12 +76,18 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   void Visit(const planner::CSVScanPlanNode *plan) override;
   void Visit(const planner::SeqScanPlanNode *plan) override;
   void Visit(const planner::IndexScanPlanNode *plan) override;
+  void Visit(const planner::IndexJoinPlanNode *plan) override;
   void Visit(const planner::HashJoinPlanNode *plan) override;
   void Visit(const planner::NestedLoopJoinPlanNode *plan) override;
   void Visit(const planner::LimitPlanNode *plan) override;
   void Visit(const planner::OrderByPlanNode *plan) override;
   void Visit(const planner::ProjectionPlanNode *plan) override;
   void Visit(const planner::AggregatePlanNode *plan) override;
+
+  /**
+   * Feature of plan currently being visited
+   */
+  ExecutionOperatingUnitType plan_feature_;
 
   /**
    * Structure used to store features for a single plan visit

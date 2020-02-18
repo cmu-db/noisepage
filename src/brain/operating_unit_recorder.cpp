@@ -184,11 +184,17 @@ void OperatingUnitRecorder::VisitAbstractScanPlanNode(const planner::AbstractSca
 }
 
 void OperatingUnitRecorder::VisitAbstractJoinPlanNode(const planner::AbstractJoinPlanNode *plan) {
-  VisitAbstractPlanNode(plan);
+  if (plan_feature_ == ExecutionOperatingUnitType::HASHJOIN_PROBE ||
+      plan_feature_ == ExecutionOperatingUnitType::NLJOIN_RIGHT ||
+      plan_feature_ == ExecutionOperatingUnitType::IDXJOIN) {
+    // Right side stiches together outputs
+    VisitAbstractPlanNode(plan);
 
-  auto features = ExtractFeaturesFromExpression(plan->GetJoinPredicate());
-  plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
-                        std::make_move_iterator(features.end()));
+    // Join predicates only get handled by the "right" translator (probe)
+    auto features = ExtractFeaturesFromExpression(plan->GetJoinPredicate());
+    plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
+                          std::make_move_iterator(features.end()));
+  }
 }
 
 void OperatingUnitRecorder::Visit(const planner::InsertPlanNode *plan) {
@@ -200,6 +206,16 @@ void OperatingUnitRecorder::Visit(const planner::InsertPlanNode *plan) {
       plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
                             std::make_move_iterator(features.end()));
     }
+  }
+}
+
+void OperatingUnitRecorder::Visit(const planner::IndexJoinPlanNode *plan) {
+  VisitAbstractJoinPlanNode(plan);
+
+  for (auto &col : plan->GetIndexColumns()) {
+    auto features = ExtractFeaturesFromExpression(col.second);
+    plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
+                          std::make_move_iterator(features.end()));
   }
 }
 
@@ -269,31 +285,76 @@ void OperatingUnitRecorder::Visit(const planner::NestedLoopJoinPlanNode *plan) {
 
 void OperatingUnitRecorder::Visit(const planner::LimitPlanNode *plan) { VisitAbstractPlanNode(plan); }
 
-void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) { VisitAbstractPlanNode(plan); }
+void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) {
+  if (plan_feature_ == ExecutionOperatingUnitType::SORT_BUILD) {
+    // SORT_BUILD will operate on sort keys
+    for (auto key : plan->GetSortKeys()) {
+      auto features = ExtractFeaturesFromExpression(key.first);
+      plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
+                            std::make_move_iterator(features.end()));
+    }
+  } else if (plan_feature_ == ExecutionOperatingUnitType::SORT_ITERATE) {
+    // SORT_ITERATE will do any output computations
+    VisitAbstractPlanNode(plan);
+  }
+}
 
 void OperatingUnitRecorder::Visit(const planner::ProjectionPlanNode *plan) { VisitAbstractPlanNode(plan); }
 
-void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) { VisitAbstractPlanNode(plan); }
+void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
+  if (plan_feature_ == ExecutionOperatingUnitType::AGGREGATE_BUILD) {
+    for (auto key : plan->GetAggregateTerms()) {
+      auto key_cm = common::ManagedPointer<parser::AbstractExpression>(key.Get());
+      auto features = ExtractFeaturesFromExpression(key_cm);
+      plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
+                            std::make_move_iterator(features.end()));
+    }
+
+    for (auto key : plan->GetGroupByTerms()) {
+      auto features = ExtractFeaturesFromExpression(key);
+      plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
+                            std::make_move_iterator(features.end()));
+    }
+  } else if (plan_feature_ == ExecutionOperatingUnitType::AGGREGATE_ITERATE) {
+    // AggregateTopTranslator handles any exprs/computations in the output
+    VisitAbstractPlanNode(plan);
+
+    // AggregateTopTranslator handles the having clause
+    auto features = ExtractFeaturesFromExpression(plan->GetHavingClausePredicate());
+    plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
+                          std::make_move_iterator(features.end()));
+  }
+}
 
 ExecutionOperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
     const std::vector<std::unique_ptr<execution::compiler::OperatorTranslator>> &translators) {
   // Note that OperatorTranslators are roughly 1:1 with a plan node
   // As such, just emplace directly into feature vector
-  std::vector<ExecutionOperatingUnitFeature> results{};
-  std::unordered_set<const planner::AbstractPlanNode *> plan_nodes;
+  std::unordered_map<ExecutionOperatingUnitType, ExecutionOperatingUnitFeature> features;
+  std::vector<std::pair<ExecutionOperatingUnitType, const planner::AbstractPlanNode *>> plan_nodes;
   for (const auto &translator : translators) {
     // TODO(wz2): Populate actual num_rows/cardinality after #759
     auto feature_type = translator->GetFeatureType();
     auto num_rows = 0;
     auto cardinality = 0.0;
     if (feature_type != ExecutionOperatingUnitType::INVALID && feature_type != ExecutionOperatingUnitType::OUTPUT) {
-      plan_nodes.insert(translator->Op());
-      results.emplace_back(feature_type, num_rows, cardinality);
+      plan_nodes.emplace_back(feature_type, translator->Op());
+
+      auto itr = features.find(feature_type);
+      if (itr == features.end()) {
+        features.emplace(feature_type, ExecutionOperatingUnitFeature(feature_type, num_rows, cardinality));
+      } else {
+        // Add the number of rows/cardinality to reflect total amount of work in pipeline
+        itr->second.SetNumRows(num_rows + itr->second.GetNumRows());
+        itr->second.SetCardinality(cardinality + itr->second.GetCardinality());
+      }
     }
   }
 
-  std::unordered_map<ExecutionOperatingUnitType, ExecutionOperatingUnitFeature> features;
-  for (auto *plan : plan_nodes) {
+  for (auto plan_node : plan_nodes) {
+    plan_feature_ = plan_node.first;
+    auto *plan = plan_node.second;
+
     // Consolidate the features based on OutputSchema
     plan_features_ = {};
     plan->Accept(common::ManagedPointer<planner::PlanVisitor>(this));
@@ -314,6 +375,7 @@ ExecutionOperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
   }
 
   // Consolidate final features
+  std::vector<ExecutionOperatingUnitFeature> results{};
   for (auto &feature : features) {
     results.emplace_back(feature.second);
   }

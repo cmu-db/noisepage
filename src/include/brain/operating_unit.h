@@ -17,6 +17,7 @@ class CompilerTest_SimpleIndexScanDesendingTest_Test;
 class CompilerTest_SimpleIndexScanLimitDesendingTest_Test;
 class CompilerTest_SimpleAggregateTest_Test;
 class CompilerTest_CountStarTest_Test;
+class CompilerTest_SimpleSortTest_Test;
 class CompilerTest_SimpleAggregateHavingTest_Test;
 class CompilerTest_SimpleHashJoinTest_Test;
 class CompilerTest_MultiWayHashJoinTest_Test;
@@ -116,6 +117,7 @@ class PipelineOperatingUnits {
   friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanLimitDesendingTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_SimpleAggregateTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_CountStarTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleSortTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_SimpleAggregateHavingTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_SimpleHashJoinTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_MultiWayHashJoinTest_Test;
