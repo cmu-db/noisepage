@@ -1172,6 +1172,12 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     Op##AGG_TYPE##GetResult(result, agg);                            \
     DISPATCH_NEXT();                                                 \
   }                                                                  \
+  OP(AGG_TYPE##HasResult) : {                                        \
+    auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());          \
+    auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());    \
+    Op##AGG_TYPE##HasResult(result, agg);                            \
+    DISPATCH_NEXT();                                                 \
+  }                                                                  \
   OP(AGG_TYPE##Free) : {                                             \
     auto *agg = frame->LocalAt<sql::AGG_TYPE *>(READ_LOCAL_ID());    \
     Op##AGG_TYPE##Free(agg);                                         \
@@ -1179,6 +1185,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   }
 
   Gen_TopK_Aggregate(Integer, IntegerTopKAggregate);
+  Gen_TopK_Aggregate(Real, RealTopKAggregate);
 
 #undef Gen_TopK_Aggregate
 

@@ -374,6 +374,14 @@ class IntegerTopKAggregate : public TopKAggregate<Integer> {
   public:
   explicit IntegerTopKAggregate(size_t topK) : TopKAggregate<Integer>(topK) {}
 };
+
+/*
+Real Top K aggregate
+*/
+class RealTopKAggregate : public TopKAggregate<Real> {
+  public:
+  explicit RealTopKAggregate(size_t topK) : TopKAggregate<Real>(topK) {}
+};
 /**
  * Real Max
  */

@@ -84,6 +84,7 @@ class Context;
   NON_PRIM(RealMinAggregate, terrier::execution::sql::RealMinAggregate)                         \
   NON_PRIM(RealSumAggregate, terrier::execution::sql::RealSumAggregate)                         \
   NON_PRIM(IntegerTopKAggregate, terrier::execution::sql::IntegerTopKAggregate)                 \
+  NON_PRIM(RealTopKAggregate, terrier::execution::sql::RealTopKAggregate)                       \
                                                                                                 \
   /* SQL Table operations */                                                                    \
   NON_PRIM(ProjectedRow, terrier::storage::ProjectedRow)                                        \
@@ -389,7 +390,7 @@ class BuiltinType : public Type {
   /**
    * Is this type a SQL aggregator type? IntegerSumAggregate, CountAggregate ...
    */
-  bool IsSqlAggregatorType() const { return Kind::CountAggregate <= GetKind() && GetKind() <= Kind::RealSumAggregate; }
+  bool IsSqlAggregatorType() const { return Kind::CountAggregate <= GetKind() && GetKind() <= Kind::RealTopKAggregate; }
 
   /**
    * @return the kind of this builtin
