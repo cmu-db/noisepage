@@ -7,7 +7,6 @@
 
 #include "optimizer/abstract_optimizer_node.h"
 #include "optimizer/operator_node_contents.h"
-
 namespace terrier::optimizer {
 
 /**

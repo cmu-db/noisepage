@@ -70,9 +70,31 @@ class BaseOperatorNodeContents : AbstractOptimizerNodeContents {
   /**
    * @return the hashed value of this operator
    */
-  common::hash_t Hash() const {
+  virtual common::hash_t Hash() const {
     OpType t = GetOpType();
     return common::HashUtil::Hash(t);
+  }
+
+  /**
+   * Equality check
+   * @param r The other (abstract) node contents
+   * @return true if this operator is logically equal to the other, false otherwise
+   */
+  bool operator==(const AbstractOptimizerNodeContents &r) override {
+    if (r.GetOpType() != OpType::UNDEFINED) {
+      const BaseOperatorNodeContents &contents = dynamic_cast<const BaseOperatorNodeContents&>(r);
+      return (*this == contents);
+    }
+    return false;
+  }
+
+  /**
+   * Inequality check
+   * @param r The other (abstract) node contents
+   * @return false if this operator is logically equal to the other, true otherwise
+   */
+  bool operator!=(const AbstractOptimizerNodeContents &r) {
+    return !(operator==(r));
   }
 
   /**
