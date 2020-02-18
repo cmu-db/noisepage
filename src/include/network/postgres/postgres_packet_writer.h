@@ -7,6 +7,7 @@
 
 #include "execution/sql/value.h"
 #include "network/packet_writer.h"
+#include "network/postgres/postgres_protocol_util.h"
 #include "planner/plannodes/output_schema.h"
 #include "util/time_util.h"
 
@@ -155,7 +156,8 @@ class PostgresPacketWriter : public PacketWriter {
       AppendString(col.GetName())
           .AppendValue<int32_t>(0)  // table oid (if it's a column from a table), 0 otherwise
           .AppendValue<int16_t>(0)  // column oid (if it's a column from a table), 0 otherwise
-          .AppendValue(static_cast<int32_t>(InternalValueTypeToPostgresValueType(col_type)));  // type oid
+          .AppendValue(
+              static_cast<int32_t>(PostgresProtocolUtil::InternalValueTypeToPostgresValueType(col_type)));  // type oid
       if (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY) {
         AppendValue<int16_t>(-1);  // variable length
       } else {

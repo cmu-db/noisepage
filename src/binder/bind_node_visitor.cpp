@@ -364,6 +364,8 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
           auto &col =
               insert_columns->empty() ? table_schema.GetColumn(i) : table_schema.GetColumn((*insert_columns)[i]);
           auto expr = values[i].CastManagedPointerTo<parser::ConstantValueExpression>();
+          // TODO(WAN): shouldn't this have been called much earlier in the binder pipeline?
+          expr->DeriveReturnValueType();
           auto ret_type = expr->GetReturnValueType();
           auto expected_ret_type = col.Type();
 
