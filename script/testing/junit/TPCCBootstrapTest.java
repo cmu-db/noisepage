@@ -4,7 +4,7 @@ import org.junit.*;
 import static org.junit.Assert.assertEquals;
 
 
-public class TPCCBootstrapTest extends PLTestBase {
+public class TPCCBootstrapTest extends TestUtility {
     private Connection conn;
 
 	private static final String SQL_CREATE_ITEM =
