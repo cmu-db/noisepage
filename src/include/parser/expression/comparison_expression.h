@@ -63,6 +63,14 @@ class ComparisonExpression : public AbstractExpression {
     auto left_type = left->GetReturnValueType();
     auto right_type = right->GetReturnValueType();
 
+    auto is_left_subquery = left->GetExpressionType() == ExpressionType::ROW_SUBQUERY;
+    auto is_right_subquery = right->GetExpressionType() == ExpressionType::ROW_SUBQUERY;
+
+    // TODO(WAN): I don't know how to handle this case and casting to NULL is not it.
+    if (is_left_subquery || is_right_subquery) {
+      return;
+    }
+
     if (left_type == type::TypeId::INVALID && right_type != type::TypeId::INVALID) {
       auto new_left_tv = type::TransientValueFactory::GetNull(right_type);
       auto new_left = std::make_unique<ConstantValueExpression>(std::move(new_left_tv));
