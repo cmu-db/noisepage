@@ -62,15 +62,10 @@ class GarbageCollector {
   void UnregisterIndexForGC(common::ManagedPointer<index::Index> index);
 
  private:
-  void ProcessIndexes();
-
   const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;
   const common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
   // transaction::timestamp_t last_unlinked_;
-
-  std::unordered_set<common::ManagedPointer<index::Index>> indexes_;
-  common::SharedLatch indexes_latch_;
 };
 
 }  // namespace terrier::storage

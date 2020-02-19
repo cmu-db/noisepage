@@ -2,6 +2,7 @@
 #include <queue>
 #include <utility>
 #include <vector>
+#include <unordered_set>
 
 #include "storage/garbage_collector.h"
 #include "storage/write_ahead_log/log_manager.h"
@@ -72,9 +73,11 @@ class DeferredActionManager {
     // There is no point in draining new actions if we haven't cleared the backlog.
     // This leaves some mechanisms for the rest of the system to detect congestion
     // at the deferred action manager and potentially backoff
-    if (backlog_size != processed) return processed;
-    // Otherwise, ingest all the new actions
-    processed += ProcessNewActions(oldest_txn);
+    if (backlog_size == processed) {
+      // ingest all the new actions
+      processed += ProcessNewActions(oldest_txn);
+    }
+    ProcessIndexes();
     return processed;
   }
 
@@ -93,11 +96,28 @@ class DeferredActionManager {
     }
   }
 
+  /**
+   * Register an index to be periodically garbage collected
+   * @param index pointer to the index to register
+   */
+  void RegisterIndexForGC(common::ManagedPointer<storage::index::Index> index);
+
+  /**
+   * Unregister an index to be periodically garbage collected
+   * @param index pointer to the index to unregister
+   */
+  void UnregisterIndexForGC(common::ManagedPointer<storage::index::Index> index);
+
  private:
   const common::ManagedPointer<TimestampManager> timestamp_manager_;
   // TODO(Tianyu): We might want to change this data structure to be more specialized than std::queue
   std::queue<std::pair<timestamp_t, DeferredAction>> new_deferred_actions_, back_log_;
   common::SpinLatch deferred_actions_latch_;
+
+  std::unordered_set<common::ManagedPointer<storage::index::Index>> indexes_;
+  common::SharedLatch indexes_latch_;
+
+  void ProcessIndexes();
 
   uint32_t ClearBacklog(timestamp_t oldest_txn) {
     uint32_t processed = 0;
