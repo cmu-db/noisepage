@@ -93,7 +93,7 @@ void ExecutableQuery::Run(const common::ManagedPointer<exec::ExecutionContext> e
     return;
   }
   auto result = main(exec_ctx.Get());
-  EXECUTION_LOG_DEBUG("main() returned: {}", result);
+  EXECUTION_LOG_INFO("main() returned: {}", result);
 }
 
 }  // namespace terrier::execution
