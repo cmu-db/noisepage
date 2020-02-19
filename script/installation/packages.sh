@@ -95,10 +95,10 @@ install_mac() {
   brew ls --versions postgresql || brew install postgresql
   brew ls --versions tbb || brew install tbb
   brew ls --versions ant || brew install ant
-  #python3 -m pip --version || install_pip
+  python3 -m pip --version || install_pip
   #install pyarrow
-  #python3 -m pip show pyarrow || python3 -m pip install pyarrow
-  #python3 -m pip show pandas || python3 -m pip install pandas
+  python3 -m pip show pyarrow || python3 -m pip install pyarrow
+  python3 -m pip show pandas || python3 -m pip install pandas
 }
 
 install_linux() {
@@ -125,12 +125,12 @@ install_linux() {
       postgresql-client \
       sqlite3 \
       libsqlite3-dev \
-      ant
-      #python3-pip
+      ant \
+      python3-pip
    #install pyarrow
-   #python3 -m pip show pyarrow || python3 -m pip install pyarrow
+   python3 -m pip show pyarrow || python3 -m pip install pyarrow
    #install pandas
-   #python3 -m pip show pandas || python3 -m pip install pandas
+   python3 -m pip show pandas || python3 -m pip install pandas
    #install libpqxx-6.2 manually
    apt-get -y install wget
    wget http://mirrors.kernel.org/ubuntu/pool/universe/libp/libpqxx/libpqxx-dev_6.2.4-4_amd64.deb
