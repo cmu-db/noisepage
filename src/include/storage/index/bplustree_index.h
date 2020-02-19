@@ -72,7 +72,7 @@ class BPlusTreeIndex final : public Index {
     TERRIER_ASSERT(metadata_.GetSchema().Unique(), "This Insert is designed for indexes with uniqueness constraints.");
     KeyType index_key;
     index_key.SetFromProjectedRow(tuple, metadata_, metadata_.GetSchema().GetColumns().size());
-    bool predicate_satisfied = false;
+    bool predicate_satisfied UNUSED_ATTRIBUTE = false;
 
     // The predicate checks if any matching keys have write-write conflicts or are still visible to the calling txn.
     auto predicate UNUSED_ATTRIBUTE = [txn](const TupleSlot slot) -> bool {
