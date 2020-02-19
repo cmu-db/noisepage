@@ -36,12 +36,7 @@ enum class ExecutionOperatingUnitType : uint32_t {
   OP_DECIMAL_MULTIPLY,
   OP_DECIMAL_DIVIDE,
   OP_DECIMAL_COMPARE,
-  OP_BOOL_COMPARE,
-  OP_AGGREGATE_COUNT,
-  OP_AGGREGATE_SUM,
-  OP_AGGREGATE_MIN,
-  OP_AGGREGATE_MAX,
-  OP_AGGREGATE_AVG
+  OP_BOOL_COMPARE
 };
 
 }  // namespace terrier::brain

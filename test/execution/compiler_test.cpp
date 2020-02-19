@@ -746,7 +746,8 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
   auto feature_vec1 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
   auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
       brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, brain::ExecutionOperatingUnitType::SEQ_SCAN,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, brain::ExecutionOperatingUnitType::OP_AGGREGATE_SUM};
+      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS};
   auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
@@ -814,9 +815,9 @@ TEST_F(CompilerTest, CountStarTest) {
 
   auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
   auto feature_vec1 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
-  auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
-                                                                 brain::ExecutionOperatingUnitType::OP_AGGREGATE_COUNT,
-                                                                 brain::ExecutionOperatingUnitType::SEQ_SCAN};
+  auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
+      brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
+      brain::ExecutionOperatingUnitType::SEQ_SCAN};
   auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
@@ -916,7 +917,7 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
   auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
   auto feature_vec1 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
   auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
-      brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, brain::ExecutionOperatingUnitType::OP_AGGREGATE_SUM,
+      brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
       brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, brain::ExecutionOperatingUnitType::SEQ_SCAN};
   auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
                                                                  brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE};

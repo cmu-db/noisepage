@@ -68,16 +68,6 @@ class BrainUtil {
         return "OP_DECIMAL_COMPARE";
       case ExecutionOperatingUnitType::OP_BOOL_COMPARE:
         return "OP_BOOL_COMPARE";
-      case ExecutionOperatingUnitType::OP_AGGREGATE_COUNT:
-        return "OP_AGGREGATE_COUNT";
-      case ExecutionOperatingUnitType::OP_AGGREGATE_SUM:
-        return "OP_AGGREGATE_SUM";
-      case ExecutionOperatingUnitType::OP_AGGREGATE_MIN:
-        return "OP_AGGREGATE_MIN";
-      case ExecutionOperatingUnitType::OP_AGGREGATE_MAX:
-        return "OP_AGGREGATE_MAX";
-      case ExecutionOperatingUnitType::OP_AGGREGATE_AVG:
-        return "OP_AGGREGATE_AVG";
       default:
         UNREACHABLE("Undefined ExecutionOperatingUnitType encountered");
         break;

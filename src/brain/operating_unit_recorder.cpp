@@ -57,6 +57,10 @@ type::TypeId OperatingUnitRecorder::DeriveComputation(common::ManagedPointer<par
 ExecutionOperatingUnitType OperatingUnitRecorder::ConvertExpressionType(
     common::ManagedPointer<parser::AbstractExpression> expr) {
   switch (expr->GetExpressionType()) {
+    case parser::ExpressionType::AGGREGATE_COUNT:
+      return ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS;
+    case parser::ExpressionType::AGGREGATE_SUM:
+    case parser::ExpressionType::AGGREGATE_AVG:
     case parser::ExpressionType::OPERATOR_PLUS:
     case parser::ExpressionType::OPERATOR_MINUS: {
       switch (DeriveComputation(expr)) {
@@ -97,6 +101,8 @@ ExecutionOperatingUnitType OperatingUnitRecorder::ConvertExpressionType(
           return ExecutionOperatingUnitType::INVALID;
       }
     }
+    case parser::ExpressionType::AGGREGATE_MAX:
+    case parser::ExpressionType::AGGREGATE_MIN:
     case parser::ExpressionType::COMPARE_EQUAL:
     case parser::ExpressionType::COMPARE_NOT_EQUAL:
     case parser::ExpressionType::COMPARE_LESS_THAN:
@@ -124,16 +130,6 @@ ExecutionOperatingUnitType OperatingUnitRecorder::ConvertExpressionType(
           return ExecutionOperatingUnitType::INVALID;
       }
     }
-    case parser::ExpressionType::AGGREGATE_COUNT:
-      return ExecutionOperatingUnitType::OP_AGGREGATE_COUNT;
-    case parser::ExpressionType::AGGREGATE_SUM:
-      return ExecutionOperatingUnitType::OP_AGGREGATE_SUM;
-    case parser::ExpressionType::AGGREGATE_MIN:
-      return ExecutionOperatingUnitType::OP_AGGREGATE_MIN;
-    case parser::ExpressionType::AGGREGATE_MAX:
-      return ExecutionOperatingUnitType::OP_AGGREGATE_MAX;
-    case parser::ExpressionType::AGGREGATE_AVG:
-      return ExecutionOperatingUnitType::OP_AGGREGATE_AVG;
     default:
       return ExecutionOperatingUnitType::INVALID;
   }
@@ -254,33 +250,28 @@ void OperatingUnitRecorder::Visit(const planner::IndexScanPlanNode *plan) {
 void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
   VisitAbstractJoinPlanNode(plan);
 
-  for (auto key : plan->GetLeftHashKeys()) {
-    auto features = ExtractFeaturesFromExpression(key);
-    plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
-                          std::make_move_iterator(features.end()));
+  if (plan_feature_ == ExecutionOperatingUnitType::HASHJOIN_BUILD) {
+    for (auto key : plan->GetLeftHashKeys()) {
+      auto features = ExtractFeaturesFromExpression(key);
+      plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
+                            std::make_move_iterator(features.end()));
+    }
   }
 
-  for (auto key : plan->GetRightHashKeys()) {
-    auto features = ExtractFeaturesFromExpression(key);
-    plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
-                          std::make_move_iterator(features.end()));
+  if (plan_feature_ == ExecutionOperatingUnitType::HASHJOIN_PROBE) {
+    for (auto key : plan->GetRightHashKeys()) {
+      auto features = ExtractFeaturesFromExpression(key);
+      plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
+                            std::make_move_iterator(features.end()));
+    }
   }
 }
 
 void OperatingUnitRecorder::Visit(const planner::NestedLoopJoinPlanNode *plan) {
+  // Execution Engine does not utilize LeftKeys()/RightKeys().
+  // Instead the exec engine relies on the join predicate directly.
+  // Join predicate executed (worst-case) (left num_rows * right num_rows)
   VisitAbstractJoinPlanNode(plan);
-
-  for (auto key : plan->GetLeftKeys()) {
-    auto features = ExtractFeaturesFromExpression(key);
-    plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
-                          std::make_move_iterator(features.end()));
-  }
-
-  for (auto key : plan->GetRightKeys()) {
-    auto features = ExtractFeaturesFromExpression(key);
-    plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
-                          std::make_move_iterator(features.end()));
-  }
 }
 
 void OperatingUnitRecorder::Visit(const planner::LimitPlanNode *plan) { VisitAbstractPlanNode(plan); }
@@ -334,6 +325,10 @@ ExecutionOperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
   std::vector<std::pair<ExecutionOperatingUnitType, const planner::AbstractPlanNode *>> plan_nodes;
   for (const auto &translator : translators) {
     // TODO(wz2): Populate actual num_rows/cardinality after #759
+
+    // TODO(wz2): NestedLoopJoin is executed completely within a single pipeline. Might need to adjust
+    // how work is computed for NestedLoop since the entire inner loop runs once per outer loop and
+    // the join condition operations run at most left_num_rows * right_num_rows
     auto feature_type = translator->GetFeatureType();
     auto num_rows = 0;
     auto cardinality = 0.0;
