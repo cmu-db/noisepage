@@ -2,8 +2,10 @@
 
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "catalog/index_schema.h"
+#include "storage/index/bplustree_index.h"
 #include "storage/index/bwtree_index.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/generic_key.h"
@@ -52,6 +54,11 @@ class IndexBuilder {
       case IndexType::HASHMAP: {
         if (simple_key && metadata.KeySize() <= HASHKEY_MAX_SIZE) return BuildHashIntsKey(std::move(metadata));
         return BuildHashGenericKey(std::move(metadata));
+      }
+      case IndexType::BPLUSTREE: {
+        if (simple_key && metadata.KeySize() <= COMPACTINTSKEY_MAX_SIZE)
+          return BuildBPlusTreeIntsKey(std::move(metadata));
+        return BuildBPlusTreeGenericKey(std::move(metadata));
       }
       default:
         return nullptr;
@@ -146,6 +153,44 @@ class IndexBuilder {
       index = new HashIndex<GenericKey<256>>(std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
+    return index;
+  }
+  Index *BuildBPlusTreeIntsKey(IndexMetadata metadata) const {
+    metadata.SetKeyKind(IndexKeyKind::COMPACTINTSKEY);
+    const auto key_size = metadata.KeySize();
+    TERRIER_ASSERT(key_size <= COMPACTINTSKEY_MAX_SIZE, "Key size exceeds maximum for this key type.");
+    Index *index = nullptr;
+    if (key_size <= 8) {
+      index = new BPlusTreeIndex<CompactIntsKey<8>>(std::move(metadata));
+    } else if (key_size <= 16) {
+      index = new BPlusTreeIndex<CompactIntsKey<16>>(std::move(metadata));
+    } else if (key_size <= 24) {
+      index = new BPlusTreeIndex<CompactIntsKey<24>>(std::move(metadata));
+    } else if (key_size <= 32) {
+      index = new BPlusTreeIndex<CompactIntsKey<32>>(std::move(metadata));
+    }
+    TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
+    return index;
+  }
+
+  Index *BuildBPlusTreeGenericKey(IndexMetadata metadata) const {
+    metadata.SetKeyKind(IndexKeyKind::GENERICKEY);
+    const auto pr_size = metadata.GetInlinedPRInitializer().ProjectedRowSize();
+    Index *index = nullptr;
+
+    const auto key_size =
+        (pr_size + 8) +
+        sizeof(uintptr_t);  // account for potential padding of the PR and the size of the pointer for metadata
+    TERRIER_ASSERT(key_size <= GENERICKEY_MAX_SIZE, "Key size exceeds maximum for this key type.");
+
+    if (key_size <= 64) {
+      index = new BPlusTreeIndex<GenericKey<64>>(std::move(metadata));
+    } else if (key_size <= 128) {
+      index = new BPlusTreeIndex<GenericKey<128>>(std::move(metadata));
+    } else if (key_size <= 256) {
+      index = new BPlusTreeIndex<GenericKey<256>>(std::move(metadata));
+    }
+    TERRIER_ASSERT(index != nullptr, "Failed to create an GenericKey index.");
     return index;
   }
 };

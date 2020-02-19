@@ -35,7 +35,9 @@ class BPlusTreeIndex final : public Index {
  public:
   IndexType Type() const final { return IndexType::BPLUSTREE; }
 
-  void PerformGarbageCollection() final { bplustree_->PerformGarbageCollection(); };
+  void PerformGarbageCollection() final {
+    // FIXME(15-721 project2): invoke garbage collection on the underlying data structure
+  }
 
   bool Insert(const common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
               const TupleSlot location) final {
@@ -50,7 +52,7 @@ class BPlusTreeIndex final : public Index {
     TERRIER_ASSERT(
         result,
         "non-unique index shouldn't fail to insert. If it did, something went wrong deep inside the BPlusTree itself.");
-    // Register an abort actio6n with the txn context in case of rollback
+    // Register an abort action with the txn context in case of rollback
     txn->RegisterAbortAction([=]() {
       // FIXME(15-721 project2): perform a delete from the underlying data structure of the key/value pair
       const bool UNUSED_ATTRIBUTE result = true;
