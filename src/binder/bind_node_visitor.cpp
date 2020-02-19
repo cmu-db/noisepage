@@ -341,12 +341,12 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
     }
 
     auto num_schema_columns = table_schema.GetColumns().size();
-    auto num_insert_columns = insert_columns->size();  // potentially 0 if unspecified by query
+    auto num_insert_columns = insert_columns->size();  // If unspecified by query, insert_columns is length 0.
     auto insert_values = node->GetValues();
     // Validate input values.
     {
       for (auto &values : *insert_values) {
-        // value is a row(tuple) to insert
+        // Value is a row (tuple) to insert.
         size_t num_values = values.size();
         // Test that they have the same number of columns.
         {
@@ -359,51 +359,64 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
         }
 
         std::vector<std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>>> cols;
-        if (num_insert_columns == 0) {  // already schema ordered
-          for (int i = 0; i < num_values; i++) {
-            std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> pair =
-                std::make_pair(table_schema.GetColumns()[i], values[i]);
-            cols.push_back(pair);
+
+        if (num_insert_columns == 0) {
+          // If the number of insert columns is zero, it is assumed that the tuple values are already schema ordered.
+          for (size_t i = 0; i < num_values; i++) {
+            auto pair = std::make_pair(table_schema.GetColumns()[i], values[i]);
+            cols.emplace_back(pair);
           }
         } else {
-          for (int i = 0; i < table_schema.GetColumns().size(); i++) {
-            catalog::Schema::Column schemaColumn = table_schema.GetColumns()[i];
-            auto it = std::find(insert_columns->begin(), insert_columns->end(), schemaColumn.Name());
+          // Otherwise, some insert columns were specified. Potentially not all and potentially out of order.
+          for (auto &schema_col : table_schema.GetColumns()) {
+            auto it = std::find(insert_columns->begin(), insert_columns->end(), schema_col.Name());
+            // Find the index of the current schema column.
             if (it != insert_columns->end()) {
-              // find the index now
+              // TODO(harsh): This might need refactoring if it becomes a performance bottleneck.
               auto index = std::distance(insert_columns->begin(), it);
-              std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> pair =
-                  std::make_pair(schemaColumn, values[index]);
-              cols.push_back(pair);
+              auto pair = std::make_pair(schema_col, values[index]);
+              cols.emplace_back(pair);
             } else {
-              //check if default value present
-              if (schemaColumn.StoredExpression() != nullptr) {
-                std::unique_ptr<parser::AbstractExpression> cur_value = schemaColumn.StoredExpression()->Copy();
-                std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> pair =
-                    std::make_pair(schemaColumn, common::ManagedPointer(cur_value));
-                cols.push_back(pair);
+              // Make a null value of the right type that we can either compare with the stored expression or insert.
+              auto null_tv = type::TransientValueFactory::GetNull(schema_col.Type());
+              auto null_ex = std::make_unique<parser::ConstantValueExpression>(std::move(null_tv));
+
+              // TODO(WAN): We thought that you might be able to collapse these two cases into one, since currently
+              // the catalog column's stored expression is always a NULL of the right type if not otherwise specified.
+              // However, this seems to make assumptions about the current implementation in plan_generator and also
+              // we want to throw an error if it is a non-NULLable column. We can leave it as it is right now.
+
+              // If the current schema column's index was not found, that means it was not specified by the user.
+              if (*schema_col.StoredExpression() != *null_ex) {
+                // First, check if there is a default value for that column.
+                std::unique_ptr<parser::AbstractExpression> cur_value = schema_col.StoredExpression()->Copy();
+                auto pair = std::make_pair(schema_col, common::ManagedPointer(cur_value));
+                cols.emplace_back(pair);
                 parse_result->AddExpression(std::move(cur_value));
-              }
-              //check if nullable field
-              else if (schemaColumn.Nullable()) {
-                std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> pair =
-                    std::make_pair(schemaColumn, nullptr);
-                cols.push_back(pair);
-              }
-              else {
-                //throw the error
-                throw BINDER_EXCEPTION("Column not present, does not have a default and is non nullable");
+              } else if (schema_col.Nullable()) {
+                // If there is no default value, check if the column is NULLable, meaning we can insert a NULL.
+                auto null_ex_mp = common::ManagedPointer(null_ex).CastManagedPointerTo<parser::AbstractExpression>();
+                auto pair = std::make_pair(schema_col, null_ex_mp);
+                cols.emplace_back(pair);
+                // Note that in this case, we must move null_ex as we have taken a managed pointer to it.
+                parse_result->AddExpression(std::move(null_ex));
+              } else {
+                // If none of the above cases could provide a value to be inserted, then we fail.
+                throw BINDER_EXCEPTION("Column not present, does not have a default and is non-nullable.");
               }
             }
           }
+
+          // We overwrite the original insert columns and values with the schema-ordered versions generated above.
           insert_columns->clear();
           values.clear();
-          for (std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>> pair : cols) {
-            insert_columns->push_back(pair.first.Name());
-            values.push_back(pair.second);
+          for (auto &pair : cols) {
+            insert_columns->emplace_back(pair.first.Name());
+            values.emplace_back(pair.second);
           }
         }
 
+        // Perform input type transformation validation on the schema-ordered values.
         for (size_t i = 0; i < cols.size(); i++) {
           auto ins_col = cols[i].first;
           auto ins_val = cols[i].second;
