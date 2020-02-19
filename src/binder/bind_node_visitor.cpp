@@ -1,6 +1,5 @@
 #include "binder/bind_node_visitor.h"
 
-#include <term.h>
 #include <algorithm>
 #include <memory>
 #include <string>
@@ -8,7 +7,6 @@
 #include <utility>
 #include <vector>
 
-#include "../include/catalog/schema.h"
 #include "binder/binder_util.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
@@ -27,9 +25,6 @@
 #include "parser/expression/type_cast_expression.h"
 #include "parser/sql_statement.h"
 #include "type/transient_value_factory.h"
-#include "type/transient_value_peeker.h"
-#include "type/type_id.h"
-#include "util/time_util.h"
 
 namespace terrier::binder {
 
