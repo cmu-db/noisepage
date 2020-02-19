@@ -39,6 +39,11 @@ class BPlusTreeIndex final : public Index {
     // FIXME(15-721 project2): invoke garbage collection on the underlying data structure
   }
 
+  size_t GetHeapUsage() const final {
+    // FIXME(15-721 project2): access the underlying data structure and report the heap usage
+    return 0;
+  }
+
   bool Insert(const common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
               const TupleSlot location) final {
     TERRIER_ASSERT(!(metadata_.GetSchema().Unique()),
