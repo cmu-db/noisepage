@@ -2,8 +2,15 @@
  * Insert statement tests.
  */
 
-import java.sql.*;
-import org.junit.*;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
 public class InsertTest extends TestUtility {
@@ -37,11 +44,18 @@ public class InsertTest extends TestUtility {
         rs = stmt.executeQuery(s_sql);
     }
 
+    /**
+     * Init setup, only execute once before tests
+     */
     @BeforeClass
     public static void Init() throws SQLException {
 
     }
 
+    /**
+     * Setup for each test, execute before each test
+     * reconnect and setup default table
+     */
     @Before
     public void Setup() throws SQLException {
         conn = makeDefaultConnection();
@@ -49,6 +63,10 @@ public class InsertTest extends TestUtility {
 	    InitDatabase();
     }
 
+    /**
+     * Cleanup for each test, execute after each test
+     * drop the default table
+     */
     @After
     public void Teardown() throws SQLException {
         Statement stmt = conn.createStatement();
@@ -129,7 +147,6 @@ public class InsertTest extends TestUtility {
      */
     // @Test
     public void test_2Tuple_NCS_2() throws SQLException {
-
         String sql = "INSERT INTO tbl VALUES (1), (11, 12);";
         Statement stmt = conn.createStatement();
         stmt.execute(sql);
@@ -141,69 +158,84 @@ public class InsertTest extends TestUtility {
 	    checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {11, 12, 0});
 	    assertNoMoreRows(rs);
     }
-    /*
-     * issue #706 fixed. Also need issue #724 for drop
+    /**
      * CREATE TABLE with a qualified namespace doesn't work as expected
+     * #706 fixed but also need #724 for select and drop
      */
-    // @Test
-    public void test_issue_706() throws SQLException {
-        String createSchemaSQL = "create schema foo;";
-        String createTableSQL = "create table foo.bar (id integer);";
-        String selectSQL = "SELECT * from pg_catalog.pg_class;";
+    @Test
+    public void test_CreateTableQualifiedNameSpace() throws SQLException {
+        String create_schema_SQL = "CREATE SCHEMA foo;";
+        String create_table_SQL = "CREATE TABLE foo.bar (id integer);";
+
+        conn.setAutoCommit(false);
+        Statement stmt = conn.createStatement();
+        stmt.addBatch(create_schema_SQL);
+        stmt.addBatch(create_table_SQL);
+        stmt.executeBatch();
+        conn.commit();
+        conn.setAutoCommit(true);
+
+        String select_SQL = "SELECT * from pg_catalog.pg_class;";
+        stmt = conn.createStatement();
+        rs = stmt.executeQuery(select_SQL);
+        while (rs.next()) {
+            if (rs.getString("relname") == "bar") {
+                assertEquals(1002,rs.getInt("relnamespace"));
+            }
+        }
+
+        //@TODO drop the table foo.bar
     }
 
     /*
-     * issue #720 fixed
+     * SELECT With Duplicate Columns Produces Zero Results
+     * #720 fixed
      */
     @Test
-    public void test_issue_720() throws SQLException {
-        String insertSQL = "INSERT INTO tbl VALUES (1, 2, 3), (2, 3, 4);";
+    public void test_SelectDuplicateColumns() throws SQLException {
+        String insert_SQL = "INSERT INTO tbl VALUES (1, 2, 3), (2, 3, 4);";
         Statement stmt = conn.createStatement();
-        stmt.execute(insertSQL);
-        String selectSQL = "SELECT c1,c1 FROM tbl;";
+        stmt.execute(insert_SQL);
+        String select_SQL = "SELECT c1,c1 FROM tbl;";
         stmt = conn.createStatement();
-        rs = stmt.executeQuery(selectSQL);
+        rs = stmt.executeQuery(select_SQL);
         rs.next();
-	checkRow(rs,
-		 new String [] {"c1", "c1"},
-		 new int [] {1, 1});
+	    checkRow(rs, new String [] {"c1", "c1"}, new int [] {1, 1});
         rs.next();
-	checkRow(rs,
-		 new String [] {"c1", "c1"},
-		 new int [] {2, 2});
+	    checkRow(rs, new String [] {"c1", "c1"}, new int [] {2, 2});
         assertNoMoreRows(rs);
     }
 
     /**
-     * issue #733 fixed
+     * Invalid Implicit Casting of Integer Strings as Varchars
+     * #733 fixed
      */
     @Test
-    public void test_issue_733() throws SQLException {
+    public void test_CastofIntegerString() throws SQLException {
         conn.setAutoCommit(false);
-        String createSQL = "CREATE TABLE xxx01 (col0 VARCHAR(32) PRIMARY KEY, col1 VARCHAR(32));";
+        String create_SQL = "CREATE TABLE xxx01 (col0 VARCHAR(32) PRIMARY KEY, col1 VARCHAR(32));";
         Statement stmt = conn.createStatement();
-        stmt.addBatch(createSQL);
-        int[] intArray = new int[] {1319, 21995, 28037, 26984, 2762, 31763, 20359, 26022, 364, 831};
-        for (int i = 0; i < intArray.length; i++) {
-            String insertSQL = "INSERT INTO xxx01 VALUES ('" + Integer.toString(i) + 
-                                "','" + intArray[i] + "');";
-            stmt.addBatch(insertSQL);
+        stmt.addBatch(create_SQL);
+        int[] int_Array = new int[] {1319, 21995, 28037, 26984, 2762, 31763, 20359, 26022, 364, 831};
+        for (int i = 0; i < int_Array.length; i++) {
+            String insert_SQL = "INSERT INTO xxx01 VALUES ('" + Integer.toString(i) + 
+                                "','" + int_Array[i] + "');";
+            stmt.addBatch(insert_SQL);
         }
-        stmt.executeBatch();
+        stmt.executeBatch();    // group executions
         conn.commit();
         conn.setAutoCommit(true);
-        String selectSQL = "SELECT * FROM xxx01;";
+        String select_SQL = "SELECT * FROM xxx01;";
         stmt = conn.createStatement();
-        rs = stmt.executeQuery(selectSQL);
+        rs = stmt.executeQuery(select_SQL);
         int i = 0;
         while (rs.next()) {
-            assertEquals(intArray[i],rs.getInt("col1"));
+            assertEquals(int_Array[i],rs.getInt("col1"));
             i++;
         }
-        String dropSQL = "DROP TABLE xxx01";
+        String drop_SQL = "DROP TABLE xxx01";
         stmt = conn.createStatement();
-        stmt.execute(dropSQL);
+        stmt.execute(drop_SQL);
     }
-
 
 }
