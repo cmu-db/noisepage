@@ -1,10 +1,9 @@
 #include <algorithm>
-#include <functional>
+#include <chrono>  // NOLINT
 #include <limits>
-#include <memory>
 #include <queue>
 #include <random>
-#include <utility>
+#include <thread>  // NOLINT
 #include <vector>
 
 #include "execution/tpl_test.h"
@@ -190,7 +189,6 @@ void TestParallelSort(const std::vector<uint32_t> &sorter_sizes_) {
   container.Reset(sizeof(Sorter), init_sorter, destroy_sorter, &exec_ctx);
 
   // Parallel build
-  tbb::task_scheduler_init sched;
   tbb::parallel_for_each(sorter_sizes_.begin(), sorter_sizes_.end(), [&container](auto sorter_size) {
     auto *sorter = container.AccessThreadStateOfCurrentThreadAs<Sorter>();
     for (uint32_t i = 0; i < sorter_size; i++) {
@@ -222,31 +220,55 @@ void TestParallelSort(const std::vector<uint32_t> &sorter_sizes_) {
 
 // NOLINTNEXTLINE
 TEST_F(SorterTest, BalancedParallelSortTest) {
-  TestParallelSort<2>({1000});
-  TestParallelSort<2>({1000, 1000});
-  TestParallelSort<2>({1000, 1000, 1000});
-  TestParallelSort<2>({1000, 1000, 1000, 1000});
+  {
+    tbb::task_scheduler_init sched;
+    TestParallelSort<2>({1000});
+    TestParallelSort<2>({1000, 1000});
+    TestParallelSort<2>({1000, 1000, 1000});
+    TestParallelSort<2>({1000, 1000, 1000, 1000});
+  }
+  // HACK: ASAN complains that TBB leaks memory because it doesn't clean up
+  // memory right away when the tbb:task_scheduler goes out of scope. So we're
+  // just going to sleep for 50ms. This seems to be enough time.
+  // Without this sleep, then this test will fail randomly because of leaks.
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
 }
 
 // NOLINTNEXTLINE
 TEST_F(SorterTest, SingleThreadLocalParallelSortTest) {
   // Single thread-local sorter
-  TestParallelSort<2>({0});
-  TestParallelSort<2>({1});
-  TestParallelSort<2>({10});
-  TestParallelSort<2>({100});
+  {
+    tbb::task_scheduler_init sched;
+    TestParallelSort<2>({0});
+    TestParallelSort<2>({1});
+    TestParallelSort<2>({10});
+    TestParallelSort<2>({100});
+  }
+  // HACK: ASAN complains that TBB leaks memory because it doesn't clean up
+  // memory right away when the tbb:task_scheduler goes out of scope. So we're
+  // just going to sleep for 50ms. This seems to be enough time.
+  // Without this sleep, then this test will fail randomly because of leaks.
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
 }
 
 // NOLINTNEXTLINE
 TEST_F(SorterTest, UnbalancedParallelSortTest) {
-  // All imbalance permutations
-  for (uint32_t x : {0, 1, 10, 100, 1000}) {
-    for (uint32_t y : {0, 1, 10, 100, 1000}) {
-      for (uint32_t z : {0, 1, 10, 100, 1000}) {
-        TestParallelSort<2>({x, y, z});
+  {
+    tbb::task_scheduler_init sched;
+    // All imbalance permutations
+    for (uint32_t x : {0, 1, 10, 100, 1000}) {
+      for (uint32_t y : {0, 1, 10, 100, 1000}) {
+        for (uint32_t z : {0, 1, 10, 100, 1000}) {
+          TestParallelSort<2>({x, y, z});
+        }
       }
     }
   }
+  // HACK: ASAN complains that TBB leaks memory because it doesn't clean up
+  // memory right away when the tbb:task_scheduler goes out of scope. So we're
+  // just going to sleep for 50ms. This seems to be enough time.
+  // Without this sleep, then this test will fail randomly because of leaks.
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
 }
 
 }  // namespace terrier::execution::sql::test
