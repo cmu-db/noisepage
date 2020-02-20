@@ -143,7 +143,7 @@ public class InsertTest extends TestUtility {
     /**
      * 2 tuple insert, with no column specification, with fewer than
      * schema columns
-     * binding failed
+     * binding failed, wait to be fixed
      */
     // @Test
     public void test_2Tuple_NCS_2() throws SQLException {
@@ -158,6 +158,7 @@ public class InsertTest extends TestUtility {
 	    checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {11, 12, 0});
 	    assertNoMoreRows(rs);
     }
+
     /**
      * CREATE TABLE with a qualified namespace doesn't work as expected
      * #706 fixed but also need #724 for select and drop
