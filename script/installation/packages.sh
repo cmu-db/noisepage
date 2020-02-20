@@ -115,15 +115,22 @@ install_linux() {
       postgresql-client \
       sqlite3 \
       libsqlite3-dev \
-      ant
-   #install libpqxx-6.2 manually
-   apt-get -y install wget
-   wget http://mirrors.kernel.org/ubuntu/pool/universe/libp/libpqxx/libpqxx-dev_6.2.4-4_amd64.deb
-   wget http://mirrors.kernel.org/ubuntu/pool/universe/libp/libpqxx/libpqxx-6.2_6.2.4-4_amd64.deb
-   dpkg -i libpqxx-6.2_6.2.4-4_amd64.deb
-   dpkg -i libpqxx-dev_6.2.4-4_amd64.deb
-   rm libpqxx-6.2_6.2.4-4_amd64.deb
-   rm libpqxx-dev_6.2.4-4_amd64.deb
+      ant \
+      wget
+      
+  # IMPORTANT: Ubuntu 18.04 does npt have libpqxx-6.2 available. So we have to download the package
+  # manually and install it ourselves.
+  LIBPQXX_VERSION="6.4.5-2"
+  LIBPQXX_URL="http://mirrors.kernel.org/ubuntu/pool/universe/libp/libpqxx"
+  LIBPQXX_FILES=(\
+    libpqxx-dev_${LIBPQXX_VERSION}_amd64.deb \
+    libpqxx-6.4_${LIBPQXX_VERSION}_amd64.deb \
+  )
+  for file in $LIBPQXX_FILES; do
+    wget ${LIBPQXX_URL}/$file
+    dpkg -i $file
+    rm $file
+  done
 }
 
 main "$@"
