@@ -53,13 +53,17 @@ class GlobalTrainer:
         # First run a prediction on the global running data with the mini model results
         for data in data_list:
             y = data.y
-            print("pipeline elapsed time: {}".format(y[-1]))
+            print("{} pipeline elapsed time: {}".format(data.name, y[-1]))
+            total_time = 0
             for opunit_feature in data.opunit_features:
                 opunit_model = self.mini_model_map[opunit_feature[0]]
                 x = np.array(opunit_feature[1]).reshape(1, -1)
                 y_pred = opunit_model.predict(x)
                 print("Predicted {} elapsed time with feature {}: {}".format(opunit_feature[0].name,
                                                                              x[0], y_pred[0, -1]))
+                total_time += y_pred[0, -1]
+            print("{} pipeline predicted time: {}".format(data.name, total_time))
+            print("|Actual - Predict| / Actual: {}".format(abs(y[-1] - total_time) / y[-1]))
             print()
 
 

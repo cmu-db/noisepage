@@ -7,7 +7,8 @@
 #include <vector>
 
 #include "common/managed_pointer.h"
-#include "network/postgres/postgres_protocol_utils.h"
+#include "network/network_io_utils.h"
+#include "network/postgres/postgres_defs.h"
 #include "type/transient_value_peeker.h"
 
 namespace terrier::network {

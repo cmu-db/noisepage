@@ -9,8 +9,8 @@ namespace terrier::runner {
 class TPCHRunner : public benchmark::Fixture {
  public:
   const int8_t num_threads_ = 1;                             // defines the number of terminals (workers threads)
-  const uint32_t num_precomputed_txns_per_worker_ = 10;  // Number of txns to run per terminal (worker thread)
-  const execution::vm::ExecutionMode mode_ = execution::vm::ExecutionMode::Interpret;
+  const uint32_t num_precomputed_txns_per_worker_ = 4;  // Number of txns to run per terminal (worker thread)
+  const execution::vm::ExecutionMode mode_ = execution::vm::ExecutionMode::Compiled;
 
   std::unique_ptr<DBMain> db_main_;
   std::unique_ptr<tpch::Workload> tpch_workload_;
@@ -18,8 +18,8 @@ class TPCHRunner : public benchmark::Fixture {
 
   // TPCH setup
   const std::vector<std::string> tpch_query_filenames_ = {
-      "../../../tpl_tables/sample_tpl/tpch_q1.tpl",
-      //"../../../tpl_tables/sample_tpl/tpch_q4.tpl",
+      //"../../../tpl_tables/sample_tpl/tpch_q1.tpl",
+      "../../../tpl_tables/sample_tpl/tpch_q4.tpl",
       //"../../../tpl_tables/sample_tpl/tpch_q5.tpl",
       //"../../../tpl_tables/sample_tpl/tpch_q6.tpl"
       };

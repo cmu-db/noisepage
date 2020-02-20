@@ -1,5 +1,6 @@
 import csv
 import numpy as np
+import copy
 
 import data_info
 import query_info
@@ -36,12 +37,13 @@ def _execution_get_global_data(filename):
         next(reader)
         for line in reader:
             # The first element is always the query/pipeline identifier
-            opunit_features = query_info.feature_map[line[0]]
+            # Need to deep copy since we're going to add the execution mode after it
+            opunit_features = copy.deepcopy(query_info.feature_map[line[0]])
             mode = int(line[1])
             for opunit_feature in opunit_features:
                 opunit_feature[1].append(mode)
             line_data = list(map(int, line[2:]))
-            data_list.append(GlobalData(opunit_features, np.array(line_data)))
+            data_list.append(GlobalData(line[0], opunit_features, np.array(line_data)))
 
     return data_list
 
@@ -55,11 +57,13 @@ class GlobalData:
     """
     The class that stores the data for the global model training
     """
-    def __init__(self, opunit_features, y):
+    def __init__(self, name, opunit_features, y):
         """
 
+        :param name: The name of the data point (e.g., could be the pipeline identifier)
         :param opunit: The list of opunits and their inputs for this event
         :param y: The runtime metrics
         """
+        self.name = name
         self.opunit_features = opunit_features
         self.y = y
