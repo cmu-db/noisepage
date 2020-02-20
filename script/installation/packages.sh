@@ -124,8 +124,8 @@ install_linux() {
   LIBPQXX_VERSION="6.2.5-1"
   LIBPQXX_URL="http://mirrors.kernel.org/ubuntu/pool/universe/libp/libpqxx"
   LIBPQXX_FILES=(\
-    libpqxx-6.2_${LIBPQXX_VERSION}_amd64.deb \
-    libpqxx-dev_${LIBPQXX_VERSION}_amd64.deb \
+    "libpqxx-6.2_${LIBPQXX_VERSION}_amd64.deb" \
+    "libpqxx-dev_${LIBPQXX_VERSION}_amd64.deb" \
   )
   for file in $LIBPQXX_FILES; do
     wget ${LIBPQXX_URL}/$file
