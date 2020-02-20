@@ -24,7 +24,7 @@
 namespace terrier {
 
 struct ExportTableTest : public ::terrier::TerrierTest {
-  bool parse_next(std::ifstream &csv_file, char stop_char, char *tmp_char) {
+  bool ParseNext(std::ifstream &csv_file, char stop_char, char *tmp_char) {
     csv_file.get(*tmp_char);
     bool end = false;
     switch (*tmp_char) {
@@ -33,9 +33,9 @@ struct ExportTableTest : public ::terrier::TerrierTest {
         if (*tmp_char == 'x') {
           char hex_char;
           csv_file.get(hex_char);
-          *tmp_char = (hex_char >= 'a' ? (hex_char - 'a' + 10) : hex_char - '0') << 4;
+          *tmp_char = (hex_char >= 'a' ? (hex_char - 'a' + static_cast<char>(10)) : hex_char - '0') << 4;
           csv_file.get(hex_char);
-          *tmp_char += (hex_char >= 'a' ? (hex_char - 'a' + 10) : hex_char - '0');
+          *tmp_char += (hex_char >= 'a' ? (hex_char - 'a' + static_cast<char>(10)) : hex_char - '0');
         } else {
           switch (*tmp_char) {
             case '\\':
@@ -70,7 +70,7 @@ struct ExportTableTest : public ::terrier::TerrierTest {
     return end;
   }
 
-  bool check_content(std::ifstream &csv_file, transaction::TransactionManager *txn_manager,
+  bool CheckContent(std::ifstream &csv_file, transaction::TransactionManager *txn_manager,
                      const storage::BlockLayout &layout,
                      const std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> &tuples,
                      const storage::DataTable &table, storage::RawBlock *block) {
@@ -95,12 +95,12 @@ struct ExportTableTest : public ::terrier::TerrierTest {
           switch (tmp_char) {
             case '"':
               csv_file.seekg(1, std::ios_base::cur);
-              while (!parse_next(csv_file, '"', &tmp_char)) {
+              while (!ParseNext(csv_file, '"', &tmp_char)) {
                 bytes.emplace_back(static_cast<byte>(tmp_char));
               }
               break;
             case 'b':
-              while (!parse_next(csv_file, ',', &tmp_char)) {
+              while (!ParseNext(csv_file, ',', &tmp_char)) {
                 bytes.emplace_back(static_cast<byte>(tmp_char));
               }
               break;
@@ -109,17 +109,19 @@ struct ExportTableTest : public ::terrier::TerrierTest {
             case '\n':
               break;
             default:
+              integer = tmp_char;
+              std::string remaining_digits;
               if (j == read_row->NumColumns() - 1) {
-                std::getline(csv_file, integer, '\n');
+                std::getline(csv_file, remaining_digits, '\n');
               } else {
-                std::getline(csv_file, integer, ',');
+                std::getline(csv_file, remaining_digits, ',');
               }
-              integer = tmp_char + integer;
+              integer += remaining_digits;
               break;
           }
           auto data = read_row->AccessWithNullCheck(j);
           if (data == nullptr) {
-            if (bytes.size() != 0 || integer.length() != 0) {
+            if (!bytes.empty() || integer.length() != 0) {
               return false;
             }
           } else {
@@ -152,7 +154,7 @@ struct ExportTableTest : public ::terrier::TerrierTest {
                   true_integer = *reinterpret_cast<int64_t *>(data);
                   break;
               }
-              if (std::fabs(1 - (std::stof(integer) + 1e-6) / (1e-6 + true_integer)) > 1e-6) {
+              if (std::fabs(1 - (std::stof(integer) + 1e-6) / (true_integer + 1e-6)) > 1e-6) {
                 return false;
               }
             }
@@ -230,7 +232,7 @@ TEST_F(ExportTableTest, ExportDictionaryCompressedTableTest) {
   system((std::string("python3 ") + PYSCRIPT_NAME).c_str());
 
   std::ifstream csv_file(CSV_TABLE_NAME, std::ios_base::in);
-  EXPECT_TRUE(check_content(csv_file, &txn_manager, layout, tuples, table, block));
+  EXPECT_TRUE(CheckContent(csv_file, &txn_manager, layout, tuples, table, block));
   csv_file.close();
 
   unlink(EXPORT_TABLE_NAME);
@@ -298,7 +300,7 @@ TEST_F(ExportTableTest, ExportVarlenTableTest) {
   system((std::string("python3 ") + PYSCRIPT_NAME).c_str());
 
   std::ifstream csv_file(CSV_TABLE_NAME, std::ios_base::in);
-  EXPECT_TRUE(check_content(csv_file, &txn_manager, layout, tuples, table, block));
+  EXPECT_TRUE(CheckContent(csv_file, &txn_manager, layout, tuples, table, block));
   csv_file.close();
 
   unlink(EXPORT_TABLE_NAME);
