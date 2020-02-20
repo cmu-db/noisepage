@@ -127,7 +127,7 @@ install_linux() {
     "libpqxx-6.2_${LIBPQXX_VERSION}_amd64.deb" \
     "libpqxx-dev_${LIBPQXX_VERSION}_amd64.deb" \
   )
-  for file in $LIBPQXX_FILES; do
+  for file in "${LIBPQXX_FILES[@]}"; do
     wget ${LIBPQXX_URL}/$file
     dpkg -i $file
     rm $file
