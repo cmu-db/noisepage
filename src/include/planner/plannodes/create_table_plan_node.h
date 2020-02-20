@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/postgres/name_builder.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
 #include "parser/create_statement.h"
@@ -503,7 +504,8 @@ class CreateTablePlanNode : public AbstractPlanNode {
       fkey_info.upd_action_ = col->GetForeignKeyUpdateAction();
       fkey_info.del_action_ = col->GetForeignKeyDeleteAction();
 
-      fkey_info.constraint_name_ = "FK_" + table_name + "->" + fkey_info.sink_table_name_;
+      fkey_info.constraint_name_ = catalog::postgres::NameBuilder::MakeName(
+          table_name, fkey_info.sink_table_name_, catalog::postgres::NameBuilder::FOREIGN_KEY);
 
       foreign_keys_.push_back(fkey_info);
       return *this;
@@ -518,7 +520,8 @@ class CreateTablePlanNode : public AbstractPlanNode {
       UniqueInfo unique_info;
 
       unique_info.unique_cols_ = {col->GetColumnName()};
-      unique_info.constraint_name_ = table_name_ + "_" + col->GetColumnName() + "_key";
+      unique_info.constraint_name_ = catalog::postgres::NameBuilder::MakeName(
+          table_name_, col->GetColumnName(), catalog::postgres::NameBuilder::UNIQUE_KEY);
 
       con_uniques_.push_back(unique_info);
       return *this;

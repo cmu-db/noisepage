@@ -62,4 +62,6 @@ enum class PostgresValueType : int32_t {
   DECIMAL = 1700
 };
 
+const uint32_t MAX_NAME_LENGTH = 63;  // Max length for internal name
+
 }  // namespace terrier::network
