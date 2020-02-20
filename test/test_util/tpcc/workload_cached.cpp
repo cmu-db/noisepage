@@ -4,7 +4,6 @@
 
 #include "execution/exec/execution_context.h"
 #include "execution/execution_util.h"
-// #include "execution/table_generator/table_generator.h"
 #include "main/db_main.h"
 #include "test_util/tpcc/builder.h"
 #include "test_util/tpcc/database.h"
@@ -35,15 +34,12 @@ namespace terrier::tpcc {
     Builder tpcc_builder{block_store_, catalog_, txn_manager_};
     tpcc_db_ = tpcc_builder.Build(storage::index::IndexType::HASHMAP);
     db_oid_ = tpcc_db_->db_oid_;
-    std::cout << "Built DB" << std::endl;
 
     GenerateTPCCTables(num_threads);
-    std::cout << "Generated TPCC tables" << std::endl;
 
     // initialize and compile the queries
     InitializeSQLs();
     LoadTPCCQueries(txn_names);
-    std::cout << "Queries loaded" << std::endl;
   }
 
   void WorkloadCached::GenerateTPCCTables(int8_t num_threads) {
@@ -72,6 +68,8 @@ namespace terrier::tpcc {
         transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
 
         auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
+        binder::BindNodeVisitor visitor(common::ManagedPointer(accessor.get()), "tpcc");
+        visitor.BindNameToNode(parse_result->GetStatement(0), parse_result.get());
 
         // generate plan node
         std::unique_ptr<planner::AbstractPlanNode> plan_node = trafficcop::TrafficCopUtil::Optimize(
