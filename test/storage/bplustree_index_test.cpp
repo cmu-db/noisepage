@@ -26,7 +26,7 @@
 
 namespace terrier::storage::index {
 
-class BwTreeIndexTests : public TerrierTest {
+class BPlusTreeIndexTests : public TerrierTest {
  private:
   catalog::Schema table_schema_;
   catalog::IndexSchema unique_schema_;
@@ -110,7 +110,7 @@ class BwTreeIndexTests : public TerrierTest {
  * in the index and table.
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, UniqueInsert) {
+TEST_F(BPlusTreeIndexTests, UniqueInsert) {
   const uint32_t num_inserts = 100000;  // number of tuples/primary keys for each worker to attempt to insert
   auto workload = [&](uint32_t worker_id) {
     auto *const key_buffer =
@@ -185,7 +185,7 @@ TEST_F(BwTreeIndexTests, UniqueInsert) {
  * visible versions in the index and table.
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, DefaultInsert) {
+TEST_F(BPlusTreeIndexTests, DefaultInsert) {
   const uint32_t num_inserts = 100000;  // number of tuples/primary keys for each worker to attempt to insert
   auto workload = [&](uint32_t worker_id) {
     auto *const key_buffer =
@@ -252,7 +252,7 @@ TEST_F(BwTreeIndexTests, DefaultInsert) {
  * exactly, etc.)
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, ScanAscending) {
+TEST_F(BPlusTreeIndexTests, ScanAscending) {
   // populate index with [0..20] even keys
   std::map<int32_t, storage::TupleSlot> reference;
   auto *const insert_txn = txn_manager_->BeginTransaction();
@@ -326,7 +326,7 @@ TEST_F(BwTreeIndexTests, ScanAscending) {
  * exactly, etc.)
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, ScanDescending) {
+TEST_F(BPlusTreeIndexTests, ScanDescending) {
   // populate index with [0..20] even keys
   std::map<int32_t, storage::TupleSlot> reference;
   auto *const insert_txn = txn_manager_->BeginTransaction();
@@ -399,7 +399,7 @@ TEST_F(BwTreeIndexTests, ScanDescending) {
  * exactly, etc.)
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, ScanLimitAscending) {
+TEST_F(BPlusTreeIndexTests, ScanLimitAscending) {
   // populate index with [0..20] even keys
   std::map<int32_t, storage::TupleSlot> reference;
   auto *const insert_txn = txn_manager_->BeginTransaction();
@@ -468,7 +468,7 @@ TEST_F(BwTreeIndexTests, ScanLimitAscending) {
  * exactly, etc.)
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, ScanLimitDescending) {
+TEST_F(BPlusTreeIndexTests, ScanLimitDescending) {
   // populate index with [0..20] even keys
   std::map<int32_t, storage::TupleSlot> reference;
   auto *const insert_txn = txn_manager_->BeginTransaction();
@@ -534,7 +534,7 @@ TEST_F(BwTreeIndexTests, ScanLimitDescending) {
 
 // Verifies that primary key insert fails on write-write conflict
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, UniqueKey1) {
+TEST_F(BPlusTreeIndexTests, UniqueKey1) {
   auto *txn0 = txn_manager_->BeginTransaction();
 
   // txn 0 inserts into table
@@ -595,7 +595,7 @@ TEST_F(BwTreeIndexTests, UniqueKey1) {
 
 // Verifies that primary key insert fails on visible key conflict
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, UniqueKey2) {
+TEST_F(BPlusTreeIndexTests, UniqueKey2) {
   auto *txn0 = txn_manager_->BeginTransaction();
 
   // txn 0 inserts into table
@@ -651,7 +651,7 @@ TEST_F(BwTreeIndexTests, UniqueKey2) {
 
 // Verifies that primary key insert fails on same txn trying to insert key twice
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, UniqueKey3) {
+TEST_F(BPlusTreeIndexTests, UniqueKey3) {
   auto *txn0 = txn_manager_->BeginTransaction();
 
   // txn 0 inserts into table
@@ -702,7 +702,7 @@ TEST_F(BwTreeIndexTests, UniqueKey3) {
 
 // Verifies that primary key insert fails even if conflicting transaction is an uncommitted delete
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, UniqueKey4) {
+TEST_F(BPlusTreeIndexTests, UniqueKey4) {
   auto *txn0 = txn_manager_->BeginTransaction();
 
   // txn 0 inserts into table
@@ -784,7 +784,7 @@ TEST_F(BwTreeIndexTests, UniqueKey4) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, CommitInsert1) {
+TEST_F(BPlusTreeIndexTests, CommitInsert1) {
   auto *txn0 = txn_manager_->BeginTransaction();
 
   // txn 0 inserts into table
@@ -857,7 +857,7 @@ TEST_F(BwTreeIndexTests, CommitInsert1) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, CommitInsert2) {
+TEST_F(BPlusTreeIndexTests, CommitInsert2) {
   auto *txn0 = txn_manager_->BeginTransaction();
   auto *txn1 = txn_manager_->BeginTransaction();
 
@@ -929,7 +929,7 @@ TEST_F(BwTreeIndexTests, CommitInsert2) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, AbortInsert1) {
+TEST_F(BPlusTreeIndexTests, AbortInsert1) {
   auto *txn0 = txn_manager_->BeginTransaction();
 
   // txn 0 inserts into table
@@ -1001,7 +1001,7 @@ TEST_F(BwTreeIndexTests, AbortInsert1) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, AbortInsert2) {
+TEST_F(BPlusTreeIndexTests, AbortInsert2) {
   auto *txn0 = txn_manager_->BeginTransaction();
   auto *txn1 = txn_manager_->BeginTransaction();
 
@@ -1072,7 +1072,7 @@ TEST_F(BwTreeIndexTests, AbortInsert2) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, CommitUpdate1) {
+TEST_F(BPlusTreeIndexTests, CommitUpdate1) {
   auto *insert_txn = txn_manager_->BeginTransaction();
 
   // insert_txn inserts into table
@@ -1199,7 +1199,7 @@ TEST_F(BwTreeIndexTests, CommitUpdate1) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, CommitUpdate2) {
+TEST_F(BPlusTreeIndexTests, CommitUpdate2) {
   auto *insert_txn = txn_manager_->BeginTransaction();
 
   // insert_txn inserts into table
@@ -1326,7 +1326,7 @@ TEST_F(BwTreeIndexTests, CommitUpdate2) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, AbortUpdate1) {
+TEST_F(BPlusTreeIndexTests, AbortUpdate1) {
   auto *insert_txn = txn_manager_->BeginTransaction();
 
   // insert_txn inserts into table
@@ -1453,7 +1453,7 @@ TEST_F(BwTreeIndexTests, AbortUpdate1) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, AbortUpdate2) {
+TEST_F(BPlusTreeIndexTests, AbortUpdate2) {
   auto *insert_txn = txn_manager_->BeginTransaction();
 
   // insert_txn inserts into table
@@ -1580,7 +1580,7 @@ TEST_F(BwTreeIndexTests, AbortUpdate2) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, CommitDelete1) {
+TEST_F(BPlusTreeIndexTests, CommitDelete1) {
   auto *insert_txn = txn_manager_->BeginTransaction();
 
   // insert_txn inserts into table
@@ -1672,7 +1672,7 @@ TEST_F(BwTreeIndexTests, CommitDelete1) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, CommitDelete2) {
+TEST_F(BPlusTreeIndexTests, CommitDelete2) {
   auto *insert_txn = txn_manager_->BeginTransaction();
 
   // insert_txn inserts into table
@@ -1764,7 +1764,7 @@ TEST_F(BwTreeIndexTests, CommitDelete2) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, AbortDelete1) {
+TEST_F(BPlusTreeIndexTests, AbortDelete1) {
   auto *insert_txn = txn_manager_->BeginTransaction();
 
   // insert_txn inserts into table
@@ -1857,7 +1857,7 @@ TEST_F(BwTreeIndexTests, AbortDelete1) {
 //
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
-TEST_F(BwTreeIndexTests, AbortDelete2) {
+TEST_F(BPlusTreeIndexTests, AbortDelete2) {
   auto *insert_txn = txn_manager_->BeginTransaction();
 
   // insert_txn inserts into table
