@@ -187,7 +187,7 @@ public class InsertTest extends TestUtility {
         //@TODO drop the table foo.bar
     }
 
-    /*
+    /**
      * SELECT With Duplicate Columns Produces Zero Results
      * #720 fixed
      */
