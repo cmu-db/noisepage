@@ -118,12 +118,13 @@ install_linux() {
       ant \
       wget
       
-  # IMPORTANT: Ubuntu 18.04 does npt have libpqxx-6.2 available. So we have to download the package
-  # manually and install it ourselves.
-  LIBPQXX_VERSION="6.4.5-2"
+  # IMPORTANT: Ubuntu 18.04 does not have libpqxx-6.2 available. So we have to download the package
+  # manually and install it ourselves. We are *not* able to upgrade to libpqxx-6.4 because 18.04
+  # does not have the right version of libstdc++6 that it needs.
+  LIBPQXX_VERSION="6.2.5-1"
   LIBPQXX_URL="http://mirrors.kernel.org/ubuntu/pool/universe/libp/libpqxx"
   LIBPQXX_FILES=(\
-    libpqxx-6.4_${LIBPQXX_VERSION}_amd64.deb \
+    libpqxx-6.2_${LIBPQXX_VERSION}_amd64.deb \
     libpqxx-dev_${LIBPQXX_VERSION}_amd64.deb \
   )
   for file in $LIBPQXX_FILES; do
