@@ -1,9 +1,0 @@
-tbl_warehouse_
-tbl_warehouse_
-tbl_district_
-tbl_district_
-tbl_customer_
-tbl_customer_
-tbl_customer_
-tbl_history_
-tbl_customer_

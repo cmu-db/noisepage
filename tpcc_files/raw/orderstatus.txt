@@ -1,4 +1,0 @@
-tbl_order_
-tbl_order_line_
-tbl_customer_
-tbl_customer_
