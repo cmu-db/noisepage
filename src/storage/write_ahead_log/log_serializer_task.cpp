@@ -32,10 +32,18 @@ void LogSerializerTask::LogSerializerTaskLoop() {
 }
 
 bool LogSerializerTask::Process() {
-  uint64_t elapsed_us = 0, num_bytes = 0, num_records = 0;
+  uint64_t num_bytes = 0, num_records = 0;
+  bool logging_metrics_enabled =
+      common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
+  if (logging_metrics_enabled) {
+    // start the operating unit resource tracker
+    common::thread_context.resource_tracker_.Start();
+  }
+
   bool buffers_processed = false;
+
   {
-    common::ScopedTimer<std::chrono::microseconds> scoped_timer(&elapsed_us);
     common::SpinLatch::ScopedSpinLatch serialization_guard(&serialization_latch_);
     TERRIER_ASSERT(serialized_txns_.empty(),
                    "Aggregated txn timestamps should have been handed off to TimestampManager");
@@ -75,6 +83,9 @@ bool LogSerializerTask::Process() {
     // Mark the last buffer that was written to as full
     if (buffers_processed) HandFilledBufferToWriter();
 
+    // Mark the last buffer that was written to as full
+    if (filled_buffer_ != nullptr) HandFilledBufferToWriter();
+
     // Bulk remove all the transactions we serialized. This prevents having to take the TimestampManager's latch once
     // for each timestamp we remove.
     for (const auto &txns : serialized_txns_) {
@@ -82,9 +93,15 @@ bool LogSerializerTask::Process() {
     }
     serialized_txns_.clear();
   }
-  if (num_bytes > 0 && common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::LOGGING))
-    common::thread_context.metrics_store_->RecordSerializerData(elapsed_us, num_bytes, num_records);
+
+  if (logging_metrics_enabled) {
+    // Stop the resource tracker for this operating unit
+    common::thread_context.resource_tracker_.Stop();
+    if (num_bytes > 0) {
+      auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+      common::thread_context.metrics_store_->RecordSerializerData(num_bytes, num_records, resource_metrics);
+    }
+  }
 
   return buffers_processed;
 }

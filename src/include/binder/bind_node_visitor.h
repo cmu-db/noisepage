@@ -73,9 +73,10 @@ class BindNodeVisitor : public SqlNodeVisitor {
   void Visit(parser::ColumnValueExpression *expr, parser::ParseResult *parse_result) override;
   void Visit(parser::StarExpression *expr, parser::ParseResult *parse_result) override;
   // TODO(Ling): implement this after we add support for function expression
-  // void Visit(parser::FunctionExpression *expr, parser::ParseResult *parse_result) override;
+  void Visit(parser::FunctionExpression *expr, parser::ParseResult *parse_result) override;
   void Visit(parser::OperatorExpression *expr, parser::ParseResult *parse_result) override;
   void Visit(parser::AggregateExpression *expr, parser::ParseResult *parse_result) override;
+  void Visit(parser::TypeCastExpression *expr, parser::ParseResult *parse_result) override;
 
  private:
   /** Current context of the query or subquery */

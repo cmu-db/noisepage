@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "brain/operating_unit.h"
 #include "catalog/catalog_accessor.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_node_factory.h"
@@ -98,6 +99,18 @@ class CodeGen {
    * @return the exec ctx's identifier
    */
   ast::Identifier GetExecCtxVar() { return exec_ctx_var_; }
+
+  /**
+   * @return PipelineOperatingUnits instance
+   */
+  brain::PipelineOperatingUnits *GetPipelineOperatingUnits() { return pipeline_operating_units_.get(); }
+
+  /**
+   * @return release ownership of the PipelineOperatingUnits instance
+   */
+  std::unique_ptr<brain::PipelineOperatingUnits> ReleasePipelineOperatingUnits() {
+    return std::move(pipeline_operating_units_);
+  }
 
   /**
    * Creates the File node for the query
@@ -285,13 +298,20 @@ class CodeGen {
   ast::Expr *FloatToSql(double num);
 
   /**
-   * Create a date value
+   * Create a date value.
    * @param year The year of the date.
    * @param month The month of the date.
    * @param day The day of the date
-   * @return The generate sql Date
+   * @return The generated sql Date.
    */
-  ast::Expr *DateToSql(int16_t year, uint8_t month, uint8_t day);
+  ast::Expr *DateToSql(int32_t year, uint32_t month, uint32_t day);
+
+  /**
+   * Create a timestamp value.
+   * @param julian_usec The number of microseconds in Julian time.
+   * @return The generated sql Timestamp.
+   */
+  ast::Expr *TimestampToSql(uint64_t julian_usec);
 
   /**
    * Convert a raw string to a sql StringVal.
@@ -438,12 +458,14 @@ class CodeGen {
   /**
    * Call indexIteratorInit(&iter, execCtx, table_oid, index_oid, col_oids)
    * @param iter The identifier of the index iterator.
+   * @param num_attrs Number of attributes
    * @param table_oid The oid of the index's table.
    * @param index_oid The oid the index.
    * @param col_oids The identifier of the array of column oids to read.
    * @return The expression corresponding to the builtin call.
    */
-  ast::Expr *IndexIteratorInit(ast::Identifier iter, uint32_t table_oid, uint32_t index_oid, ast::Identifier col_oids);
+  ast::Expr *IndexIteratorInit(ast::Identifier iter, uint32_t num_attrs, uint32_t table_oid, uint32_t index_oid,
+                               ast::Identifier col_oids);
 
   /**
    * Call IndexIteratorScanType(&iter[, limit])
@@ -471,9 +493,11 @@ class CodeGen {
    * @param nullable Whether the column being accessed is nullable.
    * @param attr_idx Index of the column being accessed.
    * @param val The value to set the column to.
+   * @param own When inserting varchars, whether the VarlenEntry should own its content.
    * @return The expression corresponding to the builtin call.
    */
-  ast::Expr *PRSet(ast::Expr *pr, terrier::type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val);
+  ast::Expr *PRSet(ast::Expr *pr, terrier::type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val,
+                   bool own = false);
 
   /**
    * Call storageInterfaceInit(&storage_interface, execCtx, table_oid, col_oids, need_indexes)
@@ -538,6 +562,7 @@ class CodeGen {
   std::unique_ptr<ast::Context> ast_ctx_;
   ast::AstNodeFactory factory_;
   exec::ExecutionContext *exec_ctx_;
+  std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units_;
 
   // Identifiers that are always needed
   // Identifier of the state struct

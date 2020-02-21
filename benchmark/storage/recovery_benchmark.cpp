@@ -1,6 +1,7 @@
 #include <vector>
 
 #include "benchmark/benchmark.h"
+#include "benchmark_util/benchmark_config.h"
 #include "catalog/catalog_accessor.h"
 #include "common/scoped_timer.h"
 #include "main/db_main.h"
@@ -9,20 +10,17 @@
 #include "storage/storage_defs.h"
 #include "test_util/sql_table_test_util.h"
 
-#define LOG_FILE_NAME "/mnt/ramdisk/benchmark.txt"
-
 namespace terrier {
 
 class RecoveryBenchmark : public benchmark::Fixture {
  public:
-  void SetUp(const benchmark::State &state) final { unlink(LOG_FILE_NAME); }
-  void TearDown(const benchmark::State &state) final { unlink(LOG_FILE_NAME); }
+  void SetUp(const benchmark::State &state) final { unlink(terrier::BenchmarkConfig::logfile_path.data()); }
+  void TearDown(const benchmark::State &state) final { unlink(terrier::BenchmarkConfig::logfile_path.data()); }
 
   const uint32_t initial_table_size_ = 1000000;
   const uint32_t num_txns_ = 100000;
   const uint32_t num_indexes_ = 5;
   std::default_random_engine generator_;
-  const uint32_t num_concurrent_txns_ = 4;
 
   /**
    * Runs the recovery benchmark with the provided config
@@ -33,10 +31,10 @@ class RecoveryBenchmark : public benchmark::Fixture {
     // NOLINTNEXTLINE
     for (auto _ : *state) {
       // Blow away log file after every benchmark iteration
-      unlink(LOG_FILE_NAME);
+      unlink(terrier::BenchmarkConfig::logfile_path.data());
       // Initialize table and run workload with logging enabled
       auto db_main = terrier::DBMain::Builder()
-                         .SetLogFilePath(LOG_FILE_NAME)
+                         .SetLogFilePath(terrier::BenchmarkConfig::logfile_path.data())
                          .SetUseLogging(true)
                          .SetUseGC(true)
                          .SetUseGCThread(true)
@@ -52,7 +50,7 @@ class RecoveryBenchmark : public benchmark::Fixture {
       // Run the test object and log all transactions
       auto *tested =
           new LargeSqlTableTestObject(config, txn_manager.Get(), catalog.Get(), block_store.Get(), &generator_);
-      tested->SimulateOltp(num_txns_, num_concurrent_txns_);
+      tested->SimulateOltp(num_txns_, BenchmarkConfig::num_threads);
       log_manager->ForceFlush();
 
       // Start a new components with logging disabled, we don't want to log the log replaying
@@ -70,7 +68,7 @@ class RecoveryBenchmark : public benchmark::Fixture {
       auto recovery_thread_registry = recovery_db_main->GetThreadRegistry();
 
       // Instantiate recovery manager, and recover the tables.
-      storage::DiskLogProvider log_provider(LOG_FILE_NAME);
+      storage::DiskLogProvider log_provider(terrier::BenchmarkConfig::logfile_path.data());
       storage::RecoveryManager recovery_manager(
           common::ManagedPointer<storage::AbstractLogProvider>(&log_provider), recovery_catalog, recovery_txn_manager,
           recovery_deferred_action_manager, recovery_thread_registry, recovery_block_store);
@@ -142,10 +140,10 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
     // Blow away log file after every benchmark iteration
-    unlink(LOG_FILE_NAME);
+    unlink(terrier::BenchmarkConfig::logfile_path.data());
     // Initialize table and run workload with logging enabled
     auto db_main = terrier::DBMain::Builder()
-                       .SetLogFilePath(LOG_FILE_NAME)
+                       .SetLogFilePath(terrier::BenchmarkConfig::logfile_path.data())
                        .SetUseLogging(true)
                        .SetUseGC(true)
                        .SetUseGCThread(true)
@@ -170,7 +168,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     catalog::Schema schema({col});
     auto table_oid = catalog_accessor->CreateTable(namespace_oid, table_name, schema);
     schema = catalog_accessor->GetSchema(table_oid);
-    auto *table = new storage::SqlTable(block_store.Get(), schema);
+    auto *table = new storage::SqlTable(block_store, schema);
     catalog_accessor->SetTablePointer(table_oid, table);
 
     // Create indexes on the table
@@ -192,8 +190,8 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     // Create and execute insert workload. We actually don't need to insert into indexes here, since we only care about
     // recovery doing it
     auto workload = [&](uint32_t id) {
-      auto start_key = num_txns_ / num_concurrent_txns_ * id;
-      auto end_key = start_key + num_txns_ / num_concurrent_txns_;
+      auto start_key = num_txns_ / BenchmarkConfig::num_threads * id;
+      auto end_key = start_key + num_txns_ / BenchmarkConfig::num_threads;
       for (auto key = start_key; key < end_key; key++) {
         auto *txn = txn_manager->BeginTransaction();
         auto redo_record = txn->StageWrite(db_oid, table_oid, initializer);
@@ -202,8 +200,8 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
         txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
     };
-    common::WorkerPool thread_pool(num_concurrent_txns_, {});
-    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_concurrent_txns_, workload);
+    common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
+    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, BenchmarkConfig::num_threads, workload);
     log_manager->ForceFlush();
 
     // Start a new components with logging disabled, we don't want to log the log replaying
@@ -221,7 +219,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     auto recovery_thread_registry = recovery_db_main->GetThreadRegistry();
 
     // Instantiate recovery manager, and recover the tables.
-    storage::DiskLogProvider log_provider(LOG_FILE_NAME);
+    storage::DiskLogProvider log_provider(terrier::BenchmarkConfig::logfile_path.data());
     storage::RecoveryManager recovery_manager(common::ManagedPointer<storage::AbstractLogProvider>(&log_provider),
                                               recovery_catalog, recovery_txn_manager, recovery_deferred_action_manager,
                                               recovery_thread_registry, recovery_block_store);
@@ -238,10 +236,22 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
   state.SetItemsProcessed(num_txns_ * state.iterations());
 }
 
-BENCHMARK_REGISTER_F(RecoveryBenchmark, ReadWriteWorkload)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(10);
-
-BENCHMARK_REGISTER_F(RecoveryBenchmark, HighStress)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(10);
-
-BENCHMARK_REGISTER_F(RecoveryBenchmark, IndexRecovery)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(4);
+// ----------------------------------------------------------------------------
+// BENCHMARK REGISTRATION
+// ----------------------------------------------------------------------------
+// clang-format off
+BENCHMARK_REGISTER_F(RecoveryBenchmark, ReadWriteWorkload)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->MinTime(10);
+BENCHMARK_REGISTER_F(RecoveryBenchmark, HighStress)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->MinTime(10);
+BENCHMARK_REGISTER_F(RecoveryBenchmark, IndexRecovery)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->MinTime(4);
+// clang-format on
 
 }  // namespace terrier

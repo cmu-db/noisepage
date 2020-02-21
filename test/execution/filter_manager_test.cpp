@@ -1,3 +1,5 @@
+#include "execution/sql/filter_manager.h"
+
 #include <chrono>  // NOLINT
 #include <limits>
 #include <memory>
@@ -7,11 +9,9 @@
 #include <utility>
 #include <vector>
 
-#include "execution/sql_test.h"
-
 #include "catalog/catalog.h"
-#include "execution/sql/filter_manager.h"
 #include "execution/sql/table_vector_iterator.h"
+#include "execution/sql_test.h"
 #include "type/type_id.h"
 
 namespace terrier::execution::sql::test {
@@ -22,7 +22,7 @@ class FilterManagerTest : public SqlBasedTest {
     SqlBasedTest::SetUp();
     exec_ctx_ = MakeExecCtx();
     sql::TableGenerator table_generator{exec_ctx_.get(), BlockStore(), NSOid()};
-    table_generator.GenerateTestTables();
+    table_generator.GenerateTestTables(false);
   }
 
  protected:

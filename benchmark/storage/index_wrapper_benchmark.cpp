@@ -65,7 +65,7 @@ class IndexBenchmark : public benchmark::Fixture {
 
     // Setup table with schema based on column structures
     table_schema_ = catalog::Schema({col});
-    sql_table_ = new storage::SqlTable(&block_store_, table_schema_);
+    sql_table_ = new storage::SqlTable(common::ManagedPointer(&block_store_), table_schema_);
     tuple_initializer_ = sql_table_->InitializerForProjectedRow({catalog::col_oid_t(1)});
 
     // Create time, action, and transaction managers
@@ -77,7 +77,7 @@ class IndexBenchmark : public benchmark::Fixture {
     gc_ = new storage::GarbageCollector(common::ManagedPointer(timestamp_manager_),
                                         common::ManagedPointer(deferred_action_manager_),
                                         common::ManagedPointer(txn_manager_), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
   }
 
   // Script to free all allocated elements of table structure
@@ -199,7 +199,16 @@ BENCHMARK_DEFINE_F(IndexBenchmark, HashIndexRandomScanKey)(benchmark::State &sta
   state.SetItemsProcessed(state.iterations() * table_size_);
 }
 
-BENCHMARK_REGISTER_F(IndexBenchmark, BwTreeIndexRandomScanKey)->UseManualTime()->Unit(benchmark::kMillisecond);
-BENCHMARK_REGISTER_F(IndexBenchmark, HashIndexRandomScanKey)->UseManualTime()->Unit(benchmark::kMillisecond);
+// ----------------------------------------------------------------------------
+// BENCHMARK REGISTRATION
+// ----------------------------------------------------------------------------
+// clang-format off
+BENCHMARK_REGISTER_F(IndexBenchmark, BwTreeIndexRandomScanKey)
+    ->UseManualTime()
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_REGISTER_F(IndexBenchmark, HashIndexRandomScanKey)
+    ->UseManualTime()
+    ->Unit(benchmark::kMillisecond);
+// clang-format on
 
 }  // namespace terrier

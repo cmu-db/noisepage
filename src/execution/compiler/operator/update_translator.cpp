@@ -8,7 +8,7 @@
 
 namespace terrier::execution::compiler {
 UpdateTranslator::UpdateTranslator(const terrier::planner::UpdatePlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(codegen),
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::UPDATE),
       op_(op),
       updater_(codegen->NewIdentifier("updater")),
       update_pr_(codegen->NewIdentifier("update_pr")),
@@ -111,7 +111,7 @@ void UpdateTranslator::FillPRFromChild(terrier::execution::compiler::FunctionBui
     auto translator = TranslatorFactory::CreateExpressionTranslator(clause.second.Get(), codegen_);
     auto clause_expr = translator->DeriveExpr(this);
     auto pr_set_call = codegen_->PRSet(codegen_->MakeExpr(update_pr_), table_col.Type(), table_col.Nullable(),
-                                       table_pm_[table_col_oid], clause_expr);
+                                       table_pm_[table_col_oid], clause_expr, true);
     builder->Append(codegen_->MakeStmt(pr_set_call));
   }
 }

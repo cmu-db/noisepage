@@ -10,7 +10,11 @@ namespace terrier {
 void DBMain::Run() {
   TERRIER_ASSERT(network_layer_ != DISABLED, "Trying to run without a NetworkLayer.");
   const auto server = network_layer_->GetServer();
-  server->RunServer();
+  try {
+    server->RunServer();
+  } catch (NetworkProcessException &e) {
+    return;
+  }
   {
     std::unique_lock<std::mutex> lock(server->RunningMutex());
     server->RunningCV().wait(lock, [=] { return !(server->Running()); });

@@ -20,16 +20,16 @@ class ProjectionTranslator : public OperatorTranslator {
    * @param codegen The code generator
    */
   ProjectionTranslator(const terrier::planner::ProjectionPlanNode *op, CodeGen *codegen)
-      : OperatorTranslator(codegen), op_(op) {}
+      : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::PROJECTION), op_(op) {}
 
-  // No-op
-  void Produce(FunctionBuilder *builder) override {}
+  // Pass through
+  void Produce(FunctionBuilder *builder) override { child_translator_->Produce(builder); }
 
-  // No-op
-  void Abort(FunctionBuilder *builder) override {}
+  // Pass through
+  void Abort(FunctionBuilder *builder) override { child_translator_->Abort(builder); }
 
-  // No-op
-  void Consume(FunctionBuilder *builder) override {}
+  // Pass through
+  void Consume(FunctionBuilder *builder) override { parent_translator_->Consume(builder); }
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}

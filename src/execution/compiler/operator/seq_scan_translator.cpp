@@ -12,10 +12,10 @@
 namespace terrier::execution::compiler {
 
 SeqScanTranslator::SeqScanTranslator(const terrier::planner::SeqScanPlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(codegen),
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::SEQ_SCAN),
       op_(op),
       schema_(codegen->Accessor()->GetSchema(op_->GetTableOid())),
-      input_oids_(op_->GetColumnOids()),
+      input_oids_(MakeInputOids(schema_, op_)),
       pm_(codegen->Accessor()->GetTable(op_->GetTableOid())->ProjectionMapForOids(input_oids_)),
       has_predicate_(op_->GetScanPredicate() != nullptr),
       is_vectorizable_{IsVectorizable(op_->GetScanPredicate().Get())},

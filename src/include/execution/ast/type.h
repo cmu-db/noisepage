@@ -97,14 +97,14 @@ class Context;
   SQL(Real, terrier::execution::sql::Real)                                                      \
   SQL(Decimal, terrier::execution::sql::Decimal)                                                \
   SQL(StringVal, terrier::execution::sql::StringVal)                                            \
-  SQL(Date, terrier::execution::sql::Date)                                                      \
-  SQL(Timestamp, terrier::execution::sql::Timestamp)
+  SQL(Date, terrier::execution::sql::DateVal)                                                   \
+  SQL(Timestamp, terrier::execution::sql::TimestampVal)
 
 // Ignore a builtin
 #define IGNORE_BUILTIN_TYPE (...)
 
 // Only consider the primitive builtin types
-#define PRIMIMITIVE_BUILTIN_TYPE_LIST(F) BUILTIN_TYPE_LIST(F, IGNORE_BUILTIN_TYPE, IGNORE_BUILTIN_TYPE)
+#define PRIMITIVE_BUILTIN_TYPE_LIST(F) BUILTIN_TYPE_LIST(F, IGNORE_BUILTIN_TYPE, IGNORE_BUILTIN_TYPE)
 
 // Only consider the non-primitive builtin types
 #define NON_PRIMITIVE_BUILTIN_TYPE_LIST(F) BUILTIN_TYPE_LIST(IGNORE_BUILTIN_TYPE, F, IGNORE_BUILTIN_TYPE)

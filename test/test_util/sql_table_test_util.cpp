@@ -170,6 +170,7 @@ LargeSqlTableTestObject::~LargeSqlTableTestObject() {
 // Caller is responsible for freeing the returned results if bookkeeping is on.
 uint64_t LargeSqlTableTestObject::SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns) {
   common::WorkerPool thread_pool(num_concurrent_txns, {});
+  thread_pool.Startup();
   std::vector<RandomSqlTableTransaction *> txns(num_transactions);
   std::function<void(uint32_t)> workload;
   std::atomic<uint32_t> txns_run = 0;
@@ -233,7 +234,7 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
       delete schema;
       table_oids_[database_oid].emplace_back(table_oid);
       auto catalog_schema = db_catalog_ptr->GetSchema(common::ManagedPointer(initial_txn_), table_oid);
-      auto *sql_table = new storage::SqlTable(block_store, catalog_schema);
+      auto *sql_table = new storage::SqlTable(common::ManagedPointer(block_store), catalog_schema);
       auto result UNUSED_ATTRIBUTE =
           db_catalog_ptr->SetTablePointer(common::ManagedPointer(initial_txn_), table_oid, sql_table);
       TERRIER_ASSERT(result, "Setting table pointer in catalog should succeed");

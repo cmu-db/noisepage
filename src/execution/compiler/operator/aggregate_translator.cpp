@@ -7,7 +7,7 @@
 
 namespace terrier::execution::compiler {
 AggregateBottomTranslator::AggregateBottomTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(codegen),
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD),
       num_group_by_terms_{static_cast<uint32_t>(op->GetGroupByTerms().size())},
       op_(op),
       hash_val_(codegen->NewIdentifier("hash_val")),
@@ -269,6 +269,11 @@ void AggregateBottomTranslator::GenHashCall(FunctionBuilder *builder) {
   for (uint32_t term_idx = 0; term_idx < op_->GetGroupByTerms().size(); term_idx++) {
     hash_args.emplace_back(GetGroupByTerm(agg_values_, term_idx));
   }
+  // TODO(Amadou): In case there is no group by term, we can actually bypass the hash table.
+  // For now, I am passing in a constant hash value.
+  if (hash_args.empty()) {
+    hash_args.emplace_back(codegen_->IntToSql(0));
+  }
   ast::Expr *hash_call = codegen_->BuiltinCall(ast::Builtin::Hash, std::move(hash_args));
 
   // Create the variable declaration
@@ -333,7 +338,7 @@ void AggregateTopTranslator::Abort(FunctionBuilder *builder) {
 }
 
 ast::Expr *AggregateTopTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) {
-  return bottom_->GetOutput(attr_idx);
+  return bottom_->GetOutput(attr_idx + child_idx * bottom_->num_group_by_terms_);
 }
 
 // Let the bottom translator handle this call

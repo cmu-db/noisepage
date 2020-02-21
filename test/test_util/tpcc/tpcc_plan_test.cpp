@@ -1,5 +1,6 @@
 #include "test_util/tpcc/tpcc_plan_test.h"
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -210,6 +211,15 @@ void TpccPlanTest::OptimizeQuery(const std::string &query, catalog::table_oid_t 
   auto plan = Optimize(query, tbl_oid, parser::StatementType::SELECT);
   Check(this, sel_stmt.Get(), tbl_oid, std::move(plan));
   EndTransaction(true);
+}
+
+void TpccPlanTest::CheckOids(const std::vector<catalog::col_oid_t> &lhs, const std::vector<catalog::col_oid_t> &rhs) {
+  ASSERT_EQ(lhs.size(), rhs.size());
+  std::vector<catalog::col_oid_t> copy_lhs(lhs);
+  std::vector<catalog::col_oid_t> copy_rhs(rhs);
+  std::sort(copy_lhs.begin(), copy_lhs.end());
+  std::sort(copy_rhs.begin(), copy_rhs.end());
+  ASSERT_EQ(copy_lhs, copy_rhs);
 }
 
 }  // namespace terrier
