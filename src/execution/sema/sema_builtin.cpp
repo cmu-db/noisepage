@@ -817,7 +817,26 @@ void Sema::CheckBuiltinJoinHashTableIterClose(execution::ast::CallExpr *call) {
 }
 
 void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, UNUSED_ATTRIBUTE ast::Builtin builtin) {
-  if (!CheckArgCount(call, 1)) {
+  uint32_t expected_arg_count = 1;
+
+  switch (builtin) {
+    case ast::Builtin::ExecutionContextStartResourceTracker:
+      expected_arg_count = 2;
+      break;
+    case ast::Builtin::ExecutionContextEndResourceTracker:
+      expected_arg_count = 2;
+      break;
+    case ast::Builtin::ExecutionContextEndPipelineTracker:
+      expected_arg_count = 3;
+      break;
+    case ast::Builtin::ExecutionContextGetMemoryPool:
+      expected_arg_count = 1;
+      break;
+    default:
+      UNREACHABLE("Impossible execution context call");
+  }
+
+  if (!CheckArgCount(call, expected_arg_count)) {
     return;
   }
 
@@ -829,8 +848,49 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, UNUSED_ATTRIBUT
     return;
   }
 
-  auto mem_pool_kind = ast::BuiltinType::MemoryPool;
-  call->SetType(GetBuiltinType(mem_pool_kind)->PointerTo());
+  switch (builtin) {
+    case ast::Builtin::ExecutionContextEndResourceTracker: {
+      // Second argument is a string name
+      if (!call_args[1]->GetType()->IsSqlValueType()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::StringVal));
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::ExecutionContextEndPipelineTracker: {
+      // query_id
+      if (!call_args[1]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint64));
+        return;
+      }
+      // pipeline_id
+      if (!call_args[2]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Uint64));
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::ExecutionContextStartResourceTracker: {
+      // MetricsComponent
+      if (!call_args[1]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint64));
+        return;
+      }
+      // Init returns nil
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::ExecutionContextGetMemoryPool: {
+      auto mem_pool_kind = ast::BuiltinType::MemoryPool;
+      call->SetType(GetBuiltinType(mem_pool_kind)->PointerTo());
+      break;
+    }
+    default: {
+      UNREACHABLE("Impossible execution context call");
+    }
+  }
 }
 
 void Sema::CheckBuiltinThreadStateContainerCall(ast::CallExpr *call, ast::Builtin builtin) {
@@ -2147,7 +2207,10 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinFilterCall(call);
       break;
     }
-    case ast::Builtin::ExecutionContextGetMemoryPool: {
+    case ast::Builtin::ExecutionContextGetMemoryPool:
+    case ast::Builtin::ExecutionContextStartResourceTracker:
+    case ast::Builtin::ExecutionContextEndResourceTracker:
+    case ast::Builtin::ExecutionContextEndPipelineTracker: {
       CheckBuiltinExecutionContextCall(call, builtin);
       break;
     }

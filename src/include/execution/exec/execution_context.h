@@ -6,8 +6,11 @@
 #include "catalog/catalog_accessor.h"
 #include "common/managed_pointer.h"
 #include "execution/exec/output.h"
+#include "execution/exec_defs.h"
 #include "execution/sql/memory_pool.h"
+#include "execution/sql/memory_tracker.h"
 #include "execution/util/region.h"
+#include "metrics/metrics_defs.h"
 #include "planner/plannodes/output_schema.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
@@ -32,7 +35,7 @@ class EXPORT ExecutionContext {
     /**
      * Create a new allocator
      */
-    StringAllocator() : region_("") {}
+    explicit StringAllocator(common::ManagedPointer<sql::MemoryTracker> tracker) : region_(""), tracker_(tracker) {}
 
     /**
      * This class cannot be copied or moved.
@@ -58,6 +61,8 @@ class EXPORT ExecutionContext {
 
    private:
     util::Region region_;
+    // Metadata tracker for memory allocations
+    common::ManagedPointer<sql::MemoryTracker> tracker_;
   };
 
   /**
@@ -73,10 +78,12 @@ class EXPORT ExecutionContext {
                    const common::ManagedPointer<catalog::CatalogAccessor> accessor)
       : db_oid_(db_oid),
         txn_(txn),
-        mem_pool_(std::make_unique<sql::MemoryPool>(nullptr)),
+        mem_tracker_(std::make_unique<sql::MemoryTracker>()),
+        mem_pool_(std::make_unique<sql::MemoryPool>(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_))),
         buffer_(schema == nullptr ? nullptr
                                   : std::make_unique<OutputBuffer>(mem_pool_.get(), schema->GetColumns().size(),
                                                                    ComputeTupleSize(schema), callback)),
+        string_allocator_(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_)),
         accessor_(accessor) {}
 
   /**
@@ -111,9 +118,36 @@ class EXPORT ExecutionContext {
   catalog::CatalogAccessor *GetAccessor() { return accessor_.Get(); }
 
   /**
+   * Start the resource tracker
+   */
+  void StartResourceTracker(metrics::MetricsComponent component);
+
+  /**
+   * End the resource tracker and record the metrics
+   * @param name the string name get printed out with the time
+   * @param len the length of the string name
+   */
+  void EndResourceTracker(const char *name, uint32_t len);
+
+  /**
+   * End the resource tracker for a pipeline and record the metrics
+   * @param query_id query identifier
+   * @param pipeline_id id of the pipeline
+   */
+  void EndPipelineTracker(query_id_t query_id, pipeline_id_t pipeline_id);
+
+  /**
    * @return the db oid
    */
   catalog::db_oid_t DBOid() { return db_oid_; }
+
+  /**
+   * Set the mode for this execution.
+   * This only records the mode and serves the metrics collection purpose, which does not have any impact on the
+   * actual execution.
+   * @param mode the integer value of the execution mode to record
+   */
+  void SetExecutionMode(uint8_t mode) { execution_mode_ = mode; }
 
   /**
    * Set the accessor
@@ -139,13 +173,24 @@ class EXPORT ExecutionContext {
    */
   uint64_t &RowsAffected() { return rows_affected_; }
 
+  /**
+   * Set the PipelineOperatingUnits
+   * @param op PipelineOperatingUnits for executing the given query
+   */
+  void SetPipelineOperatingUnits(common::ManagedPointer<brain::PipelineOperatingUnits> op) {
+    pipeline_operating_units_ = op;
+  }
+
  private:
   catalog::db_oid_t db_oid_;
   common::ManagedPointer<transaction::TransactionContext> txn_;
+  std::unique_ptr<sql::MemoryTracker> mem_tracker_;
   std::unique_ptr<sql::MemoryPool> mem_pool_;
   std::unique_ptr<OutputBuffer> buffer_;
   StringAllocator string_allocator_;
+  common::ManagedPointer<brain::PipelineOperatingUnits> pipeline_operating_units_;
   common::ManagedPointer<catalog::CatalogAccessor> accessor_;
+  uint8_t execution_mode_;
   std::vector<type::TransientValue> params_;
   uint64_t rows_affected_ = 0;
 };

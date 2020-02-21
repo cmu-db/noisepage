@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include "brain/operating_unit.h"
 #include "execution/sql/value.h"
 #include "type/transient_value_peeker.h"
 #include "util/time_util.h"
@@ -16,6 +17,7 @@ CodeGen::CodeGen(exec::ExecutionContext *exec_ctx)
       ast_ctx_(std::make_unique<ast::Context>(region_.get(), &error_reporter_)),
       factory_(region_.get()),
       exec_ctx_(exec_ctx),
+      pipeline_operating_units_(std::make_unique<brain::PipelineOperatingUnits>()),
       state_struct_{Context()->GetIdentifier("State")},
       state_var_{Context()->GetIdentifier("state")},
       exec_ctx_var_(Context()->GetIdentifier("execCtx")),

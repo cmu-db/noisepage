@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "brain/operating_unit.h"
 #include "catalog/catalog_accessor.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_node_factory.h"
@@ -98,6 +99,18 @@ class CodeGen {
    * @return the exec ctx's identifier
    */
   ast::Identifier GetExecCtxVar() { return exec_ctx_var_; }
+
+  /**
+   * @return PipelineOperatingUnits instance
+   */
+  brain::PipelineOperatingUnits *GetPipelineOperatingUnits() { return pipeline_operating_units_.get(); }
+
+  /**
+   * @return release ownership of the PipelineOperatingUnits instance
+   */
+  std::unique_ptr<brain::PipelineOperatingUnits> ReleasePipelineOperatingUnits() {
+    return std::move(pipeline_operating_units_);
+  }
 
   /**
    * Creates the File node for the query
@@ -573,6 +586,7 @@ class CodeGen {
   std::unique_ptr<ast::Context> ast_ctx_;
   ast::AstNodeFactory factory_;
   exec::ExecutionContext *exec_ctx_;
+  std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units_;
 
   // Identifiers that are always needed
   // Identifier of the state struct
