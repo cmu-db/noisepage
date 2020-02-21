@@ -2,6 +2,7 @@
 
 #include <random>
 
+#include "common/managed_pointer.h"
 #include "execution/exec/execution_context.h"
 #include "execution/execution_util.h"
 #include "execution/table_generator/table_generator.h"
@@ -91,8 +92,8 @@ void Workload::Execute(int8_t worker_id, uint32_t num_precomputed_txns_per_worke
     execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
                                                printer, output_schema,
                                                common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
-    auto params = GetQueryParams(query_name);
-    exec_ctx.SetParams(std::move(params));
+    const auto params = GetQueryParams(query_name);
+    exec_ctx.SetParams(common::ManagedPointer(&params));
     query.Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
     counter = counter == num_queries - 1 ? 0 : counter + 1;
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
