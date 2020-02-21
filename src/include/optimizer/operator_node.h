@@ -210,6 +210,7 @@ class Operator {
    */
   bool operator!=(const Operator &rhs) const { return !operator==(rhs); }
 
+  plan_node_id_t GetPlanNodeId() const { return node_->GetPlanNodeId(); }
   /**
    * @return true if the operator is defined, false otherwise
    */

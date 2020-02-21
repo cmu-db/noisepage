@@ -1,16 +1,13 @@
 #pragma once
 
+#include <optimizer/optimizer_defs.h>
+
 #include <utility>
 #include <vector>
 
 #include "catalog/catalog_defs.h"
 
 namespace terrier::planner {
-
-/**
- * typedef for PlanNodeID
- */
-STRONG_TYPEDEF(plan_node_id_t, int32_t);
 
 //===--------------------------------------------------------------------===//
 // JSON (de)serialization declarations

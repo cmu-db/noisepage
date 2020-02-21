@@ -386,6 +386,11 @@ class PlanGenerator : public OperatorVisitor {
    * Transaction Context executing under
    */
   transaction::TransactionContext *txn_;
+
+  /**
+   * Plan Node ID
+   */
+   plan_node_id_t plan_node_id_;
 };
 
 }  // namespace optimizer

@@ -63,6 +63,7 @@ std::unique_ptr<planner::AbstractPlanNode> PlanGenerator::ConvertOpExpression(
   children_expr_map_ = children_expr_map;
   accessor_ = accessor;
   txn_ = txn;
+  plan_node_id_ = op->GetOp().GetPlanNodeId();
 
   op->GetOp().Accept(common::ManagedPointer<OperatorVisitor>(this));
 
@@ -107,6 +108,8 @@ void PlanGenerator::CorrectOutputPlanWithProjection() {
 
   auto builder = planner::ProjectionPlanNode::Builder();
   builder.SetOutputSchema(std::move(schema));
+  builder.SetPlanNodeId(plan_node_id_);
+
   if (output_plan_ != nullptr) {
     builder.AddChild(std::move(output_plan_));
   }
@@ -194,6 +197,7 @@ void PlanGenerator::Visit(const SeqScan *op) {
   // Build
   output_plan_ = planner::SeqScanPlanNode::Builder()
                      .SetOutputSchema(std::move(output_schema))
+                     .SetPlanNodeId(op->GetPlanNodeId())
                      .SetDatabaseOid(op->GetDatabaseOID())
                      .SetNamespaceOid(op->GetNamespaceOID())
                      .SetTableOid(op->GetTableOID())
@@ -217,6 +221,7 @@ void PlanGenerator::Visit(const IndexScan *op) {
 
   auto builder = planner::IndexScanPlanNode::Builder();
   builder.SetOutputSchema(std::move(output_schema));
+  builder.SetPlanNodeId(op->GetPlanNodeId());
   builder.SetScanPredicate(common::ManagedPointer(predicate));
   builder.SetIsForUpdateFlag(op->GetIsForUpdate());
   builder.SetDatabaseOid(op->GetDatabaseOID());
@@ -267,6 +272,7 @@ void PlanGenerator::Visit(const ExternalFileScan *op) {
       auto output_schema = std::make_unique<planner::OutputSchema>(std::move(cols));
       output_plan_ = planner::CSVScanPlanNode::Builder()
                          .SetOutputSchema(std::move(output_schema))
+                         .SetPlanNodeId(op->GetPlanNodeId())
                          .SetFileName(op->GetFilename())
                          .SetDelimiter(op->GetDelimiter())
                          .SetQuote(op->GetQuote())
@@ -304,6 +310,7 @@ void PlanGenerator::Visit(const QueryDerivedScan *op) {
   auto schema = std::make_unique<planner::OutputSchema>(std::move(columns));
   output_plan_ = planner::ProjectionPlanNode::Builder()
                      .SetOutputSchema(std::move(schema))
+                     .SetPlanNodeId(op->GetPlanNodeId())
                      .AddChild(std::move(children_plans_[0]))
                      .Build();
 }
@@ -341,6 +348,7 @@ void PlanGenerator::Visit(const Limit *op) {
     auto output_schema = std::make_unique<planner::OutputSchema>(std::move(child_columns));
     auto order_build = planner::OrderByPlanNode::Builder();
     order_build.SetOutputSchema(std::move(output_schema));
+    order_build.SetPlanNodeId(op->GetPlanNodeId());
     order_build.AddChild(std::move(output_plan_));
     order_build.SetLimit(op->GetLimit());
     order_build.SetOffset(op->GetOffset());
@@ -377,6 +385,7 @@ void PlanGenerator::Visit(const Limit *op) {
   auto limit_out = std::make_unique<planner::OutputSchema>(std::move(child_columns));
   output_plan_ = planner::LimitPlanNode::Builder()
                      .SetOutputSchema(std::move(limit_out))
+                     .SetPlanNodeId(op->GetPlanNodeId())
                      .SetLimit(op->GetLimit())
                      .SetOffset(op->GetOffset())
                      .AddChild(std::move(output_plan_))
@@ -409,6 +418,7 @@ void PlanGenerator::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {
     idx++;
   }
   builder.SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(child_columns)));
+  builder.SetPlanNodeId(op->GetPlanNodeId());
 
   for (size_t i = 0; i < sort_columns_size; ++i) {
     auto sort_dir = sort_prop->GetSortAscending(static_cast<int>(i));
@@ -499,6 +509,7 @@ void PlanGenerator::Visit(const InnerNLJoin *op) {
 
   output_plan_ = planner::NestedLoopJoinPlanNode::Builder()
                      .SetOutputSchema(std::move(proj_schema))
+                     .SetPlanNodeId(op->GetPlanNodeId())
                      .SetJoinPredicate(common::ManagedPointer(join_predicate))
                      .SetJoinType(planner::LogicalJoinType::INNER)
                      .SetLeftKeys(std::move(left_keys))
@@ -530,6 +541,7 @@ void PlanGenerator::Visit(const InnerHashJoin *op) {
 
   auto builder = planner::HashJoinPlanNode::Builder();
   builder.SetOutputSchema(std::move(proj_schema));
+  builder.SetPlanNodeId(op->GetPlanNodeId());
 
   std::vector<ExprMap> l_child_map{std::move(children_expr_map_[0])};
   std::vector<ExprMap> r_child_map{std::move(children_expr_map_[1])};
@@ -678,6 +690,7 @@ void PlanGenerator::Visit(const Insert *op) {
 
   // Schema of Insert is empty
   builder.SetOutputSchema(std::make_unique<planner::OutputSchema>());
+  builder.SetPlanNodeId(op->GetPlanNodeId());
   output_plan_ = builder.Build();
 }
 
@@ -688,6 +701,7 @@ void PlanGenerator::Visit(const InsertSelect *op) {
 
   output_plan_ = planner::InsertPlanNode::Builder()
                      .SetOutputSchema(std::move(output_schema))
+                     .SetPlanNodeId(op->GetPlanNodeId())
                      .SetDatabaseOid(op->GetDatabaseOid())
                      .SetNamespaceOid(op->GetNamespaceOid())
                      .SetTableOid(op->GetTableOid())
@@ -702,6 +716,7 @@ void PlanGenerator::Visit(const Delete *op) {
 
   output_plan_ = planner::DeletePlanNode::Builder()
                      .SetOutputSchema(std::move(output_schema))
+                     .SetPlanNodeId(op->GetPlanNodeId())
                      .SetDatabaseOid(op->GetDatabaseOid())
                      .SetNamespaceOid(op->GetNamespaceOid())
                      .SetTableOid(op->GetTableOid())
@@ -735,6 +750,7 @@ void PlanGenerator::Visit(const Update *op) {
 
   // TODO(wz2): What is this SetUpdatePrimaryKey
   output_plan_ = builder.SetOutputSchema(std::move(output_schema))
+                     .SetPlanNodeId(op->GetPlanNodeId())
                      .SetDatabaseOid(op->GetDatabaseOid())
                      .SetNamespaceOid(op->GetNamespaceOid())
                      .SetTableOid(op->GetTableOid())

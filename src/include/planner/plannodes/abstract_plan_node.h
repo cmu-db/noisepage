@@ -47,6 +47,14 @@ class AbstractPlanNode {
       return *dynamic_cast<ConcreteType *>(this);
     }
 
+    /**
+     * @param plan node id for plan node
+     * @return builder object
+     */
+    ConcreteType &SetPlanNodeId(optimizer::plan_node_id_t plan_node_id) {
+      plan_node_id_ = plan_node_id;
+    }
+
    protected:
     /**
      * child plans
@@ -59,7 +67,7 @@ class AbstractPlanNode {
     /**
      * plan node id
      */
-    plan_node_id_t  plan_node_id_;
+    optimizer::plan_node_id_t  plan_node_id_;
   };
 
   /**
@@ -68,7 +76,7 @@ class AbstractPlanNode {
    * @param output_schema Schema representing the structure of the output of this plan node
    */
   AbstractPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                   std::unique_ptr<OutputSchema> output_schema, plan_node_id_t plan_node_id)
+                   std::unique_ptr<OutputSchema> output_schema, optimizer::plan_node_id_t plan_node_id)
       : children_(std::move(children)), output_schema_(std::move(output_schema)), plan_node_id_(plan_node_id) {}
 
  public:
@@ -202,7 +210,7 @@ class AbstractPlanNode {
  private:
   std::vector<std::unique_ptr<AbstractPlanNode>> children_;
   std::unique_ptr<OutputSchema> output_schema_;
-  plan_node_id_t plan_node_id_;
+  optimizer::plan_node_id_t plan_node_id_;
 };
 
 DEFINE_JSON_DECLARATIONS(AbstractPlanNode);
