@@ -1,4 +1,5 @@
 #include "execution/sql/memory_pool.h"
+#include "execution/sql/memory_tracker.h"
 
 #include <cstdlib>
 #include <memory>
@@ -14,7 +15,7 @@ std::atomic<uint64_t> MemoryPool::k_mmap_threshold = 64 * common::Constants::MB;
 // Minimum alignment to abide by
 static constexpr uint32_t K_MIN_MALLOC_ALIGNMENT = 8;
 
-MemoryPool::MemoryPool(MemoryTracker *tracker) : tracker_(tracker) {}
+MemoryPool::MemoryPool(common::ManagedPointer<sql::MemoryTracker> tracker) : tracker_(tracker) {}
 
 void *MemoryPool::Allocate(const std::size_t size, const bool clear) { return AllocateAligned(size, 0, clear); }
 
@@ -45,6 +46,7 @@ void *MemoryPool::AllocateAligned(const std::size_t size, const std::size_t alig
     }
   }
 
+  if (tracker_ != nullptr) tracker_->Increment(size);
   // Done
   return buf;
 }
@@ -55,6 +57,7 @@ void MemoryPool::Deallocate(void *ptr, std::size_t size) {
   } else {
     std::free(ptr);
   }
+  if (tracker_ != nullptr) tracker_->Decrement(size);
 }
 
 void MemoryPool::SetMMapSizeThreshold(const std::size_t size) { k_mmap_threshold = size; }
