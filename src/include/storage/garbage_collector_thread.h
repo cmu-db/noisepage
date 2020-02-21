@@ -17,8 +17,10 @@ class GarbageCollectorThread {
   /**
    * @param gc pointer to the garbage collector object to be run on this thread
    * @param gc_period sleep time between GC invocations
+   * @param metrics_manager Metrics Manager
    */
-  GarbageCollectorThread(common::ManagedPointer<GarbageCollector> gc, std::chrono::milliseconds gc_period);
+  GarbageCollectorThread(common::ManagedPointer<GarbageCollector> gc, std::chrono::milliseconds gc_period,
+                         common::ManagedPointer<metrics::MetricsManager> metrics_manager);
 
   ~GarbageCollectorThread() { StopGC(); }
 
@@ -67,6 +69,7 @@ class GarbageCollectorThread {
 
  private:
   const common::ManagedPointer<storage::GarbageCollector> gc_;
+  const common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
   volatile bool run_gc_;
   volatile bool gc_paused_;
   std::chrono::milliseconds gc_period_;

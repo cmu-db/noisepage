@@ -3,6 +3,7 @@
 #include <memory>
 #include <utility>
 
+#include "brain/operating_unit_recorder.h"
 #include "execution/ast/ast_dump.h"
 #include "execution/compiler/translator_factory.h"
 #include "execution/sema/sema.h"
@@ -10,7 +11,8 @@
 
 namespace terrier::execution::compiler {
 
-Compiler::Compiler(CodeGen *codegen, const planner::AbstractPlanNode *plan) : codegen_(codegen), plan_(plan) {
+Compiler::Compiler(query_id_t query_id, CodeGen *codegen, const planner::AbstractPlanNode *plan)
+    : query_identifier_(query_id), codegen_(codegen), plan_(plan) {
   // Make the pipelines
   auto main_pipeline = std::make_unique<Pipeline>(codegen_);
   MakePipelines(*plan, main_pipeline.get());
@@ -53,9 +55,18 @@ ast::File *Compiler::Compile() {
   // Step 2: For each pipeline: Generate a pipeline function that performs the produce, consume logic
   // TODO(Amadou): This can actually be combined with the previous step to avoid the additional pass
   // over the list of pipelines. However, I find this easier to debug for now.
-  uint32_t pipeline_idx = 0;
+  pipeline_id_t pipeline_cnt = pipeline_id_t{0};
   for (auto &pipeline : pipelines_) {
-    top_level.emplace_back(pipeline->Produce(pipeline_idx++));
+    auto pipeline_idx = pipeline_cnt++;
+
+    // Record features
+    brain::OperatingUnitRecorder recorder;
+    auto &translators = pipeline->GetTranslators();
+    auto features = recorder.RecordTranslators(translators);
+    codegen_->GetPipelineOperatingUnits()->RecordOperatingUnit(pipeline_idx, std::move(features));
+
+    // Produce the actual pipeline
+    top_level.emplace_back(pipeline->Produce(query_identifier_, pipeline_idx));
   }
 
   // Step 3: Make the main function

@@ -8,7 +8,7 @@
 
 namespace terrier::execution::compiler {
 DeleteTranslator::DeleteTranslator(const terrier::planner::DeletePlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(codegen),
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::DELETE),
       op_(op),
       deleter_(codegen->NewIdentifier("deleter")),
       col_oids_(codegen->NewIdentifier("col_oids")),
