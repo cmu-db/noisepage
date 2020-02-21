@@ -13,7 +13,7 @@ namespace terrier::optimizer {
 
 class PropertySet;
 class GroupExpression;
-class OperatorExpression;
+class OperatorNode;
 class Memo;
 
 /**
@@ -205,7 +205,7 @@ class InputColumnDeriver : public OperatorVisitor {
    *
    * @param op Visiting BaseOperatorNode
    */
-  void AggregateHelper(const BaseOperatorNode *op);
+  void AggregateHelper(const BaseOperatorNodeContents *op);
 
   /**
    * Derives the output and input columns for a Join.
@@ -222,7 +222,7 @@ class InputColumnDeriver : public OperatorVisitor {
    *
    * @param op Visiting BaseOperatorNode
    */
-  void JoinHelper(const BaseOperatorNode *op);
+  void JoinHelper(const BaseOperatorNodeContents *op);
 
   /**
    * Passes down the list of required columns as input columns

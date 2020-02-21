@@ -18,8 +18,12 @@
 namespace terrier::catalog {
 
 Catalog::Catalog(const common::ManagedPointer<transaction::TransactionManager> txn_manager,
-                 const common::ManagedPointer<storage::BlockStore> block_store)
-    : txn_manager_(txn_manager.Get()), catalog_block_store_(block_store.Get()), next_oid_(1) {
+                 const common::ManagedPointer<storage::BlockStore> block_store,
+                 const common::ManagedPointer<storage::GarbageCollector> garbage_collector)
+    : txn_manager_(txn_manager.Get()),
+      catalog_block_store_(block_store.Get()),
+      garbage_collector_(garbage_collector),
+      next_oid_(1) {
   databases_ = new storage::SqlTable(catalog_block_store_, postgres::Builder::GetDatabaseTableSchema());
   databases_oid_index_ = postgres::Builder::BuildUniqueIndex(postgres::Builder::GetDatabaseOidIndexSchema(),
                                                              postgres::DATABASE_OID_INDEX_OID);
@@ -91,13 +95,13 @@ void Catalog::TearDown() {
 bool Catalog::CreateDatabase(const common::ManagedPointer<transaction::TransactionContext> txn, const std::string &name,
                              const bool bootstrap, const catalog::db_oid_t db_oid) {
   // Instantiate the DatabaseCatalog
-  DatabaseCatalog *dbc = postgres::Builder::CreateDatabaseCatalog(catalog_block_store_, db_oid);
+  DatabaseCatalog *dbc = postgres::Builder::CreateDatabaseCatalog(catalog_block_store_, db_oid, garbage_collector_);
   txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
     dbc->TearDown(txn);
     delete dbc;
   });
   bool success = Catalog::CreateDatabaseEntry(common::ManagedPointer(txn), db_oid, name, dbc);
-  if (bootstrap) dbc->Bootstrap(txn);  // If creation succeed, bootstrap the created database
+  if (bootstrap) dbc->Bootstrap(txn);  // Bootstrap the created database
   return success;
 }
 

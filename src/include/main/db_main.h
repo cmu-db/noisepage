@@ -185,7 +185,8 @@ class DBMain {
           log_manager_(log_manager) {
       TERRIER_ASSERT(garbage_collector_ != DISABLED, "Required component missing.");
 
-      catalog_ = std::make_unique<catalog::Catalog>(txn_layer->GetTransactionManager(), storage_layer->GetBlockStore());
+      catalog_ = std::make_unique<catalog::Catalog>(txn_layer->GetTransactionManager(), storage_layer->GetBlockStore(),
+                                                    garbage_collector_);
 
       // Bootstrap the default database in the catalog.
       if (create_default_database) {
@@ -326,7 +327,8 @@ class DBMain {
         TERRIER_ASSERT(use_gc_ && storage_layer->GetGarbageCollector() != DISABLED,
                        "GarbageCollectorThread needs GarbageCollector.");
         gc_thread = std::make_unique<storage::GarbageCollectorThread>(storage_layer->GetGarbageCollector(),
-                                                                      std::chrono::milliseconds{gc_interval_});
+                                                                      std::chrono::milliseconds{gc_interval_},
+                                                                      common::ManagedPointer(metrics_manager));
       }
 
       std::unique_ptr<optimizer::StatsStorage> stats_storage = DISABLED;

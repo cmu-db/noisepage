@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/managed_pointer.h"
+#include "common/resource_tracker.h"
 
 namespace terrier::metrics {
 class MetricsStore;
@@ -21,6 +22,11 @@ struct ThreadContext {
    * nullptr if not registered with MetricsManager
    */
   common::ManagedPointer<metrics::MetricsStore> metrics_store_ = nullptr;
+
+  /**
+   * nullptr if not registered with MetricsManager
+   */
+  ResourceTracker resource_tracker_;
 };
 
 /**

@@ -1,37 +1,31 @@
 #pragma once
 
-#include <memory>
 #include <string>
 #include <unordered_map>
-#include <utility>
-#include <vector>
 
+#include "common/macros.h"
 #include "network/network_defs.h"
-#include "network/network_io_utils.h"
-#include "type/transient_value_peeker.h"
+#include "type/type_id.h"
 
 namespace terrier::network {
 
-// TODO(Tianyu): It looks very broken that this never changes.
+/**
+ * Hardcoded server parameter values to send to the client
+ */
 // clang-format off
-
- /**
-  * Hardcoded server parameter values to send to the client
-  */
-  const std::unordered_map<std::string, std::string>
-    PG_PARAMETER_STATUS_MAP = {
-      {"application_name", "psql"},
-      {"client_encoding", "UTF8"},
-      {"DateStyle", "ISO, MDY"},
-      {"integer_datetimes", "on"},
-      {"IntervalStyle", "postgres"},
-      {"is_superuser", "on"},
-      {"server_encoding", "UTF8"},
-      {"server_version", "9.5devel"},
-      {"session_authorization", "terrier"},
-      {"standard_conforming_strings", "on"},
-      {"TimeZone", "US/Eastern"}
-  };
+const std::unordered_map<std::string, std::string> PG_PARAMETER_STATUS_MAP = {
+    {"application_name", "psql"},
+    {"client_encoding", "UTF8"},
+    {"DateStyle", "ISO, MDY"},
+    {"integer_datetimes", "on"},
+    {"IntervalStyle", "postgres"},
+    {"is_superuser", "on"},
+    {"server_encoding", "UTF8"},
+    {"server_version", "9.5devel"},
+    {"session_authorization", "terrier"},
+    {"standard_conforming_strings", "on"},
+    {"TimeZone", "US/Eastern"}
+};
 // clang-format on
 
 /**
@@ -41,7 +35,6 @@ namespace terrier::network {
  * For more information, see 'pg_type.h' in Postgres
  * https://github.com/postgres/postgres/blob/master/src/include/catalog/pg_type.h#L273
  */
-
 enum class PostgresValueType {
   INVALID = INVALID_TYPE_ID,
   BOOLEAN = 16,
@@ -68,7 +61,6 @@ enum class PostgresValueType {
   DECIMAL = 1700
 };
 
-type::TypeId PostgresValueTypeToInternalValueType(PostgresValueType type);
-PostgresValueType InternalValueTypeToPostgresValueType(type::TypeId type);
+const uint32_t MAX_NAME_LENGTH = 63;  // Max length for internal name
 
 }  // namespace terrier::network

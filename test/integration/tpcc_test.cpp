@@ -57,8 +57,8 @@ class TPCCTests : public TerrierTest {
                        .Build();
 
     if (metrics_enabled) {
-      db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::LOGGING);
-      db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::TRANSACTION);
+      db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
+      db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::TRANSACTION, 100);
     }
 
     auto block_store = db_main->GetStorageLayer()->GetBlockStore();
@@ -83,7 +83,6 @@ class TPCCTests : public TerrierTest {
     // populate the tables and indexes, as well as force log manager to log all changes
     Loader::PopulateDatabase(txn_manager, tpcc_db, &workers, &thread_pool_);
 
-    Util::RegisterIndexesForGC(db_main->GetStorageLayer()->GetGarbageCollector(), common::ManagedPointer(tpcc_db));
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
     // run the TPCC workload to completion
@@ -94,7 +93,6 @@ class TPCCTests : public TerrierTest {
     }
     thread_pool_.WaitUntilAllFinished();
 
-    Util::UnregisterIndexesForGC(db_main->GetStorageLayer()->GetGarbageCollector(), common::ManagedPointer(tpcc_db));
     delete tpcc_db;
     CleanUpVarlensInPrecomputedArgs(&precomputed_args);
   }
