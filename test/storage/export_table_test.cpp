@@ -43,7 +43,7 @@ struct ExportTableTest : public ::terrier::TerrierTest {
           // \x, simply parse the hexadecimal number
           char hex_char = '\0';
           csv_file.get(hex_char);
-          *tmp_char = static_cast<char>((hex_char >= 'a' ? (hex_char - 'a' + 10) : hex_char - '0') << 4);
+          *tmp_char = static_cast<char>((hex_char >= 'a' ? (hex_char - 'a' + 10) : (hex_char - '0')) * 16);
           csv_file.get(hex_char);
           *tmp_char = static_cast<char>(*tmp_char + (hex_char >= 'a' ? (hex_char - 'a' + 10) : hex_char - '0'));
         } else {
