@@ -53,7 +53,6 @@ fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
         // Update the sum only if the value is distinct.
         var agg = @ptrCast(*DistinctEntry, @aggHTInsert(&state.distinct_table, hash_val))
         agg.elem = values.sum
-	var i = @intToSql(1)
         @aggAdvance(&state.sum, &agg.elem)
       }
     }

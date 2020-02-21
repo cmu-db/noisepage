@@ -10,7 +10,6 @@ namespace terrier::execution::compiler {
 SortBottomTranslator::SortBottomTranslator(const terrier::planner::OrderByPlanNode *op, CodeGen *codegen)
     : OperatorTranslator(codegen),
       op_(op),
-      use_top_k_(op->HasLimit() && op->GetOffset() == 0),
       sorter_(codegen_->NewIdentifier("sorter")),
       sorter_row_(codegen_->NewIdentifier("sorter_row")),
       sorter_struct_(codegen_->NewIdentifier("SorterRow")),
@@ -32,7 +31,7 @@ void SortBottomTranslator::Consume(FunctionBuilder *builder) {
   // Then fill in the values
   FillSorterRow(builder);
   // If this has a limit and no offsets, call finish topK.
-  if (use_top_k_) {
+  if (op_->HasLimit()) {
     GenFinishTopK(builder);
   }
 }
@@ -40,9 +39,9 @@ void SortBottomTranslator::Consume(FunctionBuilder *builder) {
 void SortBottomTranslator::GenSorterInsert(FunctionBuilder *builder) {
   // var sorter_row = @ptrCast(*SorterStruct, @sorterInsert(&state.sorter))
   ast::Expr *insert_call;
-  if (use_top_k_) {
+  if (op_->HasLimit()) {
     ast::Expr *sorter = codegen_->GetStateMemberPtr(sorter_);
-    ast::Expr *k = codegen_->IntLiteral(op_->GetLimit());
+    ast::Expr *k = codegen_->IntLiteral(op_->GetLimit() + op_->GetOffset());
     insert_call = codegen_->BuiltinCall(ast::Builtin::SorterInsertTopK, {sorter, k});
   } else {
     insert_call = codegen_->OneArgStateCall(ast::Builtin::SorterInsert, sorter_);
@@ -57,7 +56,7 @@ void SortBottomTranslator::GenSorterInsert(FunctionBuilder *builder) {
 
 void SortBottomTranslator::GenFinishTopK(FunctionBuilder *builder) {
   ast::Expr *sorter = codegen_->GetStateMemberPtr(sorter_);
-  ast::Expr *k = codegen_->IntLiteral(op_->GetLimit());
+  ast::Expr *k = codegen_->IntLiteral(op_->GetLimit() + op_->GetOffset());
   auto finish_call = codegen_->BuiltinCall(ast::Builtin::SorterInsertTopKFinish, {sorter, k});
   builder->Append(codegen_->MakeStmt(finish_call));
 }
@@ -176,7 +175,6 @@ SortTopTranslator::SortTopTranslator(const terrier::planner::OrderByPlanNode *op
                                      OperatorTranslator *bottom)
     : OperatorTranslator(codegen),
       op_(op),
-      use_limit_(op->HasLimit() && op->GetOffset() != 0),
       bottom_(dynamic_cast<SortBottomTranslator *>(bottom)),
       sort_iter_(codegen_->NewIdentifier("sort_iter")),
       num_tuples_(codegen->NewIdentifier("limit")) {}
@@ -207,7 +205,7 @@ void SortTopTranslator::Consume(FunctionBuilder *builder) {
   parent_translator_->Consume(builder);
   // Close the iterator after the loop ends.
   builder->FinishBlockStmt();
-  if (use_limit_) {
+  if (op_->HasLimit() && op_->GetOffset() != 0) {
     // Close the if statement for the offset
     builder->FinishBlockStmt();
   }
@@ -225,35 +223,22 @@ void SortTopTranslator::DeclareIterator(FunctionBuilder *builder) {
 }
 
 void SortTopTranslator::GenForLoop(FunctionBuilder *builder) {
-  if (use_limit_) {
+  if (op_->HasLimit() && op_->GetOffset() != 0) {
     // Declare Limit variable.
     builder->Append(codegen_->DeclareVariable(num_tuples_, nullptr, codegen_->IntLiteral(0)));
   }
-  // for (; @sorterIterHasNext(&sort_iter) && curr_num_tuples < limit; @sorterIterNext(&sort_iter))
+  // for (; @sorterIterHasNext(&sort_iter); @sorterIterNext(&sort_iter))
   // Loop condition
   ast::Expr *has_next_call = codegen_->OneArgCall(ast::Builtin::SorterIterHasNext, sort_iter_, true);
-  ast::Expr *loop_cond = has_next_call;
-  if (use_limit_) {
-    ast::Expr *limit_comp = codegen_->Compare(parsing::Token::Type::LESS, codegen_->MakeExpr(num_tuples_),
-                                              codegen_->IntLiteral(op_->GetLimit() + op_->GetOffset()));
-    loop_cond = codegen_->BinaryOp(parsing::Token::Type::AND, limit_comp, loop_cond);
-  }
-  // Loop update
   ast::Expr *next_call = codegen_->OneArgCall(ast::Builtin::SorterIterNext, sort_iter_, true);
   ast::Stmt *loop_update = codegen_->MakeStmt(next_call);
-  // Make the loop
-  builder->StartForStmt(nullptr, loop_cond, loop_update);
-
-  // Increment limit variable: limit = limit + 1 and check current offset.
-  if (use_limit_) {
+  builder->StartForStmt(nullptr, has_next_call, loop_update);
+  if (op_->HasLimit() && op_->GetOffset() != 0) {
     auto lhs = codegen_->MakeExpr(num_tuples_);
     auto rhs = codegen_->BinaryOp(parsing::Token::Type::PLUS, codegen_->MakeExpr(num_tuples_), codegen_->IntLiteral(1));
     builder->Append(codegen_->Assign(lhs, rhs));
-    // Check if we can start reading at the given offset.
-    // if (curr_num_tuples > offset) {...}
-    auto if_cond = codegen_->Compare(parsing::Token::Type::GREATER, codegen_->MakeExpr(num_tuples_),
-                                     codegen_->IntLiteral(op_->GetOffset()));
-    builder->StartIfStmt(if_cond);
+    ast::Expr *offset_comp = codegen_->Compare(parsing::Token::Type::GREATER, codegen_->MakeExpr(num_tuples_), codegen_->IntLiteral(op_->GetOffset()));
+    builder->StartIfStmt(offset_comp);
   }
 }
 

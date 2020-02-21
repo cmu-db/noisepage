@@ -10,7 +10,7 @@ void LimitTranslator::Produce(FunctionBuilder *builder) {
 
 void LimitTranslator::Consume(FunctionBuilder *builder) {
   // Check for offset and limit.
-  // if (num_tuples_ > offset && num_tuples_ < limit + offset)
+  // if (num_tuples_ >= offset && num_tuples_ < limit + offset)
   auto offset_comp = codegen_->Compare(parsing::Token::Type::GREATER_EQUAL, codegen_->MakeExpr(num_tuples_),
                                        codegen_->IntLiteral(op_->GetOffset()));
   auto limit_comp = codegen_->Compare(parsing::Token::Type::LESS, codegen_->MakeExpr(num_tuples_),

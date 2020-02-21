@@ -10,8 +10,7 @@ AggregateBottomTranslator::AggregateBottomTranslator(const terrier::planner::Agg
     : OperatorTranslator(codegen), op_(op), helper_(codegen, op) {}
 
 void AggregateBottomTranslator::InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) {
-  // There is one global hash table.
-  // In addition, each distinct aggregate needs a hash table.
+  // There the aggregation hash tables.
   helper_.DeclareAHTs(state_fields);
 }
 
