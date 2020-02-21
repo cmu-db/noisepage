@@ -330,7 +330,7 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
   std::vector<uint32_t> row_nums = {1, 3, 5, 7, 10, 50, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000,
                                     200000, 500000, 1000000};
   std::vector<type::TypeId> types = {type::TypeId::INTEGER};
-  for (int col_num = 16; col_num <= 16; col_num++) {
+  for (int col_num = 15; col_num <= 15; col_num++) {
     for (uint32_t row_num : row_nums) {
       // Cardinality of the last column
       std::vector<uint32_t> cardinalities;
@@ -353,8 +353,7 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
               col_metas.emplace_back(col_name.str(), type, false, Dist::Serial, 0, 0);
             } else if (j == col_num) {
               // The last column is related to the cardinality
-              col_metas.emplace_back(col_name.str(), type, false, Dist::Rotate, 0, row_num
-                  * cardinality / 100);
+              col_metas.emplace_back(col_name.str(), type, false, Dist::Rotate, 0, cardinality);
             } else {
               // All the rest of the columns are uniformly distributed
               col_metas.emplace_back(col_name.str(), type, false, Dist::Uniform, 0, row_num - 1);

@@ -115,8 +115,8 @@ def generate_probe_side(col_num, row_num, cardinality):
     # Build the join table
     print("  @joinHTBuild(jht)")
 
-    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"joinprobe, {}, {}, {}\"))".format(row_num, col_num * 4,
-                                                                                                  cardinality))
+    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"joinprobe, {}, {}, {}\"))".format(
+        row_num, col_num * 4, row_num * row_num // cardinality))
     print("}")
 
     print()

@@ -123,7 +123,7 @@ def generate_probe_side(col_num, row_num, cardinality, value_type):
     print("  }")
     print("  @aggHTIterClose(iter)")
 
-    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"aggprobe, {}, {}, {}\"))".format(row_num,
+    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"aggprobe, {}, {}, {}\"))".format(cardinality,
                                                                                                  col_num * type_size,
                                                                                                  cardinality))
     print("}")
