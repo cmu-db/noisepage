@@ -24,19 +24,30 @@
 namespace terrier {
 
 struct ExportTableTest : public ::terrier::TerrierTest {
-  bool ParseNext(std::ifstream &csv_file, char stop_char, char *tmp_char) {
+  // This function decodes a utf-8 string from a csv file char by char
+  // Example:
+  //             \xc8\x99\r&x""
+  // will be decoded to:
+  //            192    153    13   38  120  34
+  //           (\xc8) (\x99) (\r) (&)  (x)  ("")
+  bool ParseNextChar(std::ifstream &csv_file, char stop_char, char *tmp_char) {
     csv_file.get(*tmp_char);
     bool end = false;
     switch (*tmp_char) {
       case '\\':
+        // The next char starts with \. We know there are two possible cases:
+        //   1. for a char with value > 127, it's begin with \x
+        //   2. for special chars, it uses \ as escape character
         csv_file.get(*tmp_char);
         if (*tmp_char == 'x') {
+          // \x, simply parse the hexadecimal number
           char hex_char;
           csv_file.get(hex_char);
           *tmp_char = (hex_char >= 'a' ? (hex_char - 'a' + static_cast<char>(10)) : hex_char - '0') << 4;
           csv_file.get(hex_char);
           *tmp_char += (hex_char >= 'a' ? (hex_char - 'a' + static_cast<char>(10)) : hex_char - '0');
         } else {
+          // \ is an escape character
           switch (*tmp_char) {
             case '\\':
               *tmp_char = '\\';
@@ -54,26 +65,33 @@ struct ExportTableTest : public ::terrier::TerrierTest {
         }
         break;
       case '"':
+        // in the csv file, quote char is used to identify an item when the item itself contains comma.
+        // So, when we encounter a single " followed by a comma or \n, we know current item has been
+        // completely parsed. Since "" will be parsed as ", so if " is followed by another ", then
+        // we get an " (tmp_char is ") but we know there are still more remaining chars to parse (end = false).
         csv_file.get(*tmp_char);
         if (*tmp_char == ',' || *tmp_char == '\n') {
           end = true;
         }
         break;
       case ',':
+        // We just need to distinguish if the , is a real comma or is a delimiter. stop_char indicates if current
+        // item is identified by comma (instead of quote).
         if (stop_char == ',') {
           end = true;
         }
         break;
       default:
+        // Normal cases, we get a general ascii char.
         break;
     }
     return end;
   }
 
   bool CheckContent(std::ifstream &csv_file, transaction::TransactionManager *txn_manager,
-                     const storage::BlockLayout &layout,
-                     const std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> &tuples,
-                     const storage::DataTable &table, storage::RawBlock *block) {
+                    const storage::BlockLayout &layout,
+                    const std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> &tuples,
+                    const storage::DataTable &table, storage::RawBlock *block) {
     auto initializer =
         storage::ProjectedRowInitializer::Create(layout, StorageTestUtil::ProjectionListAllColumns(layout));
     byte *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
@@ -81,34 +99,42 @@ struct ExportTableTest : public ::terrier::TerrierTest {
     // This transaction is guaranteed to start after the compacting one commits
     transaction::TransactionContext *txn = txn_manager->BeginTransaction();
     int num_tuples = tuples.size();
+    // For all the rows.
     for (int i = 0; i < static_cast<int>(layout.NumSlots()); i++) {
       storage::TupleSlot slot(block, i);
       if (i < num_tuples) {
         table.Select(common::ManagedPointer(txn), slot, read_row);
+        // For all the columns of a row
         for (int j = 0; j < read_row->NumColumns(); j++) {
           auto col_id = read_row->ColumnIds()[j];
 
+          // We try to parse the current column (item)
           std::string integer;
           std::vector<byte> bytes;
           char tmp_char;
           csv_file.get(tmp_char);
           switch (tmp_char) {
             case '"':
+              // Current column is a utf-8 string delimited by "
               csv_file.seekg(1, std::ios_base::cur);
-              while (!ParseNext(csv_file, '"', &tmp_char)) {
+              while (!ParseNextChar(csv_file, '"', &tmp_char)) {
                 bytes.emplace_back(static_cast<byte>(tmp_char));
               }
               break;
             case 'b':
-              while (!ParseNext(csv_file, ',', &tmp_char)) {
+              // Current column is a normal utf-8 string
+              while (!ParseNextChar(csv_file, ',', &tmp_char)) {
                 bytes.emplace_back(static_cast<byte>(tmp_char));
               }
               break;
             case ',':
+              // there is nothing between two commas. It indicates a null value
               break;
             case '\n':
+              // Similarly, nothing between the previous comma and current \n. It indicates a null value
               break;
             default:
+              // Integer value
               integer = tmp_char;
               std::string remaining_digits;
               if (j == read_row->NumColumns() - 1) {
@@ -121,6 +147,7 @@ struct ExportTableTest : public ::terrier::TerrierTest {
           }
           auto data = read_row->AccessWithNullCheck(j);
           if (data == nullptr) {
+            // Expect null value
             if (!bytes.empty() || integer.length() != 0) {
               return false;
             }
@@ -140,6 +167,7 @@ struct ExportTableTest : public ::terrier::TerrierTest {
               }
             } else {
               int64_t true_integer;
+              // Extract the true integer (generated in C++) based on their bit-length
               switch (layout.AttrSize(col_id)) {
                 case 1:
                   true_integer = *reinterpret_cast<int8_t *>(data);
