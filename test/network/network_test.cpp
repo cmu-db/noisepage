@@ -277,7 +277,7 @@ TEST_F(NetworkTests, MultipleConnectionTest) {
  * ConnectionHandlerTask instance could corrupt its fields.
  */
 // NOLINTNEXTLINE
-TEST_F(NetworkTests, RacerTest) {
+TEST_F(NetworkTests, DISABLED_RacerTest) {
   //  due to issue #766 PostgresProtocolHandler cannot consistently handle
   //  simultaneous client requests so for now we are allowing for some failure tolerance
 
