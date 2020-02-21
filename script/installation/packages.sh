@@ -94,7 +94,9 @@ install_mac() {
 install_linux() {
   # Update apt-get.
   apt-get -y update
-  # Install packages.
+  
+  # IMPORTANT: If you change anything listed below, you must also change it in the Dockerfile
+  # in the root directory of the repository!
   apt-get -y install \
       build-essential \
       clang-8 \
@@ -121,6 +123,7 @@ install_linux() {
   # IMPORTANT: Ubuntu 18.04 does not have libpqxx-6.2 available. So we have to download the package
   # manually and install it ourselves. We are *not* able to upgrade to libpqxx-6.4 because 18.04
   # does not have the right version of libstdc++6 that it needs.
+  # Again, if you change the version make sure you update Dockerfile.
   LIBPQXX_VERSION="6.2.5-1"
   LIBPQXX_URL="http://mirrors.kernel.org/ubuntu/pool/universe/libp/libpqxx"
   LIBPQXX_FILES=(\
