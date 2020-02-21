@@ -54,6 +54,11 @@ class CpuInfo {
   }
 
   /**
+   * Get CPU
+   */
+  static int GetCpuId();
+
+  /**
    * Return the number of logical cores in the system
    */
   uint32_t GetNumCores() const noexcept { return num_cores_; }
@@ -67,6 +72,11 @@ class CpuInfo {
    * Return the size of a cache line at level \a level
    */
   uint32_t GetCacheLineSize(CacheLevel level) const noexcept { return cache_line_sizes_[level]; }
+
+  /**
+   * Return The number of reference cycles advanced per microsecond
+   */
+  uint64_t GetRefCyclesUs() const { return ref_cycles_us_; }
 
   /**
    * Does the CPU have the given hardware feature?
@@ -94,6 +104,7 @@ class CpuInfo {
   uint32_t num_cores_;
   std::string model_name_;
   double cpu_mhz_;
+  uint64_t ref_cycles_us_;
   uint32_t cache_sizes_[K_NUM_CACHE_LEVELS];
   uint32_t cache_line_sizes_[K_NUM_CACHE_LEVELS];
   util::InlinedBitVector<64> hardware_flags_;

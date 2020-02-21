@@ -10,6 +10,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/plan_visitor.h"
 
 // TODO(Gus, Wen): Replace Perform Binding in parser::AggregateExpression* and AggregatePlanNode
 // TODO(Gus, Wen): Replace VisitParameters
@@ -165,6 +166,8 @@ class AggregatePlanNode : public AbstractPlanNode {
    * @return the hashed value of this plan node
    */
   common::hash_t Hash() const override;
+
+  void Accept(common::ManagedPointer<PlanVisitor> v) const override { v->Visit(this); }
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
