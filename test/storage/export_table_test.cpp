@@ -41,11 +41,11 @@ struct ExportTableTest : public ::terrier::TerrierTest {
         csv_file.get(*tmp_char);
         if (*tmp_char == 'x') {
           // \x, simply parse the hexadecimal number
-          char hex_char;
+          char hex_char = '\0';
           csv_file.get(hex_char);
           *tmp_char = static_cast<char>((hex_char >= 'a' ? (hex_char - 'a' + 10) : hex_char - '0') << 4);
           csv_file.get(hex_char);
-          *tmp_char += static_cast<char>((hex_char >= 'a' ? (hex_char - 'a' + 10) : hex_char - '0'));
+          *tmp_char = static_cast<char>(*tmp_char + (hex_char >= 'a' ? (hex_char - 'a' + 10) : hex_char - '0'));
         } else {
           // \ is an escape character
           switch (*tmp_char) {
@@ -182,7 +182,7 @@ struct ExportTableTest : public ::terrier::TerrierTest {
                   true_integer = *reinterpret_cast<int64_t *>(data);
                   break;
                 default:
-                  NOT_IMPLEMENTED_EXCEPTION("Unsupported Attribute Size.");
+                  throw NOT_IMPLEMENTED_EXCEPTION("Unsupported Attribute Size.");
               }
               if (std::fabs(1 - (std::stof(integer) + 1e-6) / (true_integer + 1e-6)) > 1e-6) {
                 return false;
