@@ -1,9 +1,13 @@
 #pragma once
 #include <memory>
+#include <string>
 #include <utility>
 
+#include "brain/operating_unit.h"
 #include "common/managed_pointer.h"
+#include "common/strong_typedef.h"
 #include "execution/ast/context.h"
+#include "execution/exec_defs.h"
 
 namespace terrier::planner {
 class AbstractPlanNode;
@@ -42,6 +46,14 @@ class ExecutableQuery {
                   common::ManagedPointer<exec::ExecutionContext> exec_ctx);
 
   /**
+   * Construct and compile an executable TPL program in the given filename
+   *
+   * @param filename The name of the file on disk to compile
+   * @param exec_ctx context to execute
+   */
+  ExecutableQuery(const std::string &filename, common::ManagedPointer<exec::ExecutionContext> exec_ctx);
+
+  /**
    *
    * @param exec_ctx execution context to use for execution. Note that this execution context need not be the one used
    * for construction/codegen.
@@ -49,7 +61,31 @@ class ExecutableQuery {
    */
   void Run(common::ManagedPointer<exec::ExecutionContext> exec_ctx, vm::ExecutionMode mode);
 
+  /**
+   * @note function should only be used from test
+   * @returns the query name
+   */
+  const std::string &GetQueryName() const { return query_name_; }
+
+  /**
+   * @returns the query identifier
+   */
+  query_id_t GetQueryId() const { return query_id_; }
+
+  /**
+   * @returns Pipeline Units
+   */
+  common::ManagedPointer<brain::PipelineOperatingUnits> GetPipelineOperatingUnits() {
+    return common::ManagedPointer(pipeline_operating_units_);
+  }
+
  private:
+  static std::string GetFileName(const std::string &path) {
+    std::size_t size = path.size();
+    std::size_t found = path.find_last_of("/\\");
+    return path.substr(found + 1, size - found - 5);
+  }
+
   // TPL bytecodes for this query.
   std::unique_ptr<vm::Module> tpl_module_ = nullptr;
 
@@ -58,5 +94,10 @@ class ExecutableQuery {
   // together.
   std::unique_ptr<util::Region> region_;
   std::unique_ptr<ast::Context> ast_ctx_;
+  std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units_;
+
+  std::string query_name_;
+  query_id_t query_id_;
+  static std::atomic<query_id_t> query_identifier;
 };
 }  // namespace terrier::execution

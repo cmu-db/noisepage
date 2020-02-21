@@ -8,7 +8,7 @@
 
 namespace terrier::execution::compiler {
 InsertTranslator::InsertTranslator(const terrier::planner::InsertPlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(codegen),
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::INSERT),
       op_(op),
       inserter_(codegen->NewIdentifier("inserter")),
       insert_pr_(codegen->NewIdentifier("insert_pr")),

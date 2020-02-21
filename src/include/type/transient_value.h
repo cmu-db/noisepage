@@ -229,6 +229,26 @@ class TransientValue {
    */
   TransientValue() = default;
 
+  /**
+   * The copy constructor for TransientValue is currently only used by a single parser node, and should be used
+   * sparingly due to its reliance on malloc/free. The new TransientValue will have the same contents as the other
+   * TransientValue, but in its own memory buffers.
+   * @param other TransientValue to copy from.
+   * @warning No, seriously: don't go crazy with this thing because it will tank performance if the system calls malloc
+   * too much. We saw this with the old Value system in Peloton when Value objects were created and destroyed too
+   * frequently during query execution.
+   */
+  TransientValue(const TransientValue &other) {
+    // clear internal buffer
+    data_ = 0;
+    type_ = other.type_;
+    if (Type() != TypeId::VARCHAR || other.data_ == 0) {
+      data_ = other.data_;
+    } else {
+      CopyVarChar(reinterpret_cast<const char *const>(other.data_));
+    }
+  }
+
  private:
   // The following tests make sure that the private copy constructor and copy assignment operator work, so they need to
   // be friends of the TransientValue class.
@@ -268,26 +288,6 @@ class TransientValue {
     const auto num_bytes =
         std::min(storage::AttrSizeBytes(TypeUtil::GetTypeSize(type)), static_cast<uint16_t>(sizeof(uintptr_t)));
     std::memcpy(&data_, &data, num_bytes);
-  }
-
-  /**
-   * The copy constructor for TransientValue is currently only used by a single parser node, and should be used
-   * sparingly due to its reliance on malloc/free. The new TransientValue will have the same contents as the other
-   * TransientValue, but in its own memory buffers.
-   * @param other TransientValue to copy from.
-   * @warning No, seriously: don't go crazy with this thing because it will tank performance if the system calls malloc
-   * too much. We saw this with the old Value system in Peloton when Value objects were created and destroyed too
-   * frequently during query execution.
-   */
-  TransientValue(const TransientValue &other) {
-    // clear internal buffer
-    data_ = 0;
-    type_ = other.type_;
-    if (Type() != TypeId::VARCHAR || other.data_ == 0) {
-      data_ = other.data_;
-    } else {
-      CopyVarChar(reinterpret_cast<const char *const>(other.data_));
-    }
   }
 
   /**

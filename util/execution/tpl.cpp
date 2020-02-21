@@ -36,6 +36,7 @@
 #include "loggers/execution_logger.h"
 #include "loggers/loggers_util.h"
 #include "main/db_main.h"
+#include "metrics/metrics_thread.h"
 #include "settings/settings_manager.h"
 #include "storage/garbage_collector.h"
 #include "transaction/deferred_action_manager.h"
@@ -56,6 +57,8 @@ llvm::cl::opt<bool> print_tbc("print-tbc", llvm::cl::desc("Print the generated T
 llvm::cl::opt<std::string> output_name("output-name", llvm::cl::desc("Print the output name"),
                                        llvm::cl::init("schema10"), llvm::cl::cat(tpl_options_category));
 llvm::cl::opt<bool> is_sql("sql", llvm::cl::desc("Is the input a SQL query?"), llvm::cl::cat(tpl_options_category));
+llvm::cl::opt<bool> is_mini_runner("mini-runner", llvm::cl::desc("Is this used for the mini runner?"),
+                                   llvm::cl::cat(tpl_options_category));
 
 tbb::task_scheduler_init scheduler;
 
@@ -71,7 +74,22 @@ static constexpr const char *K_EXIT_KEYWORD = ".exit";
  */
 static void CompileAndRun(const std::string &source, const std::string &name = "tmp-tpl") {
   // Initialize terrier objects
-  auto db_main = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).SetUseGCThread(true).Build();
+  auto db_main_builder = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).SetUseGCThread(true);
+  if (is_mini_runner) {
+    db_main_builder.SetUseMetrics(true)
+        .SetUseMetricsThread(true)
+        .SetBlockStoreSize(1000000)
+        .SetBlockStoreReuse(1000000)
+        .SetRecordBufferSegmentSize(1000000)
+        .SetRecordBufferSegmentReuse(1000000);
+  }
+  auto db_main = db_main_builder.Build();
+
+  if (is_mini_runner) {
+    auto metrics_manager = db_main->GetMetricsManager();
+    metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION, 0);
+    metrics_manager->RegisterThread();
+  }
 
   // Get the correct output format for this test
   exec::SampleOutput sample_output;
@@ -102,7 +120,10 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
 
   // Generate test tables
   sql::TableGenerator table_generator{&exec_ctx, db_main->GetStorageLayer()->GetBlockStore(), ns_oid};
-  table_generator.GenerateTestTables();
+  table_generator.GenerateTestTables(is_mini_runner);
+  // Comment out to make more tables available at runtime
+  // table_generator.GenerateTPCHTables(<path_to_tpch_dir>);
+  // table_generator.GenerateTableFromFile(<path_to_schema>, <path_to_data>);
 
   // Let's scan the source
   util::Region region("repl-ast");
@@ -175,6 +196,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   //
 
   {
+    exec_ctx.SetExecutionMode(static_cast<uint8_t>(vm::ExecutionMode::Interpret));
     util::ScopedTimer<std::milli> timer(&interp_exec_ms);
 
     if (is_sql) {
@@ -200,7 +222,8 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // Adaptive
   //
 
-  {
+  if (!is_mini_runner) {
+    exec_ctx.SetExecutionMode(static_cast<uint8_t>(vm::ExecutionMode::Adaptive));
     util::ScopedTimer<std::milli> timer(&adaptive_exec_ms);
 
     if (is_sql) {
@@ -226,6 +249,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // JIT
   //
   {
+    exec_ctx.SetExecutionMode(static_cast<uint8_t>(vm::ExecutionMode::Compiled));
     util::ScopedTimer<std::milli> timer(&jit_exec_ms);
 
     if (is_sql) {
@@ -253,6 +277,9 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       "Adaptive Exec.: {} ms, Jit+Exec.: {} ms",
       parse_ms, typecheck_ms, codegen_ms, interp_exec_ms, adaptive_exec_ms, jit_exec_ms);
   txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // lma: When do we need this? I actually don't know...
+  if (is_mini_runner) db_main->GetMetricsManager()->UnregisterThread();
 }
 
 /**
