@@ -1,8 +1,8 @@
 #pragma once
 #include <queue>
+#include <unordered_set>
 #include <utility>
 #include <vector>
-#include <unordered_set>
 
 #include "storage/garbage_collector.h"
 #include "storage/write_ahead_log/log_manager.h"

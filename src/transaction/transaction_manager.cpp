@@ -97,14 +97,6 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
     TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
     txn->commit_actions_.front()(deferred_action_manager_.Get());
     txn->commit_actions_.pop_front();
-    // We hand off txn to GC, however, it won't be GC'd until the LogManager marks it as serialized
-    if (gc_enabled_) {
-      // common::SpinLatch::ScopedSpinLatch guard(&timestamp_manager_->curr_running_txns_latch_);
-
-      // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
-      // the critical path there anyway
-      deferred_action_manager_->RegisterDeferredAction([=]() { CleanTransaction(txn); });
-    }
   }
 
   // If logging is enabled and our txn is not read only, we need to persist the oldest active txn at the time we
@@ -117,6 +109,14 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
     oldest_active_txn = timestamp_manager_->CachedOldestTransactionStartTime();
   }
   LogCommit(txn, result, callback, callback_arg, oldest_active_txn);
+
+  // We hand off txn to GC, however, it won't be GC'd until the LogManager marks it as serialized
+  if (gc_enabled_) {
+    // common::SpinLatch::ScopedSpinLatch guard(&timestamp_manager_->curr_running_txns_latch_);
+
+    // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
+    // the critical path there anyway
+    deferred_action_manager_->RegisterDeferredAction([=]() { CleanTransaction(txn); });
   }
 
   if (txn_metrics_enabled) {
