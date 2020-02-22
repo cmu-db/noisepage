@@ -68,8 +68,7 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, Runner)(benchmark::State &state) 
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
-                                        common::ManagedPointer(tested.GetTxnManager()), DISABLED);
+    gc_ = new storage::GarbageCollector(DISABLED, common::ManagedPointer(tested.GetTxnManager()));
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
                                                      common::ManagedPointer(metrics_manager));
     const auto result = tested.SimulateOltp(num_txns, num_thread, metrics_manager, txn_interval);
