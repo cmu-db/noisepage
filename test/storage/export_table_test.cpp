@@ -268,7 +268,7 @@ TEST_F(ExportTableTest, ExportDictionaryCompressedTableTest) {
   unlink(EXPORT_TABLE_NAME);
   for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
   gc.PerformGarbageCollection();
-  gc.PerformGarbageCollection();  // Second call to deallocate.
+  gc.PerformGarbageCollection();  // Second call to deallocate
 }
 
 // NOLINTNEXTLINE
