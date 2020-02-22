@@ -257,7 +257,7 @@ class VarlenEntry {
    * @param content pointer to the varlen content
    * @param size length of the varlen content, in bytes (no C-style nul-terminator. Must be smaller than
    *             InlineThreshold())
-   * @return constructed VarlenEntry objecprefix_t
+   * @return constructed VarlenEntry object
    */
   static VarlenEntry CreateInline(const byte *content, uint32_t size) {
     TERRIER_ASSERT(size <= InlineThreshold(), "varlen value must be small enough for inlining to happen");
