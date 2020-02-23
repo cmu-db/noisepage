@@ -184,7 +184,7 @@ def generate_all():
 
     for col_num in col_nums:
         for row_num in row_nums:
-            cardinalities = [1]
+            cardinalities = [max(1, row_num * row_num // 1000000000)]
             while cardinalities[-1] < row_num:
                 cardinalities.append(cardinalities[-1] * 2)
             cardinalities[-1] = row_num
