@@ -38,7 +38,6 @@ class GarbageCollectorBenchmark : public benchmark::Fixture {
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   std::default_random_engine generator_;
   storage::GarbageCollector *gc_ = nullptr;
-//  transaction::DeferredActionManager *deferred_action_manager_ = nullptr;
 
  private:
   std::thread gc_thread_;
