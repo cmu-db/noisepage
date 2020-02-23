@@ -121,6 +121,9 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // Generate test tables
   sql::TableGenerator table_generator{&exec_ctx, db_main->GetStorageLayer()->GetBlockStore(), ns_oid};
   table_generator.GenerateTestTables(is_mini_runner);
+  // Comment out to make more tables available at runtime
+  // table_generator.GenerateTPCHTables(<path_to_tpch_dir>);
+  // table_generator.GenerateTableFromFile(<path_to_schema>, <path_to_data>);
 
   // Let's scan the source
   util::Region region("repl-ast");

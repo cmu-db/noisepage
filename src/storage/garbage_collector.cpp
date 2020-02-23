@@ -34,7 +34,8 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
 
 uint32_t GarbageCollector::ProcessDeallocateQueue(transaction::timestamp_t oldest_txn) {
   uint32_t txns_processed = 0;
-  bool gc_metrics_enabled = common::thread_context.metrics_store_ != nullptr &&
+  bool gc_metrics_enabled =
+      common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION);
 
   if (gc_metrics_enabled) {
@@ -68,7 +69,8 @@ uint32_t GarbageCollector::ProcessDeallocateQueue(transaction::timestamp_t oldes
 uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_txn) {
   transaction::TransactionContext *txn = nullptr;
 
-  bool gc_metrics_enabled = common::thread_context.metrics_store_ != nullptr &&
+  bool gc_metrics_enabled =
+      common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION);
   if (gc_metrics_enabled) {
     // start the operating unit resource tracker

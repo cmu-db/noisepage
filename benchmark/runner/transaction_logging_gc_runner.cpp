@@ -55,13 +55,12 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, Runner)(benchmark::State &state) 
     metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
     metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
 
-    thread_registry_ =
-        new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
+    thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
-    log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
-                                           log_persist_interval_, log_persist_threshold_, common::ManagedPointer
-                                           (&buffer_pool),
-                                           common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
+    log_manager_ =
+        new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                                log_persist_threshold_, common::ManagedPointer(&buffer_pool),
+                                common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
 
     LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
@@ -69,8 +68,10 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, Runner)(benchmark::State &state) 
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED, common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, common::ManagedPointer(metrics_manager));
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
+                                        common::ManagedPointer(tested.GetTxnManager()), DISABLED);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
+                                                     common::ManagedPointer(metrics_manager));
     const auto result = tested.SimulateOltp(num_txns, num_thread, metrics_manager, txn_interval);
     abort_count += result.first;
     uint64_t elapsed_ms;

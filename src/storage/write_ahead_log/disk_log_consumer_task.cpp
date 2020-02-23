@@ -57,7 +57,8 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
   // input for this operating unit
   uint64_t num_bytes = 0, num_buffers = 0;
 
-  bool logging_metrics_enabled = common::thread_context.metrics_store_ != nullptr &&
+  bool logging_metrics_enabled =
+      common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
 
   if (logging_metrics_enabled) {

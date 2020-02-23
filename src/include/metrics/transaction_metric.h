@@ -83,7 +83,8 @@ class TransactionMetricRawData : public AbstractRawData {
   }
 
   struct BeginData {
-    BeginData(const common::ResourceTracker::Metrics &resource_metrics): resource_metrics_(resource_metrics) {}
+    explicit BeginData(const common::ResourceTracker::Metrics &resource_metrics)
+        : resource_metrics_(resource_metrics) {}
     const common::ResourceTracker::Metrics resource_metrics_;
   };
 

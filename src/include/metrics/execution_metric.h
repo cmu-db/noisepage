@@ -4,6 +4,7 @@
 #include <chrono>  //NOLINT
 #include <fstream>
 #include <list>
+#include <string>
 #include <utility>
 #include <vector>
 

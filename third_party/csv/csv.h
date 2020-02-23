@@ -4088,9 +4088,9 @@ class CSVReader {
   ///@}
 
   CSVReader(const CSVReader&) = delete; // No copy constructor
-  CSVReader(CSVReader&&) = default;     // Move constructor
+  CSVReader(CSVReader&&) = delete;      // No move constructor
   CSVReader& operator=(const CSVReader&) = delete; // No copy assignment
-  CSVReader& operator=(CSVReader&& other) = default;
+  CSVReader& operator=(CSVReader&& other) = delete;
   ~CSVReader() { this->close(); }
 
   /** @name Reading In-Memory Strings
@@ -5565,7 +5565,7 @@ int get_col_pos(
 CSVFileInfo get_file_info(const std::string& filename) {
   CSVReader reader(filename);
   CSVFormat format = reader.get_format();
-  for (auto& row : reader) {
+  for (UNUSED_ATTRIBUTE auto& row : reader) {
 #ifndef NDEBUG
     SUPPRESS_UNUSED_WARNING(row);
 #endif

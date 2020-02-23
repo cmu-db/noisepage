@@ -1,13 +1,15 @@
 #pragma once
 
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
-#include "storage/storage_defs.h"
-#include "execution/vm/module.h"
 #include "execution/executable_query.h"
 #include "execution/table_generator/sample_output.h"
+#include "execution/vm/module.h"
+#include "storage/storage_defs.h"
 
 namespace terrier::execution::exec {
 class ExecutionContext;
@@ -42,7 +44,11 @@ class Workload {
   void Execute(int8_t worker_id, uint32_t num_precomputed_txns_per_worker, execution::vm::ExecutionMode mode);
 
  private:
+<<<<<<< HEAD
   void GenerateTPCHTables(execution::exec::ExecutionContext *exec_ctx, const std::string &table_root);
+=======
+  void GenerateTPCHTables(execution::exec::ExecutionContext *exec_ctx, const std::string &dir_name);
+>>>>>>> upstream/master
 
   void LoadTPCHQueries(execution::exec::ExecutionContext *exec_ctx, const std::vector<std::string> &queries);
 

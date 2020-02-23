@@ -27,7 +27,12 @@ Workload::Workload(common::ManagedPointer<DBMain> db_main, const std::string &db
 
   // Make the execution context
   execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
+<<<<<<< HEAD
       nullptr, nullptr, common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
+=======
+                                             nullptr, nullptr,
+                                             common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
+>>>>>>> upstream/master
 
   // create the TPCH database and compile the queries
   GenerateTPCHTables(&exec_ctx, table_root);
@@ -60,6 +65,10 @@ void Workload::LoadTPCHQueries(execution::exec::ExecutionContext *exec_ctx, cons
 
 std::vector<type::TransientValue> Workload::GetQueryParams(const std::string &query_name) {
   std::vector<type::TransientValue> params;
+<<<<<<< HEAD
+=======
+  params.reserve(8);
+>>>>>>> upstream/master
 
   // Add the identifier for each pipeline. At most 8 query pipelines for now
   for (int i = 0; i < 8; ++i)
@@ -87,11 +96,20 @@ void Workload::Execute(int8_t worker_id, uint32_t num_precomputed_txns_per_worke
     auto output_schema = sample_output_.GetSchema(query_name);
     execution::exec::OutputPrinter printer{output_schema};
     execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
+<<<<<<< HEAD
                                                printer, output_schema, common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
     auto params = GetQueryParams(query_name);
     exec_ctx.SetParams(std::move(params));
     query.Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
     counter = counter == num_queries - 1 ? 0:counter + 1 ;
+=======
+                                               printer, output_schema,
+                                               common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
+    auto params = GetQueryParams(query_name);
+    exec_ctx.SetParams(std::move(params));
+    query.Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
+    counter = counter == num_queries - 1 ? 0 : counter + 1;
+>>>>>>> upstream/master
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 

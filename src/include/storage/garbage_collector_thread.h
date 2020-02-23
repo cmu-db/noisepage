@@ -21,6 +21,7 @@ class GarbageCollectorThread {
   /**
    * @param gc pointer to the garbage collector object to be run on this thread
    * @param gc_period sleep time between GC invocations
+   * @param metrics_manager Metrics Manager
    */
   GarbageCollectorThread(common::ManagedPointer<GarbageCollector> gc, std::chrono::milliseconds gc_period,
                          common::ManagedPointer<metrics::MetricsManager> metrics_manager);

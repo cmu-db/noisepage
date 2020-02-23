@@ -1,9 +1,13 @@
 #pragma once
 #include <memory>
+#include <string>
 #include <utility>
 
+#include "brain/operating_unit.h"
 #include "common/managed_pointer.h"
+#include "common/strong_typedef.h"
 #include "execution/ast/context.h"
+#include "execution/exec_defs.h"
 
 namespace terrier::planner {
 class AbstractPlanNode;
@@ -57,7 +61,23 @@ class ExecutableQuery {
    */
   void Run(common::ManagedPointer<exec::ExecutionContext> exec_ctx, vm::ExecutionMode mode);
 
-  const std::string &GetQueryName() const {return query_name_; }
+  /**
+   * @note function should only be used from test
+   * @returns the query name
+   */
+  const std::string &GetQueryName() const { return query_name_; }
+
+  /**
+   * @returns the query identifier
+   */
+  query_id_t GetQueryId() const { return query_id_; }
+
+  /**
+   * @returns Pipeline Units
+   */
+  common::ManagedPointer<brain::PipelineOperatingUnits> GetPipelineOperatingUnits() {
+    return common::ManagedPointer(pipeline_operating_units_);
+  }
 
  private:
   static std::string GetFileName(const std::string &path) {
@@ -74,7 +94,10 @@ class ExecutableQuery {
   // together.
   std::unique_ptr<util::Region> region_;
   std::unique_ptr<ast::Context> ast_ctx_;
+  std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units_;
 
   std::string query_name_;
+  query_id_t query_id_;
+  static std::atomic<query_id_t> query_identifier;
 };
 }  // namespace terrier::execution

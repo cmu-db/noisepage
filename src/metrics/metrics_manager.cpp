@@ -23,7 +23,7 @@ void OpenFiles(std::vector<std::ofstream> *outfiles) {
     outfiles->emplace_back(file_name, std::ios_base::out | std::ios_base::app);
     if (!file_existed) {
       // write the column titles on the first line since we're creating a new csv file
-      if (abstract_raw_data::FEATURE_COLUMNS[file].size() > 0)
+      if (!abstract_raw_data::FEATURE_COLUMNS[file].empty())
         outfiles->back() << abstract_raw_data::FEATURE_COLUMNS[file] << ", ";
       outfiles->back() << common::ResourceTracker::Metrics::COLUMNS << std::endl;
     }
@@ -69,6 +69,11 @@ void MetricsManager::ResetMetric(const MetricsComponent component) const {
         metric->Swap();
         break;
       }
+      case MetricsComponent::EXECUTION_PIPELINE: {
+        const auto &metric = metrics_store.second->pipeline_metric_;
+        metric->Swap();
+        break;
+      }
     }
   }
 }
@@ -77,7 +82,8 @@ void MetricsManager::RegisterThread() {
   common::SpinLatch::ScopedSpinLatch guard(&latch_);
   const auto thread_id = std::this_thread::get_id();
   TERRIER_ASSERT(stores_map_.count(thread_id) == 0, "This thread was already registered.");
-  auto result = stores_map_.emplace(thread_id, new MetricsStore(common::ManagedPointer(this), enabled_metrics_, sample_interval_));
+  auto result = stores_map_.emplace(thread_id,
+                                    new MetricsStore(common::ManagedPointer(this), enabled_metrics_, sample_interval_));
   TERRIER_ASSERT(result.second, "Insertion to concurrent map failed.");
   common::thread_context.metrics_store_ = result.first->second;
 }
@@ -114,6 +120,10 @@ void MetricsManager::ToCSV() const {
         }
         case MetricsComponent::EXECUTION: {
           OpenFiles<ExecutionMetricRawData>(&outfiles);
+          break;
+        }
+        case MetricsComponent::EXECUTION_PIPELINE: {
+          OpenFiles<PipelineMetricRawData>(&outfiles);
           break;
         }
       }

@@ -1335,8 +1335,9 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, UNUSED_AT
   LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
 
   switch (builtin) {
-    case ast::Builtin::ExecutionContextStartResourceTracker:{
-      Emitter()->Emit(Bytecode::ExecutionContextStartResourceTracker, exec_ctx);
+    case ast::Builtin::ExecutionContextStartResourceTracker: {
+      LocalVar cmp = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::ExecutionContextStartResourceTracker, exec_ctx, cmp);
       break;
     }
     case ast::Builtin::ExecutionContextEndResourceTracker: {
@@ -1344,10 +1345,16 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, UNUSED_AT
       Emitter()->Emit(Bytecode::ExecutionContextEndResourceTracker, exec_ctx, name);
       break;
     }
+    case ast::Builtin::ExecutionContextEndPipelineTracker: {
+      LocalVar query_id = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[2]);
+      Emitter()->Emit(Bytecode::ExecutionContextEndPipelineTracker, exec_ctx, query_id, pipeline_id);
+      break;
+    }
     case ast::Builtin::ExecutionContextGetMemoryPool: {
       // The memory pool pointer
-      LocalVar mem_pool =
-          ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::MemoryPool)->PointerTo());
+      LocalVar mem_pool = ExecutionResult()->GetOrCreateDestination(
+          ast::BuiltinType::Get(ctx, ast::BuiltinType::MemoryPool)->PointerTo());
 
       // Emit bytecode
       Emitter()->Emit(Bytecode::ExecutionContextGetMemoryPool, mem_pool, exec_ctx);
@@ -1357,7 +1364,9 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, UNUSED_AT
 
       break;
     }
-    default: { UNREACHABLE("Impossible execution context call"); }
+    default: {
+      UNREACHABLE("Impossible execution context call");
+    }
   }
 }
 
@@ -1989,6 +1998,10 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     }
     case ast::Builtin::ExecutionContextStartResourceTracker:
     case ast::Builtin::ExecutionContextEndResourceTracker:
+<<<<<<< HEAD
+=======
+    case ast::Builtin::ExecutionContextEndPipelineTracker:
+>>>>>>> upstream/master
     case ast::Builtin::ExecutionContextGetMemoryPool: {
       VisitExecutionContextCall(call, builtin);
       break;

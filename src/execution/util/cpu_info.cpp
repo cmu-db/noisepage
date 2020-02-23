@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <regex>  // NOLINT
 #include <string>
 #include <regex>
 
@@ -9,6 +10,7 @@
 #include "llvm/ADT/StringRef.h"
 
 #if __APPLE__
+#include <cpuid.h>
 #include <sys/sysctl.h>
 #include <sys/types.h>
 #endif
@@ -31,6 +33,20 @@ struct {
     {CpuInfo::AVX2, {"avx2"}},
     {CpuInfo::AVX512, {"avx512f", "avx512cd"}},
 };
+
+int CpuInfo::GetCpuId() {
+#ifdef __APPLE__
+  uint32_t cpuinfo[4];
+  __cpuid_count(1, 0, cpuinfo[0], cpuinfo[1], cpuinfo[2], cpuinfo[3]);
+  if ((cpuinfo[3] & (1 << 9)) == 0) {
+    return -1;
+  }
+
+  return (cpuinfo[3] >> 24);
+#else
+  return sched_getcpu();
+#endif
+}
 
 void CpuInfo::ParseCpuFlags(llvm::StringRef flags) {
   for (const auto &[feature, names] : features) {

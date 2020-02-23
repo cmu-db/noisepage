@@ -3,15 +3,18 @@
 #include <bitset>
 #include <memory>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
+#include "execution/exec_defs.h"
 #include "metrics/abstract_metric.h"
 #include "metrics/abstract_raw_data.h"
 #include "metrics/execution_metric.h"
 #include "metrics/garbage_collection_metric.h"
 #include "metrics/logging_metric.h"
 #include "metrics/metrics_defs.h"
+#include "metrics/pipeline_metric.h"
 #include "metrics/transaction_metric.h"
 
 namespace terrier::metrics {
@@ -104,12 +107,30 @@ class MetricsStore {
    * Record metrics for the execution engine when finish a pipeline
    * @param feature first entry of execution datapoint
    * @param len second entry of execution datapoint
+   * @param execution_mode Execution mode
+   * @param resource_metrics Metrics
    */
   void RecordExecutionData(const char *feature, uint32_t len, uint8_t execution_mode,
                            const common::ResourceTracker::Metrics &resource_metrics) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::EXECUTION), "ExecutionMetric not enabled.");
     TERRIER_ASSERT(execution_metric_ != nullptr, "ExecutionMetric not allocated. Check MetricsStore constructor.");
     execution_metric_->RecordExecutionData(feature, len, execution_mode, resource_metrics);
+  }
+
+  /**
+   * Record metrics for the execution engine when finish a pipeline
+   * @param query_id Query Identifier
+   * @param pipeline_id Pipeline Identifier
+   * @param execution_mode Execution Mode
+   * @param features Feature Vector
+   * @param resource_metrics Metrics
+   */
+  void RecordPipelineData(execution::query_id_t query_id, execution::pipeline_id_t pipeline_id, uint8_t execution_mode,
+                          std::vector<brain::ExecutionOperatingUnitFeature> &&features,
+                          const common::ResourceTracker::Metrics &resource_metrics) {
+    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::EXECUTION_PIPELINE), "PipelineMMetric not enabled.");
+    TERRIER_ASSERT(pipeline_metric_ != nullptr, "PipelineMetric not allocated. Check MetricsStore constructor.");
+    pipeline_metric_->RecordPipelineData(query_id, pipeline_id, execution_mode, std::move(features), resource_metrics);
   }
 
   /**
@@ -155,6 +176,7 @@ class MetricsStore {
   std::unique_ptr<TransactionMetric> txn_metric_;
   std::unique_ptr<GarbageCollectionMetric> gc_metric_;
   std::unique_ptr<ExecutionMetric> execution_metric_;
+  std::unique_ptr<PipelineMetric> pipeline_metric_;
 
   const std::bitset<NUM_COMPONENTS> &enabled_metrics_;
   const std::array<uint32_t, NUM_COMPONENTS> &sample_interval_;

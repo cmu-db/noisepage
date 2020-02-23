@@ -34,6 +34,17 @@ class ResourceTracker {
     // The number of the CPU on which the thread is currently executing
     int cpu_id_;
     // The memory consumption (in bytes)
+    /** The start time of the tracked event (microseconds since the "epoch") */
+    uint64_t start_;
+    /** The elapsed time of the tracked event (microseconds) */
+    uint64_t elapsed_us_;
+    /** The perf counters of the tracked event */
+    PerfMonitor::PerfCounters counters_;
+    /** The rusage counters of the tracked event */
+    rusage rusage_;
+    /** The number of the CPU on which the thread is currently executing */
+    int cpu_id_;
+    /** The memory consumption (in bytes) */
     uint64_t memory_b_;
 
     /**
@@ -41,12 +52,14 @@ class ResourceTracker {
      * @param outfile opened ofstream to write to
      */
     void ToCSV(std::ofstream &outfile) const {
+      auto ref_cycles = execution::CpuInfo::Instance()->GetRefCyclesUs();
       outfile << start_ << ", " << cpu_id_ << ", " << counters_.cpu_cycles_ << ", " << counters_.instructions_ << ", "
               << counters_.cache_references_ << ", " << counters_.cache_misses_ << ", "
-              << counters_.ref_cpu_cycles_ / execution::CpuInfo::Instance()->GetRefCyclesUs() << ", "
-              << rusage_.ru_inblock << ", " << rusage_.ru_oublock << ", " << memory_b_ << ", " << elapsed_us_;
+              << ((ref_cycles == 0) ? 0 : counters_.ref_cpu_cycles_ / ref_cycles) << ", " << rusage_.ru_inblock << ", "
+              << rusage_.ru_oublock << ", " << memory_b_ << ", " << elapsed_us_;
     }
 
+    /** Column headers to emit when writing to CSV */
     static constexpr std::string_view COLUMNS = {
         "start_time, cpu_id, cpu_cycles, instructions, cache_ref, cache_miss, ref_cpu_cycles_, "
         "block_read, block_write, memory_b, elapsed_us"};
@@ -71,7 +84,7 @@ class ResourceTracker {
     rusage_monitor_.Stop();
     metrics_.counters_ = perf_monitor_.Counters();
     metrics_.rusage_ = rusage_monitor_.Usage();
-    metrics_.cpu_id_ = sched_getcpu();
+    metrics_.cpu_id_ = execution::CpuInfo::GetCpuId();
   }
 
   /**
@@ -81,7 +94,7 @@ class ResourceTracker {
   const Metrics &GetMetrics() { return metrics_; }
 
  private:
-  friend execution::exec::ExecutionContext;
+  friend class execution::exec::ExecutionContext;
 
   /**
    * Since we cannot directly obtained the per-thread memory allocation from the OS, and to avoid introducing

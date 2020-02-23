@@ -11,19 +11,28 @@ class MemoryTracker {
  public:
   // TODO(pmenon): Fill me in
 
+  /**
+   * Reset tracker
+   */
   void Reset() { allocated_bytes_ = 0; }
 
-  size_t GetAllocatedSize() {
-    return allocated_bytes_;
-  }
+  /**
+   * @returns number of allocated bytes
+   */
+  size_t GetAllocatedSize() { return allocated_bytes_; }
 
-  void Increment(size_t size) {
-    allocated_bytes_ += size;
-  }
+  /**
+   * Increments number of allocated bytes
+   * @param size number to increment by
+   */
+  void Increment(size_t size) { allocated_bytes_ += size; }
 
-  void Decrement(size_t size) {
-    allocated_bytes_ -= size;
-  }
+  /**
+   * Decrements number of allocated bytes
+   * @param size number to decrement by
+   */
+  void Decrement(size_t size) { allocated_bytes_ -= size; }
+
  private:
   struct Stats {};
   tbb::enumerable_thread_specific<Stats> stats_;

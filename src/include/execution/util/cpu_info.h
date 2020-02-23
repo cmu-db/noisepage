@@ -54,6 +54,11 @@ class CpuInfo {
   }
 
   /**
+   * Get CPU
+   */
+  static int GetCpuId();
+
+  /**
    * Return the number of logical cores in the system
    */
   uint32_t GetNumCores() const noexcept { return num_cores_; }

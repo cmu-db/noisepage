@@ -13,11 +13,16 @@
 
 namespace terrier::execution {
 
+std::atomic<query_id_t> ExecutableQuery::query_identifier{query_id_t{0}};
+
 ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
                                  const common::ManagedPointer<exec::ExecutionContext> exec_ctx) {
+  // Generate a query id using std::atomic<>.fetch_add()
+  query_id_ = ExecutableQuery::query_identifier++;
+
   // Compile and check for errors
   compiler::CodeGen codegen(exec_ctx.Get());
-  compiler::Compiler compiler(&codegen, physical_plan.Get());
+  compiler::Compiler compiler(query_id_, &codegen, physical_plan.Get());
   auto root = compiler.Compile();
   if (codegen.Reporter()->HasErrors()) {
     EXECUTION_LOG_ERROR("Type-checking error! \n {}", codegen.Reporter()->SerializeErrors());
@@ -32,6 +37,53 @@ ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractP
   tpl_module_ = std::make_unique<vm::Module>(std::move(bytecode_module));
   region_ = codegen.ReleaseRegion();
   ast_ctx_ = codegen.ReleaseContext();
+  pipeline_operating_units_ = codegen.ReleasePipelineOperatingUnits();
+  exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(pipeline_operating_units_));
+}
+
+ExecutableQuery::ExecutableQuery(const std::string &filename,
+                                 const common::ManagedPointer<exec::ExecutionContext> exec_ctx) {
+  auto file = llvm::MemoryBuffer::getFile(filename);
+  if (std::error_code error = file.getError()) {
+    EXECUTION_LOG_ERROR("There was an error reading file '{}': {}", filename, error.message());
+    return;
+  }
+
+  // Copy the source into a temporary, compile, and run
+  auto source = (*file)->getBuffer().str();
+
+  // Let's scan the source
+  region_ = std::make_unique<util::Region>("repl-ast");
+  util::Region error_region("repl-error");
+  sema::ErrorReporter error_reporter(&error_region);
+  ast_ctx_ = std::make_unique<ast::Context>(region_.get(), &error_reporter);
+
+  parsing::Scanner scanner(source.data(), source.length());
+  parsing::Parser parser(&scanner, ast_ctx_.get());
+
+  // Parse
+  ast::AstNode *root = parser.Parse();
+  if (error_reporter.HasErrors()) {
+    EXECUTION_LOG_ERROR("Parsing errors: \n {}", error_reporter.SerializeErrors());
+    throw std::runtime_error("Parsing Error!");
+  }
+
+  // Type check
+  sema::Sema type_check(ast_ctx_.get());
+  type_check.Run(root);
+  if (error_reporter.HasErrors()) {
+    EXECUTION_LOG_ERROR("Type-checking errors: \n {}", error_reporter.SerializeErrors());
+    throw std::runtime_error("Type Checking Error!");
+  }
+
+  EXECUTION_LOG_DEBUG("Converted: \n {}", execution::ast::AstDump::Dump(root));
+
+  // Convert to bytecode
+  auto bytecode_module = vm::BytecodeGenerator::Compile(root, exec_ctx.Get(), "tmp-tpl");
+  tpl_module_ = std::make_unique<vm::Module>(std::move(bytecode_module));
+
+  // acquire the output format
+  query_name_ = GetFileName(filename);
 }
 
 ExecutableQuery::ExecutableQuery(const std::string &filename, const common::ManagedPointer<exec::ExecutionContext>
@@ -93,7 +145,8 @@ void ExecutableQuery::Run(const common::ManagedPointer<exec::ExecutionContext> e
     return;
   }
   auto result = main(exec_ctx.Get());
-  EXECUTION_LOG_INFO("main() returned: {}", result);
+  EXECUTION_LOG_DEBUG("main() returned: {}", result);
+  exec_ctx->SetPipelineOperatingUnits(nullptr);
 }
 
 }  // namespace terrier::execution
