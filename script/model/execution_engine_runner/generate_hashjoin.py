@@ -184,10 +184,13 @@ def generate_all():
 
     for col_num in col_nums:
         for row_num in row_nums:
-            cardinalities = [max(1, row_num * row_num // 1000000000)]
-            while cardinalities[-1] < row_num:
-                cardinalities.append(cardinalities[-1] * 2)
-            cardinalities[-1] = row_num
+            cardinalities = []
+            cardinality = 1
+            while cardinality < row_num:
+                if row_num * row_num // cardinality <= 1000000000:
+                    cardinalities.append(cardinality)
+                cardinality *= 2
+            cardinalities.append(row_num)
             for cardinality in cardinalities:
                 fun_names.append(generate_build_side(col_num, row_num, cardinality))
                 fun_names.append(generate_probe_side(col_num, row_num, cardinality))
