@@ -23,17 +23,6 @@ class ResourceTracker {
    * Store the start time, the duration, the perf counters and the rusage counters for the tracked event
    */
   struct Metrics {
-    // The start time of the tracked event (microseconds since the "epoch")
-    uint64_t start_;
-    // The elapsed time of the tracked event (microseconds)
-    uint64_t elapsed_us_;
-    // The perf counters of the tracked event
-    PerfMonitor::PerfCounters counters_;
-    // The rusage counters of the tracked event
-    rusage rusage_;
-    // The number of the CPU on which the thread is currently executing
-    int cpu_id_;
-    // The memory consumption (in bytes)
     /** The start time of the tracked event (microseconds since the "epoch") */
     uint64_t start_;
     /** The elapsed time of the tracked event (microseconds) */
