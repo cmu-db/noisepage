@@ -1998,10 +1998,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     }
     case ast::Builtin::ExecutionContextStartResourceTracker:
     case ast::Builtin::ExecutionContextEndResourceTracker:
-<<<<<<< HEAD
-=======
     case ast::Builtin::ExecutionContextEndPipelineTracker:
->>>>>>> upstream/master
     case ast::Builtin::ExecutionContextGetMemoryPool: {
       VisitExecutionContextCall(call, builtin);
       break;

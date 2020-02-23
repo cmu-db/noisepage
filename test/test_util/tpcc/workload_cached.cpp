@@ -112,7 +112,7 @@ namespace terrier::tpcc {
       for (execution::ExecutableQuery &query : queries_.find(txn_names_[index[counter]])->second) {
         execution::exec::ExecutionContext exec_ctx{db_oid_,
                                                    common::ManagedPointer<transaction::TransactionContext>(txn),
-                                                   query.GetPrinter(), query.GetOutputSchema(),
+                                                   nullptr, nullptr, //FIXME: Get the correct output later
                                                    common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
         query.Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
       }
