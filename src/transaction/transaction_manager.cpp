@@ -111,7 +111,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   LogCommit(txn, result, callback, callback_arg, oldest_active_txn);
 
   // We hand off txn to GC, however, it won't be GC'd until the LogManager marks it as serialized
-  if (gc_enabled_) {
+  if (gc_enabled_ && deferred_action_manager_ != DISABLED) {
     // common::SpinLatch::ScopedSpinLatch guard(&timestamp_manager_->curr_running_txns_latch_);
 
     // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
@@ -204,7 +204,7 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   LogAbort(txn);
 
   // We hand off txn to GC, however, it won't be GC'd until the LogManager marks it as serialized
-  if (gc_enabled_) {
+  if (gc_enabled_ && deferred_action_manager_ != DISABLED) {
     deferred_action_manager_->RegisterDeferredAction([=]() { CleanTransaction(txn); });
   }
 

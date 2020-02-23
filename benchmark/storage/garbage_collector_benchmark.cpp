@@ -5,14 +5,16 @@
 #include "benchmark_util/data_table_benchmark_util.h"
 #include "common/scoped_timer.h"
 #include "storage/garbage_collector.h"
+#include "transaction/deferred_action_manager.h"
 
 namespace terrier {
 
 class GarbageCollectorBenchmark : public benchmark::Fixture {
  public:
   void StartGC(transaction::TimestampManager *const timestamp_manager,
-               transaction::TransactionManager *const txn_manager) {
-    gc_ = new storage::GarbageCollector(DISABLED, common::ManagedPointer(txn_manager));
+               transaction::TransactionManager *const txn_manager,
+               transaction::DeferredActionManager *const deferred_action_manager) {
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(deferred_action_manager), common::ManagedPointer(txn_manager));
     run_gc_ = true;
     gc_thread_ = std::thread([this] { GCThreadLoop(); });
   }
@@ -36,6 +38,7 @@ class GarbageCollectorBenchmark : public benchmark::Fixture {
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   std::default_random_engine generator_;
   storage::GarbageCollector *gc_ = nullptr;
+//  transaction::DeferredActionManager *deferred_action_manager_ = nullptr;
 
  private:
   std::thread gc_thread_;
@@ -59,7 +62,7 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, UnlinkTime)(benchmark::State &stat
     // generate our table and instantiate GC
     LargeDataTableBenchmarkObject tested({8, 8, 8}, initial_table_size_, txn_length_, update_select_ratio_,
                                          &block_store_, &buffer_pool_, &generator_, true);
-    gc_ = new storage::GarbageCollector(DISABLED, common::ManagedPointer(tested.GetTxnManager()));
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetDeferredActionManager()), common::ManagedPointer(tested.GetTxnManager()));
 
     // clean up insert txn
     gc_->PerformGarbageCollection();
@@ -83,7 +86,6 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, UnlinkTime)(benchmark::State &stat
     EXPECT_EQ(result.second, 0);
 
     delete gc_;
-
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
   state.SetItemsProcessed(state.iterations() * num_txns_);
@@ -98,7 +100,7 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, ReclaimTime)(benchmark::State &sta
     // generate our table and instantiate GC
     LargeDataTableBenchmarkObject tested({8, 8, 8}, initial_table_size_, txn_length_, update_select_ratio_,
                                          &block_store_, &buffer_pool_, &generator_, true);
-    gc_ = new storage::GarbageCollector(DISABLED, common::ManagedPointer(tested.GetTxnManager()));
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetDeferredActionManager()), common::ManagedPointer(tested.GetTxnManager()));
 
     // clean up insert txn
     gc_->PerformGarbageCollection();
@@ -121,7 +123,6 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, ReclaimTime)(benchmark::State &sta
     EXPECT_EQ(result.second, 0);
 
     delete gc_;
-
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
   state.SetItemsProcessed(state.iterations() * num_txns_);
@@ -139,7 +140,7 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, HighContention)(benchmark::State &
   for (auto _ : state) {
     LargeDataTableBenchmarkObject tested({8, 8, 8}, 100, txn_length_, update_select_ratio_, &block_store_,
                                          &buffer_pool_, &generator_, true);
-    StartGC(tested.GetTimestampManager(), tested.GetTxnManager());
+    StartGC(tested.GetTimestampManager(), tested.GetTxnManager(), tested.GetDeferredActionManager());
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);

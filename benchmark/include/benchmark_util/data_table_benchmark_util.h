@@ -11,6 +11,7 @@
 #include "test_util/test_harness.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
+#include "transaction/deferred_action_manager.h"
 
 namespace terrier {
 
@@ -125,6 +126,11 @@ class LargeDataTableBenchmarkObject {
   transaction::TransactionManager *GetTxnManager() { return &txn_manager_; }
 
   /**
+   * @return the transaction manager used by this test
+   */
+  transaction::DeferredActionManager *GetDeferredActionManager() { return &deferred_action_manager_; }
+
+  /**
    * Simulate an oltp workload, running the specified number of total transactions while allowing the specified number
    * of transactions to run concurrently. Transactions are generated using the configuration provided on construction.
    *
@@ -155,6 +161,7 @@ class LargeDataTableBenchmarkObject {
   storage::BlockLayout layout_;
   storage::DataTable table_;
   transaction::TimestampManager timestamp_manager_;
+  transaction::DeferredActionManager deferred_action_manager_;
   transaction::TransactionManager txn_manager_;
   transaction::TransactionContext *initial_txn_;
   bool gc_on_;

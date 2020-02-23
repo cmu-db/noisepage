@@ -78,7 +78,8 @@ LargeDataTableBenchmarkObject::LargeDataTableBenchmarkObject(const std::vector<u
       generator_(generator),
       layout_({attr_sizes}),
       table_(common::ManagedPointer(block_store), layout_, storage::layout_version_t(0)),
-      txn_manager_(common::ManagedPointer(&timestamp_manager_), DISABLED, common::ManagedPointer(buffer_pool), gc_on,
+      deferred_action_manager_(gc_on ? common::ManagedPointer(&timestamp_manager_) : nullptr),
+      txn_manager_(common::ManagedPointer(&timestamp_manager_), gc_on ? common::ManagedPointer(&deferred_action_manager_) : DISABLED, common::ManagedPointer(buffer_pool), gc_on,
                    common::ManagedPointer(log_manager)),
       gc_on_(gc_on),
       abort_count_(0) {
