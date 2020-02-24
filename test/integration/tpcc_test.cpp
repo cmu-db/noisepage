@@ -57,8 +57,8 @@ class TPCCTests : public TerrierTest {
                        .Build();
 
     if (metrics_enabled) {
-      db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::LOGGING);
-      db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::TRANSACTION);
+      db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
+      db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::TRANSACTION, 100);
     }
 
     auto block_store = db_main->GetStorageLayer()->GetBlockStore();

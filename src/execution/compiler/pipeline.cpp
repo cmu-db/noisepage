@@ -26,7 +26,7 @@ void Pipeline::Initialize(util::RegionVector<ast::Decl *> *decls, util::RegionVe
   }
 }
 
-ast::Decl *Pipeline::Produce(uint32_t pipeline_idx) {
+ast::Decl *Pipeline::Produce(query_id_t query_id, pipeline_id_t pipeline_idx) {
   pipeline_idx_ = pipeline_idx;
   // Function name
   ast::Identifier fn_name = GetPipelineName();
@@ -39,9 +39,23 @@ ast::Decl *Pipeline::Produce(uint32_t pipeline_idx) {
 
   FunctionBuilder builder{codegen_, fn_name, std::move(params), ret_type};
 
+  // Inject StartResourceTracker()
+  std::vector<ast::Expr *> args{
+      codegen_->MakeExpr(codegen_->GetExecCtxVar()),
+      codegen_->IntLiteral(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE))};
+  auto start_call = codegen_->BuiltinCall(ast::Builtin::ExecutionContextStartResourceTracker, std::move(args));
+  builder.Append(codegen_->MakeStmt(start_call));
+
   // for (const auto & translator: pipeline_) {
   pipeline_[pipeline_.size() - 1]->Produce(&builder);
   //}
+
+  // Inject EndPipelineTracker();
+  args = {codegen_->MakeExpr(codegen_->GetExecCtxVar())};
+  args.push_back(codegen_->IntLiteral(!query_id));
+  args.push_back(codegen_->IntLiteral(!pipeline_idx));
+  auto end_call = codegen_->BuiltinCall(ast::Builtin::ExecutionContextEndPipelineTracker, std::move(args));
+  builder.Append(codegen_->MakeStmt(end_call));
   return builder.Finish();
 }
 

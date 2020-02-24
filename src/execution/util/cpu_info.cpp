@@ -2,12 +2,14 @@
 
 #include <algorithm>
 #include <memory>
+#include <regex>  // NOLINT
 #include <string>
 
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 
 #if __APPLE__
+#include <cpuid.h>
 #include <sys/sysctl.h>
 #include <sys/types.h>
 #endif
@@ -30,6 +32,20 @@ struct {
     {CpuInfo::AVX2, {"avx2"}},
     {CpuInfo::AVX512, {"avx512f", "avx512cd"}},
 };
+
+int CpuInfo::GetCpuId() {
+#ifdef __APPLE__
+  uint32_t cpuinfo[4];
+  __cpuid_count(1, 0, cpuinfo[0], cpuinfo[1], cpuinfo[2], cpuinfo[3]);
+  if ((cpuinfo[3] & (1 << 9)) == 0) {
+    return -1;
+  }
+
+  return (cpuinfo[3] >> 24);
+#else
+  return sched_getcpu();
+#endif
+}
 
 void CpuInfo::ParseCpuFlags(llvm::StringRef flags) {
   for (const auto &[feature, names] : features) {
@@ -88,8 +104,13 @@ void CpuInfo::InitCpuInfo() {
 
     if (name.startswith("processor")) {
       num_cores_++;
-    } else if (name.startswith("model")) {
+    } else if (name.startswith("model name")) {
       model_name_ = value.str();
+      std::regex cpu_freq_regex("\\s[\\d.]+GHz");
+      std::cmatch m;
+      std::regex_search(model_name_.c_str(), m, cpu_freq_regex);
+      double base_cpu_ghz = std::stod(m[0].str());
+      ref_cycles_us_ = static_cast<uint64_t>(base_cpu_ghz * 1000);
     } else if (name.startswith("cpu MHz")) {
       double cpu_mhz;
       value.getAsDouble(cpu_mhz);

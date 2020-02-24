@@ -1031,7 +1031,7 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   EXPECT_EQ(ctpn->GetForeignKeys()[0].foreign_key_sinks_.size(), 1);
   EXPECT_EQ(ctpn->GetForeignKeys()[0].foreign_key_sinks_[0], "a1");
   EXPECT_EQ(ctpn->GetForeignKeys()[0].sink_table_name_, "a");
-  EXPECT_EQ(ctpn->GetForeignKeys()[0].constraint_name_, "FK_c->a");
+  EXPECT_EQ(ctpn->GetForeignKeys()[0].constraint_name_, "c_a_fkey");
   EXPECT_EQ(ctpn->GetForeignKeys()[0].del_action_, parser::FKConstrActionType::NOACTION);
   EXPECT_EQ(ctpn->GetForeignKeys()[0].upd_action_, parser::FKConstrActionType::NOACTION);
   EXPECT_EQ(ctpn->GetUniqueConstraints().size(), 1);
