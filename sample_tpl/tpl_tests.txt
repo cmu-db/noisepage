@@ -50,6 +50,8 @@ types/timestamps.tpl,false,0
 agg.tpl,true,10
 agg-vec.tpl,true,10
 agg-vec-filter.tpl,true,10
+static-agg.tpl,true,49995000
+distinct-agg.tpl,true,45
 delete.tpl,true,0
 insert.tpl,true,11
 update.tpl,true,11
@@ -63,6 +65,7 @@ scan-table-3.tpl,true,9950
 scan-alltypes.tpl,true,500
 scan-vpi-iter.tpl,true,500
 sort.tpl,true,2000
+sort-limit.tpl,true,100
 vec-filter.tpl,true,3000
 #output1.tpl,true,500 <Relies on output buffer>
 scan-index.tpl,true,1

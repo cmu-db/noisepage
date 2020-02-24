@@ -141,7 +141,9 @@ class OperatorTranslator : public ExpressionEvaluator {
    * Most operators should not be materializers.
    * @return a pair containing the identifiers of the output tuple and its type.
    */
-  virtual std::pair<ast::Identifier *, ast::Identifier *> GetMaterializedTuple() { return {nullptr, nullptr}; }
+  virtual std::pair<const ast::Identifier *, const ast::Identifier *> GetMaterializedTuple() {
+    return {nullptr, nullptr};
+  }
 
   /**
    * Used by operators when they need to generate a struct containing a child's output.
