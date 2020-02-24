@@ -19,3 +19,7 @@
 
 # False positive from atexit() registration in libc
 leak:*__new_exitfn*
+
+# 2020-02-23
+# The Bw-Tree leaks memory in our TPC-C tests. This will ignore it for now.
+leak:*third_party::bwtree*
