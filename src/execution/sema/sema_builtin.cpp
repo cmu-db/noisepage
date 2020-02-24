@@ -45,11 +45,19 @@ void Sema::CheckBuiltinSqlNullCall(ast::CallExpr *call, ast::Builtin builtin) {
   switch (builtin) {
     case ast::Builtin::IsSqlNull: /* fall-through */
     case ast::Builtin::IsSqlNotNull: {
+      if (!input_type->IsSqlValueType()) {
+        ReportIncorrectCallArg(call, 0, "sql_type");
+        return;
+      }
       call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
       break;
     }
     case ast::Builtin::NullToSql: {
-      call->SetType(input_type);
+      if (!input_type->IsPointerType() || !input_type->GetPointeeType()->IsSqlValueType()) {
+        ReportIncorrectCallArg(call, 0, "&sql_type");
+        return;
+      }
+      call->SetType(input_type->GetPointeeType());
       break;
     }
     default:

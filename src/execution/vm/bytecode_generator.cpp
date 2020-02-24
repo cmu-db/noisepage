@@ -444,14 +444,14 @@ void BytecodeGenerator::VisitSqlNullCall(ast::CallExpr *call, ast::Builtin built
   switch (builtin) {
     case ast::Builtin::IsSqlNull: {
       auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
-      auto input = VisitExpressionForRValue(call->Arguments()[0]);
+      auto input = VisitExpressionForLValue(call->Arguments()[0]);
       Emitter()->Emit(Bytecode::ValIsNull, dest, input);
       ExecutionResult()->SetDestination(dest.ValueOf());
       break;
     }
     case ast::Builtin::IsSqlNotNull: {
       auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
-      auto input = VisitExpressionForRValue(call->Arguments()[0]);
+      auto input = VisitExpressionForLValue(call->Arguments()[0]);
       Emitter()->Emit(Bytecode::ValIsNotNull, dest, input);
       ExecutionResult()->SetDestination(dest.ValueOf());
       break;

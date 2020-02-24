@@ -33,9 +33,7 @@ struct Val {
   /**
    * @return a NULL SQL value
    */
-  static Val Null() {
-    return Val(true);
-  }
+  static Val Null() { return Val(true); }
 };
 
 /**

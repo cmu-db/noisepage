@@ -607,10 +607,7 @@ VM_OP_HOT void OpForceBoolTruth(bool *result, terrier::execution::sql::BoolVal *
   *result = input->ForceTruth();
 }
 
-VM_OP_HOT void OpInitSqlNull(terrier::execution::sql::Val *result) {
-  *result = terrier::execution::sql::Val::Null();
-  result->is_null_ = true;
-}
+VM_OP_HOT void OpInitSqlNull(terrier::execution::sql::Val *result) { *result = terrier::execution::sql::Val::Null(); }
 
 VM_OP_HOT void OpInitBoolVal(terrier::execution::sql::BoolVal *result, bool input) {
   result->is_null_ = false;

@@ -406,7 +406,7 @@ ast::Expr *CodeGen::PeekValue(const type::TransientValue &transient_val) {
       default:
         UNREACHABLE("Unsupported NULL type!");
     }
-    return OneArgCall(ast::Builtin::NullToSql, dummy_expr);
+    return OneArgCall(ast::Builtin::NullToSql, PointerTo(dummy_expr));
   }
 
   switch (transient_val.Type()) {
