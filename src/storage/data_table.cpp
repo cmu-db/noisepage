@@ -482,7 +482,7 @@ void DataTable::ExportTable(const std::string &file_name, std::vector<type::Type
     AssembleMetadataBuffer(outfile, flatbuf::MessageHeader_RecordBatch, record_batch.Union(), aligned_offset,
                            &flatbuf_builder);
 
-    // Second pass, write data
+    // Second pass, write data.
     for (size_t i = 0; i < column_id_size; ++i) {
       auto col_id = column_ids[i];
       common::RawConcurrentBitmap *column_bitmap = accessor_.ColumnNullBitmap(block, col_id);
