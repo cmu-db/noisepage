@@ -30,7 +30,7 @@ def generate_key_check(col_num):
 def generate_build_side(col_num, row_num, cardinality):
     fun_name = "buildCol{}Row{}Car{}".format(col_num, row_num, cardinality)
     print("fun {}(execCtx: *ExecutionContext, state: *State) -> nil {{".format(fun_name))
-    print("  @execCtxStartResourceTracker(execCtx)")
+    print("  @execCtxStartResourceTracker(execCtx, 3)")
 
     print("  var jht: *JoinHashTable = &state.table{}".format(col_num))  # join hash table
 
@@ -75,10 +75,10 @@ def generate_build_side(col_num, row_num, cardinality):
     return fun_name
 
 
-def generate_probe_side(col_num, row_num, cardinality):
-    fun_name = "probeCol{}Row{}Car{}".format(col_num, row_num, cardinality)
+def generate_probe_side(col_num, row_num, cardinality, matched_num):
+    fun_name = "probeCol{}Row{}Car{}Matched{}".format(col_num, row_num, cardinality, matched_num)
     print("fun {}(execCtx: *ExecutionContext, state: *State) -> nil {{".format(fun_name))
-    print("  @execCtxStartResourceTracker(execCtx)")
+    print("  @execCtxStartResourceTracker(execCtx, 3)")
 
     print("  var jht: *JoinHashTable = &state.table{}".format(col_num))  # join hash table
     print("  var build_row: *BuildRow{}".format(col_num))
@@ -116,7 +116,7 @@ def generate_probe_side(col_num, row_num, cardinality):
     print("  @joinHTBuild(jht)")
 
     print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"joinprobe, {}, {}, {}\"))".format(
-        row_num, col_num * 4, row_num * row_num // cardinality))
+        row_num, col_num * 4, matched_num))
     print("}")
 
     print()
@@ -183,7 +183,7 @@ def generate_all():
         generate_key_check(col_num)
 
     for col_num in col_nums:
-        for row_num in row_nums:
+        for i, row_num in enumerate(row_nums):
             cardinalities = []
             cardinality = 1
             while cardinality < row_num:
@@ -193,7 +193,11 @@ def generate_all():
             cardinalities.append(row_num)
             for cardinality in cardinalities:
                 fun_names.append(generate_build_side(col_num, row_num, cardinality))
-                fun_names.append(generate_probe_side(col_num, row_num, cardinality))
+                fun_names.append(generate_probe_side(col_num, row_num, cardinality, row_num * row_num // cardinality))
+            for j in range(i + 1, len(row_nums)):
+                probe_row_num = row_nums[j]
+                fun_names.append(generate_build_side(col_num, row_num, row_num))
+                fun_names.append(generate_probe_side(col_num, probe_row_num, probe_row_num, row_num))
 
     generate_main_fun(fun_names)
 
