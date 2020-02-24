@@ -9,6 +9,7 @@ import pickle
 
 import global_data
 import data_info
+from type import OpUnit
 
 np.set_printoptions(precision=4)
 np.set_printoptions(edgeitems=10)
@@ -56,9 +57,14 @@ class GlobalTrainer:
             print("{} pipeline elapsed time: {}".format(data.name, y[-1]))
             total_time = 0
             for opunit_feature in data.opunit_features:
-                opunit_model = self.mini_model_map[opunit_feature[0]]
+                opunit = opunit_feature[0]
+                opunit_model = self.mini_model_map[opunit]
                 x = np.array(opunit_feature[1]).reshape(1, -1)
                 y_pred = opunit_model.predict(x)
+                # subtract scan from certain double-counted opunits
+                if opunit in data_info.scan_subtract_opunits:
+                    scan_y_pred = self.mini_model_map[OpUnit.SCAN].predict(x)
+                    y_pred -= scan_y_pred
                 print("Predicted {} elapsed time with feature {}: {}".format(opunit_feature[0].name,
                                                                              x[0], y_pred[0, -1]))
                 total_time += y_pred[0, -1]

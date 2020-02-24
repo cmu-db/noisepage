@@ -38,5 +38,7 @@ mini_model_target_num = len(mini_model_target_list)
 arithmetic_opunits = {OpUnit.INT_ADD, OpUnit.INT_MULTIPLY, OpUnit.INT_DIVIDE, OpUnit.INT_GREATER,
                       OpUnit.REAL_ADD, OpUnit.REAL_MULTIPLY, OpUnit.REAL_DIVIDE, OpUnit.REAL_GREATER}
 
+scan_subtract_opunits = {OpUnit.SORT_BUILD, OpUnit.AGG_BUILD, OpUnit.JOIN_BUILD, OpUnit.JOIN_PROBE}
+
 # The index for the tuple num feature in the operating units that has that feature
 tuple_num_index = 0

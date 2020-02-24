@@ -37,13 +37,15 @@ def _execution_get_global_data(filename):
         next(reader)
         for line in reader:
             # The first element is always the query/pipeline identifier
-            # Need to deep copy since we're going to add the execution mode after it
-            opunit_features = copy.deepcopy(query_info.feature_map[line[0]])
-            mode = int(line[1])
-            for opunit_feature in opunit_features:
-                opunit_feature[1].append(mode)
-            line_data = list(map(int, line[2:]))
-            data_list.append(GlobalData(line[0], opunit_features, np.array(line_data)))
+            identifier = line[0]
+            if identifier in query_info.feature_map:
+                # Need to deep copy since we're going to add the execution mode after it
+                opunit_features = copy.deepcopy(query_info.feature_map[identifier])
+                mode = int(line[1])
+                for opunit_feature in opunit_features:
+                    opunit_feature[1].append(mode)
+                line_data = list(map(int, line[2:]))
+                data_list.append(GlobalData(line[0], opunit_features, np.array(line_data)))
 
     return data_list
 
