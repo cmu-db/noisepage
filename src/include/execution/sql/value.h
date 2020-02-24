@@ -29,6 +29,13 @@ struct Val {
    * @param is_null whether the value is null
    */
   explicit Val(bool is_null = false) noexcept : is_null_(is_null) {}
+
+  /**
+   * @return a NULL SQL value
+   */
+  static Val Null() {
+    return Val(true);
+  }
 };
 
 /**

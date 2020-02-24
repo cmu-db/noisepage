@@ -607,17 +607,9 @@ VM_OP_HOT void OpForceBoolTruth(bool *result, terrier::execution::sql::BoolVal *
   *result = input->ForceTruth();
 }
 
-VM_OP_HOT void OpInitSqlNull(terrier::execution::sql::Val *result, uintptr_t type) {
-  auto type_ptr = reinterpret_cast<terrier::execution::ast::Type *>(type);
-
-#define INIT_SQL_NULL(BUILTIN_TYPE, SQL_VAL_TYPE)                                        \
-  if (type_ptr->IsSpecificBuiltin(terrier::execution::ast::BuiltinType::BUILTIN_TYPE)) { \
-    *result = SQL_VAL_TYPE::Null();                                                      \
-  }
-
-  SQL_BUILTIN_TYPE_LIST(INIT_SQL_NULL);
-
-#undef INIT_SQL_NULL
+VM_OP_HOT void OpInitSqlNull(terrier::execution::sql::Val *result) {
+  *result = terrier::execution::sql::Val::Null();
+  result->is_null_ = true;
 }
 
 VM_OP_HOT void OpInitBoolVal(terrier::execution::sql::BoolVal *result, bool input) {

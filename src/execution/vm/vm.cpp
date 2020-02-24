@@ -789,8 +789,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
 
   OP(InitSqlNull) : {
     auto *sql_null = frame->LocalAt<sql::Val *>(READ_LOCAL_ID());
-    auto input_type = static_cast<uintptr_t>(READ_IMM8());
-    OpInitSqlNull(sql_null, input_type);
+    OpInitSqlNull(sql_null);
     DISPATCH_NEXT();
   }
 

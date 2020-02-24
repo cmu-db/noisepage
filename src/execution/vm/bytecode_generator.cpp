@@ -458,9 +458,13 @@ void BytecodeGenerator::VisitSqlNullCall(ast::CallExpr *call, ast::Builtin built
     }
     case ast::Builtin::NullToSql: {
       // The type of NULL to be created should have been set in sema.
+      // Per discussions with pmenon, the NULL type should be determined during bytecode generation.
+      // Currently, all SQL types do not need special behavior for NULLs, and it suffices to create
+      // a Val::Null() to handle every use-case. However, if custom NULL objects are required in the
+      // future, then the switching on the type of the NULL should also be done in this function.
+      // The idea is to avoid the overhead of doing it at runtime.
       auto dest = ExecutionResult()->GetOrCreateDestination(call->GetType());
-      auto input_type = reinterpret_cast<uintptr_t>(call->GetType());
-      Emitter()->EmitAll(Bytecode::InitSqlNull, dest, input_type);
+      Emitter()->EmitAll(Bytecode::InitSqlNull, dest);
       break;
     }
     default:
