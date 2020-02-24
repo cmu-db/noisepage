@@ -25,7 +25,7 @@ class ExpressionNode : public AbstractOptimizerNode {
   /**
    * @return This ExpressionNode's child nodes.
    */
-  const std::vector<common::ManagedPointer<AbstractOptimizerNode>> &GetChildren() cosnt { return children_; }
+  const std::vector<common::ManagedPointer<AbstractOptimizerNode>> &GetChildren() const { return children_; }
 
   /**
    * @return The ExpressionNodeContents contained in this node.
@@ -40,13 +40,13 @@ class ExpressionNode : public AbstractOptimizerNode {
    * have the empty string as their info)
    */
   const std::string GetInfo() const {
-    // TODO(esargent): create proper info statement?
+    // TODO(esargent): create proper info statement
     return "";
   }
 
  private:
   common::ManagedPointer<AbstractOptimizerNodeContents> contents_;
-  std::vector < common::ManagedPointer<AbstractOptimizerNode> children_;
+  std::vector <common::ManagedPointer<AbstractOptimizerNode>> children_;
 };
 
 }  // namespace terrier::optimizer
