@@ -45,14 +45,6 @@ public class InsertTest extends TestUtility {
     }
 
     /**
-     * Init setup, only execute once before tests
-     */
-    @BeforeClass
-    public static void init() throws SQLException {
-
-    }
-
-    /**
      * Setup for each test, execute before each test
      * reconnect and setup default table
      */
