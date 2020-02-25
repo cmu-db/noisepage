@@ -88,8 +88,8 @@ public class InsertTest extends TestUtility {
         stmt.execute(sql);
         getResults();
         rs.next();
-	    checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
-	    assertNoMoreRows(rs);
+        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
+        assertNoMoreRows(rs);
     }
 
     /**
@@ -102,8 +102,8 @@ public class InsertTest extends TestUtility {
         stmt.execute(sql);
         getResults();
         rs.next();
-	    checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
-	    assertNoMoreRows(rs);
+        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
+        assertNoMoreRows(rs);
     }
 
     /**
@@ -117,8 +117,8 @@ public class InsertTest extends TestUtility {
         stmt.execute(sql);
         getResults();
         rs.next();
-	    checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
-	    assertNoMoreRows(rs);
+        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
+        assertNoMoreRows(rs);
     }
 
     /* 2 tuple inserts */
@@ -133,11 +133,10 @@ public class InsertTest extends TestUtility {
         stmt.execute(sql);
         getResults();
         rs.next();
-	    checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
-
+        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
         rs.next();
-	    checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {11, 12, 13});
-	    assertNoMoreRows(rs);
+        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {11, 12, 13});
+        assertNoMoreRows(rs);
     }
 
     /**
@@ -152,11 +151,11 @@ public class InsertTest extends TestUtility {
         stmt.execute(sql);
         getResults();
         rs.next();
-	    checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 0, 0});
+        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 0, 0});
 
-	    rs.next();
-	    checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {11, 12, 0});
-	    assertNoMoreRows(rs);
+        rs.next();
+        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {11, 12, 0});
+        assertNoMoreRows(rs);
     }
 
     /**
@@ -201,9 +200,9 @@ public class InsertTest extends TestUtility {
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
         rs.next();
-	    checkRow(rs, new String [] {"c1", "c1"}, new int [] {1, 1});
+        checkRow(rs, new String [] {"c1", "c1"}, new int [] {1, 1});
         rs.next();
-	    checkRow(rs, new String [] {"c1", "c1"}, new int [] {2, 2});
+        checkRow(rs, new String [] {"c1", "c1"}, new int [] {2, 2});
         assertNoMoreRows(rs);
     }
 
