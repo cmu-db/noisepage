@@ -152,7 +152,6 @@ public class InsertTest extends TestUtility {
         getResults();
         rs.next();
         checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 0, 0});
-
         rs.next();
         checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {11, 12, 0});
         assertNoMoreRows(rs);
