@@ -1,4 +1,4 @@
-#include <functional>
+
 #include <limits>
 #include <memory>
 #include <string>
@@ -85,15 +85,24 @@ class MiniRunnersTest : public SqlBasedTest {
   }
 
   static constexpr vm::ExecutionMode MODE = vm::ExecutionMode::Interpret;
+
+  __attribute__((noinline))
+  uint32_t ThisIsAnnoying(size_t n) {
+    uint32_t sum = 0;
+
+    for (size_t i = 0; i < n; i++) {
+      sum += i;
+      DoNotOptimizeAway(i);
+      DoNotOptimizeAway(sum);
+    }
+
+    return sum;
+  }
 };
 
 TEST_F(MiniRunnersTest, OpIntegerAdd) {
-  uint32_t sum = 0;
-  for (size_t i = 0; i < 100000000; i++) {
-    sum += i;
-  }
-  std::cout << sum << "\n";
-  DoNotOptimizeAway(sum);
+  uint32_t ret = ThisIsAnnoying(1);
+  DoNotOptimizeAway(ret);
 }
 
 }  // namespace terrier::execution::compiler::test
