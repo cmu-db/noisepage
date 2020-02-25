@@ -424,7 +424,6 @@ ast::Expr *CodeGen::TplType(type::TypeId type) {
     case type::TypeId::VARCHAR:
       return BuiltinType(ast::BuiltinType::Kind::StringVal);
     case type::TypeId::VARBINARY:
-//      return BuiltinType(ast::BuiltinType::Kind::StringVal);
     default:
       UNREACHABLE("Cannot codegen unsupported type.");
   }
