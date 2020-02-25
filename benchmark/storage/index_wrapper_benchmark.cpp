@@ -199,6 +199,22 @@ BENCHMARK_DEFINE_F(IndexBenchmark, HashIndexRandomScanKey)(benchmark::State &sta
   state.SetItemsProcessed(state.iterations() * table_size_);
 }
 
+// Determine required time to run key lookup with BwTree structure for index
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(IndexBenchmark, BPlusTreeIndexRandomScanKey)(benchmark::State &state) {
+  // Create index using BwTree and populate associated table
+  CreateIndex(storage::index::IndexType::BPLUSTREE);
+  PopulateTableAndIndex();
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    // Run key lookup and record amount of time required in seconds
+    const auto total_ns = RunWorkload();
+    state.SetIterationTime(static_cast<double>(total_ns) / 1000000000.0);
+  }
+  // Determine total number of items processed
+  state.SetItemsProcessed(state.iterations() * table_size_);
+}
+
 // ----------------------------------------------------------------------------
 // BENCHMARK REGISTRATION
 // ----------------------------------------------------------------------------
@@ -208,6 +224,9 @@ BENCHMARK_REGISTER_F(IndexBenchmark, BwTreeIndexRandomScanKey)
     ->Unit(benchmark::kMillisecond);
 BENCHMARK_REGISTER_F(IndexBenchmark, HashIndexRandomScanKey)
     ->UseManualTime()
+    ->Unit(benchmark::kMillisecond);
+BENCHMARK_REGISTER_F(IndexBenchmark, BPlusTreeIndexRandomScanKey)
+->UseManualTime()
     ->Unit(benchmark::kMillisecond);
 // clang-format on
 
