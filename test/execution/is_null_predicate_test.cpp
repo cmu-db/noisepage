@@ -9,13 +9,11 @@ class IsNullPredicateTests : public TplTest {};
 
 // NOLINTNEXTLINE
 TEST_F(IsNullPredicateTests, IsNull) {
-#define CHECK_IS_NULL_FOR_TYPE(TYPE)                                \
-  {                                                                 \
-    auto result = BoolVal::Null();                                  \
-    const auto val = TYPE::Null();                                  \
-    terrier::execution::sql::IsNullPredicate::IsNull(&result, val); \
-    EXPECT_FALSE(result.is_null_);                                  \
-    EXPECT_TRUE(result.val_);                                       \
+#define CHECK_IS_NULL_FOR_TYPE(TYPE)                                        \
+  {                                                                         \
+    const auto val = TYPE::Null();                                          \
+    EXPECT_TRUE(terrier::execution::sql::IsNullPredicate::IsNull(val));     \
+    EXPECT_FALSE(terrier::execution::sql::IsNullPredicate::IsNotNull(val)); \
   }
 
   CHECK_IS_NULL_FOR_TYPE(BoolVal);
@@ -30,13 +28,11 @@ TEST_F(IsNullPredicateTests, IsNull) {
 
 // NOLINTNEXTLINE
 TEST_F(IsNullPredicateTests, IsNotNull) {
-#define CHECK_IS_NOT_NULL_FOR_TYPE(TYPE, INIT)                      \
-  {                                                                 \
-    auto result = BoolVal::Null();                                  \
-    const auto val = TYPE(INIT);                                    \
-    terrier::execution::sql::IsNullPredicate::IsNull(&result, val); \
-    EXPECT_FALSE(result.is_null_);                                  \
-    EXPECT_FALSE(result.val_);                                      \
+#define CHECK_IS_NOT_NULL_FOR_TYPE(TYPE, INIT)                             \
+  {                                                                        \
+    const auto val = TYPE(INIT);                                           \
+    EXPECT_FALSE(terrier::execution::sql::IsNullPredicate::IsNull(val));   \
+    EXPECT_TRUE(terrier::execution::sql::IsNullPredicate::IsNotNull(val)); \
   }
 
   CHECK_IS_NOT_NULL_FOR_TYPE(BoolVal, false);

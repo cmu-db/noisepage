@@ -364,6 +364,7 @@ class PostgresPacketWriter : public PacketWriter {
       if (val->is_null_) {
         // write a -1 for the length of the column value and continue to the next value
         AppendValue<int32_t>(static_cast<int32_t>(-1));
+        curr_offset += execution::sql::ValUtil::GetSqlSize(col.GetType());
         continue;
       }
 

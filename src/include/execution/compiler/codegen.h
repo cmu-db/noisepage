@@ -286,6 +286,23 @@ class CodeGen {
   ast::Expr *MemberExpr(ast::Identifier lhs, ast::Identifier rhs);
 
   /**
+   * @param expr The expression to be checked.
+   * @return The generated null check.
+   */
+  ast::Expr *IsSqlNull(ast::Expr *expr);
+
+  /**
+   * @param expr The expression to be checked.
+   * @return The generated not null check.
+   */
+  ast::Expr *IsSqlNotNull(ast::Expr *expr);
+
+  /**
+   * @param expr An expression whose type is the type of NULL to create.
+   * @return The generated NULL.
+   */
+  ast::Expr *NullToSql(ast::Expr *expr);
+  /**
    * @param num The number to convert to a sql Integer.
    * @return The generated sql Integer
    */
@@ -551,6 +568,13 @@ class CodeGen {
    * @return The expression corresponding to the builtin call.
    */
   ast::Expr *OneArgCall(ast::Builtin builtin, ast::Expr *arg);
+
+  /**
+   * Generic way to call functions that take in no arguments
+   * @param builtin builtin function to call
+   * @return The expression corresponding to the builtin call.
+   */
+  ast::Expr *ZeroArgCall(ast::Builtin builtin);
 
  private:
   // Counter for the identifiers. Allows the creation of unique names.
