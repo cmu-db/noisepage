@@ -45,7 +45,6 @@ public class TestUtility {
      * @param columns         column names
      * @param expected_values expected values of columns
      */
-
     public void checkRow(ResultSet rs, String [] columns, int [] expected_values) throws SQLException {
         assertEquals(columns.length, expected_values.length);
 	    for (int i=0; i<columns.length; i++) {

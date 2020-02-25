@@ -16,7 +16,7 @@ import static org.junit.Assert.assertEquals;
 public class InsertTest extends TestUtility {
     private Connection conn;
     private ResultSet rs;
-    private String s_sql = "SELECT * FROM tbl;";
+    private String S_SQL = "SELECT * FROM tbl;";
 
     private static final String SQL_DROP_TABLE =
             "DROP TABLE IF EXISTS tbl;";
@@ -30,7 +30,7 @@ public class InsertTest extends TestUtility {
     /**
      * Initialize the database and table for testing
      */
-    private void InitDatabase() throws SQLException {
+    private void initDatabase() throws SQLException {
         Statement stmt = conn.createStatement();
         stmt.execute(SQL_DROP_TABLE);
         stmt.execute(SQL_CREATE_TABLE);
@@ -41,14 +41,14 @@ public class InsertTest extends TestUtility {
      */
     private void getResults() throws SQLException {
         Statement stmt = conn.createStatement();
-        rs = stmt.executeQuery(s_sql);
+        rs = stmt.executeQuery(S_SQL);
     }
 
     /**
      * Init setup, only execute once before tests
      */
     @BeforeClass
-    public static void Init() throws SQLException {
+    public static void init() throws SQLException {
 
     }
 
@@ -57,10 +57,10 @@ public class InsertTest extends TestUtility {
      * reconnect and setup default table
      */
     @Before
-    public void Setup() throws SQLException {
+    public void setup() throws SQLException {
         conn = makeDefaultConnection();
-	    conn.setAutoCommit(true);
-	    InitDatabase();
+        conn.setAutoCommit(true);
+        initDatabase();
     }
 
     /**
@@ -68,7 +68,7 @@ public class InsertTest extends TestUtility {
      * drop the default table
      */
     @After
-    public void Teardown() throws SQLException {
+    public void teardown() throws SQLException {
         Statement stmt = conn.createStatement();
         stmt.execute(SQL_DROP_TABLE);
     }
@@ -82,7 +82,7 @@ public class InsertTest extends TestUtility {
      * 1 tuple insert, with no column specification.
      */
     @Test
-    public void test_1Tuple_NCS() throws SQLException {
+    public void test1TupleNoColumn() throws SQLException {
         String sql = "INSERT INTO tbl VALUES (1, 2, 3);";
         Statement stmt = conn.createStatement();
         stmt.execute(sql);
@@ -96,7 +96,7 @@ public class InsertTest extends TestUtility {
      * 1 tuple insert, with columns inserted in schema order.
      */
     @Test
-    public void test_1Tuple_CS_1() throws SQLException {
+    public void test1TupleColumnSchema() throws SQLException {
         String sql = "INSERT INTO tbl (c1, c2, c3) VALUES (1, 2, 3);";
         Statement stmt = conn.createStatement();
         stmt.execute(sql);
@@ -111,7 +111,7 @@ public class InsertTest extends TestUtility {
      * issue #729 wait to be fixed
      */ 
 //    @Test
-    public void test_1Tuple_CS_2() throws SQLException {
+    public void test1TupleColumnDiffSchema() throws SQLException {
         String sql = "INSERT INTO tbl (c3, c1, c2) VALUES (3, 1, 2);";
         Statement stmt = conn.createStatement();
         stmt.execute(sql);
@@ -127,7 +127,7 @@ public class InsertTest extends TestUtility {
      * 2 tuple insert, with no column specification.
      */
     @Test
-    public void test_2Tuple_NCS_1() throws SQLException {
+    public void test2TupleNoCoulmn() throws SQLException {
         String sql = "INSERT INTO tbl VALUES (1, 2, 3), (11, 12, 13);";
         Statement stmt = conn.createStatement();
         stmt.execute(sql);
@@ -146,7 +146,7 @@ public class InsertTest extends TestUtility {
      * binding failed, wait to be fixed
      */
     // @Test
-    public void test_2Tuple_NCS_2() throws SQLException {
+    public void test2TupleFewerColumn() throws SQLException {
         String sql = "INSERT INTO tbl VALUES (1), (11, 12);";
         Statement stmt = conn.createStatement();
         stmt.execute(sql);
@@ -164,7 +164,7 @@ public class InsertTest extends TestUtility {
      * #706 fixed but also need #724 for select and drop
      */
     @Test
-    public void test_CreateTableQualifiedNameSpace() throws SQLException {
+    public void testCreateTableQualifiedNameSpace() throws SQLException {
         String create_schema_SQL = "CREATE SCHEMA foo;";
         String create_table_SQL = "CREATE TABLE foo.bar (id integer);";
 
@@ -193,7 +193,7 @@ public class InsertTest extends TestUtility {
      * #720 fixed
      */
     @Test
-    public void test_SelectDuplicateColumns() throws SQLException {
+    public void testSelectDuplicateColumns() throws SQLException {
         String insert_SQL = "INSERT INTO tbl VALUES (1, 2, 3), (2, 3, 4);";
         Statement stmt = conn.createStatement();
         stmt.execute(insert_SQL);
@@ -212,7 +212,7 @@ public class InsertTest extends TestUtility {
      * #733 fixed
      */
     @Test
-    public void test_CastofIntegerString() throws SQLException {
+    public void testCastofIntegerString() throws SQLException {
         conn.setAutoCommit(false);
         String create_SQL = "CREATE TABLE xxx01 (col0 VARCHAR(32) PRIMARY KEY, col1 VARCHAR(32));";
         Statement stmt = conn.createStatement();

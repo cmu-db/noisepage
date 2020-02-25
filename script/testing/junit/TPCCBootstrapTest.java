@@ -11,12 +11,11 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-
 public class TPCCBootstrapTest extends TestUtility {
     private Connection conn;
 
-	private static final String SQL_CREATE_ITEM =
-	"CREATE TABLE item (" +
+    private static final String SQL_CREATE_ITEM =
+    "CREATE TABLE item (" +
       "i_id int NOT NULL PRIMARY KEY," +
       "i_name varchar(24) NOT NULL," +
       "i_price decimal NOT NULL," +
@@ -144,7 +143,7 @@ public class TPCCBootstrapTest extends TestUtility {
     ");";
 
 
-    private void InitDatabase() throws SQLException {
+    private void initDatabase() throws SQLException {
 	Statement stmt = conn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS item;");
     stmt.execute("DROP TABLE IF EXISTS warehouse;");
@@ -167,18 +166,18 @@ public class TPCCBootstrapTest extends TestUtility {
     }
 
     @Before
-    public void Setup() {
+    public void setup() {
 	try {
 	    conn = makeDefaultConnection();
 	    conn.setAutoCommit(true);
-	    InitDatabase();
+	    initDatabase();
         } catch (SQLException ex) {
 	    DumpSQLException(ex);
 	}
     }
 
     @After
-    public void Teardown() throws SQLException {
+    public void teardown() throws SQLException {
 	Statement stmt = conn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS item;");
     stmt.execute("DROP TABLE IF EXISTS warehouse;");
