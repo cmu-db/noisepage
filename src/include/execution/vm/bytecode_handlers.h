@@ -4,6 +4,7 @@
 
 #include "common/macros.h"
 #include "common/strong_typedef.h"
+#include "execution/ast/type.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/aggregation_hash_table.h"
 #include "execution/sql/aggregators.h"
@@ -605,6 +606,8 @@ VM_OP void OpFilterManagerFree(terrier::execution::sql::FilterManager *filter_ma
 VM_OP_HOT void OpForceBoolTruth(bool *result, terrier::execution::sql::BoolVal *input) {
   *result = input->ForceTruth();
 }
+
+VM_OP_HOT void OpInitSqlNull(terrier::execution::sql::Val *result) { *result = terrier::execution::sql::Val::Null(); }
 
 VM_OP_HOT void OpInitBoolVal(terrier::execution::sql::BoolVal *result, bool input) {
   result->is_null_ = false;
@@ -1316,12 +1319,12 @@ VM_OP_WARM void OpPow(terrier::execution::sql::Real *result, const terrier::exec
 // Null/Not Null predicates
 // ---------------------------------------------------------
 
-VM_OP_WARM void OpValIsNull(terrier::execution::sql::BoolVal *result, const terrier::execution::sql::Val *val) {
-  terrier::execution::sql::IsNullPredicate::IsNull(result, *val);
+VM_OP_WARM void OpValIsNull(bool *result, const terrier::execution::sql::Val *val) {
+  *result = terrier::execution::sql::IsNullPredicate::IsNull(*val);
 }
 
-VM_OP_WARM void OpValIsNotNull(terrier::execution::sql::BoolVal *result, const terrier::execution::sql::Val *val) {
-  terrier::execution::sql::IsNullPredicate::IsNotNull(result, *val);
+VM_OP_WARM void OpValIsNotNull(bool *result, const terrier::execution::sql::Val *val) {
+  *result = terrier::execution::sql::IsNullPredicate::IsNotNull(*val);
 }
 
 // ---------------------------------------------------------
