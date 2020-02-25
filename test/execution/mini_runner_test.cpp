@@ -86,7 +86,10 @@ class MiniRunnersTest : public SqlBasedTest {
 
   static constexpr vm::ExecutionMode MODE = vm::ExecutionMode::Interpret;
 
-  __attribute__((noinline,noclone))
+  __attribute__((noinline))
+#ifndef __clang__
+  __attribute__((noclone))
+#endif
   uint32_t ThisIsAnnoying(size_t n) {
     uint32_t sum = 0;
 
