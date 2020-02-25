@@ -37,6 +37,34 @@ bool AreAllFunctions(const ArgTypes... type) {
 
 void Sema::CheckBuiltinMapCall(UNUSED_ATTRIBUTE ast::CallExpr *call) {}
 
+void Sema::CheckBuiltinSqlNullCall(ast::CallExpr *call, ast::Builtin builtin) {
+  if (!CheckArgCount(call, 1)) {
+    return;
+  }
+  auto input_type = call->Arguments()[0]->GetType();
+  switch (builtin) {
+    case ast::Builtin::IsSqlNull: /* fall-through */
+    case ast::Builtin::IsSqlNotNull: {
+      if (!input_type->IsSqlValueType()) {
+        ReportIncorrectCallArg(call, 0, "sql_type");
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
+      break;
+    }
+    case ast::Builtin::NullToSql: {
+      if (!input_type->IsPointerType() || !input_type->GetPointeeType()->IsSqlValueType()) {
+        ReportIncorrectCallArg(call, 0, "&sql_type");
+        return;
+      }
+      call->SetType(input_type->GetPointeeType());
+      break;
+    }
+    default:
+      UNREACHABLE("Unsupported NULL type.");
+  }
+}
+
 void Sema::CheckBuiltinSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
   // SQL Date.
   if (builtin == ast::Builtin::DateToSql) {
@@ -2160,6 +2188,12 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
   }
 
   switch (builtin) {
+    case ast::Builtin::IsSqlNull:
+    case ast::Builtin::IsSqlNotNull:
+    case ast::Builtin::NullToSql: {
+      CheckBuiltinSqlNullCall(call, builtin);
+      break;
+    }
     case ast::Builtin::BoolToSql:
     case ast::Builtin::IntToSql:
     case ast::Builtin::FloatToSql:
