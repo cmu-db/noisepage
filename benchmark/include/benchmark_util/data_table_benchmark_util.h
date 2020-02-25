@@ -126,7 +126,7 @@ class LargeDataTableBenchmarkObject {
   transaction::TransactionManager *GetTxnManager() { return &txn_manager_; }
 
   /**
-   * @return the transaction manager used by this test
+   * @return the deferred action manager used by this test
    */
   transaction::DeferredActionManager *GetDeferredActionManager() { return &deferred_action_manager_; }
 
