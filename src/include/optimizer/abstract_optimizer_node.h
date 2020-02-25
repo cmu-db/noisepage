@@ -16,9 +16,9 @@ namespace terrier::optimizer {
  */
 class AbstractOptimizerNode {
  public:
-  AbstractOptimizerNode();
+  AbstractOptimizerNode() {}
 
-  ~AbstractOptimizerNode();
+  virtual ~AbstractOptimizerNode() {}
 
   /**
    * Pushes a child node onto this node's children
@@ -29,7 +29,7 @@ class AbstractOptimizerNode {
   /**
    * @return The vector of this node's children.
    */
-  virtual const std::vector<common::ManagedPointer<AbstractOptimizerNode>> &GetChildren() const = 0;
+  virtual const std::vector<common::ManagedPointer<AbstractOptimizerNode>> GetChildren() const = 0;
 
   /**
    * @return A pointer to the AbstractOptimizerNodeContents that this node contains.
@@ -40,6 +40,11 @@ class AbstractOptimizerNode {
    * @return String info on the node.
    */
   virtual const std::string GetInfo() const = 0;
+
+  /**
+   * @return a copy of the node
+   */
+  virtual std::unique_ptr<AbstractOptimizerNode> Copy() = 0;
 
  private:
 };

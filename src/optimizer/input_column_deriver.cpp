@@ -32,7 +32,7 @@ std::pair<PT1, PT2> InputColumnDeriver::DeriveInputColumns(
   gexpr_ = gexpr;
   required_cols_ = std::move(required_cols);
   memo_ = memo;
-  gexpr->Op().Accept(common::ManagedPointer<OperatorVisitor>(this));
+  gexpr->Contents()->Accept(common::ManagedPointer<OperatorVisitor>(this));
   return std::move(output_input_cols_);
 }
 

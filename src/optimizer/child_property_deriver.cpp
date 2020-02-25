@@ -21,7 +21,7 @@ std::vector<std::pair<PropertySet *, std::vector<PropertySet *>>> ChildPropertyD
   memo_ = memo;
   gexpr_ = gexpr;
   accessor_ = accessor;
-  gexpr->Op().Accept(common::ManagedPointer<OperatorVisitor>(this));
+  gexpr->Contents()->Accept(common::ManagedPointer<OperatorVisitor>(this));
   return move(output_);
 }
 

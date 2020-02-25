@@ -2,8 +2,10 @@
 #include <vector>
 
 #include "common/hash_util.h"
+#include "optimizer/expression_node_contents.h"
 #include "optimizer/group.h"
 #include "optimizer/group_expression.h"
+#include "optimizer/operator_node_contents.h"
 #include "optimizer/rule.h"
 
 namespace terrier::optimizer {
@@ -33,8 +35,12 @@ void GroupExpression::SetLocalHashTable(PropertySet *output_properties,
 }
 
 common::hash_t GroupExpression::Hash() const {
-  size_t hash = op_.Hash();
-
+  size_t hash;
+  if (contents_->GetOpType() == OpType::UNDEFINED) {
+    hash = contents_->As<ExpressionNodeContents>()->Hash();
+  } else {
+    hash = contents_->As<Operator>()->Hash();
+  }
   for (group_id_t child_group : child_groups_) {
     size_t child_hash = common::HashUtil::Hash<group_id_t>(child_group);
     hash = common::HashUtil::CombineHashes(hash, child_hash);

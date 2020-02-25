@@ -21,7 +21,7 @@ void OptimizerTask::ConstructValidRules(GroupExpression *group_expr, const std::
                                         std::vector<RuleWithPromise> *valid_rules) {
   for (auto &rule : rules) {
     // Check if we can apply the rule
-    bool root_pattern_mismatch = group_expr->Op().GetOpType() != rule->GetMatchPattern()->Type();
+    bool root_pattern_mismatch = group_expr->Contents()->GetOpType() != rule->GetMatchPattern()->Type();
     bool already_explored = group_expr->HasRuleExplored(rule);
 
     // This check exists only as an "early" reject. As is evident, we do not check
@@ -83,7 +83,7 @@ void OptimizeExpression::Execute() {
 
   std::sort(valid_rules.begin(), valid_rules.end());
   OPTIMIZER_LOG_DEBUG("OptimizeExpression::execute() op {0}, valid rules : {1}",
-                      static_cast<int>(group_expr_->Op().GetOpType()), valid_rules.size());
+                      static_cast<int>(group_expr_->Contents()->GetOpType()), valid_rules.size());
   // Apply rule
   for (auto &r : valid_rules) {
     PushTask(new ApplyRule(group_expr_, r.GetRule(), context_));
@@ -161,7 +161,7 @@ void ApplyRule::Execute() {
     }
 
     // Caller frees after
-    std::vector<std::unique_ptr<OperatorNode>> after;
+    std::vector<std::unique_ptr<AbstractOptimizerNode>> after;
     rule_->Transform(common::ManagedPointer(before.get()), &after, context_);
     for (const auto &new_expr : after) {
       GroupExpression *new_gexpr = nullptr;
@@ -169,7 +169,7 @@ void ApplyRule::Execute() {
       if (context_->GetOptimizerContext()->RecordOperatorNodeIntoGroup(common::ManagedPointer(new_expr.get()),
                                                                        &new_gexpr, g_id)) {
         // A new group expression is generated
-        if (new_gexpr->Op().IsLogical()) {
+        if (new_gexpr->Contents()->IsLogical()) {
           // Derive stats for the *logical expression*
           PushTask(new DeriveStats(new_gexpr, ExprSet{}, context_));
           if (explore_only_) {
@@ -396,7 +396,7 @@ void TopDownRewrite::Execute() {
     if (iterator.HasNext()) {
       auto before = iterator.Next();
       TERRIER_ASSERT(!iterator.HasNext(), "there should only be 1 binding");
-      std::vector<std::unique_ptr<OperatorNode>> after;
+      std::vector<std::unique_ptr<AbstractOptimizerNode>> after;
       rule->Transform(common::ManagedPointer(before.get()), &after, context_);
 
       // Rewrite rule should provide at most 1 expression
@@ -453,7 +453,7 @@ void BottomUpRewrite::Execute() {
     if (iterator.HasNext()) {
       auto before = iterator.Next();
       TERRIER_ASSERT(!iterator.HasNext(), "should only bind to 1");
-      std::vector<std::unique_ptr<OperatorNode>> after;
+      std::vector<std::unique_ptr<AbstractOptimizerNode>> after;
       rule->Transform(common::ManagedPointer(before.get()), &after, context_);
 
       // Rewrite rule should provide at most 1 expression

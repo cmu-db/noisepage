@@ -24,7 +24,7 @@ void Optimizer::Reset() { context_ = std::make_unique<OptimizerContext>(common::
 std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(transaction::TransactionContext *txn,
                                                                     catalog::CatalogAccessor *accessor,
                                                                     StatsStorage *storage, QueryInfo query_info,
-                                                                    std::unique_ptr<OperatorNode> op_tree) {
+                                                                    std::unique_ptr<AbstractOptimizerNode> op_tree) {
   context_->SetTxn(txn);
   context_->SetCatalogAccessor(accessor);
   context_->SetStatsStorage(storage);
@@ -70,7 +70,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   auto gexpr = group->GetBestExpression(required_props);
 
   OPTIMIZER_LOG_TRACE("Choosing best plan for group {0} with op {1}", gexpr->GetGroupID(),
-                      gexpr->Op().GetName().c_str());
+                      gexpr->Contents()->GetName().c_str());
 
   std::vector<group_id_t> child_groups = gexpr->GetChildGroupIDs();
 
@@ -105,7 +105,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   }
 
   // Derive root plan
-  OperatorNode *op = new OperatorNode(Operator(gexpr->Op()), {});
+  OperatorNode *op = new OperatorNode(Operator(*gexpr->Contents()->As<Operator>()), {});
 
   PlanGenerator generator;
   auto plan = generator.ConvertOpNode(txn, accessor, op, required_props, required_cols, output_cols,

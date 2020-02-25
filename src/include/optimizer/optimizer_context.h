@@ -140,12 +140,12 @@ class OptimizerContext {
    * @param expr OperatorNode to convert
    * @returns GroupExpression representing OperatorNode
    */
-  GroupExpression *MakeGroupExpression(common::ManagedPointer<OperatorNode> expr) {
+  GroupExpression *MakeGroupExpression(common::ManagedPointer<AbstractOptimizerNode> node) {
     std::vector<group_id_t> child_groups;
-    for (auto &child : expr->GetChildren()) {
-      if (child->GetOp().GetOpType() == OpType::LEAF) {
+    for (auto &child : node->GetChildren()) {
+      if (child->Contents()->GetOpType() == OpType::LEAF) {
         // Special case for LEAF
-        const auto leaf = child->GetOp().As<LeafOperator>();
+        const auto leaf = child->Contents()->As<LeafOperator>();
         auto child_group = leaf->GetOriginGroup();
         child_groups.push_back(child_group);
       } else {
@@ -164,7 +164,7 @@ class OptimizerContext {
       }
     }
 
-    return new GroupExpression(expr->GetOp(), std::move(child_groups));
+    return new GroupExpression(node->Contents(), std::move(child_groups));
   }
 
   /**
@@ -175,8 +175,8 @@ class OptimizerContext {
    * @param gexpr Existing GroupExpression or new GroupExpression
    * @returns Whether the OperatorNode has been added before
    */
-  bool RecordOperatorNodeIntoGroup(common::ManagedPointer<OperatorNode> expr, GroupExpression **gexpr) {
-    return RecordOperatorNodeIntoGroup(expr, gexpr, UNDEFINED_GROUP);
+  bool RecordOperatorNodeIntoGroup(common::ManagedPointer<AbstractOptimizerNode> node, GroupExpression **gexpr) {
+    return RecordOperatorNodeIntoGroup(node, gexpr, UNDEFINED_GROUP);
   }
 
   /**
@@ -190,9 +190,9 @@ class OptimizerContext {
    * @param target_group ID of the Group that the OperatorNode belongs to
    * @returns Whether the OperatorNode has been added before
    */
-  bool RecordOperatorNodeIntoGroup(common::ManagedPointer<OperatorNode> expr, GroupExpression **gexpr,
+  bool RecordOperatorNodeIntoGroup(common::ManagedPointer<AbstractOptimizerNode> node, GroupExpression **gexpr,
                                    group_id_t target_group) {
-    auto new_gexpr = MakeGroupExpression(expr);
+    auto new_gexpr = MakeGroupExpression(node);
     auto ptr = memo_.InsertExpression(new_gexpr, target_group, false);
     TERRIER_ASSERT(ptr, "Root of expr should not fail insertion");
 
@@ -208,9 +208,9 @@ class OptimizerContext {
    * @param expr OperatorNode to store into the group
    * @param target_group ID of the Group to replace
    */
-  void ReplaceRewriteExpression(common::ManagedPointer<OperatorNode> expr, group_id_t target_group) {
+  void ReplaceRewriteExpression(common::ManagedPointer<AbstractOptimizerNode> node, group_id_t target_group) {
     memo_.EraseExpression(target_group);
-    UNUSED_ATTRIBUTE auto ret = memo_.InsertExpression(MakeGroupExpression(expr), target_group, false);
+    UNUSED_ATTRIBUTE auto ret = memo_.InsertExpression(MakeGroupExpression(node), target_group, false);
     TERRIER_ASSERT(ret, "Root expr should always be inserted");
   }
 

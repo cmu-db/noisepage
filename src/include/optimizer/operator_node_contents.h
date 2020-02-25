@@ -169,7 +169,7 @@ class OperatorNodeContents : public BaseOperatorNodeContents {
 /**
  * Logical and physical operators
  */
-class Operator {
+class Operator : public AbstractOptimizerNodeContents {
  public:
   /**
    * Default constructor

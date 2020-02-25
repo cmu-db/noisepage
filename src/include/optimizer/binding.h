@@ -43,7 +43,7 @@ class BindingIterator {
    * Virtual function for getting the next binding
    * @returns next OperatorNode that matches
    */
-  virtual std::unique_ptr<OperatorNode> Next() = 0;
+  virtual std::unique_ptr<AbstractOptimizerNode> Next() = 0;
 
  protected:
   /**
@@ -84,7 +84,7 @@ class GroupBindingIterator : public BindingIterator {
    * Virtual function for getting the next binding
    * @returns next OperatorNode that matches
    */
-  std::unique_ptr<OperatorNode> Next() override;
+  std::unique_ptr<AbstractOptimizerNode> Next() override;
 
  private:
   /**
@@ -143,7 +143,7 @@ class GroupExprBindingIterator : public BindingIterator {
    * Pointer returned must be deleted by caller when done.
    * @returns next OperatorNode that matches
    */
-  std::unique_ptr<OperatorNode> Next() override {
+  std::unique_ptr<AbstractOptimizerNode> Next() override {
     TERRIER_ASSERT(current_binding_, "binding must exist");
     return std::move(current_binding_);
   }
@@ -167,12 +167,12 @@ class GroupExprBindingIterator : public BindingIterator {
   /**
    * Current binding
    */
-  std::unique_ptr<OperatorNode> current_binding_;
+  std::unique_ptr<AbstractOptimizerNode> current_binding_;
 
   /**
    * Stored bindings for children expressions
    */
-  std::vector<std::vector<std::unique_ptr<OperatorNode>>> children_bindings_;
+  std::vector<std::vector<std::unique_ptr<AbstractOptimizerNode>>> children_bindings_;
 
   /**
    * Position indicators tracking progress within children_bindings_

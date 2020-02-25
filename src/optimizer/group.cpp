@@ -30,7 +30,7 @@ void Group::AddExpression(GroupExpression *expr, bool enforced) {
   expr->SetGroupID(id_);
   if (enforced)
     enforced_exprs_.push_back(expr);
-  else if (expr->Op().IsPhysical())
+  else if (expr->Contents()->IsPhysical())
     physical_expressions_.push_back(expr);
   else
     logical_expressions_.push_back(expr);
@@ -38,7 +38,7 @@ void Group::AddExpression(GroupExpression *expr, bool enforced) {
 
 bool Group::SetExpressionCost(GroupExpression *expr, double cost, PropertySet *properties) {
   OPTIMIZER_LOG_TRACE("Adding expression cost on group {0} with op {1}", expr->GetGroupID(),
-                      expr->Op().GetName().c_str());
+                      expr->Contents()->GetName().c_str());
 
   auto it = lowest_cost_expressions_.find(properties);
   if (it == lowest_cost_expressions_.end()) {

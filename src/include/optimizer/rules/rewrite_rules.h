@@ -22,19 +22,20 @@ class RewritePushImplicitFilterThroughJoin : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorNode to check
+   * @param plan AbstractOptimizerNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorNode passes the check
+   * @returns Whether the input AbstractOptimizerNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<AbstractOptimizerNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorNode to transform
-   * @param transformed Vector of transformed OperatorNodes
+   * @param input Input AbstractOptimizerNode to transform
+   * @param transformed Vector of transformed AbstractOptimizerNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
+  void Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                 std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -53,19 +54,20 @@ class RewritePushExplicitFilterThroughJoin : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorNode to check
+   * @param plan AbstractOptimizerNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorNode passes the check
+   * @returns Whether the input AbstractOptimizerNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<AbstractOptimizerNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorNode to transform
-   * @param transformed Vector of transformed OperatorNodes
+   * @param input Input AbstractOptimizerNode to transform
+   * @param transformed Vector of transformed AbstractOptimizerNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
+  void Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                 std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -81,19 +83,20 @@ class RewriteCombineConsecutiveFilter : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorNode to check
+   * @param plan AbstractOptimizerNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorNode passes the check
+   * @returns Whether the input AbstractOptimizerNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<AbstractOptimizerNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorNode to transform
-   * @param transformed Vector of transformed OperatorNodes
+   * @param input Input AbstractOptimizerNode to transform
+   * @param transformed Vector of transformed AbstractOptimizerNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
+  void Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                 std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -110,19 +113,20 @@ class RewritePushFilterThroughAggregation : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorNode to check
+   * @param plan AbstractOptimizerNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorNode passes the check
+   * @returns Whether the input AbstractOptimizerNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<AbstractOptimizerNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorNode to transform
-   * @param transformed Vector of transformed OperatorNodes
+   * @param input Input AbstractOptimizerNode to transform
+   * @param transformed Vector of transformed AbstractOptimizerNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
+  void Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                 std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -140,19 +144,20 @@ class RewriteEmbedFilterIntoGet : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorNode to check
+   * @param plan AbstractOptimizerNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorNode passes the check
+   * @returns Whether the input AbstractOptimizerNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<AbstractOptimizerNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorNode to transform
-   * @param transformed Vector of transformed OperatorNodes
+   * @param input Input AbstractOptimizerNode to transform
+   * @param transformed Vector of transformed AbstractOptimizerNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
+  void Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                 std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -175,19 +180,20 @@ class RewritePullFilterThroughMarkJoin : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorNode to check
+   * @param plan AbstractOptimizerNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorNode passes the check
+   * @returns Whether the input AbstractOptimizerNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<AbstractOptimizerNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorNode to transform
-   * @param transformed Vector of transformed OperatorNodes
+   * @param input Input AbstractOptimizerNode to transform
+   * @param transformed Vector of transformed AbstractOptimizerNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
+  void Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                 std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -210,19 +216,20 @@ class RewritePullFilterThroughAggregation : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorNode to check
+   * @param plan AbstractOptimizerNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorNode passes the check
+   * @returns Whether the input AbstractOptimizerNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<AbstractOptimizerNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorNode to transform
-   * @param transformed Vector of transformed OperatorNodes
+   * @param input Input AbstractOptimizerNode to transform
+   * @param transformed Vector of transformed AbstractOptimizerNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
+  void Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                 std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 

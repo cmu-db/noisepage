@@ -28,8 +28,24 @@ class GroupExpression {
    * @param op Operator
    * @param child_groups Vector of children groups
    */
-  GroupExpression(Operator op, std::vector<group_id_t> &&child_groups)
-      : group_id_(UNDEFINED_GROUP), op_(std::move(op)), child_groups_(child_groups), stats_derived_(false) {}
+  GroupExpression(common::ManagedPointer<AbstractOptimizerNodeContents> contents,
+                  std::vector<group_id_t> &&child_groups)
+      : group_id_(UNDEFINED_GROUP),
+        contents_(std::move(contents)),
+        child_groups_(child_groups),
+        stats_derived_(false) {}
+
+  /**
+   * Operator-based constructor
+   * @param op Operator
+   * @param child_groups Vector of children groups
+   */
+  GroupExpression(Operator op, std::vector<group_id_t> &&child_groups) {
+    group_id_ = UNDEFINED_GROUP;
+    contents_ = std::make_unique<Operator>(op);
+    child_groups_ = std::move(child_groups);
+    stats_derived_ = false;
+  }
 
   /**
    * Destructor. Deletes everything in the lowest_cost_table_
@@ -76,10 +92,11 @@ class GroupExpression {
   }
 
   /**
-   * Gets the operator wrapped by this GroupExpression
-   * @returns Operator
+   * Gets the node contents (either operator- or expression-based) wrapped by
+   * this GroupExpression
+   * @returns the node contents
    */
-  const Operator &Op() const { return op_; }
+  const common::ManagedPointer<AbstractOptimizerNodeContents> &Contents() const { return contents_; }
 
   /**
    * Retrieves the lowest cost satisfying a given set of properties
@@ -122,7 +139,9 @@ class GroupExpression {
    * @param r Other GroupExpression
    * @returns TRUE if equal to other GroupExpression
    */
-  bool operator==(const GroupExpression &r) { return (op_ == r.Op()) && (child_groups_ == r.child_groups_); }
+  bool operator==(const GroupExpression &r) {
+    return (contents_.Get() == r.contents_.Get()) && (child_groups_ == r.child_groups_);
+  }
 
   /**
    * Marks a rule as having being explored in this GroupExpression
@@ -160,9 +179,9 @@ class GroupExpression {
   group_id_t group_id_;
 
   /**
-   * Operator
+   * Node contents (either expression- or operator-based)
    */
-  Operator op_;
+  common::ManagedPointer<AbstractOptimizerNodeContents> contents_;
 
   /**
    * Vector of child groups
