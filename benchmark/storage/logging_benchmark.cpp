@@ -54,7 +54,8 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, TPCCish)(benchmark::State &state) {
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetDeferredActionManager()), common::ManagedPointer(tested.GetTxnManager()));
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetDeferredActionManager()),
+                                        common::ManagedPointer(tested.GetTxnManager()));
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, BenchmarkConfig::num_threads);
     abort_count += result.first;
@@ -95,7 +96,8 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, HighAbortRate)(benchmark::State &state) {
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetDeferredActionManager()), common::ManagedPointer(tested.GetTxnManager()));
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetDeferredActionManager()),
+                                        common::ManagedPointer(tested.GetTxnManager()));
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, BenchmarkConfig::num_threads);
     abort_count += result.first;
@@ -135,7 +137,8 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementInsert)(benchmark::State &st
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetDeferredActionManager()), common::ManagedPointer(tested.GetTxnManager()));
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetDeferredActionManager()),
+                                        common::ManagedPointer(tested.GetTxnManager()));
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, BenchmarkConfig::num_threads);
     abort_count += result.first;
@@ -175,7 +178,8 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementUpdate)(benchmark::State &st
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetDeferredActionManager()), common::ManagedPointer(tested.GetTxnManager()));
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetDeferredActionManager()),
+                                        common::ManagedPointer(tested.GetTxnManager()));
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, BenchmarkConfig::num_threads);
     abort_count += result.first;
@@ -215,7 +219,8 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementSelect)(benchmark::State &st
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetDeferredActionManager()), common::ManagedPointer(tested.GetTxnManager()));
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetDeferredActionManager()),
+                                        common::ManagedPointer(tested.GetTxnManager()));
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, BenchmarkConfig::num_threads);
     abort_count += result.first;

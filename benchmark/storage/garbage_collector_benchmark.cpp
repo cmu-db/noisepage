@@ -14,7 +14,8 @@ class GarbageCollectorBenchmark : public benchmark::Fixture {
   void StartGC(transaction::TimestampManager *const timestamp_manager,
                transaction::TransactionManager *const txn_manager,
                transaction::DeferredActionManager *const deferred_action_manager) {
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(deferred_action_manager), common::ManagedPointer(txn_manager));
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(deferred_action_manager),
+                                        common::ManagedPointer(txn_manager));
     run_gc_ = true;
     gc_thread_ = std::thread([this] { GCThreadLoop(); });
   }
@@ -61,7 +62,8 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, UnlinkTime)(benchmark::State &stat
     // generate our table and instantiate GC
     LargeDataTableBenchmarkObject tested({8, 8, 8}, initial_table_size_, txn_length_, update_select_ratio_,
                                          &block_store_, &buffer_pool_, &generator_, true);
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetDeferredActionManager()), common::ManagedPointer(tested.GetTxnManager()));
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetDeferredActionManager()),
+                                        common::ManagedPointer(tested.GetTxnManager()));
 
     // clean up insert txn
     gc_->PerformGarbageCollection();
@@ -99,7 +101,8 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, ReclaimTime)(benchmark::State &sta
     // generate our table and instantiate GC
     LargeDataTableBenchmarkObject tested({8, 8, 8}, initial_table_size_, txn_length_, update_select_ratio_,
                                          &block_store_, &buffer_pool_, &generator_, true);
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetDeferredActionManager()), common::ManagedPointer(tested.GetTxnManager()));
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetDeferredActionManager()),
+                                        common::ManagedPointer(tested.GetTxnManager()));
 
     // clean up insert txn
     gc_->PerformGarbageCollection();
