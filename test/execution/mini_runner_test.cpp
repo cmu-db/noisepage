@@ -86,7 +86,7 @@ class MiniRunnersTest : public SqlBasedTest {
 
   static constexpr vm::ExecutionMode MODE = vm::ExecutionMode::Interpret;
 
-  __attribute__((noinline))
+  __attribute__((noinline,noclone))
   uint32_t ThisIsAnnoying(size_t n) {
     uint32_t sum = 0;
 
@@ -101,7 +101,7 @@ class MiniRunnersTest : public SqlBasedTest {
 };
 
 TEST_F(MiniRunnersTest, OpIntegerAdd) {
-  uint32_t ret = ThisIsAnnoying(1);
+  uint32_t ret = ThisIsAnnoying(1000000);
   DoNotOptimizeAway(ret);
 }
 
