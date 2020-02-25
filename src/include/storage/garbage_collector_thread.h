@@ -6,6 +6,10 @@
 #include "storage/garbage_collector.h"
 #include "transaction/deferred_action_manager.h"
 
+namespace terrier::settings {
+class MetricsManager;
+}
+
 namespace terrier::storage {
 
 /**

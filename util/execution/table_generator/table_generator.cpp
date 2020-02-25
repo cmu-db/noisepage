@@ -352,7 +352,7 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
               col_metas.emplace_back(col_name.str(), type, false, Dist::Serial, 0, 0);
             } else if (j == col_num) {
               // The last column is related to the cardinality
-              col_metas.emplace_back(col_name.str(), type, false, Dist::Rotate, 0, row_num * cardinality / 100);
+              col_metas.emplace_back(col_name.str(), type, false, Dist::Rotate, 0, cardinality);
             } else {
               // All the rest of the columns are uniformly distributed
               col_metas.emplace_back(col_name.str(), type, false, Dist::Uniform, 0, row_num - 1);
