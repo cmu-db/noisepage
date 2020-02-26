@@ -1152,12 +1152,13 @@ if __name__ == "__main__":
             LOG.error("Invalid target benchmark '%s'" % b)
             sys.exit(1)
     
+    builds_to_skip = [ ]
+    
     # Run benchmarks
     ret = 0
     if args.run:
         run_bench = RunMicroBenchmarks(config)
-        #ret = run_bench.run_benchmarks(benchmarks)
-        ret = True
+        ret = run_bench.run_benchmarks(benchmarks)
 
         # Store them locally if necessary
         if args.local:
@@ -1167,8 +1168,11 @@ if __name__ == "__main__":
             build_dirs = next(os.walk(LOCAL_REPO_DIR))[1]
             last_dir = max(build_dirs) if build_dirs else '000'
             next_dir = os.path.join(LOCAL_REPO_DIR, "%03d" % (int(last_dir)+1))
-            LOG.info("Creating local repository of results '%s'", next_dir)
+            LOG.info("Creating new result directory in local data repository '%s'", next_dir)
             os.mkdir(next_dir)
+            builds_to_skip.append(os.path.basename(next_dir))
+            
+            # Copy any JSON files that we find into our repository
             for bench_name in benchmarks:
                 filename = "{}.json".format(bench_name)
                 shutil.copy(filename, next_dir)
@@ -1178,11 +1182,14 @@ if __name__ == "__main__":
     # need <n> benchmark results to compare against
     ap = ArtifactProcessor(config.min_ref_values)
     LOG.debug("min_ref_values: %d" % config.min_ref_values)
+    need_more_builds = True
 
     ## LOCAL REPOSITORY RESULTS
     if args.local:
-        LOG.debug("Reading results from local data repository '%s'", LOCAL_REPO_DIR)
+        LOG.debug("Processing local data repository '%s'", LOCAL_REPO_DIR)
         for run_dir in reversed(sorted(next(os.walk(LOCAL_REPO_DIR))[1])):
+            if os.path.basename(run_dir) in builds_to_skip: continue
+            LOG.debug("Reading results from local directory '%s'", run_dir)
             for build_file in glob.glob(os.path.join(LOCAL_REPO_DIR, run_dir, '*.json')):
                 with open(build_file) as fh:
                     try:
@@ -1192,14 +1199,18 @@ if __name__ == "__main__":
                         LOG.error("Invalid data read from benchmark result file '%s'", build_file)
                         LOG.error(contents)
                         raise
+                # Determine if we have enough history. Stop collecting information if we do
+                if ap.have_min_history():
+                    need_more_builds = False
+                    break
             ## FOR
+            if not need_more_builds: break
         ## FOR
         
     ## REMOTE JENKINS REPOSITORY RESULTS
     else:
         h = Jenkins(JENKINS_URL)
         data_src_list = config.ref_data_sources
-        need_more_builds = True
         for repo_dict in data_src_list:
             project = repo_dict.get("project")
             branch = repo_dict.get("branch")
@@ -1219,14 +1230,12 @@ if __name__ == "__main__":
 
                     ap.add_artifact_file(artifact.get_data())
 
-                # Determine if we have enough history. Stop collecting
-                # information if we do
+                # Determine if we have enough history. Stop collecting information if we do
                 if ap.have_min_history():
                     need_more_builds = False
                     break
 
-            if need_more_builds is False:
-                break
+            if not need_more_builds: break
     ## IF (jenkins)
 
     """
