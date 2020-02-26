@@ -217,11 +217,6 @@ class DataTable {
    */
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
 
-  /**
-   * @return reference to this DataTable's accessor
-   */
-  const TupleAccessStrategy &GetAccessor() const { return accessor_; }
-
  private:
   // The TransactionContext needs to modify VersionPtrs when pruning version chains
   friend class transaction::TransactionContext;
@@ -240,6 +235,8 @@ class DataTable {
   // The block compactor elides transactional protection in the gather/compression phase and
   // needs raw access to the underlying table.
   friend class BlockCompactor;
+  // use to access the accessor of this class
+  friend class UndoRecord;
 
   const common::ManagedPointer<BlockStore> block_store_;
   const layout_version_t layout_version_;
@@ -259,6 +256,7 @@ class DataTable {
   // latch used to protect insertion_head_
   mutable common::SpinLatch header_latch_;
   std::list<RawBlock *>::iterator insertion_head_;
+
   // Check if we need to advance the insertion_head_
   // This function uses header_latch_ to ensure correctness
   void CheckMoveHead(std::list<RawBlock *>::iterator block);
