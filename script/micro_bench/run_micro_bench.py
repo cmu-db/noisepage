@@ -18,6 +18,8 @@ import pprint
 import subprocess
 import urllib
 import logging
+import shutil
+import glob
 from pprint import pprint
 
 import xml.etree.ElementTree as ElementTree
@@ -41,6 +43,10 @@ LOG.setLevel(logging.INFO)
 
 # Jenkins URL
 JENKINS_URL = "http://jenkins.db.cs.cmu.edu:8080"
+
+# Local Data Directory
+# Instead of checking with Jenkins, you can build a local repository of results
+LOCAL_REPO_DIR = os.path.realpath("local")
 
 # Default failure threshold
 # The regression threshold determines how much the benchmark is allowed to get
@@ -84,7 +90,7 @@ BENCHMARK_THREADS = 4
 BENCHMARK_LOGFILE_PATH = "/tmp/benchmark.log"
 
 # Where to find the benchmarks to execute
-BENCHMARK_PATH = "../../build/release/"
+BENCHMARK_PATH = os.path.realpath("../../build/release/")
 
 ## =========================================================
 
@@ -762,7 +768,7 @@ class RunMicroBenchmarks(object):
         self.config = config
         return
 
-    def run_all_benchmarks(self):
+    def run_benchmarks(self, benchmarks):
         """ Return 0 if all benchmarks succeed, otherwise return the error code
             code from the last benchmark to fail
         """
@@ -770,8 +776,8 @@ class RunMicroBenchmarks(object):
 
         # iterate over all benchmarks and run them
         cnt = 1
-        for bench_name in sorted(config.benchmarks):
-            LOG.info("Running '{}' with {} threads [{}/{}]".format(bench_name, BENCHMARK_THREADS, cnt, len(config.benchmarks)))
+        for bench_name in sorted(benchmarks):
+            LOG.info("Running '{}' with {} threads [{}/{}]".format(bench_name, BENCHMARK_THREADS, cnt, len(benchmarks)))
             bench_ret_val = self.run_single_benchmark(bench_name)
             if bench_ret_val:
                 LOG.debug("{} terminated with {}".format(bench_name,
@@ -1084,11 +1090,20 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('benchmark',
+                        nargs='*',
+                        help="Benchmark suite to run [default=ALL]")
+
     parser.add_argument("--run",
                         action="store_true",
                         dest="run",
                         default=False,
                         help="Run Benchmarks")
+    
+    parser.add_argument("--local",
+                    action="store_true",
+                    default=False,
+                    help="Store results in local directory")
     
     parser.add_argument("--num-threads",
                         metavar='N',
@@ -1100,7 +1115,13 @@ if __name__ == "__main__":
                         metavar='P',
                         type=str,
                         default=BENCHMARK_LOGFILE_PATH,
-                        help="Path to use for benchmark logfiles")
+                        help="Path to use for benchmark WAL files")
+    
+    parser.add_argument("--benchmark-path",
+                        metavar='B',
+                        type=str,
+                        default=BENCHMARK_PATH,
+                        help="Path to benchmark binaries")
 
     parser.add_argument("--debug",
                         action="store_true",
@@ -1116,6 +1137,7 @@ if __name__ == "__main__":
     if args.debug: LOG.setLevel(logging.DEBUG)
     if args.num_threads: BENCHMARK_THREADS = args.num_threads
     if args.logfile_path: BENCHMARK_LOGFILE_PATH = args.logfile_path
+    if args.benchmark_path: BENCHMARK_PATH = args.benchmark_path
 
     # -------------------------------------------------------
 
@@ -1124,47 +1146,88 @@ if __name__ == "__main__":
     if not os.path.exists(BENCHMARK_PATH):
         LOG.error("The benchmark executable path directory '%s' does not exist" % BENCHMARK_PATH)
         sys.exit(1)
-
+    benchmarks = sorted(args.benchmark) if args.benchmark else config.benchmarks
+    for b in benchmarks:
+        if not b.endswith("_benchmark"):
+            LOG.error("Invalid target benchmark '%s'" % b)
+            sys.exit(1)
+    
     # Run benchmarks
     ret = 0
     if args.run:
         run_bench = RunMicroBenchmarks(config)
-        ret = run_bench.run_all_benchmarks()
+        #ret = run_bench.run_benchmarks(benchmarks)
+        ret = True
 
+        # Store them locally if necessary
+        if args.local:
+            if not os.path.exists(LOCAL_REPO_DIR):
+                os.mkdir(LOCAL_REPO_DIR)
+            # Figure out next directory
+            build_dirs = next(os.walk(LOCAL_REPO_DIR))[1]
+            last_dir = max(build_dirs) if build_dirs else '000'
+            next_dir = os.path.join(LOCAL_REPO_DIR, "%03d" % (int(last_dir)+1))
+            LOG.info("Creating local repository of results '%s'", next_dir)
+            os.mkdir(next_dir)
+            for bench_name in benchmarks:
+                filename = "{}.json".format(bench_name)
+                shutil.copy(filename, next_dir)
+                LOG.debug("Copying result file '%s' into '%s'", filename, next_dir)
+        # IF 
+            
     # need <n> benchmark results to compare against
     ap = ArtifactProcessor(config.min_ref_values)
     LOG.debug("min_ref_values: %d" % config.min_ref_values)
-    h = Jenkins(JENKINS_URL)
 
-    data_src_list = config.ref_data_sources
-    need_more_builds = True
-    for repo_dict in data_src_list:
-        project = repo_dict.get("project")
-        branch = repo_dict.get("branch")
-        min_build = repo_dict.get("min_build")
+    ## LOCAL REPOSITORY RESULTS
+    if args.local:
+        LOG.debug("Reading results from local data repository '%s'", LOCAL_REPO_DIR)
+        for run_dir in reversed(sorted(next(os.walk(LOCAL_REPO_DIR))[1])):
+            for build_file in glob.glob(os.path.join(LOCAL_REPO_DIR, run_dir, '*.json')):
+                with open(build_file) as fh:
+                    try:
+                        contents = fh.read()
+                        ap.add_artifact_file(contents)
+                    except:
+                        LOG.error("Invalid data read from benchmark result file '%s'", build_file)
+                        LOG.error(contents)
+                        raise
+            ## FOR
+        ## FOR
+        
+    ## REMOTE JENKINS REPOSITORY RESULTS
+    else:
+        h = Jenkins(JENKINS_URL)
+        data_src_list = config.ref_data_sources
+        need_more_builds = True
+        for repo_dict in data_src_list:
+            project = repo_dict.get("project")
+            branch = repo_dict.get("branch")
+            min_build = repo_dict.get("min_build")
 
-        kwargs = {"min_build" : min_build }
-        builds = h.get_builds(project, branch, **kwargs)
+            kwargs = {"min_build" : min_build }
+            builds = h.get_builds(project, branch, **kwargs)
 
-        for build in builds:
-            LOG.debug("(%s, %s), build=#%d, status=%s", \
-                      project, branch, build.get_number(), build.get_result())
+            for build in builds:
+                LOG.debug("(%s, %s), build=#%d, status=%s", \
+                          project, branch, build.get_number(), build.get_result())
 
-            artifacts = build.get_artifacts()
-            for artifact in artifacts:
-                artifact_filename = artifact.get_filename()
-                LOG.debug("artifact: {}".format(artifact_filename))
+                artifacts = build.get_artifacts()
+                for artifact in artifacts:
+                    artifact_filename = artifact.get_filename()
+                    LOG.debug("artifact: {}".format(artifact_filename))
 
-                ap.add_artifact_file(artifact.get_data())
+                    ap.add_artifact_file(artifact.get_data())
 
-            # Determine if we have enough history. Stop collecting
-            # information if we do
-            if ap.have_min_history():
-                need_more_builds = False
+                # Determine if we have enough history. Stop collecting
+                # information if we do
+                if ap.have_min_history():
+                    need_more_builds = False
+                    break
+
+            if need_more_builds is False:
                 break
-
-        if need_more_builds is False:
-            break
+    ## IF (jenkins)
 
     """
     for key in ap.results.keys():
@@ -1180,7 +1243,7 @@ if __name__ == "__main__":
     tt = TextTable()
 
     # parse all the result files and compare current results vs. reference
-    for bench_name in sorted(config.benchmarks):
+    for bench_name in sorted(benchmarks):
         filename = "{}.json".format(bench_name)
         # parse the json result file
         LOG.debug("Loading local benchmark result file '%s'", filename)
