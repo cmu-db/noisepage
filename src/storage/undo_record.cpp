@@ -5,11 +5,11 @@
 namespace terrier::storage {
 
 void UndoRecord::ReclaimSlotIfDeleted() const {
-  if (type_ == DeltaRecordType::DELETE) table_->GetAccessor().Deallocate(slot_);
+  if (type_ == DeltaRecordType::DELETE) table_->accessor_.Deallocate(slot_);
 }
 
 void UndoRecord::ReclaimBufferIfVarlen(transaction::TransactionContext *const txn) const {
-  const TupleAccessStrategy &accessor = table_->GetAccessor();
+  const TupleAccessStrategy &accessor = table_->accessor_;
   const BlockLayout &layout = table_->GetBlockLayout();
   switch (type_) {
     case DeltaRecordType::INSERT:
