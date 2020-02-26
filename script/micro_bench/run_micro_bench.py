@@ -1113,15 +1113,16 @@ def csv_dump(benchmarks, ap):
     # Now for each timestamp, get all the results across all benchmarks
     # Each row in the CSV output will be for a single timestamp
     writer = csv.writer(sys.stdout, quoting=csv.QUOTE_ALL)
-    header = [ "timestamp" ]
+    header = [ "trial", "timestamp" ]
     for suite_name, test_names in sorted(suite_test_names.items()):
         map(header.append, [ "%s::%s" % (suite_name, test_name) for test_name in sorted(test_names) ])
     writer.writerow(header)
     
+    trial_ctr = 0
     for timestamp in sorted(timestamps):
-        row = [ timestamp ]
+        row = [ trial_ctr, timestamp ]
         for suite_name, test_names in sorted(suite_test_names.items()):
-            for test_name in test_names:
+            for test_name in sorted(test_names):
                 gbr_p = ap.get_result(suite_name, test_name)
                 for gbr in gbr_p.gbresults:
                     if gbr.timestamp != timestamp: continue
@@ -1131,6 +1132,7 @@ def csv_dump(benchmarks, ap):
             # FOR
         # FOR
         writer.writerow(row)
+        trial_ctr += 1
     # FOR
 
     return
@@ -1236,12 +1238,17 @@ if __name__ == "__main__":
                         type=int,
                         default=MIN_REF_VALUES,
                         help="Minimal # of values needed to enforce threshold")
-    
+        
     parser.add_argument("--benchmark-path",
                         metavar='B',
                         type=str,
                         default=BENCHMARK_PATH,
                         help="Path to benchmark binaries")
+
+    parser.add_argument("--csv-dump",
+                        action="store_true",
+                        default=False,
+                        help="Print results to stdout as CSV")
 
     parser.add_argument("--csv-dump",
                         action="store_true",
