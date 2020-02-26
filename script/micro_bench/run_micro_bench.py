@@ -944,7 +944,7 @@ class ReferenceValue(object):
 
     def set_pass_fail(self):
         """ Set pass/fail for this result """
-        if self.reference_type == "config":
+        if self.reference_type == "none":
             # pass if we have no historical data
             self.result = True
         elif self.reference_type in ["history", "lax"]:
@@ -1022,7 +1022,7 @@ class ReferenceValue(object):
         ret_obj.key = key
         ret_obj.num_results = 0
         ret_obj.tolerance = 0
-        ret_obj.reference_type = "config"
+        ret_obj.reference_type = "none"
         return ret_obj
 
     def to_dict(self):
@@ -1151,6 +1151,9 @@ if __name__ == "__main__":
     
     builds_to_skip = [ ]
     
+    if args.local:
+        if not os.path.exists(LOCAL_REPO_DIR): os.mkdir(LOCAL_REPO_DIR)
+    
     # Run benchmarks
     ret = 0
     if args.run:
@@ -1159,8 +1162,6 @@ if __name__ == "__main__":
 
         # Store them locally if necessary
         if args.local:
-            if not os.path.exists(LOCAL_REPO_DIR):
-                os.mkdir(LOCAL_REPO_DIR)
             # Figure out next directory
             build_dirs = next(os.walk(LOCAL_REPO_DIR))[1]
             last_dir = max(build_dirs) if build_dirs else '000'
