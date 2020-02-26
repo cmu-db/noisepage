@@ -1250,11 +1250,6 @@ if __name__ == "__main__":
                         default=False,
                         help="Print results to stdout as CSV")
 
-    parser.add_argument("--csv-dump",
-                        action="store_true",
-                        default=False,
-                        help="Print results to stdout as CSV")
-
     parser.add_argument("--debug",
                         action="store_true",
                         dest="debug",
