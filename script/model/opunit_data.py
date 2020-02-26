@@ -7,6 +7,7 @@ import os
 import copy
 
 import data_info
+from io_util import write_result
 
 from type import OpUnit, ArithmeticFeature
 
@@ -18,19 +19,6 @@ def write_extended_data(output_path, symbol, index_value_list, data_map):
     write_result(output_path, symbol, index_value_list)
     for key, value in data_map.items():
         write_result(output_path, key, value)
-
-
-def write_result(path, label, data):
-    """Write result data in csv format
-
-    :param path: write destination
-    :param label: the label (first column) to write
-    :param data: the rest columns
-    :return:
-    """
-    with open(path, "a") as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow([label] + list(data))
 
 
 def get_data_list(path):

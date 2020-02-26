@@ -9,6 +9,7 @@ import pickle
 
 import global_data
 import data_info
+import io_util
 from type import OpUnit
 
 np.set_printoptions(precision=4)
@@ -51,11 +52,15 @@ class GlobalTrainer:
             print(filename)
             data_list += global_data.get_global_data(filename)
 
+        prediction_path = "{}/prediction.csv".format(self.model_metrics_path)
+        open(prediction_path, 'w').close()
+        io_util.write_result(prediction_path, "Pipeline", ["Actual", "Predicted", "Ratio Error"])
+
         # First run a prediction on the global running data with the mini model results
         for data in data_list:
             y = data.y
             print("{} pipeline elapsed time: {}".format(data.name, y[-1]))
-            total_time = 0
+            predicted_time = 0
             for opunit_feature in data.opunit_features:
                 opunit = opunit_feature[0]
                 opunit_model = self.mini_model_map[opunit]
@@ -67,9 +72,13 @@ class GlobalTrainer:
                     y_pred -= scan_y_pred
                 print("Predicted {} elapsed time with feature {}: {}".format(opunit_feature[0].name,
                                                                              x[0], y_pred[0, -1]))
-                total_time += y_pred[0, -1]
-            print("{} pipeline predicted time: {}".format(data.name, total_time))
-            print("|Actual - Predict| / Actual: {}".format(abs(y[-1] - total_time) / y[-1]))
+                predicted_time += y_pred[0, -1]
+            print("{} pipeline predicted time: {}".format(data.name, predicted_time))
+            ratio_error = abs(y[-1] - predicted_time) / y[-1]
+            print("|Actual - Predict| / Actual: {}".format(ratio_error))
+
+            io_util.write_result(prediction_path, data.name + " " + str(x[0][-1]), [y[-1], predicted_time, ratio_error])
+
             print()
 
 
@@ -79,7 +88,7 @@ class GlobalTrainer:
 if __name__ == '__main__':
     aparser = argparse.ArgumentParser(description='Mini Trainer')
     aparser.add_argument('--input_path', default='global_runner_input', help='Input file path for the global runners')
-    aparser.add_argument('--model_metrics_path', default='global_runner_model_metrics',
+    aparser.add_argument('--model_metrics_path', default='global_model_metrics',
                          help='Prediction metrics of the mini models')
     aparser.add_argument('--save_path', default='trained_model', help='Path to save the trained models')
     aparser.add_argument('--mini_model_file', default='trained_model/mini_model_map.pickle',

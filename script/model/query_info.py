@@ -76,8 +76,8 @@ q5_p7 = [(OpUnit.AGG_PROBE, [5, 4, 5]),
 q5_p8 = [(OpUnit.SORT_PROBE, [5, 8, 5]),
          ]
 
-q6_p1 = [(OpUnit.SCAN, [600000, 24, 100]),
-         (OpUnit.REAL_GREATER, [1200000]),
+q6_p1 = [(OpUnit.SCAN, [600000, 24, 600000]),
+         (OpUnit.REAL_GREATER, [1800000]),
          (OpUnit.INT_GREATER, [1200000]),
          (OpUnit.REAL_MULTIPLY, [4285]),
          (OpUnit.REAL_ADD, [4285]),

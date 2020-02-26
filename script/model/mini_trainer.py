@@ -8,6 +8,7 @@ import pickle
 
 from sklearn import model_selection
 
+import io_util
 import model
 import opunit_data
 import data_info
@@ -68,7 +69,7 @@ class MiniTrainer:
             prediction_path = "{}/{}_prediction.csv".format(self.model_metrics_path, data.opunit.name.lower())
             open(result_path, 'w').close()
             open(prediction_path, 'w').close()
-            opunit_data.write_result(result_path, "Method", labels)
+            io_util.write_result(result_path, "Method", labels)
 
             methods = self.ml_models
             # Only use linear regression for the arithmetic operating units
@@ -120,18 +121,18 @@ class MiniTrainer:
                     transform = " "
                     if transformer is not None:
                         transform = " transform"
-                    opunit_data.write_result(result_path, method + transform, results)
+                    io_util.write_result(result_path, method + transform, results)
 
                     print()
 
-                opunit_data.write_result(result_path, "", [])
+                io_util.write_result(result_path, "", [])
 
             # Record the best prediction results on the test data
             num_data = pred_results[0].shape[0]
             for i in range(num_data):
                 result_list = (list(pred_results[0][i]) + [""] + list(pred_results[1][i]) + [""]
                                + list(pred_results[2][i]))
-                opunit_data.write_result(prediction_path, "", result_list)
+                io_util.write_result(prediction_path, "", result_list)
 
         '''
         data_list = get_concurrent_data_list(input_path)

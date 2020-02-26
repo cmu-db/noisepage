@@ -8,20 +8,19 @@
 namespace terrier::runner {
 class TPCHRunner : public benchmark::Fixture {
  public:
-  const int8_t num_threads_ = 1;                        // defines the number of terminals (workers threads)
-  const uint32_t num_precomputed_txns_per_worker_ = 4;  // Number of txns to run per terminal (worker thread)
-  const execution::vm::ExecutionMode mode_ = execution::vm::ExecutionMode::Compiled;
+  const int8_t total_num_threads_ = 4;                        // defines the number of terminals (workers threads)
+  const uint32_t num_precomputed_txns_per_worker_ = 10;  // Number of txns to run per terminal (worker thread)
+  const execution::vm::ExecutionMode mode_ = execution::vm::ExecutionMode::Interpret;
 
   std::unique_ptr<DBMain> db_main_;
   std::unique_ptr<tpch::Workload> tpch_workload_;
-  common::WorkerPool thread_pool_{static_cast<uint32_t>(num_threads_), {}};
 
   // TPCH setup
   const std::vector<std::string> tpch_query_filenames_ = {
-      //"../../../tpl_tables/sample_tpl/tpch_q1.tpl",
-      //"../../../tpl_tables/sample_tpl/tpch_q4.tpl",
+      "../../../tpl_tables/sample_tpl/tpch_q1.tpl",
+      "../../../tpl_tables/sample_tpl/tpch_q4.tpl",
       "../../../tpl_tables/sample_tpl/tpch_q5.tpl",
-      //"../../../tpl_tables/sample_tpl/tpch_q6.tpl"
+      "../../../tpl_tables/sample_tpl/tpch_q6.tpl"
       };
   const std::string tpch_table_root_ = "../../../tpl_tables/tables/";
   const std::string tpch_database_name_ = "tpch_db";
@@ -58,28 +57,19 @@ BENCHMARK_DEFINE_F(TPCHRunner, Runner)(benchmark::State &state) {
   // Load the TPCH tables and compile the queries
   tpch_workload_ = std::make_unique<tpch::Workload>(common::ManagedPointer<DBMain>(db_main_), tpch_database_name_,
                                                     tpch_table_root_, tpch_query_filenames_);
-  std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
-  // NOLINTNEXTLINE
-  for (auto _ : state) {
-    thread_pool_.Startup();
+  for (auto num_threads = 1; num_threads <= total_num_threads_; num_threads += 2) {
+    std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
+    common::WorkerPool thread_pool{static_cast<uint32_t>(num_threads), {}};
+    thread_pool.Startup();
 
-    // run the TPCC workload to completion, timing the execution
-    uint64_t elapsed_ms;
-    {
-      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      for (int8_t i = 0; i < num_threads_; i++) {
-        thread_pool_.SubmitTask([this, i] { tpch_workload_->Execute(i, num_precomputed_txns_per_worker_, mode_); });
-      }
-      thread_pool_.WaitUntilAllFinished();
+    for (int8_t i = 0; i < num_threads; i++) {
+      thread_pool.SubmitTask([this, i] { tpch_workload_->Execute(i, num_precomputed_txns_per_worker_, mode_); });
     }
 
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
-
-    thread_pool_.Shutdown();
+    thread_pool.WaitUntilAllFinished();
+    thread_pool.Shutdown();
   }
-
-  state.SetItemsProcessed(state.iterations() * num_precomputed_txns_per_worker_ * num_threads_);
 
   // free the workload here so we don't need to use the loggers anymore
   tpch_workload_.reset();
