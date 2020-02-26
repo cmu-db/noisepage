@@ -1015,11 +1015,8 @@ class ReferenceValue(object):
         """ Return a ReferenceValue constructed from configuration
             data
         """
-        suite_name = gbrp.get_suite_name()
-        test_name = gbrp.get_test_name()
+        suite_name, test_name = key
         LOG.debug("Loading configuration(?) data for %s.%s [%s]" % (suite_name, test_name, bench_name))
-        key = (suite_name, test_name)
-        assert key == in_key
         
         ret_obj = cls()
         ret_obj.key = key
