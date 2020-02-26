@@ -20,6 +20,7 @@ import urllib
 import logging
 import shutil
 import glob
+import csv
 from pprint import pprint
 
 import xml.etree.ElementTree as ElementTree
@@ -360,6 +361,10 @@ class ArtifactProcessor(object):
         # key = (suite_name, test_name)
         self.results = {}
         self.required_num_items = required_num_items
+        
+        # Benchmark Name -> Suite Name
+        self.name_suite_xref = { }
+        self.suite_name_xref = { }
         return
 
     def get_required_num_items(self):
@@ -375,10 +380,18 @@ class ArtifactProcessor(object):
 
         # create a GBFileResult
         gbr = GBFileResult(json.loads(data))
+        bench_name = gbr.get_benchmark_name()
+        
         # iterate over the GBBenchResult objects
         for bench_result in gbr.benchmarks:
-            key = (bench_result.get_suite_name(),
-                   bench_result.get_test_name())
+            suite_name = bench_result.get_suite_name()
+            
+            if not bench_name in self.name_suite_xref:
+                self.name_suite_xref[bench_name] = suite_name
+            if not suite_name in self.suite_name_xref:
+                self.suite_name_xref[suite_name] = bench_name
+            
+            key = (suite_name, bench_result.get_test_name())
 
             # add to a GBBenchResultProcessor
             gbr_p = self.results.get(key)
@@ -457,6 +470,9 @@ class GBFileResult(object):
             self.benchmarks_dict[key] = result_obj
         return
 
+    def get_benchmark_name(self):
+        return os.path.basename(self.data["context"]["executable"])
+
     def get_datetime(self):
         """ Return when the result was generated as a datetime """
         date_str = self.data['context']['date']
@@ -510,11 +526,6 @@ class GBBenchResult(object):
             self.time_type = "cpu_time"
 
         self.attrs.add("time_type")
-        return
-
-    def add_timestamp(self, timestamp):
-        """ timestamp: as a datetime """
-        self.timestamp = timestamp
         return
 
     def add_timestamp(self, timestamp):
@@ -1082,6 +1093,109 @@ class ReferenceValueProvider(object):
         # no checking
         return ReferenceValue.config(bench_name, key, self.config)
 
+
+def csv_dump(benchmarks, ap):
+
+    # Figure out what benchmark results we want to examine
+    suite_test_names = { }
+    timestamps = set()
+    for suite_name, test_name in ap.results.keys():
+        bench_name = ap.suite_name_xref[suite_name]
+        if bench_name in benchmarks:
+            if not suite_name in suite_test_names: suite_test_names[suite_name] = [ ]
+            suite_test_names[suite_name].append(test_name)
+            
+            # Get all the timestamps for the results
+            gbr_p = ap.get_result(suite_name, test_name)
+            map(timestamps.add, [ gbr.timestamp for gbr in gbr_p.gbresults ])
+    # FOR
+
+    # Now for each timestamp, get all the results across all benchmarks
+    # Each row in the CSV output will be for a single timestamp
+    writer = csv.writer(sys.stdout, quoting=csv.QUOTE_ALL)
+    header = [ "timestamp" ]
+    for suite_name, test_names in sorted(suite_test_names.items()):
+        map(header.append, [ "%s::%s" % (suite_name, test_name) for test_name in sorted(test_names) ])
+    writer.writerow(header)
+    
+    for timestamp in sorted(timestamps):
+        row = [ timestamp ]
+        for suite_name, test_names in sorted(suite_test_names.items()):
+            for test_name in test_names:
+                gbr_p = ap.get_result(suite_name, test_name)
+                for gbr in gbr_p.gbresults:
+                    if gbr.timestamp != timestamp: continue
+                    row.append(gbr.items_per_second)
+                    #print suite_name, test_name, gbr.items_per_second
+                # FOR
+            # FOR
+        # FOR
+        writer.writerow(row)
+    # FOR
+
+    return
+# DEF
+
+def table_dump(benchmarks, ap):
+    """parse all the result files and compare current results vs. reference"""
+    rvp = ReferenceValueProvider(config, ap)
+    tt = TextTable()
+    ret = 0
+    for bench_name in sorted(benchmarks):
+        filename = "{}.json".format(bench_name)
+        LOG.debug("Loading local benchmark result file '%s'", filename)
+        with open(filename) as fh:
+            contents = fh.read()
+            try:
+                data = json.loads(contents)
+            except:
+                LOG.error("Invalid data read from benchmark result file '%s'", filename)
+                LOG.error(contents)
+                raise
+        bench_results = GBFileResult(data)
+
+        # iterate over (test suite, benchmark)
+        for key in sorted(bench_results.get_keys()):
+            # get the GBBenchResult object
+            result = bench_results.get_result(key)
+            LOG.debug("%s Result:\n%s", bench_name, result)
+
+            # get reference value to compare against
+            reference = rvp.get_reference(key, bench_name)
+
+            # if reference.reference_type == "history":
+            reference.set_ips(result.get_items_per_second())
+            reference.iterations = result.iterations
+
+            reference.set_pass_fail()
+            tt.add_row(reference.to_dict())
+            status = reference.get_pass_fail_status()
+            if status:
+                # failed, set exit error code
+                ret = 1
+
+    # benchmark key, value, reference, tolerance, reference type, pass
+    # add difference
+    tt.add_column("pass", heading="    ")
+    tt.add_column("value", col_format="%01.4g")
+    tt.add_column("iterations", col_format="%d")
+    tt.add_column("reference", col_format="%01.4g")
+    tt.add_column("tolerance", heading="%tolerance")
+    tt.add_column("p_diff", heading="%change", col_format="%+3d")
+    # add # ref values
+    # hist, cfg
+    tt.add_column("reference_type", heading="ref type")
+    tt.add_column("num_results", heading="#results")
+    tt.add_column("suite")
+    tt.add_column("test")
+    print("")
+    print(tt)
+    
+    return (ret)
+# DEF
+
+
+
 ## =========================================================
 ## MAIN
 ## =========================================================
@@ -1101,9 +1215,9 @@ if __name__ == "__main__":
                         help="Run Benchmarks")
     
     parser.add_argument("--local",
-                    action="store_true",
-                    default=False,
-                    help="Store results in local directory")
+                        action="store_true",
+                        default=False,
+                        help="Store results in local directory")
     
     parser.add_argument("--num-threads",
                         metavar='N',
@@ -1128,6 +1242,11 @@ if __name__ == "__main__":
                         type=str,
                         default=BENCHMARK_PATH,
                         help="Path to benchmark binaries")
+
+    parser.add_argument("--csv-dump",
+                        action="store_true",
+                        default=False,
+                        help="Print results to stdout as CSV")
 
     parser.add_argument("--debug",
                         action="store_true",
@@ -1177,6 +1296,7 @@ if __name__ == "__main__":
             next_dir = os.path.join(LOCAL_REPO_DIR, "%03d" % (int(last_dir)+1))
             LOG.info("Creating new result directory in local data repository '%s'", next_dir)
             os.mkdir(next_dir)
+            
             builds_to_skip.append(os.path.basename(next_dir))
             
             # Copy any JSON files that we find into our repository
@@ -1257,60 +1377,11 @@ if __name__ == "__main__":
         print "ips = ",  v.get_mean_items_per_second()
     """
 
-    rvp = ReferenceValueProvider(config, ap)
-    tt = TextTable()
+    if args.csv_dump:
+        ret = csv_dump(benchmarks, ap)
+    else:
+        ret = table_dump(benchmarks, ap)
 
-    # parse all the result files and compare current results vs. reference
-    for bench_name in sorted(benchmarks):
-        filename = "{}.json".format(bench_name)
-        # parse the json result file
-        LOG.debug("Loading local benchmark result file '%s'", filename)
-        with open(filename) as fh:
-            contents = fh.read()
-            try:
-                data = json.loads(contents)
-            except:
-                LOG.error("Invalid data read from benchmark result file '%s'", filename)
-                LOG.error(contents)
-                raise
-        bench_results = GBFileResult(data)
-
-        # iterate over (test suite, benchmark)
-        for key in sorted(bench_results.get_keys()):
-            # get the GBBenchResult object
-            result = bench_results.get_result(key)
-            LOG.debug("%s Result:\n%s", bench_name, result)
-
-            # get reference value to compare against
-            reference = rvp.get_reference(key, bench_name)
-
-            # if reference.reference_type == "history":
-            reference.set_ips(result.get_items_per_second())
-            reference.iterations = result.iterations
-
-            reference.set_pass_fail()
-            tt.add_row(reference.to_dict())
-            status = reference.get_pass_fail_status()
-            if status:
-                # failed, set exit error code
-                ret = 1
-
-    # benchmark key, value, reference, tolerance, reference type, pass
-    # add difference
-    tt.add_column("pass", heading="    ")
-    tt.add_column("value", col_format="%01.4g")
-    tt.add_column("iterations", col_format="%d")
-    tt.add_column("reference", col_format="%01.4g")
-    tt.add_column("tolerance", heading="%tolerance")
-    tt.add_column("p_diff", heading="%change", col_format="%+3d")
-    # add # ref values
-    # hist, cfg
-    tt.add_column("reference_type", heading="ref type")
-    tt.add_column("num_results", heading="#results")
-    tt.add_column("suite")
-    tt.add_column("test")
-    print("")
-    print(tt)
 
     LOG.debug("Exit code = {}".format(ret))
     sys.exit(ret)
