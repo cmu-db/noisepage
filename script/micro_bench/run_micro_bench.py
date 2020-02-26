@@ -363,7 +363,7 @@ class ArtifactProcessor(object):
         return
 
     def get_required_num_items(self):
-        return required_num_items
+        return self.required_num_items
 
     def add_artifact_file(self, data):
         """
