@@ -48,6 +48,9 @@ JENKINS_URL = "http://jenkins.db.cs.cmu.edu:8080"
 # Instead of checking with Jenkins, you can build a local repository of results
 LOCAL_REPO_DIR = os.path.realpath("local")
 
+# How many historical values are "required" before enforcing the threshold check
+MIN_REF_VALUES = 30
+
 # Default failure threshold
 # The regression threshold determines how much the benchmark is allowed to get
 # slower from the previous runs before it counts as a failure if we are 
@@ -66,7 +69,7 @@ DEFAULT_FAILURE_THRESHOLD = 10
 #
 BENCHMARKS_TO_RUN = {
     "catalog_benchmark":                    20,
-    "data_table_benchmark":                 DEFAULT_FAILURE_THRESHOLD,
+    "data_table_benchmark":                 15,
     "garbage_collector_benchmark":          DEFAULT_FAILURE_THRESHOLD,
     "large_transaction_benchmark":          DEFAULT_FAILURE_THRESHOLD,
     "index_wrapper_benchmark":              DEFAULT_FAILURE_THRESHOLD,
@@ -74,7 +77,7 @@ BENCHMARKS_TO_RUN = {
     "recovery_benchmark":                   DEFAULT_FAILURE_THRESHOLD,
     "large_transaction_metrics_benchmark":  DEFAULT_FAILURE_THRESHOLD,
     "logging_metrics_benchmark":            DEFAULT_FAILURE_THRESHOLD,
-    "tuple_access_strategy_benchmark":      12,
+    "tuple_access_strategy_benchmark":      15,
     "tpcc_benchmark":                       DEFAULT_FAILURE_THRESHOLD,
     "bwtree_benchmark":                     DEFAULT_FAILURE_THRESHOLD,
     "cuckoomap_benchmark":                  DEFAULT_FAILURE_THRESHOLD,
@@ -101,9 +104,6 @@ class Config(object):
     def __init__(self):
         # benchmark executables to run
         self.benchmarks = BENCHMARKS_TO_RUN
-
-        # how many historical values are "required".
-        self.min_ref_values = 30
 
         # if fewer than min_ref_values are available
         self.lax_tolerance = 30
@@ -361,6 +361,9 @@ class ArtifactProcessor(object):
         self.results = {}
         self.required_num_items = required_num_items
         return
+
+    def get_required_num_items(self):
+        return required_num_items
 
     def add_artifact_file(self, data):
         """
@@ -1063,7 +1066,7 @@ class ReferenceValueProvider(object):
     def get_reference(self, key, bench_name):
         """ Return reference value(s) """
         if self.ap.results.has_key(key):
-            n_desired = self.config.min_ref_values
+            n_desired = ap.get_required_num_items()
             suite_name, test_name = key
             # GBBenchResultProcessor
             gbrp = self.ap.get_result(suite_name, test_name)
@@ -1113,6 +1116,12 @@ if __name__ == "__main__":
                         type=str,
                         default=BENCHMARK_LOGFILE_PATH,
                         help="Path to use for benchmark WAL files")
+    
+    parser.add_argument("--min-ref-values",
+                        metavar='M',
+                        type=int,
+                        default=MIN_REF_VALUES,
+                        help="Minimal # of values needed to enforce threshold")
     
     parser.add_argument("--benchmark-path",
                         metavar='B',
@@ -1178,8 +1187,8 @@ if __name__ == "__main__":
         # IF 
             
     # need <n> benchmark results to compare against
-    ap = ArtifactProcessor(config.min_ref_values)
-    LOG.debug("min_ref_values: %d" % config.min_ref_values)
+    ap = ArtifactProcessor(args.min_ref_values)
+    LOG.debug("min_ref_values: %d" % args.min_ref_values)
     need_more_builds = True
 
     ## LOCAL REPOSITORY RESULTS
@@ -1187,7 +1196,7 @@ if __name__ == "__main__":
         LOG.debug("Processing local data repository '%s'", LOCAL_REPO_DIR)
         for run_dir in reversed(sorted(next(os.walk(LOCAL_REPO_DIR))[1])):
             if os.path.basename(run_dir) in builds_to_skip: 
-                LOG.info("Skipping data dir '%s'", run_dir)
+                LOG.debug("Skipping data dir '%s'", run_dir)
                 continue
             LOG.debug("Reading results from local directory '%s'", run_dir)
             for build_file in glob.glob(os.path.join(LOCAL_REPO_DIR, run_dir, '*.json')):
@@ -1297,7 +1306,7 @@ if __name__ == "__main__":
     # add # ref values
     # hist, cfg
     tt.add_column("reference_type", heading="ref type")
-    tt.add_column("num_results", heading="nres")
+    tt.add_column("num_results", heading="#results")
     tt.add_column("suite")
     tt.add_column("test")
     print("")
