@@ -103,7 +103,7 @@ class Config(object):
         self.benchmarks = BENCHMARKS_TO_RUN
 
         # how many historical values are "required".
-        self.min_ref_values = 10
+        self.min_ref_values = 30
 
         # if fewer than min_ref_values are available
         self.lax_tolerance = 30
@@ -1186,7 +1186,9 @@ if __name__ == "__main__":
     if args.local:
         LOG.debug("Processing local data repository '%s'", LOCAL_REPO_DIR)
         for run_dir in reversed(sorted(next(os.walk(LOCAL_REPO_DIR))[1])):
-            if os.path.basename(run_dir) in builds_to_skip: continue
+            if os.path.basename(run_dir) in builds_to_skip: 
+                LOG.info("Skipping data dir '%s'", run_dir)
+                continue
             LOG.debug("Reading results from local directory '%s'", run_dir)
             for build_file in glob.glob(os.path.join(LOCAL_REPO_DIR, run_dir, '*.json')):
                 with open(build_file) as fh:
