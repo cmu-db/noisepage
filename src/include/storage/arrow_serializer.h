@@ -10,6 +10,12 @@
 namespace flatbuf = org::apache::arrow::flatbuf;
 
 namespace terrier::storage {
+
+/**
+ * An Arrow Serializer is an auxiliary object bound to a data table so that the in-memory blocks
+ * which are organized in arrow format can be exported to external storage in arrow IPC format.
+ * The exported table can be read by other frameworks that are compatible with arrow, e.g., pandas.
+ */
 class ArrowSerializer {
  public:
     /**
