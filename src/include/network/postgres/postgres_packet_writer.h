@@ -371,14 +371,14 @@ class PostgresPacketWriter : public PacketWriter {
     for (const auto &col : columns) {
       // Reinterpret to a base value type first and check if it's NULL
       const auto *const val = reinterpret_cast<const execution::sql::Val *const>(tuple + curr_offset);
+      const auto type_size = execution::sql::ValUtil::GetSqlSize(col.GetType());
 
       if (val->is_null_) {
         // write a -1 for the length of the column value and continue to the next value
         AppendValue<int32_t>(static_cast<int32_t>(-1));
+        curr_offset += type_size;
         continue;
       }
-
-      const auto type_size = execution::sql::ValUtil::GetSqlSize(col.GetType());
 
       // Write the attribute
       switch (col.GetType()) {
@@ -441,6 +441,7 @@ class PostgresPacketWriter : public PacketWriter {
       if (val->is_null_) {
         // write a -1 for the length of the column value and continue to the next value
         AppendValue<int32_t>(static_cast<int32_t>(-1));
+        curr_offset += execution::sql::ValUtil::GetSqlSize(col.GetType());
         continue;
       }
 

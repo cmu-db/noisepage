@@ -8,7 +8,7 @@
 
 namespace terrier::execution::compiler {
 SortBottomTranslator::SortBottomTranslator(const terrier::planner::OrderByPlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(codegen),
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::SORT_BUILD),
       op_(op),
       sorter_(codegen_->NewIdentifier("sorter")),
       sorter_row_(codegen_->NewIdentifier("sorter_row")),
@@ -173,7 +173,7 @@ void SortBottomTranslator::GenComparisons(FunctionBuilder *builder) {
 
 SortTopTranslator::SortTopTranslator(const terrier::planner::OrderByPlanNode *op, CodeGen *codegen,
                                      OperatorTranslator *bottom)
-    : OperatorTranslator(codegen),
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::SORT_ITERATE),
       op_(op),
       bottom_(dynamic_cast<SortBottomTranslator *>(bottom)),
       sort_iter_(codegen_->NewIdentifier("sort_iter")),

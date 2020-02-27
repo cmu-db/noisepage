@@ -7,7 +7,7 @@
 
 namespace terrier::execution::compiler {
 AggregateBottomTranslator::AggregateBottomTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(codegen), op_(op), helper_(codegen, op) {}
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD), op_(op), helper_(codegen, op) {}
 
 void AggregateBottomTranslator::InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) {
   // There the aggregation hash tables.

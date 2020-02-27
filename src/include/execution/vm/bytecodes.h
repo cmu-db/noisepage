@@ -99,6 +99,9 @@ namespace terrier::execution::vm {
                                                                                                                       \
   /* Execution Context */                                                                                             \
   F(ExecutionContextGetMemoryPool, OperandType::Local, OperandType::Local)                                            \
+  F(ExecutionContextStartResourceTracker, OperandType::Local, OperandType::Local)                                     \
+  F(ExecutionContextEndResourceTracker, OperandType::Local, OperandType::Local)                                       \
+  F(ExecutionContextEndPipelineTracker, OperandType::Local, OperandType::Local, OperandType::Local)                   \
                                                                                                                       \
   /* Thread State Container */                                                                                        \
   F(ThreadStateContainerInit, OperandType::Local, OperandType::Local)                                                 \
@@ -172,6 +175,7 @@ namespace terrier::execution::vm {
                                                                                                                       \
   /* SQL type comparisons */                                                                                          \
   F(ForceBoolTruth, OperandType::Local, OperandType::Local)                                                           \
+  F(InitSqlNull, OperandType::Local)                                                                                  \
   F(InitBoolVal, OperandType::Local, OperandType::Local)                                                              \
   F(InitInteger, OperandType::Local, OperandType::Local)                                                              \
   F(InitReal, OperandType::Local, OperandType::Local)                                                                 \
