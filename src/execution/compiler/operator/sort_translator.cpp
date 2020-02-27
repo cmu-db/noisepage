@@ -237,7 +237,8 @@ void SortTopTranslator::GenForLoop(FunctionBuilder *builder) {
     auto lhs = codegen_->MakeExpr(num_tuples_);
     auto rhs = codegen_->BinaryOp(parsing::Token::Type::PLUS, codegen_->MakeExpr(num_tuples_), codegen_->IntLiteral(1));
     builder->Append(codegen_->Assign(lhs, rhs));
-    ast::Expr *offset_comp = codegen_->Compare(parsing::Token::Type::GREATER, codegen_->MakeExpr(num_tuples_), codegen_->IntLiteral(op_->GetOffset()));
+    ast::Expr *offset_comp = codegen_->Compare(parsing::Token::Type::GREATER, codegen_->MakeExpr(num_tuples_),
+                                               codegen_->IntLiteral(op_->GetOffset()));
     builder->StartIfStmt(offset_comp);
   }
 }

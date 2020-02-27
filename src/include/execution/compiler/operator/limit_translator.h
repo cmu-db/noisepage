@@ -20,7 +20,9 @@ class LimitTranslator : public OperatorTranslator {
    * @param codegen The code generator
    */
   LimitTranslator(const terrier::planner::LimitPlanNode *op, CodeGen *codegen)
-      : OperatorTranslator(codegen), op_(op), num_tuples_(codegen->NewIdentifier("num_tuples")) {}
+      : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::LIMIT),
+        op_(op),
+        num_tuples_(codegen->NewIdentifier("num_tuples")) {}
 
   // Pass through
   void Produce(FunctionBuilder *builder) override;

@@ -77,7 +77,9 @@ class StaticAggregateTopTranslator : public OperatorTranslator {
    */
   StaticAggregateTopTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen,
                                OperatorTranslator *bottom)
-      : OperatorTranslator(codegen), op_(op), bottom_(static_cast<StaticAggregateBottomTranslator *>(bottom)) {}
+      : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::AGGREGATE_STATIC),
+        op_(op),
+        bottom_(static_cast<StaticAggregateBottomTranslator *>(bottom)) {}
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
