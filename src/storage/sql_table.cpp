@@ -93,13 +93,4 @@ catalog::col_oid_t SqlTable::OidForColId(const col_id_t col_id) const {
   return oid_to_id->first;
 }
 
-void SqlTable::ExportTable(const std::string &file_name, const catalog::Schema &schema) {
-  auto col_types = std::vector<type::TypeId>(table_.layout_.NumColumns());
-  uint16_t i = 0;
-  for (const catalog::Schema::Column &col : schema.GetColumns()) {
-    col_types[i++] = col.Type();
-  }
-  table_.data_table_->ExportTable(file_name, &col_types);
-}
-
 }  // namespace terrier::storage

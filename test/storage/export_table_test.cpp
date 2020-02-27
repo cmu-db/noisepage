@@ -237,7 +237,7 @@ TEST_F(ExportTableTest, ExportDictionaryCompressedTableTest) {
   auto &arrow_metadata = accessor.GetArrowBlockMetadata(block);
 
   std::vector<type::TypeId> column_types;
-  column_types.reserve(layout.NumColumns());
+  column_types.resize(layout.NumColumns());
 
   for (storage::col_id_t col_id : layout.AllColumns()) {
     if (layout.IsVarlen(col_id)) {
@@ -258,7 +258,8 @@ TEST_F(ExportTableTest, ExportDictionaryCompressedTableTest) {
   compactor.PutInQueue(block);
   compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
 
-  table.ExportTable(EXPORT_TABLE_NAME, &column_types);
+  storage::ArrowSerializer arrow_serializer(table);
+  arrow_serializer.ExportTable(EXPORT_TABLE_NAME, &column_types);
   EXPECT_EQ(system((std::string("python3 ") + PYSCRIPT_NAME).c_str()), 0);
 
   std::ifstream csv_file(CSV_TABLE_NAME, std::ios_base::in);
@@ -305,7 +306,7 @@ TEST_F(ExportTableTest, ExportVarlenTableTest) {
   auto &arrow_metadata = accessor.GetArrowBlockMetadata(block);
 
   std::vector<type::TypeId> column_types;
-  column_types.reserve(layout.NumColumns());
+  column_types.resize(layout.NumColumns());
 
   for (storage::col_id_t col_id : layout.AllColumns()) {
     if (layout.IsVarlen(col_id)) {
@@ -326,7 +327,8 @@ TEST_F(ExportTableTest, ExportVarlenTableTest) {
   compactor.PutInQueue(block);
   compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
 
-  table.ExportTable(EXPORT_TABLE_NAME, &column_types);
+  storage::ArrowSerializer arrow_serializer(table);
+  arrow_serializer.ExportTable(EXPORT_TABLE_NAME, &column_types);
   EXPECT_EQ(system((std::string("python3 ") + PYSCRIPT_NAME).c_str()), 0);
 
   std::ifstream csv_file(CSV_TABLE_NAME, std::ios_base::in);
