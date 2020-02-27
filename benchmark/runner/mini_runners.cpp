@@ -1,4 +1,7 @@
+#include <common/macros.h>
+
 #include "benchmark/benchmark.h"
+#include "benchmark_util/benchmark_config.h"
 #include "brain/brain_defs.h"
 #include "brain/operating_unit.h"
 #include "common/scoped_timer.h"
@@ -6,9 +9,22 @@
 #include "execution/table_generator/table_generator.h"
 #include "execution/util/cpu_info.h"
 #include "execution/vm/module.h"
+#include "loggers/loggers_util.h"
 #include "main/db_main.h"
 
 namespace terrier::runner {
+
+/**
+ * Static db_main instance
+ * This is done so all tests reuse the same DB Main instance
+ */
+DBMain *db_main_ = nullptr;
+
+/**
+ * Database OID
+ * This is done so all tests can use the same database OID
+ */
+catalog::db_oid_t db_oid_{0};
 
 /**
  * Taken from Facebook's folly library.
@@ -106,57 +122,17 @@ class MiniRunners : public benchmark::Fixture {
   TIGHT_LOOP_OPERATION(double, GEQ, >=);
 
   void SetUp(const benchmark::State &state) final {
-    execution::CpuInfo::Instance();
-    terrier::execution::ExecutionUtil::InitTPL();
-    auto db_main_builder = DBMain::Builder()
-                               .SetUseGC(true)
-                               .SetUseCatalog(true)
-                               .SetUseGCThread(true)
-                               .SetUseMetrics(true)
-                               .SetBlockStoreSize(1000000)
-                               .SetBlockStoreReuse(1000000)
-                               .SetRecordBufferSegmentSize(1000000)
-                               .SetRecordBufferSegmentReuse(1000000);
-    db_main_ = db_main_builder.Build();
     block_store_ = db_main_->GetStorageLayer()->GetBlockStore();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
-
     metrics_manager_ = db_main_->GetMetricsManager();
-    metrics_manager_->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
-
-    // Create the database
-    auto txn = txn_manager_->BeginTransaction();
-    db_oid_ = catalog_->CreateDatabase(common::ManagedPointer(txn), "test_db", true);
-
-    // Load the database
-    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
-    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid_, common::ManagedPointer(txn), nullptr,
-                                                                        nullptr, common::ManagedPointer(accessor));
-    // execution::sql::TableGenerator table_gen(exec_ctx.get(), block_store_, accessor->GetDefaultNamespace());
-    // table_gen.GenerateTestTables(true);
-
-    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
-
-  void TearDown(const benchmark::State &state) final {
-    terrier::execution::ExecutionUtil::ShutdownTPL();
-    metrics_manager_->Aggregate();
-    metrics_manager_->ToCSV();
-    // free db main here so we don't need to use the loggers anymore
-    db_main_.reset();
-  }
-
-  catalog::db_oid_t GetDatabaseOid() { return db_oid_; }
-  common::ManagedPointer<metrics::MetricsManager> GetMetricsManager() { return metrics_manager_; }
-  common::ManagedPointer<transaction::TransactionManager> GetTxnManager() { return txn_manager_; }
-  common::ManagedPointer<catalog::Catalog> GetCatalog() { return catalog_; }
 
   void BenchmarkArithmetic(brain::ExecutionOperatingUnitType type, size_t num_elem) {
-    auto txn = GetTxnManager()->BeginTransaction();
-    auto accessor = GetCatalog()->GetAccessor(common::ManagedPointer(txn), GetDatabaseOid());
+    auto txn = txn_manager_->BeginTransaction();
+    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-        GetDatabaseOid(), common::ManagedPointer(txn), nullptr, nullptr, common::ManagedPointer(accessor));
+        db_oid_, common::ManagedPointer(txn), nullptr, nullptr, common::ManagedPointer(accessor));
     exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode_));
     exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
 
@@ -241,12 +217,10 @@ class MiniRunners : public benchmark::Fixture {
         break;
     }
 
-    GetTxnManager()->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 
- private:
-  catalog::db_oid_t db_oid_{0};
-  std::unique_ptr<DBMain> db_main_;
+ protected:
   common::ManagedPointer<catalog::Catalog> catalog_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   common::ManagedPointer<storage::BlockStore> block_store_;
@@ -256,7 +230,7 @@ class MiniRunners : public benchmark::Fixture {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, ArithmeticRunners)(benchmark::State &state) {
   for (auto _ : state) {
-    GetMetricsManager()->RegisterThread();
+    metrics_manager_->RegisterThread();
 
     uint64_t elapsed_ms;
     {
@@ -268,8 +242,8 @@ BENCHMARK_DEFINE_F(MiniRunners, ArithmeticRunners)(benchmark::State &state) {
                           static_cast<size_t>(state.range(1)));
     }
 
-    GetMetricsManager()->Aggregate();
-    GetMetricsManager()->UnregisterThread();
+    metrics_manager_->Aggregate();
+    metrics_manager_->UnregisterThread();
   }
 
   state.SetItemsProcessed(state.range(1));
@@ -319,4 +293,69 @@ BENCHMARK_REGISTER_F(MiniRunners, ArithmeticRunners)
     ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE), 1000000})
     ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE), 100000000});
 
+void InitializeRunnersState() {
+  terrier::execution::CpuInfo::Instance();
+  terrier::execution::ExecutionUtil::InitTPL();
+  auto db_main_builder = DBMain::Builder()
+    .SetUseGC(true)
+    .SetUseCatalog(true)
+    .SetUseGCThread(true)
+    .SetUseMetrics(true)
+    .SetBlockStoreSize(1000000)
+    .SetBlockStoreReuse(1000000)
+    .SetRecordBufferSegmentSize(1000000)
+    .SetRecordBufferSegmentReuse(1000000);
+
+  db_main_ = db_main_builder.Build().release();
+
+  // auto block_store = db_main_->GetStorageLayer()->GetBlockStore();
+  auto catalog = db_main_->GetCatalogLayer()->GetCatalog();
+  auto txn_manager = db_main_->GetTransactionLayer()->GetTransactionManager();
+  db_main_->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
+
+  // Create the database
+  auto txn = txn_manager->BeginTransaction();
+  db_oid_ = catalog->CreateDatabase(common::ManagedPointer(txn), "test_db", true);
+
+  // Load the database
+  auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid_);
+  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid_, common::ManagedPointer(txn), nullptr,
+      nullptr, common::ManagedPointer(accessor));
+  
+  // execution::sql::TableGenerator table_gen(exec_ctx.get(), block_store, accessor->GetDefaultNamespace());
+  // table_gen.GenerateTestTables(true);
+
+  txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+}
+
+void EndRunnersState() {
+  terrier::execution::ExecutionUtil::ShutdownTPL();
+  db_main_->GetMetricsManager()->Aggregate();
+  db_main_->GetMetricsManager()->ToCSV();
+  // free db main here so we don't need to use the loggers anymore
+  delete db_main_;
+}
+
 }  // namespace terrier::runner
+
+int main(int argc, char **argv) {
+  terrier::LoggersUtil::Initialize();
+
+  // Benchmark Config Environment Variables
+  // Check whether we are being passed environment variables to override configuration parameter
+  // for this benchmark run.
+  const char *env_num_threads = std::getenv(terrier::ENV_NUM_THREADS);
+  if (env_num_threads != nullptr) terrier::BenchmarkConfig::num_threads = atoi(env_num_threads);
+
+  const char *env_logfile_path = std::getenv(terrier::ENV_LOGFILE_PATH);
+  if (env_logfile_path != nullptr) terrier::BenchmarkConfig::logfile_path = std::string_view(env_logfile_path);
+
+  terrier::runner::InitializeRunnersState();
+  benchmark::Initialize(&argc, argv);
+  benchmark::RunSpecifiedBenchmarks();
+  terrier::runner::EndRunnersState();
+
+  terrier::LoggersUtil::ShutDown();
+
+  return 0;
+}
