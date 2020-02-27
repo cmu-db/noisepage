@@ -29,6 +29,7 @@ class CompilerTest_SimpleUpdateTest_Test;
 class CompilerTest_SimpleInsertTest_Test;
 class CompilerTest_InsertIntoSelectWithParamTest_Test;
 class CompilerTest_SimpleInsertWithParamsTest_Test;
+class CompilerTest_StaticDistinctAggregateTest_Test;
 }  // namespace terrier::execution::compiler::test
 
 namespace terrier::brain {
@@ -129,6 +130,7 @@ class PipelineOperatingUnits {
   friend class terrier::execution::compiler::test::CompilerTest_SimpleInsertTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_InsertIntoSelectWithParamTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_SimpleInsertWithParamsTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_StaticDistinctAggregateTest_Test;
 
   /**
    * Constructor
