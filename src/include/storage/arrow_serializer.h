@@ -18,7 +18,7 @@ namespace terrier::storage {
  */
 class ArrowSerializer {
  public:
-    /**
+  /**
    * Constructor of an arrow serializer. Each arrow serializer is bound to a specific data table. However,
    * a column can be interpreted with different types when exported, as is shown below (ExportTable).
    *
