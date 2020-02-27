@@ -5,9 +5,9 @@ import os
 import numpy as np
 import argparse
 import pickle
+import copy
 
-
-import global_data
+import grouped_op_unit_data
 import data_info
 import io_util
 from type import OpUnit
@@ -16,15 +16,6 @@ np.set_printoptions(precision=4)
 np.set_printoptions(edgeitems=10)
 np.set_printoptions(suppress=True)
 
-
-def _get_result_labels():
-    labels = []
-    for dataset in ["Train", "Test"]:
-        for target in data_info.mini_model_target_list:
-            labels.append(dataset + " " + target.name)
-        labels.append("")
-
-    return labels
 
 
 class GlobalTrainer:
@@ -45,39 +36,97 @@ class GlobalTrainer:
         :return: the map of the trained models
         """
 
+        data_list = self._get_data_list()
+        self._predict_global_data(data_list)
+        self._construct_global_model_data(data_list)
+
+    def _construct_global_model_data(self, data_list):
+        """Construct the GlobalModelData used for the global model training
+
+        :param data_list: The list of the GlobalModelData objects
+        """
+        start_time_idx = [i[0] for i in sorted(enumerate(data_list), key=lambda x: x[1].start_time)]
+        # The concurrent running opunit groups that that has already started
+        started_data_list = []
+        for i in start_time_idx:
+            data = data_list[start_time_idx[i]]
+
+            # First find the overlap between the current opunit group and the previously started groups
+            started_data_list.append(data)
+            concurrent_data_list = []
+            for started_data in started_data_list:
+                if started_data.end_time <= data.start_time:
+                    # The entered_data overlaps with the current opunit group
+                    concurrent_data_list.append(started_data)
+            started_data_list = copy.deepcopy(concurrent_data_list)
+
+            # Then find the overlap with the opunit groups started later
+            j = i + 1
+            while data_list[start_time_idx[j]].start_time <= data.end_time and j < len(start_time_idx):
+                concurrent_data_list.append(data_list[start_time_idx[j]])
+            concurrent_ratio_list = []
+
+    def _get_data_list(self):
+        """Get the list of all the operating units (or groups of operating units) stored in GlobalData objects
+        :return: the list of all the operating units (or groups of operating units) stored in GlobalData objects
+        """
         data_list = []
 
         # First get the data for all mini runners
         for filename in glob.glob(os.path.join(self.input_path, '*.csv')):
             print(filename)
-            data_list += global_data.get_global_data(filename)
+            data_list += grouped_op_unit_data.get_grouped_op_unit_data(filename)
+
+        return data_list
+
+    def _predict_global_data(self, data_list):
+        """Use the mini-runner to predict the resource consumptions for all the GlobalData, and record the prediction
+        result in place
+
+        :param data_list: The list of the GroupedOpUnitData objects
+        """
 
         prediction_path = "{}/prediction.csv".format(self.model_metrics_path)
         open(prediction_path, 'w').close()
         io_util.write_result(prediction_path, "Pipeline", ["Actual", "Predicted", "Ratio Error"])
 
+        # Have to use a prediction cache when having lots of global data...
+        prediction_cache = {}
+
         # First run a prediction on the global running data with the mini model results
-        for data in data_list:
+        for i, data in enumerate(data_list):
+            if i == 100:
+                break
             y = data.y
             print("{} pipeline elapsed time: {}".format(data.name, y[-1]))
-            predicted_time = 0
+            pipeline_y_pred = 0
+            x = None
             for opunit_feature in data.opunit_features:
                 opunit = opunit_feature[0]
                 opunit_model = self.mini_model_map[opunit]
                 x = np.array(opunit_feature[1]).reshape(1, -1)
-                y_pred = opunit_model.predict(x)
-                # subtract scan from certain double-counted opunits
-                if opunit in data_info.scan_subtract_opunits:
-                    scan_y_pred = self.mini_model_map[OpUnit.SCAN].predict(x)
-                    y_pred -= scan_y_pred
+                key = (opunit, x.tobytes())
+                if key not in prediction_cache:
+                    y_pred = opunit_model.predict(x)
+                    prediction_cache[key] = y_pred
+                    # subtract scan from certain double-counted opunits
+                    if opunit in data_info.scan_subtract_opunits:
+                        scan_y_pred = self.mini_model_map[OpUnit.SCAN].predict(x)
+                        y_pred -= scan_y_pred
+                else:
+                    y_pred = prediction_cache[key]
                 print("Predicted {} elapsed time with feature {}: {}".format(opunit_feature[0].name,
                                                                              x[0], y_pred[0, -1]))
-                predicted_time += y_pred[0, -1]
-            print("{} pipeline predicted time: {}".format(data.name, predicted_time))
-            ratio_error = abs(y[-1] - predicted_time) / y[-1]
+                pipeline_y_pred += y_pred[0]
+
+            # Record the predicted
+            data.y_pred = pipeline_y_pred
+            print("{} pipeline predicted time: {}".format(data.name, pipeline_y_pred[-1]))
+            ratio_error = abs(y[-1] - pipeline_y_pred[-1]) / y[-1]
             print("|Actual - Predict| / Actual: {}".format(ratio_error))
 
-            io_util.write_result(prediction_path, data.name + " " + str(x[0][-1]), [y[-1], predicted_time, ratio_error])
+            io_util.write_result(prediction_path, data.name + " " + str(x[0][-1]),
+                                 [y[-1], pipeline_y_pred[-1], ratio_error])
 
             print()
 

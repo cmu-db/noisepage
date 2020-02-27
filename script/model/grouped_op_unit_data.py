@@ -2,13 +2,13 @@ import csv
 import numpy as np
 import copy
 
-import data_info
 import query_info
+import data_info
 
-from type import ArithmeticFeature
+from type import Target
 
 
-def get_global_data(filename):
+def get_grouped_op_unit_data(filename):
     """Get the training data from the global model
 
     :param filename: the input data file
@@ -20,17 +20,13 @@ def get_global_data(filename):
         return []
     if "execution" in filename:
         # Special handle of the execution data
-        return _execution_get_global_data(filename)
+        return _execution_get_grouped_op_unit_data(filename)
 
     return _default_get_global_data(filename)
 
 
-def _execution_get_global_data(filename):
+def _execution_get_grouped_op_unit_data(filename):
     # Get the global running data for the execution engine
-    data_map = {}
-
-    arithmetic_mode_index = data_info.arithmetic_feature_index[ArithmeticFeature.EXEC_MODE]
-
     data_list = []
     with open(filename, "r") as f:
         reader = csv.reader(f, delimiter=",", skipinitialspace=True)
@@ -41,11 +37,12 @@ def _execution_get_global_data(filename):
             if identifier in query_info.feature_map:
                 # Need to deep copy since we're going to add the execution mode after it
                 opunit_features = copy.deepcopy(query_info.feature_map[identifier])
+                # Execution mode is the second element for now...
                 mode = int(line[1])
                 for opunit_feature in opunit_features:
                     opunit_feature[1].append(mode)
                 line_data = list(map(int, line[2:]))
-                data_list.append(GlobalData(line[0], opunit_features, np.array(line_data)))
+                data_list.append(GroupedOpUnitData(line[0], opunit_features, np.array(line_data)))
 
     return data_list
 
@@ -55,17 +52,20 @@ def _default_get_global_data(filename):
     return []
 
 
-class GlobalData:
+class GroupedOpUnitData:
     """
-    The class that stores the data for the global model training
+    The class that stores the information about a group of operating units measured together
     """
-    def __init__(self, name, opunit_features, y):
+    def __init__(self, name, opunit_features, metrics):
         """
-
         :param name: The name of the data point (e.g., could be the pipeline identifier)
-        :param opunit: The list of opunits and their inputs for this event
-        :param y: The runtime metrics
+        :param opunit_features: The list of opunits and their inputs for this event
+        :param metrics: The runtime metrics
         """
         self.name = name
         self.opunit_features = opunit_features
-        self.y = y
+        self.y = metrics[-data_info.mini_model_target_num:]
+        self.pred = None
+        self.start_time = metrics[data_info.target_csv_index[Target.START_TIME]]
+        self.end_time = self.start_time + self.y[-1]
+        self.cpu_id = metrics[data_info.target_csv_index[Target.CPU_ID]]
