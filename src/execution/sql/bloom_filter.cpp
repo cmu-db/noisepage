@@ -17,7 +17,7 @@ BloomFilter::BloomFilter(MemoryPool *memory, uint32_t num_elems) : BloomFilter()
 
 BloomFilter::~BloomFilter() {
   const auto num_bytes = GetNumBlocks() * sizeof(Block);
-  memory_->Deallocate(blocks_, num_bytes);
+  if (blocks_ != nullptr) memory_->Deallocate(blocks_, num_bytes);
 }
 
 void BloomFilter::Init(MemoryPool *memory, uint32_t num_elems) {

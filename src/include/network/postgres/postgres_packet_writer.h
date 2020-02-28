@@ -7,6 +7,7 @@
 
 #include "execution/sql/value.h"
 #include "network/packet_writer.h"
+#include "network/postgres/postgres_protocol_util.h"
 #include "planner/plannodes/output_schema.h"
 #include "util/time_util.h"
 
@@ -155,7 +156,8 @@ class PostgresPacketWriter : public PacketWriter {
       AppendString(col.GetName())
           .AppendValue<int32_t>(0)  // table oid (if it's a column from a table), 0 otherwise
           .AppendValue<int16_t>(0)  // column oid (if it's a column from a table), 0 otherwise
-          .AppendValue(static_cast<int32_t>(InternalValueTypeToPostgresValueType(col_type)));  // type oid
+          .AppendValue(
+              static_cast<int32_t>(PostgresProtocolUtil::InternalValueTypeToPostgresValueType(col_type)));  // type oid
       if (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY) {
         AppendValue<int16_t>(-1);  // variable length
       } else {
@@ -369,14 +371,14 @@ class PostgresPacketWriter : public PacketWriter {
     for (const auto &col : columns) {
       // Reinterpret to a base value type first and check if it's NULL
       const auto *const val = reinterpret_cast<const execution::sql::Val *const>(tuple + curr_offset);
+      const auto type_size = execution::sql::ValUtil::GetSqlSize(col.GetType());
 
       if (val->is_null_) {
         // write a -1 for the length of the column value and continue to the next value
         AppendValue<int32_t>(static_cast<int32_t>(-1));
+        curr_offset += type_size;
         continue;
       }
-
-      const auto type_size = execution::sql::ValUtil::GetSqlSize(col.GetType());
 
       // Write the attribute
       switch (col.GetType()) {
@@ -439,6 +441,7 @@ class PostgresPacketWriter : public PacketWriter {
       if (val->is_null_) {
         // write a -1 for the length of the column value and continue to the next value
         AppendValue<int32_t>(static_cast<int32_t>(-1));
+        curr_offset += execution::sql::ValUtil::GetSqlSize(col.GetType());
         continue;
       }
 

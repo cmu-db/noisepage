@@ -149,3 +149,11 @@ SETTING_bool(
     true,
     terrier::settings::Callbacks::MetricsTransaction
 )
+
+SETTING_bool(
+    metrics_pipeline,
+    "Metrics collection for the ExecutionEngine pipelines.",
+    false,
+    true,
+    terrier::settings::Callbacks::MetricsPipeline
+)

@@ -52,7 +52,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, TPCCish)(benchmark::State &state) {
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
     log_manager_ =
@@ -67,7 +67,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, TPCCish)(benchmark::State &state) {
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
@@ -102,7 +102,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, HighAbortRate)(benchmark::State &sta
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
     log_manager_ =
@@ -117,7 +117,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, HighAbortRate)(benchmark::State &sta
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
@@ -152,7 +152,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementInsert)(benchmark::St
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
     log_manager_ =
@@ -167,7 +167,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementInsert)(benchmark::St
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
@@ -202,7 +202,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementUpdate)(benchmark::St
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
     log_manager_ =
@@ -217,7 +217,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementUpdate)(benchmark::St
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
@@ -252,7 +252,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementSelect)(benchmark::St
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
     log_manager_ =
@@ -267,7 +267,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementSelect)(benchmark::St
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;

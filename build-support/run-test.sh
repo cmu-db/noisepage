@@ -78,7 +78,7 @@ function setup_sanitizers() {
   # 2. Many unit tests report lock-order-inversion warnings; they should be
   #    fixed before reenabling the detector.
   TSAN_OPTIONS="$TSAN_OPTIONS detect_deadlocks=0"
-  TSAN_OPTIONS="$TSAN_OPTIONS suppressions=$ROOT/build-support/tsan-suppressions.txt"
+  TSAN_OPTIONS="$TSAN_OPTIONS suppressions=$ROOT/build-support/data/tsan_suppressions.txt"
   TSAN_OPTIONS="$TSAN_OPTIONS history_size=7"
   export TSAN_OPTIONS
 
@@ -88,7 +88,7 @@ function setup_sanitizers() {
   # export ASAN_OPTIONS
 
   # Set up suppressions for LeakSanitizer
-  LSAN_OPTIONS="$LSAN_OPTIONS suppressions=$ROOT/build-support/lsan-suppressions.txt"
+  LSAN_OPTIONS="$LSAN_OPTIONS suppressions=$ROOT/build-support/data/lsan_suppressions.txt"
   export LSAN_OPTIONS
 }
 

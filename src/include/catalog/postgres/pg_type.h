@@ -38,4 +38,7 @@ enum class Type : char {
   PSEUDO = 'p',
   RANGE = 'r',
 };
+
+// TODO(tanujnay112): Not sure how to do this without hardcoding
+constexpr type_oid_t VAR_ARRAY_OID = type_oid_t(11);
 }  // namespace terrier::catalog::postgres
