@@ -12,7 +12,6 @@
 #include "execution/compiler/expression/null_check_translator.h"
 #include "execution/compiler/expression/param_value_translator.h"
 #include "execution/compiler/expression/star_translator.h"
-#include "execution/compiler/expression/tuple_value_translator.h"
 #include "execution/compiler/expression/unary_translator.h"
 #include "execution/compiler/operator/aggregate_translator.h"
 #include "execution/compiler/operator/delete_translator.h"
