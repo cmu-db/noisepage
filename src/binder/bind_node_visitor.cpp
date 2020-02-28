@@ -67,7 +67,7 @@ void BindNodeVisitor::Visit(parser::SelectStatement *node, parser::ParseResult *
 
     // Check if there is a table qualifier with a star expression
     if (select_element->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-      parser::ColumnValueExpression *expr = static_cast<parser::ColumnValueExpression *>(select_element.Get());
+      auto *expr = static_cast<parser::ColumnValueExpression *>(select_element.Get());
       std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple;
       std::string table_name = expr->GetTableName();
       std::string col_name = expr->GetColumnName();
