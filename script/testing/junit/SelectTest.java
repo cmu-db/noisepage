@@ -91,7 +91,7 @@ public class SelectTest extends TestUtility {
     }
 
     /**
-     * SELECT With Alias
+     * SELECT With Alias Ref
      * #795 fixed
      */
     @Test
