@@ -67,6 +67,7 @@ class DeferredActionManager {
     // TODO(John, Ling): this is now more conservative than it needs and can artificially delay garbage collection.
     //  We should be able to query the cached oldest transaction (should be cheap) in between each event
     //  and more aggressively clear the backlog abd the deferred event queue
+    //  the point of taking oldest txn affect gc test
     timestamp_manager_->CheckOutTimestamp();
     const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
     // Check out a timestamp from the transaction manager to determine the progress of
@@ -100,12 +101,14 @@ class DeferredActionManager {
   }
 
   /**
+   * // TODO(John, Ling): Eventually we should remove the special casing of indexes here. See processIndexes()
    * Register an index to be periodically garbage collected
    * @param index pointer to the index to register
    */
   void RegisterIndexForGC(common::ManagedPointer<storage::index::Index> index);
 
   /**
+   * // TODO(John, Ling): Eventually we should remove the special casing of indexes here. See processIndexes()
    * Unregister an index to be periodically garbage collected
    * @param index pointer to the index to unregister
    */
@@ -120,6 +123,10 @@ class DeferredActionManager {
   std::unordered_set<common::ManagedPointer<storage::index::Index>> indexes_;
   common::SharedLatch indexes_latch_;
 
+  // TODO(John, Ling): Eventually we should remove the special casing of indexes here.
+  //  This gets invoked every epoch to look through all indexes. It potentially introduces stalls
+  //  and looks inefficient if there is not much to gc. Preferably make index gc action a deferred action that gets
+  //  added to the deferred action queue either in a fixed interval or after a threshold number of tombstones
   void ProcessIndexes();
 
   uint32_t ClearBacklog(timestamp_t oldest_txn) {

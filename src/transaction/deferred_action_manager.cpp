@@ -4,7 +4,6 @@
 
 namespace terrier::transaction {
 
-// TODO(John:GC) Where should this live?
 void DeferredActionManager::RegisterIndexForGC(const common::ManagedPointer<storage::index::Index> index) {
   TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
   common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
@@ -12,7 +11,6 @@ void DeferredActionManager::RegisterIndexForGC(const common::ManagedPointer<stor
   indexes_.insert(index);
 }
 
-// TODO(DeferredActionManager:GC) Where should this live?
 void DeferredActionManager::UnregisterIndexForGC(const common::ManagedPointer<storage::index::Index> index) {
   TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
   common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
