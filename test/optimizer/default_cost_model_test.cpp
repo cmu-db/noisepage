@@ -6,6 +6,7 @@
 #include "optimizer/physical_operators.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
+#include "parser/expression/operator_expression.h"
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
 
