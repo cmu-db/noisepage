@@ -7,7 +7,7 @@
 
 namespace terrier::execution::compiler {
 AggregateBottomTranslator::AggregateBottomTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(codegen),
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD),
       num_group_by_terms_{static_cast<uint32_t>(op->GetGroupByTerms().size())},
       op_(op),
       hash_val_(codegen->NewIdentifier("hash_val")),

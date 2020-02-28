@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "brain/operating_unit.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/aggregation_hash_table.h"
 #include "execution/sql/aggregators.h"

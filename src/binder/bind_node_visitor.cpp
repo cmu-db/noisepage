@@ -419,8 +419,9 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
           auto ret_type = ins_val->GetReturnValueType();
           auto expected_ret_type = ins_col.Type();
 
+          auto is_null = ins_val->GetValue().Null() && ins_col.Nullable();
           auto is_cast_expression = ins_val->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
-          auto mismatched_type = ret_type != expected_ret_type;
+          auto mismatched_type = !is_null && ret_type != expected_ret_type;
 
           if (is_cast_expression || mismatched_type) {
             if (ins_val->GetExpressionType() == parser::ExpressionType::VALUE_DEFAULT) {
@@ -434,6 +435,14 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
               values[i] = common::ManagedPointer(converted);
               parse_result->AddExpression(std::move(converted));
             }
+          }
+
+          // NULL came in as a T_Null by libpg_query, so no type information was associated with it. Fix in binder.
+          if (is_null) {
+            auto typed_null = type::TransientValueFactory::GetNull(expected_ret_type);
+            auto new_expr = std::make_unique<parser::ConstantValueExpression>(std::move(typed_null));
+            values[i] = common::ManagedPointer(new_expr).CastManagedPointerTo<parser::AbstractExpression>();
+            parse_result->AddExpression(std::move(new_expr));
           }
         }
       }

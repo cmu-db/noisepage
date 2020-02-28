@@ -327,7 +327,8 @@ class DBMain {
         TERRIER_ASSERT(use_gc_ && storage_layer->GetGarbageCollector() != DISABLED,
                        "GarbageCollectorThread needs GarbageCollector.");
         gc_thread = std::make_unique<storage::GarbageCollectorThread>(storage_layer->GetGarbageCollector(),
-                                                                      std::chrono::milliseconds{gc_interval_});
+                                                                      std::chrono::milliseconds{gc_interval_},
+                                                                      common::ManagedPointer(metrics_manager));
       }
 
       std::unique_ptr<optimizer::StatsStorage> stats_storage = DISABLED;
