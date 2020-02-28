@@ -179,25 +179,6 @@ public class InsertTest extends TestUtility {
     }
 
     /**
-     * SELECT With Duplicate Columns Produces Zero Results
-     * #720 fixed
-     */
-    @Test
-    public void testSelectDuplicateColumns() throws SQLException {
-        String insert_SQL = "INSERT INTO tbl VALUES (1, 2, 3), (2, 3, 4);";
-        Statement stmt = conn.createStatement();
-        stmt.execute(insert_SQL);
-        String select_SQL = "SELECT c1,c1 FROM tbl;";
-        stmt = conn.createStatement();
-        rs = stmt.executeQuery(select_SQL);
-        rs.next();
-        checkRow(rs, new String [] {"c1", "c1"}, new int [] {1, 1});
-        rs.next();
-        checkRow(rs, new String [] {"c1", "c1"}, new int [] {2, 2});
-        assertNoMoreRows(rs);
-    }
-
-    /**
      * Invalid Implicit Casting of Integer Strings as Varchars
      * #733 fixed
      */
