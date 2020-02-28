@@ -64,14 +64,17 @@ void BindNodeVisitor::Visit(parser::SelectStatement *node, parser::ParseResult *
       context_->GenerateAllColumnExpressions(parse_result, &new_select_list);
       continue;
     }
+
+    // Check if there is a table qualifier with a star expression
     if (select_element->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-      parser::ColumnValueExpression* expr = static_cast<parser::ColumnValueExpression*>(select_element.Get());
+      parser::ColumnValueExpression *expr = static_cast<parser::ColumnValueExpression *>(select_element.Get());
       std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple;
       std::string table_name = expr->GetTableName();
       std::string col_name = expr->GetColumnName();
       if (col_name == "*") {
         if (context_ != nullptr && context_->GetRegularTableObj(table_name, expr, &tuple)) {
           if (!BinderContext::ColumnInSchema(std::get<2>(tuple), col_name)) {
+            // Valid star qualifier, populate columns
             context_->GenerateAllColumnExpressions(parse_result, &new_select_list);
             continue;
           }

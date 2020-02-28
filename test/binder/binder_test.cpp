@@ -294,6 +294,50 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, SelectStatementQualifierStarTest) {
+  // Check if star expression is correctly processed
+  BINDER_LOG_DEBUG("Checking STAR expression in select and sub-select");
+
+  std::string select_sql = "SELECT A.* FROM LEFT OUTER JOIN B ON A.A1 < B.B1";
+  auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(statement, parse_tree.get());
+  auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
+  EXPECT_EQ(0, select_stmt->GetDepth());
+
+  // Check select_list
+  BINDER_LOG_DEBUG("Checking select list expansion");
+
+  auto columns = select_stmt->GetSelectColumns();
+  EXPECT_EQ(columns.size(), 2);
+
+  bool a1_exists = false;
+  bool a2_exists = false;
+  for (auto &col_abs_expr : columns) {
+    auto col_expr = col_abs_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
+    EXPECT_EQ(0, col_expr->GetDepth());
+    EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);
+
+    if (col_expr->GetTableOid() == table_a_oid_) {
+      EXPECT_EQ(col_expr->GetTableName(), "a");
+      if (col_expr->GetColumnName() == "a1") {
+        a1_exists = true;
+        EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));
+        EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+      }
+      if (col_expr->GetColumnName() == "a2") {
+        a2_exists = true;
+        EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));
+        EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+      }
+    }
+  }
+
+  EXPECT_TRUE(a1_exists);
+  EXPECT_TRUE(a2_exists);
+}
+
+// NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
   // Check if star expression is correctly processed
   BINDER_LOG_DEBUG("Checking STAR expression in nested select from.");
