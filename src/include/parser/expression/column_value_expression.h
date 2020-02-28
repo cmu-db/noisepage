@@ -175,9 +175,7 @@ class ColumnValueExpression : public AbstractExpression {
   }
 
   void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override {
-    STORAGE_LOG_INFO("col_val_accept " + std::to_string(GetDepth()));
     v->Visit(this, parse_result);
-    STORAGE_LOG_INFO("col_val_accept_done", GetDepth());
   }
 
   /**

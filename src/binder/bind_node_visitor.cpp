@@ -494,12 +494,10 @@ void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::TypeCastExpression *expr,
 
 void BindNodeVisitor::Visit(parser::ColumnValueExpression *expr, UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
   BINDER_LOG_TRACE("Visiting ColumnValueExpression ...");
-  BINDER_LOG_INFO("visiting bind node");
   // TODO(Ling): consider remove precondition check if the *_oid_ will never be initialized till binder
   //  That is, the object would not be initialized using ColumnValueExpression(database_oid, table_oid, column_oid)
   //  at this point
   if (expr->GetTableOid() == catalog::INVALID_TABLE_OID) {
-    BINDER_LOG_INFO("table oid is invalid!");
     std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple;
     std::string table_name = expr->GetTableName();
     std::string col_name = expr->GetColumnName();
