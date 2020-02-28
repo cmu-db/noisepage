@@ -153,8 +153,7 @@ class PostgresPacketWriter : public PacketWriter {
     for (const auto &col : columns) {
       const auto col_type = col.GetType();
       // TODO(Matt): Figure out how to get table oid and column oids in the OutputSchema (Optimizer's job?)
-      auto alias = col.GetExpr()->GetAlias();
-      auto name = alias.empty() ? col.GetName() : alias;
+      const auto &name = col.GetExpr()->GetAlias().empty() ? col.GetName() : col.GetExpr()->GetAlias();
       AppendString(name)
           .AppendValue<int32_t>(0)  // table oid (if it's a column from a table), 0 otherwise
           .AppendValue<int16_t>(0)  // column oid (if it's a column from a table), 0 otherwise
