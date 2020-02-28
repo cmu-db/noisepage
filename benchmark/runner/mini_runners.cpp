@@ -115,7 +115,10 @@ class MiniRunners : public benchmark::Fixture {
   static constexpr execution::query_id_t OP_DECIMAL_MULTIPLY_QID = execution::query_id_t(6);
   static constexpr execution::query_id_t OP_DECIMAL_DIVIDE_QID = execution::query_id_t(7);
   static constexpr execution::query_id_t OP_DECIMAL_GEQ_QID = execution::query_id_t(8);
-  static constexpr execution::query_id_t SEQ_SCAN_QID = execution::query_id_t(9);
+  static constexpr execution::query_id_t SEQ_SCAN_COL_ALL_QID = execution::query_id_t(9);
+  static constexpr execution::query_id_t SEQ_SCAN_COL_1_QID = execution::query_id_t(10);
+  static constexpr execution::query_id_t SEQ_SCAN_COL_4_QID = execution::query_id_t(11);
+  static constexpr execution::query_id_t SEQ_SCAN_COL_8_QID = execution::query_id_t(12);
 
   const uint64_t optimizer_timeout_ = 1000000;
   const execution::vm::ExecutionMode mode_ = execution::vm::ExecutionMode::Interpret;
@@ -289,43 +292,120 @@ class MiniRunners : public benchmark::Fixture {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SeqScanRunners)(benchmark::State &state) {
+  auto num_col = state.range(0);
+  auto row = state.range(1);
+  auto car = state.range(2);
   for (auto _ : state) {
-    auto row = state.range(0);
-    auto car = state.range(1);
     metrics_manager_->RegisterThread();
+
+    execution::query_id_t qid;
+    switch (num_col) {
+      case 0:
+        qid = SEQ_SCAN_COL_ALL_QID;
+        break;
+      case 1:
+        qid = SEQ_SCAN_COL_1_QID;
+        break;
+      case 4:
+        qid = SEQ_SCAN_COL_4_QID;
+        break;
+      case 8:
+        qid = SEQ_SCAN_COL_8_QID;
+        break;
+      default:
+        UNREACHABLE("Unexpected number of columns for SeqScan");
+        break;
+    }
 
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, static_cast<double>(car));
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
+    std::stringstream cols;
+    if (num_col == 0) cols << "*";
+    for (auto i = 1; i <= num_col; i++) {
+      cols << "col" << i;
+      if (i != num_col) {
+        cols << ", ";
+      }
+    }
+
     std::stringstream tbl_name;
-    tbl_name << "SELECT * FROM INTEGERCol15Row" << row << "Car" << car;
-    BenchmarkSqlStatement(SEQ_SCAN_QID, tbl_name.str(), &units);
+    tbl_name << "SELECT " << (cols.str()) <<" FROM INTEGERCol15Row" << row << "Car" << car;
+    BenchmarkSqlStatement(qid, tbl_name.str(), &units);
     metrics_manager_->Aggregate();
     metrics_manager_->UnregisterThread();
   }
 
-  state.SetItemsProcessed(state.range(0));
+  state.SetItemsProcessed(row);
 }
 
+/**
+ * Arg: <0, 1, 2>
+ * 0 - Number of columns to select (0 for all)
+ * 1 - Number of rows
+ * 2 - Cardinality
+ */
 BENCHMARK_REGISTER_F(MiniRunners, SeqScanRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
-    ->Args({10, 1})
-    ->Args({10, 2})
-    ->Args({10, 8})
-    ->Args({100, 16})
-    ->Args({100, 32})
-    ->Args({100, 64})
-    ->Args({10000, 128})
-    ->Args({10000, 1024})
-    ->Args({10000, 4096})
-    ->Args({10000, 8192})
-    ->Args({1000000, 1024})
-    ->Args({1000000, 16384})
-    ->Args({1000000, 131072})
-    ->Args({1000000, 524288});
+    ->Args({0, 10, 1})
+    ->Args({0, 10, 2})
+    ->Args({0, 10, 8})
+    ->Args({0, 100, 16})
+    ->Args({0, 100, 32})
+    ->Args({0, 100, 64})
+    ->Args({0, 10000, 128})
+    ->Args({0, 10000, 1024})
+    ->Args({0, 10000, 4096})
+    ->Args({0, 10000, 8192})
+    ->Args({0, 1000000, 1024})
+    ->Args({0, 1000000, 16384})
+    ->Args({0, 1000000, 131072})
+    ->Args({0, 1000000, 524288})
+    ->Args({1, 10, 1})
+    ->Args({1, 10, 2})
+    ->Args({1, 10, 8})
+    ->Args({1, 100, 16})
+    ->Args({1, 100, 32})
+    ->Args({1, 100, 64})
+    ->Args({1, 10000, 128})
+    ->Args({1, 10000, 1024})
+    ->Args({1, 10000, 4096})
+    ->Args({1, 10000, 8192})
+    ->Args({1, 1000000, 1024})
+    ->Args({1, 1000000, 16384})
+    ->Args({1, 1000000, 131072})
+    ->Args({1, 1000000, 524288})
+    ->Args({4, 10, 1})
+    ->Args({4, 10, 2})
+    ->Args({4, 10, 8})
+    ->Args({4, 100, 16})
+    ->Args({4, 100, 32})
+    ->Args({4, 100, 64})
+    ->Args({4, 10000, 128})
+    ->Args({4, 10000, 1024})
+    ->Args({4, 10000, 4096})
+    ->Args({4, 10000, 8192})
+    ->Args({4, 1000000, 1024})
+    ->Args({4, 1000000, 16384})
+    ->Args({4, 1000000, 131072})
+    ->Args({4, 1000000, 524288})
+    ->Args({8, 10, 1})
+    ->Args({8, 10, 2})
+    ->Args({8, 10, 8})
+    ->Args({8, 100, 16})
+    ->Args({8, 100, 32})
+    ->Args({8, 100, 64})
+    ->Args({8, 10000, 128})
+    ->Args({8, 10000, 1024})
+    ->Args({8, 10000, 4096})
+    ->Args({8, 10000, 8192})
+    ->Args({8, 1000000, 1024})
+    ->Args({8, 1000000, 16384})
+    ->Args({8, 1000000, 131072})
+    ->Args({8, 1000000, 524288});
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, ArithmeticRunners)(benchmark::State &state) {
