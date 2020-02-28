@@ -298,7 +298,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementQualifierStarTest) {
   // Check if star expression is correctly processed
   BINDER_LOG_DEBUG("Checking STAR expression in select and sub-select");
 
-  std::string select_sql = "SELECT A.* FROM A LEFT OUTER JOIN B ON A.A1 < B.B1";
+  std::string select_sql = "SELECT A.* FROM A JOIN B ON A.A1 = B.B1";
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
   binder_->BindNameToNode(statement, parse_tree.get());

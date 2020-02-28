@@ -75,7 +75,7 @@ void BindNodeVisitor::Visit(parser::SelectStatement *node, parser::ParseResult *
         if (context_ != nullptr && context_->GetRegularTableObj(table_name, expr, &tuple)) {
           if (!BinderContext::ColumnInSchema(std::get<2>(tuple), col_name)) {
             // Valid star qualifier, populate columns
-            context_->GenerateAllColumnExpressions(parse_result, &new_select_list);
+            context_->GenerateColumnExpressions(table_name, parse_result, &new_select_list);
             continue;
           }
           throw BINDER_EXCEPTION(("Cannot find column " + col_name).c_str());
