@@ -232,6 +232,9 @@ std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(ParseResult *p
       throw PARSER_EXCEPTION("ExprTransform: unsupported type");
     }
   }
+  if (alias != nullptr) {
+    expr->SetAlias(alias);
+  }
   return expr;
 }
 
