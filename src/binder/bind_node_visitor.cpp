@@ -42,7 +42,6 @@ void BindNodeVisitor::BindNameToNode(common::ManagedPointer<parser::SQLStatement
 
 void BindNodeVisitor::Visit(parser::SelectStatement *node, parser::ParseResult *parse_result) {
   BINDER_LOG_TRACE("Visiting SelectStatement ...");
-  BINDER_LOG_INFO("wdnmd");
   context_ = new BinderContext(context_);
 
   if (node->GetSelectTable() != nullptr) node->GetSelectTable()->Accept(this, parse_result);
@@ -60,20 +59,30 @@ void BindNodeVisitor::Visit(parser::SelectStatement *node, parser::ParseResult *
 
   std::vector<common::ManagedPointer<parser::AbstractExpression>> new_select_list;
   BINDER_LOG_TRACE("Gathering select columns...");
-  BINDER_LOG_INFO("wdnmd2");
   for (auto &select_element : node->GetSelectColumns()) {
-    BINDER_LOG_INFO("wdnmd4");
     if (select_element->GetExpressionType() == parser::ExpressionType::STAR) {
       context_->GenerateAllColumnExpressions(parse_result, &new_select_list);
       continue;
     }
-    BINDER_LOG_INFO("wdnmd3");
+    if (select_element->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
+      parser::ColumnValueExpression* expr = static_cast<parser::ColumnValueExpression*>(select_element.Get());
+      std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple;
+      std::string table_name = expr->GetTableName();
+      std::string col_name = expr->GetColumnName();
+      if (col_name == "*") {
+        if (context_ != nullptr && context_->GetRegularTableObj(table_name, expr, &tuple)) {
+          if (!BinderContext::ColumnInSchema(std::get<2>(tuple), col_name)) {
+            context_->GenerateAllColumnExpressions(parse_result, &new_select_list);
+            continue;
+          }
+          throw BINDER_EXCEPTION(("Cannot find column " + col_name).c_str());
+        }
+      }
+    }
     select_element->Accept(this, parse_result);
-    BINDER_LOG_INFO("wdnmd8");
 
     // Derive depth for all exprs in the select clause
     select_element->DeriveDepth();
-    BINDER_LOG_INFO("wdnmd9");
 
     select_element->DeriveSubqueryFlag();
 
@@ -83,11 +92,8 @@ void BindNodeVisitor::Visit(parser::SelectStatement *node, parser::ParseResult *
 
     new_select_list.push_back(select_element);
   }
-  BINDER_LOG_INFO("wdnmd5");
   node->SetSelectColumns(new_select_list);
-  BINDER_LOG_INFO("wdnmd6");
   node->SetDepth(context_->GetDepth());
-  BINDER_LOG_INFO("wdnmd7");
 
   auto curr_context = context_;
   context_ = context_->GetUpperContext();
@@ -505,19 +511,16 @@ void BindNodeVisitor::Visit(parser::ColumnValueExpression *expr, UNUSED_ATTRIBUT
     // Table name not specified in the expression. Loop through all the table in the binder context.
     if (table_name.empty()) {
       if (context_ == nullptr || !context_->SetColumnPosTuple(expr)) {
-        BINDER_LOG_INFO("e1 " + col_name);
         throw BINDER_EXCEPTION(("Cannot find column " + col_name).c_str());
       }
     } else {
       // Table name is present
       if (context_ != nullptr && context_->GetRegularTableObj(table_name, expr, &tuple)) {
         if (!BinderContext::ColumnInSchema(std::get<2>(tuple), col_name)) {
-          BINDER_LOG_INFO("e2 " + col_name);
           throw BINDER_EXCEPTION(("Cannot find column " + col_name).c_str());
         }
         BinderContext::SetColumnPosTuple(col_name, tuple, expr);
       } else if (context_ == nullptr || !context_->CheckNestedTableColumn(table_name, col_name, expr)) {
-        BINDER_LOG_INFO("e3");
         throw BINDER_EXCEPTION(("Invalid table reference " + expr->GetTableName()).c_str());
       }
     }

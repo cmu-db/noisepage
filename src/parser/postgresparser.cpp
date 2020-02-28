@@ -525,7 +525,11 @@ std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ParseResu
         table_name = "";
       } else {
         auto next_node = reinterpret_cast<Node *>(fields->head->next->data.ptr_value);
-        col_name = reinterpret_cast<value *>(next_node)->val_.str_;
+        if (next_node->type == T_A_Star) {
+          col_name = "*";
+        } else {
+          col_name = reinterpret_cast<value *>(next_node)->val_.str_;
+        }
         table_name = reinterpret_cast<value *>(node)->val_.str_;
       }
 
