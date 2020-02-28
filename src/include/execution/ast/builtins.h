@@ -7,6 +7,10 @@ namespace terrier::execution::ast {
 // The list of all builtin functions
 // Args: internal name, function name
 #define BUILTINS_LIST(F)                                                \
+  /* SQL NULL. */                                                       \
+  F(IsSqlNull, isSqlNull)                                               \
+  F(IsSqlNotNull, isSqlNotNull)                                         \
+  F(NullToSql, nullToSql)                                               \
   /* Primitive <-> SQL */                                               \
   F(IntToSql, intToSql)                                                 \
   F(BoolToSql, boolToSql)                                               \
@@ -28,6 +32,9 @@ namespace terrier::execution::ast {
                                                                         \
   /* Thread State Container */                                          \
   F(ExecutionContextGetMemoryPool, execCtxGetMem)                       \
+  F(ExecutionContextStartResourceTracker, execCtxStartResourceTracker)  \
+  F(ExecutionContextEndResourceTracker, execCtxEndResourceTracker)      \
+  F(ExecutionContextEndPipelineTracker, execCtxEndPipelineTracker)      \
   F(ThreadStateContainerInit, tlsInit)                                  \
   F(ThreadStateContainerReset, tlsReset)                                \
   F(ThreadStateContainerIterate, tlsIterate)                            \
