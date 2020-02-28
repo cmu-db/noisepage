@@ -1,4 +1,5 @@
 #include <common/macros.h>
+#include <utility>
 
 #include "benchmark/benchmark.h"
 #include "benchmark_util/benchmark_config.h"
@@ -134,7 +135,8 @@ class MiniRunners : public benchmark::Fixture {
     metrics_manager_ = db_main_->GetMetricsManager();
   }
 
-  void BenchmarkSqlStatement(execution::query_id_t qid, const std::string &query, brain::PipelineOperatingUnits *units) {
+  void BenchmarkSqlStatement(execution::query_id_t qid, const std::string &query,
+                             brain::PipelineOperatingUnits *units) {
     auto txn = txn_manager_->BeginTransaction();
     auto stmt_list = parser::PostgresParser::BuildParseTree(query);
 
@@ -177,10 +179,9 @@ class MiniRunners : public benchmark::Fixture {
     }
 
     execution::ExecutableQuery::query_identifier.store(qid);
-    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid_, common::ManagedPointer(txn),
-                                                                        execution::exec::NoOpResultConsumer(),
-                                                                        out_plan->GetOutputSchema().Get(),
-                                                                        common::ManagedPointer(accessor));
+    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
+        db_oid_, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), out_plan->GetOutputSchema().Get(),
+        common::ManagedPointer(accessor));
     auto exec_query = execution::ExecutableQuery(common::ManagedPointer(out_plan), common::ManagedPointer(exec_ctx));
     exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(units));
     exec_query.Run(common::ManagedPointer(exec_ctx), mode_);
@@ -289,21 +290,42 @@ class MiniRunners : public benchmark::Fixture {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SeqScanRunners)(benchmark::State &state) {
   for (auto _ : state) {
+    auto row = state.range(0);
+    auto car = state.range(1);
     metrics_manager_->RegisterThread();
 
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, 10000, 10000);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, static_cast<double>(car));
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
-    BenchmarkSqlStatement(SEQ_SCAN_QID, "select * from test_1", &units);
+    std::stringstream tbl_name;
+    tbl_name << "SELECT * FROM INTEGERCol15Row" << row << "Car" << car;
+    BenchmarkSqlStatement(SEQ_SCAN_QID, tbl_name.str(), &units);
     metrics_manager_->Aggregate();
     metrics_manager_->UnregisterThread();
   }
 
-  // state.SetItemsProcessed(state.range(1));
-  state.SetItemsProcessed(1);
+  state.SetItemsProcessed(state.range(0));
 }
+
+BENCHMARK_REGISTER_F(MiniRunners, SeqScanRunners)
+    ->Unit(benchmark::kMillisecond)
+    ->Iterations(1)
+    ->Args({10, 1})
+    ->Args({10, 2})
+    ->Args({10, 8})
+    ->Args({100, 16})
+    ->Args({100, 32})
+    ->Args({100, 64})
+    ->Args({10000, 128})
+    ->Args({10000, 1024})
+    ->Args({10000, 4096})
+    ->Args({10000, 8192})
+    ->Args({1000000, 1024})
+    ->Args({1000000, 16384})
+    ->Args({1000000, 131072})
+    ->Args({1000000, 524288});
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, ArithmeticRunners)(benchmark::State &state) {
@@ -322,11 +344,6 @@ BENCHMARK_DEFINE_F(MiniRunners, ArithmeticRunners)(benchmark::State &state) {
   state.SetItemsProcessed(state.range(1));
 }
 
-BENCHMARK_REGISTER_F(MiniRunners, SeqScanRunners)
-    ->Unit(benchmark::kMillisecond)
-    ->Iterations(1);
-
-/*
 BENCHMARK_REGISTER_F(MiniRunners, ArithmeticRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
@@ -370,7 +387,6 @@ BENCHMARK_REGISTER_F(MiniRunners, ArithmeticRunners)
     ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE), 10000})
     ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE), 1000000})
     ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE), 100000000});
-*/
 
 void InitializeRunnersState() {
   terrier::execution::CpuInfo::Instance();
@@ -403,7 +419,7 @@ void InitializeRunnersState() {
                                                                       nullptr, common::ManagedPointer(accessor));
 
   execution::sql::TableGenerator table_gen(exec_ctx.get(), block_store, accessor->GetDefaultNamespace());
-  table_gen.GenerateTestTables(false);
+  table_gen.GenerateTestTables(true);
 
   txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
