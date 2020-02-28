@@ -201,52 +201,11 @@ bool BinderContext::CheckNestedTableColumn(const std::string &alias, const std::
   return false;
 }
 
-void BinderContext::GenerateAllColumnExpressions(
-    parser::ParseResult *parse_result, std::vector<common::ManagedPointer<parser::AbstractExpression>> *exprs) {
+void BinderContext::GenerateAllColumnExpressions(parser::ParseResult *parse_result,
+                                                 std::vector<common::ManagedPointer<parser::AbstractExpression>> *exprs,
+                                                 const std::string &table_name) {
   for (auto &entry : regular_table_alias_map_) {
-    auto &schema = std::get<2>(entry.second);
-    auto col_cnt = schema.GetColumns().size();
-    for (uint32_t i = 0; i < col_cnt; i++) {
-      const auto &col_obj = schema.GetColumn(i);
-      auto tv_expr = new parser::ColumnValueExpression(std::string(entry.first), std::string(col_obj.Name()));
-      tv_expr->SetReturnValueType(col_obj.Type());
-      tv_expr->DeriveExpressionName();
-      tv_expr->SetDatabaseOID(std::get<0>(entry.second));
-      tv_expr->SetTableOID(std::get<1>(entry.second));
-      tv_expr->SetColumnOID(col_obj.Oid());
-      tv_expr->SetDepth(depth_);
-
-      auto unique_tv_expr =
-          std::unique_ptr<parser::AbstractExpression>(reinterpret_cast<parser::AbstractExpression *>(tv_expr));
-      parse_result->AddExpression(std::move(unique_tv_expr));
-      auto new_tv_expr = common::ManagedPointer(parse_result->GetExpressions().back());
-      exprs->push_back(new_tv_expr);
-    }
-  }
-
-  for (auto &entry : nested_table_alias_map_) {
-    auto &table_alias = entry.first;
-    auto &cols = entry.second;
-    for (auto &col_entry : cols) {
-      auto tv_expr = new parser::ColumnValueExpression(std::string(table_alias), std::string(col_entry.first));
-      tv_expr->SetReturnValueType(col_entry.second);
-      tv_expr->DeriveExpressionName();
-      tv_expr->SetDepth(depth_);
-
-      auto unique_tv_expr =
-          std::unique_ptr<parser::AbstractExpression>(reinterpret_cast<parser::AbstractExpression *>(tv_expr));
-      parse_result->AddExpression(std::move(unique_tv_expr));
-      auto new_tv_expr = common::ManagedPointer(parse_result->GetExpressions().back());
-      // All derived columns do not have bound oids, thus keep them as INVALID_OIDs
-      exprs->push_back(new_tv_expr);
-    }
-  }
-}
-
-void BinderContext::GenerateColumnExpressions(const std::string &table_name, parser::ParseResult *parse_result,
-                                              std::vector<common::ManagedPointer<parser::AbstractExpression>> *exprs) {
-  for (auto &entry : regular_table_alias_map_) {
-    if (entry.first != table_name) {
+    if (!table_name.empty() && entry.first != table_name) {
       continue;
     }
     auto &schema = std::get<2>(entry.second);
@@ -270,10 +229,10 @@ void BinderContext::GenerateColumnExpressions(const std::string &table_name, par
   }
 
   for (auto &entry : nested_table_alias_map_) {
-    auto &table_alias = entry.first;
-    if (entry.first != table_name) {
+    if (!table_name.empty() && entry.first != table_name) {
       continue;
     }
+    auto &table_alias = entry.first;
     auto &cols = entry.second;
     for (auto &col_entry : cols) {
       auto tv_expr = new parser::ColumnValueExpression(std::string(table_alias), std::string(col_entry.first));
