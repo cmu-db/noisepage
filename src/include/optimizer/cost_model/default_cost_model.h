@@ -78,7 +78,7 @@ class DefaultCostModel : public AbstractCostModel {
    * Order by operator to visit
    * @param op operator
    */
-  void Visit(const OrderBy *op) override { SortCost(); }
+  void Visit(const OrderBy *op) override { output_cost_ = SortCost(); }
 
   /**
    * Limit operator to visit
@@ -87,7 +87,8 @@ class DefaultCostModel : public AbstractCostModel {
   void Visit(const Limit *op) override {
     auto child_num_rows = memo_->GetGroupByID(gexpr_->GetChildGroupId(0))->GetNumRows();
 
-    output_cost_ = std::min((size_t)child_num_rows, (size_t)op->GetLimit()) * DEFAULT_TUPLE_COST;
+    output_cost_ =
+        std::min(static_cast<size_t>(child_num_rows), static_cast<size_t>(op->GetLimit())) * DEFAULT_TUPLE_COST;
   }
 
   /**
@@ -188,6 +189,12 @@ class DefaultCostModel : public AbstractCostModel {
    * @param op operator
    */
   void Visit(UNUSED_ATTRIBUTE const Aggregate *op) override { output_cost_ = HashCost() + GroupByCost(); }
+
+  /**
+   * Sets stats storage variable
+   * @param storage StatsStorage object
+   */
+  void SetStatsStorage(StatsStorage *storage) { stats_storage_ = storage; }
 
  private:
   /**
