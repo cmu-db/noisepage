@@ -95,8 +95,8 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const common::ManagedPoin
     oids = t_cop->CreateTempNamespace(context->GetConnectionID(), db_name);
     if (oids.first == catalog::INVALID_DATABASE_OID || oids.second != catalog::INVALID_NAMESPACE_OID) break;
     std::this_thread::sleep_for(std::chrono::milliseconds{sleep_time});
-    if (sleep_time > 10) NETWORK_LOG_ERROR("Sleeping for {0} ms [connection={1}]",
-        sleep_time, context->GetConnectionID());
+    if (sleep_time > 10)
+      NETWORK_LOG_ERROR("Sleeping for {0} ms [connection={1}]", sleep_time, context->GetConnectionID());
     sleep_time *= BACKOFF_FACTOR;
   } while (sleep_time <= MAX_BACKOFF_TIME);
 
