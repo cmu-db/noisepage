@@ -228,5 +228,4 @@ public class InsertTest extends TestUtility {
         stmt = conn.createStatement();
         stmt.execute(drop_SQL);
     }
-
 }
