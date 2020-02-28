@@ -5,12 +5,17 @@
 #include "brain/brain_defs.h"
 #include "brain/operating_unit.h"
 #include "common/scoped_timer.h"
+#include "execution/executable_query.h"
 #include "execution/execution_util.h"
 #include "execution/table_generator/table_generator.h"
 #include "execution/util/cpu_info.h"
 #include "execution/vm/module.h"
 #include "loggers/loggers_util.h"
 #include "main/db_main.h"
+#include "optimizer/cost_model/trivial_cost_model.h"
+#include "optimizer/optimizer.h"
+#include "optimizer/properties.h"
+#include "optimizer/query_to_operator_transformer.h"
 
 namespace terrier::runner {
 
@@ -39,7 +44,7 @@ struct DoNotOptimizeAwayNeedsIndirect {
   // std::is_pointer check is because callers seem to expect that
   // doNotOptimizeAway(&x) is equivalent to doNotOptimizeAway(x).
   constexpr static bool value = !std::is_trivially_copyable<Decayed>::value ||
-                                sizeof(Decayed) > sizeof(long) || std::is_pointer<Decayed>::value;
+                                sizeof(Decayed) > sizeof(int64_t) || std::is_pointer<Decayed>::value;
 };
 
 template <typename T>
@@ -109,7 +114,9 @@ class MiniRunners : public benchmark::Fixture {
   static constexpr execution::query_id_t OP_DECIMAL_MULTIPLY_QID = execution::query_id_t(6);
   static constexpr execution::query_id_t OP_DECIMAL_DIVIDE_QID = execution::query_id_t(7);
   static constexpr execution::query_id_t OP_DECIMAL_GEQ_QID = execution::query_id_t(8);
+  static constexpr execution::query_id_t SEQ_SCAN_QID = execution::query_id_t(9);
 
+  const uint64_t optimizer_timeout_ = 1000000;
   const execution::vm::ExecutionMode mode_ = execution::vm::ExecutionMode::Interpret;
 
   TIGHT_LOOP_OPERATION(uint32_t, PLUS, +);
@@ -122,17 +129,70 @@ class MiniRunners : public benchmark::Fixture {
   TIGHT_LOOP_OPERATION(double, GEQ, >=);
 
   void SetUp(const benchmark::State &state) final {
-    block_store_ = db_main_->GetStorageLayer()->GetBlockStore();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     metrics_manager_ = db_main_->GetMetricsManager();
   }
 
+  void BenchmarkSqlStatement(execution::query_id_t qid, const std::string &query, brain::PipelineOperatingUnits *units) {
+    auto txn = txn_manager_->BeginTransaction();
+    auto stmt_list = parser::PostgresParser::BuildParseTree(query);
+
+    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
+    auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), "test_db");
+    binder.BindNameToNode(stmt_list->GetStatement(0), stmt_list.get());
+
+    auto transformer = optimizer::QueryToOperatorTransformer(common::ManagedPointer(accessor));
+    auto plan = transformer.ConvertToOpExpression(stmt_list->GetStatement(0), stmt_list.get());
+
+    std::unique_ptr<planner::AbstractPlanNode> out_plan;
+    auto optimizer = optimizer::Optimizer(std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout_);
+    if (stmt_list->GetStatement(0)->GetType() == parser::StatementType::SELECT) {
+      auto sel_stmt = stmt_list->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
+      auto output = sel_stmt->GetSelectColumns();
+      auto property_set = optimizer::PropertySet();
+
+      if (sel_stmt->GetSelectOrderBy()) {
+        std::vector<optimizer::OrderByOrderingType> sort_dirs;
+        std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_exprs;
+
+        auto order_by = sel_stmt->GetSelectOrderBy();
+        auto types = order_by->GetOrderByTypes();
+        auto exprs = order_by->GetOrderByExpressions();
+        for (size_t idx = 0; idx < order_by->GetOrderByExpressionsSize(); idx++) {
+          sort_exprs.emplace_back(exprs[idx]);
+          sort_dirs.push_back(types[idx] == parser::OrderType::kOrderAsc ? optimizer::OrderByOrderingType::ASC
+                                                                         : optimizer::OrderByOrderingType::DESC);
+        }
+
+        auto sort_prop = new optimizer::PropertySort(sort_exprs, sort_dirs);
+        property_set.AddProperty(sort_prop);
+      }
+
+      auto query_info = optimizer::QueryInfo(parser::StatementType::SELECT, std::move(output), &property_set);
+      out_plan =
+          optimizer.BuildPlanTree(txn, accessor.get(), db_main_->GetStatsStorage().Get(), query_info, std::move(plan));
+    } else {
+      UNREACHABLE("BenchmarkSqlStatement expecting a SELECT statement");
+    }
+
+    execution::ExecutableQuery::query_identifier.store(qid);
+    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid_, common::ManagedPointer(txn),
+                                                                        execution::exec::NoOpResultConsumer(),
+                                                                        out_plan->GetOutputSchema().Get(),
+                                                                        common::ManagedPointer(accessor));
+    auto exec_query = execution::ExecutableQuery(common::ManagedPointer(out_plan), common::ManagedPointer(exec_ctx));
+    exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(units));
+    exec_query.Run(common::ManagedPointer(exec_ctx), mode_);
+
+    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  }
+
   void BenchmarkArithmetic(brain::ExecutionOperatingUnitType type, size_t num_elem) {
     auto txn = txn_manager_->BeginTransaction();
     auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
-    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-        db_oid_, common::ManagedPointer(txn), nullptr, nullptr, common::ManagedPointer(accessor));
+    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid_, common::ManagedPointer(txn), nullptr,
+                                                                        nullptr, common::ManagedPointer(accessor));
     exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode_));
     exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
 
@@ -223,24 +283,37 @@ class MiniRunners : public benchmark::Fixture {
  protected:
   common::ManagedPointer<catalog::Catalog> catalog_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
-  common::ManagedPointer<storage::BlockStore> block_store_;
   common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
 };
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(MiniRunners, SeqScanRunners)(benchmark::State &state) {
+  for (auto _ : state) {
+    metrics_manager_->RegisterThread();
+
+    brain::PipelineOperatingUnits units;
+    brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, 10000, 10000);
+    units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
+
+    BenchmarkSqlStatement(SEQ_SCAN_QID, "select * from test_1", &units);
+    metrics_manager_->Aggregate();
+    metrics_manager_->UnregisterThread();
+  }
+
+  // state.SetItemsProcessed(state.range(1));
+  state.SetItemsProcessed(1);
+}
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, ArithmeticRunners)(benchmark::State &state) {
   for (auto _ : state) {
     metrics_manager_->RegisterThread();
 
-    uint64_t elapsed_ms;
-    {
-      common::ScopedTimer<std::chrono::microseconds> timer(&elapsed_ms);
-
-      // state.range(0) is the OperatingUnitType
-      // state.range(1) is the size
-      BenchmarkArithmetic(static_cast<brain::ExecutionOperatingUnitType>(state.range(0)),
-                          static_cast<size_t>(state.range(1)));
-    }
+    // state.range(0) is the OperatingUnitType
+    // state.range(1) is the size
+    BenchmarkArithmetic(static_cast<brain::ExecutionOperatingUnitType>(state.range(0)),
+                        static_cast<size_t>(state.range(1)));
 
     metrics_manager_->Aggregate();
     metrics_manager_->UnregisterThread();
@@ -249,6 +322,11 @@ BENCHMARK_DEFINE_F(MiniRunners, ArithmeticRunners)(benchmark::State &state) {
   state.SetItemsProcessed(state.range(1));
 }
 
+BENCHMARK_REGISTER_F(MiniRunners, SeqScanRunners)
+    ->Unit(benchmark::kMillisecond)
+    ->Iterations(1);
+
+/*
 BENCHMARK_REGISTER_F(MiniRunners, ArithmeticRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
@@ -292,23 +370,25 @@ BENCHMARK_REGISTER_F(MiniRunners, ArithmeticRunners)
     ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE), 10000})
     ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE), 1000000})
     ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE), 100000000});
+*/
 
 void InitializeRunnersState() {
   terrier::execution::CpuInfo::Instance();
   terrier::execution::ExecutionUtil::InitTPL();
   auto db_main_builder = DBMain::Builder()
-    .SetUseGC(true)
-    .SetUseCatalog(true)
-    .SetUseGCThread(true)
-    .SetUseMetrics(true)
-    .SetBlockStoreSize(1000000)
-    .SetBlockStoreReuse(1000000)
-    .SetRecordBufferSegmentSize(1000000)
-    .SetRecordBufferSegmentReuse(1000000);
+                             .SetUseGC(true)
+                             .SetUseCatalog(true)
+                             .SetUseStatsStorage(true)
+                             .SetUseGCThread(true)
+                             .SetUseMetrics(true)
+                             .SetBlockStoreSize(1000000)
+                             .SetBlockStoreReuse(1000000)
+                             .SetRecordBufferSegmentSize(1000000)
+                             .SetRecordBufferSegmentReuse(1000000);
 
   db_main_ = db_main_builder.Build().release();
 
-  // auto block_store = db_main_->GetStorageLayer()->GetBlockStore();
+  auto block_store = db_main_->GetStorageLayer()->GetBlockStore();
   auto catalog = db_main_->GetCatalogLayer()->GetCatalog();
   auto txn_manager = db_main_->GetTransactionLayer()->GetTransactionManager();
   db_main_->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
@@ -320,10 +400,10 @@ void InitializeRunnersState() {
   // Load the database
   auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid_);
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid_, common::ManagedPointer(txn), nullptr,
-      nullptr, common::ManagedPointer(accessor));
-  
-  // execution::sql::TableGenerator table_gen(exec_ctx.get(), block_store, accessor->GetDefaultNamespace());
-  // table_gen.GenerateTestTables(true);
+                                                                      nullptr, common::ManagedPointer(accessor));
+
+  execution::sql::TableGenerator table_gen(exec_ctx.get(), block_store, accessor->GetDefaultNamespace());
+  table_gen.GenerateTestTables(false);
 
   txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
