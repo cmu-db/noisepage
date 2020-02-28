@@ -1,4 +1,5 @@
 #include <common/macros.h>
+#include <random>
 #include <utility>
 
 #include "benchmark/benchmark.h"
@@ -119,6 +120,10 @@ class MiniRunners : public benchmark::Fixture {
   static constexpr execution::query_id_t SEQ_SCAN_COL_1_QID = execution::query_id_t(10);
   static constexpr execution::query_id_t SEQ_SCAN_COL_4_QID = execution::query_id_t(11);
   static constexpr execution::query_id_t SEQ_SCAN_COL_8_QID = execution::query_id_t(12);
+  static constexpr execution::query_id_t BULK_INS_1_QID = execution::query_id_t(13);
+  static constexpr execution::query_id_t BULK_INS_100_QID = execution::query_id_t(14);
+  static constexpr execution::query_id_t BULK_INS_10000_QID = execution::query_id_t(15);
+  static constexpr execution::query_id_t BULK_INS_100000_QID = execution::query_id_t(16);
 
   const uint64_t optimizer_timeout_ = 1000000;
   const execution::vm::ExecutionMode mode_ = execution::vm::ExecutionMode::Interpret;
@@ -178,7 +183,10 @@ class MiniRunners : public benchmark::Fixture {
       out_plan =
           optimizer.BuildPlanTree(txn, accessor.get(), db_main_->GetStatsStorage().Get(), query_info, std::move(plan));
     } else {
-      UNREACHABLE("BenchmarkSqlStatement expecting a SELECT statement");
+      auto property_set = optimizer::PropertySet();
+      auto query_info = optimizer::QueryInfo(stmt_list->GetStatement(0)->GetType(), {}, &property_set);
+      out_plan =
+          optimizer.BuildPlanTree(txn, accessor.get(), db_main_->GetStatsStorage().Get(), query_info, std::move(plan));
     }
 
     execution::ExecutableQuery::query_identifier.store(qid);
@@ -291,6 +299,97 @@ class MiniRunners : public benchmark::Fixture {
 };
 
 // NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(MiniRunners, InsertRunners)(benchmark::State &state) {
+  auto num_rows = state.range(0);
+  auto qid = static_cast<execution::query_id_t>(state.range(1));
+  uint32_t num_cols = 16;
+
+  for (auto _ : state) {
+    // Create temporary table schema
+    std::vector<catalog::Schema::Column> cols;
+    for (uint32_t j = 1; j < num_cols; j++) {
+      std::stringstream col_name;
+      col_name << "col" << j;
+      cols.emplace_back(col_name.str(), type::TypeId::INTEGER, false,
+                        terrier::parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0)));
+    }
+    catalog::Schema tmp_schema(cols);
+
+    // Create table
+    catalog::table_oid_t tbl_oid;
+    {
+      auto txn = txn_manager_->BeginTransaction();
+      auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
+      tbl_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "tmp_table", tmp_schema);
+      auto &schema = accessor->GetSchema(tbl_oid);
+      auto *tmp_table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), schema);
+      accessor->SetTablePointer(tbl_oid, tmp_table);
+      txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    }
+
+    std::stringstream query;
+    query << "INSERT INTO tmp_table VALUES ";
+    for (uint32_t idx = 0; idx < num_rows; idx++) {
+      std::mt19937 generator{};
+      std::uniform_int_distribution<int> distribution(0, INT_MAX);
+      query << "(";
+      for (uint32_t i = 1; i < num_cols; i++) {
+        query << i;
+        if (i != num_cols - 1) {
+          query << ",";
+        } else {
+          query << ") ";
+        }
+      }
+
+      if (idx != num_rows - 1) {
+        query << ", ";
+      }
+    }
+
+    brain::PipelineOperatingUnits units;
+    brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::INSERT, num_rows, static_cast<double>(num_rows));
+    units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
+
+    uint64_t elapsed_ms;
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      metrics_manager_->RegisterThread();
+      BenchmarkSqlStatement(qid, query.str(), &units);
+      metrics_manager_->Aggregate();
+      metrics_manager_->UnregisterThread();
+    }
+
+    // Drop the table
+    {
+      auto txn = txn_manager_->BeginTransaction();
+      auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
+      accessor->DropTable(tbl_oid);
+      txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    }
+
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+  }
+
+  state.SetItemsProcessed(num_rows);
+}
+
+/**
+ * Arg: <0, 1>
+ * 0 - Number of rows to insert
+ * 1 - query identifier
+ */
+BENCHMARK_REGISTER_F(MiniRunners, InsertRunners)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->Iterations(1)
+    ->Args({1, static_cast<int>(!MiniRunners::BULK_INS_1_QID)})
+    ->Args({100, static_cast<int>(!MiniRunners::BULK_INS_100_QID)})
+    ->Args({10000, static_cast<int>(!MiniRunners::BULK_INS_10000_QID)})
+    ->Args({100000, static_cast<int>(!MiniRunners::BULK_INS_100000_QID)});
+
+// NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SeqScanRunners)(benchmark::State &state) {
   auto num_col = state.range(0);
   auto row = state.range(1);
@@ -332,7 +431,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SeqScanRunners)(benchmark::State &state) {
     }
 
     std::stringstream tbl_name;
-    tbl_name << "SELECT " << (cols.str()) <<" FROM INTEGERCol15Row" << row << "Car" << car;
+    tbl_name << "SELECT " << (cols.str()) << " FROM INTEGERCol15Row" << row << "Car" << car;
     BenchmarkSqlStatement(qid, tbl_name.str(), &units);
     metrics_manager_->Aggregate();
     metrics_manager_->UnregisterThread();
