@@ -157,7 +157,7 @@ class BinderContext {
    */
   void SetDepth(int depth) { depth_ = depth; }
 
-  /**\q
+  /**
    * Get the depth of the current context
    * @return depth of the current binder context
    */
