@@ -419,7 +419,7 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
           auto ret_type = ins_val->GetReturnValueType();
           auto expected_ret_type = ins_col.Type();
 
-          auto is_null = ins_val->GetValue().Null() && ins_col.Nullable();
+          auto is_null = !ins_val && ins_col.Nullable();
           auto is_cast_expression = ins_val->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
           auto mismatched_type = !is_null && ret_type != expected_ret_type;
 

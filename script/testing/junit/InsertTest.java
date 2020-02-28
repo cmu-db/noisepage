@@ -210,4 +210,23 @@ public class InsertTest extends TestUtility {
         stmt.execute(drop_SQL);
     }
 
+    @Test
+    public void testDefaultValueInsert () throws SQLException {
+        String create_table_SQL = "CREATE TABLE xxx (id integer, val DEFAULT 123);";
+        String insert_into_table_SQL = "INSERT INTO xxx VALUES (1, DEFAULT);"
+        conn.setAutoCommit(false);
+        Statement stmt = conn.createStatement();
+        stmt.addBatch(create_table_SQL);
+        stmt.addBatch(insert_into_table_SQL);
+        stmt.executeBatch();
+        conn.commit();
+        conn.setAutoCommit(true);
+
+        String select_SQL = "SELECT * from xxx;";
+        stmt = conn.createStatement();
+        rs = stmt.executeQuery(select_SQL);
+
+        checkRow(rs, new String [] {"id", "val"}, new int [] {1, 123});
+        assertNoMoreRows(rs);
+    }
 }
