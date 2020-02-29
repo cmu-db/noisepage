@@ -1,10 +1,13 @@
 #include <catalog/catalog_defs.h>
+#include <optimizer/optimizer_context.h>
+
 #include <memory>
 #include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
 
+#include "optimizer/cost_model/trivial_cost_model.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/conjunction_expression.h"
@@ -40,12 +43,11 @@
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/set_op_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
+#include "test_util/storage_test_util.h"
+#include "test_util/test_harness.h"
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
-
-#include "test_util/storage_test_util.h"
-#include "test_util/test_harness.h"
 
 namespace terrier::planner {
 
@@ -462,8 +464,9 @@ TEST(PlanNodeJsonTest, DeletePlanNodeTest) {
 TEST(PlanNodeJsonTest, DropDatabasePlanNodeTest) {
   // Construct DropDatabasePlanNode
   DropDatabasePlanNode::Builder builder;
-  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(7)).Build();
-
+  optimizer::OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(7)).SetPlanNodeId(context.GetNextPlanNodeID()).Build();
   // Serialize to Json
   auto json = plan_node->ToJson();
   EXPECT_FALSE(json.is_null());
@@ -510,7 +513,10 @@ TEST(PlanNodeJsonTest, DropIndexPlanNodeTest) {
 TEST(PlanNodeJsonTest, DropNamespacePlanNodeTest) {
   // Construct DropNamespacePlanNode
   DropNamespacePlanNode::Builder builder;
-  auto plan_node = builder.SetNamespaceOid(catalog::namespace_oid_t(9)).Build();
+  optimizer::OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto plan_node =
+      builder.SetNamespaceOid(catalog::namespace_oid_t(9)).SetPlanNodeId(context.GetNextPlanNodeID()).Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -529,7 +535,9 @@ TEST(PlanNodeJsonTest, DropNamespacePlanNodeTest) {
 TEST(PlanNodeJsonTest, DropTablePlanNodeTest) {
   // Construct DropTablePlanNode
   DropTablePlanNode::Builder builder;
-  auto plan_node = builder.SetTableOid(catalog::table_oid_t(10)).Build();
+  optimizer::OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto plan_node = builder.SetTableOid(catalog::table_oid_t(10)).SetPlanNodeId(context.GetNextPlanNodeID()).Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -548,10 +556,13 @@ TEST(PlanNodeJsonTest, DropTablePlanNodeTest) {
 TEST(PlanNodeJsonTest, DropTriggerPlanNodeTest) {
   // Construct DropTriggerPlanNode
   DropTriggerPlanNode::Builder builder;
+  optimizer::OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(10))
                        .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .SetTriggerOid(catalog::trigger_oid_t(11))
                        .SetIfExist(true)
+                       .SetPlanNodeId(context.GetNextPlanNodeID())
                        .Build();
 
   // Serialize to Json
@@ -571,10 +582,13 @@ TEST(PlanNodeJsonTest, DropTriggerPlanNodeTest) {
 TEST(PlanNodeJsonTest, DropViewPlanNodeTest) {
   // Construct DropViewPlanNode
   DropViewPlanNode::Builder builder;
+  optimizer::OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(11))
                        .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .SetViewOid(catalog::view_oid_t(12))
                        .SetIfExist(true)
+                       .SetPlanNodeId(context.GetNextPlanNodeID())
                        .Build();
 
   // Serialize to Json
@@ -594,11 +608,14 @@ TEST(PlanNodeJsonTest, DropViewPlanNodeTest) {
 TEST(PlanNodeJsonTest, ExportExternalFilePlanNodeJsonTest) {
   // Construct ExportExternalFilePlanNode
   ExportExternalFilePlanNode::Builder builder;
+  optimizer::OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetFileName("test_file")
                        .SetDelimiter(',')
                        .SetEscape('"')
                        .SetQuote('"')
+                       .SetPlanNodeId(context.GetNextPlanNodeID())
                        .Build();
 
   // Serialize to Json
@@ -621,6 +638,8 @@ TEST(PlanNodeJsonTest, HashJoinPlanNodeJoinTest) {
   auto left_hash_key = std::make_unique<parser::ColumnValueExpression>("table1", "col1");
   auto right_hash_key = std::make_unique<parser::ColumnValueExpression>("table2", "col2");
   auto join_pred = PlanNodeJsonTest::BuildDummyPredicate();
+  optimizer::OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
   HashJoinPlanNode::Builder builder;
   auto plan_node =
       builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
@@ -628,6 +647,7 @@ TEST(PlanNodeJsonTest, HashJoinPlanNodeJoinTest) {
           .SetJoinPredicate(common::ManagedPointer(join_pred))
           .AddLeftHashKey(common::ManagedPointer(left_hash_key).CastManagedPointerTo<parser::AbstractExpression>())
           .AddRightHashKey(common::ManagedPointer(right_hash_key).CastManagedPointerTo<parser::AbstractExpression>())
+          .SetPlanNodeId(context.GetNextPlanNodeID())
           .Build();
 
   // Serialize to Json
@@ -648,12 +668,15 @@ TEST(PlanNodeJsonTest, IndexScanPlanNodeJsonTest) {
   // Construct IndexScanPlanNode
   auto scan_pred = PlanNodeJsonTest::BuildDummyPredicate();
   IndexScanPlanNode::Builder builder;
+  optimizer::OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetScanPredicate(common::ManagedPointer(scan_pred))
                        .SetIsForUpdateFlag(false)
                        .SetDatabaseOid(catalog::db_oid_t(0))
                        .SetIndexOid(catalog::index_oid_t(0))
                        .SetNamespaceOid(catalog::namespace_oid_t(0))
+                       .SetPlanNodeId(context.GetNextPlanNodeID())
                        .Build();
 
   // Serialize to Json
@@ -690,6 +713,8 @@ TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
   };
 
   InsertPlanNode::Builder builder;
+  optimizer::OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetDatabaseOid(catalog::db_oid_t(0))
                        .SetNamespaceOid(catalog::namespace_oid_t(0))
@@ -699,6 +724,7 @@ TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
                        .AddParameterInfo(catalog::col_oid_t(0))
                        .AddParameterInfo(catalog::col_oid_t(1))
                        .SetIndexOids({catalog::index_oid_t{0}, catalog::index_oid_t{1}})
+                       .SetPlanNodeId(context.GetNextPlanNodeID())
                        .Build();
 
   // Serialize to Json
@@ -724,6 +750,7 @@ TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
                         .AddParameterInfo(catalog::col_oid_t(0))
                         .AddParameterInfo(catalog::col_oid_t(1))
                         .AddParameterInfo(catalog::col_oid_t(2))
+                        .SetPlanNodeId(context.GetNextPlanNodeID())
                         .Build();
   auto json2 = plan_node2->ToJson();
   EXPECT_FALSE(json2.is_null());
@@ -741,8 +768,13 @@ TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
 TEST(PlanNodeJsonTest, LimitPlanNodeJsonTest) {
   // Construct LimitPlanNode
   LimitPlanNode::Builder builder;
-  auto plan_node =
-      builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema()).SetLimit(10).SetOffset(10).Build();
+  optimizer::OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+                       .SetLimit(10)
+                       .SetOffset(10)
+                       .SetPlanNodeId(context.GetNextPlanNodeID())
+                       .Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -762,9 +794,12 @@ TEST(PlanNodeJsonTest, NestedLoopJoinPlanNodeJoinTest) {
   // Construct NestedLoopJoinPlanNode
   auto join_pred = PlanNodeJsonTest::BuildDummyPredicate();
   NestedLoopJoinPlanNode::Builder builder;
+  optimizer::OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetJoinType(LogicalJoinType::INNER)
                        .SetJoinPredicate(common::ManagedPointer(join_pred))
+                       .SetPlanNodeId(context.GetNextPlanNodeID())
                        .Build();
 
   // Serialize to Json
@@ -784,6 +819,8 @@ TEST(PlanNodeJsonTest, NestedLoopJoinPlanNodeJoinTest) {
 TEST(PlanNodeJsonTest, OrderByPlanNodeJsonTest) {
   // Construct OrderByPlanNode
   OrderByPlanNode::Builder builder;
+  optimizer::OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
   parser::AbstractExpression *sortkey1 = new parser::DerivedValueExpression(type::TypeId::INTEGER, 0, 0);
   parser::AbstractExpression *sortkey2 = new parser::DerivedValueExpression(type::TypeId::INTEGER, 0, 1);
 
@@ -792,6 +829,7 @@ TEST(PlanNodeJsonTest, OrderByPlanNodeJsonTest) {
                        .AddSortKey(common::ManagedPointer(sortkey2), optimizer::OrderByOrderingType::DESC)
                        .SetLimit(10)
                        .SetOffset(10)
+                       .SetPlanNodeId(context.GetNextPlanNodeID())
                        .Build();
 
   // Serialize to Json
@@ -814,7 +852,11 @@ TEST(PlanNodeJsonTest, OrderByPlanNodeJsonTest) {
 TEST(PlanNodeJsonTest, ProjectionPlanNodeJsonTest) {
   // Construct ProjectionPlanNode
   ProjectionPlanNode::Builder builder;
-  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema()).Build();
+  optimizer::OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+                       .SetPlanNodeId(context.GetNextPlanNodeID())
+                       .Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -834,8 +876,12 @@ TEST(PlanNodeJsonTest, ResultPlanNodeJsonTest) {
   // Construct ResultPlanNode
   auto expr = PlanNodeJsonTest::BuildDummyPredicate();
   ResultPlanNode::Builder builder;
-  auto plan_node =
-      builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema()).SetExpr(common::ManagedPointer(expr)).Build();
+  optimizer::OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+                       .SetExpr(common::ManagedPointer(expr))
+                       .SetPlanNodeId(context.GetNextPlanNodeID())
+                       .Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -855,8 +901,11 @@ TEST(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
   // Construct SeqScanPlanNode
   auto scan_pred = PlanNodeJsonTest::BuildDummyPredicate();
   SeqScanPlanNode::Builder builder;
+  optimizer::OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetScanPredicate(common::ManagedPointer(scan_pred))
+                       .SetPlanNodeId(context.GetNextPlanNodeID())
                        .SetIsForUpdateFlag(false)
                        .SetDatabaseOid(catalog::db_oid_t(0))
                        .SetNamespaceOid(catalog::namespace_oid_t(0))
@@ -880,8 +929,12 @@ TEST(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
 TEST(PlanNodeJsonTest, SetOpPlanNodeJsonTest) {
   // Construct SetOpPlanNode
   SetOpPlanNode::Builder builder;
-  auto plan_node =
-      builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema()).SetSetOp(SetOpType::INTERSECT).Build();
+  optimizer::OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
+                       .SetSetOp(SetOpType::INTERSECT)
+                       .SetPlanNodeId(context.GetNextPlanNodeID())
+                       .Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -899,10 +952,13 @@ TEST(PlanNodeJsonTest, SetOpPlanNodeJsonTest) {
 // NOLINTNEXTLINE
 TEST(PlanNodeJsonTest, UpdatePlanNodeJsonTest) {
   UpdatePlanNode::Builder builder;
+  optimizer::OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetDatabaseOid(catalog::db_oid_t(1000))
                        .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .SetTableOid(catalog::table_oid_t(200))
+                       .SetPlanNodeId(context.GetNextPlanNodeID())
                        .SetUpdatePrimaryKey(true)
                        .Build();
 
