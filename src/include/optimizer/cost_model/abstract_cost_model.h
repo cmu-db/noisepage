@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <utility>
 #include "optimizer/operator_visitor.h"
 
 namespace terrier {
