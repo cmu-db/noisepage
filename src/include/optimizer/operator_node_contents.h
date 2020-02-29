@@ -18,6 +18,8 @@ class OperatorVisitor;
  * Base class for operators
  */
 class BaseOperatorNodeContents {
+ private:
+  BaseOperatorNodeContents(plan_node_id_t plan_node_id):plan_node_id_(plan_node_id) {}
  public:
   /**
    * Default constructor
@@ -62,6 +64,11 @@ class BaseOperatorNodeContents {
   virtual bool IsPhysical() const = 0;
 
   /**
+   * @return the operator's plan node id
+   */
+  const plan_node_id_t GetPlanNodeId() const {return plan_node_id_;}
+
+  /**
    * @return the hashed value of this operator
    */
   virtual common::hash_t Hash() const {
@@ -82,6 +89,9 @@ class BaseOperatorNodeContents {
    * @return true if this operator is logically not equal to other, false otherwise
    */
   virtual bool operator!=(const BaseOperatorNodeContents &r) { return !operator==(r); }
+
+ protected:
+  plan_node_id_t plan_node_id_;
 };
 
 /**
@@ -196,6 +206,10 @@ class Operator {
    */
   bool operator!=(const Operator &rhs) const { return !operator==(rhs); }
 
+  /**
+   * @return plan node id
+   */
+  plan_node_id_t GetPlanNodeId() const { return contents_->GetPlanNodeId(); }
   /**
    * @return true if the operator is defined, false otherwise
    */

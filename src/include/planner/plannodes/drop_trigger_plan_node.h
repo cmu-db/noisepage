@@ -105,7 +105,7 @@ class DropTriggerPlanNode : public AbstractPlanNode {
   DropTriggerPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                       std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                       catalog::namespace_oid_t namespace_oid, catalog::trigger_oid_t trigger_oid, bool if_exists,
-                      plan_node_id_t plan_node_id)
+                      optimizer::plan_node_id_t plan_node_id)
       : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
         database_oid_(database_oid),
         namespace_oid_(namespace_oid),

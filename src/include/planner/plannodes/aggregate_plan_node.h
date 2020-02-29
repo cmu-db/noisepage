@@ -118,7 +118,7 @@ class AggregatePlanNode : public AbstractPlanNode {
                     std::unique_ptr<OutputSchema> output_schema, std::vector<GroupByTerm> groupby_terms,
                     common::ManagedPointer<parser::AbstractExpression> having_clause_predicate,
                     std::vector<AggregateTerm> aggregate_terms, AggregateStrategyType aggregate_strategy,
-                    plan_node_id_t plan_node_id)
+                    optimizer::plan_node_id_t plan_node_id)
       : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
         groupby_terms_(std::move(groupby_terms)),
         having_clause_predicate_(having_clause_predicate),

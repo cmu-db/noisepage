@@ -5,10 +5,12 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
 #include "optimizer/operator_node_contents.h"
+#include "optimizer_context.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 #include "parser/parser_defs.h"
@@ -33,7 +35,7 @@ class LeafOperator : public OperatorNodeContents<LeafOperator> {
    * Make a LeafOperator
    * @param group Group to wrap
    */
-  static Operator Make(group_id_t group);
+  static Operator Make(group_id_t group, plan_node_id_t plan_node_id);
 
   /**a
    * Copy
@@ -74,13 +76,13 @@ class LogicalGet : public OperatorNodeContents<LogicalGet> {
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> predicates,
-                       std::string table_alias, bool is_for_update);
+                       std::string table_alias, bool is_for_update, plan_node_id_t plan_node_id);
 
   /**
    * For select statement without a from table
    * @return
    */
-  static Operator Make();
+  static Operator Make(plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -168,7 +170,7 @@ class LogicalExternalFileGet : public OperatorNodeContents<LogicalExternalFileGe
    * @return an LogicalExternalFileGet operator
    */
   static Operator Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
-                       char escape);
+                       char escape, plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -243,7 +245,8 @@ class LogicalQueryDerivedGet : public OperatorNodeContents<LogicalQueryDerivedGe
    */
   static Operator Make(
       std::string table_alias,
-      std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map);
+      std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map,
+      plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -293,7 +296,7 @@ class LogicalFilter : public OperatorNodeContents<LogicalFilter> {
    * @param predicates The list of predicates used to perform the scan
    * @return a LogicalFilter operator
    */
-  static Operator Make(std::vector<AnnotatedExpression> &&predicates);
+  static Operator Make(std::vector<AnnotatedExpression> &&predicates, plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -328,7 +331,8 @@ class LogicalProjection : public OperatorNodeContents<LogicalProjection> {
    * @param expressions list of AbstractExpressions in the projection list.
    * @return a LogicalProjection operator
    */
-  static Operator Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&expressions);
+  static Operator Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&expression,
+                       plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -360,13 +364,14 @@ class LogicalDependentJoin : public OperatorNodeContents<LogicalDependentJoin> {
   /**
    * @return a DependentJoin operator
    */
-  static Operator Make();
+  static Operator Make(plan_node_id_t plan_node_id);
 
   /**
    * @param join_predicates conditions of the join
    * @return a DependentJoin operator
    */
-  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates
+                       , plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -398,13 +403,13 @@ class LogicalMarkJoin : public OperatorNodeContents<LogicalMarkJoin> {
   /**
    * @return a MarkJoin operator
    */
-  static Operator Make();
+  static Operator Make(plan_node_id_t plan_node_id);
 
   /**
    * @param join_predicates conditions of the join
    * @return a MarkJoin operator
    */
-  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates, plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -436,13 +441,13 @@ class LogicalSingleJoin : public OperatorNodeContents<LogicalSingleJoin> {
   /**
    * @return a SingleJoin operator
    */
-  static Operator Make();
+  static Operator Make(plan_node_id_t plan_node_id);
 
   /**
    * @param join_predicates conditions of the join
    * @return a SingleJoin operator
    */
-  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates, plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -474,13 +479,13 @@ class LogicalInnerJoin : public OperatorNodeContents<LogicalInnerJoin> {
   /**
    * @return an InnerJoin operator
    */
-  static Operator Make();
+  static Operator Make(plan_node_id_t plan_node_id);
 
   /**
    * @param join_predicates conditions of the join
    * @return an InnerJoin operator
    */
-  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates, plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -512,13 +517,13 @@ class LogicalLeftJoin : public OperatorNodeContents<LogicalLeftJoin> {
   /**
    * @return a LeftJoin operator
    */
-  static Operator Make();
+  static Operator Make(plan_node_id_t plan_node_id);
 
   /**
    * @param join_predicates conditions of the join
    * @return a LeftJoin operator
    */
-  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates, plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -550,13 +555,13 @@ class LogicalRightJoin : public OperatorNodeContents<LogicalRightJoin> {
   /**
    * @return a RightJoin operator
    */
-  static Operator Make();
+  static Operator Make(plan_node_id_t plan_node_id);
 
   /**
    * @param join_predicates conditions of the join
    * @return a RightJoin operator
    */
-  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates, plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -588,13 +593,13 @@ class LogicalOuterJoin : public OperatorNodeContents<LogicalOuterJoin> {
   /**
    * @return an OuterJoin operator
    */
-  static Operator Make();
+  static Operator Make(plan_node_id_t plan_node_id);
 
   /**
    * @param join_predicates conditions of the join
    * @return an OuterJoin operator
    */
-  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates, plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -626,13 +631,13 @@ class LogicalSemiJoin : public OperatorNodeContents<LogicalSemiJoin> {
   /**
    * @return a SemiJoin operator
    */
-  static Operator Make();
+  static Operator Make(plan_node_id_t plan_node_id);
 
   /**
    * @param join_predicates conditions of the join
    * @return a SemiJoin operator
    */
-  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates, plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -664,13 +669,14 @@ class LogicalAggregateAndGroupBy : public OperatorNodeContents<LogicalAggregateA
   /**
    * @return a GroupBy operator
    */
-  static Operator Make();
+  static Operator Make(plan_node_id_t plan_node_id);
 
   /**
    * @param columns columns to group by
    * @return a GroupBy operator
    */
-  static Operator Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns);
+  static Operator Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
+                       plan_node_id_t plan_node_id);
 
   /**
    * @param columns columns to group by
@@ -678,7 +684,7 @@ class LogicalAggregateAndGroupBy : public OperatorNodeContents<LogicalAggregateA
    * @return a GroupBy operator
    */
   static Operator Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
-                       std::vector<AnnotatedExpression> &&having);
+                       std::vector<AnnotatedExpression> &&having, plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -728,7 +734,8 @@ class LogicalInsert : public OperatorNodeContents<LogicalInsert> {
   static Operator Make(
       catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
       std::vector<catalog::col_oid_t> &&columns,
-      common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values);
+      common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values,
+      plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -807,7 +814,7 @@ class LogicalInsertSelect : public OperatorNodeContents<LogicalInsertSelect> {
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid);
+                       catalog::table_oid_t table_oid, plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -865,7 +872,8 @@ class LogicalLimit : public OperatorNodeContents<LogicalLimit> {
    */
   static Operator Make(size_t offset, size_t limit,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
-                       std::vector<optimizer::OrderByOrderingType> &&sort_directions);
+                       std::vector<optimizer::OrderByOrderingType> &&sort_directions,
+                       plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -936,7 +944,7 @@ class LogicalDelete : public OperatorNodeContents<LogicalDelete> {
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
-                       catalog::table_oid_t table_oid);
+                       catalog::table_oid_t table_oid, plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -1004,7 +1012,8 @@ class LogicalUpdate : public OperatorNodeContents<LogicalUpdate> {
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
                        catalog::table_oid_t table_oid,
-                       std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates);
+                       std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates,
+                       plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -1081,7 +1090,7 @@ class LogicalExportExternalFile : public OperatorNodeContents<LogicalExportExter
    * @return
    */
   static Operator Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
-                       char escape);
+                       char escape, plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -1155,7 +1164,7 @@ class LogicalCreateDatabase : public OperatorNodeContents<LogicalCreateDatabase>
    * @param database_name Name of the database to be created
    * @return
    */
-  static Operator Make(std::string database_name);
+  static Operator Make(std::string database_name, plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -1200,7 +1209,8 @@ class LogicalCreateFunction : public OperatorNodeContents<LogicalCreateFunction>
                        std::string function_name, parser::PLType language, std::vector<std::string> &&function_body,
                        std::vector<std::string> &&function_param_names,
                        std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
-                       parser::BaseFunctionParameter::DataType return_type, size_t param_count, bool replace);
+                       parser::BaseFunctionParameter::DataType return_type, size_t param_count, bool replace,
+                       plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -1331,7 +1341,8 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
                        parser::IndexType index_type, bool unique, std::string index_name,
-                       std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs);
+                       std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs,
+                       plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -1418,7 +1429,8 @@ class LogicalCreateTable : public OperatorNodeContents<LogicalCreateTable> {
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid, std::string table_name,
                        std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&columns,
-                       std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&foreign_keys);
+                       std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&foreign_keys,
+                       plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -1477,7 +1489,7 @@ class LogicalCreateNamespace : public OperatorNodeContents<LogicalCreateNamespac
    * @param namespace_name Name of the namespace to be created
    * @return
    */
-  static Operator Make(std::string namespace_name);
+  static Operator Make(std::string namespace_name, plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -1521,7 +1533,8 @@ class LogicalCreateTrigger : public OperatorNodeContents<LogicalCreateTrigger> {
                        catalog::table_oid_t table_oid, std::string trigger_name,
                        std::vector<std::string> &&trigger_funcnames, std::vector<std::string> &&trigger_args,
                        std::vector<catalog::col_oid_t> &&trigger_columns,
-                       common::ManagedPointer<parser::AbstractExpression> &&trigger_when, int16_t trigger_type);
+                       common::ManagedPointer<parser::AbstractExpression> &&trigger_when, int16_t trigger_type,
+                       plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -1639,7 +1652,7 @@ class LogicalCreateView : public OperatorNodeContents<LogicalCreateView> {
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string view_name,
-                       common::ManagedPointer<parser::SelectStatement> view_query);
+                       common::ManagedPointer<parser::SelectStatement> view_query, plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -1700,7 +1713,7 @@ class LogicalDropDatabase : public OperatorNodeContents<LogicalDropDatabase> {
    * @param db_oid OID of the database to be dropped
    * @return
    */
-  static Operator Make(catalog::db_oid_t db_oid);
+  static Operator Make(catalog::db_oid_t db_oid, plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -1732,7 +1745,7 @@ class LogicalDropTable : public OperatorNodeContents<LogicalDropTable> {
    * @param table_oid OID of the table to be dropped
    * @return
    */
-  static Operator Make(catalog::table_oid_t table_oid);
+  static Operator Make(catalog::table_oid_t table_oid, plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -1764,7 +1777,7 @@ class LogicalDropIndex : public OperatorNodeContents<LogicalDropIndex> {
    * @param index_oid OID of index to be dropped
    * @return
    */
-  static Operator Make(catalog::index_oid_t index_oid);
+  static Operator Make(catalog::index_oid_t index_oid, plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -1796,7 +1809,7 @@ class LogicalDropNamespace : public OperatorNodeContents<LogicalDropNamespace> {
    * @param namespace_oid OID of the schema to be dropped
    * @return
    */
-  static Operator Make(catalog::namespace_oid_t namespace_oid);
+  static Operator Make(catalog::namespace_oid_t namespace_oid, plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -1832,7 +1845,7 @@ class LogicalDropTrigger : public OperatorNodeContents<LogicalDropTrigger> {
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::trigger_oid_t trigger_oid, bool if_exists);
+                       catalog::trigger_oid_t trigger_oid, bool if_exists, plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -1898,7 +1911,7 @@ class LogicalDropView : public OperatorNodeContents<LogicalDropView> {
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::view_oid_t view_oid, bool if_exists);
+                       catalog::view_oid_t view_oid, bool if_exists, plan_node_id_t plan_node_id);
 
   /**
    * Copy

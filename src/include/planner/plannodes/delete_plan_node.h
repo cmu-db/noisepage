@@ -95,7 +95,7 @@ class DeletePlanNode : public AbstractPlanNode {
    */
   DeletePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
                  catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
-                 plan_node_id_t plan_node_id)
+                 optimizer::plan_node_id_t plan_node_id)
       : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
         database_oid_(database_oid),
         namespace_oid_(namespace_oid),

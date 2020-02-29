@@ -8,6 +8,7 @@
 
 #include "common/managed_pointer.h"
 #include "common/sql_node_visitor.h"
+#include <optimizer/optimizer_context.h>
 
 namespace terrier {
 
@@ -34,7 +35,8 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
    * Initialize the query to operator transformer object with a non-owning pointer to the catalog accessor
    * @param catalog_accessor Pointer to a catalog accessor
    */
-  explicit QueryToOperatorTransformer(common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor);
+  explicit QueryToOperatorTransformer(common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor,
+                                      optimizer::OptimizerContext *context);
 
   /**
    * Traverse the query AST to generate AST of logical operators.
@@ -155,6 +157,11 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
    * A set of predicates the current operator generated, we use them to generate filter operator
    */
   std::vector<AnnotatedExpression> predicates_;
+
+  /*
+   * Optimizer Context to get counter
+   */
+  OptimizerContext *context_;
 };
 
 }  // namespace optimizer

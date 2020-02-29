@@ -27,7 +27,7 @@ bool GroupBindingIterator::HasNext() {
     // Keep checking item iterators until we find a match
     while (current_item_index_ < num_group_items_) {
       auto gexpr = target_group_->GetLogicalExpressions()[current_item_index_];
-      auto gexpr_it = new GroupExprBindingIterator(memo_, gexpr, pattern_);
+      auto gexpr_it = new GroupExprBindingIterator(memo_, gexpr, pattern_, context_);
       current_iterator_.reset(gexpr_it);
 
       if (current_iterator_->HasNext()) {
@@ -46,14 +46,16 @@ std::unique_ptr<OperatorNode> GroupBindingIterator::Next() {
   if (pattern_->Type() == OpType::LEAF) {
     current_item_index_ = num_group_items_;
     std::vector<std::unique_ptr<OperatorNode>> c;
-    return std::make_unique<OperatorNode>(LeafOperator::Make(group_id_), std::move(c));
+    return std::make_unique<OperatorNode>(LeafOperator::Make(group_id_, context_->GetNextPlanNodeID()), std::move(c));
   }
 
   return current_iterator_->Next();
 }
 
-GroupExprBindingIterator::GroupExprBindingIterator(const Memo &memo, GroupExpression *gexpr, Pattern *pattern)
-    : BindingIterator(memo), gexpr_(gexpr), first_(true), has_next_(false), current_binding_(nullptr) {
+GroupExprBindingIterator::GroupExprBindingIterator(const Memo &memo, GroupExpression *gexpr, Pattern *pattern,
+                                                   OptimizerContext *context)
+    : BindingIterator(memo), gexpr_(gexpr), first_(true), has_next_(false), current_binding_(nullptr),
+      context_(context) {
   if (gexpr->Op().GetType() != pattern->Type()) {
     // Check root node type
     return;
@@ -80,7 +82,7 @@ GroupExprBindingIterator::GroupExprBindingIterator(const Memo &memo, GroupExpres
   for (size_t i = 0; i < child_groups.size(); ++i) {
     // Try to find a match in the given group
     std::vector<std::unique_ptr<OperatorNode>> &child_bindings = children_bindings_[i];
-    GroupBindingIterator iterator(memo_, child_groups[i], child_patterns[i]);
+    GroupBindingIterator iterator(memo_, child_groups[i], child_patterns[i], context_);
 
     // Get all bindings
     while (iterator.HasNext()) {

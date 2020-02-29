@@ -1,11 +1,15 @@
 #pragma once
 
+#include <optimizer/cost_model/abstract_cost_model.h>
+
 #include <utility>
 #include <vector>
 
 #include "common/settings.h"
+#include "logical_operators.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
 #include "optimizer/group_expression.h"
+#include "optimizer/logical_operators.h"
 #include "optimizer/memo.h"
 #include "optimizer/rule.h"
 #include "optimizer/statistics/stats_storage.h"
@@ -214,6 +218,13 @@ class OptimizerContext {
     TERRIER_ASSERT(ret, "Root expr should always be inserted");
   }
 
+  /**
+   * @returns the next plan node id and increase the counter
+   */
+  plan_node_id_t GetNextPlanNodeID() {
+    return plan_id_counter++;
+  }
+
  private:
   Memo memo_;
   RuleSet rule_set_;
@@ -223,6 +234,7 @@ class OptimizerContext {
   StatsStorage *stats_storage_;
   transaction::TransactionContext *txn_;
   std::vector<OptimizationContext *> track_list_;
+  plan_node_id_t plan_id_counter;
 };
 
 }  // namespace optimizer

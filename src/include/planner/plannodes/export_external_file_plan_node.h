@@ -122,7 +122,7 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
    */
   explicit ExportExternalFilePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                                       parser::ExternalFileFormat format, std::string file_name, char delimiter,
-                                      char quote, char escape, plan_node_id_t plan_node_id)
+                                      char quote, char escape, optimizer::plan_node_id_t plan_node_id)
       : AbstractPlanNode(std::move(children), nullptr, plan_node_id),
         format_(format),
         file_name_(std::move(file_name)),

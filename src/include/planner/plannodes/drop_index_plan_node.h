@@ -62,7 +62,7 @@ class DropIndexPlanNode : public AbstractPlanNode {
    */
   DropIndexPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                     std::unique_ptr<OutputSchema> output_schema, catalog::index_oid_t index_oid,
-                    plan_node_id_t plan_node_id)
+                    optimizer::plan_node_id_t plan_node_id)
       : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id), index_oid_(index_oid) {}
 
  public:

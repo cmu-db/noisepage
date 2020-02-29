@@ -146,7 +146,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
                     catalog::table_oid_t table_oid, IndexScanType scan_type,
                     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&lo_index_cols,
                     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&hi_index_cols,
-                    uint32_t scan_limit, plan_node_id_t plan_node_id)
+                    uint32_t scan_limit, optimizer::plan_node_id_t plan_node_id)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, database_oid,
                              namespace_oid, plan_node_id),
         scan_type_(scan_type),

@@ -188,7 +188,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
                         std::string trigger_name, std::vector<std::string> &&trigger_funcnames,
                         std::vector<std::string> &&trigger_args, std::vector<catalog::col_oid_t> &&trigger_columns,
                         common::ManagedPointer<parser::AbstractExpression> trigger_when, int16_t trigger_type,
-                        plan_node_id_t plan_node_id)
+                        optimizer::plan_node_id_t plan_node_id)
       : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
         database_oid_(database_oid),
         namespace_oid_(namespace_oid),

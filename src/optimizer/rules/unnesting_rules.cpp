@@ -46,7 +46,7 @@ bool UnnestMarkJoinToInnerJoin::Check(common::ManagedPointer<OperatorNode> plan,
 
 void UnnestMarkJoinToInnerJoin::Transform(common::ManagedPointer<OperatorNode> input,
                                           std::vector<std::unique_ptr<OperatorNode>> *transformed,
-                                          UNUSED_ATTRIBUTE OptimizationContext *context) const {
+                                          OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("UnnestMarkJoinToInnerJoin::Transform");
   UNUSED_ATTRIBUTE auto mark_join = input->GetOp().As<LogicalMarkJoin>();
   TERRIER_ASSERT(mark_join->GetJoinPredicates().empty(), "MarkJoin should have 0 predicates");
@@ -55,7 +55,8 @@ void UnnestMarkJoinToInnerJoin::Transform(common::ManagedPointer<OperatorNode> i
   std::vector<std::unique_ptr<OperatorNode>> c;
   c.emplace_back(join_children[0]->Copy());
   c.emplace_back(join_children[1]->Copy());
-  auto output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(c));
+  auto output = std::make_unique<OperatorNode>(
+      LogicalInnerJoin::Make(context->GetOptimizerContext()->GetNextPlanNodeID()), std::move(c));
   transformed->emplace_back(std::move(output));
 }
 
@@ -85,7 +86,7 @@ bool UnnestSingleJoinToInnerJoin::Check(common::ManagedPointer<OperatorNode> pla
 
 void UnnestSingleJoinToInnerJoin::Transform(common::ManagedPointer<OperatorNode> input,
                                             std::vector<std::unique_ptr<OperatorNode>> *transformed,
-                                            UNUSED_ATTRIBUTE OptimizationContext *context) const {
+                                            OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("UnnestSingleJoinToInnerJoin::Transform");
   UNUSED_ATTRIBUTE auto single_join = input->GetOp().As<LogicalSingleJoin>();
   TERRIER_ASSERT(single_join->GetJoinPredicates().empty(), "SingleJoin should have no predicates");
@@ -94,7 +95,8 @@ void UnnestSingleJoinToInnerJoin::Transform(common::ManagedPointer<OperatorNode>
   std::vector<std::unique_ptr<OperatorNode>> c;
   c.emplace_back(join_children[0]->Copy());
   c.emplace_back(join_children[1]->Copy());
-  auto output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(c));
+  auto output = std::make_unique<OperatorNode>(
+      LogicalInnerJoin::Make(context->GetOptimizerContext()->GetNextPlanNodeID()), std::move(c));
   transformed->emplace_back(std::move(output));
 }
 

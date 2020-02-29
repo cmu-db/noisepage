@@ -62,7 +62,7 @@ class DropTablePlanNode : public AbstractPlanNode {
    */
   DropTablePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                     std::unique_ptr<OutputSchema> output_schema, catalog::table_oid_t table_oid,
-                    plan_node_id_t plan_node_id)
+                    optimizer::plan_node_id_t plan_node_id)
       : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id), table_oid_(table_oid) {}
 
  public:

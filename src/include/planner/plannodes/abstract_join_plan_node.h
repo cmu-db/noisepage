@@ -59,7 +59,7 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
   AbstractJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                        std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
                        common::ManagedPointer<parser::AbstractExpression> predicate)
-      : AbstractPlanNode(std::move(children), std::move(output_schema), terrier::planner::plan_node_id_t()),
+      : AbstractPlanNode(std::move(children), std::move(output_schema), optimizer::plan_node_id_t()),
         join_type_(join_type),
         join_predicate_(predicate) {}
 

@@ -630,7 +630,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
                       common::ManagedPointer<storage::BlockStore> block_store, bool has_primary_key,
                       PrimaryKeyInfo primary_key, std::vector<ForeignKeyInfo> &&foreign_keys,
                       std::vector<UniqueInfo> &&con_uniques, std::vector<CheckInfo> &&con_checks,
-                      plan_node_id_t plan_node_id)
+                      optimizer::plan_node_id_t plan_node_id)
       : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
         namespace_oid_(namespace_oid),
         table_name_(std::move(table_name)),

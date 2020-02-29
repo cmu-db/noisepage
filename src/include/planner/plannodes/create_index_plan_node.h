@@ -112,7 +112,7 @@ class CreateIndexPlanNode : public AbstractPlanNode {
   CreateIndexPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                       std::unique_ptr<OutputSchema> output_schema, catalog::namespace_oid_t namespace_oid,
                       catalog::table_oid_t table_oid, std::string index_name,
-                      std::unique_ptr<catalog::IndexSchema> schema, plan_node_id_t plan_node_id)
+                      std::unique_ptr<catalog::IndexSchema> schema, optimizer::plan_node_id_t plan_node_id)
       : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
         namespace_oid_(namespace_oid),
         table_oid_(table_oid),

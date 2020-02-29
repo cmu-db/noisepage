@@ -138,14 +138,16 @@ void LogicalInnerJoinAssociativity::Transform(common::ManagedPointer<OperatorNod
   std::vector<std::unique_ptr<OperatorNode>> child_children;
   child_children.emplace_back(middle->Copy());
   child_children.emplace_back(right->Copy());
-  auto new_child_join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(new_child_join_predicates)),
+  auto new_child_join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(new_child_join_predicates),
+                                                       context->GetOptimizerContext()->GetNextPlanNodeID()),
                                                        std::move(child_children));
 
   // Construct new parent join operator
   std::vector<std::unique_ptr<OperatorNode>> parent_children;
   parent_children.emplace_back(left->Copy());
   parent_children.emplace_back(std::move(new_child_join));
-  auto new_parent_join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(new_parent_join_predicates)),
+  auto new_parent_join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(new_parent_join_predicates),
+                                                        context->GetOptimizerContext()->GetNextPlanNodeID()),
                                                         std::move(parent_children));
 
   transformed->emplace_back(std::move(new_parent_join));

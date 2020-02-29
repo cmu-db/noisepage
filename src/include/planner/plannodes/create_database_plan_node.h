@@ -64,7 +64,7 @@ class CreateDatabasePlanNode : public AbstractPlanNode {
    */
   CreateDatabasePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                          std::unique_ptr<OutputSchema> output_schema, std::string database_name,
-                         plan_node_id_t plan_node_id)
+                         optimizer::plan_node_id_t plan_node_id)
       : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id), database_name_(std::move(database_name)) {}
 
  public:

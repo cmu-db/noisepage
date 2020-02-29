@@ -15,9 +15,10 @@ namespace terrier::optimizer {
 
 BaseOperatorNodeContents *LeafOperator::Copy() const { return new LeafOperator(*this); }
 
-Operator LeafOperator::Make(group_id_t group) {
+Operator LeafOperator::Make(group_id_t group, plan_node_id_t plan_node_id) {
   auto leaf = std::make_unique<LeafOperator>();
   leaf->origin_group_ = group;
+  leaf->plan_node_id_ = plan_node_id;
   return Operator(std::move(leaf));
 }
 
@@ -40,7 +41,7 @@ BaseOperatorNodeContents *LogicalGet::Copy() const { return new LogicalGet(*this
 
 Operator LogicalGet::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                           catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> predicates,
-                          std::string table_alias, bool is_for_update) {
+                          std::string table_alias, bool is_for_update, plan_node_id_t plan_node_id) {
   auto get = std::make_unique<LogicalGet>();
   get->database_oid_ = database_oid;
   get->namespace_oid_ = namespace_oid;
@@ -48,15 +49,17 @@ Operator LogicalGet::Make(catalog::db_oid_t database_oid, catalog::namespace_oid
   get->predicates_ = std::move(predicates);
   get->table_alias_ = std::move(table_alias);
   get->is_for_update_ = is_for_update;
+  get->plan_node_id_ = plan_node_id;
   return Operator(std::move(get));
 }
 
-Operator LogicalGet::Make() {
+Operator LogicalGet::Make(plan_node_id_t plan_node_id) {
   auto get = std::make_unique<LogicalGet>();
   get->database_oid_ = catalog::INVALID_DATABASE_OID;
   get->namespace_oid_ = catalog::INVALID_NAMESPACE_OID;
   get->table_oid_ = catalog::INVALID_TABLE_OID;
   get->is_for_update_ = false;
+  get->plan_node_id_ = plan_node_id;
   return Operator(std::move(get));
 }
 
@@ -91,13 +94,14 @@ bool LogicalGet::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *LogicalExternalFileGet::Copy() const { return new LogicalExternalFileGet(*this); }
 
 Operator LogicalExternalFileGet::Make(parser::ExternalFileFormat format, std::string file_name, char delimiter,
-                                      char quote, char escape) {
+                                      char quote, char escape, plan_node_id_t plan_node_id) {
   auto get = std::make_unique<LogicalExternalFileGet>();
   get->format_ = format;
   get->file_name_ = std::move(file_name);
   get->delimiter_ = delimiter;
   get->quote_ = quote;
   get->escape_ = escape;
+  get->plan_node_id_ = plan_node_id;
   return Operator(std::move(get));
 }
 
@@ -125,10 +129,12 @@ BaseOperatorNodeContents *LogicalQueryDerivedGet::Copy() const { return new Logi
 
 Operator LogicalQueryDerivedGet::Make(
     std::string table_alias,
-    std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map) {
+    std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map,
+    plan_node_id_t plan_node_id) {
   auto get = std::make_unique<LogicalQueryDerivedGet>();
   get->table_alias_ = std::move(table_alias);
   get->alias_to_expr_map_ = std::move(alias_to_expr_map);
+  get->plan_node_id_ = plan_node_id;
   return Operator(std::move(get));
 }
 
@@ -154,9 +160,10 @@ common::hash_t LogicalQueryDerivedGet::Hash() const {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalFilter::Copy() const { return new LogicalFilter(*this); }
 
-Operator LogicalFilter::Make(std::vector<AnnotatedExpression> &&predicates) {
+Operator LogicalFilter::Make(std::vector<AnnotatedExpression> &&predicates, plan_node_id_t plan_node_id) {
   auto op = std::make_unique<LogicalFilter>();
   op->predicates_ = std::move(predicates);
+  op->plan_node_id_ = plan_node_id;
   return Operator(std::move(op));
 }
 
@@ -189,9 +196,11 @@ common::hash_t LogicalFilter::Hash() const {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalProjection::Copy() const { return new LogicalProjection(*this); }
 
-Operator LogicalProjection::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&expressions) {
+Operator LogicalProjection::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&expressions,
+                                 plan_node_id_t plan_node_id) {
   auto op = std::make_unique<LogicalProjection>();
   op->expressions_ = std::move(expressions);
+  op->plan_node_id_ = plan_node_id;
   return Operator(std::move(op));
 }
 
@@ -268,11 +277,12 @@ bool LogicalInsert::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *LogicalInsertSelect::Copy() const { return new LogicalInsertSelect(*this); }
 
 Operator LogicalInsertSelect::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                                   catalog::table_oid_t table_oid) {
+                                   catalog::table_oid_t table_oid, plan_node_id_t plan_node_id) {
   auto op = std::make_unique<LogicalInsertSelect>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
+  op->plan_node_id_ = plan_node_id;
   return Operator(std::move(op));
 }
 
@@ -335,12 +345,14 @@ common::hash_t LogicalLimit::Hash() const {
 BaseOperatorNodeContents *LogicalDelete::Copy() const { return new LogicalDelete(*this); }
 
 Operator LogicalDelete::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                             std::string table_alias, catalog::table_oid_t table_oid) {
+                             std::string table_alias, catalog::table_oid_t table_oid,
+                             plan_node_id_t plan_node_id) {
   auto op = std::make_unique<LogicalDelete>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->table_alias_ = std::move(table_alias);
   op->table_oid_ = table_oid;
+  op->plan_node_id_ = plan_node_id;
   return Operator(std::move(op));
 }
 
@@ -369,13 +381,15 @@ BaseOperatorNodeContents *LogicalUpdate::Copy() const { return new LogicalUpdate
 
 Operator LogicalUpdate::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                              std::string table_alias, catalog::table_oid_t table_oid,
-                             std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates) {
+                             std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates,
+                             plan_node_id_t plan_node_id) {
   auto op = std::make_unique<LogicalUpdate>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->table_alias_ = std::move(table_alias);
   op->table_oid_ = table_oid;
   op->updates_ = std::move(updates);
+  op->plan_node_id_ = plan_node_id;
   return Operator(std::move(op));
 }
 
@@ -411,13 +425,14 @@ bool LogicalUpdate::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *LogicalExportExternalFile::Copy() const { return new LogicalExportExternalFile(*this); }
 
 Operator LogicalExportExternalFile::Make(parser::ExternalFileFormat format, std::string file_name, char delimiter,
-                                         char quote, char escape) {
+                                         char quote, char escape, plan_node_id_t plan_node_id) {
   auto op = std::make_unique<LogicalExportExternalFile>();
   op->format_ = format;
   op->file_name_ = std::move(file_name);
   op->delimiter_ = delimiter;
   op->quote_ = quote;
   op->escape_ = escape;
+  op->plan_node_id_ = plan_node_id;
   return Operator(std::move(op));
 }
 
@@ -447,11 +462,17 @@ bool LogicalExportExternalFile::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalDependentJoin::Copy() const { return new LogicalDependentJoin(*this); }
 
-Operator LogicalDependentJoin::Make() { return Operator(std::make_unique<LogicalDependentJoin>()); }
+Operator LogicalDependentJoin::Make(plan_node_id_t plan_node_id) {
+  auto join = std::make_unique<LogicalDependentJoin>();
+  join->plan_node_id_ = plan_node_id;
+  return Operator(std::move(join));
+}
 
-Operator LogicalDependentJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
+Operator LogicalDependentJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
+                                    plan_node_id_t plan_node_id) {
   auto join = std::make_unique<LogicalDependentJoin>();
   join->join_predicates_ = std::move(join_predicates);
+  join->plan_node_id_ = plan_node_id;
   return Operator(std::move(join));
 }
 
@@ -479,11 +500,16 @@ bool LogicalDependentJoin::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalMarkJoin::Copy() const { return new LogicalMarkJoin(*this); }
 
-Operator LogicalMarkJoin::Make() { return Operator(std::make_unique<LogicalMarkJoin>()); }
+Operator LogicalMarkJoin::Make(plan_node_id_t plan_node_id) {
+  auto join = std::make_unique<LogicalMarkJoin>();
+  join->plan_node_id_ = plan_node_id;
+  return Operator(std::move(join));
+}
 
-Operator LogicalMarkJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
+Operator LogicalMarkJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, plan_node_id_t plan_node_id) {
   auto join = std::make_unique<LogicalMarkJoin>();
   join->join_predicates_ = join_predicates;
+  join->plan_node_id_ = plan_node_id;
   return Operator(std::move(join));
 }
 
@@ -511,11 +537,16 @@ bool LogicalMarkJoin::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalSingleJoin::Copy() const { return new LogicalSingleJoin(*this); }
 
-Operator LogicalSingleJoin::Make() { return Operator(std::make_unique<LogicalSingleJoin>()); }
+Operator LogicalSingleJoin::Make(plan_node_id_t plan_node_id) {
+  auto join = std::make_unique<LogicalSingleJoin>();
+  join->plan_node_id_ = plan_node_id;
+  return Operator(std::move(join));
+}
 
-Operator LogicalSingleJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
+Operator LogicalSingleJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, plan_node_id_t plan_node_id) {
   auto join = std::make_unique<LogicalSingleJoin>();
   join->join_predicates_ = join_predicates;
+  join->plan_node_id_ = plan_node_id;
   return Operator(std::move(join));
 }
 
@@ -543,11 +574,17 @@ bool LogicalSingleJoin::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalInnerJoin::Copy() const { return new LogicalInnerJoin(*this); }
 
-Operator LogicalInnerJoin::Make() { return Operator(std::make_unique<LogicalInnerJoin>()); }
+Operator LogicalInnerJoin::Make(plan_node_id_t plan_node_id) {
+  auto join = std::make_unique<LogicalInnerJoin>();
+  join->plan_node_id_ = plan_node_id;
+  return Operator(std::move(join));
+}
 
-Operator LogicalInnerJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
+Operator LogicalInnerJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
+                                plan_node_id_t plan_node_id) {
   auto join = std::make_unique<LogicalInnerJoin>();
   join->join_predicates_ = join_predicates;
+  join->plan_node_id_ = plan_node_id;
   return Operator(std::move(join));
 }
 
@@ -575,11 +612,17 @@ bool LogicalInnerJoin::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalLeftJoin::Copy() const { return new LogicalLeftJoin(*this); }
 
-Operator LogicalLeftJoin::Make() { return Operator(std::make_unique<LogicalLeftJoin>()); }
+Operator LogicalLeftJoin::Make(plan_node_id_t plan_node_id) {
+  auto join = std::make_unique<LogicalLeftJoin>();
+  join->plan_node_id_ = plan_node_id;
+  return Operator(std::move(join));
+}
 
-Operator LogicalLeftJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
+Operator LogicalLeftJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
+                               plan_node_id_t plan_node_id) {
   auto join = std::make_unique<LogicalLeftJoin>();
   join->join_predicates_ = join_predicates;
+  join->plan_node_id_ = plan_node_id;
   return Operator(std::move(join));
 }
 
@@ -607,11 +650,17 @@ bool LogicalLeftJoin::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalRightJoin::Copy() const { return new LogicalRightJoin(*this); }
 
-Operator LogicalRightJoin::Make() { return Operator(std::make_unique<LogicalRightJoin>()); }
+Operator LogicalRightJoin::Make(plan_node_id_t plan_node_id) {
+  auto join = std::make_unique<LogicalRightJoin>();
+  join->plan_node_id_ = plan_node_id;
+  return Operator(std::move(join));
+}
 
-Operator LogicalRightJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
+Operator LogicalRightJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
+                                plan_node_id_t plan_node_id) {
   auto join = std::make_unique<LogicalRightJoin>();
   join->join_predicates_ = join_predicates;
+  join->plan_node_id_ = plan_node_id;
   return Operator(std::move(join));
 }
 
@@ -639,11 +688,17 @@ bool LogicalRightJoin::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalOuterJoin::Copy() const { return new LogicalOuterJoin(*this); }
 
-Operator LogicalOuterJoin::Make() { return Operator(std::make_unique<LogicalOuterJoin>()); }
+Operator LogicalOuterJoin::Make(plan_node_id_t plan_node_id) {
+  auto join = std::make_unique<LogicalOuterJoin>();
+  join->plan_node_id_ = plan_node_id;
+  return Operator(std::move(join));
+}
 
-Operator LogicalOuterJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
+Operator LogicalOuterJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
+                                plan_node_id_t plan_node_id) {
   auto join = std::make_unique<LogicalOuterJoin>();
   join->join_predicates_ = join_predicates;
+  join->plan_node_id_ = plan_node_id;
   return Operator(std::move(join));
 }
 
@@ -671,11 +726,17 @@ bool LogicalOuterJoin::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalSemiJoin::Copy() const { return new LogicalSemiJoin(*this); }
 
-Operator LogicalSemiJoin::Make() { return Operator(std::make_unique<LogicalSemiJoin>()); }
+Operator LogicalSemiJoin::Make(plan_node_id_t plan_node_id) {
+  auto join = std::make_unique<LogicalSemiJoin>();
+  join->plan_node_id_ = plan_node_id;
+  return Operator(std::move(join));
+}
 
-Operator LogicalSemiJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
+Operator LogicalSemiJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
+                               plan_node_id_t plan_node_id) {
   auto join = std::make_unique<LogicalSemiJoin>();
   join->join_predicates_ = join_predicates;
+  join->plan_node_id_ = plan_node_id;
   return Operator(std::move(join));
 }
 
@@ -703,19 +764,26 @@ bool LogicalSemiJoin::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalAggregateAndGroupBy::Copy() const { return new LogicalAggregateAndGroupBy(*this); }
 
-Operator LogicalAggregateAndGroupBy::Make() { return Operator(std::make_unique<LogicalAggregateAndGroupBy>()); }
-
-Operator LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns) {
+Operator LogicalAggregateAndGroupBy::Make(plan_node_id_t plan_node_id) {
   auto group_by = std::make_unique<LogicalAggregateAndGroupBy>();
-  group_by->columns_ = std::move(columns);
+  group_by->plan_node_id_ = plan_node_id;
   return Operator(std::move(group_by));
 }
 
 Operator LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
-                                          std::vector<AnnotatedExpression> &&having) {
+                                          plan_node_id_t plan_node_id) {
+  auto group_by = std::make_unique<LogicalAggregateAndGroupBy>();
+  group_by->columns_ = std::move(columns);
+  group_by->plan_node_id_ = plan_node_id;
+  return Operator(std::move(group_by));
+}
+
+Operator LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
+                                          std::vector<AnnotatedExpression> &&having, plan_node_id_t plan_node_id) {
   auto group_by = std::make_unique<LogicalAggregateAndGroupBy>();
   group_by->columns_ = std::move(columns);
   group_by->having_ = std::move(having);
+  group_by->plan_node_id_ = plan_node_id;
   return Operator(std::move(group_by));
 }
 bool LogicalAggregateAndGroupBy::operator==(const BaseOperatorNodeContents &r) {
@@ -759,9 +827,10 @@ common::hash_t LogicalAggregateAndGroupBy::Hash() const {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalCreateDatabase::Copy() const { return new LogicalCreateDatabase(*this); }
 
-Operator LogicalCreateDatabase::Make(std::string database_name) {
+Operator LogicalCreateDatabase::Make(std::string database_name, plan_node_id_t plan_node_id) {
   auto op = std::make_unique<LogicalCreateDatabase>();
   op->database_name_ = std::move(database_name);
+  op->plan_node_id_ = plan_node_id;
   return Operator(std::move(op));
 }
 
@@ -788,7 +857,7 @@ Operator LogicalCreateFunction::Make(catalog::db_oid_t database_oid, catalog::na
                                      std::vector<std::string> &&function_param_names,
                                      std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
                                      parser::BaseFunctionParameter::DataType return_type, size_t param_count,
-                                     bool replace) {
+                                     bool replace, plan_node_id_t plan_node_id) {
   auto op = std::make_unique<LogicalCreateFunction>();
   TERRIER_ASSERT(function_param_names.size() == param_count && function_param_types.size() == param_count,
                  "Mismatched number of items in vector and number of function parameters");
@@ -802,6 +871,7 @@ Operator LogicalCreateFunction::Make(catalog::db_oid_t database_oid, catalog::na
   op->param_count_ = param_count;
   op->return_type_ = return_type;
   op->language_ = language;
+  op->plan_node_id_ = plan_node_id;
   return Operator(std::move(op));
 }
 
@@ -842,7 +912,8 @@ BaseOperatorNodeContents *LogicalCreateIndex::Copy() const { return new LogicalC
 
 Operator LogicalCreateIndex::Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
                                   parser::IndexType index_type, bool unique, std::string index_name,
-                                  std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs) {
+                                  std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs,
+                                  plan_node_id_t plan_node_id) {
   auto op = std::make_unique<LogicalCreateIndex>();
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
@@ -850,6 +921,7 @@ Operator LogicalCreateIndex::Make(catalog::namespace_oid_t namespace_oid, catalo
   op->unique_index_ = unique;
   op->index_name_ = std::move(index_name);
   op->index_attrs_ = std::move(index_attrs);
+  op->plan_node_id_ = plan_node_id;
   return Operator(std::move(op));
 }
 
@@ -888,11 +960,13 @@ BaseOperatorNodeContents *LogicalCreateTable::Copy() const { return new LogicalC
 
 Operator LogicalCreateTable::Make(catalog::namespace_oid_t namespace_oid, std::string table_name,
                                   std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&columns,
-                                  std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&foreign_keys) {
+                                  std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&foreign_keys,
+                                  plan_node_id_t plan_node_id) {
   auto op = std::make_unique<LogicalCreateTable>();
   op->namespace_oid_ = namespace_oid;
   op->table_name_ = std::move(table_name);
   op->columns_ = std::move(columns);
+  op->plan_node_id_ = plan_node_id;
   op->foreign_keys_ = std::move(foreign_keys);
   return Operator(std::move(op));
 }
@@ -928,9 +1002,10 @@ bool LogicalCreateTable::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalCreateNamespace::Copy() const { return new LogicalCreateNamespace(*this); }
 
-Operator LogicalCreateNamespace::Make(std::string namespace_name) {
+Operator LogicalCreateNamespace::Make(std::string namespace_name, plan_node_id_t plan_node_id) {
   auto op = std::make_unique<LogicalCreateNamespace>();
   op->namespace_name_ = std::move(namespace_name);
+  op->plan_node_id_ = plan_node_id;
   return Operator(std::move(op));
 }
 
@@ -957,7 +1032,7 @@ Operator LogicalCreateTrigger::Make(catalog::db_oid_t database_oid, catalog::nam
                                     std::vector<std::string> &&trigger_args,
                                     std::vector<catalog::col_oid_t> &&trigger_columns,
                                     common::ManagedPointer<parser::AbstractExpression> &&trigger_when,
-                                    int16_t trigger_type) {
+                                    int16_t trigger_type, plan_node_id_t plan_node_id) {
   auto op = std::make_unique<LogicalCreateTrigger>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -968,6 +1043,7 @@ Operator LogicalCreateTrigger::Make(catalog::db_oid_t database_oid, catalog::nam
   op->trigger_columns_ = std::move(trigger_columns);
   op->trigger_when_ = trigger_when;
   op->trigger_type_ = trigger_type;
+  op->plan_node_id_ = plan_node_id;
   return Operator(std::move(op));
 }
 
@@ -1006,12 +1082,14 @@ bool LogicalCreateTrigger::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *LogicalCreateView::Copy() const { return new LogicalCreateView(*this); }
 
 Operator LogicalCreateView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                                 std::string view_name, common::ManagedPointer<parser::SelectStatement> view_query) {
+                                 std::string view_name, common::ManagedPointer<parser::SelectStatement> view_query,
+                                 plan_node_id_t plan_node_id) {
   auto op = std::make_unique<LogicalCreateView>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->view_name_ = std::move(view_name);
   op->view_query_ = view_query;
+  op->plan_node_id_ = plan_node_id;
   return Operator(std::move(op));
 }
 
@@ -1039,9 +1117,10 @@ bool LogicalCreateView::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalDropDatabase::Copy() const { return new LogicalDropDatabase(*this); }
 
-Operator LogicalDropDatabase::Make(catalog::db_oid_t db_oid) {
+Operator LogicalDropDatabase::Make(catalog::db_oid_t db_oid, plan_node_id_t plan_node_id) {
   auto op = std::make_unique<LogicalDropDatabase>();
   op->db_oid_ = db_oid;
+  op->plan_node_id_ = plan_node_id;
   return Operator(std::move(op));
 }
 
@@ -1062,9 +1141,10 @@ bool LogicalDropDatabase::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalDropTable::Copy() const { return new LogicalDropTable(*this); }
 
-Operator LogicalDropTable::Make(catalog::table_oid_t table_oid) {
+Operator LogicalDropTable::Make(catalog::table_oid_t table_oid, plan_node_id_t plan_node_id) {
   auto op = std::make_unique<LogicalDropTable>();
   op->table_oid_ = table_oid;
+  op->plan_node_id_ = plan_node_id;
   return Operator(std::move(op));
 }
 
@@ -1085,9 +1165,10 @@ bool LogicalDropTable::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalDropIndex::Copy() const { return new LogicalDropIndex(*this); }
 
-Operator LogicalDropIndex::Make(catalog::index_oid_t index_oid) {
+Operator LogicalDropIndex::Make(catalog::index_oid_t index_oid, plan_node_id_t plan_node_id) {
   auto op = std::make_unique<LogicalDropIndex>();
   op->index_oid_ = index_oid;
+  op->plan_node_id_ = plan_node_id;
   return Operator(std::move(op));
 }
 
@@ -1108,9 +1189,10 @@ bool LogicalDropIndex::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalDropNamespace::Copy() const { return new LogicalDropNamespace(*this); }
 
-Operator LogicalDropNamespace::Make(catalog::namespace_oid_t namespace_oid) {
+Operator LogicalDropNamespace::Make(catalog::namespace_oid_t namespace_oid, plan_node_id_t plan_node_id) {
   auto op = std::make_unique<LogicalDropNamespace>();
   op->namespace_oid_ = namespace_oid;
+  op->plan_node_id_ = plan_node_id;
   return Operator(std::move(op));
 }
 
@@ -1132,12 +1214,13 @@ bool LogicalDropNamespace::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *LogicalDropTrigger::Copy() const { return new LogicalDropTrigger(*this); }
 
 Operator LogicalDropTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                                  catalog::trigger_oid_t trigger_oid, bool if_exists) {
+                                  catalog::trigger_oid_t trigger_oid, bool if_exists, plan_node_id_t plan_node_id) {
   auto op = std::make_unique<LogicalDropTrigger>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->trigger_oid_ = trigger_oid;
   op->if_exists_ = if_exists;
+  op->plan_node_id_ = plan_node_id;
   return Operator(std::move(op));
 }
 
@@ -1165,12 +1248,13 @@ bool LogicalDropTrigger::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *LogicalDropView::Copy() const { return new LogicalDropView(*this); }
 
 Operator LogicalDropView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                               catalog::view_oid_t view_oid, bool if_exists) {
+                               catalog::view_oid_t view_oid, bool if_exists, plan_node_id_t plan_node_id) {
   auto op = std::make_unique<LogicalDropView>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->view_oid_ = view_oid;
   op->if_exists_ = if_exists;
+  op->plan_node_id_ = plan_node_id;
   return Operator(std::move(op));
 }
 

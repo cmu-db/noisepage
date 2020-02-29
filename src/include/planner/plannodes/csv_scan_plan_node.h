@@ -123,7 +123,7 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
                   common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update,
                   catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string file_name,
                   char delimiter, char quote, char escape, std::vector<type::TypeId> value_types,
-                  plan_node_id_t plan_node_id)
+                  optimizer::plan_node_id_t plan_node_id)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, database_oid,
                              namespace_oid, plan_node_id),
         file_name_(std::move(file_name)),

@@ -90,7 +90,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
                        std::unique_ptr<OutputSchema> output_schema,
                        common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update,
                        catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       plan_node_id_t plan_node_id)
+                       optimizer::plan_node_id_t plan_node_id)
       : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
         scan_predicate_(predicate),
         is_for_update_(is_for_update),

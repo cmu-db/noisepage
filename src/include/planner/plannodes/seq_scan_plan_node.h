@@ -86,7 +86,8 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
                   std::unique_ptr<OutputSchema> output_schema,
                   common::ManagedPointer<parser::AbstractExpression> predicate,
                   std::vector<catalog::col_oid_t> &&column_oids, bool is_for_update, catalog::db_oid_t database_oid,
-                  catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid, plan_node_id_t plan_node_id)
+                  catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+                  optimizer::plan_node_id_t plan_node_id)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, database_oid,
                              namespace_oid, plan_node_id),
         column_oids_(std::move(column_oids)),
