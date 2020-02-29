@@ -4,9 +4,9 @@
 #include <vector>
 
 #include "common/settings.h"
-#include "optimizer/logical_operators.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
 #include "optimizer/group_expression.h"
+#include "optimizer/logical_operators.h"
 #include "optimizer/memo.h"
 #include "optimizer/rule.h"
 #include "optimizer/statistics/stats_storage.h"

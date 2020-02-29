@@ -116,7 +116,8 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateSingleLayer) {
   // Create OperatorNode of JOIN <= (GET A, GET A)
   std::vector<std::unique_ptr<OperatorNode>> c;
   auto left_get = std::make_unique<OperatorNode>(
-      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false,
+                       context.GetNextPlanNodeID()),
       std::move(c));
   auto lg_copy = left_get->Copy();
 
@@ -127,7 +128,7 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateSingleLayer) {
   std::vector<std::unique_ptr<OperatorNode>> jc;
   jc.emplace_back(std::move(left_get));
   jc.emplace_back(std::move(right_get));
-  auto join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(jc));
+  auto join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(context.GetNextPlanNodeID()), std::move(jc));
 
   // RecordOperatorNodeIntoGroup
   GroupExpression *join_gexpr;
@@ -155,7 +156,8 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateMultiLayer) {
   // Create OperatorNode (A JOIN B) JOIN (A JOIN B)
   std::vector<std::unique_ptr<OperatorNode>> c;
   auto left_get = std::make_unique<OperatorNode>(
-      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false,
+                       context.GetNextPlanNodeID()),
       std::move(c));
   auto lg_copy = left_get->Copy();
 
@@ -166,7 +168,7 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateMultiLayer) {
   std::vector<std::unique_ptr<OperatorNode>> jc;
   jc.emplace_back(std::move(left_get));
   jc.emplace_back(std::move(right_get));
-  auto left_join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(jc));
+  auto left_join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(context.GetNextPlanNodeID()), std::move(jc));
   auto lj_copy = left_join->Copy();
 
   auto right_join = left_join->Copy();
@@ -176,7 +178,7 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateMultiLayer) {
   std::vector<std::unique_ptr<OperatorNode>> jjc;
   jjc.emplace_back(std::move(left_join));
   jjc.emplace_back(std::move(right_join));
-  auto join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(jjc));
+  auto join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(context.GetNextPlanNodeID()), std::move(jjc));
 
   // RecordOperatorNodeIntoGroup
   GroupExpression *join_g_expr;
@@ -231,7 +233,8 @@ TEST_F(OptimizerContextTest, SimpleBindingTest) {
 
   std::vector<std::unique_ptr<OperatorNode>> c;
   auto left_get = std::make_unique<OperatorNode>(
-      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false,
+                       context.GetNextPlanNodeID()),
       std::move(c));
   auto right_get = left_get->Copy();
   EXPECT_EQ(*left_get, *right_get);
@@ -239,7 +242,7 @@ TEST_F(OptimizerContextTest, SimpleBindingTest) {
   std::vector<std::unique_ptr<OperatorNode>> jc;
   jc.emplace_back(std::move(left_get));
   jc.emplace_back(std::move(right_get));
-  auto join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(jc));
+  auto join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(context.GetNextPlanNodeID()), std::move(jc));
 
   GroupExpression *gexpr = nullptr;
   EXPECT_TRUE(context.RecordOperatorNodeIntoGroup(common::ManagedPointer(join), &gexpr));
@@ -249,7 +252,7 @@ TEST_F(OptimizerContextTest, SimpleBindingTest) {
   pattern->AddChild(new Pattern(OpType::LOGICALGET));
   pattern->AddChild(new Pattern(OpType::LOGICALGET));
 
-  auto *binding_iterator = new GroupExprBindingIterator(context.GetMemo(), gexpr, pattern);
+  auto *binding_iterator = new GroupExprBindingIterator(context.GetMemo(), gexpr, pattern, &context);
   EXPECT_TRUE(binding_iterator->HasNext());
 
   auto binding = binding_iterator->Next();
@@ -266,7 +269,8 @@ TEST_F(OptimizerContextTest, SingleWildcardTest) {
 
   std::vector<std::unique_ptr<OperatorNode>> c;
   auto left_get = std::make_unique<OperatorNode>(
-      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false,
+                       context.GetNextPlanNodeID()),
       std::move(c));
   auto right_get = left_get->Copy();
   EXPECT_EQ(*left_get, *right_get);
@@ -274,7 +278,7 @@ TEST_F(OptimizerContextTest, SingleWildcardTest) {
   std::vector<std::unique_ptr<OperatorNode>> jc;
   jc.emplace_back(std::move(left_get));
   jc.emplace_back(std::move(right_get));
-  auto join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(jc));
+  auto join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(context.GetNextPlanNodeID()), std::move(jc));
 
   GroupExpression *gexpr = nullptr;
   EXPECT_TRUE(context.RecordOperatorNodeIntoGroup(common::ManagedPointer(join), &gexpr));
@@ -284,7 +288,7 @@ TEST_F(OptimizerContextTest, SingleWildcardTest) {
   pattern->AddChild(new Pattern(OpType::LEAF));
   pattern->AddChild(new Pattern(OpType::LEAF));
 
-  auto *binding_iterator = new GroupExprBindingIterator(context.GetMemo(), gexpr, pattern);
+  auto *binding_iterator = new GroupExprBindingIterator(context.GetMemo(), gexpr, pattern, &context);
   EXPECT_TRUE(binding_iterator->HasNext());
 
   auto binding = binding_iterator->Next();

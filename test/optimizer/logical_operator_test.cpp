@@ -4,17 +4,19 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
+#include "gtest/gtest.h"
+#include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/logical_operators.h"
 #include "optimizer/operator_node.h"
+#include "optimizer/optimizer_context.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/update_statement.h"
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
-
-#include "gtest/gtest.h"
 
 namespace terrier::optimizer {
 
@@ -29,11 +31,13 @@ TEST(OperatorTests, LogicalInsertTest) {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9))};
   auto *values = new std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(
       {std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))});
-
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
   // Check that all of our GET methods work as expected
   Operator op1 = LogicalInsert::Make(
       database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-      common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(values));
+      common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(values),
+      context.GetNextPlanNodeID());
   EXPECT_EQ(op1.GetType(), OpType::LOGICALINSERT);
   EXPECT_EQ(op1.As<LogicalInsert>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<LogicalInsert>()->GetNamespaceOid(), namespace_oid);
@@ -46,7 +50,8 @@ TEST(OperatorTests, LogicalInsertTest) {
   // be equal to our first object and have the same hash
   Operator op2 = LogicalInsert::Make(
       database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-      common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(values));
+      common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(values),
+      context.GetNextPlanNodeID());
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
@@ -58,7 +63,8 @@ TEST(OperatorTests, LogicalInsertTest) {
   Operator op3 = LogicalInsert::Make(
       database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
       common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(
-          other_values));
+          other_values),
+      context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -91,9 +97,10 @@ TEST(OperatorTests, LogicalInsertSelectTest) {
   catalog::db_oid_t database_oid(123);
   catalog::namespace_oid_t namespace_oid(456);
   catalog::table_oid_t table_oid(789);
-
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalInsertSelect::Make(database_oid, namespace_oid, table_oid);
+  Operator op1 = LogicalInsertSelect::Make(database_oid, namespace_oid, table_oid, context.GetNextPlanNodeID());
   EXPECT_EQ(op1.GetType(), OpType::LOGICALINSERTSELECT);
   EXPECT_EQ(op1.As<LogicalInsertSelect>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<LogicalInsertSelect>()->GetNamespaceOid(), namespace_oid);
@@ -101,14 +108,14 @@ TEST(OperatorTests, LogicalInsertSelectTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = LogicalInsertSelect::Make(database_oid, namespace_oid, table_oid);
+  Operator op2 = LogicalInsertSelect::Make(database_oid, namespace_oid, table_oid, context.GetNextPlanNodeID());
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   catalog::db_oid_t other_database_oid(999);
-  Operator op3 = LogicalInsertSelect::Make(other_database_oid, namespace_oid, table_oid);
+  Operator op3 = LogicalInsertSelect::Make(other_database_oid, namespace_oid, table_oid, context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 }
@@ -121,9 +128,10 @@ TEST(OperatorTests, LogicalLimitTest) {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
   auto sort_expr = common::ManagedPointer<parser::AbstractExpression>(sort_expr_ori);
   OrderByOrderingType sort_dir = OrderByOrderingType::ASC;
-
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalLimit::Make(offset, limit, {sort_expr}, {sort_dir});
+  Operator op1 = LogicalLimit::Make(offset, limit, {sort_expr}, {sort_dir}, context.GetNextPlanNodeID());
   EXPECT_EQ(op1.GetType(), OpType::LOGICALLIMIT);
   EXPECT_EQ(op1.As<LogicalLimit>()->GetOffset(), offset);
   EXPECT_EQ(op1.As<LogicalLimit>()->GetLimit(), limit);
@@ -134,14 +142,14 @@ TEST(OperatorTests, LogicalLimitTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = LogicalLimit::Make(offset, limit, {sort_expr}, {sort_dir});
+  Operator op2 = LogicalLimit::Make(offset, limit, {sort_expr}, {sort_dir}, context.GetNextPlanNodeID());
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   size_t other_offset = 1111;
-  Operator op3 = LogicalLimit::Make(other_offset, limit, {sort_expr}, {sort_dir});
+  Operator op3 = LogicalLimit::Make(other_offset, limit, {sort_expr}, {sort_dir}, context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -153,9 +161,10 @@ TEST(OperatorTests, LogicalDeleteTest) {
   catalog::db_oid_t database_oid(123);
   catalog::namespace_oid_t namespace_oid(456);
   catalog::table_oid_t table_oid(789);
-
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalDelete::Make(database_oid, namespace_oid, "tbl", table_oid);
+  Operator op1 = LogicalDelete::Make(database_oid, namespace_oid, "tbl", table_oid, context.GetNextPlanNodeID());
   EXPECT_EQ(op1.GetType(), OpType::LOGICALDELETE);
   EXPECT_EQ(op1.As<LogicalDelete>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<LogicalDelete>()->GetNamespaceOid(), namespace_oid);
@@ -163,14 +172,14 @@ TEST(OperatorTests, LogicalDeleteTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = LogicalDelete::Make(database_oid, namespace_oid, "tbl", table_oid);
+  Operator op2 = LogicalDelete::Make(database_oid, namespace_oid, "tbl", table_oid, context.GetNextPlanNodeID());
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   catalog::db_oid_t other_database_oid(999);
-  Operator op3 = LogicalDelete::Make(other_database_oid, namespace_oid, "tbl", table_oid);
+  Operator op3 = LogicalDelete::Make(other_database_oid, namespace_oid, "tbl", table_oid, context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 }
@@ -188,9 +197,12 @@ TEST(OperatorTests, LogicalUpdateTest) {
   catalog::db_oid_t database_oid(123);
   catalog::namespace_oid_t namespace_oid(456);
   catalog::table_oid_t table_oid(789);
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalUpdate::Make(database_oid, namespace_oid, "tbl", table_oid, std::move(update_clause_v));
+  Operator op1 = LogicalUpdate::Make(database_oid, namespace_oid, "tbl", table_oid, std::move(update_clause_v),
+                                     context.GetNextPlanNodeID());
   EXPECT_EQ(op1.GetType(), OpType::LOGICALUPDATE);
   EXPECT_EQ(op1.As<LogicalUpdate>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<LogicalUpdate>()->GetNamespaceOid(), namespace_oid);
@@ -203,13 +215,14 @@ TEST(OperatorTests, LogicalUpdateTest) {
   // be equal to our first object and have the same hash
   std::vector<common::ManagedPointer<parser::UpdateClause>> update_clause_v2;
   update_clause_v2.emplace_back(common::ManagedPointer<parser::UpdateClause>(update_clause2));
-  Operator op2 = LogicalUpdate::Make(database_oid, namespace_oid, "tbl", table_oid, std::move(update_clause_v2));
+  Operator op2 = LogicalUpdate::Make(database_oid, namespace_oid, "tbl", table_oid, std::move(update_clause_v2),
+                                     context.GetNextPlanNodeID());
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
-  Operator op3 = LogicalUpdate::Make(database_oid, namespace_oid, "tbl", table_oid, {});
+  Operator op3 = LogicalUpdate::Make(database_oid, namespace_oid, "tbl", table_oid, {}, context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -222,28 +235,30 @@ TEST(OperatorTests, LogicalExportExternalFileTest) {
   char delimiter = 'X';
   char quote = 'Y';
   char escape = 'Z';
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
 
   // Check that all of our GET methods work as expected
-  Operator op1 =
-      LogicalExportExternalFile::Make(parser::ExternalFileFormat::BINARY, file_name, delimiter, quote, escape);
+  Operator op1 = LogicalExportExternalFile::Make(parser::ExternalFileFormat::BINARY, file_name, delimiter, quote,
+                                                 escape, context.GetNextPlanNodeID());
   EXPECT_EQ(op1.GetType(), OpType::LOGICALEXPORTEXTERNALFILE);
   EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetFormat(), parser::ExternalFileFormat::BINARY);
   EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetFilename(), file_name);
   EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetDelimiter(), delimiter);
   EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetQuote(), quote);
   EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetEscape(), escape);
-
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
   std::string file_name_copy = file_name;  // NOLINT
-  Operator op2 =
-      LogicalExportExternalFile::Make(parser::ExternalFileFormat::BINARY, file_name_copy, delimiter, quote, escape);
+  Operator op2 = LogicalExportExternalFile::Make(parser::ExternalFileFormat::BINARY, file_name_copy, delimiter, quote,
+                                                 escape, context.GetNextPlanNodeID());
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
-  Operator op3 = LogicalExportExternalFile::Make(parser::ExternalFileFormat::CSV, file_name, delimiter, quote, escape);
+  Operator op3 = LogicalExportExternalFile::Make(parser::ExternalFileFormat::CSV, file_name, delimiter, quote, escape,
+                                                 context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 }
@@ -269,29 +284,41 @@ TEST(OperatorTests, LogicalGetTest) {
   auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
-
-  Operator logical_get_01 = LogicalGet::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                             std::vector<AnnotatedExpression>(), "table", false);
-  Operator logical_get_02 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(3), catalog::table_oid_t(3),
-                                             std::vector<AnnotatedExpression>(), "table", false);
-  Operator logical_get_03 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
-                                             std::vector<AnnotatedExpression>(), "table", false);
-  Operator logical_get_04 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                             std::vector<AnnotatedExpression>(), "tableTable", false);
-  Operator logical_get_05 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                             std::vector<AnnotatedExpression>(), "table", true);
-  Operator logical_get_1 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>(), "table", false);
-  Operator logical_get_2 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>(), "table", false);
-  Operator logical_get_3 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>{annotated_expr_0}, "table", false);
-  Operator logical_get_4 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>{annotated_expr_1}, "table", false);
-  Operator logical_get_5 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>{annotated_expr_2}, "table", false);
-  Operator logical_get_6 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>{annotated_expr_3}, "table", false);
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  Operator logical_get_01 =
+      LogicalGet::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                       std::vector<AnnotatedExpression>(), "table", false, context.GetNextPlanNodeID());
+  Operator logical_get_02 =
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(3), catalog::table_oid_t(3),
+                       std::vector<AnnotatedExpression>(), "table", false, context.GetNextPlanNodeID());
+  Operator logical_get_03 =
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
+                       std::vector<AnnotatedExpression>(), "table", false, context.GetNextPlanNodeID());
+  Operator logical_get_04 =
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                       std::vector<AnnotatedExpression>(), "tableTable", false, context.GetNextPlanNodeID());
+  Operator logical_get_05 =
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                       std::vector<AnnotatedExpression>(), "table", true, context.GetNextPlanNodeID());
+  Operator logical_get_1 =
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                       std::vector<AnnotatedExpression>(), "table", false, context.GetNextPlanNodeID());
+  Operator logical_get_2 =
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                       std::vector<AnnotatedExpression>(), "table", false, context.GetNextPlanNodeID());
+  Operator logical_get_3 =
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                       std::vector<AnnotatedExpression>{annotated_expr_0}, "table", false, context.GetNextPlanNodeID());
+  Operator logical_get_4 =
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                       std::vector<AnnotatedExpression>{annotated_expr_1}, "table", false, context.GetNextPlanNodeID());
+  Operator logical_get_5 =
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                       std::vector<AnnotatedExpression>{annotated_expr_2}, "table", false, context.GetNextPlanNodeID());
+  Operator logical_get_6 =
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+                       std::vector<AnnotatedExpression>{annotated_expr_3}, "table", false, context.GetNextPlanNodeID());
 
   EXPECT_EQ(logical_get_1.GetType(), OpType::LOGICALGET);
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetDatabaseOid(), catalog::db_oid_t(1));
@@ -333,20 +360,22 @@ TEST(OperatorTests, LogicalExternalFileGetTest) {
   //===--------------------------------------------------------------------===//
   // LogicalExternalFileGet
   //===--------------------------------------------------------------------===//
-  Operator logical_ext_file_get_1 =
-      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
-  Operator logical_ext_file_get_2 =
-      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
-  Operator logical_ext_file_get_3 =
-      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file2.txt", ',', '"', '\\');
-  Operator logical_ext_file_get_4 =
-      LogicalExternalFileGet::Make(parser::ExternalFileFormat::BINARY, "file.txt", ',', '"', '\\');
-  Operator logical_ext_file_get_5 =
-      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ' ', '"', '\\');
-  Operator logical_ext_file_get_6 =
-      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '\'', '\\');
-  Operator logical_ext_file_get_7 =
-      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '&');
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  Operator logical_ext_file_get_1 = LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"',
+                                                                 '\\', context.GetNextPlanNodeID());
+  Operator logical_ext_file_get_2 = LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"',
+                                                                 '\\', context.GetNextPlanNodeID());
+  Operator logical_ext_file_get_3 = LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file2.txt", ',', '"',
+                                                                 '\\', context.GetNextPlanNodeID());
+  Operator logical_ext_file_get_4 = LogicalExternalFileGet::Make(parser::ExternalFileFormat::BINARY, "file.txt", ',',
+                                                                 '"', '\\', context.GetNextPlanNodeID());
+  Operator logical_ext_file_get_5 = LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ' ', '"',
+                                                                 '\\', context.GetNextPlanNodeID());
+  Operator logical_ext_file_get_6 = LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '\'',
+                                                                 '\\', context.GetNextPlanNodeID());
+  Operator logical_ext_file_get_7 = LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"',
+                                                                 '&', context.GetNextPlanNodeID());
 
   EXPECT_EQ(logical_ext_file_get_1.GetType(), OpType::LOGICALEXTERNALFILEGET);
   EXPECT_EQ(logical_ext_file_get_1.GetName(), "LogicalExternalFileGet");
@@ -395,14 +424,22 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
   alias_to_expr_map_4["constant expr2"] = expr1;
   alias_to_expr_map_5["constant expr"] = expr1;
   alias_to_expr_map_5["constant expr2"] = expr2;
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
 
-  Operator logical_query_derived_get_1 = LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_1));
-  Operator logical_query_derived_get_2 = LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_2));
+  Operator logical_query_derived_get_1 =
+      LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_1), context.GetNextPlanNodeID());
+  Operator logical_query_derived_get_2 =
+      LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_2), context.GetNextPlanNodeID());
   Operator logical_query_derived_get_3 = LogicalQueryDerivedGet::Make(
-      "alias", std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>());
-  Operator logical_query_derived_get_4 = LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_3));
-  Operator logical_query_derived_get_5 = LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_4));
-  Operator logical_query_derived_get_6 = LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_5));
+      "alias", std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>(),
+      context.GetNextPlanNodeID());
+  Operator logical_query_derived_get_4 =
+      LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_3), context.GetNextPlanNodeID());
+  Operator logical_query_derived_get_5 =
+      LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_4), context.GetNextPlanNodeID());
+  Operator logical_query_derived_get_6 =
+      LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_5), context.GetNextPlanNodeID());
 
   EXPECT_EQ(logical_query_derived_get_1.GetType(), OpType::LOGICALQUERYDERIVEDGET);
   EXPECT_EQ(logical_query_derived_get_1.GetName(), "LogicalQueryDerivedGet");
@@ -444,13 +481,19 @@ TEST(OperatorTests, LogicalFilterTest) {
   auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
 
-  Operator logical_filter_1 = LogicalFilter::Make(std::vector<AnnotatedExpression>());
-  Operator logical_filter_2 = LogicalFilter::Make(std::vector<AnnotatedExpression>());
-  Operator logical_filter_3 = LogicalFilter::Make(std::vector<AnnotatedExpression>{annotated_expr_0});
-  Operator logical_filter_4 = LogicalFilter::Make(std::vector<AnnotatedExpression>{annotated_expr_1});
-  Operator logical_filter_5 = LogicalFilter::Make(std::vector<AnnotatedExpression>{annotated_expr_2});
-  Operator logical_filter_6 = LogicalFilter::Make(std::vector<AnnotatedExpression>{annotated_expr_3});
+  Operator logical_filter_1 = LogicalFilter::Make(std::vector<AnnotatedExpression>(), context.GetNextPlanNodeID());
+  Operator logical_filter_2 = LogicalFilter::Make(std::vector<AnnotatedExpression>(), context.GetNextPlanNodeID());
+  Operator logical_filter_3 =
+      LogicalFilter::Make(std::vector<AnnotatedExpression>{annotated_expr_0}, context.GetNextPlanNodeID());
+  Operator logical_filter_4 =
+      LogicalFilter::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, context.GetNextPlanNodeID());
+  Operator logical_filter_5 =
+      LogicalFilter::Make(std::vector<AnnotatedExpression>{annotated_expr_2}, context.GetNextPlanNodeID());
+  Operator logical_filter_6 =
+      LogicalFilter::Make(std::vector<AnnotatedExpression>{annotated_expr_3}, context.GetNextPlanNodeID());
 
   EXPECT_EQ(logical_filter_1.GetType(), OpType::LOGICALFILTER);
   EXPECT_EQ(logical_filter_3.GetType(), OpType::LOGICALFILTER);
@@ -487,13 +530,14 @@ TEST(OperatorTests, LogicalProjectionTest) {
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
-
-  Operator logical_projection_1 =
-      LogicalProjection::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1});
-  Operator logical_projection_2 =
-      LogicalProjection::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_2});
-  Operator logical_projection_3 =
-      LogicalProjection::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3});
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  Operator logical_projection_1 = LogicalProjection::Make(
+      std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1}, context.GetNextPlanNodeID());
+  Operator logical_projection_2 = LogicalProjection::Make(
+      std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_2}, context.GetNextPlanNodeID());
+  Operator logical_projection_3 = LogicalProjection::Make(
+      std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3}, context.GetNextPlanNodeID());
 
   EXPECT_EQ(logical_projection_1.GetType(), OpType::LOGICALPROJECTION);
   EXPECT_EQ(logical_projection_3.GetType(), OpType::LOGICALPROJECTION);
@@ -533,14 +577,21 @@ TEST(OperatorTests, LogicalDependentJoinTest) {
   auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
-
-  Operator logical_dep_join_0 = LogicalDependentJoin::Make();
-  Operator logical_dep_join_1 = LogicalDependentJoin::Make(std::vector<AnnotatedExpression>());
-  Operator logical_dep_join_2 = LogicalDependentJoin::Make(std::vector<AnnotatedExpression>());
-  Operator logical_dep_join_3 = LogicalDependentJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0});
-  Operator logical_dep_join_4 = LogicalDependentJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1});
-  Operator logical_dep_join_5 = LogicalDependentJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2});
-  Operator logical_dep_join_6 = LogicalDependentJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3});
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  Operator logical_dep_join_0 = LogicalDependentJoin::Make(context.GetNextPlanNodeID());
+  Operator logical_dep_join_1 =
+      LogicalDependentJoin::Make(std::vector<AnnotatedExpression>(), context.GetNextPlanNodeID());
+  Operator logical_dep_join_2 =
+      LogicalDependentJoin::Make(std::vector<AnnotatedExpression>(), context.GetNextPlanNodeID());
+  Operator logical_dep_join_3 =
+      LogicalDependentJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0}, context.GetNextPlanNodeID());
+  Operator logical_dep_join_4 =
+      LogicalDependentJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, context.GetNextPlanNodeID());
+  Operator logical_dep_join_5 =
+      LogicalDependentJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2}, context.GetNextPlanNodeID());
+  Operator logical_dep_join_6 =
+      LogicalDependentJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3}, context.GetNextPlanNodeID());
 
   EXPECT_EQ(logical_dep_join_1.GetType(), OpType::LOGICALDEPENDENTJOIN);
   EXPECT_EQ(logical_dep_join_3.GetType(), OpType::LOGICALDEPENDENTJOIN);
@@ -587,14 +638,19 @@ TEST(OperatorTests, LogicalMarkJoinTest) {
   auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
-
-  Operator logical_mark_join_0 = LogicalMarkJoin::Make();
-  Operator logical_mark_join_1 = LogicalMarkJoin::Make(std::vector<AnnotatedExpression>());
-  Operator logical_mark_join_2 = LogicalMarkJoin::Make(std::vector<AnnotatedExpression>());
-  Operator logical_mark_join_3 = LogicalMarkJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0});
-  Operator logical_mark_join_4 = LogicalMarkJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1});
-  Operator logical_mark_join_5 = LogicalMarkJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2});
-  Operator logical_mark_join_6 = LogicalMarkJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3});
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  Operator logical_mark_join_0 = LogicalMarkJoin::Make(context.GetNextPlanNodeID());
+  Operator logical_mark_join_1 = LogicalMarkJoin::Make(std::vector<AnnotatedExpression>(), context.GetNextPlanNodeID());
+  Operator logical_mark_join_2 = LogicalMarkJoin::Make(std::vector<AnnotatedExpression>(), context.GetNextPlanNodeID());
+  Operator logical_mark_join_3 =
+      LogicalMarkJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0}, context.GetNextPlanNodeID());
+  Operator logical_mark_join_4 =
+      LogicalMarkJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, context.GetNextPlanNodeID());
+  Operator logical_mark_join_5 =
+      LogicalMarkJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2}, context.GetNextPlanNodeID());
+  Operator logical_mark_join_6 =
+      LogicalMarkJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3}, context.GetNextPlanNodeID());
 
   EXPECT_EQ(logical_mark_join_1.GetType(), OpType::LOGICALMARKJOIN);
   EXPECT_EQ(logical_mark_join_3.GetType(), OpType::LOGICALMARKJOIN);
@@ -641,14 +697,21 @@ TEST(OperatorTests, LogicalSingleJoinTest) {
   auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
-
-  Operator logical_single_join_0 = LogicalSingleJoin::Make();
-  Operator logical_single_join_1 = LogicalSingleJoin::Make(std::vector<AnnotatedExpression>());
-  Operator logical_single_join_2 = LogicalSingleJoin::Make(std::vector<AnnotatedExpression>());
-  Operator logical_single_join_3 = LogicalSingleJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0});
-  Operator logical_single_join_4 = LogicalSingleJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1});
-  Operator logical_single_join_5 = LogicalSingleJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2});
-  Operator logical_single_join_6 = LogicalSingleJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3});
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  Operator logical_single_join_0 = LogicalSingleJoin::Make(context.GetNextPlanNodeID());
+  Operator logical_single_join_1 =
+      LogicalSingleJoin::Make(std::vector<AnnotatedExpression>(), context.GetNextPlanNodeID());
+  Operator logical_single_join_2 =
+      LogicalSingleJoin::Make(std::vector<AnnotatedExpression>(), context.GetNextPlanNodeID());
+  Operator logical_single_join_3 =
+      LogicalSingleJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0}, context.GetNextPlanNodeID());
+  Operator logical_single_join_4 =
+      LogicalSingleJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, context.GetNextPlanNodeID());
+  Operator logical_single_join_5 =
+      LogicalSingleJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2}, context.GetNextPlanNodeID());
+  Operator logical_single_join_6 =
+      LogicalSingleJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3}, context.GetNextPlanNodeID());
 
   EXPECT_EQ(logical_single_join_1.GetType(), OpType::LOGICALSINGLEJOIN);
   EXPECT_EQ(logical_single_join_3.GetType(), OpType::LOGICALSINGLEJOIN);
@@ -695,14 +758,21 @@ TEST(OperatorTests, LogicalInnerJoinTest) {
   auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
-
-  Operator logical_inner_join_0 = LogicalInnerJoin::Make();
-  Operator logical_inner_join_1 = LogicalInnerJoin::Make(std::vector<AnnotatedExpression>());
-  Operator logical_inner_join_2 = LogicalInnerJoin::Make(std::vector<AnnotatedExpression>());
-  Operator logical_inner_join_3 = LogicalInnerJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0});
-  Operator logical_inner_join_4 = LogicalInnerJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1});
-  Operator logical_inner_join_5 = LogicalInnerJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2});
-  Operator logical_inner_join_6 = LogicalInnerJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3});
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  Operator logical_inner_join_0 = LogicalInnerJoin::Make(context.GetNextPlanNodeID());
+  Operator logical_inner_join_1 =
+      LogicalInnerJoin::Make(std::vector<AnnotatedExpression>(), context.GetNextPlanNodeID());
+  Operator logical_inner_join_2 =
+      LogicalInnerJoin::Make(std::vector<AnnotatedExpression>(), context.GetNextPlanNodeID());
+  Operator logical_inner_join_3 =
+      LogicalInnerJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0}, context.GetNextPlanNodeID());
+  Operator logical_inner_join_4 =
+      LogicalInnerJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, context.GetNextPlanNodeID());
+  Operator logical_inner_join_5 =
+      LogicalInnerJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2}, context.GetNextPlanNodeID());
+  Operator logical_inner_join_6 =
+      LogicalInnerJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3}, context.GetNextPlanNodeID());
 
   EXPECT_EQ(logical_inner_join_1.GetType(), OpType::LOGICALINNERJOIN);
   EXPECT_EQ(logical_inner_join_3.GetType(), OpType::LOGICALINNERJOIN);
@@ -747,10 +817,14 @@ TEST(OperatorTests, LogicalLeftJoinTest) {
   auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
-
-  Operator logical_left_join_1 = LogicalLeftJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_1}));
-  Operator logical_left_join_2 = LogicalLeftJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_2}));
-  Operator logical_left_join_3 = LogicalLeftJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_3}));
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  Operator logical_left_join_1 =
+      LogicalLeftJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_1}), context.GetNextPlanNodeID());
+  Operator logical_left_join_2 =
+      LogicalLeftJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_2}), context.GetNextPlanNodeID());
+  Operator logical_left_join_3 =
+      LogicalLeftJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_3}), context.GetNextPlanNodeID());
 
   EXPECT_EQ(logical_left_join_1.GetType(), OpType::LOGICALLEFTJOIN);
   EXPECT_EQ(logical_left_join_3.GetType(), OpType::LOGICALLEFTJOIN);
@@ -790,10 +864,14 @@ TEST(OperatorTests, LogicalRightJoinTest) {
   auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
-
-  Operator logical_right_join_1 = LogicalRightJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_1}));
-  Operator logical_right_join_2 = LogicalRightJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_2}));
-  Operator logical_right_join_3 = LogicalRightJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_3}));
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  Operator logical_right_join_1 =
+      LogicalRightJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_1}), context.GetNextPlanNodeID());
+  Operator logical_right_join_2 =
+      LogicalRightJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_2}), context.GetNextPlanNodeID());
+  Operator logical_right_join_3 =
+      LogicalRightJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_3}), context.GetNextPlanNodeID());
 
   EXPECT_EQ(logical_right_join_1.GetType(), OpType::LOGICALRIGHTJOIN);
   EXPECT_EQ(logical_right_join_3.GetType(), OpType::LOGICALRIGHTJOIN);
@@ -834,10 +912,14 @@ TEST(OperatorTests, LogicalOuterJoinTest) {
   auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
-
-  Operator logical_outer_join_1 = LogicalOuterJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_1}));
-  Operator logical_outer_join_2 = LogicalOuterJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_2}));
-  Operator logical_outer_join_3 = LogicalOuterJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_3}));
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  Operator logical_outer_join_1 =
+      LogicalOuterJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_1}), context.GetNextPlanNodeID());
+  Operator logical_outer_join_2 =
+      LogicalOuterJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_2}), context.GetNextPlanNodeID());
+  Operator logical_outer_join_3 =
+      LogicalOuterJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_3}), context.GetNextPlanNodeID());
 
   EXPECT_EQ(logical_outer_join_1.GetType(), OpType::LOGICALOUTERJOIN);
   EXPECT_EQ(logical_outer_join_3.GetType(), OpType::LOGICALOUTERJOIN);
@@ -877,10 +959,14 @@ TEST(OperatorTests, LogicalSemiJoinTest) {
   auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
-
-  Operator logical_semi_join_1 = LogicalSemiJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_1}));
-  Operator logical_semi_join_2 = LogicalSemiJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_2}));
-  Operator logical_semi_join_3 = LogicalSemiJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_3}));
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  Operator logical_semi_join_1 =
+      LogicalSemiJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_1}), context.GetNextPlanNodeID());
+  Operator logical_semi_join_2 =
+      LogicalSemiJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_2}), context.GetNextPlanNodeID());
+  Operator logical_semi_join_3 =
+      LogicalSemiJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_3}), context.GetNextPlanNodeID());
 
   EXPECT_EQ(logical_semi_join_1.GetType(), OpType::LOGICALSEMIJOIN);
   EXPECT_EQ(logical_semi_join_3.GetType(), OpType::LOGICALSEMIJOIN);
@@ -943,21 +1029,22 @@ TEST(OperatorTests, LogicalAggregateAndGroupByTest) {
   auto annotated_expr_2 = AnnotatedExpression(x_5, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_6, std::unordered_set<std::string>());
   auto annotated_expr_4 = AnnotatedExpression(x_8, std::unordered_set<std::string>());
-
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
   Operator logical_group_1_0 =
       LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
-                                       std::vector<AnnotatedExpression>{annotated_expr_0});
+                                       std::vector<AnnotatedExpression>{annotated_expr_0}, context.GetNextPlanNodeID());
   Operator logical_group_1_1 =
       LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
-                                       std::vector<AnnotatedExpression>{annotated_expr_1});
+                                       std::vector<AnnotatedExpression>{annotated_expr_1}, context.GetNextPlanNodeID());
   Operator logical_group_2_2 =
       LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_2},
-                                       std::vector<AnnotatedExpression>{annotated_expr_2});
-  Operator logical_group_3 =
-      LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3});
+                                       std::vector<AnnotatedExpression>{annotated_expr_2}, context.GetNextPlanNodeID());
+  Operator logical_group_3 = LogicalAggregateAndGroupBy::Make(
+      std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3}, context.GetNextPlanNodeID());
   Operator logical_group_7_4 =
       LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_7},
-                                       std::vector<AnnotatedExpression>{annotated_expr_4});
+                                       std::vector<AnnotatedExpression>{annotated_expr_4}, context.GetNextPlanNodeID());
 
   EXPECT_EQ(logical_group_1_1.GetType(), OpType::LOGICALAGGREGATEANDGROUPBY);
   EXPECT_EQ(logical_group_3.GetType(), OpType::LOGICALAGGREGATEANDGROUPBY);
@@ -995,9 +1082,11 @@ TEST(OperatorTests, LogicalCreateDatabaseTest) {
   //===--------------------------------------------------------------------===//
   // LogicalCreateDatabase
   //===--------------------------------------------------------------------===//
-  Operator op1 = LogicalCreateDatabase::Make("testdb");
-  Operator op2 = LogicalCreateDatabase::Make("testdb");
-  Operator op3 = LogicalCreateDatabase::Make("another_testdb");
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  Operator op1 = LogicalCreateDatabase::Make("testdb", context.GetNextPlanNodeID());
+  Operator op2 = LogicalCreateDatabase::Make("testdb", context.GetNextPlanNodeID());
+  Operator op3 = LogicalCreateDatabase::Make("another_testdb", context.GetNextPlanNodeID());
 
   EXPECT_EQ(op1.GetType(), OpType::LOGICALCREATEDATABASE);
   EXPECT_EQ(op3.GetType(), OpType::LOGICALCREATEDATABASE);
@@ -1015,9 +1104,12 @@ TEST(OperatorTests, LogicalCreateFunctionTest) {
   //===--------------------------------------------------------------------===//
   // LogicalCreateFunction
   //===--------------------------------------------------------------------===//
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
   Operator op1 = LogicalCreateFunction::Make(
       catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param"},
-      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false,
+      context.GetNextPlanNodeID());
 
   EXPECT_EQ(op1.GetType(), OpType::LOGICALCREATEFUNCTION);
   EXPECT_EQ(op1.GetName(), "LogicalCreateFunction");
@@ -1035,63 +1127,70 @@ TEST(OperatorTests, LogicalCreateFunctionTest) {
 
   Operator op2 = LogicalCreateFunction::Make(
       catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param"},
-      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false,
+      context.GetNextPlanNodeID());
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   Operator op3 = LogicalCreateFunction::Make(
       catalog::db_oid_t(1), catalog::namespace_oid_t(3), "function1", parser::PLType::PL_C, {}, {"param"},
-      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false,
+      context.GetNextPlanNodeID());
   EXPECT_TRUE(op1 != op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
   Operator op4 = LogicalCreateFunction::Make(
       catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function4", parser::PLType::PL_C, {}, {"param"},
-      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false,
+      context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op4);
   EXPECT_NE(op1.Hash(), op4.Hash());
 
   Operator op5 = LogicalCreateFunction::Make(
       catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_PGSQL, {}, {"param"},
-      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false,
+      context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
 
-  Operator op6 =
-      LogicalCreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C,
-                                  {"body", "body2"}, {"param"}, {parser::BaseFunctionParameter::DataType::INTEGER},
-                                  parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+  Operator op6 = LogicalCreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {"body", "body2"},
+      {"param"}, {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN,
+      1, false, context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op6);
   EXPECT_NE(op1.Hash(), op6.Hash());
 
   Operator op7 = LogicalCreateFunction::Make(
       catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param1", "param2"},
       {parser::BaseFunctionParameter::DataType::INTEGER, parser::BaseFunctionParameter::DataType::BOOLEAN},
-      parser::BaseFunctionParameter::DataType::BOOLEAN, 2, false);
+      parser::BaseFunctionParameter::DataType::BOOLEAN, 2, false, context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op7);
   EXPECT_NE(op1.Hash(), op7.Hash());
 
-  Operator op8 =
-      LogicalCreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C,
-                                  {}, {}, {}, parser::BaseFunctionParameter::DataType::BOOLEAN, 0, false);
+  Operator op8 = LogicalCreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {}, {},
+      parser::BaseFunctionParameter::DataType::BOOLEAN, 0, false, context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op8);
   EXPECT_NE(op1.Hash(), op8.Hash());
 
   Operator op9 = LogicalCreateFunction::Make(
       catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param"},
-      {parser::BaseFunctionParameter::DataType::VARCHAR}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+      {parser::BaseFunctionParameter::DataType::VARCHAR}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false,
+      context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op9);
   EXPECT_NE(op1.Hash(), op9.Hash());
 
   Operator op10 = LogicalCreateFunction::Make(
       catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param"},
-      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::INTEGER, 1, false);
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::INTEGER, 1, false,
+      context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op10);
   EXPECT_NE(op1.Hash(), op10.Hash());
 
   Operator op11 = LogicalCreateFunction::Make(
       catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param"},
-      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, true);
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, true,
+      context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op11);
   EXPECT_NE(op1.Hash(), op11.Hash());
 
@@ -1109,10 +1208,11 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
   //===--------------------------------------------------------------------===//
   // LogicalCreateIndex
   //===--------------------------------------------------------------------===//
-  Operator op1 =
-      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
-                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{});
-
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  Operator op1 = LogicalCreateIndex::Make(
+      catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true, "index_1",
+      std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, context.GetNextPlanNodeID());
   EXPECT_EQ(op1.GetType(), OpType::LOGICALCREATEINDEX);
   EXPECT_EQ(op1.GetName(), "LogicalCreateIndex");
   EXPECT_EQ(op1.As<LogicalCreateIndex>()->GetIndexName(), "index_1");
@@ -1123,9 +1223,9 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
             std::vector<common::ManagedPointer<parser::AbstractExpression>>{});
   EXPECT_EQ(op1.As<LogicalCreateIndex>()->IsUnique(), true);
 
-  Operator op2 =
-      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
-                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{});
+  Operator op2 = LogicalCreateIndex::Make(
+      catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true, "index_1",
+      std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, context.GetNextPlanNodeID());
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
@@ -1135,15 +1235,17 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
       common::ManagedPointer<parser::AbstractExpression>(
           new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9)))};
   auto raw_values_copy = raw_values;
-  Operator op3 = LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                          parser::IndexType::BWTREE, true, "index_1", std::move(raw_values_copy));
+  Operator op3 =
+      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
+                               "index_1", std::move(raw_values_copy), context.GetNextPlanNodeID());
   EXPECT_EQ(op3.As<LogicalCreateIndex>()->GetIndexAttr(), raw_values);
   EXPECT_FALSE(op3 == op1);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
   auto raw_values_copy2 = raw_values;
-  Operator op4 = LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                          parser::IndexType::BWTREE, true, "index_1", std::move(raw_values_copy2));
+  Operator op4 =
+      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
+                               "index_1", std::move(raw_values_copy2), context.GetNextPlanNodeID());
   EXPECT_EQ(op4.As<LogicalCreateIndex>()->GetIndexAttr(), raw_values);
   EXPECT_TRUE(op3 == op4);
   EXPECT_EQ(op4.Hash(), op3.Hash());
@@ -1154,39 +1256,41 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
       common::ManagedPointer<parser::AbstractExpression>(
           new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9)))};
   auto raw_values_copy3 = raw_values_2;
-  Operator op10 = LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                           parser::IndexType::BWTREE, true, "index_1", std::move(raw_values_copy3));
+  Operator op10 =
+      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
+                               "index_1", std::move(raw_values_copy3), context.GetNextPlanNodeID());
   EXPECT_EQ(op10.As<LogicalCreateIndex>()->GetIndexAttr(), raw_values_2);
   EXPECT_FALSE(op3 == op10);
   EXPECT_NE(op10.Hash(), op3.Hash());
 
-  Operator op5 =
-      LogicalCreateIndex::Make(catalog::namespace_oid_t(2), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
-                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{});
+  Operator op5 = LogicalCreateIndex::Make(
+      catalog::namespace_oid_t(2), catalog::table_oid_t(1), parser::IndexType::BWTREE, true, "index_1",
+      std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
 
-  Operator op6 =
-      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(2), parser::IndexType::BWTREE, true,
-                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{});
+  Operator op6 = LogicalCreateIndex::Make(
+      catalog::namespace_oid_t(1), catalog::table_oid_t(2), parser::IndexType::BWTREE, true, "index_1",
+      std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op6);
   EXPECT_NE(op1.Hash(), op6.Hash());
 
-  Operator op7 =
-      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::HASH, true,
-                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{});
+  Operator op7 = LogicalCreateIndex::Make(
+      catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::HASH, true, "index_1",
+      std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op7);
   EXPECT_NE(op1.Hash(), op7.Hash());
 
-  Operator op8 =
-      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, false,
-                               "index_1", std::vector<common::ManagedPointer<parser::AbstractExpression>>{});
+  Operator op8 = LogicalCreateIndex::Make(
+      catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, false, "index_1",
+      std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op8);
   EXPECT_NE(op1.Hash(), op8.Hash());
 
-  Operator op9 =
-      LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
-                               "index_2", std::vector<common::ManagedPointer<parser::AbstractExpression>>{});
+  Operator op9 = LogicalCreateTrigger::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1), "Trigger_1",
+      {"func_name", "func_name"}, {"func_arg", "func_arg"}, {catalog::col_oid_t(1)},
+      common::ManagedPointer<parser::AbstractExpression>(when), 0, context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op9);
   EXPECT_NE(op1.Hash(), op9.Hash());
 
@@ -1204,10 +1308,13 @@ TEST(OperatorTests, LogicalCreateTableTest) {
                                    common::ManagedPointer<parser::AbstractExpression>(
                                        new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9))),
                                    nullptr, 4);
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
   Operator op1 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_1",
                                           std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
                                               common::ManagedPointer<parser::ColumnDefinition>(col_def)},
-                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{},
+                                          context.GetNextPlanNodeID());
   EXPECT_EQ(op1.GetType(), OpType::LOGICALCREATETABLE);
   EXPECT_EQ(op1.GetName(), "LogicalCreateTable");
   EXPECT_EQ(op1.As<LogicalCreateTable>()->GetTableName(), "Table_1");
@@ -1220,21 +1327,24 @@ TEST(OperatorTests, LogicalCreateTableTest) {
   Operator op2 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_1",
                                           std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
                                               common::ManagedPointer<parser::ColumnDefinition>(col_def)},
-                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{},
+                                          context.GetNextPlanNodeID());
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   Operator op3 = LogicalCreateTable::Make(catalog::namespace_oid_t(2), "Table_1",
                                           std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
                                               common::ManagedPointer<parser::ColumnDefinition>(col_def)},
-                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{},
+                                          context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
   Operator op4 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_2",
                                           std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
                                               common::ManagedPointer<parser::ColumnDefinition>(col_def)},
-                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{},
+                                          context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op4);
   EXPECT_NE(op1.Hash(), op4.Hash());
 
@@ -1242,13 +1352,14 @@ TEST(OperatorTests, LogicalCreateTableTest) {
                                           std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
                                               common::ManagedPointer<parser::ColumnDefinition>(col_def),
                                               common::ManagedPointer<parser::ColumnDefinition>(col_def)},
-                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{},
+                                          context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
 
-  Operator op6 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_1",
-                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{},
-                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+  Operator op6 = LogicalCreateTable::Make(
+      catalog::namespace_oid_t(1), "Table_1", std::vector<common::ManagedPointer<parser::ColumnDefinition>>{},
+      std::vector<common::ManagedPointer<parser::ColumnDefinition>>{}, context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op6);
   EXPECT_NE(op1.Hash(), op6.Hash());
 
@@ -1260,18 +1371,17 @@ TEST(OperatorTests, LogicalCreateTableTest) {
   Operator op7 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_2",
                                           std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
                                               common::ManagedPointer<parser::ColumnDefinition>(col_def_2)},
-                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{},
+                                          context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op7);
   EXPECT_NE(op1.Hash(), op7.Hash());
 
   auto foreign_def =
       new parser::ColumnDefinition({"foreign_col_1"}, {"col_1"}, "foreign", parser::FKConstrActionType::SETNULL,
                                    parser::FKConstrActionType::CASCADE, parser::FKConstrMatchType::FULL);
-  Operator op8 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_1",
-                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
-                                              common::ManagedPointer<parser::ColumnDefinition>(col_def)},
-                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
-                                              common::ManagedPointer<parser::ColumnDefinition>(foreign_def)});
+  Operator op8 = LogicalCreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {}, {},
+      parser::BaseFunctionParameter::DataType::BOOLEAN, 0, false, context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op8);
   EXPECT_NE(op1.Hash(), op8.Hash());
   EXPECT_EQ(op8.As<LogicalCreateTable>()->GetForeignKeys().size(), 1);
@@ -1289,9 +1399,11 @@ TEST(OperatorTests, LogicalCreateNamespaceTest) {
   //===--------------------------------------------------------------------===//
   // LogicalCreateNamespace
   //===--------------------------------------------------------------------===//
-  Operator op1 = LogicalCreateNamespace::Make("testns");
-  Operator op2 = LogicalCreateNamespace::Make("testns");
-  Operator op3 = LogicalCreateNamespace::Make("another_testns");
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  Operator op1 = LogicalCreateNamespace::Make("testns", context.GetNextPlanNodeID());
+  Operator op2 = LogicalCreateNamespace::Make("testns", context.GetNextPlanNodeID());
+  Operator op3 = LogicalCreateNamespace::Make("another_testns", context.GetNextPlanNodeID());
 
   EXPECT_EQ(op1.GetType(), OpType::LOGICALCREATENAMESPACE);
   EXPECT_EQ(op3.GetType(), OpType::LOGICALCREATENAMESPACE);
@@ -1310,9 +1422,12 @@ TEST(OperatorTests, LogicalCreateTriggerTest) {
   // LogicalCreateTrigger
   //===--------------------------------------------------------------------===//
   auto when = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
   Operator op1 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                             "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
-                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0,
+                                            context.GetNextPlanNodeID());
 
   EXPECT_EQ(op1.GetType(), OpType::LOGICALCREATETRIGGER);
   EXPECT_EQ(op1.GetName(), "LogicalCreateTrigger");
@@ -1328,37 +1443,43 @@ TEST(OperatorTests, LogicalCreateTriggerTest) {
 
   Operator op2 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                             "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
-                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0,
+                                            context.GetNextPlanNodeID());
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   Operator op3 = LogicalCreateTrigger::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                             "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
-                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0,
+                                            context.GetNextPlanNodeID());
   EXPECT_FALSE(op3 == op1);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
   Operator op4 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(1),
                                             "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
-                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0,
+                                            context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op4);
   EXPECT_NE(op4.Hash(), op3.Hash());
 
   Operator op5 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(2),
                                             "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
-                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0,
+                                            context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
 
   Operator op6 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                             "Trigger_2", {}, {}, {catalog::col_oid_t(1)},
-                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0,
+                                            context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op6);
   EXPECT_NE(op1.Hash(), op6.Hash());
 
   Operator op7 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                             "Trigger_1", {"func_name"}, {"func_arg"}, {catalog::col_oid_t(1)},
-                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0,
+                                            context.GetNextPlanNodeID());
   EXPECT_EQ(op7.As<LogicalCreateTrigger>()->GetTriggerFuncName(), std::vector<std::string>{"func_name"});
   EXPECT_EQ(op7.As<LogicalCreateTrigger>()->GetTriggerArgs(), std::vector<std::string>{"func_arg"});
   EXPECT_FALSE(op1 == op7);
@@ -1366,14 +1487,15 @@ TEST(OperatorTests, LogicalCreateTriggerTest) {
 
   Operator op8 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                             "Trigger_1", {"func_name"}, {"func_arg"}, {catalog::col_oid_t(1)},
-                                            common::ManagedPointer<parser::AbstractExpression>(when), 0);
+                                            common::ManagedPointer<parser::AbstractExpression>(when), 0,
+                                            context.GetNextPlanNodeID());
   EXPECT_TRUE(op7 == op8);
   EXPECT_EQ(op7.Hash(), op8.Hash());
 
-  Operator op9 =
-      LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                 "Trigger_1", {"func_name", "func_name"}, {"func_arg", "func_arg"},
-                                 {catalog::col_oid_t(1)}, common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  Operator op9 = LogicalCreateTrigger::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1), "Trigger_1",
+      {"func_name", "func_name"}, {"func_arg", "func_arg"}, {catalog::col_oid_t(1)},
+      common::ManagedPointer<parser::AbstractExpression>(when), 0, context.GetNextPlanNodeID());
   EXPECT_EQ(op9.As<LogicalCreateTrigger>()->GetTriggerFuncName(), std::vector<std::string>({"func_name", "func_name"}));
   EXPECT_EQ(op9.As<LogicalCreateTrigger>()->GetTriggerArgs(), std::vector<std::string>({"func_arg", "func_arg"}));
   EXPECT_FALSE(op1 == op9);
@@ -1381,22 +1503,24 @@ TEST(OperatorTests, LogicalCreateTriggerTest) {
   EXPECT_NE(op1.Hash(), op9.Hash());
   EXPECT_NE(op7.Hash(), op9.Hash());
 
-  Operator op10 =
-      LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                 "Trigger_1", {}, {}, {}, common::ManagedPointer<parser::AbstractExpression>(when), 0);
+  Operator op10 = LogicalCreateTrigger::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1), "Trigger_1", {}, {}, {},
+      common::ManagedPointer<parser::AbstractExpression>(when), 0, context.GetNextPlanNodeID());
   EXPECT_FALSE(op10 == op1);
   EXPECT_NE(op1.Hash(), op10.Hash());
 
   auto when_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(2));
   Operator op11 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                              "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
-                                             common::ManagedPointer<parser::AbstractExpression>(when_2), 0);
+                                             common::ManagedPointer<parser::AbstractExpression>(when_2), 0,
+                                             context.GetNextPlanNodeID());
   EXPECT_FALSE(op11 == op1);
   EXPECT_NE(op1.Hash(), op11.Hash());
 
   Operator op12 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                              "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
-                                             common::ManagedPointer<parser::AbstractExpression>(when), 9);
+                                             common::ManagedPointer<parser::AbstractExpression>(when), 9,
+                                             context.GetNextPlanNodeID());
   EXPECT_FALSE(op12 == op1);
   EXPECT_NE(op1.Hash(), op12.Hash());
 
@@ -1409,33 +1533,41 @@ TEST(OperatorTests, LogicalCreateViewTest) {
   //===--------------------------------------------------------------------===//
   // LogicalCreateView
   //===--------------------------------------------------------------------===//
-  Operator op1 = LogicalCreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view", nullptr);
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  Operator op1 = LogicalCreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view", nullptr,
+                                         context.GetNextPlanNodeID());
 
   EXPECT_EQ(op1.GetType(), OpType::LOGICALCREATEVIEW);
   EXPECT_EQ(op1.GetName(), "LogicalCreateView");
   EXPECT_EQ(op1.As<LogicalCreateView>()->GetViewName(), "test_view");
   EXPECT_EQ(op1.As<LogicalCreateView>()->GetViewQuery(), nullptr);
 
-  Operator op2 = LogicalCreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view", nullptr);
+  Operator op2 = LogicalCreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view", nullptr,
+                                         context.GetNextPlanNodeID());
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
-  Operator op3 = LogicalCreateView::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), "test_view", nullptr);
+  Operator op3 = LogicalCreateView::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), "test_view", nullptr,
+                                         context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
-  Operator op4 = LogicalCreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), "test_view", nullptr);
+  Operator op4 = LogicalCreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), "test_view", nullptr,
+                                         context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op4);
   EXPECT_NE(op1.Hash(), op4.Hash());
 
-  Operator op5 = LogicalCreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view_2", nullptr);
+  Operator op5 = LogicalCreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view_2", nullptr,
+                                         context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
 
   auto stmt = new parser::SelectStatement(std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, true,
                                           nullptr, nullptr, nullptr, nullptr, nullptr);
-  Operator op6 = LogicalCreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view",
-                                         common::ManagedPointer<parser::SelectStatement>(stmt));
+  Operator op6 =
+      LogicalCreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view",
+                              common::ManagedPointer<parser::SelectStatement>(stmt), context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op6);
   EXPECT_NE(op1.Hash(), op6.Hash());
   delete stmt;
@@ -1446,9 +1578,11 @@ TEST(OperatorTests, LogicalDropDatabaseTest) {
   //===--------------------------------------------------------------------===//
   // LogicalDropDatabase
   //===--------------------------------------------------------------------===//
-  Operator op1 = LogicalDropDatabase::Make(catalog::db_oid_t(1));
-  Operator op2 = LogicalDropDatabase::Make(catalog::db_oid_t(1));
-  Operator op3 = LogicalDropDatabase::Make(catalog::db_oid_t(2));
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  Operator op1 = LogicalDropDatabase::Make(catalog::db_oid_t(1), context.GetNextPlanNodeID());
+  Operator op2 = LogicalDropDatabase::Make(catalog::db_oid_t(1), context.GetNextPlanNodeID());
+  Operator op3 = LogicalDropDatabase::Make(catalog::db_oid_t(2), context.GetNextPlanNodeID());
 
   EXPECT_EQ(op1.GetType(), OpType::LOGICALDROPDATABASE);
   EXPECT_EQ(op3.GetType(), OpType::LOGICALDROPDATABASE);
@@ -1466,9 +1600,11 @@ TEST(OperatorTests, LogicalDropTableTest) {
   //===--------------------------------------------------------------------===//
   // LogicalDropTable
   //===--------------------------------------------------------------------===//
-  Operator op1 = LogicalDropTable::Make(catalog::table_oid_t(1));
-  Operator op2 = LogicalDropTable::Make(catalog::table_oid_t(1));
-  Operator op3 = LogicalDropTable::Make(catalog::table_oid_t(2));
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  Operator op1 = LogicalDropTable::Make(catalog::table_oid_t(1), context.GetNextPlanNodeID());
+  Operator op2 = LogicalDropTable::Make(catalog::table_oid_t(1), context.GetNextPlanNodeID());
+  Operator op3 = LogicalDropTable::Make(catalog::table_oid_t(2), context.GetNextPlanNodeID());
 
   EXPECT_EQ(op1.GetType(), OpType::LOGICALDROPTABLE);
   EXPECT_EQ(op3.GetType(), OpType::LOGICALDROPTABLE);
@@ -1486,9 +1622,11 @@ TEST(OperatorTests, LogicalDropIndexTest) {
   //===--------------------------------------------------------------------===//
   // LogicalDropIndex
   //===--------------------------------------------------------------------===//
-  Operator op1 = LogicalDropIndex::Make(catalog::index_oid_t(1));
-  Operator op2 = LogicalDropIndex::Make(catalog::index_oid_t(1));
-  Operator op3 = LogicalDropIndex::Make(catalog::index_oid_t(2));
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  Operator op1 = LogicalDropIndex::Make(catalog::index_oid_t(1), context.GetNextPlanNodeID());
+  Operator op2 = LogicalDropIndex::Make(catalog::index_oid_t(1), context.GetNextPlanNodeID());
+  Operator op3 = LogicalDropIndex::Make(catalog::index_oid_t(2), context.GetNextPlanNodeID());
 
   EXPECT_EQ(op1.GetType(), OpType::LOGICALDROPINDEX);
   EXPECT_EQ(op3.GetType(), OpType::LOGICALDROPINDEX);
@@ -1506,9 +1644,11 @@ TEST(OperatorTests, LogicalDropNamespaceTest) {
   //===--------------------------------------------------------------------===//
   // LogicalDropNamespace
   //===--------------------------------------------------------------------===//
-  Operator op1 = LogicalDropNamespace::Make(catalog::namespace_oid_t(1));
-  Operator op2 = LogicalDropNamespace::Make(catalog::namespace_oid_t(1));
-  Operator op3 = LogicalDropNamespace::Make(catalog::namespace_oid_t(2));
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  Operator op1 = LogicalDropNamespace::Make(catalog::namespace_oid_t(1), context.GetNextPlanNodeID());
+  Operator op2 = LogicalDropNamespace::Make(catalog::namespace_oid_t(1), context.GetNextPlanNodeID());
+  Operator op3 = LogicalDropNamespace::Make(catalog::namespace_oid_t(2), context.GetNextPlanNodeID());
 
   EXPECT_EQ(op1.GetType(), OpType::LOGICALDROPNAMESPACE);
   EXPECT_EQ(op3.GetType(), OpType::LOGICALDROPNAMESPACE);
@@ -1526,8 +1666,10 @@ TEST(OperatorTests, LogicalDropTriggerTest) {
   //===--------------------------------------------------------------------===//
   // LogicalDropTrigger
   //===--------------------------------------------------------------------===//
-  Operator op1 =
-      LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false);
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  Operator op1 = LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1),
+                                          false, context.GetNextPlanNodeID());
 
   EXPECT_EQ(op1.GetType(), OpType::LOGICALDROPTRIGGER);
   EXPECT_EQ(op1.GetName(), "LogicalDropTrigger");
@@ -1536,28 +1678,28 @@ TEST(OperatorTests, LogicalDropTriggerTest) {
   EXPECT_EQ(op1.As<LogicalDropTrigger>()->GetTriggerOid(), catalog::trigger_oid_t(1));
   EXPECT_FALSE(op1.As<LogicalDropTrigger>()->IsIfExists());
 
-  Operator op2 =
-      LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false);
+  Operator op2 = LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1),
+                                          false, context.GetNextPlanNodeID());
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
-  Operator op3 =
-      LogicalDropTrigger::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false);
+  Operator op3 = LogicalDropTrigger::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1),
+                                          false, context.GetNextPlanNodeID());
   EXPECT_TRUE(op1 != op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
-  Operator op4 =
-      LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::trigger_oid_t(1), false);
+  Operator op4 = LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::trigger_oid_t(1),
+                                          false, context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op4);
   EXPECT_NE(op1.Hash(), op4.Hash());
 
-  Operator op5 =
-      LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(2), false);
+  Operator op5 = LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(2),
+                                          false, context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
 
-  Operator op6 =
-      LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), true);
+  Operator op6 = LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1),
+                                          true, context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op6);
   EXPECT_NE(op1.Hash(), op6.Hash());
 }
@@ -1567,8 +1709,10 @@ TEST(OperatorTests, LogicalDropViewTest) {
   //===--------------------------------------------------------------------===//
   // LogicalDropView
   //===--------------------------------------------------------------------===//
-  Operator op1 =
-      LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false);
+  OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  Operator op1 = LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false,
+                                       context.GetNextPlanNodeID());
 
   EXPECT_EQ(op1.GetType(), OpType::LOGICALDROPVIEW);
   EXPECT_EQ(op1.GetName(), "LogicalDropView");
@@ -1577,27 +1721,29 @@ TEST(OperatorTests, LogicalDropViewTest) {
   EXPECT_EQ(op1.As<LogicalDropView>()->GetViewOid(), catalog::view_oid_t(1));
   EXPECT_FALSE(op1.As<LogicalDropView>()->IsIfExists());
 
-  Operator op2 =
-      LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false);
+  Operator op2 = LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false,
+                                       context.GetNextPlanNodeID());
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
-  Operator op3 =
-      LogicalDropView::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false);
+  Operator op3 = LogicalDropView::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false,
+                                       context.GetNextPlanNodeID());
+
   EXPECT_TRUE(op1 != op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
-  Operator op4 =
-      LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::view_oid_t(1), false);
+  Operator op4 = LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::view_oid_t(1), false,
+                                       context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op4);
   EXPECT_NE(op1.Hash(), op4.Hash());
 
-  Operator op5 =
-      LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(2), false);
+  Operator op5 = LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(2), false,
+                                       context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
 
-  Operator op6 = LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), true);
+  Operator op6 = LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), true,
+                                       context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op6);
   EXPECT_NE(op1.Hash(), op6.Hash());
 }
