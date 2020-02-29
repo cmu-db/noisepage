@@ -1,7 +1,5 @@
 #pragma once
 
-#include <optimizer/cost_model/abstract_cost_model.h>
-
 #include <utility>
 #include <vector>
 

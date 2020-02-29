@@ -4,6 +4,7 @@
 #include "optimizer/group_expression.h"
 #include "optimizer/physical_operators.h"
 #include "transaction/transaction_context.h"
+#include <unordered_map>
 
 namespace terrier {
 namespace optimizer {
