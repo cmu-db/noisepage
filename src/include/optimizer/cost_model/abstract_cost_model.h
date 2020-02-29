@@ -33,8 +33,8 @@ struct CostModelEstimate {
    * @param cost Cost value
    * @param cardinalities Mapping from plan node id to cost value
    */
-  CostModelEstimate(double cost, const std::unordered_map<plan_node_id_t, double> &cardinalities)
-      : cost_(cost), cardinalities_(cardinalities) {}
+  CostModelEstimate(double cost, std::unordered_map<plan_node_id_t, double> cardinalities)
+      : cost_(cost), cardinalities_(std::move(cardinalities)) {}
 };
 /**
  * Interface defining a cost model.
