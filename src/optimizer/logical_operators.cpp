@@ -227,7 +227,8 @@ BaseOperatorNodeContents *LogicalInsert::Copy() const { return new LogicalInsert
 Operator LogicalInsert::Make(
     catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
     std::vector<catalog::col_oid_t> &&columns,
-    common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values) {
+    common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values,
+    plan_node_id_t plan_node_id) {
 #ifndef NDEBUG
   // We need to check whether the number of values for each insert vector
   // matches the number of columns
@@ -242,6 +243,7 @@ Operator LogicalInsert::Make(
   op->table_oid_ = table_oid;
   op->columns_ = std::move(columns);
   op->values_ = values;
+  op->plan_node_id_ = plan_node_id;
   return Operator(std::move(op));
 }
 
@@ -310,13 +312,15 @@ BaseOperatorNodeContents *LogicalLimit::Copy() const { return new LogicalLimit(*
 
 Operator LogicalLimit::Make(size_t offset, size_t limit,
                             std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
-                            std::vector<optimizer::OrderByOrderingType> &&sort_directions) {
+                            std::vector<optimizer::OrderByOrderingType> &&sort_directions,
+                            plan_node_id_t plan_node_id) {
   TERRIER_ASSERT(sort_exprs.size() == sort_directions.size(), "Mismatched ORDER BY expressions + directions");
   auto op = std::make_unique<LogicalLimit>();
   op->offset_ = offset;
   op->limit_ = limit;
   op->sort_exprs_ = sort_exprs;
   op->sort_directions_ = std::move(sort_directions);
+  op->plan_node_id_ = plan_node_id;
   return Operator(std::move(op));
 }
 

@@ -21,10 +21,10 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   template <class ConcreteType>
   class Builder : public AbstractPlanNode::Builder<ConcreteType> {
    public:
-    Builder() {} /**
-                  * @param predicate predicate to use for scan
-                  * @return builder object
-                  */
+    /**
+      * @param predicate predicate to use for scan
+      * @return builder object
+      */
     ConcreteType &SetScanPredicate(common::ManagedPointer<parser::AbstractExpression> predicate) {
       scan_predicate_ = predicate;
       return *dynamic_cast<ConcreteType *>(this);
@@ -85,6 +85,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    * @param is_for_update scan is used for an update
    * @param database_oid database oid for scan
    * @param namespace_oid OID of the namespace
+   * @param plan_node_id plan node id
    */
   AbstractScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                        std::unique_ptr<OutputSchema> output_schema,
@@ -101,7 +102,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   /**
    * Default constructor used for deserialization
    */
-  AbstractScanPlanNode() {}
+  AbstractScanPlanNode() = default;
 
   DISALLOW_COPY_AND_MOVE(AbstractScanPlanNode)
 

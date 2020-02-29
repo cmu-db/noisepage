@@ -19,7 +19,7 @@ class OperatorVisitor;
  */
 class BaseOperatorNodeContents {
  private:
-  BaseOperatorNodeContents(plan_node_id_t plan_node_id):plan_node_id_(plan_node_id) {}
+  explicit BaseOperatorNodeContents(plan_node_id_t plan_node_id):plan_node_id_(plan_node_id) {}
  public:
   /**
    * Default constructor
@@ -66,7 +66,7 @@ class BaseOperatorNodeContents {
   /**
    * @return the operator's plan node id
    */
-  const plan_node_id_t GetPlanNodeId() const {return plan_node_id_;}
+  plan_node_id_t GetPlanNodeId() const {return plan_node_id_;}
 
   /**
    * @return the hashed value of this operator
@@ -91,6 +91,9 @@ class BaseOperatorNodeContents {
   virtual bool operator!=(const BaseOperatorNodeContents &r) { return !operator==(r); }
 
  protected:
+  /**
+   * Plan Node ID
+   */
   plan_node_id_t plan_node_id_;
 };
 

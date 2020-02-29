@@ -9,7 +9,6 @@
 #include "logical_operators.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
 #include "optimizer/group_expression.h"
-#include "optimizer/logical_operators.h"
 #include "optimizer/memo.h"
 #include "optimizer/rule.h"
 #include "optimizer/statistics/stats_storage.h"
@@ -222,7 +221,7 @@ class OptimizerContext {
    * @returns the next plan node id and increase the counter
    */
   plan_node_id_t GetNextPlanNodeID() {
-    return plan_id_counter++;
+    return plan_id_counter_++;
   }
 
  private:
@@ -234,7 +233,7 @@ class OptimizerContext {
   StatsStorage *stats_storage_;
   transaction::TransactionContext *txn_;
   std::vector<OptimizationContext *> track_list_;
-  plan_node_id_t plan_id_counter;
+  plan_node_id_t plan_id_counter_;
 };
 
 }  // namespace optimizer

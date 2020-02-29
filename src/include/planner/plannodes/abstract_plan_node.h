@@ -55,6 +55,7 @@ class AbstractPlanNode {
      */
     ConcreteType &SetPlanNodeId(optimizer::plan_node_id_t plan_node_id) {
       plan_node_id_ = plan_node_id;
+      return *dynamic_cast<ConcreteType *>(this);
     }
 
    protected:
@@ -76,6 +77,7 @@ class AbstractPlanNode {
    * Constructor for the base AbstractPlanNode. Derived plan nodes should call this constructor to set output_schema
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
+   * @param plan_node_id Plan node id
    */
   AbstractPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                    std::unique_ptr<OutputSchema> output_schema, optimizer::plan_node_id_t plan_node_id)

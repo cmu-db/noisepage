@@ -22,13 +22,16 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(
     const common::ManagedPointer<catalog::CatalogAccessor> accessor,
     const common::ManagedPointer<parser::ParseResult> query,
     const common::ManagedPointer<optimizer::StatsStorage> stats_storage, const uint64_t optimizer_timeout) {
-  // Optimizer transforms annotated ParseResult to logical expressions (ephemeral Optimizer structure)
-  optimizer::QueryToOperatorTransformer transformer(accessor);
-  auto logical_exprs = transformer.ConvertToOpExpression(query->GetStatement(0), query.Get());
-
   // TODO(Matt): is the cost model to use going to become an arg to this function eventually?
   optimizer::Optimizer optimizer(std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout);
+  optimizer::OptimizerContext *context = new optimizer::OptimizerContext(common::ManagedPointer<optimizer::AbstractCostModel>
+      (new optimizer::TrivialCostModel()));
   optimizer::PropertySet property_set;
+
+  // Optimizer transforms annotated ParseResult to logical expressions (ephemeral Optimizer structure)
+  optimizer::QueryToOperatorTransformer transformer(accessor, context);
+  auto logical_exprs = transformer.ConvertToOpExpression(query->GetStatement(0), query.Get());
+
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output;
 
   // Build the QueryInfo object. For SELECTs this may require a bunch of other stuff from the original statement.

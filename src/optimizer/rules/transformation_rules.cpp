@@ -42,7 +42,7 @@ bool LogicalInnerJoinCommutativity::Check(common::ManagedPointer<OperatorNode> p
 
 void LogicalInnerJoinCommutativity::Transform(common::ManagedPointer<OperatorNode> input,
                                               std::vector<std::unique_ptr<OperatorNode>> *transformed,
-                                              UNUSED_ATTRIBUTE OptimizationContext *context) const {
+                                              OptimizationContext *context) const {
   auto join_op = input->GetOp().As<LogicalInnerJoin>();
   auto join_predicates = std::vector<AnnotatedExpression>(join_op->GetJoinPredicates());
 
@@ -56,7 +56,8 @@ void LogicalInnerJoinCommutativity::Transform(common::ManagedPointer<OperatorNod
   new_child.emplace_back(children[0]->Copy());
 
   auto result_plan =
-      std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates)), std::move(new_child));
+      std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates),
+          context->GetOptimizerContext()->GetNextPlanNodeID()), std::move(new_child));
   transformed->emplace_back(std::move(result_plan));
 }
 

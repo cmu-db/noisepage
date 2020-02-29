@@ -54,7 +54,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> AbstractPlanNode::FromJ
   std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
   TERRIER_ASSERT(GetPlanNodeType() == j.at("plan_node_type").get<PlanNodeType>(), "Mismatching plan node types");
 
-  plan_node_id_ = j.at("plan_node_id_").get<plan_node_id_t>();
+  plan_node_id_ = j.at("plan_node_id_").get<optimizer::plan_node_id_t>();
 
   // Deserialize output schema
   if (!j.at("output_schema").is_null()) {

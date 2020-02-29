@@ -41,7 +41,7 @@ bool RewritePushImplicitFilterThroughJoin::Check(common::ManagedPointer<Operator
 
 void RewritePushImplicitFilterThroughJoin::Transform(common::ManagedPointer<OperatorNode> input,
                                                      std::vector<std::unique_ptr<OperatorNode>> *transformed,
-                                                     UNUSED_ATTRIBUTE OptimizationContext *context) const {
+                                                     OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("RewritePushImplicitFilterThroughJoin::Transform");
 
   auto &memo = context->GetOptimizerContext()->GetMemo();
@@ -107,7 +107,8 @@ void RewritePushImplicitFilterThroughJoin::Transform(common::ManagedPointer<Oper
     std::vector<std::unique_ptr<OperatorNode>> c;
     c.emplace_back(std::move(left_branch));
     c.emplace_back(std::move(right_branch));
-    auto output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates)), std::move(c));
+    auto output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates),
+        context->GetOptimizerContext()->GetNextPlanNodeID()), std::move(c));
     transformed->emplace_back(std::move(output));
   }
 }
@@ -351,8 +352,9 @@ void RewriteEmbedFilterIntoGet::Transform(common::ManagedPointer<OperatorNode> i
   std::vector<std::unique_ptr<OperatorNode>> c;
   auto output =
       std::make_unique<OperatorNode>(LogicalGet::Make(get->GetDatabaseOid(), get->GetNamespaceOid(), get->GetTableOid(),
-                                     predicates, tbl_alias, get->GetIsForUpdate(), get->GetPlanNodeId()),
-                                     std::move(c), context->GetOptimizerContext()->GetNextPlanNodeID());
+                                     predicates, tbl_alias, get->GetIsForUpdate(),
+                                     context->GetOptimizerContext()->GetNextPlanNodeID()),
+                                     std::move(c));
   transformed->emplace_back(std::move(output));
 }
 

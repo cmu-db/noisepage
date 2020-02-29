@@ -63,6 +63,7 @@ class GroupBindingIterator : public BindingIterator {
    * @param memo Memo to be used
    * @param id ID of the Group for binding
    * @param pattern Pattern to bind
+   * @param context Optimizer Context
    */
   GroupBindingIterator(const Memo &memo, group_id_t id, Pattern *pattern, OptimizerContext *context)
       : BindingIterator(memo),
@@ -135,6 +136,7 @@ class GroupExprBindingIterator : public BindingIterator {
    * @param memo Memo to be used
    * @param gexpr GroupExpression to bind to
    * @param pattern Pattern to bind
+   * @param context Optimizer context
    */
   GroupExprBindingIterator(const Memo &memo, GroupExpression *gexpr, Pattern *pattern,
                            OptimizerContext *context);

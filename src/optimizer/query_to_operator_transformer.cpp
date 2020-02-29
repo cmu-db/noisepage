@@ -77,8 +77,9 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
     std::unique_ptr<OperatorNode> agg_expr;
     if (op->GetSelectGroupBy() == nullptr) {
       // TODO(boweic): aggregation without groupby could still have having clause
-      agg_expr = std::make_unique<OperatorNode>(LogicalAggregateAndGroupBy::Make(),
-                                                std::vector<std::unique_ptr<OperatorNode>>{});
+      agg_expr = std::make_unique<OperatorNode>(
+          LogicalAggregateAndGroupBy::Make(context_->GetNextPlanNodeID()),
+          std::vector<std::unique_ptr<OperatorNode>>{});
       agg_expr->PushChild(std::move(output_expr_));
       output_expr_ = std::move(agg_expr);
     } else {
@@ -87,7 +88,8 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
       for (size_t i = 0; i < num_group_by_cols; i++) {
         group_by_cols[i] = common::ManagedPointer<parser::AbstractExpression>(op->GetSelectGroupBy()->GetColumns()[i]);
       }
-      agg_expr = std::make_unique<OperatorNode>(LogicalAggregateAndGroupBy::Make(std::move(group_by_cols)),
+      agg_expr = std::make_unique<OperatorNode>(LogicalAggregateAndGroupBy::Make(std::move(group_by_cols),
+                                                context_->GetNextPlanNodeID()),
                                                 std::vector<std::unique_ptr<OperatorNode>>{});
       agg_expr->PushChild(std::move(output_expr_));
       output_expr_ = std::move(agg_expr);
@@ -116,7 +118,8 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
     std::vector<std::unique_ptr<OperatorNode>> c;
     c.emplace_back(std::move(output_expr_));
     output_expr_ =
-        std::make_unique<OperatorNode>(LogicalAggregateAndGroupBy::Make(std::move(group_by_cols)), std::move(c));
+        std::make_unique<OperatorNode>(LogicalAggregateAndGroupBy::Make(std::move(group_by_cols),
+                                       context_->GetNextPlanNodeID()), std::move(c));
   }
 
   if (op->GetSelectLimit() != nullptr && op->GetSelectLimit()->GetLimit() != -1) {
@@ -138,7 +141,7 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
     }
     auto limit_expr = std::make_unique<OperatorNode>(
         LogicalLimit::Make(op->GetSelectLimit()->GetOffset(), op->GetSelectLimit()->GetLimit(), std::move(sort_exprs),
-                           std::move(sort_direction)),
+                           std::move(sort_direction), context_->GetNextPlanNodeID()),
         std::vector<std::unique_ptr<OperatorNode>>{});
     limit_expr->PushChild(std::move(output_expr_));
     output_expr_ = std::move(limit_expr);
@@ -243,7 +246,8 @@ void QueryToOperatorTransformer::Visit(parser::TableRef *node, parser::ParseResu
       auto list_elem = node->GetList().at(i);
       list_elem->Accept(this, parse_result);
       auto join_expr =
-          std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::vector<std::unique_ptr<OperatorNode>>{});
+          std::make_unique<OperatorNode>(LogicalInnerJoin::Make(context_->GetNextPlanNodeID()),
+              std::vector<std::unique_ptr<OperatorNode>>{});
       join_expr->PushChild(std::move(prev_expr));
       join_expr->PushChild(std::move(output_expr_));
       TERRIER_ASSERT(join_expr->GetChildren().size() == 2, "The join expr should have exactly 2 elements");
