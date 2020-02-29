@@ -125,6 +125,10 @@ class MiniRunners : public benchmark::Fixture {
   static constexpr execution::query_id_t SORT_COL_1_QID = execution::query_id_t(15);
   static constexpr execution::query_id_t SORT_COL_4_QID = execution::query_id_t(16);
   static constexpr execution::query_id_t SORT_COL_8_QID = execution::query_id_t(17);
+  static constexpr execution::query_id_t UPDATE_COL_ALL_QID = execution::query_id_t(18);
+  static constexpr execution::query_id_t UPDATE_COL_1_QID = execution::query_id_t(19);
+  static constexpr execution::query_id_t UPDATE_COL_4_QID = execution::query_id_t(20);
+  static constexpr execution::query_id_t UPDATE_COL_8_QID = execution::query_id_t(21);
 
   const uint64_t optimizer_timeout_ = 1000000;
   const execution::vm::ExecutionMode mode_ = execution::vm::ExecutionMode::Interpret;
@@ -145,7 +149,7 @@ class MiniRunners : public benchmark::Fixture {
   }
 
   void BenchmarkSqlStatement(execution::query_id_t qid, const std::string &query,
-                             brain::PipelineOperatingUnits *units) {
+                             brain::PipelineOperatingUnits *units, bool commit) {
     auto txn = txn_manager_->BeginTransaction();
     auto stmt_list = parser::PostgresParser::BuildParseTree(query);
 
@@ -198,7 +202,8 @@ class MiniRunners : public benchmark::Fixture {
     exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(units));
     exec_query.Run(common::ManagedPointer(exec_ctx), mode_);
 
-    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    if (commit) txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    else txn_manager_->Abort(txn);
   }
 
   void BenchmarkArithmetic(brain::ExecutionOperatingUnitType type, size_t num_elem) {
@@ -329,12 +334,13 @@ BENCHMARK_DEFINE_F(MiniRunners, InsertRunners)(benchmark::State &state) {
 
     std::stringstream query;
     query << "INSERT INTO tmp_table VALUES ";
+
+    std::mt19937 generator{};
+    std::uniform_int_distribution<int> distribution(0, INT_MAX);
     for (uint32_t idx = 0; idx < num_rows; idx++) {
-      std::mt19937 generator{};
-      std::uniform_int_distribution<int> distribution(0, INT_MAX);
       query << "(";
       for (uint32_t i = 1; i < num_cols; i++) {
-        query << i;
+        query << distribution(generator);
         if (i != num_cols - 1) {
           query << ",";
         } else {
@@ -356,7 +362,7 @@ BENCHMARK_DEFINE_F(MiniRunners, InsertRunners)(benchmark::State &state) {
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       metrics_manager_->RegisterThread();
-      BenchmarkSqlStatement(BULK_INS_QID, query.str(), &units);
+      BenchmarkSqlStatement(BULK_INS_QID, query.str(), &units, true);
       metrics_manager_->Aggregate();
       metrics_manager_->UnregisterThread();
     }
@@ -376,9 +382,8 @@ BENCHMARK_DEFINE_F(MiniRunners, InsertRunners)(benchmark::State &state) {
 }
 
 /**
- * Arg: <0, 1>
+ * Arg: <0>
  * 0 - Number of rows to insert
- * 1 - query identifier
  */
 BENCHMARK_REGISTER_F(MiniRunners, InsertRunners)
     ->Unit(benchmark::kMillisecond)
@@ -388,6 +393,91 @@ BENCHMARK_REGISTER_F(MiniRunners, InsertRunners)
     ->Args({100})
     ->Args({10000})
     ->Args({100000});
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(MiniRunners, UpdateRunners)(benchmark::State &state) {
+  auto num_cols = state.range(0);
+  auto num_rows = state.range(1);
+
+  execution::query_id_t qid;
+  switch (num_cols) {
+    case 15:
+      qid = UPDATE_COL_ALL_QID;
+      break;
+    case 1:
+      qid = UPDATE_COL_1_QID;
+      break;
+    case 4:
+      qid = UPDATE_COL_4_QID;
+      break;
+    case 8:
+      qid = UPDATE_COL_8_QID;
+      break;
+    default:
+      UNREACHABLE("Unexpected number of columns for UpdateRunners");
+      break;
+  }
+
+  for (auto _ : state) {
+    // Create temporary table schema
+    std::stringstream query;
+    query << "UPDATE " << "INTEGERCol15Row" << num_rows << "Car1 SET ";
+    std::vector<catalog::Schema::Column> cols;
+    std::mt19937 generator{};
+    std::uniform_int_distribution<int> distribution(0, INT_MAX);
+    for (uint32_t j = 1; j <= num_cols; j++) {
+      query << "col" << j << " = " << distribution(generator);
+      if (j != num_cols) {
+        query << ", ";
+      }
+    }
+
+    brain::PipelineOperatingUnits units;
+    brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::UPDATE, num_rows, static_cast<double>(num_rows));
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, num_rows, static_cast<double>(num_rows));
+    units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
+
+    uint64_t elapsed_ms;
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      metrics_manager_->RegisterThread();
+      BenchmarkSqlStatement(qid, query.str(), &units, false);
+      metrics_manager_->Aggregate();
+      metrics_manager_->UnregisterThread();
+    }
+
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+  }
+
+  state.SetItemsProcessed(num_rows);
+}
+
+/**
+ * Arg: <0, 1>
+ * 0 - Number of columns to update
+ * 1 - Row number
+ */
+BENCHMARK_REGISTER_F(MiniRunners, UpdateRunners)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->Iterations(1)
+    ->Args({1, 1})
+    ->Args({4, 1})
+    ->Args({8, 1})
+    ->Args({15, 1})
+    ->Args({1, 100})
+    ->Args({4, 100})
+    ->Args({8, 100})
+    ->Args({15, 100})
+    ->Args({1, 10000})
+    ->Args({4, 10000})
+    ->Args({8, 10000})
+    ->Args({15, 10000})
+    ->Args({1, 1000000})
+    ->Args({4, 1000000})
+    ->Args({8, 1000000})
+    ->Args({15, 1000000});
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SeqScanRunners)(benchmark::State &state) {
@@ -432,7 +522,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SeqScanRunners)(benchmark::State &state) {
 
     std::stringstream tbl_name;
     tbl_name << "SELECT " << (cols.str()) << " FROM INTEGERCol15Row" << row << "Car" << car;
-    BenchmarkSqlStatement(qid, tbl_name.str(), &units);
+    BenchmarkSqlStatement(qid, tbl_name.str(), &units, true);
     metrics_manager_->Aggregate();
     metrics_manager_->UnregisterThread();
   }
@@ -554,7 +644,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SortRunners)(benchmark::State &state) {
     std::stringstream tbl_name;
     tbl_name << "SELECT " << (cols.str()) << " FROM INTEGERCol15Row" << row << "Car" << car << " ORDER BY " << (cols.str());
     std::cout << tbl_name.str() << "\n";
-    BenchmarkSqlStatement(qid, tbl_name.str(), &units);
+    BenchmarkSqlStatement(qid, tbl_name.str(), &units, true);
     metrics_manager_->Aggregate();
     metrics_manager_->UnregisterThread();
   }
