@@ -71,7 +71,6 @@ class NetworkTests : public TerrierTest {
 
     network_logger->set_level(spdlog::level::info);
     spdlog::flush_every(std::chrono::seconds(1));
-
     try {
       handle_factory_ = std::make_unique<ConnectionHandleFactory>(common::ManagedPointer(tcop_));
       server_ = std::make_unique<TerrierServer>(

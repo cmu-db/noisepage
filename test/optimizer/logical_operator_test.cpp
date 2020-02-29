@@ -81,7 +81,8 @@ TEST(OperatorTests, LogicalInsertTest) {
   EXPECT_DEATH(LogicalInsert::Make(
                    database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
                    common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(
-                       bad_values)),
+                       bad_values),
+                   context.GetNextPlanNodeID()),
                "Mismatched");
   for (auto entry : bad_raw_values) delete entry;
   delete bad_values;
@@ -1195,11 +1196,11 @@ TEST(OperatorTests, LogicalCreateFunctionTest) {
   EXPECT_NE(op1.Hash(), op11.Hash());
 
 #ifndef NDEBUG
-  EXPECT_DEATH(
-      LogicalCreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C,
-                                  {}, {"param", "PARAM"}, {parser::BaseFunctionParameter::DataType::INTEGER},
-                                  parser::BaseFunctionParameter::DataType::BOOLEAN, 1, true),
-      "Mismatched");
+  EXPECT_DEATH(LogicalCreateFunction::Make(
+                   catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {},
+                   {"param", "PARAM"}, {parser::BaseFunctionParameter::DataType::INTEGER},
+                   parser::BaseFunctionParameter::DataType::BOOLEAN, 1, true, context.GetNextPlanNodeID()),
+               "Mismatched");
 #endif
 }
 
@@ -1287,10 +1288,9 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
   EXPECT_FALSE(op1 == op8);
   EXPECT_NE(op1.Hash(), op8.Hash());
 
-  Operator op9 = LogicalCreateTrigger::Make(
-      catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1), "Trigger_1",
-      {"func_name", "func_name"}, {"func_arg", "func_arg"}, {catalog::col_oid_t(1)},
-      common::ManagedPointer<parser::AbstractExpression>(when), 0, context.GetNextPlanNodeID());
+  Operator op9 = LogicalCreateIndex::Make(
+      catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true, "index_2",
+      std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op9);
   EXPECT_NE(op1.Hash(), op9.Hash());
 
@@ -1308,8 +1308,10 @@ TEST(OperatorTests, LogicalCreateTableTest) {
                                    common::ManagedPointer<parser::AbstractExpression>(
                                        new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9))),
                                    nullptr, 4);
-  OptimizerContext context = optimizer::OptimizerContext(
-      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto *cost_model = new optimizer::TrivialCostModel();
+  OptimizerContext context =
+      optimizer::OptimizerContext(common::ManagedPointer<optimizer::AbstractCostModel>(cost_model));
+
   Operator op1 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_1",
                                           std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
                                               common::ManagedPointer<parser::ColumnDefinition>(col_def)},
@@ -1379,9 +1381,12 @@ TEST(OperatorTests, LogicalCreateTableTest) {
   auto foreign_def =
       new parser::ColumnDefinition({"foreign_col_1"}, {"col_1"}, "foreign", parser::FKConstrActionType::SETNULL,
                                    parser::FKConstrActionType::CASCADE, parser::FKConstrMatchType::FULL);
-  Operator op8 = LogicalCreateFunction::Make(
-      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {}, {},
-      parser::BaseFunctionParameter::DataType::BOOLEAN, 0, false, context.GetNextPlanNodeID());
+  Operator op8 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_1",
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
+                                              common::ManagedPointer<parser::ColumnDefinition>(col_def)},
+                                          std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
+                                              common::ManagedPointer<parser::ColumnDefinition>(foreign_def)},
+                                          context.GetNextPlanNodeID());
   EXPECT_FALSE(op1 == op8);
   EXPECT_NE(op1.Hash(), op8.Hash());
   EXPECT_EQ(op8.As<LogicalCreateTable>()->GetForeignKeys().size(), 1);
@@ -1392,6 +1397,7 @@ TEST(OperatorTests, LogicalCreateTableTest) {
   delete col_def_2->GetDefaultExpression().Get();
   delete col_def_2;
   delete foreign_def;
+  delete cost_model;
 }
 
 // NOLINTNEXTLINE

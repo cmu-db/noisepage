@@ -24,12 +24,13 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(
     const common::ManagedPointer<optimizer::StatsStorage> stats_storage, const uint64_t optimizer_timeout) {
   // TODO(Matt): is the cost model to use going to become an arg to this function eventually?
   optimizer::Optimizer optimizer(std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout);
-  optimizer::OptimizerContext *context = new optimizer::OptimizerContext(
-      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  optimizer::TrivialCostModel *cost_model = new optimizer::TrivialCostModel();
+  optimizer::OptimizerContext context =
+      optimizer::OptimizerContext(common::ManagedPointer<optimizer::AbstractCostModel>(cost_model));
   optimizer::PropertySet property_set;
 
   // Optimizer transforms annotated ParseResult to logical expressions (ephemeral Optimizer structure)
-  optimizer::QueryToOperatorTransformer transformer(accessor, context);
+  optimizer::QueryToOperatorTransformer transformer(accessor, &context);
   auto logical_exprs = transformer.ConvertToOpExpression(query->GetStatement(0), query.Get());
 
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output;
@@ -65,9 +66,12 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(
 
   auto query_info = optimizer::QueryInfo(type, std::move(output), &property_set);
   // TODO(Matt): QueryInfo holding a raw pointer to PropertySet obfuscates the required life cycle of PropertySet
-
   // Optimize, consuming the logical expressions in the process
-  return optimizer.BuildPlanTree(txn.Get(), accessor.Get(), stats_storage.Get(), query_info, std::move(logical_exprs));
+  auto plan_tree =
+      optimizer.BuildPlanTree(txn.Get(), accessor.Get(), stats_storage.Get(), query_info, std::move(logical_exprs));
+
+  delete cost_model;
+  return plan_tree;
   // TODO(Matt): I see a lot of copying going on in the Optimizer that maybe shouldn't be happening. BuildPlanTree's
   // signature is copying QueryInfo object (contains a vector of output columns), which then immediately makes a local
   // copy of that vector anyway. Presumably those are immutable expressions, in which case they should be const & to the
