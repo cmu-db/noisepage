@@ -129,6 +129,10 @@ class MiniRunners : public benchmark::Fixture {
   static constexpr execution::query_id_t UPDATE_COL_1_QID = execution::query_id_t(19);
   static constexpr execution::query_id_t UPDATE_COL_4_QID = execution::query_id_t(20);
   static constexpr execution::query_id_t UPDATE_COL_8_QID = execution::query_id_t(21);
+  static constexpr execution::query_id_t AGG_COL_ALL_QID = execution::query_id_t(22);
+  static constexpr execution::query_id_t AGG_COL_1_QID = execution::query_id_t(23);
+  static constexpr execution::query_id_t AGG_COL_4_QID = execution::query_id_t(24);
+  static constexpr execution::query_id_t AGG_COL_8_QID = execution::query_id_t(25);
 
   const uint64_t optimizer_timeout_ = 1000000;
   const execution::vm::ExecutionMode mode_ = execution::vm::ExecutionMode::Interpret;
@@ -643,7 +647,6 @@ BENCHMARK_DEFINE_F(MiniRunners, SortRunners)(benchmark::State &state) {
 
     std::stringstream tbl_name;
     tbl_name << "SELECT " << (cols.str()) << " FROM INTEGERCol15Row" << row << "Car" << car << " ORDER BY " << (cols.str());
-    std::cout << tbl_name.str() << "\n";
     BenchmarkSqlStatement(qid, tbl_name.str(), &units, true);
     metrics_manager_->Aggregate();
     metrics_manager_->UnregisterThread();
@@ -659,6 +662,129 @@ BENCHMARK_DEFINE_F(MiniRunners, SortRunners)(benchmark::State &state) {
  * 2 - Cardinality
  */
 BENCHMARK_REGISTER_F(MiniRunners, SortRunners)
+    ->Unit(benchmark::kMillisecond)
+    ->Iterations(1)
+    ->Args({0, 10, 1})
+    ->Args({0, 10, 2})
+    ->Args({0, 10, 8})
+    ->Args({0, 100, 16})
+    ->Args({0, 100, 32})
+    ->Args({0, 100, 64})
+    ->Args({0, 10000, 128})
+    ->Args({0, 10000, 1024})
+    ->Args({0, 10000, 4096})
+    ->Args({0, 10000, 8192})
+    ->Args({0, 1000000, 1024})
+    ->Args({0, 1000000, 16384})
+    ->Args({0, 1000000, 131072})
+    ->Args({0, 1000000, 524288})
+    ->Args({1, 10, 1})
+    ->Args({1, 10, 2})
+    ->Args({1, 10, 8})
+    ->Args({1, 100, 16})
+    ->Args({1, 100, 32})
+    ->Args({1, 100, 64})
+    ->Args({1, 10000, 128})
+    ->Args({1, 10000, 1024})
+    ->Args({1, 10000, 4096})
+    ->Args({1, 10000, 8192})
+    ->Args({1, 1000000, 1024})
+    ->Args({1, 1000000, 16384})
+    ->Args({1, 1000000, 131072})
+    ->Args({1, 1000000, 524288})
+    ->Args({4, 10, 1})
+    ->Args({4, 10, 2})
+    ->Args({4, 10, 8})
+    ->Args({4, 100, 16})
+    ->Args({4, 100, 32})
+    ->Args({4, 100, 64})
+    ->Args({4, 10000, 128})
+    ->Args({4, 10000, 1024})
+    ->Args({4, 10000, 4096})
+    ->Args({4, 10000, 8192})
+    ->Args({4, 1000000, 1024})
+    ->Args({4, 1000000, 16384})
+    ->Args({4, 1000000, 131072})
+    ->Args({4, 1000000, 524288})
+    ->Args({8, 10, 1})
+    ->Args({8, 10, 2})
+    ->Args({8, 10, 8})
+    ->Args({8, 100, 16})
+    ->Args({8, 100, 32})
+    ->Args({8, 100, 64})
+    ->Args({8, 10000, 128})
+    ->Args({8, 10000, 1024})
+    ->Args({8, 10000, 4096})
+    ->Args({8, 10000, 8192})
+    ->Args({8, 1000000, 1024})
+    ->Args({8, 1000000, 16384})
+    ->Args({8, 1000000, 131072})
+    ->Args({8, 1000000, 524288});
+*/
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(MiniRunners, AggregateRunners)(benchmark::State &state) {
+  auto num_col = state.range(0);
+  auto row = state.range(1);
+  auto car = state.range(2);
+  for (auto _ : state) {
+    metrics_manager_->RegisterThread();
+
+    execution::query_id_t qid;
+    switch (num_col) {
+      case 0:
+        qid = AGG_COL_ALL_QID;
+        break;
+      case 1:
+        qid = AGG_COL_1_QID;
+        break;
+      case 4:
+        qid = AGG_COL_4_QID;
+        break;
+      case 8:
+        qid = AGG_COL_8_QID;
+        break;
+      default:
+        UNREACHABLE("Unexpected number of columns for Aggregate");
+        break;
+    }
+
+    brain::PipelineOperatingUnits units;
+    brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
+    brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, static_cast<double>(car));
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, row, static_cast<double>(car));
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE, car, static_cast<double>(car));
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, car, static_cast<double>(car));
+    units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
+    units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
+
+    std::stringstream query;
+    query << "SELECT COUNT(*) FROM INTEGERCol15Row" << row << "Car" << car << " GROUP BY ";;
+    if (num_col == 0) num_col = 15;
+    for (auto i = 1; i <= num_col; i++) {
+      query << "col15";
+      if (i != num_col) {
+        query << ", ";
+      }
+    }
+
+    std::cout << query.str() << "\n";
+    BenchmarkSqlStatement(qid, query.str(), &units, true);
+    metrics_manager_->Aggregate();
+    metrics_manager_->UnregisterThread();
+  }
+
+  state.SetItemsProcessed(row);
+}
+
+/**
+ * Arg: <0, 1, 2>
+ * 0 - Number of columns to select (0 for all)
+ * 1 - Number of rows
+ * 2 - Cardinality
+ */
+BENCHMARK_REGISTER_F(MiniRunners, AggregateRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
     ->Args({0, 10, 1})
