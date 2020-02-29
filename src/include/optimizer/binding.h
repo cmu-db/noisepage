@@ -138,8 +138,7 @@ class GroupExprBindingIterator : public BindingIterator {
    * @param pattern Pattern to bind
    * @param context Optimizer context
    */
-  GroupExprBindingIterator(const Memo &memo, GroupExpression *gexpr, Pattern *pattern,
-                           OptimizerContext *context);
+  GroupExprBindingIterator(const Memo &memo, GroupExpression *gexpr, Pattern *pattern, OptimizerContext *context);
 
   /**
    * Virtual function for whether a binding exists

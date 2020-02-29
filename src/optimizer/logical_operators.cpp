@@ -349,8 +349,7 @@ common::hash_t LogicalLimit::Hash() const {
 BaseOperatorNodeContents *LogicalDelete::Copy() const { return new LogicalDelete(*this); }
 
 Operator LogicalDelete::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                             std::string table_alias, catalog::table_oid_t table_oid,
-                             plan_node_id_t plan_node_id) {
+                             std::string table_alias, catalog::table_oid_t table_oid, plan_node_id_t plan_node_id) {
   auto op = std::make_unique<LogicalDelete>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -472,8 +471,7 @@ Operator LogicalDependentJoin::Make(plan_node_id_t plan_node_id) {
   return Operator(std::move(join));
 }
 
-Operator LogicalDependentJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
-                                    plan_node_id_t plan_node_id) {
+Operator LogicalDependentJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, plan_node_id_t plan_node_id) {
   auto join = std::make_unique<LogicalDependentJoin>();
   join->join_predicates_ = std::move(join_predicates);
   join->plan_node_id_ = plan_node_id;
@@ -584,8 +582,7 @@ Operator LogicalInnerJoin::Make(plan_node_id_t plan_node_id) {
   return Operator(std::move(join));
 }
 
-Operator LogicalInnerJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
-                                plan_node_id_t plan_node_id) {
+Operator LogicalInnerJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, plan_node_id_t plan_node_id) {
   auto join = std::make_unique<LogicalInnerJoin>();
   join->join_predicates_ = join_predicates;
   join->plan_node_id_ = plan_node_id;
@@ -622,8 +619,7 @@ Operator LogicalLeftJoin::Make(plan_node_id_t plan_node_id) {
   return Operator(std::move(join));
 }
 
-Operator LogicalLeftJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
-                               plan_node_id_t plan_node_id) {
+Operator LogicalLeftJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, plan_node_id_t plan_node_id) {
   auto join = std::make_unique<LogicalLeftJoin>();
   join->join_predicates_ = join_predicates;
   join->plan_node_id_ = plan_node_id;
@@ -660,8 +656,7 @@ Operator LogicalRightJoin::Make(plan_node_id_t plan_node_id) {
   return Operator(std::move(join));
 }
 
-Operator LogicalRightJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
-                                plan_node_id_t plan_node_id) {
+Operator LogicalRightJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, plan_node_id_t plan_node_id) {
   auto join = std::make_unique<LogicalRightJoin>();
   join->join_predicates_ = join_predicates;
   join->plan_node_id_ = plan_node_id;
@@ -698,8 +693,7 @@ Operator LogicalOuterJoin::Make(plan_node_id_t plan_node_id) {
   return Operator(std::move(join));
 }
 
-Operator LogicalOuterJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
-                                plan_node_id_t plan_node_id) {
+Operator LogicalOuterJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, plan_node_id_t plan_node_id) {
   auto join = std::make_unique<LogicalOuterJoin>();
   join->join_predicates_ = join_predicates;
   join->plan_node_id_ = plan_node_id;
@@ -736,8 +730,7 @@ Operator LogicalSemiJoin::Make(plan_node_id_t plan_node_id) {
   return Operator(std::move(join));
 }
 
-Operator LogicalSemiJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
-                               plan_node_id_t plan_node_id) {
+Operator LogicalSemiJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, plan_node_id_t plan_node_id) {
   auto join = std::make_unique<LogicalSemiJoin>();
   join->join_predicates_ = join_predicates;
   join->plan_node_id_ = plan_node_id;

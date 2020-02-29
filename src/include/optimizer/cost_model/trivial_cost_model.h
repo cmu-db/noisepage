@@ -209,7 +209,7 @@ class TrivialCostModel : public AbstractCostModel {
    */
   double output_cost_ = 0;
 
-  std::unordered_map<plan_node_id_t ,double> output_cardinalities_;
+  std::unordered_map<plan_node_id_t, double> output_cardinalities_;
 };
 
 }  // namespace optimizer

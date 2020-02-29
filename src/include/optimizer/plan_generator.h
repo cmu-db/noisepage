@@ -390,7 +390,7 @@ class PlanGenerator : public OperatorVisitor {
   /**
    * Plan Node ID
    */
-   plan_node_id_t plan_node_id_;
+  plan_node_id_t plan_node_id_;
 };
 
 }  // namespace optimizer

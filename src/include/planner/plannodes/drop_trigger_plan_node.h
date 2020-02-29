@@ -68,8 +68,9 @@ class DropTriggerPlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::unique_ptr<DropTriggerPlanNode> Build() {
-      return std::unique_ptr<DropTriggerPlanNode>(new DropTriggerPlanNode(
-          std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, trigger_oid_, if_exists_, plan_node_id_));
+      return std::unique_ptr<DropTriggerPlanNode>(
+          new DropTriggerPlanNode(std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_,
+                                  trigger_oid_, if_exists_, plan_node_id_));
     }
 
    protected:

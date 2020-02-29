@@ -126,7 +126,7 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
       return std::unique_ptr<CreateFunctionPlanNode>(new CreateFunctionPlanNode(
           std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, language_,
           std::move(function_param_names_), std::move(function_param_types_), std::move(function_body_), is_replace_,
-          std::move(function_name_), return_type_, param_count_,plan_node_id_));
+          std::move(function_name_), return_type_, param_count_, plan_node_id_));
     }
 
    protected:

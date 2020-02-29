@@ -84,8 +84,9 @@ void RewritePushImplicitFilterThroughJoin::Transform(common::ManagedPointer<Oper
     std::vector<std::unique_ptr<OperatorNode>> c;
     auto left_child = join_op_expr->GetChildren()[0]->Copy();
     c.emplace_back(std::move(left_child));
-    left_branch = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(left_predicates),
-                                                context->GetOptimizerContext()->GetNextPlanNodeID()), std::move(c));
+    left_branch = std::make_unique<OperatorNode>(
+        LogicalFilter::Make(std::move(left_predicates), context->GetOptimizerContext()->GetNextPlanNodeID()),
+        std::move(c));
   } else {
     left_branch = join_op_expr->GetChildren()[0]->Copy();
   }
@@ -96,8 +97,9 @@ void RewritePushImplicitFilterThroughJoin::Transform(common::ManagedPointer<Oper
     std::vector<std::unique_ptr<OperatorNode>> c;
     auto right_child = join_op_expr->GetChildren()[1]->Copy();
     c.emplace_back(std::move(right_child));
-    right_branch = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(right_predicates),
-                   context->GetOptimizerContext()->GetNextPlanNodeID()), std::move(c));
+    right_branch = std::make_unique<OperatorNode>(
+        LogicalFilter::Make(std::move(right_predicates), context->GetOptimizerContext()->GetNextPlanNodeID()),
+        std::move(c));
   } else {
     right_branch = join_op_expr->GetChildren()[1]->Copy();
   }
@@ -107,8 +109,9 @@ void RewritePushImplicitFilterThroughJoin::Transform(common::ManagedPointer<Oper
     std::vector<std::unique_ptr<OperatorNode>> c;
     c.emplace_back(std::move(left_branch));
     c.emplace_back(std::move(right_branch));
-    auto output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates),
-        context->GetOptimizerContext()->GetNextPlanNodeID()), std::move(c));
+    auto output = std::make_unique<OperatorNode>(
+        LogicalInnerJoin::Make(std::move(join_predicates), context->GetOptimizerContext()->GetNextPlanNodeID()),
+        std::move(c));
     transformed->emplace_back(std::move(output));
   }
 }
@@ -188,8 +191,9 @@ void RewritePushExplicitFilterThroughJoin::Transform(common::ManagedPointer<Oper
     std::vector<std::unique_ptr<OperatorNode>> c;
     auto left_child = join_op_expr->GetChildren()[0]->Copy();
     c.emplace_back(std::move(left_child));
-    left_branch = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(left_predicates),
-                  context->GetOptimizerContext()->GetNextPlanNodeID()), std::move(c));
+    left_branch = std::make_unique<OperatorNode>(
+        LogicalFilter::Make(std::move(left_predicates), context->GetOptimizerContext()->GetNextPlanNodeID()),
+        std::move(c));
   } else {
     left_branch = join_op_expr->GetChildren()[0]->Copy();
   }
@@ -199,8 +203,9 @@ void RewritePushExplicitFilterThroughJoin::Transform(common::ManagedPointer<Oper
     std::vector<std::unique_ptr<OperatorNode>> c;
     auto right_child = join_op_expr->GetChildren()[1]->Copy();
     c.emplace_back(std::move(right_child));
-    right_branch = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(right_predicates),
-                   context->GetOptimizerContext()->GetNextPlanNodeID()), std::move(c));
+    right_branch = std::make_unique<OperatorNode>(
+        LogicalFilter::Make(std::move(right_predicates), context->GetOptimizerContext()->GetNextPlanNodeID()),
+        std::move(c));
   } else {
     right_branch = join_op_expr->GetChildren()[1]->Copy();
   }
@@ -208,8 +213,9 @@ void RewritePushExplicitFilterThroughJoin::Transform(common::ManagedPointer<Oper
   std::vector<std::unique_ptr<OperatorNode>> c;
   c.emplace_back(std::move(left_branch));
   c.emplace_back(std::move(right_branch));
-  auto output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates),
-                context->GetOptimizerContext()->GetNextPlanNodeID()), std::move(c));
+  auto output = std::make_unique<OperatorNode>(
+      LogicalInnerJoin::Make(std::move(join_predicates), context->GetOptimizerContext()->GetNextPlanNodeID()),
+      std::move(c));
   transformed->emplace_back(std::move(output));
 }
 
@@ -271,8 +277,9 @@ void RewritePushFilterThroughAggregation::Transform(common::ManagedPointer<Opera
   if (!pushdown_predicates.empty()) {
     std::vector<std::unique_ptr<OperatorNode>> c;
     c.emplace_back(std::move(leaf));
-    pushdown = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(pushdown_predicates),
-               context->GetOptimizerContext()->GetNextPlanNodeID()), std::move(c));
+    pushdown = std::make_unique<OperatorNode>(
+        LogicalFilter::Make(std::move(pushdown_predicates), context->GetOptimizerContext()->GetNextPlanNodeID()),
+        std::move(c));
   }
 
   std::vector<common::ManagedPointer<parser::AbstractExpression>> cols = aggregation_op->GetColumns();
@@ -285,7 +292,8 @@ void RewritePushFilterThroughAggregation::Transform(common::ManagedPointer<Opera
 
   auto output = std::make_unique<OperatorNode>(
       LogicalAggregateAndGroupBy::Make(std::move(cols), std::move(embedded_predicates),
-                                       context->GetOptimizerContext()->GetNextPlanNodeID()), std::move(c));
+                                       context->GetOptimizerContext()->GetNextPlanNodeID()),
+      std::move(c));
   transformed->emplace_back(std::move(output));
 }
 
@@ -320,8 +328,9 @@ void RewriteCombineConsecutiveFilter::Transform(common::ManagedPointer<OperatorN
   std::vector<std::unique_ptr<OperatorNode>> c;
   auto child = child_filter->GetChildren()[0]->Copy();
   c.emplace_back(std::move(child));
-  auto output = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(root_predicates),
-      context->GetOptimizerContext()->GetNextPlanNodeID()), std::move(c));
+  auto output = std::make_unique<OperatorNode>(
+      LogicalFilter::Make(std::move(root_predicates), context->GetOptimizerContext()->GetNextPlanNodeID()),
+      std::move(c));
   transformed->emplace_back(std::move(output));
 }
 
@@ -350,11 +359,10 @@ void RewriteEmbedFilterIntoGet::Transform(common::ManagedPointer<OperatorNode> i
   std::string tbl_alias = std::string(get->GetTableAlias());
   std::vector<AnnotatedExpression> predicates = input->GetOp().As<LogicalFilter>()->GetPredicates();
   std::vector<std::unique_ptr<OperatorNode>> c;
-  auto output =
-      std::make_unique<OperatorNode>(LogicalGet::Make(get->GetDatabaseOid(), get->GetNamespaceOid(), get->GetTableOid(),
-                                     predicates, tbl_alias, get->GetIsForUpdate(),
-                                     context->GetOptimizerContext()->GetNextPlanNodeID()),
-                                     std::move(c));
+  auto output = std::make_unique<OperatorNode>(
+      LogicalGet::Make(get->GetDatabaseOid(), get->GetNamespaceOid(), get->GetTableOid(), predicates, tbl_alias,
+                       get->GetIsForUpdate(), context->GetOptimizerContext()->GetNextPlanNodeID()),
+      std::move(c));
   transformed->emplace_back(std::move(output));
 }
 
@@ -481,8 +489,9 @@ void RewritePullFilterThroughAggregation::Transform(common::ManagedPointer<Opera
   if (!normal_predicates.empty()) {
     std::vector<std::unique_ptr<OperatorNode>> c;
     c.emplace_back(std::move(aggr_child));
-    aggr_child = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(normal_predicates),
-                 context->GetOptimizerContext()->GetNextPlanNodeID()), std::move(c));
+    aggr_child = std::make_unique<OperatorNode>(
+        LogicalFilter::Make(std::move(normal_predicates), context->GetOptimizerContext()->GetNextPlanNodeID()),
+        std::move(c));
   }
 
   std::vector<std::unique_ptr<OperatorNode>> c;
@@ -491,12 +500,14 @@ void RewritePullFilterThroughAggregation::Transform(common::ManagedPointer<Opera
   std::vector<AnnotatedExpression> new_having = aggregation->GetHaving();
   auto new_aggr = std::make_unique<OperatorNode>(
       LogicalAggregateAndGroupBy::Make(std::move(new_groupby_cols), std::move(new_having),
-                                       context->GetOptimizerContext()->GetNextPlanNodeID()), std::move(c));
+                                       context->GetOptimizerContext()->GetNextPlanNodeID()),
+      std::move(c));
 
   std::vector<std::unique_ptr<OperatorNode>> ca;
   ca.emplace_back(std::move(new_aggr));
-  auto output = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(correlated_predicates),
-                context->GetOptimizerContext()->GetNextPlanNodeID()), std::move(ca));
+  auto output = std::make_unique<OperatorNode>(
+      LogicalFilter::Make(std::move(correlated_predicates), context->GetOptimizerContext()->GetNextPlanNodeID()),
+      std::move(ca));
   transformed->emplace_back(std::move(output));
 }
 

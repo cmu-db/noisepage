@@ -333,7 +333,7 @@ class LogicalFilter : public OperatorNodeContents<LogicalFilter> {
 class LogicalProjection : public OperatorNodeContents<LogicalProjection> {
  public:
   /**
-   * @param expressions list of AbstractExpressions in the projection list.
+   * @param expression list of AbstractExpressions in the projection list.
    * @param plan_node_id plan node id
    * @return a LogicalProjection operator
    */
@@ -378,8 +378,7 @@ class LogicalDependentJoin : public OperatorNodeContents<LogicalDependentJoin> {
    * @param plan_node_id plan node id
    * @return a DependentJoin operator
    */
-  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates
-                       , plan_node_id_t plan_node_id);
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates, plan_node_id_t plan_node_id);
 
   /**
    * Copy
@@ -900,8 +899,7 @@ class LogicalLimit : public OperatorNodeContents<LogicalLimit> {
    */
   static Operator Make(size_t offset, size_t limit,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
-                       std::vector<optimizer::OrderByOrderingType> &&sort_directions,
-                       plan_node_id_t plan_node_id);
+                       std::vector<optimizer::OrderByOrderingType> &&sort_directions, plan_node_id_t plan_node_id);
 
   /**
    * Copy

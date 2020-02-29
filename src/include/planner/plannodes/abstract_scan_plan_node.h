@@ -22,9 +22,9 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   class Builder : public AbstractPlanNode::Builder<ConcreteType> {
    public:
     /**
-      * @param predicate predicate to use for scan
-      * @return builder object
-      */
+     * @param predicate predicate to use for scan
+     * @return builder object
+     */
     ConcreteType &SetScanPredicate(common::ManagedPointer<parser::AbstractExpression> predicate) {
       scan_predicate_ = predicate;
       return *dynamic_cast<ConcreteType *>(this);

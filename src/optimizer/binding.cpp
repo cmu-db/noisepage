@@ -54,7 +54,11 @@ std::unique_ptr<OperatorNode> GroupBindingIterator::Next() {
 
 GroupExprBindingIterator::GroupExprBindingIterator(const Memo &memo, GroupExpression *gexpr, Pattern *pattern,
                                                    OptimizerContext *context)
-    : BindingIterator(memo), gexpr_(gexpr), first_(true), has_next_(false), current_binding_(nullptr),
+    : BindingIterator(memo),
+      gexpr_(gexpr),
+      first_(true),
+      has_next_(false),
+      current_binding_(nullptr),
       context_(context) {
   if (gexpr->Op().GetType() != pattern->Type()) {
     // Check root node type

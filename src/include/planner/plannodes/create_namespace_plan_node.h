@@ -42,9 +42,8 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::unique_ptr<CreateNamespacePlanNode> Build() {
-      return std::unique_ptr<CreateNamespacePlanNode>(
-          new CreateNamespacePlanNode(std::move(children_), std::move(output_schema_), std::move(namespace_name_),
-                                      plan_node_id_));
+      return std::unique_ptr<CreateNamespacePlanNode>(new CreateNamespacePlanNode(
+          std::move(children_), std::move(output_schema_), std::move(namespace_name_), plan_node_id_));
     }
 
    protected:
@@ -62,9 +61,10 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
    * @param namespace_name name of the namespace
    */
   CreateNamespacePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                          std::unique_ptr<OutputSchema> output_schema, std::string namespace_name, optimizer::plan_node_id_t plan_node_id)
+                          std::unique_ptr<OutputSchema> output_schema, std::string namespace_name,
+                          optimizer::plan_node_id_t plan_node_id)
       : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
-      namespace_name_(std::move(namespace_name)) {}
+        namespace_name_(std::move(namespace_name)) {}
 
  public:
   /**

@@ -220,9 +220,7 @@ class OptimizerContext {
   /**
    * @returns the next plan node id and increase the counter
    */
-  plan_node_id_t GetNextPlanNodeID() {
-    return plan_id_counter_++;
-  }
+  plan_node_id_t GetNextPlanNodeID() { return plan_id_counter_++; }
 
  private:
   Memo memo_;

@@ -18,22 +18,22 @@ class Memo;
  * Including cost and cardinalities of all plan nodes
  */
 struct CostModelEstimate {
-  /*
+  /**
    * Cost of a plan
    */
   double cost_;
-  /*
+  /**
    * Mapping from plan node id to cost value
    */
-  std::unordered_map<plan_node_id_t ,double> cardinalities_;
+  std::unordered_map<plan_node_id_t, double> cardinalities_;
 
   /**
    * CostModelEstimate Constructor
    * @param cost Cost value
    * @param cardinalities Mapping from plan node id to cost value
    */
-  CostModelEstimate(double cost, const std::unordered_map<plan_node_id_t ,double> &cardinalities)
-                  :cost_(cost), cardinalities_(cardinalities) {}
+  CostModelEstimate(double cost, const std::unordered_map<plan_node_id_t, double> &cardinalities)
+      : cost_(cost), cardinalities_(cardinalities) {}
 };
 /**
  * Interface defining a cost model.

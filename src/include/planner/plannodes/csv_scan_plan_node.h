@@ -75,10 +75,9 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
      * @return plan node
      */
     std::unique_ptr<CSVScanPlanNode> Build() {
-      return std::unique_ptr<CSVScanPlanNode>(
-          new CSVScanPlanNode(std::move(children_), std::move(output_schema_), nullptr /* predicate */, is_for_update_,
-                              database_oid_, namespace_oid_, file_name_, delimiter_, quote_, escape_, value_types_,
-                              plan_node_id_));
+      return std::unique_ptr<CSVScanPlanNode>(new CSVScanPlanNode(
+          std::move(children_), std::move(output_schema_), nullptr /* predicate */, is_for_update_, database_oid_,
+          namespace_oid_, file_name_, delimiter_, quote_, escape_, value_types_, plan_node_id_));
     }
 
    protected:

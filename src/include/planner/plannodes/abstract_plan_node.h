@@ -50,7 +50,7 @@ class AbstractPlanNode {
     }
 
     /**
-     * @param plan node id for plan node
+     * @param plan_node_id for plan node
      * @return builder object
      */
     ConcreteType &SetPlanNodeId(optimizer::plan_node_id_t plan_node_id) {
@@ -70,7 +70,7 @@ class AbstractPlanNode {
     /**
      * plan node id
      */
-    optimizer::plan_node_id_t  plan_node_id_;
+    optimizer::plan_node_id_t plan_node_id_;
   };
 
   /**

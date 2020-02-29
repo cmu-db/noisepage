@@ -80,10 +80,9 @@ class AggregatePlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::unique_ptr<AggregatePlanNode> Build() {
-      return std::unique_ptr<AggregatePlanNode>(
-          new AggregatePlanNode(std::move(children_), std::move(output_schema_), std::move(groupby_terms_),
-                                having_clause_predicate_, std::move(aggregate_terms_), aggregate_strategy_,
-                                plan_node_id_));
+      return std::unique_ptr<AggregatePlanNode>(new AggregatePlanNode(
+          std::move(children_), std::move(output_schema_), std::move(groupby_terms_), having_clause_predicate_,
+          std::move(aggregate_terms_), aggregate_strategy_, plan_node_id_));
     }
 
    protected:

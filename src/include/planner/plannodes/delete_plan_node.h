@@ -64,8 +64,8 @@ class DeletePlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::unique_ptr<DeletePlanNode> Build() {
-      return std::unique_ptr<DeletePlanNode>(new DeletePlanNode(std::move(children_), std::move(output_schema_),
-                                                                database_oid_, namespace_oid_, table_oid_, plan_node_id_));
+      return std::unique_ptr<DeletePlanNode>(new DeletePlanNode(
+          std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, table_oid_, plan_node_id_));
     }
 
    protected:

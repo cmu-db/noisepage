@@ -24,8 +24,8 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(
     const common::ManagedPointer<optimizer::StatsStorage> stats_storage, const uint64_t optimizer_timeout) {
   // TODO(Matt): is the cost model to use going to become an arg to this function eventually?
   optimizer::Optimizer optimizer(std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout);
-  optimizer::OptimizerContext *context = new optimizer::OptimizerContext(common::ManagedPointer<optimizer::AbstractCostModel>
-      (new optimizer::TrivialCostModel()));
+  optimizer::OptimizerContext *context = new optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
   optimizer::PropertySet property_set;
 
   // Optimizer transforms annotated ParseResult to logical expressions (ephemeral Optimizer structure)

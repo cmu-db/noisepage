@@ -83,9 +83,8 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::unique_ptr<ExportExternalFilePlanNode> Build() {
-      return std::unique_ptr<ExportExternalFilePlanNode>(
-          new ExportExternalFilePlanNode(std::move(children_), format_, file_name_, delimiter_, quote_, escape_,
-          plan_node_id_));
+      return std::unique_ptr<ExportExternalFilePlanNode>(new ExportExternalFilePlanNode(
+          std::move(children_), format_, file_name_, delimiter_, quote_, escape_, plan_node_id_));
     }
 
    protected:

@@ -19,7 +19,8 @@ class OperatorVisitor;
  */
 class BaseOperatorNodeContents {
  private:
-  explicit BaseOperatorNodeContents(plan_node_id_t plan_node_id):plan_node_id_(plan_node_id) {}
+  explicit BaseOperatorNodeContents(plan_node_id_t plan_node_id) : plan_node_id_(plan_node_id) {}
+
  public:
   /**
    * Default constructor
@@ -66,7 +67,7 @@ class BaseOperatorNodeContents {
   /**
    * @return the operator's plan node id
    */
-  plan_node_id_t GetPlanNodeId() const {return plan_node_id_;}
+  plan_node_id_t GetPlanNodeId() const { return plan_node_id_; }
 
   /**
    * @return the hashed value of this operator
