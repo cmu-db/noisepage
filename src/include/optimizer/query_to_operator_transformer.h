@@ -6,9 +6,9 @@
 #include <unordered_set>
 #include <vector>
 
-#include "optimizer/optimizer_context.h"
 #include "common/managed_pointer.h"
 #include "common/sql_node_visitor.h"
+#include "optimizer/optimizer_context.h"
 
 namespace terrier {
 

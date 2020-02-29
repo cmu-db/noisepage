@@ -21,9 +21,9 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
   class Builder : public AbstractPlanNode::Builder<ConcreteType> {
    public:
     /**
-    * @param predicate join predicate
-    * @return builder object
-    */
+     * @param predicate join predicate
+     * @return builder object
+     */
     ConcreteType &SetJoinPredicate(common::ManagedPointer<parser::AbstractExpression> predicate) {
       join_predicate_ = predicate;
       return *dynamic_cast<ConcreteType *>(this);
