@@ -117,11 +117,6 @@ class TranslatorFactory {
    * Whether this is a Star expression.
    */
   static bool IsStar(parser::ExpressionType type) { return type == parser::ExpressionType::STAR; }
-
-  /**
-   * Whether this is a function expression.
-   */
-  static bool IsFunction(parser::ExpressionType type) { return type == parser::ExpressionType::FUNCTION; }
 };
 
 }  // namespace terrier::execution::compiler

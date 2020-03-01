@@ -146,9 +146,6 @@ std::unique_ptr<ExpressionTranslator> TranslatorFactory::CreateExpressionTransla
   if (IsStar(type)) {
     return std::make_unique<StarTranslator>(expression, codegen);
   }
-  if (IsFunction(type)) {
-    UNREACHABLE("Not implemented");
-  }
   UNREACHABLE("Unsupported expression");
 }
 
