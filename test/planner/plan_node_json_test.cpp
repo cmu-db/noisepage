@@ -494,7 +494,9 @@ TEST(PlanNodeJsonTest, DropDatabasePlanNodeTest) {
 TEST(PlanNodeJsonTest, DropIndexPlanNodeTest) {
   // Construct DropIndexPlanNode
   DropIndexPlanNode::Builder builder;
-  auto plan_node = builder.SetIndexOid(catalog::index_oid_t(8)).Build();
+  optimizer::OptimizerContext context = optimizer::OptimizerContext(
+      common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto plan_node = builder.SetIndexOid(catalog::index_oid_t(8)).SetPlanNodeId(context.GetNextPlanNodeID()).Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
