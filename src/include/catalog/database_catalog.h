@@ -342,6 +342,13 @@ class DatabaseCatalog {
   proc_oid_t GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t procns,
                         const std::string &procname, const std::vector<type_oid_t> &all_arg_types);
 
+  bool SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
+                     const execution::udf::UDFContext *udf_context);
+
+  common::ManagedPointer<execution::udf::UDFContext> GetProcCtxPtr(
+      common::ManagedPointer<transaction::TransactionContext> txn,
+      proc_oid_t proc_oid);
+
   /**
    * Returns oid for built in type. Currently, we simply use the underlying int for the enum as the oid
    * @param type internal type
@@ -563,9 +570,6 @@ class DatabaseCatalog {
    * @param txn transaction to insert into catalog with
    */
   void BootstrapProcs(common::ManagedPointer<transaction::TransactionContext> txn);
-
-  bool SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
-      const execution::udf::UDFContext *udf_context);
 
   /**
    * Creates all of the ProjectedRowInitializers and ProjectionMaps for the catalog. These can be stashed because the

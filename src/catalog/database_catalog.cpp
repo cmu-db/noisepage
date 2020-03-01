@@ -1722,45 +1722,72 @@ void DatabaseCatalog::BootstrapLanguages(const common::ManagedPointer<transactio
 
 void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::TransactionContext> txn) {
   auto dec_type = GetTypeOidForType(type::TypeId::DECIMAL);
+
   // ATan2
   CreateProcedure(txn, postgres::ATAN2_PRO_OID, "atan2", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, dec_type}, {dec_type, dec_type}, {},
                   dec_type, "", true);
-  auto udf_context = new execution::udf::UDFContext("atan2", )
-  SetProcCtxPtr(txn, postgres::ATAN2_PRO_OID, )
+  auto udf_context = new execution::udf::UDFContext("atan2", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
+                                                                                         execution::ast::Builtin::ATan2);
+  SetProcCtxPtr(txn, postgres::ATAN2_PRO_OID, udf_context);
 
   // ACos
   CreateProcedure(txn, postgres::ACOS_PRO_OID, "acos", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
+  udf_context = new execution::udf::UDFContext("acos", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
+                                               execution::ast::Builtin::ACos);
+  SetProcCtxPtr(txn, postgres::ACOS_PRO_OID, udf_context);
 
   // ASin
   CreateProcedure(txn, postgres::ASIN_PRO_OID, "asin", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
+  udf_context = new execution::udf::UDFContext("asin", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
+                                              execution::ast::Builtin::ASin);
+  SetProcCtxPtr(txn, postgres::ASIN_PRO_OID, udf_context);
 
   // ATan
   CreateProcedure(txn, postgres::ATAN_PRO_OID, "atan", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
+  udf_context = new execution::udf::UDFContext("atan", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
+                                               execution::ast::Builtin::ATan);
+  SetProcCtxPtr(txn, postgres::ATAN_PRO_OID, udf_context);
 
   // cos
   CreateProcedure(txn, postgres::COS_PRO_OID, "cos", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
+  udf_context = new execution::udf::UDFContext("cos", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
+                                               execution::ast::Builtin::Cos);
+  SetProcCtxPtr(txn, postgres::COS_PRO_OID, udf_context);
 
   // sin
   CreateProcedure(txn, postgres::SIN_PRO_OID, "sin", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
+  udf_context = new execution::udf::UDFContext("sin", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
+            execution::ast::Builtin::Sin);
+  SetProcCtxPtr(txn, postgres::SIN_PRO_OID, udf_context);
 
   // tan
   CreateProcedure(txn, postgres::TAN_PRO_OID, "tan", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
+  udf_context = new execution::udf::UDFContext("tan", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
+                                               execution::ast::Builtin::Tan);
+  SetProcCtxPtr(txn, postgres::TAN_PRO_OID, udf_context);
 
   // cot
   CreateProcedure(txn, postgres::COT_PRO_OID, "cot", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
 
+  udf_context = new execution::udf::UDFContext("cot", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
+                                               execution::ast::Builtin::Cot);
+  SetProcCtxPtr(txn, postgres::COT_PRO_OID, udf_context);
+
   auto str_type = GetTypeOidForType(type::TypeId::VARCHAR);
+
   // lower
   CreateProcedure(txn, postgres::LOWER_PRO_OID, "lower", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
+
+  //TODO(tanujnay112): no op codes for lower and upper yet
 
   CreateProcedure(txn, postgres::UPPER_PRO_OID, "upper", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
@@ -1772,10 +1799,8 @@ bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::Transact
   // Do not need to store the projection map because it is only a single column
   auto oid_pri = procs_oid_index_->GetProjectedRowInitializer();
 
-  auto *const buffer = common::AllocationUtil::AllocateAligned(pg_proc_ptr_pri_.ProjectedRowSize());
-  auto *const key_pr = oid_pri.InitializeRow(buffer);
-  TERRIER_ASSERT(pg_proc_ptr_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
-      "Buffer must allocated to fit largest PR");
+  auto *const index_buffer = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
+  auto *const key_pr = oid_pri.InitializeRow(index_buffer);
 
   // Find the entry using the index
   *(reinterpret_cast<proc_oid_t *>(key_pr->AccessForceNotNull(0))) = proc_oid;
@@ -1787,10 +1812,47 @@ bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::Transact
       "called with an oid that doesn't exist in the Catalog, which implies a programmer error. There's no reasonable "
       "code path for this to be called on an oid that isn't present.");
 
+  delete[] index_buffer;
   auto *const update_redo = txn->StageWrite(db_oid_, postgres::PRO_TABLE_OID, pg_proc_ptr_pri_);
   *reinterpret_cast<const execution::udf::UDFContext **>(update_redo->Delta()->AccessForceNotNull(0)) = udf_context;
   update_redo->SetTupleSlot(index_results[0]);
   return procs_->Update(txn, update_redo);
+}
+
+common::ManagedPointer<execution::udf::UDFContext> DatabaseCatalog::GetProcCtxPtr(
+    common::ManagedPointer<transaction::TransactionContext> txn,
+    proc_oid_t proc_oid) {
+  // Do not need to store the projection map because it is only a single column
+  auto oid_pri = procs_oid_index_->GetProjectedRowInitializer();
+
+  auto *const buffer = common::AllocationUtil::AllocateAligned(pg_proc_ptr_pri_.ProjectedRowSize());
+  auto *const key_pr = oid_pri.InitializeRow(buffer);
+
+  // Find the entry using the index
+  *(reinterpret_cast<proc_oid_t *>(key_pr->AccessForceNotNull(0))) = proc_oid;
+  std::vector<storage::TupleSlot> index_results;
+  procs_oid_index_->ScanKey(*txn, *key_pr, &index_results);
+  TERRIER_ASSERT(
+      index_results.size() == 1,
+      "Incorrect number of results from index scan. Expect 1 because it's a unique index. 0 implies that function was "
+      "called with an oid that doesn't exist in the Catalog, which implies a programmer error. There's no reasonable "
+      "code path for this to be called on an oid that isn't present.");
+
+  auto *select_pr = pg_proc_ptr_pri_.InitializeRow(buffer);
+  const auto result UNUSED_ATTRIBUTE = procs_->Select(txn, index_results[0], select_pr);
+  TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
+
+  auto *ptr_ptr = (reinterpret_cast<void **>(select_pr->AccessWithNullCheck(0)));
+
+  execution::udf::UDFContext *ptr;
+  if (ptr_ptr == nullptr) {
+    ptr = nullptr;
+  } else {
+    ptr = *reinterpret_cast<execution::udf::UDFContext**>(ptr_ptr);
+  }
+
+  delete[] buffer;
+  return common::ManagedPointer<execution::udf::UDFContext>(ptr);
 }
 
 bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -2381,6 +2443,8 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
   auto all_args_types_varlen = *reinterpret_cast<storage::VarlenEntry *>(
       table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROALLARGTYPES_COL_OID]));
 
+  auto ctx_ptr = table_pr->AccessWithNullCheck(pg_proc_all_cols_prm_[postgres::PRO_CTX_PTR_COL_OID]);
+
   auto name_pr = name_pri.InitializeRow(buffer);
 
   auto name_map = procs_name_index_->GetKeyOidToOffsetMap();
@@ -2391,7 +2455,16 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
 
   procs_name_index_->Delete(txn, *name_pr, to_delete_slot);
 
+
   delete[] buffer;
+
+  txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
+    deferred_action_manager->RegisterDeferredAction([=]() {
+      deferred_action_manager->RegisterDeferredAction([=]() {
+        delete ctx_ptr;
+      });
+    });
+  });
   return true;
 }
 

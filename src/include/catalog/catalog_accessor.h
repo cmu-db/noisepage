@@ -325,6 +325,10 @@ class CatalogAccessor {
    */
   proc_oid_t GetProcOid(const std::string &procname, const std::vector<type_oid_t> &all_arg_types);
 
+  bool SetProcCtxPtr(proc_oid_t proc_oid, const execution::udf::UDFContext *udf_context);
+
+  common::ManagedPointer<execution::udf::UDFContext> GetProcCtxPtr(proc_oid_t proc_oid);
+
   /**
    * Returns the type oid of the given TypeId in pg_type
    * @param type
