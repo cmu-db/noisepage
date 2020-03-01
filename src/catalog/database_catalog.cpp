@@ -347,6 +347,9 @@ void DatabaseCatalog::BootstrapPRIs() {
                                                 postgres::PG_PRO_ALL_COL_OIDS.cend()};
   pg_proc_all_cols_pri_ = procs_->InitializerForProjectedRow(pg_proc_all_oids);
   pg_proc_all_cols_prm_ = procs_->ProjectionMapForOids(pg_proc_all_oids);
+
+  const std::vector<col_oid_t> set_pg_proc_ptr_oids{postgres::PRO_CTX_PTR_COL_OID};
+  pg_proc_ptr_pri_ = procs_->InitializerForProjectedRow(set_pg_proc_ptr_oids);
 }
 
 namespace_oid_t DatabaseCatalog::CreateNamespace(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -1723,6 +1726,8 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   CreateProcedure(txn, postgres::ATAN2_PRO_OID, "atan2", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, dec_type}, {dec_type, dec_type}, {},
                   dec_type, "", true);
+  auto udf_context = new execution::udf::UDFContext("atan2", )
+  SetProcCtxPtr(txn, postgres::ATAN2_PRO_OID, )
 
   // ACos
   CreateProcedure(txn, postgres::ACOS_PRO_OID, "acos", postgres::INTERNAL_LANGUAGE_OID,
@@ -1759,6 +1764,33 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
 
   CreateProcedure(txn, postgres::UPPER_PRO_OID, "upper", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
+}
+
+bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
+                   const execution::udf::UDFContext *udf_context) {
+
+  // Do not need to store the projection map because it is only a single column
+  auto oid_pri = procs_oid_index_->GetProjectedRowInitializer();
+
+  auto *const buffer = common::AllocationUtil::AllocateAligned(pg_proc_ptr_pri_.ProjectedRowSize());
+  auto *const key_pr = oid_pri.InitializeRow(buffer);
+  TERRIER_ASSERT(pg_proc_ptr_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
+      "Buffer must allocated to fit largest PR");
+
+  // Find the entry using the index
+  *(reinterpret_cast<proc_oid_t *>(key_pr->AccessForceNotNull(0))) = proc_oid;
+  std::vector<storage::TupleSlot> index_results;
+  procs_oid_index_->ScanKey(*txn, *key_pr, &index_results);
+  TERRIER_ASSERT(
+      index_results.size() == 1,
+      "Incorrect number of results from index scan. Expect 1 because it's a unique index. 0 implies that function was "
+      "called with an oid that doesn't exist in the Catalog, which implies a programmer error. There's no reasonable "
+      "code path for this to be called on an oid that isn't present.");
+
+  auto *const update_redo = txn->StageWrite(db_oid_, postgres::PRO_TABLE_OID, pg_proc_ptr_pri_);
+  *reinterpret_cast<const execution::udf::UDFContext **>(update_redo->Delta()->AccessForceNotNull(0)) = udf_context;
+  update_redo->SetTupleSlot(index_results[0]);
+  return procs_->Update(txn, update_redo);
 }
 
 bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -2275,6 +2307,7 @@ bool DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::
       0;
 
   redo->Delta()->SetNull(pg_proc_all_cols_prm_[postgres::PROCONFIG_COL_OID]);
+  redo->Delta()->SetNull(pg_proc_all_cols_prm_[postgres::PRO_CTX_PTR_COL_OID]);
 
   const auto tuple_slot = procs_->Insert(txn, redo);
 

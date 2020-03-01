@@ -13,6 +13,7 @@
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
+#include "execution/udf/udf_context.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
@@ -479,6 +480,7 @@ class DatabaseCatalog {
   storage::index::Index *procs_name_index_;
   storage::ProjectedRowInitializer pg_proc_all_cols_pri_;
   storage::ProjectionMap pg_proc_all_cols_prm_;
+  storage::ProjectedRowInitializer pg_proc_ptr_pri_;
 
   std::atomic<uint32_t> next_oid_;
   std::atomic<transaction::timestamp_t> write_lock_;
@@ -561,6 +563,9 @@ class DatabaseCatalog {
    * @param txn transaction to insert into catalog with
    */
   void BootstrapProcs(common::ManagedPointer<transaction::TransactionContext> txn);
+
+  bool SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
+      const execution::udf::UDFContext *udf_context);
 
   /**
    * Creates all of the ProjectedRowInitializers and ProjectionMaps for the catalog. These can be stashed because the
