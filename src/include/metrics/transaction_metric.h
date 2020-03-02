@@ -44,11 +44,17 @@ class TransactionMetricRawData : public AbstractRawData {
                                  [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
                    "Not all files are open.");
 
+    auto &begin_outfile = (*outfiles)[0];
+    auto &commit_outfile = (*outfiles)[1];
+
     for (const auto &data : begin_data_) {
-      ((*outfiles)[0]) << data.now_ << "," << data.elapsed_us_ << "," << data.txn_start_ << std::endl;
+      data.resource_metrics_.ToCSV(begin_outfile);
+      begin_outfile << std::endl;
     }
     for (const auto &data : commit_data_) {
-      ((*outfiles)[1]) << data.now_ << "," << data.elapsed_us_ << "," << data.txn_start_ << std::endl;
+      commit_outfile << data.is_readonly_ << ", ";
+      data.resource_metrics_.ToCSV(commit_outfile);
+      commit_outfile << std::endl;
     }
     begin_data_.clear();
     commit_data_.clear();
@@ -62,30 +68,35 @@ class TransactionMetricRawData : public AbstractRawData {
   /**
    * Columns to use for writing to CSV.
    */
-  static constexpr std::array<std::string_view, 2> COLUMNS = {"now,elapsed_us,txn_start", "now,elapsed_us,txn_start"};
+  static constexpr std::array<std::string_view, 2> FEATURE_COLUMNS = {"", "is_readonly"};
 
  private:
   friend class TransactionMetric;
   FRIEND_TEST(MetricsTests, TransactionCSVTest);
 
-  void RecordBeginData(const uint64_t elapsed_us, const transaction::timestamp_t txn_start) {
-    begin_data_.emplace_back(elapsed_us, txn_start);
+  void RecordBeginData(const common::ResourceTracker::Metrics &resource_metrics) {
+    begin_data_.emplace_back(resource_metrics);
   }
 
-  void RecordCommitData(const uint64_t elapsed_us, const transaction::timestamp_t txn_start) {
-    commit_data_.emplace_back(elapsed_us, txn_start);
+  void RecordCommitData(const uint64_t is_readonly, const common::ResourceTracker::Metrics &resource_metrics) {
+    commit_data_.emplace_back(is_readonly, resource_metrics);
   }
 
-  struct Data {
-    Data(const uint64_t elapsed_us, const transaction::timestamp_t txn_start)
-        : now_(MetricsUtil::Now()), elapsed_us_(elapsed_us), txn_start_(txn_start) {}
-    const uint64_t now_;
-    const uint64_t elapsed_us_;
-    const transaction::timestamp_t txn_start_;
+  struct BeginData {
+    explicit BeginData(const common::ResourceTracker::Metrics &resource_metrics)
+        : resource_metrics_(resource_metrics) {}
+    const common::ResourceTracker::Metrics resource_metrics_;
   };
 
-  std::list<Data> begin_data_;
-  std::list<Data> commit_data_;
+  struct CommitData {
+    CommitData(const uint64_t is_readonly, const common::ResourceTracker::Metrics &resource_metrics)
+        : is_readonly_(is_readonly), resource_metrics_(resource_metrics) {}
+    const uint64_t is_readonly_;
+    const common::ResourceTracker::Metrics resource_metrics_;
+  };
+
+  std::list<BeginData> begin_data_;
+  std::list<CommitData> commit_data_;
 };
 
 /**
@@ -95,11 +106,11 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
  private:
   friend class MetricsStore;
 
-  void RecordBeginData(const uint64_t elapsed_us, const transaction::timestamp_t txn_start) {
-    GetRawData()->RecordBeginData(elapsed_us, txn_start);
+  void RecordBeginData(const common::ResourceTracker::Metrics &resource_metrics) {
+    GetRawData()->RecordBeginData(resource_metrics);
   }
-  void RecordCommitData(const uint64_t elapsed_us, const transaction::timestamp_t txn_start) {
-    GetRawData()->RecordCommitData(elapsed_us, txn_start);
+  void RecordCommitData(const uint64_t is_readonly, const common::ResourceTracker::Metrics &resource_metrics) {
+    GetRawData()->RecordCommitData(is_readonly, resource_metrics);
   }
 };
 }  // namespace terrier::metrics

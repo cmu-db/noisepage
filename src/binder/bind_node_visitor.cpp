@@ -361,18 +361,31 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
           //  ADDENDUM. So I thought DeriveReturnValueType would actually derive the return value type.
           //  This appears to be a bad assumption. We should rename it to DeriveReturnValueTypeForAggregates()
           //  or else fix up any other codepaths. I've currently fixed it for ConstantValueExpression.
-          auto expr = values[i];
+          auto &col =
+              insert_columns->empty() ? table_schema.GetColumn(i) : table_schema.GetColumn((*insert_columns)[i]);
+          auto expr = values[i].CastManagedPointerTo<parser::ConstantValueExpression>();
+          // TODO(WAN): shouldn't this have been called much earlier in the binder pipeline?
+          expr->DeriveReturnValueType();
           auto ret_type = expr->GetReturnValueType();
-          auto expected_ret_type = table_schema.GetColumn(i).Type();
+          auto expected_ret_type = col.Type();
 
+          auto is_null = expr->GetValue().Null() && col.Nullable();
           auto is_cast_expression = expr->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
-          auto mismatched_type = ret_type != expected_ret_type;
+          auto mismatched_type = !is_null && ret_type != expected_ret_type;
 
           if (is_cast_expression || mismatched_type) {
             auto converted = BinderUtil::Convert(values[i], expected_ret_type);
             TERRIER_ASSERT(converted != nullptr, "Conversion cannot be null!");
             values[i] = common::ManagedPointer(converted);
             parse_result->AddExpression(std::move(converted));
+          }
+
+          // NULL came in as a T_Null by libpg_query, so no type information was associated with it. Fix in binder.
+          if (is_null) {
+            auto typed_null = type::TransientValueFactory::GetNull(expected_ret_type);
+            auto new_expr = std::make_unique<parser::ConstantValueExpression>(std::move(typed_null));
+            values[i] = common::ManagedPointer(new_expr).CastManagedPointerTo<parser::AbstractExpression>();
+            parse_result->AddExpression(std::move(new_expr));
           }
         }
       }

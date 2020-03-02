@@ -232,6 +232,9 @@ std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(ParseResult *p
       throw PARSER_EXCEPTION("ExprTransform: unsupported type");
     }
   }
+  if (alias != nullptr) {
+    expr->SetAlias(alias);
+  }
   return expr;
 }
 
@@ -1878,6 +1881,10 @@ PostgresParser::ValueListsTransform(ParseResult *parse_result, List *root) {
         }
         case T_A_Const: {
           expr = ConstTransform(parse_result, reinterpret_cast<A_Const *>(expr_pg));
+          break;
+        }
+        case T_A_Expr: {
+          expr = AExprTransform(parse_result, reinterpret_cast<A_Expr *>(expr_pg));
           break;
         }
         case T_TypeCast: {

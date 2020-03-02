@@ -76,8 +76,7 @@ class TranslatorFactory {
    * Whether this is a unary operation
    */
   static bool IsUnaryOp(parser::ExpressionType type) {
-    // TODO(Amadou): Support other unary operators.
-    return type == parser::ExpressionType::OPERATOR_UNARY_MINUS;
+    return type == parser::ExpressionType::OPERATOR_UNARY_MINUS || type == parser::ExpressionType::OPERATOR_NOT;
   }
 
   /**
