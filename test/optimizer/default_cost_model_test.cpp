@@ -3,10 +3,10 @@
 #include "gtest/gtest.h"
 #include "optimizer/cost_model/default_cost_model.h"
 #include "optimizer/optimizer_context.h"
+#include "optimizer/operator_node.h"
 #include "optimizer/physical_operators.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
-#include "parser/expression/operator_expression.h"
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
 
@@ -72,9 +72,9 @@ TEST_F(DefaultCostModelTests, SeqScanTest) {
   optimizer_context.SetStatsStorage(&stats_storage_);
   Operator seq_scan = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(1),
                                     std::vector<AnnotatedExpression>(), "table", false);
-  OperatorExpression operator_expression = OperatorExpression(seq_scan, {});
+  OperatorNode operator_expression = OperatorNode(seq_scan, {});
   GroupExpression *grexp =
-      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorExpression>(&operator_expression));
+      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
   EXPECT_EQ(cost, 0.05);
 }
@@ -87,9 +87,9 @@ TEST_F(DefaultCostModelTests, IndexScanTest) {
   Operator index_scan = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(1),
                                         catalog::index_oid_t(1), std::vector<AnnotatedExpression>(), true,
                                         planner::IndexScanType::AscendingClosed, {});
-  OperatorExpression operator_expression = OperatorExpression(index_scan, {});
+  OperatorNode operator_expression = OperatorNode(index_scan, {});
   GroupExpression *grexp =
-      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorExpression>(&operator_expression));
+      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   grexp->SetGroupID(group_id_t(0));
   optimizer_context.GetMemo().InsertExpression(grexp, true);
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
@@ -107,9 +107,9 @@ TEST_F(DefaultCostModelTests, QueryDerivedScanTest) {
   auto expr1 = common::ManagedPointer(expr_b_1);
   alias_to_expr_map["constant expr"] = expr1;
   Operator query_derived_scan = QueryDerivedScan::Make("table", std::move(alias_to_expr_map));
-  OperatorExpression operator_expression = OperatorExpression(query_derived_scan, {});
+  OperatorNode operator_expression = OperatorNode(query_derived_scan, {});
   GroupExpression *grexp =
-      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorExpression>(&operator_expression));
+      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
   EXPECT_EQ(cost, 0.f);
 }
@@ -122,11 +122,11 @@ TEST_F(DefaultCostModelTests, OrderByTest) {
   Operator order_by = OrderBy::Make();
   Operator seq_scan = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(1),
                                     std::vector<AnnotatedExpression>(), "table", false);
-  std::vector<std::unique_ptr<OperatorExpression>> children = {};
-  children.push_back(std::make_unique<OperatorExpression>(OperatorExpression(seq_scan, {})));
-  OperatorExpression operator_expression = OperatorExpression(order_by, std::move(children));
+  std::vector<std::unique_ptr<OperatorNode>> children = {};
+  children.push_back(std::make_unique<OperatorNode>(OperatorNode(seq_scan, {})));
+  OperatorNode operator_expression = OperatorNode(order_by, std::move(children));
   GroupExpression *grexp =
-      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorExpression>(&operator_expression));
+      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   optimizer_context.GetMemo()
       .GetGroupByID(grexp->GetChildGroupId(0))
       ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)))->GetNumRows());
@@ -142,11 +142,11 @@ TEST_F(DefaultCostModelTests, LimitTest) {
   Operator limit = Limit::Make(0, 3, {}, {});
   Operator seq_scan = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(1),
                                     std::vector<AnnotatedExpression>(), "table", false);
-  std::vector<std::unique_ptr<OperatorExpression>> children = {};
-  children.push_back(std::make_unique<OperatorExpression>(OperatorExpression(seq_scan, {})));
-  OperatorExpression operator_expression = OperatorExpression(limit, std::move(children));
+  std::vector<std::unique_ptr<OperatorNode>> children = {};
+  children.push_back(std::make_unique<OperatorNode>(OperatorNode(seq_scan, {})));
+  OperatorNode operator_expression = OperatorNode(limit, std::move(children));
   GroupExpression *grexp =
-      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorExpression>(&operator_expression));
+      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   optimizer_context.GetMemo()
       .GetGroupByID(grexp->GetChildGroupId(0))
       ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)))->GetNumRows());
@@ -169,12 +169,12 @@ TEST_F(DefaultCostModelTests, InnerNLJoinTest) {
                                       std::vector<AnnotatedExpression>(), "table", false);
   Operator seq_scan_2 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(2),
                                       std::vector<AnnotatedExpression>(), "table", false);
-  std::vector<std::unique_ptr<OperatorExpression>> children = {};
-  children.push_back(std::make_unique<OperatorExpression>(OperatorExpression(seq_scan_1, {})));
-  children.push_back(std::make_unique<OperatorExpression>(OperatorExpression(seq_scan_2, {})));
-  OperatorExpression operator_expression = OperatorExpression(inner_nl_join, std::move(children));
+  std::vector<std::unique_ptr<OperatorNode>> children = {};
+  children.push_back(std::make_unique<OperatorNode>(OperatorNode(seq_scan_1, {})));
+  children.push_back(std::make_unique<OperatorNode>(OperatorNode(seq_scan_2, {})));
+  OperatorNode operator_expression = OperatorNode(inner_nl_join, std::move(children));
   GroupExpression *grexp =
-      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorExpression>(&operator_expression));
+      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   optimizer_context.GetMemo()
       .GetGroupByID(grexp->GetChildGroupId(0))
       ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)))->GetNumRows());
@@ -194,9 +194,9 @@ TEST_F(DefaultCostModelTests, LeftNLJoinTest) {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   Operator left_nl_join = LeftNLJoin::Make(x_1);
-  OperatorExpression operator_expression = OperatorExpression(left_nl_join, {});
+  OperatorNode operator_expression = OperatorNode(left_nl_join, {});
   GroupExpression *grexp =
-      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorExpression>(&operator_expression));
+      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
   EXPECT_EQ(cost, 0.f);
 }
@@ -210,9 +210,9 @@ TEST_F(DefaultCostModelTests, RightNLJoinTest) {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   Operator right_nl_join = RightNLJoin::Make(x_1);
-  OperatorExpression operator_expression = OperatorExpression(right_nl_join, {});
+  OperatorNode operator_expression = OperatorNode(right_nl_join, {});
   GroupExpression *grexp =
-      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorExpression>(&operator_expression));
+      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
   EXPECT_EQ(cost, 0.f);
 }
@@ -226,9 +226,9 @@ TEST_F(DefaultCostModelTests, OuterNLJoinTest) {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   Operator outer_nl_join = OuterNLJoin::Make(x_1);
-  OperatorExpression operator_expression = OperatorExpression(outer_nl_join, {});
+  OperatorNode operator_expression = OperatorNode(outer_nl_join, {});
   GroupExpression *grexp =
-      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorExpression>(&operator_expression));
+      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
   EXPECT_EQ(cost, 0.f);
 }
@@ -242,9 +242,9 @@ TEST_F(DefaultCostModelTests, LeftHashJoinTest) {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   Operator left_hash_join = LeftHashJoin::Make(x_1);
-  OperatorExpression operator_expression = OperatorExpression(left_hash_join, {});
+  OperatorNode operator_expression = OperatorNode(left_hash_join, {});
   GroupExpression *grexp =
-      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorExpression>(&operator_expression));
+      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
   EXPECT_EQ(cost, 0.f);
 }
@@ -258,9 +258,9 @@ TEST_F(DefaultCostModelTests, RightHashJoinTest) {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   Operator right_hash_join = RightHashJoin::Make(x_1);
-  OperatorExpression operator_expression = OperatorExpression(right_hash_join, {});
+  OperatorNode operator_expression = OperatorNode(right_hash_join, {});
   GroupExpression *grexp =
-      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorExpression>(&operator_expression));
+      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
   EXPECT_EQ(cost, 0.f);
 }
@@ -274,9 +274,9 @@ TEST_F(DefaultCostModelTests, OuterHashJoinTest) {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   Operator outer_hash_join = OuterHashJoin::Make(x_1);
-  OperatorExpression operator_expression = OperatorExpression(outer_hash_join, {});
+  OperatorNode operator_expression = OperatorNode(outer_hash_join, {});
   GroupExpression *grexp =
-      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorExpression>(&operator_expression));
+      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
   EXPECT_EQ(cost, 0.f);
 }
@@ -297,9 +297,9 @@ TEST_F(DefaultCostModelTests, InsertTest) {
                                  std::vector<catalog::col_oid_t>(columns, std::end(columns)),
                                  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values),
                                  std::vector<catalog::index_oid_t>(indexes));
-  OperatorExpression operator_expression = OperatorExpression(insert, {});
+  OperatorNode operator_expression = OperatorNode(insert, {});
   GroupExpression *grexp =
-      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorExpression>(&operator_expression));
+      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
   EXPECT_EQ(cost, 0.f);
 }
@@ -312,9 +312,9 @@ TEST_F(DefaultCostModelTests, InsertSelectTest) {
   std::vector<catalog::index_oid_t> index_oids{1};
   Operator insert_select = InsertSelect::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1),
                                               catalog::table_oid_t(1), std::vector<catalog::index_oid_t>(index_oids));
-  OperatorExpression operator_expression = OperatorExpression(insert_select, {});
+  OperatorNode operator_expression = OperatorNode(insert_select, {});
   GroupExpression *grexp =
-      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorExpression>(&operator_expression));
+      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
   EXPECT_EQ(cost, 0.f);
 }
@@ -326,9 +326,9 @@ TEST_F(DefaultCostModelTests, DeleteTest) {
   optimizer_context.SetStatsStorage(&stats_storage_);
   Operator delete_op =
       Delete::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "table", catalog::table_oid_t(1));
-  OperatorExpression operator_expression = OperatorExpression(delete_op, {});
+  OperatorNode operator_expression = OperatorNode(delete_op, {});
   GroupExpression *grexp =
-      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorExpression>(&operator_expression));
+      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
   EXPECT_EQ(cost, 0.f);
 }
@@ -340,9 +340,9 @@ TEST_F(DefaultCostModelTests, UpdateTest) {
   optimizer_context.SetStatsStorage(&stats_storage_);
   Operator update =
       Update::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "table", catalog::table_oid_t(1), {});
-  OperatorExpression operator_expression = OperatorExpression(update, {});
+  OperatorNode operator_expression = OperatorNode(update, {});
   GroupExpression *grexp =
-      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorExpression>(&operator_expression));
+      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
   EXPECT_EQ(cost, 0.f);
 }
@@ -361,11 +361,11 @@ TEST_F(DefaultCostModelTests, HashGroupByTest) {
                                              std::vector<AnnotatedExpression>{annotated_expr_0});
   Operator seq_scan = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(1),
                                     std::vector<AnnotatedExpression>(), "table", false);
-  std::vector<std::unique_ptr<OperatorExpression>> children = {};
-  children.push_back(std::make_unique<OperatorExpression>(OperatorExpression(seq_scan, {})));
-  OperatorExpression operator_expression = OperatorExpression(hash_group_by, std::move(children));
+  std::vector<std::unique_ptr<OperatorNode>> children = {};
+  children.push_back(std::make_unique<OperatorNode>(OperatorNode(seq_scan, {})));
+  OperatorNode operator_expression = OperatorNode(hash_group_by, std::move(children));
   GroupExpression *grexp =
-      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorExpression>(&operator_expression));
+      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   optimizer_context.GetMemo()
       .GetGroupByID(grexp->GetChildGroupId(0))
       ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)))->GetNumRows());
@@ -387,11 +387,11 @@ TEST_F(DefaultCostModelTests, SortGroupByTest) {
                                              std::vector<AnnotatedExpression>{annotated_expr_0});
   Operator seq_scan = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(1),
                                     std::vector<AnnotatedExpression>(), "table", false);
-  std::vector<std::unique_ptr<OperatorExpression>> children = {};
-  children.push_back(std::make_unique<OperatorExpression>(OperatorExpression(seq_scan, {})));
-  OperatorExpression operator_expression = OperatorExpression(sort_group_by, std::move(children));
+  std::vector<std::unique_ptr<OperatorNode>> children = {};
+  children.push_back(std::make_unique<OperatorNode>(OperatorNode(seq_scan, {})));
+  OperatorNode operator_expression = OperatorNode(sort_group_by, std::move(children));
   GroupExpression *grexp =
-      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorExpression>(&operator_expression));
+      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   optimizer_context.GetMemo()
       .GetGroupByID(grexp->GetChildGroupId(0))
       ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)))->GetNumRows());
@@ -407,11 +407,11 @@ TEST_F(DefaultCostModelTests, AggregateTest) {
   Operator aggregate = Aggregate::Make();
   Operator seq_scan = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(1),
                                     std::vector<AnnotatedExpression>(), "table", false);
-  std::vector<std::unique_ptr<OperatorExpression>> children = {};
-  children.push_back(std::make_unique<OperatorExpression>(OperatorExpression(seq_scan, {})));
-  OperatorExpression operator_expression = OperatorExpression(aggregate, std::move(children));
+  std::vector<std::unique_ptr<OperatorNode>> children = {};
+  children.push_back(std::make_unique<OperatorNode>(OperatorNode(seq_scan, {})));
+  OperatorNode operator_expression = OperatorNode(aggregate, std::move(children));
   GroupExpression *grexp =
-      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorExpression>(&operator_expression));
+      optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   optimizer_context.GetMemo()
       .GetGroupByID(grexp->GetChildGroupId(0))
       ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)))->GetNumRows());
