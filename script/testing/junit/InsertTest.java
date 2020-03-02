@@ -213,7 +213,7 @@ public class InsertTest extends TestUtility {
     @Test
     public void testDefaultValueInsert () throws SQLException {
         String create_table_SQL = "CREATE TABLE xxx (id integer, val DEFAULT 123);";
-        String insert_into_table_SQL = "INSERT INTO xxx VALUES (1, DEFAULT);"
+        String insert_into_table_SQL = "INSERT INTO xxx VALUES (1, DEFAULT);";
         conn.setAutoCommit(false);
         Statement stmt = conn.createStatement();
         stmt.addBatch(create_table_SQL);
