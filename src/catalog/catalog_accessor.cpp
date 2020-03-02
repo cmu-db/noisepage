@@ -166,8 +166,7 @@ proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname, const std::v
   return catalog::INVALID_PROC_OID;
 }
 
-bool CatalogAccessor::SetProcCtxPtr(proc_oid_t proc_oid, const execution::udf::UDFContext *udf_context)
-{
+bool CatalogAccessor::SetProcCtxPtr(proc_oid_t proc_oid, const execution::udf::UDFContext *udf_context) {
   return dbc_->SetProcCtxPtr(txn_, proc_oid, udf_context);
 }
 

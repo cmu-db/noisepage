@@ -53,7 +53,7 @@ constexpr col_oid_t PROSRC_COL_OID = col_oid_t(21);  // VARCHAR (skey)
 
 constexpr col_oid_t PROCONFIG_COL_OID = col_oid_t(22);  // VARBINARY (skey) [text[]]
 
-constexpr col_oid_t PRO_CTX_PTR_COL_OID = col_oid_t(23); // BIGINT (assumes 64-bit pointers)
+constexpr col_oid_t PRO_CTX_PTR_COL_OID = col_oid_t(23);  // BIGINT (assumes 64-bit pointers)
 
 constexpr uint8_t NUM_PG_PROC_COLS = 23;
 
@@ -62,7 +62,7 @@ constexpr std::array<col_oid_t, NUM_PG_PROC_COLS> PG_PRO_ALL_COL_OIDS = {
     PROROWS_COL_OID,     PROVARIADIC_COL_OID,    PROISAGG_COL_OID,     PROISWINDOW_COL_OID,     PROISSTRICT_COL_OID,
     PRORETSET_COL_OID,   PROVOLATILE_COL_OID,    PRONARGS_COL_OID,     PRONARGDEFAULTS_COL_OID, PRORETTYPE_COL_OID,
     PROARGTYPES_COL_OID, PROALLARGTYPES_COL_OID, PROARGMODES_COL_OID,  PROARGDEFAULTS_COL_OID,  PROARGNAMES_COL_OID,
-    PROSRC_COL_OID,      PROCONFIG_COL_OID, PRO_CTX_PTR_COL_OID};
+    PROSRC_COL_OID,      PROCONFIG_COL_OID,      PRO_CTX_PTR_COL_OID};
 
 constexpr proc_oid_t ATAN2_PRO_OID = proc_oid_t(84);
 constexpr proc_oid_t ACOS_PRO_OID = proc_oid_t(85);

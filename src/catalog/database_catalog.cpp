@@ -1728,7 +1728,7 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, dec_type}, {dec_type, dec_type}, {},
                   dec_type, "", true);
   auto udf_context = new execution::udf::UDFContext("atan2", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
-                                                                                         execution::ast::Builtin::ATan2);
+                                                    execution::ast::Builtin::ATan2);
   SetProcCtxPtr(txn, postgres::ATAN2_PRO_OID, udf_context);
 
   // ACos
@@ -1742,7 +1742,7 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   CreateProcedure(txn, postgres::ASIN_PRO_OID, "asin", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
   udf_context = new execution::udf::UDFContext("asin", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
-                                              execution::ast::Builtin::ASin);
+                                               execution::ast::Builtin::ASin);
   SetProcCtxPtr(txn, postgres::ASIN_PRO_OID, udf_context);
 
   // ATan
@@ -1763,7 +1763,7 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   CreateProcedure(txn, postgres::SIN_PRO_OID, "sin", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
   udf_context = new execution::udf::UDFContext("sin", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
-            execution::ast::Builtin::Sin);
+                                               execution::ast::Builtin::Sin);
   SetProcCtxPtr(txn, postgres::SIN_PRO_OID, udf_context);
 
   // tan
@@ -1787,15 +1787,14 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   CreateProcedure(txn, postgres::LOWER_PRO_OID, "lower", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
 
-  //TODO(tanujnay112): no op codes for lower and upper yet
+  // TODO(tanujnay112): no op codes for lower and upper yet
 
   CreateProcedure(txn, postgres::UPPER_PRO_OID, "upper", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
 }
 
 bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
-                   const execution::udf::UDFContext *udf_context) {
-
+                                    const execution::udf::UDFContext *udf_context) {
   // Do not need to store the projection map because it is only a single column
   auto oid_pri = procs_oid_index_->GetProjectedRowInitializer();
 
@@ -1820,8 +1819,7 @@ bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::Transact
 }
 
 common::ManagedPointer<execution::udf::UDFContext> DatabaseCatalog::GetProcCtxPtr(
-    common::ManagedPointer<transaction::TransactionContext> txn,
-    proc_oid_t proc_oid) {
+    common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid) {
   // Do not need to store the projection map because it is only a single column
   auto oid_pri = procs_oid_index_->GetProjectedRowInitializer();
 
@@ -1848,7 +1846,7 @@ common::ManagedPointer<execution::udf::UDFContext> DatabaseCatalog::GetProcCtxPt
   if (ptr_ptr == nullptr) {
     ptr = nullptr;
   } else {
-    ptr = *reinterpret_cast<execution::udf::UDFContext**>(ptr_ptr);
+    ptr = *reinterpret_cast<execution::udf::UDFContext **>(ptr_ptr);
   }
 
   delete[] buffer;
@@ -2455,15 +2453,11 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
 
   procs_name_index_->Delete(txn, *name_pr, to_delete_slot);
 
-
   delete[] buffer;
 
   txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-    deferred_action_manager->RegisterDeferredAction([=]() {
-      deferred_action_manager->RegisterDeferredAction([=]() {
-        delete ctx_ptr;
-      });
-    });
+    deferred_action_manager->RegisterDeferredAction(
+        [=]() { deferred_action_manager->RegisterDeferredAction([=]() { delete ctx_ptr; }); });
   });
   return true;
 }

@@ -536,8 +536,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::FunctionExpression> e
   }
 
   auto udf_context = catalog_accessor_->GetProcCtxPtr(proc_oid);
-  if(udf_context == nullptr){
-    //TODO(tanujnay112): clarify/think more about what to do here
+  if (udf_context == nullptr) {
+    // TODO(tanujnay112): clarify/think more about what to do here
     throw BINDER_EXCEPTION("Procedure not compiled?");
   }
 

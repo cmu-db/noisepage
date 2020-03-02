@@ -342,12 +342,24 @@ class DatabaseCatalog {
   proc_oid_t GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t procns,
                         const std::string &procname, const std::vector<type_oid_t> &all_arg_types);
 
+  /**
+   * Sets the proc context pointer column of proc_oid to udf_context
+   * @param txn transaction to use
+   * @param proc_oid The proc_oid whose pointer column we are setting here
+   * @param udf_context The context object to set to
+   * @return False if the given proc_oid is invalid, True if else
+   */
   bool SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
                      const execution::udf::UDFContext *udf_context);
 
+  /**
+   * Gets the proc context pointer column of proc_oid to udf_context
+   * @param txn transaction to use
+   * @param proc_oid The proc_oid whose pointer column we are getting here
+   * @return nullptr if proc_oid is either invalid or there is no context object set for this proc_oid
+   */
   common::ManagedPointer<execution::udf::UDFContext> GetProcCtxPtr(
-      common::ManagedPointer<transaction::TransactionContext> txn,
-      proc_oid_t proc_oid);
+      common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid);
 
   /**
    * Returns oid for built in type. Currently, we simply use the underlying int for the enum as the oid

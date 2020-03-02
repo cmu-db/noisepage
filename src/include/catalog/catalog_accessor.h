@@ -325,8 +325,19 @@ class CatalogAccessor {
    */
   proc_oid_t GetProcOid(const std::string &procname, const std::vector<type_oid_t> &all_arg_types);
 
+  /**
+   * Sets the proc context pointer column of proc_oid to udf_context
+   * @param proc_oid The proc_oid whose pointer column we are setting here
+   * @param udf_context The context object to set to
+   * @return False if the given proc_oid is invalid, True if else
+   */
   bool SetProcCtxPtr(proc_oid_t proc_oid, const execution::udf::UDFContext *udf_context);
 
+  /**
+   * Gets the proc context pointer column of proc_oid to udf_context
+   * @param proc_oid The proc_oid whose pointer column we are getting here
+   * @return nullptr if proc_oid is either invalid or there is no context object set for this proc_oid
+   */
   common::ManagedPointer<execution::udf::UDFContext> GetProcCtxPtr(proc_oid_t proc_oid);
 
   /**
