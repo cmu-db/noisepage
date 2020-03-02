@@ -7,7 +7,7 @@ import os
 import copy
 
 import data_info
-from io_util import write_result
+from io_util import write_csv_result
 
 from type import OpUnit, ArithmeticFeature
 
@@ -16,15 +16,17 @@ def write_extended_data(output_path, symbol, index_value_list, data_map):
     # clear the content of the file
     open(output_path, 'w').close()
 
-    write_result(output_path, symbol, index_value_list)
+    write_csv_result(output_path, symbol, index_value_list)
     for key, value in data_map.items():
-        write_result(output_path, key, value)
+        write_csv_result(output_path, key, value)
 
 
 def get_data_list(path):
-    '''
-    Pre-process the raw data and get the list of Data object for each operation in the input file
-    '''
+    """Pre-process the raw data and get the list of Data object for each operation in the input file
+
+    :param path: for the data
+    :return: list of data objects
+    """
     targets = ['memory', 'time']
     df = pd.read_csv(path, header=None)
     feature_n = df.shape[1] - 2

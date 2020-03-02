@@ -67,9 +67,8 @@ class MiniTrainer:
             # Write the first header rwo to the result file
             result_path = "{}/{}.csv".format(self.model_metrics_path, data.opunit.name.lower())
             prediction_path = "{}/{}_prediction.csv".format(self.model_metrics_path, data.opunit.name.lower())
-            open(result_path, 'w').close()
-            open(prediction_path, 'w').close()
-            io_util.write_result(result_path, "Method", labels)
+            io_util.create_csv_file(result_path, ["Method"] + labels)
+            io_util.create_csv_file(prediction_path, None)
 
             methods = self.ml_models
             # Only use linear regression for the arithmetic operating units
@@ -121,18 +120,18 @@ class MiniTrainer:
                     transform = " "
                     if transformer is not None:
                         transform = " transform"
-                    io_util.write_result(result_path, method + transform, results)
+                    io_util.write_csv_result(result_path, method + transform, results)
 
                     print()
 
-                io_util.write_result(result_path, "", [])
+                io_util.write_csv_result(result_path, "", [])
 
             # Record the best prediction results on the test data
             num_data = pred_results[0].shape[0]
             for i in range(num_data):
                 result_list = (list(pred_results[0][i]) + [""] + list(pred_results[1][i]) + [""]
                                + list(pred_results[2][i]))
-                io_util.write_result(prediction_path, "", result_list)
+                io_util.write_csv_result(prediction_path, "", result_list)
 
         '''
         data_list = get_concurrent_data_list(input_path)
@@ -153,7 +152,7 @@ class MiniTrainer:
 
             open(result_path, 'w').close()
             labels = ["Train", "Test"]
-            write_result(result_path, "Method", labels)
+            write_csv_result(result_path, "Method", labels)
 
             min_pe = 1
             key = (d.symbol, d.target)
@@ -179,7 +178,7 @@ class MiniTrainer:
                         min_pe = pe
                         pred_map[key] = y_pred
 
-                write_result(result_path, method, results)
+                write_csv_result(result_path, method, results)
 
                 print()
 
@@ -187,7 +186,7 @@ class MiniTrainer:
             result_path = "{}/hierarchical_{}_{}_result.csv".format(output_path, d.symbol, d.target)
             open(result_path, 'w').close()
             labels = ["Train", "Test"]
-            write_result(result_path, "Method", labels)
+            write_csv_result(result_path, "Method", labels)
 
             x = d.data[:, :-1]
             y = d.data[:, -1]
@@ -216,7 +215,7 @@ class MiniTrainer:
                     label = labels[i]
                     print('{} Percenrage Error: {}'.format(label, pe))
 
-                write_result(result_path, method, results)
+                write_csv_result(result_path, method, results)
                 print()
         '''
 

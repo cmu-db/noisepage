@@ -66,6 +66,7 @@ class GroupedOpUnitData:
         self.opunit_features = opunit_features
         self.y = metrics[-data_info.mini_model_target_num:]
         self.pred = None
-        self.start_time = metrics[data_info.target_csv_index[Target.START_TIME]]
-        self.end_time = self.start_time + self.y[-1]
-        self.cpu_id = metrics[data_info.target_csv_index[Target.CPU_ID]]
+        index_map = data_info.target_csv_index
+        self.start_time = metrics[index_map[Target.START_TIME]]
+        self.end_time = self.start_time + self.y[index_map[Target.ELAPSED_US]] - 1
+        self.cpu_id = metrics[index_map[Target.CPU_ID]]
