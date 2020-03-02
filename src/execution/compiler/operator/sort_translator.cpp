@@ -30,7 +30,7 @@ void SortBottomTranslator::Consume(FunctionBuilder *builder) {
   GenSorterInsert(builder);
   // Then fill in the values
   FillSorterRow(builder);
-  // If this has a limit and no offsets, call finish topK.
+  // If this has a limit, call finish topK.
   if (op_->HasLimit()) {
     GenFinishTopK(builder);
   }
