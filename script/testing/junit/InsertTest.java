@@ -225,7 +225,7 @@ public class InsertTest extends TestUtility {
         String select_SQL = "SELECT * from xxx;";
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
-
+        rs.next();
         checkRow(rs, new String [] {"id", "val"}, new int [] {1, 123});
         assertNoMoreRows(rs);
     }
