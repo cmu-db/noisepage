@@ -2,8 +2,8 @@
 
 #include "gtest/gtest.h"
 #include "optimizer/cost_model/default_cost_model.h"
-#include "optimizer/optimizer_context.h"
 #include "optimizer/operator_node.h"
+#include "optimizer/optimizer_context.h"
 #include "optimizer/physical_operators.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
