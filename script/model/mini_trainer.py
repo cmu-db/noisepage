@@ -5,6 +5,7 @@ import os
 import numpy as np
 import argparse
 import pickle
+import logging
 
 from sklearn import model_selection
 
@@ -14,6 +15,7 @@ import opunit_data
 import data_info
 import data_transform
 import training_util
+import logging_util
 
 from type import Target
 
@@ -76,7 +78,7 @@ class MiniTrainer:
             for transformer in transformers:
                 for method in methods:
                     # Train the model
-                    print("{} {}".format(data.opunit.name, method))
+                    logging.info("{} {}".format(data.opunit.name, method))
                     regressor = model.Model(method, modeling_transformer=transformer)
                     regressor.train(x_train, y_train)
 
@@ -89,12 +91,12 @@ class MiniTrainer:
                         evaluate_y = d[1]
 
                         y_pred = regressor.predict(evaluate_x)
-                        print("x shape: ", evaluate_x.shape)
-                        print("y shape: ", y_pred.shape)
+                        logging.debug("x shape: {}".format(evaluate_x.shape))
+                        logging.debug("y shape: {}".format(y_pred.shape))
                         percentage_error = np.average(np.abs(evaluate_y - y_pred) / (evaluate_y + 1), axis=0)
                         results += list(percentage_error) + [""]
 
-                        print('{} Percentage Error: {}'.format(train_test_label[i], percentage_error))
+                        logging.info('{} Percentage Error: {}'.format(train_test_label[i], percentage_error))
 
                         # Record the model with the lowest elapsed time prediction (since that might be the most
                         # important prediction)
@@ -110,7 +112,7 @@ class MiniTrainer:
                         transform = " transform"
                     io_util.write_csv_result(metrics_path, method + transform, results)
 
-                    print()
+                    logging.info()
 
                 io_util.write_csv_result(metrics_path, "", [])
 
@@ -132,10 +134,12 @@ if __name__ == '__main__':
     aparser.add_argument('--ml_models', nargs='*', type=str, default=["lr", "rf", "nn"],
                          help='ML models for the mini trainer to evaluate')
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
+    aparser.add_argument('--log', default='info', help='The logging level')
     args = aparser.parse_args()
+
+    logging_util.init_logging(args.log)
 
     trainer = MiniTrainer(args.input_path, args.model_metrics_path, args.ml_models, args.test_ratio)
     trained_model_map = trainer.train()
-    if args.save_path is not None:
-        with open(args.save_path + '/mini_model_map.pickle', 'wb') as file:
-            pickle.dump(trained_model_map, file)
+    with open(args.save_path + '/mini_model_map.pickle', 'wb') as file:
+        pickle.dump(trained_model_map, file)

@@ -5,6 +5,7 @@ import os
 import numpy as np
 import argparse
 import pickle
+import logging
 
 from sklearn import model_selection
 
@@ -14,6 +15,7 @@ import io_util
 import global_model_data
 import model
 import training_util
+import logging_util
 from type import OpUnit, Target
 
 np.set_printoptions(precision=4)
@@ -45,13 +47,13 @@ def _get_global_resource_util(grouped_opunit, concurrent_data_list, prediction_p
     #  module eventually
     adjusted_x_list = [0] * 20
     adjusted_y = 0
-    print(concurrent_data_list)
-    print(start_time, end_time)
+    logging.debug(concurrent_data_list)
+    logging.debug("{} {}".format(start_time, end_time))
 
     for data in concurrent_data_list:
         ratio = _calculate_range_overlap(start_time, end_time, data.start_time, data.end_time) / (data.end_time -
                                                                                                   data.start_time + 1)
-        print(data.start_time, data.end_time, ratio)
+        logging.debug("{} {} {}".format(data.start_time, data.end_time, ratio))
         adjusted_y += data.y * ratio
         cpu_id = data.cpu_id
         if cpu_id > 10:
@@ -77,9 +79,9 @@ def _get_global_resource_util(grouped_opunit, concurrent_data_list, prediction_p
 
     ratio_error = abs(adjusted_y - sum_adjusted_x) / (adjusted_y + 1e-6)
 
-    print(sum_adjusted_x)
-    print(adjusted_y)
-    print()
+    logging.debug(sum_adjusted_x)
+    logging.debug(adjusted_y)
+    logging.debug("")
 
     io_util.write_csv_result(prediction_path, elapsed_us, [len(concurrent_data_list)] + list(sum_adjusted_x) + [""] +
                              list(adjusted_y) + [""] + list(ratio_error))
@@ -111,7 +113,7 @@ def _global_model_training_process(x, y, methods, test_ratio, metrics_path, pred
 
     for method in methods:
         # Train the model
-        print("Training the global resource model with {}".format(method))
+        logging.info("Training the global model with {}".format(method))
         regressor = model.Model(method, log_transform=False)
         regressor.train(x_train, y_train)
 
@@ -124,12 +126,12 @@ def _global_model_training_process(x, y, methods, test_ratio, metrics_path, pred
             evaluate_y = d[1]
 
             y_pred = regressor.predict(evaluate_x)
-            print("x shape: ", evaluate_x.shape)
-            print("y shape: ", y_pred.shape)
+            logging.debug("x shape: {}".format(evaluate_x.shape))
+            logging.debug("y shape: {}".format(y_pred.shape))
             percentage_error = np.average(np.abs(evaluate_y - y_pred) / (evaluate_y + 1), axis=0)
             results += list(percentage_error) + [""]
 
-            print('{} Percentage Error: {}'.format(train_test_label[i], percentage_error))
+            logging.info('{} Percentage Error: {}'.format(train_test_label[i], percentage_error))
 
             # Record the model with the lowest elapsed time prediction (since that might be the most
             # important prediction)
@@ -140,7 +142,7 @@ def _global_model_training_process(x, y, methods, test_ratio, metrics_path, pred
 
         io_util.write_csv_result(metrics_path, method, results)
 
-        print()
+        logging.info("")
 
     # Record the best prediction results on the test data
     training_util.record_predictions(pred_results, prediction_path)
@@ -205,9 +207,9 @@ class GlobalTrainer:
         for d in global_model_data_list:
             mini_model_y_pred = d.target_grouped_op_unit_data.y_pred
             predicted_elapsed_us = mini_model_y_pred[data_info.target_csv_index[Target.ELAPSED_US]]
-            mini_model_y_pred /= predicted_elapsed_us
-            x.append(np.concatenate((mini_model_y_pred, d.global_resource_util_y_pred,
+            x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, d.global_resource_util_y_pred,
                                      d.global_resource_util_same_core_x)))
+            # x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, d.global_resource_util_y_pred)))
             y.append(d.target_grouped_op_unit_data.y / (d.target_grouped_op_unit_data.y_pred + 1e-6))
         methods = self.ml_models
 
@@ -288,7 +290,7 @@ class GlobalTrainer:
             # if i == 10:
             #    break
             y = data.y
-            print("{} pipeline elapsed time: {}".format(data.name, y[-1]))
+            logging.debug("{} pipeline elapsed time: {}".format(data.name, y[-1]))
             pipeline_y_pred = 0
             x = None
             for opunit_feature in data.opunit_features:
@@ -305,20 +307,20 @@ class GlobalTrainer:
                         y_pred -= scan_y_pred
                 else:
                     y_pred = prediction_cache[key]
-                print("Predicted {} elapsed time with feature {}: {}".format(opunit_feature[0].name,
+                logging.debug("Predicted {} elapsed time with feature {}: {}".format(opunit_feature[0].name,
                                                                              x[0], y_pred[0, -1]))
                 pipeline_y_pred += y_pred[0]
 
             # Record the predicted
             data.y_pred = pipeline_y_pred
-            print("{} pipeline predicted time: {}".format(data.name, pipeline_y_pred[-1]))
+            logging.debug("{} pipeline predicted time: {}".format(data.name, pipeline_y_pred[-1]))
             ratio_error = abs(y[-1] - pipeline_y_pred[-1]) / y[-1]
-            print("|Actual - Predict| / Actual: {}".format(ratio_error))
+            logging.debug("|Actual - Predict| / Actual: {}".format(ratio_error))
 
             io_util.write_csv_result(prediction_path, data.name + " " + str(x[0][-1]),
                                      [y[-1], pipeline_y_pred[-1], ratio_error])
 
-            print()
+            logging.debug("")
 
 
 # ==============================================
@@ -335,10 +337,17 @@ if __name__ == '__main__':
     aparser.add_argument('--ml_models', nargs='*', type=str, default=["lr", "rf", "gbm", "nn"],
                          help='ML models for the mini trainer to evaluate')
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
+    aparser.add_argument('--log', default='info', help='The logging level')
     args = aparser.parse_args()
+
+    logging_util.init_logging(args.log)
 
     with open(args.mini_model_file, 'rb') as pickle_file:
         model_map = pickle.load(pickle_file)
     trainer = GlobalTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio,
                             model_map)
-    trainer.train()
+    resource_model, impact_model = trainer.train()
+    #with open(args.save_path + '/global_resource_model.pickle', 'wb') as file:
+    #    pickle.dump(resource_model, file)
+    #with open(args.save_path + '/global_impact_model.pickle', 'wb') as file:
+    #    pickle.dump(impact_model, file)
