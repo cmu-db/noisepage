@@ -82,7 +82,7 @@ TEST_F(DefaultCostModelTests, SeqScanTest) {
       optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   // calculates cost
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
-  EXPECT_EQ(cost, 0.05);
+  ASSERT_FLOAT_EQ(cost, 0.05);
 }
 
 // NOLINTNEXTLINE
@@ -101,7 +101,8 @@ TEST_F(DefaultCostModelTests, IndexScanTest) {
   grexp->SetGroupID(group_id_t(0));
   optimizer_context.GetMemo().InsertExpression(grexp, true);
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
-  EXPECT_EQ(cost, std::log2(5) * 0.005 + optimizer_context.GetMemo().GetGroupByID(group_id_t(0))->GetNumRows() * 0.01);
+  ASSERT_FLOAT_EQ(cost,
+                  std::log2(5) * 0.005 + optimizer_context.GetMemo().GetGroupByID(group_id_t(0))->GetNumRows() * 0.01);
 }
 
 // NOLINTNEXTLINE
@@ -120,7 +121,7 @@ TEST_F(DefaultCostModelTests, QueryDerivedScanTest) {
   GroupExpression *grexp =
       optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
-  EXPECT_EQ(cost, 0.f);
+  ASSERT_FLOAT_EQ(cost, 0.f);
 }
 
 // NOLINTNEXTLINE
@@ -144,7 +145,7 @@ TEST_F(DefaultCostModelTests, OrderByTest) {
       .GetGroupByID(grexp->GetChildGroupId(0))
       ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)))->GetNumRows());
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
-  EXPECT_EQ(cost, 5 * std::log2(5) * 0.01);
+  ASSERT_FLOAT_EQ(cost, 5 * std::log2(5) * 0.01);
 }
 
 // NOLINTNEXTLINE
@@ -166,7 +167,7 @@ TEST_F(DefaultCostModelTests, LimitTest) {
       .GetGroupByID(grexp->GetChildGroupId(0))
       ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)))->GetNumRows());
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
-  EXPECT_EQ(cost, std::min(5, 3) * 0.01);
+  ASSERT_FLOAT_EQ(cost, std::min(5, 3) * 0.01);
 }
 
 // NOLINTNEXTLINE
@@ -180,7 +181,8 @@ TEST_F(DefaultCostModelTests, InnerNLJoinTest) {
   auto annotated_expr_0 =
       AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
   Operator inner_nl_join = InnerNLJoin::Make(std::vector<AnnotatedExpression>(), {x_1}, {x_1});
-  // child operators: one scans the first table, while the other scans the 2nd table. The join will operate on these two tables.
+  // child operators: one scans the first table, while the other scans the 2nd table. The join will operate on these two
+  // tables.
   Operator seq_scan_1 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                       std::vector<AnnotatedExpression>(), "table", false);
   Operator seq_scan_2 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(2),
@@ -199,7 +201,7 @@ TEST_F(DefaultCostModelTests, InnerNLJoinTest) {
       .GetGroupByID(grexp->GetChildGroupId(1))
       ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(2)))->GetNumRows());
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
-  EXPECT_EQ(cost, 0.5);
+  ASSERT_FLOAT_EQ(cost, 0.5);
 }
 
 // NOLINTNEXTLINE
@@ -215,7 +217,7 @@ TEST_F(DefaultCostModelTests, LeftNLJoinTest) {
   GroupExpression *grexp =
       optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
-  EXPECT_EQ(cost, 0.f);
+  ASSERT_FLOAT_EQ(cost, 0.f);
 }
 
 // NOLINTNEXTLINE
@@ -231,7 +233,7 @@ TEST_F(DefaultCostModelTests, RightNLJoinTest) {
   GroupExpression *grexp =
       optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
-  EXPECT_EQ(cost, 0.f);
+  ASSERT_FLOAT_EQ(cost, 0.f);
 }
 
 // NOLINTNEXTLINE
@@ -247,7 +249,7 @@ TEST_F(DefaultCostModelTests, OuterNLJoinTest) {
   GroupExpression *grexp =
       optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
-  EXPECT_EQ(cost, 0.f);
+  ASSERT_FLOAT_EQ(cost, 0.f);
 }
 
 // NOLINTNEXTLINE
@@ -263,7 +265,7 @@ TEST_F(DefaultCostModelTests, LeftHashJoinTest) {
   GroupExpression *grexp =
       optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
-  EXPECT_EQ(cost, 0.f);
+  ASSERT_FLOAT_EQ(cost, 0.f);
 }
 
 // NOLINTNEXTLINE
@@ -279,7 +281,7 @@ TEST_F(DefaultCostModelTests, RightHashJoinTest) {
   GroupExpression *grexp =
       optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
-  EXPECT_EQ(cost, 0.f);
+  ASSERT_FLOAT_EQ(cost, 0.f);
 }
 
 // NOLINTNEXTLINE
@@ -295,7 +297,7 @@ TEST_F(DefaultCostModelTests, OuterHashJoinTest) {
   GroupExpression *grexp =
       optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
-  EXPECT_EQ(cost, 0.f);
+  ASSERT_FLOAT_EQ(cost, 0.f);
 }
 
 // NOLINTNEXTLINE
@@ -318,7 +320,7 @@ TEST_F(DefaultCostModelTests, InsertTest) {
   GroupExpression *grexp =
       optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
-  EXPECT_EQ(cost, 0.f);
+  ASSERT_FLOAT_EQ(cost, 0.f);
 }
 
 // NOLINTNEXTLINE
@@ -333,7 +335,7 @@ TEST_F(DefaultCostModelTests, InsertSelectTest) {
   GroupExpression *grexp =
       optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
-  EXPECT_EQ(cost, 0.f);
+  ASSERT_FLOAT_EQ(cost, 0.f);
 }
 
 // NOLINTNEXTLINE
@@ -347,7 +349,7 @@ TEST_F(DefaultCostModelTests, DeleteTest) {
   GroupExpression *grexp =
       optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
-  EXPECT_EQ(cost, 0.f);
+  ASSERT_FLOAT_EQ(cost, 0.f);
 }
 
 // NOLINTNEXTLINE
@@ -361,7 +363,7 @@ TEST_F(DefaultCostModelTests, UpdateTest) {
   GroupExpression *grexp =
       optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
-  EXPECT_EQ(cost, 0.f);
+  ASSERT_FLOAT_EQ(cost, 0.f);
 }
 
 // NOLINTNEXTLINE
@@ -387,7 +389,7 @@ TEST_F(DefaultCostModelTests, HashGroupByTest) {
       .GetGroupByID(grexp->GetChildGroupId(0))
       ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)))->GetNumRows());
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
-  EXPECT_EQ(cost, 10 * 0.01);
+  ASSERT_FLOAT_EQ(cost, 10 * 0.01);
 }
 
 // NOLINTNEXTLINE
@@ -413,7 +415,7 @@ TEST_F(DefaultCostModelTests, SortGroupByTest) {
       .GetGroupByID(grexp->GetChildGroupId(0))
       ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)))->GetNumRows());
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
-  EXPECT_EQ(cost, 5 * 0.01);
+  ASSERT_FLOAT_EQ(cost, 5 * 0.01);
 }
 
 // NOLINTNEXTLINE
@@ -433,7 +435,7 @@ TEST_F(DefaultCostModelTests, AggregateTest) {
       .GetGroupByID(grexp->GetChildGroupId(0))
       ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)))->GetNumRows());
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
-  EXPECT_EQ(cost, 10 * 0.01);
+  ASSERT_FLOAT_EQ(cost, 10 * 0.01);
 }
 
 }  // namespace terrier::optimizer
