@@ -10,7 +10,6 @@ namespace terrier::execution::compiler {
 
 /**
  * Limit Translator
- * TODO(Amadou): The limit should be pushed down to the child operators. That's only being done with OrderBy.
  */
 class LimitTranslator : public OperatorTranslator {
  public:

@@ -51,7 +51,7 @@ class AHTInfo {
   /**
    * @return The hash table identifier
    */
-  const ast::Identifier &HT() const { return ht_; }
+  ast::Identifier HT() const { return ht_; }
 
   /**
    * @return The type of the struct

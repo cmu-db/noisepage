@@ -223,7 +223,7 @@ void SortTopTranslator::DeclareIterator(FunctionBuilder *builder) {
 }
 
 void SortTopTranslator::GenForLoop(FunctionBuilder *builder) {
-  if (op_->HasLimit() && op_->GetOffset() != 0) {
+  if (op_->GetOffset() != 0) {
     // Declare Limit variable.
     builder->Append(codegen_->DeclareVariable(num_tuples_, nullptr, codegen_->IntLiteral(0)));
   }
