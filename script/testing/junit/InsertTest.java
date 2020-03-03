@@ -240,7 +240,7 @@ public class InsertTest extends TestUtility {
 
     /**
      * Support out of order inserts
-     * #718 fixed
+     * #729 fixed
      */
     @Test
     public void testOutOfOrderInserts () throws SQLException {
