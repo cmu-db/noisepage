@@ -23,34 +23,32 @@ class OperatorNode : public AbstractOptimizerNode {
    */
   explicit OperatorNode(common::ManagedPointer<AbstractOptimizerNodeContents> contents,
                         std::vector<std::unique_ptr<AbstractOptimizerNode>> &&children)
-      : contents_(std::move(contents)), children_(std::move(children)) {}
+      : contents_(contents), children_(std::move(children)) {}
 
   /**
    * Operator-based constructor for an OperatorNode
    * @param op an operator to bind to this OperatorNode
    * @param children Children of this OperatorNode
    */
-  explicit OperatorNode(Operator op, std::vector<std::unique_ptr<AbstractOptimizerNode>> &&children) {
-    std::unique_ptr<AbstractOptimizerNodeContents> underlying_op = std::make_unique<Operator>(op);
-    contents_ = reinterpret_cast<AbstractOptimizerNodeContents *const>(
-        new common::ManagedPointer<AbstractOptimizerNodeContents>(underlying_op));
-    children_ = std::move(children);
+  explicit OperatorNode(Operator op, std::vector<std::unique_ptr<AbstractOptimizerNode>> &&children) :
+  contents_(common::ManagedPointer<AbstractOptimizerNodeContents>(new Operator(std::move(op)))) {
+    children_.resize(children.size());
+    std::move(children.begin(), children.end(), children_.begin());
   }
 
   /**
    * Copy
    */
   std::unique_ptr<AbstractOptimizerNode> Copy() override {
-    std::vector<std::unique_ptr<AbstractOptimizerNode>> child;
-    for (const auto &op : children_) {
+    std::vector<std::unique_ptr<AbstractOptimizerNode>> new_children;
+    for (auto &op : children_) {
       TERRIER_ASSERT(op != nullptr, "OperatorNode should not have null children");
       TERRIER_ASSERT(op->Contents()->GetOpType() != OpType::UNDEFINED, "OperatorNode should have operator children");
 
-      auto copy_node = dynamic_cast<OperatorNode *>(op.get())->Copy();
-      const auto abstract_child = dynamic_cast<AbstractOptimizerNode *>(copy_node.release());
-      child.emplace_back(abstract_child);
+      new_children.emplace_back(op->Copy());
     }
-    return std::make_unique<OperatorNode>(contents_, std::move(child));
+    auto result = std::make_unique<OperatorNode>(contents_, std::move(new_children));
+    return std::move(result);
   }
 
   /**
@@ -59,6 +57,7 @@ class OperatorNode : public AbstractOptimizerNode {
    * @returns true if equal
    */
   bool operator==(const OperatorNode &other) const {
+
     if (contents_->GetOpType() != other.contents_->GetOpType()) return false;
     if (contents_->GetExpType() != other.contents_->GetExpType()) return false;
     if (children_.size() != other.children_.size()) return false;
@@ -99,9 +98,15 @@ class OperatorNode : public AbstractOptimizerNode {
    * @return vector of children
    */
   const std::vector<common::ManagedPointer<AbstractOptimizerNode>> GetChildren() const override {
+
     std::vector<common::ManagedPointer<AbstractOptimizerNode>> result;
     result.reserve(children_.size());
-    for (auto &i : children_) result.emplace_back(i);
+    int count = 0;
+
+    for (const std::unique_ptr<AbstractOptimizerNode> &i : children_) {
+      result.emplace_back(common::ManagedPointer(i->Copy().release()));
+      count++;
+    }
     return result;
   }
 
@@ -113,7 +118,9 @@ class OperatorNode : public AbstractOptimizerNode {
   /**
    * @return info for current node
    */
-  const std::string GetInfo() const override { return ""; }
+  const std::string GetInfo() const override {
+    return (contents_.Get() != nullptr ? contents_->GetName() : "Empty");
+  }
 
   /**
    * Add a operator expression as child

@@ -163,7 +163,6 @@ class OptimizerContext {
         }
       }
     }
-
     return new GroupExpression(node->Contents(), std::move(child_groups));
   }
 

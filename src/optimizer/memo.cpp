@@ -40,6 +40,7 @@ GroupExpression *Memo::InsertExpression(GroupExpression *gexpr, group_id_t targe
     group_id = target_group;
   }
 
+
   Group *group = GetGroupByID(group_id);
   group->AddExpression(gexpr, enforced);
   return gexpr;

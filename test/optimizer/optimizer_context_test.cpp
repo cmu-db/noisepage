@@ -118,32 +118,43 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateSingleLayer) {
   std::unique_ptr<OperatorNode> left_get = std::make_unique<OperatorNode>(
       LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
       std::move(c));
-  auto lg_copy = left_get->Copy();
 
   std::unique_ptr<OperatorNode> right_get =
-      std::unique_ptr<OperatorNode>(dynamic_cast<OperatorNode *>(left_get->Copy().get()));
-  auto rg_copy = right_get->Copy();
+      std::unique_ptr<OperatorNode>(dynamic_cast<OperatorNode *>(left_get->Copy().release()));
   EXPECT_EQ(*left_get, *right_get);
+  auto rg_copy = right_get->Copy();
+  auto lg_copy = left_get->Copy();
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> jc;
   jc.emplace_back(std::move(left_get));
   jc.emplace_back(std::move(right_get));
-  auto join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(jc))->Copy();
+  OperatorNode *test_opnode = new OperatorNode(LogicalInnerJoin::Make(), std::move(jc));
+
+  std::unique_ptr<OperatorNode> join_opnode = std::unique_ptr<OperatorNode>(test_opnode);
+  auto join = std::unique_ptr<AbstractOptimizerNode>(join_opnode.release());
+
+  std::cout << "marker 2\n";
 
   // RecordOperatorNodeIntoGroup
   GroupExpression *join_gexpr;
-  EXPECT_TRUE(context.RecordOperatorNodeIntoGroup(common::ManagedPointer(join), &join_gexpr));
+  EXPECT_TRUE(context.RecordOperatorNodeIntoGroup(common::ManagedPointer(join.release()), &join_gexpr));
   EXPECT_TRUE(join_gexpr != nullptr);
+
+  std::cout << "marker 3\n";
 
   EXPECT_EQ(join_gexpr->Contents(), join->Contents());
   EXPECT_EQ(join_gexpr->GetChildGroupIDs().size(), 2);
   EXPECT_EQ(join_gexpr->GetChildGroupId(0), join_gexpr->GetChildGroupId(1));
 
-  auto child = join_gexpr->GetChildGroupId(0);
+  std::cout << "4\n";
+
+auto child = join_gexpr->GetChildGroupId(0);
   auto group = context.GetMemo().GetGroupByID(child);
   EXPECT_EQ(group->GetLogicalExpressions().size(), 1);
 
-  auto child_gexpr = group->GetLogicalExpressions()[0];
+std::cout << "5\n";
+
+auto child_gexpr = group->GetLogicalExpressions()[0];
   EXPECT_EQ(child_gexpr->Contents(), lg_copy->Contents());
   EXPECT_EQ(child_gexpr->Contents(), rg_copy->Contents());
   EXPECT_EQ(child_gexpr->GetChildGroupIDs().size(), 0);
@@ -160,7 +171,7 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateMultiLayer) {
       std::move(c));
   auto lg_copy = left_get->Copy();
 
-  auto right_get = std::unique_ptr<OperatorNode>(dynamic_cast<OperatorNode *>(left_get->Copy().get()));
+  auto right_get = std::unique_ptr<OperatorNode>(dynamic_cast<OperatorNode *>(left_get->Copy().release()));
   auto rg_copy = right_get->Copy();
   EXPECT_EQ(*left_get, *right_get);
 
@@ -170,7 +181,7 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateMultiLayer) {
   auto left_join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(jc));
   auto lj_copy = left_join->Copy();
 
-  auto right_join = std::unique_ptr<OperatorNode>(dynamic_cast<OperatorNode *>(left_join->Copy().get()));
+  auto right_join = std::unique_ptr<OperatorNode>(dynamic_cast<OperatorNode *>(left_join->Copy().release()));
   auto rj_copy = right_join->Copy();
   EXPECT_EQ(*left_join, *right_join);
 
@@ -234,7 +245,7 @@ TEST_F(OptimizerContextTest, SimpleBindingTest) {
   auto left_get = std::make_unique<OperatorNode>(
       LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
       std::move(c));
-  auto right_get = std::unique_ptr<OperatorNode>(dynamic_cast<OperatorNode *>(left_get->Copy().get()));
+  auto right_get = std::unique_ptr<OperatorNode>(dynamic_cast<OperatorNode *>(left_get->Copy().release()));
   EXPECT_EQ(*left_get, *right_get);
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> jc;

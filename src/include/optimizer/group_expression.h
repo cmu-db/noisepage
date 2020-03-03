@@ -31,9 +31,10 @@ class GroupExpression {
   GroupExpression(common::ManagedPointer<AbstractOptimizerNodeContents> contents,
                   std::vector<group_id_t> &&child_groups)
       : group_id_(UNDEFINED_GROUP),
-        contents_(std::move(contents)),
         child_groups_(child_groups),
-        stats_derived_(false) {}
+        stats_derived_(false) {
+    contents_ = contents;
+  }
 
   /**
    * Operator-based constructor
@@ -41,9 +42,9 @@ class GroupExpression {
    * @param child_groups Vector of children groups
    */
   GroupExpression(Operator op, std::vector<group_id_t> &&child_groups) {
+    contents_ = common::ManagedPointer<AbstractOptimizerNodeContents>(new Operator(op));
     group_id_ = UNDEFINED_GROUP;
-    contents_ = std::make_unique<Operator>(op);
-    child_groups_ = std::move(child_groups);
+    child_groups_ = child_groups;
     stats_derived_ = false;
   }
 

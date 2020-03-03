@@ -257,7 +257,7 @@ class Operator : public AbstractOptimizerNodeContents {
     if (contents_) {
       auto &n = *contents_;
       if (typeid(n) == typeid(T)) {
-        return common::ManagedPointer<T>(reinterpret_cast<T *>(contents_.get()));
+        return common::ManagedPointer<T>(dynamic_cast<T *>(contents_->Copy()));
       }
     }
     return nullptr;
