@@ -150,6 +150,38 @@ public class InsertTest extends TestUtility {
     }
 
     /**
+     * Test insertion of NULL values.
+     * Fix #712.
+     */
+    @Test
+    public void testInsertNull() throws SQLException {
+        String createSQL = "CREATE TABLE xxx (col1 INT);";
+        String insertSQL = "INSERT INTO xxx VALUES (NULL);";
+        String selectSQL = "SELECT * FROM xxx;";
+        String dropSQL = "DROP TABLE xxx;";
+
+        Statement stmt = conn.createStatement();
+
+        conn.setAutoCommit(false);
+        stmt.addBatch(createSQL);
+        stmt.addBatch(insertSQL);
+        stmt.executeBatch();
+        conn.commit();
+        conn.setAutoCommit(true);
+
+        stmt = conn.createStatement();
+        rs = stmt.executeQuery(selectSQL);
+
+        for (int i = 0; rs.next(); i++) {
+            assertEquals(0, rs.getInt("col1"));
+            assertEquals(true, rs.wasNull());
+        }
+
+        stmt = conn.createStatement();
+        stmt.execute(dropSQL);
+    }
+
+    /**
      * CREATE TABLE with a qualified namespace doesn't work as expected
      * #706 fixed but also need #724 for select and drop
      */
