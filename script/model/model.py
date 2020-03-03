@@ -2,7 +2,7 @@
 
 import numpy as np
 
-import xgboost as xgb
+import lightgbm as lgb
 
 from sklearn import linear_model
 from sklearn import kernel_ridge
@@ -28,8 +28,8 @@ def _get_base_ml_model(method):
         regressor = kernel_ridge.KernelRidge(kernel='rbf')
     if method == 'rf':
         regressor = ensemble.RandomForestRegressor(n_estimators=50, n_jobs=8)
-    if method == 'xgb':
-        regressor = xgb.XGBRegressor(max_depth=20, n_estimators=100, random_state=42)
+    if method == 'gbm':
+        regressor = lgb.LGBMRegressor(max_depth=20, n_estimators=100, random_state=42)
         regressor = multioutput.MultiOutputRegressor(regressor)
     if method == 'nn':
         regressor = neural_network.MLPRegressor(hidden_layer_sizes=(25, 25), early_stopping=True,
