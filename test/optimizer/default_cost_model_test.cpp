@@ -31,6 +31,7 @@ class DefaultCostModelTests : public TerrierTest {
   DefaultCostModel default_cost_model_;
 
   void SetUp() override {
+    // creates a stats storage object with 2 table stats objects each containing 5 column stats objects
     column_stats_obj_1_ = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(1), 5, 4, 0.2,
                                       {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
     column_stats_obj_2_ = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(2), 5, 4, 0.2,
@@ -67,14 +68,19 @@ class DefaultCostModelTests : public TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(DefaultCostModelTests, SeqScanTest) {
+  // creates an optimizer context and adds the stats storage object we are using to it
   OptimizerContext optimizer_context =
       OptimizerContext(common::ManagedPointer<AbstractCostModel>(&default_cost_model_));
   optimizer_context.SetStatsStorage(&stats_storage_);
+  // creates seq scan operator
   Operator seq_scan = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(1),
                                     std::vector<AnnotatedExpression>(), "table", false);
+  // creates operator node with above operator
   OperatorNode operator_expression = OperatorNode(seq_scan, {});
+  // adds a group expression to optimizer context obj using the operator node
   GroupExpression *grexp =
       optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
+  // calculates cost
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
   EXPECT_EQ(cost, 0.05);
 }
@@ -84,12 +90,14 @@ TEST_F(DefaultCostModelTests, IndexScanTest) {
   OptimizerContext optimizer_context =
       OptimizerContext(common::ManagedPointer<AbstractCostModel>(&default_cost_model_));
   optimizer_context.SetStatsStorage(&stats_storage_);
+  // create index scan operator
   Operator index_scan = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(1),
                                         catalog::index_oid_t(1), std::vector<AnnotatedExpression>(), true,
                                         planner::IndexScanType::AscendingClosed, {});
   OperatorNode operator_expression = OperatorNode(index_scan, {});
   GroupExpression *grexp =
       optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
+  // add a group ID to the grexp created so that it can be identified when performing operations on it
   grexp->SetGroupID(group_id_t(0));
   optimizer_context.GetMemo().InsertExpression(grexp, true);
   auto cost = default_cost_model_.CalculateCost(optimizer_context.GetTxn(), &optimizer_context.GetMemo(), grexp);
@@ -101,6 +109,7 @@ TEST_F(DefaultCostModelTests, QueryDerivedScanTest) {
   OptimizerContext optimizer_context =
       OptimizerContext(common::ManagedPointer<AbstractCostModel>(&default_cost_model_));
   optimizer_context.SetStatsStorage(&stats_storage_);
+  // create abstract expr in order to create query derived scan operator below
   auto alias_to_expr_map = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>();
   parser::AbstractExpression *expr_b_1 =
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
@@ -119,14 +128,18 @@ TEST_F(DefaultCostModelTests, OrderByTest) {
   OptimizerContext optimizer_context =
       OptimizerContext(common::ManagedPointer<AbstractCostModel>(&default_cost_model_));
   optimizer_context.SetStatsStorage(&stats_storage_);
+  // create order by operator
   Operator order_by = OrderBy::Make();
+  // create child seq scan operator
   Operator seq_scan = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(1),
                                     std::vector<AnnotatedExpression>(), "table", false);
+  // populate children node list with child operator
   std::vector<std::unique_ptr<OperatorNode>> children = {};
   children.push_back(std::make_unique<OperatorNode>(OperatorNode(seq_scan, {})));
   OperatorNode operator_expression = OperatorNode(order_by, std::move(children));
   GroupExpression *grexp =
       optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
+  // set the num rows of the table we are operating on in the group
   optimizer_context.GetMemo()
       .GetGroupByID(grexp->GetChildGroupId(0))
       ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)))->GetNumRows());
@@ -140,6 +153,7 @@ TEST_F(DefaultCostModelTests, LimitTest) {
       OptimizerContext(common::ManagedPointer<AbstractCostModel>(&default_cost_model_));
   optimizer_context.SetStatsStorage(&stats_storage_);
   Operator limit = Limit::Make(0, 3, {}, {});
+  // make new child operator and push to list of children
   Operator seq_scan = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(1),
                                     std::vector<AnnotatedExpression>(), "table", false);
   std::vector<std::unique_ptr<OperatorNode>> children = {};
@@ -147,6 +161,7 @@ TEST_F(DefaultCostModelTests, LimitTest) {
   OperatorNode operator_expression = OperatorNode(limit, std::move(children));
   GroupExpression *grexp =
       optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
+  // set the num rows of the table we are operating on in the group
   optimizer_context.GetMemo()
       .GetGroupByID(grexp->GetChildGroupId(0))
       ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)))->GetNumRows());
@@ -165,6 +180,7 @@ TEST_F(DefaultCostModelTests, InnerNLJoinTest) {
   auto annotated_expr_0 =
       AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
   Operator inner_nl_join = InnerNLJoin::Make(std::vector<AnnotatedExpression>(), {x_1}, {x_1});
+  // child operators: one scans the first table, while the other scans the 2nd table. The join will operate on these two tables.
   Operator seq_scan_1 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                       std::vector<AnnotatedExpression>(), "table", false);
   Operator seq_scan_2 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(2),
@@ -175,6 +191,7 @@ TEST_F(DefaultCostModelTests, InnerNLJoinTest) {
   OperatorNode operator_expression = OperatorNode(inner_nl_join, std::move(children));
   GroupExpression *grexp =
       optimizer_context.MakeGroupExpression(common::ManagedPointer<OperatorNode>(&operator_expression));
+  // sets row counts for both tables in the groups
   optimizer_context.GetMemo()
       .GetGroupByID(grexp->GetChildGroupId(0))
       ->SetNumRows((stats_storage_.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)))->GetNumRows());
