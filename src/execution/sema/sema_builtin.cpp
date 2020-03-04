@@ -2555,7 +2555,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::Lower: {
-      CheckStringCall(call, builtin);
+      CheckBuiltinStringCall(call, builtin);
       break;
     }
     default: {
