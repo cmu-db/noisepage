@@ -488,9 +488,7 @@ class InnerNLJoin : public OperatorNodeContents<InnerNLJoin> {
    * @param right_keys right keys to join
    * @return an InnerNLJoin operator
    */
-  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates,
-                       std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
-                       std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_keys);
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
 
   /**
    * Copy
@@ -503,31 +501,11 @@ class InnerNLJoin : public OperatorNodeContents<InnerNLJoin> {
   common::hash_t Hash() const override;
 
   /**
-   * @return Left join keys
-   */
-  const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetLeftKeys() const { return left_keys_; }
-
-  /**
-   * @return Right join keys
-   */
-  const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetRightKeys() const { return right_keys_; }
-
-  /**
    * @return Predicates for the Join
    */
   const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
 
  private:
-  /**
-   * Left join keys
-   */
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> left_keys_;
-
-  /**
-   * Right join keys
-   */
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> right_keys_;
-
   /**
    * Predicates for join
    */

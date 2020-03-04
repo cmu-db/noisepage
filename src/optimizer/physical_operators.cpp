@@ -274,21 +274,14 @@ common::hash_t Limit::Hash() const {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *InnerNLJoin::Copy() const { return new InnerNLJoin(*this); }
 
-Operator InnerNLJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
-                           std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
-                           std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_keys) {
+Operator InnerNLJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
   auto join = std::make_unique<InnerNLJoin>();
   join->join_predicates_ = std::move(join_predicates);
-  join->left_keys_ = std::move(left_keys);
-  join->right_keys_ = std::move(right_keys);
-
   return Operator(std::move(join));
 }
 
 common::hash_t InnerNLJoin::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
-  for (auto &expr : left_keys_) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
-  for (auto &expr : right_keys_) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
   for (auto &pred : join_predicates_) {
     auto expr = pred.GetExpr();
     if (expr)
@@ -302,16 +295,8 @@ common::hash_t InnerNLJoin::Hash() const {
 bool InnerNLJoin::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::INNERNLJOIN) return false;
   const InnerNLJoin &node = *dynamic_cast<const InnerNLJoin *>(&r);
-  if (left_keys_.size() != node.left_keys_.size() || right_keys_.size() != node.right_keys_.size() ||
-      join_predicates_.size() != node.join_predicates_.size())
-    return false;
+  if (join_predicates_.size() != node.join_predicates_.size()) return false;
   if (join_predicates_ != node.join_predicates_) return false;
-  for (size_t i = 0; i < left_keys_.size(); i++) {
-    if (*(left_keys_[i]) != *(node.left_keys_[i])) return false;
-  }
-  for (size_t i = 0; i < right_keys_.size(); i++) {
-    if (*(right_keys_[i]) != *(node.right_keys_[i])) return false;
-  }
   return true;
 }
 
