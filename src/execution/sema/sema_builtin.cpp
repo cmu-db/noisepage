@@ -2202,11 +2202,10 @@ void Sema::CheckBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin) {
 }
 
 void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
-
   ast::BuiltinType::Kind sql_type;
-  switch(builtin){
-    case ast::Builtin::Lower:{
-      if(!CheckArgCount(call, 1)){
+  switch (builtin) {
+    case ast::Builtin::Lower: {
+      if (!CheckArgCount(call, 1)) {
         return;
       }
       sql_type = ast::BuiltinType::StringVal;

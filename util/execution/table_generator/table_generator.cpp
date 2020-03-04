@@ -223,7 +223,7 @@ void TableGenerator::GenerateTestTables(bool is_mini_runner) {
        TABLE_ALLTYPES_SIZE,
        {// {"varchar_col", type::TypeId::VARCHAR, false, Dist::Serial, 0, 0},
         // {"date_col", type::TypeId::DATE, false, Dist::Serial, 0, 0},
-        {"real_col", type::TypeId::DECIMAL, false, Dist::Serial, 0, 0},
+        // {"real_col", type::TypeId::DECIMAL, false, Dist::Serial, 0, 0},
         {"bool_col", type::TypeId::BOOLEAN, false, Dist::Serial, 0, 0},
         {"tinyint_col", type::TypeId::TINYINT, false, Dist::Uniform, 0, 127},
         {"smallint_col", type::TypeId::SMALLINT, false, Dist::Serial, 0, 1000},

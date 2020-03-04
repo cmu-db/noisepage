@@ -1731,12 +1731,11 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
                                                     execution::ast::Builtin::ATan2);
   SetProcCtxPtr(txn, postgres::ATAN2_PRO_OID, udf_context);
 
-  #define BOOTSTRAP_TRIG_FN(str_name, pro_oid, builtin) \
-    CreateProcedure(txn, pro_oid, str_name, postgres::INTERNAL_LANGUAGE_OID, \
-                    postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"}, {dec_type}, \
-                    {dec_type}, {}, dec_type, "", true); \
-    udf_context = new execution::udf::UDFContext(str_name, type::TypeId::DECIMAL, {type::TypeId::DECIMAL}, builtin); \
-    SetProcCtxPtr(txn, pro_oid, udf_context);
+#define BOOTSTRAP_TRIG_FN(str_name, pro_oid, builtin)                                                                 \
+  CreateProcedure(txn, pro_oid, str_name, postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, \
+                  {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", true);                                         \
+  udf_context = new execution::udf::UDFContext(str_name, type::TypeId::DECIMAL, {type::TypeId::DECIMAL}, builtin);    \
+  SetProcCtxPtr(txn, pro_oid, udf_context);
 
   // ACos
   BOOTSTRAP_TRIG_FN("acos", postgres::ACOS_PRO_OID, execution::ast::Builtin::ACos)
@@ -1768,10 +1767,10 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
 
   udf_context = new execution::udf::UDFContext("lower", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
-      execution::ast::Builtin::Lower);
+                                               execution::ast::Builtin::Lower);
   SetProcCtxPtr(txn, postgres::LOWER_PRO_OID, udf_context);
 
-  //TODO(tanujnay112): no op codes for lower and upper yet
+  // TODO(tanujnay112): no op codes for lower and upper yet
 
   CreateProcedure(txn, postgres::UPPER_PRO_OID, "upper", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
