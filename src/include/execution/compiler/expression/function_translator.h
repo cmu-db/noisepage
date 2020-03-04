@@ -1,5 +1,8 @@
 #pragma once
+
 #include <memory>
+#include <vector>
+
 #include "execution/compiler/expression/expression_translator.h"
 
 namespace terrier::execution::compiler {

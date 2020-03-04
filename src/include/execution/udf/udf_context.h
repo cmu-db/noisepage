@@ -1,5 +1,7 @@
 #pragma once
-#include <stdlib.h>
+
+#include <string>
+#include <vector>
 
 #include "common/managed_pointer.h"
 #include "execution/ast/builtins.h"
