@@ -61,7 +61,9 @@ class SeqScanTranslator : public OperatorTranslator {
   static bool IsVectorizable(const terrier::parser::AbstractExpression *predicate);
 
   // Return the pci and its type
-  std::pair<ast::Identifier *, ast::Identifier *> GetMaterializedTuple() override { return {&pci_, &pci_type_}; }
+  std::pair<const ast::Identifier *, const ast::Identifier *> GetMaterializedTuple() override {
+    return {&pci_, &pci_type_};
+  }
 
   // Used by column value expression to get a column.
   ast::Expr *GetTableColumn(const catalog::col_oid_t &col_oid) override;
