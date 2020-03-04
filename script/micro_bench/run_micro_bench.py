@@ -782,7 +782,7 @@ class RunMicroBenchmarks(object):
         self.config = config
         return
 
-    def run_benchmarks(self, benchmarks):
+    def run_benchmarks(self, benchmarks, enable_perf):
         """ Return 0 if all benchmarks succeed, otherwise return the error code
             code from the last benchmark to fail
         """
@@ -792,17 +792,16 @@ class RunMicroBenchmarks(object):
         cnt = 1
         for bench_name in sorted(benchmarks):
             LOG.info("Running '{}' with {} threads [{}/{}]".format(bench_name, BENCHMARK_THREADS, cnt, len(benchmarks)))
-            bench_ret_val = self.run_single_benchmark(bench_name)
+            bench_ret_val = self.run_single_benchmark(bench_name, enable_perf)
             if bench_ret_val:
-                LOG.debug("{} terminated with {}".format(bench_name,
-                                                         bench_ret_val))
+                LOG.debug("{} terminated with {}".format(bench_name, bench_ret_val))
                 ret_val = bench_ret_val
             cnt += 1
 
         # return fail, if any of the benchmarks failed to run or complete
         return ret_val
 
-    def run_single_benchmark(self, bench_name):
+    def run_single_benchmark(self, bench_name, enable_perf):
         """ Run benchmark, generate JSON results
         """
         benchmark_path = os.path.join(BENCHMARK_PATH, bench_name)
@@ -812,6 +811,16 @@ class RunMicroBenchmarks(object):
               " --benchmark_format=json" + \
               " --benchmark_out={}"
         cmd = cmd.format(benchmark_path, config.min_time, output_file)
+
+        # Perf Counter
+        if enable_perf:
+            try:
+                output = subprocess.check_output("perf --version", shell=True)
+            except:
+                raise Exception("Missing perf binary. Please install package")
+            perf_result = "%s.perf" % bench_name
+            LOG.debug("Enabling perf data collection [output=%s]", perf_result)
+            cmd = "perf record --output={} {}".format(perf_result, cmd)
         
         # Environment Variables
         os.environ["TERRIER_BENCHMARK_THREADS"] = str(BENCHMARK_THREADS) # has to be a str
@@ -822,11 +831,12 @@ class RunMicroBenchmarks(object):
         if not output:
             raise Exception("Missing numactl binary. Please install package")
         highest_cpu_node = int(output) - 1
-        LOG.debug("Number of NUMA Nodes = {}".format(highest_cpu_node))
-
-        cmd = "numactl --cpunodebind={} --preferred={} {}".format(highest_cpu_node, highest_cpu_node, cmd)
+        if highest_cpu_node > 0:
+            LOG.debug("Number of NUMA Nodes = {}".format(highest_cpu_node))
+            LOG.debug("Enabling NUMA support")
+            cmd = "numactl --cpunodebind={} --preferred={} {}".format(highest_cpu_node, highest_cpu_node, cmd)
+        
         LOG.debug("Executing command [num_threads={}]: {}".format(BENCHMARK_THREADS, cmd))
-
         proc = subprocess.Popen([cmd], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = proc.communicate()
         ret_val = proc.returncode
@@ -1254,7 +1264,12 @@ if __name__ == "__main__":
                         action="store_true",
                         dest="debug",
                         default=False,
-                        help="enable debug output")
+                        help="Enable debug output")
+
+    parser.add_argument("--perf",
+                        action="store_true",
+                        default=False,
+                        help="Enable perf counter recording")
 
     args = parser.parse_args()
 
@@ -1288,7 +1303,7 @@ if __name__ == "__main__":
     ret = 0
     if args.run:
         run_bench = RunMicroBenchmarks(config)
-        ret = run_bench.run_benchmarks(benchmarks)
+        ret = run_bench.run_benchmarks(benchmarks, args.perf)
 
         # Store them locally if necessary
         if args.local:
