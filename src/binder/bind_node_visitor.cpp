@@ -426,11 +426,15 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
           auto ret_type = ins_val->GetReturnValueType();
           auto expected_ret_type = ins_col.Type();
 
-          auto is_null = !ins_val && ins_col.Nullable();
+          auto is_null = false;
+          if (ins_col.Nullable() && ins_val->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT) {
+            is_null = ins_val.CastManagedPointerTo<parser::ConstantValueExpression>()->GetValue().Null();
+          }
           auto is_cast_expression = ins_val->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
           auto mismatched_type = !is_null && ret_type != expected_ret_type;
 
-          if (is_cast_expression || mismatched_type) {
+          // NULL case handled below.
+          if (!is_null && (is_cast_expression || mismatched_type)) {
             if (ins_val->GetExpressionType() == parser::ExpressionType::VALUE_DEFAULT) {
               std::unique_ptr<parser::AbstractExpression> temp = ins_col.StoredExpression()->Copy();
 
