@@ -271,7 +271,7 @@ void TableGenerator::GenerateTestTables(bool is_mini_runner) {
   InitTestIndexes();
 }
 
-void TableGenerator::GenerateMiniRunnerIndexes(void) {
+void TableGenerator::GenerateMiniRunnerIndexes() {
   std::vector<TableInsertMeta> table_metas;
   std::vector<uint32_t> idx_key = {1, 4, 8, 15};
   std::vector<uint32_t> row_nums = {1, 100, 1000, 10000};

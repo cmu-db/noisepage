@@ -54,7 +54,7 @@ class TableGenerator {
   /**
    * Generate mini runners indexes
    */
-  void GenerateMiniRunnerIndexes(void);
+  void GenerateMiniRunnerIndexes();
 
  private:
   exec::ExecutionContext *exec_ctx_;

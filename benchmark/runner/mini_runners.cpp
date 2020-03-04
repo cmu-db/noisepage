@@ -26,13 +26,13 @@ namespace terrier::runner {
  * Static db_main instance
  * This is done so all tests reuse the same DB Main instance
  */
-DBMain *db_main_ = nullptr;
+DBMain *db_main = nullptr;
 
 /**
  * Database OID
  * This is done so all tests can use the same database OID
  */
-catalog::db_oid_t db_oid_{0};
+catalog::db_oid_t db_oid{0};
 
 /**
  * Taken from Facebook's folly library.
@@ -46,12 +46,12 @@ struct DoNotOptimizeAwayNeedsIndirect {
   // First two constraints ensure it can be an "r" operand.
   // std::is_pointer check is because callers seem to expect that
   // doNotOptimizeAway(&x) is equivalent to doNotOptimizeAway(x).
-  constexpr static bool value = !std::is_trivially_copyable<Decayed>::value ||
+  constexpr static bool VALUE = !std::is_trivially_copyable<Decayed>::value ||
                                 sizeof(Decayed) > sizeof(int64_t) || std::is_pointer<Decayed>::value;
 };
 
 template <typename T>
-auto DoNotOptimizeAway(const T &datum) -> typename std::enable_if<!DoNotOptimizeAwayNeedsIndirect<T>::value>::type {
+auto DoNotOptimizeAway(const T &datum) -> typename std::enable_if<!DoNotOptimizeAwayNeedsIndirect<T>::VALUE>::type {
   // The "r" constraint forces the compiler to make datum available
   // in a register to the asm block, which means that it must have
   // computed/loaded it.  We use this path for things that are <=
@@ -209,9 +209,9 @@ class MiniRunners : public benchmark::Fixture {
   TIGHT_LOOP_OPERATION(double, GEQ, >=);
 
   void SetUp(const benchmark::State &state) final {
-    catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
-    txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
-    metrics_manager_ = db_main_->GetMetricsManager();
+    catalog_ = db_main->GetCatalogLayer()->GetCatalog();
+    txn_manager_ = db_main->GetTransactionLayer()->GetTransactionManager();
+    metrics_manager_ = db_main->GetMetricsManager();
   }
 
   void BenchmarkSqlStatement(execution::query_id_t qid, const std::string &query, brain::PipelineOperatingUnits *units,
@@ -219,7 +219,7 @@ class MiniRunners : public benchmark::Fixture {
     auto txn = txn_manager_->BeginTransaction();
     auto stmt_list = parser::PostgresParser::BuildParseTree(query);
 
-    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
+    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
     auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), "test_db");
     binder.BindNameToNode(stmt_list->GetStatement(0), stmt_list.get());
 
@@ -252,17 +252,17 @@ class MiniRunners : public benchmark::Fixture {
 
       auto query_info = optimizer::QueryInfo(parser::StatementType::SELECT, std::move(output), &property_set);
       out_plan =
-          optimizer.BuildPlanTree(txn, accessor.get(), db_main_->GetStatsStorage().Get(), query_info, std::move(plan));
+          optimizer.BuildPlanTree(txn, accessor.get(), db_main->GetStatsStorage().Get(), query_info, std::move(plan));
     } else {
       auto property_set = optimizer::PropertySet();
       auto query_info = optimizer::QueryInfo(stmt_list->GetStatement(0)->GetType(), {}, &property_set);
       out_plan =
-          optimizer.BuildPlanTree(txn, accessor.get(), db_main_->GetStatsStorage().Get(), query_info, std::move(plan));
+          optimizer.BuildPlanTree(txn, accessor.get(), db_main->GetStatsStorage().Get(), query_info, std::move(plan));
     }
 
     execution::ExecutableQuery::query_identifier.store(qid);
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-        db_oid_, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), out_plan->GetOutputSchema().Get(),
+        db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), out_plan->GetOutputSchema().Get(),
         common::ManagedPointer(accessor));
     auto exec_query = execution::ExecutableQuery(common::ManagedPointer(out_plan), common::ManagedPointer(exec_ctx));
     exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(units));
@@ -276,8 +276,8 @@ class MiniRunners : public benchmark::Fixture {
 
   void BenchmarkIndexScan(int key_num, int num_rows, int lookup_size) {
     auto txn = txn_manager_->BeginTransaction();
-    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
-    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid_, common::ManagedPointer(txn), nullptr,
+    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
+    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
                                                                         nullptr, common::ManagedPointer(accessor));
     exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode_));
 
@@ -346,7 +346,6 @@ class MiniRunners : public benchmark::Fixture {
       for (int i = 0; i < key_num; i++) {
         *reinterpret_cast<uint32_t *>(low_key_pr->AccessForceNotNull(i)) = low_key;
         *reinterpret_cast<uint32_t *>(high_key_pr->AccessForceNotNull(i)) = high_key;
-        ;
       }
 
       index->ScanAscending(*txn, storage::index::ScanType::Closed, key_num, low_key_pr, high_key_pr, 0, &results);
@@ -362,8 +361,8 @@ class MiniRunners : public benchmark::Fixture {
 
   void BenchmarkArithmetic(brain::ExecutionOperatingUnitType type, size_t num_elem) {
     auto txn = txn_manager_->BeginTransaction();
-    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
-    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid_, common::ManagedPointer(txn), nullptr,
+    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
+    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
                                                                         nullptr, common::ManagedPointer(accessor));
     exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode_));
     exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
@@ -442,6 +441,7 @@ BENCHMARK_DEFINE_F(MiniRunners, InsertRunners)(benchmark::State &state) {
   auto num_cols = state.range(0);
   auto num_rows = state.range(1);
 
+  // NOLINTNEXTLINE
   for (auto _ : state) {
     execution::query_id_t qid;
     switch (num_cols) {
@@ -476,10 +476,10 @@ BENCHMARK_DEFINE_F(MiniRunners, InsertRunners)(benchmark::State &state) {
     catalog::table_oid_t tbl_oid;
     {
       auto txn = txn_manager_->BeginTransaction();
-      auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
+      auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
       tbl_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "tmp_table", tmp_schema);
       auto &schema = accessor->GetSchema(tbl_oid);
-      auto *tmp_table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), schema);
+      auto *tmp_table = new storage::SqlTable(db_main->GetStorageLayer()->GetBlockStore(), schema);
       accessor->SetTablePointer(tbl_oid, tmp_table);
       txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     }
@@ -522,14 +522,14 @@ BENCHMARK_DEFINE_F(MiniRunners, InsertRunners)(benchmark::State &state) {
     // Drop the table
     {
       auto txn = txn_manager_->BeginTransaction();
-      auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
+      auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
       accessor->DropTable(tbl_oid);
       txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     }
 
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 
-    auto gc = db_main_->GetStorageLayer()->GetGarbageCollector();
+    auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
     gc->PerformGarbageCollection();
     gc->PerformGarbageCollection();
   }
@@ -572,6 +572,7 @@ BENCHMARK_DEFINE_F(MiniRunners, UpdateRunners)(benchmark::State &state) {
       break;
   }
 
+  // NOLINTNEXTLINE
   for (auto _ : state) {
     // Create temporary table schema
     std::stringstream query;
@@ -624,6 +625,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SeqScanRunners)(benchmark::State &state) {
   auto num_col = state.range(0);
   auto row = state.range(1);
   auto car = state.range(2);
+
+  // NOLINTNEXTLINE
   for (auto _ : state) {
     metrics_manager_->RegisterThread();
 
@@ -685,6 +688,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SortRunners)(benchmark::State &state) {
   auto num_col = state.range(0);
   auto row = state.range(1);
   auto car = state.range(2);
+
+  // NOLINTNEXTLINE
   for (auto _ : state) {
     metrics_manager_->RegisterThread();
 
@@ -748,6 +753,8 @@ BENCHMARK_DEFINE_F(MiniRunners, HashJoinRunners)(benchmark::State &state) {
   auto num_col = state.range(0);
   auto row = state.range(1);
   auto car = state.range(2);
+
+  // NOLINTNEXTLINE
   for (auto _ : state) {
     metrics_manager_->RegisterThread();
 
@@ -823,6 +830,8 @@ BENCHMARK_DEFINE_F(MiniRunners, NestedLoopJoinRunners)(benchmark::State &state) 
   auto num_col = state.range(0);
   auto row = state.range(1);
   auto car = state.range(2);
+
+  // NOLINTNEXTLINE
   for (auto _ : state) {
     metrics_manager_->RegisterThread();
 
@@ -895,6 +904,8 @@ BENCHMARK_DEFINE_F(MiniRunners, AggregateRunners)(benchmark::State &state) {
   auto num_col = state.range(0);
   auto row = state.range(1);
   auto car = state.range(2);
+
+  // NOLINTNEXTLINE
   for (auto _ : state) {
     metrics_manager_->RegisterThread();
 
@@ -957,6 +968,7 @@ BENCHMARK_REGISTER_F(MiniRunners, AggregateRunners)
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, IndexScanRunners)(benchmark::State &state) {
+  // NOLINTNEXTLINE
   for (auto _ : state) {
     metrics_manager_->RegisterThread();
     BenchmarkIndexScan(state.range(0), state.range(1), state.range(2));
@@ -984,7 +996,7 @@ static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
     for (auto idx_size : idx_sizes) {
       std::unordered_set<int> lookups;
       for (auto lookup_size : lookup_sizes) {
-        int64_t size = static_cast<int64_t>(idx_size * lookup_size);
+        auto size = static_cast<int64_t>(idx_size * lookup_size);
         if (size > 0 && lookups.find(size) == lookups.end()) {
           lookups.insert(size);
           b->Args({key_size, idx_size, size});
@@ -1001,6 +1013,7 @@ BENCHMARK_REGISTER_F(MiniRunners, IndexScanRunners)
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, ArithmeticRunners)(benchmark::State &state) {
+  // NOLINTNEXTLINE
   for (auto _ : state) {
     metrics_manager_->RegisterThread();
 
@@ -1056,20 +1069,20 @@ void InitializeRunnersState() {
                              .SetRecordBufferSegmentSize(1000000)
                              .SetRecordBufferSegmentReuse(1000000);
 
-  db_main_ = db_main_builder.Build().release();
+  db_main = db_main_builder.Build().release();
 
-  auto block_store = db_main_->GetStorageLayer()->GetBlockStore();
-  auto catalog = db_main_->GetCatalogLayer()->GetCatalog();
-  auto txn_manager = db_main_->GetTransactionLayer()->GetTransactionManager();
-  db_main_->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
+  auto block_store = db_main->GetStorageLayer()->GetBlockStore();
+  auto catalog = db_main->GetCatalogLayer()->GetCatalog();
+  auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+  db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
 
   // Create the database
   auto txn = txn_manager->BeginTransaction();
-  db_oid_ = catalog->CreateDatabase(common::ManagedPointer(txn), "test_db", true);
+  db_oid = catalog->CreateDatabase(common::ManagedPointer(txn), "test_db", true);
 
   // Load the database
-  auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid_);
-  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid_, common::ManagedPointer(txn), nullptr,
+  auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid);
+  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
                                                                       nullptr, common::ManagedPointer(accessor));
 
   execution::sql::TableGenerator table_gen(exec_ctx.get(), block_store, accessor->GetDefaultNamespace());
@@ -1081,10 +1094,10 @@ void InitializeRunnersState() {
 
 void EndRunnersState() {
   terrier::execution::ExecutionUtil::ShutdownTPL();
-  db_main_->GetMetricsManager()->Aggregate();
-  db_main_->GetMetricsManager()->ToCSV();
+  db_main->GetMetricsManager()->Aggregate();
+  db_main->GetMetricsManager()->ToCSV();
   // free db main here so we don't need to use the loggers anymore
-  delete db_main_;
+  delete db_main;
 }
 
 }  // namespace terrier::runner

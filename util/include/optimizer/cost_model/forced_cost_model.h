@@ -23,7 +23,7 @@ class ForcedCostModel : public AbstractCostModel {
    * Default constructor
    * @param pick_hash_join Whether to pick hash join
    */
-  ForcedCostModel(bool pick_hash_join) : pick_hash_join_(pick_hash_join) {}
+  explicit ForcedCostModel(bool pick_hash_join) : pick_hash_join_(pick_hash_join) {}
 
   /**
    * Costs a GroupExpression
