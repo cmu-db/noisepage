@@ -132,7 +132,7 @@ def _global_model_training_process(x, y, methods, test_ratio, metrics_path, pred
             percentage_error = np.average(np.abs(evaluate_y - y_pred) / (evaluate_y + 1), axis=0)
             results += list(percentage_error) + [""]
 
-            logging.info('{} Ratio Error: {}'.format(train_test_label[i], percentage_error))
+            logging.info('{} Percentage Error: {}'.format(train_test_label[i], percentage_error))
 
             # Record the model with the lowest elapsed time prediction (since that might be the most
             # important prediction)
@@ -151,7 +151,7 @@ def _global_model_training_process(x, y, methods, test_ratio, metrics_path, pred
     return global_model
 
 
-class GlobalTrainer:
+class EndtoendEstimator:
     """
     Trainer for the mini models
     """

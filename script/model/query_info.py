@@ -1,4 +1,4 @@
-from type import Target, OpUnit, ArithmeticFeature
+from type import OpUnit
 
 q1_p1 = [(OpUnit.SCAN, [600000, 46, 600000]),
          (OpUnit.INT_GREATER, [600000]),
@@ -100,5 +100,3 @@ feature_map = {"tpch_q1_p1": q1_p1,
                "tpch_q5_p8": q5_p8,
                "tpch_q6_p1": q6_p1
                }
-
-

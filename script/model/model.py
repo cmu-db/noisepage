@@ -29,7 +29,8 @@ def _get_base_ml_model(method):
     if method == 'rf':
         regressor = ensemble.RandomForestRegressor(n_estimators=50, n_jobs=8)
     if method == 'gbm':
-        regressor = lgb.LGBMRegressor(max_depth=20, n_estimators=100, random_state=42)
+        regressor = lgb.LGBMRegressor(max_depth=20, num_leaves=5000, n_estimators=100, min_child_samples=5,
+                                      random_state=42)
         regressor = multioutput.MultiOutputRegressor(regressor)
     if method == 'nn':
         regressor = neural_network.MLPRegressor(hidden_layer_sizes=(25, 25), early_stopping=True,
