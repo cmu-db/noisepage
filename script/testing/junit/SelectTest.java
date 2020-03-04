@@ -171,7 +171,7 @@ public class SelectTest extends TestUtility {
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
         rs.next();
-        checkRow(rs, new String [] {"stock_count"}, new int [] {4});    //correct value should be 2
+        checkRow(rs, new String [] {"stock_count"}, new int [] {2});
         assertNoMoreRows(rs);
     }
 
