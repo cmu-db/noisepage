@@ -107,6 +107,44 @@ auto DoNotOptimizeAway(const T &datum) -> typename std::enable_if<!DoNotOptimize
 
 #endif
 
+/**
+ * Arg <0, 1, 2>
+ * 0 - Number of columns
+ * 1 - Number of rows
+ * 2 - Cardinality
+ */
+static void GenScanArguments(benchmark::internal::Benchmark *b) {
+  auto num_cols = {1, 4, 8, 15};
+  auto num_rows = {
+      std::pair<int, int>{10, 1},           std::pair<int, int>{10, 2},          std::pair<int, int>{10, 8},
+      std::pair<int, int>{100, 16},         std::pair<int, int>{100, 32},        std::pair<int, int>{100, 64},
+      std::pair<int, int>{10000, 128},      std::pair<int, int>{10000, 1024},    std::pair<int, int>{10000, 4096},
+      std::pair<int, int>{10000, 8192},     std::pair<int, int>{1000000, 1024},  std::pair<int, int>{1000000, 16384},
+      std::pair<int, int>{1000000, 131072}, std::pair<int, int>{1000000, 524288}};
+
+  for (auto col : num_cols) {
+    for (auto row : num_rows) {
+      b->Args({col, row.first, row.second});
+    }
+  }
+}
+
+/**
+ * Arg <0, 1>
+ * 0 - Number of columns
+ * 0 - Number of columns
+ * 1 - Number of rows
+ */
+static void GenInsertArguments(benchmark::internal::Benchmark *b) {
+  auto num_cols = {1, 4, 8, 15};
+  auto num_rows = {1, 100, 10000, 100000};
+  for (auto col : num_cols) {
+    for (auto row : num_rows) {
+      b->Args({col, row});
+    }
+  }
+}
+
 class MiniRunners : public benchmark::Fixture {
  public:
   static constexpr execution::query_id_t OP_INTEGER_PLUS_QID = execution::query_id_t(1);
@@ -117,30 +155,46 @@ class MiniRunners : public benchmark::Fixture {
   static constexpr execution::query_id_t OP_DECIMAL_MULTIPLY_QID = execution::query_id_t(6);
   static constexpr execution::query_id_t OP_DECIMAL_DIVIDE_QID = execution::query_id_t(7);
   static constexpr execution::query_id_t OP_DECIMAL_GEQ_QID = execution::query_id_t(8);
+
   static constexpr execution::query_id_t SEQ_SCAN_COL_1_QID = execution::query_id_t(9);
   static constexpr execution::query_id_t SEQ_SCAN_COL_4_QID = execution::query_id_t(10);
   static constexpr execution::query_id_t SEQ_SCAN_COL_8_QID = execution::query_id_t(11);
   static constexpr execution::query_id_t SEQ_SCAN_COL_15_QID = execution::query_id_t(12);
+
   static constexpr execution::query_id_t BULK_INS_COL_1_QID = execution::query_id_t(13);
   static constexpr execution::query_id_t BULK_INS_COL_4_QID = execution::query_id_t(14);
   static constexpr execution::query_id_t BULK_INS_COL_8_QID = execution::query_id_t(15);
   static constexpr execution::query_id_t BULK_INS_COL_15_QID = execution::query_id_t(16);
+
   static constexpr execution::query_id_t SORT_COL_1_QID = execution::query_id_t(17);
   static constexpr execution::query_id_t SORT_COL_4_QID = execution::query_id_t(18);
   static constexpr execution::query_id_t SORT_COL_8_QID = execution::query_id_t(19);
   static constexpr execution::query_id_t SORT_COL_15_QID = execution::query_id_t(20);
+
   static constexpr execution::query_id_t UPDATE_COL_1_QID = execution::query_id_t(21);
   static constexpr execution::query_id_t UPDATE_COL_4_QID = execution::query_id_t(22);
   static constexpr execution::query_id_t UPDATE_COL_8_QID = execution::query_id_t(23);
   static constexpr execution::query_id_t UPDATE_COL_15_QID = execution::query_id_t(24);
+
   static constexpr execution::query_id_t AGG_COL_1_QID = execution::query_id_t(25);
   static constexpr execution::query_id_t AGG_COL_4_QID = execution::query_id_t(26);
   static constexpr execution::query_id_t AGG_COL_8_QID = execution::query_id_t(27);
   static constexpr execution::query_id_t AGG_COL_15_QID = execution::query_id_t(28);
+
   static constexpr execution::query_id_t HJ_COL_1_QID = execution::query_id_t(29);
   static constexpr execution::query_id_t HJ_COL_4_QID = execution::query_id_t(30);
   static constexpr execution::query_id_t HJ_COL_8_QID = execution::query_id_t(31);
   static constexpr execution::query_id_t HJ_COL_15_QID = execution::query_id_t(32);
+
+  static constexpr execution::query_id_t NLJ_COL_1_QID = execution::query_id_t(33);
+  static constexpr execution::query_id_t NLJ_COL_4_QID = execution::query_id_t(34);
+  static constexpr execution::query_id_t NLJ_COL_8_QID = execution::query_id_t(35);
+  static constexpr execution::query_id_t NLJ_COL_15_QID = execution::query_id_t(36);
+
+  static constexpr execution::query_id_t IDX_KEY_1_QID = execution::query_id_t(37);
+  static constexpr execution::query_id_t IDX_KEY_4_QID = execution::query_id_t(38);
+  static constexpr execution::query_id_t IDX_KEY_8_QID = execution::query_id_t(39);
+  static constexpr execution::query_id_t IDX_KEY_15_QID = execution::query_id_t(40);
 
   const uint64_t optimizer_timeout_ = 1000000;
   const execution::vm::ExecutionMode mode_ = execution::vm::ExecutionMode::Interpret;
@@ -218,6 +272,92 @@ class MiniRunners : public benchmark::Fixture {
       txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     else
       txn_manager_->Abort(txn);
+  }
+
+  void BenchmarkIndexScan(int key_num, int num_rows, int lookup_size) {
+    auto txn = txn_manager_->BeginTransaction();
+    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
+    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid_, common::ManagedPointer(txn), nullptr,
+                                                                        nullptr, common::ManagedPointer(accessor));
+    exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode_));
+
+    execution::query_id_t qid;
+    switch (key_num) {
+      case 1:
+        qid = IDX_KEY_1_QID;
+        break;
+      case 4:
+        qid = IDX_KEY_4_QID;
+        break;
+      case 8:
+        qid = IDX_KEY_8_QID;
+        break;
+      case 15:
+        qid = IDX_KEY_15_QID;
+        break;
+      default:
+        UNREACHABLE("Invalid key_size for index scan");
+    }
+
+    brain::PipelineOperatingUnits units;
+    brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
+    exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(&units));
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::IDX_SCAN, num_rows, lookup_size);
+    units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
+
+    std::stringstream table_name;
+    table_name << "INTEGERIdxKey" << key_num << "Row" << num_rows;
+    auto tbl_oid = accessor->GetTableOid(table_name.str());
+    auto indexes = accessor->GetIndexes(tbl_oid);
+    auto index = indexes[0].first;
+
+    exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
+
+    std::vector<storage::TupleSlot> results;
+    if (lookup_size == 1) {
+      auto *key_buffer =
+          common::AllocationUtil::AllocateAligned(index->GetProjectedRowInitializer().ProjectedRowSize());
+      auto *const scan_key_pr = index->GetProjectedRowInitializer().InitializeRow(key_buffer);
+
+      std::default_random_engine generator;
+      const uint32_t random_key =
+          std::uniform_int_distribution(static_cast<uint32_t>(0), static_cast<uint32_t>(num_rows - 1))(generator);
+      for (int i = 0; i < key_num; i++) {
+        *reinterpret_cast<uint32_t *>(scan_key_pr->AccessForceNotNull(i)) = random_key;
+      }
+
+      index->ScanKey(*txn, *scan_key_pr, &results);
+      results.clear();
+      delete[] key_buffer;
+    } else {
+      uint32_t high_key;
+      uint32_t low_key;
+      auto *high_buffer =
+          common::AllocationUtil::AllocateAligned(index->GetProjectedRowInitializer().ProjectedRowSize());
+      auto *low_buffer =
+          common::AllocationUtil::AllocateAligned(index->GetProjectedRowInitializer().ProjectedRowSize());
+
+      std::default_random_engine generator;
+      low_key = std::uniform_int_distribution(static_cast<uint32_t>(0),
+                                              static_cast<uint32_t>(num_rows - lookup_size))(generator);
+      high_key = low_key + lookup_size - 1;
+      auto *const low_key_pr = index->GetProjectedRowInitializer().InitializeRow(low_buffer);
+      auto *const high_key_pr = index->GetProjectedRowInitializer().InitializeRow(high_buffer);
+      for (int i = 0; i < key_num; i++) {
+        *reinterpret_cast<uint32_t *>(low_key_pr->AccessForceNotNull(i)) = low_key;
+        *reinterpret_cast<uint32_t *>(high_key_pr->AccessForceNotNull(i)) = high_key;
+        ;
+      }
+
+      index->ScanAscending(*txn, storage::index::ScanType::Closed, key_num, low_key_pr, high_key_pr, 0, &results);
+      results.clear();
+      delete[] low_buffer;
+      delete[] high_buffer;
+    }
+
+    exec_ctx->EndPipelineTracker(OP_INTEGER_MULTIPLY_QID, execution::pipeline_id_t(0));
+
+    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 
   void BenchmarkArithmetic(brain::ExecutionOperatingUnitType type, size_t num_elem) {
@@ -388,6 +528,10 @@ BENCHMARK_DEFINE_F(MiniRunners, InsertRunners)(benchmark::State &state) {
     }
 
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+
+    auto gc = db_main_->GetStorageLayer()->GetGarbageCollector();
+    gc->PerformGarbageCollection();
+    gc->PerformGarbageCollection();
   }
 
   state.SetItemsProcessed(num_rows);
@@ -402,22 +546,7 @@ BENCHMARK_REGISTER_F(MiniRunners, InsertRunners)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->Iterations(1)
-    ->Args({1, 1})
-    ->Args({1, 100})
-    ->Args({1, 10000})
-    ->Args({1, 100000})
-    ->Args({4, 1})
-    ->Args({4, 100})
-    ->Args({4, 10000})
-    ->Args({4, 100000})
-    ->Args({8, 1})
-    ->Args({8, 100})
-    ->Args({8, 10000})
-    ->Args({8, 100000})
-    ->Args({15, 1})
-    ->Args({15, 100})
-    ->Args({15, 10000})
-    ->Args({15, 100000});
+    ->Apply(GenInsertArguments);
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, UpdateRunners)(benchmark::State &state) {
@@ -488,22 +617,7 @@ BENCHMARK_REGISTER_F(MiniRunners, UpdateRunners)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->Iterations(1)
-    ->Args({1, 1})
-    ->Args({4, 1})
-    ->Args({8, 1})
-    ->Args({15, 1})
-    ->Args({1, 100})
-    ->Args({4, 100})
-    ->Args({8, 100})
-    ->Args({15, 100})
-    ->Args({1, 10000})
-    ->Args({4, 10000})
-    ->Args({8, 10000})
-    ->Args({15, 10000})
-    ->Args({1, 1000000})
-    ->Args({4, 1000000})
-    ->Args({8, 1000000})
-    ->Args({15, 1000000});
+    ->Apply(GenInsertArguments);
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SeqScanRunners)(benchmark::State &state) {
@@ -564,62 +678,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SeqScanRunners)(benchmark::State &state) {
 BENCHMARK_REGISTER_F(MiniRunners, SeqScanRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
-    ->Args({1, 10, 1})
-    ->Args({1, 10, 2})
-    ->Args({1, 10, 8})
-    ->Args({1, 100, 16})
-    ->Args({1, 100, 32})
-    ->Args({1, 100, 64})
-    ->Args({1, 10000, 128})
-    ->Args({1, 10000, 1024})
-    ->Args({1, 10000, 4096})
-    ->Args({1, 10000, 8192})
-    ->Args({1, 1000000, 1024})
-    ->Args({1, 1000000, 16384})
-    ->Args({1, 1000000, 131072})
-    ->Args({1, 1000000, 524288})
-    ->Args({4, 10, 1})
-    ->Args({4, 10, 2})
-    ->Args({4, 10, 8})
-    ->Args({4, 100, 16})
-    ->Args({4, 100, 32})
-    ->Args({4, 100, 64})
-    ->Args({4, 10000, 128})
-    ->Args({4, 10000, 1024})
-    ->Args({4, 10000, 4096})
-    ->Args({4, 10000, 8192})
-    ->Args({4, 1000000, 1024})
-    ->Args({4, 1000000, 16384})
-    ->Args({4, 1000000, 131072})
-    ->Args({4, 1000000, 524288})
-    ->Args({8, 10, 1})
-    ->Args({8, 10, 2})
-    ->Args({8, 10, 8})
-    ->Args({8, 100, 16})
-    ->Args({8, 100, 32})
-    ->Args({8, 100, 64})
-    ->Args({8, 10000, 128})
-    ->Args({8, 10000, 1024})
-    ->Args({8, 10000, 4096})
-    ->Args({8, 10000, 8192})
-    ->Args({8, 1000000, 1024})
-    ->Args({8, 1000000, 16384})
-    ->Args({8, 1000000, 131072})
-    ->Args({8, 1000000, 524288})
-    ->Args({15, 10, 1})
-    ->Args({15, 10, 2})
-    ->Args({15, 10, 8})
-    ->Args({15, 100, 16})
-    ->Args({15, 100, 32})
-    ->Args({15, 100, 64})
-    ->Args({15, 10000, 128})
-    ->Args({15, 10000, 1024})
-    ->Args({15, 10000, 4096})
-    ->Args({15, 10000, 8192})
-    ->Args({15, 1000000, 1024})
-    ->Args({15, 1000000, 16384})
-    ->Args({15, 1000000, 131072})
-    ->Args({15, 1000000, 524288});
+    ->Apply(GenScanArguments);
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SortRunners)(benchmark::State &state) {
@@ -682,65 +741,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SortRunners)(benchmark::State &state) {
  * 1 - Number of rows
  * 2 - Cardinality
  */
-BENCHMARK_REGISTER_F(MiniRunners, SortRunners)
-    ->Unit(benchmark::kMillisecond)
-    ->Iterations(1)
-    ->Args({1, 10, 1})
-    ->Args({1, 10, 2})
-    ->Args({1, 10, 8})
-    ->Args({1, 100, 16})
-    ->Args({1, 100, 32})
-    ->Args({1, 100, 64})
-    ->Args({1, 10000, 128})
-    ->Args({1, 10000, 1024})
-    ->Args({1, 10000, 4096})
-    ->Args({1, 10000, 8192})
-    ->Args({1, 1000000, 1024})
-    ->Args({1, 1000000, 16384})
-    ->Args({1, 1000000, 131072})
-    ->Args({1, 1000000, 524288})
-    ->Args({4, 10, 1})
-    ->Args({4, 10, 2})
-    ->Args({4, 10, 8})
-    ->Args({4, 100, 16})
-    ->Args({4, 100, 32})
-    ->Args({4, 100, 64})
-    ->Args({4, 10000, 128})
-    ->Args({4, 10000, 1024})
-    ->Args({4, 10000, 4096})
-    ->Args({4, 10000, 8192})
-    ->Args({4, 1000000, 1024})
-    ->Args({4, 1000000, 16384})
-    ->Args({4, 1000000, 131072})
-    ->Args({4, 1000000, 524288})
-    ->Args({8, 10, 1})
-    ->Args({8, 10, 2})
-    ->Args({8, 10, 8})
-    ->Args({8, 100, 16})
-    ->Args({8, 100, 32})
-    ->Args({8, 100, 64})
-    ->Args({8, 10000, 128})
-    ->Args({8, 10000, 1024})
-    ->Args({8, 10000, 4096})
-    ->Args({8, 10000, 8192})
-    ->Args({8, 1000000, 1024})
-    ->Args({8, 1000000, 16384})
-    ->Args({8, 1000000, 131072})
-    ->Args({8, 1000000, 524288})
-    ->Args({15, 10, 1})
-    ->Args({15, 10, 2})
-    ->Args({15, 10, 8})
-    ->Args({15, 100, 16})
-    ->Args({15, 100, 32})
-    ->Args({15, 100, 64})
-    ->Args({15, 10000, 128})
-    ->Args({15, 10000, 1024})
-    ->Args({15, 10000, 4096})
-    ->Args({15, 10000, 8192})
-    ->Args({15, 1000000, 1024})
-    ->Args({15, 1000000, 16384})
-    ->Args({15, 1000000, 131072})
-    ->Args({15, 1000000, 524288});
+BENCHMARK_REGISTER_F(MiniRunners, SortRunners)->Unit(benchmark::kMillisecond)->Iterations(1)->Apply(GenScanArguments);
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, HashJoinRunners)(benchmark::State &state) {
@@ -815,62 +816,79 @@ BENCHMARK_DEFINE_F(MiniRunners, HashJoinRunners)(benchmark::State &state) {
 BENCHMARK_REGISTER_F(MiniRunners, HashJoinRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
-    ->Args({1, 10, 1})
-    ->Args({1, 10, 2})
-    ->Args({1, 10, 8})
-    ->Args({1, 100, 16})
-    ->Args({1, 100, 32})
-    ->Args({1, 100, 64})
-    ->Args({1, 10000, 128})
-    ->Args({1, 10000, 1024})
-    ->Args({1, 10000, 4096})
-    ->Args({1, 10000, 8192})
-    ->Args({1, 1000000, 1024})
-    ->Args({1, 1000000, 16384})
-    ->Args({1, 1000000, 131072})
-    ->Args({1, 1000000, 524288})
-    ->Args({4, 10, 1})
-    ->Args({4, 10, 2})
-    ->Args({4, 10, 8})
-    ->Args({4, 100, 16})
-    ->Args({4, 100, 32})
-    ->Args({4, 100, 64})
-    ->Args({4, 10000, 128})
-    ->Args({4, 10000, 1024})
-    ->Args({4, 10000, 4096})
-    ->Args({4, 10000, 8192})
-    ->Args({4, 1000000, 1024})
-    ->Args({4, 1000000, 16384})
-    ->Args({4, 1000000, 131072})
-    ->Args({4, 1000000, 524288})
-    ->Args({8, 10, 1})
-    ->Args({8, 10, 2})
-    ->Args({8, 10, 8})
-    ->Args({8, 100, 16})
-    ->Args({8, 100, 32})
-    ->Args({8, 100, 64})
-    ->Args({8, 10000, 128})
-    ->Args({8, 10000, 1024})
-    ->Args({8, 10000, 4096})
-    ->Args({8, 10000, 8192})
-    ->Args({8, 1000000, 1024})
-    ->Args({8, 1000000, 16384})
-    ->Args({8, 1000000, 131072})
-    ->Args({8, 1000000, 524288})
-    ->Args({15, 10, 1})
-    ->Args({15, 10, 2})
-    ->Args({15, 10, 8})
-    ->Args({15, 100, 16})
-    ->Args({15, 100, 32})
-    ->Args({15, 100, 64})
-    ->Args({15, 10000, 128})
-    ->Args({15, 10000, 1024})
-    ->Args({15, 10000, 4096})
-    ->Args({15, 10000, 8192})
-    ->Args({15, 1000000, 1024})
-    ->Args({15, 1000000, 16384})
-    ->Args({15, 1000000, 131072})
-    ->Args({15, 1000000, 524288});
+    ->Apply(GenScanArguments);
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(MiniRunners, NestedLoopJoinRunners)(benchmark::State &state) {
+  auto num_col = state.range(0);
+  auto row = state.range(1);
+  auto car = state.range(2);
+  for (auto _ : state) {
+    metrics_manager_->RegisterThread();
+
+    execution::query_id_t qid;
+    switch (num_col) {
+      case 1:
+        qid = NLJ_COL_1_QID;
+        break;
+      case 4:
+        qid = NLJ_COL_4_QID;
+        break;
+      case 8:
+        qid = NLJ_COL_8_QID;
+        break;
+      case 15:
+        qid = NLJ_COL_15_QID;
+        break;
+      default:
+        UNREACHABLE("Unexpected number of columns for HJ");
+        break;
+    }
+
+    brain::PipelineOperatingUnits units;
+    brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row * (row + 1), static_cast<double>(car));
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, row * (row + 1),
+                           static_cast<double>(car));
+    units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
+
+    std::stringstream query;
+    query << "SELECT ";
+    for (auto i = 1; i <= num_col; i++) {
+      query << "b.col" << i;
+      if (i != num_col) {
+        query << ", ";
+      }
+    }
+
+    std::stringstream tbl_name;
+    tbl_name << "INTEGERCol15Row" << row << "Car" << car;
+    query << " FROM " << tbl_name.str() << ", " << tbl_name.str() << " as b WHERE ";
+    for (auto i = 1; i <= num_col; i++) {
+      query << (tbl_name.str()) << ".col" << i << " = b.col" << i;
+      if (i != num_col) {
+        query << " AND ";
+      }
+    }
+
+    BenchmarkSqlStatement(qid, query.str(), &units, std::make_unique<optimizer::ForcedCostModel>(false), true);
+    metrics_manager_->Aggregate();
+    metrics_manager_->UnregisterThread();
+  }
+
+  state.SetItemsProcessed(row);
+}
+
+/**
+ * Arg: <0, 1, 2>
+ * 0 - Number of columns to select
+ * 1 - Number of rows
+ * 2 - Cardinality
+ */
+BENCHMARK_REGISTER_F(MiniRunners, NestedLoopJoinRunners)
+    ->Unit(benchmark::kMillisecond)
+    ->Iterations(1)
+    ->Apply(GenScanArguments);
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, AggregateRunners)(benchmark::State &state) {
@@ -935,62 +953,51 @@ BENCHMARK_DEFINE_F(MiniRunners, AggregateRunners)(benchmark::State &state) {
 BENCHMARK_REGISTER_F(MiniRunners, AggregateRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
-    ->Args({1, 10, 1})
-    ->Args({1, 10, 2})
-    ->Args({1, 10, 8})
-    ->Args({1, 100, 16})
-    ->Args({1, 100, 32})
-    ->Args({1, 100, 64})
-    ->Args({1, 10000, 128})
-    ->Args({1, 10000, 1024})
-    ->Args({1, 10000, 4096})
-    ->Args({1, 10000, 8192})
-    ->Args({1, 1000000, 1024})
-    ->Args({1, 1000000, 16384})
-    ->Args({1, 1000000, 131072})
-    ->Args({1, 1000000, 524288})
-    ->Args({4, 10, 1})
-    ->Args({4, 10, 2})
-    ->Args({4, 10, 8})
-    ->Args({4, 100, 16})
-    ->Args({4, 100, 32})
-    ->Args({4, 100, 64})
-    ->Args({4, 10000, 128})
-    ->Args({4, 10000, 1024})
-    ->Args({4, 10000, 4096})
-    ->Args({4, 10000, 8192})
-    ->Args({4, 1000000, 1024})
-    ->Args({4, 1000000, 16384})
-    ->Args({4, 1000000, 131072})
-    ->Args({4, 1000000, 524288})
-    ->Args({8, 10, 1})
-    ->Args({8, 10, 2})
-    ->Args({8, 10, 8})
-    ->Args({8, 100, 16})
-    ->Args({8, 100, 32})
-    ->Args({8, 100, 64})
-    ->Args({8, 10000, 128})
-    ->Args({8, 10000, 1024})
-    ->Args({8, 10000, 4096})
-    ->Args({8, 10000, 8192})
-    ->Args({8, 1000000, 1024})
-    ->Args({8, 1000000, 16384})
-    ->Args({8, 1000000, 131072})
-    ->Args({8, 1000000, 524288})
-    ->Args({15, 10, 1})
-    ->Args({15, 10, 2})
-    ->Args({15, 10, 8})
-    ->Args({15, 100, 16})
-    ->Args({15, 100, 32})
-    ->Args({15, 100, 64})
-    ->Args({15, 10000, 128})
-    ->Args({15, 10000, 1024})
-    ->Args({15, 10000, 4096})
-    ->Args({15, 10000, 8192})
-    ->Args({15, 1000000, 1024})
-    ->Args({15, 1000000, 16384})
-    ->Args({15, 1000000, 131072})
-    ->Args({15, 1000000, 524288});
+    ->Apply(GenScanArguments);
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(MiniRunners, IndexScanRunners)(benchmark::State &state) {
+  for (auto _ : state) {
+    metrics_manager_->RegisterThread();
+    BenchmarkIndexScan(state.range(0), state.range(1), state.range(2));
+    metrics_manager_->Aggregate();
+    metrics_manager_->UnregisterThread();
+  }
+
+  state.SetItemsProcessed(state.range(2));
+}
+
+/**
+ * Arg: <0, 1, 2>
+ * 0 - Key Sizes
+ * 1 - Idx Size
+ *
+ * 0 - ExecutionOperatingType
+ * 1 - Iteration count
+ * 2 - Lookup size
+ */
+static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
+  auto key_sizes = {1, 4, 8, 15};
+  auto idx_sizes = {1, 100, 1000, 10000};
+  std::vector<double> lookup_sizes = {0.1, 0.25, 0.33, 0.5, 0.66, 0.75, 0.9, 1};
+  for (auto key_size : key_sizes) {
+    for (auto idx_size : idx_sizes) {
+      std::unordered_set<int> lookups;
+      for (auto lookup_size : lookup_sizes) {
+        int64_t size = static_cast<int64_t>(idx_size * lookup_size);
+        if (size > 0 && lookups.find(size) == lookups.end()) {
+          lookups.insert(size);
+          b->Args({key_size, idx_size, size});
+        }
+      }
+    }
+  }
+}
+
+BENCHMARK_REGISTER_F(MiniRunners, IndexScanRunners)
+    ->Unit(benchmark::kMillisecond)
+    ->Iterations(1)
+    ->Apply(GenIdxScanArguments);
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, ArithmeticRunners)(benchmark::State &state) {
@@ -1014,49 +1021,27 @@ BENCHMARK_DEFINE_F(MiniRunners, ArithmeticRunners)(benchmark::State &state) {
  * 0 - ExecutionOperatingType
  * 1 - Iteration count
  */
+static void GenArithArguments(benchmark::internal::Benchmark *b) {
+  auto operators = {brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
+                    brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY,
+                    brain::ExecutionOperatingUnitType::OP_INTEGER_DIVIDE,
+                    brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+                    brain::ExecutionOperatingUnitType::OP_DECIMAL_PLUS_OR_MINUS,
+                    brain::ExecutionOperatingUnitType::OP_DECIMAL_MULTIPLY,
+                    brain::ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE};
+
+  auto counts = {10, 100, 10000, 1000000, 100000000};
+  for (auto op : operators) {
+    for (auto count : counts) {
+      b->Args({static_cast<int64_t>(op), count});
+    }
+  }
+}
+
 BENCHMARK_REGISTER_F(MiniRunners, ArithmeticRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS), 10})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS), 100})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS), 10000})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS), 1000000})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS), 100000000})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY), 10})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY), 100})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY), 10000})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY), 1000000})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY), 100000000})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_INTEGER_DIVIDE), 10})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_INTEGER_DIVIDE), 100})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_INTEGER_DIVIDE), 10000})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_INTEGER_DIVIDE), 1000000})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_INTEGER_DIVIDE), 100000000})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE), 10})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE), 100})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE), 10000})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE), 1000000})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE), 100000000})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_PLUS_OR_MINUS), 10})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_PLUS_OR_MINUS), 100})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_PLUS_OR_MINUS), 10000})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_PLUS_OR_MINUS), 1000000})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_PLUS_OR_MINUS), 100000000})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_MULTIPLY), 10})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_MULTIPLY), 100})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_MULTIPLY), 10000})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_MULTIPLY), 1000000})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_MULTIPLY), 100000000})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE), 10})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE), 100})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE), 10000})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE), 1000000})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE), 100000000})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE), 10})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE), 100})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE), 10000})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE), 1000000})
-    ->Args({static_cast<int64_t>(brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE), 100000000});
+    ->Apply(GenArithArguments);
 
 void InitializeRunnersState() {
   terrier::execution::CpuInfo::Instance();
@@ -1065,7 +1050,6 @@ void InitializeRunnersState() {
                              .SetUseGC(true)
                              .SetUseCatalog(true)
                              .SetUseStatsStorage(true)
-                             .SetUseGCThread(true)
                              .SetUseMetrics(true)
                              .SetBlockStoreSize(1000000)
                              .SetBlockStoreReuse(1000000)
@@ -1089,7 +1073,8 @@ void InitializeRunnersState() {
                                                                       nullptr, common::ManagedPointer(accessor));
 
   execution::sql::TableGenerator table_gen(exec_ctx.get(), block_store, accessor->GetDefaultNamespace());
-  table_gen.GenerateTestTables(true);
+  // table_gen.GenerateTestTables(true);
+  table_gen.GenerateMiniRunnerIndexes();
 
   txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }

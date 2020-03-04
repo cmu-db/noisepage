@@ -51,6 +51,11 @@ class TableGenerator {
    */
   void GenerateTestTables(bool is_mini_runner);
 
+  /**
+   * Generate mini runners indexes
+   */
+  void GenerateMiniRunnerIndexes(void);
+
  private:
   exec::ExecutionContext *exec_ctx_;
   const common::ManagedPointer<storage::BlockStore> store_;

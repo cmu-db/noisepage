@@ -271,6 +271,71 @@ void TableGenerator::GenerateTestTables(bool is_mini_runner) {
   InitTestIndexes();
 }
 
+void TableGenerator::GenerateMiniRunnerIndexes(void) {
+  std::vector<TableInsertMeta> table_metas;
+  std::vector<uint32_t> idx_key = {1, 4, 8, 15};
+  std::vector<uint32_t> row_nums = {1, 100, 1000, 10000};
+  std::vector<type::TypeId> types = {type::TypeId::INTEGER};
+  for (auto key_num : idx_key) {
+    for (auto row_num : row_nums) {
+      for (type::TypeId type : types) {
+        std::stringstream table_name;
+        std::string type_name = type::TypeUtil::TypeIdToString(type);
+        table_name << type_name << "IdxKey" << key_num << "Row" << row_num;
+        std::vector<ColumnInsertMeta> col_metas;
+        std::vector<catalog::Schema::Column> cols;
+        for (uint32_t j = 1; j <= key_num; j++) {
+          std::stringstream col_name;
+          col_name << "col" << j;
+          col_metas.emplace_back(col_name.str(), type, false, Dist::Serial, 0, 0);
+          cols.emplace_back(col_name.str(), type, false, DummyCVE());
+        }
+
+        auto meta = TableInsertMeta(table_name.str(), row_num, col_metas);
+        catalog::Schema tmp_schema(cols);
+        auto table_oid = exec_ctx_->GetAccessor()->CreateTable(ns_oid_, table_name.str(), tmp_schema);
+        auto &schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
+        auto *tmp_table = new storage::SqlTable(common::ManagedPointer(store_), schema);
+        exec_ctx_->GetAccessor()->SetTablePointer(table_oid, tmp_table);
+        auto table = exec_ctx_->GetAccessor()->GetTable(table_oid);
+        FillTable(table_oid, table, schema, &meta);
+
+        // Create Index Schema
+        std::stringstream idx_name;
+        idx_name << table_name.str() << "_index";
+        std::vector<std::string> index_strs;
+        index_strs.reserve(key_num);
+
+        std::vector<catalog::IndexSchema::Column> index_cols;
+        std::vector<IndexColumn> idx_meta_cols;
+        storage::index::IndexBuilder index_builder;
+        for (uint32_t j = 1; j <= key_num; j++) {
+          std::stringstream col_name;
+          col_name << "col" << j;
+          const auto &table_col = schema.GetColumn(col_name.str());
+          parser::ColumnValueExpression col_expr(table_oid, table_col.Oid(), table_col.Type());
+          index_cols.emplace_back(col_name.str(), table_col.Type(), false, col_expr);
+
+          index_strs.push_back(col_name.str());
+          idx_meta_cols.emplace_back(index_strs.back().c_str(), table_col.Type(), false, index_strs.back().c_str());
+        }
+        catalog::IndexSchema tmp_index_schema{index_cols, storage::index::IndexType::BWTREE, false, false, false,
+                                              false};
+        auto index_oid = exec_ctx_->GetAccessor()->CreateIndex(ns_oid_, table_oid, idx_name.str(), tmp_index_schema);
+        auto &index_schema = exec_ctx_->GetAccessor()->GetIndexSchema(index_oid);
+        index_builder.SetKeySchema(index_schema);
+        auto *tmp_index = index_builder.Build();
+        exec_ctx_->GetAccessor()->SetIndexPointer(index_oid, tmp_index);
+        auto index = exec_ctx_->GetAccessor()->GetIndex(index_oid);
+
+        // Fill up the index
+        auto idx_meta = IndexInsertMeta("", "", std::move(idx_meta_cols));
+        FillIndex(index, index_schema, idx_meta, table, schema);
+      }
+    }
+  }
+}
+
 void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> index,
                                const catalog::IndexSchema &index_schema, const IndexInsertMeta &index_meta,
                                common::ManagedPointer<storage::SqlTable> table, const catalog::Schema &table_schema) {
