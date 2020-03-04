@@ -1731,55 +1731,35 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
                                                     execution::ast::Builtin::ATan2);
   SetProcCtxPtr(txn, postgres::ATAN2_PRO_OID, udf_context);
 
+  #define BOOTSTRAP_TRIG_FN(str_name, pro_oid, builtin) \
+    CreateProcedure(txn, pro_oid, str_name, postgres::INTERNAL_LANGUAGE_OID, \
+                    postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"}, {dec_type}, \
+                    {dec_type}, {}, dec_type, "", true); \
+    udf_context = new execution::udf::UDFContext(str_name, type::TypeId::DECIMAL, {type::TypeId::DECIMAL}, builtin); \
+    SetProcCtxPtr(txn, pro_oid, udf_context);
+
   // ACos
-  CreateProcedure(txn, postgres::ACOS_PRO_OID, "acos", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
-  udf_context = new execution::udf::UDFContext("acos", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
-                                               execution::ast::Builtin::ACos);
-  SetProcCtxPtr(txn, postgres::ACOS_PRO_OID, udf_context);
+  BOOTSTRAP_TRIG_FN("acos", postgres::ACOS_PRO_OID, execution::ast::Builtin::ACos)
 
   // ASin
-  CreateProcedure(txn, postgres::ASIN_PRO_OID, "asin", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
-  udf_context = new execution::udf::UDFContext("asin", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
-                                               execution::ast::Builtin::ASin);
-  SetProcCtxPtr(txn, postgres::ASIN_PRO_OID, udf_context);
+  BOOTSTRAP_TRIG_FN("asin", postgres::ASIN_PRO_OID, execution::ast::Builtin::ASin)
 
   // ATan
-  CreateProcedure(txn, postgres::ATAN_PRO_OID, "atan", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
-  udf_context = new execution::udf::UDFContext("atan", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
-                                               execution::ast::Builtin::ATan);
-  SetProcCtxPtr(txn, postgres::ATAN_PRO_OID, udf_context);
+  BOOTSTRAP_TRIG_FN("atan", postgres::ATAN_PRO_OID, execution::ast::Builtin::ATan)
 
   // cos
-  CreateProcedure(txn, postgres::COS_PRO_OID, "cos", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
-  udf_context = new execution::udf::UDFContext("cos", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
-                                               execution::ast::Builtin::Cos);
-  SetProcCtxPtr(txn, postgres::COS_PRO_OID, udf_context);
+  BOOTSTRAP_TRIG_FN("cos", postgres::COS_PRO_OID, execution::ast::Builtin::Cos)
 
   // sin
-  CreateProcedure(txn, postgres::SIN_PRO_OID, "sin", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
-  udf_context = new execution::udf::UDFContext("sin", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
-                                               execution::ast::Builtin::Sin);
-  SetProcCtxPtr(txn, postgres::SIN_PRO_OID, udf_context);
+  BOOTSTRAP_TRIG_FN("sin", postgres::SIN_PRO_OID, execution::ast::Builtin::Sin)
 
   // tan
-  CreateProcedure(txn, postgres::TAN_PRO_OID, "tan", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
-  udf_context = new execution::udf::UDFContext("tan", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
-                                               execution::ast::Builtin::Tan);
-  SetProcCtxPtr(txn, postgres::TAN_PRO_OID, udf_context);
+  BOOTSTRAP_TRIG_FN("tan", postgres::TAN_PRO_OID, execution::ast::Builtin::Tan)
 
   // cot
-  CreateProcedure(txn, postgres::COT_PRO_OID, "cot", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
+  BOOTSTRAP_TRIG_FN("cot", postgres::COT_PRO_OID, execution::ast::Builtin::Cot)
 
-  udf_context = new execution::udf::UDFContext("cot", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
-                                               execution::ast::Builtin::Cot);
-  SetProcCtxPtr(txn, postgres::COT_PRO_OID, udf_context);
+#undef BOOTSTRAP_TRIG_FN
 
   auto str_type = GetTypeOidForType(type::TypeId::VARCHAR);
 
@@ -1787,7 +1767,11 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   CreateProcedure(txn, postgres::LOWER_PRO_OID, "lower", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
 
-  // TODO(tanujnay112): no op codes for lower and upper yet
+  udf_context = new execution::udf::UDFContext("lower", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
+      execution::ast::Builtin::Lower);
+  SetProcCtxPtr(txn, postgres::LOWER_PRO_OID, udf_context);
+
+  //TODO(tanujnay112): no op codes for lower and upper yet
 
   CreateProcedure(txn, postgres::UPPER_PRO_OID, "upper", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);

@@ -69,6 +69,20 @@ class CompilerTest : public SqlBasedTest {
 };
 
 // NOLINTNEXTLINE
+TEST_F(CompilerTest, BuiltinUDFTest){
+  // SELECT cos(real_col) FROM all_types_table
+  auto accessor = MakeAccessor();
+  auto table_oid = accessor->GetTableOid(NSOid(), "all_types_table");
+  auto table_schema = accessor->GetSchema(table_oid);
+  ExpressionMaker expr_maker;
+  std::unique_ptr<planner::AbstractPlanNode> builtin_call;
+  OutputSchemaHelper builtin_call_out{0, &expr_maker};
+  {
+    planner::SeqScanPlanNode::Builder builder;
+  }
+}
+
+// NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleSeqScanTest) {
   // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1 WHERE col1 < 500 AND col2 >= 3;
   auto accessor = MakeAccessor();

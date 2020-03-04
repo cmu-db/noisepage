@@ -2201,6 +2201,24 @@ void Sema::CheckBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin) {
   call->SetType(ast::BuiltinType::Get(GetContext(), sql_type));
 }
 
+void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
+
+  ast::BuiltinType::Kind sql_type;
+  switch(builtin){
+    case ast::Builtin::Lower:{
+      if(!CheckArgCount(call, 1)){
+        return;
+      }
+      sql_type = ast::BuiltinType::StringVal;
+      break;
+    }
+    default:
+      UNREACHABLE("Unimplemented string call!!");
+  }
+
+  call->SetType(ast::BuiltinType::Get(GetContext(), sql_type));
+}
+
 void Sema::CheckBuiltinCall(ast::CallExpr *call) {
   ast::Builtin builtin;
   if (!GetContext()->IsBuiltinFunction(call->GetFuncName(), &builtin)) {
@@ -2535,6 +2553,10 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::GetParamTimestamp:
     case ast::Builtin::GetParamString: {
       CheckBuiltinParamCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::Lower: {
+      CheckStringCall(call, builtin);
       break;
     }
     default: {

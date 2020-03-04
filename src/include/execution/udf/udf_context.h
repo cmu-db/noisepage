@@ -18,7 +18,7 @@ class UDFContext {
    * @param func_ret_type Return type of function
    * @param args_type Vector of argument types
    */
-  UDFContext(const std::string &func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type)
+  UDFContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type)
       : func_name_(func_name), func_ret_type_(func_ret_type), args_type_(args_type), is_builtin_{false} {}
   /**
    * Creates a UDFContext object for a builtin function
@@ -27,7 +27,7 @@ class UDFContext {
    * @param args_type Vector of argument types
    * @param builtin Which builtin this context refers to
    */
-  UDFContext(const std::string &func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
+  UDFContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
              ast::Builtin builtin)
       : func_name_(func_name),
         func_ret_type_(func_ret_type),
@@ -64,7 +64,7 @@ class UDFContext {
   }
 
  private:
-  const std::string &func_name_;
+  std::string func_name_;
   type::TypeId func_ret_type_;
   std::vector<type::TypeId> args_type_;
   bool is_builtin_;
