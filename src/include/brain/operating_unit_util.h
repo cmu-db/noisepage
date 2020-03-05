@@ -1,5 +1,9 @@
 #pragma once
 
+#include <utility>
+#include <vector>
+#include <queue>
+
 #include "brain/brain_defs.h"
 #include "parser/expression/abstract_expression.h"
 
