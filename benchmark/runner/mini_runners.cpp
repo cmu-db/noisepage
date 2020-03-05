@@ -137,12 +137,11 @@ static void GenScanArguments(benchmark::internal::Benchmark *b) {
  */
 static void GenNJArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 4, 8, 15};
-  auto num_rows = {
-      std::pair<int, int>{10, 1},           std::pair<int, int>{10, 2},          std::pair<int, int>{10, 8},
-      std::pair<int, int>{100, 16},         std::pair<int, int>{100, 32},        std::pair<int, int>{100, 64},
-      std::pair<int, int>{10000, 128},      std::pair<int, int>{10000, 1024},    std::pair<int, int>{10000, 4096},
-      std::pair<int, int>{10000, 8192},     std::pair<int, int>{20000, 1024},    std::pair<int, int>{20000, 4096},
-      std::pair<int, int>{20000, 8192},     std::pair<int, int>{20000, 16384}};
+  auto num_rows = {std::pair<int, int>{10, 1},       std::pair<int, int>{10, 2},       std::pair<int, int>{10, 8},
+                   std::pair<int, int>{100, 16},     std::pair<int, int>{100, 32},     std::pair<int, int>{100, 64},
+                   std::pair<int, int>{10000, 128},  std::pair<int, int>{10000, 1024}, std::pair<int, int>{10000, 4096},
+                   std::pair<int, int>{10000, 8192}, std::pair<int, int>{20000, 1024}, std::pair<int, int>{20000, 4096},
+                   std::pair<int, int>{20000, 8192}, std::pair<int, int>{20000, 16384}};
 
   for (auto col : num_cols) {
     for (auto row : num_rows) {
@@ -967,9 +966,11 @@ BENCHMARK_DEFINE_F(MiniRunners, AggregateRunners)(benchmark::State &state) {
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 60, 15, static_cast<double>(car));
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, 4 * num_col, num_col, row, static_cast<double>(car));
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, 4 * num_col, num_col, row,
+                           static_cast<double>(car));
     pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE, car, 0, 0, static_cast<double>(car));
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, car, 4, 1, static_cast<double>(car));
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, car, 4, 1,
+                           static_cast<double>(car));
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
