@@ -130,6 +130,28 @@ static void GenScanArguments(benchmark::internal::Benchmark *b) {
 }
 
 /**
+ * Arg <0, 1, 2>
+ * 0 - Number of columns
+ * 1 - Number of rows
+ * 2 - Cardinality
+ */
+static void GenNJArguments(benchmark::internal::Benchmark *b) {
+  auto num_cols = {1, 4, 8, 15};
+  auto num_rows = {
+      std::pair<int, int>{10, 1},           std::pair<int, int>{10, 2},          std::pair<int, int>{10, 8},
+      std::pair<int, int>{100, 16},         std::pair<int, int>{100, 32},        std::pair<int, int>{100, 64},
+      std::pair<int, int>{10000, 128},      std::pair<int, int>{10000, 1024},    std::pair<int, int>{10000, 4096},
+      std::pair<int, int>{10000, 8192},     std::pair<int, int>{20000, 1024},    std::pair<int, int>{20000, 4096},
+      std::pair<int, int>{20000, 8192},     std::pair<int, int>{20000, 16384}};
+
+  for (auto col : num_cols) {
+    for (auto row : num_rows) {
+      b->Args({col, row.first, row.second});
+    }
+  }
+}
+
+/**
  * Arg <0, 1>
  * 0 - Number of columns
  * 0 - Number of columns
@@ -302,7 +324,7 @@ class MiniRunners : public benchmark::Fixture {
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(&units));
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::IDX_SCAN, num_rows, lookup_size);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::IDX_SCAN, num_rows, 4 * key_num, key_num, lookup_size);
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
     std::stringstream table_name;
@@ -370,7 +392,7 @@ class MiniRunners : public benchmark::Fixture {
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(&units));
-    pipe0_vec.emplace_back(type, num_elem, num_elem);
+    pipe0_vec.emplace_back(type, num_elem, 4, 1, num_elem);
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
     switch (type) {
@@ -507,7 +529,8 @@ BENCHMARK_DEFINE_F(MiniRunners, InsertRunners)(benchmark::State &state) {
 
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::INSERT, num_rows, static_cast<double>(num_rows));
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::INSERT, num_rows, 4 * num_cols, num_cols,
+                           static_cast<double>(num_rows));
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
     uint64_t elapsed_ms;
@@ -590,8 +613,10 @@ BENCHMARK_DEFINE_F(MiniRunners, UpdateRunners)(benchmark::State &state) {
 
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::UPDATE, num_rows, static_cast<double>(num_rows));
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, num_rows, static_cast<double>(num_rows));
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::UPDATE, num_rows, 4 * num_cols, num_cols,
+                           static_cast<double>(num_rows));
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, num_rows, 15 * 4, 15,
+                           static_cast<double>(num_rows));
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
     uint64_t elapsed_ms;
@@ -651,7 +676,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SeqScanRunners)(benchmark::State &state) {
 
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, static_cast<double>(car));
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4 * num_col, num_col,
+                           static_cast<double>(car));
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
     std::stringstream cols;
@@ -715,9 +741,12 @@ BENCHMARK_DEFINE_F(MiniRunners, SortRunners)(benchmark::State &state) {
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, static_cast<double>(car));
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SORT_BUILD, row, static_cast<double>(car));
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::SORT_ITERATE, row, static_cast<double>(car));
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4 * num_col, num_col,
+                           static_cast<double>(car));
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SORT_BUILD, row, 4 * num_col, num_col,
+                           static_cast<double>(car));
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::SORT_ITERATE, row, 4 * num_col, num_col,
+                           static_cast<double>(car));
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
@@ -780,10 +809,15 @@ BENCHMARK_DEFINE_F(MiniRunners, HashJoinRunners)(benchmark::State &state) {
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, static_cast<double>(car));
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, row, static_cast<double>(car));
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, row, static_cast<double>(car));
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, row, static_cast<double>(car));
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4 * num_col, num_col,
+                           static_cast<double>(car));
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, row, 4 * num_col, num_col,
+                           static_cast<double>(car));
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4 * num_col, num_col,
+                           static_cast<double>(car));
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, row, 4 * num_col, num_col,
+                           static_cast<double>(car));
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, row, 4, 1, static_cast<double>(car));
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
@@ -856,8 +890,9 @@ BENCHMARK_DEFINE_F(MiniRunners, NestedLoopJoinRunners)(benchmark::State &state) 
 
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row * (row + 1), static_cast<double>(car));
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, row * (row + 1),
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row * (row + 1), 4 * num_col, num_col,
+                           static_cast<double>(car));
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, row * (row + 1), 4 * num_col, num_col,
                            static_cast<double>(car));
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
@@ -897,7 +932,7 @@ BENCHMARK_DEFINE_F(MiniRunners, NestedLoopJoinRunners)(benchmark::State &state) 
 BENCHMARK_REGISTER_F(MiniRunners, NestedLoopJoinRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
-    ->Apply(GenScanArguments);
+    ->Apply(GenNJArguments);
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, AggregateRunners)(benchmark::State &state) {
@@ -931,10 +966,10 @@ BENCHMARK_DEFINE_F(MiniRunners, AggregateRunners)(benchmark::State &state) {
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, static_cast<double>(car));
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, row, static_cast<double>(car));
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE, car, static_cast<double>(car));
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, car, static_cast<double>(car));
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 60, 15, static_cast<double>(car));
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, 4 * num_col, num_col, row, static_cast<double>(car));
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE, car, 0, 0, static_cast<double>(car));
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, car, 4, 1, static_cast<double>(car));
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
@@ -1086,7 +1121,7 @@ void InitializeRunnersState() {
                                                                       nullptr, common::ManagedPointer(accessor));
 
   execution::sql::TableGenerator table_gen(exec_ctx.get(), block_store, accessor->GetDefaultNamespace());
-  // table_gen.GenerateTestTables(true);
+  table_gen.GenerateTestTables(true);
   table_gen.GenerateMiniRunnerIndexes();
 
   txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
