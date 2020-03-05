@@ -484,8 +484,6 @@ class InnerNLJoin : public OperatorNodeContents<InnerNLJoin> {
  public:
   /**
    * @param join_predicates predicates for join
-   * @param left_keys left keys to join
-   * @param right_keys right keys to join
    * @return an InnerNLJoin operator
    */
   static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
