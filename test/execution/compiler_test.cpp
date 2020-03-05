@@ -1560,7 +1560,7 @@ TEST_F(CompilerTest, MultiWayHashJoinTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DISABLED_SimpleSortTest) {
+TEST_F(CompilerTest, SimpleSortTest) {
   // TODO(anyone!) This needs to be fixed. See Issue #811
 
   // SELECT col1, col2, col1 + col2 FROM test_1 WHERE col1 < 500 ORDER BY col2 ASC, col1 - col2 DESC
