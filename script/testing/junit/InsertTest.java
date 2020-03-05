@@ -150,6 +150,38 @@ public class InsertTest extends TestUtility {
     }
 
     /**
+     * Test insertion of NULL values.
+     * Fix #712.
+     */
+    @Test
+    public void testInsertNull() throws SQLException {
+        String createSQL = "CREATE TABLE xxx (col1 INT);";
+        String insertSQL = "INSERT INTO xxx VALUES (NULL);";
+        String selectSQL = "SELECT * FROM xxx;";
+        String dropSQL = "DROP TABLE xxx;";
+
+        Statement stmt = conn.createStatement();
+
+        conn.setAutoCommit(false);
+        stmt.addBatch(createSQL);
+        stmt.addBatch(insertSQL);
+        stmt.executeBatch();
+        conn.commit();
+        conn.setAutoCommit(true);
+
+        stmt = conn.createStatement();
+        rs = stmt.executeQuery(selectSQL);
+
+        for (int i = 0; rs.next(); i++) {
+            assertEquals(0, rs.getInt("col1"));
+            assertEquals(true, rs.wasNull());
+        }
+
+        stmt = conn.createStatement();
+        stmt.execute(dropSQL);
+    }
+
+    /**
      * CREATE TABLE with a qualified namespace doesn't work as expected
      * #706 fixed but also need #724 for select and drop
      */
@@ -206,6 +238,90 @@ public class InsertTest extends TestUtility {
             i++;
         }
         String drop_SQL = "DROP TABLE xxx01";
+        stmt = conn.createStatement();
+        stmt.execute(drop_SQL);
+    }
+
+    /**
+     * Support default value expressions
+     * #718 fixed
+     */
+    @Test
+    public void testDefaultValueInsert () throws SQLException {
+        String create_table_SQL = "CREATE TABLE xxx (id integer, val integer DEFAULT 123);";
+        String insert_into_table_SQL = "INSERT INTO xxx VALUES (1, DEFAULT);";
+        conn.setAutoCommit(false);
+        Statement stmt = conn.createStatement();
+        stmt.addBatch(create_table_SQL);
+        stmt.addBatch(insert_into_table_SQL);
+        stmt.executeBatch();
+        conn.commit();
+        conn.setAutoCommit(true);
+
+        String select_SQL = "SELECT * from xxx;";
+        stmt = conn.createStatement();
+        rs = stmt.executeQuery(select_SQL);
+        rs.next();
+        checkRow(rs, new String [] {"id", "val"}, new int [] {1, 123});
+        assertNoMoreRows(rs);
+
+        String drop_SQL = "DROP TABLE xxx";
+        stmt = conn.createStatement();
+        stmt.execute(drop_SQL);
+    }
+
+    /**
+     * Support out of order inserts
+     * #729 fixed
+     */
+    @Test
+    public void testOutOfOrderInserts () throws SQLException {
+        String create_table_SQL = "CREATE TABLE xxx (c1 integer, c2 integer, c3 integer);";
+        String insert_into_table_SQL = "INSERT INTO xxx (c2, c1, c3) VALUES (2, 3, 4);";
+        conn.setAutoCommit(false);
+        Statement stmt = conn.createStatement();
+        stmt.addBatch(create_table_SQL);
+        stmt.addBatch(insert_into_table_SQL);
+        stmt.executeBatch();
+        conn.commit();
+        conn.setAutoCommit(true);
+
+        String select_SQL = "SELECT * from xxx;";
+        stmt = conn.createStatement();
+        rs = stmt.executeQuery(select_SQL);
+        rs.next();
+        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {3, 2, 4});
+        assertNoMoreRows(rs);
+
+        String drop_SQL = "DROP TABLE xxx";
+        stmt = conn.createStatement();
+        stmt.execute(drop_SQL);
+    }
+
+    /**
+     * Support out of order inserts with defaults
+     * #718 fixed
+     */
+    @Test
+    public void testOutOfOrderInsertsWithDefaults () throws SQLException {
+        String create_table_SQL = "CREATE TABLE xxx (c1 integer, c2 integer, c3 integer DEFAULT 34);";
+        String insert_into_table_SQL = "INSERT INTO xxx (c2, c1) VALUES (2, 3);";
+        conn.setAutoCommit(false);
+        Statement stmt = conn.createStatement();
+        stmt.addBatch(create_table_SQL);
+        stmt.addBatch(insert_into_table_SQL);
+        stmt.executeBatch();
+        conn.commit();
+        conn.setAutoCommit(true);
+
+        String select_SQL = "SELECT * from xxx;";
+        stmt = conn.createStatement();
+        rs = stmt.executeQuery(select_SQL);
+        rs.next();
+        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {3, 2, 34});
+        assertNoMoreRows(rs);
+
+        String drop_SQL = "DROP TABLE xxx";
         stmt = conn.createStatement();
         stmt.execute(drop_SQL);
     }
