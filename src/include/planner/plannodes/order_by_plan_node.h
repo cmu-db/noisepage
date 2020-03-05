@@ -149,7 +149,6 @@ class OrderByPlanNode : public AbstractPlanNode {
    * @return offset for sort
    */
   size_t GetOffset() const {
-    TERRIER_ASSERT(HasLimit(), "OrderBy plan has no limit");
     return offset_;
   }
 
