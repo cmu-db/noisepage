@@ -148,10 +148,7 @@ class OrderByPlanNode : public AbstractPlanNode {
    * Should only be used if sort has limit
    * @return offset for sort
    */
-  size_t GetOffset() const {
-    TERRIER_ASSERT(HasLimit(), "OrderBy plan has no limit");
-    return offset_;
-  }
+  size_t GetOffset() const { return offset_; }
 
   /**
    * @return the hashed value of this plan node
