@@ -7,7 +7,6 @@ enum class ExecutionOperatingUnitType : uint32_t {
 
   AGGREGATE_BUILD,
   AGGREGATE_ITERATE,
-  AGGREGATE_STATIC,
 
   HASHJOIN_BUILD,
   HASHJOIN_PROBE,
