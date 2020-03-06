@@ -2,11 +2,10 @@
 
 #include <tbb/tbb.h>  // NOLINT
 
+#include <chrono>  // NOLINT
 #include <limits>
-#include <memory>
 #include <numeric>
-#include <random>
-#include <utility>
+#include <thread>  // NOLINT
 #include <vector>
 
 #include "execution/tpl_test.h"
@@ -17,9 +16,16 @@ class ThreadStateContainerTest : public TplTest {
  protected:
   void ForceCreationOfThreadStates(ThreadStateContainer *container) {
     std::vector<uint32_t> input(2000);
-    tbb::task_scheduler_init sched;
-    tbb::parallel_for_each(input.begin(), input.end(),
-                           [&container](auto c) { container->AccessThreadStateOfCurrentThread(); });
+    {
+      tbb::task_scheduler_init sched;
+      tbb::parallel_for_each(input.begin(), input.end(),
+                             [&container](auto c) { container->AccessThreadStateOfCurrentThread(); });
+    }
+    // HACK: ASAN complains that TBB leaks memory because it doesn't clean up
+    // memory right away when the tbb:task_scheduler goes out of scope. So we're
+    // just going to sleep for 50ms. This seems to be enough time.
+    // Without this sleep, then this test will fail randomly because of leaks.
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
   }
 };
 
