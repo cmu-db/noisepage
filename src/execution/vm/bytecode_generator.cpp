@@ -439,6 +439,39 @@ void BytecodeGenerator::VisitReturnStmt(ast::ReturnStmt *node) {
   Emitter()->EmitReturn();
 }
 
+void BytecodeGenerator::VisitSqlNullCall(ast::CallExpr *call, ast::Builtin builtin) {
+  ast::Context *ctx = call->GetType()->GetContext();
+  switch (builtin) {
+    case ast::Builtin::IsSqlNull: {
+      auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      auto input = VisitExpressionForLValue(call->Arguments()[0]);
+      Emitter()->Emit(Bytecode::ValIsNull, dest, input);
+      ExecutionResult()->SetDestination(dest.ValueOf());
+      break;
+    }
+    case ast::Builtin::IsSqlNotNull: {
+      auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      auto input = VisitExpressionForLValue(call->Arguments()[0]);
+      Emitter()->Emit(Bytecode::ValIsNotNull, dest, input);
+      ExecutionResult()->SetDestination(dest.ValueOf());
+      break;
+    }
+    case ast::Builtin::NullToSql: {
+      // The type of NULL to be created should have been set in sema.
+      // Per discussions with pmenon, the NULL type should be determined during bytecode generation.
+      // Currently, all SQL types do not need special behavior for NULLs, and it suffices to create
+      // a Val::Null() to handle every use-case. However, if custom NULL objects are required in the
+      // future, then the switching on the type of the NULL should also be done in this function.
+      // The idea is to avoid the overhead of doing it at runtime.
+      auto dest = ExecutionResult()->GetOrCreateDestination(call->GetType());
+      Emitter()->EmitAll(Bytecode::InitSqlNull, dest);
+      break;
+    }
+    default:
+      UNREACHABLE("Unsupported NULL-related builtin.");
+  }
+}
+
 void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
   ast::Context *ctx = call->GetType()->GetContext();
   switch (builtin) {
@@ -471,8 +504,13 @@ void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin
       auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::StringVal));
       // Copy data into the execution context's buffer.
       auto input = call->Arguments()[0]->As<ast::LitExpr>()->RawStringVal();
-      // Assign the pointer to a local variable
-      Emitter()->EmitInitString(Bytecode::InitString, dest, input.Length(), reinterpret_cast<uintptr_t>(input.Data()));
+      if (input.Data() != nullptr) {
+        // Assign the pointer to a local variable
+        Emitter()->EmitInitString(Bytecode::InitString, dest, input.Length(),
+                                  reinterpret_cast<uintptr_t>(input.Data()));
+      } else {
+        Emitter()->EmitInitString(Bytecode::InitString, dest, 0, reinterpret_cast<uintptr_t>(0UL));
+      }
       break;
     }
     case ast::Builtin::VarlenToSql: {
@@ -1258,6 +1296,19 @@ void BytecodeGenerator::VisitBuiltinSorterCall(ast::CallExpr *call, ast::Builtin
       Emitter()->Emit(Bytecode::SorterAllocTuple, dest, sorter);
       break;
     }
+    case ast::Builtin::SorterInsertTopK: {
+      LocalVar dest = ExecutionResult()->GetOrCreateDestination(call->GetType());
+      LocalVar sorter = VisitExpressionForRValue(call->Arguments()[0]);
+      LocalVar top_k = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::SorterAllocTupleTopK, dest, sorter, top_k);
+      break;
+    }
+    case ast::Builtin::SorterInsertTopKFinish: {
+      LocalVar sorter = VisitExpressionForRValue(call->Arguments()[0]);
+      LocalVar top_k = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::SorterAllocTupleTopKFinish, sorter, top_k);
+      break;
+    }
     case ast::Builtin::SorterSort: {
       LocalVar sorter = VisitExpressionForRValue(call->Arguments()[0]);
       Emitter()->Emit(Bytecode::SorterSort, sorter);
@@ -1975,6 +2026,12 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
   ctx->IsBuiltinFunction(call->GetFuncName(), &builtin);
 
   switch (builtin) {
+    case ast::Builtin::IsSqlNull:
+    case ast::Builtin::IsSqlNotNull:
+    case ast::Builtin::NullToSql: {
+      VisitSqlNullCall(call, builtin);
+      break;
+    }
     case ast::Builtin::BoolToSql:
     case ast::Builtin::IntToSql:
     case ast::Builtin::FloatToSql:
@@ -2114,6 +2171,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     }
     case ast::Builtin::SorterInit:
     case ast::Builtin::SorterInsert:
+    case ast::Builtin::SorterInsertTopK:
+    case ast::Builtin::SorterInsertTopKFinish:
     case ast::Builtin::SorterSort:
     case ast::Builtin::SorterSortParallel:
     case ast::Builtin::SorterSortTopKParallel:
@@ -2301,7 +2360,7 @@ void BytecodeGenerator::VisitFile(ast::File *node) {
 }
 
 void BytecodeGenerator::VisitLitExpr(ast::LitExpr *node) {
-  TERRIER_ASSERT(ExecutionResult()->IsRValue(), "Literal expressions cannot be R-Values!");
+  TERRIER_ASSERT(ExecutionResult()->IsRValue(), "Literal expressions should be R-Values!");
 
   LocalVar target = ExecutionResult()->GetOrCreateDestination(node->GetType());
   switch (node->LiteralKind()) {

@@ -175,6 +175,7 @@ namespace terrier::execution::vm {
                                                                                                                       \
   /* SQL type comparisons */                                                                                          \
   F(ForceBoolTruth, OperandType::Local, OperandType::Local)                                                           \
+  F(InitSqlNull, OperandType::Local)                                                                                  \
   F(InitBoolVal, OperandType::Local, OperandType::Local)                                                              \
   F(InitInteger, OperandType::Local, OperandType::Local)                                                              \
   F(InitReal, OperandType::Local, OperandType::Local)                                                                 \
@@ -337,7 +338,7 @@ namespace terrier::execution::vm {
   /* Sorting */                                                                                                       \
   F(SorterInit, OperandType::Local, OperandType::Local, OperandType::FunctionId, OperandType::Local)                  \
   F(SorterAllocTuple, OperandType::Local, OperandType::Local)                                                         \
-  F(SorterAllocTupleTopK, OperandType::Local, OperandType::Local)                                                     \
+  F(SorterAllocTupleTopK, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
   F(SorterAllocTupleTopKFinish, OperandType::Local, OperandType::Local)                                               \
   F(SorterSort, OperandType::Local)                                                                                   \
   F(SorterSortParallel, OperandType::Local, OperandType::Local, OperandType::Local)                                   \

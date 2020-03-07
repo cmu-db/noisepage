@@ -572,8 +572,23 @@ void PlanGenerator::BuildAggregatePlan(
     common::ManagedPointer<parser::AbstractExpression> having_predicate) {
   TERRIER_ASSERT(children_expr_map_.size() == 1, "Aggregate needs 1 child plan");
   auto &child_expr_map = children_expr_map_[0];
-
   auto builder = planner::AggregatePlanNode::Builder();
+
+  // Generate group by ids
+  ExprMap gb_map;
+  if (groupby_cols != nullptr) {
+    uint32_t offset = 0;
+    for (auto &col : *groupby_cols) {
+      gb_map[col] = offset;
+
+      auto eval = parser::ExpressionUtil::EvaluateExpression({child_expr_map}, col);
+      auto gb_term =
+          parser::ExpressionUtil::ConvertExprCVNodes(common::ManagedPointer(eval), {child_expr_map}).release();
+      RegisterPointerCleanup<parser::AbstractExpression>(gb_term, true, true);
+      builder.AddGroupByTerm(common::ManagedPointer(gb_term));
+      offset++;
+    }
+  }
 
   auto agg_id = 0;
   ExprMap output_expr_map;
@@ -595,26 +610,11 @@ void PlanGenerator::BuildAggregatePlan(
 
       // Maps the aggregate value in the right tuple to the output
       // See aggregateor.cpp for more detail...
-      // TODO([Execution Engine]): make sure this behavior still is correct
       auto dve = std::make_unique<parser::DerivedValueExpression>(expr->GetReturnValueType(), 1, agg_id++);
       columns.emplace_back(expr->GetExpressionName(), expr->GetReturnValueType(), std::move(dve));
-    } else if (child_expr_map.find(expr) != child_expr_map.end()) {
-      auto dve = std::make_unique<parser::DerivedValueExpression>(expr->GetReturnValueType(), 0, child_expr_map[expr]);
+    } else if (gb_map.find(expr) != gb_map.end()) {
+      auto dve = std::make_unique<parser::DerivedValueExpression>(expr->GetReturnValueType(), 0, gb_map[expr]);
       columns.emplace_back(expr->GetExpressionName(), expr->GetReturnValueType(), std::move(dve));
-    } else {
-      auto eval = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, expr);
-      columns.emplace_back(expr->GetExpressionName(), expr->GetReturnValueType(), std::move(eval));
-    }
-  }
-
-  // Generate group by ids
-  if (groupby_cols != nullptr) {
-    for (auto &col : *groupby_cols) {
-      auto eval = parser::ExpressionUtil::EvaluateExpression({child_expr_map}, col);
-      auto gb_term =
-          parser::ExpressionUtil::ConvertExprCVNodes(common::ManagedPointer(eval), {child_expr_map}).release();
-      RegisterPointerCleanup<parser::AbstractExpression>(gb_term, true, true);
-      builder.AddGroupByTerm(common::ManagedPointer(gb_term));
     }
   }
 

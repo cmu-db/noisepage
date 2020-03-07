@@ -211,6 +211,8 @@ class AbstractExpression {
   /** @return alias of this abstract expression */
   const std::string &GetAlias() const { return alias_; }
 
+  /** set alias of this abstract expression */
+  void SetAlias(std::string alias) { alias_ = std::move(alias); }
   /**
    * Derive the expression type of the current expression.
    */
