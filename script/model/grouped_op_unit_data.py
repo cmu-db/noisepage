@@ -5,7 +5,7 @@ import copy
 import query_info
 import data_info
 
-from type import Target
+from type import Target, ConcurrentCountingMode
 
 
 def get_grouped_op_unit_data(filename):
@@ -70,3 +70,33 @@ class GroupedOpUnitData:
         self.start_time = metrics[index_map[Target.START_TIME]]
         self.end_time = self.start_time + self.y[index_map[Target.ELAPSED_US]] - 1
         self.cpu_id = metrics[index_map[Target.CPU_ID]]
+
+    def get_start_time(self, concurrent_counting_mode):
+        """Get the start time for this group for counting the concurrent operations
+
+        :param concurrent_counting_mode: ConcurrentCountingMode type
+        :return: the start time
+        """
+        start_time = None
+        if concurrent_counting_mode is ConcurrentCountingMode.EXACT:
+            start_time = self.start_time
+        if concurrent_counting_mode is ConcurrentCountingMode.ESTIMATED:
+            start_time = self.start_time
+        if concurrent_counting_mode is ConcurrentCountingMode.INTERVAL:
+            start_time = self.start_time - 5000000
+        return start_time
+
+    def get_end_time(self, concurrent_counting_mode):
+        """Get the end time for this group for counting the concurrent operations
+
+        :param concurrent_counting_mode: ConcurrentCountingMode type
+        :return: the end time
+        """
+        end_time = None
+        if concurrent_counting_mode is ConcurrentCountingMode.EXACT:
+            end_time = self.end_time
+        if concurrent_counting_mode is ConcurrentCountingMode.ESTIMATED:
+            end_time = self.start_time + self.y_pred[data_info.target_csv_index[Target.ELAPSED_US]] - 1
+        if concurrent_counting_mode is ConcurrentCountingMode.INTERVAL:
+            end_time = self.start_time + 5000000
+        return end_time

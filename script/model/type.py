@@ -78,3 +78,11 @@ class ArithmeticFeature(enum.Enum):
     """
     EXEC_NUMBER = 0,
     EXEC_MODE = 1,
+
+
+class ConcurrentCountingMode(enum.Enum):
+    """How to identify the concurrent running operations (for a GroupedOpUnitData)
+    """
+    EXACT = 0,
+    ESTIMATED = 1,
+    INTERVAL = 2,
