@@ -44,6 +44,8 @@ public class UpdateTest extends TestUtility {
         String insertSQL1 = "INSERT INTO xxx (c1, c2) VALUES (1, '" + ts1 + "');";
         String insertSQL2 = "INSERT INTO xxx (c1, c2) VALUES (2, '" + ts1 + "');";
         String updateSQL = "UPDATE xxx SET c2 = '" + ts2 + "' WHERE c1 = 2;";
+        String selectSQL = "SELECT * from xxx ORDER BY c1 ASC;";
+        String dropSQL = "DROP TABLE xxx";
 
         conn.setAutoCommit(false);
         Statement stmt = conn.createStatement();
@@ -55,7 +57,6 @@ public class UpdateTest extends TestUtility {
         conn.commit();
         conn.setAutoCommit(true);
 
-        String selectSQL = "SELECT * from xxx ORDER BY c1 ASC;";
         stmt = conn.createStatement();
         rs = stmt.executeQuery(selectSQL);
 
@@ -68,9 +69,8 @@ public class UpdateTest extends TestUtility {
 
         assertNoMoreRows(rs);
 
-        String drop_SQL = "DROP TABLE xxx";
         stmt = conn.createStatement();
-        stmt.execute(drop_SQL);
+        stmt.execute(dropSQL);
     }
 
 }
