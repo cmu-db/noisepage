@@ -17,6 +17,7 @@ namespace terrier::execution::sql {
 template <typename T>
 T *TableGenerator::CreateNumberColumnData(ColumnInsertMeta *col_meta, uint32_t num_vals) {
   auto *val = new T[num_vals];
+  static uint64_t rotate_counter = 0;
 
   switch (col_meta->dist_) {
     case Dist::Uniform: {
@@ -36,8 +37,46 @@ T *TableGenerator::CreateNumberColumnData(ColumnInsertMeta *col_meta, uint32_t n
       }
       break;
     }
+    case Dist::Rotate: {
+      for (uint32_t i = 0; i < num_vals; i++) {
+        if (rotate_counter > col_meta->max_) {
+          rotate_counter = col_meta->min_;
+        }
+        val[i] = static_cast<T>(rotate_counter);
+        rotate_counter++;
+      }
+      std::shuffle(&val[0], &val[num_vals], std::mt19937(std::random_device()()));
+      break;
+    }
     default:
       throw std::runtime_error("Implement me!");
+  }
+
+  return val;
+}
+
+bool *TableGenerator::CreateBooleanColumnData(ColumnInsertMeta *col_meta, uint32_t num_vals) {
+  auto *val = new bool[num_vals];
+
+  switch (col_meta->dist_) {
+    case Dist::Uniform: {
+      std::mt19937 generator{};
+      std::uniform_int_distribution<int16_t> distribution(0, 1);
+      for (uint32_t i = 0; i < num_vals; i++) {
+        val[i] = distribution(generator) % 2 == 0;
+      }
+      break;
+    }
+    case Dist::Serial: {
+      // Split the false/true values by half
+      uint32_t half = num_vals / 2;
+      for (uint32_t i = 0; i < num_vals; i++) {
+        val[i] = (i >= half);
+      }
+      break;
+    }
+    default:
+      throw std::runtime_error("Unsupported distribution type for boolean columns");
   }
 
   return val;
@@ -49,7 +88,12 @@ std::pair<byte *, uint32_t *> TableGenerator::GenerateColumnData(ColumnInsertMet
   byte *col_data = nullptr;
   switch (col_meta->type_) {
     case type::TypeId::BOOLEAN: {
-      throw std::runtime_error("Implement me!");
+      col_data = reinterpret_cast<byte *>(CreateBooleanColumnData(col_meta, num_rows));
+      break;
+    }
+    case type::TypeId::TINYINT: {
+      col_data = reinterpret_cast<byte *>(CreateNumberColumnData<int8_t>(col_meta, num_rows));
+      break;
     }
     case type::TypeId::SMALLINT: {
       col_data = reinterpret_cast<byte *>(CreateNumberColumnData<int16_t>(col_meta, num_rows));
@@ -142,7 +186,7 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
   // EXECUTION_LOG_INFO("Wrote {} tuples into table {}.", vals_written, table_meta->name_);
 }
 
-void TableGenerator::GenerateTestTables() {
+void TableGenerator::GenerateTestTables(bool is_mini_runner) {
   /**
    * This array configures each of the test tables. Each able is configured
    * with a name, size, and schema. We also configure the columns of the table. If
@@ -174,14 +218,36 @@ void TableGenerator::GenerateTestTables() {
        {{"colA", type::TypeId::INTEGER, false, Dist::Serial, 0, 0},
         {"colB", type::TypeId::BOOLEAN, false, Dist::Uniform, 0, 0}}},
 
-      // Empty table with columns of various types
+      // Table with all types
       {"all_types_table",
+       TABLE_ALLTYPES_SIZE,
+       {// {"varchar_col", type::TypeId::VARCHAR, false, Dist::Serial, 0, 0},
+        // {"date_col", type::TypeId::DATE, false, Dist::Serial, 0, 0},
+        // {"real_col", type::TypeId::DECIMAL, false, Dist::Serial, 0, 0},
+        {"bool_col", type::TypeId::BOOLEAN, false, Dist::Serial, 0, 0},
+        {"tinyint_col", type::TypeId::TINYINT, false, Dist::Uniform, 0, 127},
+        {"smallint_col", type::TypeId::SMALLINT, false, Dist::Serial, 0, 1000},
+        {"int_col", type::TypeId::INTEGER, false, Dist::Uniform, 0, 0},
+        {"bigint_col", type::TypeId::BIGINT, false, Dist::Uniform, 0, 1000}}},
+
+      // Empty table with columns of various types
+      {"all_types_empty_table",
        0,
        {{"varchar_col", type::TypeId::VARCHAR, false, Dist::Serial, 0, 0},
         {"date_col", type::TypeId::DATE, false, Dist::Serial, 0, 0},
         {"real_col", type::TypeId::DECIMAL, false, Dist::Serial, 0, 0},
-        {"int_col", type::TypeId::INTEGER, false, Dist::Uniform, 0, 0}}},
+        {"bool_col", type::TypeId::BOOLEAN, false, Dist::Serial, 0, 0},
+        {"tinyint_col", type::TypeId::TINYINT, false, Dist::Uniform, 0, 127},
+        {"smallint_col", type::TypeId::SMALLINT, false, Dist::Serial, 0, 1000},
+        {"int_col", type::TypeId::INTEGER, false, Dist::Uniform, 0, 0},
+        {"bigint_col", type::TypeId::BIGINT, false, Dist::Uniform, 0, 1000}}},
   };
+
+  if (is_mini_runner) {
+    auto mini_runner_table_metas = GenerateMiniRunnerTableMetas();
+    insert_meta.insert(insert_meta.end(), mini_runner_table_metas.begin(), mini_runner_table_metas.end());
+  }
+
   for (auto &table_meta : insert_meta) {
     // Create Schema.
     std::vector<catalog::Schema::Column> cols;
@@ -196,7 +262,7 @@ void TableGenerator::GenerateTestTables() {
     // Create Table.
     auto table_oid = exec_ctx_->GetAccessor()->CreateTable(ns_oid_, table_meta.name_, tmp_schema);
     auto &schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
-    auto *tmp_table = new storage::SqlTable(store_, schema);
+    auto *tmp_table = new storage::SqlTable(common::ManagedPointer(store_), schema);
     exec_ctx_->GetAccessor()->SetTablePointer(table_oid, tmp_table);
     auto table = exec_ctx_->GetAccessor()->GetTable(table_oid);
     FillTable(table_oid, table, schema, &table_meta);
@@ -259,6 +325,47 @@ void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> ind
   // EXECUTION_LOG_INFO("Wrote {} tuples into index {}.", num_inserted, index_meta.index_name_);
 }
 
+std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerTableMetas() {
+  std::vector<TableInsertMeta> table_metas;
+  std::vector<uint32_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
+  std::vector<type::TypeId> types = {type::TypeId::INTEGER};
+  for (int col_num = 15; col_num <= 15; col_num++) {
+    for (uint32_t row_num : row_nums) {
+      // Cardinality of the last column
+      std::vector<uint32_t> cardinalities;
+      // Generate different cardinalities exponentially
+      for (uint32_t i = 1; i < row_num; i *= 2) cardinalities.emplace_back(i);
+      cardinalities.emplace_back(row_num);
+
+      for (uint32_t cardinality : cardinalities) {
+        for (type::TypeId type : types) {
+          std::stringstream table_name;
+          std::string type_name = type::TypeUtil::TypeIdToString(type);
+          table_name << type_name << "Col" << col_num << "Row" << row_num << "Car" << cardinality;
+          std::vector<ColumnInsertMeta> col_metas;
+          for (int j = 1; j <= col_num; j++) {
+            std::stringstream col_name;
+            col_name << "col" << j;
+            if (j == 1) {
+              // The first column would be serial
+              col_metas.emplace_back(col_name.str(), type, false, Dist::Serial, 0, 0);
+            } else if (j == col_num) {
+              // The last column is related to the cardinality
+              col_metas.emplace_back(col_name.str(), type, false, Dist::Rotate, 0, row_num * cardinality / 100);
+            } else {
+              // All the rest of the columns are uniformly distributed
+              col_metas.emplace_back(col_name.str(), type, false, Dist::Uniform, 0, row_num - 1);
+            }
+          }
+          table_metas.emplace_back(table_name.str(), row_num, col_metas);
+        }
+      }
+    }
+  }
+  return table_metas;
+}
+
 void TableGenerator::InitTestIndexes() {
   /**
    * This array configures indexes. To add an index, modify this array
@@ -279,7 +386,7 @@ void TableGenerator::InitTestIndexes() {
        {{"index_col1", type::TypeId::SMALLINT, false, "col1"}, {"index_col2", type::TypeId::INTEGER, true, "col2"}}},
 
       // Index on a varchar
-      {"varchar_index", "all_types_table", {{"index_varchar_col", type::TypeId::VARCHAR, false, "varchar_col"}}}};
+      {"varchar_index", "all_types_empty_table", {{"index_varchar_col", type::TypeId::VARCHAR, false, "varchar_col"}}}};
 
   storage::index::IndexBuilder index_builder;
   for (const auto &index_meta : index_metas) {

@@ -72,6 +72,7 @@ if (APPLE)
 endif ()
 
 set(BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build-support")
+set(BUILD_SUPPORT_DATA_DIR "${CMAKE_SOURCE_DIR}/build-support/data")
 
 ###################################################
 # CMAKE OPTIONS
@@ -240,7 +241,7 @@ if (UNIX)
 
     add_custom_target(check-censored
             grep --invert-match -n -e '^ *//' -e '^ *[*]' ${CENSOR_FILES} # check all uncommented lines w/ line num
-            | grep -i -f ${BUILD_SUPPORT_DIR}/bad_words.txt               # for bad words, not case sensitive
+            | grep -i -f ${BUILD_SUPPORT_DATA_DIR}/bad_words.txt          # for bad words, not case sensitive
             | grep --invert-match -e 'NOLINT'                             # the count of them that aren't NOLINT
             # whitelist-start
 
@@ -292,7 +293,7 @@ string(CONCAT FORMAT_DIRS
 # runs clang format and updates files in place.
 add_custom_target(format ${BUILD_SUPPORT_DIR}/run_clang_format.py
         ${CLANG_FORMAT_BIN}
-        ${BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
+        ${BUILD_SUPPORT_DATA_DIR}/clangformat_suppressions.txt
         --source_dirs
         ${FORMAT_DIRS}
         --fix
@@ -301,7 +302,7 @@ add_custom_target(format ${BUILD_SUPPORT_DIR}/run_clang_format.py
 # runs clang format and exits with a non-zero exit code if any files need to be reformatted
 add_custom_target(check-format ${BUILD_SUPPORT_DIR}/run_clang_format.py
         ${CLANG_FORMAT_BIN}
-        ${BUILD_SUPPORT_DIR}/clang_format_exclusions.txt
+        ${BUILD_SUPPORT_DATA_DIR}/clangformat_suppressions.txt
         --source_dirs
         ${FORMAT_DIRS}
         ${TERRIER_LINT_QUIET})

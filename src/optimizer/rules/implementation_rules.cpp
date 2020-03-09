@@ -1,3 +1,5 @@
+#include "optimizer/rules/implementation_rules.h"
+
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -13,7 +15,6 @@
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/physical_operators.h"
 #include "optimizer/properties.h"
-#include "optimizer/rules/implementation_rules.h"
 #include "optimizer/util.h"
 #include "parser/expression_util.h"
 #include "storage/storage_defs.h"
@@ -29,18 +30,18 @@ LogicalGetToPhysicalTableFreeScan::LogicalGetToPhysicalTableFreeScan() {
   match_pattern_ = new Pattern(OpType::LOGICALGET);
 }
 
-bool LogicalGetToPhysicalTableFreeScan::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalGetToPhysicalTableFreeScan::Check(common::ManagedPointer<OperatorNode> plan,
                                               OptimizationContext *context) const {
   (void)context;
   const auto get = plan->GetOp().As<LogicalGet>();
   return get->GetTableOid() == catalog::INVALID_TABLE_OID;
 }
 
-void LogicalGetToPhysicalTableFreeScan::Transform(UNUSED_ATTRIBUTE common::ManagedPointer<OperatorExpression> input,
-                                                  std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalGetToPhysicalTableFreeScan::Transform(UNUSED_ATTRIBUTE common::ManagedPointer<OperatorNode> input,
+                                                  std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                   UNUSED_ATTRIBUTE OptimizationContext *context) const {
-  std::vector<std::unique_ptr<OperatorExpression>> c;
-  auto result_plan = std::make_unique<OperatorExpression>(TableFreeScan::Make(), std::move(c));
+  std::vector<std::unique_ptr<OperatorNode>> c;
+  auto result_plan = std::make_unique<OperatorNode>(TableFreeScan::Make(), std::move(c));
   transformed->emplace_back(std::move(result_plan));
 }
 
@@ -52,15 +53,14 @@ LogicalGetToPhysicalSeqScan::LogicalGetToPhysicalSeqScan() {
   match_pattern_ = new Pattern(OpType::LOGICALGET);
 }
 
-bool LogicalGetToPhysicalSeqScan::Check(common::ManagedPointer<OperatorExpression> plan,
-                                        OptimizationContext *context) const {
+bool LogicalGetToPhysicalSeqScan::Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const {
   (void)context;
   const auto get = plan->GetOp().As<LogicalGet>();
   return get->GetTableOid() != catalog::INVALID_TABLE_OID;
 }
 
-void LogicalGetToPhysicalSeqScan::Transform(common::ManagedPointer<OperatorExpression> input,
-                                            std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalGetToPhysicalSeqScan::Transform(common::ManagedPointer<OperatorNode> input,
+                                            std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                             UNUSED_ATTRIBUTE OptimizationContext *context) const {
   TERRIER_ASSERT(input->GetChildren().empty(), "Get should have no children");
   const auto get = input->GetOp().As<LogicalGet>();
@@ -72,8 +72,8 @@ void LogicalGetToPhysicalSeqScan::Transform(common::ManagedPointer<OperatorExpre
   auto tbl_alias = std::string(get->GetTableAlias());
   auto preds = std::vector<AnnotatedExpression>(get->GetPredicates());
   auto is_update = get->GetIsForUpdate();
-  std::vector<std::unique_ptr<OperatorExpression>> c;
-  auto result_plan = std::make_unique<OperatorExpression>(
+  std::vector<std::unique_ptr<OperatorNode>> c;
+  auto result_plan = std::make_unique<OperatorNode>(
       SeqScan::Make(db_oid, ns_oid, tbl_oid, std::move(preds), tbl_alias, is_update), std::move(c));
   transformed->emplace_back(std::move(result_plan));
 }
@@ -86,7 +86,7 @@ LogicalGetToPhysicalIndexScan::LogicalGetToPhysicalIndexScan() {
   match_pattern_ = new Pattern(OpType::LOGICALGET);
 }
 
-bool LogicalGetToPhysicalIndexScan::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalGetToPhysicalIndexScan::Check(common::ManagedPointer<OperatorNode> plan,
                                           OptimizationContext *context) const {
   // If there is a index for the table, return true,
   // else return false
@@ -104,8 +104,8 @@ bool LogicalGetToPhysicalIndexScan::Check(common::ManagedPointer<OperatorExpress
   return !accessor->GetIndexOids(get->GetTableOid()).empty();
 }
 
-void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<OperatorExpression> input,
-                                              std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<OperatorNode> input,
+                                              std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                               UNUSED_ATTRIBUTE OptimizationContext *context) const {
   const auto get = input->GetOp().As<LogicalGet>();
   TERRIER_ASSERT(input->GetChildren().empty(), "Get should have no children");
@@ -125,11 +125,11 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<OperatorExp
       for (auto index : indexes) {
         if (IndexUtil::SatisfiesSortWithIndex(accessor, sort_prop, get->GetTableOid(), index)) {
           std::vector<AnnotatedExpression> preds = get->GetPredicates();
-          std::string tbl_alias = std::string(get->GetTableAlias());
-          std::vector<std::unique_ptr<OperatorExpression>> c;
-          auto result = std::make_unique<OperatorExpression>(
-              IndexScan::Make(db_oid, ns_oid, index, std::move(preds), tbl_alias, is_update, {}, {}, {}), std::move(c));
-          transformed->emplace_back(std::move(result));
+          auto op = std::make_unique<OperatorNode>(
+              IndexScan::Make(db_oid, ns_oid, get->GetTableOid(), index, std::move(preds), is_update,
+                              planner::IndexScanType::AscendingOpenBoth, {}),
+              std::vector<std::unique_ptr<OperatorNode>>());
+          transformed->emplace_back(std::move(op));
         }
       }
     }
@@ -137,26 +137,18 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<OperatorExp
 
   // Check whether any index can fulfill predicate predicate evaluation
   if (!get->GetPredicates().empty()) {
-    IndexUtilMetadata metadata;
-    IndexUtil::PopulateMetadata(get->GetPredicates(), &metadata);
-
     // Find match index for the predicates
     auto indexes = accessor->GetIndexOids(get->GetTableOid());
     for (auto &index : indexes) {
-      IndexUtilMetadata output;
-      if (IndexUtil::SatisfiesPredicateWithIndex(accessor, get->GetTableOid(), index, &metadata, &output)) {
-        std::vector<AnnotatedExpression> preds = get->GetPredicates();
-        std::string tbl_alias = std::string(get->GetTableAlias());
-
-        // Consider making IndexScan take in IndexUtilMetadata
-        // instead to wrap all these vectors?
-        std::vector<std::unique_ptr<OperatorExpression>> c;
-        auto result = std::make_unique<OperatorExpression>(
-            IndexScan::Make(db_oid, ns_oid, index, std::move(preds), std::move(tbl_alias), is_update,
-                            std::move(output.GetPredicateColumnIds()), std::move(output.GetPredicateExprTypes()),
-                            std::move(output.GetPredicateValues())),
-            std::move(c));
-        transformed->emplace_back(std::move(result));
+      planner::IndexScanType scan_type;
+      std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds;
+      std::vector<AnnotatedExpression> preds = get->GetPredicates();
+      if (IndexUtil::SatisfiesPredicateWithIndex(accessor, get->GetTableOid(), index, preds, &scan_type, &bounds)) {
+        auto op =
+            std::make_unique<OperatorNode>(IndexScan::Make(db_oid, ns_oid, get->GetTableOid(), index, std::move(preds),
+                                                           is_update, scan_type, std::move(bounds)),
+                                           std::vector<std::unique_ptr<OperatorNode>>());
+        transformed->emplace_back(std::move(op));
       }
     }
   }
@@ -173,7 +165,7 @@ LogicalQueryDerivedGetToPhysicalQueryDerivedScan::LogicalQueryDerivedGetToPhysic
   match_pattern_->AddChild(child);
 }
 
-bool LogicalQueryDerivedGetToPhysicalQueryDerivedScan::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalQueryDerivedGetToPhysicalQueryDerivedScan::Check(common::ManagedPointer<OperatorNode> plan,
                                                              OptimizationContext *context) const {
   (void)context;
   (void)plan;
@@ -181,7 +173,7 @@ bool LogicalQueryDerivedGetToPhysicalQueryDerivedScan::Check(common::ManagedPoin
 }
 
 void LogicalQueryDerivedGetToPhysicalQueryDerivedScan::Transform(
-    common::ManagedPointer<OperatorExpression> input, std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+    common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
     UNUSED_ATTRIBUTE OptimizationContext *context) const {
   const auto get = input->GetOp().As<LogicalQueryDerivedGet>();
 
@@ -190,10 +182,10 @@ void LogicalQueryDerivedGetToPhysicalQueryDerivedScan::Transform(
   expr_map = get->GetAliasToExprMap();
 
   auto input_child = input->GetChildren()[0];
-  std::vector<std::unique_ptr<OperatorExpression>> c;
+  std::vector<std::unique_ptr<OperatorNode>> c;
   c.emplace_back(input_child->Copy());
   auto result_plan =
-      std::make_unique<OperatorExpression>(QueryDerivedScan::Make(tbl_alias, std::move(expr_map)), std::move(c));
+      std::make_unique<OperatorNode>(QueryDerivedScan::Make(tbl_alias, std::move(expr_map)), std::move(c));
   transformed->emplace_back(std::move(result_plan));
 }
 
@@ -205,16 +197,16 @@ LogicalExternalFileGetToPhysicalExternalFileGet::LogicalExternalFileGetToPhysica
   match_pattern_ = new Pattern(OpType::LOGICALEXTERNALFILEGET);
 }
 
-bool LogicalExternalFileGetToPhysicalExternalFileGet::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalExternalFileGetToPhysicalExternalFileGet::Check(common::ManagedPointer<OperatorNode> plan,
                                                             OptimizationContext *context) const {
   (void)plan;
   (void)context;
   return true;
 }
 
-void LogicalExternalFileGetToPhysicalExternalFileGet::Transform(
-    common::ManagedPointer<OperatorExpression> input, std::vector<std::unique_ptr<OperatorExpression>> *transformed,
-    UNUSED_ATTRIBUTE OptimizationContext *context) const {
+void LogicalExternalFileGetToPhysicalExternalFileGet::Transform(common::ManagedPointer<OperatorNode> input,
+                                                                std::vector<std::unique_ptr<OperatorNode>> *transformed,
+                                                                UNUSED_ATTRIBUTE OptimizationContext *context) const {
   const auto get = input->GetOp().As<LogicalExternalFileGet>();
   TERRIER_ASSERT(input->GetChildren().empty(), "ExternalFileScan should have no children");
 
@@ -223,9 +215,9 @@ void LogicalExternalFileGetToPhysicalExternalFileGet::Transform(
   auto delimiter = get->GetDelimiter();
   auto quote = get->GetQuote();
   auto escape = get->GetEscape();
-  std::vector<std::unique_ptr<OperatorExpression>> c;
-  auto result_plan = std::make_unique<OperatorExpression>(
-      ExternalFileScan::Make(format, filename, delimiter, quote, escape), std::move(c));
+  std::vector<std::unique_ptr<OperatorNode>> c;
+  auto result_plan =
+      std::make_unique<OperatorNode>(ExternalFileScan::Make(format, filename, delimiter, quote, escape), std::move(c));
   transformed->emplace_back(std::move(result_plan));
 }
 
@@ -239,23 +231,23 @@ LogicalDeleteToPhysicalDelete::LogicalDeleteToPhysicalDelete() {
   match_pattern_->AddChild(child);
 }
 
-bool LogicalDeleteToPhysicalDelete::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalDeleteToPhysicalDelete::Check(common::ManagedPointer<OperatorNode> plan,
                                           OptimizationContext *context) const {
   (void)plan;
   (void)context;
   return true;
 }
 
-void LogicalDeleteToPhysicalDelete::Transform(common::ManagedPointer<OperatorExpression> input,
-                                              std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalDeleteToPhysicalDelete::Transform(common::ManagedPointer<OperatorNode> input,
+                                              std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                               UNUSED_ATTRIBUTE OptimizationContext *context) const {
   const auto del = input->GetOp().As<LogicalDelete>();
   TERRIER_ASSERT(input->GetChildren().size() == 1, "LogicalDelete should have 1 child");
 
-  std::vector<std::unique_ptr<OperatorExpression>> c;
+  std::vector<std::unique_ptr<OperatorNode>> c;
   auto child = input->GetChildren()[0]->Copy();
   c.emplace_back(std::move(child));
-  auto result = std::make_unique<OperatorExpression>(
+  auto result = std::make_unique<OperatorNode>(
       Delete::Make(del->GetDatabaseOid(), del->GetNamespaceOid(), del->GetTableAlias(), del->GetTableOid()),
       std::move(c));
   transformed->emplace_back(std::move(result));
@@ -272,27 +264,27 @@ LogicalUpdateToPhysicalUpdate::LogicalUpdateToPhysicalUpdate() {
   match_pattern_->AddChild(child);
 }
 
-bool LogicalUpdateToPhysicalUpdate::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalUpdateToPhysicalUpdate::Check(common::ManagedPointer<OperatorNode> plan,
                                           OptimizationContext *context) const {
   (void)plan;
   (void)context;
   return true;
 }
 
-void LogicalUpdateToPhysicalUpdate::Transform(common::ManagedPointer<OperatorExpression> input,
-                                              std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalUpdateToPhysicalUpdate::Transform(common::ManagedPointer<OperatorNode> input,
+                                              std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                               UNUSED_ATTRIBUTE OptimizationContext *context) const {
   const auto update_op = input->GetOp().As<LogicalUpdate>();
   TERRIER_ASSERT(input->GetChildren().size() == 1, "LogicalUpdate should have 1 child");
-  std::vector<std::unique_ptr<OperatorExpression>> c;
+  std::vector<std::unique_ptr<OperatorNode>> c;
   auto child = input->GetChildren()[0]->Copy();
   c.emplace_back(std::move(child));
 
   std::vector<common::ManagedPointer<parser::UpdateClause>> cls = update_op->GetUpdateClauses();
-  auto result = std::make_unique<OperatorExpression>(
-      Update::Make(update_op->GetDatabaseOid(), update_op->GetNamespaceOid(), update_op->GetTableAlias(),
-                   update_op->GetTableOid(), std::move(cls)),
-      std::move(c));
+  auto result =
+      std::make_unique<OperatorNode>(Update::Make(update_op->GetDatabaseOid(), update_op->GetNamespaceOid(),
+                                                  update_op->GetTableAlias(), update_op->GetTableOid(), std::move(cls)),
+                                     std::move(c));
   transformed->emplace_back(std::move(result));
 }
 
@@ -304,15 +296,15 @@ LogicalInsertToPhysicalInsert::LogicalInsertToPhysicalInsert() {
   match_pattern_ = new Pattern(OpType::LOGICALINSERT);
 }
 
-bool LogicalInsertToPhysicalInsert::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalInsertToPhysicalInsert::Check(common::ManagedPointer<OperatorNode> plan,
                                           OptimizationContext *context) const {
   (void)plan;
   (void)context;
   return true;
 }
 
-void LogicalInsertToPhysicalInsert::Transform(common::ManagedPointer<OperatorExpression> input,
-                                              std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalInsertToPhysicalInsert::Transform(common::ManagedPointer<OperatorNode> input,
+                                              std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                               UNUSED_ATTRIBUTE OptimizationContext *context) const {
   const auto insert_op = input->GetOp().As<LogicalInsert>();
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalInsert should have 0 children");
@@ -322,10 +314,10 @@ void LogicalInsertToPhysicalInsert::Transform(common::ManagedPointer<OperatorExp
   auto tbl_oid = insert_op->GetTableOid();
   auto indexes = accessor->GetIndexOids(tbl_oid);
 
-  std::vector<std::unique_ptr<OperatorExpression>> c;
+  std::vector<std::unique_ptr<OperatorNode>> c;
   std::vector<catalog::col_oid_t> cols(insert_op->GetColumns());
   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> vals = *(insert_op->GetValues());
-  auto result = std::make_unique<OperatorExpression>(
+  auto result = std::make_unique<OperatorNode>(
       Insert::Make(insert_op->GetDatabaseOid(), insert_op->GetNamespaceOid(), insert_op->GetTableOid(), std::move(cols),
                    std::move(vals), std::move(indexes)),
       std::move(c));
@@ -343,15 +335,15 @@ LogicalInsertSelectToPhysicalInsertSelect::LogicalInsertSelectToPhysicalInsertSe
   match_pattern_->AddChild(child);
 }
 
-bool LogicalInsertSelectToPhysicalInsertSelect::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalInsertSelectToPhysicalInsertSelect::Check(common::ManagedPointer<OperatorNode> plan,
                                                       OptimizationContext *context) const {
   (void)plan;
   (void)context;
   return true;
 }
 
-void LogicalInsertSelectToPhysicalInsertSelect::Transform(common::ManagedPointer<OperatorExpression> input,
-                                                          std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalInsertSelectToPhysicalInsertSelect::Transform(common::ManagedPointer<OperatorNode> input,
+                                                          std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                           UNUSED_ATTRIBUTE OptimizationContext *context) const {
   const auto insert_op = input->GetOp().As<LogicalInsertSelect>();
   TERRIER_ASSERT(input->GetChildren().size() == 1, "LogicalInsertSelect should have 1 child");
@@ -361,11 +353,10 @@ void LogicalInsertSelectToPhysicalInsertSelect::Transform(common::ManagedPointer
   auto tbl_oid = insert_op->GetTableOid();
   auto indexes = accessor->GetIndexOids(tbl_oid);
 
-  std::vector<std::unique_ptr<OperatorExpression>> c;
+  std::vector<std::unique_ptr<OperatorNode>> c;
   auto child = input->GetChildren()[0]->Copy();
   c.emplace_back(std::move(child));
-  auto op =
-      std::make_unique<OperatorExpression>(InsertSelect::Make(insert_op->GetDatabaseOid(), insert_op->GetNamespaceOid(),
+  auto op = std::make_unique<OperatorNode>(InsertSelect::Make(insert_op->GetDatabaseOid(), insert_op->GetNamespaceOid(),
                                                               insert_op->GetTableOid(), std::move(indexes)),
                                            std::move(c));
   transformed->emplace_back(std::move(op));
@@ -382,15 +373,15 @@ LogicalGroupByToPhysicalHashGroupBy::LogicalGroupByToPhysicalHashGroupBy() {
   match_pattern_->AddChild(child);
 }
 
-bool LogicalGroupByToPhysicalHashGroupBy::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalGroupByToPhysicalHashGroupBy::Check(common::ManagedPointer<OperatorNode> plan,
                                                 OptimizationContext *context) const {
   (void)context;
   const auto agg_op = plan->GetOp().As<LogicalAggregateAndGroupBy>();
   return !agg_op->GetColumns().empty();
 }
 
-void LogicalGroupByToPhysicalHashGroupBy::Transform(common::ManagedPointer<OperatorExpression> input,
-                                                    std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalGroupByToPhysicalHashGroupBy::Transform(common::ManagedPointer<OperatorNode> input,
+                                                    std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                     UNUSED_ATTRIBUTE OptimizationContext *context) const {
   const auto agg_op = input->GetOp().As<LogicalAggregateAndGroupBy>();
   TERRIER_ASSERT(input->GetChildren().size() == 1, "LogicalAggregateAndGroupBy should have 1 child");
@@ -398,12 +389,11 @@ void LogicalGroupByToPhysicalHashGroupBy::Transform(common::ManagedPointer<Opera
   std::vector<common::ManagedPointer<parser::AbstractExpression>> cols = agg_op->GetColumns();
   std::vector<AnnotatedExpression> having = agg_op->GetHaving();
 
-  std::vector<std::unique_ptr<OperatorExpression>> c;
+  std::vector<std::unique_ptr<OperatorNode>> c;
   auto child = input->GetChildren()[0]->Copy();
   c.emplace_back(std::move(child));
 
-  auto result =
-      std::make_unique<OperatorExpression>(HashGroupBy::Make(std::move(cols), std::move(having)), std::move(c));
+  auto result = std::make_unique<OperatorNode>(HashGroupBy::Make(std::move(cols), std::move(having)), std::move(c));
   transformed->emplace_back(std::move(result));
 }
 
@@ -418,23 +408,23 @@ LogicalAggregateToPhysicalAggregate::LogicalAggregateToPhysicalAggregate() {
   match_pattern_->AddChild(child);
 }
 
-bool LogicalAggregateToPhysicalAggregate::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalAggregateToPhysicalAggregate::Check(common::ManagedPointer<OperatorNode> plan,
                                                 OptimizationContext *context) const {
   (void)context;
   const auto agg_op = plan->GetOp().As<LogicalAggregateAndGroupBy>();
   return agg_op->GetColumns().empty();
 }
 
-void LogicalAggregateToPhysicalAggregate::Transform(common::ManagedPointer<OperatorExpression> input,
-                                                    std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalAggregateToPhysicalAggregate::Transform(common::ManagedPointer<OperatorNode> input,
+                                                    std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                     UNUSED_ATTRIBUTE OptimizationContext *context) const {
   TERRIER_ASSERT(input->GetChildren().size() == 1, "LogicalAggregateAndGroupBy should have 1 child");
 
-  std::vector<std::unique_ptr<OperatorExpression>> c;
+  std::vector<std::unique_ptr<OperatorNode>> c;
   auto child = input->GetChildren()[0]->Copy();
   c.emplace_back(std::move(child));
 
-  auto result = std::make_unique<OperatorExpression>(Aggregate::Make(), std::move(c));
+  auto result = std::make_unique<OperatorNode>(Aggregate::Make(), std::move(c));
   transformed->emplace_back(std::move(result));
 }
 
@@ -455,15 +445,15 @@ LogicalInnerJoinToPhysicalInnerNLJoin::LogicalInnerJoinToPhysicalInnerNLJoin() {
   match_pattern_->AddChild(right_child);
 }
 
-bool LogicalInnerJoinToPhysicalInnerNLJoin::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalInnerJoinToPhysicalInnerNLJoin::Check(common::ManagedPointer<OperatorNode> plan,
                                                   OptimizationContext *context) const {
   (void)context;
   (void)plan;
   return true;
 }
 
-void LogicalInnerJoinToPhysicalInnerNLJoin::Transform(common::ManagedPointer<OperatorExpression> input,
-                                                      std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalInnerJoinToPhysicalInnerNLJoin::Transform(common::ManagedPointer<OperatorNode> input,
+                                                      std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                       UNUSED_ATTRIBUTE OptimizationContext *context) const {
   // first build an expression representing hash join
   const auto inner_join = input->GetOp().As<LogicalInnerJoin>();
@@ -481,10 +471,10 @@ void LogicalInnerJoinToPhysicalInnerNLJoin::Transform(common::ManagedPointer<Ope
   OptimizerUtil::ExtractEquiJoinKeys(join_preds, &left_keys, &right_keys, left_group_alias, right_group_alias);
 
   TERRIER_ASSERT(right_keys.size() == left_keys.size(), "# left/right keys should equal");
-  std::vector<std::unique_ptr<OperatorExpression>> child;
+  std::vector<std::unique_ptr<OperatorNode>> child;
   child.emplace_back(children[0]->Copy());
   child.emplace_back(children[1]->Copy());
-  auto result = std::make_unique<OperatorExpression>(
+  auto result = std::make_unique<OperatorNode>(
       InnerNLJoin::Make(std::move(join_preds), std::move(left_keys), std::move(right_keys)), std::move(child));
   transformed->emplace_back(std::move(result));
 }
@@ -507,15 +497,15 @@ LogicalInnerJoinToPhysicalInnerHashJoin::LogicalInnerJoinToPhysicalInnerHashJoin
   match_pattern_->AddChild(right_child);
 }
 
-bool LogicalInnerJoinToPhysicalInnerHashJoin::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalInnerJoinToPhysicalInnerHashJoin::Check(common::ManagedPointer<OperatorNode> plan,
                                                     OptimizationContext *context) const {
   (void)context;
   (void)plan;
   return true;
 }
 
-void LogicalInnerJoinToPhysicalInnerHashJoin::Transform(common::ManagedPointer<OperatorExpression> input,
-                                                        std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalInnerJoinToPhysicalInnerHashJoin::Transform(common::ManagedPointer<OperatorNode> input,
+                                                        std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                         UNUSED_ATTRIBUTE OptimizationContext *context) const {
   // first build an expression representing hash join
   const auto inner_join = input->GetOp().As<LogicalInnerJoin>();
@@ -533,11 +523,11 @@ void LogicalInnerJoinToPhysicalInnerHashJoin::Transform(common::ManagedPointer<O
   OptimizerUtil::ExtractEquiJoinKeys(join_preds, &left_keys, &right_keys, left_group_alias, right_group_alias);
 
   TERRIER_ASSERT(right_keys.size() == left_keys.size(), "# left/right keys should equal");
-  std::vector<std::unique_ptr<OperatorExpression>> child;
+  std::vector<std::unique_ptr<OperatorNode>> child;
   child.emplace_back(children[0]->Copy());
   child.emplace_back(children[1]->Copy());
   if (!left_keys.empty()) {
-    auto result = std::make_unique<OperatorExpression>(
+    auto result = std::make_unique<OperatorNode>(
         InnerHashJoin::Make(std::move(join_preds), std::move(left_keys), std::move(right_keys)), std::move(child));
     transformed->emplace_back(std::move(result));
   }
@@ -553,15 +543,14 @@ LogicalLimitToPhysicalLimit::LogicalLimitToPhysicalLimit() {
   match_pattern_->AddChild(new Pattern(OpType::LEAF));
 }
 
-bool LogicalLimitToPhysicalLimit::Check(common::ManagedPointer<OperatorExpression> plan,
-                                        OptimizationContext *context) const {
+bool LogicalLimitToPhysicalLimit::Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const {
   (void)context;
   (void)plan;
   return true;
 }
 
-void LogicalLimitToPhysicalLimit::Transform(common::ManagedPointer<OperatorExpression> input,
-                                            std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalLimitToPhysicalLimit::Transform(common::ManagedPointer<OperatorNode> input,
+                                            std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                             OptimizationContext *context) const {
   (void)context;
   const auto limit_op = input->GetOp().As<LogicalLimit>();
@@ -569,11 +558,11 @@ void LogicalLimitToPhysicalLimit::Transform(common::ManagedPointer<OperatorExpre
 
   std::vector<common::ManagedPointer<parser::AbstractExpression>> sorts = limit_op->GetSortExpressions();
   std::vector<OrderByOrderingType> types = limit_op->GetSortDirections();
-  std::vector<std::unique_ptr<OperatorExpression>> c;
+  std::vector<std::unique_ptr<OperatorNode>> c;
   auto child = input->GetChildren()[0]->Copy();
   c.emplace_back(std::move(child));
 
-  auto result_plan = std::make_unique<OperatorExpression>(
+  auto result_plan = std::make_unique<OperatorNode>(
       Limit::Make(limit_op->GetOffset(), limit_op->GetLimit(), std::move(sorts), std::move(types)), std::move(c));
   transformed->emplace_back(std::move(result_plan));
 }
@@ -587,23 +576,23 @@ LogicalExportToPhysicalExport::LogicalExportToPhysicalExport() {
   match_pattern_->AddChild(new Pattern(OpType::LEAF));
 }
 
-bool LogicalExportToPhysicalExport::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalExportToPhysicalExport::Check(common::ManagedPointer<OperatorNode> plan,
                                           OptimizationContext *context) const {
   return true;
 }
 
-void LogicalExportToPhysicalExport::Transform(common::ManagedPointer<OperatorExpression> input,
-                                              std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalExportToPhysicalExport::Transform(common::ManagedPointer<OperatorNode> input,
+                                              std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                               UNUSED_ATTRIBUTE OptimizationContext *context) const {
   const auto export_op = input->GetOp().As<LogicalExportExternalFile>();
   TERRIER_ASSERT(input->GetChildren().size() == 1, "LogicalExport should have 1 child");
 
   std::string file = std::string(export_op->GetFilename());
-  std::vector<std::unique_ptr<OperatorExpression>> c;
+  std::vector<std::unique_ptr<OperatorNode>> c;
   auto child = input->GetChildren()[0]->Copy();
   c.emplace_back(std::move(child));
 
-  auto result_plan = std::make_unique<OperatorExpression>(
+  auto result_plan = std::make_unique<OperatorNode>(
       ExportExternalFile::Make(export_op->GetFormat(), std::move(file), export_op->GetDelimiter(),
                                export_op->GetQuote(), export_op->GetEscape()),
       std::move(c));
@@ -618,19 +607,19 @@ LogicalCreateDatabaseToPhysicalCreateDatabase::LogicalCreateDatabaseToPhysicalCr
   match_pattern_ = new Pattern(OpType::LOGICALCREATEDATABASE);
 }
 
-bool LogicalCreateDatabaseToPhysicalCreateDatabase::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalCreateDatabaseToPhysicalCreateDatabase::Check(common::ManagedPointer<OperatorNode> plan,
                                                           OptimizationContext *context) const {
   return true;
 }
 
-void LogicalCreateDatabaseToPhysicalCreateDatabase::Transform(
-    common::ManagedPointer<OperatorExpression> input, std::vector<std::unique_ptr<OperatorExpression>> *transformed,
-    UNUSED_ATTRIBUTE OptimizationContext *context) const {
+void LogicalCreateDatabaseToPhysicalCreateDatabase::Transform(common::ManagedPointer<OperatorNode> input,
+                                                              std::vector<std::unique_ptr<OperatorNode>> *transformed,
+                                                              UNUSED_ATTRIBUTE OptimizationContext *context) const {
   const auto cdb_op = input->GetOp().As<LogicalCreateDatabase>();
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalCreateDatabase should have 0 children");
 
-  auto op = std::make_unique<OperatorExpression>(CreateDatabase::Make(cdb_op->GetDatabaseName()),
-                                                 std::vector<std::unique_ptr<OperatorExpression>>());
+  auto op = std::make_unique<OperatorNode>(CreateDatabase::Make(cdb_op->GetDatabaseName()),
+                                           std::vector<std::unique_ptr<OperatorNode>>());
   transformed->emplace_back(std::move(op));
 }
 
@@ -639,23 +628,23 @@ LogicalCreateFunctionToPhysicalCreateFunction::LogicalCreateFunctionToPhysicalCr
   match_pattern_ = new Pattern(OpType::LOGICALCREATEFUNCTION);
 }
 
-bool LogicalCreateFunctionToPhysicalCreateFunction::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalCreateFunctionToPhysicalCreateFunction::Check(common::ManagedPointer<OperatorNode> plan,
                                                           OptimizationContext *context) const {
   return true;
 }
 
-void LogicalCreateFunctionToPhysicalCreateFunction::Transform(
-    common::ManagedPointer<OperatorExpression> input, std::vector<std::unique_ptr<OperatorExpression>> *transformed,
-    UNUSED_ATTRIBUTE OptimizationContext *context) const {
+void LogicalCreateFunctionToPhysicalCreateFunction::Transform(common::ManagedPointer<OperatorNode> input,
+                                                              std::vector<std::unique_ptr<OperatorNode>> *transformed,
+                                                              UNUSED_ATTRIBUTE OptimizationContext *context) const {
   const auto cf_op = input->GetOp().As<LogicalCreateFunction>();
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalCreateFunction should have 0 children");
 
-  auto op = std::make_unique<OperatorExpression>(
+  auto op = std::make_unique<OperatorNode>(
       CreateFunction::Make(cf_op->GetDatabaseOid(), cf_op->GetNamespaceOid(), cf_op->GetFunctionName(),
                            cf_op->GetUDFLanguage(), cf_op->GetFunctionBody(), cf_op->GetFunctionParameterNames(),
                            cf_op->GetFunctionParameterTypes(), cf_op->GetReturnType(), cf_op->GetParamCount(),
                            cf_op->IsReplace()),
-      std::vector<std::unique_ptr<OperatorExpression>>());
+      std::vector<std::unique_ptr<OperatorNode>>());
   transformed->emplace_back(std::move(op));
 }
 
@@ -664,13 +653,13 @@ LogicalCreateIndexToPhysicalCreateIndex::LogicalCreateIndexToPhysicalCreateIndex
   match_pattern_ = new Pattern(OpType::LOGICALCREATEINDEX);
 }
 
-bool LogicalCreateIndexToPhysicalCreateIndex::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalCreateIndexToPhysicalCreateIndex::Check(common::ManagedPointer<OperatorNode> plan,
                                                     OptimizationContext *context) const {
   return true;
 }
 
-void LogicalCreateIndexToPhysicalCreateIndex::Transform(common::ManagedPointer<OperatorExpression> input,
-                                                        std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalCreateIndexToPhysicalCreateIndex::Transform(common::ManagedPointer<OperatorNode> input,
+                                                        std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                         UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto ci_op = input->GetOp().As<LogicalCreateIndex>();
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalCreateIndex should have 0 children");
@@ -691,9 +680,11 @@ void LogicalCreateIndexToPhysicalCreateIndex::Transform(common::ManagedPointer<O
     if (attr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
       auto cve = attr.CastManagedPointerTo<parser::ColumnValueExpression>();
       auto &col = tbl_schema.GetColumn(cve->GetColumnOid());
+      name = cve->GetColumnName();
       nullable = col.Nullable();
       if (is_var) varlen_size = col.MaxVarlenSize();
     } else {
+      // TODO(Matt): derive a unique name
       // TODO(wz2): Derive nullability/varlen from non ColumnValue
       nullable = true;
       varlen_size = UINT16_MAX;
@@ -723,9 +714,9 @@ void LogicalCreateIndexToPhysicalCreateIndex::Transform(common::ManagedPointer<O
                                                        false,   // is_exclusion
                                                        false);  // is_immediate
 
-  auto op = std::make_unique<OperatorExpression>(
+  auto op = std::make_unique<OperatorNode>(
       CreateIndex::Make(ci_op->GetNamespaceOid(), ci_op->GetTableOid(), ci_op->GetIndexName(), std::move(schema)),
-      std::vector<std::unique_ptr<OperatorExpression>>());
+      std::vector<std::unique_ptr<OperatorNode>>());
   transformed->emplace_back(std::move(op));
 }
 
@@ -734,13 +725,13 @@ LogicalCreateTableToPhysicalCreateTable::LogicalCreateTableToPhysicalCreateTable
   match_pattern_ = new Pattern(OpType::LOGICALCREATETABLE);
 }
 
-bool LogicalCreateTableToPhysicalCreateTable::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalCreateTableToPhysicalCreateTable::Check(common::ManagedPointer<OperatorNode> plan,
                                                     OptimizationContext *context) const {
   return true;
 }
 
-void LogicalCreateTableToPhysicalCreateTable::Transform(common::ManagedPointer<OperatorExpression> input,
-                                                        std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalCreateTableToPhysicalCreateTable::Transform(common::ManagedPointer<OperatorNode> input,
+                                                        std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                         UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto ct_op = input->GetOp().As<LogicalCreateTable>();
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalCreateTable should have 0 children");
@@ -754,9 +745,9 @@ void LogicalCreateTableToPhysicalCreateTable::Transform(common::ManagedPointer<O
     fks.push_back(fk);
   }
 
-  auto op = std::make_unique<OperatorExpression>(
+  auto op = std::make_unique<OperatorNode>(
       CreateTable::Make(ct_op->GetNamespaceOid(), ct_op->GetTableName(), std::move(cols), std::move(fks)),
-      std::vector<std::unique_ptr<OperatorExpression>>());
+      std::vector<std::unique_ptr<OperatorNode>>());
   transformed->emplace_back(std::move(op));
 }
 
@@ -765,19 +756,19 @@ LogicalCreateNamespaceToPhysicalCreateNamespace::LogicalCreateNamespaceToPhysica
   match_pattern_ = new Pattern(OpType::LOGICALCREATENAMESPACE);
 }
 
-bool LogicalCreateNamespaceToPhysicalCreateNamespace::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalCreateNamespaceToPhysicalCreateNamespace::Check(common::ManagedPointer<OperatorNode> plan,
                                                             OptimizationContext *context) const {
   return true;
 }
 
-void LogicalCreateNamespaceToPhysicalCreateNamespace::Transform(
-    common::ManagedPointer<OperatorExpression> input, std::vector<std::unique_ptr<OperatorExpression>> *transformed,
-    UNUSED_ATTRIBUTE OptimizationContext *context) const {
+void LogicalCreateNamespaceToPhysicalCreateNamespace::Transform(common::ManagedPointer<OperatorNode> input,
+                                                                std::vector<std::unique_ptr<OperatorNode>> *transformed,
+                                                                UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto cn_op = input->GetOp().As<LogicalCreateNamespace>();
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalCreateNamespace should have 0 children");
 
-  auto op = std::make_unique<OperatorExpression>(CreateNamespace::Make(cn_op->GetNamespaceName()),
-                                                 std::vector<std::unique_ptr<OperatorExpression>>());
+  auto op = std::make_unique<OperatorNode>(CreateNamespace::Make(cn_op->GetNamespaceName()),
+                                           std::vector<std::unique_ptr<OperatorNode>>());
 
   transformed->emplace_back(std::move(op));
 }
@@ -787,22 +778,22 @@ LogicalCreateTriggerToPhysicalCreateTrigger::LogicalCreateTriggerToPhysicalCreat
   match_pattern_ = new Pattern(OpType::LOGICALCREATETRIGGER);
 }
 
-bool LogicalCreateTriggerToPhysicalCreateTrigger::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalCreateTriggerToPhysicalCreateTrigger::Check(common::ManagedPointer<OperatorNode> plan,
                                                         OptimizationContext *context) const {
   return true;
 }
 
-void LogicalCreateTriggerToPhysicalCreateTrigger::Transform(
-    common::ManagedPointer<OperatorExpression> input, std::vector<std::unique_ptr<OperatorExpression>> *transformed,
-    UNUSED_ATTRIBUTE OptimizationContext *context) const {
+void LogicalCreateTriggerToPhysicalCreateTrigger::Transform(common::ManagedPointer<OperatorNode> input,
+                                                            std::vector<std::unique_ptr<OperatorNode>> *transformed,
+                                                            UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto ct_op = input->GetOp().As<LogicalCreateTrigger>();
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalCreateTrigger should have 0 children");
 
-  auto op = std::make_unique<OperatorExpression>(
+  auto op = std::make_unique<OperatorNode>(
       CreateTrigger::Make(ct_op->GetDatabaseOid(), ct_op->GetNamespaceOid(), ct_op->GetTableOid(),
                           ct_op->GetTriggerName(), ct_op->GetTriggerFuncName(), ct_op->GetTriggerArgs(),
                           ct_op->GetTriggerColumns(), ct_op->GetTriggerWhen(), ct_op->GetTriggerType()),
-      std::vector<std::unique_ptr<OperatorExpression>>());
+      std::vector<std::unique_ptr<OperatorNode>>());
 
   transformed->emplace_back(std::move(op));
 }
@@ -812,20 +803,20 @@ LogicalCreateViewToPhysicalCreateView::LogicalCreateViewToPhysicalCreateView() {
   match_pattern_ = new Pattern(OpType::LOGICALCREATEVIEW);
 }
 
-bool LogicalCreateViewToPhysicalCreateView::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalCreateViewToPhysicalCreateView::Check(common::ManagedPointer<OperatorNode> plan,
                                                   OptimizationContext *context) const {
   return true;
 }
 
-void LogicalCreateViewToPhysicalCreateView::Transform(common::ManagedPointer<OperatorExpression> input,
-                                                      std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalCreateViewToPhysicalCreateView::Transform(common::ManagedPointer<OperatorNode> input,
+                                                      std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                       UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto cv_op = input->GetOp().As<LogicalCreateView>();
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalCreateView should have 0 children");
 
-  auto op = std::make_unique<OperatorExpression>(
+  auto op = std::make_unique<OperatorNode>(
       CreateView::Make(cv_op->GetDatabaseOid(), cv_op->GetNamespaceOid(), cv_op->GetViewName(), cv_op->GetViewQuery()),
-      std::vector<std::unique_ptr<OperatorExpression>>());
+      std::vector<std::unique_ptr<OperatorNode>>());
 
   transformed->emplace_back(std::move(op));
 }
@@ -835,19 +826,19 @@ LogicalDropDatabaseToPhysicalDropDatabase::LogicalDropDatabaseToPhysicalDropData
   match_pattern_ = new Pattern(OpType::LOGICALDROPDATABASE);
 }
 
-bool LogicalDropDatabaseToPhysicalDropDatabase::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalDropDatabaseToPhysicalDropDatabase::Check(common::ManagedPointer<OperatorNode> plan,
                                                       OptimizationContext *context) const {
   return true;
 }
 
-void LogicalDropDatabaseToPhysicalDropDatabase::Transform(common::ManagedPointer<OperatorExpression> input,
-                                                          std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalDropDatabaseToPhysicalDropDatabase::Transform(common::ManagedPointer<OperatorNode> input,
+                                                          std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                           UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto dd_op = input->GetOp().As<LogicalDropDatabase>();
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalDropDatabase should have 0 children");
 
-  auto op = std::make_unique<OperatorExpression>(DropDatabase::Make(dd_op->GetDatabaseOID()),
-                                                 std::vector<std::unique_ptr<OperatorExpression>>());
+  auto op = std::make_unique<OperatorNode>(DropDatabase::Make(dd_op->GetDatabaseOID()),
+                                           std::vector<std::unique_ptr<OperatorNode>>());
   transformed->emplace_back(std::move(op));
 }
 
@@ -856,19 +847,19 @@ LogicalDropTableToPhysicalDropTable::LogicalDropTableToPhysicalDropTable() {
   match_pattern_ = new Pattern(OpType::LOGICALDROPTABLE);
 }
 
-bool LogicalDropTableToPhysicalDropTable::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalDropTableToPhysicalDropTable::Check(common::ManagedPointer<OperatorNode> plan,
                                                 OptimizationContext *context) const {
   return true;
 }
 
-void LogicalDropTableToPhysicalDropTable::Transform(common::ManagedPointer<OperatorExpression> input,
-                                                    std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalDropTableToPhysicalDropTable::Transform(common::ManagedPointer<OperatorNode> input,
+                                                    std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                     UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto dt_op = input->GetOp().As<LogicalDropTable>();
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalDropTable should have 0 children");
 
-  auto op = std::make_unique<OperatorExpression>(DropTable::Make(dt_op->GetTableOID()),
-                                                 std::vector<std::unique_ptr<OperatorExpression>>());
+  auto op = std::make_unique<OperatorNode>(DropTable::Make(dt_op->GetTableOID()),
+                                           std::vector<std::unique_ptr<OperatorNode>>());
   transformed->emplace_back(std::move(op));
 }
 
@@ -877,19 +868,19 @@ LogicalDropIndexToPhysicalDropIndex::LogicalDropIndexToPhysicalDropIndex() {
   match_pattern_ = new Pattern(OpType::LOGICALDROPINDEX);
 }
 
-bool LogicalDropIndexToPhysicalDropIndex::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalDropIndexToPhysicalDropIndex::Check(common::ManagedPointer<OperatorNode> plan,
                                                 OptimizationContext *context) const {
   return true;
 }
 
-void LogicalDropIndexToPhysicalDropIndex::Transform(common::ManagedPointer<OperatorExpression> input,
-                                                    std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalDropIndexToPhysicalDropIndex::Transform(common::ManagedPointer<OperatorNode> input,
+                                                    std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                     UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto di_op = input->GetOp().As<LogicalDropIndex>();
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalDropIndex should have 0 children");
 
-  auto op = std::make_unique<OperatorExpression>(DropIndex::Make(di_op->GetIndexOID()),
-                                                 std::vector<std::unique_ptr<OperatorExpression>>());
+  auto op = std::make_unique<OperatorNode>(DropIndex::Make(di_op->GetIndexOID()),
+                                           std::vector<std::unique_ptr<OperatorNode>>());
   transformed->emplace_back(std::move(op));
 }
 
@@ -898,20 +889,20 @@ LogicalDropTriggerToPhysicalDropTrigger::LogicalDropTriggerToPhysicalDropTrigger
   match_pattern_ = new Pattern(OpType::LOGICALDROPTRIGGER);
 }
 
-bool LogicalDropTriggerToPhysicalDropTrigger::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalDropTriggerToPhysicalDropTrigger::Check(common::ManagedPointer<OperatorNode> plan,
                                                     OptimizationContext *context) const {
   return true;
 }
 
-void LogicalDropTriggerToPhysicalDropTrigger::Transform(common::ManagedPointer<OperatorExpression> input,
-                                                        std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalDropTriggerToPhysicalDropTrigger::Transform(common::ManagedPointer<OperatorNode> input,
+                                                        std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                         UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto dt_op = input->GetOp().As<LogicalDropTrigger>();
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalDropTrigger should have 0 children");
 
-  auto op = std::make_unique<OperatorExpression>(
+  auto op = std::make_unique<OperatorNode>(
       DropTrigger::Make(dt_op->GetDatabaseOid(), dt_op->GetNamespaceOid(), dt_op->GetTriggerOid(), dt_op->IsIfExists()),
-      std::vector<std::unique_ptr<OperatorExpression>>());
+      std::vector<std::unique_ptr<OperatorNode>>());
   transformed->emplace_back(std::move(op));
 }
 
@@ -920,19 +911,19 @@ LogicalDropNamespaceToPhysicalDropNamespace::LogicalDropNamespaceToPhysicalDropN
   match_pattern_ = new Pattern(OpType::LOGICALDROPNAMESPACE);
 }
 
-bool LogicalDropNamespaceToPhysicalDropNamespace::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalDropNamespaceToPhysicalDropNamespace::Check(common::ManagedPointer<OperatorNode> plan,
                                                         OptimizationContext *context) const {
   return true;
 }
 
-void LogicalDropNamespaceToPhysicalDropNamespace::Transform(
-    common::ManagedPointer<OperatorExpression> input, std::vector<std::unique_ptr<OperatorExpression>> *transformed,
-    UNUSED_ATTRIBUTE OptimizationContext *context) const {
+void LogicalDropNamespaceToPhysicalDropNamespace::Transform(common::ManagedPointer<OperatorNode> input,
+                                                            std::vector<std::unique_ptr<OperatorNode>> *transformed,
+                                                            UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto dn_op = input->GetOp().As<LogicalDropNamespace>();
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalDropNamespace should have 0 children");
 
-  auto op = std::make_unique<OperatorExpression>(DropNamespace::Make(dn_op->GetNamespaceOID()),
-                                                 std::vector<std::unique_ptr<OperatorExpression>>());
+  auto op = std::make_unique<OperatorNode>(DropNamespace::Make(dn_op->GetNamespaceOID()),
+                                           std::vector<std::unique_ptr<OperatorNode>>());
   transformed->emplace_back(std::move(op));
 }
 
@@ -941,20 +932,20 @@ LogicalDropViewToPhysicalDropView::LogicalDropViewToPhysicalDropView() {
   match_pattern_ = new Pattern(OpType::LOGICALDROPVIEW);
 }
 
-bool LogicalDropViewToPhysicalDropView::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalDropViewToPhysicalDropView::Check(common::ManagedPointer<OperatorNode> plan,
                                               OptimizationContext *context) const {
   return true;
 }
 
-void LogicalDropViewToPhysicalDropView::Transform(common::ManagedPointer<OperatorExpression> input,
-                                                  std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalDropViewToPhysicalDropView::Transform(common::ManagedPointer<OperatorNode> input,
+                                                  std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                   UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto dv_op = input->GetOp().As<LogicalDropView>();
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalDropView should have 0 children");
 
-  auto op = std::make_unique<OperatorExpression>(
+  auto op = std::make_unique<OperatorNode>(
       DropView::Make(dv_op->GetDatabaseOid(), dv_op->GetNamespaceOid(), dv_op->GetViewOid(), dv_op->IsIfExists()),
-      std::vector<std::unique_ptr<OperatorExpression>>());
+      std::vector<std::unique_ptr<OperatorNode>>());
   transformed->emplace_back(std::move(op));
 }
 

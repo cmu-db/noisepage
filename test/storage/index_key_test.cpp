@@ -224,7 +224,7 @@ class IndexKeyTests : public TerrierTest {
     columns.emplace_back("attribute", type::TypeId ::INTEGER, false,
                          parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     catalog::Schema schema{columns};
-    auto *sql_table = new storage::SqlTable(db_main->GetStorageLayer()->GetBlockStore().Get(), schema);
+    auto *sql_table = new storage::SqlTable(db_main->GetStorageLayer()->GetBlockStore(), schema);
     const auto &tuple_initializer = sql_table->InitializerForProjectedRow({catalog::col_oid_t(0)});
 
     auto *const txn = txn_manager->BeginTransaction();
@@ -330,10 +330,10 @@ class IndexKeyTests : public TerrierTest {
       }
 
       *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
-      (*key).SetFromProjectedRow(*pr, metadata);
+      (*key).SetFromProjectedRow(*pr, metadata, 1);
     } else {
       pr->SetNull(0);
-      (*key).SetFromProjectedRow(*pr, metadata);
+      (*key).SetFromProjectedRow(*pr, metadata, 1);
     }
   }
 
@@ -389,8 +389,8 @@ bool CompactIntsFromProjectedRowEq(const IndexMetadata &metadata, const storage:
                                    const storage::ProjectedRow &pr_B) {
   auto key_a = CompactIntsKey<KeySize>();
   auto key_b = CompactIntsKey<KeySize>();
-  key_a.SetFromProjectedRow(pr_A, metadata);
-  key_b.SetFromProjectedRow(pr_B, metadata);
+  key_a.SetFromProjectedRow(pr_A, metadata, metadata.GetSchema().GetColumns().size());
+  key_b.SetFromProjectedRow(pr_B, metadata, metadata.GetSchema().GetColumns().size());
   return std::equal_to<CompactIntsKey<KeySize>>()(key_a, key_b);
 }
 
@@ -402,8 +402,8 @@ bool CompactIntsFromProjectedRowCmp(const IndexMetadata &metadata, const storage
                                     const storage::ProjectedRow &pr_B) {
   auto key_a = CompactIntsKey<KeySize>();
   auto key_b = CompactIntsKey<KeySize>();
-  key_a.SetFromProjectedRow(pr_A, metadata);
-  key_b.SetFromProjectedRow(pr_B, metadata);
+  key_a.SetFromProjectedRow(pr_A, metadata, metadata.GetSchema().GetColumns().size());
+  key_b.SetFromProjectedRow(pr_B, metadata, metadata.GetSchema().GetColumns().size());
   return std::less<CompactIntsKey<KeySize>>()(key_a, key_b);
 }
 
@@ -844,15 +844,15 @@ void CompactIntsKeyBasicTest(type::TypeId type_id, Random *const generator) {
   }
 
   CompactIntsKey<KeySize> key1, key2;
-  key1.SetFromProjectedRow(*pr, metadata);
-  key2.SetFromProjectedRow(*pr, metadata);
+  key1.SetFromProjectedRow(*pr, metadata, metadata.GetSchema().GetColumns().size());
+  key2.SetFromProjectedRow(*pr, metadata, metadata.GetSchema().GetColumns().size());
 
   EXPECT_TRUE(std::equal_to<CompactIntsKey<KeySize>>()(key1, key2));
   EXPECT_EQ(std::hash<CompactIntsKey<KeySize>>()(key1), std::hash<CompactIntsKey<KeySize>>()(key2));
   EXPECT_FALSE(std::less<CompactIntsKey<KeySize>>()(key1, key2));
 
   *reinterpret_cast<CType *>(pr->AccessForceNotNull(num_cols - 1)) = static_cast<CType>(1);
-  key2.SetFromProjectedRow(*pr, metadata);
+  key2.SetFromProjectedRow(*pr, metadata, metadata.GetSchema().GetColumns().size());
 
   EXPECT_FALSE(std::equal_to<CompactIntsKey<KeySize>>()(key1, key2));
   EXPECT_NE(std::hash<CompactIntsKey<KeySize>>()(key1), std::hash<CompactIntsKey<KeySize>>()(key2));
@@ -903,8 +903,8 @@ void NumericComparisons(const type::TypeId type_id, const bool nullable) {
   CType data = 15;
   *reinterpret_cast<CType *>(pr->AccessForceNotNull(0)) = data;
   KeyType key1, key2;
-  key1.SetFromProjectedRow(*pr, metadata);
-  key2.SetFromProjectedRow(*pr, metadata);
+  key1.SetFromProjectedRow(*pr, metadata, 1);
+  key2.SetFromProjectedRow(*pr, metadata, 1);
 
   // lhs: 15, rhs: 15
   EXPECT_TRUE(std::equal_to<KeyType>()(key1, key2));
@@ -913,7 +913,7 @@ void NumericComparisons(const type::TypeId type_id, const bool nullable) {
 
   data = 72;
   *reinterpret_cast<CType *>(pr->AccessForceNotNull(0)) = data;
-  key2.SetFromProjectedRow(*pr, metadata);
+  key2.SetFromProjectedRow(*pr, metadata, 1);
 
   // lhs: 15, rhs: 72
   EXPECT_FALSE(std::equal_to<KeyType>()(key1, key2));
@@ -922,7 +922,7 @@ void NumericComparisons(const type::TypeId type_id, const bool nullable) {
 
   data = 116;
   *reinterpret_cast<CType *>(pr->AccessForceNotNull(0)) = data;
-  key1.SetFromProjectedRow(*pr, metadata);
+  key1.SetFromProjectedRow(*pr, metadata, 1);
 
   // lhs: 116, rhs: 72
   EXPECT_FALSE(std::equal_to<KeyType>()(key1, key2));
@@ -931,14 +931,14 @@ void NumericComparisons(const type::TypeId type_id, const bool nullable) {
 
   if (nullable) {
     pr->SetNull(0);
-    key1.SetFromProjectedRow(*pr, metadata);
+    key1.SetFromProjectedRow(*pr, metadata, 1);
 
     // lhs: NULL, rhs: 72
     EXPECT_FALSE(std::equal_to<KeyType>()(key1, key2));
     EXPECT_NE(std::hash<KeyType>()(key1), std::hash<KeyType>()(key2));
     EXPECT_TRUE(std::less<KeyType>()(key1, key2));
 
-    key2.SetFromProjectedRow(*pr, metadata);
+    key2.SetFromProjectedRow(*pr, metadata, 1);
 
     // lhs: NULL, rhs: NULL
     EXPECT_TRUE(std::equal_to<KeyType>()(key1, key2));
@@ -947,7 +947,7 @@ void NumericComparisons(const type::TypeId type_id, const bool nullable) {
 
     data = 15;
     *reinterpret_cast<CType *>(pr->AccessForceNotNull(0)) = data;
-    key1.SetFromProjectedRow(*pr, metadata);
+    key1.SetFromProjectedRow(*pr, metadata, 1);
 
     // lhs: 15, rhs: NULL
     EXPECT_FALSE(std::equal_to<KeyType>()(key1, key2));
@@ -995,8 +995,8 @@ void UnorderedNumericComparisons(const type::TypeId type_id, const bool nullable
   CType data = 15;
   *reinterpret_cast<CType *>(pr->AccessForceNotNull(0)) = data;
   KeyType key1, key2;
-  key1.SetFromProjectedRow(*pr, metadata);
-  key2.SetFromProjectedRow(*pr, metadata);
+  key1.SetFromProjectedRow(*pr, metadata, 1);
+  key2.SetFromProjectedRow(*pr, metadata, 1);
 
   // lhs: 15, rhs: 15
   EXPECT_TRUE(std::equal_to<KeyType>()(key1, key2));
@@ -1004,7 +1004,7 @@ void UnorderedNumericComparisons(const type::TypeId type_id, const bool nullable
 
   data = 72;
   *reinterpret_cast<CType *>(pr->AccessForceNotNull(0)) = data;
-  key2.SetFromProjectedRow(*pr, metadata);
+  key2.SetFromProjectedRow(*pr, metadata, 1);
 
   // lhs: 15, rhs: 72
   EXPECT_FALSE(std::equal_to<KeyType>()(key1, key2));
@@ -1012,7 +1012,7 @@ void UnorderedNumericComparisons(const type::TypeId type_id, const bool nullable
 
   data = 116;
   *reinterpret_cast<CType *>(pr->AccessForceNotNull(0)) = data;
-  key1.SetFromProjectedRow(*pr, metadata);
+  key1.SetFromProjectedRow(*pr, metadata, 1);
 
   // lhs: 116, rhs: 72
   EXPECT_FALSE(std::equal_to<KeyType>()(key1, key2));
@@ -1020,13 +1020,13 @@ void UnorderedNumericComparisons(const type::TypeId type_id, const bool nullable
 
   if (nullable) {
     pr->SetNull(0);
-    key1.SetFromProjectedRow(*pr, metadata);
+    key1.SetFromProjectedRow(*pr, metadata, 1);
 
     // lhs: NULL, rhs: 72
     EXPECT_FALSE(std::equal_to<KeyType>()(key1, key2));
     EXPECT_NE(std::hash<KeyType>()(key1), std::hash<KeyType>()(key2));
 
-    key2.SetFromProjectedRow(*pr, metadata);
+    key2.SetFromProjectedRow(*pr, metadata, 1);
 
     // lhs: NULL, rhs: NULL
     EXPECT_TRUE(std::equal_to<KeyType>()(key1, key2));
@@ -1034,7 +1034,7 @@ void UnorderedNumericComparisons(const type::TypeId type_id, const bool nullable
 
     data = 15;
     *reinterpret_cast<CType *>(pr->AccessForceNotNull(0)) = data;
-    key1.SetFromProjectedRow(*pr, metadata);
+    key1.SetFromProjectedRow(*pr, metadata, 1);
 
     // lhs: 15, rhs: NULL
     EXPECT_FALSE(std::equal_to<KeyType>()(key1, key2));
@@ -1077,8 +1077,8 @@ TEST_F(IndexKeyTests, GenericKeyInlineVarlenComparisons) {
       VarlenEntry::CreateInline(reinterpret_cast<byte *>(john), static_cast<uint32_t>(std::strlen(john)));
   *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
   GenericKey<64> key1, key2;
-  key1.SetFromProjectedRow(*pr, metadata);
-  key2.SetFromProjectedRow(*pr, metadata);
+  key1.SetFromProjectedRow(*pr, metadata, 1);
+  key2.SetFromProjectedRow(*pr, metadata, 1);
 
   const auto generic_eq64 = std::equal_to<GenericKey<64>>();  // NOLINT transparent functors can't figure out template
   const auto generic_lt64 = std::less<GenericKey<64>>();      // NOLINT transparent functors can't figure out template
@@ -1091,17 +1091,17 @@ TEST_F(IndexKeyTests, GenericKeyInlineVarlenComparisons) {
 
   data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(johnny), static_cast<uint32_t>(std::strlen(johnny)));
   *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
-  key2.SetFromProjectedRow(*pr, metadata);
+  key2.SetFromProjectedRow(*pr, metadata, 1);
 
   // lhs: "john", rhs: "johnny" (same prefixes, different string (one <=prefix))
   EXPECT_FALSE(generic_eq64(key1, key2));
   EXPECT_NE(generic_hash64(key1), generic_hash64(key2));
   EXPECT_TRUE(generic_lt64(key1, key2));
 
-  key1.SetFromProjectedRow(*pr, metadata);
+  key1.SetFromProjectedRow(*pr, metadata, 1);
   data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(john), static_cast<uint32_t>(std::strlen(john)));
   *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
-  key2.SetFromProjectedRow(*pr, metadata);
+  key2.SetFromProjectedRow(*pr, metadata, 1);
 
   // lhs: "johnny", rhs: "john" (same prefixes, different strings (one <=prefix))
   EXPECT_FALSE(generic_eq64(key1, key2));
@@ -1110,8 +1110,8 @@ TEST_F(IndexKeyTests, GenericKeyInlineVarlenComparisons) {
 
   data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(johnny), static_cast<uint32_t>(std::strlen(johnny)));
   *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
-  key1.SetFromProjectedRow(*pr, metadata);
-  key2.SetFromProjectedRow(*pr, metadata);
+  key1.SetFromProjectedRow(*pr, metadata, 1);
+  key2.SetFromProjectedRow(*pr, metadata, 1);
 
   // lhs: "johnny", rhs: "johnny" (same prefixes, same strings (> prefix))
   EXPECT_TRUE(generic_eq64(key1, key2));
@@ -1120,17 +1120,17 @@ TEST_F(IndexKeyTests, GenericKeyInlineVarlenComparisons) {
 
   data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(johnathan), static_cast<uint32_t>(std::strlen(johnathan)));
   *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
-  key1.SetFromProjectedRow(*pr, metadata);
+  key1.SetFromProjectedRow(*pr, metadata, 1);
 
   // lhs: "johnathan", rhs: "johnny" (different prefixes, different strings (> prefix))
   EXPECT_FALSE(generic_eq64(key1, key2));
   EXPECT_NE(generic_hash64(key1), generic_hash64(key2));
   EXPECT_TRUE(generic_lt64(key1, key2));
 
-  key2.SetFromProjectedRow(*pr, metadata);
+  key2.SetFromProjectedRow(*pr, metadata, 1);
   data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(johnny), static_cast<uint32_t>(std::strlen(johnny)));
   *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
-  key1.SetFromProjectedRow(*pr, metadata);
+  key1.SetFromProjectedRow(*pr, metadata, 1);
 
   // lhs: "johnny", rhs: "johnathan" (different prefixes, different strings (> prefix))
   EXPECT_FALSE(generic_eq64(key1, key2));
@@ -1138,14 +1138,14 @@ TEST_F(IndexKeyTests, GenericKeyInlineVarlenComparisons) {
   EXPECT_FALSE(generic_lt64(key1, key2));
 
   pr->SetNull(0);
-  key1.SetFromProjectedRow(*pr, metadata);
+  key1.SetFromProjectedRow(*pr, metadata, 1);
 
   // lhs: NULL, rhs: "johnathan"
   EXPECT_FALSE(generic_eq64(key1, key2));
   EXPECT_TRUE(generic_lt64(key1, key2));
 
-  key1.SetFromProjectedRow(*pr, metadata);
-  key2.SetFromProjectedRow(*pr, metadata);
+  key1.SetFromProjectedRow(*pr, metadata, 1);
+  key2.SetFromProjectedRow(*pr, metadata, 1);
 
   // lhs: NULL, rhs: NULL
   EXPECT_TRUE(generic_eq64(key1, key2));
@@ -1154,7 +1154,7 @@ TEST_F(IndexKeyTests, GenericKeyInlineVarlenComparisons) {
 
   data = VarlenEntry::CreateInline(reinterpret_cast<byte *>(johnathan), static_cast<uint32_t>(std::strlen(johnathan)));
   *reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(0)) = data;
-  key1.SetFromProjectedRow(*pr, metadata);
+  key1.SetFromProjectedRow(*pr, metadata, 1);
 
   // lhs: "johnathan", rhs: NULL
   EXPECT_FALSE(generic_eq64(key1, key2));

@@ -58,7 +58,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, TPCCish)(benchmark::State &state) {
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
@@ -100,7 +100,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, HighAbortRate)(benchmark::State &state) {
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
@@ -141,7 +141,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementInsert)(benchmark::State &st
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
@@ -182,7 +182,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementUpdate)(benchmark::State &st
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
@@ -223,7 +223,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementSelect)(benchmark::State &st
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
@@ -241,22 +241,30 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementSelect)(benchmark::State &st
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
 
-BENCHMARK_REGISTER_F(LoggingBenchmark, TPCCish)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(3);
-
-BENCHMARK_REGISTER_F(LoggingBenchmark, HighAbortRate)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(10);
-
+// ----------------------------------------------------------------------------
+// BENCHMARK REGISTRATION
+// ----------------------------------------------------------------------------
+// clang-format off
+BENCHMARK_REGISTER_F(LoggingBenchmark, TPCCish)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->MinTime(3);
+BENCHMARK_REGISTER_F(LoggingBenchmark, HighAbortRate)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->MinTime(10);
 BENCHMARK_REGISTER_F(LoggingBenchmark, SingleStatementInsert)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->MinTime(3);
-
 BENCHMARK_REGISTER_F(LoggingBenchmark, SingleStatementUpdate)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->MinTime(3);
-
 BENCHMARK_REGISTER_F(LoggingBenchmark, SingleStatementSelect)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->MinTime(1);
+// clang-format on
+
 }  // namespace terrier

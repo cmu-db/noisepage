@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <utility>
+#include "brain/brain_defs.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/expression/expression_translator.h"
 #include "planner/plannodes/abstract_plan_node.h"
@@ -18,8 +19,10 @@ class OperatorTranslator : public ExpressionEvaluator {
   /**
    * Constructor
    * @param codegen The code generator to use
+   * @param feature Feature Type
    */
-  explicit OperatorTranslator(CodeGen *codegen) : codegen_(codegen) {}
+  explicit OperatorTranslator(CodeGen *codegen, brain::ExecutionOperatingUnitType feature)
+      : codegen_(codegen), feature_type_(feature) {}
 
   /**
    * Destructor
@@ -138,7 +141,9 @@ class OperatorTranslator : public ExpressionEvaluator {
    * Most operators should not be materializers.
    * @return a pair containing the identifiers of the output tuple and its type.
    */
-  virtual std::pair<ast::Identifier *, ast::Identifier *> GetMaterializedTuple() { return {nullptr, nullptr}; }
+  virtual std::pair<const ast::Identifier *, const ast::Identifier *> GetMaterializedTuple() {
+    return {nullptr, nullptr};
+  }
 
   /**
    * Used by operators when they need to generate a struct containing a child's output.
@@ -161,11 +166,21 @@ class OperatorTranslator : public ExpressionEvaluator {
    */
   virtual const planner::AbstractPlanNode *Op() = 0;
 
+  /**
+   * @return feature type
+   */
+  brain::ExecutionOperatingUnitType GetFeatureType() const { return feature_type_; }
+
  protected:
   /**
    * The code generator to use
    */
   CodeGen *codegen_;
+
+  /**
+   * ExecutionOperatingUnitType
+   */
+  brain::ExecutionOperatingUnitType feature_type_{brain::ExecutionOperatingUnitType::INVALID};
 
   /**
    * The child operator translator.

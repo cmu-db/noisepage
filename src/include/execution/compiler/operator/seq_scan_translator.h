@@ -61,7 +61,9 @@ class SeqScanTranslator : public OperatorTranslator {
   static bool IsVectorizable(const terrier::parser::AbstractExpression *predicate);
 
   // Return the pci and its type
-  std::pair<ast::Identifier *, ast::Identifier *> GetMaterializedTuple() override { return {&pci_, &pci_type_}; }
+  std::pair<const ast::Identifier *, const ast::Identifier *> GetMaterializedTuple() override {
+    return {&pci_, &pci_type_};
+  }
 
   // Used by column value expression to get a column.
   ast::Expr *GetTableColumn(const catalog::col_oid_t &col_oid) override;
@@ -100,6 +102,20 @@ class SeqScanTranslator : public OperatorTranslator {
 
   // Generated vectorized filters
   void GenVectorizedPredicate(FunctionBuilder *builder, const terrier::parser::AbstractExpression *predicate);
+
+  // Create the input oids used for the scans.
+  // When the plan's oid list is empty (like in "SELECT COUNT(*)"), then we just read the first column of the table.
+  // Otherwise we just read the plan's oid list.
+  // This is because the storage layer needs to read at least one column.
+  // TODO(Amadou): Create a special code path for COUNT(*).
+  // This requires a new table iterator that doesn't materialize tuples as well as a few builtins.
+  static std::vector<catalog::col_oid_t> MakeInputOids(const catalog::Schema &schema,
+                                                       const planner::SeqScanPlanNode *op_) {
+    if (op_->GetColumnOids().empty()) {
+      return {schema.GetColumn(0).Oid()};
+    }
+    return op_->GetColumnOids();
+  }
 
  private:
   const planner::SeqScanPlanNode *op_;

@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "catalog/catalog.h"
+#include "catalog/postgres/pg_proc.h"
 
 namespace terrier::catalog {
 db_oid_t CatalogAccessor::GetDatabaseOid(std::string name) const {
@@ -131,6 +132,41 @@ bool CatalogAccessor::SetIndexPointer(index_oid_t index, storage::index::Index *
 common::ManagedPointer<storage::index::Index> CatalogAccessor::GetIndex(index_oid_t index) const {
   return dbc_->GetIndex(txn_, index);
 }
+
+language_oid_t CatalogAccessor::CreateLanguage(const std::string &lanname) {
+  return dbc_->CreateLanguage(txn_, lanname);
+}
+
+language_oid_t CatalogAccessor::GetLanguageOid(const std::string &lanname) {
+  return dbc_->GetLanguageOid(txn_, lanname);
+}
+
+bool CatalogAccessor::DropLanguage(language_oid_t language_oid) { return dbc_->DropLanguage(txn_, language_oid); }
+
+proc_oid_t CatalogAccessor::CreateProcedure(const std::string &procname, language_oid_t language_oid,
+                                            namespace_oid_t procns, const std::vector<std::string> &args,
+                                            const std::vector<type_oid_t> &arg_types,
+                                            const std::vector<type_oid_t> &all_arg_types,
+                                            const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,
+                                            const std::string &src, bool is_aggregate) {
+  return dbc_->CreateProcedure(txn_, procname, language_oid, procns, args, arg_types, all_arg_types, arg_modes, rettype,
+                               src, is_aggregate);
+}
+
+bool CatalogAccessor::DropProcedure(proc_oid_t proc_oid) { return dbc_->DropProcedure(txn_, proc_oid); }
+
+proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname, const std::vector<type_oid_t> &arg_types) {
+  proc_oid_t ret;
+  for (auto ns_oid : search_path_) {
+    ret = dbc_->GetProcOid(txn_, ns_oid, procname, arg_types);
+    if (ret != catalog::INVALID_PROC_OID) {
+      return ret;
+    }
+  }
+  return catalog::INVALID_PROC_OID;
+}
+
+type_oid_t CatalogAccessor::GetTypeOidFromTypeId(type::TypeId type) { return dbc_->GetTypeOidForType(type); }
 
 common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() const {
   // TODO(Matt): at some point we may decide to adjust the source  (i.e. each DatabaseCatalog has one), stick it in a

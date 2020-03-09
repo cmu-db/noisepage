@@ -958,7 +958,7 @@ TEST(ExpressionTests, StarExpressionJsonTest) {
 
   auto original_expr = new StarExpression();
   EXPECT_EQ(original_expr->GetExpressionType(), ExpressionType::STAR);
-  EXPECT_EQ(original_expr->GetReturnValueType(), type::TypeId::INVALID);
+  EXPECT_EQ(original_expr->GetReturnValueType(), type::TypeId::INTEGER);
   original_expr->DeriveExpressionName();
   EXPECT_EQ(original_expr->GetExpressionName(), "STAR");
 

@@ -2,13 +2,27 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "execution/sql/value.h"
 #include "network/packet_writer.h"
+#include "network/postgres/postgres_protocol_util.h"
 #include "planner/plannodes/output_schema.h"
+#include "util/time_util.h"
 
 namespace terrier::network {
+
+/**
+ * The string value to use for 'true' boolean values
+ */
+constexpr char POSTGRES_BOOLEAN_STR_TRUE[] = "t";
+
+/**
+ * The string value to use for 'false' boolean values
+ */
+constexpr char POSTGRES_BOOLEAN_STR_FALSE[] = "f";
+
 /**
  * Wrapper around an I/O layer WriteQueue to provide Postgres-specific
  * helper methods.
@@ -28,6 +42,52 @@ class PostgresPacketWriter : public PacketWriter {
    */
   PostgresPacketWriter(const common::ManagedPointer<WriteQueue> write_queue, const FieldFormat format)
       : PacketWriter(write_queue), format_(format) {}
+
+  /**
+   * Writes error responses to the client
+   * @param error_status The error messages to send
+   */
+  void WriteErrorResponse(const std::vector<std::pair<NetworkMessageType, std::string>> &error_status) {
+    BeginPacket(NetworkMessageType::PG_ERROR_RESPONSE);
+
+    for (const auto &entry : error_status) AppendRawValue(entry.first).AppendString(entry.second);
+
+    // Nul-terminate packet
+    AppendRawValue<uchar>(0).EndPacket();
+  }
+
+  /**
+   * Notify the client a readiness to receive a query
+   * @param txn_status
+   */
+  void WriteReadyForQuery(NetworkTransactionStateType txn_status) {
+    BeginPacket(NetworkMessageType::PG_READY_FOR_QUERY).AppendRawValue(txn_status).EndPacket();
+  }
+
+  /**
+   * A helper function to write a single error message without having to make a vector every time.
+   * @param type
+   * @param status
+   */
+  void WriteSingleErrorResponse(NetworkMessageType type, const std::string &status) {
+    std::vector<std::pair<NetworkMessageType, std::string>> buf;
+    buf.emplace_back(type, status);
+    WriteErrorResponse(buf);
+  }
+
+  /**
+   * Writes response to startup message
+   */
+  void WriteStartupResponse() {
+    BeginPacket(NetworkMessageType::PG_AUTHENTICATION_REQUEST).AppendValue<int32_t>(0).EndPacket();
+
+    for (auto &entry : PG_PARAMETER_STATUS_MAP)
+      BeginPacket(NetworkMessageType::PG_PARAMETER_STATUS)
+          .AppendString(entry.first)
+          .AppendString(entry.second)
+          .EndPacket();
+    WriteReadyForQuery(NetworkTransactionStateType::IDLE);
+  }
 
   /**
    * Writes a simple query
@@ -93,10 +153,12 @@ class PostgresPacketWriter : public PacketWriter {
     for (const auto &col : columns) {
       const auto col_type = col.GetType();
       // TODO(Matt): Figure out how to get table oid and column oids in the OutputSchema (Optimizer's job?)
-      AppendString(col.GetName())
+      const auto &name = col.GetExpr()->GetAlias().empty() ? col.GetName() : col.GetExpr()->GetAlias();
+      AppendString(name)
           .AppendValue<int32_t>(0)  // table oid (if it's a column from a table), 0 otherwise
           .AppendValue<int16_t>(0)  // column oid (if it's a column from a table), 0 otherwise
-          .AppendValue(static_cast<int32_t>(InternalValueTypeToPostgresValueType(col_type)));  // type oid
+          .AppendValue(
+              static_cast<int32_t>(PostgresProtocolUtil::InternalValueTypeToPostgresValueType(col_type)));  // type oid
       if (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY) {
         AppendValue<int16_t>(-1);  // variable length
       } else {
@@ -310,14 +372,14 @@ class PostgresPacketWriter : public PacketWriter {
     for (const auto &col : columns) {
       // Reinterpret to a base value type first and check if it's NULL
       const auto *const val = reinterpret_cast<const execution::sql::Val *const>(tuple + curr_offset);
+      const auto type_size = execution::sql::ValUtil::GetSqlSize(col.GetType());
 
       if (val->is_null_) {
         // write a -1 for the length of the column value and continue to the next value
         AppendValue<int32_t>(static_cast<int32_t>(-1));
+        curr_offset += type_size;
         continue;
       }
-
-      const auto type_size = execution::sql::ValUtil::GetSqlSize(col.GetType());
 
       // Write the attribute
       switch (col.GetType()) {
@@ -340,9 +402,13 @@ class PostgresPacketWriter : public PacketWriter {
           break;
         }
         case type::TypeId::DATE: {
-          auto *date_val = reinterpret_cast<const execution::sql::Date *const>(val);
-          // TODO(Matt): would we ever use the ymd_ format for the wire?
-          AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<uint32_t>(date_val->int_val_);
+          auto *date_val = reinterpret_cast<const execution::sql::DateVal *const>(val);
+          AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<uint32_t>(date_val->val_.ToNative());
+          break;
+        }
+        case type::TypeId::TIMESTAMP: {
+          auto *ts_val = reinterpret_cast<const execution::sql::TimestampVal *const>(val);
+          AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<uint64_t>(ts_val->val_.ToNative());
           break;
         }
         case type::TypeId::VARCHAR: {
@@ -376,6 +442,7 @@ class PostgresPacketWriter : public PacketWriter {
       if (val->is_null_) {
         // write a -1 for the length of the column value and continue to the next value
         AppendValue<int32_t>(static_cast<int32_t>(-1));
+        curr_offset += execution::sql::ValUtil::GetSqlSize(col.GetType());
         continue;
       }
 
@@ -392,7 +459,7 @@ class PostgresPacketWriter : public PacketWriter {
         }
         case type::TypeId::BOOLEAN: {
           auto *bool_val = reinterpret_cast<const execution::sql::BoolVal *const>(val);
-          string_value = std::to_string(static_cast<int8_t>(bool_val->val_));
+          string_value = (static_cast<bool>(bool_val->val_) ? POSTGRES_BOOLEAN_STR_TRUE : POSTGRES_BOOLEAN_STR_FALSE);
           break;
         }
         case type::TypeId::DECIMAL: {
@@ -401,9 +468,13 @@ class PostgresPacketWriter : public PacketWriter {
           break;
         }
         case type::TypeId::DATE: {
-          auto *date_val = reinterpret_cast<const execution::sql::Date *const>(val);
-          // TODO(Matt): would we ever use the ymd_ format for the wire?
-          string_value = std::to_string(date_val->int_val_);
+          auto *date_val = reinterpret_cast<const execution::sql::DateVal *const>(val);
+          string_value = date_val->val_.ToString();
+          break;
+        }
+        case type::TypeId::TIMESTAMP: {
+          auto *ts_val = reinterpret_cast<const execution::sql::TimestampVal *const>(val);
+          string_value = ts_val->val_.ToString();
           break;
         }
         case type::TypeId::VARCHAR: {

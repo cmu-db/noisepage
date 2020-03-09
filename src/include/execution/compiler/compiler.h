@@ -11,6 +11,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 
 namespace terrier::execution::compiler {
+
 /**
  * Compiler is the main class that performs compilation Compile().
  */
@@ -18,10 +19,11 @@ class Compiler {
  public:
   /**
    * Constructor
+   * @param query_id query identifier
    * @param codegen The code generator
    * @param plan The plan node to compile
    */
-  Compiler(CodeGen *codegen, const planner::AbstractPlanNode *plan);
+  Compiler(query_id_t query_id, CodeGen *codegen, const planner::AbstractPlanNode *plan);
 
   /**
    * Convert the plan to AST and type check it
@@ -45,6 +47,8 @@ class Compiler {
                    util::RegionVector<ast::Stmt *> &&stmts);
   // Generate main.
   ast::Decl *GenMainFunction();
+
+  query_id_t query_identifier_;
   CodeGen *codegen_;
   const planner::AbstractPlanNode *plan_;
   std::vector<std::unique_ptr<Pipeline>> pipelines_;

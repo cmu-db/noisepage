@@ -8,7 +8,7 @@
 
 namespace terrier::execution::compiler {
 UpdateTranslator::UpdateTranslator(const terrier::planner::UpdatePlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(codegen),
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::UPDATE),
       op_(op),
       updater_(codegen->NewIdentifier("updater")),
       update_pr_(codegen->NewIdentifier("update_pr")),
@@ -77,6 +77,12 @@ ast::Expr *UpdateTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_id
   return child_translator_->GetOutput(attr_idx);
 }
 
+ast::Expr *UpdateTranslator::GetTableColumn(const catalog::col_oid_t &col_oid) {
+  // TODO(Amadou): This relies on the fact that update plan nodes come after table or index scans.
+  // If that turns out to not be the case, then update plans should use DVEs instead of CVEs.
+  return child_translator_->GetTableColumn(col_oid);
+}
+
 void UpdateTranslator::SetOids(FunctionBuilder *builder) {
   // Declare: var col_oids: [num_cols]uint32
   ast::Expr *arr_type = codegen_->ArrayType(all_oids_.size(), ast::BuiltinType::Kind::Uint32);
@@ -111,7 +117,7 @@ void UpdateTranslator::FillPRFromChild(terrier::execution::compiler::FunctionBui
     auto translator = TranslatorFactory::CreateExpressionTranslator(clause.second.Get(), codegen_);
     auto clause_expr = translator->DeriveExpr(this);
     auto pr_set_call = codegen_->PRSet(codegen_->MakeExpr(update_pr_), table_col.Type(), table_col.Nullable(),
-                                       table_pm_[table_col_oid], clause_expr);
+                                       table_pm_[table_col_oid], clause_expr, true);
     builder->Append(codegen_->MakeStmt(pr_set_call));
   }
 }

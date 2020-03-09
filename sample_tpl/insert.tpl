@@ -10,13 +10,13 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   // Iterate through rows with colA between 495 and 505
   // Init index iterator
   var index : IndexIterator
-  @indexIteratorInitBind(&index, execCtx, "test_1", "index_1", col_oids)
+  @indexIteratorInitBind(&index, execCtx, 1, "test_1", "index_1", col_oids)
   // Set iteration bounds
   var lo_index_pr = @indexIteratorGetLoPR(&index)
   var hi_index_pr = @indexIteratorGetHiPR(&index)
   @prSetInt(lo_index_pr, 0, @intToSql(495)) // Set colA in lo
   @prSetInt(hi_index_pr, 0, @intToSql(505)) // Set colA in hi
-  for (@indexIteratorScanAscending(&index); @indexIteratorAdvance(&index);) {
+  for (@indexIteratorScanAscending(&index, 0, 0); @indexIteratorAdvance(&index);) {
     // Materialize the current match.
     var table_pr = @indexIteratorGetTablePR(&index)
     var colA = @prGetInt(table_pr, 0)

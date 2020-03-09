@@ -14,6 +14,7 @@ namespace terrier {
 TEST(WorkerPoolTests, BasicTest) {
   common::TaskQueue tasks;
   common::WorkerPool thread_pool(5, tasks);
+  thread_pool.Startup();
   std::atomic<int> counter(0);
 
   int var1 = 1;
@@ -61,6 +62,7 @@ TEST(WorkerPoolTests, BasicTest) {
 TEST(WorkerPoolTests, MoreTest) {
   common::TaskQueue tasks;
   common::WorkerPool thread_pool(5, tasks);
+  thread_pool.Startup();
   uint32_t iteration = 10;
   std::default_random_engine generator;
   std::uniform_int_distribution<uint32_t> num_thread{1, MultiThreadTestUtil::HardwareConcurrency()};

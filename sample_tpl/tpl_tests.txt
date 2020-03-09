@@ -24,7 +24,7 @@ param.tpl,false,10
 pointer.tpl,false,10
 point.tpl,false,-20
 short-circuit.tpl,false,1
-simple.tpl,false,44
+simple.tpl,false,1
 struct.tpl,false,10
 struct-debug.tpl,false,100000
 struct-field-use.tpl,false,30
@@ -34,10 +34,13 @@ struct-pointer.tpl,false,440
 test.tpl,false,356405
 while.tpl,false,10
 return-exp.tpl,false,2
+types/bools.tpl,false,6
 types/int_aggregators.tpl,false,0
 types/real_aggregators.tpl,false,0
 types/dates.tpl,false,0
+types/nulls.tpl,false,0
 types/strings.tpl,false,0
+types/timestamps.tpl,false,0
 #scope.tpl,false,3 <Add after merging Wan's scoping PR>
 #scope-2.tpl,false,42 <Add after merging Wan's scoping PR>
 
@@ -48,6 +51,8 @@ types/strings.tpl,false,0
 agg.tpl,true,10
 agg-vec.tpl,true,10
 agg-vec-filter.tpl,true,10
+static-agg.tpl,true,49995000
+distinct-agg.tpl,true,45
 delete.tpl,true,0
 insert.tpl,true,11
 update.tpl,true,11
@@ -58,8 +63,10 @@ scan-table.tpl,true,500
 scan-table-2.tpl,true,500
 scan-table-3.tpl,true,9950
 #scan-table-4.tpl,true,5 <Non deterministic>
+scan-alltypes.tpl,true,500
 scan-vpi-iter.tpl,true,500
 sort.tpl,true,2000
+sort-limit.tpl,true,100
 vec-filter.tpl,true,3000
 #output1.tpl,true,500 <Relies on output buffer>
 scan-index.tpl,true,1
