@@ -33,10 +33,8 @@ systemctl daemon-reload
 systemctl enable jenkins
 
 # setup the working directory for jenkins
-mkfs.ext4 /dev/sda4
-echo "$(blkid /dev/sda4|awk '{print $2}') /jenkins               ext4    errors=remount-ro 0       2" >> /etc/fstab
-mkdir /jenkins
-mount /jenkins
+/share/testbed/bin/linux-fixpart all
+/share/testbed/bin/linux-localfs -d /dev/sda4 -t ext4 /jenkins
 chown jenkins:jenkins /jenkins
 
 # create the ramdisk
