@@ -184,7 +184,7 @@ pipeline {
                     steps {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh'
-                        sh 'apt-get -y install ccache'
+                        sh 'sudo apt-get -y install ccache'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j$(nproc)'
                         sh 'cd build && make check-clang-tidy'
@@ -280,7 +280,7 @@ pipeline {
             steps {
                 sh 'echo $NODE_NAME'
                 sh 'echo y | sudo ./script/installation/packages.sh'
-                sh 'apt-get -y install ccache'
+                sh 'sudo apt-get -y install ccache'
                 sh 'mkdir build'
                 sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
                 // We want to use a ramdisk on Jenkins to avoid the overhead of disk writes.
