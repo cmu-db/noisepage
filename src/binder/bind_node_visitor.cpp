@@ -147,6 +147,8 @@ void BindNodeVisitor::Visit(parser::UpdateStatement *node, parser::ParseResult *
     auto is_cast_expression = update->GetUpdateValue()->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
     auto expected_ret_type = table_schema.GetColumn(update->GetColumnName()).Type();
     auto mismatched_type = expected_ret_type != update->GetUpdateValue()->GetReturnValueType();
+    // TODO(WAN): Unfortunately, arbitrary expressions can't be figured out yet and are hard to identify.
+    mismatched_type = mismatched_type && update->GetUpdateValue()->GetReturnValueType() != type::TypeId::INVALID;
 
     if (mismatched_type || is_cast_expression) {
       auto converted = BinderUtil::Convert(update->GetUpdateValue(), expected_ret_type);
