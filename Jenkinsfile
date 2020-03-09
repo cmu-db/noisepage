@@ -34,7 +34,6 @@ pipeline {
                     agent {
                         docker {
                             image 'ubuntu:bionic'
-                            args '--cap-add sys_ptrace'
                         }
                     }
                     steps {
@@ -58,7 +57,6 @@ pipeline {
                     agent {
                         docker {
                             image 'ubuntu:bionic'
-                            args '--cap-add sys_ptrace'
                         }
                     }
                     environment {
@@ -138,7 +136,7 @@ pipeline {
                     agent {
                         docker {
                             image 'ubuntu:bionic'
-                            args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
+                            args '-v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
                     environment {
