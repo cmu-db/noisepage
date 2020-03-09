@@ -133,27 +133,19 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateSingleLayer) {
   std::unique_ptr<OperatorNode> join_opnode = std::unique_ptr<OperatorNode>(test_opnode);
   auto join = std::unique_ptr<AbstractOptimizerNode>(join_opnode.release());
 
-  std::cout << "marker 2\n";
-
   // RecordOperatorNodeIntoGroup
   GroupExpression *join_gexpr;
   EXPECT_TRUE(context.RecordOperatorNodeIntoGroup(common::ManagedPointer(join.release()), &join_gexpr));
   EXPECT_TRUE(join_gexpr != nullptr);
 
-  std::cout << "marker 3\n";
-
   EXPECT_EQ(join_gexpr->Contents(), join->Contents());
   EXPECT_EQ(join_gexpr->GetChildGroupIDs().size(), 2);
   EXPECT_EQ(join_gexpr->GetChildGroupId(0), join_gexpr->GetChildGroupId(1));
 
-  std::cout << "4\n";
-
 auto child = join_gexpr->GetChildGroupId(0);
   auto group = context.GetMemo().GetGroupByID(child);
   EXPECT_EQ(group->GetLogicalExpressions().size(), 1);
-
-std::cout << "5\n";
-
+  
 auto child_gexpr = group->GetLogicalExpressions()[0];
   EXPECT_EQ(child_gexpr->Contents(), lg_copy->Contents());
   EXPECT_EQ(child_gexpr->Contents(), rg_copy->Contents());
