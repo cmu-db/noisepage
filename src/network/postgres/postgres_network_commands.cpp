@@ -27,7 +27,7 @@ Transition SimpleQueryCommand::Exec(common::ManagedPointer<ProtocolInterpreter> 
                                     common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                     common::ManagedPointer<ConnectionContext> connection) {
   const std::string query = in_.ReadString();
-  NETWORK_LOG_TRACE("Execute SimpleQuery: {0}", query.c_str());
+  NETWORK_LOG_INFO("Execute SimpleQuery: {0}", query.c_str());
 
   const auto parse_result = t_cop->ParseQuery(query, connection, out);
 
