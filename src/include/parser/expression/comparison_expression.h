@@ -76,7 +76,6 @@ class ComparisonExpression : public AbstractExpression {
       }
     }
 
-
     // -----------------------
     // | NULL REBINDING HACK |
     // -----------------------
