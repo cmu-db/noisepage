@@ -136,13 +136,25 @@ void BindNodeVisitor::Visit(parser::UpdateStatement *node, parser::ParseResult *
   BINDER_LOG_TRACE("Visiting UpdateStatement ...");
   context_ = new BinderContext(nullptr);
 
-  node->GetUpdateTable()->Accept(this, parse_result);
+  auto table_ref = node->GetUpdateTable();
+  table_ref->Accept(this, parse_result);
   if (node->GetUpdateCondition() != nullptr) node->GetUpdateCondition()->Accept(this, parse_result);
+
+  auto binder_table_data = context_->GetTableMapping(table_ref->GetTableName());
+  const auto &table_schema = std::get<2>(*binder_table_data);
+
   for (auto &update : node->GetUpdateClauses()) {
     auto is_cast_expression = update->GetUpdateValue()->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
-    if (is_cast_expression) {
-      auto converted = BinderUtil::Convert(update->GetUpdateValue(), update->GetUpdateValue()->GetReturnValueType());
-      TERRIER_ASSERT(converted != nullptr, "Conversion cannot be null!");
+    auto expected_ret_type = table_schema.GetColumn(update->GetColumnName()).Type();
+    auto mismatched_type = expected_ret_type != update->GetUpdateValue()->GetReturnValueType();
+    // TODO(WAN): Unfortunately, arbitrary expressions can't be figured out yet and are hard to identify.
+    mismatched_type = mismatched_type && update->GetUpdateValue()->GetReturnValueType() != type::TypeId::INVALID;
+
+    if (mismatched_type || is_cast_expression) {
+      auto converted = BinderUtil::Convert(update->GetUpdateValue(), expected_ret_type);
+      if (converted != nullptr) {
+        throw BINDER_EXCEPTION("Conversion cannot be NULL!");
+      }
       update->ResetValue(common::ManagedPointer<parser::AbstractExpression>(converted));
       parse_result->AddExpression(std::move(converted));
     }
@@ -442,7 +454,9 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
               parse_result->AddExpression(std::move(temp));
             } else {
               auto converted = BinderUtil::Convert(values[i], expected_ret_type);
-              TERRIER_ASSERT(converted != nullptr, "Conversion cannot be null!");
+              if (converted != nullptr) {
+                throw BINDER_EXCEPTION("Conversion cannot be NULL!");
+              }
               values[i] = common::ManagedPointer(converted);
               parse_result->AddExpression(std::move(converted));
             }
