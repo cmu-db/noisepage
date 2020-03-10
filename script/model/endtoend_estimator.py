@@ -10,7 +10,7 @@ import io_util
 import logging_util
 import global_model_util
 import training_util
-from type import Target, ConcurrentCountingMode
+from type import Target
 
 np.set_printoptions(precision=4)
 np.set_printoptions(edgeitems=10)
@@ -38,21 +38,22 @@ class EndtoendEstimator:
         data_list = global_model_util.get_grouped_opunit_data_with_prediction(self.input_path, self.mini_model_map,
                                                                               self.model_results_path)
         logging.info("Finish data loading")
-        global_model_data_list = global_model_util.construct_global_model_data(data_list, self.model_results_path,
-                                                                               ConcurrentCountingMode.ESTIMATED)
-        logging.info("Finish the mini model prediction and the GlobalImpactData construction")
+        resource_data_list, impact_data_list = global_model_util.construct_interval_based_global_model_data(
+            data_list, self.model_results_path)
+        logging.info("Finish constructing the global data")
 
-        return self._global_model_prediction(global_model_data_list)
+        return self._global_model_prediction(resource_data_list, impact_data_list)
 
-    def _global_model_prediction(self, global_model_data_list):
+    def _global_model_prediction(self, resource_data_list, impact_data_list):
         """Use the global models to predict
 
-        :param global_model_data_list: list of the GlobalImpactData
+        :param resource_data_list: list of GlobalResourceData
+        :param impact_data_list: list of GlobalImpactData
         """
         # First apply the global resource prediction model
         # Get the features and labels
-        x = np.array([d.global_resource_util_x for d in global_model_data_list])
-        y = np.array([d.global_resource_util_y for d in global_model_data_list])
+        x = np.array([d.x for d in resource_data_list])
+        y = np.array([d.y for d in resource_data_list])
 
         # Result files
         metrics_path = "{}/global_resource_model_metrics.csv".format(self.model_results_path)
@@ -66,8 +67,8 @@ class EndtoendEstimator:
         training_util.record_predictions((x, y, y_pred), prediction_path)
 
         # Put the prediction global resource util back to the GlobalImpactData
-        for i, data in enumerate(global_model_data_list):
-            data.global_resource_util_y_pred = y_pred[i]
+        for i, data in enumerate(resource_data_list):
+            data.y_pred = y_pred[i]
 
         # Then apply the global impact model
         x = []
@@ -76,11 +77,11 @@ class EndtoendEstimator:
         # resource util on the same core that the opunit group runs)
         # The output target is the ratio between the actual resource util (including the elapsed time) and the
         # normalized mini model prediction
-        for d in global_model_data_list:
+        for d in impact_data_list:
             mini_model_y_pred = d.target_grouped_op_unit_data.y_pred
             predicted_elapsed_us = mini_model_y_pred[data_info.target_csv_index[Target.ELAPSED_US]]
-            x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, d.global_resource_util_y_pred,
-                                     d.global_resource_util_same_core_x)))
+            x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, d.resource_data.y_pred,
+                                     d.resource_util_same_core_x)))
             # x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, d.global_resource_util_y_pred)))
             y.append(d.target_grouped_op_unit_data.y / (d.target_grouped_op_unit_data.y_pred + 1e-6))
 

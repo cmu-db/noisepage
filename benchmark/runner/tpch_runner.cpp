@@ -9,7 +9,8 @@ namespace terrier::runner {
 class TPCHRunner : public benchmark::Fixture {
  public:
   const int8_t total_num_threads_ = 4;                        // defines the number of terminals (workers threads)
-  const uint32_t num_precomputed_txns_per_worker_ = 10;  // Number of txns to run per terminal (worker thread)
+  const uint64_t execution_us_per_worker_ = 10000000;  // Time (us) to run per terminal (worker thread)
+  std::vector<uint64_t> avg_interval_us_ = {10, 20, 50, 100, 200, 500, 1000};
   const execution::vm::ExecutionMode mode_ = execution::vm::ExecutionMode::Interpret;
 
   std::unique_ptr<DBMain> db_main_;
@@ -59,16 +60,19 @@ BENCHMARK_DEFINE_F(TPCHRunner, Runner)(benchmark::State &state) {
                                                     tpch_table_root_, tpch_query_filenames_);
 
   for (auto num_threads = 1; num_threads <= total_num_threads_; num_threads += 2) {
-    std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
-    common::WorkerPool thread_pool{static_cast<uint32_t>(num_threads), {}};
-    thread_pool.Startup();
+    for (auto avg_interval_us: avg_interval_us_) {
+      std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
+      common::WorkerPool thread_pool{static_cast<uint32_t>(num_threads), {}};
+      thread_pool.Startup();
 
-    for (int8_t i = 0; i < num_threads; i++) {
-      thread_pool.SubmitTask([this, i] { tpch_workload_->Execute(i, num_precomputed_txns_per_worker_, mode_); });
+      for (int8_t i = 0; i < num_threads; i++) {
+        thread_pool.SubmitTask([this, i, avg_interval_us] { tpch_workload_->Execute(i, execution_us_per_worker_,
+            avg_interval_us, mode_); });
+      }
+
+      thread_pool.WaitUntilAllFinished();
+      thread_pool.Shutdown();
     }
-
-    thread_pool.WaitUntilAllFinished();
-    thread_pool.Shutdown();
   }
 
   // free the workload here so we don't need to use the loggers anymore
