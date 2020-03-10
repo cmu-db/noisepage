@@ -120,7 +120,7 @@ class OperatorNode : public AbstractOptimizerNode {
 
   /**
    * Add a operator expression as child
-   * @param child_op The operator expression to be added as child
+   * @param child The operator expression to be added as child
    */
   void PushChild(std::unique_ptr<AbstractOptimizerNode> child) override { children_.emplace_back(std::move(child)); }
 

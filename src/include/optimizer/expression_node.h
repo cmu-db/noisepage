@@ -1,9 +1,9 @@
 #pragma once
 
-#include <string>
-#include <vector>
-#include <utility>
 #include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "common/managed_pointer.h"
 #include "optimizer/abstract_optimizer_node.h"
@@ -19,9 +19,7 @@ class ExpressionNode : public AbstractOptimizerNode {
    * Constructor that wraps an ExpressionNode around a provided ExpressionNodeContents.
    * @param contents The contents to be wrapped
    */
-  explicit ExpressionNode(common::ManagedPointer<AbstractOptimizerNodeContents> contents) {
-    contents_ = contents;
-  }
+  explicit ExpressionNode(common::ManagedPointer<AbstractOptimizerNodeContents> contents) { contents_ = contents; }
 
   /**
    * Create an ExpressionNode
