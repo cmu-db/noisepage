@@ -74,7 +74,7 @@ class AbstractOptimizerNodeContents {
   virtual bool IsDefined() const { return contents_ != nullptr; }
 
   /**
-   * Re-interpret the node contents
+   * Re-interpret the node contents's internal contents field
    * @tparam T the type of the node contents to be re-interpreted as
    * @return pointer to the re-interpreted node contents, nullptr if the types mismatch
    */
@@ -89,6 +89,11 @@ class AbstractOptimizerNodeContents {
     return nullptr;
   }
 
+  /**
+   * Reinterpret the node contents itself (i.e. this object)
+   * @tparam T The type of the object to be reinterpreted as
+   * @return pointer to the reinterpreted object, nullptr if the types mismatch
+   */
   template <typename T>
   common::ManagedPointer<const T> AsThis() const {
     auto &n = *this;

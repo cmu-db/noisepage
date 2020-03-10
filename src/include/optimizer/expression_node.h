@@ -2,6 +2,8 @@
 
 #include <string>
 #include <vector>
+#include <utility>
+#include <memory>
 
 #include "common/managed_pointer.h"
 #include "optimizer/abstract_optimizer_node.h"
@@ -18,7 +20,6 @@ class ExpressionNode : public AbstractOptimizerNode {
    * @param contents The contents to be wrapped
    */
   explicit ExpressionNode(common::ManagedPointer<AbstractOptimizerNodeContents> contents) {
-    // TODO(esargent): bring over assert for contents being expression-based
     contents_ = contents;
   }
 
@@ -50,7 +51,7 @@ class ExpressionNode : public AbstractOptimizerNode {
   /**
    * @return The ExpressionNodeContents contained in this node.
    */
-  const common::ManagedPointer<AbstractOptimizerNodeContents> Contents() const override {
+  common::ManagedPointer<AbstractOptimizerNodeContents> Contents() const override {
     // TODO(esargent): bring over assert for contents being expression-based
     return contents_;
   }
@@ -59,7 +60,7 @@ class ExpressionNode : public AbstractOptimizerNode {
    * @return A string representation of this node's information (currently, all nodes
    * have the empty string as their info)
    */
-  const std::string GetInfo() const override {
+  std::string GetInfo() const override {
     // TODO(esargent): create proper info statement
     return "";
   }

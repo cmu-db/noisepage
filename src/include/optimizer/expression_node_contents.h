@@ -25,7 +25,7 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
    * Copy constructor
    * @param other The other node contents we're copying from
    */
-  explicit ExpressionNodeContents(const ExpressionNodeContents &other) : AbstractOptimizerNodeContents() {
+  ExpressionNodeContents(const ExpressionNodeContents &other) : AbstractOptimizerNodeContents(other) {
     expr_ = other.expr_;
   }
 
@@ -98,7 +98,7 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
    */
   bool operator==(const AbstractOptimizerNodeContents &r) override {
     if (r.GetExpType() != parser::ExpressionType::INVALID) {
-      const ExpressionNodeContents &contents = dynamic_cast<const ExpressionNodeContents &>(r);
+      const auto &contents = dynamic_cast<const ExpressionNodeContents &>(r);
       return (*this == contents);
     }
     return false;
@@ -120,10 +120,8 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
     // ExpressionNode class.
     if (IsDefined() && r.IsDefined()) {
       return false;
-    } else if (!IsDefined() && !r.IsDefined()) {
-      return true;
     }
-    return false;
+    return !IsDefined() && !r.IsDefined();
   }
 
   /**
@@ -141,7 +139,7 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
       std::vector<std::unique_ptr<parser::AbstractExpression>> children);
 
  private:
-  common::ManagedPointer<parser::AbstractExpression> expr_;
+  common::ManagedPointer<parser::AbstractExpression> expr_{};
 };
 
 }  // namespace terrier::optimizer

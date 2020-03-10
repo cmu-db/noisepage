@@ -40,7 +40,7 @@ class GroupExpression {
    * @param child_groups Vector of children groups
    */
   GroupExpression(Operator op, std::vector<group_id_t> &&child_groups) {
-    contents_ = common::ManagedPointer<AbstractOptimizerNodeContents>(new Operator(op));
+    contents_ = common::ManagedPointer<AbstractOptimizerNodeContents>(new Operator(std::move(op)));
     group_id_ = UNDEFINED_GROUP;
     child_groups_ = child_groups;
     stats_derived_ = false;
@@ -175,12 +175,12 @@ class GroupExpression {
   /**
    * Group's ID
    */
-  group_id_t group_id_;
+  group_id_t group_id_{};
 
   /**
    * Node contents (either expression- or operator-based)
    */
-  common::ManagedPointer<AbstractOptimizerNodeContents> contents_;
+  common::ManagedPointer<AbstractOptimizerNodeContents> contents_{};
 
   /**
    * Vector of child groups

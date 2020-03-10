@@ -71,8 +71,8 @@ class OperatorNode : public AbstractOptimizerNode {
       TERRIER_ASSERT(other_child->Contents()->GetOpType() != OpType::UNDEFINED,
                      "OperatorNode should have operator children");
 
-      OperatorNode *child_op = dynamic_cast<OperatorNode *>(child.get());
-      OperatorNode *other_child_op = dynamic_cast<OperatorNode *>(child.get());
+      auto *child_op = dynamic_cast<OperatorNode *>(child.get());
+      auto *other_child_op = dynamic_cast<OperatorNode *>(child.get());
 
       if (*child_op != *other_child_op) return false;
     }
@@ -96,7 +96,7 @@ class OperatorNode : public AbstractOptimizerNode {
   /**
    * @return vector of children
    */
-  const std::vector<common::ManagedPointer<AbstractOptimizerNode>> GetChildren() const override {
+  std::vector<common::ManagedPointer<AbstractOptimizerNode>> GetChildren() const override {
     std::vector<common::ManagedPointer<AbstractOptimizerNode>> result;
     result.reserve(children_.size());
     int count = 0;
@@ -116,7 +116,7 @@ class OperatorNode : public AbstractOptimizerNode {
   /**
    * @return info for current node
    */
-  const std::string GetInfo() const override { return (contents_.Get() != nullptr ? contents_->GetName() : "Empty"); }
+  std::string GetInfo() const override { return (contents_.Get() != nullptr ? contents_->GetName() : "Empty"); }
 
   /**
    * Add a operator expression as child

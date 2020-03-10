@@ -39,7 +39,7 @@ common::hash_t GroupExpression::Hash() const {
   if (contents_->GetOpType() == OpType::UNDEFINED) {
     hash = dynamic_cast<ExpressionNodeContents *>(contents_.Get())->Hash();
   } else {
-    Operator *op = dynamic_cast<Operator *>(contents_.Get());
+    auto *op = dynamic_cast<Operator *>(contents_.Get());
     hash = op->Hash();
   }
   for (group_id_t child_group : child_groups_) {

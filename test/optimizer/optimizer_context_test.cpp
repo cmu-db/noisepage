@@ -109,8 +109,6 @@ TEST_F(OptimizerContextTest, OptimizerContextTaskStackNullptrTest) {
   context.SetTaskPool(nullptr);
 }
 
-void breakpoint() {}
-
 // NOLINTNEXTLINE
 TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateSingleLayer) {
   auto context = OptimizerContext(nullptr);
@@ -130,7 +128,7 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateSingleLayer) {
   std::vector<std::unique_ptr<AbstractOptimizerNode>> jc;
   jc.emplace_back(std::move(left_get));
   jc.emplace_back(std::move(right_get));
-  OperatorNode *test_opnode = new OperatorNode(LogicalInnerJoin::Make(), std::move(jc));
+  auto *test_opnode = new OperatorNode(LogicalInnerJoin::Make(), std::move(jc));
 
   std::unique_ptr<OperatorNode> join_opnode = std::unique_ptr<OperatorNode>(test_opnode);
   auto join = std::unique_ptr<AbstractOptimizerNode>(join_opnode.release());

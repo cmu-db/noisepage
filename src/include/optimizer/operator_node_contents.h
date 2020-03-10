@@ -82,7 +82,7 @@ class BaseOperatorNodeContents : public AbstractOptimizerNodeContents {
    */
   bool operator==(const AbstractOptimizerNodeContents &r) override {
     if (r.GetOpType() != OpType::UNDEFINED) {
-      const BaseOperatorNodeContents &contents = dynamic_cast<const BaseOperatorNodeContents &>(r);
+      const auto &contents = dynamic_cast<const BaseOperatorNodeContents &>(r);
       return (*this == contents);
     }
     return false;
@@ -198,22 +198,22 @@ class Operator : public AbstractOptimizerNodeContents {
   /**
    * Calls corresponding visitor to this operator node
    */
-  void Accept(common::ManagedPointer<OperatorVisitor> v) const;
+  void Accept(common::ManagedPointer<OperatorVisitor> v) const override;
 
   /**
    * @return string name of this operator
    */
-  std::string GetName() const;
+  std::string GetName() const override;
 
   /**
    * @return type of this operator
    */
-  OpType GetOpType() const;
+  OpType GetOpType() const override;
 
   /**
    * @return ExpressionType for operator (Invalid expression type)
    */
-  parser::ExpressionType GetExpType() const;
+  parser::ExpressionType GetExpType() const override;
 
   /**
    * @return hashed value of this operator
@@ -237,17 +237,17 @@ class Operator : public AbstractOptimizerNodeContents {
   /**
    * @return true if the operator is defined, false otherwise
    */
-  bool IsDefined() const;
+  bool IsDefined() const override;
 
   /**
    * @return true if the operator is logical, false otherwise
    */
-  bool IsLogical() const;
+  bool IsLogical() const override;
 
   /**
    * @return true if the operator is physical, false otherwise
    */
-  bool IsPhysical() const;
+  bool IsPhysical() const override;
 };
 }  // namespace terrier::optimizer
 
