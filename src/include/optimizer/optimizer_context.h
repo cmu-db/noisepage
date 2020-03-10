@@ -137,7 +137,7 @@ class OptimizerContext {
    * detection. The root GroupExpression, however, is not automatically
    * inserted into Memo.
    *
-   * @param node OperatorNode to convert
+   * @param node AbstractOptimizerNode to convert
    * @returns GroupExpression representing OperatorNode
    */
   GroupExpression *MakeGroupExpression(common::ManagedPointer<AbstractOptimizerNode> node) {
@@ -170,7 +170,7 @@ class OptimizerContext {
    * A group contains all logical/physically equivalent OperatorNodes.
    * Function try to add an equivalent OperatorNode by creating a new group.
    *
-   * @param node OperatorNode to add
+   * @param node AbstractOptimizerNode to add
    * @param gexpr Existing GroupExpression or new GroupExpression
    * @returns Whether the OperatorNode has been added before
    */
@@ -184,7 +184,7 @@ class OptimizerContext {
    * This function is invoked by tasks which explore the plan search space
    * through rules (recording all "equivalent" expressions for cost/selection later).
    *
-   * @param node OperatorNode to record into the group
+   * @param node AbstractOptimizerNode to record into the group
    * @param gexpr Existing GroupExpression or new GroupExpression
    * @param target_group ID of the Group that the OperatorNode belongs to
    * @returns Whether the OperatorNode has been added before
@@ -204,7 +204,7 @@ class OptimizerContext {
    * This is used primarily for the rewrite stage of the Optimizer
    * (i.e predicate push-down, query unnesting)
    *
-   * @param node OperatorNode to store into the group
+   * @param node AbstractOptimizerNode to store into the group
    * @param target_group ID of the Group to replace
    */
   void ReplaceRewriteExpression(common::ManagedPointer<AbstractOptimizerNode> node, group_id_t target_group) {
@@ -218,9 +218,9 @@ class OptimizerContext {
   RuleSet rule_set_;
   common::ManagedPointer<AbstractCostModel> cost_model_;
   OptimizerTaskPool *task_pool_;
-  catalog::CatalogAccessor *accessor_;
-  StatsStorage *stats_storage_;
-  transaction::TransactionContext *txn_;
+  catalog::CatalogAccessor *accessor_{};
+  StatsStorage *stats_storage_{};
+  transaction::TransactionContext *txn_{};
   std::vector<OptimizationContext *> track_list_;
 };
 

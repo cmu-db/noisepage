@@ -25,7 +25,7 @@ class GroupExpression {
  public:
   /**
    * Constructor for GroupExpression
-   * @param op Operator
+   * @param contents optimizer node contents
    * @param child_groups Vector of children groups
    */
   GroupExpression(common::ManagedPointer<AbstractOptimizerNodeContents> contents,

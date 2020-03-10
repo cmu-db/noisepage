@@ -18,7 +18,7 @@ class OperatorNode : public AbstractOptimizerNode {
  public:
   /**
    * Create an OperatorNode
-   * @param op an operator to bind to this OperatorNode node
+   * @param contents an AbstractOperatorNodeContents to bind to this node
    * @param children children of this OperatorNode
    */
   explicit OperatorNode(common::ManagedPointer<AbstractOptimizerNodeContents> contents,

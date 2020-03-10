@@ -104,6 +104,9 @@ class AbstractOptimizerNodeContents {
   }
 
  protected:
+  /**
+   * Internal contents for object
+   */
   common::ManagedPointer<AbstractOptimizerNodeContents> contents_;
 };
 

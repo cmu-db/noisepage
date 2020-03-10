@@ -23,8 +23,8 @@ class ExpressionNode : public AbstractOptimizerNode {
 
   /**
    * Create an ExpressionNode
-   * @param op an operator to bind to this OperatorNode node
-   * @param children children of this OperatorNode
+   * @param contents the contents to bind to this expression node
+   * @param children children of this ExpressionNode
    */
   explicit ExpressionNode(common::ManagedPointer<AbstractOptimizerNodeContents> contents,
                           std::vector<std::unique_ptr<AbstractOptimizerNode>> &&children)
@@ -39,7 +39,7 @@ class ExpressionNode : public AbstractOptimizerNode {
   /**
    * @return This ExpressionNode's child nodes.
    */
-  const std::vector<common::ManagedPointer<AbstractOptimizerNode>> GetChildren() const override {
+  std::vector<common::ManagedPointer<AbstractOptimizerNode>> GetChildren() const override {
     std::vector<common::ManagedPointer<AbstractOptimizerNode>> result;
     result.reserve(children_.size());
     for (auto &i : children_) result.emplace_back(common::ManagedPointer(i->Copy().release()));
@@ -63,6 +63,9 @@ class ExpressionNode : public AbstractOptimizerNode {
     return "";
   }
 
+  /**
+   * @return a copy of this expression node (as an AbstractOptimizerNode ptr)
+   */
   std::unique_ptr<AbstractOptimizerNode> Copy() override {
     std::vector<std::unique_ptr<AbstractOptimizerNode>> child;
     for (const auto &op : children_) {
@@ -74,7 +77,14 @@ class ExpressionNode : public AbstractOptimizerNode {
   }
 
  private:
+  /**
+   * contents to bind to this node
+   */
   common::ManagedPointer<AbstractOptimizerNodeContents> contents_;
+
+  /**
+   * vector of child nodes
+   */
   std::vector<std::unique_ptr<AbstractOptimizerNode>> children_;
 };
 
