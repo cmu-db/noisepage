@@ -93,6 +93,8 @@ class TransactionManager {
   TransactionQueue completed_txns_;
   const common::ManagedPointer<storage::LogManager> log_manager_;
 
+  // TODO(Ling): two counters to fake the original gc behavior.
+  //  eventually we will removed them after completely integrate the deferred action framework
   std::atomic<int> num_unlinked_{0};
   std::atomic<int> num_deallocated_{0};
 

@@ -67,7 +67,9 @@ class DeferredActionManager {
     // TODO(John, Ling): this is now more conservative than it needs and can artificially delay garbage collection.
     //  We should be able to query the cached oldest transaction (should be cheap) in between each event
     //  and more aggressively clear the backlog abd the deferred event queue
-    //  the point of taking oldest txn affect gc test
+    //  the point of taking oldest txn affect gc test.
+    //  We could potentially more aggressively process the backlog and the deferred action queue
+    //  by taking timestamp after processing each event
     timestamp_manager_->CheckOutTimestamp();
     const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
     // Check out a timestamp from the transaction manager to determine the progress of

@@ -111,6 +111,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   LogCommit(txn, result, callback, callback_arg, oldest_active_txn);
 
   // We hand off txn to GC, however, it won't be GC'd until the LogManager marks it as serialized
+  // TODO(Ling): eventually we will removed the gc_enabled flag after completely integrate the deferred action framework
   if (gc_enabled_ && deferred_action_manager_ != DISABLED) {
     // common::SpinLatch::ScopedSpinLatch guard(&timestamp_manager_->curr_running_txns_latch_);
 
@@ -204,6 +205,7 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   LogAbort(txn);
 
   // We hand off txn to GC, however, it won't be GC'd until the LogManager marks it as serialized
+  // TODO(Ling): eventually we will removed the gc_enabled flag after completely integrate the deferred action framework
   if (gc_enabled_ && deferred_action_manager_ != DISABLED) {
     deferred_action_manager_->RegisterDeferredAction([=]() { CleanTransaction(txn); });
   }
