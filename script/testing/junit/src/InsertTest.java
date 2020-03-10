@@ -80,7 +80,7 @@ public class InsertTest extends TestUtility {
         stmt.execute(sql);
         getResults();
         rs.next();
-        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
+        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
         assertNoMoreRows(rs);
     }
 
@@ -94,7 +94,7 @@ public class InsertTest extends TestUtility {
         stmt.execute(sql);
         getResults();
         rs.next();
-        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
+        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
         assertNoMoreRows(rs);
     }
 
@@ -109,7 +109,7 @@ public class InsertTest extends TestUtility {
         stmt.execute(sql);
         getResults();
         rs.next();
-        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
+        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
         assertNoMoreRows(rs);
     }
 
@@ -125,9 +125,9 @@ public class InsertTest extends TestUtility {
         stmt.execute(sql);
         getResults();
         rs.next();
-        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
+        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
         rs.next();
-        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {11, 12, 13});
+        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {11, 12, 13});
         assertNoMoreRows(rs);
     }
 
@@ -143,9 +143,9 @@ public class InsertTest extends TestUtility {
         stmt.execute(sql);
         getResults();
         rs.next();
-        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 0, 0});
+        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 0, 0});
         rs.next();
-        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {11, 12, 0});
+        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {11, 12, 0});
         assertNoMoreRows(rs);
     }
 
@@ -262,7 +262,7 @@ public class InsertTest extends TestUtility {
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
         rs.next();
-        checkRow(rs, new String [] {"id", "val"}, new int [] {1, 123});
+        checkIntRow(rs, new String [] {"id", "val"}, new int [] {1, 123});
         assertNoMoreRows(rs);
 
         String drop_SQL = "DROP TABLE xxx";
@@ -290,7 +290,7 @@ public class InsertTest extends TestUtility {
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
         rs.next();
-        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {3, 2, 4});
+        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {3, 2, 4});
         assertNoMoreRows(rs);
 
         String drop_SQL = "DROP TABLE xxx";
@@ -318,7 +318,7 @@ public class InsertTest extends TestUtility {
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
         rs.next();
-        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {3, 2, 34});
+        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {3, 2, 34});
         assertNoMoreRows(rs);
 
         String drop_SQL = "DROP TABLE xxx";

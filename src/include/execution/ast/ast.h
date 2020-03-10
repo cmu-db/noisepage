@@ -1278,6 +1278,9 @@ enum class CastKind : uint8_t {
 
   // Conversion of a primitive timestamp valueinto a SQL timestamp
   TimestampToSqlTimestamp,
+
+  // Convert a SQL integer into a SQL real
+  SqlIntToSqlReal,
 };
 
 /**
