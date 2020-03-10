@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import os
 import copy
+import logging
 
 import data_info
 from io_util import write_csv_result
@@ -126,11 +127,11 @@ def _default_get_mini_runner_data(filename):
     # In the default case, the data does not need any pre-processing and the file name indicates the opunit
     df = pd.read_csv(filename)
     file_name = os.path.splitext(os.path.basename(filename))[0]
-    print(OpUnit[file_name])
 
     x = df.iloc[:, :-data_info.metrics_output_num].values
     y = df.iloc[:, -data_info.mini_model_target_num:].values
 
+    logging.info("Loaded file: {}".format(OpUnit[file_name]))
     return [OpUnitData(OpUnit[file_name], x, y)]
 
 

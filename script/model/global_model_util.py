@@ -8,6 +8,7 @@ import io_util
 import data_info
 import grouped_op_unit_data
 import global_model_data
+import global_model_config
 from type import Target, OpUnit, ConcurrentCountingMode
 
 
@@ -21,81 +22,87 @@ def get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_re
     """
     data_list = _get_data_list(input_path)
     _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path)
+    logging.info("Finished GroupedOpUnitData prediction with the mini models")
     return data_list
 
 
-def construct_global_model_data(data_list, model_results_path, concurrent_counting_mode):
-    """Construct the GlobalModelData used for the global model training
+def construct_interval_based_global_model_data(data_list, model_results_path):
+    """Construct the GlobalImpactData used for the global model training
 
     :param data_list: The list of GroupedOpUnitData objects
     :param model_results_path: directory path to log the result information
-    :param concurrent_counting_mode: how to count the concurrent running operations
-    :return: The list of the GlobalModelData objects
+    :return: The list of the GlobalImpactData objects
     """
     prediction_path = "{}/global_resource_data.csv".format(model_results_path)
     io_util.create_csv_file(prediction_path, ["Elapsed us", "# Concurrent OpUnit Groups"])
 
-    global_model_data_list = []
+    start_time_list = sorted([d.get_start_time(ConcurrentCountingMode.INTERVAL) for d in data_list])
+    rounded_start_time_list = [_round_to_second(start_time_list[0])]
+    # Map from interval start time to the data in this interval
+    interval_data_map = {rounded_start_time_list[0]: []}
+    # Get all the interval start times and initialize the map
+    for t in start_time_list:
+        rounded_time = _round_to_second(t)
+        if rounded_time > rounded_start_time_list[-1]:
+            rounded_start_time_list.append(rounded_time)
+            interval_data_map[rounded_time] = []
 
-    # Define a secondary_counting_mode corresponding to the concurrent_counting_mode to derive the concurrent operations
-    # in different scenarios
-    secondary_counting_mode = concurrent_counting_mode
-    if concurrent_counting_mode is ConcurrentCountingMode.INTERVAL:
-        secondary_counting_mode = ConcurrentCountingMode.ESTIMATED
+    for data in data_list:
+        # For each data, find the intervals that might overlap with it
+        interval_start_time = _round_to_second(data.get_start_time(ConcurrentCountingMode.EXACT) -
+                                               global_model_config.INTERVAL_SIZE + global_model_config.INTERVAL_SEGMENT)
+        while interval_start_time <= data.get_end_time(ConcurrentCountingMode.ESTIMATED):
+            if interval_start_time in interval_data_map:
+                interval_data_map[interval_start_time].append(data)
+            interval_start_time += global_model_config.INTERVAL_SEGMENT
 
-    start_time_idx = [i[0] for i in sorted(enumerate(data_list), key=lambda a: a[1].get_start_time(
-        secondary_counting_mode))]
-    # The concurrent running opunit groups that that has already started
-    started_data_list = []
-    for i, idx in enumerate(start_time_idx):
-        data = data_list[idx]
+    # Get the global resource data
+    resource_data_map = {}
+    for start_time in rounded_start_time_list:
+        #print(start_time)
+        #print(interval_data_map[start_time])
+        resource_data_map[start_time] = _get_global_resource_data(start_time, interval_data_map[start_time],
+                                                                  prediction_path)
 
-        # First find the overlap between the current opunit group and the previously started groups
-        started_data_list.append(data)
-        concurrent_data_list = []
-        for started_data in started_data_list:
-            if started_data.get_end_time(secondary_counting_mode) >= data.get_start_time(concurrent_counting_mode):
-                # The entered_data overlaps with the current opunit group
-                concurrent_data_list.append(started_data)
-        started_data_list = concurrent_data_list.copy()
+    # Now construct the global impact data
+    impact_data_list = []
+    physical_core_num = hardware_info.physical_core_num
+    for data in data_list:
+        interval_start_time = _round_to_second(data.get_start_time(ConcurrentCountingMode.INTERVAL))
+        resource_data = resource_data_map[interval_start_time]
+        cpu_id = data.cpu_id
+        same_core_x = resource_data.x_list[cpu_id - physical_core_num if cpu_id > physical_core_num else cpu_id]
+        memory_idx = data_info.target_csv_index[Target.MEMORY_B]
+        # FIXME: fix the dummy memory value later
+        same_core_x[memory_idx] = 1
+        impact_data_list.append(global_model_data.GlobalImpactData(data, resource_data, same_core_x))
 
-        # Then find the overlap with the opunit groups started later
-        j = i + 1
-        while j < len(start_time_idx) and data_list[start_time_idx[j]].get_start_time(secondary_counting_mode) <= \
-                data.get_end_time(concurrent_counting_mode):
-            concurrent_data_list.append(data_list[start_time_idx[j]])
-            j += 1
-
-        x, same_core_x, y = _get_global_resource_util(data, concurrent_data_list, prediction_path,
-                                                      concurrent_counting_mode)
-        global_model_data_list.append(global_model_data.GlobalModelData(data, concurrent_data_list, x,
-                                                                        same_core_x, y))
-
-    return global_model_data_list
+    return resource_data_map.values(), impact_data_list
 
 
-def _get_global_resource_util(grouped_opunit, concurrent_data_list, prediction_path, concurrent_counting_mode):
-    """Get the input feature and the target output for the global resource utilization metrics during the time range
-    of a GroupedOpUnitData
+def _round_to_second(time):
+    """
+    :param time: in us
+    :return: time in us rounded to the earliest second
+    """
+    return time - time % 1000000
+
+
+def _get_global_resource_data(start_time, concurrent_data_list, log_path):
+    """Get the input feature and the target output for the global resource utilization metrics during an interval
 
     The calculation is adjusted by the overlapping ratio between the opunit groups and the time range.
 
-    :param grouped_opunit: the data to calculate the global resource utilization for
+    :param start_time: of the interval
     :param concurrent_data_list: the concurrent running opunit groups
-    :param prediction_path: the file path to log the prediction results
-    :param concurrent_counting_mode: how to count the concurrent running operations
+    :param log_path: the file path to log the data construction results
     :return: (the input feature, the resource utilization on the other logical core of the same physical core,
     the output resource targets)
     """
     # Define a secondary_counting_mode corresponding to the concurrent_counting_mode to derive the concurrent operations
     # in different scenarios
-    secondary_counting_mode = concurrent_counting_mode
-    if concurrent_counting_mode is ConcurrentCountingMode.INTERVAL:
-        secondary_counting_mode = ConcurrentCountingMode.ESTIMATED
-
-    start_time = grouped_opunit.get_start_time(concurrent_counting_mode)
-    end_time = grouped_opunit.get_end_time(concurrent_counting_mode)
-    elapsed_us = end_time - start_time + 1
+    end_time = start_time + global_model_config.INTERVAL_SIZE - 1
+    elapsed_us = global_model_config.INTERVAL_SIZE
 
     # The adjusted resource metrics per logical core.
     # TODO: Assuming each physical core has two logical cores via hyper threading for now. Can extend to other scenarios
@@ -106,8 +113,8 @@ def _get_global_resource_util(grouped_opunit, concurrent_data_list, prediction_p
     logging.debug("{} {}".format(start_time, end_time))
 
     for data in concurrent_data_list:
-        data_start_time = data.get_start_time(secondary_counting_mode)
-        data_end_time = data.get_end_time(secondary_counting_mode)
+        data_start_time = data.get_start_time(ConcurrentCountingMode.ESTIMATED)
+        data_end_time = data.get_end_time(ConcurrentCountingMode.ESTIMATED)
         ratio = _calculate_range_overlap(start_time, end_time, data_start_time, data_end_time) / (data_end_time -
                                                                                                   data_start_time + 1)
         logging.debug("{} {} {}".format(data_start_time, data_end_time, ratio))
@@ -125,15 +132,12 @@ def _get_global_resource_util(grouped_opunit, concurrent_data_list, prediction_p
 
     sum_adjusted_x = np.sum(adjusted_x_list, axis=0)
     std_adjusted_x = np.std(adjusted_x_list, axis=0)
-    cpu_id = grouped_opunit.cpu_id
-    same_core_adjusted_x = adjusted_x_list[cpu_id - physical_core_num if cpu_id > physical_core_num else cpu_id]
 
     memory_idx = data_info.target_csv_index[Target.MEMORY_B]
     # FIXME: Using dummy memory value for now. Eventually we need to transfer the memory estimation between pipelines
     adjusted_y[memory_idx] = 1
     sum_adjusted_x[memory_idx] = 1
     std_adjusted_x[memory_idx] = 1
-    same_core_adjusted_x[memory_idx] = 1
 
     ratio_error = abs(adjusted_y - sum_adjusted_x) / (adjusted_y + 1e-6)
 
@@ -141,12 +145,12 @@ def _get_global_resource_util(grouped_opunit, concurrent_data_list, prediction_p
     logging.debug(adjusted_y)
     logging.debug("")
 
-    io_util.write_csv_result(prediction_path, elapsed_us, [len(concurrent_data_list)] + list(sum_adjusted_x) + [""] +
+    io_util.write_csv_result(log_path, elapsed_us, [len(concurrent_data_list)] + list(sum_adjusted_x) + [""] +
                              list(adjusted_y) + [""] + list(ratio_error))
 
     adjusted_x = np.concatenate((sum_adjusted_x, std_adjusted_x))
 
-    return adjusted_x, same_core_adjusted_x, adjusted_y
+    return global_model_data.GlobalResourceData(start_time, adjusted_x_list, adjusted_x, adjusted_y)
 
 
 def _calculate_range_overlap(start_timel, end_timel, start_timer, end_timer):
@@ -163,8 +167,8 @@ def _get_data_list(input_path):
 
     # First get the data for all mini runners
     for filename in glob.glob(os.path.join(input_path, '*.csv')):
-        print(filename)
         data_list += grouped_op_unit_data.get_grouped_op_unit_data(filename)
+        logging.info("Loaded file: {}".format(filename))
         # break
 
     return data_list

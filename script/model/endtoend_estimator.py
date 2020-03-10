@@ -39,15 +39,15 @@ class EndtoendEstimator:
                                                                               self.model_results_path)
         logging.info("Finish data loading")
         global_model_data_list = global_model_util.construct_global_model_data(data_list, self.model_results_path,
-                                                                               ConcurrentCountingMode.INTERVAL)
-        logging.info("Finish the mini model prediction and the GlobalModelData construction")
+                                                                               ConcurrentCountingMode.ESTIMATED)
+        logging.info("Finish the mini model prediction and the GlobalImpactData construction")
 
         return self._global_model_prediction(global_model_data_list)
 
     def _global_model_prediction(self, global_model_data_list):
         """Use the global models to predict
 
-        :param global_model_data_list: list of the GlobalModelData
+        :param global_model_data_list: list of the GlobalImpactData
         """
         # First apply the global resource prediction model
         # Get the features and labels
@@ -65,7 +65,7 @@ class EndtoendEstimator:
         io_util.write_csv_result(metrics_path, "Ratio Error", ratio_error)
         training_util.record_predictions((x, y, y_pred), prediction_path)
 
-        # Put the prediction global resource util back to the GlobalModelData
+        # Put the prediction global resource util back to the GlobalImpactData
         for i, data in enumerate(global_model_data_list):
             data.global_resource_util_y_pred = y_pred[i]
 

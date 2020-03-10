@@ -4,6 +4,7 @@ import copy
 
 import query_info
 import data_info
+import global_model_config
 
 from type import Target, ConcurrentCountingMode
 
@@ -83,7 +84,7 @@ class GroupedOpUnitData:
         if concurrent_counting_mode is ConcurrentCountingMode.ESTIMATED:
             start_time = self.start_time
         if concurrent_counting_mode is ConcurrentCountingMode.INTERVAL:
-            start_time = self.start_time - 5000000
+            start_time = self.start_time + global_model_config.INTERVAL_START
         return start_time
 
     def get_end_time(self, concurrent_counting_mode):
@@ -98,5 +99,5 @@ class GroupedOpUnitData:
         if concurrent_counting_mode is ConcurrentCountingMode.ESTIMATED:
             end_time = self.start_time + self.y_pred[data_info.target_csv_index[Target.ELAPSED_US]] - 1
         if concurrent_counting_mode is ConcurrentCountingMode.INTERVAL:
-            end_time = self.start_time + 5000000
+            end_time = self.start_time + global_model_config.INTERVAL_START + global_model_config.INTERVAL_SIZE
         return end_time

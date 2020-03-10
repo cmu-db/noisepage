@@ -96,25 +96,27 @@ class GlobalTrainer:
 
         :return: the map of the trained models
         """
-
         data_list = global_model_util.get_grouped_opunit_data_with_prediction(self.input_path, self.mini_model_map,
                                                                               self.model_results_path)
-        global_model_data_list = global_model_util.construct_global_model_data(data_list, self.model_results_path,
-                                                                               ConcurrentCountingMode.EXACT)
-        return self._train_global_models(global_model_data_list)
 
-    def _train_global_models(self, global_model_data_list):
+        resource_data_list, impact_data_list = global_model_util.construct_interval_based_global_model_data(
+            data_list, self.model_results_path)
+
+        return self._train_global_models(resource_data_list, impact_data_list)
+
+    def _train_global_models(self, resource_data_list, impact_data_list):
         """Train the global models
 
-        :param global_model_data_list: list of the GlobalModelData
+        :param resource_data_list: list of GlobalResourceData
+        :param impact_data_list: list of GlobalImpactData
         :return: (global resource model, global impact model)
         """
         methods = self.ml_models
 
         # First train the resource prediction model
         # Get the features and labels
-        x = np.array([d.global_resource_util_x for d in global_model_data_list])
-        y = np.array([d.global_resource_util_y for d in global_model_data_list])
+        x = np.array([d.x for d in resource_data_list])
+        y = np.array([d.y for d in resource_data_list])
 
         # Training
         metrics_path = "{}/global_resource_model_metrics.csv".format(self.model_results_path)
@@ -122,10 +124,10 @@ class GlobalTrainer:
         global_resource_model = _global_model_training_process(x, y, methods, self.test_ratio, metrics_path,
                                                                prediction_path)
 
-        # Put the prediction global resource util back to the GlobalModelData
+        # Put the prediction global resource util back to the GlobalImpactData
         y_pred = global_resource_model.predict(x)
-        for i, data in enumerate(global_model_data_list):
-            data.global_resource_util_y_pred = y_pred[i]
+        for i, data in enumerate(resource_data_list):
+            data.y_pred = y_pred[i]
 
         # Then train the global impact model
         x = []
@@ -134,11 +136,11 @@ class GlobalTrainer:
         # resource util on the same core that the opunit group runs)
         # The output target is the ratio between the actual resource util (including the elapsed time) and the
         # normalized mini model prediction
-        for d in global_model_data_list:
+        for d in impact_data_list:
             mini_model_y_pred = d.target_grouped_op_unit_data.y_pred
             predicted_elapsed_us = mini_model_y_pred[data_info.target_csv_index[Target.ELAPSED_US]]
-            x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, d.global_resource_util_y_pred,
-                                     d.global_resource_util_same_core_x)))
+            x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, d.resource_data.y_pred,
+                                     d.resource_util_same_core_x)))
             # x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, d.global_resource_util_y_pred)))
             y.append(d.target_grouped_op_unit_data.y / (d.target_grouped_op_unit_data.y_pred + 1e-6))
         methods = self.ml_models
@@ -173,8 +175,7 @@ if __name__ == '__main__':
 
     with open(args.mini_model_file, 'rb') as pickle_file:
         model_map = pickle.load(pickle_file)
-    trainer = GlobalTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio,
-                            model_map)
+    trainer = GlobalTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio, model_map)
     resource_model, impact_model = trainer.train()
     with open(args.save_path + '/global_resource_model.pickle', 'wb') as file:
         pickle.dump(resource_model, file)
