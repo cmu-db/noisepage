@@ -814,6 +814,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
+  OP(IntegerToReal) : {
+    auto *sql_real = frame->LocalAt<sql::Real *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
+    OpIntegerToReal(sql_real, input);
+    DISPATCH_NEXT();
+  }
+
   OP(InitDate) : {
     auto *sql_date = frame->LocalAt<sql::DateVal *>(READ_LOCAL_ID());
     auto year = frame->LocalAt<int32_t>(READ_LOCAL_ID());
