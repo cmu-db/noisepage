@@ -21,7 +21,7 @@ class UDFContext {
    * @param args_type Vector of argument types
    */
   UDFContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type)
-      : func_name_(func_name), func_ret_type_(func_ret_type), args_type_(args_type), is_builtin_{false} {}
+      : func_name_(std::move(func_name)), func_ret_type_(func_ret_type), args_type_(args_type), is_builtin_{false} {}
   /**
    * Creates a UDFContext object for a builtin function
    * @param func_name Name of function
@@ -31,7 +31,7 @@ class UDFContext {
    */
   UDFContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
              ast::Builtin builtin)
-      : func_name_(func_name),
+      : func_name_(std::move(func_name)),
         func_ret_type_(func_ret_type),
         args_type_(args_type),
         is_builtin_{true},
