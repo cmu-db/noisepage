@@ -152,7 +152,9 @@ void BindNodeVisitor::Visit(parser::UpdateStatement *node, parser::ParseResult *
 
     if (mismatched_type || is_cast_expression) {
       auto converted = BinderUtil::Convert(update->GetUpdateValue(), expected_ret_type);
-      TERRIER_ASSERT(converted != nullptr, "Conversion cannot be null!");
+      if (converted != nullptr) {
+        throw BINDER_EXCEPTION("Conversion cannot be NULL!");
+      }
       update->ResetValue(common::ManagedPointer<parser::AbstractExpression>(converted));
       parse_result->AddExpression(std::move(converted));
     }
@@ -452,7 +454,9 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
               parse_result->AddExpression(std::move(temp));
             } else {
               auto converted = BinderUtil::Convert(values[i], expected_ret_type);
-              TERRIER_ASSERT(converted != nullptr, "Conversion cannot be null!");
+              if (converted != nullptr) {
+                throw BINDER_EXCEPTION("Conversion cannot be NULL!");
+              }
               values[i] = common::ManagedPointer(converted);
               parse_result->AddExpression(std::move(converted));
             }
