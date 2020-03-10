@@ -44,7 +44,7 @@ class BinderContext {
    * current context based on the upper context. These two fields are used in nested queries.
    * @param upper_context Pointer to the upper level binder context of the current binder context.
    */
-  explicit BinderContext(BinderContext *upper_context) : upper_context_(upper_context) {
+  explicit BinderContext(common::ManagedPointer<BinderContext> upper_context) : upper_context_(upper_context) {
     if (upper_context != nullptr) depth_ = upper_context->depth_ + 1;
   }
 
@@ -53,7 +53,7 @@ class BinderContext {
    * @param accessor Pointer to the catalog accessor object
    * @param table_ref Pointer to the table ref object
    */
-  void AddRegularTable(common::ManagedPointer<catalog::CatalogAccessor> accessor, parser::TableRef *table_ref);
+  void AddRegularTable(common::ManagedPointer<catalog::CatalogAccessor> accessor, common::ManagedPointer<parser::TableRef> table_ref);
 
   /**
    * Update the table alias map given a table reference (in the from clause)
@@ -107,7 +107,7 @@ class BinderContext {
    */
   static void SetColumnPosTuple(const std::string &col_name,
                                 std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple,
-                                parser::ColumnValueExpression *expr);
+                                common::ManagedPointer<parser::ColumnValueExpression> expr);
 
   /**
    * Construct the column position tuple given only the column value expression and the context.
@@ -115,7 +115,7 @@ class BinderContext {
    * @param expr Column value expression
    * @return Returns true if the column is found in the alias maps of the current context; false otherwise
    */
-  bool SetColumnPosTuple(parser::ColumnValueExpression *expr);
+  bool SetColumnPosTuple(common::ManagedPointer<parser::ColumnValueExpression> expr);
 
   /**
    * Check if the table alias can be found in the alias maps of the current context or the upper contexts.
@@ -125,8 +125,8 @@ class BinderContext {
    * @param tuple Tuple of database oid, table oid, and schema object
    * @return Return true if the alias is found, false otherwise
    */
-  bool GetRegularTableObj(const std::string &alias, parser::ColumnValueExpression *expr,
-                          std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> *tuple);
+  bool GetRegularTableObj(const std::string &alias, common::ManagedPointer<parser::ColumnValueExpression> expr,
+                          common::ManagedPointer<std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema>> tuple);
 
   /**
    * Check if the table, represented by the table alias, has the column indicated by the column name.
@@ -137,19 +137,19 @@ class BinderContext {
    * @return Return true if the column is found, false otherwise
    */
   bool CheckNestedTableColumn(const std::string &alias, const std::string &col_name,
-                              parser::ColumnValueExpression *expr);
+                              common::ManagedPointer<parser::ColumnValueExpression> expr);
 
   /**
    * Get the pointer to the upper context of the current context
    * @return Pointer to the upper binder context
    */
-  BinderContext *GetUpperContext() { return upper_context_; }
+  common::ManagedPointer<BinderContext> GetUpperContext() { return upper_context_; }
 
   /**
    * Set the upper context of the current context
    * @param upper_context Pointer to the upper binder context
    */
-  void SetUpperContext(BinderContext *upper_context) { upper_context_ = upper_context; }
+  void SetUpperContext(common::ManagedPointer<BinderContext> upper_context) { upper_context_ = upper_context; }
 
   /**
    * Set the depth of the current context
@@ -169,8 +169,8 @@ class BinderContext {
    * @param exprs Pointer to the list of column value expression.
    * The generated column value expressions will be placed in this list.
    */
-  void GenerateAllColumnExpressions(parser::ParseResult *parse_result,
-                                    std::vector<common::ManagedPointer<parser::AbstractExpression>> *exprs);
+  void GenerateAllColumnExpressions(common::ManagedPointer<parser::ParseResult> parse_result,
+                                    common::ManagedPointer<std::vector<common::ManagedPointer<parser::AbstractExpression>>> exprs);
 
   /**
    * Return the binder context's metadata for the provided @p table_name.
@@ -193,7 +193,7 @@ class BinderContext {
   /**
    * Upper binder context of the current binder context
    */
-  BinderContext *upper_context_;
+  common::ManagedPointer<BinderContext> upper_context_;
 
   /**
    * depth of the current binder context

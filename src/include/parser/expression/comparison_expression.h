@@ -53,8 +53,8 @@ class ComparisonExpression : public AbstractExpression {
     return expr;
   }
 
-  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override {
-    v->Visit(this, parse_result);
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v, common::ManagedPointer<binder::BinderSherpa> sherpa) override {
+    v->Visit(common::ManagedPointer(this), sherpa);
     // TODO(WAN): This is basically a hack to rebind NULLs with the right type and I'm not sure it should stay.
     // Generated NULL expressions are owned by the children vector, so the generated expressions do not need to be
     // added to the parse result. The old expression that is kicked out will die a unique_ptr death.

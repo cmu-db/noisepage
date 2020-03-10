@@ -17,7 +17,7 @@
 namespace terrier::binder {
 
 void BinderContext::AddRegularTable(const common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                                    parser::TableRef *table_ref) {
+                                    common::ManagedPointer<parser::TableRef> table_ref) {
   AddRegularTable(accessor, table_ref->GetDatabaseName(), table_ref->GetNamespaceName(), table_ref->GetTableName(),
                   table_ref->GetAlias());
 }
@@ -48,6 +48,7 @@ void BinderContext::AddRegularTable(const common::ManagedPointer<catalog::Catalo
     }
   }
 
+  // TODO(MATT): deep copy of schema, should not be done
   auto schema = accessor->GetSchema(table_id);
 
   if (nested_table_alias_map_.find(table_alias) != nested_table_alias_map_.end()) {
@@ -111,7 +112,7 @@ bool BinderContext::ColumnInSchema(const catalog::Schema &schema, const std::str
 
 void BinderContext::SetColumnPosTuple(const std::string &col_name,
                                       std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple,
-                                      parser::ColumnValueExpression *expr) {
+                                      common::ManagedPointer<parser::ColumnValueExpression> expr) {
   auto column_object = std::get<2>(tuple).GetColumn(col_name);
   expr->SetDatabaseOID(std::get<0>(tuple));
   expr->SetTableOID(std::get<1>(tuple));
@@ -120,12 +121,12 @@ void BinderContext::SetColumnPosTuple(const std::string &col_name,
   expr->SetReturnValueType(column_object.Type());
 }
 
-bool BinderContext::SetColumnPosTuple(parser::ColumnValueExpression *expr) {
+bool BinderContext::SetColumnPosTuple(common::ManagedPointer<parser::ColumnValueExpression> expr) {
   auto col_name = expr->GetColumnName();
   std::transform(col_name.begin(), col_name.end(), col_name.begin(), ::tolower);
 
   bool find_matched = false;
-  auto current_context = this;
+  auto current_context = common::ManagedPointer(this);
   while (current_context != nullptr) {
     // Check regular table
     for (auto &entry : current_context->regular_table_alias_map_) {
@@ -165,9 +166,9 @@ bool BinderContext::SetColumnPosTuple(parser::ColumnValueExpression *expr) {
   return false;
 }
 
-bool BinderContext::GetRegularTableObj(const std::string &alias, parser::ColumnValueExpression *expr,
-                                       std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> *tuple) {
-  auto current_context = this;
+bool BinderContext::GetRegularTableObj(const std::string &alias, common::ManagedPointer<parser::ColumnValueExpression> expr,
+                                       common::ManagedPointer<std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema>> tuple) {
+  auto current_context = common::ManagedPointer(this);
   while (current_context != nullptr) {
     auto iter = current_context->regular_table_alias_map_.find(alias);
     if (iter != current_context->regular_table_alias_map_.end()) {
@@ -181,8 +182,8 @@ bool BinderContext::GetRegularTableObj(const std::string &alias, parser::ColumnV
 }
 
 bool BinderContext::CheckNestedTableColumn(const std::string &alias, const std::string &col_name,
-                                           parser::ColumnValueExpression *expr) {
-  auto current_context = this;
+                                           common::ManagedPointer<parser::ColumnValueExpression> expr) {
+  auto current_context = common::ManagedPointer(this);
   while (current_context != nullptr) {
     auto iter = current_context->nested_table_alias_map_.find(alias);
     if (iter != current_context->nested_table_alias_map_.end()) {
@@ -202,7 +203,7 @@ bool BinderContext::CheckNestedTableColumn(const std::string &alias, const std::
 }
 
 void BinderContext::GenerateAllColumnExpressions(
-    parser::ParseResult *parse_result, std::vector<common::ManagedPointer<parser::AbstractExpression>> *exprs) {
+    common::ManagedPointer<parser::ParseResult> parse_result, common::ManagedPointer<std::vector<common::ManagedPointer<parser::AbstractExpression>>> exprs) {
   for (auto &entry : regular_table_alias_map_) {
     auto &schema = std::get<2>(entry.second);
     auto col_cnt = schema.GetColumns().size();

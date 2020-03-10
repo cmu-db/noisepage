@@ -5,9 +5,9 @@
 
 #include "benchmark_util/data_table_benchmark_util.h"
 #include "binder/bind_node_visitor.h"
+#include "binder/sql_node_visitor.h"
 #include "catalog/catalog.h"
 #include "catalog/postgres/pg_namespace.h"
-#include "common/sql_node_visitor.h"
 #include "loggers/optimizer_logger.h"
 #include "main/db_main.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
