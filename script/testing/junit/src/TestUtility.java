@@ -39,16 +39,31 @@ public class TestUtility {
     }
 
     /**
-     * Check a single row of queried values against expected values
+     * Check a single row of integer queried values against expected values
      *
      * @param rs              resultset, with cursor at the desired row
      * @param columns         column names
      * @param expected_values expected values of columns
      */
-    public void checkRow(ResultSet rs, String [] columns, int [] expected_values) throws SQLException {
+    public void checkIntRow(ResultSet rs, String [] columns, int [] expected_values) throws SQLException {
         assertEquals(columns.length, expected_values.length);
         for (int i=0; i<columns.length; i++) {
             assertEquals(expected_values[i], rs.getInt(columns[i]));
+        }
+    }
+
+    /**
+     * Check a single row of real queried values against expected values
+     *
+     * @param rs              resultset, with cursor at the desired row
+     * @param columns         column names
+     * @param expected_values expected values of columns
+     */
+    public void checkDoubleRow(ResultSet rs, String [] columns, double [] expected_values) throws SQLException {
+        assertEquals(columns.length, expected_values.length);
+        double delta = 0.0001;
+        for (int i=0; i<columns.length; i++) {
+            assertEquals(expected_values[i], rs.getDouble(columns[i]), delta);
         }
     }
 
