@@ -8,9 +8,10 @@ namespace terrier::optimizer {
 
 Operator::Operator() noexcept = default;
 
-Operator::Operator(std::unique_ptr<BaseOperatorNodeContents> contents) : contents_(std::move(contents)) {}
+Operator::Operator(std::unique_ptr<BaseOperatorNodeContents> contents)
+    : AbstractOptimizerNodeContents(common::ManagedPointer<AbstractOptimizerNodeContents>(contents.release())) {}
 
-Operator::Operator(Operator &&o) noexcept : contents_(std::move(o.contents_)) {}
+Operator::Operator(Operator &&o) noexcept : AbstractOptimizerNodeContents(o.contents_) {}
 
 void Operator::Accept(common::ManagedPointer<OperatorVisitor> v) const { contents_->Accept(v); }
 
@@ -47,7 +48,7 @@ bool Operator::IsPhysical() const {
 
 common::hash_t Operator::Hash() const {
   if (IsDefined()) {
-    return contents_->Hash();
+    return contents_.CastManagedPointerTo<BaseOperatorNodeContents>()->Hash();
   }
   return 0;
 }

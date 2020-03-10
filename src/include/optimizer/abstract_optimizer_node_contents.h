@@ -82,14 +82,23 @@ class AbstractOptimizerNodeContents {
   common::ManagedPointer<T> As() const {
     if (contents_) {
       auto &n = *contents_;
-      if (typeid(n) == typeid(T) || std::is_base_of<typeof(n), T>()) {
+      if (typeid(n) == typeid(T)) {
         return common::ManagedPointer<T>(dynamic_cast<T *>(contents_.Get()));
       }
     }
     return nullptr;
   }
 
- private:
+  template <typename T>
+  common::ManagedPointer<const T> AsThis() const {
+    auto &n = *this;
+    if (typeid(n) == typeid(T)) {
+      return common::ManagedPointer<const T>(dynamic_cast<const T *>(this));
+    }
+    return nullptr;
+  }
+
+ protected:
   common::ManagedPointer<AbstractOptimizerNodeContents> contents_;
 };
 

@@ -30,9 +30,7 @@ class GroupExpression {
    */
   GroupExpression(common::ManagedPointer<AbstractOptimizerNodeContents> contents,
                   std::vector<group_id_t> &&child_groups)
-      : group_id_(UNDEFINED_GROUP),
-        child_groups_(child_groups),
-        stats_derived_(false) {
+      : group_id_(UNDEFINED_GROUP), child_groups_(child_groups), stats_derived_(false) {
     contents_ = contents;
   }
 

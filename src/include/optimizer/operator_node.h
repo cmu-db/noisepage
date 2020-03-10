@@ -30,8 +30,8 @@ class OperatorNode : public AbstractOptimizerNode {
    * @param op an operator to bind to this OperatorNode
    * @param children Children of this OperatorNode
    */
-  explicit OperatorNode(Operator op, std::vector<std::unique_ptr<AbstractOptimizerNode>> &&children) :
-  contents_(common::ManagedPointer<AbstractOptimizerNodeContents>(new Operator(std::move(op)))) {
+  explicit OperatorNode(Operator op, std::vector<std::unique_ptr<AbstractOptimizerNode>> &&children)
+      : contents_(common::ManagedPointer<AbstractOptimizerNodeContents>(new Operator(std::move(op)))) {
     children_.resize(children.size());
     std::move(children.begin(), children.end(), children_.begin());
   }
@@ -57,7 +57,6 @@ class OperatorNode : public AbstractOptimizerNode {
    * @returns true if equal
    */
   bool operator==(const OperatorNode &other) const {
-
     if (contents_->GetOpType() != other.contents_->GetOpType()) return false;
     if (contents_->GetExpType() != other.contents_->GetExpType()) return false;
     if (children_.size() != other.children_.size()) return false;
@@ -98,7 +97,6 @@ class OperatorNode : public AbstractOptimizerNode {
    * @return vector of children
    */
   const std::vector<common::ManagedPointer<AbstractOptimizerNode>> GetChildren() const override {
-
     std::vector<common::ManagedPointer<AbstractOptimizerNode>> result;
     result.reserve(children_.size());
     int count = 0;
@@ -113,14 +111,12 @@ class OperatorNode : public AbstractOptimizerNode {
   /**
    * @return underlying operator
    */
-  const common::ManagedPointer<AbstractOptimizerNodeContents> Contents() const override { return contents_; }
+  common::ManagedPointer<AbstractOptimizerNodeContents> Contents() const override { return contents_; }
 
   /**
    * @return info for current node
    */
-  const std::string GetInfo() const override {
-    return (contents_.Get() != nullptr ? contents_->GetName() : "Empty");
-  }
+  const std::string GetInfo() const override { return (contents_.Get() != nullptr ? contents_->GetName() : "Empty"); }
 
   /**
    * Add a operator expression as child

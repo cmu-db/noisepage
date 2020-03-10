@@ -18,7 +18,7 @@ class OperatorVisitor;
 /**
  * Base class for operators
  */
-class BaseOperatorNodeContents : AbstractOptimizerNodeContents {
+class BaseOperatorNodeContents : public AbstractOptimizerNodeContents {
  public:
   /**
    * Default constructor
@@ -191,7 +191,9 @@ class Operator : public AbstractOptimizerNodeContents {
   /**
    * Copy constructor for Operator
    */
-  Operator(const Operator &op) : contents_(op.contents_->Copy()) {}
+  Operator(const Operator &op)
+      : AbstractOptimizerNodeContents(static_cast<common::ManagedPointer<AbstractOptimizerNodeContents>>(
+            op.contents_.CastManagedPointerTo<BaseOperatorNodeContents>()->Copy())) {}
 
   /**
    * Calls corresponding visitor to this operator node
@@ -246,28 +248,6 @@ class Operator : public AbstractOptimizerNodeContents {
    * @return true if the operator is physical, false otherwise
    */
   bool IsPhysical() const;
-
-  /**
-   * Re-interpret the operator
-   * @tparam T the type of the operator to be re-interpreted as
-   * @return pointer to the re-interpreted operator, nullptr if the types mismatch
-   */
-  template <typename T>
-  common::ManagedPointer<T> As() const {
-    if (contents_) {
-      auto &n = *contents_;
-      if (typeid(n) == typeid(T)) {
-        return common::ManagedPointer<T>(dynamic_cast<T *>(contents_->Copy()));
-      }
-    }
-    return nullptr;
-  }
-
- private:
-  /**
-   * Pointer to the base operator
-   */
-  std::unique_ptr<BaseOperatorNodeContents> contents_;
 };
 }  // namespace terrier::optimizer
 

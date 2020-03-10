@@ -34,7 +34,7 @@ class AbstractOptimizerNode {
   /**
    * @return A pointer to the AbstractOptimizerNodeContents that this node contains.
    */
-  virtual const common::ManagedPointer<AbstractOptimizerNodeContents> Contents() const = 0;
+  virtual common::ManagedPointer<AbstractOptimizerNodeContents> Contents() const = 0;
 
   /**
    * @return String info on the node.

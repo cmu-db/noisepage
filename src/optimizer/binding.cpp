@@ -38,7 +38,6 @@ bool GroupBindingIterator::HasNext() {
       current_item_index_++;
     }
   }
-
   return current_iterator_ != nullptr;
 }
 
@@ -97,7 +96,9 @@ GroupExprBindingIterator::GroupExprBindingIterator(const Memo &memo, GroupExpres
   }
 
   has_next_ = true;
-  current_binding_ = std::make_unique<OperatorNode>(Operator(*gexpr->Contents()->As<Operator>()), std::move(children));
+  // Operator op = Operator(*reinterpret_cast<Operator *>(gexpr->Contents().Get()));
+  Operator op = Operator(*(gexpr->Contents()->AsThis<Operator>()));
+  current_binding_ = std::make_unique<OperatorNode>(op, std::move(children));
 }
 
 bool GroupExprBindingIterator::HasNext() {

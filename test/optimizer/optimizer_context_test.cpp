@@ -109,6 +109,8 @@ TEST_F(OptimizerContextTest, OptimizerContextTaskStackNullptrTest) {
   context.SetTaskPool(nullptr);
 }
 
+void breakpoint() {}
+
 // NOLINTNEXTLINE
 TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateSingleLayer) {
   auto context = OptimizerContext(nullptr);
@@ -135,18 +137,18 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateSingleLayer) {
 
   // RecordOperatorNodeIntoGroup
   GroupExpression *join_gexpr;
-  EXPECT_TRUE(context.RecordOperatorNodeIntoGroup(common::ManagedPointer(join.release()), &join_gexpr));
+  EXPECT_TRUE(context.RecordOperatorNodeIntoGroup(common::ManagedPointer(join.get()), &join_gexpr));
   EXPECT_TRUE(join_gexpr != nullptr);
 
   EXPECT_EQ(join_gexpr->Contents(), join->Contents());
   EXPECT_EQ(join_gexpr->GetChildGroupIDs().size(), 2);
   EXPECT_EQ(join_gexpr->GetChildGroupId(0), join_gexpr->GetChildGroupId(1));
 
-auto child = join_gexpr->GetChildGroupId(0);
+  auto child = join_gexpr->GetChildGroupId(0);
   auto group = context.GetMemo().GetGroupByID(child);
   EXPECT_EQ(group->GetLogicalExpressions().size(), 1);
-  
-auto child_gexpr = group->GetLogicalExpressions()[0];
+
+  auto child_gexpr = group->GetLogicalExpressions()[0];
   EXPECT_EQ(child_gexpr->Contents(), lg_copy->Contents());
   EXPECT_EQ(child_gexpr->Contents(), rg_copy->Contents());
   EXPECT_EQ(child_gexpr->GetChildGroupIDs().size(), 0);
@@ -243,10 +245,10 @@ TEST_F(OptimizerContextTest, SimpleBindingTest) {
   std::vector<std::unique_ptr<AbstractOptimizerNode>> jc;
   jc.emplace_back(std::move(left_get));
   jc.emplace_back(std::move(right_get));
-  auto join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(jc))->Copy();
+  auto join = common::ManagedPointer<AbstractOptimizerNode>(new OperatorNode(LogicalInnerJoin::Make(), std::move(jc)));
 
   GroupExpression *gexpr = nullptr;
-  EXPECT_TRUE(context.RecordOperatorNodeIntoGroup(common::ManagedPointer(join), &gexpr));
+  EXPECT_TRUE(context.RecordOperatorNodeIntoGroup(join, &gexpr));
   EXPECT_TRUE(gexpr != nullptr);
 
   auto *pattern = new Pattern(OpType::LOGICALINNERJOIN);
@@ -254,10 +256,15 @@ TEST_F(OptimizerContextTest, SimpleBindingTest) {
   pattern->AddChild(new Pattern(OpType::LOGICALGET));
 
   auto *binding_iterator = new GroupExprBindingIterator(context.GetMemo(), gexpr, pattern);
+
   EXPECT_TRUE(binding_iterator->HasNext());
 
-  auto binding = dynamic_cast<OperatorNode *>(binding_iterator->Next().get());
-  EXPECT_EQ(*binding, *reinterpret_cast<OperatorNode *>(join.get()));
+  auto binding = dynamic_cast<OperatorNode *>(binding_iterator->Next().release());
+
+  auto &val1 = *binding;
+  auto &val2 = *dynamic_cast<OperatorNode *>(join.Get());
+  EXPECT_EQ(val1, val2);
+
   EXPECT_TRUE(!binding_iterator->HasNext());
 
   delete binding_iterator;
