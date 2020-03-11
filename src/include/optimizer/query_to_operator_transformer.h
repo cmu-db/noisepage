@@ -28,7 +28,7 @@ class OperatorNode;
 /**
  * Transform a query from parsed statement to operator expressions.
  */
- class QueryToOperatorTransformer : public binder::SqlNodeVisitor {
+class QueryToOperatorTransformer : public binder::SqlNodeVisitor {
  public:
   /**
    * Initialize the query to operator transformer object with a non-owning pointer to the catalog accessor
@@ -43,27 +43,46 @@ class OperatorNode;
    * @return Pointer to the logical operator AST
    */
   std::unique_ptr<OperatorNode> ConvertToOpExpression(common::ManagedPointer<parser::SQLStatement> op,
-                                                      parser::ParseResult *parse_result);
+                                                      common::ManagedPointer<parser::ParseResult> parse_result);
 
-  void Visit(common::ManagedPointer<parser::SelectStatement> op, common::ManagedPointer<binder::BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::TableRef> node, common::ManagedPointer<binder::BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::JoinDefinition> node, common::ManagedPointer<binder::BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::GroupByDescription> node, common::ManagedPointer<binder::BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::OrderByDescription> node, common::ManagedPointer<binder::BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::LimitDescription> node, common::ManagedPointer<binder::BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::CreateStatement> op, common::ManagedPointer<binder::BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::CreateFunctionStatement> op, common::ManagedPointer<binder::BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::InsertStatement> op, common::ManagedPointer<binder::BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::DeleteStatement> op, common::ManagedPointer<binder::BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::DropStatement> op, common::ManagedPointer<binder::BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::PrepareStatement> op, common::ManagedPointer<binder::BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::ExecuteStatement> op, common::ManagedPointer<binder::BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::TransactionStatement> op, common::ManagedPointer<binder::BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::UpdateStatement> op, common::ManagedPointer<binder::BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::CopyStatement> op, common::ManagedPointer<binder::BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::AnalyzeStatement> op, common::ManagedPointer<binder::BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::ComparisonExpression> expr, common::ManagedPointer<binder::BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::OperatorExpression> expr, common::ManagedPointer<binder::BinderSherpa> sherpa) override;
+  void Visit(common::ManagedPointer<parser::SelectStatement> op,
+             common::ManagedPointer<binder::BinderSherpa> sherpa) override;
+  void Visit(common::ManagedPointer<parser::TableRef> node,
+             common::ManagedPointer<binder::BinderSherpa> sherpa) override;
+  void Visit(common::ManagedPointer<parser::JoinDefinition> node,
+             common::ManagedPointer<binder::BinderSherpa> sherpa) override;
+  void Visit(common::ManagedPointer<parser::GroupByDescription> node,
+             common::ManagedPointer<binder::BinderSherpa> sherpa) override;
+  void Visit(common::ManagedPointer<parser::OrderByDescription> node,
+             common::ManagedPointer<binder::BinderSherpa> sherpa) override;
+  void Visit(common::ManagedPointer<parser::LimitDescription> node,
+             common::ManagedPointer<binder::BinderSherpa> sherpa) override;
+  void Visit(common::ManagedPointer<parser::CreateStatement> op,
+             common::ManagedPointer<binder::BinderSherpa> sherpa) override;
+  void Visit(common::ManagedPointer<parser::CreateFunctionStatement> op,
+             common::ManagedPointer<binder::BinderSherpa> sherpa) override;
+  void Visit(common::ManagedPointer<parser::InsertStatement> op,
+             common::ManagedPointer<binder::BinderSherpa> sherpa) override;
+  void Visit(common::ManagedPointer<parser::DeleteStatement> op,
+             common::ManagedPointer<binder::BinderSherpa> sherpa) override;
+  void Visit(common::ManagedPointer<parser::DropStatement> op,
+             common::ManagedPointer<binder::BinderSherpa> sherpa) override;
+  void Visit(common::ManagedPointer<parser::PrepareStatement> op,
+             common::ManagedPointer<binder::BinderSherpa> sherpa) override;
+  void Visit(common::ManagedPointer<parser::ExecuteStatement> op,
+             common::ManagedPointer<binder::BinderSherpa> sherpa) override;
+  void Visit(common::ManagedPointer<parser::TransactionStatement> op,
+             common::ManagedPointer<binder::BinderSherpa> sherpa) override;
+  void Visit(common::ManagedPointer<parser::UpdateStatement> op,
+             common::ManagedPointer<binder::BinderSherpa> sherpa) override;
+  void Visit(common::ManagedPointer<parser::CopyStatement> op,
+             common::ManagedPointer<binder::BinderSherpa> sherpa) override;
+  void Visit(common::ManagedPointer<parser::AnalyzeStatement> op,
+             common::ManagedPointer<binder::BinderSherpa> sherpa) override;
+  void Visit(common::ManagedPointer<parser::ComparisonExpression> expr,
+             common::ManagedPointer<binder::BinderSherpa> sherpa) override;
+  void Visit(common::ManagedPointer<parser::OperatorExpression> expr,
+             common::ManagedPointer<binder::BinderSherpa> sherpa) override;
 
  private:
   /**
@@ -77,7 +96,8 @@ class OperatorNode;
    * @param parse_result Result generated by the parser. A collection of statements and expressions in the query.
    * @param predicates The extracted list of predicates
    */
-  void CollectPredicates(common::ManagedPointer<parser::AbstractExpression> expr, parser::ParseResult *parse_result,
+  void CollectPredicates(common::ManagedPointer<parser::AbstractExpression> expr,
+                         common::ManagedPointer<binder::BinderSherpa> sherpa,
                          std::vector<AnnotatedExpression> *predicates);
 
   /**
@@ -88,8 +108,8 @@ class OperatorNode;
    * @return If the expression could be transformed into sub-query, return true,
    *  return false otherwise
    */
-  bool GenerateSubqueryTree(parser::AbstractExpression *expr, int child_id, parser::ParseResult *parse_result,
-                            bool single_join);
+  bool GenerateSubqueryTree(common::ManagedPointer<parser::AbstractExpression> expr, int child_id,
+                            common::ManagedPointer<binder::BinderSherpa> sherpa, bool single_join);
 
   /**
    * Decide if a conjunctive predicate is supported. We need to extract conjunction predicate first

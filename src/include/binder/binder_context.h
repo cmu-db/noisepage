@@ -53,7 +53,8 @@ class BinderContext {
    * @param accessor Pointer to the catalog accessor object
    * @param table_ref Pointer to the table ref object
    */
-  void AddRegularTable(common::ManagedPointer<catalog::CatalogAccessor> accessor, common::ManagedPointer<parser::TableRef> table_ref);
+  void AddRegularTable(common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                       common::ManagedPointer<parser::TableRef> table_ref);
 
   /**
    * Update the table alias map given a table reference (in the from clause)
@@ -125,8 +126,9 @@ class BinderContext {
    * @param tuple Tuple of database oid, table oid, and schema object
    * @return Return true if the alias is found, false otherwise
    */
-  bool GetRegularTableObj(const std::string &alias, common::ManagedPointer<parser::ColumnValueExpression> expr,
-                          common::ManagedPointer<std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema>> tuple);
+  bool GetRegularTableObj(
+      const std::string &alias, common::ManagedPointer<parser::ColumnValueExpression> expr,
+      common::ManagedPointer<std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema>> tuple);
 
   /**
    * Check if the table, represented by the table alias, has the column indicated by the column name.
@@ -169,8 +171,9 @@ class BinderContext {
    * @param exprs Pointer to the list of column value expression.
    * The generated column value expressions will be placed in this list.
    */
-  void GenerateAllColumnExpressions(common::ManagedPointer<parser::ParseResult> parse_result,
-                                    common::ManagedPointer<std::vector<common::ManagedPointer<parser::AbstractExpression>>> exprs);
+  void GenerateAllColumnExpressions(
+      common::ManagedPointer<parser::ParseResult> parse_result,
+      common::ManagedPointer<std::vector<common::ManagedPointer<parser::AbstractExpression>>> exprs);
 
   /**
    * Return the binder context's metadata for the provided @p table_name.

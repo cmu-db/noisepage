@@ -84,7 +84,10 @@ class UpdateStatement : public SQLStatement {
 
   ~UpdateStatement() override = default;
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v, common::ManagedPointer<binder::BinderSherpa> sherpa) override { v->Visit(common::ManagedPointer(this), sherpa); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
+              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
+    v->Visit(common::ManagedPointer(this), sherpa);
+  }
 
   /** @return update table target */
   common::ManagedPointer<TableRef> GetUpdateTable() { return common::ManagedPointer(table_); }

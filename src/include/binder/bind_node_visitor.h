@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "binder/binder_context.h"
+#include "binder/binder_sherpa.h"
 #include "binder/sql_node_visitor.h"
 #include "catalog/catalog_defs.h"
 #include "parser/postgresparser.h"
@@ -29,8 +30,6 @@ class CatalogAccessor;
 
 namespace binder {
 
-class BinderSherpa;
-
 /**
  * Interface to be notified of the composition of a bind node.
  */
@@ -41,7 +40,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
    * @param catalog_accessor Pointer to a catalog accessor
    * @param default_database_name Default database name
    */
-  BindNodeVisitor(common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor);
+  BindNodeVisitor(common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor, catalog::db_oid_t db_oid);
 
   /**
    * Perform binding on the passed in tree. Bind the relation names to oids
@@ -102,7 +101,20 @@ class BindNodeVisitor : public SqlNodeVisitor {
   /** Current context of the query or subquery */
   common::ManagedPointer<BinderContext> context_ = nullptr;
   /** Catalog accessor */
-  common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor_;
+  const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor_;
+  const catalog::db_oid_t db_oid_;
+
+  template <class NodeType>
+  void ValidateDatabaseName(const common::ManagedPointer<NodeType> node,
+                            const common::ManagedPointer<BinderSherpa> sherpa) {
+    if (!(node->GetDatabaseName().empty())) {
+      const auto db_oid = catalog_accessor_->GetDatabaseOid(node->GetDatabaseName());
+      if (db_oid == catalog::INVALID_DATABASE_OID)
+        throw BINDER_EXCEPTION("Database does not exist");
+      else if (db_oid != db_oid_)
+        throw BINDER_EXCEPTION("Not connected to specified database");
+    }
+  }
 };
 
 }  // namespace binder

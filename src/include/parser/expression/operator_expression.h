@@ -68,7 +68,10 @@ class OperatorExpression : public AbstractExpression {
     this->SetReturnValueType(type);
   }
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v, common::ManagedPointer<binder::BinderSherpa> sherpa) override { v->Visit(common::ManagedPointer(this), sherpa); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
+              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
+    v->Visit(common::ManagedPointer(this), sherpa);
+  }
 };
 
 DEFINE_JSON_DECLARATIONS(OperatorExpression);

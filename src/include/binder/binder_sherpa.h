@@ -3,7 +3,7 @@
 namespace terrier {
 
 namespace parser {
-  class ParseResult;
+class ParseResult;
 };
 
 namespace binder {
@@ -12,8 +12,13 @@ namespace binder {
  */
 class BinderSherpa {
  public:
-  common::ManagedPointer<parser::ParseResult> GetParseResult();
-};
-}
+  explicit BinderSherpa(const common::ManagedPointer<parser::ParseResult> parse_result) : parse_result_(parse_result) {}
 
-}
+  common::ManagedPointer<parser::ParseResult> GetParseResult() { return parse_result_; }
+
+ private:
+  const common::ManagedPointer<parser::ParseResult> parse_result_;
+};
+}  // namespace binder
+
+}  // namespace terrier

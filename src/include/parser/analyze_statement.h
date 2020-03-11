@@ -29,7 +29,10 @@ class AnalyzeStatement : public SQLStatement {
 
   ~AnalyzeStatement() override = default;
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v, common::ManagedPointer<binder::BinderSherpa> sherpa) override { v->Visit(common::ManagedPointer(this), sherpa); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
+              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
+    v->Visit(common::ManagedPointer(this), sherpa);
+  }
 
   /** @return analyze table */
   common::ManagedPointer<TableRef> GetAnalyzeTable() { return common::ManagedPointer(analyze_table_); }

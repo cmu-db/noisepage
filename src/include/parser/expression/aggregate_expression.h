@@ -90,7 +90,10 @@ class AggregateExpression : public AbstractExpression {
     }
   }
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v, common::ManagedPointer<binder::BinderSherpa> sherpa) override { v->Visit(common::ManagedPointer(this), sherpa); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
+              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
+    v->Visit(common::ManagedPointer(this), sherpa);
+  }
 
   /** @return expression serialized to json */
   nlohmann::json ToJson() const override {

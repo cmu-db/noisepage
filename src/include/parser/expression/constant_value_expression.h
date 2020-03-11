@@ -69,7 +69,10 @@ class ConstantValueExpression : public AbstractExpression {
   /** @return the constant value stored in this expression */
   type::TransientValue GetValue() const { return value_; }
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v, common::ManagedPointer<binder::BinderSherpa> sherpa) override { v->Visit(common::ManagedPointer(this), sherpa); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
+              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
+    v->Visit(common::ManagedPointer(this), sherpa);
+  }
 
   /**
    * @return expression serialized to json

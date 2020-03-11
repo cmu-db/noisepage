@@ -246,8 +246,8 @@ bool TrafficCop::BindStatement(const common::ManagedPointer<network::ConnectionC
                                const terrier::network::QueryType query_type) const {
   try {
     // TODO(Matt): I don't think the binder should need the database name. It's already bound in the ConnectionContext
-    binder::BindNodeVisitor visitor(connection_ctx->Accessor(), connection_ctx->GetDatabaseName());
-    visitor.BindNameToNode(parse_result->GetStatement(0), parse_result.Get());
+    binder::BindNodeVisitor visitor(connection_ctx->Accessor(), connection_ctx->GetDatabaseOid());
+    visitor.BindNameToNode(parse_result);
   } catch (...) {
     // Failed to bind
     // TODO(Matt): this is a hack to get IF EXISTS to work with our tests, we actually need better support in

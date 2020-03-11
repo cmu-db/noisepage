@@ -166,8 +166,9 @@ bool BinderContext::SetColumnPosTuple(common::ManagedPointer<parser::ColumnValue
   return false;
 }
 
-bool BinderContext::GetRegularTableObj(const std::string &alias, common::ManagedPointer<parser::ColumnValueExpression> expr,
-                                       common::ManagedPointer<std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema>> tuple) {
+bool BinderContext::GetRegularTableObj(
+    const std::string &alias, common::ManagedPointer<parser::ColumnValueExpression> expr,
+    common::ManagedPointer<std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema>> tuple) {
   auto current_context = common::ManagedPointer(this);
   while (current_context != nullptr) {
     auto iter = current_context->regular_table_alias_map_.find(alias);
@@ -203,7 +204,8 @@ bool BinderContext::CheckNestedTableColumn(const std::string &alias, const std::
 }
 
 void BinderContext::GenerateAllColumnExpressions(
-    common::ManagedPointer<parser::ParseResult> parse_result, common::ManagedPointer<std::vector<common::ManagedPointer<parser::AbstractExpression>>> exprs) {
+    common::ManagedPointer<parser::ParseResult> parse_result,
+    common::ManagedPointer<std::vector<common::ManagedPointer<parser::AbstractExpression>>> exprs) {
   for (auto &entry : regular_table_alias_map_) {
     auto &schema = std::get<2>(entry.second);
     auto col_cnt = schema.GetColumns().size();
