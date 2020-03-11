@@ -128,8 +128,8 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCop::OptimizeBoundQuery(
   TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                  "Not in a valid txn. This should have been caught before calling this function.");
   // Optimizer transforms annotated ParseResult to logical expressions (ephemeral Optimizer structure)
-  optimizer::QueryToOperatorTransformer transformer(connection_ctx->Accessor());
-  auto logical_exprs = transformer.ConvertToOpExpression(query->GetStatement(0), query.Get());
+  optimizer::QueryToOperatorTransformer transformer(connection_ctx->Accessor(), connection_ctx->GetDatabaseOid());
+  auto logical_exprs = transformer.ConvertToOpExpression(query->GetStatement(0), query);
 
   // TODO(Matt): is the cost model to use going to become an arg to this function eventually?
   optimizer::Optimizer optimizer(std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout_);
@@ -294,9 +294,8 @@ TrafficCopResult TrafficCop::BindQuery(const common::ManagedPointer<network::Con
   TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                  "Not in a valid txn. This should have been caught before calling this function.");
   try {
-    // TODO(Matt): I don't think the binder should need the database name. It's already bound in the ConnectionContext
     binder::BindNodeVisitor visitor(connection_ctx->Accessor(), connection_ctx->GetDatabaseOid());
-    visitor.BindNameToNode(parse_result->ParseResult());
+    visitor.BindNameToNode(statement->ParseResult());
   } catch (...) {
     // Failed to bind
     // TODO(Matt): this is a hack to get IF EXISTS to work with our tests, we actually need better support in
