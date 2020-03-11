@@ -377,7 +377,7 @@ bool LogicalGroupByToPhysicalHashGroupBy::Check(common::ManagedPointer<OperatorN
                                                 OptimizationContext *context) const {
   (void)context;
   const auto agg_op = plan->GetOp().As<LogicalAggregateAndGroupBy>();
-  return !agg_op->GetColumns().empty();
+  return !agg_op->GetColumns().empty() || !agg_op->GetHaving().empty();
 }
 
 void LogicalGroupByToPhysicalHashGroupBy::Transform(common::ManagedPointer<OperatorNode> input,
@@ -412,7 +412,7 @@ bool LogicalAggregateToPhysicalAggregate::Check(common::ManagedPointer<OperatorN
                                                 OptimizationContext *context) const {
   (void)context;
   const auto agg_op = plan->GetOp().As<LogicalAggregateAndGroupBy>();
-  return agg_op->GetColumns().empty();
+  return agg_op->GetColumns().empty() && agg_op->GetHaving().empty();
 }
 
 void LogicalAggregateToPhysicalAggregate::Transform(common::ManagedPointer<OperatorNode> input,
