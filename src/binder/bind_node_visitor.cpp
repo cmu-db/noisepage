@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "binder/binder_sherpa.h"
-#include "binder/binder_util.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "common/exception.h"
@@ -166,21 +165,23 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::UpdateStatement> node
   const auto &table_schema = std::get<2>(*binder_table_data);
 
   for (auto &update : node->GetUpdateClauses()) {
-    auto is_cast_expression = update->GetUpdateValue()->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
+    auto expr = update->GetUpdateValue();
     auto expected_ret_type = table_schema.GetColumn(update->GetColumnName()).Type();
-    auto mismatched_type = expected_ret_type != update->GetUpdateValue()->GetReturnValueType();
-    // TODO(WAN): Unfortunately, arbitrary expressions can't be figured out yet and are hard to identify.
-    mismatched_type = mismatched_type && update->GetUpdateValue()->GetReturnValueType() != type::TypeId::INVALID;
+    auto is_cast_expression = update->GetUpdateValue()->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
 
-    if (mismatched_type || is_cast_expression) {
-      auto converted = BinderUtil::Convert(update->GetUpdateValue(), expected_ret_type);
-      if (converted == nullptr) {
-        throw BINDER_EXCEPTION("Conversion cannot be NULL!");
+    if (is_cast_expression) {
+      auto child = expr->GetChild(0)->Copy();
+      if (expr->GetReturnValueType() != expected_ret_type) {
+        sherpa->ReportFailure("BindNodeVisitor tried to cast, but the cast result type does not match the schema.");
       }
-      update->ResetValue(common::ManagedPointer<parser::AbstractExpression>(converted));
-      sherpa->GetParseResult()->AddExpression(std::move(converted));
+      sherpa->SetDesiredType(common::ManagedPointer(child), expr->GetReturnValueType());
+      update->ResetValue(common::ManagedPointer(child));
+      sherpa->GetParseResult()->AddExpression(std::move(child));
+      expr = update->GetUpdateValue();
     }
-    update->GetUpdateValue()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
+
+    sherpa->SetDesiredType(expr, expected_ret_type);
+    expr->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
   }
 
   context_ = nullptr;
@@ -496,6 +497,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
           }
         }
 
+        // TODO(WAN): with the sherpa, probably some of the above code can be cleaned up.
+
         // Perform input type transformation validation on the schema-ordered values.
         for (size_t i = 0; i < cols.size(); i++) {
           auto ins_col = cols[i].first;
@@ -504,37 +507,21 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
           auto ret_type = ins_val->GetReturnValueType();
           auto expected_ret_type = ins_col.Type();
 
-          auto is_null = false;
-          if (ins_col.Nullable() && ins_val->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT) {
-            is_null = ins_val.CastManagedPointerTo<parser::ConstantValueExpression>()->GetValue().Null();
-          }
           auto is_cast_expression = ins_val->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
-          auto mismatched_type = !is_null && ret_type != expected_ret_type;
-
-          // NULL case handled below.
-          if (!is_null && (is_cast_expression || mismatched_type)) {
-            if (ins_val->GetExpressionType() == parser::ExpressionType::VALUE_DEFAULT) {
-              std::unique_ptr<parser::AbstractExpression> temp = ins_col.StoredExpression()->Copy();
-
-              values[i] = common::ManagedPointer(temp);
-              sherpa->GetParseResult()->AddExpression(std::move(temp));
-            } else {
-              auto converted = BinderUtil::Convert(values[i], expected_ret_type);
-              if (converted == nullptr) {
-                throw BINDER_EXCEPTION("Conversion cannot be NULL!");
-              }
-              values[i] = common::ManagedPointer(converted);
-              sherpa->GetParseResult()->AddExpression(std::move(converted));
+          if (is_cast_expression) {
+            if (ret_type != expected_ret_type) {
+              sherpa->ReportFailure(
+                  "BindNodeVisitor tried to cast, but the cast result type does not match the schema.");
             }
+            auto child = ins_val->GetChild(0)->Copy();
+            sherpa->SetDesiredType(common::ManagedPointer(child), ret_type);
+            sherpa->GetParseResult()->AddExpression(std::move(child));
+            ins_val = cols[i].second;
           }
 
-          // NULL came in as a T_Null by libpg_query, so no type information was associated with it. Fix in binder.
-          if (is_null) {
-            auto typed_null = type::TransientValueFactory::GetNull(expected_ret_type);
-            auto new_expr = std::make_unique<parser::ConstantValueExpression>(std::move(typed_null));
-            values[i] = common::ManagedPointer(new_expr).CastManagedPointerTo<parser::AbstractExpression>();
-            sherpa->GetParseResult()->AddExpression(std::move(new_expr));
-          }
+          sherpa->SetDesiredType(ins_val, expected_ret_type);
+          ins_val->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
+          values[i] = ins_val;
         }
       }
     }
