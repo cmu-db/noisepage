@@ -104,7 +104,7 @@ class MiniTrainer:
                                 transformers[-1]):
                             min_percentage_error = percentage_error[elapsed_us_index]
                             model_map[data.opunit] = regressor
-                            pred_results = (evaluate_x, evaluate_y, y_pred)
+                            pred_results = (evaluate_x, y_pred, evaluate_y)
 
                     # Dump the prediction results
                     transform = " "

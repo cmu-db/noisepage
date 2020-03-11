@@ -2,6 +2,8 @@ import logging
 import glob
 import os
 import numpy as np
+import tqdm
+import pickle
 
 import hardware_info
 import io_util
@@ -26,6 +28,28 @@ def get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_re
     return data_list
 
 
+def construct_global_model_data_with_cache(data_list, model_results_path, cache_path):
+    """Construct the GlobalImpactData used for the global model training
+
+    Read from the cache if exists, otherwise save the constructed data to the cache.
+
+    :param data_list: The list of GroupedOpUnitData objects
+    :param model_results_path: directory path to log the result information
+    :param cache_path: the path for the potential cache file.
+    :return: The list of the GlobalImpactData objects
+    """
+    cache_file = cache_path + '/global_model_data.pickle'
+    if os.path.exists(cache_file):
+        with open(cache_file, 'rb') as pickle_file:
+            resource_data_list, impact_data_list = pickle.load(pickle_file)
+    else:
+        resource_data_list, impact_data_list = construct_interval_based_global_model_data(data_list, model_results_path)
+        with open(cache_file, 'wb') as file:
+            pickle.dump((resource_data_list, impact_data_list), file)
+
+    return resource_data_list, impact_data_list
+
+
 def construct_interval_based_global_model_data(data_list, model_results_path):
     """Construct the GlobalImpactData used for the global model training
 
@@ -47,7 +71,7 @@ def construct_interval_based_global_model_data(data_list, model_results_path):
             rounded_start_time_list.append(rounded_time)
             interval_data_map[rounded_time] = []
 
-    for data in data_list:
+    for data in tqdm.tqdm(data_list, desc="Find Interval Data"):
         # For each data, find the intervals that might overlap with it
         interval_start_time = _round_to_second(data.get_start_time(ConcurrentCountingMode.EXACT) -
                                                global_model_config.INTERVAL_SIZE + global_model_config.INTERVAL_SEGMENT)
@@ -58,9 +82,7 @@ def construct_interval_based_global_model_data(data_list, model_results_path):
 
     # Get the global resource data
     resource_data_map = {}
-    for start_time in rounded_start_time_list:
-        #print(start_time)
-        #print(interval_data_map[start_time])
+    for start_time in tqdm.tqdm(rounded_start_time_list, desc="Construct GlobalResourceData"):
         resource_data_map[start_time] = _get_global_resource_data(start_time, interval_data_map[start_time],
                                                                   prediction_path)
 
@@ -77,7 +99,7 @@ def construct_interval_based_global_model_data(data_list, model_results_path):
         same_core_x[memory_idx] = 1
         impact_data_list.append(global_model_data.GlobalImpactData(data, resource_data, same_core_x))
 
-    return resource_data_map.values(), impact_data_list
+    return list(resource_data_map.values()), impact_data_list
 
 
 def _round_to_second(time):
@@ -189,9 +211,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
     prediction_cache = {}
 
     # First run a prediction on the global running data with the mini model results
-    for i, data in enumerate(data_list):
-        # if i == 10:
-        #    break
+    for i, data in enumerate(tqdm.tqdm(data_list, desc="Predict GroupedOpUnitData")):
         y = data.y
         logging.debug("{} pipeline elapsed time: {}".format(data.name, y[-1]))
         pipeline_y_pred = 0
@@ -203,11 +223,12 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
             key = (opunit, x.tobytes())
             if key not in prediction_cache:
                 y_pred = opunit_model.predict(x)
-                prediction_cache[key] = y_pred
                 # subtract scan from certain double-counted opunits
                 if opunit in data_info.scan_subtract_opunits:
                     scan_y_pred = mini_model_map[OpUnit.SCAN].predict(x)
                     y_pred -= scan_y_pred
+                y_pred = np.clip(y_pred, 0, None)
+                prediction_cache[key] = y_pred
             else:
                 y_pred = prediction_cache[key]
             logging.debug("Predicted {} elapsed time with feature {}: {}".format(opunit_feature[0].name,

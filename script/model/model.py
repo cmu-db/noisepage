@@ -65,7 +65,7 @@ class Model:
         if self._modeling_transformer is not None:
             y = self._modeling_transformer[0](x, y)
 
-        if self._log_transform == 1:
+        if self._log_transform:
             x = np.log(x + _LOGTRANS_EPS)
             y = np.log(y + _LOGTRANS_EPS)
 
@@ -79,7 +79,7 @@ class Model:
         original_x = x
 
         # transform the features
-        if self._log_transform == 1:
+        if self._log_transform:
             x = np.log(x + _LOGTRANS_EPS)
         if self._normalize:
             x = self._xscaler.transform(x)

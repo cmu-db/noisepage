@@ -13,7 +13,7 @@ import model
 import training_util
 import logging_util
 import global_model_util
-from type import Target, ConcurrentCountingMode
+from type import Target
 
 np.set_printoptions(precision=4)
 np.set_printoptions(edgeitems=10)
@@ -43,7 +43,7 @@ def _global_model_training_process(x, y, methods, test_ratio, metrics_path, pred
     for method in methods:
         # Train the model
         logging.info("Training the global model with {}".format(method))
-        regressor = model.Model(method, log_transform=False)
+        regressor = model.Model(method)
         regressor.train(x_train, y_train)
 
         # Evaluate on both the training and test set
@@ -67,7 +67,7 @@ def _global_model_training_process(x, y, methods, test_ratio, metrics_path, pred
             if i == 1 and percentage_error[elapsed_us_index] < min_percentage_error:
                 min_percentage_error = percentage_error[elapsed_us_index]
                 global_model = regressor
-                pred_results = (evaluate_x, evaluate_y, y_pred)
+                pred_results = (evaluate_x, y_pred, evaluate_y)
 
         io_util.write_csv_result(metrics_path, method, results)
 
@@ -99,8 +99,8 @@ class GlobalTrainer:
         data_list = global_model_util.get_grouped_opunit_data_with_prediction(self.input_path, self.mini_model_map,
                                                                               self.model_results_path)
 
-        resource_data_list, impact_data_list = global_model_util.construct_interval_based_global_model_data(
-            data_list, self.model_results_path)
+        resource_data_list, impact_data_list = global_model_util.construct_global_model_data_with_cache(
+            data_list, self.model_results_path, self.input_path)
 
         return self._train_global_models(resource_data_list, impact_data_list)
 
@@ -165,7 +165,7 @@ if __name__ == '__main__':
     aparser.add_argument('--save_path', default='trained_model', help='Path to save the trained models')
     aparser.add_argument('--mini_model_file', default='trained_model/mini_model_map.pickle',
                          help='File of the saved mini models')
-    aparser.add_argument('--ml_models', nargs='*', type=str, default=["lr", "rf", "gbm", "nn"],
+    aparser.add_argument('--ml_models', nargs='*', type=str, default=["lr"],
                          help='ML models for the mini trainer to evaluate')
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
     aparser.add_argument('--log', default='info', help='The logging level')

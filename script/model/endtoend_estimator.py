@@ -38,8 +38,8 @@ class EndtoendEstimator:
         data_list = global_model_util.get_grouped_opunit_data_with_prediction(self.input_path, self.mini_model_map,
                                                                               self.model_results_path)
         logging.info("Finish data loading")
-        resource_data_list, impact_data_list = global_model_util.construct_interval_based_global_model_data(
-            data_list, self.model_results_path)
+        resource_data_list, impact_data_list = global_model_util.construct_global_model_data_with_cache(
+            data_list, self.model_results_path, self.input_path)
         logging.info("Finish constructing the global data")
 
         return self._global_model_prediction(resource_data_list, impact_data_list)
@@ -64,7 +64,7 @@ class EndtoendEstimator:
         y_pred = self.global_resource_model.predict(x)
         ratio_error = np.average(np.abs(y - y_pred) / (y + 1e-6), axis=0)
         io_util.write_csv_result(metrics_path, "Ratio Error", ratio_error)
-        training_util.record_predictions((x, y, y_pred), prediction_path)
+        training_util.record_predictions((x, y_pred, y), prediction_path)
 
         # Put the prediction global resource util back to the GlobalImpactData
         for i, data in enumerate(resource_data_list):
@@ -96,7 +96,7 @@ class EndtoendEstimator:
         training_util.create_metrics_and_prediction_files(metrics_path, prediction_path)
         ratio_error = np.average(np.abs(y - y_pred) / (y + 1e-6), axis=0)
         io_util.write_csv_result(metrics_path, "Ratio Error", ratio_error)
-        training_util.record_predictions((x, y, y_pred), prediction_path)
+        training_util.record_predictions((x, y_pred, y), prediction_path)
 
 
 # ==============================================
