@@ -507,6 +507,14 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
           auto ret_type = ins_val->GetReturnValueType();
           auto expected_ret_type = ins_col.Type();
 
+          auto is_default_expression = ins_val->GetExpressionType() == parser::ExpressionType::VALUE_DEFAULT;
+          if (is_default_expression) {
+            auto stored_expr = ins_col.StoredExpression()->Copy();
+            ins_val = common::ManagedPointer(stored_expr);
+            sherpa->SetDesiredType(ins_val, ret_type);
+            sherpa->GetParseResult()->AddExpression(std::move(stored_expr));
+          }
+
           auto is_cast_expression = ins_val->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
           if (is_cast_expression) {
             if (ret_type != expected_ret_type) {
@@ -514,9 +522,9 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
                   "BindNodeVisitor tried to cast, but the cast result type does not match the schema.");
             }
             auto child = ins_val->GetChild(0)->Copy();
-            sherpa->SetDesiredType(common::ManagedPointer(child), ret_type);
+            ins_val = common::ManagedPointer(child);
+            sherpa->SetDesiredType(ins_val, ret_type);
             sherpa->GetParseResult()->AddExpression(std::move(child));
-            ins_val = cols[i].second;
           }
 
           sherpa->SetDesiredType(ins_val, expected_ret_type);
