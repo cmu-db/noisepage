@@ -130,11 +130,9 @@ public class SelectTest extends TestUtility {
         assertNoMoreRows(rs);
 
         /* Wrong count, wait for Having fix */
-        select_SQL = "SELECT COUNT(*) AS cnt FROM tbl HAVING COUNT() > 10;";
+        select_SQL = "SELECT COUNT(*) AS cnt FROM tbl HAVING COUNT(*) > 10;";
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
-        rs.next();
-        checkIntRow(rs, new String [] {"cnt"}, new int [] {2});
         assertNoMoreRows(rs);
 
         /* self name */
