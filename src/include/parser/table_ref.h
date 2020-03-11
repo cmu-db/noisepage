@@ -206,13 +206,13 @@ class TableRef {
   }
 
   /** @return table name */
-  std::string GetTableName() { return table_info_->GetTableName(); }
+  const std::string &GetTableName() { return table_info_->GetTableName(); }
 
   /** @return namespace name */
-  std::string GetNamespaceName() { return table_info_->GetNamespaceName(); }
+  const std::string &GetNamespaceName() { return table_info_->GetNamespaceName(); }
 
   /** @return database name */
-  std::string GetDatabaseName() { return table_info_->GetDatabaseName(); }
+  const std::string &GetDatabaseName() { return table_info_->GetDatabaseName(); }
 
   /** @return select statement */
   common::ManagedPointer<SelectStatement> GetSelect() { return common::ManagedPointer(select_); }

@@ -192,7 +192,9 @@ class TableRefStatement : public SQLStatement {
    * @param table_info table being referred to
    */
   TableRefStatement(const StatementType type, std::unique_ptr<TableInfo> table_info)
-      : SQLStatement(type), table_info_(std::move(table_info)) {}
+      : SQLStatement(type), table_info_(std::move(table_info)) {
+    if (!table_info_) table_info_ = std::make_unique<TableInfo>();
+  }
 
   ~TableRefStatement() override = default;
 

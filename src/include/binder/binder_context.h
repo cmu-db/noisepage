@@ -54,7 +54,7 @@ class BinderContext {
    * @param table_ref Pointer to the table ref object
    */
   void AddRegularTable(common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                       common::ManagedPointer<parser::TableRef> table_ref);
+                       common::ManagedPointer<parser::TableRef> table_ref, catalog::db_oid_t db_id);
 
   /**
    * Update the table alias map given a table reference (in the from clause)
@@ -64,7 +64,7 @@ class BinderContext {
    * @param table_name Name of the table
    * @param table_alias Alias of the table
    */
-  void AddRegularTable(common::ManagedPointer<catalog::CatalogAccessor> accessor, const std::string &db_name,
+  void AddRegularTable(common::ManagedPointer<catalog::CatalogAccessor> accessor, catalog::db_oid_t db_id,
                        const std::string &namespace_name, const std::string &table_name,
                        const std::string &table_alias);
 
