@@ -259,10 +259,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CreateStatement> node
     case parser::CreateStatement::CreateType::kTable:
       if (!(node->GetDatabaseName().empty())) {
         const auto db_oid = catalog_accessor_->GetDatabaseOid(node->GetDatabaseName());
-        if (db_oid == catalog::INVALID_DATABASE_OID)
-          throw BINDER_EXCEPTION("Database does not exist");
-        else if (db_oid != db_oid_)
-          throw BINDER_EXCEPTION("Not connected to specified database");
+        if (db_oid == catalog::INVALID_DATABASE_OID) throw BINDER_EXCEPTION("Database does not exist");
+        if (db_oid != db_oid_) throw BINDER_EXCEPTION("Not connected to specified database");
       }
 
       if (catalog_accessor_->GetTableOid(node->GetTableName()) != catalog::INVALID_TABLE_OID) {
@@ -318,10 +316,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CreateStatement> node
     case parser::CreateStatement::CreateType::kIndex:
       if (!(node->GetDatabaseName().empty())) {
         const auto db_oid = catalog_accessor_->GetDatabaseOid(node->GetDatabaseName());
-        if (db_oid == catalog::INVALID_DATABASE_OID)
-          throw BINDER_EXCEPTION("Database does not exist");
-        else if (db_oid != db_oid_)
-          throw BINDER_EXCEPTION("Not connected to specified database");
+        if (db_oid == catalog::INVALID_DATABASE_OID) throw BINDER_EXCEPTION("Database does not exist");
+        if (db_oid != db_oid_) throw BINDER_EXCEPTION("Not connected to specified database");
       }
       if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
         throw BINDER_EXCEPTION("Build index on non-existing table.");
@@ -347,10 +343,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CreateStatement> node
     case parser::CreateStatement::CreateType::kTrigger:
       if (!(node->GetDatabaseName().empty())) {
         const auto db_oid = catalog_accessor_->GetDatabaseOid(node->GetDatabaseName());
-        if (db_oid == catalog::INVALID_DATABASE_OID)
-          throw BINDER_EXCEPTION("Database does not exist");
-        else if (db_oid != db_oid_)
-          throw BINDER_EXCEPTION("Not connected to specified database");
+        if (db_oid == catalog::INVALID_DATABASE_OID) throw BINDER_EXCEPTION("Database does not exist");
+        if (db_oid != db_oid_) throw BINDER_EXCEPTION("Not connected to specified database");
       }
       context_->AddRegularTable(catalog_accessor_, db_oid_, node->GetNamespaceName(), node->GetTableName(),
                                 node->GetTableName());
@@ -367,10 +361,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CreateStatement> node
     case parser::CreateStatement::CreateType::kView:
       if (!(node->GetDatabaseName().empty())) {
         const auto db_oid = catalog_accessor_->GetDatabaseOid(node->GetDatabaseName());
-        if (db_oid == catalog::INVALID_DATABASE_OID)
-          throw BINDER_EXCEPTION("Database does not exist");
-        else if (db_oid != db_oid_)
-          throw BINDER_EXCEPTION("Not connected to specified database");
+        if (db_oid == catalog::INVALID_DATABASE_OID) throw BINDER_EXCEPTION("Database does not exist");
+        if (db_oid != db_oid_) throw BINDER_EXCEPTION("Not connected to specified database");
       }
       TERRIER_ASSERT(node->GetViewQuery() != nullptr, "View requires a query");
       node->GetViewQuery()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
@@ -575,10 +567,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::DropStatement> node,
     case parser::DropStatement::DropType::kTable:
       if (!(node->GetDatabaseName().empty())) {
         const auto db_oid = catalog_accessor_->GetDatabaseOid(node->GetDatabaseName());
-        if (db_oid == catalog::INVALID_DATABASE_OID)
-          throw BINDER_EXCEPTION("Database does not exist");
-        else if (db_oid != db_oid_)
-          throw BINDER_EXCEPTION("Not connected to specified database");
+        if (db_oid == catalog::INVALID_DATABASE_OID) throw BINDER_EXCEPTION("Database does not exist");
+        if (db_oid != db_oid_) throw BINDER_EXCEPTION("Not connected to specified database");
       }
       if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
         throw BINDER_EXCEPTION("Table does not exist");
@@ -587,10 +577,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::DropStatement> node,
     case parser::DropStatement::DropType::kIndex:
       if (!(node->GetDatabaseName().empty())) {
         const auto db_oid = catalog_accessor_->GetDatabaseOid(node->GetDatabaseName());
-        if (db_oid == catalog::INVALID_DATABASE_OID)
-          throw BINDER_EXCEPTION("Database does not exist");
-        else if (db_oid != db_oid_)
-          throw BINDER_EXCEPTION("Not connected to specified database");
+        if (db_oid == catalog::INVALID_DATABASE_OID) throw BINDER_EXCEPTION("Database does not exist");
+        if (db_oid != db_oid_) throw BINDER_EXCEPTION("Not connected to specified database");
       }
       if (catalog_accessor_->GetIndexOid(node->GetIndexName()) == catalog::INVALID_INDEX_OID) {
         throw BINDER_EXCEPTION("Index does not exist");

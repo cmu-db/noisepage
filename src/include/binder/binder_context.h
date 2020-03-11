@@ -52,6 +52,7 @@ class BinderContext {
    * Update the table alias map given a table reference (in the from clause)
    * @param accessor Pointer to the catalog accessor object
    * @param table_ref Pointer to the table ref object
+   * @param db_id oid of the database
    */
   void AddRegularTable(common::ManagedPointer<catalog::CatalogAccessor> accessor,
                        common::ManagedPointer<parser::TableRef> table_ref, catalog::db_oid_t db_id);
@@ -59,7 +60,7 @@ class BinderContext {
   /**
    * Update the table alias map given a table reference (in the from clause)
    * @param accessor Pointer to the catalog accessor object
-   * @param db_name Name of the database
+   * @param db_id oid of the database
    * @param namespace_name Name of the namespace
    * @param table_name Name of the table
    * @param table_alias Alias of the table

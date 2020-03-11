@@ -41,6 +41,7 @@ class TrafficCopUtil {
    * @param txn used by optimizer
    * @param accessor used by optimizer
    * @param query bound ParseResult
+   * @param db_oid database oid
    * @param stats_storage used by optimizer
    * @param optimizer_timeout used by optimizer
    * @return physical plan that can be executed

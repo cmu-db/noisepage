@@ -34,6 +34,7 @@ class QueryToOperatorTransformer : public binder::SqlNodeVisitor {
   /**
    * Initialize the query to operator transformer object with a non-owning pointer to the catalog accessor
    * @param catalog_accessor Pointer to a catalog accessor
+   * @param db_oid The database oid.
    */
   explicit QueryToOperatorTransformer(common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor,
                                       catalog::db_oid_t db_oid);

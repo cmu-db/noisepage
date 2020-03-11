@@ -1,8 +1,7 @@
 #pragma once
 
-#include <util/time_util.h>
-
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -12,6 +11,7 @@
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
 #include "type/transient_value_peeker.h"
+#include "util/time_util.h"
 
 namespace terrier::parser {
 /**
@@ -97,10 +97,8 @@ class ConstantValueExpression : public AbstractExpression {
             value_ = type::TransientValueFactory::GetTinyInt(intval);
           } else if (desired_type == type::TypeId::SMALLINT) {
             value_ = type::TransientValueFactory::GetSmallInt(intval);
-          }
-          // type::TypeId::INTEGER is fine
-          // TODO(WAN): how does BIGINT come in on libpg_query?
-          else if (desired_type == type::TypeId::BIGINT) {
+          } else if (desired_type == type::TypeId::BIGINT) {
+            // TODO(WAN): how does BIGINT come in on libpg_query?
             value_ = type::TransientValueFactory::GetBigInt(intval);
           } else if (desired_type == type::TypeId::DECIMAL) {
             value_ = type::TransientValueFactory::GetDecimal(intval);

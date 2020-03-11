@@ -20,10 +20,8 @@ void BinderContext::AddRegularTable(const common::ManagedPointer<catalog::Catalo
                                     common::ManagedPointer<parser::TableRef> table_ref, const catalog::db_oid_t db_id) {
   if (!(table_ref->GetDatabaseName().empty())) {
     const auto db_oid = accessor->GetDatabaseOid(table_ref->GetDatabaseName());
-    if (db_oid == catalog::INVALID_DATABASE_OID)
-      throw BINDER_EXCEPTION("Database does not exist");
-    else if (db_oid != db_id)
-      throw BINDER_EXCEPTION("Not connected to specified database");
+    if (db_oid == catalog::INVALID_DATABASE_OID) throw BINDER_EXCEPTION("Database does not exist");
+    if (db_oid != db_id) throw BINDER_EXCEPTION("Not connected to specified database");
   }
 
   AddRegularTable(accessor, db_id, table_ref->GetNamespaceName(), table_ref->GetTableName(), table_ref->GetAlias());

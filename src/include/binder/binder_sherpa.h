@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <unordered_map>
 
 #include "parser/expression/abstract_expression.h"
@@ -13,42 +14,47 @@ class AbstractExpression;
 
 namespace binder {
 /**
- * Sherps things.
+ * BinderSherpa tracks state that is communicated throughout the visitor pattern such as the parse result and also
+ * expression-specific metadata.
+ *
+ * N.B. This was originally going to be called BinderContext, but there's already a BinderContext that doesn't seem to
+ * have exactly the type of lifecycle that we wanted.
  */
 class BinderSherpa {
  public:
+  /**
+   * Create a new BinderSherpa.
+   * @param parse_result The parse result to be tracked.
+   */
   explicit BinderSherpa(const common::ManagedPointer<parser::ParseResult> parse_result) : parse_result_(parse_result) {}
 
+  /**
+   * @return The parse result that we're tracking.
+   */
   common::ManagedPointer<parser::ParseResult> GetParseResult() { return parse_result_; }
 
   /**
-   * Check the desired type of the child expression matches the parent's expectations.
-   *
-   * Throws a BINDER_EXCEPTION if the sheep misbehave.
-   *
-   * @param expr The expression to be checked. If no type constraint was imposed before, then the check will pass.
+   * @param expr The expression whose type constraints we want to look up.
+   * @return The previously recorded type constraints, or the expression's current return value type if none exist.
    */
-  void CheckDesiredType(const common::ManagedPointer<parser::AbstractExpression> expr) const {
-    const auto it = desired_expr_types_.find(reinterpret_cast<uintptr_t>(expr.Get()));
-    if (it != desired_expr_types_.end() && it->second != expr->GetReturnValueType()) {
-      // There was a constraint and the expression did not satisfy it. Blow up.
-      throw BINDER_EXCEPTION("BinderSherpa expected expr to have a different type.");
-    }
-  }
-
   type::TypeId GetDesiredType(const common::ManagedPointer<parser::AbstractExpression> expr) const {
     const auto it = desired_expr_types_.find(reinterpret_cast<uintptr_t>(expr.Get()));
     if (it != desired_expr_types_.end()) return it->second;
     return expr->GetReturnValueType();
   }
 
+  /**
+   * Set the desired type of expr. The sherpa does not do anything except take note of the request.
+   * @param expr The expression whose type we want to constrain.
+   * @param type The desired type.
+   */
   void SetDesiredType(const common::ManagedPointer<parser::AbstractExpression> expr, const type::TypeId type) {
     desired_expr_types_[reinterpret_cast<uintptr_t>(expr.Get())] = type;
   }
 
   /**
-   * Convenience method for the common case of wanting to make the left child and the right child have the same
-   * resulting type.
+   * Convenience function. Common case of wanting the left and right children to have compatible types, where one child
+   * currently has the correct type and the other child's type must be derived from the correct child.
    *
    * @param left left child of an expression
    * @param right right child of an expression
@@ -85,7 +91,25 @@ class BinderSherpa {
     }
   }
 
-  void ReportFailure(std::string message) { throw BINDER_EXCEPTION(message.c_str()); }
+  /**
+   * Convenience function. Check that the desired type of the child expression matches previously specified constraints.
+   * Throws a BINDER_EXCEPTION if a type constraint fails.
+   *
+   * @param expr The expression to be checked. If no type constraint was imposed before, then the check will pass.
+   */
+  void CheckDesiredType(const common::ManagedPointer<parser::AbstractExpression> expr) const {
+    const auto it = desired_expr_types_.find(reinterpret_cast<uintptr_t>(expr.Get()));
+    if (it != desired_expr_types_.end() && it->second != expr->GetReturnValueType()) {
+      // There was a constraint and the expression did not satisfy it. Blow up.
+      throw BINDER_EXCEPTION("BinderSherpa expected expr to have a different type.");
+    }
+  }
+
+  /**
+   * Convenience function. Used by the visitor sheep to report that an error has occurred, causing BINDER_EXCEPTION.
+   * @param message The error message.
+   */
+  void ReportFailure(const std::string &message) { throw BINDER_EXCEPTION(message.c_str()); }
 
  private:
   const common::ManagedPointer<parser::ParseResult> parse_result_;
