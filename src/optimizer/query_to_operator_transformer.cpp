@@ -566,9 +566,10 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CopyStatem
 
     auto target_table = op->GetCopyTable();
 
-    auto insert_op = std::make_unique<OperatorNode>(LogicalInsertSelect::Make(db_oid_, accessor_->GetDefaultNamespace(),
+    auto insert_op =
+        std::make_unique<OperatorNode>(LogicalInsertSelect::Make(db_oid_, accessor_->GetDefaultNamespace(),
                                                                  accessor_->GetTableOid(target_table->GetTableName())),
-        std::vector<std::unique_ptr<OperatorNode>>{});
+                                       std::vector<std::unique_ptr<OperatorNode>>{});
     insert_op->PushChild(std::move(get_op));
     output_expr_ = std::move(insert_op);
 

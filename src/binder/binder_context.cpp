@@ -32,7 +32,6 @@ void BinderContext::AddRegularTable(const common::ManagedPointer<catalog::Catalo
 void BinderContext::AddRegularTable(const common::ManagedPointer<catalog::CatalogAccessor> accessor,
                                     const catalog::db_oid_t db_id, const std::string &namespace_name,
                                     const std::string &table_name, const std::string &table_alias) {
-
   catalog::table_oid_t table_id;
   if (!namespace_name.empty()) {
     auto namespace_id = accessor->GetNamespaceOid(namespace_name);
