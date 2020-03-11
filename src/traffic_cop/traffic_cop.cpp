@@ -293,8 +293,9 @@ void TrafficCop::ExecuteStatement(const common::ManagedPointer<network::Connecti
   // Try to bind the parsed statement
   if (BindStatement(connection_ctx, out, parse_result, query_type)) {
     // Binding succeeded, optimize to generate a physical plan and then execute
-    auto physical_plan = trafficcop::TrafficCopUtil::Optimize(connection_ctx->Transaction(), connection_ctx->Accessor(),
-                                                              parse_result, stats_storage_, optimizer_timeout_);
+    auto physical_plan =
+        trafficcop::TrafficCopUtil::Optimize(connection_ctx->Transaction(), connection_ctx->Accessor(), parse_result,
+                                             connection_ctx->GetDatabaseOid(), stats_storage_, optimizer_timeout_);
 
     // This logic relies on ordering of values in the enum's definition and is documented there as well.
     if (query_type <= network::QueryType::QUERY_DELETE) {

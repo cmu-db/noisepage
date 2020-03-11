@@ -27,8 +27,8 @@
 namespace terrier::optimizer {
 
 QueryToOperatorTransformer::QueryToOperatorTransformer(
-    const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor)
-    : accessor_(catalog_accessor) {
+    const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor, const catalog::db_oid_t db_oid)
+    : accessor_(catalog_accessor), db_oid_(db_oid) {
   output_expr_ = nullptr;
 }
 
@@ -252,8 +252,8 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
 
     // TODO(Ling): how should we determine the value of `is_for_update` field of logicalGet constructor?
     output_expr_ = std::make_unique<OperatorNode>(
-        LogicalGet::Make(accessor_->GetDatabaseOid(node->GetDatabaseName()), accessor_->GetDefaultNamespace(),
-                         accessor_->GetTableOid(node->GetTableName()), {}, node->GetAlias(), false),
+        LogicalGet::Make(db_oid_, accessor_->GetDefaultNamespace(), accessor_->GetTableOid(node->GetTableName()), {},
+                         node->GetAlias(), false),
         std::vector<std::unique_ptr<OperatorNode>>{});
   }
 }
@@ -324,8 +324,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CreateStat
           const auto &table_schema = accessor_->GetSchema(tb_oid);
           const auto &table_col = table_schema.GetColumn(attr.GetName());
           auto unique_col_expr = std::make_unique<parser::ColumnValueExpression>(
-              op->GetTableName(), attr.GetName(), accessor_->GetDatabaseOid(op->GetDatabaseName()), tb_oid,
-              table_col.Oid(), table_col.Type());
+              op->GetTableName(), attr.GetName(), db_oid_, tb_oid, table_col.Oid(), table_col.Type());
           sherpa->GetParseResult()->AddExpression(std::move(unique_col_expr));
           auto new_col_expr = common::ManagedPointer(sherpa->GetParseResult()->GetExpressions().back());
           entries.push_back(new_col_expr);
@@ -343,9 +342,9 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CreateStat
       auto schema = accessor_->GetSchema(tb_oid);
       for (const auto &col : op->GetTriggerColumns()) trigger_columns.emplace_back(schema.GetColumn(col).Oid());
       create_expr = std::make_unique<OperatorNode>(
-          LogicalCreateTrigger::Make(accessor_->GetDatabaseOid(op->GetDatabaseName()), accessor_->GetDefaultNamespace(),
-                                     tb_oid, op->GetTriggerName(), op->GetTriggerFuncNames(), op->GetTriggerArgs(),
-                                     std::move(trigger_columns), op->GetTriggerWhen(), op->GetTriggerType()),
+          LogicalCreateTrigger::Make(db_oid_, accessor_->GetDefaultNamespace(), tb_oid, op->GetTriggerName(),
+                                     op->GetTriggerFuncNames(), op->GetTriggerArgs(), std::move(trigger_columns),
+                                     op->GetTriggerWhen(), op->GetTriggerType()),
           std::vector<std::unique_ptr<OperatorNode>>{});
       break;
     }
@@ -355,8 +354,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CreateStat
       break;
     case parser::CreateStatement::CreateType::kView:
       create_expr = std::make_unique<OperatorNode>(
-          LogicalCreateView::Make(accessor_->GetDatabaseOid(op->GetDatabaseName()), accessor_->GetDefaultNamespace(),
-                                  op->GetViewName(), op->GetViewQuery()),
+          LogicalCreateView::Make(db_oid_, accessor_->GetDefaultNamespace(), op->GetViewName(), op->GetViewQuery()),
           std::vector<std::unique_ptr<OperatorNode>>{});
       break;
   }
@@ -368,7 +366,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::InsertStat
   OPTIMIZER_LOG_DEBUG("Transforming InsertStatement to operators ...");
   auto target_table = op->GetInsertionTable();
   auto target_table_id = accessor_->GetTableOid(target_table->GetTableName());
-  auto target_db_id = accessor_->GetDatabaseOid(target_table->GetDatabaseName());
+  auto target_db_id = db_oid_;
   auto target_ns_id = accessor_->GetDefaultNamespace();
 
   if (op->GetInsertType() == parser::InsertType::SELECT) {
@@ -452,7 +450,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DeleteStat
                                        common::ManagedPointer<binder::BinderSherpa> sherpa) {
   OPTIMIZER_LOG_DEBUG("Transforming DeleteStatement to operators ...");
   auto target_table = op->GetDeletionTable();
-  auto target_db_id = accessor_->GetDatabaseOid(target_table->GetDatabaseName());
+  auto target_db_id = db_oid_;
   auto target_table_id = accessor_->GetTableOid(target_table->GetTableName());
   auto target_ns_id = accessor_->GetDefaultNamespace();
   auto target_table_alias = target_table->GetAlias();
@@ -485,9 +483,8 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DropStatem
   std::unique_ptr<OperatorNode> drop_expr;
   switch (drop_type) {
     case parser::DropStatement::DropType::kDatabase:
-      drop_expr =
-          std::make_unique<OperatorNode>(LogicalDropDatabase::Make(accessor_->GetDatabaseOid(op->GetDatabaseName())),
-                                         std::vector<std::unique_ptr<OperatorNode>>{});
+      drop_expr = std::make_unique<OperatorNode>(LogicalDropDatabase::Make(db_oid_),
+                                                 std::vector<std::unique_ptr<OperatorNode>>{});
       break;
     case parser::DropStatement::DropType::kTable:
       drop_expr = std::make_unique<OperatorNode>(LogicalDropTable::Make(accessor_->GetTableOid(op->GetTableName())),
@@ -527,7 +524,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::UpdateStat
                                        UNUSED_ATTRIBUTE common::ManagedPointer<binder::BinderSherpa> sherpa) {
   OPTIMIZER_LOG_DEBUG("Transforming UpdateStatement to operators ...");
   auto target_table = op->GetUpdateTable();
-  auto target_db_id = accessor_->GetDatabaseOid(target_table->GetDatabaseName());
+  auto target_db_id = db_oid_;
   auto target_table_id = accessor_->GetTableOid(target_table->GetTableName());
   auto target_ns_id = accessor_->GetDefaultNamespace();
   auto target_table_alias = target_table->GetAlias();
@@ -569,10 +566,8 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CopyStatem
 
     auto target_table = op->GetCopyTable();
 
-    auto insert_op = std::make_unique<OperatorNode>(
-        LogicalInsertSelect::Make(accessor_->GetDatabaseOid(target_table->GetDatabaseName()),
-                                  accessor_->GetDefaultNamespace(),
-                                  accessor_->GetTableOid(target_table->GetTableName())),
+    auto insert_op = std::make_unique<OperatorNode>(LogicalInsertSelect::Make(db_oid_, accessor_->GetDefaultNamespace(),
+                                                                 accessor_->GetTableOid(target_table->GetTableName())),
         std::vector<std::unique_ptr<OperatorNode>>{});
     insert_op->PushChild(std::move(get_op));
     output_expr_ = std::move(insert_op);

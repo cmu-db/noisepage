@@ -20,10 +20,10 @@ namespace terrier::trafficcop {
 std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(
     const common::ManagedPointer<transaction::TransactionContext> txn,
     const common::ManagedPointer<catalog::CatalogAccessor> accessor,
-    const common::ManagedPointer<parser::ParseResult> query,
+    const common::ManagedPointer<parser::ParseResult> query, const catalog::db_oid_t db_oid,
     const common::ManagedPointer<optimizer::StatsStorage> stats_storage, const uint64_t optimizer_timeout) {
   // Optimizer transforms annotated ParseResult to logical expressions (ephemeral Optimizer structure)
-  optimizer::QueryToOperatorTransformer transformer(accessor);
+  optimizer::QueryToOperatorTransformer transformer(accessor, db_oid);
   auto logical_exprs = transformer.ConvertToOpExpression(query->GetStatement(0), query);
 
   // TODO(Matt): is the cost model to use going to become an arg to this function eventually?

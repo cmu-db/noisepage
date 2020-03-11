@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "binder/sql_node_visitor.h"
+#include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 
 namespace terrier {
@@ -34,7 +35,8 @@ class QueryToOperatorTransformer : public binder::SqlNodeVisitor {
    * Initialize the query to operator transformer object with a non-owning pointer to the catalog accessor
    * @param catalog_accessor Pointer to a catalog accessor
    */
-  explicit QueryToOperatorTransformer(common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor);
+  explicit QueryToOperatorTransformer(common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor,
+                                      catalog::db_oid_t db_oid);
 
   /**
    * Traverse the query AST to generate AST of logical operators.
@@ -169,7 +171,8 @@ class QueryToOperatorTransformer : public binder::SqlNodeVisitor {
   std::unique_ptr<OperatorNode> output_expr_;
 
   /** The catalog accessor object */
-  common::ManagedPointer<catalog::CatalogAccessor> accessor_;
+  const common::ManagedPointer<catalog::CatalogAccessor> accessor_;
+  const catalog::db_oid_t db_oid_;
 
   /**
    * A set of predicates the current operator generated, we use them to generate filter operator
