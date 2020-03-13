@@ -35,14 +35,6 @@ public class BuiltinUDFTest extends TestUtility {
     }
 
     /**
-     * Get columns, for follow on value checking
-     */
-    private void getResults() throws SQLException {
-        Statement stmt = conn.createStatement();
-        rs = stmt.executeQuery(S_SQL);
-    }
-
-    /**
      * Setup for each test, execute before each test
      * reconnect and setup default table
      */
@@ -80,14 +72,16 @@ public class BuiltinUDFTest extends TestUtility {
         String select_SQL = "SELECT cos(theta) FROM tbl;";
         stmt = conn.createStatement();
         ResultSet rs = stmt.executeQuery(select_SQL);
-        rs.next();
+        boolean exists = rs.next();
+        assert(exists);
         checkRow(rs, new String [] {"cos(theta)"}, new double [] {1.0}, 0.0001);
         assertNoMoreRows(rs);
 
         select_SQL = "SELECT sin(theta) FROM tbl;";
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
-        rs.next();
+        exists = rs.next();
+        assert(exists);
         checkRow(rs, new String [] {"sin(theta)"}, new double [] {0.0}, 0.0001);
         assertNoMoreRows(rs);
     }
