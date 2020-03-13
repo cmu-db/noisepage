@@ -24,7 +24,7 @@ class RunJunit:
         self.db_server_process = None
 
         # db server location
-        self.db_server_host = "localhost"
+        self.db_server_host = "127.0.0.1"
         self.db_server_port = 15721
         return
 
