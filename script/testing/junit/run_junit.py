@@ -69,7 +69,7 @@ class RunJunit:
         """ Wait for the db_server server to come up.
         """
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # max wait of 10s in 0.1s increments
+        # max wait of 15s in 0.1s increments
         start_time = time.time()
         for i in range(150):
             try:
@@ -83,7 +83,7 @@ class RunJunit:
                 continue
         # self._stop_db_server()
         print("--- %s seconds ---" % (time.time() - start_time))
-        print('DBMS fails to start up in 150s')
+        print('DBMS fails to start up in 15s')
         return
 
     def _stop_db_server(self):
