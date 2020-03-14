@@ -61,8 +61,14 @@ public class InsertTest extends TestUtility {
      */
     @After
     public void teardown() throws SQLException {
-        Statement stmt = conn.createStatement();
-        stmt.execute(SQL_DROP_TABLE);
+        try {
+            Statement stmt = conn.createStatement();
+            stmt.execute(SQL_DROP_TABLE);
+        } catch (SQLException e) {
+            System.out.print("===========================");
+            e.printStackTrace();
+            System.out.print("===========================");
+        }
     }
 
     /* --------------------------------------------

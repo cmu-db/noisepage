@@ -93,7 +93,9 @@ class RunJunit:
         if self.db_server_process.returncode is not None:
             # Db_Server terminated already
             self.db_server_output_fd.close()
+            print ("============ db_error output  ===============")
             self._print_output(self.db_server_output_file)
+            print ("=============================================")
             msg = "Db_Server terminated with return code {}".format(
                 self.db_server_process.returncode)
             raise RuntimeError(msg)
@@ -162,6 +164,7 @@ if __name__ == "__main__":
         exit_code = junit.run()
     except:
         print ("Exception trying to run junit tests")
+        print ("================ Python Error Output ==================")
         traceback.print_exc(file=sys.stdout)
         exit_code = 1
 
