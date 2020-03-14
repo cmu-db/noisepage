@@ -65,9 +65,10 @@ public class InsertTest extends TestUtility {
             Statement stmt = conn.createStatement();
             stmt.execute(SQL_DROP_TABLE);
         } catch (SQLException e) {
-            System.out.print("===========================");
+            System.out.print("============ Java SQL Exception below ================");
             e.printStackTrace();
-            System.out.print("===========================");
+            System.out.print("======================================================");
+            throw new SQLException("Drop fail");
         }
     }
 
