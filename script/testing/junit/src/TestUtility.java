@@ -35,6 +35,7 @@ public class TestUtility {
         while(rs.next()) {
             extra_rows++;
         }
+        System.out.print(extra_rows);
         assertEquals(extra_rows, 0);
     }
 
