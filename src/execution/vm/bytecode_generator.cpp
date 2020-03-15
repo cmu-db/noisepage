@@ -247,6 +247,11 @@ void BytecodeGenerator::VisitImplicitCastExpr(ast::ImplicitCastExpr *node) {
       ExecutionResult()->SetDestination(dest);
       break;
     }
+    case ast::CastKind::SqlIntToSqlReal: {
+      Emitter()->Emit(Bytecode::IntegerToReal, dest, input);
+      ExecutionResult()->SetDestination(dest);
+      break;
+    }
     default: {
       // Implement me
       throw std::runtime_error("Implement this cast type");
