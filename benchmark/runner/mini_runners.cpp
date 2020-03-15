@@ -1077,7 +1077,8 @@ static void GenArithArguments(benchmark::internal::Benchmark *b) {
                     brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
                     brain::ExecutionOperatingUnitType::OP_DECIMAL_PLUS_OR_MINUS,
                     brain::ExecutionOperatingUnitType::OP_DECIMAL_MULTIPLY,
-                    brain::ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE};
+                    brain::ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE,
+                    brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE};
 
   auto counts = {10, 100, 10000, 1000000, 100000000};
   for (auto op : operators) {
