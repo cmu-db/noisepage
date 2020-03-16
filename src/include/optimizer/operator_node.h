@@ -76,7 +76,6 @@ class OperatorNode : public AbstractOptimizerNode {
 
       if (*child_op != *other_child_op) return false;
     }
-
     return true;
   }
 

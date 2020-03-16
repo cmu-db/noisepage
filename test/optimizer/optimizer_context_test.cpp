@@ -283,10 +283,10 @@ TEST_F(OptimizerContextTest, SingleWildcardTest) {
   std::vector<std::unique_ptr<AbstractOptimizerNode>> jc;
   jc.emplace_back(std::move(left_get));
   jc.emplace_back(std::move(right_get));
-  auto join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(jc))->Copy();
+  auto join = common::ManagedPointer<AbstractOptimizerNode>(new OperatorNode(LogicalInnerJoin::Make(), std::move(jc)));
 
   GroupExpression *gexpr = nullptr;
-  EXPECT_TRUE(context.RecordOperatorNodeIntoGroup(common::ManagedPointer(join), &gexpr));
+  EXPECT_TRUE(context.RecordOperatorNodeIntoGroup(join, &gexpr));
   EXPECT_TRUE(gexpr != nullptr);
 
   auto *pattern = new Pattern(OpType::LOGICALINNERJOIN);
@@ -297,7 +297,7 @@ TEST_F(OptimizerContextTest, SingleWildcardTest) {
   EXPECT_TRUE(binding_iterator->HasNext());
 
   auto binding = binding_iterator->Next();
-  EXPECT_EQ(binding->Contents(), join->Contents());
+  EXPECT_EQ(binding->Contents()->As<Operator>(), join->Contents()->As<Operator>());
   EXPECT_EQ(binding->GetChildren().size(), 2);
 
   auto left = binding->GetChildren()[0].CastManagedPointerTo<OperatorNode>();
