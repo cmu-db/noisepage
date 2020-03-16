@@ -78,12 +78,10 @@ class OperatingUnitRecorder : planner::PlanVisitor {
 
   /**
    * Compute key size from vector of expressions
-   * @param plan Plan
    * @param exprs Expressions
    * @returns key size
    */
-  size_t ComputeKeySize(const planner::AbstractPlanNode *plan,
-                        const std::vector<common::ManagedPointer<parser::AbstractExpression>> &exprs);
+  size_t ComputeKeySize(const std::vector<common::ManagedPointer<parser::AbstractExpression>> &exprs);
 
   /**
    * Compute key size from output schema
@@ -94,47 +92,42 @@ class OperatingUnitRecorder : planner::PlanVisitor {
 
   /**
    * Compute key size from output schema
-   * @param plan Plan
    * @param tbl_oid Table OID
    * @returns key size
    */
-  size_t ComputeKeySize(const planner::AbstractPlanNode *plan, catalog::table_oid_t tbl_oid);
+  size_t ComputeKeySize(catalog::table_oid_t tbl_oid);
 
   /**
    * Compute key size from vector of column oids
-   * @param plan Plan
    * @param tbl_oid Table OID
    * @param cols vector of column oids
    */
-  size_t ComputeKeySize(const planner::AbstractPlanNode *plan, catalog::table_oid_t tbl_oid,
-                        const std::vector<catalog::col_oid_t> &cols);
+  size_t ComputeKeySize(catalog::table_oid_t tbl_oid, const std::vector<catalog::col_oid_t> &cols);
 
   /**
    * Compute key size from vector of index oids
-   * @param plan Plan
    * @param idx_oid Index OID
    * @param cols index column oids
    * @returns key size
    */
-  size_t ComputeKeySize(const planner::AbstractPlanNode *plan, catalog::index_oid_t idx_oid,
-                        const std::vector<catalog::indexkeycol_oid_t> &cols);
+  size_t ComputeKeySize(catalog::index_oid_t idx_oid, const std::vector<catalog::indexkeycol_oid_t> &cols);
 
   /**
-   * Record features
+   * Record arithmetic features
    * @param plan Plan
    * @param scaling Scaling Factor
    */
-  void RecordFeatures(const planner::AbstractPlanNode *plan, size_t scaling);
+  void RecordArithmeticFeatures(const planner::AbstractPlanNode *plan, size_t scaling);
 
   /**
    * Current Translator Feature Type
    */
-  ExecutionOperatingUnitType plan_feature_;
+  ExecutionOperatingUnitType plan_feature_type_;
 
   /**
-   * Plan Features
+   * Arithmetic features for a given plan
    */
-  std::vector<std::pair<type::TypeId, ExecutionOperatingUnitType>> plan_features_;
+  std::vector<std::pair<type::TypeId, ExecutionOperatingUnitType>> arithmetic_feature_types_;
 
   /**
    * Structure for storing features of a pipeline

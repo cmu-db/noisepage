@@ -38,7 +38,6 @@
 namespace terrier::brain {
 
 size_t OperatingUnitRecorder::ComputeKeySize(
-    const planner::AbstractPlanNode *plan,
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &exprs) {
   size_t key_size = 0;
   for (auto &expr : exprs) {
@@ -61,7 +60,7 @@ size_t OperatingUnitRecorder::ComputeKeySizeOutputSchema(const planner::Abstract
   return key_size;
 }
 
-size_t OperatingUnitRecorder::ComputeKeySize(const planner::AbstractPlanNode *plan, catalog::table_oid_t tbl_oid) {
+size_t OperatingUnitRecorder::ComputeKeySize(catalog::table_oid_t tbl_oid) {
   size_t key_size = 0;
   auto &schema = accessor_->GetSchema(tbl_oid);
   for (auto &col : schema.GetColumns()) {
@@ -76,7 +75,7 @@ size_t OperatingUnitRecorder::ComputeKeySize(const planner::AbstractPlanNode *pl
   return key_size;
 }
 
-size_t OperatingUnitRecorder::ComputeKeySize(const planner::AbstractPlanNode *plan, catalog::table_oid_t tbl_oid,
+size_t OperatingUnitRecorder::ComputeKeySize(catalog::table_oid_t tbl_oid,
                                              const std::vector<catalog::col_oid_t> &cols) {
   size_t key_size = 0;
   auto &schema = accessor_->GetSchema(tbl_oid);
@@ -93,7 +92,7 @@ size_t OperatingUnitRecorder::ComputeKeySize(const planner::AbstractPlanNode *pl
   return key_size;
 }
 
-size_t OperatingUnitRecorder::ComputeKeySize(const planner::AbstractPlanNode *plan, catalog::index_oid_t idx_oid,
+size_t OperatingUnitRecorder::ComputeKeySize(catalog::index_oid_t idx_oid,
                                              const std::vector<catalog::indexkeycol_oid_t> &cols) {
   std::unordered_set<catalog::indexkeycol_oid_t> kcols;
   for (auto &col : cols) kcols.insert(col);
@@ -137,8 +136,8 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   pipeline_features_.emplace(type, ExecutionOperatingUnitFeature(type, num_rows, key_size, num_keys, cardinality));
 }
 
-void OperatingUnitRecorder::RecordFeatures(const planner::AbstractPlanNode *plan, size_t scaling) {
-  for (auto &feature : plan_features_) {
+void OperatingUnitRecorder::RecordArithmeticFeatures(const planner::AbstractPlanNode *plan, size_t scaling) {
+  for (auto &feature : arithmetic_feature_types_) {
     TERRIER_ASSERT(feature.second > ExecutionOperatingUnitType::PLAN_OPS_DELIMITER, "Expected computation operator");
     if (feature.second != ExecutionOperatingUnitType::INVALID) {
       // Recording of simple operators
@@ -148,7 +147,7 @@ void OperatingUnitRecorder::RecordFeatures(const planner::AbstractPlanNode *plan
     }
   }
 
-  plan_features_.clear();
+  arithmetic_feature_types_.clear();
 }
 
 void OperatingUnitRecorder::VisitAbstractPlanNode(const planner::AbstractPlanNode *plan) {
@@ -156,8 +155,8 @@ void OperatingUnitRecorder::VisitAbstractPlanNode(const planner::AbstractPlanNod
   if (schema != nullptr) {
     for (auto &column : schema->GetColumns()) {
       auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(column.GetExpr());
-      plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
-                            std::make_move_iterator(features.end()));
+      arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
+                                       std::make_move_iterator(features.end()));
     }
   }
 }
@@ -166,51 +165,51 @@ void OperatingUnitRecorder::VisitAbstractScanPlanNode(const planner::AbstractSca
   VisitAbstractPlanNode(plan);
 
   auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(plan->GetScanPredicate());
-  plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
-                        std::make_move_iterator(features.end()));
+  arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
+                                   std::make_move_iterator(features.end()));
 }
 
 void OperatingUnitRecorder::Visit(const planner::SeqScanPlanNode *plan) {
   VisitAbstractScanPlanNode(plan);
-  RecordFeatures(plan, 1);
+  RecordArithmeticFeatures(plan, 1);
 
   // For a sequential scan, # keys is the number of columns output
   // The total key size is the size of all columns extracted
   size_t key_size = 0;
   size_t num_keys = 0;
   if (!plan->GetColumnOids().empty()) {
-    key_size = ComputeKeySize(plan, plan->GetTableOid(), plan->GetColumnOids());
+    key_size = ComputeKeySize(plan->GetTableOid(), plan->GetColumnOids());
     num_keys = plan->GetColumnOids().size();
   } else {
     auto &schema = accessor_->GetSchema(plan->GetTableOid());
     num_keys = schema.GetColumns().size();
-    key_size = ComputeKeySize(plan, plan->GetTableOid());
+    key_size = ComputeKeySize(plan->GetTableOid());
   }
 
-  AggregateFeatures(plan_feature_, key_size, num_keys, plan, 1);
+  AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::IndexScanPlanNode *plan) {
   std::unordered_set<catalog::indexkeycol_oid_t> cols;
   for (auto &pair : plan->GetLoIndexColumns()) {
     auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(pair.second);
-    plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
-                          std::make_move_iterator(features.end()));
+    arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
+                                     std::make_move_iterator(features.end()));
 
     cols.insert(pair.first);
   }
 
   for (auto &pair : plan->GetHiIndexColumns()) {
     auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(pair.second);
-    plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
-                          std::make_move_iterator(features.end()));
+    arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
+                                     std::make_move_iterator(features.end()));
 
     cols.insert(pair.first);
   }
 
   // Record operator features
   VisitAbstractScanPlanNode(plan);
-  RecordFeatures(plan, 1);
+  RecordArithmeticFeatures(plan, 1);
 
   // For an index scan, # keys is the number of columns in the key lookup
   // The total key size is the size of the key being used to lookup
@@ -219,62 +218,62 @@ void OperatingUnitRecorder::Visit(const planner::IndexScanPlanNode *plan) {
   for (auto col : cols) col_vec.emplace_back(col);
 
   size_t num_keys = col_vec.size();
-  size_t key_size = ComputeKeySize(plan, plan->GetIndexOid(), col_vec);
-  AggregateFeatures(plan_feature_, key_size, num_keys, plan, 1);
+  size_t key_size = ComputeKeySize(plan->GetIndexOid(), col_vec);
+  AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1);
 }
 
 void OperatingUnitRecorder::VisitAbstractJoinPlanNode(const planner::AbstractJoinPlanNode *plan) {
-  if (plan_feature_ == ExecutionOperatingUnitType::HASHJOIN_PROBE ||
-      plan_feature_ == ExecutionOperatingUnitType::NLJOIN_RIGHT ||
-      plan_feature_ == ExecutionOperatingUnitType::IDXJOIN) {
+  if (plan_feature_type_ == ExecutionOperatingUnitType::HASHJOIN_PROBE ||
+      plan_feature_type_ == ExecutionOperatingUnitType::NLJOIN_RIGHT ||
+      plan_feature_type_ == ExecutionOperatingUnitType::IDXJOIN) {
     // Right side stiches together outputs
     VisitAbstractPlanNode(plan);
 
     // Join predicates only get handled by the "right" translator (probe)
     auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(plan->GetJoinPredicate());
-    plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
-                          std::make_move_iterator(features.end()));
+    arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
+                                     std::make_move_iterator(features.end()));
   }
 }
 
 void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
-  if (plan_feature_ == ExecutionOperatingUnitType::HASHJOIN_BUILD) {
+  if (plan_feature_type_ == ExecutionOperatingUnitType::HASHJOIN_BUILD) {
     for (auto key : plan->GetLeftHashKeys()) {
       auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(key);
-      plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
-                            std::make_move_iterator(features.end()));
+      arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
+                                       std::make_move_iterator(features.end()));
     }
 
     // Record features using the row/cardinality of left plan
     auto *c_plan = plan->GetChild(0);
-    RecordFeatures(c_plan, 1);
-    AggregateFeatures(plan_feature_, ComputeKeySize(c_plan, plan->GetLeftHashKeys()), plan->GetLeftHashKeys().size(),
+    RecordArithmeticFeatures(c_plan, 1);
+    AggregateFeatures(plan_feature_type_, ComputeKeySize(plan->GetLeftHashKeys()), plan->GetLeftHashKeys().size(),
                       c_plan, 1);
   }
 
-  if (plan_feature_ == ExecutionOperatingUnitType::HASHJOIN_PROBE) {
+  if (plan_feature_type_ == ExecutionOperatingUnitType::HASHJOIN_PROBE) {
     for (auto key : plan->GetRightHashKeys()) {
       auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(key);
-      plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
-                            std::make_move_iterator(features.end()));
+      arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
+                                       std::make_move_iterator(features.end()));
     }
 
     // Record features using the row/cardinality of right plan which is probe
     auto *c_plan = plan->GetChild(1);
-    RecordFeatures(c_plan, 1);
-    AggregateFeatures(plan_feature_, ComputeKeySize(c_plan, plan->GetRightHashKeys()), plan->GetRightHashKeys().size(),
+    RecordArithmeticFeatures(c_plan, 1);
+    AggregateFeatures(plan_feature_type_, ComputeKeySize(plan->GetRightHashKeys()), plan->GetRightHashKeys().size(),
                       c_plan, 1);
   }
 
   // Computes against OutputSchema/Join predicate which will
   // use the rows/cardinalities of what the HJ plan produces
   VisitAbstractJoinPlanNode(plan);
-  RecordFeatures(plan, 1);
+  RecordArithmeticFeatures(plan, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::NestedLoopJoinPlanNode *plan) {
   // NLJOIN_LEFT is a pass through translator
-  if (plan_feature_ == ExecutionOperatingUnitType::NLJOIN_RIGHT) {
+  if (plan_feature_type_ == ExecutionOperatingUnitType::NLJOIN_RIGHT) {
     // Scale them by (num_rows - 1) of left child
     // num_rows - 1 since the right child has already been inserted once
     auto *c_plan = plan->GetChild(1);
@@ -283,7 +282,7 @@ void OperatingUnitRecorder::Visit(const planner::NestedLoopJoinPlanNode *plan) {
     // Left and right seq scan already exist once
     // So record the join_predicate information once
     VisitAbstractJoinPlanNode(plan);
-    RecordFeatures(c_plan, 1);
+    RecordArithmeticFeatures(c_plan, 1);
 
     // TODO(wz2): after #759, get num_rows  of o_plan;
     size_t o_num_rows = 0;
@@ -292,11 +291,11 @@ void OperatingUnitRecorder::Visit(const planner::NestedLoopJoinPlanNode *plan) {
       // Similarly, output evaluated at worst left * right
       // Already recorded once, so record o_num_rows - 1
       VisitAbstractJoinPlanNode(plan);
-      RecordFeatures(c_plan, o_num_rows - 1);
+      RecordArithmeticFeatures(c_plan, o_num_rows - 1);
 
       // Get all features/card estimates from the right child
       OperatingUnitRecorder rec(accessor_);
-      rec.plan_feature_ = plan_feature_;
+      rec.plan_feature_type_ = plan_feature_type_;
       plan->GetChild(1)->Accept(common::ManagedPointer<planner::PlanVisitor>(&rec));
       for (auto &feature : rec.pipeline_features_) {
         AggregateFeatures(feature.first, feature.second.GetKeySize(), feature.second.GetNumKeys(), c_plan,
@@ -309,72 +308,72 @@ void OperatingUnitRecorder::Visit(const planner::NestedLoopJoinPlanNode *plan) {
 void OperatingUnitRecorder::Visit(const planner::IndexJoinPlanNode *plan) {
   // Record features that are output
   VisitAbstractJoinPlanNode(plan);
-  RecordFeatures(plan, 1);
+  RecordArithmeticFeatures(plan, 1);
 
   std::vector<catalog::indexkeycol_oid_t> col_vec;
   for (auto &col : plan->GetIndexColumns()) {
     auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(col.second);
-    plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
-                          std::make_move_iterator(features.end()));
+    arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
+                                     std::make_move_iterator(features.end()));
 
     col_vec.emplace_back(col.first);
   }
 
   size_t num_keys = col_vec.size();
-  size_t key_size = ComputeKeySize(plan, plan->GetIndexOid(), col_vec);
-  AggregateFeatures(plan_feature_, key_size, num_keys, plan, 1);
-  RecordFeatures(plan, 1);
+  size_t key_size = ComputeKeySize(plan->GetIndexOid(), col_vec);
+  AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1);
+  RecordArithmeticFeatures(plan, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::InsertPlanNode *plan) {
   for (size_t idx = 0; idx < plan->GetBulkInsertCount(); idx++) {
     for (auto &col : plan->GetValues(idx)) {
       auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(col);
-      plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
-                            std::make_move_iterator(features.end()));
+      arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
+                                       std::make_move_iterator(features.end()));
     }
   }
 
   // Record features
   VisitAbstractPlanNode(plan);
-  RecordFeatures(plan, 1);
+  RecordArithmeticFeatures(plan, 1);
 
   // Record the Insert
-  auto key_size = ComputeKeySize(plan, plan->GetTableOid(), plan->GetParameterInfo());
-  AggregateFeatures(plan_feature_, key_size, plan->GetParameterInfo().size(), plan, 1);
+  auto key_size = ComputeKeySize(plan->GetTableOid(), plan->GetParameterInfo());
+  AggregateFeatures(plan_feature_type_, key_size, plan->GetParameterInfo().size(), plan, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::UpdatePlanNode *plan) {
   std::vector<catalog::col_oid_t> cols;
   for (auto &clause : plan->GetSetClauses()) {
     auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(clause.second);
-    plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
-                          std::make_move_iterator(features.end()));
+    arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
+                                     std::make_move_iterator(features.end()));
 
     cols.emplace_back(clause.first);
   }
 
   // Record features
   VisitAbstractPlanNode(plan);
-  RecordFeatures(plan, 1);
+  RecordArithmeticFeatures(plan, 1);
 
   // Record the Update
-  auto key_size = ComputeKeySize(plan, plan->GetTableOid(), cols);
-  AggregateFeatures(plan_feature_, key_size, cols.size(), plan, 1);
+  auto key_size = ComputeKeySize(plan->GetTableOid(), cols);
+  AggregateFeatures(plan_feature_type_, key_size, cols.size(), plan, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::DeletePlanNode *plan) {
   VisitAbstractPlanNode(plan);
-  RecordFeatures(plan, 1);
+  RecordArithmeticFeatures(plan, 1);
 
   auto &schema = accessor_->GetSchema(plan->GetTableOid());
   auto num_cols = schema.GetColumns().size();
-  AggregateFeatures(plan_feature_, ComputeKeySize(plan, plan->GetTableOid()), num_cols, plan, 1);
+  AggregateFeatures(plan_feature_type_, ComputeKeySize(plan->GetTableOid()), num_cols, plan, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::CSVScanPlanNode *plan) {
   VisitAbstractScanPlanNode(plan);
-  RecordFeatures(plan, 1);
+  RecordArithmeticFeatures(plan, 1);
 
   auto num_keys = plan->GetValueTypes().size();
   size_t key_size = 0;
@@ -382,101 +381,101 @@ void OperatingUnitRecorder::Visit(const planner::CSVScanPlanNode *plan) {
     key_size += type::TypeUtil::GetTypeSize(type);
   }
 
-  AggregateFeatures(plan_feature_, key_size, num_keys, plan, 1);
+  AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::LimitPlanNode *plan) {
   VisitAbstractPlanNode(plan);
-  RecordFeatures(plan, 1);
+  RecordArithmeticFeatures(plan, 1);
 
   // Copy outwards
   auto num_keys = plan->GetOutputSchema()->GetColumns().size();
   auto key_size = ComputeKeySizeOutputSchema(plan);
-  AggregateFeatures(plan_feature_, key_size, num_keys, plan, 1);
+  AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) {
-  if (plan_feature_ == ExecutionOperatingUnitType::SORT_BUILD) {
+  if (plan_feature_type_ == ExecutionOperatingUnitType::SORT_BUILD) {
     // SORT_BUILD will operate on sort keys
     std::vector<common::ManagedPointer<parser::AbstractExpression>> keys;
     for (auto key : plan->GetSortKeys()) {
       auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(key.first);
-      plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
-                            std::make_move_iterator(features.end()));
+      arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
+                                       std::make_move_iterator(features.end()));
 
       keys.emplace_back(key.first);
     }
 
     // Sort build sizes/operations are based on the input (from child)
-    auto key_size = ComputeKeySize(plan, keys);
+    auto key_size = ComputeKeySize(keys);
     auto *c_plan = plan->GetChild(0);
-    RecordFeatures(c_plan, 1);
-    AggregateFeatures(plan_feature_, key_size, keys.size(), c_plan, 1);
-  } else if (plan_feature_ == ExecutionOperatingUnitType::SORT_ITERATE) {
+    RecordArithmeticFeatures(c_plan, 1);
+    AggregateFeatures(plan_feature_type_, key_size, keys.size(), c_plan, 1);
+  } else if (plan_feature_type_ == ExecutionOperatingUnitType::SORT_ITERATE) {
     // SORT_ITERATE will do any output computations
     VisitAbstractPlanNode(plan);
-    RecordFeatures(plan, 1);
+    RecordArithmeticFeatures(plan, 1);
 
     // Copy outwards
     auto num_keys = plan->GetOutputSchema()->GetColumns().size();
     auto key_size = ComputeKeySizeOutputSchema(plan);
-    AggregateFeatures(plan_feature_, key_size, num_keys, plan, 1);
+    AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1);
   }
 }
 
 void OperatingUnitRecorder::Visit(const planner::ProjectionPlanNode *plan) {
   VisitAbstractPlanNode(plan);
-  RecordFeatures(plan, 1);
+  RecordArithmeticFeatures(plan, 1);
 
   // Copy outwards
   auto num_keys = plan->GetOutputSchema()->GetColumns().size();
   auto key_size = ComputeKeySizeOutputSchema(plan);
-  AggregateFeatures(plan_feature_, key_size, num_keys, plan, 1);
+  AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
-  if (plan_feature_ == ExecutionOperatingUnitType::AGGREGATE_BUILD) {
+  if (plan_feature_type_ == ExecutionOperatingUnitType::AGGREGATE_BUILD) {
     for (auto key : plan->GetAggregateTerms()) {
       auto key_cm = common::ManagedPointer<parser::AbstractExpression>(key.Get());
       auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(key_cm);
-      plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
-                            std::make_move_iterator(features.end()));
+      arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
+                                       std::make_move_iterator(features.end()));
     }
 
     for (auto key : plan->GetGroupByTerms()) {
       auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(key);
-      plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
-                            std::make_move_iterator(features.end()));
+      arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
+                                       std::make_move_iterator(features.end()));
     }
 
     // Above computations performed for all of child
     auto *c_plan = plan->GetChild(0);
-    RecordFeatures(c_plan, 1);
+    RecordArithmeticFeatures(c_plan, 1);
 
     // Build with the rows of child
     size_t key_size = 0;
     size_t num_keys = 0;
     if (!plan->GetGroupByTerms().empty()) {
-      key_size = ComputeKeySize(plan, plan->GetGroupByTerms());
+      key_size = ComputeKeySize(plan->GetGroupByTerms());
       num_keys = plan->GetGroupByTerms().size();
     }
 
-    AggregateFeatures(plan_feature_, key_size, num_keys, c_plan, 1);
-  } else if (plan_feature_ == ExecutionOperatingUnitType::AGGREGATE_ITERATE) {
+    AggregateFeatures(plan_feature_type_, key_size, num_keys, c_plan, 1);
+  } else if (plan_feature_type_ == ExecutionOperatingUnitType::AGGREGATE_ITERATE) {
     // AggregateTopTranslator handles any exprs/computations in the output
     VisitAbstractPlanNode(plan);
 
     // AggregateTopTranslator handles the having clause
     auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(plan->GetHavingClausePredicate());
-    plan_features_.insert(plan_features_.end(), std::make_move_iterator(features.begin()),
-                          std::make_move_iterator(features.end()));
+    arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
+                                     std::make_move_iterator(features.end()));
 
-    RecordFeatures(plan, 1);
+    RecordArithmeticFeatures(plan, 1);
 
     // Copy outwards
     auto num_keys = plan->GetOutputSchema()->GetColumns().size();
     auto key_size = ComputeKeySizeOutputSchema(plan);
-    AggregateFeatures(plan_feature_, key_size, num_keys, plan, 1);
+    AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1);
   }
 }
 
@@ -484,10 +483,11 @@ ExecutionOperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
     const std::vector<std::unique_ptr<execution::compiler::OperatorTranslator>> &translators) {
   pipeline_features_ = {};
   for (const auto &translator : translators) {
-    plan_feature_ = translator->GetFeatureType();
-    if (plan_feature_ != ExecutionOperatingUnitType::INVALID && plan_feature_ != ExecutionOperatingUnitType::OUTPUT) {
+    plan_feature_type_ = translator->GetFeatureType();
+    if (plan_feature_type_ != ExecutionOperatingUnitType::INVALID &&
+        plan_feature_type_ != ExecutionOperatingUnitType::OUTPUT) {
       translator->Op()->Accept(common::ManagedPointer<planner::PlanVisitor>(this));
-      TERRIER_ASSERT(plan_features_.empty(), "plan_features should be empty");
+      TERRIER_ASSERT(arithmetic_feature_types_.empty(), "aggregate_feature_types_ should be empty");
     }
   }
 
