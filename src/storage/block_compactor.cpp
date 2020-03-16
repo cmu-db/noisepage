@@ -273,8 +273,8 @@ void BlockCompactor::CopyToArrowVarlen(std::vector<const byte *> *loose_ptrs, Ar
                                        ArrowColumnInfo *col, VarlenEntry *values) {
   uint32_t varlen_size = 0;
   // Read through every tuple and update null count and total varlen size
+  metadata->NullCount(col_id) = 0;
   for (uint32_t i = 0; i < metadata->NumRecords(); i++) {
-    metadata->NullCount(col_id) = 0;
     if (!column_bitmap->Test(i))
       // Update null count
       metadata->NullCount(col_id)++;
@@ -315,8 +315,8 @@ void BlockCompactor::BuildDictionary(std::vector<const byte *> *loose_ptrs, Arro
   VarlenEntryMap<uint32_t> dictionary;
   // Read through every tuple and update null count and build the dictionary
   uint32_t varlen_size = 0;
+  metadata->NullCount(col_id) = 0;
   for (uint32_t i = 0; i < metadata->NumRecords(); i++) {
-    metadata->NullCount(col_id) = 0;
     if (!column_bitmap->Test(i)) {
       // Update null count
       metadata->NullCount(col_id)++;
@@ -328,7 +328,7 @@ void BlockCompactor::BuildDictionary(std::vector<const byte *> *loose_ptrs, Arro
   }
   ArrowColumnInfo new_col_info;
   new_col_info.Type() = col->Type();
-  new_col_info.Indices() = common::AllocationUtil::AllocateAligned<uint32_t>(metadata->NumRecords());
+  new_col_info.Indices() = common::AllocationUtil::AllocateAligned<uint64_t>(metadata->NumRecords());
   auto &new_col = new_col_info.VarlenColumn() = {varlen_size, static_cast<uint32_t>(dictionary.size() + 1)};
 
   // TODO(Tianyu): This is retarded, but apparently you cannot retrieve the index of elements in your
@@ -355,7 +355,7 @@ void BlockCompactor::BuildDictionary(std::vector<const byte *> *loose_ptrs, Arro
     VarlenEntry &entry = values[i];
     // Need to GC
     if (entry.NeedReclaim()) loose_ptrs->push_back(entry.Content());
-    uint32_t dictionary_code = new_col_info.Indices()[i] = dictionary[entry];
+    uint64_t dictionary_code = new_col_info.Indices()[i] = dictionary[entry];
 
     byte *dictionary_word = new_col.Values() + new_col.Offsets()[dictionary_code];
     TERRIER_ASSERT(memcmp(dictionary_word, entry.Content(), entry.Size()) == 0,
