@@ -2,6 +2,7 @@
 
 #include <map>
 #include <set>
+#include <string>
 #include <vector>
 
 #include "common/macros.h"
@@ -91,4 +92,5 @@ catalog::col_oid_t SqlTable::OidForColId(const col_id_t col_id) const {
                                       [&](const auto &oid_to_id) -> bool { return oid_to_id.second == col_id; });
   return oid_to_id->first;
 }
+
 }  // namespace terrier::storage
