@@ -21,7 +21,8 @@ class AbstractPlanNode;
 
 namespace terrier::optimizer {
 class StatsStorage;
-}
+class AbstractCostModel;
+}  // namespace terrier::optimizer
 
 namespace terrier::transaction {
 class TransactionContext;
@@ -41,13 +42,15 @@ class TrafficCopUtil {
    * @param accessor used by optimizer
    * @param query bound ParseResult
    * @param stats_storage used by optimizer
+   * @param cost_model used by optimizer
    * @param optimizer_timeout used by optimizer
    * @return physical plan that can be executed
    */
   static std::unique_ptr<planner::AbstractPlanNode> Optimize(
       common::ManagedPointer<transaction::TransactionContext> txn,
       common::ManagedPointer<catalog::CatalogAccessor> accessor, common::ManagedPointer<parser::ParseResult> query,
-      common::ManagedPointer<optimizer::StatsStorage> stats_storage, uint64_t optimizer_timeout);
+      common::ManagedPointer<optimizer::StatsStorage> stats_storage,
+      std::unique_ptr<optimizer::AbstractCostModel> cost_model, uint64_t optimizer_timeout);
 
   /**
    * Converts parser statement types (which rely on multiple enums) to a single QueryType enum from the network layer
