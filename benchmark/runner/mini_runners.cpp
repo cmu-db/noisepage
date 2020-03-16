@@ -114,37 +114,14 @@ auto DoNotOptimizeAway(const T &datum) -> typename std::enable_if<!DoNotOptimize
  */
 static void GenScanArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 4, 8, 15};
-  auto num_rows = {
-      std::pair<int, int>{10, 1},           std::pair<int, int>{10, 2},          std::pair<int, int>{10, 8},
-      std::pair<int, int>{100, 16},         std::pair<int, int>{100, 32},        std::pair<int, int>{100, 64},
-      std::pair<int, int>{10000, 128},      std::pair<int, int>{10000, 1024},    std::pair<int, int>{10000, 4096},
-      std::pair<int, int>{10000, 8192},     std::pair<int, int>{1000000, 1024},  std::pair<int, int>{1000000, 16384},
-      std::pair<int, int>{1000000, 131072}, std::pair<int, int>{1000000, 524288}};
-
+  std::vector<int64_t> row_nums = {1, 10, 100, 1000, 10000, 100000, 1000000};
   for (auto col : num_cols) {
-    for (auto row : num_rows) {
-      b->Args({col, row.first, row.second});
-    }
-  }
-}
-
-/**
- * Arg <0, 1, 2>
- * 0 - Number of columns
- * 1 - Number of rows
- * 2 - Cardinality
- */
-static void GenNJArguments(benchmark::internal::Benchmark *b) {
-  auto num_cols = {1, 4, 8, 15};
-  auto num_rows = {std::pair<int, int>{10, 1},       std::pair<int, int>{10, 2},       std::pair<int, int>{10, 8},
-                   std::pair<int, int>{100, 16},     std::pair<int, int>{100, 32},     std::pair<int, int>{100, 64},
-                   std::pair<int, int>{10000, 128},  std::pair<int, int>{10000, 1024}, std::pair<int, int>{10000, 4096},
-                   std::pair<int, int>{10000, 8192}, std::pair<int, int>{20000, 1024}, std::pair<int, int>{20000, 4096},
-                   std::pair<int, int>{20000, 8192}, std::pair<int, int>{20000, 16384}};
-
-  for (auto col : num_cols) {
-    for (auto row : num_rows) {
-      b->Args({col, row.first, row.second});
+    for (auto row : row_nums) {
+      int64_t car = 1;
+      while (car < row) {
+        if (row * row / car <= 1000000000) b->Args({col, row, car});
+        car *= 2;
+      }
     }
   }
 }
@@ -697,7 +674,7 @@ BENCHMARK_DEFINE_F(MiniRunners, NestedLoopJoinRunners)(benchmark::State &state) 
 BENCHMARK_REGISTER_F(MiniRunners, NestedLoopJoinRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
-    ->Apply(GenNJArguments);
+    ->Apply(GenScanArguments);
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, AggregateRunners)(benchmark::State &state) {
