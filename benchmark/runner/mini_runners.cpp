@@ -19,6 +19,7 @@
 #include "optimizer/optimizer.h"
 #include "optimizer/properties.h"
 #include "optimizer/query_to_operator_transformer.h"
+#include "traffic_cop/traffic_cop_util.h"
 
 namespace terrier::runner {
 
@@ -85,7 +86,6 @@ auto DoNotOptimizeAway(const T &datum) -> typename std::enable_if<!DoNotOptimize
     type iterator = 1;                                             \
     for (size_t i = 1; i <= count; i++) {                          \
       iterator = iterator op i;                                    \
-      DoNotOptimizeAway(i);                                        \
       DoNotOptimizeAway(iterator);                                 \
     }                                                              \
                                                                    \
@@ -98,7 +98,6 @@ auto DoNotOptimizeAway(const T &datum) -> typename std::enable_if<!DoNotOptimize
     type iterator = 1;                                                      \
     for (size_t i = 1; i <= count; i++) {                                   \
       iterator = iterator op i;                                             \
-      DoNotOptimizeAway(i);                                                 \
       DoNotOptimizeAway(iterator);                                          \
     }                                                                       \
                                                                             \
@@ -244,42 +243,9 @@ class MiniRunners : public benchmark::Fixture {
     auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), "test_db");
     binder.BindNameToNode(stmt_list->GetStatement(0), stmt_list.get());
 
-    auto transformer = optimizer::QueryToOperatorTransformer(common::ManagedPointer(accessor));
-    auto plan = transformer.ConvertToOpExpression(stmt_list->GetStatement(0), stmt_list.get());
-
-    std::unique_ptr<planner::AbstractPlanNode> out_plan;
-    auto optimizer = optimizer::Optimizer(std::move(cost_model), optimizer_timeout_);
-    if (stmt_list->GetStatement(0)->GetType() == parser::StatementType::SELECT) {
-      auto sel_stmt = stmt_list->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
-      auto output = sel_stmt->GetSelectColumns();
-      auto property_set = optimizer::PropertySet();
-
-      if (sel_stmt->GetSelectOrderBy()) {
-        std::vector<optimizer::OrderByOrderingType> sort_dirs;
-        std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_exprs;
-
-        auto order_by = sel_stmt->GetSelectOrderBy();
-        auto types = order_by->GetOrderByTypes();
-        auto exprs = order_by->GetOrderByExpressions();
-        for (size_t idx = 0; idx < order_by->GetOrderByExpressionsSize(); idx++) {
-          sort_exprs.emplace_back(exprs[idx]);
-          sort_dirs.push_back(types[idx] == parser::OrderType::kOrderAsc ? optimizer::OrderByOrderingType::ASC
-                                                                         : optimizer::OrderByOrderingType::DESC);
-        }
-
-        auto sort_prop = new optimizer::PropertySort(sort_exprs, sort_dirs);
-        property_set.AddProperty(sort_prop);
-      }
-
-      auto query_info = optimizer::QueryInfo(parser::StatementType::SELECT, std::move(output), &property_set);
-      out_plan =
-          optimizer.BuildPlanTree(txn, accessor.get(), db_main->GetStatsStorage().Get(), query_info, std::move(plan));
-    } else {
-      auto property_set = optimizer::PropertySet();
-      auto query_info = optimizer::QueryInfo(stmt_list->GetStatement(0)->GetType(), {}, &property_set);
-      out_plan =
-          optimizer.BuildPlanTree(txn, accessor.get(), db_main->GetStatsStorage().Get(), query_info, std::move(plan));
-    }
+    auto out_plan =
+        trafficcop::TrafficCopUtil::Optimize(common::ManagedPointer(txn), common::ManagedPointer(accessor),
+                                             common::ManagedPointer(stmt_list), db_main->GetStatsStorage(), 1000000);
 
     execution::ExecutableQuery::query_identifier.store(qid);
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
@@ -1019,9 +985,6 @@ BENCHMARK_DEFINE_F(MiniRunners, IndexScanRunners)(benchmark::State &state) {
  * Arg: <0, 1, 2>
  * 0 - Key Sizes
  * 1 - Idx Size
- *
- * 0 - ExecutionOperatingType
- * 1 - Iteration count
  * 2 - Lookup size
  */
 static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
