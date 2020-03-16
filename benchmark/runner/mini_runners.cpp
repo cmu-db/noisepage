@@ -167,54 +167,7 @@ static void GenInsertArguments(benchmark::internal::Benchmark *b) {
 
 class MiniRunners : public benchmark::Fixture {
  public:
-  static constexpr execution::query_id_t OP_INTEGER_PLUS_QID = execution::query_id_t(1);
-  static constexpr execution::query_id_t OP_INTEGER_MULTIPLY_QID = execution::query_id_t(2);
-  static constexpr execution::query_id_t OP_INTEGER_DIVIDE_QID = execution::query_id_t(3);
-  static constexpr execution::query_id_t OP_INTEGER_GEQ_QID = execution::query_id_t(4);
-  static constexpr execution::query_id_t OP_DECIMAL_PLUS_QID = execution::query_id_t(5);
-  static constexpr execution::query_id_t OP_DECIMAL_MULTIPLY_QID = execution::query_id_t(6);
-  static constexpr execution::query_id_t OP_DECIMAL_DIVIDE_QID = execution::query_id_t(7);
-  static constexpr execution::query_id_t OP_DECIMAL_GEQ_QID = execution::query_id_t(8);
-
-  static constexpr execution::query_id_t SEQ_SCAN_COL_1_QID = execution::query_id_t(9);
-  static constexpr execution::query_id_t SEQ_SCAN_COL_4_QID = execution::query_id_t(10);
-  static constexpr execution::query_id_t SEQ_SCAN_COL_8_QID = execution::query_id_t(11);
-  static constexpr execution::query_id_t SEQ_SCAN_COL_15_QID = execution::query_id_t(12);
-
-  static constexpr execution::query_id_t BULK_INS_COL_1_QID = execution::query_id_t(13);
-  static constexpr execution::query_id_t BULK_INS_COL_4_QID = execution::query_id_t(14);
-  static constexpr execution::query_id_t BULK_INS_COL_8_QID = execution::query_id_t(15);
-  static constexpr execution::query_id_t BULK_INS_COL_15_QID = execution::query_id_t(16);
-
-  static constexpr execution::query_id_t SORT_COL_1_QID = execution::query_id_t(17);
-  static constexpr execution::query_id_t SORT_COL_4_QID = execution::query_id_t(18);
-  static constexpr execution::query_id_t SORT_COL_8_QID = execution::query_id_t(19);
-  static constexpr execution::query_id_t SORT_COL_15_QID = execution::query_id_t(20);
-
-  static constexpr execution::query_id_t UPDATE_COL_1_QID = execution::query_id_t(21);
-  static constexpr execution::query_id_t UPDATE_COL_4_QID = execution::query_id_t(22);
-  static constexpr execution::query_id_t UPDATE_COL_8_QID = execution::query_id_t(23);
-  static constexpr execution::query_id_t UPDATE_COL_15_QID = execution::query_id_t(24);
-
-  static constexpr execution::query_id_t AGG_COL_1_QID = execution::query_id_t(25);
-  static constexpr execution::query_id_t AGG_COL_4_QID = execution::query_id_t(26);
-  static constexpr execution::query_id_t AGG_COL_8_QID = execution::query_id_t(27);
-  static constexpr execution::query_id_t AGG_COL_15_QID = execution::query_id_t(28);
-
-  static constexpr execution::query_id_t HJ_COL_1_QID = execution::query_id_t(29);
-  static constexpr execution::query_id_t HJ_COL_4_QID = execution::query_id_t(30);
-  static constexpr execution::query_id_t HJ_COL_8_QID = execution::query_id_t(31);
-  static constexpr execution::query_id_t HJ_COL_15_QID = execution::query_id_t(32);
-
-  static constexpr execution::query_id_t NLJ_COL_1_QID = execution::query_id_t(33);
-  static constexpr execution::query_id_t NLJ_COL_4_QID = execution::query_id_t(34);
-  static constexpr execution::query_id_t NLJ_COL_8_QID = execution::query_id_t(35);
-  static constexpr execution::query_id_t NLJ_COL_15_QID = execution::query_id_t(36);
-
-  static constexpr execution::query_id_t IDX_KEY_1_QID = execution::query_id_t(37);
-  static constexpr execution::query_id_t IDX_KEY_4_QID = execution::query_id_t(38);
-  static constexpr execution::query_id_t IDX_KEY_8_QID = execution::query_id_t(39);
-  static constexpr execution::query_id_t IDX_KEY_15_QID = execution::query_id_t(40);
+  static execution::query_id_t query_id;
 
   const uint64_t optimizer_timeout_ = 1000000;
   const execution::vm::ExecutionMode mode_ = execution::vm::ExecutionMode::Interpret;
@@ -234,7 +187,7 @@ class MiniRunners : public benchmark::Fixture {
     metrics_manager_ = db_main->GetMetricsManager();
   }
 
-  void BenchmarkSqlStatement(execution::query_id_t qid, const std::string &query, brain::PipelineOperatingUnits *units,
+  void BenchmarkSqlStatement(const std::string &query, brain::PipelineOperatingUnits *units,
                              std::unique_ptr<optimizer::AbstractCostModel> cost_model, bool commit) {
     auto txn = txn_manager_->BeginTransaction();
     auto stmt_list = parser::PostgresParser::BuildParseTree(query);
@@ -245,9 +198,9 @@ class MiniRunners : public benchmark::Fixture {
 
     auto out_plan =
         trafficcop::TrafficCopUtil::Optimize(common::ManagedPointer(txn), common::ManagedPointer(accessor),
-                                             common::ManagedPointer(stmt_list), db_main->GetStatsStorage(), 1000000);
+                                             common::ManagedPointer(stmt_list), db_main->GetStatsStorage(), optimizer_timeout_);
 
-    execution::ExecutableQuery::query_identifier.store(qid);
+    execution::ExecutableQuery::query_identifier.store(MiniRunners::query_id++);
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
         db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), out_plan->GetOutputSchema().Get(),
         common::ManagedPointer(accessor));
@@ -262,29 +215,12 @@ class MiniRunners : public benchmark::Fixture {
   }
 
   void BenchmarkIndexScan(int key_num, int num_rows, int lookup_size) {
+    auto qid = MiniRunners::query_id++;
     auto txn = txn_manager_->BeginTransaction();
     auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
                                                                         nullptr, common::ManagedPointer(accessor));
     exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode_));
-
-    execution::query_id_t qid;
-    switch (key_num) {
-      case 1:
-        qid = IDX_KEY_1_QID;
-        break;
-      case 4:
-        qid = IDX_KEY_4_QID;
-        break;
-      case 8:
-        qid = IDX_KEY_8_QID;
-        break;
-      case 15:
-        qid = IDX_KEY_15_QID;
-        break;
-      default:
-        UNREACHABLE("Invalid key_size for index scan");
-    }
 
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
@@ -341,12 +277,12 @@ class MiniRunners : public benchmark::Fixture {
       delete[] high_buffer;
     }
 
-    exec_ctx->EndPipelineTracker(OP_INTEGER_MULTIPLY_QID, execution::pipeline_id_t(0));
-
+    exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(0));
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 
   void BenchmarkArithmetic(brain::ExecutionOperatingUnitType type, size_t num_elem) {
+    auto qid = MiniRunners::query_id++;
     auto txn = txn_manager_->BeginTransaction();
     auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
@@ -363,49 +299,49 @@ class MiniRunners : public benchmark::Fixture {
     switch (type) {
       case brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS: {
         uint32_t ret = __uint32_t_PLUS(num_elem);
-        exec_ctx->EndPipelineTracker(OP_INTEGER_PLUS_QID, execution::pipeline_id_t(0));
+        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(0));
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY: {
         uint32_t ret = __uint32_t_MULTIPLY(num_elem);
-        exec_ctx->EndPipelineTracker(OP_INTEGER_MULTIPLY_QID, execution::pipeline_id_t(0));
+        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(0));
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_INTEGER_DIVIDE: {
         uint32_t ret = __uint32_t_DIVIDE(num_elem);
-        exec_ctx->EndPipelineTracker(OP_INTEGER_DIVIDE_QID, execution::pipeline_id_t(0));
+        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(0));
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE: {
         uint32_t ret = __uint32_t_GEQ(num_elem);
-        exec_ctx->EndPipelineTracker(OP_INTEGER_GEQ_QID, execution::pipeline_id_t(0));
+        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(0));
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_DECIMAL_PLUS_OR_MINUS: {
         double ret = __double_PLUS(num_elem);
-        exec_ctx->EndPipelineTracker(OP_DECIMAL_PLUS_QID, execution::pipeline_id_t(0));
+        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(0));
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_DECIMAL_MULTIPLY: {
         double ret = __double_MULTIPLY(num_elem);
-        exec_ctx->EndPipelineTracker(OP_DECIMAL_MULTIPLY_QID, execution::pipeline_id_t(0));
+        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(0));
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE: {
         double ret = __double_DIVIDE(num_elem);
-        exec_ctx->EndPipelineTracker(OP_DECIMAL_DIVIDE_QID, execution::pipeline_id_t(0));
+        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(0));
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE: {
         double ret = __double_GEQ(num_elem);
-        exec_ctx->EndPipelineTracker(OP_DECIMAL_GEQ_QID, execution::pipeline_id_t(0));
+        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(0));
         DoNotOptimizeAway(ret);
         break;
       }
@@ -423,6 +359,8 @@ class MiniRunners : public benchmark::Fixture {
   common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
 };
 
+execution::query_id_t MiniRunners::query_id = execution::query_id_t(0);
+
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, InsertRunners)(benchmark::State &state) {
   auto num_cols = state.range(0);
@@ -430,25 +368,6 @@ BENCHMARK_DEFINE_F(MiniRunners, InsertRunners)(benchmark::State &state) {
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    execution::query_id_t qid;
-    switch (num_cols) {
-      case 1:
-        qid = BULK_INS_COL_1_QID;
-        break;
-      case 4:
-        qid = BULK_INS_COL_4_QID;
-        break;
-      case 8:
-        qid = BULK_INS_COL_8_QID;
-        break;
-      case 15:
-        qid = BULK_INS_COL_15_QID;
-        break;
-      default:
-        UNREACHABLE("Unexpected number of columns for BulkInsert");
-        break;
-    }
-
     // Create temporary table schema
     std::vector<catalog::Schema::Column> cols;
     for (uint32_t j = 1; j <= num_cols; j++) {
@@ -502,7 +421,7 @@ BENCHMARK_DEFINE_F(MiniRunners, InsertRunners)(benchmark::State &state) {
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       metrics_manager_->RegisterThread();
-      BenchmarkSqlStatement(qid, query.str(), &units, std::make_unique<optimizer::TrivialCostModel>(), true);
+      BenchmarkSqlStatement(query.str(), &units, std::make_unique<optimizer::TrivialCostModel>(), true);
       metrics_manager_->Aggregate();
       metrics_manager_->UnregisterThread();
     }
@@ -541,25 +460,6 @@ BENCHMARK_DEFINE_F(MiniRunners, UpdateRunners)(benchmark::State &state) {
   auto num_cols = state.range(0);
   auto num_rows = state.range(1);
 
-  execution::query_id_t qid;
-  switch (num_cols) {
-    case 1:
-      qid = UPDATE_COL_1_QID;
-      break;
-    case 4:
-      qid = UPDATE_COL_4_QID;
-      break;
-    case 8:
-      qid = UPDATE_COL_8_QID;
-      break;
-    case 15:
-      qid = UPDATE_COL_15_QID;
-      break;
-    default:
-      UNREACHABLE("Unexpected number of columns for UpdateRunners");
-      break;
-  }
-
   // NOLINTNEXTLINE
   for (auto _ : state) {
     // Create temporary table schema
@@ -588,7 +488,7 @@ BENCHMARK_DEFINE_F(MiniRunners, UpdateRunners)(benchmark::State &state) {
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       metrics_manager_->RegisterThread();
-      BenchmarkSqlStatement(qid, query.str(), &units, std::make_unique<optimizer::TrivialCostModel>(), false);
+      BenchmarkSqlStatement(query.str(), &units, std::make_unique<optimizer::TrivialCostModel>(), false);
       metrics_manager_->Aggregate();
       metrics_manager_->UnregisterThread();
     }
@@ -620,25 +520,6 @@ BENCHMARK_DEFINE_F(MiniRunners, SeqScanRunners)(benchmark::State &state) {
   for (auto _ : state) {
     metrics_manager_->RegisterThread();
 
-    execution::query_id_t qid;
-    switch (num_col) {
-      case 1:
-        qid = SEQ_SCAN_COL_1_QID;
-        break;
-      case 4:
-        qid = SEQ_SCAN_COL_4_QID;
-        break;
-      case 8:
-        qid = SEQ_SCAN_COL_8_QID;
-        break;
-      case 15:
-        qid = SEQ_SCAN_COL_15_QID;
-        break;
-      default:
-        UNREACHABLE("Unexpected number of columns for SeqScan");
-        break;
-    }
-
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4 * num_col, num_col,
@@ -655,7 +536,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SeqScanRunners)(benchmark::State &state) {
 
     std::stringstream tbl_name;
     tbl_name << "SELECT " << (cols.str()) << " FROM INTEGERCol15Row" << row << "Car" << car;
-    BenchmarkSqlStatement(qid, tbl_name.str(), &units, std::make_unique<optimizer::TrivialCostModel>(), true);
+    BenchmarkSqlStatement(tbl_name.str(), &units, std::make_unique<optimizer::TrivialCostModel>(), true);
     metrics_manager_->Aggregate();
     metrics_manager_->UnregisterThread();
   }
@@ -684,25 +565,6 @@ BENCHMARK_DEFINE_F(MiniRunners, SortRunners)(benchmark::State &state) {
   for (auto _ : state) {
     metrics_manager_->RegisterThread();
 
-    execution::query_id_t qid;
-    switch (num_col) {
-      case 1:
-        qid = SORT_COL_1_QID;
-        break;
-      case 4:
-        qid = SORT_COL_4_QID;
-        break;
-      case 8:
-        qid = SORT_COL_8_QID;
-        break;
-      case 15:
-        qid = SORT_COL_15_QID;
-        break;
-      default:
-        UNREACHABLE("Unexpected number of columns for Sort");
-        break;
-    }
-
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
@@ -726,7 +588,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SortRunners)(benchmark::State &state) {
     std::stringstream tbl_name;
     tbl_name << "SELECT " << (cols.str()) << " FROM INTEGERCol15Row" << row << "Car" << car << " ORDER BY "
              << (cols.str());
-    BenchmarkSqlStatement(qid, tbl_name.str(), &units, std::make_unique<optimizer::TrivialCostModel>(), true);
+    BenchmarkSqlStatement(tbl_name.str(), &units, std::make_unique<optimizer::TrivialCostModel>(), true);
     metrics_manager_->Aggregate();
     metrics_manager_->UnregisterThread();
   }
@@ -751,25 +613,6 @@ BENCHMARK_DEFINE_F(MiniRunners, HashJoinRunners)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
     metrics_manager_->RegisterThread();
-
-    execution::query_id_t qid;
-    switch (num_col) {
-      case 1:
-        qid = HJ_COL_1_QID;
-        break;
-      case 4:
-        qid = HJ_COL_4_QID;
-        break;
-      case 8:
-        qid = HJ_COL_8_QID;
-        break;
-      case 15:
-        qid = HJ_COL_15_QID;
-        break;
-      default:
-        UNREACHABLE("Unexpected number of columns for HJ");
-        break;
-    }
 
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
@@ -805,7 +648,7 @@ BENCHMARK_DEFINE_F(MiniRunners, HashJoinRunners)(benchmark::State &state) {
       }
     }
 
-    BenchmarkSqlStatement(qid, query.str(), &units, std::make_unique<optimizer::ForcedCostModel>(true), true);
+    BenchmarkSqlStatement(query.str(), &units, std::make_unique<optimizer::ForcedCostModel>(true), true);
     metrics_manager_->Aggregate();
     metrics_manager_->UnregisterThread();
   }
@@ -834,25 +677,6 @@ BENCHMARK_DEFINE_F(MiniRunners, NestedLoopJoinRunners)(benchmark::State &state) 
   for (auto _ : state) {
     metrics_manager_->RegisterThread();
 
-    execution::query_id_t qid;
-    switch (num_col) {
-      case 1:
-        qid = NLJ_COL_1_QID;
-        break;
-      case 4:
-        qid = NLJ_COL_4_QID;
-        break;
-      case 8:
-        qid = NLJ_COL_8_QID;
-        break;
-      case 15:
-        qid = NLJ_COL_15_QID;
-        break;
-      default:
-        UNREACHABLE("Unexpected number of columns for HJ");
-        break;
-    }
-
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row * (row + 1), 4 * num_col, num_col,
@@ -880,7 +704,7 @@ BENCHMARK_DEFINE_F(MiniRunners, NestedLoopJoinRunners)(benchmark::State &state) 
       }
     }
 
-    BenchmarkSqlStatement(qid, query.str(), &units, std::make_unique<optimizer::ForcedCostModel>(false), true);
+    BenchmarkSqlStatement(query.str(), &units, std::make_unique<optimizer::ForcedCostModel>(false), true);
     metrics_manager_->Aggregate();
     metrics_manager_->UnregisterThread();
   }
@@ -909,25 +733,6 @@ BENCHMARK_DEFINE_F(MiniRunners, AggregateRunners)(benchmark::State &state) {
   for (auto _ : state) {
     metrics_manager_->RegisterThread();
 
-    execution::query_id_t qid;
-    switch (num_col) {
-      case 1:
-        qid = AGG_COL_1_QID;
-        break;
-      case 4:
-        qid = AGG_COL_4_QID;
-        break;
-      case 8:
-        qid = AGG_COL_8_QID;
-        break;
-      case 15:
-        qid = AGG_COL_15_QID;
-        break;
-      default:
-        UNREACHABLE("Unexpected number of columns for Aggregate");
-        break;
-    }
-
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
@@ -949,7 +754,7 @@ BENCHMARK_DEFINE_F(MiniRunners, AggregateRunners)(benchmark::State &state) {
       }
     }
 
-    BenchmarkSqlStatement(qid, query.str(), &units, std::make_unique<optimizer::TrivialCostModel>(), true);
+    BenchmarkSqlStatement(query.str(), &units, std::make_unique<optimizer::TrivialCostModel>(), true);
     metrics_manager_->Aggregate();
     metrics_manager_->UnregisterThread();
   }
