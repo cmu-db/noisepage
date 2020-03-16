@@ -196,9 +196,9 @@ class MiniRunners : public benchmark::Fixture {
     auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), "test_db");
     binder.BindNameToNode(stmt_list->GetStatement(0), stmt_list.get());
 
-    auto out_plan =
-        trafficcop::TrafficCopUtil::Optimize(common::ManagedPointer(txn), common::ManagedPointer(accessor),
-                                             common::ManagedPointer(stmt_list), db_main->GetStatsStorage(), optimizer_timeout_);
+    auto out_plan = trafficcop::TrafficCopUtil::Optimize(common::ManagedPointer(txn), common::ManagedPointer(accessor),
+                                                         common::ManagedPointer(stmt_list), db_main->GetStatsStorage(),
+                                                         optimizer_timeout_);
 
     execution::ExecutableQuery::query_identifier.store(MiniRunners::query_id++);
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
