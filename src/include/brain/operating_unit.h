@@ -63,7 +63,7 @@ class ExecutionOperatingUnitFeature {
    * @param cardinality Estimated cardinality
    */
   ExecutionOperatingUnitFeature(ExecutionOperatingUnitType feature, size_t num_rows, size_t key_size, size_t num_keys,
-                                double cardinality)
+                                size_t cardinality)
       : feature_(feature), num_rows_(num_rows), key_size_(key_size), num_keys_(num_keys), cardinality_(cardinality) {}
 
   /**
@@ -89,7 +89,7 @@ class ExecutionOperatingUnitFeature {
   /**
    * @returns estimated cardinality
    */
-  double GetCardinality() const { return cardinality_; }
+  size_t GetCardinality() const { return cardinality_; }
 
  private:
   /**
@@ -104,13 +104,13 @@ class ExecutionOperatingUnitFeature {
    * @note only should be invoked by OperatingUnitRecorder
    * @param cardinality Updated cardinality
    */
-  void SetCardinality(double cardinality) { cardinality_ = cardinality; }
+  void SetCardinality(size_t cardinality) { cardinality_ = cardinality; }
 
   ExecutionOperatingUnitType feature_;
   size_t num_rows_;
   size_t key_size_;
   size_t num_keys_;
-  double cardinality_;
+  size_t cardinality_;
 };
 
 /**
