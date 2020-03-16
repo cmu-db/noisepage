@@ -405,9 +405,6 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
 
       for (uint32_t cardinality : cardinalities) {
         for (type::TypeId type : types) {
-          std::stringstream table_name;
-          std::string type_name = type::TypeUtil::TypeIdToString(type);
-          table_name << type_name << "Col" << col_num << "Row" << row_num << "Car" << cardinality;
           std::vector<ColumnInsertMeta> col_metas;
           for (int j = 1; j <= col_num; j++) {
             std::stringstream col_name;
@@ -423,7 +420,7 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
               col_metas.emplace_back(col_name.str(), type, false, Dist::Uniform, 0, row_num - 1);
             }
           }
-          table_metas.emplace_back(table_name.str(), row_num, col_metas);
+          table_metas.emplace_back(GenerateTableName(type, col_num, row_num, cardinality), row_num, col_metas);
         }
       }
     }

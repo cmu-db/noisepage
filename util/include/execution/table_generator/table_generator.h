@@ -46,6 +46,21 @@ class TableGenerator {
       : exec_ctx_{exec_ctx}, store_{store}, ns_oid_{ns_oid} {}
 
   /**
+   * Generate table name
+   * @param type Type
+   * @param col Number of columns
+   * @param row Number of rows
+   * @param car Cardinality
+   * @return table name
+   */
+  static std::string GenerateTableName(type::TypeId type, size_t col, size_t row, size_t car) {
+    std::stringstream table_name;
+    auto type_name = type::TypeUtil::TypeIdToString(type);
+    table_name << type_name << "Col" << col << "Row" << row << "Car" << car;
+    return table_name.str();
+  }
+
+  /**
    * Generate test tables.
    * @param is_mini_runner is this generation used for the mini runner
    */

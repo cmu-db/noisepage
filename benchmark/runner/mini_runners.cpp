@@ -464,8 +464,8 @@ BENCHMARK_DEFINE_F(MiniRunners, UpdateRunners)(benchmark::State &state) {
   for (auto _ : state) {
     // Create temporary table schema
     std::stringstream query;
-    query << "UPDATE "
-          << "INTEGERCol15Row" << num_rows << "Car1 SET ";
+    query << "UPDATE " << execution::sql::TableGenerator::GenerateTableName(type::TypeId::INTEGER, 15, num_rows, 1)
+          << " SET ";
     std::vector<catalog::Schema::Column> cols;
     std::mt19937 generator{};
     std::uniform_int_distribution<int> distribution(0, INT_MAX);
@@ -534,9 +534,10 @@ BENCHMARK_DEFINE_F(MiniRunners, SeqScanRunners)(benchmark::State &state) {
       }
     }
 
-    std::stringstream tbl_name;
-    tbl_name << "SELECT " << (cols.str()) << " FROM INTEGERCol15Row" << row << "Car" << car;
-    BenchmarkSqlStatement(tbl_name.str(), &units, std::make_unique<optimizer::TrivialCostModel>(), true);
+    std::stringstream query;
+    query << "SELECT " << (cols.str()) << " FROM "
+          << execution::sql::TableGenerator::GenerateTableName(type::TypeId::INTEGER, 15, row, car);
+    BenchmarkSqlStatement(query.str(), &units, std::make_unique<optimizer::TrivialCostModel>(), true);
     metrics_manager_->Aggregate();
     metrics_manager_->UnregisterThread();
   }
@@ -585,10 +586,11 @@ BENCHMARK_DEFINE_F(MiniRunners, SortRunners)(benchmark::State &state) {
       }
     }
 
-    std::stringstream tbl_name;
-    tbl_name << "SELECT " << (cols.str()) << " FROM INTEGERCol15Row" << row << "Car" << car << " ORDER BY "
-             << (cols.str());
-    BenchmarkSqlStatement(tbl_name.str(), &units, std::make_unique<optimizer::TrivialCostModel>(), true);
+    std::stringstream query;
+    query << "SELECT " << (cols.str()) << " FROM "
+          << execution::sql::TableGenerator::GenerateTableName(type::TypeId::INTEGER, 15, row, car) << " ORDER BY "
+          << (cols.str());
+    BenchmarkSqlStatement(query.str(), &units, std::make_unique<optimizer::TrivialCostModel>(), true);
     metrics_manager_->Aggregate();
     metrics_manager_->UnregisterThread();
   }
@@ -638,11 +640,10 @@ BENCHMARK_DEFINE_F(MiniRunners, HashJoinRunners)(benchmark::State &state) {
       }
     }
 
-    std::stringstream tbl_name;
-    tbl_name << "INTEGERCol15Row" << row << "Car" << car;
-    query << " FROM " << tbl_name.str() << ", " << tbl_name.str() << " as b WHERE ";
+    auto tbl_name = execution::sql::TableGenerator::GenerateTableName(type::TypeId::INTEGER, 15, row, car);
+    query << " FROM " << tbl_name << ", " << tbl_name << " as b WHERE ";
     for (auto i = 1; i <= num_col; i++) {
-      query << (tbl_name.str()) << ".col" << i << " = b.col" << i;
+      query << tbl_name << ".col" << i << " = b.col" << i;
       if (i != num_col) {
         query << " AND ";
       }
@@ -694,11 +695,10 @@ BENCHMARK_DEFINE_F(MiniRunners, NestedLoopJoinRunners)(benchmark::State &state) 
       }
     }
 
-    std::stringstream tbl_name;
-    tbl_name << "INTEGERCol15Row" << row << "Car" << car;
-    query << " FROM " << tbl_name.str() << ", " << tbl_name.str() << " as b WHERE ";
+    auto tbl_name = execution::sql::TableGenerator::GenerateTableName(type::TypeId::INTEGER, 15, row, car);
+    query << " FROM " << tbl_name << ", " << tbl_name << " as b WHERE ";
     for (auto i = 1; i <= num_col; i++) {
-      query << (tbl_name.str()) << ".col" << i << " = b.col" << i;
+      query << tbl_name << ".col" << i << " = b.col" << i;
       if (i != num_col) {
         query << " AND ";
       }
@@ -746,7 +746,8 @@ BENCHMARK_DEFINE_F(MiniRunners, AggregateRunners)(benchmark::State &state) {
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
     std::stringstream query;
-    query << "SELECT COUNT(*) FROM INTEGERCol15Row" << row << "Car" << car << " GROUP BY ";
+    query << "SELECT COUNT(*) FROM "
+          << execution::sql::TableGenerator::GenerateTableName(type::TypeId::INTEGER, 15, row, car) << " GROUP BY ";
     for (auto i = 1; i <= num_col; i++) {
       query << "col15";
       if (i != num_col) {
