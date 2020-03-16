@@ -97,7 +97,7 @@ GroupExprBindingIterator::GroupExprBindingIterator(const Memo &memo, GroupExpres
 
   has_next_ = true;
   // Operator op = Operator(*reinterpret_cast<Operator *>(gexpr->Contents().Get()));
-  Operator op = Operator(*(gexpr->Contents()->AsThis<Operator>()));
+  Operator op = Operator(*(gexpr->Contents().CastManagedPointerTo<Operator>()));
   current_binding_ = std::make_unique<OperatorNode>(op, std::move(children));
 }
 

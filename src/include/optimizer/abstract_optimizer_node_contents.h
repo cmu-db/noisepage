@@ -89,20 +89,6 @@ class AbstractOptimizerNodeContents {
     return nullptr;
   }
 
-  /**
-   * Reinterpret the node contents itself (i.e. this object)
-   * @tparam T The type of the object to be reinterpreted as
-   * @return pointer to the reinterpreted object, nullptr if the types mismatch
-   */
-  template <typename T>
-  common::ManagedPointer<const T> AsThis() const {
-    auto &n = *this;
-    if (typeid(n) == typeid(T)) {
-      return common::ManagedPointer<const T>(dynamic_cast<const T *>(this));
-    }
-    return nullptr;
-  }
-
  protected:
   /**
    * Internal contents for object

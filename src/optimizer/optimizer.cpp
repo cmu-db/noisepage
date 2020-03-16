@@ -105,7 +105,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   }
 
   // Derive root plan
-  OperatorNode *op = new OperatorNode(Operator(*gexpr->Contents()->As<Operator>()), {});
+  auto *op = new OperatorNode(Operator(*gexpr->Contents().CastManagedPointerTo<Operator>()), {});
 
   PlanGenerator generator;
   auto plan = generator.ConvertOpNode(txn, accessor, op, required_props, required_cols, output_cols,
@@ -133,6 +133,7 @@ void Optimizer::OptimizeLoop(group_id_t root_group_id, PropertySet *required_pro
 
   // Derive stats for the only one logical expression before optimizing
   task_stack->Push(new DeriveStats(memo.GetGroupByID(root_group_id)->GetLogicalExpression(), ExprSet{}, root_context));
+
   ExecuteTaskStack(task_stack, root_group_id, root_context);
 }
 
