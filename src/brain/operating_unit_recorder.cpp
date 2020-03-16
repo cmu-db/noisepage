@@ -173,8 +173,9 @@ void OperatingUnitRecorder::Visit(const planner::SeqScanPlanNode *plan) {
   VisitAbstractScanPlanNode(plan);
   RecordArithmeticFeatures(plan, 1);
 
-  // For a sequential scan, # keys is the number of columns output
-  // The total key size is the size of all columns extracted
+  // For a sequential scan:
+  // - # keys is how mahy columns are scanned (either # cols in table OR plan->GetColumnOids().size()
+  // - Total key size is the size of the columns scanned
   size_t key_size = 0;
   size_t num_keys = 0;
   if (!plan->GetColumnOids().empty()) {
