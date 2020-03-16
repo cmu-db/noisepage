@@ -49,6 +49,7 @@ RuleSet &OptimizerTask::GetRuleSet() const { return context_->GetOptimizerContex
 // OptimizeGroup
 //===--------------------------------------------------------------------===//
 void OptimizeGroup::Execute() {
+
   OPTIMIZER_LOG_TRACE("OptimizeGroup::Execute() group {0}", group_->GetID());
   if (group_->GetCostLB() > context_->GetCostUpperBound() ||                    // Cost LB > Cost UB
       group_->GetBestExpression(context_->GetRequiredProperties()) != nullptr)  // Has optimized given the context
@@ -73,6 +74,7 @@ void OptimizeGroup::Execute() {
 // OptimizeExpression
 //===--------------------------------------------------------------------===//
 void OptimizeExpression::Execute() {
+
   std::vector<RuleWithPromise> valid_rules;
 
   // Construct valid transformation rules from rule set
@@ -105,6 +107,7 @@ void OptimizeExpression::Execute() {
 // ExploreGroup
 //===--------------------------------------------------------------------===//
 void ExploreGroup::Execute() {
+
   if (group_->HasExplored()) return;
   OPTIMIZER_LOG_TRACE("ExploreGroup::Execute() ");
 
@@ -121,6 +124,7 @@ void ExploreGroup::Execute() {
 // ExploreExpression
 //===--------------------------------------------------------------------===//
 void ExploreExpression::Execute() {
+
   OPTIMIZER_LOG_TRACE("ExploreExpression::Execute() ");
   std::vector<RuleWithPromise> valid_rules;
 
@@ -150,6 +154,7 @@ void ExploreExpression::Execute() {
 // ApplyRule
 //===--------------------------------------------------------------------===//
 void ApplyRule::Execute() {
+
   OPTIMIZER_LOG_TRACE("ApplyRule::Execute() for rule: {0}", rule_->GetRuleIdx());
   if (group_expr_->HasRuleExplored(rule_)) return;
 
@@ -194,6 +199,7 @@ void ApplyRule::Execute() {
 // DeriveStats
 //===--------------------------------------------------------------------===//
 void DeriveStats::Execute() {
+
   // First do a top-down pass to get stats for required columns, then do a
   // bottom-up pass to calculate the stats
   ChildStatsDeriver deriver;
@@ -239,6 +245,7 @@ void DeriveStats::Execute() {
 // OptimizeExpressionCostWithEnforcedProperty
 //===--------------------------------------------------------------------===//
 void OptimizeExpressionCostWithEnforcedProperty::Execute() {
+
   // Init logic: only run once per task
   OPTIMIZER_LOG_TRACE("OptimizeExpressionCostWithEnforcedProperty::Execute() ");
   if (cur_child_idx_ == -1) {
@@ -378,6 +385,7 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
 }
 
 void TopDownRewrite::Execute() {
+
   std::vector<RuleWithPromise> valid_rules;
 
   auto cur_group = GetMemo().GetGroupByID(group_id_);
@@ -422,6 +430,7 @@ void TopDownRewrite::Execute() {
 }
 
 void BottomUpRewrite::Execute() {
+
   std::vector<RuleWithPromise> valid_rules;
 
   auto cur_group = GetMemo().GetGroupByID(group_id_);
