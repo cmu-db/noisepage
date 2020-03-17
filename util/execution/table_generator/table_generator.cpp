@@ -186,10 +186,10 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
   // EXECUTION_LOG_INFO("Wrote {} tuples into table {}.", vals_written, table_meta->name_);
 }
 
-void TableGenerator::CreateTable(TableInsertMeta &metadata) {
+void TableGenerator::CreateTable(TableInsertMeta *metadata) {
   // Create Schema.
   std::vector<catalog::Schema::Column> cols;
-  for (const auto &col_meta : metadata.col_meta_) {
+  for (const auto &col_meta : metadata->col_meta_) {
     if (col_meta.type_ != type::TypeId::VARCHAR) {
       cols.emplace_back(col_meta.name_, col_meta.type_, col_meta.nullable_, DummyCVE());
     } else {
@@ -198,25 +198,25 @@ void TableGenerator::CreateTable(TableInsertMeta &metadata) {
   }
   catalog::Schema tmp_schema(cols);
   // Create Table.
-  auto table_oid = exec_ctx_->GetAccessor()->CreateTable(ns_oid_, metadata.name_, tmp_schema);
+  auto table_oid = exec_ctx_->GetAccessor()->CreateTable(ns_oid_, metadata->name_, tmp_schema);
   auto &schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
   auto *tmp_table = new storage::SqlTable(common::ManagedPointer(store_), schema);
   exec_ctx_->GetAccessor()->SetTablePointer(table_oid, tmp_table);
   auto table = exec_ctx_->GetAccessor()->GetTable(table_oid);
-  FillTable(table_oid, table, schema, &metadata);
+  FillTable(table_oid, table, schema, metadata);
 }
 
-void TableGenerator::CreateIndex(IndexInsertMeta &index_meta) {
+void TableGenerator::CreateIndex(IndexInsertMeta *index_meta) {
   storage::index::IndexBuilder index_builder;
 
   // Get Corresponding Table
-  auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(ns_oid_, index_meta.table_name_);
+  auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(ns_oid_, index_meta->table_name_);
   auto table = exec_ctx_->GetAccessor()->GetTable(table_oid);
   auto &table_schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
 
   // Create Index Schema
   std::vector<catalog::IndexSchema::Column> index_cols;
-  for (const auto &col_meta : index_meta.cols_) {
+  for (const auto &col_meta : index_meta->cols_) {
     const auto &table_col = table_schema.GetColumn(col_meta.table_col_name_);
     parser::ColumnValueExpression col_expr(table_oid, table_col.Oid(), table_col.Type());
     if (table_col.Type() != type::TypeId::VARCHAR) {
@@ -227,7 +227,7 @@ void TableGenerator::CreateIndex(IndexInsertMeta &index_meta) {
   }
   catalog::IndexSchema tmp_index_schema{index_cols, storage::index::IndexType::BWTREE, false, false, false, false};
   // Create Index
-  auto index_oid = exec_ctx_->GetAccessor()->CreateIndex(ns_oid_, table_oid, index_meta.index_name_, tmp_index_schema);
+  auto index_oid = exec_ctx_->GetAccessor()->CreateIndex(ns_oid_, table_oid, index_meta->index_name_, tmp_index_schema);
   auto &index_schema = exec_ctx_->GetAccessor()->GetIndexSchema(index_oid);
   index_builder.SetKeySchema(index_schema);
   auto *tmp_index = index_builder.Build();
@@ -235,7 +235,7 @@ void TableGenerator::CreateIndex(IndexInsertMeta &index_meta) {
 
   auto index = exec_ctx_->GetAccessor()->GetIndex(index_oid);
   // Fill up the index
-  FillIndex(index, index_schema, index_meta, table, table_schema);
+  FillIndex(index, index_schema, *index_meta, table, table_schema);
 }
 
 void TableGenerator::GenerateTestTables(bool is_mini_runner) {
@@ -301,7 +301,7 @@ void TableGenerator::GenerateTestTables(bool is_mini_runner) {
   }
 
   for (auto &table_meta : insert_meta) {
-    CreateTable(table_meta);
+    CreateTable(&table_meta);
   }
 
   InitTestIndexes();
@@ -323,7 +323,7 @@ void TableGenerator::GenerateMiniRunnerIndexes() {
       }
 
       auto meta = TableInsertMeta(table_name, row_num, col_metas);
-      CreateTable(meta);
+      CreateTable(&meta);
 
       // Create Index Schema
       for (auto key_num : idx_key) {
@@ -344,7 +344,7 @@ void TableGenerator::GenerateMiniRunnerIndexes() {
         }
 
         auto meta = IndexInsertMeta(idx_name_str.c_str(), table_name.c_str(), idx_meta_cols);
-        CreateIndex(meta);
+        CreateIndex(&meta);
       }
     }
   }
@@ -465,7 +465,7 @@ void TableGenerator::InitTestIndexes() {
       {"varchar_index", "all_types_empty_table", {{"index_varchar_col", type::TypeId::VARCHAR, false, "varchar_col"}}}};
 
   for (auto &index_meta : index_metas) {
-    CreateIndex(index_meta);
+    CreateIndex(&index_meta);
   }
 }
 }  // namespace terrier::execution::sql

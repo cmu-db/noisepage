@@ -253,13 +253,13 @@ class TableGenerator {
    * Create table
    * @param metadata TableInsertMeta
    */
-  void CreateTable(TableInsertMeta &metadata);
+  void CreateTable(TableInsertMeta *metadata);
 
   /**
    * Create Index
    * @param index_meta Index Metadata
    */
-  void CreateIndex(IndexInsertMeta &index_meta);
+  void CreateIndex(IndexInsertMeta *index_meta);
 
   /**
    * Fill a given table according to its metadata
