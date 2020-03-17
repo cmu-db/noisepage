@@ -139,7 +139,7 @@ class GroupExpression {
    * @returns TRUE if equal to other GroupExpression
    */
   bool operator==(const GroupExpression &r) {
-    return (contents_.Get() == r.contents_.Get()) && (child_groups_ == r.child_groups_);
+    return (*contents_ == *(r.contents_)) && (child_groups_ == r.child_groups_);
   }
 
   /**

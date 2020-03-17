@@ -36,7 +36,7 @@ struct GExprPtrEq {
    * @returns TRUE if equal
    */
   bool operator()(GroupExpression *const &t1, GroupExpression *const &t2) const {
-    return (t1 != nullptr) && (t2 != nullptr) && (*t1 == *t2);
+    return (*t1 == *t2);
   }
 };
 

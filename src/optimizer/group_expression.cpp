@@ -35,17 +35,14 @@ void GroupExpression::SetLocalHashTable(PropertySet *output_properties,
 }
 
 common::hash_t GroupExpression::Hash() const {
-  size_t hash;
-  if (contents_->GetOpType() == OpType::UNDEFINED) {
-    hash = dynamic_cast<ExpressionNodeContents *>(contents_.Get())->Hash();
-  } else {
-    auto *op = dynamic_cast<Operator *>(contents_.Get());
-    hash = op->Hash();
-  }
+
+  common::hash_t hash = contents_->Hash();
+
   for (group_id_t child_group : child_groups_) {
-    size_t child_hash = common::HashUtil::Hash<group_id_t>(child_group);
+    common::hash_t child_hash = common::HashUtil::Hash<group_id_t>(child_group);
     hash = common::HashUtil::CombineHashes(hash, child_hash);
   }
+  std::cout << "hash=" << hash << "\n";
   return hash;
 }
 

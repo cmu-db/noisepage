@@ -407,12 +407,10 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
 }
 
 void TopDownRewrite::Execute() {
-<<<<<<< Updated upstream
-
-=======
   std::cout << "TOP DOWN REWRITE\n";
->>>>>>> Stashed changes
   std::vector<RuleWithPromise> valid_rules;
+
+  std::cout << "  group id: " << group_id_ << "\n";
 
   auto cur_group = GetMemo().GetGroupByID(group_id_);
   auto cur_group_expr = cur_group->GetLogicalExpression();
@@ -429,6 +427,7 @@ void TopDownRewrite::Execute() {
     GroupExprBindingIterator iterator(GetMemo(), cur_group_expr, rule->GetMatchPattern());
     if (iterator.HasNext()) {
       auto before = iterator.Next();
+      std::cout << "Rule type: " << (int)rule->GetType() << ", " << (int) RuleType::EMBED_FILTER_INTO_GET << "\n";
       TERRIER_ASSERT(!iterator.HasNext(), "there should only be 1 binding");
       std::vector<std::unique_ptr<AbstractOptimizerNode>> after;
       rule->Transform(common::ManagedPointer(before.get()), &after, context_);
@@ -437,13 +436,14 @@ void TopDownRewrite::Execute() {
       TERRIER_ASSERT(after.size() <= 1, "rule provided too many transformations");
       if (!after.empty()) {
         auto &new_expr = after[0];
-        context_->GetOptimizerContext()->ReplaceRewriteExpression(common::ManagedPointer(new_expr.get()), group_id_);
-        std::cout << "  push top town rewrite\n";
+        std::cout << "  pre-replace memo logical expression size: " << GetMemo().GetGroupByID(group_id_)->GetLogicalExpressions().size() << "\n";
+        context_->GetOptimizerContext()->ReplaceRewriteExpression(common::ManagedPointer(new_expr.release()), group_id_);
+        std::cout << "  post-replace memo logical expression size: " << GetMemo().GetGroupByID(group_id_)->GetLogicalExpressions().size() << "\n";
+        std::cout << "  push top town rewrite (location A)\n";
         PushTask(new TopDownRewrite(group_id_, context_, rule_set_name_));
         return;
       }
     }
-
     cur_group_expr->SetRuleExplored(rule);
   }
 
@@ -452,18 +452,17 @@ void TopDownRewrite::Execute() {
     // Need to rewrite all sub trees first
     auto id = cur_group_expr->GetChildGroupId(static_cast<int>(child_group_idx));
     auto task = new TopDownRewrite(id, context_, rule_set_name_);
-    std::cout << "  push top town rewrite\n";
+    std::cout << "  push top town rewrite (location B)\n";
     PushTask(task);
   }
 }
 
 void BottomUpRewrite::Execute() {
-<<<<<<< Updated upstream
 
-=======
   std::cout << "BOTTOM UP REWRITE\n";
->>>>>>> Stashed changes
   std::vector<RuleWithPromise> valid_rules;
+
+  std::cout << "  group id: " << group_id_ << "\n";
 
   auto cur_group = GetMemo().GetGroupByID(group_id_);
   auto cur_group_expr = cur_group->GetLogicalExpression();
@@ -503,7 +502,7 @@ void BottomUpRewrite::Execute() {
       TERRIER_ASSERT(after.size() <= 1, "rule generated too many transformations");
       // If a rule is applied, we replace the old expression and optimize this
       // group again, this will ensure that we apply rule for this level until
-      // saturated, also childs are already been rewritten
+      // saturated, also children are already been rewritten
       if (!after.empty()) {
         auto &new_expr = after[0];
         context_->GetOptimizerContext()->ReplaceRewriteExpression(common::ManagedPointer(new_expr.get()), group_id_);

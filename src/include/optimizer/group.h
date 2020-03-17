@@ -170,6 +170,7 @@ class Group {
    * Should only be called during rewrite phase.
    */
   GroupExpression *GetLogicalExpression() {
+    std::cout << "logical_expressions_.size(): " << logical_expressions_.size() << "\n";
     TERRIER_ASSERT(logical_expressions_.size() == 1, "There should exist only 1 logical expression");
     TERRIER_ASSERT(physical_expressions_.empty(), "No physical expressions should be present");
     return logical_expressions_[0];

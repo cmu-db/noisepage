@@ -196,6 +196,9 @@ class OptimizerContext {
     TERRIER_ASSERT(ptr, "Root of expr should not fail insertion");
 
     (*gexpr) = ptr;
+    std::cout << "  CHECK: " << (ptr == new_gexpr) << "\n";
+    std::cout << "          ptr=" << ptr << "\n";
+    std::cout << "    new_gexpr=" << new_gexpr << "\n";
     return (ptr == new_gexpr);
   }
 
@@ -208,8 +211,10 @@ class OptimizerContext {
    * @param target_group ID of the Group to replace
    */
   void ReplaceRewriteExpression(common::ManagedPointer<AbstractOptimizerNode> node, group_id_t target_group) {
+    std::cout << "  REPLACING REWRITE EXPRESSION\n";
     memo_.EraseExpression(target_group);
     UNUSED_ATTRIBUTE auto ret = memo_.InsertExpression(MakeGroupExpression(node), target_group, false);
+    std::cout << "ret val=" << ret << "\n";
     TERRIER_ASSERT(ret, "Root expr should always be inserted");
   }
 

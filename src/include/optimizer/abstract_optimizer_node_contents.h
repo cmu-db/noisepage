@@ -89,6 +89,12 @@ class AbstractOptimizerNodeContents {
     return nullptr;
   }
 
+  virtual common::hash_t Hash() {
+    OpType opType = GetOpType();
+    parser::ExpressionType expType = GetExpType();
+    return (opType != OpType::UNDEFINED) ? common::HashUtil::Hash(opType) : common::HashUtil::Hash(expType);
+  }
+
  protected:
   /**
    * Internal contents for object
