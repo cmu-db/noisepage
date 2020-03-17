@@ -329,6 +329,7 @@ void TableGenerator::GenerateMiniRunnerIndexes() {
       for (auto key_num : idx_key) {
         std::stringstream idx_name;
         idx_name << table_name << "_index_" << key_num;
+        auto idx_name_str = idx_name.str();
 
         std::vector<std::string> index_strs;
         std::vector<IndexColumn> idx_meta_cols;
@@ -342,7 +343,7 @@ void TableGenerator::GenerateMiniRunnerIndexes() {
           idx_meta_cols.emplace_back(index_strs.back().c_str(), type, false, index_strs.back().c_str());
         }
 
-        auto meta = IndexInsertMeta(idx_name.str().c_str(), table_name.c_str(), std::move(idx_meta_cols));
+        auto meta = IndexInsertMeta(idx_name_str.c_str(), table_name.c_str(), idx_meta_cols);
         CreateIndex(meta);
       }
     }

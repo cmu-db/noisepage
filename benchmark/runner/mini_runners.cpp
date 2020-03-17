@@ -205,9 +205,8 @@ class MiniRunners : public benchmark::Fixture {
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::IDX_SCAN, num_rows, 4 * key_num, key_num, lookup_size);
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
-    std::stringstream table_name;
-    table_name << "INTEGERIdxKey" << key_num << "Row" << num_rows;
-    auto tbl_oid = accessor->GetTableOid(table_name.str());
+    auto table_name = execution::sql::TableGenerator::GenerateTableIndexName(type::TypeId::INTEGER, num_rows);
+    auto tbl_oid = accessor->GetTableOid(table_name);
     auto indexes = accessor->GetIndexes(tbl_oid);
 
     common::ManagedPointer<storage::index::Index> index = nullptr;
