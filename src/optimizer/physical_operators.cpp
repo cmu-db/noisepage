@@ -1408,13 +1408,9 @@ OpType OperatorNodeContents<DropNamespace>::type = OpType::DROPNAMESPACE;
 template <>
 OpType OperatorNodeContents<DropTrigger>::type = OpType::DROPTRIGGER;
 template <>
-<<<<<<< HEAD
-OpType OperatorNode<DropView>::type = OpType::DROPVIEW;
+OpType OperatorNodeContents<DropView>::type = OpType::DROPVIEW;
 template <>
 OpType OperatorNode<Analyze>::type = OpType::ANALYZE;
-=======
-OpType OperatorNodeContents<DropView>::type = OpType::DROPVIEW;
->>>>>>> 032bf83d6dfee7697669a740d74a519d1b161503
 
 template <typename T>
 bool OperatorNodeContents<T>::IsLogical() const {
