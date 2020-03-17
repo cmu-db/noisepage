@@ -130,7 +130,8 @@ class TrafficCop {
    * @return result of the operation
    */
   TrafficCopResult BindQuery(common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                             common::ManagedPointer<network::Statement> statement) const;
+                             common::ManagedPointer<network::Statement> statement,
+                             common::ManagedPointer<std::vector<type::TransientValue>> parameters) const;
 
   /**
    * Contains the logic to reason about CREATE execution.

@@ -6,6 +6,9 @@ namespace terrier::network {
 
 type::TypeId PostgresProtocolUtil::PostgresValueTypeToInternalValueType(const PostgresValueType type) {
   switch (type) {
+    case PostgresValueType::INVALID:
+      return type::TypeId::INVALID;
+
     case PostgresValueType::BOOLEAN:
       return type::TypeId::BOOLEAN;
 

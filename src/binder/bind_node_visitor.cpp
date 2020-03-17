@@ -32,10 +32,11 @@ BindNodeVisitor::BindNodeVisitor(const common::ManagedPointer<catalog::CatalogAc
                                  const catalog::db_oid_t db_oid)
     : catalog_accessor_(catalog_accessor), db_oid_(db_oid) {}
 
-void BindNodeVisitor::BindNameToNode(common::ManagedPointer<parser::ParseResult> parse_result) {
+void BindNodeVisitor::BindNameToNode(common::ManagedPointer<parser::ParseResult> parse_result,
+                                     const common::ManagedPointer<std::vector<type::TransientValue>> parameters) {
   // TODO(Matt): something about the number of statements
 
-  BinderSherpa sherpa(parse_result);
+  BinderSherpa sherpa(parse_result, parameters);
   sherpa.GetParseResult()->GetStatement(0)->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(),
                                                    common::ManagedPointer(&sherpa));
 }

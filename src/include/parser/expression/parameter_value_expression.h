@@ -1,6 +1,8 @@
 #pragma once
 #include <memory>
 #include <vector>
+
+#include "binder/binder_sherpa.h"
 #include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
 
@@ -68,6 +70,8 @@ class ParameterValueExpression : public AbstractExpression {
 
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
               common::ManagedPointer<binder::BinderSherpa> sherpa) override {
+    const auto &param = (*(sherpa->GetParameters()))[value_idx_];
+    return_value_type_ = param.Type();
     v->Visit(common::ManagedPointer(this), sherpa);
   }
 

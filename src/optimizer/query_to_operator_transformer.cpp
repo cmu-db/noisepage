@@ -36,7 +36,7 @@ std::unique_ptr<OperatorNode> QueryToOperatorTransformer::ConvertToOpExpression(
     common::ManagedPointer<parser::SQLStatement> op, common::ManagedPointer<parser::ParseResult> parse_result) {
   output_expr_ = nullptr;
 
-  binder::BinderSherpa sherpa(parse_result);
+  binder::BinderSherpa sherpa(parse_result, nullptr);
   op->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), common::ManagedPointer(&sherpa));
   return std::move(output_expr_);
 }

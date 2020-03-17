@@ -26,12 +26,16 @@ class BinderSherpa {
    * Create a new BinderSherpa.
    * @param parse_result The parse result to be tracked.
    */
-  explicit BinderSherpa(const common::ManagedPointer<parser::ParseResult> parse_result) : parse_result_(parse_result) {}
+  explicit BinderSherpa(const common::ManagedPointer<parser::ParseResult> parse_result,
+                        const common::ManagedPointer<std::vector<type::TransientValue>> parameters)
+      : parse_result_(parse_result), parameters_(parameters) {}
 
   /**
    * @return The parse result that we're tracking.
    */
-  common::ManagedPointer<parser::ParseResult> GetParseResult() { return parse_result_; }
+  common::ManagedPointer<parser::ParseResult> GetParseResult() const { return parse_result_; }
+
+  common::ManagedPointer<std::vector<type::TransientValue>> GetParameters() const { return parameters_; }
 
   /**
    * @param expr The expression whose type constraints we want to look up.
@@ -112,7 +116,8 @@ class BinderSherpa {
   void ReportFailure(const std::string &message) { throw BINDER_EXCEPTION(message.c_str()); }
 
  private:
-  const common::ManagedPointer<parser::ParseResult> parse_result_;
+  const common::ManagedPointer<parser::ParseResult> parse_result_ = nullptr;
+  const common::ManagedPointer<std::vector<type::TransientValue>> parameters_ = nullptr;
   std::unordered_map<uintptr_t, type::TypeId> desired_expr_types_;
 };
 }  // namespace binder

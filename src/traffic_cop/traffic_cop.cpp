@@ -289,13 +289,15 @@ std::unique_ptr<parser::ParseResult> TrafficCop::ParseQuery(
   return parse_result;
 }
 
-TrafficCopResult TrafficCop::BindQuery(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                       const common::ManagedPointer<network::Statement> statement) const {
+TrafficCopResult TrafficCop::BindQuery(
+    const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+    const common::ManagedPointer<network::Statement> statement,
+    const common::ManagedPointer<std::vector<type::TransientValue>> parameters) const {
   TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                  "Not in a valid txn. This should have been caught before calling this function.");
   try {
     binder::BindNodeVisitor visitor(connection_ctx->Accessor(), connection_ctx->GetDatabaseOid());
-    visitor.BindNameToNode(statement->ParseResult());
+    visitor.BindNameToNode(statement->ParseResult(), parameters);
   } catch (...) {
     // Failed to bind
     // TODO(Matt): this is a hack to get IF EXISTS to work with our tests, we actually need better support in
