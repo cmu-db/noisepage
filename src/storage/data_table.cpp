@@ -1,14 +1,14 @@
-#include "storage/data_table.h"
-
 #include <list>
 
 #include "common/allocator.h"
 #include "storage/block_access_controller.h"
+#include "storage/data_table.h"
 #include "storage/storage_util.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_util.h"
 
 namespace terrier::storage {
+
 DataTable::DataTable(const common::ManagedPointer<BlockStore> store, const BlockLayout &layout,
                      const layout_version_t layout_version)
     : block_store_(store), layout_version_(layout_version), accessor_(layout) {

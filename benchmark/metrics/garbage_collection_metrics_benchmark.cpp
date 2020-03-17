@@ -1,5 +1,7 @@
 #include <vector>
+
 #include "benchmark/benchmark.h"
+#include "benchmark_util/benchmark_config.h"
 #include "benchmark_util/data_table_benchmark_util.h"
 #include "metrics/metrics_thread.h"
 #include "storage/garbage_collector_thread.h"
@@ -14,7 +16,6 @@ class GarbageCollectionMetricsBenchmark : public benchmark::Fixture {
   storage::BlockStore block_store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   std::default_random_engine generator_;
-  const uint32_t num_concurrent_txns_ = 4;
   storage::GarbageCollector *gc_ = nullptr;
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
   const std::chrono::milliseconds gc_period_{10};
@@ -42,7 +43,7 @@ BENCHMARK_DEFINE_F(GarbageCollectionMetricsBenchmark, TPCCish)(benchmark::State 
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
                                                      common::ManagedPointer(metrics_manager));
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_, metrics_manager);
+    const auto result = tested.SimulateOltp(num_txns_, terrier::BenchmarkConfig::num_threads, metrics_manager);
     abort_count += result.first;
     state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
     delete gc_thread_;
@@ -72,7 +73,7 @@ BENCHMARK_DEFINE_F(GarbageCollectionMetricsBenchmark, HighAbortRate)(benchmark::
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
                                                      common::ManagedPointer(metrics_manager));
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_, metrics_manager);
+    const auto result = tested.SimulateOltp(num_txns_, terrier::BenchmarkConfig::num_threads, metrics_manager);
     abort_count += result.first;
     state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
     delete gc_thread_;
@@ -102,7 +103,7 @@ BENCHMARK_DEFINE_F(GarbageCollectionMetricsBenchmark, SingleStatementInsert)(ben
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
                                                      common::ManagedPointer(metrics_manager));
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_, metrics_manager);
+    const auto result = tested.SimulateOltp(num_txns_, terrier::BenchmarkConfig::num_threads, metrics_manager);
     abort_count += result.first;
     state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
     delete gc_thread_;
@@ -132,7 +133,7 @@ BENCHMARK_DEFINE_F(GarbageCollectionMetricsBenchmark, SingleStatementUpdate)(ben
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
                                                      common::ManagedPointer(metrics_manager));
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_, metrics_manager);
+    const auto result = tested.SimulateOltp(num_txns_, terrier::BenchmarkConfig::num_threads, metrics_manager);
     abort_count += result.first;
     state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
     delete gc_thread_;
@@ -162,7 +163,7 @@ BENCHMARK_DEFINE_F(GarbageCollectionMetricsBenchmark, SingleStatementSelect)(ben
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
                                                      common::ManagedPointer(metrics_manager));
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_, metrics_manager);
+    const auto result = tested.SimulateOltp(num_txns_, terrier::BenchmarkConfig::num_threads, metrics_manager);
     abort_count += result.first;
     state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
     delete gc_thread_;
