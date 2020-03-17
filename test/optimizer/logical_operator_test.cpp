@@ -35,12 +35,12 @@ TEST(OperatorTests, LogicalInsertTest) {
       database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
       common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(values));
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALINSERT);
-  EXPECT_EQ(op1.As<LogicalInsert>()->GetDatabaseOid(), database_oid);
-  EXPECT_EQ(op1.As<LogicalInsert>()->GetNamespaceOid(), namespace_oid);
-  EXPECT_EQ(op1.As<LogicalInsert>()->GetTableOid(), table_oid);
-  EXPECT_EQ(op1.As<LogicalInsert>()->GetColumns(),
+  EXPECT_EQ(op1.GetContentsAs<LogicalInsert>()->GetDatabaseOid(), database_oid);
+  EXPECT_EQ(op1.GetContentsAs<LogicalInsert>()->GetNamespaceOid(), namespace_oid);
+  EXPECT_EQ(op1.GetContentsAs<LogicalInsert>()->GetTableOid(), table_oid);
+  EXPECT_EQ(op1.GetContentsAs<LogicalInsert>()->GetColumns(),
             (std::vector<catalog::col_oid_t>{catalog::col_oid_t(1), catalog::col_oid_t(2)}));
-  EXPECT_EQ(op1.As<LogicalInsert>()->GetValues(), values);
+  EXPECT_EQ(op1.GetContentsAs<LogicalInsert>()->GetValues(), values);
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
@@ -95,9 +95,9 @@ TEST(OperatorTests, LogicalInsertSelectTest) {
   // Check that all of our GET methods work as expected
   Operator op1 = LogicalInsertSelect::Make(database_oid, namespace_oid, table_oid);
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALINSERTSELECT);
-  EXPECT_EQ(op1.As<LogicalInsertSelect>()->GetDatabaseOid(), database_oid);
-  EXPECT_EQ(op1.As<LogicalInsertSelect>()->GetNamespaceOid(), namespace_oid);
-  EXPECT_EQ(op1.As<LogicalInsertSelect>()->GetTableOid(), table_oid);
+  EXPECT_EQ(op1.GetContentsAs<LogicalInsertSelect>()->GetDatabaseOid(), database_oid);
+  EXPECT_EQ(op1.GetContentsAs<LogicalInsertSelect>()->GetNamespaceOid(), namespace_oid);
+  EXPECT_EQ(op1.GetContentsAs<LogicalInsertSelect>()->GetTableOid(), table_oid);
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
@@ -125,12 +125,12 @@ TEST(OperatorTests, LogicalLimitTest) {
   // Check that all of our GET methods work as expected
   Operator op1 = LogicalLimit::Make(offset, limit, {sort_expr}, {sort_dir});
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALLIMIT);
-  EXPECT_EQ(op1.As<LogicalLimit>()->GetOffset(), offset);
-  EXPECT_EQ(op1.As<LogicalLimit>()->GetLimit(), limit);
-  EXPECT_EQ(op1.As<LogicalLimit>()->GetSortExpressions().size(), 1);
-  EXPECT_EQ(op1.As<LogicalLimit>()->GetSortExpressions()[0], sort_expr);
-  EXPECT_EQ(op1.As<LogicalLimit>()->GetSortDirections().size(), 1);
-  EXPECT_EQ(op1.As<LogicalLimit>()->GetSortDirections()[0], sort_dir);
+  EXPECT_EQ(op1.GetContentsAs<LogicalLimit>()->GetOffset(), offset);
+  EXPECT_EQ(op1.GetContentsAs<LogicalLimit>()->GetLimit(), limit);
+  EXPECT_EQ(op1.GetContentsAs<LogicalLimit>()->GetSortExpressions().size(), 1);
+  EXPECT_EQ(op1.GetContentsAs<LogicalLimit>()->GetSortExpressions()[0], sort_expr);
+  EXPECT_EQ(op1.GetContentsAs<LogicalLimit>()->GetSortDirections().size(), 1);
+  EXPECT_EQ(op1.GetContentsAs<LogicalLimit>()->GetSortDirections()[0], sort_dir);
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
@@ -157,9 +157,9 @@ TEST(OperatorTests, LogicalDeleteTest) {
   // Check that all of our GET methods work as expected
   Operator op1 = LogicalDelete::Make(database_oid, namespace_oid, "tbl", table_oid);
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALDELETE);
-  EXPECT_EQ(op1.As<LogicalDelete>()->GetDatabaseOid(), database_oid);
-  EXPECT_EQ(op1.As<LogicalDelete>()->GetNamespaceOid(), namespace_oid);
-  EXPECT_EQ(op1.As<LogicalDelete>()->GetTableOid(), table_oid);
+  EXPECT_EQ(op1.GetContentsAs<LogicalDelete>()->GetDatabaseOid(), database_oid);
+  EXPECT_EQ(op1.GetContentsAs<LogicalDelete>()->GetNamespaceOid(), namespace_oid);
+  EXPECT_EQ(op1.GetContentsAs<LogicalDelete>()->GetTableOid(), table_oid);
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
@@ -192,12 +192,12 @@ TEST(OperatorTests, LogicalUpdateTest) {
   // Check that all of our GET methods work as expected
   Operator op1 = LogicalUpdate::Make(database_oid, namespace_oid, "tbl", table_oid, std::move(update_clause_v));
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALUPDATE);
-  EXPECT_EQ(op1.As<LogicalUpdate>()->GetDatabaseOid(), database_oid);
-  EXPECT_EQ(op1.As<LogicalUpdate>()->GetNamespaceOid(), namespace_oid);
-  EXPECT_EQ(op1.As<LogicalUpdate>()->GetTableOid(), table_oid);
-  EXPECT_EQ(op1.As<LogicalUpdate>()->GetUpdateClauses().size(), 1);
-  EXPECT_EQ(update_clause2->GetColumnName(), op1.As<LogicalUpdate>()->GetUpdateClauses()[0]->GetColumnName());
-  EXPECT_EQ(update_clause2->GetUpdateValue(), op1.As<LogicalUpdate>()->GetUpdateClauses()[0]->GetUpdateValue());
+  EXPECT_EQ(op1.GetContentsAs<LogicalUpdate>()->GetDatabaseOid(), database_oid);
+  EXPECT_EQ(op1.GetContentsAs<LogicalUpdate>()->GetNamespaceOid(), namespace_oid);
+  EXPECT_EQ(op1.GetContentsAs<LogicalUpdate>()->GetTableOid(), table_oid);
+  EXPECT_EQ(op1.GetContentsAs<LogicalUpdate>()->GetUpdateClauses().size(), 1);
+  EXPECT_EQ(update_clause2->GetColumnName(), op1.GetContentsAs<LogicalUpdate>()->GetUpdateClauses()[0]->GetColumnName());
+  EXPECT_EQ(update_clause2->GetUpdateValue(), op1.GetContentsAs<LogicalUpdate>()->GetUpdateClauses()[0]->GetUpdateValue());
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
@@ -227,11 +227,11 @@ TEST(OperatorTests, LogicalExportExternalFileTest) {
   Operator op1 =
       LogicalExportExternalFile::Make(parser::ExternalFileFormat::BINARY, file_name, delimiter, quote, escape);
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALEXPORTEXTERNALFILE);
-  EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetFormat(), parser::ExternalFileFormat::BINARY);
-  EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetFilename(), file_name);
-  EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetDelimiter(), delimiter);
-  EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetQuote(), quote);
-  EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetEscape(), escape);
+  EXPECT_EQ(op1.GetContentsAs<LogicalExportExternalFile>()->GetFormat(), parser::ExternalFileFormat::BINARY);
+  EXPECT_EQ(op1.GetContentsAs<LogicalExportExternalFile>()->GetFilename(), file_name);
+  EXPECT_EQ(op1.GetContentsAs<LogicalExportExternalFile>()->GetDelimiter(), delimiter);
+  EXPECT_EQ(op1.GetContentsAs<LogicalExportExternalFile>()->GetQuote(), quote);
+  EXPECT_EQ(op1.GetContentsAs<LogicalExportExternalFile>()->GetEscape(), escape);
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
@@ -294,14 +294,14 @@ TEST(OperatorTests, LogicalGetTest) {
                                             std::vector<AnnotatedExpression>{annotated_expr_3}, "table", false);
 
   EXPECT_EQ(logical_get_1.GetOpType(), OpType::LOGICALGET);
-  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetDatabaseOid(), catalog::db_oid_t(1));
-  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetNamespaceOid(), catalog::namespace_oid_t(2));
-  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetTableOid(), catalog::table_oid_t(3));
-  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetPredicates(), std::vector<AnnotatedExpression>());
-  EXPECT_EQ(logical_get_3.As<LogicalGet>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_0});
-  EXPECT_EQ(logical_get_4.As<LogicalGet>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
-  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetTableAlias(), "table");
-  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetIsForUpdate(), false);
+  EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetDatabaseOid(), catalog::db_oid_t(1));
+  EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetNamespaceOid(), catalog::namespace_oid_t(2));
+  EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetTableOid(), catalog::table_oid_t(3));
+  EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetPredicates(), std::vector<AnnotatedExpression>());
+  EXPECT_EQ(logical_get_3.GetContentsAs<LogicalGet>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_0});
+  EXPECT_EQ(logical_get_4.GetContentsAs<LogicalGet>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
+  EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetTableAlias(), "table");
+  EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetIsForUpdate(), false);
   EXPECT_EQ(logical_get_1.GetName(), "LogicalGet");
   EXPECT_TRUE(logical_get_1 == logical_get_2);
   EXPECT_FALSE(logical_get_1 == logical_get_3);
@@ -350,11 +350,11 @@ TEST(OperatorTests, LogicalExternalFileGetTest) {
 
   EXPECT_EQ(logical_ext_file_get_1.GetOpType(), OpType::LOGICALEXTERNALFILEGET);
   EXPECT_EQ(logical_ext_file_get_1.GetName(), "LogicalExternalFileGet");
-  EXPECT_EQ(logical_ext_file_get_1.As<LogicalExternalFileGet>()->GetFormat(), parser::ExternalFileFormat::CSV);
-  EXPECT_EQ(logical_ext_file_get_1.As<LogicalExternalFileGet>()->GetFilename(), "file.txt");
-  EXPECT_EQ(logical_ext_file_get_1.As<LogicalExternalFileGet>()->GetDelimiter(), ',');
-  EXPECT_EQ(logical_ext_file_get_1.As<LogicalExternalFileGet>()->GetQuote(), '"');
-  EXPECT_EQ(logical_ext_file_get_1.As<LogicalExternalFileGet>()->GetEscape(), '\\');
+  EXPECT_EQ(logical_ext_file_get_1.GetContentsAs<LogicalExternalFileGet>()->GetFormat(), parser::ExternalFileFormat::CSV);
+  EXPECT_EQ(logical_ext_file_get_1.GetContentsAs<LogicalExternalFileGet>()->GetFilename(), "file.txt");
+  EXPECT_EQ(logical_ext_file_get_1.GetContentsAs<LogicalExternalFileGet>()->GetDelimiter(), ',');
+  EXPECT_EQ(logical_ext_file_get_1.GetContentsAs<LogicalExternalFileGet>()->GetQuote(), '"');
+  EXPECT_EQ(logical_ext_file_get_1.GetContentsAs<LogicalExternalFileGet>()->GetEscape(), '\\');
   EXPECT_TRUE(logical_ext_file_get_1 == logical_ext_file_get_2);
   EXPECT_FALSE(logical_ext_file_get_1 == logical_ext_file_get_3);
   EXPECT_FALSE(logical_ext_file_get_1 == logical_ext_file_get_4);
@@ -406,8 +406,8 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
 
   EXPECT_EQ(logical_query_derived_get_1.GetOpType(), OpType::LOGICALQUERYDERIVEDGET);
   EXPECT_EQ(logical_query_derived_get_1.GetName(), "LogicalQueryDerivedGet");
-  EXPECT_EQ(logical_query_derived_get_1.As<LogicalQueryDerivedGet>()->GetTableAlias(), "alias");
-  EXPECT_EQ(logical_query_derived_get_1.As<LogicalQueryDerivedGet>()->GetAliasToExprMap(), alias_to_expr_map_1_1);
+  EXPECT_EQ(logical_query_derived_get_1.GetContentsAs<LogicalQueryDerivedGet>()->GetTableAlias(), "alias");
+  EXPECT_EQ(logical_query_derived_get_1.GetContentsAs<LogicalQueryDerivedGet>()->GetAliasToExprMap(), alias_to_expr_map_1_1);
   EXPECT_TRUE(logical_query_derived_get_1 == logical_query_derived_get_2);
   EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_3);
   EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_4);
@@ -455,9 +455,9 @@ TEST(OperatorTests, LogicalFilterTest) {
   EXPECT_EQ(logical_filter_1.GetOpType(), OpType::LOGICALFILTER);
   EXPECT_EQ(logical_filter_3.GetOpType(), OpType::LOGICALFILTER);
   EXPECT_EQ(logical_filter_1.GetName(), "LogicalFilter");
-  EXPECT_EQ(logical_filter_1.As<LogicalFilter>()->GetPredicates(), std::vector<AnnotatedExpression>());
-  EXPECT_EQ(logical_filter_3.As<LogicalFilter>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_0});
-  EXPECT_EQ(logical_filter_4.As<LogicalFilter>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
+  EXPECT_EQ(logical_filter_1.GetContentsAs<LogicalFilter>()->GetPredicates(), std::vector<AnnotatedExpression>());
+  EXPECT_EQ(logical_filter_3.GetContentsAs<LogicalFilter>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_0});
+  EXPECT_EQ(logical_filter_4.GetContentsAs<LogicalFilter>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
   EXPECT_TRUE(logical_filter_1 == logical_filter_2);
   EXPECT_FALSE(logical_filter_1 == logical_filter_3);
   EXPECT_TRUE(logical_filter_4 == logical_filter_5);
@@ -498,9 +498,9 @@ TEST(OperatorTests, LogicalProjectionTest) {
   EXPECT_EQ(logical_projection_1.GetOpType(), OpType::LOGICALPROJECTION);
   EXPECT_EQ(logical_projection_3.GetOpType(), OpType::LOGICALPROJECTION);
   EXPECT_EQ(logical_projection_1.GetName(), "LogicalProjection");
-  EXPECT_EQ(logical_projection_1.As<LogicalProjection>()->GetExpressions(),
+  EXPECT_EQ(logical_projection_1.GetContentsAs<LogicalProjection>()->GetExpressions(),
             std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1});
-  EXPECT_EQ(logical_projection_3.As<LogicalProjection>()->GetExpressions(),
+  EXPECT_EQ(logical_projection_3.GetContentsAs<LogicalProjection>()->GetExpressions(),
             std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3});
   EXPECT_TRUE(logical_projection_1 == logical_projection_2);
   EXPECT_FALSE(logical_projection_1 == logical_projection_3);
@@ -545,10 +545,10 @@ TEST(OperatorTests, LogicalDependentJoinTest) {
   EXPECT_EQ(logical_dep_join_1.GetOpType(), OpType::LOGICALDEPENDENTJOIN);
   EXPECT_EQ(logical_dep_join_3.GetOpType(), OpType::LOGICALDEPENDENTJOIN);
   EXPECT_EQ(logical_dep_join_1.GetName(), "LogicalDependentJoin");
-  EXPECT_EQ(logical_dep_join_1.As<LogicalDependentJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
-  EXPECT_EQ(logical_dep_join_3.As<LogicalDependentJoin>()->GetJoinPredicates(),
+  EXPECT_EQ(logical_dep_join_1.GetContentsAs<LogicalDependentJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
+  EXPECT_EQ(logical_dep_join_3.GetContentsAs<LogicalDependentJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>{annotated_expr_0});
-  EXPECT_EQ(logical_dep_join_4.As<LogicalDependentJoin>()->GetJoinPredicates(),
+  EXPECT_EQ(logical_dep_join_4.GetContentsAs<LogicalDependentJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>{annotated_expr_1});
   EXPECT_TRUE(logical_dep_join_0 == logical_dep_join_1);
   EXPECT_TRUE(logical_dep_join_1 == logical_dep_join_2);
@@ -599,10 +599,10 @@ TEST(OperatorTests, LogicalMarkJoinTest) {
   EXPECT_EQ(logical_mark_join_1.GetOpType(), OpType::LOGICALMARKJOIN);
   EXPECT_EQ(logical_mark_join_3.GetOpType(), OpType::LOGICALMARKJOIN);
   EXPECT_EQ(logical_mark_join_1.GetName(), "LogicalMarkJoin");
-  EXPECT_EQ(logical_mark_join_1.As<LogicalMarkJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
-  EXPECT_EQ(logical_mark_join_3.As<LogicalMarkJoin>()->GetJoinPredicates(),
+  EXPECT_EQ(logical_mark_join_1.GetContentsAs<LogicalMarkJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
+  EXPECT_EQ(logical_mark_join_3.GetContentsAs<LogicalMarkJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>{annotated_expr_0});
-  EXPECT_EQ(logical_mark_join_4.As<LogicalMarkJoin>()->GetJoinPredicates(),
+  EXPECT_EQ(logical_mark_join_4.GetContentsAs<LogicalMarkJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>{annotated_expr_1});
   EXPECT_TRUE(logical_mark_join_0 == logical_mark_join_1);
   EXPECT_TRUE(logical_mark_join_1 == logical_mark_join_2);
@@ -653,10 +653,10 @@ TEST(OperatorTests, LogicalSingleJoinTest) {
   EXPECT_EQ(logical_single_join_1.GetOpType(), OpType::LOGICALSINGLEJOIN);
   EXPECT_EQ(logical_single_join_3.GetOpType(), OpType::LOGICALSINGLEJOIN);
   EXPECT_EQ(logical_single_join_1.GetName(), "LogicalSingleJoin");
-  EXPECT_EQ(logical_single_join_1.As<LogicalSingleJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
-  EXPECT_EQ(logical_single_join_3.As<LogicalSingleJoin>()->GetJoinPredicates(),
+  EXPECT_EQ(logical_single_join_1.GetContentsAs<LogicalSingleJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
+  EXPECT_EQ(logical_single_join_3.GetContentsAs<LogicalSingleJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>{annotated_expr_0});
-  EXPECT_EQ(logical_single_join_4.As<LogicalSingleJoin>()->GetJoinPredicates(),
+  EXPECT_EQ(logical_single_join_4.GetContentsAs<LogicalSingleJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>{annotated_expr_1});
   EXPECT_TRUE(logical_single_join_0 == logical_single_join_1);
   EXPECT_TRUE(logical_single_join_1 == logical_single_join_2);
@@ -707,10 +707,10 @@ TEST(OperatorTests, LogicalInnerJoinTest) {
   EXPECT_EQ(logical_inner_join_1.GetOpType(), OpType::LOGICALINNERJOIN);
   EXPECT_EQ(logical_inner_join_3.GetOpType(), OpType::LOGICALINNERJOIN);
   EXPECT_EQ(logical_inner_join_1.GetName(), "LogicalInnerJoin");
-  EXPECT_EQ(logical_inner_join_1.As<LogicalInnerJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
-  EXPECT_EQ(logical_inner_join_3.As<LogicalInnerJoin>()->GetJoinPredicates(),
+  EXPECT_EQ(logical_inner_join_1.GetContentsAs<LogicalInnerJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
+  EXPECT_EQ(logical_inner_join_3.GetContentsAs<LogicalInnerJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>{annotated_expr_0});
-  EXPECT_EQ(logical_inner_join_4.As<LogicalInnerJoin>()->GetJoinPredicates(),
+  EXPECT_EQ(logical_inner_join_4.GetContentsAs<LogicalInnerJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>{annotated_expr_1});
   EXPECT_TRUE(logical_inner_join_0 == logical_inner_join_1);
   EXPECT_TRUE(logical_inner_join_1 == logical_inner_join_2);
@@ -755,11 +755,11 @@ TEST(OperatorTests, LogicalLeftJoinTest) {
   EXPECT_EQ(logical_left_join_1.GetOpType(), OpType::LOGICALLEFTJOIN);
   EXPECT_EQ(logical_left_join_3.GetOpType(), OpType::LOGICALLEFTJOIN);
   EXPECT_EQ(logical_left_join_1.GetName(), "LogicalLeftJoin");
-  EXPECT_EQ(logical_left_join_1.As<LogicalLeftJoin>()->GetJoinPredicates(),
+  EXPECT_EQ(logical_left_join_1.GetContentsAs<LogicalLeftJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>({annotated_expr_1}));
-  EXPECT_EQ(logical_left_join_2.As<LogicalLeftJoin>()->GetJoinPredicates(),
+  EXPECT_EQ(logical_left_join_2.GetContentsAs<LogicalLeftJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>({annotated_expr_2}));
-  EXPECT_EQ(logical_left_join_3.As<LogicalLeftJoin>()->GetJoinPredicates(),
+  EXPECT_EQ(logical_left_join_3.GetContentsAs<LogicalLeftJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>({annotated_expr_3}));
   EXPECT_TRUE(logical_left_join_1 == logical_left_join_2);
   EXPECT_FALSE(logical_left_join_1 == logical_left_join_3);
@@ -798,11 +798,11 @@ TEST(OperatorTests, LogicalRightJoinTest) {
   EXPECT_EQ(logical_right_join_1.GetOpType(), OpType::LOGICALRIGHTJOIN);
   EXPECT_EQ(logical_right_join_3.GetOpType(), OpType::LOGICALRIGHTJOIN);
   EXPECT_EQ(logical_right_join_1.GetName(), "LogicalRightJoin");
-  EXPECT_EQ(logical_right_join_1.As<LogicalRightJoin>()->GetJoinPredicates(),
+  EXPECT_EQ(logical_right_join_1.GetContentsAs<LogicalRightJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>({annotated_expr_1}));
-  EXPECT_EQ(logical_right_join_2.As<LogicalRightJoin>()->GetJoinPredicates(),
+  EXPECT_EQ(logical_right_join_2.GetContentsAs<LogicalRightJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>({annotated_expr_2}));
-  EXPECT_EQ(logical_right_join_3.As<LogicalRightJoin>()->GetJoinPredicates(),
+  EXPECT_EQ(logical_right_join_3.GetContentsAs<LogicalRightJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>({annotated_expr_3}));
 
   EXPECT_TRUE(logical_right_join_1 == logical_right_join_2);
@@ -842,11 +842,11 @@ TEST(OperatorTests, LogicalOuterJoinTest) {
   EXPECT_EQ(logical_outer_join_1.GetOpType(), OpType::LOGICALOUTERJOIN);
   EXPECT_EQ(logical_outer_join_3.GetOpType(), OpType::LOGICALOUTERJOIN);
   EXPECT_EQ(logical_outer_join_1.GetName(), "LogicalOuterJoin");
-  EXPECT_EQ(logical_outer_join_1.As<LogicalOuterJoin>()->GetJoinPredicates(),
+  EXPECT_EQ(logical_outer_join_1.GetContentsAs<LogicalOuterJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>({annotated_expr_1}));
-  EXPECT_EQ(logical_outer_join_2.As<LogicalOuterJoin>()->GetJoinPredicates(),
+  EXPECT_EQ(logical_outer_join_2.GetContentsAs<LogicalOuterJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>({annotated_expr_2}));
-  EXPECT_EQ(logical_outer_join_3.As<LogicalOuterJoin>()->GetJoinPredicates(),
+  EXPECT_EQ(logical_outer_join_3.GetContentsAs<LogicalOuterJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>({annotated_expr_3}));
   EXPECT_TRUE(logical_outer_join_1 == logical_outer_join_2);
   EXPECT_FALSE(logical_outer_join_1 == logical_outer_join_3);
@@ -885,11 +885,11 @@ TEST(OperatorTests, LogicalSemiJoinTest) {
   EXPECT_EQ(logical_semi_join_1.GetOpType(), OpType::LOGICALSEMIJOIN);
   EXPECT_EQ(logical_semi_join_3.GetOpType(), OpType::LOGICALSEMIJOIN);
   EXPECT_EQ(logical_semi_join_1.GetName(), "LogicalSemiJoin");
-  EXPECT_EQ(logical_semi_join_1.As<LogicalSemiJoin>()->GetJoinPredicates(),
+  EXPECT_EQ(logical_semi_join_1.GetContentsAs<LogicalSemiJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>({annotated_expr_1}));
-  EXPECT_EQ(logical_semi_join_2.As<LogicalSemiJoin>()->GetJoinPredicates(),
+  EXPECT_EQ(logical_semi_join_2.GetContentsAs<LogicalSemiJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>({annotated_expr_2}));
-  EXPECT_EQ(logical_semi_join_3.As<LogicalSemiJoin>()->GetJoinPredicates(),
+  EXPECT_EQ(logical_semi_join_3.GetContentsAs<LogicalSemiJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>({annotated_expr_3}));
   EXPECT_TRUE(logical_semi_join_1 == logical_semi_join_2);
   EXPECT_FALSE(logical_semi_join_1 == logical_semi_join_3);
@@ -962,13 +962,13 @@ TEST(OperatorTests, LogicalAggregateAndGroupByTest) {
   EXPECT_EQ(logical_group_1_1.GetOpType(), OpType::LOGICALAGGREGATEANDGROUPBY);
   EXPECT_EQ(logical_group_3.GetOpType(), OpType::LOGICALAGGREGATEANDGROUPBY);
   EXPECT_EQ(logical_group_7_4.GetName(), "LogicalAggregateAndGroupBy");
-  EXPECT_EQ(logical_group_1_1.As<LogicalAggregateAndGroupBy>()->GetColumns(),
+  EXPECT_EQ(logical_group_1_1.GetContentsAs<LogicalAggregateAndGroupBy>()->GetColumns(),
             std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1});
-  EXPECT_EQ(logical_group_3.As<LogicalAggregateAndGroupBy>()->GetColumns(),
+  EXPECT_EQ(logical_group_3.GetContentsAs<LogicalAggregateAndGroupBy>()->GetColumns(),
             std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3});
-  EXPECT_EQ(logical_group_1_1.As<LogicalAggregateAndGroupBy>()->GetHaving(),
+  EXPECT_EQ(logical_group_1_1.GetContentsAs<LogicalAggregateAndGroupBy>()->GetHaving(),
             std::vector<AnnotatedExpression>{annotated_expr_1});
-  EXPECT_EQ(logical_group_7_4.As<LogicalAggregateAndGroupBy>()->GetHaving(),
+  EXPECT_EQ(logical_group_7_4.GetContentsAs<LogicalAggregateAndGroupBy>()->GetHaving(),
             std::vector<AnnotatedExpression>{annotated_expr_4});
   EXPECT_TRUE(logical_group_1_1 == logical_group_2_2);
   EXPECT_FALSE(logical_group_1_1 == logical_group_7_4);
@@ -1002,8 +1002,8 @@ TEST(OperatorTests, LogicalCreateDatabaseTest) {
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALCREATEDATABASE);
   EXPECT_EQ(op3.GetOpType(), OpType::LOGICALCREATEDATABASE);
   EXPECT_EQ(op1.GetName(), "LogicalCreateDatabase");
-  EXPECT_EQ(op1.As<LogicalCreateDatabase>()->GetDatabaseName(), "testdb");
-  EXPECT_EQ(op3.As<LogicalCreateDatabase>()->GetDatabaseName(), "another_testdb");
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateDatabase>()->GetDatabaseName(), "testdb");
+  EXPECT_EQ(op3.GetContentsAs<LogicalCreateDatabase>()->GetDatabaseName(), "another_testdb");
   EXPECT_TRUE(op1 == op2);
   EXPECT_FALSE(op1 == op3);
   EXPECT_EQ(op1.Hash(), op2.Hash());
@@ -1021,17 +1021,17 @@ TEST(OperatorTests, LogicalCreateFunctionTest) {
 
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALCREATEFUNCTION);
   EXPECT_EQ(op1.GetName(), "LogicalCreateFunction");
-  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetDatabaseOid(), catalog::db_oid_t(1));
-  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
-  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetFunctionName(), "function1");
-  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetUDFLanguage(), parser::PLType::PL_C);
-  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetFunctionBody(), std::vector<std::string>{});
-  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetFunctionParameterNames(), std::vector<std::string>{"param"});
-  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetFunctionParameterTypes(),
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateFunction>()->GetDatabaseOid(), catalog::db_oid_t(1));
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateFunction>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateFunction>()->GetFunctionName(), "function1");
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateFunction>()->GetUDFLanguage(), parser::PLType::PL_C);
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateFunction>()->GetFunctionBody(), std::vector<std::string>{});
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateFunction>()->GetFunctionParameterNames(), std::vector<std::string>{"param"});
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateFunction>()->GetFunctionParameterTypes(),
             std::vector<parser::BaseFunctionParameter::DataType>{parser::BaseFunctionParameter::DataType::INTEGER});
-  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetReturnType(), parser::BaseFunctionParameter::DataType::BOOLEAN);
-  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetParamCount(), 1);
-  EXPECT_FALSE(op1.As<LogicalCreateFunction>()->IsReplace());
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateFunction>()->GetReturnType(), parser::BaseFunctionParameter::DataType::BOOLEAN);
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateFunction>()->GetParamCount(), 1);
+  EXPECT_FALSE(op1.GetContentsAs<LogicalCreateFunction>()->IsReplace());
 
   Operator op2 = LogicalCreateFunction::Make(
       catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param"},
@@ -1115,13 +1115,13 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
 
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALCREATEINDEX);
   EXPECT_EQ(op1.GetName(), "LogicalCreateIndex");
-  EXPECT_EQ(op1.As<LogicalCreateIndex>()->GetIndexName(), "index_1");
-  EXPECT_EQ(op1.As<LogicalCreateIndex>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
-  EXPECT_EQ(op1.As<LogicalCreateIndex>()->GetTableOid(), catalog::table_oid_t(1));
-  EXPECT_EQ(op1.As<LogicalCreateIndex>()->GetIndexType(), parser::IndexType::BWTREE);
-  EXPECT_EQ(op1.As<LogicalCreateIndex>()->GetIndexAttr(),
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateIndex>()->GetIndexName(), "index_1");
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateIndex>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateIndex>()->GetTableOid(), catalog::table_oid_t(1));
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateIndex>()->GetIndexType(), parser::IndexType::BWTREE);
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateIndex>()->GetIndexAttr(),
             std::vector<common::ManagedPointer<parser::AbstractExpression>>{});
-  EXPECT_EQ(op1.As<LogicalCreateIndex>()->IsUnique(), true);
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateIndex>()->IsUnique(), true);
 
   Operator op2 =
       LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), parser::IndexType::BWTREE, true,
@@ -1137,14 +1137,14 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
   auto raw_values_copy = raw_values;
   Operator op3 = LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                           parser::IndexType::BWTREE, true, "index_1", std::move(raw_values_copy));
-  EXPECT_EQ(op3.As<LogicalCreateIndex>()->GetIndexAttr(), raw_values);
+  EXPECT_EQ(op3.GetContentsAs<LogicalCreateIndex>()->GetIndexAttr(), raw_values);
   EXPECT_FALSE(op3 == op1);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
   auto raw_values_copy2 = raw_values;
   Operator op4 = LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                           parser::IndexType::BWTREE, true, "index_1", std::move(raw_values_copy2));
-  EXPECT_EQ(op4.As<LogicalCreateIndex>()->GetIndexAttr(), raw_values);
+  EXPECT_EQ(op4.GetContentsAs<LogicalCreateIndex>()->GetIndexAttr(), raw_values);
   EXPECT_TRUE(op3 == op4);
   EXPECT_EQ(op4.Hash(), op3.Hash());
 
@@ -1156,7 +1156,7 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
   auto raw_values_copy3 = raw_values_2;
   Operator op10 = LogicalCreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                            parser::IndexType::BWTREE, true, "index_1", std::move(raw_values_copy3));
-  EXPECT_EQ(op10.As<LogicalCreateIndex>()->GetIndexAttr(), raw_values_2);
+  EXPECT_EQ(op10.GetContentsAs<LogicalCreateIndex>()->GetIndexAttr(), raw_values_2);
   EXPECT_FALSE(op3 == op10);
   EXPECT_NE(op10.Hash(), op3.Hash());
 
@@ -1210,12 +1210,12 @@ TEST(OperatorTests, LogicalCreateTableTest) {
                                           std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALCREATETABLE);
   EXPECT_EQ(op1.GetName(), "LogicalCreateTable");
-  EXPECT_EQ(op1.As<LogicalCreateTable>()->GetTableName(), "Table_1");
-  EXPECT_EQ(op1.As<LogicalCreateTable>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
-  EXPECT_EQ(op1.As<LogicalCreateTable>()->GetForeignKeys(),
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateTable>()->GetTableName(), "Table_1");
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateTable>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateTable>()->GetForeignKeys(),
             std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
-  EXPECT_EQ(op1.As<LogicalCreateTable>()->GetColumns().size(), 1);
-  EXPECT_EQ(*op1.As<LogicalCreateTable>()->GetColumns().at(0), *col_def);
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateTable>()->GetColumns().size(), 1);
+  EXPECT_EQ(*op1.GetContentsAs<LogicalCreateTable>()->GetColumns().at(0), *col_def);
 
   Operator op2 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_1",
                                           std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
@@ -1274,8 +1274,8 @@ TEST(OperatorTests, LogicalCreateTableTest) {
                                               common::ManagedPointer<parser::ColumnDefinition>(foreign_def)});
   EXPECT_FALSE(op1 == op8);
   EXPECT_NE(op1.Hash(), op8.Hash());
-  EXPECT_EQ(op8.As<LogicalCreateTable>()->GetForeignKeys().size(), 1);
-  EXPECT_EQ(*op8.As<LogicalCreateTable>()->GetForeignKeys().at(0), *foreign_def);
+  EXPECT_EQ(op8.GetContentsAs<LogicalCreateTable>()->GetForeignKeys().size(), 1);
+  EXPECT_EQ(*op8.GetContentsAs<LogicalCreateTable>()->GetForeignKeys().at(0), *foreign_def);
 
   delete col_def->GetDefaultExpression().Get();
   delete col_def;
@@ -1296,8 +1296,8 @@ TEST(OperatorTests, LogicalCreateNamespaceTest) {
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALCREATENAMESPACE);
   EXPECT_EQ(op3.GetOpType(), OpType::LOGICALCREATENAMESPACE);
   EXPECT_EQ(op1.GetName(), "LogicalCreateNamespace");
-  EXPECT_EQ(op1.As<LogicalCreateNamespace>()->GetNamespaceName(), "testns");
-  EXPECT_EQ(op3.As<LogicalCreateNamespace>()->GetNamespaceName(), "another_testns");
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateNamespace>()->GetNamespaceName(), "testns");
+  EXPECT_EQ(op3.GetContentsAs<LogicalCreateNamespace>()->GetNamespaceName(), "another_testns");
   EXPECT_TRUE(op1 == op2);
   EXPECT_FALSE(op1 == op3);
   EXPECT_EQ(op1.Hash(), op2.Hash());
@@ -1316,14 +1316,14 @@ TEST(OperatorTests, LogicalCreateTriggerTest) {
 
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALCREATETRIGGER);
   EXPECT_EQ(op1.GetName(), "LogicalCreateTrigger");
-  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetTriggerName(), "Trigger_1");
-  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
-  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetTableOid(), catalog::table_oid_t(1));
-  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetDatabaseOid(), catalog::db_oid_t(1));
-  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetTriggerType(), 0);
-  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetTriggerFuncName(), std::vector<std::string>{});
-  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetTriggerArgs(), std::vector<std::string>{});
-  EXPECT_EQ(op1.As<LogicalCreateTrigger>()->GetTriggerColumns(),
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateTrigger>()->GetTriggerName(), "Trigger_1");
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateTrigger>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateTrigger>()->GetTableOid(), catalog::table_oid_t(1));
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateTrigger>()->GetDatabaseOid(), catalog::db_oid_t(1));
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateTrigger>()->GetTriggerType(), 0);
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateTrigger>()->GetTriggerFuncName(), std::vector<std::string>{});
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateTrigger>()->GetTriggerArgs(), std::vector<std::string>{});
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateTrigger>()->GetTriggerColumns(),
             std::vector<catalog::col_oid_t>{catalog::col_oid_t(1)});
 
   Operator op2 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
@@ -1359,8 +1359,8 @@ TEST(OperatorTests, LogicalCreateTriggerTest) {
   Operator op7 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                             "Trigger_1", {"func_name"}, {"func_arg"}, {catalog::col_oid_t(1)},
                                             common::ManagedPointer<parser::AbstractExpression>(when), 0);
-  EXPECT_EQ(op7.As<LogicalCreateTrigger>()->GetTriggerFuncName(), std::vector<std::string>{"func_name"});
-  EXPECT_EQ(op7.As<LogicalCreateTrigger>()->GetTriggerArgs(), std::vector<std::string>{"func_arg"});
+  EXPECT_EQ(op7.GetContentsAs<LogicalCreateTrigger>()->GetTriggerFuncName(), std::vector<std::string>{"func_name"});
+  EXPECT_EQ(op7.GetContentsAs<LogicalCreateTrigger>()->GetTriggerArgs(), std::vector<std::string>{"func_arg"});
   EXPECT_FALSE(op1 == op7);
   EXPECT_NE(op1.Hash(), op7.Hash());
 
@@ -1374,8 +1374,8 @@ TEST(OperatorTests, LogicalCreateTriggerTest) {
       LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                  "Trigger_1", {"func_name", "func_name"}, {"func_arg", "func_arg"},
                                  {catalog::col_oid_t(1)}, common::ManagedPointer<parser::AbstractExpression>(when), 0);
-  EXPECT_EQ(op9.As<LogicalCreateTrigger>()->GetTriggerFuncName(), std::vector<std::string>({"func_name", "func_name"}));
-  EXPECT_EQ(op9.As<LogicalCreateTrigger>()->GetTriggerArgs(), std::vector<std::string>({"func_arg", "func_arg"}));
+  EXPECT_EQ(op9.GetContentsAs<LogicalCreateTrigger>()->GetTriggerFuncName(), std::vector<std::string>({"func_name", "func_name"}));
+  EXPECT_EQ(op9.GetContentsAs<LogicalCreateTrigger>()->GetTriggerArgs(), std::vector<std::string>({"func_arg", "func_arg"}));
   EXPECT_FALSE(op1 == op9);
   EXPECT_FALSE(op7 == op9);
   EXPECT_NE(op1.Hash(), op9.Hash());
@@ -1413,8 +1413,8 @@ TEST(OperatorTests, LogicalCreateViewTest) {
 
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALCREATEVIEW);
   EXPECT_EQ(op1.GetName(), "LogicalCreateView");
-  EXPECT_EQ(op1.As<LogicalCreateView>()->GetViewName(), "test_view");
-  EXPECT_EQ(op1.As<LogicalCreateView>()->GetViewQuery(), nullptr);
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateView>()->GetViewName(), "test_view");
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateView>()->GetViewQuery(), nullptr);
 
   Operator op2 = LogicalCreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view", nullptr);
   EXPECT_TRUE(op1 == op2);
@@ -1453,8 +1453,8 @@ TEST(OperatorTests, LogicalDropDatabaseTest) {
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALDROPDATABASE);
   EXPECT_EQ(op3.GetOpType(), OpType::LOGICALDROPDATABASE);
   EXPECT_EQ(op1.GetName(), "LogicalDropDatabase");
-  EXPECT_EQ(op1.As<LogicalDropDatabase>()->GetDatabaseOID(), catalog::db_oid_t(1));
-  EXPECT_EQ(op3.As<LogicalDropDatabase>()->GetDatabaseOID(), catalog::db_oid_t(2));
+  EXPECT_EQ(op1.GetContentsAs<LogicalDropDatabase>()->GetDatabaseOID(), catalog::db_oid_t(1));
+  EXPECT_EQ(op3.GetContentsAs<LogicalDropDatabase>()->GetDatabaseOID(), catalog::db_oid_t(2));
   EXPECT_TRUE(op1 == op2);
   EXPECT_FALSE(op1 == op3);
   EXPECT_EQ(op1.Hash(), op2.Hash());
@@ -1473,8 +1473,8 @@ TEST(OperatorTests, LogicalDropTableTest) {
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALDROPTABLE);
   EXPECT_EQ(op3.GetOpType(), OpType::LOGICALDROPTABLE);
   EXPECT_EQ(op1.GetName(), "LogicalDropTable");
-  EXPECT_EQ(op1.As<LogicalDropTable>()->GetTableOID(), catalog::table_oid_t(1));
-  EXPECT_EQ(op3.As<LogicalDropTable>()->GetTableOID(), catalog::table_oid_t(2));
+  EXPECT_EQ(op1.GetContentsAs<LogicalDropTable>()->GetTableOID(), catalog::table_oid_t(1));
+  EXPECT_EQ(op3.GetContentsAs<LogicalDropTable>()->GetTableOID(), catalog::table_oid_t(2));
   EXPECT_TRUE(op1 == op2);
   EXPECT_FALSE(op1 == op3);
   EXPECT_EQ(op1.Hash(), op2.Hash());
@@ -1493,8 +1493,8 @@ TEST(OperatorTests, LogicalDropIndexTest) {
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALDROPINDEX);
   EXPECT_EQ(op3.GetOpType(), OpType::LOGICALDROPINDEX);
   EXPECT_EQ(op1.GetName(), "LogicalDropIndex");
-  EXPECT_EQ(op1.As<LogicalDropIndex>()->GetIndexOID(), catalog::index_oid_t(1));
-  EXPECT_EQ(op3.As<LogicalDropIndex>()->GetIndexOID(), catalog::index_oid_t(2));
+  EXPECT_EQ(op1.GetContentsAs<LogicalDropIndex>()->GetIndexOID(), catalog::index_oid_t(1));
+  EXPECT_EQ(op3.GetContentsAs<LogicalDropIndex>()->GetIndexOID(), catalog::index_oid_t(2));
   EXPECT_TRUE(op1 == op2);
   EXPECT_FALSE(op1 == op3);
   EXPECT_EQ(op1.Hash(), op2.Hash());
@@ -1513,8 +1513,8 @@ TEST(OperatorTests, LogicalDropNamespaceTest) {
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALDROPNAMESPACE);
   EXPECT_EQ(op3.GetOpType(), OpType::LOGICALDROPNAMESPACE);
   EXPECT_EQ(op1.GetName(), "LogicalDropNamespace");
-  EXPECT_EQ(op1.As<LogicalDropNamespace>()->GetNamespaceOID(), catalog::namespace_oid_t(1));
-  EXPECT_EQ(op3.As<LogicalDropNamespace>()->GetNamespaceOID(), catalog::namespace_oid_t(2));
+  EXPECT_EQ(op1.GetContentsAs<LogicalDropNamespace>()->GetNamespaceOID(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op3.GetContentsAs<LogicalDropNamespace>()->GetNamespaceOID(), catalog::namespace_oid_t(2));
   EXPECT_TRUE(op1 == op2);
   EXPECT_FALSE(op1 == op3);
   EXPECT_EQ(op1.Hash(), op2.Hash());
@@ -1531,10 +1531,10 @@ TEST(OperatorTests, LogicalDropTriggerTest) {
 
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALDROPTRIGGER);
   EXPECT_EQ(op1.GetName(), "LogicalDropTrigger");
-  EXPECT_EQ(op1.As<LogicalDropTrigger>()->GetDatabaseOid(), catalog::db_oid_t(1));
-  EXPECT_EQ(op1.As<LogicalDropTrigger>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
-  EXPECT_EQ(op1.As<LogicalDropTrigger>()->GetTriggerOid(), catalog::trigger_oid_t(1));
-  EXPECT_FALSE(op1.As<LogicalDropTrigger>()->IsIfExists());
+  EXPECT_EQ(op1.GetContentsAs<LogicalDropTrigger>()->GetDatabaseOid(), catalog::db_oid_t(1));
+  EXPECT_EQ(op1.GetContentsAs<LogicalDropTrigger>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.GetContentsAs<LogicalDropTrigger>()->GetTriggerOid(), catalog::trigger_oid_t(1));
+  EXPECT_FALSE(op1.GetContentsAs<LogicalDropTrigger>()->IsIfExists());
 
   Operator op2 =
       LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false);
@@ -1572,10 +1572,10 @@ TEST(OperatorTests, LogicalDropViewTest) {
 
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALDROPVIEW);
   EXPECT_EQ(op1.GetName(), "LogicalDropView");
-  EXPECT_EQ(op1.As<LogicalDropView>()->GetDatabaseOid(), catalog::db_oid_t(1));
-  EXPECT_EQ(op1.As<LogicalDropView>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
-  EXPECT_EQ(op1.As<LogicalDropView>()->GetViewOid(), catalog::view_oid_t(1));
-  EXPECT_FALSE(op1.As<LogicalDropView>()->IsIfExists());
+  EXPECT_EQ(op1.GetContentsAs<LogicalDropView>()->GetDatabaseOid(), catalog::db_oid_t(1));
+  EXPECT_EQ(op1.GetContentsAs<LogicalDropView>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.GetContentsAs<LogicalDropView>()->GetViewOid(), catalog::view_oid_t(1));
+  EXPECT_FALSE(op1.GetContentsAs<LogicalDropView>()->IsIfExists());
 
   Operator op2 =
       LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false);

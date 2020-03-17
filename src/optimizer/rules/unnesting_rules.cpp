@@ -49,7 +49,7 @@ void UnnestMarkJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOptimiz
                                           std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                                           UNUSED_ATTRIBUTE OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("UnnestMarkJoinToInnerJoin::Transform");
-  UNUSED_ATTRIBUTE auto mark_join = input->Contents()->As<LogicalMarkJoin>();
+  UNUSED_ATTRIBUTE auto mark_join = input->Contents()->GetContentsAs<LogicalMarkJoin>();
   TERRIER_ASSERT(mark_join->GetJoinPredicates().empty(), "MarkJoin should have 0 predicates");
 
   auto join_children = input->GetChildren();
@@ -89,7 +89,7 @@ void UnnestSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOptim
                                             std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                                             UNUSED_ATTRIBUTE OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("UnnestSingleJoinToInnerJoin::Transform");
-  UNUSED_ATTRIBUTE auto single_join = input->Contents()->As<LogicalSingleJoin>();
+  UNUSED_ATTRIBUTE auto single_join = input->Contents()->GetContentsAs<LogicalSingleJoin>();
   TERRIER_ASSERT(single_join->GetJoinPredicates().empty(), "SingleJoin should have no predicates");
 
   auto join_children = input->GetChildren();

@@ -297,14 +297,14 @@ TEST_F(OptimizerContextTest, SingleWildcardTest) {
   EXPECT_TRUE(binding_iterator->HasNext());
 
   auto binding = binding_iterator->Next();
-  EXPECT_EQ(binding->Contents()->As<Operator>(), join->Contents()->As<Operator>());
+  EXPECT_EQ(binding->Contents()->GetContentsAs<Operator>(), join->Contents()->GetContentsAs<Operator>());
   EXPECT_EQ(binding->GetChildren().size(), 2);
 
   auto left = binding->GetChildren()[0].CastManagedPointerTo<OperatorNode>();
   auto right = binding->GetChildren()[1].CastManagedPointerTo<OperatorNode>();
   EXPECT_TRUE(*left == *right);
 
-  auto leaf = binding->GetChildren()[0]->Contents()->As<LeafOperator>();
+  auto leaf = binding->GetChildren()[0]->Contents()->GetContentsAs<LeafOperator>();
   EXPECT_TRUE(leaf != nullptr);
   EXPECT_EQ(leaf->GetOriginGroup(), gexpr->GetChildGroupId(0));
 

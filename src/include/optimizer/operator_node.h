@@ -72,7 +72,7 @@ class OperatorNode : public AbstractOptimizerNode {
                      "OperatorNode should have operator children");
 
       auto *child_op = dynamic_cast<OperatorNode *>(child.get());
-      auto *other_child_op = dynamic_cast<OperatorNode *>(child.get());
+      auto *other_child_op = dynamic_cast<OperatorNode *>(other_child.get());
 
       if (*child_op != *other_child_op) return false;
     }

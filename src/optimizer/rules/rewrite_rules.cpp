@@ -47,12 +47,12 @@ void RewritePushImplicitFilterThroughJoin::Transform(common::ManagedPointer<Abst
   auto &memo = context->GetOptimizerContext()->GetMemo();
   auto join_op_expr = input;
   auto join_children = join_op_expr->GetChildren();
-  auto left_group_id = join_children[0]->Contents()->As<LeafOperator>()->GetOriginGroup();
-  auto right_group_id = join_children[1]->Contents()->As<LeafOperator>()->GetOriginGroup();
+  auto left_group_id = join_children[0]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
+  auto right_group_id = join_children[1]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
 
   const auto &left_group_aliases_set = memo.GetGroupByID(left_group_id)->GetTableAliases();
   const auto &right_group_aliases_set = memo.GetGroupByID(right_group_id)->GetTableAliases();
-  auto &predicates = input->Contents()->As<LogicalInnerJoin>()->GetJoinPredicates();
+  auto &predicates = input->Contents()->GetContentsAs<LogicalInnerJoin>()->GetJoinPredicates();
 
   std::vector<AnnotatedExpression> left_predicates;
   std::vector<AnnotatedExpression> right_predicates;
@@ -140,13 +140,13 @@ void RewritePushExplicitFilterThroughJoin::Transform(common::ManagedPointer<Abst
   auto &memo = context->GetOptimizerContext()->GetMemo();
   auto join_op_expr = input->GetChildren()[0];
   auto join_children = join_op_expr->GetChildren();
-  auto left_group_id = join_children[0]->Contents()->As<LeafOperator>()->GetOriginGroup();
-  auto right_group_id = join_children[1]->Contents()->As<LeafOperator>()->GetOriginGroup();
+  auto left_group_id = join_children[0]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
+  auto right_group_id = join_children[1]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
 
   const auto &left_group_aliases_set = memo.GetGroupByID(left_group_id)->GetTableAliases();
   const auto &right_group_aliases_set = memo.GetGroupByID(right_group_id)->GetTableAliases();
-  auto &input_join_predicates = join_op_expr->Contents()->As<LogicalInnerJoin>()->GetJoinPredicates();
-  auto &filter_predicates = input->Contents()->As<LogicalFilter>()->GetPredicates();
+  auto &input_join_predicates = join_op_expr->Contents()->GetContentsAs<LogicalInnerJoin>()->GetJoinPredicates();
+  auto &filter_predicates = input->Contents()->GetContentsAs<LogicalFilter>()->GetPredicates();
 
   std::vector<AnnotatedExpression> left_predicates;
   std::vector<AnnotatedExpression> right_predicates;
@@ -234,9 +234,9 @@ void RewritePushFilterThroughAggregation::Transform(common::ManagedPointer<Abstr
                                                     std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                                                     UNUSED_ATTRIBUTE OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("RewritePushFilterThroughAggregation::Transform");
-  auto aggregation_op = input->GetChildren()[0]->Contents()->As<LogicalAggregateAndGroupBy>();
+  auto aggregation_op = input->GetChildren()[0]->Contents()->GetContentsAs<LogicalAggregateAndGroupBy>();
 
-  auto &predicates = input->Contents()->As<LogicalFilter>()->GetPredicates();
+  auto &predicates = input->Contents()->GetContentsAs<LogicalFilter>()->GetPredicates();
   std::vector<AnnotatedExpression> embedded_predicates;
   std::vector<AnnotatedExpression> pushdown_predicates;
 
@@ -305,8 +305,8 @@ void RewriteCombineConsecutiveFilter::Transform(common::ManagedPointer<AbstractO
                                                 std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                                                 UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto child_filter = input->GetChildren()[0];
-  std::vector<AnnotatedExpression> root_predicates = input->Contents()->As<LogicalFilter>()->GetPredicates();
-  std::vector<AnnotatedExpression> child_predicates = child_filter->Contents()->As<LogicalFilter>()->GetPredicates();
+  std::vector<AnnotatedExpression> root_predicates = input->Contents()->GetContentsAs<LogicalFilter>()->GetPredicates();
+  std::vector<AnnotatedExpression> child_predicates = child_filter->Contents()->GetContentsAs<LogicalFilter>()->GetPredicates();
   root_predicates.insert(root_predicates.end(), child_predicates.begin(), child_predicates.end());
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
@@ -338,9 +338,9 @@ bool RewriteEmbedFilterIntoGet::Check(common::ManagedPointer<AbstractOptimizerNo
 void RewriteEmbedFilterIntoGet::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
                                           std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                                           UNUSED_ATTRIBUTE OptimizationContext *context) const {
-  auto get = input->GetChildren()[0]->Contents()->As<LogicalGet>();
+  auto get = input->GetChildren()[0]->Contents()->GetContentsAs<LogicalGet>();
   std::string tbl_alias = std::string(get->GetTableAlias());
-  std::vector<AnnotatedExpression> predicates = input->Contents()->As<LogicalFilter>()->GetPredicates();
+  std::vector<AnnotatedExpression> predicates = input->Contents()->GetContentsAs<LogicalFilter>()->GetPredicates();
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto output =
       std::make_unique<OperatorNode>(LogicalGet::Make(get->GetDatabaseOid(), get->GetNamespaceOid(), get->GetTableOid(),
@@ -383,7 +383,7 @@ void RewritePullFilterThroughMarkJoin::Transform(common::ManagedPointer<Abstract
                                                  std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                                                  UNUSED_ATTRIBUTE OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("RewritePullFilterThroughMarkJoin::Transform");
-  UNUSED_ATTRIBUTE auto mark_join = input->Contents()->As<LogicalMarkJoin>();
+  UNUSED_ATTRIBUTE auto mark_join = input->Contents()->GetContentsAs<LogicalMarkJoin>();
   TERRIER_ASSERT(mark_join->GetJoinPredicates().empty(), "MarkJoin should have zero children");
 
   auto join_children = input->GetChildren();
@@ -435,9 +435,9 @@ void RewritePullFilterThroughAggregation::Transform(common::ManagedPointer<Abstr
   OPTIMIZER_LOG_TRACE("RewritePullFilterThroughAggregation::Transform");
   auto &memo = context->GetOptimizerContext()->GetMemo();
   auto filter_expr = input->GetChildren()[0];
-  auto child_group_id = filter_expr->GetChildren()[0]->Contents()->As<LeafOperator>()->GetOriginGroup();
+  auto child_group_id = filter_expr->GetChildren()[0]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
   const auto &child_group_aliases_set = memo.GetGroupByID(child_group_id)->GetTableAliases();
-  auto &predicates = filter_expr->Contents()->As<LogicalFilter>()->GetPredicates();
+  auto &predicates = filter_expr->Contents()->GetContentsAs<LogicalFilter>()->GetPredicates();
 
   std::vector<AnnotatedExpression> correlated_predicates;
   std::vector<AnnotatedExpression> normal_predicates;
@@ -463,7 +463,7 @@ void RewritePullFilterThroughAggregation::Transform(common::ManagedPointer<Abstr
     return;
   }
 
-  auto aggregation = input->Contents()->As<LogicalAggregateAndGroupBy>();
+  auto aggregation = input->Contents()->GetContentsAs<LogicalAggregateAndGroupBy>();
   for (auto &col : aggregation->GetColumns()) {
     new_groupby_cols.emplace_back(col);
   }

@@ -145,7 +145,7 @@ class OptimizerContext {
     for (auto &child : node->GetChildren()) {
       if (child->Contents()->GetOpType() == OpType::LEAF) {
         // Special case for LEAF
-        const auto leaf = child->Contents()->As<LeafOperator>();
+        const auto leaf = child->Contents()->GetContentsAs<LeafOperator>();
         auto child_group = leaf->GetOriginGroup();
         child_groups.push_back(child_group);
       } else {

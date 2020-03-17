@@ -79,7 +79,7 @@ class AbstractOptimizerNodeContents {
    * @return pointer to the re-interpreted node contents, nullptr if the types mismatch
    */
   template <typename T>
-  common::ManagedPointer<T> As() const {
+  common::ManagedPointer<T> GetContentsAs() const {
     if (contents_) {
       auto &n = *contents_;
       if (typeid(n) == typeid(T)) {

@@ -43,7 +43,7 @@ bool LogicalInnerJoinCommutativity::Check(common::ManagedPointer<AbstractOptimiz
 void LogicalInnerJoinCommutativity::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
                                               std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                                               UNUSED_ATTRIBUTE OptimizationContext *context) const {
-  auto join_op = input->Contents()->As<LogicalInnerJoin>();
+  auto join_op = input->Contents()->GetContentsAs<LogicalInnerJoin>();
   auto join_predicates = std::vector<AnnotatedExpression>(join_op->GetJoinPredicates());
 
   const auto &children = input->GetChildren();
@@ -90,13 +90,13 @@ void LogicalInnerJoinAssociativity::Transform(common::ManagedPointer<AbstractOpt
                                               OptimizationContext *context) const {
   // NOTE: Transforms (left JOIN middle) JOIN right -> left JOIN (middle JOIN
   // right) Variables are named accordingly to above transformation
-  auto parent_join = input->Contents()->As<LogicalInnerJoin>();
+  auto parent_join = input->Contents()->GetContentsAs<LogicalInnerJoin>();
   const auto &children = input->GetChildren();
   TERRIER_ASSERT(children.size() == 2, "There should be 2 children");
   TERRIER_ASSERT(children[0]->Contents()->GetOpType() == OpType::LOGICALINNERJOIN, "Left should be join");
   TERRIER_ASSERT(children[0]->GetChildren().size() == 2, "Left join should have 2 children");
 
-  auto child_join = children[0]->Contents()->As<LogicalInnerJoin>();
+  auto child_join = children[0]->Contents()->GetContentsAs<LogicalInnerJoin>();
   auto left = children[0]->GetChildren()[0];
   auto middle = children[0]->GetChildren()[1];
   auto right = children[1];
@@ -106,8 +106,8 @@ void LogicalInnerJoinAssociativity::Transform(common::ManagedPointer<AbstractOpt
 
   // Get Alias sets
   auto &memo = context->GetOptimizerContext()->GetMemo();
-  auto middle_group_id = middle->Contents()->As<LeafOperator>()->GetOriginGroup();
-  auto right_group_id = right->Contents()->As<LeafOperator>()->GetOriginGroup();
+  auto middle_group_id = middle->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
+  auto right_group_id = right->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
 
   const auto &middle_group_aliases_set = memo.GetGroupByID(middle_group_id)->GetTableAliases();
   const auto &right_group_aliases_set = memo.GetGroupByID(right_group_id)->GetTableAliases();
