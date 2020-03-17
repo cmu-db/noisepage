@@ -1225,11 +1225,10 @@ bool DropView::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNode *Analyze::Copy() const { return new Analyze(*this); }
 
-Operator Analyze::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+Operator Analyze::Make(catalog::db_oid_t database_oid,
                        catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns) {
   auto op = std::make_unique<Analyze>();
   op->database_oid_ = database_oid;
-  op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
   op->columns_ = std::move(columns);
   return Operator(std::move(op));
@@ -1238,7 +1237,6 @@ Operator Analyze::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t 
 common::hash_t Analyze::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashInRange(hash, columns_.begin(), columns_.end());
   return hash;
@@ -1248,7 +1246,6 @@ bool Analyze::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::ANALYZE) return false;
   const Analyze &node = *dynamic_cast<const Analyze *>(&r);
   if (database_oid_ != node.database_oid_) return false;
-  if (namespace_oid_ != node.namespace_oid_) return false;
   if (table_oid_ != node.table_oid_) return false;
   if (columns_ != node.columns_) return false;
   return true;

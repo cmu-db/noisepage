@@ -1798,7 +1798,6 @@ TEST_F(OperatorTransformerTest, AnalyzeTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
   binder_->BindNameToNode(statement, parse_tree.get());
-  auto ns_oid = accessor_->GetDefaultNamespace();
   auto col_a1_oid = accessor_->GetSchema(table_a_oid_).GetColumn("a1").Oid();
   operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
@@ -1810,7 +1809,6 @@ TEST_F(OperatorTransformerTest, AnalyzeTest) {
   auto logical_analyze = operator_tree_->GetOp().As<optimizer::LogicalAnalyze>();
   EXPECT_EQ(logical_analyze->GetColumns().size(), 1);
   EXPECT_EQ(logical_analyze->GetColumns().at(0), col_a1_oid);
-  EXPECT_EQ(logical_analyze->GetNamespaceOid(), ns_oid);
   EXPECT_EQ(logical_analyze->GetTableOid(), table_a_oid_);
   EXPECT_EQ(operator_tree_->GetChildren().size(), 0);
 
@@ -1829,7 +1827,6 @@ TEST_F(OperatorTransformerTest, AnalyzeTest) {
   auto physical_op = op.As<optimizer::Analyze>();
   EXPECT_EQ(physical_op->GetColumns().size(), 1);
   EXPECT_EQ(physical_op->GetColumns().at(0), col_a1_oid);
-  EXPECT_EQ(physical_op->GetNamespaceOid(), ns_oid);
   EXPECT_EQ(physical_op->GetTableOid(), table_a_oid_);
 
   optimizer::PlanGenerator plan_generator{};
@@ -1846,7 +1843,6 @@ TEST_F(OperatorTransformerTest, AnalyzeTest) {
   auto analyze_plan = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::AnalyzePlanNode>();
   EXPECT_EQ(analyze_plan->GetColumnOids().size(), 1);
   EXPECT_EQ(analyze_plan->GetColumnOids().at(0), col_a1_oid);
-  EXPECT_EQ(analyze_plan->GetNamespaceOid(), ns_oid);
   EXPECT_EQ(analyze_plan->GetTableOid(), table_a_oid_);
 }
 
@@ -1858,7 +1854,6 @@ TEST_F(OperatorTransformerTest, AnalyzeTest2) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
   binder_->BindNameToNode(statement, parse_tree.get());
-  auto ns_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
@@ -1868,7 +1863,6 @@ TEST_F(OperatorTransformerTest, AnalyzeTest2) {
   // Test logical analyze
   auto logical_analyze = operator_tree_->GetOp().As<optimizer::LogicalAnalyze>();
   EXPECT_EQ(logical_analyze->GetColumns().size(), 0);
-  EXPECT_EQ(logical_analyze->GetNamespaceOid(), ns_oid);
   EXPECT_EQ(logical_analyze->GetTableOid(), table_a_oid_);
   EXPECT_EQ(operator_tree_->GetChildren().size(), 0);
 
@@ -1886,7 +1880,6 @@ TEST_F(OperatorTransformerTest, AnalyzeTest2) {
   EXPECT_EQ(op.GetName(), "Analyze");
   auto physical_op = op.As<optimizer::Analyze>();
   EXPECT_EQ(physical_op->GetColumns().size(), 0);
-  EXPECT_EQ(physical_op->GetNamespaceOid(), ns_oid);
   EXPECT_EQ(physical_op->GetTableOid(), table_a_oid_);
 
   optimizer::PlanGenerator plan_generator{};
@@ -1902,7 +1895,6 @@ TEST_F(OperatorTransformerTest, AnalyzeTest2) {
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::ANALYZE);
   auto analyze_plan = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::AnalyzePlanNode>();
   EXPECT_EQ(analyze_plan->GetColumnOids().size(), 0);
-  EXPECT_EQ(analyze_plan->GetNamespaceOid(), ns_oid);
   EXPECT_EQ(analyze_plan->GetTableOid(), table_a_oid_);
 }
 }  // namespace terrier

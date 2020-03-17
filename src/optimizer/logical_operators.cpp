@@ -1197,11 +1197,10 @@ bool LogicalDropView::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNode *LogicalAnalyze::Copy() const { return new LogicalAnalyze(*this); }
 
-Operator LogicalAnalyze::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+Operator LogicalAnalyze::Make(catalog::db_oid_t database_oid,
                               catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns) {
   auto op = std::make_unique<LogicalAnalyze>();
   op->database_oid_ = database_oid;
-  op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
   op->columns_ = std::move(columns);
   return Operator(std::move(op));
@@ -1210,7 +1209,6 @@ Operator LogicalAnalyze::Make(catalog::db_oid_t database_oid, catalog::namespace
 common::hash_t LogicalAnalyze::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashInRange(hash, columns_.begin(), columns_.end());
   return hash;
@@ -1220,7 +1218,6 @@ bool LogicalAnalyze::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::LOGICALANALYZE) return false;
   const LogicalAnalyze &node = *dynamic_cast<const LogicalAnalyze *>(&r);
   if (database_oid_ != node.database_oid_) return false;
-  if (namespace_oid_ != node.namespace_oid_) return false;
   if (table_oid_ != node.table_oid_) return false;
   if (columns_ != node.columns_) return false;
   return true;

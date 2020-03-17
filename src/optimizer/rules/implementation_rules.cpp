@@ -966,7 +966,7 @@ void LogicalAnalyzeToPhysicalAnalyze::Transform(common::ManagedPointer<OperatorE
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalAnalyze should have 0 children");
 
   auto op =
-      std::make_unique<OperatorExpression>(Analyze::Make(logical_op->GetDatabaseOid(), logical_op->GetNamespaceOid(),
+      std::make_unique<OperatorExpression>(Analyze::Make(logical_op->GetDatabaseOid(),
                                                          logical_op->GetTableOid(), logical_op->GetColumns()),
                                            std::vector<std::unique_ptr<OperatorExpression>>());
 

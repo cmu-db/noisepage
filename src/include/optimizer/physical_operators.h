@@ -2081,11 +2081,6 @@ class Analyze : public OperatorNode<Analyze> {
   const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
 
   /**
-   * @return OID of the namespace
-   */
-  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
-
-  /**
    * @return OID of the table
    */
   const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
@@ -2100,11 +2095,6 @@ class Analyze : public OperatorNode<Analyze> {
    * OID of the database
    */
   catalog::db_oid_t database_oid_;
-
-  /**
-   * OID of the namespace
-   */
-  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * OID of the target table

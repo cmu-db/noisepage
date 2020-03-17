@@ -902,7 +902,6 @@ void PlanGenerator::Visit(const DropView *drop_view) {
 void PlanGenerator::Visit(const Analyze *analyze) {
   output_plan_ = planner::AnalyzePlanNode::Builder()
                      .SetDatabaseOid(analyze->GetDatabaseOid())
-                     .SetNamespaceOid(analyze->GetNamespaceOid())
                      .SetTableOid(analyze->GetTableOid())
                      .SetColumnOIDs(analyze->GetColumns())
                      .Build();
