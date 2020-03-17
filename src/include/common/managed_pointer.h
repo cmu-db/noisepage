@@ -1,6 +1,5 @@
 #pragma once
 #include <functional>
-#include <iostream>
 #include <memory>
 
 namespace terrier::common {

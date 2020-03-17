@@ -31,7 +31,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(transaction:
 
   // Generate initial operator tree from query tree
   GroupExpression *gexpr = nullptr;
-  UNUSED_ATTRIBUTE bool insert = context_->RecordOperatorNodeIntoGroup(common::ManagedPointer(op_tree), &gexpr);
+  UNUSED_ATTRIBUTE bool insert = context_->RecordOptimizerNodeIntoGroup(common::ManagedPointer(op_tree), &gexpr);
   TERRIER_ASSERT(insert && gexpr, "Logical expression tree should insert");
 
   group_id_t root_id = gexpr->GetGroupID();

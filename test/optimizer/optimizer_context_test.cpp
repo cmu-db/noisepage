@@ -133,9 +133,9 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateSingleLayer) {
   std::unique_ptr<OperatorNode> join_opnode = std::unique_ptr<OperatorNode>(test_opnode);
   auto join = std::unique_ptr<AbstractOptimizerNode>(join_opnode.release());
 
-  // RecordOperatorNodeIntoGroup
+  // RecordOptimizerNodeIntoGroup
   GroupExpression *join_gexpr;
-  EXPECT_TRUE(context.RecordOperatorNodeIntoGroup(common::ManagedPointer(join.get()), &join_gexpr));
+  EXPECT_TRUE(context.RecordOptimizerNodeIntoGroup(common::ManagedPointer(join.get()), &join_gexpr));
   EXPECT_TRUE(join_gexpr != nullptr);
 
   EXPECT_EQ(join_gexpr->Contents(), join->Contents());
@@ -182,9 +182,9 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateMultiLayer) {
   jjc.emplace_back(std::move(right_join));
   auto join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(jjc))->Copy();
 
-  // RecordOperatorNodeIntoGroup
+  // RecordOptimizerNodeIntoGroup
   GroupExpression *join_g_expr;
-  EXPECT_TRUE(context.RecordOperatorNodeIntoGroup(common::ManagedPointer(join), &join_g_expr));
+  EXPECT_TRUE(context.RecordOptimizerNodeIntoGroup(common::ManagedPointer(join), &join_g_expr));
   EXPECT_TRUE(join_g_expr != nullptr);
 
   EXPECT_EQ(join_g_expr->Contents(), join->Contents());
@@ -219,12 +219,12 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicate) {
   auto tbl_free = std::make_unique<OperatorNode>(TableFreeScan::Make(), std::move(c))->Copy();
 
   GroupExpression *tbl_free_gexpr;
-  EXPECT_TRUE(context.RecordOperatorNodeIntoGroup(common::ManagedPointer(tbl_free), &tbl_free_gexpr));
+  EXPECT_TRUE(context.RecordOptimizerNodeIntoGroup(common::ManagedPointer(tbl_free), &tbl_free_gexpr));
   EXPECT_TRUE(tbl_free_gexpr != nullptr);
 
   // Duplicate should return false
   GroupExpression *dup_free_gexpr;
-  EXPECT_TRUE(!context.RecordOperatorNodeIntoGroup(common::ManagedPointer(tbl_free), &dup_free_gexpr));
+  EXPECT_TRUE(!context.RecordOptimizerNodeIntoGroup(common::ManagedPointer(tbl_free), &dup_free_gexpr));
   EXPECT_TRUE(dup_free_gexpr != nullptr);
   EXPECT_EQ(tbl_free_gexpr, dup_free_gexpr);
 }
@@ -246,7 +246,7 @@ TEST_F(OptimizerContextTest, SimpleBindingTest) {
   auto join = common::ManagedPointer<AbstractOptimizerNode>(new OperatorNode(LogicalInnerJoin::Make(), std::move(jc)));
 
   GroupExpression *gexpr = nullptr;
-  EXPECT_TRUE(context.RecordOperatorNodeIntoGroup(join, &gexpr));
+  EXPECT_TRUE(context.RecordOptimizerNodeIntoGroup(join, &gexpr));
   EXPECT_TRUE(gexpr != nullptr);
 
   auto *pattern = new Pattern(OpType::LOGICALINNERJOIN);
@@ -286,7 +286,7 @@ TEST_F(OptimizerContextTest, SingleWildcardTest) {
   auto join = common::ManagedPointer<AbstractOptimizerNode>(new OperatorNode(LogicalInnerJoin::Make(), std::move(jc)));
 
   GroupExpression *gexpr = nullptr;
-  EXPECT_TRUE(context.RecordOperatorNodeIntoGroup(join, &gexpr));
+  EXPECT_TRUE(context.RecordOptimizerNodeIntoGroup(join, &gexpr));
   EXPECT_TRUE(gexpr != nullptr);
 
   auto *pattern = new Pattern(OpType::LOGICALINNERJOIN);

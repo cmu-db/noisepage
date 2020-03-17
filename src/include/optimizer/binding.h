@@ -41,7 +41,7 @@ class BindingIterator {
 
   /**
    * Virtual function for getting the next binding
-   * @returns next OperatorNode that matches
+   * @returns next AbstractOptimizerNode that matches
    */
   virtual std::unique_ptr<AbstractOptimizerNode> Next() = 0;
 
@@ -82,7 +82,7 @@ class GroupBindingIterator : public BindingIterator {
 
   /**
    * Virtual function for getting the next binding
-   * @returns next OperatorNode that matches
+   * @returns next AbstractOptimizerNode that matches
    */
   std::unique_ptr<AbstractOptimizerNode> Next() override;
 
@@ -141,7 +141,7 @@ class GroupExprBindingIterator : public BindingIterator {
   /**
    * Virtual function for getting the next binding
    * Pointer returned must be deleted by caller when done.
-   * @returns next OperatorNode that matches
+   * @returns next AbstractOptimizerNode that matches
    */
   std::unique_ptr<AbstractOptimizerNode> Next() override {
     TERRIER_ASSERT(current_binding_, "binding must exist");
