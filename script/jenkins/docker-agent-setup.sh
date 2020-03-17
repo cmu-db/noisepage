@@ -45,6 +45,10 @@ chown jenkins:jenkins /jenkins
 # setup the working directory for docker
 /share/testbed/bin/linux-localfs -d /dev/sdb1 -t ext4 /var/lib/docker
 
+# setup the ccache cache_dir
+install -d -m 1777 /jenkins/ccache
+echo 'max_size = 250G' > /jenkins/ccache/ccache.conf
+
 # install docker community edition from upstream
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
