@@ -5,7 +5,6 @@
 #include "optimizer/expression_node_contents.h"
 #include "optimizer/group.h"
 #include "optimizer/group_expression.h"
-#include "optimizer/operator_node_contents.h"
 #include "optimizer/rule.h"
 
 namespace terrier::optimizer {

@@ -94,16 +94,16 @@ class AbstractOptimizerNodeContents {
    * @return The hash of the node contents
    */
   virtual common::hash_t Hash() const {
-    OpType opType = GetOpType();
-    parser::ExpressionType expType = GetExpType();
-    return (opType != OpType::UNDEFINED) ? common::HashUtil::Hash(opType) : common::HashUtil::Hash(expType);
+    OpType op_type = GetOpType();
+    parser::ExpressionType exp_type = GetExpType();
+    return (op_type != OpType::UNDEFINED) ? common::HashUtil::Hash(op_type) : common::HashUtil::Hash(exp_type);
   }
 
  protected:
   /**
    * Internal contents for object
    */
-  common::ManagedPointer<AbstractOptimizerNodeContents> contents_;
+  common::ManagedPointer<AbstractOptimizerNodeContents> contents_{};
 };
 
 }  // namespace terrier::optimizer
