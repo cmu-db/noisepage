@@ -48,7 +48,7 @@ bool Operator::IsPhysical() const {
 
 common::hash_t Operator::Hash() const {
   if (IsDefined()) {
-    return contents_.CastManagedPointerTo<BaseOperatorNodeContents>()->Hash();
+    return contents_->Hash();
   }
   return 0;
 }

@@ -89,7 +89,11 @@ class AbstractOptimizerNodeContents {
     return nullptr;
   }
 
-  virtual common::hash_t Hash() {
+  /**
+   * Hashes the abstract optimizer node contents based on its op type and expression type.
+   * @return The hash of the node contents
+   */
+  virtual common::hash_t Hash() const {
     OpType opType = GetOpType();
     parser::ExpressionType expType = GetExpType();
     return (opType != OpType::UNDEFINED) ? common::HashUtil::Hash(opType) : common::HashUtil::Hash(expType);

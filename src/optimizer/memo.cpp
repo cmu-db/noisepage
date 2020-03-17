@@ -26,7 +26,6 @@ GroupExpression *Memo::InsertExpression(GroupExpression *gexpr, group_id_t targe
   if (it != group_expressions_.end()) {
     TERRIER_ASSERT(*gexpr == *(*it), "GroupExpression should be equal");
     delete gexpr;
-    std::cout << "already in hash table\n";
     return *it;
   }
 

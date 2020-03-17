@@ -35,14 +35,12 @@ void GroupExpression::SetLocalHashTable(PropertySet *output_properties,
 }
 
 common::hash_t GroupExpression::Hash() const {
-
   common::hash_t hash = contents_->Hash();
 
   for (group_id_t child_group : child_groups_) {
     common::hash_t child_hash = common::HashUtil::Hash<group_id_t>(child_group);
     hash = common::HashUtil::CombineHashes(hash, child_hash);
   }
-  std::cout << "hash=" << hash << "\n";
   return hash;
 }
 

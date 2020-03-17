@@ -26,19 +26,13 @@ void Group::EraseLogicalExpression() {
 }
 
 void Group::AddExpression(GroupExpression *expr, bool enforced) {
-  std::cout << ">> ADD EXPRESSION " << id_ << "\n";
   // Do duplicate detection
   expr->SetGroupID(id_);
   if (enforced) {
-    std::cout << " add to enforced expressions\n";
     enforced_exprs_.push_back(expr);
-  }
-  else if (expr->Contents()->IsPhysical()) {
-    std::cout << " add to physical expressions\n";
+  } else if (expr->Contents()->IsPhysical()) {
     physical_expressions_.push_back(expr);
-  }
-  else {
-    std::cout << " add to logical expressions\n";
+  } else {
     logical_expressions_.push_back(expr);
   }
 }

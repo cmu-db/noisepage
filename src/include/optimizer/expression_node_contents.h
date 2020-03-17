@@ -85,7 +85,7 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
   /**
    * @return The hash of this ExpressionNodeContents
    */
-  common::hash_t Hash() const {
+  common::hash_t Hash() const override {
     if (IsDefined()) {
       return expr_->Hash();
     }

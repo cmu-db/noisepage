@@ -49,7 +49,6 @@ RuleSet &OptimizerTask::GetRuleSet() const { return context_->GetOptimizerContex
 // OptimizeGroup
 //===--------------------------------------------------------------------===//
 void OptimizeGroup::Execute() {
-  std::cout << "OPTIMIZE GROUP\n";
   OPTIMIZER_LOG_TRACE("OptimizeGroup::Execute() group {0}", group_->GetID());
   if (group_->GetCostLB() > context_->GetCostUpperBound() ||                    // Cost LB > Cost UB
       group_->GetBestExpression(context_->GetRequiredProperties()) != nullptr)  // Has optimized given the context
@@ -58,14 +57,12 @@ void OptimizeGroup::Execute() {
   // Push explore task first for logical expressions if the group has not been explored
   if (!group_->HasExplored()) {
     for (auto &logical_expr : group_->GetLogicalExpressions()) {
-      std::cout << "  push optimize expression\n";
       PushTask(new OptimizeExpression(logical_expr, context_));
     }
   }
 
   // Push implement tasks to ensure that they are run first (for early pruning)
   for (auto &physical_expr : group_->GetPhysicalExpressions()) {
-    std::cout << "  push optimize expression with enforced property\n";
     PushTask(new OptimizeExpressionCostWithEnforcedProperty(physical_expr, context_));
   }
 
@@ -78,7 +75,6 @@ void OptimizeGroup::Execute() {
 // OptimizeExpression
 //===--------------------------------------------------------------------===//
 void OptimizeExpression::Execute() {
-  std::cout << "OPTIMIZE EXPRESSION\n";
   std::vector<RuleWithPromise> valid_rules;
 
   // Construct valid transformation rules from rule set
@@ -92,7 +88,6 @@ void OptimizeExpression::Execute() {
                       static_cast<int>(group_expr_->Contents()->GetOpType()), valid_rules.size());
   // Apply rule
   for (auto &r : valid_rules) {
-    std::cout << "  push apply rule\n";
     PushTask(new ApplyRule(group_expr_, r.GetRule(), context_));
     int child_group_idx = 0;
     for (auto &child_pattern : r.GetRule()->GetMatchPattern()->Children()) {
@@ -100,7 +95,6 @@ void OptimizeExpression::Execute() {
       // child before applying the rule. (assumes task pool is effectively a stack)
       if (child_pattern->GetChildPatternsSize() > 0) {
         Group *group = GetMemo().GetGroupByID(group_expr_->GetChildGroupIDs()[child_group_idx]);
-        std::cout << "  push explore group " << group_expr_->GetChildGroupIDs()[child_group_idx] << "\n";
         PushTask(new ExploreGroup(group, context_));
       }
 
@@ -113,13 +107,10 @@ void OptimizeExpression::Execute() {
 // ExploreGroup
 //===--------------------------------------------------------------------===//
 void ExploreGroup::Execute() {
-  std::cout << "EXPLORE GROUP " << group_->GetID() << "\n";
-
   if (group_->HasExplored()) return;
   OPTIMIZER_LOG_TRACE("ExploreGroup::Execute() ");
 
   for (auto &logical_expr : group_->GetLogicalExpressions()) {
-    std::cout << "  push explore expression\n";
     PushTask(new ExploreExpression(logical_expr, context_));
   }
 
@@ -132,8 +123,6 @@ void ExploreGroup::Execute() {
 // ExploreExpression
 //===--------------------------------------------------------------------===//
 void ExploreExpression::Execute() {
-
-  std::cout << "EXPLORE EXPRESSION\n";
   OPTIMIZER_LOG_TRACE("ExploreExpression::Execute() ");
   std::vector<RuleWithPromise> valid_rules;
 
@@ -144,7 +133,6 @@ void ExploreExpression::Execute() {
 
   // Apply rule
   for (auto &r : valid_rules) {
-    std::cout << "  push apply rule\n";
     PushTask(new ApplyRule(group_expr_, r.GetRule(), context_, true));
     int child_group_idx = 0;
     for (auto &child_pattern : r.GetRule()->GetMatchPattern()->Children()) {
@@ -152,7 +140,6 @@ void ExploreExpression::Execute() {
       // current group. this condition is important for early-pruning
       if (child_pattern->GetChildPatternsSize() > 0) {
         Group *group = GetMemo().GetGroupByID(group_expr_->GetChildGroupIDs()[child_group_idx]);
-        std::cout << "  push explore group " << group->GetID() << "\n";
         PushTask(new ExploreGroup(group, context_));
       }
 
@@ -165,8 +152,6 @@ void ExploreExpression::Execute() {
 // ApplyRule
 //===--------------------------------------------------------------------===//
 void ApplyRule::Execute() {
-
-  std::cout << "APPLY RULE\n";
   OPTIMIZER_LOG_TRACE("ApplyRule::Execute() for rule: {0}", rule_->GetRuleIdx());
   if (group_expr_->HasRuleExplored(rule_)) return;
 
@@ -188,20 +173,16 @@ void ApplyRule::Execute() {
         // A new group expression is generated
         if (new_gexpr->Contents()->IsLogical()) {
           // Derive stats for the *logical expression*
-          std::cout << "  push derive stats\n";
           PushTask(new DeriveStats(new_gexpr, ExprSet{}, context_));
           if (explore_only_) {
             // Explore this logical expression
-            std::cout << "  push explore expression\n";
             PushTask(new ExploreExpression(new_gexpr, context_));
           } else {
             // Optimize this logical expression
-            std::cout << "  push optimize expression\n";
             PushTask(new OptimizeExpression(new_gexpr, context_));
           }
         } else {
           // Cost this physical expression and optimize its inputs
-          std::cout << "  push optimize expression cost with enforced property\n";
           PushTask(new OptimizeExpressionCostWithEnforcedProperty(new_gexpr, context_));
         }
       }
@@ -215,8 +196,6 @@ void ApplyRule::Execute() {
 // DeriveStats
 //===--------------------------------------------------------------------===//
 void DeriveStats::Execute() {
-
-  std::cout << "DERIVE STATS\n";
   // First do a top-down pass to get stats for required columns, then do a
   // bottom-up pass to calculate the stats
   ChildStatsDeriver deriver;
@@ -242,10 +221,8 @@ void DeriveStats::Execute() {
       if (!derive_children) {
         derive_children = true;
         // Derive stats for root later
-        std::cout << "  push derive stats\n";
         PushTask(new DeriveStats(this));
       }
-      std::cout << "  push derive stats\n";
       PushTask(new DeriveStats(child_group_gexpr, child_required_stats, context_));
     }
   }
@@ -264,8 +241,6 @@ void DeriveStats::Execute() {
 // OptimizeExpressionCostWithEnforcedProperty
 //===--------------------------------------------------------------------===//
 void OptimizeExpressionCostWithEnforcedProperty::Execute() {
-
-  std::cout << "OPTIMIZE EXPRESSION COST WITH ENFORCED PROPERTY\n";
   // Init logic: only run once per task
   OPTIMIZER_LOG_TRACE("OptimizeExpressionCostWithEnforcedProperty::Execute() ");
   if (cur_child_idx_ == -1) {
@@ -318,12 +293,10 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
         if (cur_total_cost_ > context_->GetCostUpperBound()) break;
       } else if (prev_child_idx_ != cur_child_idx_) {  // We haven't optimized child group
         prev_child_idx_ = cur_child_idx_;
-        std::cout << "  push optimize expression cost with enforced property\n";
         PushTask(new OptimizeExpressionCostWithEnforcedProperty(this));
 
         auto cost_high = context_->GetCostUpperBound() - cur_total_cost_;
         auto ctx = new OptimizationContext(context_->GetOptimizerContext(), i_prop->Copy(), cost_high);
-        std::cout << "  push optimize group\n";
         PushTask(new OptimizeGroup(child_group, ctx));
         context_->GetOptimizerContext()->AddOptimizationContext(ctx);
         return;
@@ -407,10 +380,7 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
 }
 
 void TopDownRewrite::Execute() {
-  std::cout << "TOP DOWN REWRITE\n";
   std::vector<RuleWithPromise> valid_rules;
-
-  std::cout << "  group id: " << group_id_ << "\n";
 
   auto cur_group = GetMemo().GetGroupByID(group_id_);
   auto cur_group_expr = cur_group->GetLogicalExpression();
@@ -427,7 +397,6 @@ void TopDownRewrite::Execute() {
     GroupExprBindingIterator iterator(GetMemo(), cur_group_expr, rule->GetMatchPattern());
     if (iterator.HasNext()) {
       auto before = iterator.Next();
-      std::cout << "Rule type: " << (int)rule->GetType() << ", " << (int) RuleType::EMBED_FILTER_INTO_GET << "\n";
       TERRIER_ASSERT(!iterator.HasNext(), "there should only be 1 binding");
       std::vector<std::unique_ptr<AbstractOptimizerNode>> after;
       rule->Transform(common::ManagedPointer(before.get()), &after, context_);
@@ -436,10 +405,8 @@ void TopDownRewrite::Execute() {
       TERRIER_ASSERT(after.size() <= 1, "rule provided too many transformations");
       if (!after.empty()) {
         auto &new_expr = after[0];
-        std::cout << "  pre-replace memo logical expression size: " << GetMemo().GetGroupByID(group_id_)->GetLogicalExpressions().size() << "\n";
-        context_->GetOptimizerContext()->ReplaceRewriteExpression(common::ManagedPointer(new_expr.release()), group_id_);
-        std::cout << "  post-replace memo logical expression size: " << GetMemo().GetGroupByID(group_id_)->GetLogicalExpressions().size() << "\n";
-        std::cout << "  push top town rewrite (location A)\n";
+        context_->GetOptimizerContext()->ReplaceRewriteExpression(common::ManagedPointer(new_expr.release()),
+                                                                  group_id_);
         PushTask(new TopDownRewrite(group_id_, context_, rule_set_name_));
         return;
       }
@@ -452,23 +419,17 @@ void TopDownRewrite::Execute() {
     // Need to rewrite all sub trees first
     auto id = cur_group_expr->GetChildGroupId(static_cast<int>(child_group_idx));
     auto task = new TopDownRewrite(id, context_, rule_set_name_);
-    std::cout << "  push top town rewrite (location B)\n";
     PushTask(task);
   }
 }
 
 void BottomUpRewrite::Execute() {
-
-  std::cout << "BOTTOM UP REWRITE\n";
   std::vector<RuleWithPromise> valid_rules;
-
-  std::cout << "  group id: " << group_id_ << "\n";
 
   auto cur_group = GetMemo().GetGroupByID(group_id_);
   auto cur_group_expr = cur_group->GetLogicalExpression();
 
   if (!has_optimized_child_) {
-    std::cout << "  push bottom up rewrite\n";
     PushTask(new BottomUpRewrite(group_id_, context_, rule_set_name_, true));
 
     size_t size = cur_group_expr->GetChildrenGroupsSize();
@@ -476,7 +437,6 @@ void BottomUpRewrite::Execute() {
       // Need to rewrite all sub trees first
       auto id = cur_group_expr->GetChildGroupId(static_cast<int>(child_group_idx));
       auto task = new BottomUpRewrite(id, context_, rule_set_name_, false);
-      std::cout << "  push bottom up rewrite\n";
       PushTask(task);
     }
     return;
@@ -506,7 +466,6 @@ void BottomUpRewrite::Execute() {
       if (!after.empty()) {
         auto &new_expr = after[0];
         context_->GetOptimizerContext()->ReplaceRewriteExpression(common::ManagedPointer(new_expr.get()), group_id_);
-        std::cout << "  push bottom up rewrite\n";
         PushTask(new BottomUpRewrite(group_id_, context_, rule_set_name_, false));
         return;
       }
