@@ -1,5 +1,5 @@
 #include "storage/write_ahead_log/disk_log_consumer_task.h"
-
+#include "common/resource_tracker.h"
 #include "common/scoped_timer.h"
 #include "common/thread_context.h"
 #include "metrics/metrics_store.h"
@@ -54,7 +54,18 @@ uint64_t DiskLogConsumerTask::PersistLogFile() {
 }
 
 void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
-  uint64_t write_us = 0, persist_us = 0, num_bytes = 0, num_buffers = 0;
+  // input for this operating unit
+  uint64_t num_bytes = 0, num_buffers = 0;
+
+  bool logging_metrics_enabled =
+      common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
+
+  if (logging_metrics_enabled) {
+    // start the operating unit resource tracker
+    common::thread_context.resource_tracker_.Start();
+  }
+
   // Keeps track of how much data we've written to the log file since the last persist
   current_data_written_ = 0;
   // Time since last log file persist
@@ -74,13 +85,8 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
                                           [&] { return do_persist_ || !filled_buffer_queue_->Empty() || !run_task_; });
     }
 
-    uint64_t elapsed_us = 0;
-    {
-      common::ScopedTimer<std::chrono::microseconds> scoped_timer(&elapsed_us);
-      // Flush all the buffers to the log file
-      WriteBuffersToLogFile();
-    }
-    write_us += elapsed_us;
+    // Flush all the buffers to the log file
+    WriteBuffersToLogFile();
 
     // We persist the log file if the following conditions are met
     // 1) The persist interval amount of time has passed since the last persist
@@ -90,25 +96,28 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
     bool timeout = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() -
                                                                          last_persist) > persist_interval_;
     if (timeout || current_data_written_ > persist_threshold_ || do_persist_ || !run_task_) {
-      common::ScopedTimer<std::chrono::microseconds> scoped_timer(&elapsed_us);
-      {
-        std::unique_lock<std::mutex> lock(persist_lock_);
-        num_buffers = PersistLogFile();
-        num_bytes = current_data_written_;
-        // Reset meta data
-        last_persist = std::chrono::high_resolution_clock::now();
-        current_data_written_ = 0;
-        do_persist_ = false;
-      }
+      std::unique_lock<std::mutex> lock(persist_lock_);
+      num_buffers = PersistLogFile();
+      num_bytes = current_data_written_;
+      // Reset meta data
+      last_persist = std::chrono::high_resolution_clock::now();
+      current_data_written_ = 0;
+      do_persist_ = false;
+
       // Signal anyone who forced a persist that the persist has finished
       persist_cv_.notify_all();
     }
-    persist_us = elapsed_us;
 
-    if (num_bytes > 0 && common::thread_context.metrics_store_ != nullptr &&
-        common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::LOGGING)) {
-      common::thread_context.metrics_store_->RecordConsumerData(write_us, persist_us, num_bytes, num_buffers);
-      write_us = persist_us = num_bytes = num_buffers = 0;
+    if (logging_metrics_enabled) {
+      // Stop the resource tracker for this operating unit
+      common::thread_context.resource_tracker_.Stop();
+      if (num_bytes > 0) {
+        auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+        common::thread_context.metrics_store_->RecordConsumerData(num_bytes, num_buffers, resource_metrics);
+      }
+      num_bytes = num_buffers = 0;
+      // start the operating unit resource tracker
+      common::thread_context.resource_tracker_.Start();
     }
   } while (run_task_);
   // Be extra sure we processed everything

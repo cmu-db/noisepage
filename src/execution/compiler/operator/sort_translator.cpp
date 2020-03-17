@@ -8,7 +8,7 @@
 
 namespace terrier::execution::compiler {
 SortBottomTranslator::SortBottomTranslator(const terrier::planner::OrderByPlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(codegen),
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::SORT_BUILD),
       op_(op),
       sorter_(codegen_->NewIdentifier("sorter")),
       sorter_row_(codegen_->NewIdentifier("sorter_row")),
@@ -30,17 +30,35 @@ void SortBottomTranslator::Consume(FunctionBuilder *builder) {
   GenSorterInsert(builder);
   // Then fill in the values
   FillSorterRow(builder);
+  // If this has a limit, call finish topK.
+  if (op_->HasLimit()) {
+    GenFinishTopK(builder);
+  }
 }
 
 void SortBottomTranslator::GenSorterInsert(FunctionBuilder *builder) {
   // var sorter_row = @ptrCast(*SorterStruct, @sorterInsert(&state.sorter))
-  ast::Expr *insert_call = codegen_->OneArgStateCall(ast::Builtin::SorterInsert, sorter_);
+  ast::Expr *insert_call;
+  if (op_->HasLimit()) {
+    ast::Expr *sorter = codegen_->GetStateMemberPtr(sorter_);
+    ast::Expr *k = codegen_->IntLiteral(op_->GetLimit() + op_->GetOffset());
+    insert_call = codegen_->BuiltinCall(ast::Builtin::SorterInsertTopK, {sorter, k});
+  } else {
+    insert_call = codegen_->OneArgStateCall(ast::Builtin::SorterInsert, sorter_);
+  }
 
   // Gen create @ptrcast(*SorterStruct, ...)
   ast::Expr *cast_call = codegen_->PtrCast(sorter_struct_, insert_call);
 
   // Declare var sorter_row
   builder->Append(codegen_->DeclareVariable(sorter_row_, nullptr, cast_call));
+}
+
+void SortBottomTranslator::GenFinishTopK(FunctionBuilder *builder) {
+  ast::Expr *sorter = codegen_->GetStateMemberPtr(sorter_);
+  ast::Expr *k = codegen_->IntLiteral(op_->GetLimit() + op_->GetOffset());
+  auto finish_call = codegen_->BuiltinCall(ast::Builtin::SorterInsertTopKFinish, {sorter, k});
+  builder->Append(codegen_->MakeStmt(finish_call));
 }
 
 void SortBottomTranslator::FillSorterRow(FunctionBuilder *builder) {
@@ -155,10 +173,11 @@ void SortBottomTranslator::GenComparisons(FunctionBuilder *builder) {
 
 SortTopTranslator::SortTopTranslator(const terrier::planner::OrderByPlanNode *op, CodeGen *codegen,
                                      OperatorTranslator *bottom)
-    : OperatorTranslator(codegen),
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::SORT_ITERATE),
       op_(op),
       bottom_(dynamic_cast<SortBottomTranslator *>(bottom)),
-      sort_iter_(codegen_->NewIdentifier("sort_iter")) {}
+      sort_iter_(codegen_->NewIdentifier("sort_iter")),
+      num_tuples_(codegen->NewIdentifier("limit")) {}
 
 void SortTopTranslator::Produce(FunctionBuilder *builder) {
   // Declare the iterator
@@ -186,6 +205,10 @@ void SortTopTranslator::Consume(FunctionBuilder *builder) {
   parent_translator_->Consume(builder);
   // Close the iterator after the loop ends.
   builder->FinishBlockStmt();
+  if (op_->HasLimit() && op_->GetOffset() != 0) {
+    // Close the if statement for the offset
+    builder->FinishBlockStmt();
+  }
   CloseIterator(builder);
 }
 
@@ -200,14 +223,24 @@ void SortTopTranslator::DeclareIterator(FunctionBuilder *builder) {
 }
 
 void SortTopTranslator::GenForLoop(FunctionBuilder *builder) {
+  if (op_->GetOffset() != 0) {
+    // Declare Limit variable.
+    builder->Append(codegen_->DeclareVariable(num_tuples_, nullptr, codegen_->IntLiteral(0)));
+  }
   // for (; @sorterIterHasNext(&sort_iter); @sorterIterNext(&sort_iter))
   // Loop condition
   ast::Expr *has_next_call = codegen_->OneArgCall(ast::Builtin::SorterIterHasNext, sort_iter_, true);
-  // Loop update
   ast::Expr *next_call = codegen_->OneArgCall(ast::Builtin::SorterIterNext, sort_iter_, true);
   ast::Stmt *loop_update = codegen_->MakeStmt(next_call);
-  // Make the loop
   builder->StartForStmt(nullptr, has_next_call, loop_update);
+  if (op_->HasLimit() && op_->GetOffset() != 0) {
+    auto lhs = codegen_->MakeExpr(num_tuples_);
+    auto rhs = codegen_->BinaryOp(parsing::Token::Type::PLUS, codegen_->MakeExpr(num_tuples_), codegen_->IntLiteral(1));
+    builder->Append(codegen_->Assign(lhs, rhs));
+    ast::Expr *offset_comp = codegen_->Compare(parsing::Token::Type::GREATER, codegen_->MakeExpr(num_tuples_),
+                                               codegen_->IntLiteral(op_->GetOffset()));
+    builder->StartIfStmt(offset_comp);
+  }
 }
 
 void SortTopTranslator::CloseIterator(FunctionBuilder *builder) {

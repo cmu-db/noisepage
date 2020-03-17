@@ -1,6 +1,7 @@
 #pragma once
 #include <list>
 #include <set>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -46,7 +47,7 @@ class SqlTable {
    * @param store the Block store to use.
    * @param schema the initial Schema of this SqlTable
    */
-  SqlTable(BlockStore *store, const catalog::Schema &schema);
+  SqlTable(common::ManagedPointer<BlockStore> store, const catalog::Schema &schema);
 
   /**
    * Destructs a SqlTable, frees all its members.
@@ -207,7 +208,8 @@ class SqlTable {
   friend class terrier::LargeSqlTableTestObject;
   friend class RecoveryTests;
 
-  BlockStore *const block_store_;
+  const common::ManagedPointer<BlockStore>
+      block_store_;  // TODO(Matt): do we need this stashed at this layer? We don't use it.
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   DataTableVersion table_;

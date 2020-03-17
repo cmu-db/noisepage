@@ -232,6 +232,9 @@ std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(ParseResult *p
       throw PARSER_EXCEPTION("ExprTransform: unsupported type");
     }
   }
+  if (alias != nullptr) {
+    expr->SetAlias(alias);
+  }
   return expr;
 }
 
@@ -843,17 +846,19 @@ std::unique_ptr<TableRef> PostgresParser::FromTransform(ParseResult *parse_resul
 // Postgres.SelectStmt.groupClause -> terrier.GroupByDescription
 std::unique_ptr<GroupByDescription> PostgresParser::GroupByTransform(ParseResult *parse_result, List *group,
                                                                      Node *having_node) {
-  if (group == nullptr) {
+  if (group == nullptr && having_node == nullptr) {
     return nullptr;
   }
 
   std::vector<common::ManagedPointer<AbstractExpression>> columns;
-  for (auto cell = group->head; cell != nullptr; cell = cell->next) {
-    auto temp = reinterpret_cast<Node *>(cell->data.ptr_value);
-    auto expr = ExprTransform(parse_result, temp, nullptr);
-    auto expr_ptr = common::ManagedPointer(expr);
-    parse_result->AddExpression(std::move(expr));
-    columns.emplace_back(expr_ptr);
+  if (group != nullptr) {
+    for (auto cell = group->head; cell != nullptr; cell = cell->next) {
+      auto temp = reinterpret_cast<Node *>(cell->data.ptr_value);
+      auto expr = ExprTransform(parse_result, temp, nullptr);
+      auto expr_ptr = common::ManagedPointer(expr);
+      parse_result->AddExpression(std::move(expr));
+      columns.emplace_back(expr_ptr);
+    }
   }
 
   // TODO(WAN): old system says, having clauses not implemented, depends on AExprTransform
@@ -1878,6 +1883,10 @@ PostgresParser::ValueListsTransform(ParseResult *parse_result, List *root) {
         }
         case T_A_Const: {
           expr = ConstTransform(parse_result, reinterpret_cast<A_Const *>(expr_pg));
+          break;
+        }
+        case T_A_Expr: {
+          expr = AExprTransform(parse_result, reinterpret_cast<A_Expr *>(expr_pg));
           break;
         }
         case T_TypeCast: {

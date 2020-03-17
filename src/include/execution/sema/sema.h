@@ -117,6 +117,7 @@ class Sema : public ast::AstVisitor<Sema> {
   // Dispatched from VisitCall() to handle builtin functions
   void CheckBuiltinCall(ast::CallExpr *call);
   void CheckBuiltinMapCall(ast::CallExpr *call);
+  void CheckBuiltinSqlNullCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinFilterCall(ast::CallExpr *call);
   void CheckBuiltinAggHashTableCall(ast::CallExpr *call, ast::Builtin builtin);
@@ -132,7 +133,7 @@ class Sema : public ast::AstVisitor<Sema> {
   void CheckBuiltinJoinHashTableBuild(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinJoinHashTableFree(ast::CallExpr *call);
   void CheckBuiltinSorterInit(ast::CallExpr *call);
-  void CheckBuiltinSorterInsert(ast::CallExpr *call);
+  void CheckBuiltinSorterInsert(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinSorterSort(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinSorterFree(ast::CallExpr *call);
   void CheckBuiltinSorterIterCall(ast::CallExpr *call, ast::Builtin builtin);

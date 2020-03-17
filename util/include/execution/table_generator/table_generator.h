@@ -5,8 +5,10 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog.h"
 #include "execution/exec/execution_context.h"
+#include "execution/table_generator/table_reader.h"
 #include "parser/expression/constant_value_expression.h"
 #include "transaction/transaction_context.h"
 #include "type/transient_value_factory.h"
@@ -39,23 +41,25 @@ class TableGenerator {
    * @param store block store to use when creating tables
    * @param ns_oid oid of the namespace
    */
-  explicit TableGenerator(exec::ExecutionContext *exec_ctx, storage::BlockStore *store, catalog::namespace_oid_t ns_oid)
+  explicit TableGenerator(exec::ExecutionContext *exec_ctx, common::ManagedPointer<storage::BlockStore> store,
+                          catalog::namespace_oid_t ns_oid)
       : exec_ctx_{exec_ctx}, store_{store}, ns_oid_{ns_oid} {}
 
   /**
    * Generate test tables.
+   * @param is_mini_runner is this generation used for the mini runner
    */
-  void GenerateTestTables();
+  void GenerateTestTables(bool is_mini_runner);
 
  private:
   exec::ExecutionContext *exec_ctx_;
-  storage::BlockStore *store_;
+  const common::ManagedPointer<storage::BlockStore> store_;
   catalog::namespace_oid_t ns_oid_;
 
   /**
    * Enumeration to characterize the distribution of values in a given column
    */
-  enum class Dist : uint8_t { Uniform, Zipf_50, Zipf_75, Zipf_95, Zipf_99, Serial };
+  enum class Dist : uint8_t { Uniform, Serial, Rotate };
 
   /**
    * Metadata about the data for a given column. Specifically, the type of the
@@ -65,11 +69,11 @@ class TableGenerator {
     /**
      * Name of the column
      */
-    const char *name_;
+    std::string name_;
     /**
      * Type of the column
      */
-    const type::TypeId type_;
+    type::TypeId type_;
     /**
      * Whether the column is nullable
      */
@@ -98,8 +102,8 @@ class TableGenerator {
     /**
      * Constructor
      */
-    ColumnInsertMeta(const char *name, const type::TypeId type, bool nullable, Dist dist, uint64_t min, uint64_t max)
-        : name_(name), type_(type), nullable_(nullable), dist_(dist), min_(min), max_(max) {}
+    ColumnInsertMeta(std::string name, const type::TypeId type, bool nullable, Dist dist, uint64_t min, uint64_t max)
+        : name_(std::move(name)), type_(type), nullable_(nullable), dist_(dist), min_(min), max_(max) {}
   };
 
   /**
@@ -110,7 +114,7 @@ class TableGenerator {
     /**
      * Name of the table
      */
-    const char *name_;
+    std::string name_;
     /**
      * Number of rows
      */
@@ -123,8 +127,8 @@ class TableGenerator {
     /**
      * Constructor
      */
-    TableInsertMeta(const char *name, uint32_t num_rows, std::vector<ColumnInsertMeta> col_meta)
-        : name_(name), num_rows_(num_rows), col_meta_(std::move(col_meta)) {}
+    TableInsertMeta(std::string name, uint32_t num_rows, std::vector<ColumnInsertMeta> col_meta)
+        : name_(std::move(name)), num_rows_(num_rows), col_meta_(std::move(col_meta)) {}
   };
 
   /**
@@ -178,6 +182,11 @@ class TableGenerator {
     IndexInsertMeta(const char *index_name, const char *table_name, std::vector<IndexColumn> cols)
         : index_name_(index_name), table_name_(table_name), cols_(std::move(cols)) {}
   };
+
+  /**
+   * Generate the tables for the mini runner
+   */
+  std::vector<TableInsertMeta> GenerateMiniRunnerTableMetas();
 
   void InitTestIndexes();
 

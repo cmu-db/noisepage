@@ -37,6 +37,34 @@ bool AreAllFunctions(const ArgTypes... type) {
 
 void Sema::CheckBuiltinMapCall(UNUSED_ATTRIBUTE ast::CallExpr *call) {}
 
+void Sema::CheckBuiltinSqlNullCall(ast::CallExpr *call, ast::Builtin builtin) {
+  if (!CheckArgCount(call, 1)) {
+    return;
+  }
+  auto input_type = call->Arguments()[0]->GetType();
+  switch (builtin) {
+    case ast::Builtin::IsSqlNull: /* fall-through */
+    case ast::Builtin::IsSqlNotNull: {
+      if (!input_type->IsSqlValueType()) {
+        ReportIncorrectCallArg(call, 0, "sql_type");
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
+      break;
+    }
+    case ast::Builtin::NullToSql: {
+      if (!input_type->IsPointerType() || !input_type->GetPointeeType()->IsSqlValueType()) {
+        ReportIncorrectCallArg(call, 0, "&sql_type");
+        return;
+      }
+      call->SetType(input_type->GetPointeeType());
+      break;
+    }
+    default:
+      UNREACHABLE("Unsupported NULL type.");
+  }
+}
+
 void Sema::CheckBuiltinSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
   // SQL Date.
   if (builtin == ast::Builtin::DateToSql) {
@@ -797,7 +825,26 @@ void Sema::CheckBuiltinJoinHashTableIterClose(execution::ast::CallExpr *call) {
 }
 
 void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, UNUSED_ATTRIBUTE ast::Builtin builtin) {
-  if (!CheckArgCount(call, 1)) {
+  uint32_t expected_arg_count = 1;
+
+  switch (builtin) {
+    case ast::Builtin::ExecutionContextStartResourceTracker:
+      expected_arg_count = 2;
+      break;
+    case ast::Builtin::ExecutionContextEndResourceTracker:
+      expected_arg_count = 2;
+      break;
+    case ast::Builtin::ExecutionContextEndPipelineTracker:
+      expected_arg_count = 3;
+      break;
+    case ast::Builtin::ExecutionContextGetMemoryPool:
+      expected_arg_count = 1;
+      break;
+    default:
+      UNREACHABLE("Impossible execution context call");
+  }
+
+  if (!CheckArgCount(call, expected_arg_count)) {
     return;
   }
 
@@ -809,8 +856,49 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, UNUSED_ATTRIBUT
     return;
   }
 
-  auto mem_pool_kind = ast::BuiltinType::MemoryPool;
-  call->SetType(GetBuiltinType(mem_pool_kind)->PointerTo());
+  switch (builtin) {
+    case ast::Builtin::ExecutionContextEndResourceTracker: {
+      // Second argument is a string name
+      if (!call_args[1]->GetType()->IsSqlValueType()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::StringVal));
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::ExecutionContextEndPipelineTracker: {
+      // query_id
+      if (!call_args[1]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint64));
+        return;
+      }
+      // pipeline_id
+      if (!call_args[2]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Uint64));
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::ExecutionContextStartResourceTracker: {
+      // MetricsComponent
+      if (!call_args[1]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint64));
+        return;
+      }
+      // Init returns nil
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::ExecutionContextGetMemoryPool: {
+      auto mem_pool_kind = ast::BuiltinType::MemoryPool;
+      call->SetType(GetBuiltinType(mem_pool_kind)->PointerTo());
+      break;
+    }
+    default: {
+      UNREACHABLE("Impossible execution context call");
+    }
+  }
 }
 
 void Sema::CheckBuiltinThreadStateContainerCall(ast::CallExpr *call, ast::Builtin builtin) {
@@ -1326,8 +1414,8 @@ void Sema::CheckBuiltinSorterInit(ast::CallExpr *call) {
   call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
 }
 
-void Sema::CheckBuiltinSorterInsert(ast::CallExpr *call) {
-  if (!CheckArgCount(call, 1)) {
+void Sema::CheckBuiltinSorterInsert(ast::CallExpr *call, ast::Builtin builtin) {
+  if (!CheckArgCountAtLeast(call, 1)) {
     return;
   }
 
@@ -1338,8 +1426,43 @@ void Sema::CheckBuiltinSorterInsert(ast::CallExpr *call) {
     return;
   }
 
-  // This call returns nothing
-  call->SetType(GetBuiltinType(ast::BuiltinType::Uint8)->PointerTo());
+  switch (builtin) {
+    case ast::Builtin::SorterInsert: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+      // This call returns a byte buffer
+      call->SetType(GetBuiltinType(ast::BuiltinType::Uint8)->PointerTo());
+      break;
+    }
+    case ast::Builtin::SorterInsertTopK: {
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+      // Second argument is the limit
+      if (!call->Arguments()[1]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint64));
+        return;
+      }
+      // This call returns a byte buffer
+      call->SetType(GetBuiltinType(ast::BuiltinType::Uint8)->PointerTo());
+      break;
+    }
+    case ast::Builtin::SorterInsertTopKFinish:
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+      // Second argument is the limit
+      if (!call->Arguments()[1]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint64));
+        return;
+      }
+      // This call returns nothing
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    default:
+      UNREACHABLE("Impossible sorter insert call");
+  }
 }
 
 void Sema::CheckBuiltinSorterSort(ast::CallExpr *call, ast::Builtin builtin) {
@@ -2100,6 +2223,12 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
   }
 
   switch (builtin) {
+    case ast::Builtin::IsSqlNull:
+    case ast::Builtin::IsSqlNotNull:
+    case ast::Builtin::NullToSql: {
+      CheckBuiltinSqlNullCall(call, builtin);
+      break;
+    }
     case ast::Builtin::BoolToSql:
     case ast::Builtin::IntToSql:
     case ast::Builtin::FloatToSql:
@@ -2121,7 +2250,10 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinFilterCall(call);
       break;
     }
-    case ast::Builtin::ExecutionContextGetMemoryPool: {
+    case ast::Builtin::ExecutionContextGetMemoryPool:
+    case ast::Builtin::ExecutionContextStartResourceTracker:
+    case ast::Builtin::ExecutionContextEndResourceTracker:
+    case ast::Builtin::ExecutionContextEndPipelineTracker: {
       CheckBuiltinExecutionContextCall(call, builtin);
       break;
     }
@@ -2259,8 +2391,10 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinSorterInit(call);
       break;
     }
-    case ast::Builtin::SorterInsert: {
-      CheckBuiltinSorterInsert(call);
+    case ast::Builtin::SorterInsert:
+    case ast::Builtin::SorterInsertTopK:
+    case ast::Builtin::SorterInsertTopKFinish: {
+      CheckBuiltinSorterInsert(call, builtin);
       break;
     }
     case ast::Builtin::SorterSort:

@@ -4,6 +4,7 @@
 
 #include "common/macros.h"
 #include "common/strong_typedef.h"
+#include "execution/ast/type.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/aggregation_hash_table.h"
 #include "execution/sql/aggregators.h"
@@ -22,6 +23,7 @@
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/execution_common.h"
 #include "execution/util/hash.h"
+#include "metrics/metrics_defs.h"
 #include "util/time_util.h"
 
 // All VM terrier::bytecode op handlers must use this macro
@@ -194,6 +196,22 @@ VM_OP_HOT void OpReturn() {}
 VM_OP_HOT void OpExecutionContextGetMemoryPool(terrier::execution::sql::MemoryPool **const memory,
                                                terrier::execution::exec::ExecutionContext *const exec_ctx) {
   *memory = exec_ctx->GetMemoryPool();
+}
+
+VM_OP_HOT void OpExecutionContextStartResourceTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                                      terrier::metrics::MetricsComponent component) {
+  exec_ctx->StartResourceTracker(component);
+}
+
+VM_OP_HOT void OpExecutionContextEndResourceTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                                    const terrier::execution::sql::StringVal &name) {
+  exec_ctx->EndResourceTracker(name.Content(), name.len_);
+}
+
+VM_OP_HOT void OpExecutionContextEndPipelineTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                                    terrier::execution::query_id_t query_id,
+                                                    terrier::execution::pipeline_id_t pipeline_id) {
+  exec_ctx->EndPipelineTracker(query_id, pipeline_id);
 }
 
 void OpThreadStateContainerInit(terrier::execution::sql::ThreadStateContainer *thread_state_container,
@@ -589,6 +607,8 @@ VM_OP_HOT void OpForceBoolTruth(bool *result, terrier::execution::sql::BoolVal *
   *result = input->ForceTruth();
 }
 
+VM_OP_HOT void OpInitSqlNull(terrier::execution::sql::Val *result) { *result = terrier::execution::sql::Val::Null(); }
+
 VM_OP_HOT void OpInitBoolVal(terrier::execution::sql::BoolVal *result, bool input) {
   result->is_null_ = false;
   result->val_ = input;
@@ -602,6 +622,11 @@ VM_OP_HOT void OpInitInteger(terrier::execution::sql::Integer *result, int32_t i
 VM_OP_HOT void OpInitReal(terrier::execution::sql::Real *result, double input) {
   result->is_null_ = false;
   result->val_ = input;
+}
+
+VM_OP_HOT void OpIntegerToReal(terrier::execution::sql::Real *result, const terrier::execution::sql::Integer *input) {
+  result->is_null_ = input->is_null_;
+  if (!input->is_null_) result->val_ = static_cast<double>(input->val_);
 }
 
 VM_OP_HOT void OpInitDate(terrier::execution::sql::DateVal *result, int32_t year, uint32_t month, uint32_t day) {
@@ -1299,12 +1324,12 @@ VM_OP_WARM void OpPow(terrier::execution::sql::Real *result, const terrier::exec
 // Null/Not Null predicates
 // ---------------------------------------------------------
 
-VM_OP_WARM void OpValIsNull(terrier::execution::sql::BoolVal *result, const terrier::execution::sql::Val *val) {
-  terrier::execution::sql::IsNullPredicate::IsNull(result, *val);
+VM_OP_WARM void OpValIsNull(bool *result, const terrier::execution::sql::Val *val) {
+  *result = terrier::execution::sql::IsNullPredicate::IsNull(*val);
 }
 
-VM_OP_WARM void OpValIsNotNull(terrier::execution::sql::BoolVal *result, const terrier::execution::sql::Val *val) {
-  terrier::execution::sql::IsNullPredicate::IsNotNull(result, *val);
+VM_OP_WARM void OpValIsNotNull(bool *result, const terrier::execution::sql::Val *val) {
+  *result = terrier::execution::sql::IsNullPredicate::IsNotNull(*val);
 }
 
 // ---------------------------------------------------------

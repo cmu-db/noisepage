@@ -12,6 +12,7 @@
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/StringMap.h"
 
+#include "brain/operating_unit.h"
 #include "common/math_util.h"
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/builtins.h"
@@ -190,10 +191,6 @@ Context::Context(util::Region *region, sema::ErrorReporter *error_reporter)
 Context::~Context() = default;
 
 Identifier Context::GetIdentifier(llvm::StringRef str) {
-  if (str.empty()) {
-    return Identifier(nullptr);
-  }
-
   auto iter = Impl()->string_table_.insert(std::make_pair(str, static_cast<char>(0))).first;
   return Identifier(iter->getKeyData());
 }

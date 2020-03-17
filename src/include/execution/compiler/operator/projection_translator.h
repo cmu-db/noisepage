@@ -20,7 +20,7 @@ class ProjectionTranslator : public OperatorTranslator {
    * @param codegen The code generator
    */
   ProjectionTranslator(const terrier::planner::ProjectionPlanNode *op, CodeGen *codegen)
-      : OperatorTranslator(codegen), op_(op) {}
+      : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::PROJECTION), op_(op) {}
 
   // Pass through
   void Produce(FunctionBuilder *builder) override { child_translator_->Produce(builder); }

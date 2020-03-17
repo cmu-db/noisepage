@@ -3,11 +3,15 @@
 #include <unordered_map>
 #include <vector>
 
+#include "common/managed_pointer.h"
 #include "common/performance_counter.h"
+#include "storage/arrow_serializer.h"
 #include "storage/projected_columns.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
+
+namespace flatbuf = org::apache::arrow::flatbuf;
 
 namespace terrier::transaction {
 class TransactionContext;
@@ -43,7 +47,7 @@ DEFINE_PERFORMANCE_CLASS(DataTableCounter, DataTableCounterMembers)
 class DataTable {
  public:
   /**
-   * Iterator for all the slots, claimed or otherwise, in the data table. This is useful for sequential scans.
+   * Iterator for all the slots, claimed or otherwise, in the data table. This is useful for sequential scans
    */
   class SlotIterator {
    public:
@@ -114,7 +118,7 @@ class DataTable {
    * @param layout the initial layout of this DataTable. First 2 columns must be 8 bytes.
    * @param layout_version the layout version of this DataTable
    */
-  DataTable(BlockStore *store, const BlockLayout &layout, layout_version_t layout_version);
+  DataTable(common::ManagedPointer<BlockStore> store, const BlockLayout &layout, layout_version_t layout_version);
 
   /**
    * Destructs a DataTable, frees all its blocks and any potential varlen entries.
@@ -217,6 +221,8 @@ class DataTable {
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
 
  private:
+  // The ArrowSerializer needs access to its blocks.
+  friend class ArrowSerializer;
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains
   friend class GarbageCollector;
   // The TransactionManager needs to modify VersionPtrs when rolling back aborts
@@ -231,7 +237,7 @@ class DataTable {
   // needs raw access to the underlying table.
   friend class BlockCompactor;
 
-  BlockStore *const block_store_;
+  const common::ManagedPointer<BlockStore> block_store_;
   const layout_version_t layout_version_;
   const TupleAccessStrategy accessor_;
 

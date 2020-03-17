@@ -11,10 +11,8 @@
 #include "main/db_main.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/constant_value_expression.h"
-#include "storage/garbage_collector.h"
 #include "storage/index/index_builder.h"
 #include "storage/sql_table.h"
-#include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 #include "type/transient_value_factory.h"
@@ -56,7 +54,7 @@ class CatalogBenchmark : public benchmark::Fixture {
     const auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
     TERRIER_ASSERT(table_oid != catalog::INVALID_TABLE_OID, "table creation should not fail");
     auto schema = accessor->GetSchema(table_oid);
-    auto table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), schema);
+    auto table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), schema);
 
     auto result UNUSED_ATTRIBUTE = accessor->SetTablePointer(table_oid, table);
     TERRIER_ASSERT(result, "setting table pointer should not fail");
@@ -82,7 +80,7 @@ class CatalogBenchmark : public benchmark::Fixture {
     const auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
     TERRIER_ASSERT(table_oid != catalog::INVALID_TABLE_OID, "table creation should not fail");
     auto schema = accessor->GetSchema(table_oid);
-    auto table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), schema);
+    auto table = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), schema);
 
     auto result UNUSED_ATTRIBUTE = accessor->SetTablePointer(table_oid, table);
     TERRIER_ASSERT(result, "setting table pointer should not fail");

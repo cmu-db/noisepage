@@ -168,7 +168,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     catalog::Schema schema({col});
     auto table_oid = catalog_accessor->CreateTable(namespace_oid, table_name, schema);
     schema = catalog_accessor->GetSchema(table_oid);
-    auto *table = new storage::SqlTable(block_store.Get(), schema);
+    auto *table = new storage::SqlTable(block_store, schema);
     catalog_accessor->SetTablePointer(table_oid, table);
 
     // Create indexes on the table
