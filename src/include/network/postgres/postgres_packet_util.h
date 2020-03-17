@@ -102,6 +102,21 @@ class PostgresPacketUtil {
         TERRIER_ASSERT(parse_result.first, "Failed to parse the date.");
         return type::TransientValueFactory::GetDate(parse_result.second);
       }
+      case type::TypeId::INVALID: {
+        // Postgres may not have told us the type in Parse message. Right now in oltpbench the JDBC driver is doing this
+        // with timestamps on inserting into the Customer table. Let's just try to parse it and fall back to VARCHAR?
+        const auto ts_parse_result = util::TimeConvertor::ParseTimestamp(string_val);
+        if (ts_parse_result.first) {
+          return type::TransientValueFactory::GetTimestamp(ts_parse_result.second);
+        }
+        // try date?
+        const auto date_parse_result = util::TimeConvertor::ParseDate(string_val);
+        if (date_parse_result.first) {
+          return type::TransientValueFactory::GetDate(date_parse_result.second);
+        }
+        // fall back to VARCHAR?
+        return type::TransientValueFactory::GetVarChar(string_val);
+      }
       default:
         // TODO(Matt): Note that not all types are handled yet. Add them as we support them.
         UNREACHABLE("Unsupported type for parameter.");
