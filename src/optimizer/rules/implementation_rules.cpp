@@ -954,21 +954,20 @@ LogicalAnalyzeToPhysicalAnalyze::LogicalAnalyzeToPhysicalAnalyze() {
   match_pattern_ = new Pattern(OpType::LOGICALANALYZE);
 }
 
-bool LogicalAnalyzeToPhysicalAnalyze::Check(common::ManagedPointer<OperatorExpression> plan,
+bool LogicalAnalyzeToPhysicalAnalyze::Check(common::ManagedPointer<OperatorNode> plan,
                                             OptimizationContext *context) const {
   return true;
 }
 
-void LogicalAnalyzeToPhysicalAnalyze::Transform(common::ManagedPointer<OperatorExpression> input,
-                                                std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+void LogicalAnalyzeToPhysicalAnalyze::Transform(common::ManagedPointer<OperatorNode> input,
+                                                std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                 UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto logical_op = input->GetOp().As<LogicalAnalyze>();
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalAnalyze should have 0 children");
 
-  auto op =
-      std::make_unique<OperatorExpression>(Analyze::Make(logical_op->GetDatabaseOid(),
-                                                         logical_op->GetTableOid(), logical_op->GetColumns()),
-                                           std::vector<std::unique_ptr<OperatorExpression>>());
+  auto op = std::make_unique<OperatorNode>(
+      Analyze::Make(logical_op->GetDatabaseOid(), logical_op->GetTableOid(), logical_op->GetColumns()),
+      std::vector<std::unique_ptr<OperatorNode>>());
 
   transformed->emplace_back(std::move(op));
 }

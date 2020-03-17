@@ -1954,7 +1954,7 @@ class LogicalDropView : public OperatorNodeContents<LogicalDropView> {
 /**
  * Logical operator for Analyze
  */
-class LogicalAnalyze : public OperatorNode<LogicalAnalyze> {
+class LogicalAnalyze : public OperatorNodeContents<LogicalAnalyze> {
  public:
   /**
    * @param database_oid OID of the database
@@ -1963,16 +1963,16 @@ class LogicalAnalyze : public OperatorNode<LogicalAnalyze> {
    * @param columns OIDs of Analyze columns
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns);
+  static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
+                       std::vector<catalog::col_oid_t> &&columns);
 
   /**
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
   /**

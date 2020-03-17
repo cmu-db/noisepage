@@ -1801,7 +1801,7 @@ TEST_F(OperatorTransformerTest, AnalyzeTest) {
   auto col_a1_oid = accessor_->GetSchema(table_a_oid_).GetColumn("a1").Oid();
   operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -1814,7 +1814,7 @@ TEST_F(OperatorTransformerTest, AnalyzeTest) {
 
   auto optree_ptr = common::ManagedPointer(operator_tree_);
   auto *op_ctx = optimization_context_.get();
-  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+  std::vector<std::unique_ptr<optimizer::OperatorNode>> transformed;
 
   optimizer::LogicalAnalyzeToPhysicalAnalyze rule;
   EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
@@ -1837,8 +1837,8 @@ TEST_F(OperatorTransformerTest, AnalyzeTest) {
   std::vector<optimizer::ExprMap> children_expr_map{};
 
   auto plan_node =
-      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                   output_cols, std::move(children_plans), std::move(children_expr_map));
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::ANALYZE);
   auto analyze_plan = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::AnalyzePlanNode>();
   EXPECT_EQ(analyze_plan->GetColumnOids().size(), 1);
@@ -1856,7 +1856,7 @@ TEST_F(OperatorTransformerTest, AnalyzeTest2) {
   binder_->BindNameToNode(statement, parse_tree.get());
   operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -1868,7 +1868,7 @@ TEST_F(OperatorTransformerTest, AnalyzeTest2) {
 
   auto optree_ptr = common::ManagedPointer(operator_tree_);
   auto *op_ctx = optimization_context_.get();
-  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+  std::vector<std::unique_ptr<optimizer::OperatorNode>> transformed;
 
   optimizer::LogicalAnalyzeToPhysicalAnalyze rule;
   EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
@@ -1890,8 +1890,8 @@ TEST_F(OperatorTransformerTest, AnalyzeTest2) {
   std::vector<optimizer::ExprMap> children_expr_map{};
 
   auto plan_node =
-      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                   output_cols, std::move(children_plans), std::move(children_expr_map));
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::ANALYZE);
   auto analyze_plan = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::AnalyzePlanNode>();
   EXPECT_EQ(analyze_plan->GetColumnOids().size(), 0);

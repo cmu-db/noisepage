@@ -588,10 +588,10 @@ void QueryToOperatorTransformer::Visit(parser::AnalyzeStatement *op,
   auto tb_oid = accessor_->GetTableOid(op->GetAnalyzeTable()->GetTableName());
   auto schema = accessor_->GetSchema(tb_oid);
   for (const auto &col : *(op->GetColumns())) columns.emplace_back(schema.GetColumn(col).Oid());
-  auto analyze_expr = std::make_unique<OperatorExpression>(
+  auto analyze_expr = std::make_unique<OperatorNode>(
       LogicalAnalyze::Make(accessor_->GetDatabaseOid(op->GetAnalyzeTable()->GetDatabaseName()), tb_oid,
                            std::move(columns)),
-      std::vector<std::unique_ptr<OperatorExpression>>{});
+      std::vector<std::unique_ptr<OperatorNode>>{});
   output_expr_ = std::move(analyze_expr);
 }
 
