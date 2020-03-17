@@ -209,8 +209,16 @@ class MiniRunners : public benchmark::Fixture {
     table_name << "INTEGERIdxKey" << key_num << "Row" << num_rows;
     auto tbl_oid = accessor->GetTableOid(table_name.str());
     auto indexes = accessor->GetIndexes(tbl_oid);
-    auto index = indexes[0].first;
 
+    common::ManagedPointer<storage::index::Index> index = nullptr;
+    for (auto index_cand : indexes) {
+      if (index_cand.second.GetColumns().size() == static_cast<unsigned int>(key_num)) {
+        index = index_cand.first;
+        break;
+      }
+    }
+
+    TERRIER_ASSERT(index != nullptr, "Invalid key_num specified");
     exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
 
     std::vector<storage::TupleSlot> results;

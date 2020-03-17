@@ -61,6 +61,19 @@ class TableGenerator {
   }
 
   /**
+   * Generate table name that contains an index
+   * @param type Type
+   * @param row Number of rows
+   * @return table name
+   */
+  static std::string GenerateTableIndexName(type::TypeId type, size_t row) {
+    std::stringstream table_name;
+    auto type_name = type::TypeUtil::TypeIdToString(type);
+    table_name << type_name << "IndexRow" << row;
+    return table_name.str();
+  }
+
+  /**
    * Generate test tables.
    * @param is_mini_runner is this generation used for the mini runner
    */
@@ -235,6 +248,18 @@ class TableGenerator {
    * @return
    */
   std::pair<byte *, uint32_t *> GenerateColumnData(ColumnInsertMeta *col_meta, uint32_t num_rows);
+
+  /**
+   * Create table
+   * @param metadata TableInsertMeta
+   */
+  void CreateTable(TableInsertMeta &metadata);
+
+  /**
+   * Create Index
+   * @param index_meta Index Metadata
+   */
+  void CreateIndex(IndexInsertMeta &index_meta);
 
   /**
    * Fill a given table according to its metadata
