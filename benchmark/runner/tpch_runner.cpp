@@ -18,10 +18,11 @@ class TPCHRunner : public benchmark::Fixture {
 
   // TPCH setup
   const std::vector<std::string> tpch_query_filenames_ = {
-      "../../../tpl_tables/sample_tpl/tpch_q1.tpl",
-      "../../../tpl_tables/sample_tpl/tpch_q4.tpl",
-      "../../../tpl_tables/sample_tpl/tpch_q5.tpl",
-      "../../../tpl_tables/sample_tpl/tpch_q6.tpl"
+      //"../../../tpl_tables/sample_tpl/tpch_q1.tpl",
+      //"../../../tpl_tables/sample_tpl/tpch_q4.tpl",
+      //"../../../tpl_tables/sample_tpl/tpch_q5.tpl",
+      //"../../../tpl_tables/sample_tpl/tpch_q6.tpl"
+      "../../../tpl_tables/sample_tpl/tpch_q11.tpl"
       };
   const std::string tpch_table_root_ = "../../../tpl_tables/tables/";
   const std::string tpch_database_name_ = "tpch_db";

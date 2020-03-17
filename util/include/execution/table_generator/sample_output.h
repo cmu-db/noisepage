@@ -100,6 +100,24 @@ class SampleOutput {
       cols.emplace_back(real_col.Copy());
       schemas_.emplace("tpch_q5", planner::OutputSchema(std::move(cols)));
     }
+
+    // Q7 (two strings, one int, one real)
+    {
+      std::vector<planner::OutputSchema::Column> cols{};
+      cols.emplace_back(string_col.Copy());
+      cols.emplace_back(string_col.Copy());
+      cols.emplace_back(int_col.Copy());
+      cols.emplace_back(real_col.Copy());
+      schemas_.emplace("tpch_q7", planner::OutputSchema(std::move(cols)));
+    }
+
+    // Q11 (one int, one real)
+    {
+      std::vector<planner::OutputSchema::Column> cols{};
+      cols.emplace_back(int_col.Copy());
+      cols.emplace_back(real_col.Copy());
+      schemas_.emplace("tpch_q11", planner::OutputSchema(std::move(cols)));
+    }
   }
 
   std::unordered_map<std::string, planner::OutputSchema> schemas_;

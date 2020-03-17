@@ -4,6 +4,7 @@ import numpy as np
 import argparse
 import pickle
 import logging
+import tqdm
 
 import data_info
 import io_util
@@ -35,13 +36,8 @@ class EndtoendEstimator:
 
         :return: the map of the trained models
         """
-        data_list = global_model_util.get_grouped_opunit_data_with_prediction(self.input_path, self.mini_model_map,
-                                                                              self.model_results_path)
-        logging.info("Finish data loading")
-        resource_data_list, impact_data_list = global_model_util.construct_global_model_data_with_cache(
-            data_list, self.model_results_path, self.input_path)
-        logging.info("Finish constructing the global data")
-
+        resource_data_list, impact_data_list = global_model_util.get_data(self.input_path, self.mini_model_map,
+                                                                          self.model_results_path)
         return self._global_model_prediction(resource_data_list, impact_data_list)
 
     def _global_model_prediction(self, resource_data_list, impact_data_list):
@@ -65,6 +61,10 @@ class EndtoendEstimator:
         ratio_error = np.average(np.abs(y - y_pred) / (y + 1e-6), axis=0)
         io_util.write_csv_result(metrics_path, "Ratio Error", ratio_error)
         training_util.record_predictions((x, y_pred, y), prediction_path)
+        io_util.write_csv_result(metrics_path, "Ratio Error", ratio_error)
+        original_ratio_error = np.average(np.abs(y - x[:, :y.shape[1]]) / (y + 1e-6), axis=0)
+        logging.info('Original Ratio Error: {}'.format(original_ratio_error))
+        logging.info('Ratio Error: {}'.format(ratio_error))
 
         # Put the prediction global resource util back to the GlobalImpactData
         for i, data in enumerate(resource_data_list):
@@ -77,13 +77,18 @@ class EndtoendEstimator:
         # resource util on the same core that the opunit group runs)
         # The output target is the ratio between the actual resource util (including the elapsed time) and the
         # normalized mini model prediction
-        for d in impact_data_list:
+        for d in tqdm.tqdm(impact_data_list, desc="Construct data for the impact model"):
             mini_model_y_pred = d.target_grouped_op_unit_data.y_pred
             predicted_elapsed_us = mini_model_y_pred[data_info.target_csv_index[Target.ELAPSED_US]]
             x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, d.resource_data.y_pred,
                                      d.resource_util_same_core_x)))
             # x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, d.global_resource_util_y_pred)))
             y.append(d.target_grouped_op_unit_data.y / (d.target_grouped_op_unit_data.y_pred + 1e-6))
+
+            memory_idx = data_info.target_csv_index[Target.MEMORY_B]
+            # FIXME: fix the dummy memory value later
+            x[-1][mini_model_y_pred.shape[0] + memory_idx] = 1
+            y[-1][memory_idx] = 1
 
         # Predict
         x = np.array(x)
@@ -97,6 +102,9 @@ class EndtoendEstimator:
         ratio_error = np.average(np.abs(y - y_pred) / (y + 1e-6), axis=0)
         io_util.write_csv_result(metrics_path, "Ratio Error", ratio_error)
         training_util.record_predictions((x, y_pred, y), prediction_path)
+        original_ratio_error = np.average(np.abs(1/(y+1e-6) - 1), axis=0)
+        logging.info('Original Ratio Error: {}'.format(original_ratio_error))
+        logging.info('Ratio Error: {}'.format(ratio_error))
 
 
 # ==============================================

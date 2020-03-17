@@ -24,6 +24,9 @@ def _get_base_ml_model(method):
     regressor = None
     if method == 'lr':
         regressor = linear_model.LinearRegression()
+    if method == 'huber':
+        regressor = linear_model.HuberRegressor(max_iter=100)
+        regressor = multioutput.MultiOutputRegressor(regressor)
     if method == 'kr':
         regressor = kernel_ridge.KernelRidge(kernel='rbf')
     if method == 'rf':

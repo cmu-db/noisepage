@@ -14,12 +14,35 @@ import global_model_config
 from type import Target, OpUnit, ConcurrentCountingMode
 
 
+def get_data(input_path, mini_model_map, model_results_path):
+    """Get the data for the global models
+
+    Read from the cache if exists, otherwise save the constructed data to the cache.
+
+    :param input_path: input data file path
+    :param mini_model_map: mini models used for prediction
+    :param model_results_path: directory path to log the result information
+    :return: (GlobalResourceData list, GlobalImpactData list)
+    """
+    cache_file = input_path + '/global_model_data.pickle'
+    if os.path.exists(cache_file):
+        with open(cache_file, 'rb') as pickle_file:
+            resource_data_list, impact_data_list = pickle.load(pickle_file)
+    else:
+        data_list = get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path)
+        resource_data_list, impact_data_list = construct_interval_based_global_model_data(data_list, model_results_path)
+        with open(cache_file, 'wb') as file:
+            pickle.dump((resource_data_list, impact_data_list), file)
+
+    return resource_data_list, impact_data_list
+
+
 def get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path):
     """Get the grouped opunit data with the predicted metrics and elapsed time
 
     :param input_path: input data file path
     :param mini_model_map: mini models used for prediction
-    :param model_results_path:
+    :param model_results_path: directory path to log the result information
     :return: The list of the GroupedOpUnitData objects
     """
     data_list = _get_data_list(input_path)
@@ -28,34 +51,12 @@ def get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_re
     return data_list
 
 
-def construct_global_model_data_with_cache(data_list, model_results_path, cache_path):
-    """Construct the GlobalImpactData used for the global model training
-
-    Read from the cache if exists, otherwise save the constructed data to the cache.
-
-    :param data_list: The list of GroupedOpUnitData objects
-    :param model_results_path: directory path to log the result information
-    :param cache_path: the path for the potential cache file.
-    :return: The list of the GlobalImpactData objects
-    """
-    cache_file = cache_path + '/global_model_data.pickle'
-    if os.path.exists(cache_file):
-        with open(cache_file, 'rb') as pickle_file:
-            resource_data_list, impact_data_list = pickle.load(pickle_file)
-    else:
-        resource_data_list, impact_data_list = construct_interval_based_global_model_data(data_list, model_results_path)
-        with open(cache_file, 'wb') as file:
-            pickle.dump((resource_data_list, impact_data_list), file)
-
-    return resource_data_list, impact_data_list
-
-
 def construct_interval_based_global_model_data(data_list, model_results_path):
     """Construct the GlobalImpactData used for the global model training
 
     :param data_list: The list of GroupedOpUnitData objects
     :param model_results_path: directory path to log the result information
-    :return: The list of the GlobalImpactData objects
+    :return: (GlobalResourceData list, GlobalImpactData list)
     """
     prediction_path = "{}/global_resource_data.csv".format(model_results_path)
     io_util.create_csv_file(prediction_path, ["Elapsed us", "# Concurrent OpUnit Groups"])
@@ -191,7 +192,6 @@ def _get_data_list(input_path):
     for filename in glob.glob(os.path.join(input_path, '*.csv')):
         data_list += grouped_op_unit_data.get_grouped_op_unit_data(filename)
         logging.info("Loaded file: {}".format(filename))
-        # break
 
     return data_list
 
@@ -205,7 +205,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
     :param model_results_path: file path to log the prediction results
     """
     prediction_path = "{}/grouped_opunit_prediction.csv".format(model_results_path)
-    io_util.create_csv_file(prediction_path, ["Pipeline", "Actual", "Predicted", "Ratio Error"])
+    io_util.create_csv_file(prediction_path, ["Pipeline", "Actual Us", "Predicted Us", "", "Ratio Error"])
 
     # Have to use a prediction cache when having lots of global data...
     prediction_cache = {}
@@ -238,10 +238,10 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
         # Record the predicted
         data.y_pred = pipeline_y_pred
         logging.debug("{} pipeline predicted time: {}".format(data.name, pipeline_y_pred[-1]))
-        ratio_error = abs(y[-1] - pipeline_y_pred[-1]) / y[-1]
-        logging.debug("|Actual - Predict| / Actual: {}".format(ratio_error))
+        ratio_error = abs(y - pipeline_y_pred) / (y + 1e-6)
+        logging.debug("|Actual - Predict| / Actual: {}".format(ratio_error[-1]))
 
         io_util.write_csv_result(prediction_path, data.name + " " + str(x[0][-1]),
-                                 [y[-1], pipeline_y_pred[-1], ratio_error])
+                                 [y[-1], pipeline_y_pred[-1], "", ratio_error])
 
         logging.debug("")
