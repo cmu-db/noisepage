@@ -288,7 +288,8 @@ TEST_F(OperatorTransformerTest, InsertStatementSelectTest) {
             logical_filter->GetPredicates()[0].GetExpr()->GetExpressionType());
 
   // Test LogicalGet
-  auto logical_get = operator_tree_->GetChildren()[0]->GetChildren()[0]->Contents()->GetContentsAs<optimizer::LogicalGet>();
+  auto logical_get =
+      operator_tree_->GetChildren()[0]->GetChildren()[0]->Contents()->GetContentsAs<optimizer::LogicalGet>();
   EXPECT_EQ(db_oid_, logical_get->GetDatabaseOid());
   EXPECT_EQ(default_namespace_oid, logical_get->GetNamespaceOid());
   EXPECT_EQ(table_b_oid_, logical_get->GetTableOid());
@@ -352,7 +353,8 @@ TEST_F(OperatorTransformerTest, SelectStatementAggregateTest) {
   EXPECT_EQ(ref, info);
 
   // Test LogicalAggregateAndGroupBy
-  auto logical_aggregate_and_group_by = operator_tree_->Contents()->GetContentsAs<optimizer::LogicalAggregateAndGroupBy>();
+  auto logical_aggregate_and_group_by =
+      operator_tree_->Contents()->GetContentsAs<optimizer::LogicalAggregateAndGroupBy>();
   auto column_expr =
       logical_aggregate_and_group_by->GetColumns()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ("b2", column_expr->GetColumnName());
@@ -391,7 +393,8 @@ TEST_F(OperatorTransformerTest, SelectStatementDistinctTest) {
             logical_filter->GetPredicates()[0].GetExpr()->GetExpressionType());
 
   // Test LogicalGet
-  auto logical_get = operator_tree_->GetChildren()[0]->GetChildren()[0]->Contents()->GetContentsAs<optimizer::LogicalGet>();
+  auto logical_get =
+      operator_tree_->GetChildren()[0]->GetChildren()[0]->Contents()->GetContentsAs<optimizer::LogicalGet>();
   EXPECT_EQ(db_oid_, logical_get->GetDatabaseOid());
   EXPECT_EQ(default_namespace_oid, logical_get->GetNamespaceOid());
   EXPECT_EQ(table_b_oid_, logical_get->GetTableOid());
@@ -803,13 +806,15 @@ TEST_F(OperatorTransformerTest, OperatorComplexTest) {
   EXPECT_EQ(parser::ExpressionType::COMPARE_IN, logical_filter->GetPredicates()[0].GetExpr()->GetExpressionType());
 
   // Test LogicalGet
-  auto logical_get_left = operator_tree_->GetChildren()[0]->GetChildren()[0]->Contents()->GetContentsAs<optimizer::LogicalGet>();
+  auto logical_get_left =
+      operator_tree_->GetChildren()[0]->GetChildren()[0]->Contents()->GetContentsAs<optimizer::LogicalGet>();
   EXPECT_EQ(db_oid_, logical_get_left->GetDatabaseOid());
   EXPECT_EQ(default_namespace_oid, logical_get_left->GetNamespaceOid());
   EXPECT_EQ(table_a_oid_, logical_get_left->GetTableOid());
   EXPECT_FALSE(logical_get_left->GetIsForUpdate());
 
-  auto logical_get_right = operator_tree_->GetChildren()[0]->GetChildren()[1]->Contents()->GetContentsAs<optimizer::LogicalGet>();
+  auto logical_get_right =
+      operator_tree_->GetChildren()[0]->GetChildren()[1]->Contents()->GetContentsAs<optimizer::LogicalGet>();
   EXPECT_EQ(db_oid_, logical_get_right->GetDatabaseOid());
   EXPECT_EQ(default_namespace_oid, logical_get_right->GetNamespaceOid());
   EXPECT_EQ(table_b_oid_, logical_get_right->GetTableOid());

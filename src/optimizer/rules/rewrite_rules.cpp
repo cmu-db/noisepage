@@ -306,7 +306,8 @@ void RewriteCombineConsecutiveFilter::Transform(common::ManagedPointer<AbstractO
                                                 UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto child_filter = input->GetChildren()[0];
   std::vector<AnnotatedExpression> root_predicates = input->Contents()->GetContentsAs<LogicalFilter>()->GetPredicates();
-  std::vector<AnnotatedExpression> child_predicates = child_filter->Contents()->GetContentsAs<LogicalFilter>()->GetPredicates();
+  std::vector<AnnotatedExpression> child_predicates =
+      child_filter->Contents()->GetContentsAs<LogicalFilter>()->GetPredicates();
   root_predicates.insert(root_predicates.end(), child_predicates.begin(), child_predicates.end());
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;

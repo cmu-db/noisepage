@@ -196,8 +196,10 @@ TEST(OperatorTests, LogicalUpdateTest) {
   EXPECT_EQ(op1.GetContentsAs<LogicalUpdate>()->GetNamespaceOid(), namespace_oid);
   EXPECT_EQ(op1.GetContentsAs<LogicalUpdate>()->GetTableOid(), table_oid);
   EXPECT_EQ(op1.GetContentsAs<LogicalUpdate>()->GetUpdateClauses().size(), 1);
-  EXPECT_EQ(update_clause2->GetColumnName(), op1.GetContentsAs<LogicalUpdate>()->GetUpdateClauses()[0]->GetColumnName());
-  EXPECT_EQ(update_clause2->GetUpdateValue(), op1.GetContentsAs<LogicalUpdate>()->GetUpdateClauses()[0]->GetUpdateValue());
+  EXPECT_EQ(update_clause2->GetColumnName(),
+            op1.GetContentsAs<LogicalUpdate>()->GetUpdateClauses()[0]->GetColumnName());
+  EXPECT_EQ(update_clause2->GetUpdateValue(),
+            op1.GetContentsAs<LogicalUpdate>()->GetUpdateClauses()[0]->GetUpdateValue());
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
@@ -298,8 +300,10 @@ TEST(OperatorTests, LogicalGetTest) {
   EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetNamespaceOid(), catalog::namespace_oid_t(2));
   EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetTableOid(), catalog::table_oid_t(3));
   EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetPredicates(), std::vector<AnnotatedExpression>());
-  EXPECT_EQ(logical_get_3.GetContentsAs<LogicalGet>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_0});
-  EXPECT_EQ(logical_get_4.GetContentsAs<LogicalGet>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
+  EXPECT_EQ(logical_get_3.GetContentsAs<LogicalGet>()->GetPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr_0});
+  EXPECT_EQ(logical_get_4.GetContentsAs<LogicalGet>()->GetPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr_1});
   EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetTableAlias(), "table");
   EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetIsForUpdate(), false);
   EXPECT_EQ(logical_get_1.GetName(), "LogicalGet");
@@ -350,7 +354,8 @@ TEST(OperatorTests, LogicalExternalFileGetTest) {
 
   EXPECT_EQ(logical_ext_file_get_1.GetOpType(), OpType::LOGICALEXTERNALFILEGET);
   EXPECT_EQ(logical_ext_file_get_1.GetName(), "LogicalExternalFileGet");
-  EXPECT_EQ(logical_ext_file_get_1.GetContentsAs<LogicalExternalFileGet>()->GetFormat(), parser::ExternalFileFormat::CSV);
+  EXPECT_EQ(logical_ext_file_get_1.GetContentsAs<LogicalExternalFileGet>()->GetFormat(),
+            parser::ExternalFileFormat::CSV);
   EXPECT_EQ(logical_ext_file_get_1.GetContentsAs<LogicalExternalFileGet>()->GetFilename(), "file.txt");
   EXPECT_EQ(logical_ext_file_get_1.GetContentsAs<LogicalExternalFileGet>()->GetDelimiter(), ',');
   EXPECT_EQ(logical_ext_file_get_1.GetContentsAs<LogicalExternalFileGet>()->GetQuote(), '"');
@@ -407,7 +412,8 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
   EXPECT_EQ(logical_query_derived_get_1.GetOpType(), OpType::LOGICALQUERYDERIVEDGET);
   EXPECT_EQ(logical_query_derived_get_1.GetName(), "LogicalQueryDerivedGet");
   EXPECT_EQ(logical_query_derived_get_1.GetContentsAs<LogicalQueryDerivedGet>()->GetTableAlias(), "alias");
-  EXPECT_EQ(logical_query_derived_get_1.GetContentsAs<LogicalQueryDerivedGet>()->GetAliasToExprMap(), alias_to_expr_map_1_1);
+  EXPECT_EQ(logical_query_derived_get_1.GetContentsAs<LogicalQueryDerivedGet>()->GetAliasToExprMap(),
+            alias_to_expr_map_1_1);
   EXPECT_TRUE(logical_query_derived_get_1 == logical_query_derived_get_2);
   EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_3);
   EXPECT_FALSE(logical_query_derived_get_1 == logical_query_derived_get_4);
@@ -456,8 +462,10 @@ TEST(OperatorTests, LogicalFilterTest) {
   EXPECT_EQ(logical_filter_3.GetOpType(), OpType::LOGICALFILTER);
   EXPECT_EQ(logical_filter_1.GetName(), "LogicalFilter");
   EXPECT_EQ(logical_filter_1.GetContentsAs<LogicalFilter>()->GetPredicates(), std::vector<AnnotatedExpression>());
-  EXPECT_EQ(logical_filter_3.GetContentsAs<LogicalFilter>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_0});
-  EXPECT_EQ(logical_filter_4.GetContentsAs<LogicalFilter>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
+  EXPECT_EQ(logical_filter_3.GetContentsAs<LogicalFilter>()->GetPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr_0});
+  EXPECT_EQ(logical_filter_4.GetContentsAs<LogicalFilter>()->GetPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr_1});
   EXPECT_TRUE(logical_filter_1 == logical_filter_2);
   EXPECT_FALSE(logical_filter_1 == logical_filter_3);
   EXPECT_TRUE(logical_filter_4 == logical_filter_5);
@@ -545,7 +553,8 @@ TEST(OperatorTests, LogicalDependentJoinTest) {
   EXPECT_EQ(logical_dep_join_1.GetOpType(), OpType::LOGICALDEPENDENTJOIN);
   EXPECT_EQ(logical_dep_join_3.GetOpType(), OpType::LOGICALDEPENDENTJOIN);
   EXPECT_EQ(logical_dep_join_1.GetName(), "LogicalDependentJoin");
-  EXPECT_EQ(logical_dep_join_1.GetContentsAs<LogicalDependentJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
+  EXPECT_EQ(logical_dep_join_1.GetContentsAs<LogicalDependentJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>());
   EXPECT_EQ(logical_dep_join_3.GetContentsAs<LogicalDependentJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>{annotated_expr_0});
   EXPECT_EQ(logical_dep_join_4.GetContentsAs<LogicalDependentJoin>()->GetJoinPredicates(),
@@ -599,7 +608,8 @@ TEST(OperatorTests, LogicalMarkJoinTest) {
   EXPECT_EQ(logical_mark_join_1.GetOpType(), OpType::LOGICALMARKJOIN);
   EXPECT_EQ(logical_mark_join_3.GetOpType(), OpType::LOGICALMARKJOIN);
   EXPECT_EQ(logical_mark_join_1.GetName(), "LogicalMarkJoin");
-  EXPECT_EQ(logical_mark_join_1.GetContentsAs<LogicalMarkJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
+  EXPECT_EQ(logical_mark_join_1.GetContentsAs<LogicalMarkJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>());
   EXPECT_EQ(logical_mark_join_3.GetContentsAs<LogicalMarkJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>{annotated_expr_0});
   EXPECT_EQ(logical_mark_join_4.GetContentsAs<LogicalMarkJoin>()->GetJoinPredicates(),
@@ -653,7 +663,8 @@ TEST(OperatorTests, LogicalSingleJoinTest) {
   EXPECT_EQ(logical_single_join_1.GetOpType(), OpType::LOGICALSINGLEJOIN);
   EXPECT_EQ(logical_single_join_3.GetOpType(), OpType::LOGICALSINGLEJOIN);
   EXPECT_EQ(logical_single_join_1.GetName(), "LogicalSingleJoin");
-  EXPECT_EQ(logical_single_join_1.GetContentsAs<LogicalSingleJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
+  EXPECT_EQ(logical_single_join_1.GetContentsAs<LogicalSingleJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>());
   EXPECT_EQ(logical_single_join_3.GetContentsAs<LogicalSingleJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>{annotated_expr_0});
   EXPECT_EQ(logical_single_join_4.GetContentsAs<LogicalSingleJoin>()->GetJoinPredicates(),
@@ -707,7 +718,8 @@ TEST(OperatorTests, LogicalInnerJoinTest) {
   EXPECT_EQ(logical_inner_join_1.GetOpType(), OpType::LOGICALINNERJOIN);
   EXPECT_EQ(logical_inner_join_3.GetOpType(), OpType::LOGICALINNERJOIN);
   EXPECT_EQ(logical_inner_join_1.GetName(), "LogicalInnerJoin");
-  EXPECT_EQ(logical_inner_join_1.GetContentsAs<LogicalInnerJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
+  EXPECT_EQ(logical_inner_join_1.GetContentsAs<LogicalInnerJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>());
   EXPECT_EQ(logical_inner_join_3.GetContentsAs<LogicalInnerJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>{annotated_expr_0});
   EXPECT_EQ(logical_inner_join_4.GetContentsAs<LogicalInnerJoin>()->GetJoinPredicates(),
@@ -1029,7 +1041,8 @@ TEST(OperatorTests, LogicalCreateFunctionTest) {
   EXPECT_EQ(op1.GetContentsAs<LogicalCreateFunction>()->GetFunctionParameterNames(), std::vector<std::string>{"param"});
   EXPECT_EQ(op1.GetContentsAs<LogicalCreateFunction>()->GetFunctionParameterTypes(),
             std::vector<parser::BaseFunctionParameter::DataType>{parser::BaseFunctionParameter::DataType::INTEGER});
-  EXPECT_EQ(op1.GetContentsAs<LogicalCreateFunction>()->GetReturnType(), parser::BaseFunctionParameter::DataType::BOOLEAN);
+  EXPECT_EQ(op1.GetContentsAs<LogicalCreateFunction>()->GetReturnType(),
+            parser::BaseFunctionParameter::DataType::BOOLEAN);
   EXPECT_EQ(op1.GetContentsAs<LogicalCreateFunction>()->GetParamCount(), 1);
   EXPECT_FALSE(op1.GetContentsAs<LogicalCreateFunction>()->IsReplace());
 
@@ -1374,8 +1387,10 @@ TEST(OperatorTests, LogicalCreateTriggerTest) {
       LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                  "Trigger_1", {"func_name", "func_name"}, {"func_arg", "func_arg"},
                                  {catalog::col_oid_t(1)}, common::ManagedPointer<parser::AbstractExpression>(when), 0);
-  EXPECT_EQ(op9.GetContentsAs<LogicalCreateTrigger>()->GetTriggerFuncName(), std::vector<std::string>({"func_name", "func_name"}));
-  EXPECT_EQ(op9.GetContentsAs<LogicalCreateTrigger>()->GetTriggerArgs(), std::vector<std::string>({"func_arg", "func_arg"}));
+  EXPECT_EQ(op9.GetContentsAs<LogicalCreateTrigger>()->GetTriggerFuncName(),
+            std::vector<std::string>({"func_name", "func_name"}));
+  EXPECT_EQ(op9.GetContentsAs<LogicalCreateTrigger>()->GetTriggerArgs(),
+            std::vector<std::string>({"func_arg", "func_arg"}));
   EXPECT_FALSE(op1 == op9);
   EXPECT_FALSE(op7 == op9);
   EXPECT_NE(op1.Hash(), op9.Hash());

@@ -183,8 +183,10 @@ TEST(OperatorTests, IndexScanTest) {
   EXPECT_EQ(index_scan_1.GetContentsAs<IndexScan>()->GetTableOID(), catalog::table_oid_t(4));
   EXPECT_EQ(index_scan_1.GetContentsAs<IndexScan>()->GetIndexOID(), catalog::index_oid_t(3));
   EXPECT_EQ(index_scan_1.GetContentsAs<IndexScan>()->GetPredicates(), std::vector<AnnotatedExpression>());
-  EXPECT_EQ(index_scan_3.GetContentsAs<IndexScan>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_0});
-  EXPECT_EQ(index_scan_4.GetContentsAs<IndexScan>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
+  EXPECT_EQ(index_scan_3.GetContentsAs<IndexScan>()->GetPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr_0});
+  EXPECT_EQ(index_scan_4.GetContentsAs<IndexScan>()->GetPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr_1});
   EXPECT_EQ(index_scan_1.GetContentsAs<IndexScan>()->GetIsForUpdate(), false);
   EXPECT_EQ(index_scan_1.GetName(), "IndexScan");
   EXPECT_TRUE(index_scan_1 == index_scan_2);
@@ -386,8 +388,10 @@ TEST(OperatorTests, InnerNLJoinTest) {
   EXPECT_EQ(inner_nl_join_3.GetOpType(), OpType::INNERNLJOIN);
   EXPECT_EQ(inner_nl_join_1.GetName(), "InnerNLJoin");
   EXPECT_EQ(inner_nl_join_1.GetContentsAs<InnerNLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
-  EXPECT_EQ(inner_nl_join_3.GetContentsAs<InnerNLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr_0});
-  EXPECT_EQ(inner_nl_join_4.GetContentsAs<InnerNLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
+  EXPECT_EQ(inner_nl_join_3.GetContentsAs<InnerNLJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr_0});
+  EXPECT_EQ(inner_nl_join_4.GetContentsAs<InnerNLJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr_1});
   EXPECT_EQ(inner_nl_join_1.GetContentsAs<InnerNLJoin>()->GetLeftKeys(),
             std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1});
   EXPECT_EQ(inner_nl_join_9.GetContentsAs<InnerNLJoin>()->GetRightKeys(),
@@ -1304,7 +1308,8 @@ TEST(OperatorTests, CreateTableTest) {
   EXPECT_EQ(op1.GetName(), "CreateTable");
   EXPECT_EQ(op1.GetContentsAs<CreateTable>()->GetTableName(), "Table_1");
   EXPECT_EQ(op1.GetContentsAs<CreateTable>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
-  EXPECT_EQ(op1.GetContentsAs<CreateTable>()->GetForeignKeys(), std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
+  EXPECT_EQ(op1.GetContentsAs<CreateTable>()->GetForeignKeys(),
+            std::vector<common::ManagedPointer<parser::ColumnDefinition>>{});
   EXPECT_EQ(op1.GetContentsAs<CreateTable>()->GetColumns().size(), 1);
   EXPECT_EQ(*op1.GetContentsAs<CreateTable>()->GetColumns().at(0), *col_def);
 
@@ -1414,7 +1419,8 @@ TEST(OperatorTests, CreateTriggerTest) {
   EXPECT_EQ(op1.GetContentsAs<CreateTrigger>()->GetTriggerType(), 0);
   EXPECT_EQ(op1.GetContentsAs<CreateTrigger>()->GetTriggerFuncName(), std::vector<std::string>{});
   EXPECT_EQ(op1.GetContentsAs<CreateTrigger>()->GetTriggerArgs(), std::vector<std::string>{});
-  EXPECT_EQ(op1.GetContentsAs<CreateTrigger>()->GetTriggerColumns(), std::vector<catalog::col_oid_t>{catalog::col_oid_t(1)});
+  EXPECT_EQ(op1.GetContentsAs<CreateTrigger>()->GetTriggerColumns(),
+            std::vector<catalog::col_oid_t>{catalog::col_oid_t(1)});
 
   Operator op2 =
       CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1), "Trigger_1", {},

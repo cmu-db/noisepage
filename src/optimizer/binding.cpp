@@ -132,8 +132,8 @@ bool GroupExprBindingIterator::HasNext() {
       }
 
       TERRIER_ASSERT(!current_binding_, "Next() should have been called");
-      current_binding_ =
-          std::make_unique<OperatorNode>(Operator(*gexpr_->Contents()->GetContentsAs<Operator>().Get()), std::move(children));
+      current_binding_ = std::make_unique<OperatorNode>(Operator(*gexpr_->Contents()->GetContentsAs<Operator>().Get()),
+                                                        std::move(children));
     }
   }
 
