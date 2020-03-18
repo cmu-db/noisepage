@@ -60,7 +60,7 @@ DEFAULT_FAILURE_THRESHOLD = 10
 #
 BENCHMARKS_TO_RUN = {
     "catalog_benchmark":                    20,
-    "data_table_benchmark":                 DEFAULT_FAILURE_THRESHOLD,
+    "data_table_benchmark":                 75,
     "garbage_collector_benchmark":          DEFAULT_FAILURE_THRESHOLD,
     "large_transaction_benchmark":          DEFAULT_FAILURE_THRESHOLD,
     "index_wrapper_benchmark":              DEFAULT_FAILURE_THRESHOLD,

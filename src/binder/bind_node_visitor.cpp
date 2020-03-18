@@ -25,9 +25,6 @@
 #include "parser/expression/type_cast_expression.h"
 #include "parser/sql_statement.h"
 #include "type/transient_value_factory.h"
-#include "type/transient_value_peeker.h"
-#include "type/type_id.h"
-#include "util/time_util.h"
 
 namespace terrier::binder {
 
@@ -156,9 +153,28 @@ void BindNodeVisitor::Visit(parser::UpdateStatement *node, parser::ParseResult *
   BINDER_LOG_TRACE("Visiting UpdateStatement ...");
   context_ = new BinderContext(nullptr);
 
-  node->GetUpdateTable()->Accept(this, parse_result);
+  auto table_ref = node->GetUpdateTable();
+  table_ref->Accept(this, parse_result);
   if (node->GetUpdateCondition() != nullptr) node->GetUpdateCondition()->Accept(this, parse_result);
+
+  auto binder_table_data = context_->GetTableMapping(table_ref->GetTableName());
+  const auto &table_schema = std::get<2>(*binder_table_data);
+
   for (auto &update : node->GetUpdateClauses()) {
+    auto is_cast_expression = update->GetUpdateValue()->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
+    auto expected_ret_type = table_schema.GetColumn(update->GetColumnName()).Type();
+    auto mismatched_type = expected_ret_type != update->GetUpdateValue()->GetReturnValueType();
+    // TODO(WAN): Unfortunately, arbitrary expressions can't be figured out yet and are hard to identify.
+    mismatched_type = mismatched_type && update->GetUpdateValue()->GetReturnValueType() != type::TypeId::INVALID;
+
+    if (mismatched_type || is_cast_expression) {
+      auto converted = BinderUtil::Convert(update->GetUpdateValue(), expected_ret_type);
+      if (converted == nullptr) {
+        throw BINDER_EXCEPTION("Conversion cannot be NULL!");
+      }
+      update->ResetValue(common::ManagedPointer<parser::AbstractExpression>(converted));
+      parse_result->AddExpression(std::move(converted));
+    }
     update->GetUpdateValue()->Accept(this, parse_result);
   }
 
@@ -356,11 +372,12 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
     }
 
     auto num_schema_columns = table_schema.GetColumns().size();
-    auto num_insert_columns = insert_columns->size();  // potentially 0 if unspecified by query
+    auto num_insert_columns = insert_columns->size();  // If unspecified by query, insert_columns is length 0.
     auto insert_values = node->GetValues();
     // Validate input values.
     {
       for (auto &values : *insert_values) {
+        // Value is a row (tuple) to insert.
         size_t num_values = values.size();
         // Test that they have the same number of columns.
         {
@@ -371,30 +388,95 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
             throw BINDER_EXCEPTION("Mismatch in number of insert columns and number of insert values.");
           }
         }
-        // Test that the column values are of the right type.
-        for (size_t i = 0; i < num_values; ++i) {
-          // TODO(WAN): handle additional cases, possibly think about calling DeriveReturnValueType
-          //  so that we handle (1+2) type of expressions
-          //  ADDENDUM. So I thought DeriveReturnValueType would actually derive the return value type.
-          //  This appears to be a bad assumption. We should rename it to DeriveReturnValueTypeForAggregates()
-          //  or else fix up any other codepaths. I've currently fixed it for ConstantValueExpression.
-          auto &col =
-              insert_columns->empty() ? table_schema.GetColumn(i) : table_schema.GetColumn((*insert_columns)[i]);
-          auto expr = values[i].CastManagedPointerTo<parser::ConstantValueExpression>();
-          // TODO(WAN): shouldn't this have been called much earlier in the binder pipeline?
-          expr->DeriveReturnValueType();
-          auto ret_type = expr->GetReturnValueType();
-          auto expected_ret_type = col.Type();
 
-          auto is_null = expr->GetValue().Null() && col.Nullable();
-          auto is_cast_expression = expr->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
+        std::vector<std::pair<catalog::Schema::Column, common::ManagedPointer<parser::AbstractExpression>>> cols;
+
+        if (num_insert_columns == 0) {
+          // If the number of insert columns is zero, it is assumed that the tuple values are already schema ordered.
+          for (size_t i = 0; i < num_values; i++) {
+            auto pair = std::make_pair(table_schema.GetColumns()[i], values[i]);
+            cols.emplace_back(pair);
+          }
+        } else {
+          // Otherwise, some insert columns were specified. Potentially not all and potentially out of order.
+          for (auto &schema_col : table_schema.GetColumns()) {
+            auto it = std::find(insert_columns->begin(), insert_columns->end(), schema_col.Name());
+            // Find the index of the current schema column.
+            if (it != insert_columns->end()) {
+              // TODO(harsh): This might need refactoring if it becomes a performance bottleneck.
+              auto index = std::distance(insert_columns->begin(), it);
+              auto pair = std::make_pair(schema_col, values[index]);
+              cols.emplace_back(pair);
+            } else {
+              // Make a null value of the right type that we can either compare with the stored expression or insert.
+              auto null_tv = type::TransientValueFactory::GetNull(schema_col.Type());
+              auto null_ex = std::make_unique<parser::ConstantValueExpression>(std::move(null_tv));
+
+              // TODO(WAN): We thought that you might be able to collapse these two cases into one, since currently
+              // the catalog column's stored expression is always a NULL of the right type if not otherwise specified.
+              // However, this seems to make assumptions about the current implementation in plan_generator and also
+              // we want to throw an error if it is a non-NULLable column. We can leave it as it is right now.
+
+              // If the current schema column's index was not found, that means it was not specified by the user.
+              if (*schema_col.StoredExpression() != *null_ex) {
+                // First, check if there is a default value for that column.
+                std::unique_ptr<parser::AbstractExpression> cur_value = schema_col.StoredExpression()->Copy();
+                auto pair = std::make_pair(schema_col, common::ManagedPointer(cur_value));
+                cols.emplace_back(pair);
+                parse_result->AddExpression(std::move(cur_value));
+              } else if (schema_col.Nullable()) {
+                // If there is no default value, check if the column is NULLable, meaning we can insert a NULL.
+                auto null_ex_mp = common::ManagedPointer(null_ex).CastManagedPointerTo<parser::AbstractExpression>();
+                auto pair = std::make_pair(schema_col, null_ex_mp);
+                cols.emplace_back(pair);
+                // Note that in this case, we must move null_ex as we have taken a managed pointer to it.
+                parse_result->AddExpression(std::move(null_ex));
+              } else {
+                // If none of the above cases could provide a value to be inserted, then we fail.
+                throw BINDER_EXCEPTION("Column not present, does not have a default and is non-nullable.");
+              }
+            }
+          }
+
+          // We overwrite the original insert columns and values with the schema-ordered versions generated above.
+          insert_columns->clear();
+          values.clear();
+          for (auto &pair : cols) {
+            insert_columns->emplace_back(pair.first.Name());
+            values.emplace_back(pair.second);
+          }
+        }
+
+        // Perform input type transformation validation on the schema-ordered values.
+        for (size_t i = 0; i < cols.size(); i++) {
+          auto ins_col = cols[i].first;
+          auto ins_val = cols[i].second;
+
+          auto ret_type = ins_val->GetReturnValueType();
+          auto expected_ret_type = ins_col.Type();
+
+          auto is_null = false;
+          if (ins_col.Nullable() && ins_val->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT) {
+            is_null = ins_val.CastManagedPointerTo<parser::ConstantValueExpression>()->GetValue().Null();
+          }
+          auto is_cast_expression = ins_val->GetExpressionType() == parser::ExpressionType::OPERATOR_CAST;
           auto mismatched_type = !is_null && ret_type != expected_ret_type;
 
-          if (is_cast_expression || mismatched_type) {
-            auto converted = BinderUtil::Convert(values[i], expected_ret_type);
-            TERRIER_ASSERT(converted != nullptr, "Conversion cannot be null!");
-            values[i] = common::ManagedPointer(converted);
-            parse_result->AddExpression(std::move(converted));
+          // NULL case handled below.
+          if (!is_null && (is_cast_expression || mismatched_type)) {
+            if (ins_val->GetExpressionType() == parser::ExpressionType::VALUE_DEFAULT) {
+              std::unique_ptr<parser::AbstractExpression> temp = ins_col.StoredExpression()->Copy();
+
+              values[i] = common::ManagedPointer(temp);
+              parse_result->AddExpression(std::move(temp));
+            } else {
+              auto converted = BinderUtil::Convert(values[i], expected_ret_type);
+              if (converted == nullptr) {
+                throw BINDER_EXCEPTION("Conversion cannot be NULL!");
+              }
+              values[i] = common::ManagedPointer(converted);
+              parse_result->AddExpression(std::move(converted));
+            }
           }
 
           // NULL came in as a T_Null by libpg_query, so no type information was associated with it. Fix in binder.
