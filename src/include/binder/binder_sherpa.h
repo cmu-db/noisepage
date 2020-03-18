@@ -4,6 +4,8 @@
 #include <unordered_map>
 
 #include "parser/expression/abstract_expression.h"
+#include "type/transient_value_factory.h"
+#include "util/time_util.h"
 
 namespace terrier {
 
@@ -31,7 +33,7 @@ class BinderSherpa {
   /**
    * @return The parse result that we're tracking.
    */
-  common::ManagedPointer<parser::ParseResult> GetParseResult() { return parse_result_; }
+  common::ManagedPointer<parser::ParseResult> GetParseResult() const { return parse_result_; }
 
   /**
    * @param expr The expression whose type constraints we want to look up.
@@ -105,14 +107,73 @@ class BinderSherpa {
     }
   }
 
+  void CheckAndTryPromoteType(const common::ManagedPointer<type::TransientValue> value,
+                              const type::TypeId desired_type) const {
+    const auto curr_type = value->Type();
+
+    // Check if types are mismatched, and convert them if possible.
+    if (curr_type != desired_type) {
+      switch (curr_type) {
+        // NULL conversion.
+        case type::TypeId::INVALID: {
+          *value = type::TransientValueFactory::GetNull(desired_type);
+          break;
+        }
+
+          // INTEGER casting (upwards and downwards).
+        case type::TypeId::INTEGER: {
+          auto intval = type::TransientValuePeeker::PeekInteger(*value);
+
+          // TODO(WAN): check if intval fits in the desired type
+          if (desired_type == type::TypeId::TINYINT) {
+            *value = type::TransientValueFactory::GetTinyInt(intval);
+          } else if (desired_type == type::TypeId::SMALLINT) {
+            *value = type::TransientValueFactory::GetSmallInt(intval);
+          } else if (desired_type == type::TypeId::BIGINT) {
+            // TODO(WAN): how does BIGINT come in on libpg_query?
+            *value = type::TransientValueFactory::GetBigInt(intval);
+          } else if (desired_type == type::TypeId::DECIMAL) {
+            *value = type::TransientValueFactory::GetDecimal(intval);
+          }
+          break;
+        }
+
+          // DATE and TIMESTAMP conversion.
+        case type::TypeId::VARCHAR: {
+          const auto str_view = type::TransientValuePeeker::PeekVarChar(*value);
+
+          // TODO(WAN): A bit stupid to take the string view back into a string.
+          if (desired_type == type::TypeId::DATE) {
+            auto parsed_date = util::TimeConvertor::ParseDate(std::string(str_view));
+            if (!parsed_date.first) {
+              ReportFailure("Binder conversion from VARCHAR to DATE failed.");
+            }
+            *value = type::TransientValueFactory::GetDate(parsed_date.second);
+          } else if (desired_type == type::TypeId::TIMESTAMP) {
+            auto parsed_timestamp = util::TimeConvertor::ParseTimestamp(std::string(str_view));
+            if (!parsed_timestamp.first) {
+              ReportFailure("Binder conversion from VARCHAR to TIMESTAMP failed.");
+            }
+            *value = type::TransientValueFactory::GetTimestamp(parsed_timestamp.second);
+          }
+          break;
+        }
+
+        default: {
+          ReportFailure("Binder conversion of ConstantValueExpression type failed.");
+        }
+      }
+    }
+  }
+
   /**
    * Convenience function. Used by the visitor sheep to report that an error has occurred, causing BINDER_EXCEPTION.
    * @param message The error message.
    */
-  void ReportFailure(const std::string &message) { throw BINDER_EXCEPTION(message.c_str()); }
+  void ReportFailure(const std::string &message) const { throw BINDER_EXCEPTION(message.c_str()); }
 
  private:
-  const common::ManagedPointer<parser::ParseResult> parse_result_;
+  const common::ManagedPointer<parser::ParseResult> parse_result_ = nullptr;
   std::unordered_map<uintptr_t, type::TypeId> desired_expr_types_;
 };
 }  // namespace binder
