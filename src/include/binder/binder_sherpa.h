@@ -109,6 +109,13 @@ class BinderSherpa {
     }
   }
 
+  /**
+   * Attempt to convert the transient value to the desired type.
+   * Note that type promotion could be an upcast or downcast size-wise.
+   *
+   * @param value The transient value to be checked and potentially promoted.
+   * @param desired_type The type to promote the transient value to.
+   */
   void CheckAndTryPromoteType(const common::ManagedPointer<type::TransientValue> value,
                               const type::TypeId desired_type) const {
     const auto curr_type = value->Type();
