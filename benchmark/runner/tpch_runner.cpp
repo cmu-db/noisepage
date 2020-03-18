@@ -22,7 +22,7 @@ class TPCHRunner : public benchmark::Fixture {
       //"../../../tpl_tables/sample_tpl/tpch_q4.tpl",
       //"../../../tpl_tables/sample_tpl/tpch_q5.tpl",
       //"../../../tpl_tables/sample_tpl/tpch_q6.tpl"
-      "../../../tpl_tables/sample_tpl/tpch_q11.tpl"
+      "../../../tpl_tables/sample_tpl/tpch_q7.tpl"
       };
   const std::string tpch_table_root_ = "../../../tpl_tables/tables/";
   const std::string tpch_database_name_ = "tpch_db";

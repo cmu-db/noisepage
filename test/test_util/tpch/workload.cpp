@@ -95,6 +95,7 @@ void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint6
     auto &query_name = query.GetQueryName();
     auto output_schema = sample_output_.GetSchema(query_name);
     execution::exec::NoOpResultConsumer printer;
+    //execution::exec::OutputPrinter printer(output_schema);
     execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
                                                printer, output_schema,
                                                common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
