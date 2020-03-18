@@ -383,6 +383,23 @@ RawBlock *DataTable::NewBlock() {
   RawBlock *new_block = block_store_->Get();
   accessor_.InitializeRawBlock(this, new_block, layout_version_);
   data_table_counter_.IncrementNumNewBlock(1);
+  map_latch_.LockShared();
+  auto it = region_blocks_map_.find(new_block->numa_region_);
+  if (it == region_blocks_map_.end()) {
+    map_latch_.Unlock();
+    map_latch_.LockExclusive();
+    if (region_blocks_map_.find(new_block->numa_region_) == region_blocks_map_.end()) {
+      tbb::concurrent_unordered_set<RawBlock *> new_set;
+      new_set.insert(new_block);
+      region_blocks_map_.insert({new_block->numa_region_, new_set});
+    } else {
+      it->second.insert(new_block);
+    }
+    map_latch_.Unlock();
+  } else {
+    it->second.insert(new_block);
+  }
+
   return new_block;
 }
 

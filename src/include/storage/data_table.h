@@ -2,6 +2,9 @@
 #include <list>
 #include <unordered_map>
 #include <vector>
+#include <map>
+#include <common/shared_latch.h>
+#include <tbb/concurrent_unordered_set.h>
 
 #include "common/managed_pointer.h"
 #include "common/performance_counter.h"
@@ -10,6 +13,7 @@
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
+
 
 namespace flatbuf = org::apache::arrow::flatbuf;
 
@@ -110,6 +114,71 @@ class DataTable {
     std::list<RawBlock *>::const_iterator block_;
     TupleSlot current_slot_;
   };
+  /**
+ * Iterator for all the slots, claimed or otherwise, in the data table. This is useful for sequential scans
+ */
+  class NUMAIterator {
+   public:
+    /**
+     * @return reference to the underlying tuple slot
+     */
+    const TupleSlot &operator*() const { return current_slot_; }
+
+    /**
+     * @return pointer to the underlying tuple slot
+     */
+    const TupleSlot *operator->() const { return &current_slot_; }
+
+    /**
+     * pre-fix increment.
+     * @return self-reference after the iterator is advanced
+     */
+    NUMAIterator &operator++();
+
+    /**
+     * post-fix increment.
+     * @return copy of the iterator equal to this before increment
+     */
+    NUMAIterator operator++(int) {
+      NUMAIterator copy = *this;
+      operator++();
+      return copy;
+    }
+
+    /**
+     * Equality check.
+     * @param other other iterator to compare to
+     * @return if the two iterators point to the same slot
+     */
+    bool operator==(const NUMAIterator &other) const {
+      // TODO(Tianyu): I believe this is enough?
+      return current_slot_ == other.current_slot_;
+    }
+
+    /**
+     * Inequality check.
+     * @param other other iterator to compare to
+     * @return if the two iterators are not equal
+     */
+    bool operator!=(const NUMAIterator &other) const { return !this->operator==(other); }
+
+   private:
+    friend class DataTable;
+    /**
+     * @warning MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
+     */
+    NUMAIterator(const DataTable *table, std::list<RawBlock *>::const_iterator block, uint32_t offset_in_block)
+        : table_(table), block_(block) {
+      current_slot_ = {block == table->blocks_.end() ? nullptr : *block, offset_in_block};
+    }
+
+    // TODO(Tianyu): Can potentially collapse this information into the RawBlock so we don't have to hold a pointer to
+    // the table anymore. Right now we need the table to know how many slots there are in the block
+    const DataTable *table_;
+    std::list<RawBlock *>::const_iterator block_;
+    TupleSlot current_slot_;
+  };
+
   /**
    * Constructs a new DataTable with the given layout, using the given BlockStore as the source
    * of its storage blocks. The first column must be size 8 and is effectively hidden from upper levels.
@@ -254,6 +323,10 @@ class DataTable {
   mutable common::SpinLatch blocks_latch_;
   // latch used to protect insertion_head_
   mutable common::SpinLatch header_latch_;
+  // latch to protect region_blocks_map
+  mutable common::SharedLatch map_latch_;
+  // map from numa region to vector of raw blocks in said region and vector's shared latch
+  std::map<numa_region_t, tbb::concurrent_unordered_set<RawBlock *>> region_blocks_map_;
   std::list<RawBlock *>::iterator insertion_head_;
   // Check if we need to advance the insertion_head_
   // This function uses header_latch_ to ensure correctness
