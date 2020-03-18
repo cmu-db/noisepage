@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef __APPLE__
+#include "numaif.h"
+#endif
 #include <algorithm>
 #include <functional>
 #include <ostream>
@@ -32,6 +35,7 @@ constexpr uint8_t NUM_ATTR_BOUNDARIES = 4;
 
 STRONG_TYPEDEF(col_id_t, uint16_t);
 STRONG_TYPEDEF(layout_version_t, uint16_t);
+STRONG_TYPEDEF(numa_region_t, int16_t);
 
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
 // This is not to be confused with a non-null version vector that has value nullptr (0).
@@ -56,10 +60,9 @@ class alignas(common::Constants::BLOCK_SIZE) RawBlock {
   DataTable *data_table_;
 
   /**
-   * Padding for flags or whatever we may want in the future. Determined by size of layout_version below. See
-   * tuple_access_strategy.h for more details on Block header layout.
+   * Parameter to read NUMA region for RawBlock
    */
-  uint16_t padding_;
+  numa_region_t numa_region_;
 
   /**
    * Layout version.
@@ -83,7 +86,7 @@ class alignas(common::Constants::BLOCK_SIZE) RawBlock {
   /**
    * Contents of the raw block.
    */
-  byte content_[common::Constants::BLOCK_SIZE - sizeof(uintptr_t) - sizeof(uint16_t) - sizeof(layout_version_t) -
+  byte content_[common::Constants::BLOCK_SIZE - sizeof(uintptr_t) - sizeof(numa_region_t) - sizeof(layout_version_t) -
                 sizeof(uint32_t) - sizeof(BlockAccessController)];
   // A Block needs to always be aligned to 1 MB, so we can get free bytes to
   // store offsets within a block in one 8-byte word
@@ -171,9 +174,19 @@ class BlockAllocator {
  public:
   /**
    * Allocates a new object by calling its constructor.
+   * @param optional NUMA region to allocate object
    * @return a pointer to the allocated object.
    */
-  RawBlock *New() { return new RawBlock(); }
+  RawBlock *New(numa_region_t region = static_cast<numa_region_t>(-1)) {
+    if (region == static_cast<numa_region_t>(-1)) {
+      return new RawBlock();
+    }
+#ifndef __APPLE__
+    return static_cast<RawBlock *>(numa_alloc_onnode(sizeof(RawBlock), region));
+#else
+    return new RawBlock();
+#endif
+  }
 
   /**
    * Reuse a reused chunk of memory to be handed out again
