@@ -33,6 +33,12 @@ class TestServer:
 
         return
 
+    def run_pre_test(self):
+        pass
+
+    def run_post_test(self):
+        pass
+
     def set_path(self):
         """ location of db server, relative to this script """
 
@@ -115,16 +121,23 @@ class TestServer:
 
     def run_test(self):
         """ Run the tests """
+        # run the pre test tasks
+        self.run_pre_test()
+
+        # run the actual test
         self.test_output_fd = open(self.test_output_file, "w+")
         test_procss = subprocess.Popen(self.test_command,
                                        stdout=self.test_output_fd,
                                        stderr=self.test_output_fd)
         ret_val = test_procss.wait()
         self.test_output_fd.close()
+
+        # run the post test tasks
+        self.run_post_test()
         return ret_val
 
     def run(self):
-        """ Orchestrate the overall JUnit test execution """
+        """ Orchestrate the overall test execution """
         self.check_db_binary()
         self.run_db()
         ret_val = self.run_test()
