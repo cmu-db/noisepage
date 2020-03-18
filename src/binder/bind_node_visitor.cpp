@@ -104,7 +104,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::JoinDefinition> node,
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node,
                             common::ManagedPointer<BinderSherpa> sherpa) {
   BINDER_LOG_TRACE("Visiting TableRef ...");
-  ValidateDatabaseName(node);
+  InitTableRef(node);
+  ValidateDatabaseName(node->GetDatabaseName());
 
   if (node->GetSelect() != nullptr) {
     if (node->GetAlias().empty()) throw BINDER_EXCEPTION("Alias not found for query derived table");
@@ -195,7 +196,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::DeleteStatement> node
   BinderContext context(nullptr);
   context_ = common::ManagedPointer(&context);
 
-  ValidateDatabaseName(node->GetDeletionTable());
+  InitTableRef(node->GetDeletionTable());
+  ValidateDatabaseName(node->GetDeletionTable()->GetDatabaseName());
 
   auto table = node->GetDeletionTable();
   context_->AddRegularTable(catalog_accessor_, db_oid_, table->GetNamespaceName(), table->GetTableName(),
@@ -257,11 +259,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CreateStatement> node
       }
       break;
     case parser::CreateStatement::CreateType::kTable:
-      if (!(node->GetDatabaseName().empty())) {
-        const auto db_oid = catalog_accessor_->GetDatabaseOid(node->GetDatabaseName());
-        if (db_oid == catalog::INVALID_DATABASE_OID) throw BINDER_EXCEPTION("Database does not exist");
-        if (db_oid != db_oid_) throw BINDER_EXCEPTION("Not connected to specified database");
-      }
+      ValidateDatabaseName(node->GetDatabaseName());
 
       if (catalog_accessor_->GetTableOid(node->GetTableName()) != catalog::INVALID_TABLE_OID) {
         throw BINDER_EXCEPTION("Table name already exists");
@@ -314,11 +312,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CreateStatement> node
       }
       break;
     case parser::CreateStatement::CreateType::kIndex:
-      if (!(node->GetDatabaseName().empty())) {
-        const auto db_oid = catalog_accessor_->GetDatabaseOid(node->GetDatabaseName());
-        if (db_oid == catalog::INVALID_DATABASE_OID) throw BINDER_EXCEPTION("Database does not exist");
-        if (db_oid != db_oid_) throw BINDER_EXCEPTION("Not connected to specified database");
-      }
+      ValidateDatabaseName(node->GetDatabaseName());
       if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
         throw BINDER_EXCEPTION("Build index on non-existing table.");
       }
@@ -341,11 +335,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CreateStatement> node
       }
       break;
     case parser::CreateStatement::CreateType::kTrigger:
-      if (!(node->GetDatabaseName().empty())) {
-        const auto db_oid = catalog_accessor_->GetDatabaseOid(node->GetDatabaseName());
-        if (db_oid == catalog::INVALID_DATABASE_OID) throw BINDER_EXCEPTION("Database does not exist");
-        if (db_oid != db_oid_) throw BINDER_EXCEPTION("Not connected to specified database");
-      }
+      ValidateDatabaseName(node->GetDatabaseName());
       context_->AddRegularTable(catalog_accessor_, db_oid_, node->GetNamespaceName(), node->GetTableName(),
                                 node->GetTableName());
       // TODO(Ling): I think there are rules on when the trigger can have OLD reference
@@ -359,11 +349,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CreateStatement> node
       // nothing for binder to handler
       break;
     case parser::CreateStatement::CreateType::kView:
-      if (!(node->GetDatabaseName().empty())) {
-        const auto db_oid = catalog_accessor_->GetDatabaseOid(node->GetDatabaseName());
-        if (db_oid == catalog::INVALID_DATABASE_OID) throw BINDER_EXCEPTION("Database does not exist");
-        if (db_oid != db_oid_) throw BINDER_EXCEPTION("Not connected to specified database");
-      }
+      ValidateDatabaseName(node->GetDatabaseName());
       TERRIER_ASSERT(node->GetViewQuery() != nullptr, "View requires a query");
       node->GetViewQuery()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
       break;
@@ -380,7 +366,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
   BinderContext context(nullptr);
   context_ = common::ManagedPointer(&context);
 
-  ValidateDatabaseName(node->GetInsertionTable());
+  InitTableRef(node->GetInsertionTable());
+  ValidateDatabaseName(node->GetInsertionTable()->GetDatabaseName());
 
   // TODO(WAN): It is unclear what this visitor pattern really buys us. Because of the
   //  Visit -> Accept [ -> AcceptChildren] -> Visit loop, we lose the context of what we're currently
@@ -562,26 +549,16 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::DropStatement> node,
   auto drop_type = node->GetDropType();
   switch (drop_type) {
     case parser::DropStatement::DropType::kDatabase:
-      if (catalog_accessor_->GetDatabaseOid(node->GetDatabaseName()) == catalog::INVALID_DATABASE_OID) {
-        throw BINDER_EXCEPTION("Database does not exist");
-      }
+      ValidateDatabaseName(node->GetDatabaseName());
       break;
     case parser::DropStatement::DropType::kTable:
-      if (!(node->GetDatabaseName().empty())) {
-        const auto db_oid = catalog_accessor_->GetDatabaseOid(node->GetDatabaseName());
-        if (db_oid == catalog::INVALID_DATABASE_OID) throw BINDER_EXCEPTION("Database does not exist");
-        if (db_oid != db_oid_) throw BINDER_EXCEPTION("Not connected to specified database");
-      }
+      ValidateDatabaseName(node->GetDatabaseName());
       if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
         throw BINDER_EXCEPTION("Table does not exist");
       }
       break;
     case parser::DropStatement::DropType::kIndex:
-      if (!(node->GetDatabaseName().empty())) {
-        const auto db_oid = catalog_accessor_->GetDatabaseOid(node->GetDatabaseName());
-        if (db_oid == catalog::INVALID_DATABASE_OID) throw BINDER_EXCEPTION("Database does not exist");
-        if (db_oid != db_oid_) throw BINDER_EXCEPTION("Not connected to specified database");
-      }
+      ValidateDatabaseName(node->GetDatabaseName());
       if (catalog_accessor_->GetIndexOid(node->GetIndexName()) == catalog::INVALID_INDEX_OID) {
         throw BINDER_EXCEPTION("Index does not exist");
       }
@@ -612,7 +589,8 @@ void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::Tran
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::AnalyzeStatement> node,
                             common::ManagedPointer<BinderSherpa> sherpa) {
   BINDER_LOG_TRACE("Visiting AnalyzeStatement ...");
-  ValidateDatabaseName(node->GetAnalyzeTable());
+  InitTableRef(node->GetAnalyzeTable());
+  ValidateDatabaseName(node->GetAnalyzeTable()->GetDatabaseName());
 }
 
 void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::ConstantValueExpression> expr,

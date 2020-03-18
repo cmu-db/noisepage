@@ -103,10 +103,13 @@ class BindNodeVisitor : public SqlNodeVisitor {
   const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor_;
   const catalog::db_oid_t db_oid_;
 
-  void ValidateDatabaseName(const common::ManagedPointer<parser::TableRef> node) {
+  static void InitTableRef(const common::ManagedPointer<parser::TableRef> node) {
     if (node->table_info_ == nullptr) node->table_info_ = std::make_unique<parser::TableInfo>();
-    if (!(node->GetDatabaseName().empty())) {
-      const auto db_oid = catalog_accessor_->GetDatabaseOid(node->GetDatabaseName());
+  }
+
+  void ValidateDatabaseName(const std::string &db_name) {
+    if (!(db_name.empty())) {
+      const auto db_oid = catalog_accessor_->GetDatabaseOid(db_name);
       if (db_oid == catalog::INVALID_DATABASE_OID) throw BINDER_EXCEPTION("Database does not exist");
       if (db_oid != db_oid_) throw BINDER_EXCEPTION("Not connected to specified database");
     }
