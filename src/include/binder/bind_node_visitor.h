@@ -103,8 +103,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
   const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor_;
   const catalog::db_oid_t db_oid_;
 
-  void ValidateDatabaseName(const common::ManagedPointer<parser::TableRef> node,
-                            const common::ManagedPointer<BinderSherpa> sherpa) {
+  void ValidateDatabaseName(const common::ManagedPointer<parser::TableRef> node) {
     if (node->table_info_ == nullptr) node->table_info_ = std::make_unique<parser::TableInfo>();
     if (!(node->GetDatabaseName().empty())) {
       const auto db_oid = catalog_accessor_->GetDatabaseOid(node->GetDatabaseName());

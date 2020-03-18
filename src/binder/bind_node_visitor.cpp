@@ -104,7 +104,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::JoinDefinition> node,
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node,
                             common::ManagedPointer<BinderSherpa> sherpa) {
   BINDER_LOG_TRACE("Visiting TableRef ...");
-  ValidateDatabaseName(node, sherpa);
+  ValidateDatabaseName(node);
 
   if (node->GetSelect() != nullptr) {
     if (node->GetAlias().empty()) throw BINDER_EXCEPTION("Alias not found for query derived table");
@@ -195,7 +195,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::DeleteStatement> node
   BinderContext context(nullptr);
   context_ = common::ManagedPointer(&context);
 
-  ValidateDatabaseName(node->GetDeletionTable(), sherpa);
+  ValidateDatabaseName(node->GetDeletionTable());
 
   auto table = node->GetDeletionTable();
   context_->AddRegularTable(catalog_accessor_, db_oid_, table->GetNamespaceName(), table->GetTableName(),
@@ -380,7 +380,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
   BinderContext context(nullptr);
   context_ = common::ManagedPointer(&context);
 
-  ValidateDatabaseName(node->GetInsertionTable(), sherpa);
+  ValidateDatabaseName(node->GetInsertionTable());
 
   // TODO(WAN): It is unclear what this visitor pattern really buys us. Because of the
   //  Visit -> Accept [ -> AcceptChildren] -> Visit loop, we lose the context of what we're currently
@@ -499,11 +499,13 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
           auto ret_type = ins_val->GetReturnValueType();
           auto expected_ret_type = ins_col.Type();
 
+          // Set the desired type to be whatever the schema says the type should be.
+          sherpa->SetDesiredType(ins_val, expected_ret_type);
+
           auto is_default_expression = ins_val->GetExpressionType() == parser::ExpressionType::VALUE_DEFAULT;
           if (is_default_expression) {
             auto stored_expr = ins_col.StoredExpression()->Copy();
             ins_val = common::ManagedPointer(stored_expr);
-            sherpa->SetDesiredType(ins_val, ret_type);
             sherpa->GetParseResult()->AddExpression(std::move(stored_expr));
           }
 
@@ -515,11 +517,11 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
             }
             auto child = ins_val->GetChild(0)->Copy();
             ins_val = common::ManagedPointer(child);
-            sherpa->SetDesiredType(ins_val, ret_type);
+            // The child should have the expected return type from the CAST parent.
+            sherpa->SetDesiredType(ins_val, expected_ret_type);
             sherpa->GetParseResult()->AddExpression(std::move(child));
           }
 
-          sherpa->SetDesiredType(ins_val, expected_ret_type);
           ins_val->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
           values[i] = ins_val;
         }
@@ -610,7 +612,7 @@ void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::Tran
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::AnalyzeStatement> node,
                             common::ManagedPointer<BinderSherpa> sherpa) {
   BINDER_LOG_TRACE("Visiting AnalyzeStatement ...");
-  ValidateDatabaseName(node->GetAnalyzeTable(), sherpa);
+  ValidateDatabaseName(node->GetAnalyzeTable());
 }
 
 void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::ConstantValueExpression> expr,
