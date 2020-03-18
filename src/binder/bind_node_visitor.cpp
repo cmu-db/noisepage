@@ -58,7 +58,8 @@ void BindNodeVisitor::Visit(parser::SelectStatement *node, parser::ParseResult *
   BINDER_LOG_TRACE("Gathering select columns...");
   for (auto &select_element : node->GetSelectColumns()) {
     if (select_element->GetExpressionType() == parser::ExpressionType::STAR) {
-      context_->GenerateAllColumnExpressions(parse_result, &new_select_list, "");
+      constexpr auto empty_table_name = "";
+      context_->GenerateAllColumnExpressions(parse_result, &new_select_list, empty_table_name);
       continue;
     }
 

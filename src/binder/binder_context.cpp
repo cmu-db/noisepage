@@ -205,6 +205,7 @@ void BinderContext::GenerateAllColumnExpressions(parser::ParseResult *parse_resu
                                                  std::vector<common::ManagedPointer<parser::AbstractExpression>> *exprs,
                                                  const std::string &table_name) {
   for (auto &entry : regular_table_alias_map_) {
+    // If the table name is empty, we want all the columns. Otherwise, we just want the columns from that table.
     if (!table_name.empty() && entry.first != table_name) {
       continue;
     }
@@ -229,6 +230,7 @@ void BinderContext::GenerateAllColumnExpressions(parser::ParseResult *parse_resu
   }
 
   for (auto &entry : nested_table_alias_map_) {
+    // If the table name is empty, we want all the columns. Otherwise, we just want the columns from that table.
     if (!table_name.empty() && entry.first != table_name) {
       continue;
     }
