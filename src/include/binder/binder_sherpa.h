@@ -90,7 +90,7 @@ class BinderSherpa {
       auto is_right_integer = right_type == type::TypeId::INTEGER;
 
       if (left_type != type::TypeId::INVALID && (is_right_maybe_null || is_right_varchar || is_right_integer)) {
-        SetDesiredType(left, right_type);
+        SetDesiredType(right, left_type);
       }
     }
   }
