@@ -70,13 +70,13 @@ std::vector<type::TransientValue> Workload::GetQueryParams(const std::string &qu
   return params;
 }
 
-void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint64_t avg_interval_us,
+void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint64_t avg_interval_us, uint32_t query_num,
     execution::vm::ExecutionMode mode) {
   // Shuffle the queries randomly for each thread
-  auto num_queries = queries_.size();
-  uint32_t index[num_queries];
-  for (uint32_t i = 0; i < num_queries; ++i) index[i] = i;
-  std::shuffle(&index[0], &index[num_queries], std::mt19937(worker_id));
+  auto total_query_num = queries_.size();
+  uint32_t index[total_query_num];
+  for (uint32_t i = 0; i < total_query_num; ++i) index[i] = i;
+  std::shuffle(&index[0], &index[total_query_num], std::mt19937(time(0) + worker_id));
 
   // Get the sleep time range distribution
   std::mt19937 generator{};
@@ -102,7 +102,8 @@ void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint6
     auto params = GetQueryParams(query_name);
     exec_ctx.SetParams(std::move(params));
     query.Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
-    counter = counter == num_queries - 1 ? 0 : counter + 1;
+    // Only execute up to query_num number of queries for this thread in round-robin
+    counter = counter == query_num - 1 ? 0 : counter + 1;
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     // Sleep to create different execution frequency patterns
