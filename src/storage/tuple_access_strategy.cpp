@@ -1,6 +1,9 @@
 #include "storage/tuple_access_strategy.h"
 #include <utility>
 #include "common/container/concurrent_bitmap.h"
+#ifndef __APPLE__
+#include "numaif.h"
+#endif
 
 namespace terrier::storage {
 
@@ -25,6 +28,12 @@ void TupleAccessStrategy::InitializeRawBlock(storage::DataTable *const data_tabl
                                              const layout_version_t layout_version) const {
   // Intentional unsafe cast
   raw->data_table_ = data_table;
+#ifndef __APPLE__
+  if (move_pages(0, 1, &raw, NULL, &raw->numa_region_, 0) == -1)
+    raw->numa_region_ = -1;
+#else
+  raw->numa_region_ = static_cast<numa_region_t >(-1);
+#endif
   raw->layout_version_ = layout_version;
   raw->insert_head_ = 0;
   raw->controller_.Initialize();
