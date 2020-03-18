@@ -70,8 +70,16 @@ class ParameterValueExpression : public AbstractExpression {
 
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
               common::ManagedPointer<binder::BinderSherpa> sherpa) override {
-    const auto &param = (*(sherpa->GetParameters()))[value_idx_];
-    return_value_type_ = param.Type();
+    const common::ManagedPointer<type::TransientValue> param =
+        common::ManagedPointer(&((*(sherpa->GetParameters()))[value_idx_]));
+
+    const auto desired_type =
+        sherpa->GetDesiredType(common::ManagedPointer(this).CastManagedPointerTo<AbstractExpression>());
+
+    sherpa->CheckAndTryPromoteType(param, desired_type);
+
+    return_value_type_ = param->Type();
+
     v->Visit(common::ManagedPointer(this), sherpa);
   }
 
