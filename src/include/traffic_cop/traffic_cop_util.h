@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 #include "network/network_defs.h"
 
@@ -41,6 +42,7 @@ class TrafficCopUtil {
    * @param txn used by optimizer
    * @param accessor used by optimizer
    * @param query bound ParseResult
+   * @param db_oid database oid
    * @param stats_storage used by optimizer
    * @param cost_model used by optimizer
    * @param optimizer_timeout used by optimizer
@@ -49,7 +51,7 @@ class TrafficCopUtil {
   static std::unique_ptr<planner::AbstractPlanNode> Optimize(
       common::ManagedPointer<transaction::TransactionContext> txn,
       common::ManagedPointer<catalog::CatalogAccessor> accessor, common::ManagedPointer<parser::ParseResult> query,
-      common::ManagedPointer<optimizer::StatsStorage> stats_storage,
+      catalog::db_oid_t db_oid, common::ManagedPointer<optimizer::StatsStorage> stats_storage,
       std::unique_ptr<optimizer::AbstractCostModel> cost_model, uint64_t optimizer_timeout);
 
   /**

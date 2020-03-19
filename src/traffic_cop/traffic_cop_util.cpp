@@ -20,12 +20,12 @@ namespace terrier::trafficcop {
 std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(
     const common::ManagedPointer<transaction::TransactionContext> txn,
     const common::ManagedPointer<catalog::CatalogAccessor> accessor,
-    const common::ManagedPointer<parser::ParseResult> query,
-    const common::ManagedPointer<optimizer::StatsStorage> stats_storage,
+    const common::ManagedPointer<parser::ParseResult> query, const catalog::db_oid_t db_oid,
+    common::ManagedPointer<optimizer::StatsStorage> stats_storage,
     std::unique_ptr<optimizer::AbstractCostModel> cost_model, const uint64_t optimizer_timeout) {
   // Optimizer transforms annotated ParseResult to logical expressions (ephemeral Optimizer structure)
-  optimizer::QueryToOperatorTransformer transformer(accessor);
-  auto logical_exprs = transformer.ConvertToOpExpression(query->GetStatement(0), query.Get());
+  optimizer::QueryToOperatorTransformer transformer(accessor, db_oid);
+  auto logical_exprs = transformer.ConvertToOpExpression(query->GetStatement(0), query);
 
   optimizer::Optimizer optimizer(std::move(cost_model), optimizer_timeout);
   optimizer::PropertySet property_set;
