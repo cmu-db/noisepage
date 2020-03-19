@@ -49,8 +49,9 @@ class TestServer:
         bin_name = constants.DEFAULT_DB_BIN
         build_type = self.args.get("build_type", "")
         path_list = [
-            "../../../build/{}".format(build_type),
-            "../../../cmake-build-{}/{}".format(build_type, build_type)
+            os.path.join(constants.DIR_REPO, "build", build_type),
+            os.path.join(constants.DIR_REPO,
+                         "cmake-build-{}".format(build_type), build_type)
         ]
         for dir in path_list:
             path = os.path.join(dir, bin_name)

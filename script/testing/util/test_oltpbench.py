@@ -1,4 +1,6 @@
 #!/usr/bin/python
+import os
+import sys
 import subprocess
 from util import constants
 from util.test_server import TestServer
@@ -9,28 +11,27 @@ class TestOLTPBench(TestServer):
     """ Class to run OLTP Bench tests """
     def __init__(self, args):
         TestServer.__init__(self, args)
-        self.db_host = str(self.args.get())
-        self.db_port = constants.DEFAULT_DB_PORT
+        self.db_host = str(self.args.get(constants.DEFAULT_DB_HOST))
+        self.db_port = str(self.args.get(constants.DEFAULT_DB_PORT))
 
         # oltpbench specific attributes
         self.benchmark = str(self.args.get("benchmark"))
         self.scalefactor = int(
             self.args.get("scalefactor", constants.OLTP_DEFAULT_SCALEFACTOR))
         self.terminals = int(
-            self.args.get("terminals", constants.OLTP_DEFAULT_TERMINAL))
+            self.args.get("terminals", constants.OLTP_DEFAULT_TERMINALS))
         self.time = int(
             self.args.get("client_time", constants.OLTP_DEFAULT_TIME))
         self.weights = str(self.args.get("weights"))
         self.transaction_isolation = str(
-            self.args.transaction_isolation(
-                "transaction_isolation",
-                constants.OLTP_DEFAULT_TRANSACTION_ISOLATION))
+            self.args.get("transaction_isolation",
+                          constants.OLTP_DEFAULT_TRANSACTION_ISOLATION))
 
         # oltpbench xml file paths
-        self.xml_template = "{}sample_{}_config.xml".format(
-            constants.OLTP_DIR_CONFIG, self.benchmark)
-        self.xml_config = "{}{}_config.xml".format(constants.OLTP_DIR_CONFIG,
-                                                   self.benchmark)
+        xml_file = "{}_config.xml".format(self.benchmark)
+        self.xml_config = os.path.join(constants.OLTP_DIR_CONFIG, xml_file)
+        self.xml_template = os.path.join(constants.OLTP_DIR_CONFIG,
+                                         "sample_{}".format(xml_file))
 
         # oltpbench test results
         self.result_path = "outputfile_{WEIGHTS}_{SCALEFACTOR}".format(
@@ -40,12 +41,13 @@ class TestOLTPBench(TestServer):
                                              self.result_path)
 
         # oltpbench test command
-        self.test_command = "{BIN} -b {BENCHMARK} -c {XML} {FLAGS} -o {RESULTS}".format(
+        self.test_command = "cd {OLTPDIR} && bash {BIN} -b {BENCHMARK} -c {XML} {FLAGS} -o {RESULTS}".format(
+            OLTPDIR=constants.OLTP_GIT_LOCAL_PATH,
             BIN=constants.OLTP_DEFAULT_BIN,
             BENCHMARK=self.benchmark,
             XML=self.xml_config,
             FLAGS=constants.OLTP_DEFAULT_COMMAND_FLAGS,
-            RESULTS=self.result_path)
+            RESULTS=self.test_output_file)
 
     def run_pre_test(self):
         # install the OLTP
@@ -58,8 +60,19 @@ class TestOLTPBench(TestServer):
             os.mkdir(constants.OLTP_DIR_TEST_RESULT)
 
     def install_oltp(self):
+        self.clean_oltp()
         self.download_oltp()
         self.build_oltp()
+
+    def clean_oltp(self):
+        p = subprocess.Popen(constants.OLTP_GIT_CLEAN_COMMAND,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        stdout, stderr = p.communicate()
+        if p.returncode != constants.ErrorCode.SUCCESS:
+            print("Error: unable to clean OLTP repo")
+            print(stderr)
+            sys.exit(constants.ErrorCode.ERROR)
 
     def download_oltp(self):
         p = subprocess.Popen(constants.OLTP_GIT_COMMAND,
@@ -69,7 +82,7 @@ class TestOLTPBench(TestServer):
         if p.returncode != constants.ErrorCode.SUCCESS:
             print("Error: unable to git clone OLTP source code")
             print(stderr)
-            os.exit(constants.ErrorCode.ERROR)
+            sys.exit(constants.ErrorCode.ERROR)
 
     def build_oltp(self):
         for command in constants.OTLP_ANT_COMMANDS:
@@ -79,7 +92,7 @@ class TestOLTPBench(TestServer):
             stdout, stderr = p.communicate()
             if p.returncode != constants.ErrorCode.SUCCESS:
                 print(stderr)
-                os.exit(constants.ErrorCode.ERROR)
+                sys.exit(constants.ErrorCode.ERROR)
 
     def config_xml_file(self):
         xml = ElementTree.parse(self.xml_template)
@@ -91,16 +104,12 @@ class TestOLTPBench(TestServer):
             self.benchmark)  #host, port and benchmark name
         root.find("username").text = constants.OLTP_DEFAULT_USERNAME
         root.find("password").text = constants.OLTP_DEFAULT_PASSWORD
-        root.find("isolation").text = self.transaction_isolation
-        root.find("scalefactor").text = self.scalefactor
-        root.find("terminals").text = self.terminals
+        root.find("isolation").text = str(self.transaction_isolation)
+        root.find("scalefactor").text = str(self.scalefactor)
+        root.find("terminals").text = str(self.terminals)
         for work in root.find("works").findall("work"):
             work.find("time").text = str(self.time)
-            work.find("rate").text = constants.OLTP_DEFAULT_RATE
-            work.find("weights").text = str(self.weight)
+            work.find("rate").text = str(constants.OLTP_DEFAULT_RATE)
+            work.find("weights").text = str(self.weights)
 
         xml.write(self.xml_config)
-
-    def get_result_path(weights, scalefactor):
-        return "outputfile_" + weights.replace(",",
-                                               "_") + "_" + str(scalefactor)
