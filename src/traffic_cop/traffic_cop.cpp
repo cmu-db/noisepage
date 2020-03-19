@@ -124,12 +124,13 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
 
 std::unique_ptr<planner::AbstractPlanNode> TrafficCop::OptimizeBoundQuery(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-    const common::ManagedPointer<parser::ParseResult> query) const {
+    const common::ManagedPointer<parser::ParseResult> query,
+    const common::ManagedPointer<std::vector<type::TransientValue>> parameters) const {
   TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                  "Not in a valid txn. This should have been caught before calling this function.");
   // Optimizer transforms annotated ParseResult to logical expressions (ephemeral Optimizer structure)
   optimizer::QueryToOperatorTransformer transformer(connection_ctx->Accessor(), connection_ctx->GetDatabaseOid());
-  auto logical_exprs = transformer.ConvertToOpExpression(query->GetStatement(0), query);
+  auto logical_exprs = transformer.ConvertToOpExpression(query->GetStatement(0), query, parameters);
 
   // TODO(Matt): is the cost model to use going to become an arg to this function eventually?
   optimizer::Optimizer optimizer(std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout_);

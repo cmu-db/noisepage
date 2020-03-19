@@ -95,7 +95,8 @@ class TrafficCop {
    */
   std::unique_ptr<planner::AbstractPlanNode> OptimizeBoundQuery(
       common::ManagedPointer<network::ConnectionContext> connection_ctx,
-      common::ManagedPointer<parser::ParseResult> query) const;
+      common::ManagedPointer<parser::ParseResult> query,
+      common::ManagedPointer<std::vector<type::TransientValue>> parameters) const;
 
   /**
    * Calls to txn manager to begin txn, and updates ConnectionContext state
