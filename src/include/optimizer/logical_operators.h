@@ -1958,7 +1958,6 @@ class LogicalAnalyze : public OperatorNodeContents<LogicalAnalyze> {
  public:
   /**
    * @param database_oid OID of the database
-   * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
    * @param columns OIDs of Analyze columns
    * @return

@@ -2036,6 +2036,11 @@ class DropView : public OperatorNodeContents<DropView> {
   catalog::db_oid_t database_oid_;
 
   /**
+   * OID of namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
    * OID of the view to drop
    */
   catalog::view_oid_t view_oid_;
@@ -2053,7 +2058,6 @@ class Analyze : public OperatorNodeContents<Analyze> {
  public:
   /**
    * @param database_oid OID of the database
-   * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
    * @param columns OIDs of Analyze columns
    * @return
