@@ -179,6 +179,7 @@ namespace terrier::execution::vm {
   F(InitBoolVal, OperandType::Local, OperandType::Local)                                                              \
   F(InitInteger, OperandType::Local, OperandType::Local)                                                              \
   F(InitReal, OperandType::Local, OperandType::Local)                                                                 \
+  F(IntegerToReal, OperandType::Local, OperandType::Local)                                                            \
   F(InitDate, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
   F(InitTimestamp, OperandType::Local, OperandType::Local)                                                            \
   F(InitTimestampHMSu, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,                \

@@ -5,10 +5,13 @@
 
 #include "common/managed_pointer.h"
 #include "common/performance_counter.h"
+#include "storage/arrow_serializer.h"
 #include "storage/projected_columns.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
+
+namespace flatbuf = org::apache::arrow::flatbuf;
 
 namespace terrier::transaction {
 class TransactionContext;
@@ -44,7 +47,7 @@ DEFINE_PERFORMANCE_CLASS(DataTableCounter, DataTableCounterMembers)
 class DataTable {
  public:
   /**
-   * Iterator for all the slots, claimed or otherwise, in the data table. This is useful for sequential scans.
+   * Iterator for all the slots, claimed or otherwise, in the data table. This is useful for sequential scans
    */
   class SlotIterator {
    public:
@@ -218,6 +221,8 @@ class DataTable {
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
 
  private:
+  // The ArrowSerializer needs access to its blocks.
+  friend class ArrowSerializer;
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains
   friend class GarbageCollector;
   // The TransactionManager needs to modify VersionPtrs when rolling back aborts
