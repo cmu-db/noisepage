@@ -8,4 +8,3 @@ class TestJUnit(TestServer):
     def __init__(self, args):
         TestServer.__init__(self, args)
         self.test_command = constants.JUNIT_TEST_COMMAND
-        self.test_output_file = constants.JUNIT_DB_OUTPUT_FILE

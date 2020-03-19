@@ -13,7 +13,7 @@ class TestServer:
     """ Class to run general tests """
     def __init__(self, args):
         """ Locations and misc. variable initialization """
-        self.args = args
+        self.args = {k: v for k, v in args.items() if v}
 
         # server output
         self.db_output_file = constants.DEFAULT_DB_OUTPUT_FILE
@@ -22,11 +22,12 @@ class TestServer:
         self.db_process = None
 
         # db server location
-        self.db_host = constants.DEFAULT_DB_HOST
-        self.db_port = constants.DEFAULT_DB_PORT
+        self.db_host = self.args.get("db_host", constants.DEFAULT_DB_HOST)
+        self.db_port = self.args.get("db_port", constants.DEFAULT_DB_PORT)
 
         # test execution output
-        self.test_output_file = ""
+        self.test_output_file = self.args.get(
+            "test_output_file", constants.DEFAULT_TEST_OUTPUT_FILE)
 
         # test execution command
         self.test_command = []
@@ -46,7 +47,7 @@ class TestServer:
         # but CLion creates cmake-build-<build_type>/<build_type>
         # determine what we have and set the server path accordingly
         bin_name = constants.DEFAULT_DB_BIN
-        build_type = self.args['build_type']
+        build_type = self.args.get("build_type", "")
         path_list = [
             "../../../build/{}".format(build_type),
             "../../../cmake-build-{}/{}".format(build_type, build_type)
@@ -101,7 +102,7 @@ class TestServer:
         if self.db_process.returncode is not None:
             # Db terminated already
             self.db_output_fd.close()
-            self._print_output(self.db_output_file)
+            self.print_output(self.db_output_file)
             msg = "Db terminated with return code {}".format(
                 self.db_process.returncode)
             raise RuntimeError(msg)

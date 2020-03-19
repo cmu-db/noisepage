@@ -14,19 +14,15 @@ if __name__ == "__main__":
 
     aparser = argparse.ArgumentParser(description="junit runner")
 
-    aparser.add_argument('--build_type',
+    aparser.add_argument("--db-host", help="DB Hostname")
+    aparser.add_argument("--db_port", type=int, help="DB Port")
+    aparser.add_argument("--test-output-file", help="Test output log file")
+    aparser.add_argument("--build-type",
                          default="debug",
-                         choices=['debug', 'release'],
+                         choices=["debug", "release", "relwithdebinfo"],
                          help="Build type (default: %(default)s")
 
     args = vars(aparser.parse_args())
-
-    # Make it so that we can invoke the script from any directory.
-    # Actual execution has to be from the junit directory, so first
-    # determine the absolute directory path to this script
-    prog_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-    # cd to the junit directory
-    os.chdir(prog_dir)
 
     try:
         junit = TestJUnit(args)
