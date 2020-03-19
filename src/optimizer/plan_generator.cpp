@@ -17,6 +17,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression_util.h"
 #include "planner/plannodes/aggregate_plan_node.h"
+#include "planner/plannodes/analyze_plan_node.h"
 #include "planner/plannodes/create_database_plan_node.h"
 #include "planner/plannodes/create_function_plan_node.h"
 #include "planner/plannodes/create_index_plan_node.h"
@@ -895,6 +896,14 @@ void PlanGenerator::Visit(const DropView *drop_view) {
                      .SetNamespaceOid(drop_view->GetNamespaceOid())
                      .SetViewOid(drop_view->GetViewOid())
                      .SetIfExist(drop_view->IsIfExists())
+                     .Build();
+}
+
+void PlanGenerator::Visit(const Analyze *analyze) {
+  output_plan_ = planner::AnalyzePlanNode::Builder()
+                     .SetDatabaseOid(analyze->GetDatabaseOid())
+                     .SetTableOid(analyze->GetTableOid())
+                     .SetColumnOIDs(analyze->GetColumns())
                      .Build();
 }
 
