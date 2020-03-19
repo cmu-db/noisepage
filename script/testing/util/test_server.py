@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import argparse
 import os
 import socket
@@ -7,6 +7,7 @@ import sys
 import time
 import traceback
 from util import constants
+from util.common import run_command
 
 
 class TestServer:
@@ -30,7 +31,9 @@ class TestServer:
             "test_output_file", constants.DEFAULT_TEST_OUTPUT_FILE)
 
         # test execution command
-        self.test_command = []
+        self.test_command = ""
+        self.test_command_cwd = None
+        self.test_error_msg = ""
 
         return
 
@@ -128,10 +131,11 @@ class TestServer:
 
         # run the actual test
         self.test_output_fd = open(self.test_output_file, "w+")
-        test_procss = subprocess.Popen(self.test_command,
-                                       stdout=self.test_output_fd,
-                                       stderr=self.test_output_fd)
-        ret_val = test_procss.wait()
+        ret_val, _, _ = run_command(self.test_command,
+                                    self.test_error_msg,
+                                    stdout=self.test_output_fd,
+                                    stderr=self.test_output_fd,
+                                    cwd=self.test_command_cwd)
         self.test_output_fd.close()
 
         # run the post test tasks

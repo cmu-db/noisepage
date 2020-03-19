@@ -1,8 +1,9 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import os
 import sys
 import subprocess
 from util import constants
+from util.common import run_command
 from util.test_server import TestServer
 from xml.etree import ElementTree
 
@@ -11,8 +12,8 @@ class TestOLTPBench(TestServer):
     """ Class to run OLTP Bench tests """
     def __init__(self, args):
         TestServer.__init__(self, args)
-        self.db_host = str(self.args.get(constants.DEFAULT_DB_HOST))
-        self.db_port = str(self.args.get(constants.DEFAULT_DB_PORT))
+        self.db_host = str(self.args.get("db_host", constants.DEFAULT_DB_HOST))
+        self.db_port = str(self.args.get("db_port", constants.DEFAULT_DB_PORT))
 
         # oltpbench specific attributes
         self.benchmark = str(self.args.get("benchmark"))
@@ -41,13 +42,15 @@ class TestOLTPBench(TestServer):
                                              self.result_path)
 
         # oltpbench test command
-        self.test_command = "cd {OLTPDIR} && bash {BIN} -b {BENCHMARK} -c {XML} {FLAGS} -o {RESULTS}".format(
+        self.test_command = "{BIN} -b {BENCHMARK} -c {XML} {FLAGS} -o {RESULTS}".format(
             OLTPDIR=constants.OLTP_GIT_LOCAL_PATH,
             BIN=constants.OLTP_DEFAULT_BIN,
             BENCHMARK=self.benchmark,
             XML=self.xml_config,
             FLAGS=constants.OLTP_DEFAULT_COMMAND_FLAGS,
             RESULTS=self.test_output_file)
+        self.test_command_cwd = constants.OLTP_GIT_LOCAL_PATH
+        self.test_error_msg = constants.OLTP_TEST_ERROR_MSG
 
     def run_pre_test(self):
         # install the OLTP
@@ -65,34 +68,27 @@ class TestOLTPBench(TestServer):
         self.build_oltp()
 
     def clean_oltp(self):
-        p = subprocess.Popen(constants.OLTP_GIT_CLEAN_COMMAND,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-        stdout, stderr = p.communicate()
-        if p.returncode != constants.ErrorCode.SUCCESS:
-            print("Error: unable to clean OLTP repo")
+        rc, stdout, stderr = run_command(constants.OLTP_GIT_CLEAN_COMMAND,
+                                         "Error: unable to clean OLTP repo")
+        if rc != constants.ErrorCode.SUCCESS:
             print(stderr)
-            sys.exit(constants.ErrorCode.ERROR)
+            sys.exit(rc)
 
     def download_oltp(self):
-        p = subprocess.Popen(constants.OLTP_GIT_COMMAND,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-        stdout, stderr = p.communicate()
-        if p.returncode != constants.ErrorCode.SUCCESS:
-            print("Error: unable to git clone OLTP source code")
+        rc, stdout, stderr = run_command(
+            constants.OLTP_GIT_COMMAND,
+            "Error: unable to git clone OLTP source code")
+        if rc != constants.ErrorCode.SUCCESS:
             print(stderr)
-            sys.exit(constants.ErrorCode.ERROR)
+            sys.exit(rc)
 
     def build_oltp(self):
         for command in constants.OTLP_ANT_COMMANDS:
-            p = subprocess.Popen(command,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
-            stdout, stderr = p.communicate()
-            if p.returncode != constants.ErrorCode.SUCCESS:
+            error_msg = "Error: unable to run \"{}\"".format(command)
+            rc, stdout, stderr = run_command(command, error_msg)
+            if rc != constants.ErrorCode.SUCCESS:
                 print(stderr)
-                sys.exit(constants.ErrorCode.ERROR)
+                sys.exit(rc)
 
     def config_xml_file(self):
         xml = ElementTree.parse(self.xml_template)
