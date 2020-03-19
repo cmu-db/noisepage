@@ -246,8 +246,8 @@ bool TrafficCop::BindStatement(const common::ManagedPointer<network::ConnectionC
                                const terrier::network::QueryType query_type) const {
   try {
     // TODO(Matt): I don't think the binder should need the database name. It's already bound in the ConnectionContext
-    binder::BindNodeVisitor visitor(connection_ctx->Accessor(), connection_ctx->GetDatabaseName());
-    visitor.BindNameToNode(parse_result->GetStatement(0), parse_result.Get());
+    binder::BindNodeVisitor visitor(connection_ctx->Accessor(), connection_ctx->GetDatabaseOid());
+    visitor.BindNameToNode(parse_result);
   } catch (...) {
     // Failed to bind
     // TODO(Matt): this is a hack to get IF EXISTS to work with our tests, we actually need better support in
@@ -293,8 +293,9 @@ void TrafficCop::ExecuteStatement(const common::ManagedPointer<network::Connecti
   // Try to bind the parsed statement
   if (BindStatement(connection_ctx, out, parse_result, query_type)) {
     // Binding succeeded, optimize to generate a physical plan and then execute
-    auto physical_plan = trafficcop::TrafficCopUtil::Optimize(connection_ctx->Transaction(), connection_ctx->Accessor(),
-                                                              parse_result, stats_storage_, optimizer_timeout_);
+    auto physical_plan =
+        trafficcop::TrafficCopUtil::Optimize(connection_ctx->Transaction(), connection_ctx->Accessor(), parse_result,
+                                             connection_ctx->GetDatabaseOid(), stats_storage_, optimizer_timeout_);
 
     // This logic relies on ordering of values in the enum's definition and is documented there as well.
     if (query_type <= network::QueryType::QUERY_DELETE) {
