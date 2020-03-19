@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 #include <string>
 #include <unordered_map>
 
@@ -76,7 +77,8 @@ class BinderSherpa {
        * The way we use libpg_query has the following quirks.
        * - NULL comes in with type::TypeId::INVALID.
        * - Dates and timestamps can potentially come in as VARCHAR.
-       * - All integers come in as INTEGER. TODO(WAN): I don't know how BIGINT works.
+       * - All small-enough integers come in as INTEGER.
+       *   Too-big integers will come in as BIGINT.
        */
 
       auto is_left_maybe_null = left_type == type::TypeId::INVALID;
@@ -92,7 +94,7 @@ class BinderSherpa {
       auto is_right_integer = right_type == type::TypeId::INTEGER;
 
       if (left_type != type::TypeId::INVALID && (is_right_maybe_null || is_right_varchar || is_right_integer)) {
-        SetDesiredType(left, right_type);
+        SetDesiredType(right, left_type);
       }
     }
   }
@@ -111,6 +113,13 @@ class BinderSherpa {
     }
   }
 
+  /**
+   * Attempt to convert the transient value to the desired type.
+   * Note that type promotion could be an upcast or downcast size-wise.
+   *
+   * @param value The transient value to be checked and potentially promoted.
+   * @param desired_type The type to promote the transient value to.
+   */
   void CheckAndTryPromoteType(const common::ManagedPointer<type::TransientValue> value,
                               const type::TypeId desired_type) const {
     const auto curr_type = value->Type();
@@ -124,42 +133,63 @@ class BinderSherpa {
           break;
         }
 
-          // INTEGER casting (upwards and downwards).
+        // INTEGER casting (upwards and downwards).
+        case type::TypeId::TINYINT: {
+          auto int_val = type::TransientValuePeeker::PeekTinyInt(*value);
+          *value = TryCastNumericAll(int_val, desired_type);
+          break;
+        }
+        case type::TypeId::SMALLINT: {
+          auto int_val = type::TransientValuePeeker::PeekSmallInt(*value);
+          *value = TryCastNumericAll(int_val, desired_type);
+          break;
+        }
         case type::TypeId::INTEGER: {
-          auto intval = type::TransientValuePeeker::PeekInteger(*value);
-
-          // TODO(WAN): check if intval fits in the desired type
-          if (desired_type == type::TypeId::TINYINT) {
-            *value = type::TransientValueFactory::GetTinyInt(intval);
-          } else if (desired_type == type::TypeId::SMALLINT) {
-            *value = type::TransientValueFactory::GetSmallInt(intval);
-          } else if (desired_type == type::TypeId::BIGINT) {
-            // TODO(WAN): how does BIGINT come in on libpg_query?
-            *value = type::TransientValueFactory::GetBigInt(intval);
-          } else if (desired_type == type::TypeId::DECIMAL) {
-            *value = type::TransientValueFactory::GetDecimal(intval);
-          }
+          auto int_val = type::TransientValuePeeker::PeekInteger(*value);
+          *value = TryCastNumericAll(int_val, desired_type);
+          break;
+        }
+        case type::TypeId::BIGINT: {
+          auto int_val = type::TransientValuePeeker::PeekBigInt(*value);
+          *value = TryCastNumericAll(int_val, desired_type);
           break;
         }
 
-          // DATE and TIMESTAMP conversion.
+        // DATE and TIMESTAMP conversion. String to numeric type conversion.
+        // TODO(WAN): float-type numerics are probably broken.
         case type::TypeId::VARCHAR: {
           const auto str_view = type::TransientValuePeeker::PeekVarChar(*value);
 
           // TODO(WAN): A bit stupid to take the string view back into a string.
-          if (desired_type == type::TypeId::DATE) {
-            auto parsed_date = util::TimeConvertor::ParseDate(std::string(str_view));
-            if (!parsed_date.first) {
-              ReportFailure("Binder conversion from VARCHAR to DATE failed.");
+          switch (desired_type) {
+            case type::TypeId::DATE: {
+              auto parsed_date = util::TimeConvertor::ParseDate(std::string(str_view));
+              if (!parsed_date.first) {
+                ReportFailure("Binder conversion from VARCHAR to DATE failed.");
+              }
+              *value = type::TransientValueFactory::GetDate(parsed_date.second);
+              break;
             }
-            *value = type::TransientValueFactory::GetDate(parsed_date.second);
-          } else if (desired_type == type::TypeId::TIMESTAMP) {
-            auto parsed_timestamp = util::TimeConvertor::ParseTimestamp(std::string(str_view));
-            if (!parsed_timestamp.first) {
-              ReportFailure("Binder conversion from VARCHAR to TIMESTAMP failed.");
+            case type::TypeId::TIMESTAMP: {
+              auto parsed_timestamp = util::TimeConvertor::ParseTimestamp(std::string(str_view));
+              if (!parsed_timestamp.first) {
+                ReportFailure("Binder conversion from VARCHAR to TIMESTAMP failed.");
+              }
+              *value = type::TransientValueFactory::GetTimestamp(parsed_timestamp.second);
+              break;
             }
-            *value = type::TransientValueFactory::GetTimestamp(parsed_timestamp.second);
+            case type::TypeId::TINYINT:
+            case type::TypeId::SMALLINT:
+            case type::TypeId::INTEGER:
+            case type::TypeId::BIGINT: {
+              auto int_val = std::stol(std::string(str_view));
+              *value = TryCastNumericAll(int_val, desired_type);
+              break;
+            }
+            default:
+              throw BINDER_EXCEPTION("BinderSherpa VARCHAR cannot be cast to desired type.");
           }
+
           break;
         }
 
@@ -177,6 +207,46 @@ class BinderSherpa {
   void ReportFailure(const std::string &message) const { throw BINDER_EXCEPTION(message.c_str()); }
 
  private:
+  /**
+   * @return True if the value of @p int_val fits in the Output type, false otherwise.
+   */
+  template <typename Output, typename Input>
+  static bool IsRepresentable(Input int_val) {
+    return std::numeric_limits<Output>::min() <= int_val && int_val <= std::numeric_limits<Output>::max();
+  }
+
+  /**
+   * @return The TransientValue obtained by peeking @p int_val with @p peeker if the value fits.
+   */
+  template <typename Output, typename Input>
+  static type::TransientValue TryCastNumeric(Input int_val, type::TransientValue peeker(Output)) {
+    if (!IsRepresentable<Output>(int_val)) {
+      throw BINDER_EXCEPTION("BinderSherpa TryCastNumeric value out of bounds!");
+    }
+    return peeker(static_cast<Output>(int_val));
+  }
+
+  /**
+   * @return Casted numeric type, or an exception if the cast fails.
+   */
+  template <typename Input>
+  static type::TransientValue TryCastNumericAll(Input int_val, type::TypeId desired_type) {
+    switch (desired_type) {
+      case type::TypeId::TINYINT:
+        return TryCastNumeric<int8_t>(int_val, &type::TransientValueFactory::GetTinyInt);
+      case type::TypeId::SMALLINT:
+        return TryCastNumeric<int16_t>(int_val, &type::TransientValueFactory::GetSmallInt);
+      case type::TypeId::INTEGER:
+        return TryCastNumeric<int32_t>(int_val, &type::TransientValueFactory::GetInteger);
+      case type::TypeId::BIGINT:
+        return TryCastNumeric<int64_t>(int_val, &type::TransientValueFactory::GetBigInt);
+      case type::TypeId::DECIMAL:
+        return TryCastNumeric<double>(int_val, &type::TransientValueFactory::GetDecimal);
+      default:
+        throw BINDER_EXCEPTION("BinderSherpa TryCastNumericAll not a numeric type!");
+    }
+  }
+
   const common::ManagedPointer<parser::ParseResult> parse_result_ = nullptr;
   const common::ManagedPointer<std::vector<type::TransientValue>> parameters_ = nullptr;
   std::unordered_map<uintptr_t, type::TypeId> desired_expr_types_;

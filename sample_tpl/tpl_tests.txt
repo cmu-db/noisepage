@@ -35,6 +35,7 @@ test.tpl,false,356405
 while.tpl,false,10
 return-exp.tpl,false,2
 types/bools.tpl,false,6
+types/bigint.tpl,false,0
 types/int_aggregators.tpl,false,0
 types/real_aggregators.tpl,false,0
 types/dates.tpl,false,0

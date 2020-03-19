@@ -161,6 +161,7 @@ ast::Expr *CodeGen::PCIGet(ast::Identifier pci, type::TypeId type, bool nullable
       ast_type = ast::BuiltinType::Get(Context(), ast::BuiltinType::Timestamp);
       break;
     case type::TypeId::VARCHAR:
+    case type::TypeId::VARBINARY:
       builtin = nullable ? ast::Builtin ::PCIGetVarlenNull : ast::Builtin::PCIGetVarlen;
       ast_type = ast::BuiltinType::Get(Context(), ast::BuiltinType::StringVal);
       break;
@@ -364,6 +365,7 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
       builtin = nullable ? ast::Builtin::PRSetTimestampNull : ast::Builtin::PRSetTimestamp;
       break;
     case type::TypeId::VARCHAR:
+    case type::TypeId::VARBINARY:
       builtin = nullable ? ast::Builtin::PRSetVarlenNull : ast::Builtin::PRSetVarlen;
       break;
     default:
@@ -372,7 +374,7 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
   ast::Expr *fun = BuiltinFunction(builtin);
   ast::Expr *idx_expr = Factory()->NewIntLiteral(DUMMY_POS, attr_idx);
   util::RegionVector<ast::Expr *> args{{pr, idx_expr, val}, Region()};
-  if (type == type::TypeId::VARCHAR) {
+  if ((type == type::TypeId::VARCHAR) || (type == type::TypeId::VARBINARY)) {
     args.emplace_back(BoolLiteral(own));
   }
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
@@ -447,11 +449,11 @@ ast::Expr *CodeGen::PeekValue(const type::TransientValue &transient_val) {
       auto val = type::TransientValuePeeker::PeekDecimal(transient_val);
       return FloatToSql(val);
     }
-    case type::TypeId::VARCHAR: {
+    case type::TypeId::VARCHAR:
+    case type::TypeId::VARBINARY: {
       auto val = terrier::type::TransientValuePeeker::PeekVarChar(transient_val);
       return StringToSql(val);
     }
-    case type::TypeId::VARBINARY:
     default:
       // TODO(Amadou): Add support for these types.
       UNREACHABLE("Should not peek on given type!");
@@ -474,8 +476,8 @@ ast::Expr *CodeGen::TplType(type::TypeId type) {
     case type::TypeId::DECIMAL:
       return BuiltinType(ast::BuiltinType::Kind::Real);
     case type::TypeId::VARCHAR:
-      return BuiltinType(ast::BuiltinType::Kind::StringVal);
     case type::TypeId::VARBINARY:
+      return BuiltinType(ast::BuiltinType::Kind::StringVal);
     default:
       UNREACHABLE("Cannot codegen unsupported type.");
   }
