@@ -84,19 +84,28 @@ class TestServer:
         return
 
     def wait_for_db(self):
-        """ Wait for the db server to come up.
-        """
+        """ Wait for the db server to come up """
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # flag to check if the db is running
+        is_db_running = False
+
         # max wait of 10s in 0.1s increments
         for i in range(100):
             try:
-                s.connect((self.db_host, self.db_port))
+                s.connect((self.db_host, self.db_host))
                 s.close()
                 print("connected to server in {} seconds".format(i * 0.1))
-                return
+                is_db_running = True
+                break
             except:
                 time.sleep(0.1)
                 continue
+
+        if not is_db_running:
+            print("Error: DB is not running")
+            sys.exit(constants.ErrorCode.ERROR)
+
         return
 
     def stop_db(self):
