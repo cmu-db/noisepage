@@ -38,6 +38,9 @@ By doing that, `junit/run_junit.py` script will try to import the `TestJUnit` cl
 All test classes should inherit from the `TestServer` class. Anyone is free to modify any attribute from the base class.
 - Mandatory attributes
   - `test_command` (`List(str)`): the command to run the test
+- Optional attributes
+  - `test_command_cwd` (`str`): the working directory to run the test command
+  - `test_error_msg` (`str`): the error message to display in case of errors
 - Optional functions
   - `run_pre_test`: the pre-test tasks required for the test
     - e.g. install oltp bin, config the xml file, etc.

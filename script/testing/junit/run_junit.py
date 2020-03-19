@@ -16,6 +16,7 @@ if __name__ == "__main__":
 
     aparser.add_argument("--db-host", help="DB Hostname")
     aparser.add_argument("--db_port", type=int, help="DB Port")
+    aparser.add_argument("--db-output-file", help="DB output log file")
     aparser.add_argument("--test-output-file", help="Test output log file")
     aparser.add_argument("--build-type",
                          default="debug",

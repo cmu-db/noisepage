@@ -14,12 +14,15 @@ class TestServer:
     """ Class to run general tests """
     def __init__(self, args):
         """ Locations and misc. variable initialization """
+        # clean up the command line args
         self.args = {k: v for k, v in args.items() if v}
 
         # server output
-        self.db_output_file = constants.DEFAULT_DB_OUTPUT_FILE
+        self.db_output_file = self.args.get("db_output_file",
+                                            constants.DEFAULT_DB_OUTPUT_FILE)
 
-        self.set_path()
+        # set the DB path
+        self.set_db_path()
         self.db_process = None
 
         # db server location
@@ -43,7 +46,7 @@ class TestServer:
     def run_post_test(self):
         pass
 
-    def set_path(self):
+    def set_db_path(self):
         """ location of db server, relative to this script """
 
         # builds on Jenkins are in build/<build_type>
