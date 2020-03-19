@@ -112,7 +112,7 @@ class MiniTrainer:
                         transform = " transform"
                     io_util.write_csv_result(metrics_path, method + transform, results)
 
-                    logging.info()
+                    logging.info("")
 
                 io_util.write_csv_result(metrics_path, "", [])
 
