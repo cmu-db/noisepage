@@ -2036,11 +2036,6 @@ class DropView : public OperatorNodeContents<DropView> {
   catalog::db_oid_t database_oid_;
 
   /**
-   * OID of namespace
-   */
-  catalog::namespace_oid_t namespace_oid_;
-
-  /**
    * OID of the view to drop
    */
   catalog::view_oid_t view_oid_;
