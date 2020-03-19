@@ -139,7 +139,7 @@ if __name__ == '__main__':
 
     logging_util.init_logging(args.log)
 
-    trainer = MiniTrainer(args.input_path, args.model_metrics_path, args.ml_models, args.test_ratio)
+    trainer = MiniTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio)
     trained_model_map = trainer.train()
     with open(args.save_path + '/mini_model_map.pickle', 'wb') as file:
         pickle.dump(trained_model_map, file)

@@ -45,8 +45,6 @@ q5_p2 = [(OpUnit.SCAN, [25, 18, 25]),
          ]
 
 q5_p3 = [(OpUnit.SCAN, [15000, 8, 15000]),
-         # We don't have the number of matched tuple smaller than the number of
-         # tuples in our training data. Need to fix this later.
          (OpUnit.JOIN_PROBE, [15000, 4, 3000]),
          (OpUnit.JOIN_BUILD, [3000, 4, 3000]),
          ]
@@ -83,6 +81,50 @@ q6_p1 = [(OpUnit.SCAN, [600000, 24, 600000]),
          (OpUnit.REAL_ADD, [4285]),
          ]
 
+q7_p1 = [(OpUnit.SCAN, [25, 14, 25]),
+         (OpUnit.REAL_GREATER, [50]),
+         (OpUnit.SCAN, [50, 14, 50]),
+         (OpUnit.REAL_GREATER, [100]),
+         (OpUnit.JOIN_BUILD, [4, 4, 2]),
+         ]
+
+q7_p2 = [(OpUnit.SCAN, [15000, 8, 15000]),
+         (OpUnit.JOIN_PROBE, [15000, 4, 1200]),
+         (OpUnit.JOIN_BUILD, [1200, 4, 1200]),
+         ]
+
+q7_p3 = [(OpUnit.SCAN, [150000, 8, 150000]),
+         (OpUnit.JOIN_PROBE, [150000, 4, 12000]),
+         (OpUnit.JOIN_BUILD, [12000, 4, 12000]),
+         ]
+
+q7_p4 = [(OpUnit.SCAN, [1000, 8, 1000]),
+         (OpUnit.JOIN_BUILD, [1000, 8, 1000]),
+         ]
+
+q7_p5 = [(OpUnit.SCAN, [600000, 28, 600000]),
+         (OpUnit.INT_GREATER, [1200000]),
+         (OpUnit.JOIN_PROBE, [170000, 4, 14000]),
+         (OpUnit.JOIN_PROBE, [14000, 4, 350]),
+         (OpUnit.AGG_BUILD, [350, 12, 8]),
+         (OpUnit.REAL_MULTIPLY, [350]),
+         (OpUnit.REAL_ADD, [700]),
+         ]
+
+q7_p6 = [(OpUnit.AGG_PROBE, [8, 12, 8]),
+         (OpUnit.SORT_BUILD, [8, 12, 8]),
+         ]
+
+q7_p7 = [(OpUnit.SORT_PROBE, [8, 12, 8]),
+         ]
+
+
+scan_lineitem_p1 = [(OpUnit.SCAN, [600000, 58, 600000]),
+                    ]
+
+scan_orders_p1 = [(OpUnit.SCAN, [150000, 4, 150000]),
+                  ]
+
 feature_map = {"tpch_q1_p1": q1_p1,
                "tpch_q1_p2": q1_p2,
                "tpch_q1_p3": q1_p3,
@@ -98,5 +140,7 @@ feature_map = {"tpch_q1_p1": q1_p1,
                "tpch_q5_p6": q5_p6,
                "tpch_q5_p7": q5_p7,
                "tpch_q5_p8": q5_p8,
-               "tpch_q6_p1": q6_p1
+               "tpch_q6_p1": q6_p1,
+               "tpch_scan_lineitem_p1": scan_lineitem_p1,
+               "tpch_scan_orders_p1": scan_orders_p1,
                }
