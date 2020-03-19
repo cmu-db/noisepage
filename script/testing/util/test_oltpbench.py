@@ -12,8 +12,6 @@ class TestOLTPBench(TestServer):
     """ Class to run OLTP Bench tests """
     def __init__(self, args):
         TestServer.__init__(self, args)
-        self.db_host = str(self.args.get("db_host", constants.DEFAULT_DB_HOST))
-        self.db_port = str(self.args.get("db_port", constants.DEFAULT_DB_PORT))
 
         # oltpbench specific attributes
         self.benchmark = str(self.args.get("benchmark"))
@@ -95,9 +93,10 @@ class TestOLTPBench(TestServer):
         root = xml.getroot()
         root.find("dbtype").text = constants.OLTP_DEFAULT_DBTYPE
         root.find("driver").text = constants.OLTP_DEFAULT_DRIVER
-        root.find("DBUrl").text = "jdbc:postgresql://{0}:{1}/{2}".format(
-            self.db_host, self.db_port,
-            self.benchmark)  #host, port and benchmark name
+        root.find(
+            "DBUrl"
+        ).text = "jdbc:postgresql://{}:{}/terrier?preferQueryMode=simple".format(
+            self.db_host, self.db_port)
         root.find("username").text = constants.OLTP_DEFAULT_USERNAME
         root.find("password").text = constants.OLTP_DEFAULT_PASSWORD
         root.find("isolation").text = str(self.transaction_isolation)

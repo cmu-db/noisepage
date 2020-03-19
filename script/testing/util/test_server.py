@@ -62,7 +62,7 @@ class TestServer:
                 self.db_path = path
                 return
 
-        msg = "No Db binary found in {}".format(path_list)
+        msg = "No DB binary found in {}".format(path_list)
         raise RuntimeError(msg)
         return
 
@@ -70,12 +70,12 @@ class TestServer:
         """ Check that a Db binary is available """
         if not os.path.exists(self.db_path):
             abs_path = os.path.abspath(self.db_path)
-            msg = "No Db binary found at {}".format(abs_path)
+            msg = "No DB binary found at {}".format(abs_path)
             raise RuntimeError(msg)
         return
 
     def run_db(self):
-        """ Start the Db server """
+        """ Start the DB server """
         self.db_output_fd = open(self.db_output_file, "w+")
         self.db_process = subprocess.Popen(self.db_path,
                                            stdout=self.db_output_fd,
@@ -93,7 +93,7 @@ class TestServer:
         # max wait of 10s in 0.1s increments
         for i in range(100):
             try:
-                s.connect((self.db_host, self.db_host))
+                s.connect((self.db_host, int(self.db_port)))
                 s.close()
                 print("connected to server in {} seconds".format(i * 0.1))
                 is_db_running = True
