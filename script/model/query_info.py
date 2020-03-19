@@ -111,12 +111,50 @@ q7_p5 = [(OpUnit.SCAN, [600000, 28, 600000]),
          (OpUnit.REAL_ADD, [700]),
          ]
 
-q7_p6 = [(OpUnit.AGG_PROBE, [8, 12, 8]),
-         (OpUnit.SORT_BUILD, [8, 12, 8]),
+q7_p6 = [(OpUnit.AGG_PROBE, [4, 12, 4]),
+         (OpUnit.SORT_BUILD, [4, 12, 4]),
          ]
 
-q7_p7 = [(OpUnit.SORT_PROBE, [8, 12, 8]),
+q7_p7 = [(OpUnit.SORT_PROBE, [4, 12, 4]),
          ]
+
+
+q11_p1 = [(OpUnit.SCAN, [25, 14, 25]),
+          (OpUnit.REAL_GREATER, [25]),
+          (OpUnit.JOIN_BUILD, [1, 4, 1]),
+          ]
+
+q11_p2 = [(OpUnit.SCAN, [25, 14, 25]),
+          (OpUnit.REAL_GREATER, [25]),
+          (OpUnit.JOIN_BUILD, [1, 4, 1]),
+          ]
+
+q11_p3 = [(OpUnit.SCAN, [1000, 8, 1000]),
+          (OpUnit.JOIN_PROBE, [1000, 4, 50]),
+          (OpUnit.JOIN_BUILD, [50, 4, 50]),
+          ]
+
+q11_p4 = [(OpUnit.SCAN, [80000, 16, 80000]),
+          (OpUnit.JOIN_PROBE, [80000, 4, 4000]),
+          (OpUnit.REAL_MULTIPLY, [4000]),
+          (OpUnit.REAL_ADD, [4000]),
+          ]
+
+q11_p5 = [(OpUnit.SCAN, [80000, 20, 80000]),
+          (OpUnit.JOIN_PROBE, [80000, 4, 4000]),
+          (OpUnit.REAL_MULTIPLY, [4000]),
+          (OpUnit.REAL_ADD, [4000]),
+          (OpUnit.AGG_BUILD, [4000, 4, 1000]),
+          ]
+
+q11_p6 = [(OpUnit.AGG_PROBE, [4000, 4, 4000]),
+          (OpUnit.REAL_MULTIPLY, [4000]),
+          (OpUnit.REAL_GREATER, [4000]),
+          (OpUnit.SORT_BUILD, [2500, 4, 2500]),
+          ]
+
+q11_p7 = [(OpUnit.SORT_PROBE, [2500, 12, 2500]),
+          ]
 
 
 scan_lineitem_p1 = [(OpUnit.SCAN, [600000, 58, 600000]),
@@ -141,6 +179,20 @@ feature_map = {"tpch_q1_p1": q1_p1,
                "tpch_q5_p7": q5_p7,
                "tpch_q5_p8": q5_p8,
                "tpch_q6_p1": q6_p1,
+               "tpch_q7_p1": q7_p1,
+               "tpch_q7_p2": q7_p1,
+               "tpch_q7_p3": q7_p3,
+               "tpch_q7_p4": q7_p4,
+               "tpch_q7_p5": q7_p5,
+               "tpch_q7_p6": q7_p6,
+               "tpch_q7_p7": q7_p7,
+               "tpch_q11_p1": q11_p1,
+               "tpch_q11_p2": q11_p1,
+               "tpch_q11_p3": q11_p3,
+               "tpch_q11_p4": q11_p4,
+               "tpch_q11_p5": q11_p5,
+               "tpch_q11_p6": q11_p6,
+               "tpch_q11_p7": q11_p7,
                "tpch_scan_lineitem_p1": scan_lineitem_p1,
                "tpch_scan_orders_p1": scan_orders_p1,
                }
