@@ -1,6 +1,7 @@
 import csv
 import numpy as np
 import copy
+import tqdm
 
 import query_info
 import data_info
@@ -32,7 +33,7 @@ def _execution_get_grouped_op_unit_data(filename):
     with open(filename, "r") as f:
         reader = csv.reader(f, delimiter=",", skipinitialspace=True)
         next(reader)
-        for line in reader:
+        for line in tqdm.tqdm(reader):
             # The first element is always the query/pipeline identifier
             identifier = line[0]
             if identifier in query_info.feature_map:
