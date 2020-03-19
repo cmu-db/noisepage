@@ -33,15 +33,17 @@ class TestOLTPBench(TestServer):
                                          "sample_{}".format(xml_file))
 
         # oltpbench test results
-        self.result_path = "outputfile_{WEIGHTS}_{SCALEFACTOR}".format(
-            WEIGHTS=self.weights.replace(",", "_"),
-            SCALEFACTOR=str(self.scalefactor))
-        self.test_output_file = os.path.join(constants.OLTP_DIR_TEST_RESULT,
-                                             self.result_path)
+        self.test_output_file = self.args.get("test_output_file")
+        if not self.test_output_file:
+            self.test_output_file = "outputfile_{WEIGHTS}_{SCALEFACTOR}".format(
+                WEIGHTS=self.weights.replace(",", "_"),
+                SCALEFACTOR=str(self.scalefactor))
+            # TODO: ask Andy to remove the relative path from the oltpbench for execution and result logging
+            # self.test_output_file = os.path.join(
+            #     constants.OLTP_DIR_TEST_RESULT, self.result_path)
 
         # oltpbench test command
         self.test_command = "{BIN} -b {BENCHMARK} -c {XML} {FLAGS} -o {RESULTS}".format(
-            OLTPDIR=constants.OLTP_GIT_LOCAL_PATH,
             BIN=constants.OLTP_DEFAULT_BIN,
             BENCHMARK=self.benchmark,
             XML=self.xml_config,
