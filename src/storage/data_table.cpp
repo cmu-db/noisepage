@@ -109,10 +109,10 @@ DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compabi
   return {this, last_block, insert_head};
 }
 
-void DataTable::GetNUMARegions(std::vector<numa_region_t> &regions) {
+void DataTable::GetNUMARegions(std::vector<numa_region_t> *regions) {
   common::SharedLatch::ScopedSharedLatch l(&(this->map_latch_));
   for (auto elem : this->region_blocks_map_) {
-    regions.emplace_back(elem.first);
+    regions->emplace_back(elem.first);
   }
 }
 

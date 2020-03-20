@@ -144,6 +144,14 @@ class RandomDataTableTestObject {
     table_.Scan(common::ManagedPointer(txn), begin, buffer);
   }
 
+  void NUMAScan(storage::DataTable::NUMAIterator *begin, const transaction::timestamp_t timestamp,
+                storage::ProjectedColumns *buffer, storage::RecordBufferSegmentPool *buffer_pool) {
+    auto *txn =
+        new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(buffer_pool), DISABLED);
+    loose_txns_.push_back(txn);
+    table_.NUMAScan(common::ManagedPointer(txn), begin, buffer);
+  }
+
   storage::DataTable &GetTable() { return table_; }
 
  private:
@@ -344,7 +352,6 @@ TEST_F(DataTableTests, SimpleNumaTest) {
     storage::ProjectedColumnsInitializer initializer(tested.Layout(), all_cols, num_inserts);
     auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
     storage::ProjectedColumns *columns = initializer.Initialize(buffer);
-    EXPECT_EQ(num_inserts, columns->NumTuples());
 
     std::vector<storage::numa_region_t> numa_regions;
     tested.GetTable().GetNUMARegions(&numa_regions);
@@ -354,15 +361,15 @@ TEST_F(DataTableTests, SimpleNumaTest) {
     EXPECT_EQ(numa_regions[0], storage::UNSUPPORTED_NUMA_REGION);
 #endif
 
-    uint32_t num_slots = 0;
     for (storage::numa_region_t numa_region : numa_regions) {
+      auto scan_it = tested.GetTable().begin(numa_region);
+      tested.NUMAScan(&scan_it, transaction::timestamp_t(1), columns, &buffer_pool_);
       for (auto it = tested.GetTable().begin(numa_region); it != tested.GetTable().end(numa_region); ++it) {
-        EXPECT_NEQ((*it).GetBlock(), nullptr);
-        EXPECT_EQ((*it).GetBlock()->region_, numa_region);
-        num_slots++;
+        EXPECT_NE((*it).GetBlock(), nullptr);
+        EXPECT_EQ((*it).GetBlock()->numa_region_, numa_region);
       }
     }
-    EXPECT_EQ(num_slots, num_inserts);
+    EXPECT_EQ(num_inserts, columns->NumTuples());
 
     delete[] buffer;
   }

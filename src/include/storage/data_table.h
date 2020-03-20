@@ -285,7 +285,7 @@ class DataTable {
   /**
    * update the vector of numa regions passed in to match those in the map
    */
-  void GetNUMARegions(std::vector<numa_region_t> &regions);
+  void GetNUMARegions(std::vector<numa_region_t> *regions);
 
   /**
    * Returns first last tuple slot contained in the data table for specified NUMA region index. Note that this is not an accurate number when
