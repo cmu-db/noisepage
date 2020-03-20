@@ -74,7 +74,7 @@ public class BuiltinUDFTest extends TestUtility {
         ResultSet rs = stmt.executeQuery(select_SQL);
         boolean exists = rs.next();
         assert(exists);
-        checkRow(rs, new String [] {"cos(theta)"}, new double [] {1.0}, 0.0001);
+        checkDoubleRow(rs, new String [] {"cos(theta)"}, new double [] {1.0});
         assertNoMoreRows(rs);
 
         select_SQL = "SELECT sin(theta) FROM tbl;";
@@ -82,7 +82,7 @@ public class BuiltinUDFTest extends TestUtility {
         rs = stmt.executeQuery(select_SQL);
         exists = rs.next();
         assert(exists);
-        checkRow(rs, new String [] {"sin(theta)"}, new double [] {0.0}, 0.0001);
+        checkDoubleRow(rs, new String [] {"sin(theta)"}, new double [] {0.0});
         assertNoMoreRows(rs);
     }
 
