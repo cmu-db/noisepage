@@ -114,7 +114,7 @@ auto DoNotOptimizeAway(const T &datum) -> typename std::enable_if<!DoNotOptimize
  */
 static void GenScanArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 4, 8, 15};
-  std::vector<int64_t> row_nums = {1, 10, 100,}; // 1000, 10000, 100000, 1000000};
+  std::vector<int64_t> row_nums = {1, 10, 100, 1000, 10000, 100000, 1000000};
   for (auto col : num_cols) {
     for (auto row : row_nums) {
       int64_t car = 1;
