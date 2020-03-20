@@ -359,6 +359,10 @@ TEST_F(DataTableTests, SimpleNumaTest) {
 #ifdef __APPLE__
     EXPECT_EQ(numa_regions.size(), 1);
     EXPECT_EQ(numa_regions[0], storage::UNSUPPORTED_NUMA_REGION);
+#else
+    for (uint64_t i = 0; i < numa_regions.size(); i++) {
+      EXPECT_NE(numa_regions[i], storage::UNSUPPORTED_NUMA_REGION);
+    }
 #endif
 
     for (storage::numa_region_t numa_region : numa_regions) {
