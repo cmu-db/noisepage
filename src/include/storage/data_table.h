@@ -13,6 +13,8 @@
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
+#include "execution/execution_util.h"
+#include "execution/util/execution_common.h"
 
 
 namespace flatbuf = org::apache::arrow::flatbuf;
@@ -115,8 +117,9 @@ class DataTable {
     TupleSlot current_slot_;
   };
   /**
- * Iterator for all the slots, claimed or otherwise, in the data table. This is useful for sequential scans
- */
+   * Iterator for all the slots, claimed or otherwise, operating per NUMA region in the data table.
+   * This is useful for sequential scans.
+   */
   class NUMAIterator {
    public:
     /**
@@ -152,6 +155,18 @@ class DataTable {
      */
     bool operator==(const NUMAIterator &other) const {
       // TODO(Tianyu): I believe this is enough?
+      if(LIKELY(other.is_end_)) {
+        common::SharedLatch::ScopedSharedLatch l(&table_->map_latch_);
+        auto it = table_->region_blocks_map_.find(region_number_);
+        if (it == table_->region_blocks_map_.end()) return true;
+        return current_slot_.GetBlock() == nullptr || block_ == it->second.cend();
+      }
+      if (LIKELY(is_end_)) {
+        common::SharedLatch::ScopedSharedLatch l(&other.table_->map_latch_);
+        auto it = other.table_->region_blocks_map_.find(region_number_);
+        if (it == other.table_->region_blocks_map_.end()) return true;
+        return other.current_slot_.GetBlock() == nullptr || other.block_ == it->second.cend();
+      }
       return current_slot_ == other.current_slot_;
     }
 
@@ -167,16 +182,25 @@ class DataTable {
     /**
      * @warning MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
      */
-    NUMAIterator(const DataTable *table, std::list<RawBlock *>::const_iterator block, uint32_t offset_in_block)
-        : table_(table), block_(block) {
-      current_slot_ = {block == table->blocks_.end() ? nullptr : *block, offset_in_block};
+    NUMAIterator(const DataTable *table, numa_region_t region_number)
+        : table_(table), region_number_(region_number) {
+      common::SharedLatch::ScopedSharedLatch l(&table->map_latch_);
+      auto it = table->region_blocks_map_.find(region_number);
+      if (UNLIKELY(it == table->region_blocks_map_.end())) {
+        current_slot_ = {nullptr, 0};
+        return;
+      }
+      block_ = it->second.cbegin();
+      current_slot_ = {*block_, 0};
     }
 
-    // TODO(Tianyu): Can potentially collapse this information into the RawBlock so we don't have to hold a pointer to
-    // the table anymore. Right now we need the table to know how many slots there are in the block
+    NUMAIterator() { is_end_ = true; }
+
     const DataTable *table_;
-    std::list<RawBlock *>::const_iterator block_;
+    tbb::concurrent_unordered_set<RawBlock *>::const_iterator block_;
     TupleSlot current_slot_;
+    numa_region_t region_number_;
+    bool is_end_ = false;
   };
 
   /**
@@ -242,6 +266,29 @@ class DataTable {
    * @return one past the last tuple slot contained in the data table.
    */
   SlotIterator end() const;  // NOLINT for STL name compability
+
+  /**
+   * update the vector of numa regions passed in to match those in the map
+   */
+  void GetNUMARegions(std::vector<numa_region_t> &regions);
+
+  /**
+   * Returns first last tuple slot contained in the data table for specified NUMA region index. Note that this is not an accurate number when
+   * concurrent accesses are happening, as inserts maybe in flight. However, the number given is always transactionally
+   * correct, as any inserts that might have happened is not going to be visible to the calling transaction.
+   *
+   * @return one past the last tuple slot contained in the data table.
+   */
+  NUMAIterator begin(numa_region_t index) const; // NOLINT for STL name compability
+
+  /**
+   * Returns first last tuple slot contained in the data table for specified NUMA region index. Note that this is not an accurate number when
+   * concurrent accesses are happening, as inserts maybe in flight. However, the number given is always transactionally
+   * correct, as any inserts that might have happened is not going to be visible to the calling transaction.
+   *
+   * @return one past the last tuple slot contained in the data table.
+   */
+  NUMAIterator end(numa_region_t index) const; // NOLINT for STL name compability
 
   /**
    * Update the tuple according to the redo buffer given, and update the version chain to link to an
