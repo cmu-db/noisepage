@@ -2,6 +2,7 @@
 import os
 import sys
 import subprocess
+import json
 from util import constants
 from util.common import run_command
 from util.test_server import TestServer
@@ -42,13 +43,24 @@ class TestOLTPBench(TestServer):
             # self.test_output_file = os.path.join(
             #     constants.OLTP_DIR_TEST_RESULT, self.result_path)
 
+        # oltpbench json format test results 
+        self.test_output_json_file = self.args.get("test_output_json_file")
+        if not self.test_output_json_file:
+            self.test_output_json_file = "resultjsonfile_{WEIGHTS}_{SCALEFACTOR}".format(
+                WEIGHTS=self.weights.replace(",", "_"),
+                SCALEFACTOR=str(self.scalefactor)) 
+
+        # oltpbench json result file paths
+        self.json_result=os.path.join(constants.OLTP_GIT_LOCAL_PATH, self.test_output_json_file)
+
         # oltpbench test command
-        self.test_command = "{BIN} -b {BENCHMARK} -c {XML} {FLAGS} -o {RESULTS}".format(
+        self.test_command = "{BIN} -b {BENCHMARK} -c {XML} {FLAGS} -o {RESULTS} -json-histograms {JSONRESULTS}".format(
             BIN=constants.OLTP_DEFAULT_BIN,
             BENCHMARK=self.benchmark,
             XML=self.xml_config,
             FLAGS=constants.OLTP_DEFAULT_COMMAND_FLAGS,
-            RESULTS=self.test_output_file)
+            RESULTS=self.test_output_file,
+            JSONRESULTS=self.test_output_json_file)
         self.test_command_cwd = constants.OLTP_GIT_LOCAL_PATH
         self.test_error_msg = constants.OLTP_TEST_ERROR_MSG
 
@@ -58,6 +70,10 @@ class TestOLTPBench(TestServer):
         self.config_xml_file()
         self.create_result_dir()
 
+    def run_post_test(self):
+        # validate the OLTP result
+        self.validate_json_result()
+    
     def create_result_dir(self):
         if not os.path.exists(constants.OLTP_DIR_TEST_RESULT):
             os.mkdir(constants.OLTP_DIR_TEST_RESULT)
@@ -110,3 +126,14 @@ class TestOLTPBench(TestServer):
             work.find("weights").text = str(self.weights)
 
         xml.write(self.xml_config)
+
+    def validate_json_result(self):
+        # read the results file
+        with open(self.json_result) as jr:
+            jr_data=json.load(jr)
+        jr_unexpected=jr_data["unexpected"]
+        jr_hitogram=jr_unexpected["HISTOGRAM"]
+        for key in jr_hitogram.keys():
+            if(jr_hitogram[key] != 0):
+                print(jr_hitogram)
+                sys.exit(constants.ErrorCode.ERROR) 
