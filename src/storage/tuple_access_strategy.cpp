@@ -30,9 +30,9 @@ void TupleAccessStrategy::InitializeRawBlock(storage::DataTable *const data_tabl
   raw->data_table_ = data_table;
 #ifndef __APPLE__
   if (move_pages(0, 1, &raw, NULL, &raw->numa_region_, 0) == -1)
-    raw->numa_region_ = -1;
+    raw->numa_region_ = UNSUPPORTED_NUMA_REGION;
 #else
-  raw->numa_region_ = static_cast<numa_region_t >(-1);
+  raw->numa_region_ = UNSUPPORTED_NUMA_REGION;
 #endif
   raw->layout_version_ = layout_version;
   raw->insert_head_ = 0;

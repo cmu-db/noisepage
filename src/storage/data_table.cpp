@@ -59,6 +59,23 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
   out_buffer->SetNumTuples(filled);
 }
 
+//TODO(emmanuel) make this thread safe
+void DataTable::NUMAScan(common::ManagedPointer<transaction::TransactionContext> txn, NUMAIterator *start_pos,
+              ProjectedColumns *out_buffer) const {
+  uint32_t filled = 0;
+  while (filled < out_buffer->MaxTuples() && *start_pos != end(start_pos->region_number_)) {
+    ProjectedColumns::RowView row = out_buffer->InterpretAsRow(filled);
+    const TupleSlot slot = **start_pos;
+    // Only fill the buffer with valid, visible tuples
+    if (SelectIntoBuffer(txn, slot, &row)) {
+      out_buffer->TupleSlots()[filled] = slot;
+      filled++;
+    }
+    ++(*start_pos);
+  }
+  out_buffer->SetNumTuples(filled);
+}
+
 DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
   // TODO(Lin): We need to temporarily comment out this latch for the concurrent TPCH experiments. Should be replaced
   //  with a real solution
