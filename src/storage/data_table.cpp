@@ -92,6 +92,33 @@ DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compabi
   return {this, last_block, insert_head};
 }
 
+void DataTable::GetNUMARegions(std::vector<numa_region_t> &regions) {
+  common::SharedLatch::ScopedSharedLatch l(&(this->map_latch_));
+  for (auto elem : this->region_blocks_map_) {
+    regions.emplace_back(elem.first);
+  }
+}
+
+DataTable::NUMAIterator DataTable::begin(numa_region_t index) const { return {this, index}; }
+
+DataTable::NUMAIterator DataTable::end(numa_region_t index) const { return {}; }
+
+DataTable::NUMAIterator &DataTable::NUMAIterator::operator++() {
+  // Jump to the next block if already the last slot in the block.
+  if (UNLIKELY(current_slot_.GetBlock() == nullptr)) {
+    return *this;
+  }
+  if (current_slot_.GetOffset() == table_->accessor_.GetBlockLayout().NumSlots() - 1) {
+    ++block_;
+    // Cannot dereference if the next block is end(), so just use nullptr to denote
+    common::SharedLatch::ScopedSharedLatch l(&table_->map_latch_);
+    current_slot_ = {block_ == table_->region_blocks_map_.at(region_number_).cend() ? nullptr : *block_, 0};
+  } else {
+    current_slot_ = {*block_, current_slot_.GetOffset() + 1};
+  }
+  return *this;
+}
+
 bool DataTable::Update(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
                        const ProjectedRow &redo) {
   TERRIER_ASSERT(redo.NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
