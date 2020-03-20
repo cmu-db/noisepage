@@ -321,4 +321,50 @@ TEST_F(DataTableTests, InsertNoWrap) {
     delete txn;
   }
 }
+
+// Test that insertion into a block does not wrap around even in the presence of deleted slots. This makes compaction
+// a lot easier to write.
+// NOLINTNEXTLINE
+TEST_F(DataTableTests, SimpleNumaTest) {
+  const uint32_t num_iterations = 10;
+  const uint16_t max_columns = 20;
+  for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
+    RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
+    // make sure we test the edge case where a block is filled
+    uint32_t num_inserts = iteration == 0
+                           ? tested.Layout().NumSlots()
+                           : std::uniform_int_distribution<uint32_t>(1, tested.Layout().NumSlots())(generator_);
+
+    // Populate the table with random tuples
+    for (uint32_t i = 0; i < num_inserts; ++i)
+      tested.InsertRandomTuple(transaction::timestamp_t(0), &generator_, &buffer_pool_);
+
+    std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
+    EXPECT_NE((!all_cols[all_cols.size() - 1]), -1);
+    storage::ProjectedColumnsInitializer initializer(tested.Layout(), all_cols, num_inserts);
+    auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
+    storage::ProjectedColumns *columns = initializer.Initialize(buffer);
+    EXPECT_EQ(num_inserts, columns->NumTuples());
+
+    std::vector<storage::numa_region_t> numa_regions;
+    tested.GetTable().GetNUMARegions(&numa_regions);
+
+#ifdef __APPLE__
+    EXPECT_EQ(numa_regions.size(), 1);
+    EXPECT_EQ(numa_regions[0], storage::UNSUPPORTED_NUMA_REGION);
+#endif
+
+    uint32_t num_slots = 0;
+    for (storage::numa_region_t numa_region : numa_regions) {
+      for (auto it = tested.GetTable().begin(numa_region); it != tested.GetTable().end(numa_region); ++it) {
+        EXPECT_NEQ((*it).GetBlock(), nullptr);
+        EXPECT_EQ((*it).GetBlock()->region_, numa_region);
+        num_slots++;
+      }
+    }
+    EXPECT_EQ(num_slots, num_inserts);
+
+    delete[] buffer;
+  }
+}
 }  // namespace terrier

@@ -42,6 +42,7 @@ STRONG_TYPEDEF(numa_region_t, int16_t);
 
 constexpr col_id_t VERSION_POINTER_COLUMN_ID = col_id_t(0);
 constexpr uint8_t NUM_RESERVED_COLUMNS = 1;
+constexpr numa_region_t UNSUPPORTED_NUMA_REGION = static_cast<numa_region_t>(-1);
 
 class DataTable;
 
@@ -177,8 +178,8 @@ class BlockAllocator {
    * @param optional NUMA region to allocate object
    * @return a pointer to the allocated object.
    */
-  RawBlock *New(numa_region_t region = static_cast<numa_region_t>(-1)) {
-    if (region == static_cast<numa_region_t>(-1)) {
+  RawBlock *New(numa_region_t region = UNSUPPORTED_NUMA_REGION) {
+    if (region == UNSUPPORTED_NUMA_REGION) {
       return new RawBlock();
     }
 #ifndef __APPLE__
