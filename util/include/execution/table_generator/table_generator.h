@@ -152,7 +152,7 @@ class TableGenerator {
           max_(max),
           is_clone_(false) {}
 
-    ColumnInsertMeta(ColumnInsertMeta &other, std::string name, size_t clone_idx)
+    ColumnInsertMeta(const ColumnInsertMeta &other, std::string name, size_t clone_idx)
         : name_(std::move(name)),
           type_(other.type_),
           nullable_(other.nullable_),
