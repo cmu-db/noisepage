@@ -151,13 +151,19 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
   }
 
   for (uint32_t i = 0; i < num_batches; i++) {
+    std::vector<std::pair<byte *, uint32_t *>> alloc_buffers;
     std::vector<std::pair<byte *, uint32_t *>> column_data;
 
     // Generate column data for all columns
     uint32_t num_vals = std::min(batch_size, table_meta->num_rows_ - (i * batch_size));
     TERRIER_ASSERT(num_vals != 0, "Can't have empty columns.");
     for (auto &col_meta : table_meta->col_meta_) {
-      column_data.emplace_back(GenerateColumnData(&col_meta, num_vals));
+      if (col_meta.is_clone_) {
+        column_data.emplace_back(column_data[col_meta.clone_idx_]);
+      } else {
+        column_data.emplace_back(GenerateColumnData(&col_meta, num_vals));
+        alloc_buffers.emplace_back(column_data.back());
+      }
     }
 
     // Insert into the table
@@ -178,7 +184,7 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
     }
 
     // Free allocated buffers
-    for (const auto &col_data : column_data) {
+    for (const auto &col_data : alloc_buffers) {
       delete[] col_data.first;
       delete[] col_data.second;
     }
@@ -409,7 +415,7 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
   std::vector<uint32_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
                                     2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   std::vector<type::TypeId> types = {type::TypeId::INTEGER};
-  for (int col_num = 15; col_num <= 15; col_num++) {
+  for (int col_num = 31; col_num <= 31; col_num++) {
     for (uint32_t row_num : row_nums) {
       // Cardinality of the last column
       std::vector<uint32_t> cardinalities;
@@ -426,9 +432,12 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
             if (j == 1) {
               // The first column would be serial
               col_metas.emplace_back(col_name.str(), type, false, Dist::Serial, 0, 0);
-            } else if (j == col_num) {
-              // The last column is related to the cardinality
+            } else if (j == 15) {
+              // The 15th column is related to the cardinality
               col_metas.emplace_back(col_name.str(), type, false, Dist::Rotate, 0, cardinality);
+            } else if (j > 15) {
+              // Columns after the 15th column duplicate the 15th column
+              col_metas.emplace_back(col_metas[14], col_name.str(), 14);
             } else {
               // All the rest of the columns are uniformly distributed
               col_metas.emplace_back(col_name.str(), type, false, Dist::Uniform, 0, row_num - 1);
