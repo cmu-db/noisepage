@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 #include "network/network_defs.h"
 
@@ -40,6 +41,7 @@ class TrafficCopUtil {
    * @param txn used by optimizer
    * @param accessor used by optimizer
    * @param query bound ParseResult
+   * @param db_oid database oid
    * @param stats_storage used by optimizer
    * @param optimizer_timeout used by optimizer
    * @return physical plan that can be executed
@@ -47,7 +49,8 @@ class TrafficCopUtil {
   static std::unique_ptr<planner::AbstractPlanNode> Optimize(
       common::ManagedPointer<transaction::TransactionContext> txn,
       common::ManagedPointer<catalog::CatalogAccessor> accessor, common::ManagedPointer<parser::ParseResult> query,
-      common::ManagedPointer<optimizer::StatsStorage> stats_storage, uint64_t optimizer_timeout);
+      catalog::db_oid_t db_oid, common::ManagedPointer<optimizer::StatsStorage> stats_storage,
+      uint64_t optimizer_timeout);
 
   /**
    * Converts parser statement types (which rely on multiple enums) to a single QueryType enum from the network layer

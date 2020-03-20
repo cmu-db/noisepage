@@ -1,12 +1,17 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
+
 #include "binder/bind_node_visitor.h"
 #include "common/hash_util.h"
 #include "parser/expression/abstract_expression.h"
 #include "type/transient_value.h"
+#include "type/transient_value_factory.h"
+#include "type/transient_value_peeker.h"
+#include "util/time_util.h"
 
 namespace terrier::parser {
 /**
@@ -69,7 +74,18 @@ class ConstantValueExpression : public AbstractExpression {
   /** @return the constant value stored in this expression */
   type::TransientValue GetValue() const { return value_; }
 
-  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
+              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
+    const auto desired_type =
+        sherpa->GetDesiredType(common::ManagedPointer(this).CastManagedPointerTo<AbstractExpression>());
+
+    sherpa->CheckAndTryPromoteType(common::ManagedPointer(&value_), desired_type);
+
+    // TODO(WAN): DeriveBlah is stupid. Get rid of it some day.
+    DeriveReturnValueType();
+
+    v->Visit(common::ManagedPointer(this), sherpa);
+  }
 
   /**
    * @return expression serialized to json
