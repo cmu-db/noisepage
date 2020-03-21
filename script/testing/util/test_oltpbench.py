@@ -46,21 +46,21 @@ class TestOLTPBench(TestServer):
         # oltpbench json format test results 
         self.test_output_json_file = self.args.get("test_output_json_file")
         if not self.test_output_json_file:
-            self.test_output_json_file = "resultjsonfile_{WEIGHTS}_{SCALEFACTOR}".format(
+            self.test_output_json_file = "outputfile_{WEIGHTS}_{SCALEFACTOR}.json".format(
                 WEIGHTS=self.weights.replace(",", "_"),
                 SCALEFACTOR=str(self.scalefactor)) 
 
         # oltpbench json result file paths
-        self.json_result=os.path.join(constants.OLTP_GIT_LOCAL_PATH, self.test_output_json_file)
+        self.oltpbench_result_path=os.path.join(constants.OLTP_GIT_LOCAL_PATH, self.test_output_json_file)
 
         # oltpbench test command
-        self.test_command = "{BIN} -b {BENCHMARK} -c {XML} {FLAGS} -o {RESULTS} -json-histograms {JSONRESULTS}".format(
+        self.test_command = "{BIN} -b {BENCHMARK} -c {XML} {FLAGS} -o {OUTPUT_FILE} -json-histograms {OUTPUT_JSON_FILE}".format(
             BIN=constants.OLTP_DEFAULT_BIN,
             BENCHMARK=self.benchmark,
             XML=self.xml_config,
             FLAGS=constants.OLTP_DEFAULT_COMMAND_FLAGS,
-            RESULTS=self.test_output_file,
-            JSONRESULTS=self.test_output_json_file)
+            OUTPUT_FILE=self.test_output_file,
+            OUTPUT_JSON_FILE=self.test_output_json_file)
         self.test_command_cwd = constants.OLTP_GIT_LOCAL_PATH
         self.test_error_msg = constants.OLTP_TEST_ERROR_MSG
 
@@ -72,7 +72,7 @@ class TestOLTPBench(TestServer):
 
     def run_post_test(self):
         # validate the OLTP result
-        self.validate_json_result()
+        self.validate_result()
     
     def create_result_dir(self):
         if not os.path.exists(constants.OLTP_DIR_TEST_RESULT):
@@ -127,13 +127,13 @@ class TestOLTPBench(TestServer):
 
         xml.write(self.xml_config)
 
-    def validate_json_result(self):
+    def validate_result(self):
         # read the results file
-        with open(self.json_result) as jr:
-            jr_data=json.load(jr)
-        jr_unexpected=jr_data["unexpected"]
-        jr_hitogram=jr_unexpected["HISTOGRAM"]
-        for key in jr_hitogram.keys():
-            if(jr_hitogram[key] != 0):
-                print(jr_hitogram)
-                sys.exit(constants.ErrorCode.ERROR) 
+        with open(self.oltpbench_result_path) as jr:
+            test_result=json.load(jr)
+        unexpected_result = test_result.get("unexpected", {}).get("HISTOGRAM")
+        if not unexpected_result and not unexpected_result.keys():
+            for test in unexpected_result.keys():
+                if(jr_hitogram[test] != 0):
+                    print(jr_hitogram)
+                    sys.exit(constants.ErrorCode.ERROR) 
