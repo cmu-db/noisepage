@@ -54,13 +54,12 @@ class TestOLTPBench(TestServer):
         self.oltpbench_result_path=os.path.join(constants.OLTP_GIT_LOCAL_PATH, self.test_output_json_file)
 
         # oltpbench test command
-        self.test_command = "{BIN} -b {BENCHMARK} -c {XML} {FLAGS} -o {OUTPUT_FILE} -json-histograms {OUTPUT_JSON_FILE}".format(
+        self.test_command = "{BIN} -b {BENCHMARK} -c {XML} {FLAGS} -json-histograms {RESULTS}".format(
             BIN=constants.OLTP_DEFAULT_BIN,
             BENCHMARK=self.benchmark,
             XML=self.xml_config,
             FLAGS=constants.OLTP_DEFAULT_COMMAND_FLAGS,
-            OUTPUT_FILE=self.test_output_file,
-            OUTPUT_JSON_FILE=self.test_output_json_file)
+            RESULTS=self.test_output_json_file)
         self.test_command_cwd = constants.OLTP_GIT_LOCAL_PATH
         self.test_error_msg = constants.OLTP_TEST_ERROR_MSG
 
@@ -129,11 +128,14 @@ class TestOLTPBench(TestServer):
 
     def validate_result(self):
         # read the results file
-        with open(self.oltpbench_result_path) as jr:
-            test_result=json.load(jr)
+        with open(self.oltpbench_result_path) as oltp_result_file:
+            test_result=json.load(oltp_result_file)
         unexpected_result = test_result.get("unexpected", {}).get("HISTOGRAM")
-        if not unexpected_result and not unexpected_result.keys():
+        if unexpected_result and unexpected_result.keys():
             for test in unexpected_result.keys():
-                if(jr_hitogram[test] != 0):
-                    print(jr_hitogram)
+                if(unexpected_result[test] != 0):
+                    print(str(unexpected_result))
                     sys.exit(constants.ErrorCode.ERROR) 
+        else:
+            print(str(unexpected_result))
+            sys.exit(constants.ErrorCode.ERROR)  
