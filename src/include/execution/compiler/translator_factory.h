@@ -64,6 +64,11 @@ class TranslatorFactory {
   }
 
   /**
+   * Whether this is a concat operation
+   */
+  static bool IsConcatOp(parser::ExpressionType type) { return type == parser::ExpressionType::OPERATOR_CONCAT; }
+
+  /**
    * Whether this is an arithmetic operation
    */
   static bool IsArithmeticOp(parser::ExpressionType type) {

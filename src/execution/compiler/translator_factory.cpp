@@ -6,6 +6,7 @@
 #include "execution/compiler/expression/arithmetic_translator.h"
 #include "execution/compiler/expression/column_value_translator.h"
 #include "execution/compiler/expression/comparison_translator.h"
+#include "execution/compiler/expression/concat_translator.h"
 #include "execution/compiler/expression/conjunction_translator.h"
 #include "execution/compiler/expression/constant_translator.h"
 #include "execution/compiler/expression/derived_value_translator.h"
@@ -131,6 +132,9 @@ std::unique_ptr<ExpressionTranslator> TranslatorFactory::CreateExpressionTransla
   auto type = expression->GetExpressionType();
   if (IsComparisonOp(type)) {
     return std::make_unique<ComparisonTranslator>(expression, codegen);
+  }
+  if (IsConcatOp(type)) {
+    return std::make_unique<ConcatTranslator>(expression, codegen);
   }
   if (IsArithmeticOp(type)) {
     return std::make_unique<ArithmeticTranslator>(expression, codegen);

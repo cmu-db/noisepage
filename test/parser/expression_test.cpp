@@ -629,18 +629,17 @@ TEST(ExpressionTests, OperatorExpressionTest) {
   op_expr_2->DeriveExpressionName();
   EXPECT_EQ(op_expr_2->GetExpressionName(), "+ DECIMAL + BIGINT");
 
-  auto child3 = std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetDate(type::date_t(1)));
-  children_cp.push_back(std::move(child3));
+  std::vector<std::unique_ptr<AbstractExpression>> children_concat;
+  children_concat.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetVarChar("leftOperand")));
+  children_concat.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetVarChar("rightOperand")));
+
   auto op_expr_3 =
-      new OperatorExpression(ExpressionType::OPERATOR_CONCAT, type::TypeId::INVALID, std::move(children_cp));
+      new OperatorExpression(ExpressionType::OPERATOR_CONCAT, type::TypeId::VARCHAR, std::move(children_concat));
 
   op_expr_3->DeriveExpressionName();
-  EXPECT_EQ(op_expr_3->GetExpressionName(), "OPERATOR_CONCAT DECIMAL OPERATOR_CONCAT BIGINT OPERATOR_CONCAT DATE");
-  // Make sure that we catch when the deduced expression type suggests that invalid operand types
-  // NOTE: We only do this for debug builds
-#ifndef NDEBUG
-  EXPECT_DEATH(op_expr_3->DeriveReturnValueType(), "Invalid operand type in Operator Expression.");
-#endif
+  EXPECT_EQ(op_expr_3->GetExpressionName(), "OPERATOR_CONCAT VARCHAR OPERATOR_CONCAT VARCHAR");
 
   delete op_expr_1;
   delete op_expr_2;

@@ -59,6 +59,7 @@ namespace ast {
   T(BinaryOpExpr)                       \
   T(CallExpr)                           \
   T(ComparisonOpExpr)                   \
+  T(ConcatOpExpr)                       \
   T(FunctionLitExpr)                    \
   T(IdentifierExpr)                     \
   T(ImplicitCastExpr)                   \
@@ -1151,6 +1152,79 @@ class ComparisonOpExpr : public Expr {
   parsing::Token::Type op_;
   Expr *left_;
   Expr *right_;
+};
+
+/**
+ * A binary concat operator
+ */
+class ConcatOpExpr : public Expr {
+ public:
+  /**
+   * Constructor
+   * @param pos source position
+   * @param op concat operator
+   * @param left lhs
+   * @param right rhs
+   */
+  ConcatOpExpr(const SourcePosition &pos, parsing::Token::Type op, Expr *left, Expr *right,
+               util::RegionVector<Expr *> &&args)
+      : Expr(Kind::ConcatOpExpr, pos), op_(op), left_(left), right_(right), args_(std::move(args)) {}
+
+  /**
+   * @return concat operator
+   */
+  parsing::Token::Type Op() { return op_; }
+
+  /**
+   * @return the lhs
+   */
+  Expr *Left() { return left_; }
+
+  /**
+   * @return a reference to the arguments
+   */
+  const util::RegionVector<Expr *> &Arguments() const { return args_; }
+
+  /**
+   * @return the rhs
+   */
+  Expr *Right() { return right_; }
+
+  /**
+   * Checks whether the given node is an ConcatOpExpr.
+   * @param node node to check
+   * @return true iff given node is an ConatOpExpr.
+   */
+  static bool classof(const AstNode *node) {  // NOLINT
+    return node->GetKind() == Kind::ConcatOpExpr;
+  }
+
+ private:
+  friend class sema::Sema;
+
+  /**
+   * Sets the lhs
+   * @param left new lhs
+   */
+  void SetLeft(Expr *left) {
+    TERRIER_ASSERT(left != nullptr, "Left cannot be null!");
+    left_ = left;
+  }
+
+  /**
+   * Sets the rhs
+   * @param right new rhs
+   */
+  void SetRight(Expr *right) {
+    TERRIER_ASSERT(right != nullptr, "Right cannot be null!");
+    right_ = right;
+  }
+
+ private:
+  parsing::Token::Type op_;
+  Expr *left_;
+  Expr *right_;
+  util::RegionVector<Expr *> args_;
 };
 
 /**

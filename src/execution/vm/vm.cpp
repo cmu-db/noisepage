@@ -1937,6 +1937,15 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
+  OP(Concat) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    auto *str_left = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    auto *str_right = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    OpConcat(exec_ctx, result, str_left, str_right);
+    DISPATCH_NEXT();
+  }
+
   OP(Trim) : {
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());

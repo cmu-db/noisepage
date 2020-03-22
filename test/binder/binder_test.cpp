@@ -946,4 +946,23 @@ TEST_F(BinderCorrectnessTest, SimpleFunctionCallTest) {
   EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree)), BinderException);
 }
 
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, SimpleConcatExpressionTest) {
+  std::string query = "SELECT 'a' || 'p' FROM a;";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(query);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+
+  auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
+
+  EXPECT_EQ(0, select_stmt->GetDepth());
+
+  auto op_expr = select_stmt->GetSelectColumns()[0].CastManagedPointerTo<parser::OperatorExpression>();
+  EXPECT_EQ(type::TypeId::VARCHAR, op_expr->GetReturnValueType());
+
+  auto col_expr = op_expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+  EXPECT_EQ(col_expr->GetReturnValueType(), type::TypeId::VARCHAR);
+}
+
 }  // namespace terrier

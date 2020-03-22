@@ -169,6 +169,17 @@ class AstNodeFactory {
   }
 
   /**
+   * @param pos source position
+   * @param op concat operator
+   * @param left lhs of the operator
+   * @param right rhs of the operaotr
+   * @return created ConcatOpExpr code
+   */
+  ConcatOpExpr *NewConcatOpExpr(const SourcePosition &pos, parsing::Token::Type op, Expr *left, Expr *right,
+                                util::RegionVector<Expr *> &&args) {
+    return new (region_) ConcatOpExpr(pos, op, left, right, std::move(args));
+  }
+  /**
    * @param fun function being called
    * @param args arguments to the function
    * @return created CallExpr node

@@ -246,6 +246,19 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
   return {nullptr, left, right};
 }
 
+// Concat: ||
+Sema::CheckResult Sema::CheckConcatOperands(parsing::Token::Type op, const SourcePosition &pos, ast::Expr *left,
+                                            ast::Expr *right) {
+  if (left->GetType() == right->GetType()) {
+    auto *ret_type = ast::BuiltinType::Get(GetContext(), ast::BuiltinType::StringVal);
+    return {ret_type, left, right};
+    return {ret_type, left, right};
+  }
+
+  GetErrorReporter()->Report(pos, ErrorMessages::kIllegalTypesForBinary, op, left->GetType(), right->GetType());
+  return {nullptr, left, right};
+}
+
 bool Sema::CheckAssignmentConstraints(ast::Type *target_type, ast::Expr **expr) {
   auto expr_type = (*expr)->GetType();
 

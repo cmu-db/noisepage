@@ -269,6 +269,13 @@ inline void AstTraversalVisitor<Subclass>::VisitComparisonOpExpr(ComparisonOpExp
 }
 
 template <typename Subclass>
+inline void AstTraversalVisitor<Subclass>::VisitConcatOpExpr(ConcatOpExpr *node) {
+  PROCESS_NODE(node);
+  RECURSE(Visit(node->Left()));
+  RECURSE(Visit(node->Right()));
+}
+
+template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitIfStmt(IfStmt *node) {
   PROCESS_NODE(node);
   RECURSE(Visit(node->Condition()));

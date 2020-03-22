@@ -109,6 +109,9 @@ class Sema : public ast::AstVisitor<Sema> {
   CheckResult CheckComparisonOperands(parsing::Token::Type op, const SourcePosition &pos, ast::Expr *left,
                                       ast::Expr *right);
 
+  CheckResult CheckConcatOperands(parsing::Token::Type op, const SourcePosition &pos, ast::Expr *left,
+                                  ast::Expr *right);
+
   // Check the assignment of the expression to a variable or the target type.
   // Return true if the assignment is valid, and false otherwise.
   // Will also apply an implicit cast to make the assignment valid.

@@ -84,6 +84,8 @@ class QueryToOperatorTransformer : public binder::SqlNodeVisitor {
              common::ManagedPointer<binder::BinderSherpa> sherpa) override;
   void Visit(common::ManagedPointer<parser::ComparisonExpression> expr,
              common::ManagedPointer<binder::BinderSherpa> sherpa) override;
+  void Visit(common::ManagedPointer<parser::ConcatExpression> expr,
+             common::ManagedPointer<binder::BinderSherpa> sherpa) override;
   void Visit(common::ManagedPointer<parser::OperatorExpression> expr,
              common::ManagedPointer<binder::BinderSherpa> sherpa) override;
 

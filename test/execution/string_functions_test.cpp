@@ -515,4 +515,29 @@ TEST_F(StringFunctionsTests, Trim) {
   EXPECT_TRUE(StringVal("test") == result);
 }
 
+// NOLINTNEXTLINE
+TEST_F(StringFunctionsTests, Concat) {
+  // Nulls
+  {
+    auto result = StringVal("");
+    StringFunctions::Concat(Ctx(), &result, StringVal::Null(), StringVal::Null());
+    EXPECT_TRUE(result.is_null_);
+
+    StringFunctions::Concat(Ctx(), &result, StringVal::Null(), StringVal("xy"));
+    EXPECT_TRUE(result.is_null_);
+
+    StringFunctions::Concat(Ctx(), &result, StringVal("xy"), StringVal::Null());
+  }
+
+  // Simple Case
+  {
+    auto result = StringVal("");
+    auto x = StringVal("xyz");
+    auto a = StringVal("abc");
+
+    StringFunctions::Concat(Ctx(), &result, x, a);
+    EXPECT_TRUE(StringVal("xyzabc") == result);
+  }
+}
+
 }  // namespace terrier::execution::sql::test

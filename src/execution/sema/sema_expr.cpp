@@ -81,6 +81,30 @@ void Sema::VisitComparisonOpExpr(ast::ComparisonOpExpr *node) {
   }
 }
 
+void Sema::VisitConcatOpExpr(ast::ConcatOpExpr *node) {
+  ast::Type *left_type = Resolve(node->Left());
+  ast::Type *right_type = Resolve(node->Right());
+
+  if (left_type == nullptr || right_type == nullptr) {
+    // Some error occurred
+    return;
+  }
+
+  switch (node->Op()) {
+    case parsing::Token::Type::CONCAT: {
+      // NOLINTNEXTLINE
+      auto [result_type, left, right] = CheckConcatOperands(node->Op(), node->Position(), node->Left(), node->Right());
+      node->SetType(result_type);
+      if (node->Left() != left) node->SetLeft(left);
+      if (node->Right() != right) node->SetRight(right);
+      break;
+    }
+    default: {
+      EXECUTION_LOG_ERROR("{} is not a concat operation", parsing::Token::GetString(node->Op()));
+    }
+  }
+}
+
 void Sema::VisitCallExpr(ast::CallExpr *node) {
   // If the call claims to be to a builtin, validate it
   if (node->GetCallKind() == ast::CallExpr::CallKind::Builtin) {

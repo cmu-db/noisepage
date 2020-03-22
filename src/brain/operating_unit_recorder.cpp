@@ -88,6 +88,14 @@ ExecutionOperatingUnitType OperatingUnitRecorder::ConvertExpressionType(
           return ExecutionOperatingUnitType::INVALID;
       }
     }
+    case parser::ExpressionType::OPERATOR_CONCAT: {
+      switch (DeriveComputation(expr)) {
+        case type::TypeId::VARCHAR:
+          return ExecutionOperatingUnitType::OP_VARCHAR_CONCAT;
+        default:
+          return ExecutionOperatingUnitType::INVALID;
+      }
+    }
     case parser::ExpressionType::OPERATOR_DIVIDE: {
       switch (DeriveComputation(expr)) {
         case type::TypeId::TINYINT:

@@ -79,7 +79,8 @@ namespace terrier::execution::parsing {
   T(ERROR, "error", 0)                             \
                                                    \
   /* End of stream */                              \
-  T(EOS, "eos", 0)
+  T(EOS, "eos", 0)                                 \
+  T(CONCAT, "||", 0)
 
 /**
  * Stores information about TPL tokens.
@@ -131,6 +132,11 @@ class Token {
     return (static_cast<uint8_t>(Type::BANG_EQUAL) <= static_cast<uint8_t>(op) &&
             static_cast<uint8_t>(op) <= static_cast<uint8_t>(Type::LESS_EQUAL));
   }
+
+  /**
+   * Is the given token a concat operator?
+   */
+  static bool IsConcatOp(Type op) { return (static_cast<uint8_t>(Type::CONCAT) <= static_cast<uint8_t>(op)); }
 
   /**
    * Is th given token a calling or struct access or indexing token?

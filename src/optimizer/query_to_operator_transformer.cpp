@@ -17,6 +17,7 @@
 #include "optimizer/operator_node.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
+#include "parser/expression/concat_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/subquery_expression.h"
 #include "parser/expression_util.h"
@@ -622,6 +623,17 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::Comparison
     GenerateSubqueryTree(expr.CastManagedPointerTo<parser::AbstractExpression>(), 0, sherpa, true) ||
         GenerateSubqueryTree(expr.CastManagedPointerTo<parser::AbstractExpression>(), 1, sherpa, true);
   }
+  expr->AcceptChildren(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
+}
+
+void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::ConcatExpression> expr,
+                                       common::ManagedPointer<binder::BinderSherpa> sherpa) {
+  OPTIMIZER_LOG_DEBUG("Transforming ConcatExpression to operators ...");
+  auto expr_type = expr->GetExpressionType();
+  if (expr_type == parser::ExpressionType::OPERATOR_CONCAT) {
+    GenerateSubqueryTree(expr.CastManagedPointerTo<parser::AbstractExpression>(), 1, sherpa, false);
+  }
+
   expr->AcceptChildren(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
 }
 

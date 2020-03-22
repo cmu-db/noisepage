@@ -34,6 +34,26 @@ void StringFunctions::Substring(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, St
   *result = StringVal(str.Content() + start - 1, uint32_t(end - start));
 }
 
+void StringFunctions::Concat(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str_left,
+                             const StringVal &str_right) {
+  if (str_left.is_null_ || str_right.is_null_) {
+    *result = StringVal::Null();
+    return;
+  }
+
+  char *ptr =
+      StringVal::PreAllocate(result, ctx->GetStringAllocator(), static_cast<uint32_t>(str_left.len_ + str_right.len_));
+
+  if (UNLIKELY(ptr == nullptr)) {
+    // Allocation failed
+    return;
+  }
+  // All good
+  std::memcpy(ptr, str_left.Content(), str_left.len_);
+  ptr += str_left.len_;
+  std::memcpy(ptr, str_right.Content(), str_right.len_);
+}
+
 namespace {
 
 const char *SearchSubstring(const char *text, const std::size_t hay_len, const char *pattern,

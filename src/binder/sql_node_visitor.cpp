@@ -4,6 +4,7 @@
 #include "parser/expression/case_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
+#include "parser/expression/concat_expression.h"
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression/default_value_expression.h"
@@ -32,6 +33,12 @@ void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::ComparisonExpr
                                    common::ManagedPointer<binder::BinderSherpa> sherpa) {
   expr->AcceptChildren(common::ManagedPointer(this), sherpa);
 }
+
+void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::ConcatExpression> expr,
+                                   common::ManagedPointer<binder::BinderSherpa> sherpa) {
+  expr->AcceptChildren(common::ManagedPointer(this), sherpa);
+}
+
 void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::ConjunctionExpression> expr,
                                    common::ManagedPointer<binder::BinderSherpa> sherpa) {
   expr->AcceptChildren(common::ManagedPointer(this), sherpa);

@@ -2717,6 +2717,19 @@ void BytecodeGenerator::VisitComparisonOpExpr(ast::ComparisonOpExpr *node) {
   }
 }
 
+void BytecodeGenerator::VisitConcatOpExpr(ast::ConcatOpExpr *concat) {
+  LocalVar dest = ExecutionResult()->GetOrCreateDestination(concat->GetType());
+  LocalVar left = VisitExpressionForLValue(concat->Left());
+  LocalVar right = VisitExpressionForLValue(concat->Right());
+  LocalVar exec_ctx = VisitExpressionForRValue(concat->Arguments()[0]);
+
+  // Emit
+  Emitter()->Emit(Bytecode::Concat, exec_ctx, dest, left, right);
+
+  // Mark where the result is
+  ExecutionResult()->SetDestination(dest.ValueOf());
+}
+
 void BytecodeGenerator::VisitFunctionLitExpr(ast::FunctionLitExpr *node) { Visit(node->Body()); }
 
 void BytecodeGenerator::BuildAssign(LocalVar dest, LocalVar ptr, ast::Type *dest_type) {

@@ -524,6 +524,16 @@ TEST_F(ParserTestBase, OperatorTest) {
   }
 
   {
+    std::string query = "SELECT 'A'||'B' AS Concatenation;";
+    auto result = parser::PostgresParser::BuildParseTree(query);
+    auto sql_stmt = result->GetStatement(0);
+    auto select_stmt = sql_stmt.CastManagedPointerTo<SelectStatement>();
+    auto expr = select_stmt->GetSelectColumns().at(0);
+    EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_CONCAT);
+    EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::VARCHAR);
+  }
+
+  {
     std::string query = "SELECT * FROM foo WHERE NOT id = 1;";
     auto result = parser::PostgresParser::BuildParseTree(query);
     auto sql_stmt = result->GetStatement(0);

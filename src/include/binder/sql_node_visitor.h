@@ -32,6 +32,7 @@ class AggregateExpression;
 class CaseExpression;
 class ColumnValueExpression;
 class ComparisonExpression;
+class ConcatExpression;
 class ConjunctionExpression;
 class ConstantValueExpression;
 class DefaultValueExpression;
@@ -229,6 +230,14 @@ class SqlNodeVisitor {
    * @param sherpa The BinderSherpa for storing state through visitor pattern
    */
   virtual void Visit(common::ManagedPointer<parser::ComparisonExpression> expr,
+                     common::ManagedPointer<BinderSherpa> sherpa);
+
+  /**
+   * Visitor pattern for ConcatExpression
+   * @param expr to be visited
+   * @param sherpa The BinderSherpa for storing state through visitor pattern
+   */
+  virtual void Visit(common::ManagedPointer<parser::ConcatExpression> expr,
                      common::ManagedPointer<BinderSherpa> sherpa);
 
   /**

@@ -282,6 +282,13 @@ void AstDumperImpl::VisitComparisonOpExpr(ComparisonOpExpr *node) {
   DumpExpr(node->Right());
 }
 
+void AstDumperImpl::VisitConcatOpExpr(ConcatOpExpr *node) {
+  DumpExpressionCommon(node);
+  DumpToken(node->Op());
+  DumpExpr(node->Left());
+  DumpExpr(node->Right());
+}
+
 void AstDumperImpl::VisitFunctionLitExpr(FunctionLitExpr *node) {
   DumpExpressionCommon(node);
   DumpStmt(node->Body());
@@ -311,7 +318,6 @@ void AstDumperImpl::VisitImplicitCastExpr(ImplicitCastExpr *node) {
         break;
       }
       case CastKind::BoolToSqlBool: {
-        DumpPrimitive("BoolToSqlBool");
         break;
       }
       case CastKind::IntegralCast: {

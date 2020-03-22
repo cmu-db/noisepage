@@ -109,6 +109,12 @@ class EXPORT StringFunctions {
   }
 
   /**
+   * Perform concatenation on given strings.
+   */
+  static void Concat(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str_left,
+                     const StringVal &str_right);
+
+  /**
    * Perform a trim of the given characters on both sides
    */
   static void Trim(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const StringVal &chars);

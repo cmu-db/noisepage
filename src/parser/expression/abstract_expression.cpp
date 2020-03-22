@@ -8,6 +8,7 @@
 #include "parser/expression/case_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
+#include "parser/expression/concat_expression.h"
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression/default_value_expression.h"
@@ -105,6 +106,11 @@ JSONDeserializeExprIntermediate DeserializeExpression(const nlohmann::json &j) {
       break;
     }
 
+    case ExpressionType::OPERATOR_CONCAT: {
+      expr = std::make_unique<ConcatExpression>();
+      break;
+    }
+
     case ExpressionType::CONJUNCTION_AND:
     case ExpressionType::CONJUNCTION_OR: {
       expr = std::make_unique<ConjunctionExpression>();
@@ -130,7 +136,6 @@ JSONDeserializeExprIntermediate DeserializeExpression(const nlohmann::json &j) {
     case ExpressionType::OPERATOR_MINUS:
     case ExpressionType::OPERATOR_MULTIPLY:
     case ExpressionType::OPERATOR_DIVIDE:
-    case ExpressionType::OPERATOR_CONCAT:
     case ExpressionType::OPERATOR_MOD:
     case ExpressionType::OPERATOR_NOT:
     case ExpressionType::OPERATOR_IS_NULL:

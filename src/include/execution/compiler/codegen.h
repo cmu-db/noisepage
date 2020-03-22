@@ -369,6 +369,18 @@ class CodeGen {
   }
 
   /**
+   * Concat lhs to rhs
+   * @param comp_type type of the concat
+   * @param lhs left hand side of the concat
+   * @param rhs right hand side of the concat
+   * @return the generated concat expression.
+   */
+  ast::Expr *Concat(parsing::Token::Type comp_type, ast::Expr *lhs, ast::Expr *rhs) {
+    ast::Expr *exec_ctx_arg = MakeExpr(exec_ctx_var_);
+    util::RegionVector<ast::Expr *> params{{exec_ctx_arg}, Region()};
+    return Factory()->NewConcatOpExpr(DUMMY_POS, comp_type, lhs, rhs, std::move(params));
+  }
+  /**
    * Perform the operation lhs op rhs
    * @param op_type type of the operator
    * @param lhs left hand side of the operation
