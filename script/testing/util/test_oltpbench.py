@@ -98,7 +98,7 @@ class TestOLTPBench(TestServer):
             sys.exit(rc)
 
     def build_oltp(self):
-        for command in constants.OTLP_ANT_COMMANDS:
+        for command in constants.OLTP_ANT_COMMANDS:
             error_msg = "Error: unable to run \"{}\"".format(command)
             rc, stdout, stderr = run_command(command, error_msg)
             if rc != constants.ErrorCode.SUCCESS:
