@@ -212,7 +212,7 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j4'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build_type=release'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
                         cleanup {
@@ -236,7 +236,7 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build_type=release'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
                         cleanup {
@@ -264,7 +264,7 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build_type=release'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
                         cleanup {
