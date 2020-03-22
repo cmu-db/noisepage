@@ -267,7 +267,7 @@ TEST_F(TpccPlanDeliveryTests, DeliverySumOrderAmount) {
     auto plrl = plr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
     auto plrr = plr->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
     EXPECT_EQ(plrl->GetColumnOid(), schema.GetColumn("ol_d_id").Oid());
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(plrr->GetValue()), 2);
+    EXPECT_EQ(type::TransientValuePeeker::PeekTinyInt(plrr->GetValue()), 2);
 
     auto pred_right = scan_pred->GetChild(1).CastManagedPointerTo<parser::ComparisonExpression>();
     EXPECT_EQ(pred_right->GetChild(0)->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
@@ -275,7 +275,7 @@ TEST_F(TpccPlanDeliveryTests, DeliverySumOrderAmount) {
     auto prl = pred_right->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
     auto prr = pred_right->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
     EXPECT_EQ(prl->GetColumnOid(), schema.GetColumn("ol_w_id").Oid());
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(prr->GetValue()), 3);
+    EXPECT_EQ(type::TransientValuePeeker::PeekTinyInt(prr->GetValue()), 3);
 
     // IdxScan OutputSchema
     auto idx_scan_schema = idx_scan->GetOutputSchema();
