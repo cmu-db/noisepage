@@ -2,10 +2,11 @@
 import os
 import sys
 import subprocess
-from util import constants
+from util.constants import ErrorCode
 from util.common import run_command
 from util.test_server import TestServer
 from xml.etree import ElementTree
+from oltpbench import constants
 
 
 class TestOLTPBench(TestServer):
@@ -35,7 +36,8 @@ class TestOLTPBench(TestServer):
         # oltpbench test results
         self.test_output_file = self.args.get("test_output_file")
         if not self.test_output_file:
-            self.test_output_file = "outputfile_{WEIGHTS}_{SCALEFACTOR}".format(
+            self.test_output_file = "oltp_output_{BENCHMARK}_{WEIGHTS}_{SCALEFACTOR}".format(
+                BENCHMARK=self.benchmark,
                 WEIGHTS=self.weights.replace(",", "_"),
                 SCALEFACTOR=str(self.scalefactor))
             # TODO: ask Andy to remove the relative path from the oltpbench for execution and result logging
@@ -70,7 +72,7 @@ class TestOLTPBench(TestServer):
     def clean_oltp(self):
         rc, stdout, stderr = run_command(constants.OLTP_GIT_CLEAN_COMMAND,
                                          "Error: unable to clean OLTP repo")
-        if rc != constants.ErrorCode.SUCCESS:
+        if rc != ErrorCode.SUCCESS:
             print(stderr)
             sys.exit(rc)
 
@@ -78,7 +80,7 @@ class TestOLTPBench(TestServer):
         rc, stdout, stderr = run_command(
             constants.OLTP_GIT_COMMAND,
             "Error: unable to git clone OLTP source code")
-        if rc != constants.ErrorCode.SUCCESS:
+        if rc != ErrorCode.SUCCESS:
             print(stderr)
             sys.exit(rc)
 
@@ -86,7 +88,7 @@ class TestOLTPBench(TestServer):
         for command in constants.OTLP_ANT_COMMANDS:
             error_msg = "Error: unable to run \"{}\"".format(command)
             rc, stdout, stderr = run_command(command, error_msg)
-            if rc != constants.ErrorCode.SUCCESS:
+            if rc != ErrorCode.SUCCESS:
                 print(stderr)
                 sys.exit(rc)
 

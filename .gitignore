@@ -271,3 +271,6 @@ libpqxx-*.deb*
 
 # write ahead logging
 wal.log
+
+# OLTP output
+**/oltp_output_*

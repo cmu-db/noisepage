@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-from util import constants
+from junit import constants
 from util.test_server import TestServer
 
 

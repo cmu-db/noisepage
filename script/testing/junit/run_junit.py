@@ -8,14 +8,14 @@ import traceback
 base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, base_path)
 
-from util.test_junit import TestJUnit
+from junit.test_junit import TestJUnit
 
 if __name__ == "__main__":
 
     aparser = argparse.ArgumentParser(description="junit runner")
 
     aparser.add_argument("--db-host", help="DB Hostname")
-    aparser.add_argument("--db_port", type=int, help="DB Port")
+    aparser.add_argument("--db-port", type=int, help="DB Port")
     aparser.add_argument("--db-output-file", help="DB output log file")
     aparser.add_argument("--test-output-file", help="Test output log file")
     aparser.add_argument("--build-type",
