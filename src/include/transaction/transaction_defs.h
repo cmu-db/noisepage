@@ -7,6 +7,8 @@
 
 #include "common/strong_typedef.h"
 namespace terrier::transaction {
+static constexpr uint64_t HASH_VAL = 13;
+
 STRONG_TYPEDEF(timestamp_t, uint64_t);
 
 // Invalid txn timestamp. Used for validation.

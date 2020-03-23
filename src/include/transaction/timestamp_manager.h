@@ -19,8 +19,10 @@ class TransactionManager;
  */
 class TimestampManager {
  public:
+  TimestampManager() : curr_running_txns_(HASH_VAL, std::unordered_set<timestamp_t>()), curr_running_txns_latch_(HASH_VAL) {};
+
   ~TimestampManager() {
-    TERRIER_ASSERT(curr_running_txns_.empty(),
+    TERRIER_ASSERT(!HasRunningTxn(),
                    "Destroying the TimestampManager while txns are still running. That seems wrong.");
   }
 
@@ -62,23 +64,37 @@ class TimestampManager {
   // in the deferred action framework when dropping tables.
   friend class TransactionManager;
   friend class storage::LogSerializerTask;
+
+  bool HasRunningTxn() {
+    for (const auto &txn_list : curr_running_txns_) {
+      if (!txn_list.empty()) return true;
+    }
+    return false;
+  }
+
   timestamp_t BeginTransaction() {
     timestamp_t start_time;
     {
-      common::SpinLatch::ScopedSpinLatch running_guard(&curr_running_txns_latch_);
-      // There is a three-way race that needs to be prevented.  Specifically, we
-      // cannot allow both a transaction to commit and the GC to poll for the
-      // oldest running transaction in between this transaction acquiring its
-      // begin timestamp and getting inserted into the current running
-      // transactions list.  Using the current running transactions latch
-      // prevents the GC from polling and stops the race.  This allows us to
-      // replace acquiring a shared instance of the commit latch with a
-      // read-only spin-latch and move the allocation out of a critical section.
+      common::SpinLatch::ScopedSpinLatch outer_guard(&temp_latch_);
       start_time = time_++;
+      const auto idx = uint64_t(start_time) % HASH_VAL;
+      {
+        common::SpinLatch::ScopedSpinLatch running_guard(&curr_running_txns_latch_[idx]);
+        // There is a three-way race that needs to be prevented.  Specifically, we
+        // cannot allow both a transaction to commit and the GC to poll for the
+        // oldest running transaction in between this transaction acquiring its
+        // begin timestamp and getting inserted into the current running
+        // transactions list.  Using the current running transactions latch
+        // prevents the GC from polling and stops the race.  This allows us to
+        // replace acquiring a shared instance of the commit latch with a
+        // read-only spin-latch and move the allocation out of a critical section.
 
-      const auto ret UNUSED_ATTRIBUTE = curr_running_txns_.emplace(start_time);
-      TERRIER_ASSERT(ret.second, "commit start time should be globally unique");
-    }  // Release latch on current running transactions
+        // TODO(Ling): what is the consequence of getting the timestamp before acquiring the lock?
+
+        const auto ret UNUSED_ATTRIBUTE = curr_running_txns_[idx].emplace(start_time);
+        TERRIER_ASSERT(ret.second, "commit start time should be globally unique");
+      }  // Release latch on current running transactions
+    }
     return start_time;
   }
 
@@ -104,7 +120,9 @@ class TimestampManager {
   // TODO(Gus): This data structure initially only held items in the order of # of workers. With the logging change, it
   // can hold many more, since txns are only removed when serialized. We should consider if there is a possible better
   // data structure
-  std::unordered_set<timestamp_t> curr_running_txns_;
-  mutable common::SpinLatch curr_running_txns_latch_;
+  std::vector<std::unordered_set<timestamp_t>> curr_running_txns_;
+  mutable std::vector<common::SpinLatch> curr_running_txns_latch_;
+
+  mutable common::SpinLatch temp_latch_;
 };
 }  // namespace terrier::transaction
