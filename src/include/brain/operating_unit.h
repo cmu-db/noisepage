@@ -44,8 +44,10 @@ class OperatingUnitRecorder;
  * An ExecutionOperatingUnitFeature captures the following three metadata
  * about any given operating unit in a pipeline:
  * - Type
- *   Estimated number of tuples
- *   Estimated cardinality
+ * - Estimated number of tuples
+ * - Total Key Size
+ * - Number of keys
+ * - Estimated cardinality
  */
 class ExecutionOperatingUnitFeature {
   friend class PipelineOperatingUnits;
@@ -56,10 +58,13 @@ class ExecutionOperatingUnitFeature {
    * Constructor for ExecutionOperatingUnitFeature
    * @param feature Type
    * @param num_rows Estimated number of output tuples
+   * @param key_size Total Key Size
+   * @param num_keys Number of keys
    * @param cardinality Estimated cardinality
    */
-  ExecutionOperatingUnitFeature(ExecutionOperatingUnitType feature, size_t num_rows, double cardinality)
-      : feature_(feature), num_rows_(num_rows), cardinality_(cardinality) {}
+  ExecutionOperatingUnitFeature(ExecutionOperatingUnitType feature, size_t num_rows, size_t key_size, size_t num_keys,
+                                size_t cardinality)
+      : feature_(feature), num_rows_(num_rows), key_size_(key_size), num_keys_(num_keys), cardinality_(cardinality) {}
 
   /**
    * @returns type
@@ -72,9 +77,19 @@ class ExecutionOperatingUnitFeature {
   size_t GetNumRows() const { return num_rows_; }
 
   /**
+   * @return total key size
+   */
+  size_t GetKeySize() const { return key_size_; }
+
+  /**
+   * @return number of keys (columns)
+   */
+  size_t GetNumKeys() const { return num_keys_; }
+
+  /**
    * @returns estimated cardinality
    */
-  double GetCardinality() const { return cardinality_; }
+  size_t GetCardinality() const { return cardinality_; }
 
  private:
   /**
@@ -89,11 +104,13 @@ class ExecutionOperatingUnitFeature {
    * @note only should be invoked by OperatingUnitRecorder
    * @param cardinality Updated cardinality
    */
-  void SetCardinality(double cardinality) { cardinality_ = cardinality; }
+  void SetCardinality(size_t cardinality) { cardinality_ = cardinality; }
 
   ExecutionOperatingUnitType feature_;
   size_t num_rows_;
-  double cardinality_;
+  size_t key_size_;
+  size_t num_keys_;
+  size_t cardinality_;
 };
 
 /**

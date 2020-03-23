@@ -143,4 +143,18 @@ class OutputWriter {
   const std::vector<network::FieldFormat> &field_formats_;
 };
 
+/**
+ * A consumer that doesn't do anything with the result tuples.
+ */
+class NoOpResultConsumer {
+ public:
+  /**
+   * Callback that does nothing.
+   * @param tuples batch of tuples
+   * @param num_tuples number of tuples
+   * @param tuple_size size of tuples
+   */
+  void operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {}
+};
+
 }  // namespace terrier::execution::exec

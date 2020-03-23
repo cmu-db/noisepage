@@ -858,10 +858,11 @@ TEST_F(CompilerTest, CountStarTest) {
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     auto schema = seq_scan_out.MakeSchema();
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
-                   .SetColumnOids({})
+                   .SetColumnOids({cola_oid})
                    .SetScanPredicate(nullptr)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -1057,9 +1058,10 @@ TEST_F(CompilerTest, StaticDistinctAggregateTest) {
 
   auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
   auto feature_vec1 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
-  auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_STATIC,
-                                                                 brain::ExecutionOperatingUnitType::SEQ_SCAN};
-  auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_STATIC};
+  auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
+      brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
+      brain::ExecutionOperatingUnitType::SEQ_SCAN};
+  auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
 }
@@ -2076,10 +2078,10 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
   EXPECT_EQ(pipeline->units_.size(), 1);
 
   // NLJOIN left and right are in same pipeline
+  // But NLJOIN left/right features do not exist
   auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
   auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
-      brain::ExecutionOperatingUnitType::NLJOIN_LEFT, brain::ExecutionOperatingUnitType::NLJOIN_RIGHT,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
       brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, brain::ExecutionOperatingUnitType::SEQ_SCAN};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
 }
