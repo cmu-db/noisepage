@@ -8,7 +8,7 @@ import traceback
 base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, base_path)
 
-from util.test_oltpbench import TestOLTPBench
+from oltpbench.test_oltpbench import TestOLTPBench
 
 if __name__ == "__main__":
     aparser = argparse.ArgumentParser(description="Timeseries")
