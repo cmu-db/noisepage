@@ -1,22 +1,21 @@
 #include "test_util/tpcc/workload_cached.h"
 
+#include <fstream>
 #include <random>
+#include <string>
 
 #include "execution/exec/execution_context.h"
 #include "execution/execution_util.h"
 #include "main/db_main.h"
-#include "test_util/tpcc/builder.h"
-#include "test_util/tpcc/database.h"
-#include "test_util/tpcc/loader.h"
-#include "test_util/tpcc/worker.h"
-
-#include <string>
-#include <fstream>
-
+#include "optimizer/cost_model/trivial_cost_model.h"
 #include "parser/expression/derived_value_expression.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "test_util/test_harness.h"
+#include "test_util/tpcc/builder.h"
+#include "test_util/tpcc/database.h"
+#include "test_util/tpcc/loader.h"
+#include "test_util/tpcc/worker.h"
 #include "traffic_cop/traffic_cop_util.h"
 
 namespace terrier::tpcc {
@@ -68,15 +67,17 @@ namespace terrier::tpcc {
         transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
 
         auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
-        binder::BindNodeVisitor visitor(common::ManagedPointer(accessor.get()), "tpcc");
-        visitor.BindNameToNode(parse_result->GetStatement(0), parse_result.get());
+        binder::BindNodeVisitor visitor(common::ManagedPointer(accessor.get()), db_oid_);
+        visitor.BindNameToNode(common::ManagedPointer<parser::ParseResult>(parse_result));
 
         // generate plan node
         std::unique_ptr<planner::AbstractPlanNode> plan_node = trafficcop::TrafficCopUtil::Optimize(
             common::ManagedPointer(txn),
             common::ManagedPointer(accessor),
             common::ManagedPointer(parse_result),
-            common::ManagedPointer(db_main_->GetStatsStorage()),
+            db_oid_,
+            db_main_->GetStatsStorage(),
+            std::make_unique<optimizer::TrivialCostModel>(),
             optimizer_timeout
         );
 

@@ -176,6 +176,8 @@ if __name__ == '__main__':
 
     logging_util.init_logging(args.log)
 
+    logging.info("Global trainer starts.")
+
     with open(args.mini_model_file, 'rb') as pickle_file:
         model_map = pickle.load(pickle_file)
     trainer = GlobalTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio, model_map)
