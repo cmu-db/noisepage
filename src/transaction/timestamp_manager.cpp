@@ -5,7 +5,7 @@
 namespace terrier::transaction {
 
 timestamp_t TimestampManager::OldestTransactionStartTime() {
-  common::SpinLatch::ScopedSpinLatch outer_guard(&temp_latch_);
+  // common::SpinLatch::ScopedSpinLatch outer_guard(&temp_latch_);
   std::vector<timestamp_t> mins;
   for (size_t i = 0; i < HASH_VAL; i++) {
     {
@@ -23,7 +23,7 @@ timestamp_t TimestampManager::OldestTransactionStartTime() {
 timestamp_t TimestampManager::CachedOldestTransactionStartTime() { return cached_oldest_txn_start_time_.load(); }
 
 void TimestampManager::RemoveTransaction(timestamp_t timestamp) {
-  common::SpinLatch::ScopedSpinLatch outer_guard(&temp_latch_);
+  // common::SpinLatch::ScopedSpinLatch outer_guard(&temp_latch_);
   const auto idx = uint64_t(timestamp) % HASH_VAL;
   common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_[idx]);
   const size_t ret UNUSED_ATTRIBUTE = curr_running_txns_[idx].erase(timestamp);
@@ -31,7 +31,7 @@ void TimestampManager::RemoveTransaction(timestamp_t timestamp) {
 }
 
 void TimestampManager::RemoveTransactions(const std::vector<terrier::transaction::timestamp_t> &timestamps) {
-  common::SpinLatch::ScopedSpinLatch outer_guard(&temp_latch_);
+  // common::SpinLatch::ScopedSpinLatch outer_guard(&temp_latch_);
   for (const auto &timestamp : timestamps) {
     const auto idx = uint64_t(timestamp) % HASH_VAL;
     common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_[idx]);

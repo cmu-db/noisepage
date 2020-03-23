@@ -65,6 +65,16 @@ class TimestampManager {
   friend class TransactionManager;
   friend class storage::LogSerializerTask;
 
+  void LockAll() {
+    for (auto &latch : curr_running_txns_latch_)
+      latch.Lock();
+  }
+
+  void UnlockAll() {
+    for (auto &latch : curr_running_txns_latch_)
+      latch.Unlock();
+  }
+
   bool HasRunningTxn() {
     for (const auto &txn_list : curr_running_txns_) {
       if (!txn_list.empty()) return true;
@@ -75,7 +85,7 @@ class TimestampManager {
   timestamp_t BeginTransaction() {
     timestamp_t start_time;
     {
-      common::SpinLatch::ScopedSpinLatch outer_guard(&temp_latch_);
+      // common::SpinLatch::ScopedSpinLatch outer_guard(&temp_latch_);
       start_time = time_++;
       const auto idx = uint64_t(start_time) % HASH_VAL;
       {
@@ -123,6 +133,6 @@ class TimestampManager {
   std::vector<std::unordered_set<timestamp_t>> curr_running_txns_;
   mutable std::vector<common::SpinLatch> curr_running_txns_latch_;
 
-  mutable common::SpinLatch temp_latch_;
+  // mutable common::SpinLatch temp_latch_;
 };
 }  // namespace terrier::transaction
