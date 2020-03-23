@@ -49,57 +49,41 @@ class BindNodeVisitor : public SqlNodeVisitor {
   void BindNameToNode(common::ManagedPointer<parser::ParseResult> parse_result,
                       common::ManagedPointer<std::vector<type::TransientValue>> parameters);
 
-  void Visit(common::ManagedPointer<parser::SelectStatement> node,
-             common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::JoinDefinition> node, common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::TableRef> node, common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::GroupByDescription> node,
-             common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::OrderByDescription> node,
-             common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::LimitDescription> node,
-             common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::CreateStatement> node,
-             common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::CreateFunctionStatement> node,
-             common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::InsertStatement> node,
-             common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::DeleteStatement> node,
-             common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::DropStatement> node, common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::PrepareStatement> node,
-             common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::ExecuteStatement> node,
-             common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::TransactionStatement> node,
-             common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::UpdateStatement> node,
-             common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::CopyStatement> node, common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::AnalyzeStatement> node,
-             common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::CaseExpression> expr, common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::SubqueryExpression> expr,
-             common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::ConstantValueExpression> expr,
-             common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::ColumnValueExpression> expr,
-             common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::StarExpression> expr, common::ManagedPointer<BinderSherpa> sherpa) override;
+  void Visit(common::ManagedPointer<parser::SelectStatement> node) override;
+  void Visit(common::ManagedPointer<parser::JoinDefinition> node) override;
+  void Visit(common::ManagedPointer<parser::TableRef> node) override;
+  void Visit(common::ManagedPointer<parser::GroupByDescription> node) override;
+  void Visit(common::ManagedPointer<parser::OrderByDescription> node) override;
+  void Visit(common::ManagedPointer<parser::LimitDescription> node) override;
+  void Visit(common::ManagedPointer<parser::CreateStatement> node) override;
+  void Visit(common::ManagedPointer<parser::CreateFunctionStatement> node) override;
+  void Visit(common::ManagedPointer<parser::InsertStatement> node) override;
+  void Visit(common::ManagedPointer<parser::DeleteStatement> node) override;
+  void Visit(common::ManagedPointer<parser::DropStatement> node) override;
+  void Visit(common::ManagedPointer<parser::PrepareStatement> node) override;
+  void Visit(common::ManagedPointer<parser::ExecuteStatement> node) override;
+  void Visit(common::ManagedPointer<parser::TransactionStatement> node) override;
+  void Visit(common::ManagedPointer<parser::UpdateStatement> node) override;
+  void Visit(common::ManagedPointer<parser::CopyStatement> node) override;
+  void Visit(common::ManagedPointer<parser::AnalyzeStatement> node) override;
+  void Visit(common::ManagedPointer<parser::CaseExpression> expr) override;
+  void Visit(common::ManagedPointer<parser::SubqueryExpression> expr) override;
+  void Visit(common::ManagedPointer<parser::ConstantValueExpression> expr) override;
+  void Visit(common::ManagedPointer<parser::ParameterValueExpression> expr) override;
+  void Visit(common::ManagedPointer<parser::ColumnValueExpression> expr) override;
+  void Visit(common::ManagedPointer<parser::StarExpression> expr) override;
   // TODO(Ling): implement this after we add support for function expression
-  void Visit(common::ManagedPointer<parser::FunctionExpression> expr,
-             common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::OperatorExpression> expr,
-             common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::AggregateExpression> expr,
-             common::ManagedPointer<BinderSherpa> sherpa) override;
-  void Visit(common::ManagedPointer<parser::TypeCastExpression> expr,
-             common::ManagedPointer<BinderSherpa> sherpa) override;
+  void Visit(common::ManagedPointer<parser::FunctionExpression> expr) override;
+  void Visit(common::ManagedPointer<parser::OperatorExpression> expr) override;
+  void Visit(common::ManagedPointer<parser::AggregateExpression> expr) override;
+  void Visit(common::ManagedPointer<parser::TypeCastExpression> expr) override;
 
  private:
   /** Current context of the query or subquery */
   common::ManagedPointer<BinderContext> context_ = nullptr;
+
+  std::unique_ptr<BinderSherpa> sherpa_ = nullptr;
+
   /** Catalog accessor */
   const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor_;
   const catalog::db_oid_t db_oid_;

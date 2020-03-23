@@ -167,10 +167,7 @@ class CaseExpression : public AbstractExpression {
   /** @return default clause, if it exists */
   common::ManagedPointer<AbstractExpression> GetDefaultClause() const { return common::ManagedPointer(default_expr_); }
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
-              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
-    v->Visit(common::ManagedPointer(this), sherpa);
-  }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   /** @return expression serialized to json */
   nlohmann::json ToJson() const override {

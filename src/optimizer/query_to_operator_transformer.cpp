@@ -37,13 +37,11 @@ std::unique_ptr<OperatorNode> QueryToOperatorTransformer::ConvertToOpExpression(
     const common::ManagedPointer<std::vector<type::TransientValue>> parameters) {
   output_expr_ = nullptr;
 
-  binder::BinderSherpa sherpa(parse_result, parameters);
-  op->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), common::ManagedPointer(&sherpa));
+  op->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
   return std::move(output_expr_);
 }
 
-void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStatement> op,
-                                       common::ManagedPointer<binder::BinderSherpa> sherpa) {
+void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStatement> op) {
   OPTIMIZER_LOG_DEBUG("Transforming SelectStatement to operators ...");
   // We do not visit the select list of a base table because the column
   // information is derived before the plan generation, at this step we
@@ -147,8 +145,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
   predicates_ = std::move(pre_predicates);
 }
 
-void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::JoinDefinition> node,
-                                       common::ManagedPointer<binder::BinderSherpa> sherpa) {
+void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::JoinDefinition> node) {
   OPTIMIZER_LOG_DEBUG("Transforming JoinDefinition to operators ...");
   // Get left operator
   node->GetLeftTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
@@ -205,8 +202,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::JoinDefini
   output_expr_ = std::move(join_expr);
 }
 
-void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> node,
-                                       common::ManagedPointer<binder::BinderSherpa> sherpa) {
+void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> node) {
   OPTIMIZER_LOG_DEBUG("Transforming TableRef to operators ...");
   if (node->GetSelect() != nullptr) {
     // Store previous context
@@ -259,12 +255,10 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
   }
 }
 
-void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::GroupByDescription> node,
-                                       common::ManagedPointer<binder::BinderSherpa> sherpa) {
+void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::GroupByDescription> node) {
   OPTIMIZER_LOG_DEBUG("Transforming GroupByDescription to operators ...");
 }
-void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::OrderByDescription> node,
-                                       common::ManagedPointer<binder::BinderSherpa> sherpa) {
+void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::OrderByDescription> node) {
   OPTIMIZER_LOG_DEBUG("Transforming OrderByDescription to operators ...");
 }
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::LimitDescription> node,
@@ -291,8 +285,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CreateFunc
   output_expr_ = std::move(create_expr);
 }
 
-void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CreateStatement> op,
-                                       common::ManagedPointer<binder::BinderSherpa> sherpa) {
+void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CreateStatement> op) {
   OPTIMIZER_LOG_DEBUG("Transforming CreateStatement to operators ...");
   auto create_type = op->GetCreateType();
   std::unique_ptr<OperatorNode> create_expr;
@@ -362,8 +355,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CreateStat
 
   output_expr_ = std::move(create_expr);
 }
-void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::InsertStatement> op,
-                                       common::ManagedPointer<binder::BinderSherpa> sherpa) {
+void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::InsertStatement> op) {
   OPTIMIZER_LOG_DEBUG("Transforming InsertStatement to operators ...");
   auto target_table = op->GetInsertionTable();
   auto target_table_id = accessor_->GetTableOid(target_table->GetTableName());
@@ -447,8 +439,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::InsertStat
   output_expr_ = std::move(insert_expr);
 }
 
-void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DeleteStatement> op,
-                                       common::ManagedPointer<binder::BinderSherpa> sherpa) {
+void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DeleteStatement> op) {
   OPTIMIZER_LOG_DEBUG("Transforming DeleteStatement to operators ...");
   auto target_table = op->GetDeletionTable();
   auto target_db_id = db_oid_;
@@ -477,8 +468,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DeleteStat
   output_expr_ = std::move(delete_expr);
 }
 
-void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DropStatement> op,
-                                       common::ManagedPointer<binder::BinderSherpa> sherpa) {
+void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DropStatement> op) {
   OPTIMIZER_LOG_DEBUG("Transforming DropStatement to operators ...")
   auto drop_type = op->GetDropType();
   std::unique_ptr<OperatorNode> drop_expr;
@@ -553,8 +543,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::UpdateStat
   output_expr_ = std::move(update_expr);
 }
 
-void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CopyStatement> op,
-                                       common::ManagedPointer<binder::BinderSherpa> sherpa) {
+void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CopyStatement> op) {
   OPTIMIZER_LOG_DEBUG("Transforming CopyStatement to operators ...");
   if (op->IsFrom()) {
     // The copy statement is reading from a file into a table. We construct a
@@ -604,8 +593,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::AnalyzeSta
   output_expr_ = std::move(analyze_expr);
 }
 
-void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::ComparisonExpression> expr,
-                                       common::ManagedPointer<binder::BinderSherpa> sherpa) {
+void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::ComparisonExpression> expr) {
   OPTIMIZER_LOG_DEBUG("Transforming ComparisonExpression to operators ...");
   auto expr_type = expr->GetExpressionType();
   if (expr->GetExpressionType() == parser::ExpressionType::COMPARE_IN) {
@@ -626,8 +614,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::Comparison
   expr->AcceptChildren(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
 }
 
-void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::OperatorExpression> expr,
-                                       common::ManagedPointer<binder::BinderSherpa> sherpa) {
+void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::OperatorExpression> expr) {
   OPTIMIZER_LOG_DEBUG("Transforming OperatorNode to operators ...");
   // TODO(boweic): We may want to do the rewrite (exist -> in) in the binder
   if (expr->GetExpressionType() == parser::ExpressionType::OPERATOR_EXISTS) {
@@ -668,7 +655,6 @@ bool QueryToOperatorTransformer::RequireAggregation(common::ManagedPointer<parse
 }
 
 void QueryToOperatorTransformer::CollectPredicates(common::ManagedPointer<parser::AbstractExpression> expr,
-                                                   common::ManagedPointer<binder::BinderSherpa> sherpa,
                                                    std::vector<AnnotatedExpression> *predicates) {
   // First check if all conjunctive predicates are supported before transforming
   // predicate with sub-select into regular predicates

@@ -50,15 +50,14 @@ class ConjunctionExpression : public AbstractExpression {
     return expr;
   }
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
-              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override {
     sherpa->CheckDesiredType(common::ManagedPointer(this).CastManagedPointerTo<AbstractExpression>());
 
     for (const auto child : GetChildren()) {
       sherpa->SetDesiredType(child, type::TypeId::BOOLEAN);
     }
 
-    v->Visit(common::ManagedPointer(this), sherpa);
+    v->Visit(common::ManagedPointer(this));
   }
 };
 

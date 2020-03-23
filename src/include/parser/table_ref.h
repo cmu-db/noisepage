@@ -49,8 +49,8 @@ class JoinDefinition {
    * @param v Visitor pattern for the statement
    * @param sherpa The BinderSherpa for storing state through visitor pattern
    */
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v, common::ManagedPointer<binder::BinderSherpa> sherpa) {
-    v->Visit(common::ManagedPointer(this), sherpa);
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+    v->Visit(common::ManagedPointer(this));
   }
 
   /**
@@ -192,8 +192,8 @@ class TableRef {
    * @param v Visitor pattern for the statement
    * @param sherpa The BinderSherpa for storing state through visitor pattern
    */
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v, common::ManagedPointer<binder::BinderSherpa> sherpa) {
-    v->Visit(common::ManagedPointer(this), sherpa);
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+    v->Visit(common::ManagedPointer(this));
   }
 
   /** @return table reference type*/

@@ -68,8 +68,7 @@ class ParameterValueExpression : public AbstractExpression {
     return GetValueIdx() == other.GetValueIdx();
   }
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
-              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override {
     const common::ManagedPointer<type::TransientValue> param =
         common::ManagedPointer(&((*(sherpa->GetParameters()))[value_idx_]));
 
@@ -80,7 +79,7 @@ class ParameterValueExpression : public AbstractExpression {
 
     return_value_type_ = param->Type();
 
-    v->Visit(common::ManagedPointer(this), sherpa);
+    v->Visit(common::ManagedPointer(this));
   }
 
   /** @return expression serialized to json */
