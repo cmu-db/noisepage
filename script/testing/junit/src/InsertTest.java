@@ -326,4 +326,71 @@ public class InsertTest extends TestUtility {
         stmt.execute(drop_SQL);
     }
 
+    /**
+     * Test inserting default expressions that are not INTEGER type.
+     * #831 BinderSherpa
+     */
+    @Test
+    public void testDefaultValueInsertBigInt() throws SQLException {
+        String createSQL = "CREATE TABLE xxx (c1 integer, c2 integer, c3 bigint DEFAULT 4398046511104);";
+        String insertSQL = "INSERT INTO xxx (c1, c2) VALUES (1, 2);";
+        String selectSQL = "SELECT * from xxx;";
+        String dropSQL = "DROP TABLE xxx";
+
+        conn.setAutoCommit(false);
+        Statement stmt = conn.createStatement();
+        stmt.addBatch(createSQL);
+        stmt.addBatch(insertSQL);
+        stmt.executeBatch();
+        conn.commit();
+        conn.setAutoCommit(true);
+
+        stmt = conn.createStatement();
+        rs = stmt.executeQuery(selectSQL);
+        rs.next();
+        assertEquals(1, rs.getInt("c1"));
+        assertEquals(2, rs.getInt("c2"));
+        assertEquals(4398046511104L, rs.getLong("c3"));
+        rs.next();
+
+        assertNoMoreRows(rs);
+
+        stmt = conn.createStatement();
+        stmt.execute(dropSQL);
+    }
+
+    /**
+     * Test inserting cast expressions for BIGINT and TIMESTAMP.
+     * #831 BinderSherpa
+     */
+    @Test
+    public void testInsertBigIntCastTimestampCast() throws SQLException {
+        String ts1 = "2020-01-02 12:23:34.56789";
+        String createSQL = "CREATE TABLE xxx (c1 bigint, c2 timestamp);";
+        String insertSQL = "INSERT INTO xxx (c1, c2) VALUES ('123'::bigint, '" + ts1 + "::timestamp');";
+        String selectSQL = "SELECT * from xxx;";
+        String dropSQL = "DROP TABLE xxx";
+
+        conn.setAutoCommit(false);
+        Statement stmt = conn.createStatement();
+        stmt.addBatch(createSQL);
+        stmt.addBatch(insertSQL);
+        stmt.executeBatch();
+        conn.commit();
+        conn.setAutoCommit(true);
+
+        stmt = conn.createStatement();
+        rs = stmt.executeQuery(selectSQL);
+
+        rs.next();
+        assertEquals(123, rs.getLong("c1"));
+        assertEquals(ts1, rs.getTimestamp("c2").toString());
+        rs.next();
+
+        assertNoMoreRows(rs);
+
+        stmt = conn.createStatement();
+        stmt.execute(dropSQL);
+    }
+
 }
