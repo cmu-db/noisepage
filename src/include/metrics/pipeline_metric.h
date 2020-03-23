@@ -55,6 +55,8 @@ class PipelineMetricRawData : public AbstractRawData {
       outfile << data.features_.size() << ", ";
       outfile << data.GetFeatureVectorString() << ", ";
       outfile << data.GetEstRowsVectorString() << ", ";
+      outfile << data.GetKeySizeVectorString() << ", ";
+      outfile << data.GetNumKeysVectorString() << ", ";
       outfile << data.GetCardinalityVectorString() << ", ";
 
       data.resource_metrics_.ToCSV(outfile);
@@ -73,7 +75,8 @@ class PipelineMetricRawData : public AbstractRawData {
    * Note: This includes the columns for the input feature, but not the output (resource counters)
    */
   static constexpr std::array<std::string_view, 1> FEATURE_COLUMNS = {
-      "query_id, pipeline_id, exec_mode, num_features, features, est_output_rows, est_cardinalities"};
+      "query_id, pipeline_id, exec_mode, num_features, features, est_output_rows, key_sizes, num_keys, "
+      "est_cardinalities"};
 
  private:
   friend class PipelineMetric;
@@ -95,37 +98,57 @@ class PipelineMetricRawData : public AbstractRawData {
           features_(features),
           resource_metrics_(resource_metrics) {}
 
-    std::string GetFeatureVectorString() {
+    template <class T>
+    std::string ConcatVectorToString(const std::vector<T> &vec) {
       std::stringstream sstream;
-      for (auto itr = features_.begin(); itr != features_.end(); itr++) {
-        sstream << brain::BrainUtil::ExecutionOperatingUnitTypeToString(itr->GetExecutionOperatingUnitType());
-        if (itr + 1 != features_.end()) {
+      for (auto itr = vec.begin(); itr != vec.end(); itr++) {
+        sstream << (*itr);
+        if (itr + 1 != vec.end()) {
           sstream << ";";
         }
       }
       return sstream.str();
+    }
+
+    std::string GetFeatureVectorString() {
+      std::vector<std::string> types;
+      for (auto &feature : features_) {
+        types.emplace_back(
+            brain::BrainUtil::ExecutionOperatingUnitTypeToString(feature.GetExecutionOperatingUnitType()));
+      }
+      return ConcatVectorToString<std::string>(types);
     }
 
     std::string GetEstRowsVectorString() {
-      std::stringstream sstream;
-      for (auto itr = features_.begin(); itr != features_.end(); itr++) {
-        sstream << itr->GetNumRows();
-        if (itr + 1 != features_.end()) {
-          sstream << ";";
-        }
+      std::vector<size_t> est_rows;
+      for (auto &feature : features_) {
+        est_rows.emplace_back(feature.GetNumRows());
       }
-      return sstream.str();
+      return ConcatVectorToString<size_t>(est_rows);
     }
 
     std::string GetCardinalityVectorString() {
-      std::stringstream sstream;
-      for (auto itr = features_.begin(); itr != features_.end(); itr++) {
-        sstream << itr->GetCardinality();
-        if (itr + 1 != features_.end()) {
-          sstream << ";";
-        }
+      std::vector<double> cars;
+      for (auto &feature : features_) {
+        cars.emplace_back(feature.GetCardinality());
       }
-      return sstream.str();
+      return ConcatVectorToString<double>(cars);
+    }
+
+    std::string GetKeySizeVectorString() {
+      std::vector<size_t> sizes;
+      for (auto &feature : features_) {
+        sizes.emplace_back(feature.GetKeySize());
+      }
+      return ConcatVectorToString<size_t>(sizes);
+    }
+
+    std::string GetNumKeysVectorString() {
+      std::vector<size_t> num_keys;
+      for (auto &feature : features_) {
+        num_keys.emplace_back(feature.GetNumKeys());
+      }
+      return ConcatVectorToString<size_t>(num_keys);
     }
 
     const execution::query_id_t query_id_;

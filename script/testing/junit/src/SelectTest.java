@@ -174,6 +174,40 @@ public class SelectTest extends TestUtility {
     }
 
     /**
+     * Test for selecting with a timestamp in the where clause.
+     * Fix #782: selecting with timestamp in where clause will crash the system.
+     */
+    @Test
+    public void testSelectWhereTimestamp() throws SQLException {
+        String ts1 = "2020-01-02 12:23:34.56789";
+        String ts2 = "2020-01-02 11:22:33.721-05";
+        String createSQL = "CREATE TABLE xxx (c1 int, c2 timestamp);";
+        String insertSQL1 = "INSERT INTO xxx (c1, c2) VALUES (1, '" + ts1 + "');";
+        String insertSQL2 = "INSERT INTO xxx (c1, c2) VALUES (2, '" + ts2 + "');";
+        String selectSQL = "SELECT * FROM xxx WHERE c2 = '" + ts2 + "';";
+        String dropSQL = "DROP TABLE xxx;";
+
+        conn.setAutoCommit(false);
+        Statement stmt = conn.createStatement();
+        stmt.addBatch(createSQL);
+        stmt.addBatch(insertSQL1);
+        stmt.addBatch(insertSQL2);
+        stmt.executeBatch();
+        conn.commit();
+        conn.setAutoCommit(true);
+
+        stmt = conn.createStatement();
+        rs = stmt.executeQuery(selectSQL);
+        rs.next();
+        assertEquals(2, rs.getInt("c1"));
+        assertEquals("2020-01-02 16:22:33.721", rs.getTimestamp("c2").toString());
+        assertNoMoreRows(rs);
+
+        stmt = conn.createStatement();
+        stmt.execute(dropSQL);
+    }
+
+    /**
      * SELECT with arithmetic on integer and reals.
      */
     @Test

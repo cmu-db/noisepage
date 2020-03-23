@@ -44,13 +44,24 @@ class TestOLTPBench(TestServer):
             # self.test_output_file = os.path.join(
             #     constants.OLTP_DIR_TEST_RESULT, self.result_path)
 
+        # oltpbench json format test results
+        self.test_output_json_file = self.args.get("test_output_json_file")
+        if not self.test_output_json_file:
+            self.test_output_json_file = "outputfile_{WEIGHTS}_{SCALEFACTOR}.json".format(
+                WEIGHTS=self.weights.replace(",", "_"),
+                SCALEFACTOR=str(self.scalefactor))
+
+        # oltpbench json result file paths
+        self.oltpbench_result_path = os.path.join(
+            constants.OLTP_GIT_LOCAL_PATH, self.test_output_json_file)
+
         # oltpbench test command
-        self.test_command = "{BIN} -b {BENCHMARK} -c {XML} {FLAGS} -o {RESULTS}".format(
+        self.test_command = "{BIN} -b {BENCHMARK} -c {XML} {FLAGS} -json-histograms {RESULTS}".format(
             BIN=constants.OLTP_DEFAULT_BIN,
             BENCHMARK=self.benchmark,
             XML=self.xml_config,
             FLAGS=constants.OLTP_DEFAULT_COMMAND_FLAGS,
-            RESULTS=self.test_output_file)
+            RESULTS=self.test_output_json_file)
         self.test_command_cwd = constants.OLTP_GIT_LOCAL_PATH
         self.test_error_msg = constants.OLTP_TEST_ERROR_MSG
 
@@ -59,6 +70,10 @@ class TestOLTPBench(TestServer):
         self.install_oltp()
         self.config_xml_file()
         self.create_result_dir()
+
+    def run_post_test(self):
+        # validate the OLTP result
+        self.validate_result()
 
     def create_result_dir(self):
         if not os.path.exists(constants.OLTP_DIR_TEST_RESULT):
@@ -85,7 +100,7 @@ class TestOLTPBench(TestServer):
             sys.exit(rc)
 
     def build_oltp(self):
-        for command in constants.OTLP_ANT_COMMANDS:
+        for command in constants.OLTP_ANT_COMMANDS:
             error_msg = "Error: unable to run \"{}\"".format(command)
             rc, stdout, stderr = run_command(command, error_msg)
             if rc != ErrorCode.SUCCESS:
@@ -112,3 +127,17 @@ class TestOLTPBench(TestServer):
             work.find("weights").text = str(self.weights)
 
         xml.write(self.xml_config)
+
+    def validate_result(self):
+        # read the results file
+        with open(self.oltpbench_result_path) as oltp_result_file:
+            test_result = json.load(oltp_result_file)
+        unexpected_result = test_result.get("unexpected", {}).get("HISTOGRAM")
+        if unexpected_result and unexpected_result.keys():
+            for test in unexpected_result.keys():
+                if (unexpected_result[test] != 0):
+                    print(str(unexpected_result))
+                    sys.exit(constants.ErrorCode.ERROR)
+        else:
+            print(str(unexpected_result))
+            sys.exit(constants.ErrorCode.ERROR)
