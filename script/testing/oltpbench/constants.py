@@ -27,12 +27,12 @@ OLTP_TEST_ERROR_MSG = "Error: failed to complete oltpbench test"
 
 # ant commands for OLTP
 OLTP_ANT_BUILD_FILE = os.path.join(OLTP_GIT_LOCAL_PATH, "build.xml")
-OTLP_ANT_COMMAND_BOOTSTRAP = "ant bootstrap -buildfile {}".format(
+OLTP_ANT_COMMAND_BOOTSTRAP = "ant bootstrap -buildfile {}".format(
     OLTP_ANT_BUILD_FILE)
-OTLP_ANT_COMMAND_RESOLVE = "ant resolve -buildfile {}".format(
+OLTP_ANT_COMMAND_RESOLVE = "ant resolve -buildfile {}".format(
     OLTP_ANT_BUILD_FILE)
-OTLP_ANT_COMMAND_BUILD = "ant build -buildfile {}".format(OLTP_ANT_BUILD_FILE)
-OTLP_ANT_COMMANDS = [
-    OTLP_ANT_COMMAND_BOOTSTRAP, OTLP_ANT_COMMAND_RESOLVE,
-    OTLP_ANT_COMMAND_BUILD
+OLTP_ANT_COMMAND_BUILD = "ant build -buildfile {}".format(OLTP_ANT_BUILD_FILE)
+OLTP_ANT_COMMANDS = [
+    OLTP_ANT_COMMAND_BOOTSTRAP, OLTP_ANT_COMMAND_RESOLVE,
+    OLTP_ANT_COMMAND_BUILD
 ]

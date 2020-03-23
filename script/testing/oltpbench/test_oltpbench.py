@@ -2,6 +2,7 @@
 import os
 import sys
 import subprocess
+import json
 from util.constants import ErrorCode
 from util.common import run_command
 from util.test_server import TestServer
