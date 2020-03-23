@@ -98,7 +98,7 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --test-output-file "/tmp/junit_log.txt"'
                     }
                     post {
                         cleanup {
@@ -123,7 +123,7 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --test-output-file "/tmp/junit_log.txt"'
                     }
                     post {
                         cleanup {
@@ -190,7 +190,7 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --test-output-file "/tmp/junit_log.txt"'
                     }
                     post {
                         cleanup {
@@ -212,7 +212,7 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j4'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release --test-output-file "/tmp/junit_log.txt"'
                     }
                     post {
                         cleanup {
@@ -236,7 +236,7 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release --test-output-file "/tmp/junit_log.txt"'
                     }
                     post {
                         cleanup {
@@ -264,7 +264,50 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release --test-output-file "/tmp/junit_log.txt"'
+                    }
+                    post {
+                        cleanup {
+                            deleteDir()
+                        }
+                    }
+                }
+            }
+        }
+        stage('E2E Test') {
+            parallel{
+                stage('macos-10.14/AppleClang-1001.0.46.4 (Debug/e2etest/oltpbench)') {
+                    agent { label 'macos' }
+                    environment {
+                        ASAN_OPTIONS="detect_container_overflow=0"
+                        LLVM_DIR="/usr/local/Cellar/llvm@8/8.0.1_1"
+                    }
+                    steps {
+                        sh 'echo $NODE_NAME'
+                        sh 'echo y | sudo ./script/installation/packages.sh'
+                        sh 'mkdir build'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
+                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release --test-output-file "/tmp/e2e_log.txt"'
+                    }
+                    post {
+                        cleanup {
+                            deleteDir()
+                        }
+                    }
+                }
+                stage('ubuntu-18.04/gcc-7.3.0 (Debug/e2etest/oltpbench)') {
+                    agent {
+                        docker {
+                            image 'ubuntu:bionic'
+                            args '--cap-add sys_ptrace'
+                        }
+                    }
+                    steps {
+                        sh 'echo $NODE_NAME'
+                        sh 'echo y | sudo ./script/installation/packages.sh'
+                        sh 'mkdir build'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
+                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release'
                     }
                     post {
                         cleanup {
@@ -294,49 +337,5 @@ pipeline {
                 }
             }
         }
-        
-        stage('E2E Test') {
-            parallel{
-                stage('macos-10.14/AppleClang-1001.0.46.4 (Debug/e2etest/oltpbench)') {
-                    agent { label 'macos' }
-                    environment {
-                        ASAN_OPTIONS="detect_container_overflow=0"
-                        LLVM_DIR="/usr/local/Cellar/llvm@8/8.0.1_1"
-                    }
-                    steps {
-                        sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh'
-                        sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release'
-                    }
-                    post {
-                        cleanup {
-                            deleteDir()
-                        }
-                    }
-                }
-                stage('ubuntu-18.04/gcc-7.3.0 (Debug/e2etest/oltpbench)') {
-                    agent {
-                        docker {
-                            image 'ubuntu:bionic'
-                            args '--cap-add sys_ptrace'
-                        }
-                    }
-                    steps {
-                        sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh'
-                        sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release'                
-                    }
-                    post {
-                        cleanup {
-                            deleteDir()
-                        }
-                    }
-                }
-            }
-        }      
     }
 }
