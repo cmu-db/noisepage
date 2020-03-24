@@ -37,11 +37,6 @@ class AbstractOptimizerNode {
   virtual common::ManagedPointer<AbstractOptimizerNodeContents> Contents() const = 0;
 
   /**
-   * @return String info on the node.
-   */
-  virtual std::string GetInfo() const = 0;
-
-  /**
    * @return a copy of the node
    */
   virtual std::unique_ptr<AbstractOptimizerNode> Copy() = 0;

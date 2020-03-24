@@ -113,11 +113,6 @@ class OperatorNode : public AbstractOptimizerNode {
   common::ManagedPointer<AbstractOptimizerNodeContents> Contents() const override { return contents_; }
 
   /**
-   * @return info for current node
-   */
-  std::string GetInfo() const override { return (contents_.Get() != nullptr ? contents_->GetName() : "Empty"); }
-
-  /**
    * Add a operator expression as child
    * @param child The operator expression to be added as child
    */

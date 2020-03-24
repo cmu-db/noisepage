@@ -464,22 +464,12 @@ void LogicalInnerJoinToPhysicalInnerNLJoin::Transform(common::ManagedPointer<Abs
 
   const auto &children = input->GetChildren();
   TERRIER_ASSERT(children.size() == 2, "Inner Join should have two child");
-  auto left_group_id = children[0]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
-  auto right_group_id = children[1]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
-  auto &left_group_alias = context->GetOptimizerContext()->GetMemo().GetGroupByID(left_group_id)->GetTableAliases();
-  auto &right_group_alias = context->GetOptimizerContext()->GetMemo().GetGroupByID(right_group_id)->GetTableAliases();
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> left_keys;
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> right_keys;
-
   std::vector<AnnotatedExpression> join_preds = inner_join->GetJoinPredicates();
-  OptimizerUtil::ExtractEquiJoinKeys(join_preds, &left_keys, &right_keys, left_group_alias, right_group_alias);
 
-  TERRIER_ASSERT(right_keys.size() == left_keys.size(), "# left/right keys should equal");
   std::vector<std::unique_ptr<AbstractOptimizerNode>> child;
   child.emplace_back(children[0]->Copy());
   child.emplace_back(children[1]->Copy());
-  auto result = std::make_unique<OperatorNode>(
-      InnerNLJoin::Make(std::move(join_preds), std::move(left_keys), std::move(right_keys)), std::move(child));
+  auto result = std::make_unique<OperatorNode>(InnerNLJoin::Make(std::move(join_preds)), std::move(child));
   transformed->emplace_back(std::move(result));
 }
 
@@ -961,6 +951,29 @@ void LogicalDropViewToPhysicalDropView::Transform(common::ManagedPointer<Abstrac
   auto op = std::make_unique<OperatorNode>(
       DropView::Make(dv_op->GetDatabaseOid(), dv_op->GetNamespaceOid(), dv_op->GetViewOid(), dv_op->IsIfExists()),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>());
+  transformed->emplace_back(std::move(op));
+}
+
+LogicalAnalyzeToPhysicalAnalyze::LogicalAnalyzeToPhysicalAnalyze() {
+  type_ = RuleType::ANALYZE_TO_PHYSICAL;
+  match_pattern_ = new Pattern(OpType::LOGICALANALYZE);
+}
+
+bool LogicalAnalyzeToPhysicalAnalyze::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
+                                            OptimizationContext *context) const {
+  return true;
+}
+
+void LogicalAnalyzeToPhysicalAnalyze::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                                                std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+                                                UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  auto logical_op = input->Contents()->GetContentsAs<LogicalAnalyze>();
+  TERRIER_ASSERT(input->GetChildren().empty(), "LogicalAnalyze should have 0 children");
+
+  auto op = std::make_unique<OperatorNode>(
+      Analyze::Make(logical_op->GetDatabaseOid(), logical_op->GetTableOid(), logical_op->GetColumns()),
+      std::vector<std::unique_ptr<AbstractOptimizerNode>>());
+
   transformed->emplace_back(std::move(op));
 }
 

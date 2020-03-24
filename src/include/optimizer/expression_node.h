@@ -55,15 +55,6 @@ class ExpressionNode : public AbstractOptimizerNode {
   }
 
   /**
-   * @return A string representation of this node's information (currently, all nodes
-   * have the empty string as their info)
-   */
-  std::string GetInfo() const override {
-    // TODO(esargent): create proper info statement
-    return "";
-  }
-
-  /**
    * @return a copy of this expression node (as an AbstractOptimizerNode ptr)
    */
   std::unique_ptr<AbstractOptimizerNode> Copy() override {
