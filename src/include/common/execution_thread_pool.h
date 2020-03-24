@@ -18,13 +18,6 @@
 
 namespace terrier::common {
 
-enum class ThreadStatus = {
-    FREE = 0,
-    BUSY = 1,
-    SWITCHING = 2,
-    PARKED = 3
-};
-
 /**
  * A task queue is a FIFO list of functions that we will execute.
  * This queue by itself is not threadsafe so the WorkerPool class has to protect
@@ -46,11 +39,19 @@ using TaskQueue = tbb::concurrent_queue<Task>;
  */
 class ExecutionThreadPool {
  public:
+
+  enum class ThreadStatus = {
+    FREE = 0,
+    BUSY = 1,
+    SWITCHING = 2,
+    PARKED = 3
+  };
+
   // NOLINTNEXTLINE  lint thinks it has only one arguement
   ExecutionThreadPool(common::ManagedPointer<DedicatedThreadRegistry> thread_registry, std::vector<int> *cpu_ids)
-      : thread_registry_(thread_registry), busy_workers_{0} {
+      : thread_registry_(thread_registry), busy_workers_(0) {
     for (int cpu_id : cpu_id) {
-      thread_registry_->RegisterDedicatedThread<TerrierThread>(this, cpu_id, this);
+      thread_registry_.operator->()->RegisterDedicatedThread<TerrierThread>(this, cpu_id, this);
     }
   }
 
@@ -59,10 +60,13 @@ class ExecutionThreadPool {
    */
   ~ExecutionThreadPool() {
     std::unique_lock<std::mutex> lock(task_lock_);  // grab the lock
-    is_running_ = false;                            // signal all the threads to shutdown
-    task_cv_.notify_all();                          // wake up all the threads
-    lock.unlock();                                  // free the lock
-    for (auto &thread : workers_) thread.join();
+    shutting_down_ = true;
+    for (std::vector<TerrierThread *> vector : workers_) {
+      for (TerrierThread *t : vector) {
+        bool result = thread_registry_.operator->()->StopTask(this, common::ManagedPointer(t));
+        TERRIER_ASSERT(result, "StopTask should succeed");
+      }
+    }
   }
 
 
@@ -81,13 +85,13 @@ class ExecutionThreadPool {
    *
    * @return The number of worker threads
    */
-  uint32_t NumWorkers() const { return num_workers_; }
+  uint32_t NumWorkers() const { return total_workers_; }
 
   /*
    * @param num the number of worker threads.
    */
   void SetNumWorkers(uint32_t num) {
-    num_workers_ = num;
+
   }
 
  private:
@@ -107,6 +111,7 @@ class ExecutionThreadPool {
 #else
       numa_region_ = static_cast<numa_region_t>(0);
 #endif
+      pool_->total_workers_++;
     }
     ~TerrierThread = default;
 
@@ -118,13 +123,17 @@ class ExecutionThreadPool {
           Task task;
           if (!pool_->task_queue_[index].try_pop(task)) continue;
 
+          status_ = ThreadStatus::BUSY;
           task();
+          status_ = ThreadStatus::SWITCHING;
           return;
         }
 
         pool_->busy_workers_--;
+        status_ = ThreadStatus::PARKED;
         std::unique_lock<std::mutex> l(&pool_->task_lock_)
         pool_->task_cv_.wait(&l);
+        status_ = ThreadStatus::SWITCHING;
         pool_->busy_workers_++;
 
       }
@@ -135,8 +144,10 @@ class ExecutionThreadPool {
      */
     void RunTask() {
       pool_->busy_workers_++;
+      status_ = ThreadStatus::SWITCHING;
       while (true) {
         if (exit_task_loop_) {
+          done_exiting_ = true;
           done_cv_.notify_all();
           return;
         }
@@ -152,7 +163,9 @@ class ExecutionThreadPool {
       std::unique_lock<std::mutex> l(&cv_mutex_);
       exit_task_loop_ = true;
       pool->task_cv_.notify_all();
-      done_cv_.wait(&l);
+      while (!done_exiting_) {
+        done_cv_.wait_for(&l, std::chrono::milliseconds(10));
+      }
       pool_->busy_workers_--;
       pool_->total_workers_--;
     }
@@ -161,9 +174,9 @@ class ExecutionThreadPool {
     std::condition_variable done_cv_;
     ExecutionThreadPool *pool_;
     int cpu_id_;
-    ThreadStatus status = ThreadStatus::SWITCHING;
+    ThreadStatus status_ = ThreadStatus::FREE;
     numa_region_t numa_region_;
-    std::atomic_bool exit_task_loop_ = false;
+    std::atomic_bool exit_task_loop_ = false, done_exiting_ = false;
   };
 
   common::ManagedPointer<DedicatedThreadRegistry> thread_registry_;
@@ -179,6 +192,7 @@ class ExecutionThreadPool {
   std::array<TaskQueue, num_regions_> task_queue_;
 
   std::atomic<uint32_t> busy_workers_, total_workers_;
+  std::atomic_bool shutting_down_ = false;
 
   std::mutex task_lock_;
   std::condition_variable task_cv_;
@@ -197,6 +211,8 @@ class ExecutionThreadPool {
   bool OnThreadRemoval(common::ManagedPointer<TerrierThread> thread) {
     // we dont want to deplete a numa region while other numa regions have multiple threads to prevent starvation
     // on the queue for this region
+    if (shutting_down_) return true;
+
     common::SharedLatch::ScopedSharedLatch l(&array_latch_);
     auto *vector = &workers_[static_cast<int16_t>(thread.operator->().numa_region_)]
     TERRIER_ASSERT(!vector->empty(), "if this thread is potentially being closed it must be tracked");
@@ -204,11 +220,10 @@ class ExecutionThreadPool {
     if (vector->size() > 1) return true;
     for (int16_t i = 0; i < num_regions_; i++0) {
       vector = &workers_[i];
-      TERRIER_ASSERT(!vector->empty(), "if this thread is potentially being closed it must be tracked");
       // if another numa region has extra threads
       if (vector->size() > 1) return false;
     }
-    // this numa region is either empty
+    // no numa region has multiple threads
     return true;
   }
 };
