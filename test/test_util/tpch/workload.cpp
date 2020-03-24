@@ -71,7 +71,7 @@ std::vector<type::TransientValue> Workload::GetQueryParams(const std::string &qu
 }
 
 void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint64_t avg_interval_us, uint32_t query_num,
-    execution::vm::ExecutionMode mode) {
+                       execution::vm::ExecutionMode mode) {
   // Shuffle the queries randomly for each thread
   auto total_query_num = queries_.size();
   uint32_t index[total_query_num];
@@ -80,8 +80,8 @@ void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint6
 
   // Get the sleep time range distribution
   std::mt19937 generator{};
-  std::uniform_int_distribution<uint64_t> distribution(avg_interval_us - avg_interval_us /
-      2, avg_interval_us + avg_interval_us / 2);
+  std::uniform_int_distribution<uint64_t> distribution(avg_interval_us - avg_interval_us / 2,
+                                                       avg_interval_us + avg_interval_us / 2);
 
   // Register to the metrics manager
   db_main_->GetMetricsManager()->RegisterThread();
@@ -95,7 +95,7 @@ void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint6
     auto &query_name = query.GetQueryName();
     auto output_schema = sample_output_.GetSchema(query_name);
     execution::exec::NoOpResultConsumer printer;
-    //execution::exec::OutputPrinter printer(output_schema);
+    // execution::exec::OutputPrinter printer(output_schema);
     execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
                                                printer, output_schema,
                                                common::ManagedPointer<catalog::CatalogAccessor>(accessor)};

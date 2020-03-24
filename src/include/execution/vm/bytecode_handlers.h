@@ -603,7 +603,7 @@ VM_OP void OpFilterManagerFree(terrier::execution::sql::FilterManager *filter_ma
 // Date functions
 // ---------------------------------------------------------
 
-VM_OP_HOT void OpExtractYear(terrier::execution::sql::Integer *result, const terrier::execution::sql::DateVal*input) {
+VM_OP_HOT void OpExtractYear(terrier::execution::sql::Integer *result, const terrier::execution::sql::DateVal *input) {
   result->is_null_ = input->is_null_;
   if (!input->is_null_) result->val_ = input->val_.ExtractYear();
 }

@@ -42,7 +42,7 @@ class Workload {
    * @param worker_id 1-indexed thread id
    */
   void Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint64_t avg_interval_us, uint32_t query_num,
-      execution::vm::ExecutionMode mode);
+               execution::vm::ExecutionMode mode);
 
  private:
   void GenerateTPCHTables(execution::exec::ExecutionContext *exec_ctx, const std::string &dir_name);

@@ -8,7 +8,7 @@
 namespace terrier::runner {
 class TPCHRunner : public benchmark::Fixture {
  public:
-  const int8_t total_num_threads_ = 4;                        // defines the number of terminals (workers threads)
+  const int8_t total_num_threads_ = 4;                // defines the number of terminals (workers threads)
   const uint64_t execution_us_per_worker_ = 1000000;  // Time (us) to run per terminal (worker thread)
   std::vector<uint64_t> avg_interval_us_ = {10, 20, 50, 100, 200, 500, 1000};
   const execution::vm::ExecutionMode mode_ = execution::vm::ExecutionMode::Interpret;
@@ -26,7 +26,7 @@ class TPCHRunner : public benchmark::Fixture {
       "../../../tpl_tables/sample_tpl/tpch_q11.tpl",
       "../../../tpl_tables/sample_tpl/tpch_scan_lineitem.tpl",
       "../../../tpl_tables/sample_tpl/tpch_scan_orders.tpl",
-      };
+  };
   const std::string tpch_table_root_ = "../../../tpl_tables/tables/";
   const std::string tpch_database_name_ = "tpch_db";
 
@@ -66,14 +66,15 @@ BENCHMARK_DEFINE_F(TPCHRunner, Runner)(benchmark::State &state) {
   for (uint32_t query_num = 1; query_num < tpch_query_filenames_.size(); ++query_num)
     for (auto num_threads = 1; num_threads <= total_num_threads_; num_threads += 2)
       for (uint32_t repeat = 0; repeat < 3; ++repeat)
-        for (auto avg_interval_us: avg_interval_us_) {
+        for (auto avg_interval_us : avg_interval_us_) {
           std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
           common::WorkerPool thread_pool{static_cast<uint32_t>(num_threads), {}};
           thread_pool.Startup();
 
           for (int8_t i = 0; i < num_threads; i++) {
-            thread_pool.SubmitTask([this, i, avg_interval_us, query_num] { tpch_workload_->Execute(i,
-                execution_us_per_worker_, avg_interval_us, query_num, mode_); });
+            thread_pool.SubmitTask([this, i, avg_interval_us, query_num] {
+              tpch_workload_->Execute(i, execution_us_per_worker_, avg_interval_us, query_num, mode_);
+            });
           }
 
           thread_pool.WaitUntilAllFinished();
