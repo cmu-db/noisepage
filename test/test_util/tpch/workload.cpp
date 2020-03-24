@@ -76,7 +76,7 @@ void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint6
   auto total_query_num = queries_.size();
   std::vector<uint32_t> index;
   index.resize(total_query_num);
-  for (auto i = 0; i < total_query_num; ++i) index[i] = i;
+  for (uint32_t i = 0; i < total_query_num; ++i) index[i] = i;
   std::shuffle(index.begin(), index.end(), std::mt19937(time(nullptr) + worker_id));
 
   // Get the sleep time range distribution
