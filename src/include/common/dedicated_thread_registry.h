@@ -81,8 +81,9 @@ class DedicatedThreadRegistry {
                              if (metrics_manager_ != DISABLED) metrics_manager_->RegisterThread();
                              task->RunTask();
                            }));
-    requester->AddThread();
-    return common::ManagedPointer(task);
+    common::ManagedPointer res(task);
+    requester->AddThread(res);
+    return res;
   }
 
   /**
@@ -117,7 +118,7 @@ class DedicatedThreadRegistry {
     // Clear Metadata
     {
       common::SpinLatch::ScopedSpinLatch guard(&table_latch_);
-      requester->RemoveThread();
+      requester->RemoveThread(task);
       threads_table_.erase(task_ptr);
       thread_owners_table_[requester].erase(task_ptr);
     }
