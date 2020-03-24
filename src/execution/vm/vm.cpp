@@ -802,7 +802,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
 
   OP(InitInteger) : {
     auto *sql_int = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
-    auto val = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto val = frame->LocalAt<int64_t>(READ_LOCAL_ID());
     OpInitInteger(sql_int, val);
     DISPATCH_NEXT();
   }
@@ -811,6 +811,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     auto *sql_real = frame->LocalAt<sql::Real *>(READ_LOCAL_ID());
     auto val = frame->LocalAt<double>(READ_LOCAL_ID());
     OpInitReal(sql_real, val);
+    DISPATCH_NEXT();
+  }
+
+  OP(IntegerToReal) : {
+    auto *sql_real = frame->LocalAt<sql::Real *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
+    OpIntegerToReal(sql_real, input);
     DISPATCH_NEXT();
   }
 

@@ -53,35 +53,12 @@ class ComparisonExpression : public AbstractExpression {
     return expr;
   }
 
-  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override {
-    v->Visit(this, parse_result);
-    // TODO(WAN): This is basically a hack to rebind NULLs with the right type and I'm not sure it should stay.
-    // Generated NULL expressions are owned by the children vector, so the generated expressions do not need to be
-    // added to the parse result. The old expression that is kicked out will die a unique_ptr death.
-    auto left = GetChild(0);
-    auto right = GetChild(1);
-    auto left_type = left->GetReturnValueType();
-    auto right_type = right->GetReturnValueType();
-
-    auto is_left_subquery = left->GetExpressionType() == ExpressionType::ROW_SUBQUERY;
-    auto is_right_subquery = right->GetExpressionType() == ExpressionType::ROW_SUBQUERY;
-
-    // TODO(WAN): I don't know how to handle this case and casting to NULL is not it.
-    if (is_left_subquery || is_right_subquery) {
-      return;
-    }
-
-    if (left_type == type::TypeId::INVALID && right_type != type::TypeId::INVALID) {
-      auto new_left_tv = type::TransientValueFactory::GetNull(right_type);
-      auto new_left = std::make_unique<ConstantValueExpression>(std::move(new_left_tv));
-      children_[0] = std::move(new_left);
-    }
-
-    if (left_type != type::TypeId::INVALID && right_type == type::TypeId::INVALID) {
-      auto new_right_tv = type::TransientValueFactory::GetNull(left_type);
-      auto new_right = std::make_unique<ConstantValueExpression>(std::move(new_right_tv));
-      children_[1] = std::move(new_right);
-    }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
+              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
+    sherpa->CheckDesiredType(common::ManagedPointer(this).CastManagedPointerTo<AbstractExpression>());
+    sherpa->SetDesiredTypePair(GetChild(0), GetChild(1));
+    // Invoke the visitor pattern on the children.
+    v->Visit(common::ManagedPointer(this), sherpa);
   }
 };
 

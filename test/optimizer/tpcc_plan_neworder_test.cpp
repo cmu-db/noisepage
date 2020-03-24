@@ -138,7 +138,7 @@ TEST_F(TpccPlanNewOrderTests, UpdateStock) {
 
     {
       auto expr = update->GetSetClauses()[0].second.CastManagedPointerTo<parser::ConstantValueExpression>();
-      EXPECT_EQ(type::TransientValuePeeker::PeekInteger(expr->GetValue()), 1);
+      EXPECT_EQ(type::TransientValuePeeker::PeekSmallInt(expr->GetValue()), 1);
     }
 
     {

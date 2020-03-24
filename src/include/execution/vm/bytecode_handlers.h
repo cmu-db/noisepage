@@ -614,7 +614,7 @@ VM_OP_HOT void OpInitBoolVal(terrier::execution::sql::BoolVal *result, bool inpu
   result->val_ = input;
 }
 
-VM_OP_HOT void OpInitInteger(terrier::execution::sql::Integer *result, int32_t input) {
+VM_OP_HOT void OpInitInteger(terrier::execution::sql::Integer *result, int64_t input) {
   result->is_null_ = false;
   result->val_ = input;
 }
@@ -622,6 +622,11 @@ VM_OP_HOT void OpInitInteger(terrier::execution::sql::Integer *result, int32_t i
 VM_OP_HOT void OpInitReal(terrier::execution::sql::Real *result, double input) {
   result->is_null_ = false;
   result->val_ = input;
+}
+
+VM_OP_HOT void OpIntegerToReal(terrier::execution::sql::Real *result, const terrier::execution::sql::Integer *input) {
+  result->is_null_ = input->is_null_;
+  if (!input->is_null_) result->val_ = static_cast<double>(input->val_);
 }
 
 VM_OP_HOT void OpInitDate(terrier::execution::sql::DateVal *result, int32_t year, uint32_t month, uint32_t day) {

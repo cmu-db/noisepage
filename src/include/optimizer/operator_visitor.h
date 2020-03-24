@@ -234,6 +234,12 @@ class OperatorVisitor {
   virtual void Visit(const DropView *drop_view) {}
 
   /**
+   * Visit a Analyze operator
+   * @param analyze operator
+   */
+  virtual void Visit(const Analyze *analyze) {}
+
+  /**
    * Visit a LogicalGet operator
    * @param logical_get operator
    */
@@ -430,6 +436,12 @@ class OperatorVisitor {
    * @param logical_drop_view operator
    */
   virtual void Visit(const LogicalDropView *logical_drop_view) {}
+
+  /**
+   * Visit a LogicalAnalyze operator
+   * @param logical_analyze operator
+   */
+  virtual void Visit(const LogicalAnalyze *logical_analyze) {}
 };
 
 }  // namespace terrier::optimizer

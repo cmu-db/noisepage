@@ -49,7 +49,7 @@ class SortBottomTranslator : public OperatorTranslator {
   }
 
   // Return the payload and its type
-  std::pair<ast::Identifier *, ast::Identifier *> GetMaterializedTuple() override {
+  std::pair<const ast::Identifier *, const ast::Identifier *> GetMaterializedTuple() override {
     return {&sorter_row_, &sorter_struct_};
   }
 
@@ -62,6 +62,8 @@ class SortBottomTranslator : public OperatorTranslator {
   ast::Expr *GetAttribute(ast::Identifier object, uint32_t attr_idx);
   // Insert into sorter
   void GenSorterInsert(FunctionBuilder *builder);
+  // Gen top k finish
+  void GenFinishTopK(FunctionBuilder *builder);
   // Fill the sorter row
   void FillSorterRow(FunctionBuilder *builder);
   // Call Sort()
@@ -135,7 +137,7 @@ class SortTopTranslator : public OperatorTranslator {
   }
 
   // Return the payload and its type
-  std::pair<ast::Identifier *, ast::Identifier *> GetMaterializedTuple() override {
+  std::pair<const ast::Identifier *, const ast::Identifier *> GetMaterializedTuple() override {
     return {&bottom_->sorter_row_, &bottom_->sorter_struct_};
   }
 
@@ -159,6 +161,7 @@ class SortTopTranslator : public OperatorTranslator {
 
   // Local variables
   ast::Identifier sort_iter_;
+  ast::Identifier num_tuples_;
 };
 
 }  // namespace terrier::execution::compiler

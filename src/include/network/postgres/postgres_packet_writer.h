@@ -153,7 +153,8 @@ class PostgresPacketWriter : public PacketWriter {
     for (const auto &col : columns) {
       const auto col_type = col.GetType();
       // TODO(Matt): Figure out how to get table oid and column oids in the OutputSchema (Optimizer's job?)
-      AppendString(col.GetName())
+      const auto &name = col.GetExpr()->GetAlias().empty() ? col.GetName() : col.GetExpr()->GetAlias();
+      AppendString(name)
           .AppendValue<int32_t>(0)  // table oid (if it's a column from a table), 0 otherwise
           .AppendValue<int16_t>(0)  // column oid (if it's a column from a table), 0 otherwise
           .AppendValue(
@@ -476,7 +477,8 @@ class PostgresPacketWriter : public PacketWriter {
           string_value = ts_val->val_.ToString();
           break;
         }
-        case type::TypeId::VARCHAR: {
+        case type::TypeId::VARCHAR:
+        case type::TypeId::VARBINARY: {
           // Don't allocate an actual string for a VARCHAR, just wrap a std::string_view, write the value directly, and
           // continue
           auto *string_val = reinterpret_cast<const execution::sql::StringVal *const>(val);
