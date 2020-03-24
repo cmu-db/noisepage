@@ -98,7 +98,7 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --test-output-file "/tmp/junit_log.txt"'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py'
                     }
                     post {
                         cleanup {
@@ -123,7 +123,7 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --test-output-file "/tmp/junit_log.txt"'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py'
                     }
                     post {
                         cleanup {
@@ -190,7 +190,7 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --test-output-file "/tmp/junit_log.txt"'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py'
                     }
                     post {
                         cleanup {
@@ -212,7 +212,7 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j4'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release --test-output-file "/tmp/junit_log.txt"'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
                         cleanup {
@@ -236,7 +236,7 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release --test-output-file "/tmp/junit_log.txt"'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
                         cleanup {
@@ -264,7 +264,7 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release --test-output-file "/tmp/junit_log.txt"'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
                         cleanup {
@@ -287,7 +287,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release --test-output-file "/tmp/e2e_log.txt"'
+                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release'
                     }
                     post {
                         cleanup {
