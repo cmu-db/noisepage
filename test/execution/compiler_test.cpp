@@ -66,18 +66,6 @@ class CompilerTest : public SqlBasedTest {
   }
 
   static constexpr vm::ExecutionMode MODE = vm::ExecutionMode::Interpret;
-};
-
-// NOLINTNEXTLINE
-TEST_F(CompilerTest, BuiltinUDFTest) {
-  // SELECT cos(real_col) FROM all_types_table
-  auto accessor = MakeAccessor();
-  auto table_oid = accessor->GetTableOid(NSOid(), "all_types_table");
-  auto table_schema = accessor->GetSchema(table_oid);
-  ExpressionMaker expr_maker;
-  std::unique_ptr<planner::AbstractPlanNode> builtin_call;
-  OutputSchemaHelper builtin_call_out{0, &expr_maker};
-  { planner::SeqScanPlanNode::Builder builder; }
 }
 
 // NOLINTNEXTLINE

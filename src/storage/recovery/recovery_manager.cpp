@@ -1,6 +1,5 @@
 #include "storage/recovery/recovery_manager.h"
 
-#include <catalog/postgres/pg_proc.h>
 #include <algorithm>
 #include <string>
 #include <unordered_map>
@@ -15,6 +14,7 @@
 #include "catalog/postgres/pg_index.h"
 #include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_namespace.h"
+#include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
 #include "storage/index/index_builder.h"
 #include "storage/write_ahead_log/log_io.h"
