@@ -172,7 +172,8 @@ class AstNodeFactory {
    * @param pos source position
    * @param op concat operator
    * @param left lhs of the operator
-   * @param right rhs of the operaotr
+   * @param right rhs of the operator 
+   * @param args arguments to the function
    * @return created ConcatOpExpr code
    */
   ConcatOpExpr *NewConcatOpExpr(const SourcePosition &pos, parsing::Token::Type op, Expr *left, Expr *right,

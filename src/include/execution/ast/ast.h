@@ -1165,6 +1165,7 @@ class ConcatOpExpr : public Expr {
    * @param op concat operator
    * @param left lhs
    * @param right rhs
+   * @param args arguments to the function
    */
   ConcatOpExpr(const SourcePosition &pos, parsing::Token::Type op, Expr *left, Expr *right,
                util::RegionVector<Expr *> &&args)
