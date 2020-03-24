@@ -64,7 +64,7 @@ class WorkloadCached {
   void InitSeqScan();
   void InitStockLevel();
   void InitializeSQLs();
-  void LoadTPCCQueries(const std::vector<std::string> &queries);
+  void LoadTPCCQueries(const std::vector<std::string> &txn_names);
 
   common::ManagedPointer<DBMain> db_main_;
   common::ManagedPointer<storage::BlockStore> block_store_;
