@@ -55,7 +55,7 @@ def generate_build_side(col_num, row_num, cardinality, value_type):
 
     fun_name = "build{}Col{}Row{}Car{}".format(value_type, col_num, row_num, cardinality)
     print("fun {}(execCtx: *ExecutionContext, state: *State) -> nil {{".format(fun_name))
-    print("  @execCtxStartResourceTracker(execCtx)")
+    print("  @execCtxStartResourceTracker(execCtx, 3)")
 
     print("  var ht = &state.table{}{}".format(value_type, col_num))  # join hash table
 
@@ -65,7 +65,7 @@ def generate_build_side(col_num, row_num, cardinality, value_type):
     for i in range(0, col_num):
         print("  col_oids[{}] = {}".format(i, 15 - i))
 
-    print("  @tableIterInitBind(&tvi, execCtx, \"{}Col15Row{}Car{}\", col_oids)".format(tpl_type_to_terrier_type(
+    print("  @tableIterInitBind(&tvi, execCtx, \"{}Col31Row{}Car{}\", col_oids)".format(tpl_type_to_terrier_type(
         value_type), row_num, cardinality))
 
     print("  for (@tableIterAdvance(&tvi)) {")
@@ -108,7 +108,7 @@ def generate_probe_side(col_num, row_num, cardinality, value_type):
 
     fun_name = "probe{}Col{}Row{}Car{}".format(value_type, col_num, row_num, cardinality)
     print("fun {}(execCtx: *ExecutionContext, state: *State) -> nil {{".format(fun_name))
-    print("  @execCtxStartResourceTracker(execCtx)")
+    print("  @execCtxStartResourceTracker(execCtx, 3)")
 
     # construct the iterator
     print("  var agg_ht_iter: AggregationHashTableIterator")

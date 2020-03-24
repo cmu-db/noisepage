@@ -36,14 +36,14 @@ def generage_arithmetic_fun(row_num, data_type, operation):
     suffix = get_value_suffix(data_type)
     fun_name = "{}{}Row{}".format(data_type, operation, row_num)
     print("fun {}(execCtx: *ExecutionContext, state: *State) -> nil {{".format(fun_name))
-    print("  @execCtxStartResourceTracker(execCtx)")
+    print("  @execCtxStartResourceTracker(execCtx, 3)")
 
     step_size = 100
 
     print("  for (var i = 0; i < {}; i = i + {}) {{".format(row_num, step_size))
     print("    var a = state.{}_placeholder - 1000000000{}".format(data_type, suffix))
     for i in range(step_size):
-        if operation == "greater":
+        if operation == "COMPARE":
             if i != 0:
                 print("    if (a {} 5{}) {{".format(operation_to_symbol(operation), suffix))
                 print("      a = 10{}".format(suffix))
@@ -69,7 +69,7 @@ def generate_main_fun(fun_names):
     print("  var state: State")
     for fun_name in fun_names:
         print("  {}(execCtx, &state)".format(fun_name))
-    print("  return state.Integer_placeholder")
+    print("  return state.OP_INTEGER_placeholder")
     print("}")
 
 

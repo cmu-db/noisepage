@@ -40,7 +40,7 @@ def generate_build_side(col_num, row_num, cardinality):
     for i in range(0, col_num):
         print("  col_oids[{}] = {}".format(i, 15 - i))
 
-    print("  @tableIterInitBind(&tvi, execCtx, \"INTEGERCol15Row{}Car{}\", col_oids)".format(row_num, cardinality))
+    print("  @tableIterInitBind(&tvi, execCtx, \"INTEGERCol31Row{}Car{}\", col_oids)".format(row_num, cardinality))
 
     print("  for (@tableIterAdvance(&tvi)) {")
     print("    var vec = @tableIterGetPCI(&tvi)")
@@ -88,7 +88,7 @@ def generate_probe_side(col_num, row_num, cardinality, matched_num):
     print("  var col_oids : [{}]uint32".format(col_num))
     for i in range(0, col_num):
         print("  col_oids[{}] = {}".format(i, 15 - i))
-    print("  @tableIterInitBind(&tvi, execCtx, \"INTEGERCol15Row{}Car{}\", col_oids)".format(row_num, cardinality))
+    print("  @tableIterInitBind(&tvi, execCtx, \"INTEGERCol31Row{}Car{}\", col_oids)".format(row_num, cardinality))
 
     print("  for (@tableIterAdvance(&tvi)) {")
     print("    var vec = @tableIterGetPCI(&tvi)")

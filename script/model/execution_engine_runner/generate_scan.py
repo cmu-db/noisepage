@@ -10,14 +10,14 @@ def generate_state():
 def generate_scan_fun(col_num, row_num, cardinality):
     fun_name = "scanCol{}Row{}Car{}".format(col_num, row_num, cardinality)
     print("fun {}(execCtx: *ExecutionContext, state: *State) -> nil {{".format(fun_name))
-    print("  @execCtxStartResourceTracker(execCtx)")
+    print("  @execCtxStartResourceTracker(execCtx, 3)")
 
     # construct the iterator
     print("  var tvi: TableVectorIterator")
     print("  var col_oids : [{}]uint32".format(col_num))
     for i in range(col_num):
         print("  col_oids[{}] = {}".format(i, i + 1))  # oids for each column
-    print("  @tableIterInitBind(&tvi, execCtx, \"INTEGERCol15Row{}Car{}\", col_oids)".format(row_num, cardinality))
+    print("  @tableIterInitBind(&tvi, execCtx, \"INTEGERCol31Row{}Car{}\", col_oids)".format(row_num, cardinality))
 
     # iterate the table
     print("  for (@tableIterAdvance(&tvi)) {")
