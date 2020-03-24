@@ -52,8 +52,8 @@ def generate_build_side(col_num, row_num, cardinality):
 
     print("  @sorterSort(sorter)")
 
-    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"sortbuild, {}, {}, {}\"))".format(row_num, col_num * 4,
-                                                                                                  cardinality))
+    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"SORT_BUILD, {}, {}, {}\"))".format(
+        row_num, col_num * 4, cardinality))
     print("}")
 
     print()
@@ -76,8 +76,8 @@ def generate_probe_side(col_num, row_num, cardinality):
     print("  }")
     print("  @sorterIterClose(&sort_iter)")
 
-    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"sortprobe, {}, {}, {}\"))".format(row_num, col_num * 4,
-                                                                                                  cardinality))
+    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"SORT_ITERATE, {}, {}, {}\"))".format(
+        row_num, col_num * 4, cardinality))
     print("}")
 
     print()

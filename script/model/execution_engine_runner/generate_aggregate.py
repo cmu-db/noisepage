@@ -94,9 +94,8 @@ def generate_build_side(col_num, row_num, cardinality, value_type):
     print("  }")
     print("  @tableIterClose(&tvi)")
 
-    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"aggbuild, {}, {}, {}\"))".format(row_num,
-                                                                                                 col_num * type_size,
-                                                                                                 cardinality))
+    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"AGG_BUILD, {}, {}, {}\"))".format(
+        row_num, col_num * type_size, cardinality))
     print("}")
 
     print()
@@ -123,9 +122,8 @@ def generate_probe_side(col_num, row_num, cardinality, value_type):
     print("  }")
     print("  @aggHTIterClose(iter)")
 
-    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"aggprobe, {}, {}, {}\"))".format(cardinality,
-                                                                                                 col_num * type_size,
-                                                                                                 cardinality))
+    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"AGG_ITERATE, {}, {}, {}\"))".format(
+        cardinality, col_num * type_size, cardinality))
     print("}")
 
     print()

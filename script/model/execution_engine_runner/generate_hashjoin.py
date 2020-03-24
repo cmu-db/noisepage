@@ -66,8 +66,8 @@ def generate_build_side(col_num, row_num, cardinality):
     # Build the join table
     print("  @joinHTBuild(jht)")
 
-    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"joinbuild, {}, {}, {}\"))".format(row_num, col_num * 4,
-                                                                                                  cardinality))
+    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"HASHJOIN_BUILD, {}, {}, {}\"))".format(
+        row_num, col_num * 4, cardinality))
     print("}")
 
     print()
@@ -115,7 +115,7 @@ def generate_probe_side(col_num, row_num, cardinality, matched_num):
     # Build the join table
     print("  @joinHTBuild(jht)")
 
-    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"joinprobe, {}, {}, {}\"))".format(
+    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"HASHJOIN_ITERATE, {}, {}, {}\"))".format(
         row_num, col_num * 4, matched_num))
     print("}")
 

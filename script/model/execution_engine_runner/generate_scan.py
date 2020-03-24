@@ -30,8 +30,8 @@ def generate_scan_fun(col_num, row_num, cardinality):
     print("  @tableIterClose(&tvi)")
 
     # Every integer column has four bytes
-    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"scan, {}, {}, {}\"))".format(row_num, col_num * 4,
-                                                                                             cardinality))
+    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"SEQ_SCAN, {}, {}, {}\"))".format(
+        row_num, col_num * 4, cardinality))
     print("}")
 
     print()

@@ -3,9 +3,9 @@
 
 def get_value_suffix(value_type):
     suffix = None
-    if value_type == 'Integer':
+    if value_type == 'OP_INTEGER':
         suffix = ""
-    if value_type == 'Real':
+    if value_type == 'OP_DECIMAL':
         suffix = ".0"
 
     return suffix
@@ -13,26 +13,22 @@ def get_value_suffix(value_type):
 
 def operation_to_symbol(operation):
     symbol = None
-    if operation == "add":
+    if operation == "PLUS_OR_MINUS":
         symbol = "-"  # This is on purpose since "+" on floats does not return the correct type
-    if operation == "sub":
-        symbol = "-"
-    if operation == "multiply":
+    if operation == "MULTIPLY":
         symbol = "*"
-    if operation == "divide":
+    if operation == "DIVIDE":
         symbol = "/"
-    if operation == "greater":
+    if operation == "COMPARE":
         symbol = "<"
-    if operation == "equal":
-        symbol = "=="
 
     return symbol
 
 
 def generate_state():
     print("struct State {")
-    print("  Integer_placeholder : int64")
-    print("  Real_placeholder : float64")
+    print("  OP_INTEGER_placeholder : int64")
+    print("  OP_DECIMAL_placeholder : float64")
     print("}\n")
 
 
@@ -59,8 +55,8 @@ def generage_arithmetic_fun(row_num, data_type, operation):
     print("    state.{}_placeholder = a".format(data_type))
     print("  }")
 
-    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"{}{}, {}\"))".format(data_type.lower(),
-                                                                                     operation, row_num))
+    print("  @execCtxEndResourceTracker(execCtx, @stringToSql(\"{}_{}, {}\"))".format(
+        data_type, operation, row_num))
     print("}")
 
     print()
@@ -80,8 +76,8 @@ def generate_main_fun(fun_names):
 def generate_all():
     fun_names = []
     row_nums = list(range(10000, 100000, 10000)) + list(range(100000, 1000000, 100000))
-    data_types = ["Integer", "Real"]
-    operations = ["add", "multiply", "divide", "greater"]
+    data_types = ["OP_INTEGER", "OP_DECIMAL"]
+    operations = ["PLUS_OR_MINUS", "MULTIPLY", "DIVIDE", "COMPARE"]
 
     generate_state()
 
