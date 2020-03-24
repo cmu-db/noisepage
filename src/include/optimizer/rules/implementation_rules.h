@@ -844,7 +844,8 @@ class LogicalAnalyzeToPhysicalAnalyze : public Rule {
    * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<AbstractOptimizerNode> input, std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+  void Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                 std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 

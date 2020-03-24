@@ -32,7 +32,6 @@ QueryToOperatorTransformer::QueryToOperatorTransformer(
   output_expr_ = nullptr;
 }
 
-
 std::unique_ptr<AbstractOptimizerNode> QueryToOperatorTransformer::ConvertToOpExpression(
     common::ManagedPointer<parser::SQLStatement> op, common::ManagedPointer<parser::ParseResult> parse_result) {
   output_expr_ = nullptr;
@@ -241,8 +240,8 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
       auto list_elem = node->GetList().at(i);
 
       list_elem->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-      auto join_expr =
-          std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::vector<std::unique_ptr<AbstractOptimizerNode>>{});
+      auto join_expr = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(),
+                                                      std::vector<std::unique_ptr<AbstractOptimizerNode>>{});
       join_expr->PushChild(std::move(prev_expr));
       join_expr->PushChild(std::move(output_expr_));
       TERRIER_ASSERT(join_expr->GetChildren().size() == 2, "The join expr should have exactly 2 elements");
@@ -571,7 +570,6 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CopyStatem
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{});
 
     auto target_table = op->GetCopyTable();
-
 
     auto insert_op =
         std::make_unique<OperatorNode>(LogicalInsertSelect::Make(db_oid_, accessor_->GetDefaultNamespace(),

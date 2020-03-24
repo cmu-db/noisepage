@@ -387,8 +387,10 @@ TEST(OperatorTests, InnerNLJoinTest) {
   EXPECT_EQ(inner_nl_join_1.GetName(), "InnerNLJoin");
 
   EXPECT_EQ(inner_nl_join_1.GetContentsAs<InnerNLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
-  EXPECT_EQ(inner_nl_join_3.GetContentsAs<InnerNLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr_0});
-  EXPECT_EQ(inner_nl_join_4.GetContentsAs<InnerNLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
+  EXPECT_EQ(inner_nl_join_3.GetContentsAs<InnerNLJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr_0});
+  EXPECT_EQ(inner_nl_join_4.GetContentsAs<InnerNLJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr_1});
 
   EXPECT_TRUE(inner_nl_join_1 == inner_nl_join_2);
   EXPECT_FALSE(inner_nl_join_1 == inner_nl_join_3);
