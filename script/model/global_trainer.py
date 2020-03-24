@@ -7,9 +7,9 @@ import logging
 import tqdm
 from sklearn import model_selection
 
+import model
 from info import data_info
 from util import io_util, logging_util
-import model
 from training_util import global_data_constructing_util, result_writing_util
 from type import Target
 

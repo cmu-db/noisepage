@@ -7,7 +7,7 @@ import pickle
 
 from util import io_util
 from info import data_info, hardware_info
-from data_object import global_model_data, grouped_op_unit_data
+from data_class import global_model_data, grouped_op_unit_data
 import global_model_config
 from type import Target, OpUnit, ConcurrentCountingMode
 
