@@ -477,7 +477,8 @@ class PostgresPacketWriter : public PacketWriter {
           string_value = ts_val->val_.ToString();
           break;
         }
-        case type::TypeId::VARCHAR: {
+        case type::TypeId::VARCHAR:
+        case type::TypeId::VARBINARY: {
           // Don't allocate an actual string for a VARCHAR, just wrap a std::string_view, write the value directly, and
           // continue
           auto *string_val = reinterpret_cast<const execution::sql::StringVal *const>(val);

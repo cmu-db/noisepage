@@ -708,8 +708,17 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
     }
 
     case T_Float: {
-      auto v = type::TransientValueFactory::GetDecimal(std::stod(val.val_.str_));
-      result = std::make_unique<ConstantValueExpression>(std::move(v));
+      // Per Postgres, T_Float just means that the string looks like a number.
+      // T_Float is also used for oversized ints, e.g. BIGINT.
+      // For this reason, a quick hack...
+      // TODO(WAN): figure out how Postgres does it once we care about floating point
+      if (std::strchr(val.val_.str_, '.') == nullptr) {
+        auto v = type::TransientValueFactory::GetBigInt(std::stol(val.val_.str_));
+        result = std::make_unique<ConstantValueExpression>(std::move(v));
+      } else {
+        auto v = type::TransientValueFactory::GetDecimal(std::stod(val.val_.str_));
+        result = std::make_unique<ConstantValueExpression>(std::move(v));
+      }
       break;
     }
 
@@ -846,17 +855,19 @@ std::unique_ptr<TableRef> PostgresParser::FromTransform(ParseResult *parse_resul
 // Postgres.SelectStmt.groupClause -> terrier.GroupByDescription
 std::unique_ptr<GroupByDescription> PostgresParser::GroupByTransform(ParseResult *parse_result, List *group,
                                                                      Node *having_node) {
-  if (group == nullptr) {
+  if (group == nullptr && having_node == nullptr) {
     return nullptr;
   }
 
   std::vector<common::ManagedPointer<AbstractExpression>> columns;
-  for (auto cell = group->head; cell != nullptr; cell = cell->next) {
-    auto temp = reinterpret_cast<Node *>(cell->data.ptr_value);
-    auto expr = ExprTransform(parse_result, temp, nullptr);
-    auto expr_ptr = common::ManagedPointer(expr);
-    parse_result->AddExpression(std::move(expr));
-    columns.emplace_back(expr_ptr);
+  if (group != nullptr) {
+    for (auto cell = group->head; cell != nullptr; cell = cell->next) {
+      auto temp = reinterpret_cast<Node *>(cell->data.ptr_value);
+      auto expr = ExprTransform(parse_result, temp, nullptr);
+      auto expr_ptr = common::ManagedPointer(expr);
+      parse_result->AddExpression(std::move(expr));
+      columns.emplace_back(expr_ptr);
+    }
   }
 
   // TODO(WAN): old system says, having clauses not implemented, depends on AExprTransform

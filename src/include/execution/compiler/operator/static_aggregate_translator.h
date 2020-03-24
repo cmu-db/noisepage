@@ -77,7 +77,7 @@ class StaticAggregateTopTranslator : public OperatorTranslator {
    */
   StaticAggregateTopTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen,
                                OperatorTranslator *bottom)
-      : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::AGGREGATE_STATIC),
+      : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE),
         op_(op),
         bottom_(static_cast<StaticAggregateBottomTranslator *>(bottom)) {}
 

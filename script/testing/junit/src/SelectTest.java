@@ -84,9 +84,9 @@ public class SelectTest extends TestUtility {
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
         rs.next();
-        checkRow(rs, new String [] {"c1", "c1"}, new int [] {1, 1});
+        checkIntRow(rs, new String [] {"c1", "c1"}, new int [] {1, 1});
         rs.next();
-        checkRow(rs, new String [] {"c1", "c1"}, new int [] {2, 2});
+        checkIntRow(rs, new String [] {"c1", "c1"}, new int [] {2, 2});
         assertNoMoreRows(rs);
     }
 
@@ -104,9 +104,9 @@ public class SelectTest extends TestUtility {
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
         rs.next();
-        checkRow(rs, new String [] {"new_name"}, new int [] {1});
+        checkIntRow(rs, new String [] {"new_name"}, new int [] {1});
         rs.next();
-        checkRow(rs, new String [] {"new_name"}, new int [] {2});
+        checkIntRow(rs, new String [] {"new_name"}, new int [] {2});
         assertNoMoreRows(rs);
 
         /* constant column name */
@@ -114,9 +114,9 @@ public class SelectTest extends TestUtility {
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
         rs.next();
-        checkRow(rs, new String [] {"new_name"}, new int [] {1});
+        checkIntRow(rs, new String [] {"new_name"}, new int [] {1});
         rs.next();
-        checkRow(rs, new String [] {"new_name"}, new int [] {1});
+        checkIntRow(rs, new String [] {"new_name"}, new int [] {1});
         assertNoMoreRows(rs);
 
         /* alternate column name */
@@ -124,17 +124,15 @@ public class SelectTest extends TestUtility {
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
         rs.next();
-        checkRow(rs, new String [] {"c2", "c1"}, new int [] {1, 2});
+        checkIntRow(rs, new String [] {"c2", "c1"}, new int [] {1, 2});
         rs.next();
-        checkRow(rs, new String [] {"c2", "c1"}, new int [] {2, 3});
+        checkIntRow(rs, new String [] {"c2", "c1"}, new int [] {2, 3});
         assertNoMoreRows(rs);
 
         /* Wrong count, wait for Having fix */
-        select_SQL = "SELECT COUNT(*) AS cnt FROM tbl HAVING COUNT() > 10;";
+        select_SQL = "SELECT COUNT(*) AS cnt FROM tbl HAVING COUNT(*) > 10;";
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
-        rs.next();
-        checkRow(rs, new String [] {"cnt"}, new int [] {2});
         assertNoMoreRows(rs);
 
         /* self name */
@@ -142,9 +140,9 @@ public class SelectTest extends TestUtility {
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
         rs.next();
-        checkRow(rs, new String [] {"c1", "c2"}, new int [] {1, 2});
+        checkIntRow(rs, new String [] {"c1", "c2"}, new int [] {1, 2});
         rs.next();
-        checkRow(rs, new String [] {"c1", "c2"}, new int [] {2, 3});
+        checkIntRow(rs, new String [] {"c1", "c2"}, new int [] {2, 3});
         assertNoMoreRows(rs);
 
         /* confusing name */
@@ -171,8 +169,65 @@ public class SelectTest extends TestUtility {
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
         rs.next();
-        checkRow(rs, new String [] {"stock_count"}, new int [] {2});
+        checkIntRow(rs, new String [] {"stock_count"}, new int [] {2});
         assertNoMoreRows(rs);
     }
 
+    /**
+     * Test for selecting with a timestamp in the where clause.
+     * Fix #782: selecting with timestamp in where clause will crash the system.
+     */
+    @Test
+    public void testSelectWhereTimestamp() throws SQLException {
+        String ts1 = "2020-01-02 12:23:34.56789";
+        String ts2 = "2020-01-02 11:22:33.721-05";
+        String createSQL = "CREATE TABLE xxx (c1 int, c2 timestamp);";
+        String insertSQL1 = "INSERT INTO xxx (c1, c2) VALUES (1, '" + ts1 + "');";
+        String insertSQL2 = "INSERT INTO xxx (c1, c2) VALUES (2, '" + ts2 + "');";
+        String selectSQL = "SELECT * FROM xxx WHERE c2 = '" + ts2 + "';";
+        String dropSQL = "DROP TABLE xxx;";
+
+        conn.setAutoCommit(false);
+        Statement stmt = conn.createStatement();
+        stmt.addBatch(createSQL);
+        stmt.addBatch(insertSQL1);
+        stmt.addBatch(insertSQL2);
+        stmt.executeBatch();
+        conn.commit();
+        conn.setAutoCommit(true);
+
+        stmt = conn.createStatement();
+        rs = stmt.executeQuery(selectSQL);
+        rs.next();
+        assertEquals(2, rs.getInt("c1"));
+        assertEquals("2020-01-02 16:22:33.721", rs.getTimestamp("c2").toString());
+        assertNoMoreRows(rs);
+
+        stmt = conn.createStatement();
+        stmt.execute(dropSQL);
+    }
+
+    /**
+     * SELECT with arithmetic on integer and reals.
+     */
+    @Test
+    public void testSelectAddIntegerAndReal() throws SQLException {
+      String drop_SQL = "DROP TABLE IF EXISTS tbl;";
+      String create_SQL = "CREATE TABLE tbl (a int, b float);";
+      String insert_SQL = "INSERT INTO tbl VALUES (1, 1.37);";
+      String select_SQL = "SELECT a + b AS AB FROM tbl;";
+      Statement stmt = conn.createStatement();
+      stmt.execute(drop_SQL);
+      stmt = conn.createStatement();
+      stmt.execute(create_SQL);
+      stmt = conn.createStatement();
+      stmt.execute(insert_SQL);
+      stmt = conn.createStatement();
+      rs = stmt.executeQuery(select_SQL);
+      rs.next();
+      checkDoubleRow(rs, new String [] {"AB"}, new double[] {2.37});
+      assertNoMoreRows(rs);
+      stmt = conn.createStatement();
+      stmt.execute(drop_SQL);
+    }
 }

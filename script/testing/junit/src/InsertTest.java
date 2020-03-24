@@ -80,7 +80,7 @@ public class InsertTest extends TestUtility {
         stmt.execute(sql);
         getResults();
         rs.next();
-        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
+        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
         assertNoMoreRows(rs);
     }
 
@@ -94,7 +94,7 @@ public class InsertTest extends TestUtility {
         stmt.execute(sql);
         getResults();
         rs.next();
-        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
+        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
         assertNoMoreRows(rs);
     }
 
@@ -109,7 +109,7 @@ public class InsertTest extends TestUtility {
         stmt.execute(sql);
         getResults();
         rs.next();
-        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
+        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
         assertNoMoreRows(rs);
     }
 
@@ -125,9 +125,9 @@ public class InsertTest extends TestUtility {
         stmt.execute(sql);
         getResults();
         rs.next();
-        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
+        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 2, 3});
         rs.next();
-        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {11, 12, 13});
+        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {11, 12, 13});
         assertNoMoreRows(rs);
     }
 
@@ -143,9 +143,9 @@ public class InsertTest extends TestUtility {
         stmt.execute(sql);
         getResults();
         rs.next();
-        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 0, 0});
+        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {1, 0, 0});
         rs.next();
-        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {11, 12, 0});
+        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {11, 12, 0});
         assertNoMoreRows(rs);
     }
 
@@ -262,7 +262,7 @@ public class InsertTest extends TestUtility {
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
         rs.next();
-        checkRow(rs, new String [] {"id", "val"}, new int [] {1, 123});
+        checkIntRow(rs, new String [] {"id", "val"}, new int [] {1, 123});
         assertNoMoreRows(rs);
 
         String drop_SQL = "DROP TABLE xxx";
@@ -290,7 +290,7 @@ public class InsertTest extends TestUtility {
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
         rs.next();
-        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {3, 2, 4});
+        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {3, 2, 4});
         assertNoMoreRows(rs);
 
         String drop_SQL = "DROP TABLE xxx";
@@ -318,12 +318,79 @@ public class InsertTest extends TestUtility {
         stmt = conn.createStatement();
         rs = stmt.executeQuery(select_SQL);
         rs.next();
-        checkRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {3, 2, 34});
+        checkIntRow(rs, new String [] {"c1", "c2", "c3"}, new int [] {3, 2, 34});
         assertNoMoreRows(rs);
 
         String drop_SQL = "DROP TABLE xxx";
         stmt = conn.createStatement();
         stmt.execute(drop_SQL);
+    }
+
+    /**
+     * Test inserting default expressions that are not INTEGER type.
+     * #831 BinderSherpa
+     */
+    @Test
+    public void testDefaultValueInsertBigInt() throws SQLException {
+        String createSQL = "CREATE TABLE xxx (c1 integer, c2 integer, c3 bigint DEFAULT 4398046511104);";
+        String insertSQL = "INSERT INTO xxx (c1, c2) VALUES (1, 2);";
+        String selectSQL = "SELECT * from xxx;";
+        String dropSQL = "DROP TABLE xxx";
+
+        conn.setAutoCommit(false);
+        Statement stmt = conn.createStatement();
+        stmt.addBatch(createSQL);
+        stmt.addBatch(insertSQL);
+        stmt.executeBatch();
+        conn.commit();
+        conn.setAutoCommit(true);
+
+        stmt = conn.createStatement();
+        rs = stmt.executeQuery(selectSQL);
+        rs.next();
+        assertEquals(1, rs.getInt("c1"));
+        assertEquals(2, rs.getInt("c2"));
+        assertEquals(4398046511104L, rs.getLong("c3"));
+        rs.next();
+
+        assertNoMoreRows(rs);
+
+        stmt = conn.createStatement();
+        stmt.execute(dropSQL);
+    }
+
+    /**
+     * Test inserting cast expressions for BIGINT and TIMESTAMP.
+     * #831 BinderSherpa
+     */
+    @Test
+    public void testInsertBigIntCastTimestampCast() throws SQLException {
+        String ts1 = "2020-01-02 12:23:34.56789";
+        String createSQL = "CREATE TABLE xxx (c1 bigint, c2 timestamp);";
+        String insertSQL = "INSERT INTO xxx (c1, c2) VALUES ('123'::bigint, '" + ts1 + "::timestamp');";
+        String selectSQL = "SELECT * from xxx;";
+        String dropSQL = "DROP TABLE xxx";
+
+        conn.setAutoCommit(false);
+        Statement stmt = conn.createStatement();
+        stmt.addBatch(createSQL);
+        stmt.addBatch(insertSQL);
+        stmt.executeBatch();
+        conn.commit();
+        conn.setAutoCommit(true);
+
+        stmt = conn.createStatement();
+        rs = stmt.executeQuery(selectSQL);
+
+        rs.next();
+        assertEquals(123, rs.getLong("c1"));
+        assertEquals(ts1, rs.getTimestamp("c2").toString());
+        rs.next();
+
+        assertNoMoreRows(rs);
+
+        stmt = conn.createStatement();
+        stmt.execute(dropSQL);
     }
 
 }
