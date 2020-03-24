@@ -5,11 +5,9 @@ import numpy as np
 import tqdm
 import pickle
 
-import hardware_info
-import io_util
-import data_info
-import grouped_op_unit_data
-import global_model_data
+from util import io_util
+from info import data_info, hardware_info
+from data_object import global_model_data, grouped_op_unit_data
 import global_model_config
 from type import Target, OpUnit, ConcurrentCountingMode
 
@@ -29,15 +27,16 @@ def get_data(input_path, mini_model_map, model_results_path):
         with open(cache_file, 'rb') as pickle_file:
             resource_data_list, impact_data_list = pickle.load(pickle_file)
     else:
-        data_list = get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path)
-        resource_data_list, impact_data_list = construct_interval_based_global_model_data(data_list, model_results_path)
+        data_list = _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path)
+        resource_data_list, impact_data_list = _construct_interval_based_global_model_data(data_list,
+                                                                                           model_results_path)
         with open(cache_file, 'wb') as file:
             pickle.dump((resource_data_list, impact_data_list), file)
 
     return resource_data_list, impact_data_list
 
 
-def get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path):
+def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path):
     """Get the grouped opunit data with the predicted metrics and elapsed time
 
     :param input_path: input data file path
@@ -51,7 +50,7 @@ def get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_re
     return data_list
 
 
-def construct_interval_based_global_model_data(data_list, model_results_path):
+def _construct_interval_based_global_model_data(data_list, model_results_path):
     """Construct the GlobalImpactData used for the global model training
 
     :param data_list: The list of GroupedOpUnitData objects
@@ -89,13 +88,13 @@ def construct_interval_based_global_model_data(data_list, model_results_path):
 
     # Now construct the global impact data
     impact_data_list = []
-    physical_core_num = hardware_info.physical_core_num
+    physical_core_num = hardware_info.PHYSICAL_CORE_NUM
     for data in data_list:
         interval_start_time = _round_to_second(data.get_start_time(ConcurrentCountingMode.INTERVAL))
         resource_data = resource_data_map[interval_start_time]
         cpu_id = data.cpu_id
         same_core_x = resource_data.x_list[cpu_id - physical_core_num if cpu_id > physical_core_num else cpu_id]
-        memory_idx = data_info.target_csv_index[Target.MEMORY_B]
+        memory_idx = data_info.TARGET_CSV_INDEX[Target.MEMORY_B]
         # FIXME: fix the dummy memory value later
         same_core_x[memory_idx] = 1
         impact_data_list.append(global_model_data.GlobalImpactData(data, resource_data, same_core_x))
@@ -129,7 +128,7 @@ def _get_global_resource_data(start_time, concurrent_data_list, log_path):
 
     # The adjusted resource metrics per logical core.
     # TODO: Assuming each physical core has two logical cores via hyper threading for now. Can extend to other scenarios
-    physical_core_num = hardware_info.physical_core_num
+    physical_core_num = hardware_info.PHYSICAL_CORE_NUM
     adjusted_x_list = [0] * 2 * physical_core_num
     adjusted_y = 0
     logging.debug(concurrent_data_list)
@@ -156,7 +155,7 @@ def _get_global_resource_data(start_time, concurrent_data_list, log_path):
     sum_adjusted_x = np.sum(adjusted_x_list, axis=0)
     std_adjusted_x = np.std(adjusted_x_list, axis=0)
 
-    memory_idx = data_info.target_csv_index[Target.MEMORY_B]
+    memory_idx = data_info.TARGET_CSV_INDEX[Target.MEMORY_B]
     # FIXME: Using dummy memory value for now. Eventually we need to transfer the memory estimation between pipelines
     adjusted_y[memory_idx] = 1
     sum_adjusted_x[memory_idx] = 1
@@ -224,7 +223,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
             if key not in prediction_cache:
                 y_pred = opunit_model.predict(x)
                 # subtract scan from certain double-counted opunits
-                if opunit in data_info.scan_subtract_opunits:
+                if opunit in data_info.SCAN_SUBSTRACT_UNITS:
                     scan_y_pred = mini_model_map[OpUnit.SCAN].predict(x)
                     y_pred -= scan_y_pred
                 y_pred = np.clip(y_pred, 0, None)

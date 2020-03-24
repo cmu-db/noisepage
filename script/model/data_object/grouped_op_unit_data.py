@@ -3,8 +3,7 @@ import numpy as np
 import copy
 import tqdm
 
-import query_info
-import data_info
+from info import data_info, query_info
 import global_model_config
 
 from type import Target, ConcurrentCountingMode
@@ -36,9 +35,9 @@ def _execution_get_grouped_op_unit_data(filename):
         for line in tqdm.tqdm(reader):
             # The first element is always the query/pipeline identifier
             identifier = line[0]
-            if identifier in query_info.feature_map:
+            if identifier in query_info.FEATURE_MAP:
                 # Need to deep copy since we're going to add the execution mode after it
-                opunit_features = copy.deepcopy(query_info.feature_map[identifier])
+                opunit_features = copy.deepcopy(query_info.FEATURE_MAP[identifier])
                 # Execution mode is the second element for now...
                 mode = int(line[1])
                 for opunit_feature in opunit_features:
@@ -66,9 +65,9 @@ class GroupedOpUnitData:
         """
         self.name = name
         self.opunit_features = opunit_features
-        self.y = metrics[-data_info.mini_model_target_num:]
+        self.y = metrics[-data_info.MINI_MODEL_TARGET_NUM:]
         self.y_pred = None
-        index_map = data_info.target_csv_index
+        index_map = data_info.TARGET_CSV_INDEX
         self.start_time = metrics[index_map[Target.START_TIME]]
         self.end_time = self.start_time + self.y[index_map[Target.ELAPSED_US]] - 1
         self.cpu_id = metrics[index_map[Target.CPU_ID]]
@@ -98,7 +97,7 @@ class GroupedOpUnitData:
         if concurrent_counting_mode is ConcurrentCountingMode.EXACT:
             end_time = self.end_time
         if concurrent_counting_mode is ConcurrentCountingMode.ESTIMATED:
-            end_time = self.start_time + self.y_pred[data_info.target_csv_index[Target.ELAPSED_US]] - 1
+            end_time = self.start_time + self.y_pred[data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]] - 1
         if concurrent_counting_mode is ConcurrentCountingMode.INTERVAL:
             end_time = self.start_time + global_model_config.INTERVAL_START + global_model_config.INTERVAL_SIZE
         return end_time

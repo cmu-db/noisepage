@@ -7,12 +7,10 @@ import logging
 import tqdm
 from sklearn import model_selection
 
-import data_info
-import io_util
+from info import data_info
+from util import io_util, logging_util
 import model
-import training_util
-import logging_util
-import global_model_util
+from training_util import global_data_constructing_util, result_writing_util
 from type import Target
 
 np.set_printoptions(precision=4)
@@ -32,13 +30,13 @@ def _global_model_training_process(x, y, methods, test_ratio, metrics_path, pred
     :return: the best model
     """
     global_model = None
-    training_util.create_metrics_and_prediction_files(metrics_path, prediction_path)
+    result_writing_util.create_metrics_and_prediction_files(metrics_path, prediction_path)
 
     x_train, x_test, y_train, y_test = model_selection.train_test_split(x, y, test_size=test_ratio, random_state=0)
 
     min_percentage_error = 1
     pred_results = None
-    elapsed_us_index = data_info.target_csv_index[Target.ELAPSED_US]
+    elapsed_us_index = data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
 
     for method in methods:
         # Train the model
@@ -74,7 +72,7 @@ def _global_model_training_process(x, y, methods, test_ratio, metrics_path, pred
         logging.info("")
 
     # Record the best prediction results on the test data
-    training_util.record_predictions(pred_results, prediction_path)
+    result_writing_util.record_predictions(pred_results, prediction_path)
 
     return global_model
 
@@ -96,8 +94,8 @@ class GlobalTrainer:
 
         :return: the map of the trained models
         """
-        resource_data_list, impact_data_list = global_model_util.get_data(self.input_path, self.mini_model_map,
-                                                                          self.model_results_path)
+        resource_data_list, impact_data_list = global_data_constructing_util.get_data(self.input_path, self.mini_model_map,
+                                                                                      self.model_results_path)
 
         return self._train_global_models(resource_data_list, impact_data_list)
 
@@ -135,13 +133,13 @@ class GlobalTrainer:
         # normalized mini model prediction
         for d in tqdm.tqdm(impact_data_list, desc="Construct data for the impact model"):
             mini_model_y_pred = d.target_grouped_op_unit_data.y_pred
-            predicted_elapsed_us = mini_model_y_pred[data_info.target_csv_index[Target.ELAPSED_US]]
+            predicted_elapsed_us = mini_model_y_pred[data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]]
             x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, d.resource_data.y_pred,
                                      d.resource_util_same_core_x)))
             # x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, d.global_resource_util_y_pred)))
             y.append(d.target_grouped_op_unit_data.y / (d.target_grouped_op_unit_data.y_pred + 1e-6))
 
-            memory_idx = data_info.target_csv_index[Target.MEMORY_B]
+            memory_idx = data_info.TARGET_CSV_INDEX[Target.MEMORY_B]
             # FIXME: fix the dummy memory value later
             x[-1][mini_model_y_pred.shape[0] + memory_idx] = 1
             y[-1][memory_idx] = 1

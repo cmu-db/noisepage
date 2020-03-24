@@ -1,5 +1,5 @@
-import io_util
-import data_info
+from util import io_util
+from info import data_info
 
 
 def create_metrics_and_prediction_files(metrics_path, prediction_path):
@@ -31,7 +31,7 @@ def record_predictions(pred_results, prediction_path):
 def _get_result_labels():
     labels = []
     for dataset in ["Train", "Test"]:
-        for target in data_info.mini_model_target_list:
+        for target in data_info.MINI_MODEL_TARGET_LIST:
             labels.append(dataset + " " + target.name)
         labels.append("")
 

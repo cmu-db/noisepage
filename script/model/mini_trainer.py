@@ -9,13 +9,11 @@ import logging
 
 from sklearn import model_selection
 
-import io_util
+from util import io_util, logging_util
 import model
-import opunit_data
-import data_info
-import data_transform
-import training_util
-import logging_util
+from data_object import opunit_data
+from info import data_info
+from training_util import data_transforming_util, result_writing_util
 
 from type import Target
 
@@ -58,22 +56,22 @@ class MiniTrainer:
             # Write the first header rwo to the result file
             metrics_path = "{}/{}.csv".format(self.model_metrics_path, data.opunit.name.lower())
             prediction_path = "{}/{}_prediction.csv".format(self.model_metrics_path, data.opunit.name.lower())
-            training_util.create_metrics_and_prediction_files(metrics_path, prediction_path)
+            result_writing_util.create_metrics_and_prediction_files(metrics_path, prediction_path)
 
             methods = self.ml_models
             # Only use linear regression for the arithmetic operating units
-            if data.opunit in data_info.arithmetic_opunits:
+            if data.opunit in data_info.ARITHMETIC_OPUNITS:
                 methods = ["lr"]
 
             # Also test the prediction with the target transformer (if specified for the operating unit)
             transformers = [None]
-            modeling_transformer = data_transform.opunit_modeling_trainsformer_map[data.opunit]
+            modeling_transformer = data_transforming_util.OPUNIT_MODELING_TRANSFORMER_MAP[data.opunit]
             if modeling_transformer is not None:
                 transformers.append(modeling_transformer)
 
             min_percentage_error = 1
             pred_results = None
-            elapsed_us_index = data_info.target_csv_index[Target.ELAPSED_US]
+            elapsed_us_index = data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
 
             for transformer in transformers:
                 for method in methods:
@@ -117,7 +115,7 @@ class MiniTrainer:
                 io_util.write_csv_result(metrics_path, "", [])
 
             # Record the best prediction results on the test data
-            training_util.record_predictions(pred_results, prediction_path)
+            result_writing_util.record_predictions(pred_results, prediction_path)
 
         return model_map
 

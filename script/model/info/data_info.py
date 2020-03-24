@@ -1,7 +1,7 @@
 from type import Target, OpUnit, ArithmeticFeature
 
 # The index for different targets in the output
-target_csv_index = {
+TARGET_CSV_INDEX = {
     Target.START_TIME: -11,
     Target.CPU_ID: -10,
 
@@ -17,28 +17,28 @@ target_csv_index = {
 }
 
 # The mini model features for arithmetic operations
-arithmetic_feature_index = {
+ARITHMETIC_FEATURE_INDEX = {
     ArithmeticFeature.EXEC_NUMBER: 0,
     ArithmeticFeature.EXEC_MODE: 1,
 }
 
 # The position of the name of the operating unit in the execution engine csv metrics file
-execution_csv_name_pos = 0
+EXECUTION_CSV_NAME_POSITION = 0
 
 # total number of outputs
-metrics_output_num = 11
+METRICS_OUTPUT_NUM = 11
 
 # prediction targets in the mini models
-mini_model_target_list = [Target.CPU_CYCLE, Target.INSTRUCTION, Target.CACHE_REF, Target.CACHE_MISS, Target.CPU_TIME,
+MINI_MODEL_TARGET_LIST = [Target.CPU_CYCLE, Target.INSTRUCTION, Target.CACHE_REF, Target.CACHE_MISS, Target.CPU_TIME,
                           Target.BLOCK_READ, Target.BLOCK_WRITE, Target.MEMORY_B, Target.ELAPSED_US]
 # the number of prediction targets in the mini models
-mini_model_target_num = len(mini_model_target_list)
+MINI_MODEL_TARGET_NUM = len(MINI_MODEL_TARGET_LIST)
 
 # All the opunits of arithmetic operations
-arithmetic_opunits = {OpUnit.INT_ADD, OpUnit.INT_MULTIPLY, OpUnit.INT_DIVIDE, OpUnit.INT_GREATER,
+ARITHMETIC_OPUNITS = {OpUnit.INT_ADD, OpUnit.INT_MULTIPLY, OpUnit.INT_DIVIDE, OpUnit.INT_GREATER,
                       OpUnit.REAL_ADD, OpUnit.REAL_MULTIPLY, OpUnit.REAL_DIVIDE, OpUnit.REAL_GREATER}
 
-scan_subtract_opunits = {OpUnit.SORT_BUILD, OpUnit.AGG_BUILD, OpUnit.JOIN_BUILD, OpUnit.JOIN_PROBE}
+SCAN_SUBSTRACT_UNITS = {OpUnit.SORT_BUILD, OpUnit.AGG_BUILD, OpUnit.JOIN_BUILD, OpUnit.JOIN_PROBE}
 
 # The index for the tuple num feature in the operating units that has that feature
-tuple_num_index = 0
+TUPLE_NUM_INDEX = 0
