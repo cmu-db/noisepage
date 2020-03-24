@@ -158,8 +158,9 @@ void WorkloadCached::InitNewOrder() {
   vec.emplace_back(
       "SELECT S_QUANTITY, S_DATA, S_DIST_01, S_DIST_02, S_DIST_03, S_DIST_04, S_DIST_05, S_DIST_06, S_DIST_07, "
       "S_DIST_08, S_DIST_09, S_DIST_10 FROM STOCK WHERE S_I_ID=1 AND S_W_ID=2");
-  // vec.emplace_back("UPDATE STOCK SET S_QUANTITY = 1, S_YTD = S_YTD + 1, S_ORDER_CNT = S_ORDER_CNT + 1, S_REMOTE_CNT =
-  // S_REMOTE_CNT + 1 WHERE S_I_ID = 2 AND S_W_ID = 3");
+  vec.emplace_back(
+      "UPDATE STOCK SET S_QUANTITY = 1, S_YTD = S_YTD + 1, S_ORDER_CNT = S_ORDER_CNT + 1, S_REMOTE_CNT ="
+      "S_REMOTE_CNT + 1 WHERE S_I_ID = 2 AND S_W_ID = 3");
 }
 
 void WorkloadCached::InitOrderStatus() {
