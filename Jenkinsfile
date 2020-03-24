@@ -264,6 +264,7 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
+                        sh 'python3 --version'
                         sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
