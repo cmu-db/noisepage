@@ -50,7 +50,7 @@ class ExecutionThreadPool {
   ExecutionThreadPool(common::ManagedPointer<DedicatedThreadRegistry> thread_registry, std::vector<int> *cpu_ids)
       : thread_registry_(thread_registry), busy_workers_{0} {
     for (int cpu_id : cpu_id) {
-      thread_registry_->RegisterThread<TerrierThread>(this, cpu_id, this);
+      thread_registry_->RegisterDedicatedThread<TerrierThread>(this, cpu_id, this);
     }
   }
 
@@ -111,10 +111,10 @@ class ExecutionThreadPool {
     ~TerrierThread = default;
 
     void RunNextTask() {
-      while (true) {
+      while (!exit_task_loop_) {
         int16_t index = numa_region_;
         for (int16_t i = 0; i < pool_->num_regions_; i++) {
-          index = (index + 1) % pool_->num_regions_;
+          index = (index + i) % pool_->num_regions_;
           Task task;
           if (!pool_->task_queue_[index].try_pop(task)) continue;
 
@@ -149,16 +149,19 @@ class ExecutionThreadPool {
      * Implements the DedicatedThreadTask api
      */
     void Terminate() {
+      std::unique_lock<std::mutex> l(&cv_mutex_);
       exit_task_loop_ = true;
       pool->task_cv_.notify_all();
-      std::unique_lock<std::mutex> l(&cv_mutex_);
       done_cv_.wait(&l);
+      pool_->busy_workers_--;
+      pool_->total_workers_--;
     }
 
     std::mutex cv_mutex_;
     std::condition_variable done_cv_;
     ExecutionThreadPool *pool_;
     int cpu_id_;
+    ThreadStatus status = ThreadStatus::SWITCHING;
     numa_region_t numa_region_;
     std::atomic_bool exit_task_loop_ = false;
   };
