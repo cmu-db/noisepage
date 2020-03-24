@@ -3,6 +3,7 @@
 #include <limits>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "parser/expression/abstract_expression.h"
 #include "type/transient_value_factory.h"

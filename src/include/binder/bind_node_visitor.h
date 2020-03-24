@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "binder/binder_context.h"
 #include "binder/binder_sherpa.h"
@@ -15,13 +16,13 @@ namespace terrier {
 
 namespace parser {
 class SQLStatement;
+class AggregateExpression;
 class CaseExpression;
 class ConstantValueExpression;
 class ColumnValueExpression;
+class OperatorExpression;
 class SubqueryExpression;
 class StarExpression;
-class OperatorExpression;
-class AggregateExpression;
 }  // namespace parser
 
 namespace catalog {
@@ -29,6 +30,8 @@ class CatalogAccessor;
 }  // namespace catalog
 
 namespace binder {
+
+class BinderSherpa;
 
 /**
  * Interface to be notified of the composition of a bind node.
@@ -49,40 +52,47 @@ class BindNodeVisitor : public SqlNodeVisitor {
   void BindNameToNode(common::ManagedPointer<parser::ParseResult> parse_result,
                       common::ManagedPointer<std::vector<type::TransientValue>> parameters);
 
-  void Visit(common::ManagedPointer<parser::SelectStatement> node) override;
-  void Visit(common::ManagedPointer<parser::JoinDefinition> node) override;
-  void Visit(common::ManagedPointer<parser::TableRef> node) override;
-  void Visit(common::ManagedPointer<parser::GroupByDescription> node) override;
-  void Visit(common::ManagedPointer<parser::OrderByDescription> node) override;
-  void Visit(common::ManagedPointer<parser::LimitDescription> node) override;
-  void Visit(common::ManagedPointer<parser::CreateStatement> node) override;
+  void Visit(common::ManagedPointer<parser::AnalyzeStatement> node) override;
+  void Visit(common::ManagedPointer<parser::CopyStatement> node) override;
   void Visit(common::ManagedPointer<parser::CreateFunctionStatement> node) override;
-  void Visit(common::ManagedPointer<parser::InsertStatement> node) override;
+  void Visit(common::ManagedPointer<parser::CreateStatement> node) override;
   void Visit(common::ManagedPointer<parser::DeleteStatement> node) override;
   void Visit(common::ManagedPointer<parser::DropStatement> node) override;
-  void Visit(common::ManagedPointer<parser::PrepareStatement> node) override;
   void Visit(common::ManagedPointer<parser::ExecuteStatement> node) override;
+  void Visit(common::ManagedPointer<parser::ExplainStatement> node) override;
+  void Visit(common::ManagedPointer<parser::InsertStatement> node) override;
+  void Visit(common::ManagedPointer<parser::PrepareStatement> node) override;
+  void Visit(common::ManagedPointer<parser::SelectStatement> node) override;
   void Visit(common::ManagedPointer<parser::TransactionStatement> node) override;
   void Visit(common::ManagedPointer<parser::UpdateStatement> node) override;
-  void Visit(common::ManagedPointer<parser::CopyStatement> node) override;
-  void Visit(common::ManagedPointer<parser::AnalyzeStatement> node) override;
+  void Visit(common::ManagedPointer<parser::VariableSetStatement> node) override;
+
+  void Visit(common::ManagedPointer<parser::AggregateExpression> expr) override;
   void Visit(common::ManagedPointer<parser::CaseExpression> expr) override;
-  void Visit(common::ManagedPointer<parser::SubqueryExpression> expr) override;
-  void Visit(common::ManagedPointer<parser::ConstantValueExpression> expr) override;
-  void Visit(common::ManagedPointer<parser::ParameterValueExpression> expr) override;
   void Visit(common::ManagedPointer<parser::ColumnValueExpression> expr) override;
-  void Visit(common::ManagedPointer<parser::StarExpression> expr) override;
-  // TODO(Ling): implement this after we add support for function expression
+  void Visit(common::ManagedPointer<parser::ComparisonExpression> expr) override;
+  void Visit(common::ManagedPointer<parser::ConjunctionExpression> expr) override;
+  void Visit(common::ManagedPointer<parser::ConstantValueExpression> expr) override;
+  void Visit(common::ManagedPointer<parser::DefaultValueExpression> expr) override;
+  void Visit(common::ManagedPointer<parser::DerivedValueExpression> expr) override;
   void Visit(common::ManagedPointer<parser::FunctionExpression> expr) override;
   void Visit(common::ManagedPointer<parser::OperatorExpression> expr) override;
-  void Visit(common::ManagedPointer<parser::AggregateExpression> expr) override;
+  void Visit(common::ManagedPointer<parser::ParameterValueExpression> expr) override;
+  void Visit(common::ManagedPointer<parser::StarExpression> expr) override;
+  void Visit(common::ManagedPointer<parser::SubqueryExpression> expr) override;
   void Visit(common::ManagedPointer<parser::TypeCastExpression> expr) override;
 
+  void Visit(common::ManagedPointer<parser::GroupByDescription> node) override;
+  void Visit(common::ManagedPointer<parser::JoinDefinition> node) override;
+  void Visit(common::ManagedPointer<parser::LimitDescription> node) override;
+  void Visit(common::ManagedPointer<parser::OrderByDescription> node) override;
+  void Visit(common::ManagedPointer<parser::TableRef> node) override;
+
  private:
+  /** BinderSherpa which stores metadata (e.g. type information) across Visit calls. **/
+  std::unique_ptr<BinderSherpa> sherpa_ = nullptr;
   /** Current context of the query or subquery */
   common::ManagedPointer<BinderContext> context_ = nullptr;
-
-  std::unique_ptr<BinderSherpa> sherpa_ = nullptr;
 
   /** Catalog accessor */
   const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor_;

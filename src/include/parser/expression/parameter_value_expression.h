@@ -2,7 +2,6 @@
 #include <memory>
 #include <vector>
 
-#include "binder/binder_sherpa.h"
 #include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
 
@@ -68,19 +67,7 @@ class ParameterValueExpression : public AbstractExpression {
     return GetValueIdx() == other.GetValueIdx();
   }
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override {
-    const common::ManagedPointer<type::TransientValue> param =
-        common::ManagedPointer(&((*(sherpa->GetParameters()))[value_idx_]));
-
-    const auto desired_type =
-        sherpa->GetDesiredType(common::ManagedPointer(this).CastManagedPointerTo<AbstractExpression>());
-
-    sherpa->CheckAndTryPromoteType(param, desired_type);
-
-    return_value_type_ = param->Type();
-
-    v->Visit(common::ManagedPointer(this));
-  }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   /** @return expression serialized to json */
   nlohmann::json ToJson() const override {

@@ -58,7 +58,6 @@ class OrderByDescription {
   // TODO(WAN): no SQLStatement? maybe a Description base class?
   /**
    * @param v Visitor pattern for the statement
-   * @param sherpa The BinderSherpa for storing state through visitor pattern
    */
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) { v->Visit(common::ManagedPointer(this)); }
 
@@ -188,7 +187,6 @@ class LimitDescription {
   // TODO(WAN): not SQL statement?
   /**
    * @param v Visitor pattern for the statement
-   * @param sherpa The BinderSherpa for storing state through visitor pattern
    */
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) { v->Visit(common::ManagedPointer(this)); }
 
@@ -289,7 +287,6 @@ class GroupByDescription {
   /**
    * Visitor pattern for GroupByDescription.
    * @param v Visitor pattern for the statement
-   * @param sherpa The BinderSherpa for storing state through visitor pattern
    */
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) { v->Visit(common::ManagedPointer(this)); }
 

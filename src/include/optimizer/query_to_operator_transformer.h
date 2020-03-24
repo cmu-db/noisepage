@@ -50,25 +50,30 @@ class QueryToOperatorTransformer : public binder::SqlNodeVisitor {
       common::ManagedPointer<parser::SQLStatement> op, common::ManagedPointer<parser::ParseResult> parse_result,
       common::ManagedPointer<std::vector<type::TransientValue>> parameters);
 
-  void Visit(common::ManagedPointer<parser::SelectStatement> op) override;
-  void Visit(common::ManagedPointer<parser::TableRef> node) override;
-  void Visit(common::ManagedPointer<parser::JoinDefinition> node) override;
-  void Visit(common::ManagedPointer<parser::GroupByDescription> node) override;
-  void Visit(common::ManagedPointer<parser::OrderByDescription> node) override;
-  void Visit(common::ManagedPointer<parser::LimitDescription> node) override;
-  void Visit(common::ManagedPointer<parser::CreateStatement> op) override;
-  void Visit(common::ManagedPointer<parser::CreateFunctionStatement> op) override;
-  void Visit(common::ManagedPointer<parser::InsertStatement> op) override;
-  void Visit(common::ManagedPointer<parser::DeleteStatement> op) override;
-  void Visit(common::ManagedPointer<parser::DropStatement> op) override;
-  void Visit(common::ManagedPointer<parser::PrepareStatement> op) override;
-  void Visit(common::ManagedPointer<parser::ExecuteStatement> op) override;
-  void Visit(common::ManagedPointer<parser::TransactionStatement> op) override;
-  void Visit(common::ManagedPointer<parser::UpdateStatement> op) override;
-  void Visit(common::ManagedPointer<parser::CopyStatement> op) override;
-  void Visit(common::ManagedPointer<parser::AnalyzeStatement> op) override;
+  void Visit(common::ManagedPointer<parser::AnalyzeStatement> node) override;
+  void Visit(common::ManagedPointer<parser::CopyStatement> node) override;
+  void Visit(common::ManagedPointer<parser::CreateFunctionStatement> node) override;
+  void Visit(common::ManagedPointer<parser::CreateStatement> node) override;
+  void Visit(common::ManagedPointer<parser::DeleteStatement> node) override;
+  void Visit(common::ManagedPointer<parser::DropStatement> node) override;
+  void Visit(common::ManagedPointer<parser::ExecuteStatement> node) override;
+  void Visit(common::ManagedPointer<parser::ExplainStatement> node) override;
+  void Visit(common::ManagedPointer<parser::InsertStatement> node) override;
+  void Visit(common::ManagedPointer<parser::PrepareStatement> node) override;
+  void Visit(common::ManagedPointer<parser::SelectStatement> node) override;
+  void Visit(common::ManagedPointer<parser::TransactionStatement> node) override;
+  void Visit(common::ManagedPointer<parser::UpdateStatement> node) override;
+  void Visit(common::ManagedPointer<parser::VariableSetStatement> node) override;
+
   void Visit(common::ManagedPointer<parser::ComparisonExpression> expr) override;
   void Visit(common::ManagedPointer<parser::OperatorExpression> expr) override;
+
+  void Visit(common::ManagedPointer<parser::GroupByDescription> node) override;
+  void Visit(common::ManagedPointer<parser::JoinDefinition> node) override;
+  void Visit(common::ManagedPointer<parser::LimitDescription> node) override;
+  void Visit(common::ManagedPointer<parser::OrderByDescription> node) override;
+  void Visit(common::ManagedPointer<parser::TableRef> node) override;
+
 
  private:
   /**
@@ -151,6 +156,9 @@ class QueryToOperatorTransformer : public binder::SqlNodeVisitor {
 
   /** The output logical operator AST */
   std::unique_ptr<OperatorNode> output_expr_;
+
+  /** The parse result, because we end up creating new expressions that need to add to this. **/
+  common::ManagedPointer<parser::ParseResult> parse_result_;
 
   /** The catalog accessor object */
   const common::ManagedPointer<catalog::CatalogAccessor> accessor_;

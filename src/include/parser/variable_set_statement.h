@@ -17,7 +17,7 @@ class VariableSetStatement : public SQLStatement {
   VariableSetStatement() : SQLStatement(StatementType::VARIABLE_SET) {}
   ~VariableSetStatement() override = default;
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override {}
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 };
 }  // namespace parser
 }  // namespace terrier

@@ -46,8 +46,6 @@ class TypeCastExpression;
 
 namespace binder {
 
-class BinderSherpa;
-
 /**
  * Visitor pattern definitions for the parser statements.
  */
@@ -59,47 +57,16 @@ class SqlNodeVisitor {
   virtual ~SqlNodeVisitor() = default;
 
   /**
-   * Visitor pattern for SelectStatement.
+   * Visitor pattern for AnalyzeStatement.
    * @param node node to be visited
    */
-  virtual void Visit(common::ManagedPointer<parser::SelectStatement> node) {}
-
-  // Some sub query nodes inside SelectStatement
-  /**
-   * Visitor pattern for JoinDefinition.
-   * @param node node to be visited
-   */
-  virtual void Visit(common::ManagedPointer<parser::JoinDefinition> node) {}
+  virtual void Visit(common::ManagedPointer<parser::AnalyzeStatement> node) {}
 
   /**
-   * Visitor pattern for TableRef.
+   * Visitor pattern for CopyStatement.
    * @param node node to be visited
    */
-  virtual void Visit(common::ManagedPointer<parser::TableRef> node) {}
-
-  /**
-   * Visitor pattern for GroupByDescription.
-   * @param node node to be visited
-   */
-  virtual void Visit(common::ManagedPointer<parser::GroupByDescription> node) {}
-
-  /**
-   * Visitor pattern for OrderByDescription.
-   * @param node node to be visited
-   */
-  virtual void Visit(common::ManagedPointer<parser::OrderByDescription> node) {}
-
-  /**
-   * Visitor pattern for LimitDescription.
-   * @param node node to be visited
-   */
-  virtual void Visit(common::ManagedPointer<parser::LimitDescription> node) {}
-
-  /**
-   * Visitor pattern for CreateStatement.
-   * @param node node to be visited
-   */
-  virtual void Visit(common::ManagedPointer<parser::CreateStatement> node) {}
+  virtual void Visit(common::ManagedPointer<parser::CopyStatement> node) {}
 
   /**
    * Visitor pattern for CreateFunctionStatement.
@@ -108,10 +75,10 @@ class SqlNodeVisitor {
   virtual void Visit(common::ManagedPointer<parser::CreateFunctionStatement> node) {}
 
   /**
-   * Visitor pattern for InsertStatement.
+   * Visitor pattern for CreateStatement.
    * @param node node to be visited
    */
-  virtual void Visit(common::ManagedPointer<parser::InsertStatement> node) {}
+  virtual void Visit(common::ManagedPointer<parser::CreateStatement> node) {}
 
   /**
    * Visitor pattern for DeleteStatement.
@@ -126,16 +93,34 @@ class SqlNodeVisitor {
   virtual void Visit(common::ManagedPointer<parser::DropStatement> node) {}
 
   /**
+   * Visitor pattern for ExecuteStatement.
+   * @param node node to be visited
+   */
+  virtual void Visit(common::ManagedPointer<parser::ExecuteStatement> node) {}
+
+  /**
+   * Visitor pattern for ExplainStatement.
+   * @param node node to be visited
+   */
+  virtual void Visit(common::ManagedPointer<parser::ExplainStatement> node) {}
+
+  /**
+   * Visitor pattern for InsertStatement.
+   * @param node node to be visited
+   */
+  virtual void Visit(common::ManagedPointer<parser::InsertStatement> node) {}
+
+  /**
    * Visitor pattern for PrepareStatement.
    * @param node node to be visited
    */
   virtual void Visit(common::ManagedPointer<parser::PrepareStatement> node) {}
 
   /**
-   * Visitor pattern for ExecuteStatement.
+   * Visitor pattern for SelectStatement.
    * @param node node to be visited
    */
-  virtual void Visit(common::ManagedPointer<parser::ExecuteStatement> node) {}
+  virtual void Visit(common::ManagedPointer<parser::SelectStatement> node) {}
 
   /**
    * Visitor pattern for TransactionStatement.
@@ -150,22 +135,10 @@ class SqlNodeVisitor {
   virtual void Visit(common::ManagedPointer<parser::UpdateStatement> node) {}
 
   /**
-   * Visitor pattern for CopyStatement.
+   * Visitor pattern for VariableSetStatement
    * @param node node to be visited
    */
-  virtual void Visit(common::ManagedPointer<parser::CopyStatement> node) {}
-
-  /**
-   * Visitor pattern for AnalyzeStatement.
-   * @param node node to be visited
-   */
-  virtual void Visit(common::ManagedPointer<parser::AnalyzeStatement> node) {}
-
-  /**
-   * Visitor pattern for ExplainStatement.
-   * @param node node to be visited
-   */
-  virtual void Visit(common::ManagedPointer<parser::ExplainStatement> node) {}
+  virtual void Visit(common::ManagedPointer<parser::VariableSetStatement> node) {}
 
   /**
    * Visitor pattern for AggregateExpression
@@ -250,6 +223,41 @@ class SqlNodeVisitor {
    * @param expr to be visited
    */
   virtual void Visit(common::ManagedPointer<parser::TypeCastExpression> expr);
+
+  // START some sub query nodes inside SelectStatement
+
+  /**
+   * Visitor pattern for GroupByDescription.
+   * @param node node to be visited
+   */
+  virtual void Visit(common::ManagedPointer<parser::GroupByDescription> node) {}
+
+  /**
+   * Visitor pattern for JoinDefinition.
+   * @param node node to be visited
+   */
+  virtual void Visit(common::ManagedPointer<parser::JoinDefinition> node) {}
+
+  /**
+   * Visitor pattern for LimitDescription.
+   * @param node node to be visited
+   */
+  virtual void Visit(common::ManagedPointer<parser::LimitDescription> node) {}
+
+  /**
+   * Visitor pattern for OrderByDescription.
+   * @param node node to be visited
+   */
+  virtual void Visit(common::ManagedPointer<parser::OrderByDescription> node) {}
+
+  /**
+   * Visitor pattern for TableRef.
+   * @param node node to be visited
+   */
+  virtual void Visit(common::ManagedPointer<parser::TableRef> node) {}
+
+  // END some sub query nodes inside SelectStatement
 };
+
 }  // namespace binder
 }  // namespace terrier
