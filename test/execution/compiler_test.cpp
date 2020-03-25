@@ -66,7 +66,7 @@ class CompilerTest : public SqlBasedTest {
   }
 
   static constexpr vm::ExecutionMode MODE = vm::ExecutionMode::Interpret;
-}
+};
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleSeqScanTest) {
