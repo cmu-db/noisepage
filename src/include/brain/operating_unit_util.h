@@ -101,13 +101,13 @@ class OperatingUnitUtil {
         }
       }
       case parser::ExpressionType::OPERATOR_CONCAT: {
-      switch (type) {
-        case type::TypeId::VARCHAR:
-          return std::make_pair(type, ExecutionOperatingUnitType::OP_VARCHAR_CONCAT);
-        default:
-          return std::make_pair(type, ExecutionOperatingUnitType::INVALID);
+        switch (type) {
+          case type::TypeId::VARCHAR:
+            return std::make_pair(type, ExecutionOperatingUnitType::OP_VARCHAR_CONCAT);
+          default:
+            return std::make_pair(type, ExecutionOperatingUnitType::INVALID);
+        }
       }
-    }
       case parser::ExpressionType::AGGREGATE_MAX:
       case parser::ExpressionType::AGGREGATE_MIN:
       case parser::ExpressionType::COMPARE_EQUAL:

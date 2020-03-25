@@ -172,7 +172,7 @@ class AstNodeFactory {
    * @param pos source position
    * @param op concat operator
    * @param left lhs of the operator
-   * @param right rhs of the operator 
+   * @param right rhs of the operator
    * @param args arguments to the function
    * @return created ConcatOpExpr code
    */
