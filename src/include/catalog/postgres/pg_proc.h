@@ -11,6 +11,9 @@
 #include "transaction/transaction_context.h"
 #include "type/type_id.h"
 
+#define HIGHEST_BUILTIN_PROC_ID catalog::postgres::UPPER_PRO_OID
+#define IS_BUILTIN_PROC(x) (x < HIGHEST_BUILTIN_PROC_ID)
+
 namespace terrier::catalog::postgres {
 
 enum class ProArgModes : char { IN = 'i', OUT = 'o', INOUT = 'b', VARIADIC = 'v' };

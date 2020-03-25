@@ -353,6 +353,16 @@ class DatabaseCatalog {
                      const execution::udf::UDFContext *udf_context);
 
   /**
+   * Gets a udf context object for a given proc if it is null for a valid proc id then the udf context
+   * object is reconstructed, put in pg_proc and returned
+   * @param txn the transaction to use
+   * @param proc_oid the proc_oid we are querying here for the context object
+   * @return nullptr if proc_oid is invalid else a valid udf context object for this proc_oid
+   */
+  common::ManagedPointer<execution::udf::UDFContext> GetUDFContext(
+      const common::ManagedPointer<transaction::TransactionContext> txn, catalog::proc_oid_t proc_oid);
+
+  /**
    * Gets the proc context pointer column of proc_oid to udf_context
    * @param txn transaction to use
    * @param proc_oid The proc_oid whose pointer column we are getting here
@@ -578,10 +588,16 @@ class DatabaseCatalog {
   void BootstrapLanguages(common::ManagedPointer<transaction::TransactionContext> txn);
 
   /**
-   * Bootstraps the built-in procs found in pg_procs
+   * Bootstraps the built-in procs found in pg_proc
    * @param txn transaction to insert into catalog with
    */
   void BootstrapProcs(common::ManagedPointer<transaction::TransactionContext> txn);
+
+  /**
+   * Bootstraps the proc udf contexts in pg_proc
+   * @param txn transaction to insert into catalog with
+   */
+  void BootstrapProcContexts(const common::ManagedPointer<transaction::TransactionContext> txn);
 
   /**
    * Creates all of the ProjectedRowInitializers and ProjectionMaps for the catalog. These can be stashed because the

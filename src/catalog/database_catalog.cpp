@@ -1727,15 +1727,10 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   CreateProcedure(txn, postgres::ATAN2_PRO_OID, "atan2", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, dec_type}, {dec_type, dec_type}, {},
                   dec_type, "", true);
-  auto udf_context = new execution::udf::UDFContext("atan2", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
-                                                    execution::ast::Builtin::ATan2);
-  SetProcCtxPtr(txn, postgres::ATAN2_PRO_OID, udf_context);
 
 #define BOOTSTRAP_TRIG_FN(str_name, pro_oid, builtin)                                                                 \
   CreateProcedure(txn, pro_oid, str_name, postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, \
-                  {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", true);                                         \
-  udf_context = new execution::udf::UDFContext(str_name, type::TypeId::DECIMAL, {type::TypeId::DECIMAL}, builtin);    \
-  SetProcCtxPtr(txn, pro_oid, udf_context);
+                  {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
 
   // ACos
   BOOTSTRAP_TRIG_FN("acos", postgres::ACOS_PRO_OID, execution::ast::Builtin::ACos)
@@ -1766,14 +1761,45 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   CreateProcedure(txn, postgres::LOWER_PRO_OID, "lower", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
 
+  // TODO(tanujnay112): no op codes for lower and upper yet
+
+  BootstrapProcContexts(txn);
+}
+
+void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transaction::TransactionContext> txn) {
+  auto udf_context = new execution::udf::UDFContext("atan2", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
+                                                    execution::ast::Builtin::ATan2);
+  SetProcCtxPtr(txn, postgres::ATAN2_PRO_OID, udf_context);
+
+#define BOOTSTRAP_TRIG_FN(str_name, pro_oid, builtin)                                                              \
+  udf_context = new execution::udf::UDFContext(str_name, type::TypeId::DECIMAL, {type::TypeId::DECIMAL}, builtin); \
+  SetProcCtxPtr(txn, pro_oid, udf_context);
+
+  // ACos
+  BOOTSTRAP_TRIG_FN("acos", postgres::ACOS_PRO_OID, execution::ast::Builtin::ACos)
+
+  // ASin
+  BOOTSTRAP_TRIG_FN("asin", postgres::ASIN_PRO_OID, execution::ast::Builtin::ASin)
+
+  // ATan
+  BOOTSTRAP_TRIG_FN("atan", postgres::ATAN_PRO_OID, execution::ast::Builtin::ATan)
+
+  // cos
+  BOOTSTRAP_TRIG_FN("cos", postgres::COS_PRO_OID, execution::ast::Builtin::Cos)
+
+  // sin
+  BOOTSTRAP_TRIG_FN("sin", postgres::SIN_PRO_OID, execution::ast::Builtin::Sin)
+
+  // tan
+  BOOTSTRAP_TRIG_FN("tan", postgres::TAN_PRO_OID, execution::ast::Builtin::Tan)
+
+  // cot
+  BOOTSTRAP_TRIG_FN("cot", postgres::COT_PRO_OID, execution::ast::Builtin::Cot)
+#undef BOOTSTRAP_TRIG_FN
+
   udf_context = new execution::udf::UDFContext("lower", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
                                                execution::ast::Builtin::Lower);
   SetProcCtxPtr(txn, postgres::LOWER_PRO_OID, udf_context);
-
-  // TODO(tanujnay112): no op codes for lower and upper yet
-
-  CreateProcedure(txn, postgres::UPPER_PRO_OID, "upper", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
 }
 
 bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
@@ -1834,6 +1860,20 @@ common::ManagedPointer<execution::udf::UDFContext> DatabaseCatalog::GetProcCtxPt
 
   delete[] buffer;
   return common::ManagedPointer<execution::udf::UDFContext>(ptr);
+}
+
+common::ManagedPointer<execution::udf::UDFContext> DatabaseCatalog::GetUDFContext(
+    const common::ManagedPointer<transaction::TransactionContext> txn, catalog::proc_oid_t proc_oid) {
+  auto udf_ctx = GetProcCtxPtr(txn, proc_oid);
+  if (udf_ctx == nullptr) {
+    if (IS_BUILTIN_PROC(proc_oid)) {
+      BootstrapProcContexts(txn);
+    } else {
+      UNREACHABLE("We don't support dynamically added udf's yet");
+    }
+    udf_ctx = GetProcCtxPtr(txn, proc_oid);
+  }
+  return udf_ctx;
 }
 
 bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,

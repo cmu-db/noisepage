@@ -1,6 +1,8 @@
 #include "execution/compiler/expression/function_translator.h"
 #include "execution/compiler/translator_factory.h"
 #include "execution/sql/value.h"
+#include "execution/udf/udf_context.h"
+
 #include "parser/expression/function_expression.h"
 #include "type/transient_value_peeker.h"
 
@@ -14,7 +16,7 @@ FunctionTranslator::FunctionTranslator(const terrier::parser::AbstractExpression
 
 ast::Expr *FunctionTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
   auto proc_oid = GetExpressionAs<parser::FunctionExpression>()->GetProcOid();
-  auto udf_ctx = codegen_->Accessor()->GetProcCtxPtr(proc_oid);
+  auto udf_ctx = codegen_->Accessor()->GetUDFContext(proc_oid);
   if (!udf_ctx->IsBuiltin()) {
     UNREACHABLE("We don't support non-builtin UDF's yet!");
   }

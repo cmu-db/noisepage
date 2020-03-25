@@ -174,6 +174,10 @@ common::ManagedPointer<execution::udf::UDFContext> CatalogAccessor::GetProcCtxPt
   return dbc_->GetProcCtxPtr(txn_, proc_oid);
 }
 
+common::ManagedPointer<execution::udf::UDFContext> CatalogAccessor::GetUDFContext(proc_oid_t proc_oid) {
+  return dbc_->GetUDFContext(txn_, proc_oid);
+}
+
 type_oid_t CatalogAccessor::GetTypeOidFromTypeId(type::TypeId type) { return dbc_->GetTypeOidForType(type); }
 
 common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() const {

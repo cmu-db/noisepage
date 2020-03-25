@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 #include "execution/ast/builtins.h"
 #include "type/type_id.h"
