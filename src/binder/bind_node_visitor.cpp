@@ -535,11 +535,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::FunctionExpression> e
     throw BINDER_EXCEPTION("Procedure not registered");
   }
 
-  auto udf_context = catalog_accessor_->GetProcCtxPtr(proc_oid);
-  if (udf_context == nullptr) {
-    // TODO(tanujnay112): clarify/think more about what to do here
-    throw BINDER_EXCEPTION("Procedure not compiled?");
-  }
+  auto udf_context = catalog_accessor_->GetUDFContext(proc_oid);
 
   expr->SetProcOid(proc_oid);
   expr->SetReturnValueType(udf_context->GetFunctionReturnType());
