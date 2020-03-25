@@ -25,7 +25,7 @@ class ConnectionHandleFactory;
  * Then all related client events are registered in the handler task.
  * All client interaction happens on the same ConnectionHandlerTask thread for the entire lifetime of the connection.
  */
-class dConnectionHandlerTask : public common::NotifiableTask {
+class ConnectionHandlerTask : public common::NotifiableTask {
  public:
   /**
    * Constructs a new ConnectionHandlerTask instance.
