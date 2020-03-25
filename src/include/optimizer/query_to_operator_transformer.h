@@ -74,7 +74,6 @@ class QueryToOperatorTransformer : public binder::SqlNodeVisitor {
   void Visit(common::ManagedPointer<parser::OrderByDescription> node) override;
   void Visit(common::ManagedPointer<parser::TableRef> node) override;
 
-
  private:
   /**
    * Walk through an expression, split it into a set of predicates that could be joined by conjunction.
