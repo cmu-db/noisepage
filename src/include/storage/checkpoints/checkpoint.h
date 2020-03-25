@@ -1,0 +1,54 @@
+#pragma once
+
+#include <string>
+
+#include <catalog/catalog.h>
+#include <common/managed_pointer.h>
+#include "catalog/postgres/builder.h"
+#include "catalog/postgres/pg_attribute.h"
+#include "catalog/postgres/pg_constraint.h"
+#include "catalog/postgres/pg_database.h"
+#include "catalog/postgres/pg_index.h"
+#include "storage/sql_table.h"
+#include "transaction/transaction_manager.h"
+
+namespace terrier::storage {
+
+class Checkpoint {
+ public:
+  Checkpoint(const common::ManagedPointer<catalog::Catalog> catalog,
+             const common::ManagedPointer<BlockStore> store,
+             const common::ManagedPointer<transaction::TransactionContext> txn)
+  :catalog_(catalog), block_store_(store), txn_(txn){
+    // Initialize catalog_table_schemas_ map
+    catalog_table_schemas_[catalog::postgres::CLASS_TABLE_OID] = catalog::postgres::Builder::GetClassTableSchema();
+    catalog_table_schemas_[catalog::postgres::NAMESPACE_TABLE_OID] =
+        catalog::postgres::Builder::GetNamespaceTableSchema();
+    catalog_table_schemas_[catalog::postgres::COLUMN_TABLE_OID] = catalog::postgres::Builder::GetColumnTableSchema();
+    catalog_table_schemas_[catalog::postgres::CONSTRAINT_TABLE_OID] =
+        catalog::postgres::Builder::GetConstraintTableSchema();
+    catalog_table_schemas_[catalog::postgres::INDEX_TABLE_OID] = catalog::postgres::Builder::GetIndexTableSchema();
+    catalog_table_schemas_[catalog::postgres::TYPE_TABLE_OID] = catalog::postgres::Builder::GetTypeTableSchema();
+  }
+
+
+  void take_checkpoint(const std::string &path);
+
+
+
+
+ private:
+  // Catalog to fetch table pointers
+  const common::ManagedPointer<catalog::Catalog> catalog_;
+  const common::ManagedPointer<BlockStore> block_store_;
+  const common::ManagedPointer<transaction::TransactionContext> txn_;
+  std::unordered_map<catalog::table_oid_t, catalog::Schema> catalog_table_schemas_;
+
+  bool write_to_disk(const std::string &path);
+
+
+}; // class checkpoint
+
+
+
+} // namespace terrier::storage
