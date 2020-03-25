@@ -556,6 +556,21 @@ void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin
   }
 }
 
+void BytecodeGenerator::VisitBuiltinDateFunctionCall(ast::CallExpr *call, ast::Builtin builtin) {
+  ast::Context *ctx = call->GetType()->GetContext();
+  switch (builtin) {
+    case ast::Builtin::ExtractYear: {
+      auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
+      auto input = VisitExpressionForRValue(call->Arguments()[0]);
+      Emitter()->Emit(Bytecode::ExtractYear, dest, input);
+      break;
+    }
+    default: {
+      UNREACHABLE("Impossible Date function call");
+    }
+  }
+}
+
 void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) {
   ast::Context *ctx = call->GetType()->GetContext();
 
@@ -2047,6 +2062,10 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::StringToSql:
     case ast::Builtin::SqlToBool: {
       VisitSqlConversionCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::ExtractYear: {
+      VisitBuiltinDateFunctionCall(call, builtin);
       break;
     }
     case ast::Builtin::FilterEq:
