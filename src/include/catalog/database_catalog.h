@@ -360,7 +360,7 @@ class DatabaseCatalog {
    * @return nullptr if proc_oid is invalid else a valid udf context object for this proc_oid
    */
   common::ManagedPointer<execution::udf::UDFContext> GetUDFContext(
-        common::ManagedPointer<transaction::TransactionContext> txn, catalog::proc_oid_t proc_oid);
+      common::ManagedPointer<transaction::TransactionContext> txn, catalog::proc_oid_t proc_oid);
 
   /**
    * Gets the proc context pointer column of proc_oid to udf_context
