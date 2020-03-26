@@ -173,6 +173,9 @@ namespace terrier::execution::vm {
   F(FilterManagerRunFilters, OperandType::Local, OperandType::Local)                                                  \
   F(FilterManagerFree, OperandType::Local)                                                                            \
                                                                                                                       \
+  /* Date functions */                                                                                                \
+  F(ExtractYear, OperandType::Local, OperandType::Local)                                                              \
+                                                                                                                      \
   /* SQL type comparisons */                                                                                          \
   F(ForceBoolTruth, OperandType::Local, OperandType::Local)                                                           \
   F(InitSqlNull, OperandType::Local)                                                                                  \

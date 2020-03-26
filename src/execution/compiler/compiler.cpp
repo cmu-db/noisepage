@@ -60,7 +60,7 @@ ast::File *Compiler::Compile() {
     auto pipeline_idx = pipeline_cnt++;
 
     // Record features
-    brain::OperatingUnitRecorder recorder;
+    brain::OperatingUnitRecorder recorder(common::ManagedPointer(codegen_->Accessor()));
     auto &translators = pipeline->GetTranslators();
     auto features = recorder.RecordTranslators(translators);
     codegen_->GetPipelineOperatingUnits()->RecordOperatingUnit(pipeline_idx, std::move(features));
