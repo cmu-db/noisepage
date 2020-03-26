@@ -653,7 +653,7 @@ TEST_F(OperatorTransformerTest, SelectStatementStarNestedSelectTest) {
   OPTIMIZER_LOG_DEBUG("Checking STAR expression in nested select from.");
 
   std::string select_sql =
-      "SELECT * FROM A LEFT OUTER JOIN (SELECT * FROM B INNER JOIN A ON B1 = A1) AS C ON C.B2 = a.A1";
+      "SELECT * FROM A LEFT OUTER JOIN (SELECT * FROM B INNER JOIN A ON B1 = A1) AS C ON C.B1 = a.A1";
 
   std::string ref =
       "{\"Op\":\"LogicalLeftJoin\",\"Children\":"
@@ -695,7 +695,7 @@ TEST_F(OperatorTransformerTest, SelectStatementNestedColumnTest) {
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementDiffTableSameSchemaTest) {
   // Test select from different table instances from the same physical schema
-  std::string select_sql = "SELECT * FROM A, A as AA where A.a1 = AA.a2";
+  std::string select_sql = "SELECT * FROM A, A as AA where A.a1 = AA.a1";
 
   std::string ref =
       "{\"Op\":\"LogicalFilter\",\"Children\":"
