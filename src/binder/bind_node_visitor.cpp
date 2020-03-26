@@ -649,8 +649,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ParameterValueExpress
   const common::ManagedPointer<type::TransientValue> param =
       common::ManagedPointer(&((*(sherpa_->GetParameters()))[expr->GetValueIdx()]));
 
-  const auto desired_type =
-      sherpa_->GetDesiredType(common::ManagedPointer(this).CastManagedPointerTo<parser::AbstractExpression>());
+  const auto desired_type = sherpa_->GetDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>());
 
   sherpa_->CheckAndTryPromoteType(param, desired_type);
 
