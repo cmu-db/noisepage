@@ -1,0 +1,31 @@
+.\" t
+.\" Copyright 2005-2007 Christoph Lameter, Silicon Graphics, Inc.
+.\"
+.\" based on Andi Kleen's numactl manpage
+.\"
+.TH MIGSPEED 8 "April 2005" "SGI" "Linux Administrator's Manual"
+.SH NAME
+migspeed \- Test the speed of page migration
+.SH SYNOPSIS
+.B migspeed
+-p pages from-nodes to-nodes
+.SH DESCRIPTION
+.B migspeed
+attempts to move a sample of pages from the indicated node to the target node
+and measures the time it takes to perform the move.
+
+.B -p pages
+
+The default sample is 1000 pages. Override that with another number.
+
+.SH NOTES
+Requires an NUMA policy aware kernel with support for page migration
+(Linux 2.6.16 and later).
+
+.SH COPYRIGHT
+Copyright 2007 Christoph Lameter, Silicon Graphics, Inc.
+migratepages is under the GNU General Public License, v.2
+
+.SH SEE ALSO
+.I numactl(8)
+
