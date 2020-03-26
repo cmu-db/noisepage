@@ -197,24 +197,24 @@ class ExecutionThreadPool {
   std::mutex task_lock_;
   std::condition_variable task_cv_;
 
-  void AddThread(common::ManagedPointer<TerrierThread> thread) {
+  void AddThread(TerrierThread* thread) {
     common::SharedLatch::ScopedExclusiveLatch l(&array_latch_);
     total_workers_++;
-    auto *vector = &workers_[static_cast<int16_t>(thread.operator->().numa_region_)]
+    auto *vector = &workers_[static_cast<int16_t>(thread->numa_region_)]
     vector->emplace_back(thread.operator->());
   }
-  void RemoveThread(common::ManagedPointer<TerrierThread> thread) {
+  void RemoveThread(TerrierThread* thread) {
     common::SharedLatch::ScopedExclusiveLatch l(&array_latch_);
-    auto *vector = &workers_[static_cast<int16_t>(thread.operator->().numa_region_)]
+    auto *vector = &workers_[static_cast<int16_t>(thread->numa_region_)]
     vector->remove(vector->begin(), vector->end(), thread.operator->());
   }
-  bool OnThreadRemoval(common::ManagedPointer<TerrierThread> thread) {
+  bool OnThreadRemoval(TerrierThread* thread) {
     // we dont want to deplete a numa region while other numa regions have multiple threads to prevent starvation
     // on the queue for this region
     if (shutting_down_) return true;
 
     common::SharedLatch::ScopedSharedLatch l(&array_latch_);
-    auto *vector = &workers_[static_cast<int16_t>(thread.operator->().numa_region_)]
+    auto *vector = &workers_[static_cast<int16_t>(thread->numa_region_)]
     TERRIER_ASSERT(!vector->empty(), "if this thread is potentially being closed it must be tracked");
     // if there is another thread running in this numa region
     if (vector->size() > 1) return true;
