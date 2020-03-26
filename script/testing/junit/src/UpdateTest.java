@@ -18,7 +18,7 @@ public class UpdateTest extends TestUtility {
     private ResultSet rs;
 
     /**
-     * Setup for each test, make the default connection.
+     * Setup for each test, make the default connection
      */
     @Before
     public void setup() throws SQLException {
