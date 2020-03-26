@@ -1,0 +1,5 @@
+#!/bin/sh
+# print names of all functions listed in numa.3
+# no globals
+
+grep '^\.BI.*numa.*(' numa.3  | sed -e 's/.*\(numa_.*\)(.*/\1/'

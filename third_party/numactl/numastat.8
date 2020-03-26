@@ -1,0 +1,160 @@
+.TH "numastat" "8" "1.0.0" "Bill Gray" "Administration"
+.SH NAME
+.LP
+\fBnumastat\fP \- Show per-NUMA-node memory statistics for processes and the operating system
+.SH "SYNTAX"
+.LP
+\fBnumastat\fP
+.br
+.LP
+\fBnumastat\fP [\fI\-V\fP]
+.br
+.LP
+\fBnumastat\fP [\fI\<PID>|<pattern>...\fP]
+.br
+.LP
+\fBnumastat\fP [\fI\-c\fP] [\fI\-m\fP] [\fI\-n\fP] [\fI\-p <PID>|<pattern>\fP] [\fI\-s[<node>]\fP] [\fI\-v\fP] [\fI\-z\fP] [\fI\<PID>|<pattern>...\fP]
+.br
+.SH "DESCRIPTION"
+.LP
+.B numastat 
+with no command options or arguments at all, displays per-node NUMA hit and
+miss system statistics from the kernel memory allocator.  This default
+\fBnumastat\fP behavior is strictly compatible with the previous long-standing
+\fBnumastat\fP perl script, written by Andi Kleen.  The default \fBnumastat\fP
+statistics shows per-node numbers (in units of pages of memory) in these categories:
+.LP
+.B numa_hit 
+is memory successfully allocated on this node as intended.
+.LP
+.B numa_miss
+is memory allocated on this node despite the process preferring some different node. Each
+.I numa_miss
+has a
+.I numa_foreign
+on another node.
+.LP
+.B numa_foreign
+is memory intended for this node, but actually allocated on some different node.  Each
+.I numa_foreign
+has a
+.I numa_miss
+on another node.
+.LP
+.B interleave_hit
+is interleaved memory successfully allocated on this node as intended.
+.LP
+.B local_node
+is memory allocated on this node while a process was running on it.
+.LP
+.B other_node
+is memory allocated on this node while a process was running on some other node.
+.LP
+Any supplied options or arguments with the \fBnumastat\fP command will
+significantly change both the content and the format of the display.  Specified
+options will cause display units to change to megabytes of memory, and will
+change other specific behaviors of \fBnumastat\fP as described below.
+.LP
+Memory usage information reflects the resident pages on the system.
+.SH "OPTIONS"
+.LP
+.TP
+\fB\-c\fR
+Minimize table display width by dynamically shrinking column widths based on
+data contents.  With this option, amounts of memory will be rounded to the
+nearest megabyte (rather than the usual display with two decimal places).
+Column width and inter-column spacing will be somewhat unpredictable with this
+option, but the more dense display will be very useful on systems with many
+NUMA nodes.
+.TP
+\fB\-m\fR
+Show the meminfo-like system-wide memory usage information.  This option
+produces a per-node breakdown of memory usage information similar to that found
+in /proc/meminfo.
+.TP
+\fB\-n\fR
+Show the original \fBnumastat\fP statistics info.  This will show the same
+information as the default \fBnumastat\fP behavior but the units will be megabytes of
+memory, and there will be other formatting and layout changes versus the
+original \fBnumastat\fP behavior.
+.TP
+\fB\-p\fR <\fBPID\fP> or <\fBpattern\fP>
+Show per-node memory allocation information for the specified PID or pattern.
+If the \-p argument is only digits, it is assumed to be a numerical PID.  If
+the argument characters are not only digits, it is assumed to be a text
+fragment pattern to search for in process command lines.  For example,
+\fBnumastat -p qemu\fP will attempt to find and show information for processes
+with "qemu" in the command line.  Any command line arguments remaining after
+\fBnumastat\fP option flag processing is completed, are assumed to be
+additional <\fBPID\fP> or <\fBpattern\fP> process specifiers.  In this sense,
+the \fB\-p\fP option flag is optional: \fBnumastat qemu\fP is equivalent to
+\fBnumastat -p qemu\fP
+.TP
+\fB\-s[<node>]\fR
+Sort the table data in descending order before displaying it, so the biggest
+memory consumers are listed first.  With no specified <node>, the table will be
+sorted by the total column.  If the optional <node> argument is supplied, the
+data will be sorted by the <node> column.  Note that <node> must follow the
+\fB\-s\fP immediately with no intermediate white space (e.g., \fBnumastat
+\-s2\fP). Because \fB\-s\fP can allow an optional argument, it must always be
+the last option character in a compound option character string. For example,
+instead of \fBnumastat \-msc\fP (which probably will not work as you expect),
+use \fBnumastat \-mcs\fP
+.TP
+\fB\-v\fR
+Make some reports more verbose.  In particular, process information for
+multiple processes will display detailed information for each process.
+Normally when per-node information for multiple processes is displayed, only
+the total lines are shown.
+.TP
+\fB\-V\fR
+Display \fBnumastat\fP version information and exit.
+.TP
+\fB\-z\fR
+Skip display of table rows and columns of only zero valuess.  This can be used
+to greatly reduce the amount of uninteresting zero data on systems with many
+NUMA nodes.  Note that when rows or columns of zeros are still displayed with
+this option, that probably means there is at least one value in the row or
+column that is actually non-zero, but rounded to zero for display.
+.SH NOTES 
+\fBnumastat\fP attempts to fold each table display so it will be conveniently
+readable on the output terminal.  Normally a terminal width of 80 characters is
+assumed.  When the \fBresize\fP command is available, \fBnumastat\fP attempts
+to dynamically determine and fine tune the output tty width from \fBresize\fP
+output.  If \fBnumastat\fP output is not to a tty, very long output lines can
+be produced, depending on how many NUMA nodes are present.  In all cases,
+output width can be explicitly specified via the \fBNUMASTAT_WIDTH\fP
+environment variable.  For example, \fBNUMASTAT_WIDTH=100  numastat\fP.  On
+systems with many NUMA nodes, \fBnumastat \-c \-z ....\fP can be very helpful
+to selectively reduce the amount of displayed information.
+.SH "ENVIRONMENT VARIABLES"
+.LP
+.TP
+NUMASTAT_WIDTH
+.SH "FILES"
+.LP
+\fI/proc/*/numa_maps\fP
+.br
+\fI/sys/devices/system/node/node*/meminfo\fP
+.br
+\fI/sys/devices/system/node/node*/numastat\fP
+.SH "EXAMPLES"
+.I numastat \-c \-z \-m \-n
+.br
+.I numastat \-czs libvirt kvm qemu
+.br
+.I watch \-n1 numastat
+.br
+.I watch \-n1 \-\-differences=cumulative numastat
+.SH "AUTHORS"
+.LP
+The original \fBnumastat\fP perl script was written circa 2003 by Andi Kleen
+<andi.kleen@intel.com>.  The current \fBnumastat\fP program was written in 2012
+by Bill Gray <bgray@redhat.com> to be compatible by default with the original,
+and to add options to display per-node system memory usage and per-node process
+memory allocation.
+.SH "SEE ALSO"
+.LP
+.BR numactl (8),
+.BR set_mempolicy( 2),
+.BR numa (3)
