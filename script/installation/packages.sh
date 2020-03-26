@@ -128,6 +128,8 @@ install_linux() {
       sqlite3 \
       libsqlite3-dev \
       ant \
+	    numactl \
+	    libnuma-dev \
       wget \
       python3-pip
 
