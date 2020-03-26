@@ -29,7 +29,11 @@ public class UpdateTest extends TestUtility {
             DumpSQLException(e);
         }
     }
-    
+
+    /**
+     * Cleanup for each test, execute after each test
+     * drop the default table and close connection
+     */
     @After
     public void teardown() throws SQLException {
         try {
