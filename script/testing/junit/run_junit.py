@@ -81,6 +81,7 @@ class RunJunit:
             except:
                 time.sleep(0.1)
                 continue
+        self._print_output(self.db_server_output_file)
         self._stop_db_server()
         raise RuntimeError("test connection time out")
         return
