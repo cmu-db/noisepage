@@ -1333,6 +1333,7 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
   std::vector<storage::SqlTable *> tables;
   std::vector<IndexSchema *> index_schemas;
   std::vector<storage::index::Index *> indexes;
+  std::vector<execution::udf::UDFContext *> udf_contexts;
 
   // pg_class (schemas & objects) [this is the largest projection]
   const std::vector<col_oid_t> pg_class_oids{postgres::RELKIND_COL_OID, postgres::REL_SCHEMA_COL_OID,
@@ -1387,9 +1388,28 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
     }
   }
 
+  // pg_proc (udf_contexts)
+  const std::vector<col_oid_t> pg_proc_contexts{postgres::PRO_CTX_PTR_COL_OID};
+  pci = procs_->InitializerForProjectedColumns(pg_proc_contexts, 100);
+  pc = pci.Initialize(buffer);
+
+  auto ctxts = reinterpret_cast<execution::udf::UDFContext **>(pc->ColumnStart(0));
+
+  table_iter = procs_->begin();
+  while (table_iter != procs_->end()) {
+    procs_->Scan(txn, &table_iter, pc);
+
+    for (uint i = 0; i < pc->NumTuples(); i++) {
+      if (ctxts[i] == nullptr) {
+        continue;
+      }
+      udf_contexts.emplace_back(ctxts[i]);
+    }
+  }
+
   auto dbc_nuke = [=, garbage_collector{garbage_collector_}, tables{std::move(tables)}, indexes{std::move(indexes)},
                    table_schemas{std::move(table_schemas)}, index_schemas{std::move(index_schemas)},
-                   expressions{std::move(expressions)}]() {
+                   expressions{std::move(expressions)}, udf_contexts{std::move(udf_contexts)}]() {
     for (auto table : tables) delete table;
 
     for (auto index : indexes) {
@@ -1404,6 +1424,8 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
     for (auto schema : index_schemas) delete schema;
 
     for (auto expr : expressions) delete expr;
+
+    for (auto udf_ctxt : udf_contexts) delete udf_ctxt;
   };
 
   // No new transactions can see these object but there may be deferred index
@@ -2478,10 +2500,12 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
 
   delete[] buffer;
 
-  txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-    deferred_action_manager->RegisterDeferredAction(
-        [=]() { deferred_action_manager->RegisterDeferredAction([=]() { delete ctx_ptr; }); });
-  });
+  if (ctx_ptr != nullptr) {
+    txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
+      deferred_action_manager->RegisterDeferredAction(
+          [=]() { deferred_action_manager->RegisterDeferredAction([=]() { delete ctx_ptr; }); });
+    });
+  }
   return true;
 }
 
