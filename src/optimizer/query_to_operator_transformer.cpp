@@ -33,8 +33,7 @@ QueryToOperatorTransformer::QueryToOperatorTransformer(
 }
 
 std::unique_ptr<OperatorNode> QueryToOperatorTransformer::ConvertToOpExpression(
-    const common::ManagedPointer<parser::SQLStatement> op, common::ManagedPointer<parser::ParseResult> parse_result,
-    const common::ManagedPointer<std::vector<type::TransientValue>> parameters) {
+    const common::ManagedPointer<parser::SQLStatement> op, common::ManagedPointer<parser::ParseResult> parse_result) {
   output_expr_ = nullptr;
   parse_result_ = parse_result;
 

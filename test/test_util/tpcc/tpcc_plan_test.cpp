@@ -102,8 +102,7 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
   auto *binder = new binder::BindNodeVisitor(common::ManagedPointer(accessor), db_);
   binder->BindNameToNode(common::ManagedPointer(stmt_list.get()), nullptr);
   auto *transformer = new optimizer::QueryToOperatorTransformer(common::ManagedPointer(accessor), db_);
-  auto plan =
-      transformer->ConvertToOpExpression(stmt_list->GetStatement(0), common::ManagedPointer(stmt_list.get()), nullptr);
+  auto plan = transformer->ConvertToOpExpression(stmt_list->GetStatement(0), common::ManagedPointer(stmt_list.get()));
   delete binder;
   delete transformer;
 
