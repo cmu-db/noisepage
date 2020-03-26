@@ -82,8 +82,7 @@ class RunJunit:
                 time.sleep(0.1)
                 continue
         # self._stop_db_server()
-        print("--- %s seconds ---" % (time.time() - start_time))
-        print('DBMS fails to start up in 15s')
+        raise RuntimeError("test connection time out")
         return
 
     def _stop_db_server(self):
