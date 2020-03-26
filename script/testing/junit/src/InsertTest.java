@@ -51,9 +51,9 @@ public class InsertTest extends TestUtility {
     @Before
     public void setup() throws SQLException {
         try {
-                    conn = makeDefaultConnection();
-        conn.setAutoCommit(true);
-        initDatabase();
+            conn = makeDefaultConnection();
+            conn.setAutoCommit(true);
+            initDatabase();
         } catch (SQLException e) {
             DumpSQLException(e);
         }
