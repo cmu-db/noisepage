@@ -68,11 +68,11 @@ class RunJunit:
     def _wait_for_db_server(self):
         """ Wait for the db_server server to come up.
         """
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # max wait of 15s in 0.1s increments
         start_time = time.time()
         for i in range(150):
             try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 s.connect((self.db_server_host, self.db_server_port))
                 s.close()
                 print ("connected to server in {} seconds".format(i*0.1))

@@ -22,8 +22,23 @@ public class UpdateTest extends TestUtility {
      */
     @Before
     public void setup() throws SQLException {
-        conn = makeDefaultConnection();
-        conn.setAutoCommit(true);
+        try {
+            conn = makeDefaultConnection();
+            conn.setAutoCommit(true);
+        } catch (SQLException e) {
+            DumpSQLException(e);
+        }
+    }
+    
+    @After
+    public void teardown() throws SQLException {
+        try {
+            if (conn != null) {
+                conn.close();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     /*
