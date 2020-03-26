@@ -62,7 +62,7 @@ public class SelectTest extends TestUtility {
 
     /**
      * Cleanup for each test, execute after each test
-     * drop the default table
+     * drop the default table and close connection
      */
     @After
     public void teardown() throws SQLException {
