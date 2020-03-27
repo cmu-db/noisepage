@@ -16,6 +16,7 @@
 #include "execution/vm/module.h"
 #include "network/connection_context.h"
 #include "network/postgres/postgres_packet_writer.h"
+#include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
@@ -293,9 +294,10 @@ void TrafficCop::ExecuteStatement(const common::ManagedPointer<network::Connecti
   // Try to bind the parsed statement
   if (BindStatement(connection_ctx, out, parse_result, query_type)) {
     // Binding succeeded, optimize to generate a physical plan and then execute
-    auto physical_plan =
-        trafficcop::TrafficCopUtil::Optimize(connection_ctx->Transaction(), connection_ctx->Accessor(), parse_result,
-                                             connection_ctx->GetDatabaseOid(), stats_storage_, optimizer_timeout_);
+    auto cost_model = std::make_unique<optimizer::TrivialCostModel>();
+    auto physical_plan = trafficcop::TrafficCopUtil::Optimize(
+        connection_ctx->Transaction(), connection_ctx->Accessor(), parse_result, connection_ctx->GetDatabaseOid(),
+        stats_storage_, std::move(cost_model), optimizer_timeout_);
 
     // This logic relies on ordering of values in the enum's definition and is documented there as well.
     if (query_type <= network::QueryType::QUERY_DELETE) {
