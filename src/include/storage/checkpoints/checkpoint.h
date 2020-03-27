@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-
+#include <mutex>
 #include <catalog/catalog.h>
 #include <common/managed_pointer.h>
 #include "catalog/postgres/builder.h"
@@ -32,7 +32,7 @@ class Checkpoint {
   }
 
 
-  void take_checkpoint(const std::string &path);
+  bool TakeCheckpoint(const std::string &path);
 
 
 
@@ -43,8 +43,10 @@ class Checkpoint {
   const common::ManagedPointer<BlockStore> block_store_;
   const common::ManagedPointer<transaction::TransactionContext> txn_;
   std::unordered_map<catalog::table_oid_t, catalog::Schema> catalog_table_schemas_;
+  std::vector<catalog::table_oid_t> queue; // for multithreading
+  std::mutex queue_latch;
 
-  bool write_to_disk(const std::string &path);
+  void WriteToDisk(const std::string &path, const std::unique_ptr<catalog::CatalogAccessor> &accessor, catalog::db_oid_t db_oid);
 
 
 }; // class checkpoint
