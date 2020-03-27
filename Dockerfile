@@ -23,6 +23,8 @@ RUN apt-get -y update && \
       llvm-8 \
       pkg-config \
       postgresql-client \
+      sqlite3 \
+      libsqlite3-dev \
 	  ant \
 	  numactl \
 	  libnuma-dev && \
