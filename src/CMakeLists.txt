@@ -58,10 +58,6 @@ list(APPEND TERRIER_SRCS ${XXHASH_SOURCES})
 file(GLOB_RECURSE LIBCUCKOO_SOURCES ${PROJECT_SOURCE_DIR}/third_party/libcuckoo/*.hh)
 list(APPEND TERRIER_SRCS ${LIBCUCKOO_SOURCES})
 
-# numa
-file(GLOB_RECURSE NUMA_SOURCES ${PROJECT_SOURCE_DIR}/third_party/numactl/*.h)
-list(APPEND TERRIER_SRCS ${NUMA_SOURCES})
-
 ###############################################
 # Terrier library
 ###############################################
