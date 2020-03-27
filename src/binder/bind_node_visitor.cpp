@@ -69,28 +69,28 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
   for (auto &select_element : node->GetSelectColumns()) {
     if (select_element->GetExpressionType() == parser::ExpressionType::STAR) {
       constexpr auto empty_table_name = "";
-      context_->GenerateAllColumnExpressions(parse_result, &new_select_list, empty_table_name);
+      context_->GenerateAllColumnExpressions(sherpa->GetParseResult().Get(), &new_select_list, empty_table_name);
       continue;
     }
 
     // Check if there is a table qualifier with a star expression
     if (select_element->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-      auto *expr = static_cast<parser::ColumnValueExpression *>(select_element.Get());
+      auto expr = common::ManagedPointer(static_cast<parser::ColumnValueExpression *>(select_element.Get()));
       std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple;
       std::string table_name = expr->GetTableName();
       std::string col_name = expr->GetColumnName();
       if (col_name == "*") {
-        if (context_ != nullptr && context_->GetRegularTableObj(table_name, expr, &tuple)) {
+        if (context_ != nullptr && context_->GetRegularTableObj(table_name, expr, common::ManagedPointer(&tuple))) {
           if (!BinderContext::ColumnInSchema(std::get<2>(tuple), col_name)) {
             // Valid star qualifier, populate columns
-            context_->GenerateAllColumnExpressions(parse_result, &new_select_list, table_name);
+            context_->GenerateAllColumnExpressions(sherpa->GetParseResult().Get(), &new_select_list, table_name);
             continue;
           }
           throw BINDER_EXCEPTION(("Cannot find column " + col_name).c_str());
         }
       }
     }
-    select_element->Accept(this, parse_result);
+    select_element->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
 
     // Derive depth for all exprs in the select clause
     select_element->DeriveDepth();
@@ -246,7 +246,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CopyStatement> node,
 
     // If the table is given, we're either writing or reading all columns
     std::vector<common::ManagedPointer<parser::AbstractExpression>> new_select_list;
-    context_->GenerateAllColumnExpressions(parse_result, &new_select_list, "");
+    context_->GenerateAllColumnExpressions(sherpa->GetParseResult().Get(), &new_select_list, "");
     auto columns = node->GetSelectStatement()->GetSelectColumns();
     columns.insert(std::end(columns), std::begin(new_select_list), std::end(new_select_list));
   } else {

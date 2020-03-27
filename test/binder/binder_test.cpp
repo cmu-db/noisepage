@@ -299,7 +299,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementQualifierStarTest) {
   std::string select_sql = "SELECT A.* FROM A JOIN B ON A.A1 = B.B1";
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
   auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
   EXPECT_EQ(0, select_stmt->GetDepth());
 
@@ -356,7 +356,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementQualifierStarMultipleTableTest) {
   std::string select_sql = "SELECT A.*,B.* FROM A JOIN B ON A.A1 = B.B1";
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
   auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
   EXPECT_EQ(0, select_stmt->GetDepth());
 
