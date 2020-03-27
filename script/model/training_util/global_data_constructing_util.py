@@ -241,6 +241,6 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
         logging.debug("|Actual - Predict| / Actual: {}".format(ratio_error[-1]))
 
         io_util.write_csv_result(prediction_path, data.name + " " + str(x[0][-1]),
-                                 [y[-1], pipeline_y_pred[-1], "", ratio_error])
+                                 [y[-1], pipeline_y_pred[-1], ""] + list(ratio_error))
 
         logging.debug("")
