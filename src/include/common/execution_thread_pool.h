@@ -13,8 +13,11 @@
 #include <thread>  // NOLINT
 #include <utility>
 #include <vector>
+#include <storage/storage_defs.h>
 #include "common/macros.h"
 #include "tbb/concurrent_queue.h"
+#include "dedicated_thread_registry.h"
+#include "shared_latch.h"
 
 namespace terrier::common {
 
@@ -37,10 +40,10 @@ using TaskQueue = tbb::concurrent_queue<Task>;
  * This pool is restartable, meaning it can be started again after it has been
  * shutdown. Calls to Startup() and Shutdown() are thread-safe.
  */
-class ExecutionThreadPool {
+class ExecutionThreadPool : DedicatedThreadOwner {
  public:
 
-  enum class ThreadStatus = {
+  enum class ThreadStatus {
     FREE = 0,
     BUSY = 1,
     SWITCHING = 2,
@@ -49,9 +52,9 @@ class ExecutionThreadPool {
 
   // NOLINTNEXTLINE  lint thinks it has only one arguement
   ExecutionThreadPool(common::ManagedPointer<DedicatedThreadRegistry> thread_registry, std::vector<int> *cpu_ids)
-      : thread_registry_(thread_registry), busy_workers_(0) {
-    for (int cpu_id : cpu_id) {
-      thread_registry_.operator->()->RegisterDedicatedThread<TerrierThread>(this, cpu_id, this);
+      : DedicatedThreadOwner(thread_registry), thread_registry_(thread_registry), workers_(num_regions_), task_queue_(num_regions_), busy_workers_(0) {
+    for (int cpu_id : *cpu_ids) {
+      thread_registry_.operator->()->RegisterDedicatedThread<TerrierThread>(static_cast<DedicatedThreadOwner *>(this), cpu_id, this);
     }
   }
 
@@ -63,16 +66,17 @@ class ExecutionThreadPool {
     shutting_down_ = true;
     for (std::vector<TerrierThread *> vector : workers_) {
       for (TerrierThread *t : vector) {
-        bool result = thread_registry_.operator->()->StopTask(this, common::ManagedPointer(t));
+        bool result = thread_registry_.operator->()->StopTask(static_cast<DedicatedThreadOwner *>(this), common::ManagedPointer(
+            static_cast<DedicatedThreadTask *>(t)));
         TERRIER_ASSERT(result, "StopTask should succeed");
       }
     }
   }
 
 
-  void SubmitTask(Task task, numa_region_t numa_hint = storage::UNSUPPORTED_NUMA_REGION) {
+  void SubmitTask(Task task, storage::numa_region_t numa_hint = storage::UNSUPPORTED_NUMA_REGION) {
     if (numa_hint == storage::UNSUPPORTED_NUMA_REGION) {
-      numa_hint = 0;
+      numa_hint = static_cast<storage::numa_region_t>(0);
     }
     task_queue_[static_cast<int16_t>(numa_hint)].push(task);
     if (total_workers_ != busy_workers_) {
@@ -96,10 +100,10 @@ class ExecutionThreadPool {
 
  private:
   // Private thread co-class
-  class TerrierThread {
+  class TerrierThread : public DedicatedThreadTask {
    public:
     TerrierThread(int cpu_id, ExecutionThreadPool *pool) :
-        cpu_id_(cpu_id), pool_(pool) {
+        pool_(pool), cpu_id_(cpu_id) {
 #ifndef __APPLE__
       cpu_set_t mask;
       CPU_ZERO(&mask);
@@ -109,15 +113,15 @@ class ExecutionThreadPool {
       numa_region_ = static_cast<numa_region_t>(numa_node_of_cpu(cpu_id));
       TERRIER_ASSERT(numa_region_ >= 0, "cpu_id must be valid");
 #else
-      numa_region_ = static_cast<numa_region_t>(0);
+      numa_region_ = static_cast<storage::numa_region_t>(0);
 #endif
       pool_->total_workers_++;
     }
-    ~TerrierThread = default;
+    ~TerrierThread() = default;
 
     void RunNextTask() {
       while (!exit_task_loop_) {
-        int16_t index = numa_region_;
+        int16_t index = static_cast<int16_t>(numa_region_);
         for (int16_t i = 0; i < pool_->num_regions_; i++) {
           index = (index + i) % pool_->num_regions_;
           Task task;
@@ -131,8 +135,8 @@ class ExecutionThreadPool {
 
         pool_->busy_workers_--;
         status_ = ThreadStatus::PARKED;
-        std::unique_lock<std::mutex> l(&pool_->task_lock_)
-        pool_->task_cv_.wait(&l);
+        std::unique_lock<std::mutex> l(pool_->task_lock_);
+        pool_->task_cv_.wait(l);
         status_ = ThreadStatus::SWITCHING;
         pool_->busy_workers_++;
 
@@ -160,11 +164,11 @@ class ExecutionThreadPool {
      * Implements the DedicatedThreadTask api
      */
     void Terminate() {
-      std::unique_lock<std::mutex> l(&cv_mutex_);
+      std::unique_lock<std::mutex> l(cv_mutex_);
       exit_task_loop_ = true;
-      pool->task_cv_.notify_all();
+      pool_->task_cv_.notify_all();
       while (!done_exiting_) {
-        done_cv_.wait_for(&l, std::chrono::milliseconds(10));
+        done_cv_.wait_for(l, std::chrono::milliseconds(10));
       }
       pool_->busy_workers_--;
       pool_->total_workers_--;
@@ -175,7 +179,7 @@ class ExecutionThreadPool {
     ExecutionThreadPool *pool_;
     int cpu_id_;
     ThreadStatus status_ = ThreadStatus::FREE;
-    numa_region_t numa_region_;
+    storage::numa_region_t numa_region_;
     std::atomic_bool exit_task_loop_ = false, done_exiting_ = false;
   };
 
@@ -188,8 +192,8 @@ class ExecutionThreadPool {
 #else
   uint64_t num_regions_ = numa_max_node();
 #endif
-  std::array<std::vector<TerrierThread*>, num_regions_> workers_;
-  std::array<TaskQueue, num_regions_> task_queue_;
+  std::vector<std::vector<TerrierThread*>> workers_;
+  std::vector<TaskQueue> task_queue_;
 
   std::atomic<uint32_t> busy_workers_, total_workers_;
   std::atomic_bool shutting_down_ = false;
@@ -200,25 +204,27 @@ class ExecutionThreadPool {
   void AddThread(TerrierThread* thread) {
     common::SharedLatch::ScopedExclusiveLatch l(&array_latch_);
     total_workers_++;
-    auto *vector = &workers_[static_cast<int16_t>(thread->numa_region_)]
-    vector->emplace_back(thread.operator->());
+    auto vector = workers_[static_cast<int16_t>(thread->numa_region_)];
+    vector.emplace_back(thread);
   }
   void RemoveThread(TerrierThread* thread) {
     common::SharedLatch::ScopedExclusiveLatch l(&array_latch_);
-    auto *vector = &workers_[static_cast<int16_t>(thread->numa_region_)]
-    vector->remove(vector->begin(), vector->end(), thread.operator->());
+    auto vector = workers_[static_cast<int16_t>(thread->numa_region_)];
+    vector.remove(vector.begin(), vector.end(), thread);
   }
-  bool OnThreadRemoval(TerrierThread* thread) {
+
+  bool OnThreadRemoval(common::ManagedPointer<DedicatedThreadTask> dedicated_task) {
     // we dont want to deplete a numa region while other numa regions have multiple threads to prevent starvation
     // on the queue for this region
+    auto *thread = static_cast<TerrierThread *>(dedicated_task.operator->());
     if (shutting_down_) return true;
 
     common::SharedLatch::ScopedSharedLatch l(&array_latch_);
-    auto *vector = &workers_[static_cast<int16_t>(thread->numa_region_)]
+    auto *vector = &workers_[static_cast<int16_t>(thread->numa_region_)];
     TERRIER_ASSERT(!vector->empty(), "if this thread is potentially being closed it must be tracked");
     // if there is another thread running in this numa region
     if (vector->size() > 1) return true;
-    for (int16_t i = 0; i < num_regions_; i++0) {
+    for (int16_t i = 0; i < num_regions_; i++) {
       vector = &workers_[i];
       // if another numa region has extra threads
       if (vector->size() > 1) return false;

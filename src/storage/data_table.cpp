@@ -1,6 +1,7 @@
 #include <list>
 
 #include "common/allocator.h"
+#include "common/execution_thread_pool.h"
 #include "storage/block_access_controller.h"
 #include "storage/data_table.h"
 #include "storage/storage_util.h"
