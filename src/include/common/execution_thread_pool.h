@@ -66,7 +66,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     shutting_down_ = true;
     for (std::vector<TerrierThread *> vector : workers_) {
       for (TerrierThread *t : vector) {
-        bool result = thread_registry_.operator->()->StopTask(static_cast<DedicatedThreadOwner *>(this), common::ManagedPointer(
+        bool result UNUSED_ATTRIBUTE = thread_registry_.operator->()->StopTask(static_cast<DedicatedThreadOwner *>(this), common::ManagedPointer(
             static_cast<DedicatedThreadTask *>(t)));
         TERRIER_ASSERT(result, "StopTask should succeed");
       }
@@ -209,8 +209,12 @@ class ExecutionThreadPool : DedicatedThreadOwner {
   }
   void RemoveThread(TerrierThread* thread) {
     common::SharedLatch::ScopedExclusiveLatch l(&array_latch_);
-    auto vector = workers_[static_cast<int16_t>(thread->numa_region_)];
-    vector.remove(vector.begin(), vector.end(), thread);
+    std::vector<TerrierThread *> vector = workers_[static_cast<int16_t>(thread->numa_region_)];
+    auto it = vector.begin();
+    for (; it != vector.end() && *it != thread; ++it) {}
+    if (it != vector.end()) {
+      vector.erase(it);
+    }
   }
 
   bool OnThreadRemoval(common::ManagedPointer<DedicatedThreadTask> dedicated_task) {
