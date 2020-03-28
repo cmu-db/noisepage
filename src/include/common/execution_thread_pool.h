@@ -1,7 +1,5 @@
 #pragma once
 
-#define _GNU_SOURCE
-
 #include <atomic>
 #include <condition_variable>  // NOLINT
 #include <functional>
