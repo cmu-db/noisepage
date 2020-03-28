@@ -747,6 +747,7 @@ std::unique_ptr<SelectStatement> PostgresParser::SelectTransform(ParseResult *pa
       auto groupby = GroupByTransform(parse_result, root->group_clause_, root->having_clause_);
       auto orderby = OrderByTransform(parse_result, root->sort_clause_);
       auto where = WhereTransform(parse_result, root->where_clause_);
+      auto with = WithTransform(parse_result, root->with_clause_);
 
       int64_t limit = LimitDescription::NO_LIMIT;
       int64_t offset = LimitDescription::NO_OFFSET;
@@ -759,7 +760,8 @@ std::unique_ptr<SelectStatement> PostgresParser::SelectTransform(ParseResult *pa
       auto limit_desc = std::make_unique<LimitDescription>(limit, offset);
 
       result = std::make_unique<SelectStatement>(std::move(target), select_distinct, std::move(from), where,
-                                                 std::move(groupby), std::move(orderby), std::move(limit_desc));
+                                                 std::move(groupby), std::move(orderby), std::move(limit_desc),
+                                                 std::move(with));
       break;
     }
     case SETOP_UNION: {
@@ -2006,6 +2008,37 @@ std::unique_ptr<UpdateStatement> PostgresParser::UpdateTransform(ParseResult *pa
 std::unique_ptr<VariableSetStatement> PostgresParser::VariableSetTransform(ParseResult *parse_result,
                                                                            UNUSED_ATTRIBUTE VariableSetStmt *root) {
   auto result = std::make_unique<VariableSetStatement>();
+  return result;
+}
+
+// Postgres.SelectStmt.withClause -> terrier.TableRef
+std::unique_ptr<TableRef> PostgresParser::WithTransform(ParseResult *parse_result, WithClause *root) {
+
+  // Postgres parses 'SELECT;' to nullptr
+  if (root == nullptr) {
+    return nullptr;
+  }
+
+  // TODO: GROUP11 - HANDLE CASE WHEN LENGTH OF ROOT > 1
+  std::unique_ptr<TableRef> result = nullptr;
+  auto node = reinterpret_cast<Node *>(root->ctes_->head->data.ptr_value);
+  auto common_table_expr = reinterpret_cast<CommonTableExpr *>(node);
+  auto cte_query = reinterpret_cast<Node *>(common_table_expr->ctequery);
+  switch (cte_query->type) {
+    case T_SelectStmt: {
+      auto select = SelectTransform(parse_result, reinterpret_cast<SelectStmt *>(cte_query));
+      if (select == nullptr) {
+        return nullptr;
+      }
+      auto alias = common_table_expr->ctename;
+      result = TableRef::CreateTableRefBySelect(alias, std::move(select));
+      return result;
+    }
+    default: {
+      PARSER_LOG_AND_THROW("WithTransform", "WithType", node->type);
+    }
+  }
+
   return result;
 }
 
