@@ -3,6 +3,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "common/constants.h"
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
 #include "transaction/transaction_defs.h"
@@ -67,12 +68,12 @@ class TimestampManager {
 
   void LockAll() {
     for (auto &latch : curr_running_txns_latch_)
-      latch.Lock();
+      latch.latch_.Lock();
   }
 
   void UnlockAll() {
     for (auto &latch : curr_running_txns_latch_)
-      latch.Unlock();
+      latch.latch_.Unlock();
   }
 
   bool HasRunningTxn() {
@@ -89,7 +90,7 @@ class TimestampManager {
       start_time = time_++;
       const auto idx = uint64_t(start_time) % HASH_VAL;
       {
-        common::SpinLatch::ScopedSpinLatch running_guard(&curr_running_txns_latch_[idx]);
+        common::SpinLatch::ScopedSpinLatch running_guard(&curr_running_txns_latch_[idx].latch_);
         // There is a three-way race that needs to be prevented.  Specifically, we
         // cannot allow both a transaction to commit and the GC to poll for the
         // oldest running transaction in between this transaction acquiring its
@@ -121,6 +122,11 @@ class TimestampManager {
    */
   void RemoveTransactions(const std::vector<timestamp_t> &timestamps);
 
+  struct SpacedOutSpinLatch {
+    common::SpinLatch latch_;
+    byte padding_[common::Constants::CACHELINE_SIZE];
+  };
+
   // TODO(Tianyu): Timestamp generation needs to be more efficient (batches)
   // TODO(Tianyu): We don't handle timestamp wrap-arounds. I doubt this would be an issue any time soon.
   std::atomic<timestamp_t> time_{INITIAL_TXN_TIMESTAMP};
@@ -131,8 +137,6 @@ class TimestampManager {
   // can hold many more, since txns are only removed when serialized. We should consider if there is a possible better
   // data structure
   std::vector<std::unordered_set<timestamp_t>> curr_running_txns_;
-  mutable std::vector<common::SpinLatch> curr_running_txns_latch_;
-
-  // mutable common::SpinLatch temp_latch_;
+  mutable std::vector<SpacedOutSpinLatch> curr_running_txns_latch_;
 };
 }  // namespace terrier::transaction
