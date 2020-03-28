@@ -262,8 +262,8 @@ class DataTable {
    * @param out_buffer output buffer. The object should already contain projection list information. This buffer is
    *                   always cleared of old values.
    */
-  void NUMAScan(common::ManagedPointer<transaction::TransactionContext> txn, NUMAIterator *start_pos,
-            ProjectedColumns *out_buffer) const;
+  void NUMAScan(common::ManagedPointer<transaction::TransactionContext> txn,
+                std::vector<ProjectedColumns *> *out_buffers);
 
   /**
    * @return the first tuple slot contained in the data table

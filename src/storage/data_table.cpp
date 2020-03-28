@@ -61,9 +61,41 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
 }
 
 //TODO(emmanuel) make this thread safe
-void DataTable::NUMAScan(common::ManagedPointer<transaction::TransactionContext> txn, NUMAIterator *start_pos,
-              ProjectedColumns *out_buffer) const {
-  uint32_t filled = 0;
+void DataTable::NUMAScan(common::ManagedPointer<transaction::TransactionContext> txn,
+                    std::vector<ProjectedColumns *> *out_buffers) {
+  std::vector<numa_region_t> numa_regions;
+  GetNUMARegions(&numa_regions);
+
+  for (int i = out_buffers->size(); i < numa_regions.size(); i++) {
+    out_buffers->emplace_back(new ProjectedColumns());
+  }
+
+
+
+
+
+  std::atomic<uint32_t> filled = 0;
+
+  for (numa_region_t region : numa_regions) {
+    //get thread pool
+    auto lambda = [&] {
+
+      for (auto it = begin(region); it != end(region) && filled < out_buffer->MaxTuples(); it++) {
+
+        if (!accessor_.Allocated(*it) || !IsVisible())
+
+        uint32_t current_row;
+        do {
+          current_row = filled;
+        } while(!filled.compare_exchange_strong(current_row, current_row + 1));
+        ProjectedColumns::RowView row = out_buffer->InterpretAsRow(current_row);
+
+
+      }
+    };
+
+    lambda();
+  }
   while (filled < out_buffer->MaxTuples() && *start_pos != end(start_pos->region_number_)) {
     ProjectedColumns::RowView row = out_buffer->InterpretAsRow(filled);
     const TupleSlot slot = **start_pos;
