@@ -1820,7 +1820,7 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
 #undef BOOTSTRAP_TRIG_FN
 
   udf_context = new execution::udf::UDFContext("lower", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
-                                               execution::ast::Builtin::Lower);
+                                               execution::ast::Builtin::Lower, true);
   SetProcCtxPtr(txn, postgres::LOWER_PRO_OID, udf_context);
 }
 

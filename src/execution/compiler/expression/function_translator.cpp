@@ -23,7 +23,9 @@ ast::Expr *FunctionTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
   }
 
   std::vector<ast::Expr *> params;
-  params.push_back(codegen_->MakeExpr(codegen_->GetExecCtxVar()));
+  if(udf_ctx->IsExecCtxRequired()) {
+    params.push_back(codegen_->MakeExpr(codegen_->GetExecCtxVar()));
+  }
   for (auto &param : params_) {
     params.push_back(param->DeriveExpr(evaluator));
   }

@@ -30,14 +30,16 @@ class UDFContext {
    * @param func_ret_type Return type of function
    * @param args_type Vector of argument types
    * @param builtin Which builtin this context refers to
+   * @param is_exec_ctx_required true if this function requires an execution context var as its first argument
    */
   UDFContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
-             ast::Builtin builtin)
+             ast::Builtin builtin, bool is_exec_ctx_required = false)
       : func_name_(std::move(func_name)),
         func_ret_type_(func_ret_type),
         args_type_(args_type),
         is_builtin_{true},
-        builtin_{builtin} {}
+        builtin_{builtin},
+        is_exec_ctx_required_{is_exec_ctx_required} {}
   /**
    * @return The name of the function represented by this context object
    */
@@ -67,12 +69,21 @@ class UDFContext {
     return builtin_;
   }
 
+  /**
+   * @return returns if this function requires an execution context
+   */
+  bool IsExecCtxRequired() const {
+    TERRIER_ASSERT(IsBuiltin(), "IsExecCtxRequired is only valid or a builtin function");
+    return is_exec_ctx_required_;
+  }
+
  private:
   std::string func_name_;
   type::TypeId func_ret_type_;
   std::vector<type::TypeId> args_type_;
   bool is_builtin_;
   ast::Builtin builtin_;
+  bool is_exec_ctx_required_;
 };
 
 }  // namespace terrier::execution::udf

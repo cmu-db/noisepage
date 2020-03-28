@@ -194,7 +194,7 @@ void Sema::CheckBuiltinSqlConversionCall(ast::CallExpr *call, ast::Builtin built
     }
     case ast::Builtin::StringToSql: {
       if (!input_type->IsStringType()) {
-        ReportIncorrectCallArg(call, 0, ast::StringType::Get(GetContext()));
+        ReportIncorrectCallArg(call, 0, );
         return;
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::StringVal));
@@ -1311,9 +1311,12 @@ void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
   const auto &call_args = call->Arguments();
   switch (builtin) {
     case ast::Builtin::ATan2: {
+      // check to make sure we have the right number of arguments
       if (!CheckArgCount(call, 2)) {
         return;
       }
+
+      // check to make sure the arguments are of the correct type
       if (!call_args[0]->GetType()->IsSpecificBuiltin(real_kind) ||
           !call_args[1]->GetType()->IsSpecificBuiltin(real_kind)) {
         ReportIncorrectCallArg(call, 1, GetBuiltinType(real_kind));
@@ -1342,7 +1345,7 @@ void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
     }
   }
 
-  // Trig functions return real values
+  // Trig functions return real values (important)
   call->SetType(GetBuiltinType(real_kind));
 }
 
@@ -2225,9 +2228,25 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
   ast::BuiltinType::Kind sql_type;
   switch (builtin) {
     case ast::Builtin::Lower: {
+      // check to make sure this function has two arguments
       if (!CheckArgCount(call, 2)) {
         return;
       }
+
+      // checking to see if the first argument is an execution context
+      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+        return;
+      }
+
+      // checking to see if the second argument is a string
+      if (!call->Arguments()[1]->GetType()->IsStringType()) {
+        ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
+        return;
+      }
+
+      // this function returns a string
       sql_type = ast::BuiltinType::StringVal;
       break;
     }
