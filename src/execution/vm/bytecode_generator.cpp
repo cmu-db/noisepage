@@ -1509,6 +1509,7 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
     }
     case ast::Builtin::Tan: {
       Emitter()->Emit(Bytecode::Tan, dest, src);
+      break;
     }
     default: {
       UNREACHABLE("Impossible trigonometric bytecode");
@@ -2044,9 +2045,10 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
   LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
   LocalVar ret = ExecutionResult()->GetOrCreateDestination(call->GetType());
   switch (builtin) {
-    case ast::Builtin::Lower:
+    case ast::Builtin::Lower: {
       Emitter()->Emit(Bytecode::Lower, ret, exec_ctx, input_string);
       break;
+    }
     default:
       UNREACHABLE("Unimplemented string function!");
   }

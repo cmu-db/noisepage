@@ -2225,8 +2225,7 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
   ast::BuiltinType::Kind sql_type;
   switch (builtin) {
     case ast::Builtin::Lower: {
-      if (!CheckArgCount(call, 1)) {
-        ReportIncorrectCallArg(call, 0, GetBuiltinType(ast::BuiltinType::Kind::Uint32));
+      if (!CheckArgCount(call, 2)) {
         return;
       }
       sql_type = ast::BuiltinType::StringVal;
