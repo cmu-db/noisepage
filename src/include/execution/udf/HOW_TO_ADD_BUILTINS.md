@@ -45,6 +45,10 @@ In order to add a builtin function foo(...) we have to do the following:
     and data you want from the VM::Frame (in the variable called "frame") and call a bytecode handler that we will define
     in the next step.
 
-8) This is the last step. We want to define a handler for our bytecode in src/include/execution/vm/bytecode_handlers.h.
+8) We want to define a handler for our bytecode in src/include/execution/vm/bytecode_handlers.h.
     The name of your handler should be OpFoo if your function is called foo. Make sure this takes in values from
     execution::sql. From here we call the function we defined in step 1.
+
+9) This is the last step. Now we want to make this function available in the catalog table, pg_proc. To do this edit
+    src/catalog/database_catalog.cpp. Here, we want to add an entry into pg_proc in BootstrapProcs and also add a line
+    to initialize the metadata object (of type UDFContext) in BootstrapProcContexts and add it to pg_proc.
