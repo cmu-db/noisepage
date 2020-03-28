@@ -188,9 +188,9 @@ class ExecutionThreadPool : DedicatedThreadOwner {
   // The worker threads
   common::SharedLatch array_latch_;
 #ifdef __APPLE__
-  uint64_t num_regions_ = 1;
+  int16_t num_regions_ = 1;
 #else
-  uint64_t num_regions_ = numa_max_node();
+  int16_t num_regions_ = static_cast<int16_t>(numa_max_node());
 #endif
   std::vector<std::vector<TerrierThread*>> workers_;
   std::vector<TaskQueue> task_queue_;
