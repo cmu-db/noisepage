@@ -38,12 +38,13 @@ class RecoveryManager : public common::DedicatedThreadOwner {
     /**
      * @param recovery_manager pointer to recovery manager who initialized task
      */
-    explicit RecoveryTask(RecoveryManager *recovery_manager) : recovery_manager_(recovery_manager) {}
+    explicit RecoveryTask(RecoveryManager *recovery_manager, bool catalog_only = false) : recovery_manager_(recovery_manager),
+                                                                                  catalog_only_(catalog_only){}
 
     /**
      * Runs the recovery task. Our task only calls Recover on the log manager.
      */
-    void RunTask() override { recovery_manager_->Recover(); }
+    void RunTask() override { recovery_manager_->Recover(catalog_only_); }
 
     /**
      * Terminate does nothing, the task will terminate when RunTask() returns. In the future if we need to support
@@ -53,6 +54,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
 
    private:
     RecoveryManager *recovery_manager_;
+    bool catalog_only_;
   };
 
  public:
@@ -91,10 +93,10 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   /**
    * Starts a background recovery task. Recovery will fully recover until the log provider stops providing logs.
    */
-  void StartRecovery() {
+  void StartRecovery(bool catalog_only = false) {
     TERRIER_ASSERT(recovery_task_ == nullptr, "Recovery already started");
     recovery_task_ =
-        thread_registry_->RegisterDedicatedThread<RecoveryTask>(this /* dedicated thread owner */, this /* task arg */);
+        thread_registry_->RegisterDedicatedThread<RecoveryTask>(this /* dedicated thread owner */, this /* task arg */, catalog_only);
   }
 
   /**
@@ -159,19 +161,19 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * Recovers the databases using the provided log provider
    * @return number of committed transactions replayed
    */
-  void Recover() { RecoverFromLogs(); }
+  void Recover(bool catalog_only = false) { RecoverFromLogs(catalog_only); }
 
   /**
    * Recovers the databases from the logs.
    * @note this is a separate method so in the future, we can also have a RecoverFromCheckpoint method
    */
-  void RecoverFromLogs();
+  void RecoverFromLogs(bool catalog_only = false);
 
   /**
    * @brief Replay a committed transaction corresponding to txn_id.
    * @param txn_id start timestamp for committed transaction
    */
-  void ProcessCommittedTransaction(transaction::timestamp_t txn_id);
+  void ProcessCommittedTransaction(transaction::timestamp_t txn_id, bool catalog_only = false);
 
   /**
    * Defers log records deletes with the transaction manager
@@ -186,7 +188,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @param upper_bound upper bound for replaying
    * @return number of transactions replayed
    */
-  uint32_t ProcessDeferredTransactions(transaction::timestamp_t upper_bound);
+  uint32_t ProcessDeferredTransactions(transaction::timestamp_t upper_bound, bool catalog_only = false);
 
   /**
    * Handles mapping of old tuple slot (before recovery) to new tuple slot (after recovery)
