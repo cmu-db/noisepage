@@ -193,7 +193,6 @@ FEATURE_MAP = {"tpch_q1_p1": _Q1_P1,
                "tpch_q11_p4": _Q11_P4,
                "tpch_q11_p5": _Q11_P5,
                "tpch_q11_p6": _Q11_P6,
-               "tpch_q11_p7": _Q11_P7,
                "tpch_scan_lineitem_p1": _SCAN_LINEITEM_P1,
                "tpch_scan_orders_p1": _SCAN_ORDERS_P1,
                }
