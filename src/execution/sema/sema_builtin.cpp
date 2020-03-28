@@ -194,7 +194,7 @@ void Sema::CheckBuiltinSqlConversionCall(ast::CallExpr *call, ast::Builtin built
     }
     case ast::Builtin::StringToSql: {
       if (!input_type->IsStringType()) {
-        ReportIncorrectCallArg(call, 0, );
+        ReportIncorrectCallArg(call, 0, ast::StringType::Get(GetContext()));
         return;
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::StringVal));
