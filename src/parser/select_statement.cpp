@@ -180,13 +180,15 @@ DEFINE_JSON_BODY_DECLARATIONS(SelectStatement);
 std::unique_ptr<SelectStatement> SelectStatement::Copy() {
   auto select = std::make_unique<SelectStatement>(
       select_, select_distinct_, from_->Copy(), where_, group_by_ == nullptr ? nullptr : group_by_->Copy(),
-      order_by_ == nullptr ? nullptr : order_by_->Copy(), limit_ == nullptr ? nullptr : limit_->Copy());
+      order_by_ == nullptr ? nullptr : order_by_->Copy(), limit_ == nullptr ? nullptr : limit_->Copy(),
+      with_table_ == nullptr ? nullptr : with_table_->Copy());
   if (union_select_ != nullptr) {
     auto union_copy = std::make_unique<SelectStatement>(
         union_select_->select_, union_select_->select_distinct_, union_select_->from_->Copy(), union_select_->where_,
         union_select_->group_by_ == nullptr ? nullptr : union_select_->group_by_->Copy(),
         union_select_->order_by_ == nullptr ? nullptr : union_select_->order_by_->Copy(),
-        union_select_->limit_ == nullptr ? nullptr : union_select_->limit_->Copy());
+        union_select_->limit_ == nullptr ? nullptr : union_select_->limit_->Copy(),
+        union_select_->with_table_->Copy());
     select->SetUnionSelect(std::move(union_copy));
   }
   return select;
