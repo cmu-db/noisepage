@@ -989,9 +989,6 @@ uint32_t RecoveryManager::ProcessSpecialCasePGProcRecord(
         catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), redo_record->GetDatabaseOid())
             ->SetProcCtxPtr(common::ManagedPointer(txn), proc_oid, nullptr);
     TERRIER_ASSERT(result, "Setting to null did not work");
-    auto ptr = catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), redo_record->GetDatabaseOid())
-                   ->GetProcCtxPtr(common::ManagedPointer(txn), proc_oid);
-    TERRIER_ASSERT(ptr == nullptr, "not null");
     return 0;  // No additional records processed
   }
   return 0;
