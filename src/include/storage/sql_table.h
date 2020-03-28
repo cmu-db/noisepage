@@ -165,7 +165,9 @@ class SqlTable {
  */
   void NUMAScan(const common::ManagedPointer<transaction::TransactionContext> txn, DataTable::NUMAIterator *const start_pos,
             ProjectedColumns *const out_buffer) const {
-    return table_.data_table_->NUMAScan(txn, start_pos, out_buffer);
+    std::vector<ProjectedColumns *> v;
+    v.emplace_back(out_buffer);
+    return table_.data_table_->NUMAScan(txn, &v);
   }
 
   /**
