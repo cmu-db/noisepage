@@ -2,6 +2,7 @@
 #include <utility>
 #include "common/container/concurrent_bitmap.h"
 #ifndef __APPLE__
+#include <numa.h>
 #include "numaif.h"
 #endif
 
