@@ -62,7 +62,7 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
 DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
   // TODO(Lin): We need to temporarily comment out this latch for the concurrent TPCH experiments. Should be replaced
   //  with a real solution
-  common::SpinLatch::ScopedSpinLatch guard(&table_->blocks_latch_);
+  //common::SpinLatch::ScopedSpinLatch guard(&table_->blocks_latch_);
   // Jump to the next block if already the last slot in the block.
   if (current_slot_.GetOffset() == table_->accessor_.GetBlockLayout().NumSlots() - 1) {
     ++block_;
@@ -77,7 +77,7 @@ DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
 DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compability
   // TODO(Lin): We need to temporarily comment out this latch for the concurrent TPCH experiments. Should be replaced
   //  with a real solution
-  common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+  //common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
   // TODO(Tianyu): Need to look in detail at how this interacts with compaction when that gets in.
 
   // The end iterator could either point to an unfilled slot in a block, or point to nothing if every block in the
