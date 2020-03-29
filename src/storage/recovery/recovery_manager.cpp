@@ -75,6 +75,60 @@ void RecoveryManager::RecoverFromLogs(bool catalog_only) {
   }
 }
 
+void RecoveryManager::RecoverFromCheckpoint(const std::string& path) {
+  // Get the db_oid
+  catalog::db_oid_t db_oid;
+  auto *recovery_txn = txn_manager_->BeginTransaction();
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(recovery_txn), db_oid);
+
+  // For each table, create a new object by reading the dumnped bytes
+  // Are they stored in catalog_table_schemas_?
+  for (auto& kv : catalog_table_schemas_) {
+    auto table_oid = kv.first;
+    auto schema = kv.second;
+    std::string in_file = storage::Checkpoint::GenFileName(db_oid, table_oid);
+    std::ifstream f;
+    f.open(path + in_file, std::ofstream::in);
+
+    //get length of file
+    f.seekg(0, std::ios::end);
+    size_t length = f.tellg();
+    f.seekg(0, std::ios::beg);
+
+    char buffer[length];
+    // Don't overflow the buffer!
+    if (length > sizeof (buffer)) {
+      length = sizeof (buffer);
+    }
+
+    // Read file
+    f.read(buffer, length);
+
+    // Convert to bytes
+    std::vector<std::byte> bytes;
+    for (char &c : buffer) {
+      bytes.push_back(static_cast<std::byte>(c));
+    }
+
+    // Do we have any blocks left?
+    std::list<RawBlock *> blocks;
+    auto start_pos = 0u;
+    auto content_size = common::Constants::BLOCK_SIZE - sizeof(uintptr_t) - sizeof(uint16_t) - sizeof(layout_version_t) -
+                        sizeof(uint32_t) - sizeof(BlockAccessController);
+    while (start_pos < bytes.size()) {
+      byte content[content_size];
+      std::copy(bytes.begin() + start_pos, bytes.begin() + start_pos + content_size, content);
+      start_pos += content_size + sizeof('\n');
+    }
+
+    // Create the new table
+    // TODO (tianlei): modify table content
+    SqlTable* new_table = new SqlTable(accessor->GetBlockStore(), schema);
+    accessor->SetTablePointer(table_oid, new_table);
+  }
+
+}
+
 void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestamp_t txn_id, bool catalog_only) {
   // Begin a txn to replay changes with.
   auto *txn = txn_manager_->BeginTransaction();
