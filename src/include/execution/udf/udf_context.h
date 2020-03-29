@@ -22,10 +22,9 @@ class UDFContext {
    * @param func_ret_type Return type of function
    * @param args_type Vector of argument types
    */
-  UDFContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
-             bool is_exec_ctx_required = false)
+  UDFContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type)
       : func_name_(std::move(func_name)), func_ret_type_(func_ret_type), args_type_(args_type), is_builtin_{false},
-        is_exec_ctx_required_{is_exec_ctx_required} {}
+        is_exec_ctx_required_{false} {}
   /**
    * Creates a UDFContext object for a builtin function
    * @param func_name Name of function
@@ -35,13 +34,13 @@ class UDFContext {
    * @param is_exec_ctx_required true if this function requires an execution context var as its first argument
    */
   UDFContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
-             ast::Builtin builtin)
+             ast::Builtin builtin, bool is_exec_ctx_required = false)
       : func_name_(std::move(func_name)),
         func_ret_type_(func_ret_type),
         args_type_(args_type),
         is_builtin_{true},
         builtin_{builtin},
-        is_exec_ctx_required_{false} {}
+        is_exec_ctx_required_{is_exec_ctx_required} {}
   /**
    * @return The name of the function represented by this context object
    */
