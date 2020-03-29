@@ -1791,6 +1791,7 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
 void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transaction::TransactionContext> txn) {
   auto udf_context = new execution::udf::UDFContext("atan2", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
                                                     execution::ast::Builtin::ATan2);
+  txn->RegisterAbortAction([=]() { delete udf_context; });
   SetProcCtxPtr(txn, postgres::ATAN2_PRO_OID, udf_context);
 
 #define BOOTSTRAP_TRIG_FN(str_name, pro_oid, builtin)                                                              \
