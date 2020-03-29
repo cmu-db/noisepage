@@ -648,10 +648,9 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ParameterValueExpress
   SqlNodeVisitor::Visit(expr);
   const common::ManagedPointer<type::TransientValue> param =
       common::ManagedPointer(&((*(sherpa_->GetParameters()))[expr->GetValueIdx()]));
-
   const auto desired_type = sherpa_->GetDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>());
 
-  sherpa_->CheckAndTryPromoteType(param, desired_type);
+  if (desired_type != type::TypeId::INVALID) sherpa_->CheckAndTryPromoteType(param, desired_type);
 
   expr->return_value_type_ = param->Type();
 }

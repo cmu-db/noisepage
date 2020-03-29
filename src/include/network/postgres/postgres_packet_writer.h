@@ -141,13 +141,20 @@ class PostgresPacketWriter : public PacketWriter {
    * Writes row description, as the first packet of sending query results
    * @param columns the column information from the OutputSchema
    * @param field_formats vector formats for the attributes to write
+   * @param extended_query
    */
   void WriteRowDescription(const std::vector<planner::OutputSchema::Column> &columns,
-                           const std::vector<FieldFormat> &field_formats) {
+                           const std::vector<FieldFormat> &field_formats, const bool extended_query) {
     BeginPacket(NetworkMessageType::PG_ROW_DESCRIPTION).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
 
     for (uint32_t i = 0; i < columns.size(); i++) {
       const auto col_type = columns[i].GetType();
+
+      TERRIER_ASSERT(field_formats.size() == columns.size() || field_formats.size() == 1,
+                     "Field formats can either be the size of the number of columns, or size 1 where they all use the "
+                     "same format");
+      const auto field_format = field_formats[i < field_formats.size() ? i : 0];
+
       // TODO(Matt): Figure out how to get table oid and column oids in the OutputSchema (Optimizer's job?)
       const auto &name =
           columns[i].GetExpr()->GetAlias().empty() ? columns[i].GetName() : columns[i].GetExpr()->GetAlias();
@@ -156,14 +163,12 @@ class PostgresPacketWriter : public PacketWriter {
           .AppendValue<int16_t>(0)  // column oid (if it's a column from a table), 0 otherwise
           .AppendValue(
               static_cast<int32_t>(PostgresProtocolUtil::InternalValueTypeToPostgresValueType(col_type)));  // type oid
-      if (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY) {
+      if (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY ||
+          (extended_query && field_format == FieldFormat::text)) {
         AppendValue<int16_t>(-1);  // variable length
       } else {
         AppendValue<int16_t>(type::TypeUtil::GetTypeSize(col_type));  // data type size
       }
-
-      // Field formats can either be the size of the number of columns, or size 1 where they all use the same format
-      const auto field_format = field_formats[i < field_formats.size() ? i : 0];
 
       AppendValue<int32_t>(-1)  // type modifier, generally -1 (see pg_attribute.atttypmod)
           .AppendValue<int16_t>(
