@@ -144,7 +144,7 @@ class PostgresPacketWriter : public PacketWriter {
    * @param extended_query
    */
   void WriteRowDescription(const std::vector<planner::OutputSchema::Column> &columns,
-                           const std::vector<FieldFormat> &field_formats, const bool extended_query) {
+                           const std::vector<FieldFormat> &field_formats) {
     BeginPacket(NetworkMessageType::PG_ROW_DESCRIPTION).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
 
     for (uint32_t i = 0; i < columns.size(); i++) {
@@ -164,7 +164,7 @@ class PostgresPacketWriter : public PacketWriter {
           .AppendValue(
               static_cast<int32_t>(PostgresProtocolUtil::InternalValueTypeToPostgresValueType(col_type)));  // type oid
       if (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY ||
-          (extended_query && field_format == FieldFormat::text)) {
+          field_format == FieldFormat::text) {
         AppendValue<int16_t>(-1);  // variable length
       } else {
         AppendValue<int16_t>(type::TypeUtil::GetTypeSize(col_type));  // data type size
@@ -368,13 +368,6 @@ class PostgresPacketWriter : public PacketWriter {
       // Reinterpret to a base value type first and check if it's NULL
       const auto *const val = reinterpret_cast<const execution::sql::Val *const>(tuple + curr_offset);
 
-      if (val->is_null_) {
-        // write a -1 for the length of the column value and continue to the next value
-        AppendValue<int32_t>(static_cast<int32_t>(-1));
-        curr_offset += execution::sql::ValUtil::GetSqlSize(columns[i].GetType());
-        continue;
-      }
-
       // Field formats can either be the size of the number of columns, or size 1 where they all use the same format
       const auto field_format = field_formats[i < field_formats.size() ? i : 0];
 
@@ -388,49 +381,74 @@ class PostgresPacketWriter : public PacketWriter {
   }
 
  private:
-  uint32_t WriteBinaryAttribute(const execution::sql::Val *const val, const type::TypeId type) {
-    const auto type_size = execution::sql::ValUtil::GetSqlSize(type);
-    // TODO(Matt): should these sizes be defined by Postgres for client compatibility, and not our internal size?
+  template <class native_type, class val_type>
+  void WriteBinaryVal(const execution::sql::Val *const val, const type::TypeId type) {
+    const auto *const casted_val = reinterpret_cast<const val_type *const>(val);
+    TERRIER_ASSERT(type::TypeUtil::GetTypeSize(type) == sizeof(native_type),
+                   "Mismatched native type size and size reported by TypeUtil.");
+    // write the length, write the attribute
+    AppendValue<int32_t>(static_cast<int32_t>(type::TypeUtil::GetTypeSize(type)))
+        .AppendValue<native_type>(static_cast<native_type>(casted_val->val_));
+  }
 
-    // Write the attribute
-    switch (type) {
-      case type::TypeId::TINYINT:
-      case type::TypeId::SMALLINT:
-      case type::TypeId::BIGINT:
-      case type::TypeId::INTEGER: {
-        auto *int_val = reinterpret_cast<const execution::sql::Integer *const>(val);
-        AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<int64_t>(int_val->val_);
-        break;
+  template <class native_type, class val_type>
+  void WriteBinaryValNeedsToNative(const execution::sql::Val *const val, const type::TypeId type) {
+    const auto *const casted_val = reinterpret_cast<const val_type *const>(val);
+    TERRIER_ASSERT(type::TypeUtil::GetTypeSize(type) == sizeof(native_type),
+                   "Mismatched native type size and size reported by TypeUtil.");
+    // write the length, write the attribute
+    AppendValue<int32_t>(static_cast<int32_t>(type::TypeUtil::GetTypeSize(type)))
+        .AppendValue<native_type>(static_cast<native_type>(casted_val->val_.ToNative()));
+  }
+
+  uint32_t WriteBinaryAttribute(const execution::sql::Val *const val, const type::TypeId type) {
+    if (val->is_null_) {
+      // write a -1 for the length of the column value and continue to the next value
+      AppendValue<int32_t>(static_cast<int32_t>(-1));
+    } else {
+      // Write the attribute
+      switch (type) {
+        case type::TypeId::TINYINT: {
+          WriteBinaryVal<int8_t, execution::sql::Integer>(val, type);
+          break;
+        }
+        case type::TypeId::SMALLINT: {
+          WriteBinaryVal<int16_t, execution::sql::Integer>(val, type);
+          break;
+        }
+        case type::TypeId::INTEGER: {
+          WriteBinaryVal<int32_t, execution::sql::Integer>(val, type);
+          break;
+        }
+        case type::TypeId::BIGINT: {
+          WriteBinaryVal<int64_t, execution::sql::Integer>(val, type);
+          break;
+        }
+        case type::TypeId::BOOLEAN: {
+          WriteBinaryVal<bool, execution::sql::BoolVal>(val, type);
+          break;
+        }
+        case type::TypeId::DECIMAL: {
+          WriteBinaryVal<double, execution::sql::Real>(val, type);
+          break;
+        }
+        case type::TypeId::DATE: {
+          WriteBinaryValNeedsToNative<uint32_t, execution::sql::DateVal>(val, type);
+          break;
+        }
+        case type::TypeId::TIMESTAMP: {
+          WriteBinaryValNeedsToNative<uint64_t, execution::sql::TimestampVal>(val, type);
+          break;
+        }
+        default:
+          UNREACHABLE(
+              "Unsupported type for binary serialization. This is either a new type, or an oversight when reading JDBC "
+              "source code.");
       }
-      case type::TypeId::BOOLEAN: {
-        auto *bool_val = reinterpret_cast<const execution::sql::BoolVal *const>(val);
-        AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<bool>(bool_val->val_);
-        break;
-      }
-      case type::TypeId::DECIMAL: {
-        auto *real_val = reinterpret_cast<const execution::sql::Real *const>(val);
-        AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<double>(real_val->val_);
-        break;
-      }
-      case type::TypeId::DATE: {
-        auto *date_val = reinterpret_cast<const execution::sql::DateVal *const>(val);
-        AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<uint32_t>(date_val->val_.ToNative());
-        break;
-      }
-      case type::TypeId::TIMESTAMP: {
-        auto *ts_val = reinterpret_cast<const execution::sql::TimestampVal *const>(val);
-        AppendValue<int32_t>(static_cast<int32_t>(type_size)).AppendValue<uint64_t>(ts_val->val_.ToNative());
-        break;
-      }
-      case type::TypeId::VARCHAR: {
-        auto *string_val = reinterpret_cast<const execution::sql::StringVal *const>(val);
-        AppendValue<int32_t>(static_cast<int32_t>(string_val->len_)).AppendStringView(string_val->StringView(), false);
-        break;
-      }
-      default:
-        UNREACHABLE("Cannot output unsupported type!!!");
     }
-    return type_size;
+
+    // Advance in the buffer based on the execution engine's type size
+    return execution::sql::ValUtil::GetSqlSize(type);
   }
 
   /**
@@ -440,50 +458,59 @@ class PostgresPacketWriter : public PacketWriter {
    * @param columns OutputSchema describing the tuple
    */
   uint32_t WriteTextAttribute(const execution::sql::Val *const val, const type::TypeId type) {
-    // Convert the field to text format
-    std::string string_value;
-    switch (type) {
-      case type::TypeId::TINYINT:
-      case type::TypeId::SMALLINT:
-      case type::TypeId::BIGINT:
-      case type::TypeId::INTEGER: {
-        auto *int_val = reinterpret_cast<const execution::sql::Integer *const>(val);
-        string_value = std::to_string(int_val->val_);
-        break;
+    if (val->is_null_) {
+      // write a -1 for the length of the column value and continue to the next value
+      AppendValue<int32_t>(static_cast<int32_t>(-1));
+    } else {
+      // Convert the field to text format
+      std::string string_value;
+      switch (type) {
+        case type::TypeId::TINYINT:
+        case type::TypeId::SMALLINT:
+        case type::TypeId::BIGINT:
+        case type::TypeId::INTEGER: {
+          auto *int_val = reinterpret_cast<const execution::sql::Integer *const>(val);
+          string_value = std::to_string(int_val->val_);
+          break;
+        }
+        case type::TypeId::BOOLEAN: {
+          auto *bool_val = reinterpret_cast<const execution::sql::BoolVal *const>(val);
+          string_value = (static_cast<bool>(bool_val->val_) ? POSTGRES_BOOLEAN_STR_TRUE : POSTGRES_BOOLEAN_STR_FALSE);
+          break;
+        }
+        case type::TypeId::DECIMAL: {
+          auto *real_val = reinterpret_cast<const execution::sql::Real *const>(val);
+          string_value = std::to_string(real_val->val_);
+          break;
+        }
+        case type::TypeId::DATE: {
+          auto *date_val = reinterpret_cast<const execution::sql::DateVal *const>(val);
+          string_value = date_val->val_.ToString();
+          break;
+        }
+        case type::TypeId::TIMESTAMP: {
+          auto *ts_val = reinterpret_cast<const execution::sql::TimestampVal *const>(val);
+          string_value = ts_val->val_.ToString();
+          break;
+        }
+        case type::TypeId::VARCHAR:
+        case type::TypeId::VARBINARY: {
+          // Don't allocate an actual string for a VARCHAR, just wrap a std::string_view, write the value directly, and
+          // continue
+          auto *string_val = reinterpret_cast<const execution::sql::StringVal *const>(val);
+          AppendValue<int32_t>(static_cast<int32_t>(string_val->len_))
+              .AppendRaw(string_val->Content(), string_val->len_);
+          return execution::sql::ValUtil::GetSqlSize(type);
+        }
+        default:
+          UNREACHABLE(
+              "Unsupported type for text serialization. This is either a new type, or an oversight when reading JDBC "
+              "source code.");
       }
-      case type::TypeId::BOOLEAN: {
-        auto *bool_val = reinterpret_cast<const execution::sql::BoolVal *const>(val);
-        string_value = (static_cast<bool>(bool_val->val_) ? POSTGRES_BOOLEAN_STR_TRUE : POSTGRES_BOOLEAN_STR_FALSE);
-        break;
-      }
-      case type::TypeId::DECIMAL: {
-        auto *real_val = reinterpret_cast<const execution::sql::Real *const>(val);
-        string_value = std::to_string(real_val->val_);
-        break;
-      }
-      case type::TypeId::DATE: {
-        auto *date_val = reinterpret_cast<const execution::sql::DateVal *const>(val);
-        string_value = date_val->val_.ToString();
-        break;
-      }
-      case type::TypeId::TIMESTAMP: {
-        auto *ts_val = reinterpret_cast<const execution::sql::TimestampVal *const>(val);
-        string_value = ts_val->val_.ToString();
-        break;
-      }
-      case type::TypeId::VARCHAR:
-      case type::TypeId::VARBINARY: {
-        // Don't allocate an actual string for a VARCHAR, just wrap a std::string_view, write the value directly, and
-        // continue
-        auto *string_val = reinterpret_cast<const execution::sql::StringVal *const>(val);
-        AppendValue<int32_t>(static_cast<int32_t>(string_val->len_)).AppendRaw(string_val->Content(), string_val->len_);
-        return execution::sql::ValUtil::GetSqlSize(type);
-      }
-      default:
-        UNREACHABLE("Cannot output unsupported type!!!");
-    }
 
-    AppendValue<int32_t>(static_cast<int32_t>(string_value.length())).AppendString(string_value, false);
+      // write the size, write the attribute
+      AppendValue<int32_t>(static_cast<int32_t>(string_value.length())).AppendString(string_value, false);
+    }
 
     // Advance in the buffer based on the execution engine's type size
     return execution::sql::ValUtil::GetSqlSize(type);
