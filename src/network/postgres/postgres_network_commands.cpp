@@ -439,10 +439,6 @@ Transition SyncCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpr
                                                                              : network::QueryType::QUERY_COMMIT);
     postgres_interpreter->ResetTransactionState();
   }
-  TERRIER_ASSERT(connection->TransactionState() == network::NetworkTransactionStateType::IDLE ||
-                     (connection->TransactionState() == network::NetworkTransactionStateType::BLOCK &&
-                      postgres_interpreter->ExplicitTransactionBlock()),
-                 "These are the only two possible states after Sync command.");
   out->WriteReadyForQuery(connection->TransactionState());
   return Transition::PROCEED;
 }

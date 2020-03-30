@@ -291,7 +291,7 @@ TrafficCopResult TrafficCop::CodegenAndRunPhysicalPlan(
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
     // Execution didn't set us to FAIL state, go ahead and return command complete
     if (query_type == network::QueryType::QUERY_SELECT) {
-      // For selects we really on the OutputWriter to store the number of rows affected because sequential scan
+      // For selects we rely on the OutputWriter to store the number of rows affected because sequential scan
       // iteration can happen in multiple pipelines
       return {ResultType::COMPLETE, writer.NumRows()};
     }

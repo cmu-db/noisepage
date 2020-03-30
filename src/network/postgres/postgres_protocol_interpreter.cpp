@@ -37,7 +37,6 @@ Transition PostgresProtocolInterpreter::Process(common::ManagedPointer<ReadBuffe
   if (WaitingForSync() && curr_input_packet_.msg_type_ != NetworkMessageType::PG_SYNC_COMMAND) {
     // When an error is detected while processing any Extended Query message, the backend issues ErrorResponse, then
     // reads and discards messages until a Sync is reached
-    writer.WriteErrorResponse("ERROR:  Waiting for Sync command.");
     curr_input_packet_.Clear();
     return Transition::PROCEED;
   }
