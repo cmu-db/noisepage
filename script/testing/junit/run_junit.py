@@ -131,11 +131,11 @@ class RunJunit:
     def run(self):
         """ Orchestrate the overall JUnit test execution """
         self._check_db_server_binary()
-        self._run_db_server()
+        # self._run_db_server()
         ret_val = self._run_junit()
         self._print_output(self.junit_output_file)
 
-        self._stop_db_server()
+        # self._stop_db_server()
         if ret_val:
             # print the db_server log file, only if we had a failure
             self._print_output(self.db_server_output_file)
