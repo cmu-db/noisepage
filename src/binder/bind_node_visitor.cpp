@@ -48,6 +48,7 @@ BindNodeVisitor::BindNodeVisitor(const common::ManagedPointer<catalog::CatalogAc
 
 void BindNodeVisitor::BindNameToNode(common::ManagedPointer<parser::ParseResult> parse_result,
                                      const common::ManagedPointer<std::vector<type::TransientValue>> parameters) {
+  TERRIER_ASSERT(parse_result != nullptr, "We shouldn't be tring to bind something without a ParseResult.");
   sherpa_ = std::make_unique<BinderSherpa>(parse_result, parameters);
   TERRIER_ASSERT(sherpa_->GetParseResult()->GetStatements().size() == 1, "Binder can only bind one at a time.");
   sherpa_->GetParseResult()->GetStatement(0)->Accept(

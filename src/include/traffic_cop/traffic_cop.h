@@ -127,6 +127,7 @@ class TrafficCop {
    * Contains logic to reason about binding, and basic IF EXISTS logic.
    * @param connection_ctx context to be used to access the internal txn
    * @param statement parse result to be bound
+   * @param parameters parameters for the query being bound, can be nullptr if there are no parameters
    * @return result of the operation
    */
   TrafficCopResult BindQuery(common::ManagedPointer<network::ConnectionContext> connection_ctx,

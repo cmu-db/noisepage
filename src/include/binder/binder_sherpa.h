@@ -28,17 +28,24 @@ class BinderSherpa {
  public:
   /**
    * Create a new BinderSherpa.
-   * @param parse_result The parse result to be tracked.
+   * @param parse_result The parse result to be tracked
+   * @param parameters parameters for the query being bound, can be nullptr if there are no parameters
    */
   explicit BinderSherpa(const common::ManagedPointer<parser::ParseResult> parse_result,
                         const common::ManagedPointer<std::vector<type::TransientValue>> parameters)
-      : parse_result_(parse_result), parameters_(parameters) {}
+      : parse_result_(parse_result), parameters_(parameters) {
+    TERRIER_ASSERT(parse_result != nullptr, "We shouldn't be tring to bind something without a ParseResult.");
+  }
 
   /**
    * @return The parse result that we're tracking.
    */
   common::ManagedPointer<parser::ParseResult> GetParseResult() const { return parse_result_; }
 
+  /**
+   * @return parameters for the query being bound
+   * @warning can be nullptr if there are no parameters
+   */
   common::ManagedPointer<std::vector<type::TransientValue>> GetParameters() const { return parameters_; }
 
   /**

@@ -141,7 +141,6 @@ class PostgresPacketWriter : public PacketWriter {
    * Writes row description, as the first packet of sending query results
    * @param columns the column information from the OutputSchema
    * @param field_formats vector formats for the attributes to write
-   * @param extended_query
    */
   void WriteRowDescription(const std::vector<planner::OutputSchema::Column> &columns,
                            const std::vector<FieldFormat> &field_formats) {
