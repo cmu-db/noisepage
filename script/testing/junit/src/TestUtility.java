@@ -35,7 +35,7 @@ public class TestUtility {
         while(rs.next()) {
             extra_rows++;
         }
-        assertEquals(extra_rows, 0);
+        assertEquals(0, extra_rows);
     }
 
     /**
