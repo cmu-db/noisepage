@@ -25,7 +25,7 @@ class UDFContext {
   UDFContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type)
       : func_name_(std::move(func_name)),
         func_ret_type_(func_ret_type),
-        args_type_(args_type),
+        args_type_(std::move(args_type)),
         is_builtin_{false},
         is_exec_ctx_required_{false} {}
   /**
@@ -40,7 +40,7 @@ class UDFContext {
              ast::Builtin builtin, bool is_exec_ctx_required = false)
       : func_name_(std::move(func_name)),
         func_ret_type_(func_ret_type),
-        args_type_(args_type),
+        args_type_(std::move(args_type)),
         is_builtin_{true},
         builtin_{builtin},
         is_exec_ctx_required_{is_exec_ctx_required} {}

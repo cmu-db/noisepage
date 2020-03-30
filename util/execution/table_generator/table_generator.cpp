@@ -108,9 +108,7 @@ std::pair<byte *, uint32_t *> TableGenerator::GenerateColumnData(ColumnInsertMet
       col_data = reinterpret_cast<byte *>(CreateNumberColumnData<int64_t>(col_meta, num_rows));
       break;
     }
-    default: {
-      throw std::runtime_error("Implement me!");
-    }
+    default: { throw std::runtime_error("Implement me!"); }
   }
 
   // Create bitmap

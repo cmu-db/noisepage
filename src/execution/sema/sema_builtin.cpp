@@ -207,9 +207,7 @@ void Sema::CheckBuiltinSqlConversionCall(ast::CallExpr *call, ast::Builtin built
       call->SetType(GetBuiltinType(ast::BuiltinType::StringVal));
       break;
     }
-    default: {
-      UNREACHABLE("Impossible SQL conversion call");
-    }
+    default: { UNREACHABLE("Impossible SQL conversion call"); }
   }
 }
 
@@ -409,9 +407,7 @@ void Sema::CheckBuiltinAggHashTableCall(ast::CallExpr *call, ast::Builtin builti
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
-    default: {
-      UNREACHABLE("Impossible aggregation hash table call");
-    }
+    default: { UNREACHABLE("Impossible aggregation hash table call"); }
   }
 }
 
@@ -470,9 +466,7 @@ void Sema::CheckBuiltinAggHashTableIterCall(ast::CallExpr *call, ast::Builtin bu
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
-    default: {
-      UNREACHABLE("Impossible aggregation hash table iterator call");
-    }
+    default: { UNREACHABLE("Impossible aggregation hash table iterator call"); }
   }
 }
 
@@ -508,9 +502,7 @@ void Sema::CheckBuiltinAggPartIterCall(ast::CallExpr *call, ast::Builtin builtin
       call->SetType(GetBuiltinType(hash_val_kind));
       break;
     }
-    default: {
-      UNREACHABLE("Impossible aggregation partition iterator call");
-    }
+    default: { UNREACHABLE("Impossible aggregation partition iterator call"); }
   }
 }
 
@@ -610,9 +602,7 @@ void Sema::CheckBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin)
       }
       break;
     }
-    default: {
-      UNREACHABLE("Impossible aggregator call");
-    }
+    default: { UNREACHABLE("Impossible aggregator call"); }
   }
 }
 
@@ -708,9 +698,7 @@ void Sema::CheckBuiltinJoinHashTableBuild(ast::CallExpr *call, ast::Builtin buil
       }
       break;
     }
-    default: {
-      UNREACHABLE("Impossible join hash table build call");
-    }
+    default: { UNREACHABLE("Impossible join hash table build call"); }
   }
 
   // This call returns nothing
@@ -915,9 +903,7 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, UNUSED_ATTRIBUT
       call->SetType(GetBuiltinType(mem_pool_kind)->PointerTo());
       break;
     }
-    default: {
-      UNREACHABLE("Impossible execution context call");
-    }
+    default: { UNREACHABLE("Impossible execution context call"); }
   }
 }
 
@@ -991,9 +977,7 @@ void Sema::CheckBuiltinThreadStateContainerCall(ast::CallExpr *call, ast::Builti
       }
       break;
     }
-    default: {
-      UNREACHABLE("Impossible table iteration call");
-    }
+    default: { UNREACHABLE("Impossible table iteration call"); }
   }
 
   // All these calls return nil
@@ -1087,9 +1071,7 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
-    default: {
-      UNREACHABLE("Impossible table iteration call");
-    }
+    default: { UNREACHABLE("Impossible table iteration call"); }
   }
 }
 
@@ -1225,9 +1207,7 @@ void Sema::CheckBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::StringVal));
       break;
     }
-    default: {
-      UNREACHABLE("Impossible PCI call");
-    }
+    default: { UNREACHABLE("Impossible PCI call"); }
   }
 }
 
@@ -1299,9 +1279,7 @@ void Sema::CheckBuiltinFilterManagerCall(ast::CallExpr *const call, const ast::B
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
-    default: {
-      UNREACHABLE("Impossible FilterManager call");
-    }
+    default: { UNREACHABLE("Impossible FilterManager call"); }
   }
 }
 
@@ -1340,9 +1318,7 @@ void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
       }
       break;
     }
-    default: {
-      UNREACHABLE("Impossible math trig function call");
-    }
+    default: { UNREACHABLE("Impossible math trig function call"); }
   }
 
   // Trig functions return real values (important)
@@ -1537,9 +1513,7 @@ void Sema::CheckBuiltinSorterSort(ast::CallExpr *call, ast::Builtin builtin) {
       }
       break;
     }
-    default: {
-      UNREACHABLE("Impossible sorter sort call");
-    }
+    default: { UNREACHABLE("Impossible sorter sort call"); }
   }
 
   // This call returns nothing
@@ -1606,9 +1580,7 @@ void Sema::CheckBuiltinSorterIterCall(ast::CallExpr *call, ast::Builtin builtin)
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
-    default: {
-      UNREACHABLE("Impossible table iteration call");
-    }
+    default: { UNREACHABLE("Impossible table iteration call"); }
   }
 }
 
@@ -2601,9 +2573,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinStringCall(call, builtin);
       break;
     }
-    default: {
-      UNREACHABLE("Unhandled builtin!");
-    }
+    default: { UNREACHABLE("Unhandled builtin!"); }
   }
 }
 

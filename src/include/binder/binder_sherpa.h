@@ -189,9 +189,7 @@ class BinderSherpa {
           break;
         }
 
-        default: {
-          ReportFailure("Binder conversion of ConstantValueExpression type failed.");
-        }
+        default: { ReportFailure("Binder conversion of ConstantValueExpression type failed."); }
       }
     }
   }

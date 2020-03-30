@@ -1796,7 +1796,8 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
 
 #define BOOTSTRAP_TRIG_FN(str_name, pro_oid, builtin)                                                              \
   udf_context = new execution::udf::UDFContext(str_name, type::TypeId::DECIMAL, {type::TypeId::DECIMAL}, builtin); \
-  SetProcCtxPtr(txn, pro_oid, udf_context);
+  SetProcCtxPtr(txn, pro_oid, udf_context);                                                                        \
+  txn->RegisterAbortAction([=]() { delete udf_context; });
 
   // ACos
   BOOTSTRAP_TRIG_FN("acos", postgres::ACOS_PRO_OID, execution::ast::Builtin::ACos)
@@ -1823,6 +1824,7 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
   udf_context = new execution::udf::UDFContext("lower", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
                                                execution::ast::Builtin::Lower, true);
   SetProcCtxPtr(txn, postgres::LOWER_PRO_OID, udf_context);
+  txn->RegisterAbortAction([=]() { delete udf_context; });
 }
 
 bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,

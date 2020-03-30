@@ -65,9 +65,7 @@ ast::Decl *Parser::ParseDecl() {
     case Token::Type::FUN: {
       return ParseFunctionDecl();
     }
-    default: {
-      break;
-    }
+    default: { break; }
   }
 
   // Report error, sync up and try again
@@ -171,9 +169,7 @@ ast::Stmt *Parser::ParseStmt() {
       ast::Decl *var_decl = ParseVariableDecl();
       return node_factory_->NewDeclStmt(var_decl);
     }
-    default: {
-      return ParseSimpleStmt();
-    }
+    default: { return ParseSimpleStmt(); }
   }
 }
 
@@ -417,9 +413,7 @@ ast::Expr *Parser::ParseUnaryOpExpr() {
       ast::Expr *expr = ParseUnaryOpExpr();
       return node_factory_->NewUnaryOpExpr(position, op, expr);
     }
-    default: {
-      break;
-    }
+    default: { break; }
   }
 
   return ParsePrimaryExpr();
@@ -466,9 +460,7 @@ ast::Expr *Parser::ParsePrimaryExpr() {
         result = node_factory_->NewIndexExpr(result->Position(), result, index);
         break;
       }
-      default: {
-        break;
-      }
+      default: { break; }
     }
   } while (Token::IsCallOrMemberOrIndex(Peek()));
 
@@ -538,9 +530,7 @@ ast::Expr *Parser::ParseOperand() {
       Expect(Token::Type::RIGHT_PAREN);
       return expr;
     }
-    default: {
-      break;
-    }
+    default: { break; }
   }
 
   // Error
@@ -584,9 +574,7 @@ ast::Expr *Parser::ParseType() {
     case Token::Type::STRUCT: {
       return ParseStructType();
     }
-    default: {
-      break;
-    }
+    default: { break; }
   }
 
   // Error
