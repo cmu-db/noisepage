@@ -213,7 +213,7 @@ class BinderSherpa {
    */
   template <typename Output, typename Input>
   static bool IsRepresentable(Input int_val) {
-    return std::numeric_limits<Output>::min() <= int_val && int_val <= std::numeric_limits<Output>::max();
+    return std::numeric_limits<Output>::lowest() <= int_val && int_val <= std::numeric_limits<Output>::max();
   }
 
   /**
