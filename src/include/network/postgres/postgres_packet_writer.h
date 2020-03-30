@@ -164,7 +164,7 @@ class PostgresPacketWriter : public PacketWriter {
           .AppendValue(
               static_cast<int32_t>(PostgresProtocolUtil::InternalValueTypeToPostgresValueType(col_type)));  // type oid
       if (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY ||
-          field_format == FieldFormat::text) {
+          (field_format == FieldFormat::text && static_cast<uint8_t>(col_type) > 5)) {
         AppendValue<int16_t>(-1);  // variable length
       } else {
         AppendValue<int16_t>(type::TypeUtil::GetTypeSize(col_type));  // data type size
