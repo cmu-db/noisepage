@@ -31,10 +31,8 @@ class OperatorNode : public AbstractOptimizerNode {
    * @param children Children of this OperatorNode
    */
   explicit OperatorNode(Operator op, std::vector<std::unique_ptr<AbstractOptimizerNode>> &&children)
-      : contents_(common::ManagedPointer<AbstractOptimizerNodeContents>(new Operator(std::move(op)))) {
-    children_.resize(children.size());
-    std::move(children.begin(), children.end(), children_.begin());
-  }
+      : contents_(common::ManagedPointer<AbstractOptimizerNodeContents>(new Operator(std::move(op)))),
+        children_(std::move(children)) {}
 
   /**
    * Copy

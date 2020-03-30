@@ -191,9 +191,7 @@ class Operator : public AbstractOptimizerNodeContents {
   /**
    * Copy constructor for Operator
    */
-  Operator(const Operator &op)
-      : AbstractOptimizerNodeContents(static_cast<common::ManagedPointer<AbstractOptimizerNodeContents>>(
-            op.contents_.CastManagedPointerTo<BaseOperatorNodeContents>()->Copy())) {}
+  Operator(const Operator &op) : AbstractOptimizerNodeContents(op.contents_) {}
 
   /**
    * Calls corresponding visitor to this operator node

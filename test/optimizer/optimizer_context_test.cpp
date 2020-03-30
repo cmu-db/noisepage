@@ -115,9 +115,13 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateSingleLayer) {
 
   // Create OperatorNode of JOIN <= (GET A, GET A)
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
-  std::unique_ptr<OperatorNode> left_get = std::make_unique<OperatorNode>(
-      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
-      std::move(c));
+  Operator logical_get =
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false);
+  std::unique_ptr<Operator> logical_get_contents = std::make_unique<Operator>(logical_get);
+  std::unique_ptr<OperatorNode> left_get =
+      std::make_unique<OperatorNode>(common::ManagedPointer<AbstractOptimizerNodeContents>(
+                                         dynamic_cast<AbstractOptimizerNodeContents *>(logical_get_contents.get())),
+                                     std::move(c));
 
   std::unique_ptr<OperatorNode> right_get =
       std::unique_ptr<OperatorNode>(dynamic_cast<OperatorNode *>(left_get->Copy().release()));
@@ -128,10 +132,11 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateSingleLayer) {
   std::vector<std::unique_ptr<AbstractOptimizerNode>> jc;
   jc.emplace_back(std::move(left_get));
   jc.emplace_back(std::move(right_get));
-  auto *test_opnode = new OperatorNode(LogicalInnerJoin::Make(), std::move(jc));
-
-  std::unique_ptr<OperatorNode> join_opnode = std::unique_ptr<OperatorNode>(test_opnode);
-  auto join = std::unique_ptr<AbstractOptimizerNode>(join_opnode.release());
+  Operator logical_inner_join = LogicalInnerJoin::Make();
+  std::unique_ptr<Operator> logical_inner_join_contents = std::make_unique<Operator>(logical_inner_join);
+  std::unique_ptr<AbstractOptimizerNode> join = std::make_unique<OperatorNode>(
+      common::ManagedPointer(dynamic_cast<AbstractOptimizerNodeContents *>(logical_inner_join_contents.get())),
+      std::move(jc));
 
   // RecordOptimizerNodeIntoGroup
   GroupExpression *join_gexpr;
