@@ -95,6 +95,7 @@ install_mac() {
   brew ls --versions postgresql || brew install postgresql
   brew ls --versions tbb || brew install tbb
   brew ls --versions ant || brew install ant
+  brew ls --versions lsof || brew install lsof
   python3 -m pip --version || install_pip
   #install pyarrow
   python3 -m pip show pyarrow || python3 -m pip install pyarrow
@@ -129,7 +130,8 @@ install_linux() {
       libsqlite3-dev \
       ant \
       wget \
-      python3-pip
+      python3-pip \
+      lsof \
 
   #install pyarrow
   python3 -m pip show pyarrow || python3 -m pip install pyarrow
