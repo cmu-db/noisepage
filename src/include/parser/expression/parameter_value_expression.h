@@ -19,6 +19,14 @@ class ParameterValueExpression : public AbstractExpression {
   explicit ParameterValueExpression(const uint32_t value_idx)
       : AbstractExpression(ExpressionType::VALUE_PARAMETER, type::TypeId::INVALID, {}), value_idx_(value_idx) {}
 
+  /**
+   * Instantiates a new ParameterValueExpression with the given offset and the given type
+   * @param value_idx the offset of the parameter
+   * @param ret_type the return type of the expression
+   */
+  explicit ParameterValueExpression(const uint32_t value_idx, type::TypeId ret_type)
+      : AbstractExpression(ExpressionType::VALUE_PARAMETER, ret_type, {}), value_idx_(value_idx) {}
+
   /** Default constructor for deserialization. */
   ParameterValueExpression() = default;
 
