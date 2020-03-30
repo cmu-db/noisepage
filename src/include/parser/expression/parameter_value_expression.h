@@ -15,6 +15,8 @@ class ParameterValueExpression : public AbstractExpression {
   /**
    * Instantiates a new ParameterValueExpression with the given offset.
    * @param value_idx the offset of the parameter
+   * @warning we set the type to INVALID as an indicator to the binder that we have not visited this expression yet.
+   * After being visited by the binder, the type should reflect the correct value
    */
   explicit ParameterValueExpression(const uint32_t value_idx)
       : AbstractExpression(ExpressionType::VALUE_PARAMETER, type::TypeId::INVALID, {}), value_idx_(value_idx) {}
