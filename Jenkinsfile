@@ -95,10 +95,10 @@ pipeline {
                         sh 'echo y | ./script/installation/packages.sh'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j4'
-                        sh 'cd build && make check-clang-tidy'
-                        sh 'cd build && gtimeout 1h make unittest'
-                        sh 'cd build && gtimeout 1h make check-tpl'
-                        sh 'cd build && echo 'export PATH="/usr/local/opt/lsof/bin:$PATH"' >> ~/.bash_profile && (./debug/terrier &) && python ../script/testing/junit/run_junit.py && kill -9 $(lsof -ti tcp:15721)'
+                        // sh 'cd build && make check-clang-tidy'
+                        // sh 'cd build && gtimeout 1h make unittest'
+                        // sh 'cd build && gtimeout 1h make check-tpl'
+                        sh 'cd build && (./debug/terrier &) && python ../script/testing/junit/run_junit.py && kill -9 $(lsof -ti tcp:15721)'
                     }
                     post {
                         cleanup {
@@ -210,9 +210,9 @@ pipeline {
                         sh 'echo y | ./script/installation/packages.sh'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j4'
-                        sh 'cd build && gtimeout 1h make unittest'
-                        sh 'cd build && gtimeout 1h make check-tpl'
-                        sh 'cd build && echo 'export PATH="/usr/local/opt/lsof/bin:$PATH"' >> ~/.bash_profile && (./release/terrier &) && python ../script/testing/junit/run_junit.py --build_type=release && kill -9 $(lsof -ti tcp:15721)'
+                        // sh 'cd build && gtimeout 1h make unittest'
+                        // sh 'cd build && gtimeout 1h make check-tpl'
+                        sh 'cd build && (./release/terrier &) && python ../script/testing/junit/run_junit.py --build_type=release && kill -9 $(lsof -ti tcp:15721)'
                     }
                     post {
                         cleanup {
