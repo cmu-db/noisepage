@@ -43,10 +43,10 @@ class PostgresNetworkCommand : public NetworkCommand {
 
 // Set all to force flush for now
 DEFINE_POSTGRES_COMMAND(SimpleQueryCommand, true);
-DEFINE_POSTGRES_COMMAND(ParseCommand, true);
-DEFINE_POSTGRES_COMMAND(BindCommand, true);
-DEFINE_POSTGRES_COMMAND(DescribeCommand, true);
-DEFINE_POSTGRES_COMMAND(ExecuteCommand, true);
+DEFINE_POSTGRES_COMMAND(ParseCommand, false);
+DEFINE_POSTGRES_COMMAND(BindCommand, false);
+DEFINE_POSTGRES_COMMAND(DescribeCommand, false);
+DEFINE_POSTGRES_COMMAND(ExecuteCommand, false);
 DEFINE_POSTGRES_COMMAND(SyncCommand, true);
 DEFINE_POSTGRES_COMMAND(CloseCommand, true);
 DEFINE_POSTGRES_COMMAND(TerminateCommand, true);
