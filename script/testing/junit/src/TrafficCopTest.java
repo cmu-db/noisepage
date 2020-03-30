@@ -7,7 +7,7 @@ import org.junit.*;
 import static junit.framework.TestCase.fail;
 import static org.junit.Assert.assertEquals;
 
-public class TrafficCopTest extends PLTestBase {
+public class TrafficCopTest extends TestUtility {
  private Connection conn;
  private ResultSet rs;
 
