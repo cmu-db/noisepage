@@ -39,7 +39,9 @@ int64_t BytecodeIterator::GetImmediateOperand(uint32_t operand_index) const {
     case OperandType::Imm8: {
       return *reinterpret_cast<const int64_t *>(operand_address);
     }
-    default: { UNREACHABLE("Impossible!"); }
+    default: {
+      UNREACHABLE("Impossible!");
+    }
   }
 }
 
@@ -57,7 +59,9 @@ double BytecodeIterator::GetFloatImmediateOperand(uint32_t operand_index) const 
     case OperandType::Imm8F: {
       return *reinterpret_cast<const double *>(operand_address);
     }
-    default: { UNREACHABLE("Impossible!"); }
+    default: {
+      UNREACHABLE("Impossible!");
+    }
   }
 }
 
@@ -75,7 +79,9 @@ uint64_t BytecodeIterator::GetUnsignedImmediateOperand(uint32_t operand_index) c
     case OperandType::UImm4: {
       return *reinterpret_cast<const uint32_t *>(operand_address);
     }
-    default: { UNREACHABLE("Impossible!"); }
+    default: {
+      UNREACHABLE("Impossible!");
+    }
   }
 }
 
