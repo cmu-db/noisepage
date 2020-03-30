@@ -178,16 +178,28 @@ public class TPCCBootstrapTest extends TestUtility {
 
     @After
     public void teardown() throws SQLException {
-        Statement stmt = conn.createStatement();
-        stmt.execute("DROP TABLE IF EXISTS item;");
-        stmt.execute("DROP TABLE IF EXISTS warehouse;");
-        stmt.execute("DROP TABLE IF EXISTS stock;");
-        stmt.execute("DROP TABLE IF EXISTS district;");
-        stmt.execute("DROP TABLE IF EXISTS customer;");
-        stmt.execute("DROP TABLE IF EXISTS history;");
-        stmt.execute("DROP TABLE IF EXISTS new_order;");
-        stmt.execute("DROP TABLE IF EXISTS oorder;");
-        stmt.execute("DROP TABLE IF EXISTS order_line;");
+        try {
+            Statement stmt = conn.createStatement();
+            stmt.execute("DROP TABLE IF EXISTS item;");
+            stmt.execute("DROP TABLE IF EXISTS warehouse;");
+            stmt.execute("DROP TABLE IF EXISTS stock;");
+            stmt.execute("DROP TABLE IF EXISTS district;");
+            stmt.execute("DROP TABLE IF EXISTS customer;");
+            stmt.execute("DROP TABLE IF EXISTS history;");
+            stmt.execute("DROP TABLE IF EXISTS new_order;");
+            stmt.execute("DROP TABLE IF EXISTS oorder;");
+            stmt.execute("DROP TABLE IF EXISTS order_line;");
+        } catch (SQLException e) {
+            DumpSQLException(e);
+        } finally {
+            try {
+                if (conn != null) {
+                    conn.close();
+                }
+            } catch (SQLException e) {
+                DumpSQLException(e);
+            }
+        }
     }
 
     @Test
