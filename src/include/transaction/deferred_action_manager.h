@@ -37,13 +37,15 @@ class DeferredActionManager {
    * transaction) is more recent than the time this function was called.
    * @param a functional implementation of the action that is deferred. @see DeferredAction
    */
-  timestamp_t RegisterDeferredAction(const DeferredAction &a) {
+  timestamp_t RegisterDeferredAction(DeferredAction &&a) {
+    timestamp_t result = timestamp_manager_->CurrentTime();
+    std::pair<timestamp_t, DeferredAction> elem = {result, a};
+
     common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
     // Timestamp needs to be fetched inside the critical section such that actions in the
     // deferred action queue is in order. This simplifies the interleavings we need to deal
     // with in the face of DDL changes.
-    timestamp_t result = timestamp_manager_->CurrentTime();
-    new_deferred_actions_.emplace(result, a);
+    new_deferred_actions_.push(std::move(elem));
     return result;
   }
 
