@@ -29,7 +29,7 @@ namespace terrier::optimizer {
 QueryToOperatorTransformer::QueryToOperatorTransformer(
     const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor,
     common::ManagedPointer<OptimizerContext> context, const catalog::db_oid_t db_oid)
-    : accessor_(catalog_accessor), context_(context), db_oid_(db_oid) {
+    : accessor_(catalog_accessor), db_oid_(db_oid), context_(context) {
   output_expr_ = nullptr;
 }
 
@@ -250,9 +250,8 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
       // Start at i = 1 due to the Accept() above
       auto list_elem = node->GetList().at(i);
       list_elem->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-      auto join_expr =
-          std::make_unique<OperatorNode>(LogicalInnerJoin::Make(context_->GetNextPlanNodeID()),
-                                         std::vector<std::unique_ptr<OperatorNode>>{});
+      auto join_expr = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(context_->GetNextPlanNodeID()),
+                                                      std::vector<std::unique_ptr<OperatorNode>>{});
       join_expr->PushChild(std::move(prev_expr));
       join_expr->PushChild(std::move(output_expr_));
       TERRIER_ASSERT(join_expr->GetChildren().size() == 2, "The join expr should have exactly 2 elements");
@@ -387,10 +386,9 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::InsertStat
   auto target_ns_id = accessor_->GetDefaultNamespace();
 
   if (op->GetInsertType() == parser::InsertType::SELECT) {
-    auto insert_expr =
-        std::make_unique<OperatorNode>(LogicalInsertSelect::Make(target_db_id, target_ns_id, target_table_id,
-                                                                context_->GetNextPlanNodeID()),
-                                       std::vector<std::unique_ptr<OperatorNode>>{});
+    auto insert_expr = std::make_unique<OperatorNode>(
+        LogicalInsertSelect::Make(target_db_id, target_ns_id, target_table_id, context_->GetNextPlanNodeID()),
+        std::vector<std::unique_ptr<OperatorNode>>{});
     op->GetSelect()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
     insert_expr->PushChild(std::move(output_expr_));
     output_expr_ = std::move(insert_expr);
@@ -593,11 +591,10 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CopyStatem
 
     auto target_table = op->GetCopyTable();
 
-    auto insert_op =
-        std::make_unique<OperatorNode>(LogicalInsertSelect::Make(db_oid_, accessor_->GetDefaultNamespace(),
-                                                                 accessor_->GetTableOid(target_table->GetTableName()),
-                                                                 context_->GetNextPlanNodeID()),
-                                       std::vector<std::unique_ptr<OperatorNode>>{});
+    auto insert_op = std::make_unique<OperatorNode>(
+        LogicalInsertSelect::Make(db_oid_, accessor_->GetDefaultNamespace(),
+                                  accessor_->GetTableOid(target_table->GetTableName()), context_->GetNextPlanNodeID()),
+        std::vector<std::unique_ptr<OperatorNode>>{});
     insert_op->PushChild(std::move(get_op));
     output_expr_ = std::move(insert_op);
 

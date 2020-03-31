@@ -26,17 +26,14 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(
   // Optimizer transforms annotated ParseResult to logical expressions (ephemeral Optimizer structure)
   optimizer::OptimizerContext context =
       optimizer::OptimizerContext(common::ManagedPointer<optimizer::AbstractCostModel>(cost_model));
-  optimizer::QueryToOperatorTransformer transformer(accessor, context, db_oid);
-  auto logical_exprs = transformer.ConvertToOpExpression(query->GetStatement(0), query);
 
   optimizer::Optimizer optimizer(std::move(cost_model), optimizer_timeout);
   optimizer::PropertySet property_set;
 
   // Optimizer transforms annotated ParseResult to logical expressions (ephemeral Optimizer structure)
   auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
-  optimizer::QueryToOperatorTransformer transformer(accessor, optimizer_context);
-  auto logical_exprs = transformer.ConvertToOpExpression(query->GetStatement(0), query.Get());
-
+  optimizer::QueryToOperatorTransformer transformer(accessor, optimizer_context, db_oid);
+  auto logical_exprs = transformer.ConvertToOpExpression(query->GetStatement(0), query);
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output;
 
   // Build the QueryInfo object. For SELECTs this may require a bunch of other stuff from the original statement.
@@ -74,7 +71,6 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(
   auto plan_tree =
       optimizer.BuildPlanTree(txn.Get(), accessor.Get(), stats_storage.Get(), query_info, std::move(logical_exprs));
 
-  delete cost_model;
   return plan_tree;
   // TODO(Matt): I see a lot of copying going on in the Optimizer that maybe shouldn't be happening. BuildPlanTree's
   // signature is copying QueryInfo object (contains a vector of output columns), which then immediately makes a local

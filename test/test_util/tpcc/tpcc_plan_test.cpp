@@ -104,7 +104,8 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
   auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
-  auto *transformer = new optimizer::QueryToOperatorTransformer(common::ManagedPointer(accessor), optimizer_context, db_);
+  auto *transformer =
+      new optimizer::QueryToOperatorTransformer(common::ManagedPointer(accessor), optimizer_context, db_);
   auto plan = transformer->ConvertToOpExpression(stmt_list->GetStatement(0), common::ManagedPointer(stmt_list.get()));
   delete binder;
   delete transformer;
