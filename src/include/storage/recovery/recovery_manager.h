@@ -17,6 +17,7 @@
 #include "common/dedicated_thread_owner.h"
 #include "storage/recovery/abstract_log_provider.h"
 #include "storage/sql_table.h"
+#include "storage/checkpoints/checkpoint.h"
 #include "transaction/transaction_manager.h"
 
 namespace terrier {
@@ -161,13 +162,19 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * Recovers the databases using the provided log provider
    * @return number of committed transactions replayed
    */
-  void Recover(bool catalog_only = false) { RecoverFromLogs(catalog_only); }
+  void Recover(bool catalog_only = false) {
+    RecoverFromLogs(catalog_only);
+    std::string path = "";
+    RecoverFromCheckpoint(path);
+  }
 
   /**
    * Recovers the databases from the logs.
    * @note this is a separate method so in the future, we can also have a RecoverFromCheckpoint method
    */
   void RecoverFromLogs(bool catalog_only = false);
+
+  void RecoverFromCheckpoint(const std::string& path);
 
   /**
    * @brief Replay a committed transaction corresponding to txn_id.

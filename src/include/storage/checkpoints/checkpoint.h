@@ -34,7 +34,9 @@ class Checkpoint {
 
   bool TakeCheckpoint(const std::string &path);
 
-
+  static std::string GenFileName(catalog::db_oid_t db_oid, catalog::table_oid_t tb_oid){
+    return std::to_string((uint32_t)db_oid) + "-" + std::to_string((uint32_t)tb_oid);
+  }
 
 
  private:

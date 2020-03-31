@@ -35,10 +35,6 @@ bool Checkpoint::TakeCheckpoint(const std::string &path) {
   return true;
 }
 
-std::string GenFileName(catalog::db_oid_t db_oid, catalog::table_oid_t tb_oid){
-  return std::to_string((uint32_t)db_oid) + "-" + std::to_string((uint32_t)tb_oid);
-}
-
 void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<catalog::CatalogAccessor> &accessor,
     catalog::db_oid_t db_oid) {
   while (queue.size() > 0){
@@ -70,7 +66,5 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
 
   }
 }
-
-
 
 } //namespace terrier::storage
