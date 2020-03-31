@@ -180,7 +180,19 @@ class SqlTable {
    */
   DataTable::SlotIterator end() const { return table_.data_table_->end(); }  // NOLINT for STL name compability
 
+  /**
+   * @param: layout_version the last version I should be able to see
+   * @return one past the last tuple slot contained in the underlying DataTable
+   */
+  DataTable::SlotIterator end(layout_version_t layout_version) const { return table_.tables_.at[layout_version]->end(); }  // NOLINT for STL name compability
+
   // TODO(Schema-Change): add projection considering table
+  //  We might have to seperate the use cases here: one implementation that does not expect schema chnage at all, one does.
+  //  In many cases, this function is called not in transactional context (thus layout_version not really relevant).
+  //  For example, in TPCC, the worker will pre-allocate a buffer with size equal to the projectedrow's size.
+  //  For the version that does expect a version change: we can save the col_oids and the reference to the SqlTable in the
+  //  ProjRow(Colum)Initlizer, and only later when a transactional context is known, we materialize this initializer
+  //  with the correct layout_version
   /**
    * Generates an ProjectedColumnsInitializer for the execution layer to use. This performs the translation from col_oid
    * to col_id for the Initializer's constructor so that the execution layer doesn't need to know anything about col_id.
@@ -198,6 +210,7 @@ class SqlTable {
                    "Projection should be the same number of columns as requested col_oids.");
     return ProjectedColumnsInitializer(table_.layout_, col_ids, max_tuples);
   }
+
 
   /**
    * Generates an ProjectedRowInitializer for the execution layer to use. This performs the translation from col_oid to
