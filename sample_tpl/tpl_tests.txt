@@ -35,11 +35,14 @@ test.tpl,false,356405
 while.tpl,false,10
 return-exp.tpl,false,2
 types/bools.tpl,false,6
+types/bigint.tpl,false,0
 types/int_aggregators.tpl,false,0
 types/real_aggregators.tpl,false,0
 types/dates.tpl,false,0
+types/nulls.tpl,false,0
 types/strings.tpl,false,0
 types/timestamps.tpl,false,0
+date-functions.tpl,false,0
 #scope.tpl,false,3 <Add after merging Wan's scoping PR>
 #scope-2.tpl,false,42 <Add after merging Wan's scoping PR>
 
@@ -50,6 +53,8 @@ types/timestamps.tpl,false,0
 agg.tpl,true,10
 agg-vec.tpl,true,10
 agg-vec-filter.tpl,true,10
+static-agg.tpl,true,49995000
+distinct-agg.tpl,true,45
 delete.tpl,true,0
 insert.tpl,true,11
 update.tpl,true,11
@@ -63,6 +68,7 @@ scan-table-3.tpl,true,9950
 scan-alltypes.tpl,true,500
 scan-vpi-iter.tpl,true,500
 sort.tpl,true,2000
+sort-limit.tpl,true,100
 vec-filter.tpl,true,3000
 #output1.tpl,true,500 <Relies on output buffer>
 scan-index.tpl,true,1

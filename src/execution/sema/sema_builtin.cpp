@@ -37,6 +37,34 @@ bool AreAllFunctions(const ArgTypes... type) {
 
 void Sema::CheckBuiltinMapCall(UNUSED_ATTRIBUTE ast::CallExpr *call) {}
 
+void Sema::CheckBuiltinSqlNullCall(ast::CallExpr *call, ast::Builtin builtin) {
+  if (!CheckArgCount(call, 1)) {
+    return;
+  }
+  auto input_type = call->Arguments()[0]->GetType();
+  switch (builtin) {
+    case ast::Builtin::IsSqlNull: /* fall-through */
+    case ast::Builtin::IsSqlNotNull: {
+      if (!input_type->IsSqlValueType()) {
+        ReportIncorrectCallArg(call, 0, "sql_type");
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
+      break;
+    }
+    case ast::Builtin::NullToSql: {
+      if (!input_type->IsPointerType() || !input_type->GetPointeeType()->IsSqlValueType()) {
+        ReportIncorrectCallArg(call, 0, "&sql_type");
+        return;
+      }
+      call->SetType(input_type->GetPointeeType());
+      break;
+    }
+    default:
+      UNREACHABLE("Unsupported NULL type.");
+  }
+}
+
 void Sema::CheckBuiltinSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
   // SQL Date.
   if (builtin == ast::Builtin::DateToSql) {
@@ -215,6 +243,26 @@ void Sema::CheckBuiltinFilterCall(ast::CallExpr *call) {
 
   // Set return type
   call->SetType(GetBuiltinType(ast::BuiltinType::Int64));
+}
+
+void Sema::CheckBuiltinDateFunctionCall(ast::CallExpr *call, ast::Builtin builtin) {
+  if (!CheckArgCount(call, 1)) {
+    return;
+  }
+  auto input_type = call->Arguments()[0]->GetType();
+  // Use a switch since there will be more date functions to come
+  switch (builtin) {
+    case ast::Builtin::ExtractYear: {
+      if (!input_type->IsSqlValueType()) {
+        ReportIncorrectCallArg(call, 0, "sql_type");
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Integer));
+      break;
+    }
+    default:
+      UNREACHABLE("Unsupported Date Function.");
+  }
 }
 
 void Sema::CheckBuiltinAggHashTableCall(ast::CallExpr *call, ast::Builtin builtin) {
@@ -1386,8 +1434,8 @@ void Sema::CheckBuiltinSorterInit(ast::CallExpr *call) {
   call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
 }
 
-void Sema::CheckBuiltinSorterInsert(ast::CallExpr *call) {
-  if (!CheckArgCount(call, 1)) {
+void Sema::CheckBuiltinSorterInsert(ast::CallExpr *call, ast::Builtin builtin) {
+  if (!CheckArgCountAtLeast(call, 1)) {
     return;
   }
 
@@ -1398,8 +1446,43 @@ void Sema::CheckBuiltinSorterInsert(ast::CallExpr *call) {
     return;
   }
 
-  // This call returns nothing
-  call->SetType(GetBuiltinType(ast::BuiltinType::Uint8)->PointerTo());
+  switch (builtin) {
+    case ast::Builtin::SorterInsert: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+      // This call returns a byte buffer
+      call->SetType(GetBuiltinType(ast::BuiltinType::Uint8)->PointerTo());
+      break;
+    }
+    case ast::Builtin::SorterInsertTopK: {
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+      // Second argument is the limit
+      if (!call->Arguments()[1]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint64));
+        return;
+      }
+      // This call returns a byte buffer
+      call->SetType(GetBuiltinType(ast::BuiltinType::Uint8)->PointerTo());
+      break;
+    }
+    case ast::Builtin::SorterInsertTopKFinish:
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+      // Second argument is the limit
+      if (!call->Arguments()[1]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint64));
+        return;
+      }
+      // This call returns nothing
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    default:
+      UNREACHABLE("Impossible sorter insert call");
+  }
 }
 
 void Sema::CheckBuiltinSorterSort(ast::CallExpr *call, ast::Builtin builtin) {
@@ -2160,6 +2243,12 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
   }
 
   switch (builtin) {
+    case ast::Builtin::IsSqlNull:
+    case ast::Builtin::IsSqlNotNull:
+    case ast::Builtin::NullToSql: {
+      CheckBuiltinSqlNullCall(call, builtin);
+      break;
+    }
     case ast::Builtin::BoolToSql:
     case ast::Builtin::IntToSql:
     case ast::Builtin::FloatToSql:
@@ -2170,6 +2259,10 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::TimestampToSqlHMSu:
     case ast::Builtin::SqlToBool: {
       CheckBuiltinSqlConversionCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::ExtractYear: {
+      CheckBuiltinDateFunctionCall(call, builtin);
       break;
     }
     case ast::Builtin::FilterEq:
@@ -2322,8 +2415,10 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinSorterInit(call);
       break;
     }
-    case ast::Builtin::SorterInsert: {
-      CheckBuiltinSorterInsert(call);
+    case ast::Builtin::SorterInsert:
+    case ast::Builtin::SorterInsertTopK:
+    case ast::Builtin::SorterInsertTopKFinish: {
+      CheckBuiltinSorterInsert(call, builtin);
       break;
     }
     case ast::Builtin::SorterSort:

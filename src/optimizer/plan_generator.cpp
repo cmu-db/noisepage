@@ -17,6 +17,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression_util.h"
 #include "planner/plannodes/aggregate_plan_node.h"
+#include "planner/plannodes/analyze_plan_node.h"
 #include "planner/plannodes/create_database_plan_node.h"
 #include "planner/plannodes/create_function_plan_node.h"
 #include "planner/plannodes/create_index_plan_node.h"
@@ -493,27 +494,11 @@ void PlanGenerator::Visit(const InnerNLJoin *op) {
       parser::ExpressionUtil::ConvertExprCVNodes(common::ManagedPointer(eval_pred), children_expr_map_).release();
   RegisterPointerCleanup<parser::AbstractExpression>(join_predicate, true, true);
 
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> left_keys;
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> right_keys;
-  for (auto &expr : op->GetLeftKeys()) {
-    auto left_key = parser::ExpressionUtil::EvaluateExpression({children_expr_map_[0]}, expr).release();
-    RegisterPointerCleanup<parser::AbstractExpression>(left_key, true, true);
-    left_keys.emplace_back(left_key);
-  }
-
-  for (auto &expr : op->GetRightKeys()) {
-    auto right_key = parser::ExpressionUtil::EvaluateExpression({children_expr_map_[1]}, expr).release();
-    RegisterPointerCleanup<parser::AbstractExpression>(right_key, true, true);
-    right_keys.emplace_back(right_key);
-  }
-
   output_plan_ = planner::NestedLoopJoinPlanNode::Builder()
                      .SetOutputSchema(std::move(proj_schema))
                      .SetPlanNodeId(op->GetPlanNodeId())
                      .SetJoinPredicate(common::ManagedPointer(join_predicate))
                      .SetJoinType(planner::LogicalJoinType::INNER)
-                     .SetLeftKeys(std::move(left_keys))
-                     .SetRightKeys(std::move(right_keys))
                      .AddChild(std::move(children_plans_[0]))
                      .AddChild(std::move(children_plans_[1]))
                      .Build();
@@ -543,22 +528,22 @@ void PlanGenerator::Visit(const InnerHashJoin *op) {
   builder.SetOutputSchema(std::move(proj_schema));
   builder.SetPlanNodeId(op->GetPlanNodeId());
 
-  std::vector<ExprMap> l_child_map{std::move(children_expr_map_[0])};
-  std::vector<ExprMap> r_child_map{std::move(children_expr_map_[1])};
   for (auto &expr : op->GetLeftKeys()) {
-    auto left_key = parser::ExpressionUtil::EvaluateExpression(l_child_map, expr).release();
+    auto left_key = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, expr).release();
     RegisterPointerCleanup<parser::AbstractExpression>(left_key, true, true);
     builder.AddLeftHashKey(common::ManagedPointer(left_key));
   }
 
   for (auto &expr : op->GetRightKeys()) {
-    auto right_key = parser::ExpressionUtil::EvaluateExpression(r_child_map, expr).release();
+    auto right_key = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, expr).release();
     RegisterPointerCleanup<parser::AbstractExpression>(right_key, true, true);
     builder.AddRightHashKey(common::ManagedPointer(right_key));
   }
 
   builder.AddChild(std::move(children_plans_[0]));
   builder.AddChild(std::move(children_plans_[1]));
+  builder.SetJoinPredicate(common::ManagedPointer(join_predicate));
+  builder.SetJoinType(planner::LogicalJoinType::INNER);
   output_plan_ = builder.Build();
 }
 
@@ -584,8 +569,23 @@ void PlanGenerator::BuildAggregatePlan(
     common::ManagedPointer<parser::AbstractExpression> having_predicate) {
   TERRIER_ASSERT(children_expr_map_.size() == 1, "Aggregate needs 1 child plan");
   auto &child_expr_map = children_expr_map_[0];
-
   auto builder = planner::AggregatePlanNode::Builder();
+
+  // Generate group by ids
+  ExprMap gb_map;
+  if (groupby_cols != nullptr) {
+    uint32_t offset = 0;
+    for (auto &col : *groupby_cols) {
+      gb_map[col] = offset;
+
+      auto eval = parser::ExpressionUtil::EvaluateExpression({child_expr_map}, col);
+      auto gb_term =
+          parser::ExpressionUtil::ConvertExprCVNodes(common::ManagedPointer(eval), {child_expr_map}).release();
+      RegisterPointerCleanup<parser::AbstractExpression>(gb_term, true, true);
+      builder.AddGroupByTerm(common::ManagedPointer(gb_term));
+      offset++;
+    }
+  }
 
   auto agg_id = 0;
   ExprMap output_expr_map;
@@ -607,26 +607,11 @@ void PlanGenerator::BuildAggregatePlan(
 
       // Maps the aggregate value in the right tuple to the output
       // See aggregateor.cpp for more detail...
-      // TODO([Execution Engine]): make sure this behavior still is correct
       auto dve = std::make_unique<parser::DerivedValueExpression>(expr->GetReturnValueType(), 1, agg_id++);
       columns.emplace_back(expr->GetExpressionName(), expr->GetReturnValueType(), std::move(dve));
-    } else if (child_expr_map.find(expr) != child_expr_map.end()) {
-      auto dve = std::make_unique<parser::DerivedValueExpression>(expr->GetReturnValueType(), 0, child_expr_map[expr]);
+    } else if (gb_map.find(expr) != gb_map.end()) {
+      auto dve = std::make_unique<parser::DerivedValueExpression>(expr->GetReturnValueType(), 0, gb_map[expr]);
       columns.emplace_back(expr->GetExpressionName(), expr->GetReturnValueType(), std::move(dve));
-    } else {
-      auto eval = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, expr);
-      columns.emplace_back(expr->GetExpressionName(), expr->GetReturnValueType(), std::move(eval));
-    }
-  }
-
-  // Generate group by ids
-  if (groupby_cols != nullptr) {
-    for (auto &col : *groupby_cols) {
-      auto eval = parser::ExpressionUtil::EvaluateExpression({child_expr_map}, col);
-      auto gb_term =
-          parser::ExpressionUtil::ConvertExprCVNodes(common::ManagedPointer(eval), {child_expr_map}).release();
-      RegisterPointerCleanup<parser::AbstractExpression>(gb_term, true, true);
-      builder.AddGroupByTerm(common::ManagedPointer(gb_term));
     }
   }
 
@@ -911,6 +896,14 @@ void PlanGenerator::Visit(const DropView *drop_view) {
                      .SetNamespaceOid(drop_view->GetNamespaceOid())
                      .SetViewOid(drop_view->GetViewOid())
                      .SetIfExist(drop_view->IsIfExists())
+                     .Build();
+}
+
+void PlanGenerator::Visit(const Analyze *analyze) {
+  output_plan_ = planner::AnalyzePlanNode::Builder()
+                     .SetDatabaseOid(analyze->GetDatabaseOid())
+                     .SetTableOid(analyze->GetTableOid())
+                     .SetColumnOIDs(analyze->GetColumns())
                      .Build();
 }
 

@@ -4,6 +4,7 @@
 
 #include "common/macros.h"
 #include "common/strong_typedef.h"
+#include "execution/ast/type.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/aggregation_hash_table.h"
 #include "execution/sql/aggregators.h"
@@ -599,6 +600,15 @@ VM_OP void OpFilterManagerRunFilters(terrier::execution::sql::FilterManager *fil
 VM_OP void OpFilterManagerFree(terrier::execution::sql::FilterManager *filter_manager);
 
 // ---------------------------------------------------------
+// Date functions
+// ---------------------------------------------------------
+
+VM_OP_HOT void OpExtractYear(terrier::execution::sql::Integer *result, const terrier::execution::sql::DateVal *input) {
+  result->is_null_ = input->is_null_;
+  if (!input->is_null_) result->val_ = input->val_.ExtractYear();
+}
+
+// ---------------------------------------------------------
 // Scalar SQL comparisons
 // ---------------------------------------------------------
 
@@ -606,12 +616,14 @@ VM_OP_HOT void OpForceBoolTruth(bool *result, terrier::execution::sql::BoolVal *
   *result = input->ForceTruth();
 }
 
+VM_OP_HOT void OpInitSqlNull(terrier::execution::sql::Val *result) { *result = terrier::execution::sql::Val::Null(); }
+
 VM_OP_HOT void OpInitBoolVal(terrier::execution::sql::BoolVal *result, bool input) {
   result->is_null_ = false;
   result->val_ = input;
 }
 
-VM_OP_HOT void OpInitInteger(terrier::execution::sql::Integer *result, int32_t input) {
+VM_OP_HOT void OpInitInteger(terrier::execution::sql::Integer *result, int64_t input) {
   result->is_null_ = false;
   result->val_ = input;
 }
@@ -619,6 +631,11 @@ VM_OP_HOT void OpInitInteger(terrier::execution::sql::Integer *result, int32_t i
 VM_OP_HOT void OpInitReal(terrier::execution::sql::Real *result, double input) {
   result->is_null_ = false;
   result->val_ = input;
+}
+
+VM_OP_HOT void OpIntegerToReal(terrier::execution::sql::Real *result, const terrier::execution::sql::Integer *input) {
+  result->is_null_ = input->is_null_;
+  if (!input->is_null_) result->val_ = static_cast<double>(input->val_);
 }
 
 VM_OP_HOT void OpInitDate(terrier::execution::sql::DateVal *result, int32_t year, uint32_t month, uint32_t day) {
@@ -1316,12 +1333,12 @@ VM_OP_WARM void OpPow(terrier::execution::sql::Real *result, const terrier::exec
 // Null/Not Null predicates
 // ---------------------------------------------------------
 
-VM_OP_WARM void OpValIsNull(terrier::execution::sql::BoolVal *result, const terrier::execution::sql::Val *val) {
-  terrier::execution::sql::IsNullPredicate::IsNull(result, *val);
+VM_OP_WARM void OpValIsNull(bool *result, const terrier::execution::sql::Val *val) {
+  *result = terrier::execution::sql::IsNullPredicate::IsNull(*val);
 }
 
-VM_OP_WARM void OpValIsNotNull(terrier::execution::sql::BoolVal *result, const terrier::execution::sql::Val *val) {
-  terrier::execution::sql::IsNullPredicate::IsNotNull(result, *val);
+VM_OP_WARM void OpValIsNotNull(bool *result, const terrier::execution::sql::Val *val) {
+  *result = terrier::execution::sql::IsNullPredicate::IsNotNull(*val);
 }
 
 // ---------------------------------------------------------

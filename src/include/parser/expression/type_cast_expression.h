@@ -45,7 +45,10 @@ class TypeCastExpression : public AbstractExpression {
     return expr;
   }
 
-  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
+              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
+    v->Visit(common::ManagedPointer(this), sherpa);
+  }
 };
 
 DEFINE_JSON_DECLARATIONS(TypeCastExpression);

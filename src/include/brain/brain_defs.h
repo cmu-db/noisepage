@@ -27,6 +27,10 @@ enum class ExecutionOperatingUnitType : uint32_t {
 
   PROJECTION,
   OUTPUT,
+  LIMIT,
+
+  // Use to demarcate plan and operations
+  PLAN_OPS_DELIMITER,
 
   OP_INTEGER_PLUS_OR_MINUS,
   OP_INTEGER_MULTIPLY,
