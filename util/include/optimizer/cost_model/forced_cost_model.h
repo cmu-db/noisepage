@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include "optimizer/cost_model/abstract_cost_model.h"
 #include "optimizer/group_expression.h"
 #include "optimizer/physical_operators.h"
