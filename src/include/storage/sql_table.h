@@ -52,7 +52,9 @@ class SqlTable {
   /**
    * Destructs a SqlTable, frees all its members.
    */
-  ~SqlTable() { delete table_.data_table_; }
+  ~SqlTable() {
+    for (const auto &it :tables_) delete it.second.data_table_;
+  }
 
   /**
    * Materializes a single tuple from the given slot, as visible at the timestamp of the calling txn.
@@ -62,8 +64,14 @@ class SqlTable {
    * @param out_buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
    * @return true if tuple is visible to this txn and ProjectedRow has been populated, false otherwise
    */
-  bool Select(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
+  bool Select(const common::ManagedPointer <transaction::TransactionContext> txn,
+              layout_version_t layout_version,
+              const TupleSlot slot,
               ProjectedRow *const out_buffer) const {
+    // TODO(Schema-Change): Modify this
+    //  a expected tuple can be in the dataTable of any version, as they do not overlap.
+    //  need to go through all datatable prior or equal to the current schema and do Select for each one
+    //  Try to do the traversal N2O
     return table_.data_table_->Select(txn, slot, out_buffer);
   }
 
@@ -76,12 +84,17 @@ class SqlTable {
    * TupleSlot in this RedoRecord must be set to the intended tuple.
    * @return true if successful, false otherwise
    */
-  bool Update(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo) const {
+  bool Update(const common::ManagedPointer <transaction::TransactionContext> txn,
+              layout_version_t layout_version,
+              RedoRecord *const redo) const {
     TERRIER_ASSERT(redo->GetTupleSlot() != TupleSlot(nullptr, 0), "TupleSlot was never set in this RedoRecord.");
     TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
                                ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
                    "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
                    "immediately before?");
+    // TODO(Schema-Change): Similarly, need to go through all relavent datatables.
+    //  Also need to take care of tuple migration if the update touches the new columns added
+    //  The migration should be a delete (MVCC style) in old datatable followed by an insert in new datatable.
     const auto result = table_.data_table_->Update(txn, redo->GetTupleSlot(), *(redo->Delta()));
     if (!result) {
       // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
@@ -99,13 +112,15 @@ class SqlTable {
    * @param redo after-image of the inserted tuple.
    * @return TupleSlot for the inserted tuple
    */
-  TupleSlot Insert(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo) const {
+  TupleSlot Insert(const common::ManagedPointer <transaction::TransactionContext> txn,
+                   layout_version_t layout_version,
+                   RedoRecord *const redo) const {
     TERRIER_ASSERT(redo->GetTupleSlot() == TupleSlot(nullptr, 0), "TupleSlot was set in this RedoRecord.");
     TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
                                ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
                    "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
                    "immediately before?");
-    const auto slot = table_.data_table_->Insert(txn, *(redo->Delta()));
+    const auto slot = tables_.at(layout_version).data_table_->Insert(txn, *(redo->Delta()));
     redo->SetTupleSlot(slot);
     return slot;
   }
@@ -116,7 +131,7 @@ class SqlTable {
    * @param slot the slot of the tuple to delete
    * @return true if successful, false otherwise
    */
-  bool Delete(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot) {
+  bool Delete(const common::ManagedPointer<transaction::TransactionContext> txn, layout_version_t layout_version, const TupleSlot slot) {
     TERRIER_ASSERT(txn->redo_buffer_.LastRecord() != nullptr,
                    "The RedoBuffer is empty even though StageDelete should have been called.");
     TERRIER_ASSERT(
@@ -125,6 +140,7 @@ class SqlTable {
                 ->GetTupleSlot() == slot,
         "This Delete is not the most recent entry in the txn's RedoBuffer. Was StageDelete called immediately before?");
 
+    // TODO(Schema-Change): among all relavant datatables.
     const auto result = table_.data_table_->Delete(txn, slot);
     if (!result) {
       // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
@@ -148,8 +164,11 @@ class SqlTable {
    */
   void Scan(const common::ManagedPointer<transaction::TransactionContext> txn, DataTable::SlotIterator *const start_pos,
             ProjectedColumns *const out_buffer) const {
+    // TODO(Schema-Change): among all relavant datatables.
     return table_.data_table_->Scan(txn, start_pos, out_buffer);
   }
+
+  // TODO(Schema-Change): Do we retain the begin() and end(), or implement begin and end function with version number?
 
   /**
    * @return the first tuple slot contained in the underlying DataTable
@@ -161,6 +180,7 @@ class SqlTable {
    */
   DataTable::SlotIterator end() const { return table_.data_table_->end(); }  // NOLINT for STL name compability
 
+  // TODO(Schema-Change): add projection considering table
   /**
    * Generates an ProjectedColumnsInitializer for the execution layer to use. This performs the translation from col_oid
    * to col_id for the Initializer's constructor so that the execution layer doesn't need to know anything about col_id.
@@ -212,7 +232,8 @@ class SqlTable {
       block_store_;  // TODO(Matt): do we need this stashed at this layer? We don't use it.
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
-  DataTableVersion table_;
+  // TODO(Schema-Change): add concurrent access support. Implement single threaded version first
+  std::ordered_map<layout_version_t, DataTableVersion> tables_;
 
   /**
    * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization
