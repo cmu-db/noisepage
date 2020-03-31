@@ -2241,7 +2241,11 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
       }
 
       // checking to see if the second argument is a string
-      if (!call->Arguments()[1]->GetType()->IsStringType()) {
+      auto *resolved_type = Resolve(call->Arguments()[1]);
+      if(resolved_type == nullptr){
+        return;
+      }
+      if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
         ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
         return;
       }
