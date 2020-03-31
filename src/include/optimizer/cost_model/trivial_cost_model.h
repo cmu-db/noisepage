@@ -210,6 +210,9 @@ class TrivialCostModel : public AbstractCostModel {
    */
   double output_cost_ = 0;
 
+  /*
+   * Cardinalities for each plan node
+   */
   std::unordered_map<plan_node_id_t, double> output_cardinalities_;
 };
 
