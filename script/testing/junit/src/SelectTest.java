@@ -51,19 +51,35 @@ public class SelectTest extends TestUtility {
      */
     @Before
     public void setup() throws SQLException {
-        conn = makeDefaultConnection();
-        conn.setAutoCommit(true);
-        initDatabase();
+        try {
+            conn = makeDefaultConnection();
+            conn.setAutoCommit(true);
+            initDatabase();
+        } catch (SQLException e) {
+            DumpSQLException(e);
+        }
     }
 
     /**
      * Cleanup for each test, execute after each test
-     * drop the default table
+     * drop the default table and close connection
      */
     @After
     public void teardown() throws SQLException {
-        Statement stmt = conn.createStatement();
-        stmt.execute(SQL_DROP_TABLE);
+        try {
+            Statement stmt = conn.createStatement();
+            stmt.execute(SQL_DROP_TABLE);
+        } catch (SQLException e) {
+            DumpSQLException(e);
+        } finally {
+            try {
+                if (conn != null) {
+                    conn.close();
+                }
+            } catch (SQLException e) {
+                DumpSQLException(e);
+            }
+        }
     }
 
     /* --------------------------------------------
