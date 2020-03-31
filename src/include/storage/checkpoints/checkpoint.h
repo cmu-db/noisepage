@@ -17,9 +17,8 @@ namespace terrier::storage {
 class Checkpoint {
  public:
   Checkpoint(const common::ManagedPointer<catalog::Catalog> catalog,
-             const common::ManagedPointer<BlockStore> store,
              const common::ManagedPointer<transaction::TransactionContext> txn)
-  :catalog_(catalog), block_store_(store), txn_(txn){
+  :catalog_(catalog), txn_(txn){
     // Initialize catalog_table_schemas_ map
     catalog_table_schemas_[catalog::postgres::CLASS_TABLE_OID] = catalog::postgres::Builder::GetClassTableSchema();
     catalog_table_schemas_[catalog::postgres::NAMESPACE_TABLE_OID] =
@@ -32,7 +31,7 @@ class Checkpoint {
   }
 
 
-  bool TakeCheckpoint(const std::string &path);
+  bool TakeCheckpoint(const std::string &path, catalog::db_oid_t db);
 
   static std::string GenFileName(catalog::db_oid_t db_oid, catalog::table_oid_t tb_oid){
     return std::to_string((uint32_t)db_oid) + "-" + std::to_string((uint32_t)tb_oid);
@@ -42,7 +41,7 @@ class Checkpoint {
  private:
   // Catalog to fetch table pointers
   const common::ManagedPointer<catalog::Catalog> catalog_;
-  const common::ManagedPointer<BlockStore> block_store_;
+//  const common::ManagedPointer<BlockStore> block_store_;
   const common::ManagedPointer<transaction::TransactionContext> txn_;
   std::unordered_map<catalog::table_oid_t, catalog::Schema> catalog_table_schemas_;
   std::vector<catalog::table_oid_t> queue; // for multithreading

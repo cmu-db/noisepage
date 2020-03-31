@@ -5,14 +5,14 @@
 #include <fstream>
 namespace terrier::storage{
 
-bool Checkpoint::TakeCheckpoint(const std::string &path) {
+bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db) {
   // TODO (Xuanxuan): fake code for build purpose, change later
-  catalog::db_oid_t db_;
-  auto accessor = catalog_->GetAccessor(txn_, db_);
-  block_store_->Get();
+  auto accessor = catalog_->GetAccessor(txn_, db);
+  std::unordered_set<catalog::table_oid_t> table_oids = accessor->GetAllTableOids();
 
-  // TODO (Xuanxuan): for each db
-  // for each table in current db, add tableoid to queue, create multiple threads to work on current db
+  for (const auto &oid : table_oids) {
+    queue.push_back(oid);
+  }
 
 
   // initalize threads
@@ -21,7 +21,7 @@ bool Checkpoint::TakeCheckpoint(const std::string &path) {
   thread_pool_.Startup();
   auto workload = [&](uint32_t worker_id){
     // copy contents of table to disk
-    WriteToDisk(path, accessor, db_);
+    WriteToDisk(path, accessor, db);
 
   };
   for (auto i = 0u; i < num_threads; i++){
@@ -49,13 +49,16 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
     common::ManagedPointer<storage::SqlTable> curr_table = accessor->GetTable(curr_table_oid);
     std::string out_file = GenFileName(db_oid, curr_table_oid);
     std::ofstream f;
-    f.open(path + out_file, std::ofstream::out);
+    f.open(path + out_file, std::ios::binary);
+
     // write block contents (in bytes) to the file
     if (f.is_open()){
+
       for (auto &block : curr_table->table_.data_table_->blocks_){
-        f << block->content_ << '\n';
+        f.write(reinterpret_cast<const char *>(block->content_), sizeof(block->content_));
       }
       f.close();
+
     } else {
       // failed to copy to disk, add the table_oid back to queue
       queue_latch.lock();
