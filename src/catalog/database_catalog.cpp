@@ -1814,7 +1814,6 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
   // cot
   BOOTSTRAP_TRIG_FN("cot", postgres::COT_PRO_OID, execution::ast::Builtin::Cot)
 #undef BOOTSTRAP_TRIG_FN
-
 }
 
 bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
