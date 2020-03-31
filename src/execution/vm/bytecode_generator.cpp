@@ -2046,7 +2046,7 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
   LocalVar ret = ExecutionResult()->GetOrCreateDestination(call->GetType());
   switch (builtin) {
     case ast::Builtin::Lower: {
-      Emitter()->Emit(Bytecode::Lower, ret, exec_ctx, input_string);
+      Emitter()->Emit(Bytecode::Lower, exec_ctx, ret, input_string);
       break;
     }
     default:
