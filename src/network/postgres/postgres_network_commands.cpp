@@ -438,6 +438,8 @@ Transition SyncCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpr
     t_cop->EndTransaction(connection, connection->Transaction()->MustAbort() ? network::QueryType::QUERY_ROLLBACK
                                                                              : network::QueryType::QUERY_COMMIT);
     postgres_interpreter->ResetTransactionState();
+  } else if (postgres_interpreter->WaitingForSync()) {
+    postgres_interpreter->ResetWaitingForSync();
   }
   out->WriteReadyForQuery(connection->TransactionState());
   return Transition::PROCEED;

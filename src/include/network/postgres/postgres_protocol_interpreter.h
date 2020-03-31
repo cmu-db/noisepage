@@ -140,6 +140,14 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   }
 
   /**
+   * Issued after a Sync command is received from the client when already in a Sync state.
+   */
+  void ResetWaitingForSync() {
+    TERRIER_ASSERT(waiting_for_sync_, "Waiting for sync flag not already set. That seems wrong.");
+    waiting_for_sync_ = false;
+  }
+
+  /**
    * @param name statement to look up
    * @return managed pointer to statement if it exists, nullptr otherwise
    */
