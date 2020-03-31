@@ -209,8 +209,9 @@ TEST_F(OperatorTransformerTest, SelectStatementSimpleTest) {
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
@@ -236,8 +237,10 @@ TEST_F(OperatorTransformerTest, InsertStatementSimpleTest) {
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
@@ -277,8 +280,9 @@ TEST_F(OperatorTransformerTest, InsertStatementSelectTest) {
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
@@ -318,8 +322,9 @@ TEST_F(OperatorTransformerTest, UpdateStatementSimpleTest) {
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
@@ -358,8 +363,9 @@ TEST_F(OperatorTransformerTest, SelectStatementAggregateTest) {
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
@@ -395,8 +401,9 @@ TEST_F(OperatorTransformerTest, SelectStatementDistinctTest) {
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
@@ -430,8 +437,9 @@ TEST_F(OperatorTransformerTest, SelectStatementOrderByTest) {
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
@@ -471,8 +479,9 @@ TEST_F(OperatorTransformerTest, SelectStatementLeftJoinTest) {
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
 
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
@@ -513,8 +522,9 @@ TEST_F(OperatorTransformerTest, SelectStatementRightJoinTest) {
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
 
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
@@ -555,8 +565,9 @@ TEST_F(OperatorTransformerTest, SelectStatementInnerJoinTest) {
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
 
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
@@ -597,8 +608,9 @@ TEST_F(OperatorTransformerTest, SelectStatementOuterJoinTest) {
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
 
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
@@ -643,8 +655,9 @@ TEST_F(OperatorTransformerTest, SelectStatementComplexTest) {
   binder_->BindNameToNode(statement, parse_tree.get());
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
 
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
@@ -669,8 +682,9 @@ TEST_F(OperatorTransformerTest, SelectStatementMarkJoinTest) {
   binder_->BindNameToNode(statement, parse_tree.get());
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
 
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
@@ -697,8 +711,9 @@ TEST_F(OperatorTransformerTest, SelectStatementStarNestedSelectTest) {
   binder_->BindNameToNode(statement, parse_tree.get());
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
 
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
@@ -720,8 +735,9 @@ TEST_F(OperatorTransformerTest, SelectStatementNestedColumnTest) {
   binder_->BindNameToNode(statement, parse_tree.get());
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
 
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
@@ -744,8 +760,9 @@ TEST_F(OperatorTransformerTest, SelectStatementDiffTableSameSchemaTest) {
   binder_->BindNameToNode(statement, parse_tree.get());
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
 
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
@@ -769,8 +786,9 @@ TEST_F(OperatorTransformerTest, SelectStatementSelectListAliasTest) {
   binder_->BindNameToNode(statement, parse_tree.get());
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
 
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
@@ -792,8 +810,9 @@ TEST_F(OperatorTransformerTest, DeleteStatementWhereTest) {
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
 
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
@@ -835,9 +854,9 @@ TEST_F(OperatorTransformerTest, AggregateComplexTest) {
   binder_->BindNameToNode(statement, parse_tree.get());
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
-
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
@@ -862,9 +881,9 @@ TEST_F(OperatorTransformerTest, OperatorComplexTest) {
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
-
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
@@ -911,9 +930,9 @@ TEST_F(OperatorTransformerTest, SubqueryComplexTest) {
   binder_->BindNameToNode(statement, parse_tree.get());
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
-
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
@@ -931,9 +950,9 @@ TEST_F(OperatorTransformerTest, CreateDatabaseTest) {
   binder_->BindNameToNode(statement, parse_tree.get());
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
-
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
@@ -987,9 +1006,9 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   auto ns_oid = accessor_->GetDefaultNamespace();
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
-
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
@@ -1144,9 +1163,9 @@ TEST_F(OperatorTransformerTest, CreateIndexTest) {
   auto col_a2_oid = accessor_->GetSchema(table_a_oid_).GetColumn("a2").Oid();
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
-
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
@@ -1243,9 +1262,9 @@ TEST_F(OperatorTransformerTest, CreateFunctionTest) {
   auto ns_oid = accessor_->GetDefaultNamespace();
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
-
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
@@ -1331,9 +1350,9 @@ TEST_F(OperatorTransformerTest, CreateNamespaceTest) {
   binder_->BindNameToNode(statement, parse_tree.get());
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
-
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
@@ -1385,9 +1404,9 @@ TEST_F(OperatorTransformerTest, CreateViewTest) {
   auto ns_oid = accessor_->GetDefaultNamespace();
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
-
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
@@ -1469,9 +1488,9 @@ TEST_F(OperatorTransformerTest, CreateTriggerTest) {
   auto col_a1_oid = accessor_->GetSchema(table_a_oid_).GetColumn("a1").Oid();
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
-
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
@@ -1571,9 +1590,9 @@ TEST_F(OperatorTransformerTest, DropDatabaseTest) {
   binder_->BindNameToNode(statement, parse_tree.get());
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
-
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
@@ -1624,9 +1643,9 @@ TEST_F(OperatorTransformerTest, DropTableTest) {
   binder_->BindNameToNode(statement, parse_tree.get());
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
-
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
@@ -1676,9 +1695,9 @@ TEST_F(OperatorTransformerTest, DropIndexTest) {
   binder_->BindNameToNode(statement, parse_tree.get());
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
-
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
@@ -1728,9 +1747,9 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereExistTest) {
   binder_->BindNameToNode(statement, parse_tree.get());
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
-
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
@@ -1779,9 +1798,9 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereNotExistTest) {
   binder_->BindNameToNode(statement, parse_tree.get());
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
-
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
@@ -1830,9 +1849,9 @@ TEST_F(OperatorTransformerTest, DISABLED_DropTriggerIfExistsWhereNotExistTest) {
   binder_->BindNameToNode(statement, parse_tree.get());
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
-
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
@@ -1881,9 +1900,9 @@ TEST_F(OperatorTransformerTest, DISABLED_DropViewIfExistsWhereNotExistTest) {
   binder_->BindNameToNode(statement, parse_tree.get());
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ =
-      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), &context);
-
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), optimizer_context);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 

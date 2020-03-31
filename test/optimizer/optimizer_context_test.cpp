@@ -251,8 +251,8 @@ TEST_F(OptimizerContextTest, SimpleBindingTest) {
   auto *pattern = new Pattern(OpType::LOGICALINNERJOIN);
   pattern->AddChild(new Pattern(OpType::LOGICALGET));
   pattern->AddChild(new Pattern(OpType::LOGICALGET));
-
-  auto *binding_iterator = new GroupExprBindingIterator(context.GetMemo(), gexpr, pattern, &context);
+  auto optimizer_context = common::ManagedPointer<OptimizerContext>(&context);
+  auto *binding_iterator = new GroupExprBindingIterator(context.GetMemo(), gexpr, pattern, optimizer_context);
   EXPECT_TRUE(binding_iterator->HasNext());
 
   auto binding = binding_iterator->Next();
@@ -287,8 +287,8 @@ TEST_F(OptimizerContextTest, SingleWildcardTest) {
   auto *pattern = new Pattern(OpType::LOGICALINNERJOIN);
   pattern->AddChild(new Pattern(OpType::LEAF));
   pattern->AddChild(new Pattern(OpType::LEAF));
-
-  auto *binding_iterator = new GroupExprBindingIterator(context.GetMemo(), gexpr, pattern, &context);
+  auto optimizer_context = common::ManagedPointer<OptimizerContext>(&context);
+  auto *binding_iterator = new GroupExprBindingIterator(context.GetMemo(), gexpr, pattern, optimizer_context);
   EXPECT_TRUE(binding_iterator->HasNext());
 
   auto binding = binding_iterator->Next();

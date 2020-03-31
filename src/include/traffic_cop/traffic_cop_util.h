@@ -1,7 +1,5 @@
 #pragma once
 
-#include <optimizer/optimizer_context.h>
-
 #include <memory>
 #include <string>
 

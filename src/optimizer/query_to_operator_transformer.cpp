@@ -27,7 +27,8 @@
 namespace terrier::optimizer {
 
 QueryToOperatorTransformer::QueryToOperatorTransformer(
-    const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor, optimizer::OptimizerContext *context)
+    const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor,
+    common::ManagedPointer<OptimizerContext> context)
     : accessor_(catalog_accessor), context_(context) {
   output_expr_ = nullptr;
 }

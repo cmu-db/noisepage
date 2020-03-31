@@ -660,7 +660,7 @@ bool LogicalCreateIndexToPhysicalCreateIndex::Check(common::ManagedPointer<Opera
 
 void LogicalCreateIndexToPhysicalCreateIndex::Transform(common::ManagedPointer<OperatorNode> input,
                                                         std::vector<std::unique_ptr<OperatorNode>> *transformed,
-                                                        UNUSED_ATTRIBUTE OptimizationContext *context) const {
+                                                        OptimizationContext *context) const {
   auto ci_op = input->GetOp().As<LogicalCreateIndex>();
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalCreateIndex should have 0 children");
 

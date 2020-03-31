@@ -37,7 +37,7 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
    * @param context Optimizer context
    */
   explicit QueryToOperatorTransformer(common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor,
-                                      optimizer::OptimizerContext *context);
+                                      common::ManagedPointer<OptimizerContext> context);
 
   /**
    * Traverse the query AST to generate AST of logical operators.
@@ -162,7 +162,7 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
   /*
    * Optimizer Context to get counter
    */
-  OptimizerContext *context_;
+  common::ManagedPointer<OptimizerContext> context_;
 };
 
 }  // namespace optimizer

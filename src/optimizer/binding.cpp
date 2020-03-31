@@ -53,7 +53,7 @@ std::unique_ptr<OperatorNode> GroupBindingIterator::Next() {
 }
 
 GroupExprBindingIterator::GroupExprBindingIterator(const Memo &memo, GroupExpression *gexpr, Pattern *pattern,
-                                                   OptimizerContext *context)
+                                                   common::ManagedPointer<OptimizerContext> context)
     : BindingIterator(memo),
       gexpr_(gexpr),
       first_(true),

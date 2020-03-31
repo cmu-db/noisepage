@@ -30,7 +30,8 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(
   optimizer::PropertySet property_set;
 
   // Optimizer transforms annotated ParseResult to logical expressions (ephemeral Optimizer structure)
-  optimizer::QueryToOperatorTransformer transformer(accessor, &context);
+  auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
+  optimizer::QueryToOperatorTransformer transformer(accessor, optimizer_context);
   auto logical_exprs = transformer.ConvertToOpExpression(query->GetStatement(0), query.Get());
 
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output;

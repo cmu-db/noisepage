@@ -37,7 +37,7 @@ class LeafOperator : public OperatorNodeContents<LeafOperator> {
    */
   static Operator Make(group_id_t group, plan_node_id_t plan_node_id);
 
-  /**a
+  /**
    * Copy
    * @returns copy of this
    */

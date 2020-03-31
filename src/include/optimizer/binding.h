@@ -65,7 +65,8 @@ class GroupBindingIterator : public BindingIterator {
    * @param pattern Pattern to bind
    * @param context Optimizer Context
    */
-  GroupBindingIterator(const Memo &memo, group_id_t id, Pattern *pattern, OptimizerContext *context)
+  GroupBindingIterator(const Memo &memo, group_id_t id, Pattern *pattern,
+                       common::ManagedPointer<OptimizerContext> context)
       : BindingIterator(memo),
         group_id_(id),
         pattern_(pattern),
@@ -122,7 +123,7 @@ class GroupBindingIterator : public BindingIterator {
   /**
    * Optimizer Context to get counter
    */
-  OptimizerContext *context_;
+  common::ManagedPointer<OptimizerContext> context_;
 };
 
 /**
@@ -138,7 +139,8 @@ class GroupExprBindingIterator : public BindingIterator {
    * @param pattern Pattern to bind
    * @param context Optimizer context
    */
-  GroupExprBindingIterator(const Memo &memo, GroupExpression *gexpr, Pattern *pattern, OptimizerContext *context);
+  GroupExprBindingIterator(const Memo &memo, GroupExpression *gexpr, Pattern *pattern,
+                           common::ManagedPointer<OptimizerContext> context);
 
   /**
    * Virtual function for whether a binding exists
@@ -190,7 +192,7 @@ class GroupExprBindingIterator : public BindingIterator {
   /**
    * Optimizer Context to get counter
    */
-  OptimizerContext *context_;
+  common::ManagedPointer<OptimizerContext> context_;
 };
 
 }  // namespace terrier::optimizer
