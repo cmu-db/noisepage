@@ -257,8 +257,11 @@ VM_OP_HOT void OpTableVectorIteratorGetPCI(terrier::execution::sql::ProjectedCol
 
 VM_OP_HOT void OpParallelScanTable(const uint32_t db_oid, const uint32_t table_oid, void *const query_state,
                                    terrier::execution::sql::ThreadStateContainer *const thread_states,
-                                   const terrier::execution::sql::TableVectorIterator::ScanFn scanner) {
-  terrier::execution::sql::TableVectorIterator::ParallelScan(db_oid, table_oid, query_state, thread_states, scanner);
+                                   const terrier::execution::sql::TableVectorIterator::ScanFn scanner,
+                                   const uint32_t min_grain_size,
+                                   terrier::execution::exec::ExecutionContext *exec_ctx) {
+  terrier::execution::sql::TableVectorIterator::ParallelScan(db_oid, table_oid, query_state, thread_states, scanner,
+                                                             min_grain_size, exec_ctx);
 }
 
 // ---------------------------------------------------------

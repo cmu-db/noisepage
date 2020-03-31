@@ -151,16 +151,31 @@ class SqlTable {
     return table_.data_table_->Scan(txn, start_pos, out_buffer);
   }
 
+  void RangeScan(const common::ManagedPointer<transaction::TransactionContext> txn,
+                 DataTable::SlotIterator *const start_pos, DataTable::SlotIterator *const end_pos,
+                 ProjectedColumns *const out_buffer) const {
+    return table_.data_table_->RangeScan(txn, start_pos, end_pos, out_buffer);
+  }
+
+  size_t GetBlockListSize() { return table_.data_table_->GetBlockListSize(); }
+
+  void GetAllColOid(std::vector<catalog::col_oid_t> &col_oids) const;
+
   /**
    * @return the first tuple slot contained in the underlying DataTable
    */
   DataTable::SlotIterator begin() const { return table_.data_table_->begin(); }  // NOLINT for STL name compability
 
+  DataTable::SlotIterator beginAt(uint32_t start_block_idx) const {
+    return table_.data_table_->beginAt(start_block_idx);
+  }
   /**
    * @return one past the last tuple slot contained in the underlying DataTable
    */
   DataTable::SlotIterator end() const { return table_.data_table_->end(); }  // NOLINT for STL name compability
-
+  DataTable::SlotIterator endAt(uint32_t end_block_idx) const { 
+    return table_.data_table_->endAt(end_block_idx);
+  }
   /**
    * Generates an ProjectedColumnsInitializer for the execution layer to use. This performs the translation from col_oid
    * to col_id for the Initializer's constructor so that the execution layer doesn't need to know anything about col_id.

@@ -582,9 +582,10 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     auto query_state = frame->LocalAt<void *>(READ_LOCAL_ID());
     auto thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());
     auto scan_fn_id = READ_FUNC_ID();
-
+    auto min_grain_size = READ_UIMM4();
+    auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto scan_fn = reinterpret_cast<sql::TableVectorIterator::ScanFn>(module_->GetRawFunctionImpl(scan_fn_id));
-    OpParallelScanTable(db_oid, table_oid, query_state, thread_state_container, scan_fn);
+    OpParallelScanTable(db_oid, table_oid, query_state, thread_state_container, scan_fn, min_grain_size, exec_ctx);
     DISPATCH_NEXT();
   }
 

@@ -59,6 +59,28 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
   out_buffer->SetNumTuples(filled);
 }
 
+void DataTable::RangeScan(const common::ManagedPointer<transaction::TransactionContext> txn,
+                          SlotIterator *const start_pos, SlotIterator *const end_pos,
+                     ProjectedColumns *const out_buffer) const {
+  uint32_t filled = 0;
+  while (filled < out_buffer->MaxTuples() && *start_pos != *end_pos) {
+    ProjectedColumns::RowView row = out_buffer->InterpretAsRow(filled);
+    const TupleSlot slot = **start_pos;
+    // Only fill the buffer with valid, visible tuples
+    if (SelectIntoBuffer(txn, slot, &row)) {
+      out_buffer->TupleSlots()[filled] = slot;
+      filled++;
+    }
+    ++(*start_pos);
+  }
+  out_buffer->SetNumTuples(filled);
+}
+
+size_t DataTable::GetBlockListSize() const {
+  common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+  return blocks_.size();
+}
+
 DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
   // TODO(Lin): We need to temporarily comment out this latch for the concurrent TPCH experiments. Should be replaced
   //  with a real solution

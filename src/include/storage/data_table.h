@@ -1,6 +1,7 @@
 #pragma once
 #include <list>
 #include <unordered_map>
+#include <iterator>  
 #include <vector>
 
 #include "common/managed_pointer.h"
@@ -156,6 +157,9 @@ class DataTable {
    */
   void Scan(common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *start_pos,
             ProjectedColumns *out_buffer) const;
+  void RangeScan(const common::ManagedPointer<transaction::TransactionContext> txn,
+                            SlotIterator *const start_pos, SlotIterator *const end_pos,
+                            ProjectedColumns *const out_buffer) const;
 
   /**
    * @return the first tuple slot contained in the data table
@@ -163,6 +167,36 @@ class DataTable {
   SlotIterator begin() const {  // NOLINT for STL name compability
     common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
     return {this, blocks_.begin(), 0};
+  }
+
+  SlotIterator beginAt(uint32_t start_block_idx) const {
+    common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+    if (blocks_.empty()) return {this, blocks_.end(), 0};
+    uint32_t count = 0;
+    auto iter = blocks_.begin();
+    while (count != start_block_idx) {
+      iter++;
+      count++;
+    }
+    return {this, iter, 0};
+  }
+
+  SlotIterator endAt(uint32_t end_block_idx) const {
+    common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+    if (blocks_.empty()) return {this, blocks_.end(), 0};
+    uint32_t count = 0;
+    auto iter = blocks_.begin();
+    while (count != end_block_idx && iter != blocks_.end()) {
+      iter++;
+      count++;
+    }
+    auto end_block = iter;
+    auto last_block = --iter;
+    uint32_t insert_head = (*last_block)->GetInsertHead();
+    // Last block is full, return the default end iterator that doesn't point to anything
+    if (insert_head == accessor_.GetBlockLayout().NumSlots()) return {this, end_block, 0};
+    // Otherwise, insert head points to the slot that will be inserted next, which would be exactly what we want.
+    return {this, last_block, insert_head};
   }
 
   /**
@@ -219,6 +253,8 @@ class DataTable {
    * @return read-only view of this DataTable's BlockLayout
    */
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
+
+  size_t GetBlockListSize() const;
 
  private:
   // The ArrowSerializer needs access to its blocks.
@@ -294,6 +330,7 @@ class DataTable {
 
   // Allocates a new block to be used as insertion head.
   RawBlock *NewBlock();
+
 
   /**
    * Determine if a Tuple is visible (present and not deleted) to the given transaction. It's effectively Select's logic

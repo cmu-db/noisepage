@@ -1,11 +1,11 @@
+#include "execution/sql/table_vector_iterator.h"
+
 #include <array>
 #include <memory>
 #include <vector>
 
-#include "execution/sql_test.h"
-
 #include "catalog/catalog_defs.h"
-#include "execution/sql/table_vector_iterator.h"
+#include "execution/sql_test.h"
 #include "execution/util/timer.h"
 
 namespace terrier::execution::sql::test {
@@ -129,4 +129,46 @@ TEST_F(TableVectorIteratorTest, IteratorColOidsTest) {
   EXPECT_EQ(sql::TEST2_SIZE, num_tuples);
 }
 
+TEST_F(TableVectorIteratorTest, ParallelScanTest) {
+  //
+  // Simple test to ensure we iterate over the whole table in parallel
+  //
+
+  struct Counter {
+    uint32_t c;
+  };
+
+  auto init_count = [](void *ctx, void *tls) { reinterpret_cast<Counter *>(tls)->c = 0; };
+
+  // Scan function just counts all tuples it sees
+  auto scanner = [](void *state, void *tls, TableVectorIterator *tvi) {
+    auto *counter = reinterpret_cast<Counter *>(tls);
+    while (tvi->Advance()) {
+      for (auto *pci = tvi->GetProjectedColumnsIterator(); pci->HasNext(); pci->Advance()) {
+        counter->c++;
+      }
+    }
+  };
+
+  // Setup thread states
+  ThreadStateContainer thread_state_container(exec_ctx_->GetMemoryPool());
+  thread_state_container.Reset(sizeof(Counter),  // The type of each thread state structure
+                               init_count,       // The thread state initialization function
+                               nullptr,          // The thread state destruction function
+                               nullptr           // Context passed to init/destroy functions
+  );
+  auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
+  TableVectorIterator::ParallelScan(0,
+                                    (uint32_t)table_oid,      // ID of table to scan
+                                    nullptr,                  // Query state to pass to scan threads
+                                    &thread_state_container,  // Container for thread states
+                                    scanner,                  // Scan function
+                                    32, exec_ctx_.get());
+
+  // Count total aggregate tuple count seen by all threads
+  uint32_t aggregate_tuple_count = 0;
+  thread_state_container.ForEach<Counter>([&](Counter *counter) { aggregate_tuple_count += counter->c; });
+
+  EXPECT_EQ(sql::TEST1_SIZE, aggregate_tuple_count);
+}
 }  // namespace terrier::execution::sql::test

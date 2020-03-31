@@ -93,4 +93,11 @@ catalog::col_oid_t SqlTable::OidForColId(const col_id_t col_id) const {
   return oid_to_id->first;
 }
 
+
+void SqlTable::GetAllColOid(std::vector<catalog::col_oid_t> &col_oids) const { 
+  for (auto const &kv : table_.column_map_) {
+    col_oids.push_back(kv.first);
+  }
+}
+
 }  // namespace terrier::storage
