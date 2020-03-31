@@ -1777,12 +1777,6 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
 
 #undef BOOTSTRAP_TRIG_FN
 
-  auto str_type = GetTypeOidForType(type::TypeId::VARCHAR);
-
-  // lower
-  CreateProcedure(txn, postgres::LOWER_PRO_OID, "lower", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
-
   // TODO(tanujnay112): no op codes for lower and upper yet
 
   BootstrapProcContexts(txn);
@@ -1821,10 +1815,6 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
   BOOTSTRAP_TRIG_FN("cot", postgres::COT_PRO_OID, execution::ast::Builtin::Cot)
 #undef BOOTSTRAP_TRIG_FN
 
-  udf_context = new execution::udf::UDFContext("lower", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
-                                               execution::ast::Builtin::Lower, true);
-  SetProcCtxPtr(txn, postgres::LOWER_PRO_OID, udf_context);
-  txn->RegisterAbortAction([=]() { delete udf_context; });
 }
 
 bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,

@@ -207,7 +207,7 @@ void StringFunctions::Lower(exec::ExecutionContext *ctx, StringVal *result, cons
     return;
   }
 
-  char *ptr = StringVal::PreAllocate(result, ctx->GetStringAllocator(), str.len_);
+  char *ptr = StringVal::PreAllocate(result, ctx->GetStringAllocator(), str.len_ + 1);
   if (UNLIKELY(ptr == nullptr)) {
     // Allocation failed
     return;
@@ -217,6 +217,7 @@ void StringFunctions::Lower(exec::ExecutionContext *ctx, StringVal *result, cons
   for (uint32_t i = 0; i < str.len_; i++) {
     ptr[i] = static_cast<char>(std::tolower(src[i]));
   }
+  ptr[str.len_] = '\0';
 }
 
 void StringFunctions::Upper(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str) {
