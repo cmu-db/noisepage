@@ -95,9 +95,6 @@ install_mac() {
   brew ls --versions postgresql || brew install postgresql
   brew ls --versions tbb || brew install tbb
   brew ls --versions ant || brew install ant
-  brew ls --versions lsof || brew install lsof
-  echo 'export PATH="/usr/local/opt/lsof/bin:$PATH"' >> ~/.bash_profile
-  source ~/.bash_profile
   python3 -m pip --version || install_pip
   #install pyarrow
   python3 -m pip show pyarrow || python3 -m pip install pyarrow
