@@ -62,51 +62,40 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
 
 //TODO(emmanuel) make this thread safe
 void DataTable::NUMAScan(common::ManagedPointer<transaction::TransactionContext> txn,
-                    std::vector<ProjectedColumns *> *out_buffers) {
+                    std::vector<ProjectedColumns *> *out_buffers, ProjectedColumns *const result_buffer) {
   std::vector<numa_region_t> numa_regions;
   GetNUMARegions(&numa_regions);
 
-  for (auto i = out_buffers->size(); i < numa_regions.size(); i++) {
+  for (numa_region_t region : numa_regions) {
+    // Lambda function to pass into thread pool
+    auto lambda = [&](ProjectedColumns *out_buffer) {
+      uint32_t filled = 0;
 
+      for (auto it = begin(region); it != end(region) && filled < out_buffer->MaxTuples(); it++) {
+        ProjectedColumns::RowView row = out_buffer->InterpretAsRow(filled);
+        const TupleSlot slot = *it;
+        // Only fill the buffer with valid, visible tuples
+        if (SelectIntoBuffer(txn, slot, &row)) {
+          out_buffer->TupleSlots()[filled] = slot;
+          filled++;
+        }
+      }
+      out_buffer->SetNumTuples(filled);
+    };
+
+    SubmitTask(lambda, region);
   }
 
+  uint32_t result_index = 0
+  for (uint32_t i = 0; i < out_buffers.size(); i++) {
+    auto cur_buffer = out_buffers[i];
+    for (uint32_t j = 0; j < cur_buffer->NumTuples(); j++) {
+      result_buffer[result_index] = cur_buffer->TupleSlots()[j];
+      result_index++;
+    }
+  }
+  result_buffer->SetNumTuples(result_index);
 
-
-
-
-  std::atomic<uint32_t> filled = 0;
-
-//  for (numa_region_t region : numa_regions) {
-//    //get thread pool
-//    auto lambda = [&] {
-//
-//      for (auto it = begin(region); it != end(region) && filled < out_buffer->MaxTuples(); it++) {
-//
-//        if (!accessor_.Allocated(*it) || !IsVisible())
-//
-//        uint32_t current_row;
-//        do {
-//          current_row = filled;
-//        } while(!filled.compare_exchange_strong(current_row, current_row + 1));
-//        ProjectedColumns::RowView row = out_buffer->InterpretAsRow(current_row);
-//
-//
-//      }
-//    };
-//
-//    lambda();
-//  }
-//  while (filled < out_buffer->MaxTuples() && *start_pos != end(start_pos->region_number_)) {
-//    ProjectedColumns::RowView row = out_buffer->InterpretAsRow(filled);
-//    const TupleSlot slot = **start_pos;
-//    // Only fill the buffer with valid, visible tuples
-//    if (SelectIntoBuffer(txn, slot, &row)) {
-//      out_buffer->TupleSlots()[filled] = slot;
-//      filled++;
-//    }
-//    ++(*start_pos);
-//  }
-//  out_buffer->SetNumTuples(filled);
 }
 
 DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
