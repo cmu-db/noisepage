@@ -263,6 +263,13 @@ find_package(TBB REQUIRED)
 include_directories(SYSTEM ${TBB_INCLUDE_DIRS})
 list(APPEND TERRIER_LINK_LIBS ${TBB_LIBRARIES})
 
+# libnuma
+if (NOT APPLE)
+find_package(LibNuma REQUIRED)
+include_directories(SYSTEM ${LIBNUMA_INCLUDE_DIR})
+list(APPEND TERRIER_LINK_LIBS ${LIBNUMA_LIBRARY})
+endif ()
+
 # --[ PQXX
 find_package(PQXX REQUIRED)
 include_directories(SYSTEM ${PQXX_INCLUDE_DIRECTORIES})
