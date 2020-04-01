@@ -182,10 +182,6 @@ endif ()
 # Add common flags
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_COMMON_FLAGS}")
 
-if (NOT APPLE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lnuma")
-endif ()
-
 # For any C code, use the same flags.
 set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS}")
 
@@ -194,6 +190,10 @@ string(REPLACE "-std=c++17" "" CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
 
 # Add C++-only flags, like -std=c++17
 set(CMAKE_CXX_FLAGS "${CXX_ONLY_FLAGS} ${CMAKE_CXX_FLAGS}")
+
+if (NOT APPLE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lnuma")
+endif ()
 
 # CMAKE_CXX_FLAGS now fully assembled
 message(STATUS "CXX_ONLY_FLAGS: ${CXX_ONLY_FLAGS}")
