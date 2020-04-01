@@ -192,7 +192,7 @@ string(REPLACE "-std=c++17" "" CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
 set(CMAKE_CXX_FLAGS "${CXX_ONLY_FLAGS} ${CMAKE_CXX_FLAGS}")
 
 if (NOT APPLE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lnuma")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lnuma -ldl")
 endif ()
 
 # CMAKE_CXX_FLAGS now fully assembled
