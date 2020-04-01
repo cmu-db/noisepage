@@ -600,6 +600,15 @@ VM_OP void OpFilterManagerRunFilters(terrier::execution::sql::FilterManager *fil
 VM_OP void OpFilterManagerFree(terrier::execution::sql::FilterManager *filter_manager);
 
 // ---------------------------------------------------------
+// Date functions
+// ---------------------------------------------------------
+
+VM_OP_HOT void OpExtractYear(terrier::execution::sql::Integer *result, const terrier::execution::sql::DateVal *input) {
+  result->is_null_ = input->is_null_;
+  if (!input->is_null_) result->val_ = input->val_.ExtractYear();
+}
+
+// ---------------------------------------------------------
 // Scalar SQL comparisons
 // ---------------------------------------------------------
 
