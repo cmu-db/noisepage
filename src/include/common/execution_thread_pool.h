@@ -26,7 +26,7 @@ namespace terrier::common {
  */
 // TODO(Deepayan): change from void later
 using Task = std::function<void()>;
-using TaskQueue = tbb::concurrent_queue<Task>;
+using ExecutionTaskQueue = tbb::concurrent_queue<Task>;
 
 /**
  * A worker pool that maintains a group of worker threads and a task queue.
@@ -191,7 +191,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
   int16_t num_regions_ = static_cast<int16_t>(numa_max_node());
 #endif
   std::vector<std::vector<TerrierThread*>> workers_;
-  std::vector<TaskQueue> task_queue_;
+  std::vector<ExecutionTaskQueue> task_queue_;
 
   std::atomic<uint32_t> busy_workers_, total_workers_;
   std::atomic_bool shutting_down_ = false;
