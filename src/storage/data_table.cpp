@@ -60,15 +60,20 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
   out_buffer->SetNumTuples(filled);
 }
 
-//TODO(emmanuel) make this thread safe
 void DataTable::NUMAScan(common::ManagedPointer<transaction::TransactionContext> txn,
-                    std::vector<ProjectedColumns *> *out_buffers, ProjectedColumns *const result_buffer) {
+                    std::vector<ProjectedColumns *> *out_buffers, ProjectedColumns *const result_buffer,
+                    common::ExecutionThreadPool* thread_pool) {
   std::vector<numa_region_t> numa_regions;
   GetNUMARegions(&numa_regions);
 
-  for (numa_region_t region : numa_regions) {
+  //TODO(emmanuel) add additional buffers to the array so that the assert below is unnecessary
+
+  TERRIER_ASSERT(out_buffers->size() >= numa_regions.size(), "should have at least as many outbuffers as numa regions currently occupied");
+  for (int i = 0; i < numa_regions.size(); i++) {
     // Lambda function to pass into thread pool
-    auto lambda = [&](ProjectedColumns *out_buffer) {
+    ProjectedColumns *out_buffer = (*out_buffers)[i];
+    numa_region_t region = numa_regions[i];
+    auto lambda = [&, out_buffer, region] {
       uint32_t filled = 0;
 
       for (auto it = begin(region); it != end(region) && filled < out_buffer->MaxTuples(); it++) {
@@ -83,14 +88,17 @@ void DataTable::NUMAScan(common::ManagedPointer<transaction::TransactionContext>
       out_buffer->SetNumTuples(filled);
     };
 
-    SubmitTask(lambda, region);
+    if (thread_pool == nullptr) {
+      lambda();
+      continue;
+    }
+    thread_pool->SubmitTask(lambda, region);
   }
 
-  uint32_t result_index = 0
-  for (uint32_t i = 0; i < out_buffers.size(); i++) {
-    auto cur_buffer = out_buffers[i];
+  uint32_t result_index = 0;
+  for (auto cur_buffer : *out_buffers) {
     for (uint32_t j = 0; j < cur_buffer->NumTuples(); j++) {
-      result_buffer[result_index] = cur_buffer->TupleSlots()[j];
+      result_buffer->TupleSlots()[result_index] = cur_buffer->TupleSlots()[j];
       result_index++;
     }
   }

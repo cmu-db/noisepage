@@ -8,6 +8,7 @@
 
 #include "common/managed_pointer.h"
 #include "common/performance_counter.h"
+#include "common/execution_thread_pool.h"
 #include "storage/arrow_serializer.h"
 #include "storage/projected_columns.h"
 #include "storage/storage_defs.h"
@@ -263,7 +264,8 @@ class DataTable {
    *                   always cleared of old values.
    */
   void NUMAScan(common::ManagedPointer<transaction::TransactionContext> txn,
-                std::vector<ProjectedColumns *> *out_buffers);
+                           std::vector<ProjectedColumns *> *out_buffers, ProjectedColumns *const result_buffer,
+                           common::ExecutionThreadPool *thread_pool = nullptr);
 
   /**
    * @return the first tuple slot contained in the data table

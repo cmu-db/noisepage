@@ -144,12 +144,20 @@ class RandomDataTableTestObject {
     table_.Scan(common::ManagedPointer(txn), begin, buffer);
   }
 
-  void NUMAScan(storage::DataTable::NUMAIterator *begin, const transaction::timestamp_t timestamp,
-                storage::ProjectedColumns *buffer, storage::RecordBufferSegmentPool *buffer_pool) {
+  void NUMAScan(const transaction::timestamp_t timestamp, storage::ProjectedColumns *result_colunm,
+                storage::ProjectedColumnsInitializer *initializer, storage::RecordBufferSegmentPool *buffer_pool) {
     auto *txn =
         new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(buffer_pool), DISABLED);
     loose_txns_.push_back(txn);
-    table_.NUMAScan(common::ManagedPointer(txn), begin, buffer);
+    std::vector<storage::numa_region_t> regions;
+    std::vector<storage::ProjectedColumns *> colunms;
+    table_.GetNUMARegions(&regions);
+    for (storage::numa_region_t _ UNUSED_ATTRIBUTE : regions) {
+      auto *buffer = common::AllocationUtil::AllocateAligned(initializer->ProjectedColumnsSize());
+      storage::ProjectedColumns *column = initializer->Initialize(buffer);
+      colunms.emplace_back(column);
+    }
+    table_.NUMAScan(common::ManagedPointer(txn), &colunms, result_colunm);
   }
 
   storage::DataTable &GetTable() { return table_; }
@@ -355,6 +363,7 @@ TEST_F(DataTableTests, SimpleNumaTest) {
 
     std::vector<storage::numa_region_t> numa_regions;
     tested.GetTable().GetNUMARegions(&numa_regions);
+    EXPECT_TRUE(numa_regions.size() > 1);
 
 #ifdef __APPLE__
     EXPECT_EQ(numa_regions.size(), 1);
@@ -366,8 +375,7 @@ TEST_F(DataTableTests, SimpleNumaTest) {
 #endif
 
     for (storage::numa_region_t numa_region : numa_regions) {
-      auto scan_it = tested.GetTable().begin(numa_region);
-      tested.NUMAScan(&scan_it, transaction::timestamp_t(1), columns, &buffer_pool_);
+      tested.NUMAScan(transaction::timestamp_t(1), columns, &initializer, &buffer_pool_);
       for (auto it = tested.GetTable().begin(numa_region); it != tested.GetTable().end(numa_region); ++it) {
         EXPECT_NE((*it).GetBlock(), nullptr);
         EXPECT_EQ((*it).GetBlock()->numa_region_, numa_region);
