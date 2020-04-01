@@ -1,6 +1,6 @@
 import numpy as np
 
-from info import data_info
+import data_info
 from type import OpUnit
 
 
@@ -37,13 +37,6 @@ _tuple_num_linear_log_transformer = (_tuple_num_linear_log_train_transform, _tup
 
 # Map the opunit to the transformer it needs for mini-model training
 OPUNIT_MODELING_TRANSFORMER_MAP = {
-    OpUnit.GC_DEALLOC: None,
-    OpUnit.GC_UNLINK: None,
-    OpUnit.LOG_SERIAL: None,
-    OpUnit.LOG_CONSUME: None,
-    OpUnit.TXN_BEGIN: None,
-    OpUnit.TXN_COMMIT: None,
-
     # Execution engine opunits
     OpUnit.SEQ_SCAN: _tuple_num_linear_transformer,
     OpUnit.HASHJOIN_BUILD: _tuple_num_linear_transformer,

@@ -22,9 +22,6 @@ ARITHMETIC_FEATURE_INDEX = {
     ArithmeticFeature.EXEC_MODE: 1,
 }
 
-# The position of the name of the operating unit in the execution engine csv metrics file
-EXECUTION_CSV_NAME_POSITION = 0
-
 # total number of outputs
 METRICS_OUTPUT_NUM = 11
 
@@ -37,8 +34,6 @@ MINI_MODEL_TARGET_NUM = len(MINI_MODEL_TARGET_LIST)
 # All the opunits of arithmetic operations
 ARITHMETIC_OPUNITS = {OpUnit.OP_INTEGER_PLUS_OR_MINUS, OpUnit.OP_INTEGER_MULTIPLY, OpUnit.OP_INTEGER_DIVIDE, OpUnit.OP_INTEGER_COMPARE,
                       OpUnit.OP_DECIMAL_PLUS_OR_MINUS, OpUnit.OP_DECIMAL_MULTIPLY, OpUnit.OP_DECIMAL_DIVIDE, OpUnit.OP_DECIMAL_COMPARE}
-
-SCAN_SUBSTRACT_UNITS = {OpUnit.SORT_BUILD, OpUnit.AGG_BUILD, OpUnit.HASHJOIN_BUILD, OpUnit.HASHJOIN_ITERATE}
 
 # The index for the tuple num feature in the operating units that has that feature
 TUPLE_NUM_INDEX = 0

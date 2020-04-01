@@ -27,19 +27,6 @@ class OpUnit(enum.Enum):
     For each operating unit, the first upper case name should be used in the codebase,
     and the second lower case name (alias) is to match the string identifier from the csv data file
     """
-    GC_DEALLOC = 0,
-    gc_deallocate = 0,
-    GC_UNLINK = 1,
-    gc_unlink = 1,
-    LOG_SERIAL = 2,
-    log_serializer_task = 2,
-    LOG_CONSUME = 3,
-    disk_log_consumer_task = 3,
-    TXN_BEGIN = 4,
-    txn_begin = 4,
-    TXN_COMMIT = 5,
-    txn_commit = 5,
-
     # Execution engine opunits
     SEQ_SCAN = 6,
     HASHJOIN_BUILD = 7,
@@ -63,11 +50,3 @@ class ArithmeticFeature(enum.Enum):
     """
     EXEC_NUMBER = 0,
     EXEC_MODE = 1,
-
-
-class ConcurrentCountingMode(enum.Enum):
-    """How to identify the concurrent running operations (for a GroupedOpUnitData)
-    """
-    EXACT = 0,
-    ESTIMATED = 1,
-    INTERVAL = 2,
