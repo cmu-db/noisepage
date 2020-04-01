@@ -24,6 +24,19 @@ DataTable::DataTable(const common::ManagedPointer<BlockStore> store, const Block
   insertion_head_ = blocks_.begin();
 }
 
+  DataTable::DataTable(const common::ManagedPointer<BlockStore> store, const BlockLayout &layout,
+                       const layout_version_t layout_version, const std::list<RawBlock *>& blocks)
+      : block_store_(store), layout_version_(layout_version), accessor_(layout) {
+    TERRIER_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,
+                   "First column must have size 8 for the version chain.");
+    TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
+                   "First column is reserved for version info, second column is reserved for logical delete.");
+    for (auto& block : blocks) {
+      blocks_.push_back(block);
+    }
+    insertion_head_ = blocks_.begin();
+  }
+
 DataTable::~DataTable() {
   common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
   for (RawBlock *block : blocks_) {

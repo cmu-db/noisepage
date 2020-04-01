@@ -123,7 +123,8 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string& path) {
 
     // Create the new table
     // TODO (tianlei): modify table content
-    SqlTable* new_table = new SqlTable(accessor->GetBlockStore(), schema);
+    SqlTable* new_table = new SqlTable(accessor->GetBlockStore(), schema, blocks);
+
     accessor->SetTablePointer(table_oid, new_table);
   }
 
