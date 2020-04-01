@@ -47,7 +47,7 @@ OPUNIT_MODELING_TRANSFORMER_MAP = {
     # Execution engine opunits
     OpUnit.SEQ_SCAN: _tuple_num_linear_transformer,
     OpUnit.HASHJOIN_BUILD: _tuple_num_linear_transformer,
-    OpUnit.HASHJOIN_PROBE: _tuple_num_linear_transformer,
+    OpUnit.HASHJOIN_ITERATE: _tuple_num_linear_transformer,
     OpUnit.AGG_BUILD: _tuple_num_linear_transformer,
     OpUnit.AGG_ITERATE: _tuple_num_linear_transformer,
     OpUnit.SORT_ITERATE: _tuple_num_linear_transformer,

@@ -43,7 +43,7 @@ class OpUnit(enum.Enum):
     # Execution engine opunits
     SEQ_SCAN = 6,
     HASHJOIN_BUILD = 7,
-    HASHJOIN_PROBE = 8,
+    HASHJOIN_ITERATE = 8,
     AGG_BUILD = 9,
     AGG_ITERATE = 10,
     SORT_BUILD = 11,
