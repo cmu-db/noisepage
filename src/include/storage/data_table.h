@@ -245,7 +245,7 @@ class DataTable {
   /**
    * @return this DataTable's Accessor
    */
-  const TupleAccessStrategy GetAccessor() const { return accessor_; }
+  const TupleAccessStrategy *GetAccessor() const { return &accessor_; }
 
   /**
    * @return a pointer to this DataTable's array of RawBlock*
