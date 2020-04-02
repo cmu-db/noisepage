@@ -65,6 +65,28 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::AnalyzeStatement> nod
   ValidateDatabaseName(node->GetAnalyzeTable()->GetDatabaseName());
 }
 
+void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node,
+                            common::ManagedPointer<BinderSherpa> sherpa) {
+  BINDER_LOG_TRACE("Visiting SelectStatement ...");
+
+  BinderContext context(context_);
+  context_ = common::ManagedPointer(&context);
+
+  if(node->GetSelectWith() != nullptr) {
+    node->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
+  } else {
+    if (node->GetSelectTable() != nullptr)
+      node->GetSelectTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
+  }
+
+  if (node->GetSelectCondition() != nullptr) {
+    node->GetSelectCondition()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
+    node->GetSelectCondition()->DeriveDepth();
+    node->GetSelectCondition()->DeriveSubqueryFlag();
+  }
+  if (node->GetSelectOrderBy() != nullptr)
+    node->GetSelectOrderBy()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
+
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::CopyStatement> node) {
   BINDER_LOG_TRACE("Visiting CopyStatement ...");
   SqlNodeVisitor::Visit(node);
