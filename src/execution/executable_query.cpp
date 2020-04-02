@@ -1,6 +1,7 @@
 #include "execution/executable_query.h"
 
 #include "execution/ast/ast_dump.h"
+#include "execution/ast/ast_pretty_print.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compiler.h"
 #include "execution/parsing/parser.h"
@@ -24,6 +25,8 @@ ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractP
   compiler::CodeGen codegen(exec_ctx.Get());
   compiler::Compiler compiler(query_id_, &codegen, physical_plan.Get());
   auto root = compiler.Compile();
+  terrier::execution::ast::AstPrettyPrint::Dump(std::cout, root);
+
   if (codegen.Reporter()->HasErrors()) {
     EXECUTION_LOG_ERROR("Type-checking error! \n {}", codegen.Reporter()->SerializeErrors());
     EXECUTION_LOG_ERROR("Dumping AST:");
