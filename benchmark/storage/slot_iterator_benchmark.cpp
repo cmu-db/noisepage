@@ -80,7 +80,7 @@ class SlotIteratorBenchmark : public benchmark::Fixture {
 // Iterate the num_reads_ of tuples in the sequential  order from a DataTable concurrently
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(SlotIteratorBenchmark, ConcurrentSlotIterators)(benchmark::State &state) {
-  storage::DataTable read_table(common::ManagedPointer(&block_store_), layout_, storage::layout_version_t(0));
+  storage::DataTable read_table(&block_store_, layout_, storage::layout_version_t(0));
 
   // populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control

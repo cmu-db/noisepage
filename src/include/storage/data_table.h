@@ -3,8 +3,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "common/concurrent_pointer_vector.h"
-#include "common/macros.h"
 #include "common/performance_counter.h"
 #include "common/shared_latch.h"
 #include "storage/projected_columns.h"
@@ -54,10 +52,9 @@ class DataTable {
      * @return reference to the underlying tuple slot
      */
     TupleSlot &operator*() {
-      auto max_slots = static_cast<uint64_t>(table_->accessor_.GetBlockLayout().NumSlots());
-      uint64_t block_num = i_ / max_slots;
-      RawBlock *b = const_cast<common::ConcurrentPointerVector<RawBlock> *>(&table_->blocks_)->LookUp(block_num);
-      current_slot_ = {b, static_cast<uint32_t>(i_ % max_slots)};
+      uint64_t block_num = i_ / max_slots_;
+      RawBlock *b = table_->array_[block_num].load();
+      current_slot_ = {b, static_cast<uint32_t>(i_ % static_cast<uint64_t>(max_slots_))};
       return current_slot_;
     }
 
@@ -65,7 +62,7 @@ class DataTable {
      * @return pointer to the underlying tuple slot
      */
     TupleSlot *operator->() {
-      current_slot_ = operator*();
+      operator*();
       return &current_slot_;
     }
 
@@ -91,14 +88,14 @@ class DataTable {
      * @return if the two iterators point to the same slot
      */
     bool operator==(const SlotIterator &other) const {
-      if (LIKELY(other.is_end_)) {
-        return i_ >= end_index_;
+      // TODO(Tianyu): I believe this is enough?
+      if (other.is_end_) {
+        return i_ >= max_iters_;
       }
-      if (LIKELY(is_end_)) {
-        return other.i_ == other.end_index_;
+      if (is_end_) {
+        return other.i_ >= other.max_iters_;
       }
-      TERRIER_ASSERT(table_ == other.table_, "should only compare SlotIterators on the same table");
-      return i_ == other.i_;
+      return table_ == other.table_ && i_ == other.i_;
     }
 
     /**
@@ -110,24 +107,31 @@ class DataTable {
 
    private:
     friend class DataTable;
-
-    SlotIterator() : is_end_(true) {}
-
-    SlotIterator(const DataTable *table) : table_(table), i_(0), is_end_(false) {  // NOLINT
-      uint64_t num_blocks = table->blocks_.size();
-      TERRIER_ASSERT(num_blocks >= 1, "there should allways be at least one block");
-      end_index_ = (num_blocks - 1) * table_->accessor_.GetBlockLayout().NumSlots() +
-                   static_cast<uint64_t>(const_cast<common::ConcurrentPointerVector<RawBlock> *>(&table->blocks_)
-                                             ->LookUp(num_blocks - 1)
-                                             ->GetInsertHead());
+    /**
+     * @warning MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
+     */
+    SlotIterator(const DataTable *table, bool is_end)
+        : table_(table),
+          max_iters_(0),
+          i_(0),
+          max_slots_(table_->accessor_.GetBlockLayout().NumSlots()),
+          is_end_(is_end) {
+      if (is_end_) {
+        return;
+      }
+      uint64_t current_size = table_->write_num_.load();
+      RawBlock *last_block = table_->array_[current_size - 1].load();
+      max_iters_ = (current_size - 1) * max_slots_ + (*last_block).GetInsertHead();
     }
 
     // TODO(Tianyu): Can potentially collapse this information into the RawBlock so we don't have to hold a pointer to
     // the table anymore. Right now we need the table to know how many slots there are in the block
-    const DataTable *table_{};
-    uint64_t i_ = 0, end_index_ = 0;
+    const DataTable *table_;
+    uint64_t max_iters_;
+    uint64_t i_;
+    uint32_t max_slots_;
+    bool is_end_;
     TupleSlot current_slot_;
-    bool is_end_ = false;
   };
   /**
    * Constructs a new DataTable with the given layout, using the given BlockStore as the source
@@ -137,8 +141,7 @@ class DataTable {
    * @param layout the initial layout of this DataTable. First 2 columns must be 8 bytes.
    * @param layout_version the layout version of this DataTable
    */
-  DataTable(common::ManagedPointer<BlockStore> const store, const BlockLayout &layout,  // NOLINT
-            const layout_version_t layout_version);                                     // NOLINT
+  DataTable(BlockStore *const store, const BlockLayout &layout, layout_version_t layout_version);
 
   /**
    * Destructs a DataTable, frees all its blocks and any potential varlen entries.
@@ -181,7 +184,7 @@ class DataTable {
    * @return the first tuple slot contained in the data table
    */
   SlotIterator begin() const {  // NOLINT for STL name compability
-    return {this};
+    return {this, false};
   }
 
   /**
@@ -235,29 +238,26 @@ class DataTable {
   DataTableCounter *GetDataTableCounter() { return &data_table_counter_; }
 
   /**
-   * @return pointer to this DataTable's BlockLayout
+   * @return read-only view of this DataTable's BlockLayout
    */
-  BlockLayout *GetBlockLayout() const { return const_cast<BlockLayout *>(&accessor_.GetBlockLayout()); }
+  const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
 
   /**
    * @return this DataTable's Accessor
    */
-  TupleAccessStrategy GetAccessor() const { return accessor_; }
+  const TupleAccessStrategy GetAccessor() const { return accessor_; }
+
+  /**
+   * @return a pointer to this DataTable's array of RawBlock*
+   */
+  const std::atomic<std::atomic<RawBlock *> *> *GetBlockArray() const { return &array_; }
 
   /**
    * @return the number of blocks that are in the RawBlock* array
    */
-  uint64_t GetNumBlocks() const { return blocks_.size(); }
-
-  /**
-   * @return pointer to underlying vector of blocks
-   */
-  common::ConcurrentPointerVector<RawBlock> *GetBlocks() const {
-    return const_cast<common::ConcurrentPointerVector<RawBlock> *>(&blocks_);
-  }
+  uint64_t GetNumBlocks() const { return write_num_; }
 
  private:
-  static const uint64_t START_VECTOR_SIZE = 256;
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains
   friend class GarbageCollector;
   // The TransactionManager needs to modify VersionPtrs when rolling back aborts
@@ -272,11 +272,27 @@ class DataTable {
   // needs raw access to the underlying table.
   friend class BlockCompactor;
 
-  const common::ManagedPointer<BlockStore> block_store_;
+  BlockStore *const block_store_;
   const layout_version_t layout_version_;
   const TupleAccessStrategy accessor_;
-  common::ConcurrentPointerVector<RawBlock> blocks_;
-  std::atomic<uint64_t> insert_index_ = 0;
+  const uint64_t array_start_size_ = 256;
+  const uint64_t array_resize_factor_ = 2;
+  const SlotIterator end_ = {this, true};
+
+  // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
+  // new one when the current one is full. Needless to say, we will need to revisit this when extending GC to handle
+  // deleted tuples and recycle slots
+  // TODO(Tianyu): Now that we are switching to a linked list, there probably isn't a reason for it
+  // to be latched. Could just easily write a lock-free one if there's performance gain(probably not). vector->list has
+  // negligible difference in insert performance (within margin of error) when benchmarked.
+  // We also might need our own implementation because we need to handle GC of an unlinked block, as a sequential scan
+  // might be on it
+  std::atomic_uint64_t offset_, insert_index_, array_ref_counter_, size_, write_num_;
+  std::atomic<std::atomic<RawBlock *> *> array_;
+
+  std::atomic_bool resizing_;
+  std::mutex resizing_mux_;
+  std::condition_variable done_resizing_;
   // Check if we need to advance the insertion_head_
   // This function uses header_latch_ to ensure correctness
   mutable DataTableCounter data_table_counter_;
