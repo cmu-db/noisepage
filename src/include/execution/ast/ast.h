@@ -1239,6 +1239,9 @@ class IdentifierExpr : public Expr {
   Decl *decl_;
 };
 
+
+
+
 /**
  * An enumeration capturing all possible casting operations
  */
@@ -1282,6 +1285,8 @@ enum class CastKind : uint8_t {
   // Convert a SQL integer into a SQL real
   SqlIntToSqlReal,
 };
+
+
 
 /**
  * An implicit cast operation is one that is inserted automatically by the compiler during semantic analysis.
