@@ -53,6 +53,8 @@ class DataTable {
      */
     TupleSlot &operator*() {
       uint64_t block_num = i_ / max_slots_;
+      while (table_->write_num_ - 1 < block_num) {
+      }
       RawBlock *b = table_->array_[block_num].load();
       current_slot_ = {b, static_cast<uint32_t>(i_ % static_cast<uint64_t>(max_slots_))};
       return current_slot_;
@@ -242,19 +244,10 @@ class DataTable {
    */
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
 
-  /**
-   * @return this DataTable's Accessor
-   */
   const TupleAccessStrategy GetAccessor() const { return accessor_; }
 
-  /**
-   * @return a pointer to this DataTable's array of RawBlock*
-   */
   const std::atomic<std::atomic<RawBlock *> *> *GetBlockArray() const { return &array_; }
 
-  /**
-   * @return the number of blocks that are in the RawBlock* array
-   */
   uint64_t GetNumBlocks() const { return write_num_; }
 
  private:
