@@ -9,7 +9,7 @@
 #include "transaction/transaction_util.h"
 
 namespace terrier::storage {
-DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const layout_version_t layout_version)
+DataTable::DataTable(common::ManagedPointer<BlockStore> const store, const BlockLayout &layout, const layout_version_t layout_version)
     : block_store_(store),
       layout_version_(layout_version),
       accessor_(layout),
@@ -26,7 +26,7 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
 
   size_ = array_start_size_;
   array_ = new std::atomic<RawBlock *>[size_];
-  if (block_store_ != nullptr) {
+  if (block_store_ != DISABLED) {
     offset_ = 1;
     array_[0] = NewBlock();
     write_num_ = 1;
@@ -38,7 +38,7 @@ DataTable::~DataTable() {
     StorageUtil::DeallocateVarlens(array_[idx], accessor_);
     for (col_id_t i : accessor_.GetBlockLayout().Varlens())
       accessor_.GetArrowBlockMetadata(array_[idx]).GetColumnInfo(accessor_.GetBlockLayout(), i).Deallocate();
-    block_store_->Release(array_[idx]);
+    block_store_.operator->()->Release(array_[idx]);
   }
   delete[] array_;
 }
@@ -390,7 +390,7 @@ bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot, const TupleAccess
 }
 
 RawBlock *DataTable::NewBlock() {
-  RawBlock *new_block = block_store_->Get();
+  RawBlock *new_block = block_store_.operator->()->Get();
   accessor_.InitializeRawBlock(this, new_block, layout_version_);
   data_table_counter_.IncrementNumNewBlock(1);
   return new_block;

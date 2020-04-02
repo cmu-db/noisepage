@@ -141,7 +141,7 @@ class DataTable {
    * @param layout the initial layout of this DataTable. First 2 columns must be 8 bytes.
    * @param layout_version the layout version of this DataTable
    */
-  DataTable(BlockStore *const store, const BlockLayout &layout, layout_version_t layout_version);
+  DataTable(common::ManagedPointer<BlockStore> const store, const BlockLayout &layout, layout_version_t layout_version);
 
   /**
    * Destructs a DataTable, frees all its blocks and any potential varlen entries.
@@ -272,7 +272,7 @@ class DataTable {
   // needs raw access to the underlying table.
   friend class BlockCompactor;
 
-  BlockStore *const block_store_;
+  common::ManagedPointer<BlockStore> const block_store_;
   const layout_version_t layout_version_;
   const TupleAccessStrategy accessor_;
   const uint64_t array_start_size_ = 256;
