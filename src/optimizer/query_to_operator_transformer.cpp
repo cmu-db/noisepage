@@ -50,13 +50,16 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
   predicates_ = {};
   transaction::TransactionContext *txn_context = accessor_->GetTxn().Get();
 
-  if (op->GetSelectTable() != nullptr) {
-    // SELECT with FROM
-    op->GetSelectTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+  if(op->GetSelectWith() != nullptr) {
+    op->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
   } else {
-    // SELECT without FROM
-    output_expr_ = std::make_unique<OperatorNode>(LogicalGet::Make().RegisterWithTxnContext(txn_context),
-                                                  std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
+    if (op->GetSelectTable() != nullptr) {
+      // SELECT with FROM
+      op->GetSelectTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+    } else {
+      // SELECT without FROM
+      output_expr_ = std::make_unique<OperatorNode>(LogicalGet::Make().RegisterWithTxnContext(txn_context),
+    }
   }
 
   if (op->GetSelectCondition() != nullptr) {
