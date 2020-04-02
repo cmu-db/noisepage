@@ -47,8 +47,12 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
   BinderContext context(context_);
   context_ = common::ManagedPointer(&context);
 
-  if (node->GetSelectTable() != nullptr)
-    node->GetSelectTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
+  if(node->GetSelectWith() != nullptr) {
+    node->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
+  } else {
+    if (node->GetSelectTable() != nullptr)
+      node->GetSelectTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
+  }
 
   if (node->GetSelectCondition() != nullptr) {
     node->GetSelectCondition()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);

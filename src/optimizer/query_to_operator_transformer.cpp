@@ -50,12 +50,16 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
   auto pre_predicates = std::move(predicates_);
   predicates_ = {};
 
-  if (op->GetSelectTable() != nullptr) {
-    // SELECT with FROM
-    op->GetSelectTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
+  if(op->GetSelectWith() != nullptr) {
+    op->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
   } else {
-    // SELECT without FROM
-    output_expr_ = std::make_unique<OperatorNode>(LogicalGet::Make(), std::vector<std::unique_ptr<OperatorNode>>{});
+    if (op->GetSelectTable() != nullptr) {
+      // SELECT with FROM
+      op->GetSelectTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
+    } else {
+      // SELECT without FROM
+      output_expr_ = std::make_unique<OperatorNode>(LogicalGet::Make(), std::vector<std::unique_ptr<OperatorNode>>{});
+    }
   }
 
   if (op->GetSelectCondition() != nullptr) {
