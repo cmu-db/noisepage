@@ -84,8 +84,7 @@ class DataTableBenchmark : public benchmark::Fixture {
 BENCHMARK_DEFINE_F(DataTableBenchmark, Insert)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    storage::DataTable table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout_,
-                             storage::layout_version_t(0));
+    storage::DataTable table(&block_store_, layout_, storage::layout_version_t(0));
     auto workload = [&](uint32_t id) {
       // We can use dummy timestamps here since we're not invoking concurrency control
       transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
@@ -112,8 +111,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, Insert)(benchmark::State &state) {
 // Read the num_reads_ of tuples in a random order from a DataTable concurrently
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, SelectRandom)(benchmark::State &state) {
-  storage::DataTable read_table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout_,
-                                storage::layout_version_t(0));
+  storage::DataTable read_table(&block_store_, layout_, storage::layout_version_t(0));
 
   // populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
@@ -161,8 +159,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SelectRandom)(benchmark::State &state) {
 // Read the num_reads_ of tuples in the sequential  order from a DataTable concurrently
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, SelectSequential)(benchmark::State &state) {
-  storage::DataTable read_table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout_,
-                                storage::layout_version_t(0));
+  storage::DataTable read_table(&block_store_, layout_, storage::layout_version_t(0));
 
   // populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
@@ -202,8 +199,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SelectSequential)(benchmark::State &state
 // Read the num_reads_ of tuples in the sequential  order from a DataTable concurrently
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, Scan)(benchmark::State &state) {
-  storage::DataTable read_table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout_,
-                                storage::layout_version_t(0));
+  storage::DataTable read_table(&block_store_, layout_, storage::layout_version_t(0));
 
   // populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control

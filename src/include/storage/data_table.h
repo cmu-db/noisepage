@@ -3,15 +3,12 @@
 #include <unordered_map>
 #include <vector>
 
-#include "common/managed_pointer.h"
 #include "common/performance_counter.h"
-#include "storage/arrow_serializer.h"
+#include "common/shared_latch.h"
 #include "storage/projected_columns.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
-
-namespace flatbuf = org::apache::arrow::flatbuf;
 
 namespace terrier::transaction {
 class TransactionContext;
@@ -47,19 +44,27 @@ DEFINE_PERFORMANCE_CLASS(DataTableCounter, DataTableCounterMembers)
 class DataTable {
  public:
   /**
-   * Iterator for all the slots, claimed or otherwise, in the data table. This is useful for sequential scans
+   * Iterator for all the slots, claimed or otherwise, in the data table. This is useful for sequential scans.
    */
   class SlotIterator {
    public:
     /**
      * @return reference to the underlying tuple slot
      */
-    const TupleSlot &operator*() const { return current_slot_; }
+    TupleSlot &operator*() {
+      uint64_t block_num = i_ / max_slots_;
+      RawBlock *b = table_->array_[block_num].load();
+      current_slot_ = {b, static_cast<uint32_t>(i_ % static_cast<uint64_t>(max_slots_))};
+      return current_slot_;
+    }
 
     /**
      * @return pointer to the underlying tuple slot
      */
-    const TupleSlot *operator->() const { return &current_slot_; }
+    TupleSlot *operator->() {
+      operator*();
+      return &current_slot_;
+    }
 
     /**
      * pre-fix increment.
@@ -84,7 +89,13 @@ class DataTable {
      */
     bool operator==(const SlotIterator &other) const {
       // TODO(Tianyu): I believe this is enough?
-      return current_slot_ == other.current_slot_;
+      if (other.is_end_) {
+        return i_ >= max_iters_;
+      }
+      if (is_end_) {
+        return other.i_ >= other.max_iters_;
+      }
+      return table_ == other.table_ && i_ == other.i_;
     }
 
     /**
@@ -99,15 +110,27 @@ class DataTable {
     /**
      * @warning MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
      */
-    SlotIterator(const DataTable *table, std::list<RawBlock *>::const_iterator block, uint32_t offset_in_block)
-        : table_(table), block_(block) {
-      current_slot_ = {block == table->blocks_.end() ? nullptr : *block, offset_in_block};
+    SlotIterator(const DataTable *table, bool is_end)
+        : table_(table),
+          max_iters_(0),
+          i_(0),
+          max_slots_(table_->accessor_.GetBlockLayout().NumSlots()),
+          is_end_(is_end) {
+      if (is_end_) {
+        return;
+      }
+      uint64_t current_size = table_->write_num_.load();
+      RawBlock *last_block = table_->array_[current_size - 1].load();
+      max_iters_ = (current_size - 1) * max_slots_ + (*last_block).GetInsertHead();
     }
 
     // TODO(Tianyu): Can potentially collapse this information into the RawBlock so we don't have to hold a pointer to
     // the table anymore. Right now we need the table to know how many slots there are in the block
     const DataTable *table_;
-    std::list<RawBlock *>::const_iterator block_;
+    uint64_t max_iters_;
+    uint64_t i_;
+    uint32_t max_slots_;
+    bool is_end_;
     TupleSlot current_slot_;
   };
   /**
@@ -118,7 +141,7 @@ class DataTable {
    * @param layout the initial layout of this DataTable. First 2 columns must be 8 bytes.
    * @param layout_version the layout version of this DataTable
    */
-  DataTable(common::ManagedPointer<BlockStore> store, const BlockLayout &layout, layout_version_t layout_version);
+  DataTable(BlockStore *const store, const BlockLayout &layout, layout_version_t layout_version);
 
   /**
    * Destructs a DataTable, frees all its blocks and any potential varlen entries.
@@ -161,8 +184,7 @@ class DataTable {
    * @return the first tuple slot contained in the data table
    */
   SlotIterator begin() const {  // NOLINT for STL name compability
-    common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
-    return {this, blocks_.begin(), 0};
+    return {this, false};
   }
 
   /**
@@ -220,9 +242,22 @@ class DataTable {
    */
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
 
+  /**
+   * @return this DataTable's Accessor
+   */
+  const TupleAccessStrategy GetAccessor() const { return accessor_; }
+
+  /**
+   * @return a pointer to this DataTable's array of RawBlock*
+   */
+  const std::atomic<std::atomic<RawBlock *> *> *GetBlockArray() const { return &array_; }
+
+  /**
+   * @return the number of blocks that are in the RawBlock* array
+   */
+  uint64_t GetNumBlocks() const { return write_num_; }
+
  private:
-  // The ArrowSerializer needs access to its blocks.
-  friend class ArrowSerializer;
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains
   friend class GarbageCollector;
   // The TransactionManager needs to modify VersionPtrs when rolling back aborts
@@ -237,9 +272,12 @@ class DataTable {
   // needs raw access to the underlying table.
   friend class BlockCompactor;
 
-  const common::ManagedPointer<BlockStore> block_store_;
+  BlockStore *const block_store_;
   const layout_version_t layout_version_;
   const TupleAccessStrategy accessor_;
+  const uint64_t array_start_size_ = 256;
+  const uint64_t array_resize_factor_ = 2;
+  const SlotIterator end_ = {this, true};
 
   // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
   // new one when the current one is full. Needless to say, we will need to revisit this when extending GC to handle
@@ -249,15 +287,14 @@ class DataTable {
   // negligible difference in insert performance (within margin of error) when benchmarked.
   // We also might need our own implementation because we need to handle GC of an unlinked block, as a sequential scan
   // might be on it
-  std::list<RawBlock *> blocks_;
-  // latch used to protect block list
-  mutable common::SpinLatch blocks_latch_;
-  // latch used to protect insertion_head_
-  mutable common::SpinLatch header_latch_;
-  std::list<RawBlock *>::iterator insertion_head_;
+  std::atomic_uint64_t offset_, insert_index_, array_ref_counter_, size_, write_num_;
+  std::atomic<std::atomic<RawBlock *> *> array_;
+
+  std::atomic_bool resizing_;
+  std::mutex resizing_mux_;
+  std::condition_variable done_resizing_;
   // Check if we need to advance the insertion_head_
   // This function uses header_latch_ to ensure correctness
-  void CheckMoveHead(std::list<RawBlock *>::iterator block);
   mutable DataTableCounter data_table_counter_;
 
   // A templatized version for select, so that we can use the same code for both row and column access.

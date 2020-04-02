@@ -54,7 +54,7 @@ SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog
   }
 
   auto layout = storage::BlockLayout(attr_sizes);
-  table_ = {new DataTable(block_store_, layout, layout_version_t(0)), layout, col_oid_to_id};
+  table_ = {new DataTable(block_store_.operator->(), layout, layout_version_t(0)), layout, col_oid_to_id};
 }
 
 std::vector<col_id_t> SqlTable::ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids) const {
