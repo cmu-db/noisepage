@@ -22,6 +22,7 @@ namespace terrier::storage::index {
 class IndexBuilder {
  private:
   catalog::IndexSchema key_schema_;
+  storage::SqlTable *sql_table_;
 
  public:
   IndexBuilder() = default;
@@ -64,6 +65,11 @@ class IndexBuilder {
    */
   IndexBuilder &SetKeySchema(const catalog::IndexSchema &key_schema) {
     key_schema_ = key_schema;
+    return *this;
+  }
+
+  IndexBuilder &SetTable(storage::SqlTable *sql_table) {
+    sql_table_ = sql_table;
     return *this;
   }
 
