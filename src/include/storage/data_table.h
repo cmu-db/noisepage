@@ -242,9 +242,6 @@ class DataTable {
    */
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
 
-  /**
-   * @return this DataTable's Accessor
-   */
   const TupleAccessStrategy GetAccessor() const { return accessor_; }
 
   /**
