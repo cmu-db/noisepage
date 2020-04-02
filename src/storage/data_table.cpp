@@ -126,8 +126,8 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
                  "attribute than the DataTable's layout.");
 
   TupleSlot result;
-  uint64_t current_insert_idx = insert_index_.load(); // the index into which we will try to insert the tuple
-  RawBlock *block; // the block into which the insert will occur
+  uint64_t current_insert_idx = insert_index_.load();  // the index into which we will try to insert the tuple
+  RawBlock *block;                                     // the block into which the insert will occur
   while (true) {
     // No free block left
     if (current_insert_idx >= offset_.load()) {
