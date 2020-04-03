@@ -76,8 +76,29 @@ class BinderSherpa {
    */
   void SetDesiredTypePair(const common::ManagedPointer<parser::AbstractExpression> left,
                           const common::ManagedPointer<parser::AbstractExpression> right) {
-    auto left_type = left->GetReturnValueType();
-    auto right_type = right->GetReturnValueType();
+    type::TypeId left_type = type::TypeId::INVALID;
+    type::TypeId right_type = type::TypeId::INVALID;
+    bool has_constraints = false;
+
+    // Check if the left type has been constrained.
+    auto it = desired_expr_types_.find(reinterpret_cast<uintptr_t>(left.Get()));
+    if (it != desired_expr_types_.end()) {
+      left_type = it->second;
+      has_constraints = true;
+    }
+
+    // Check if the right type has been constrained.
+    it = desired_expr_types_.find(reinterpret_cast<uintptr_t>(right.Get()));
+    if (it != desired_expr_types_.end()) {
+      right_type = it->second;
+      has_constraints = true;
+    }
+
+    // If neither the left nor the right type has been constrained, operate off the return value type.
+    if (!has_constraints) {
+      left_type = left->GetReturnValueType();
+      right_type = right->GetReturnValueType();
+    }
 
     // If the types are mismatched, try to convert types accordingly.
     if (left_type != right_type) {
@@ -117,6 +138,8 @@ class BinderSherpa {
     const auto it = desired_expr_types_.find(reinterpret_cast<uintptr_t>(expr.Get()));
     if (it != desired_expr_types_.end() && it->second != expr->GetReturnValueType()) {
       // There was a constraint and the expression did not satisfy it. Blow up.
+      const auto desired UNUSED_ATTRIBUTE = it->second;
+      const auto current UNUSED_ATTRIBUTE = expr->GetReturnValueType();
       throw BINDER_EXCEPTION("BinderSherpa expected expr to have a different type.");
     }
   }

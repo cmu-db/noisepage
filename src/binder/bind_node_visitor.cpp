@@ -579,6 +579,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
       }
     }
   }
+  // The schema is authoritative on what the type of this ColumnValueExpression should be.
+  sherpa_->SetDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>(), expr->GetReturnValueType());
 }
 
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::ComparisonExpression> expr) {
