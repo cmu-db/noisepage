@@ -9,7 +9,8 @@
 #include "transaction/transaction_util.h"
 
 namespace terrier::storage {
-DataTable::DataTable(common::ManagedPointer<BlockStore> const store, const BlockLayout &layout, const layout_version_t layout_version)
+DataTable::DataTable(common::ManagedPointer<BlockStore> const store, const BlockLayout &layout,
+                     const layout_version_t layout_version)
     : block_store_(store),
       layout_version_(layout_version),
       accessor_(layout),
