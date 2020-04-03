@@ -122,12 +122,9 @@ static void GenArithArguments(benchmark::internal::Benchmark *b) {
                     brain::ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE,
                     brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE};
 
-  std::vector<size_t> counts{10, 100, 1000};
+  std::vector<size_t> counts;
   for (size_t i = 10000; i < 100000; i += 10000) counts.push_back(i);
   for (size_t i = 100000; i < 1000000; i += 100000) counts.push_back(i);
-  for (size_t i = 1000000; i < 10000000; i += 1000000) counts.push_back(i);
-  counts.push_back(10000000);
-  counts.push_back(100000000);
 
   for (auto op : operators) {
     for (auto count : counts) {
