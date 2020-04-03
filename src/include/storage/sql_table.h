@@ -36,7 +36,11 @@ class SqlTable {
   struct DataTableVersion {
     DataTable *data_table_;
     BlockLayout layout_;
-    ColumnMap column_map_;
+    ColumnOidToIdMap column_oid_to_id_map_;
+    // TODO(Ling): used in transforming between different versions.
+    //  It only works for adding and dropping columns, but not modifying type/constraint/default of the column
+    //  Consider storing forward and backward delta of the schema change maybe in the future
+    ColumnIdToOidMap column_id_to_oid_map_;
   };
 
  public:
@@ -64,16 +68,8 @@ class SqlTable {
    * @param out_buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
    * @return true if tuple is visible to this txn and ProjectedRow has been populated, false otherwise
    */
-  bool Select(const common::ManagedPointer <transaction::TransactionContext> txn,
-              layout_version_t layout_version,
-              const TupleSlot slot,
-              ProjectedRow *const out_buffer) const {
-    // TODO(Schema-Change): Modify this
-    //  a expected tuple can be in the dataTable of any version, as they do not overlap.
-    //  need to go through all datatable prior or equal to the current schema and do Select for each one
-    //  Try to do the traversal N2O
-    return table_.data_table_->Select(txn, slot, out_buffer);
-  }
+  bool Select(common::ManagedPointer <transaction::TransactionContext> txn,
+              layout_version_t layout_version, TupleSlot slot, ProjectedRow * out_buffer) const;
 
   /**
    * Update the tuple according to the redo buffer given. StageWrite must have been called as well in order for the
@@ -246,7 +242,12 @@ class SqlTable {
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   // TODO(Schema-Change): add concurrent access support. Implement single threaded version first
-  std::ordered_map<layout_version_t, DataTableVersion> tables_;
+  // Used orderred map for traversing data table that are less or equal to curr version
+  std::map<layout_version_t, DataTableVersion> tables_;
+
+  void AlignHeaderToVersion(ProjectedRow * out_buffer, const DataTableVersion &tuple_version,
+                            const DataTableVersion &desired_version, col_id_t *cached_ori_header,
+                            std::vector<catalog::col_oid_t>* missing_cols) const;
 
   /**
    * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization

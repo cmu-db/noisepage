@@ -278,6 +278,7 @@ bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::Trans
     for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
       TERRIER_ASSERT(out_buffer->ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
                      "Output buffer should not read the version pointer column.");
+      if (out_buffer->ColumnIds()[i] != IGNORE_COLUMN_ID) continue;
       StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
     }
 

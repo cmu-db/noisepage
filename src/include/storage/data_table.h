@@ -19,6 +19,7 @@ class TransactionManager;
 }  // namespace terrier::transaction
 
 namespace terrier::storage {
+class SqlTable;
 
 namespace index {
 class Index;
@@ -236,6 +237,8 @@ class DataTable {
   // The block compactor elides transactional protection in the gather/compression phase and
   // needs raw access to the underlying table.
   friend class BlockCompactor;
+  // The SqlTable needs to access the layout version
+  friend class SqlTable;
 
   const common::ManagedPointer<BlockStore> block_store_;
   const layout_version_t layout_version_;
