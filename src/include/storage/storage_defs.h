@@ -184,6 +184,9 @@ class BlockAllocator {
       return new RawBlock();
     }
 #ifndef __APPLE__
+    if (numa_available() == -1) {
+      return new RawBlock();
+    }
     return static_cast<RawBlock *>(numa_alloc_onnode(sizeof(RawBlock), static_cast<int>(static_cast<int16_t>(region))));
 #else
     return new RawBlock();
