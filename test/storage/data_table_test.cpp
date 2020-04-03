@@ -349,7 +349,7 @@ TEST_F(DataTableTests, InsertNoWrap) {
 // a lot easier to write.
 // NOLINTNEXTLINE
 TEST_F(DataTableTests, SimpleNumaTest) {
-  const uint32_t num_iterations = 10;
+  const uint32_t num_iterations = 3;
   const uint16_t max_columns = 20;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
