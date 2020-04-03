@@ -1,7 +1,10 @@
 #pragma once
 
+#include <execution/sql/storage_interface.h>
+
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "catalog/index_schema.h"
 #include "storage/index/bwtree_index.h"
@@ -22,6 +25,9 @@ namespace terrier::storage::index {
 class IndexBuilder {
  private:
   catalog::IndexSchema key_schema_;
+  common::ManagedPointer<storage::SqlTable> sql_table_;
+  catalog::index_oid_t index_oid_;
+  execution::sql::MemoryPool mem_pool_;
 
  public:
   IndexBuilder() = default;
@@ -67,7 +73,39 @@ class IndexBuilder {
     return *this;
   }
 
+ /**
+  * @param sql_table
+  * @return the builder object
+  */
+  IndexBuilder &SetSqlTable(common::ManagedPointer<storage::SqlTable> sql_table) {
+    sql_table_ = sql_table;
+    return *this;
+  }
+
+ /**
+  * @param index_oid
+  * @return the builder object
+  */
+  IndexBuilder &SetIndexOid(const catalog::index_oid_t index_oid) {
+    index_oid_ = index_oid;
+    return *this;
+  }
+
  private:
+  Index *BulkInsert(Index *index) {
+    uint32_t pr_size = index->GetProjectedRowInitializer().ProjectedRowSize();
+    void *index_pr_buffer = mem_pool_.AllocateAligned(pr_size, alignof(uint64_t), false);
+    ProjectedRow *index_pr = index->GetProjectedRowInitializer().InitializeRow(index_pr_buffer);
+
+    for (auto it = sql_table_->begin(); it != sql_table_->end(); ++it) {
+      const TupleSlot slot = *it;
+      // TODO(Kunal) figure out what transaction context to put in here
+      index->Insert(nullptr, *index_pr, slot);
+    }
+    mem_pool_.Deallocate(index_pr_buffer, pr_size);
+    return index;
+  }
+
   Index *BuildBwTreeIntsKey(IndexMetadata metadata) const {
     metadata.SetKeyKind(IndexKeyKind::COMPACTINTSKEY);
     const auto key_size = metadata.KeySize();
@@ -83,7 +121,7 @@ class IndexBuilder {
       index = new BwTreeIndex<CompactIntsKey<32>>(std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
-    return index;
+    return BulkInsert(index);
   }
 
   Index *BuildBwTreeGenericKey(IndexMetadata metadata) const {
@@ -104,7 +142,7 @@ class IndexBuilder {
       index = new BwTreeIndex<GenericKey<256>>(std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an GenericKey index.");
-    return index;
+    return BulkInsert(index);
   }
 
   Index *BuildHashIntsKey(IndexMetadata metadata) const {
@@ -126,7 +164,7 @@ class IndexBuilder {
       index = new HashIndex<HashKey<256>>(std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
-    return index;
+    return BulkInsert(index);
   }
 
   Index *BuildHashGenericKey(IndexMetadata metadata) const {
@@ -146,7 +184,7 @@ class IndexBuilder {
       index = new HashIndex<GenericKey<256>>(std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
-    return index;
+    return BulkInsert(index);
   }
 };
 
