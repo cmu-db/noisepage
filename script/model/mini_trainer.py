@@ -98,7 +98,7 @@ class MiniTrainer:
         if modeling_transformer is not None:
             transformers.append(modeling_transformer)
 
-        min_percentage_error = 1
+        min_percentage_error = 3
         pred_results = None
         elapsed_us_index = data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
 
