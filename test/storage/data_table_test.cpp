@@ -379,6 +379,14 @@ TEST_F(DataTableTests, SimpleNumaTest) {
       for (auto it = tested.GetTable().begin(numa_region); it != tested.GetTable().end(numa_region); ++it) {
         EXPECT_NE((*it).GetBlock(), nullptr);
         EXPECT_EQ((*it).GetBlock()->numa_region_, numa_region);
+#ifndef __APPLE__
+        if (numa_supported() != -1) {
+          int status;
+          auto *page = static_cast<void *>((*it).GetBlock());
+          EXPECT_NE(move_pages(0, 1, &page, NULL, &status, 0), -1);
+          EXPECT_EQ(staic_cast<int>(staic_cast<int16_t>(numa_region)), status);
+        }
+#endif
       }
     }
     EXPECT_EQ(num_inserts, columns->NumTuples());
