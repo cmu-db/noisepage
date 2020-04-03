@@ -27,7 +27,7 @@ class IndexBuilder {
   catalog::IndexSchema key_schema_;
   common::ManagedPointer<storage::SqlTable> sql_table_;
   catalog::index_oid_t index_oid_;
-  execution::sql::MemoryPool mem_pool_;
+  execution::sql::MemoryPool mem_pool_; //TODO(Kunal) Can't just do this
 
  public:
   IndexBuilder() = default;
