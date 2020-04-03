@@ -69,7 +69,7 @@ void DataTable::NUMAScan(common::ManagedPointer<transaction::TransactionContext>
   //TODO(emmanuel) add additional buffers to the array so that the assert below is unnecessary
 
   TERRIER_ASSERT(out_buffers->size() >= numa_regions.size(), "should have at least as many outbuffers as numa regions currently occupied");
-  for (int i = 0; i < numa_regions.size(); i++) {
+  for (uint32_t i = 0; i < numa_regions.size(); i++) {
     // Lambda function to pass into thread pool
     ProjectedColumns *out_buffer = (*out_buffers)[i];
     numa_region_t region = numa_regions[i];
