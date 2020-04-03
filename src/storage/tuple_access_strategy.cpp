@@ -32,7 +32,7 @@ void TupleAccessStrategy::InitializeRawBlock(storage::DataTable *const data_tabl
 #ifndef __APPLE__
   auto page = static_cast<void*>(raw);
   int status;
-  raw->numa_region_ = move_pages(0, 1, &page, NULL, &status, 0) == -1 ? UNSUPPORTED_NUMA_REGION :
+  raw->numa_region_ = numa_supported() == -1 || move_pages(0, 1, &page, NULL, &status, 0) == -1 ? UNSUPPORTED_NUMA_REGION :
                                                               static_cast<numa_region_t>(static_cast<int16_t>(status));
 #else
   raw->numa_region_ = UNSUPPORTED_NUMA_REGION;
