@@ -12,6 +12,11 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_util.h"
 
+#ifndef __APPLE__
+#include <numa.h>
+#include "numaif.h"
+#endif
+
 namespace terrier {
 // Not thread-safe
 class RandomDataTableTestObject {
