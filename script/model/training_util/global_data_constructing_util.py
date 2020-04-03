@@ -222,10 +222,6 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
             key = (opunit, x.tobytes())
             if key not in prediction_cache:
                 y_pred = opunit_model.predict(x)
-                # subtract scan from certain double-counted opunits
-                if opunit in data_info.SCAN_SUBSTRACT_UNITS:
-                    scan_y_pred = mini_model_map[OpUnit.SEQ_SCAN].predict(x)
-                    y_pred -= scan_y_pred
                 y_pred = np.clip(y_pred, 0, None)
                 prediction_cache[key] = y_pred
             else:
