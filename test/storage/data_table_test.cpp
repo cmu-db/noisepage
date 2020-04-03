@@ -363,7 +363,7 @@ TEST_F(DataTableTests, SimpleNumaTest) {
 
     std::vector<storage::numa_region_t> numa_regions;
     tested.GetTable().GetNUMARegions(&numa_regions);
-    EXPECT_TRUE(numa_regions.size() > 1);
+    EXPECT_TRUE(numa_regions.size() >= 1);
 
 #ifdef __APPLE__
     EXPECT_EQ(numa_regions.size(), 1);
