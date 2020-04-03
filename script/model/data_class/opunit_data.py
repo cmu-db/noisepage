@@ -7,10 +7,48 @@ import os
 import copy
 import logging
 
-import data_info
+from info import data_info
 from util.io_util import write_csv_result
 
 from type import OpUnit, ArithmeticFeature
+
+
+def write_extended_data(output_path, symbol, index_value_list, data_map):
+    # clear the content of the file
+    open(output_path, 'w').close()
+
+    write_csv_result(output_path, symbol, index_value_list)
+    for key, value in data_map.items():
+        write_csv_result(output_path, key, value)
+
+
+def get_mini_runner_data(filename):
+    """Get the training data from the mini runner
+
+    :param filename: the input data file
+    :return: the list of Data for execution operating units
+    """
+
+    if "txn" in filename:
+        # Cannot handle the transaction manager data yet
+        return []
+    if "execution" in filename:
+        # Special handle of the execution data
+        return _execution_get_mini_runner_data(filename)
+
+    return _default_get_mini_runner_data(filename)
+
+
+def _default_get_mini_runner_data(filename):
+    # In the default case, the data does not need any pre-processing and the file name indicates the opunit
+    df = pd.read_csv(filename)
+    file_name = os.path.splitext(os.path.basename(filename))[0]
+
+    x = df.iloc[:, :-data_info.METRICS_OUTPUT_NUM].values
+    y = df.iloc[:, -data_info.MINI_MODEL_TARGET_NUM:].values
+
+    logging.info("Loaded file: {}".format(OpUnit[file_name]))
+    return [OpUnitData(OpUnit[file_name], x, y)]
 
 def _convert_string_to_numeric(value):
     if ';' in value:
@@ -21,15 +59,6 @@ def _convert_string_to_numeric(value):
     except:
         # Scientific notation
         return int(float(value))
-
-def get_mini_runner_data(filename):
-    """Get the training data from the mini runner
-
-    :param filename: the input data file
-    :return: the list of Data for execution operating units
-    """
-    return _execution_get_mini_runner_data(filename);
-
 
 def _execution_get_mini_runner_data(filename):
     # Get the mini runner data for the execution engine
@@ -85,12 +114,16 @@ class OpUnitData:
     The class that stores data and provides basic functions to manipulate the training data for the operating unit
     """
 
-    def __init__(self, opunits, x, y):
+    def __init__(self, opunit, x, y):
         """
-        :param opunits: The opunits that the data is related to
+
+        :param opunit: The opunit that the data is related to
         :param x: The input feature
         :param y: The outputs
         """
-        self.opunits = opunits
+        if type(opunit) == tuple:
+            self.opunits = opunit
+        else:
+            self.opunit = opunit
         self.x = x
         self.y = y

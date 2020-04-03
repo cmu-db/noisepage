@@ -22,6 +22,9 @@ ARITHMETIC_FEATURE_INDEX = {
     ArithmeticFeature.EXEC_MODE: 1,
 }
 
+# The position of the name of the operating unit in the execution engine csv metrics file
+EXECUTION_CSV_NAME_POSITION = 0
+
 # total number of outputs
 METRICS_OUTPUT_NUM = 11
 

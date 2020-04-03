@@ -10,10 +10,10 @@ import logging
 from sklearn import model_selection
 
 import model
-from util import io_util, logging_util, result_writing_util
-import opunit_data
-import data_info
-import data_transforming_util
+from util import io_util, logging_util
+from data_class import opunit_data
+from info import data_info
+from training_util import data_transforming_util, result_writing_util
 
 from type import Target
 
