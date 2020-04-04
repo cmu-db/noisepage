@@ -385,7 +385,7 @@ TEST_F(DataTableTests, SimpleNumaTest) {
         EXPECT_NE((*it).GetBlock(), nullptr);
         EXPECT_EQ((*it).GetBlock()->numa_region_, numa_region);
 #ifndef __APPLE__
-        if (numa_supported() != -1) {
+        if (numa_available() != -1) {
           int status;
           auto *page = static_cast<void *>((*it).GetBlock());
           EXPECT_NE(move_pages(0, 1, &page, NULL, &status, 0), -1);
