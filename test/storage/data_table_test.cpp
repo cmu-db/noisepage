@@ -376,7 +376,7 @@ TEST_F(DataTableTests, SimpleNumaTest) {
 #else
     for (uint64_t i = 0; i < numa_regions.size(); i++) {
       if (numa_available() != -1) {
-        std::cout << numa_available() << ", " << move_pages(0, 1, &page, NULL, &status, 0) <<  std::endl;
+        std::cout << numa_available() <<  std::endl;
         EXPECT_TRUE(numa_regions[i] != storage::UNSUPPORTED_NUMA_REGION);
       }
     }
@@ -393,6 +393,8 @@ TEST_F(DataTableTests, SimpleNumaTest) {
           auto *page = static_cast<void *>((*it).GetBlock());
           if (move_pages(0, 1, &page, NULL, &status, 0) != -1) {
             EXPECT_EQ(static_cast<int>(static_cast<int16_t>(numa_region)), status);
+          } else {
+            std::cout << "here" << std::endl;
           }
         }
 #endif
