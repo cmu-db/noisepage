@@ -828,8 +828,8 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
     for (auto &table_oid : database.second) {
     // Get original sql table
     auto original_txn = txn_manager_->BeginTransaction();
-    auto original_sql_table = catalog_->GetDatabaseCatalog(common::ManagedPointer(original_txn), database_oid)
-            ->GetTable(common::ManagedPointer(original_txn), table_oid);
+    //auto original_sql_table = catalog_->GetDatabaseCatalog(common::ManagedPointer(original_txn), database_oid)
+    //        ->GetTable(common::ManagedPointer(original_txn), table_oid);
 
     // Get Recovered table
     auto *recovery_txn = recovery_txn_manager_->BeginTransaction();
