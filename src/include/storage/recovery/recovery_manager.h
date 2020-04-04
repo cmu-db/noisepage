@@ -165,10 +165,6 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    */
   void Recover(bool catalog_only = false) {
     RecoverFromLogs(catalog_only);
-    if (catalog_only) {
-      std::string path = "";
-      RecoverFromCheckpoint(path);
-    }
   }
 
   /**

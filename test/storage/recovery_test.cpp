@@ -2,11 +2,13 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <filesystem>
 
 #include "catalog/catalog.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "gtest/gtest.h"
 #include "main/db_main.h"
+#include "storage/checkpoints/checkpoint.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/index/index_builder.h"
 #include "storage/recovery/disk_log_provider.h"
@@ -774,6 +776,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, CatalogOnlyTest) {
   std::string secondary_log_file = "test3.log";
+  std::string ckpt_path = "ckpt_test/";
   unlink(secondary_log_file.c_str());
   LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
           .SetNumDatabases(1)
@@ -790,7 +793,14 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   // Run workload
   tested->SimulateOltp(100, 4);
 
+  // Create directory
+  std::filesystem::create_directory(ckpt_path);
+
+  Checkpoint ckpt(catalog_,
+                  static_cast<const common::ManagedPointer <transaction::TransactionContext>>(txn_manager_->BeginTransaction()));
+  ckpt.TakeCheckpoint(ckpt_path, catalog::db_oid_t(0));
   ShutdownAndRestartSystem();
+
 
   // Override the recovery DBMain to now log out
   recovery_db_main_ = terrier::DBMain::Builder()
@@ -822,6 +832,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   recovery_manager.StartRecovery(true);
   recovery_manager.WaitForRecoveryToFinish();
 
+  recovery_manager.RecoverFromCheckpoint(ckpt_path);
   // Check we recovered all the original tables
   for (auto &database : tested->GetTables()) {
     auto database_oid = database.first;
@@ -838,16 +849,16 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
     auto recovered_sql_table = db_catalog->GetTable(common::ManagedPointer(recovery_txn), table_oid);
     EXPECT_TRUE(recovered_sql_table != nullptr);
 
-    /*EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
+    EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
             GetBlockLayout(original_sql_table), original_sql_table, recovered_sql_table,
             tested->GetTupleSlotsForTable(database_oid, table_oid), recovery_manager.tuple_slot_map_, txn_manager_.Get(),
-            recovery_txn_manager_.Get()));*/
+            recovery_txn_manager_.Get()));
     txn_manager_->Commit(original_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     recovery_txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     }
   }
 
-  // Contrary to other tests, we clean up the recovery catalog and gc thread here because the secondary_log_manager is a
+// Contrary to other tests, we clean up the recovery catalog and gc thread here because the secondary_log_manager is a
   // local object. Setting the appropriate variables to nullptr will allow the TearDown code to run normally.
   recovery_db_main_.reset();
 }
