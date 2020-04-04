@@ -55,7 +55,7 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
     const BlockLayout &layout = curr_data_table->GetBlockLayout();
     const std::vector<col_id_t> varlens = layout.Varlens();
     auto column_ids = layout.AllColumns();
-    size_t col_num = layout.NumColumns();
+    size_t col_num = column_ids.size();
 
     curr_data_table->blocks_latch_.Lock();
     std::list<RawBlock *> blocks = curr_data_table->blocks_;
@@ -91,12 +91,17 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
               uint32_t value_len = varlen_col.ValuesLength();
               uint32_t offset_len = varlen_col.OffsetsLength();
               f.write(reinterpret_cast<const char *>(&col_id), sizeof(col_id_t));
-              f.write(reinterpret_cast<const char *>(&value_len), sizeof(uint32_t));
               f.write(reinterpret_cast<const char *>(&offset_len), sizeof(uint32_t));
+              f.write(reinterpret_cast<const char *>(&value_len), sizeof(uint32_t));
               f.write(reinterpret_cast<const char *>(varlen_col.Offsets()), offset_len*sizeof(uint64_t));
               f.write(reinterpret_cast<const char *>(varlen_col.Values()), value_len);
             }
             case ArrowColumnType::DICTIONARY_COMPRESSED:{
+              uint32_t num_slots = metadata.NumRecords();
+              auto indices = col_info.Indices();
+              f.write(reinterpret_cast<const char *>(&col_id), sizeof(col_id_t));
+              f.write(reinterpret_cast<const char *>(&num_slots), sizeof(uint32_t));
+              f.write(reinterpret_cast<const char *>(indices), num_slots * sizeof(uint64_t));
               continue;
             }
             default:
