@@ -376,6 +376,7 @@ TEST_F(DataTableTests, SimpleNumaTest) {
 #else
     for (uint64_t i = 0; i < numa_regions.size(); i++) {
       if (numa_available() != -1) {
+        std::out << numa_available() << std::endl;
         EXPECT_TRUE(numa_regions[i] != storage::UNSUPPORTED_NUMA_REGION);
       }
     }
