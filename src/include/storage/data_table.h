@@ -1,22 +1,21 @@
 #pragma once
-#include <list>
-#include <unordered_map>
-#include <vector>
-#include <map>
 #include <common/shared_latch.h>
 #include <tbb/concurrent_unordered_set.h>
+#include <list>
+#include <map>
+#include <unordered_map>
+#include <vector>
 
+#include "common/execution_thread_pool.h"
 #include "common/managed_pointer.h"
 #include "common/performance_counter.h"
-#include "common/execution_thread_pool.h"
+#include "execution/execution_util.h"
+#include "execution/util/execution_common.h"
 #include "storage/arrow_serializer.h"
 #include "storage/projected_columns.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
-#include "execution/execution_util.h"
-#include "execution/util/execution_common.h"
-
 
 namespace flatbuf = org::apache::arrow::flatbuf;
 
@@ -156,7 +155,7 @@ class DataTable {
      */
     bool operator==(const NUMAIterator &other) const {
       // TODO(Tianyu): I believe this is enough?
-      if(LIKELY(other.is_end_)) {
+      if (LIKELY(other.is_end_)) {
         common::SharedLatch::ScopedSharedLatch l(&table_->map_latch_);
         auto it = table_->region_blocks_map_.find(region_number_);
         if (it == table_->region_blocks_map_.end()) return true;
@@ -183,8 +182,7 @@ class DataTable {
     /**
      * @warning MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
      */
-    NUMAIterator(const DataTable *table, numa_region_t region_number)
-        : table_(table), region_number_(region_number) {
+    NUMAIterator(const DataTable *table, numa_region_t region_number) : table_(table), region_number_(region_number) {
       common::SharedLatch::ScopedSharedLatch l(&table->map_latch_);
       auto it = table->region_blocks_map_.find(region_number);
       if (UNLIKELY(it == table->region_blocks_map_.end())) {
@@ -252,11 +250,11 @@ class DataTable {
             ProjectedColumns *out_buffer) const;
 
   /**
-   * Sequentially scans the table by NUMA region starting from the given iterator(inclusive) and materializes as many tuples as would
-   * fit into the given buffer, as visible to the transaction given, according to the format described by the given
-   * output buffer. The tuples materialized are guaranteed to be visible and valid, and the function makes best effort
-   * to fill the buffer, unless there are no more tuples. The given iterator is mutated to point to one slot passed the
-   * last slot scanned in the invocation.
+   * Sequentially scans the table by NUMA region starting from the given iterator(inclusive) and materializes as many
+   * tuples as would fit into the given buffer, as visible to the transaction given, according to the format described
+   * by the given output buffer. The tuples materialized are guaranteed to be visible and valid, and the function makes
+   * best effort to fill the buffer, unless there are no more tuples. The given iterator is mutated to point to one slot
+   * passed the last slot scanned in the invocation.
    *
    * @param txn the calling transaction
    * @param start_pos iterator to the starting location for the sequential scan
@@ -264,8 +262,8 @@ class DataTable {
    *                   always cleared of old values.
    */
   void NUMAScan(common::ManagedPointer<transaction::TransactionContext> txn,
-                           std::vector<ProjectedColumns *> *out_buffers, ProjectedColumns *const result_buffer,
-                           common::ExecutionThreadPool *thread_pool = nullptr);
+                std::vector<ProjectedColumns *> *out_buffers, ProjectedColumns *const result_buffer,
+                common::ExecutionThreadPool *thread_pool = nullptr);
 
   /**
    * @return the first tuple slot contained in the data table
@@ -290,22 +288,24 @@ class DataTable {
   void GetNUMARegions(std::vector<numa_region_t> *regions);
 
   /**
-   * Returns first last tuple slot contained in the data table for specified NUMA region index. Note that this is not an accurate number when
-   * concurrent accesses are happening, as inserts maybe in flight. However, the number given is always transactionally
-   * correct, as any inserts that might have happened is not going to be visible to the calling transaction.
+   * Returns first last tuple slot contained in the data table for specified NUMA region index. Note that this is not an
+   * accurate number when concurrent accesses are happening, as inserts maybe in flight. However, the number given is
+   * always transactionally correct, as any inserts that might have happened is not going to be visible to the calling
+   * transaction.
    *
    * @return one past the last tuple slot contained in the data table.
    */
-  NUMAIterator begin(numa_region_t index) const; // NOLINT for STL name compability
+  NUMAIterator begin(numa_region_t index) const;  // NOLINT for STL name compability
 
   /**
-   * Returns first last tuple slot contained in the data table for specified NUMA region index. Note that this is not an accurate number when
-   * concurrent accesses are happening, as inserts maybe in flight. However, the number given is always transactionally
-   * correct, as any inserts that might have happened is not going to be visible to the calling transaction.
+   * Returns first last tuple slot contained in the data table for specified NUMA region index. Note that this is not an
+   * accurate number when concurrent accesses are happening, as inserts maybe in flight. However, the number given is
+   * always transactionally correct, as any inserts that might have happened is not going to be visible to the calling
+   * transaction.
    *
    * @return one past the last tuple slot contained in the data table.
    */
-  NUMAIterator end(numa_region_t index) const; // NOLINT for STL name compability
+  NUMAIterator end(numa_region_t index) const;  // NOLINT for STL name compability
 
   /**
    * Update the tuple according to the redo buffer given, and update the version chain to link to an

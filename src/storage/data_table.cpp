@@ -61,14 +61,15 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
 }
 
 void DataTable::NUMAScan(common::ManagedPointer<transaction::TransactionContext> txn,
-                    std::vector<ProjectedColumns *> *out_buffers, ProjectedColumns *const result_buffer,
-                    common::ExecutionThreadPool* thread_pool) {
+                         std::vector<ProjectedColumns *> *out_buffers, ProjectedColumns *const result_buffer,
+                         common::ExecutionThreadPool *thread_pool) {
   std::vector<numa_region_t> numa_regions;
   GetNUMARegions(&numa_regions);
 
-  //TODO(emmanuel) add additional buffers to the array so that the assert below is unnecessary
+  // TODO(emmanuel) add additional buffers to the array so that the assert below is unnecessary
 
-  TERRIER_ASSERT(out_buffers->size() >= numa_regions.size(), "should have at least as many outbuffers as numa regions currently occupied");
+  TERRIER_ASSERT(out_buffers->size() >= numa_regions.size(),
+                 "should have at least as many outbuffers as numa regions currently occupied");
   for (uint32_t i = 0; i < numa_regions.size(); i++) {
     // Lambda function to pass into thread pool
     ProjectedColumns *out_buffer = (*out_buffers)[i];
@@ -103,7 +104,6 @@ void DataTable::NUMAScan(common::ManagedPointer<transaction::TransactionContext>
     }
   }
   result_buffer->SetNumTuples(result_index);
-
 }
 
 DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
@@ -151,7 +151,8 @@ DataTable::NUMAIterator &DataTable::NUMAIterator::operator++() {
   if (UNLIKELY(current_slot_.GetBlock() == nullptr)) {
     return *this;
   }
-  if (current_slot_.GetOffset() == table_->accessor_.GetBlockLayout().NumSlots() - 1) {
+  if (current_slot_.GetOffset() == table_->accessor_.GetBlockLayout().NumSlots() - 1 ||
+      current_slot_.GetOffset() == current_slot_.GetBlock()->GetInsertHead() - 1) {
     ++block_;
     // Cannot dereference if the next block is end(), so just use nullptr to denote
     common::SharedLatch::ScopedSharedLatch l(&table_->map_latch_);
