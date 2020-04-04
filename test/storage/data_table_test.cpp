@@ -374,10 +374,10 @@ TEST_F(DataTableTests, SimpleNumaTest) {
     EXPECT_EQ(numa_regions.size(), 1);
     EXPECT_EQ(numa_regions[0], storage::UNSUPPORTED_NUMA_REGION);
 #else
+    bool numa_available_unsupported = numa_available() == -1 && numa_regions.size() == 1 && numa_regions[0] == storage::UNSUPPORTED_NUMA_REGION;
     for (uint64_t i = 0; i < numa_regions.size(); i++) {
       if (numa_available() != -1) {
-        std::cout << numa_available() <<  std::endl;
-        EXPECT_TRUE(numa_regions[i] != storage::UNSUPPORTED_NUMA_REGION);
+        EXPECT_TRUE(numa_available_unsupported || numa_regions[i] != storage::UNSUPPORTED_NUMA_REGION);
       }
     }
 #endif
@@ -394,7 +394,7 @@ TEST_F(DataTableTests, SimpleNumaTest) {
           if (move_pages(0, 1, &page, NULL, &status, 0) != -1) {
             EXPECT_EQ(static_cast<int>(static_cast<int16_t>(numa_region)), status);
           } else {
-            std::cout << "here" << std::endl;
+            EXPECT_TRUE(numa_available_unsupported);
           }
         }
 #endif
