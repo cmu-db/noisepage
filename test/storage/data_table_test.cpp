@@ -374,7 +374,7 @@ TEST_F(DataTableTests, SimpleNumaTest) {
     EXPECT_EQ(numa_regions.size(), 1);
     EXPECT_EQ(numa_regions[0], storage::UNSUPPORTED_NUMA_REGION);
 #else
-    bool numa_available_unsupported = numa_available() == -1 && numa_regions.size() == 1 && numa_regions[0] == storage::UNSUPPORTED_NUMA_REGION;
+    bool numa_available_unsupported = numa_available() != -1 && numa_regions.size() == 1 && numa_regions[0] == storage::UNSUPPORTED_NUMA_REGION;
     for (uint64_t i = 0; i < numa_regions.size(); i++) {
       if (numa_available() != -1) {
         EXPECT_TRUE(numa_available_unsupported || numa_regions[i] != storage::UNSUPPORTED_NUMA_REGION);
