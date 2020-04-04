@@ -140,7 +140,7 @@ static void GenArithArguments(benchmark::internal::Benchmark *b) {
  * 2 - Cardinality
  */
 static void GenScanArguments(benchmark::internal::Benchmark *b) {
-  auto num_cols = {1, 2, 4, 8, 15};
+  auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto col : num_cols) {
@@ -161,7 +161,7 @@ static void GenScanArguments(benchmark::internal::Benchmark *b) {
  * 2 - Cardinality
  */
 static void GenJoinArguments(benchmark::internal::Benchmark *b) {
-  auto num_cols = {1, 2, 4, 8, 15};
+  auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto col : num_cols) {
@@ -738,22 +738,25 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_AggregateRunners)(benchmark::State &state) 
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 124, 31, car);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4 * num_col, num_col, car);
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, row, 4 * num_col, num_col, car);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE, car, 4, 1, car);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, car, 4, 1, car);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE, car, 4 * num_col, num_col, car);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, car * (num_col - 1), 4, 1, car * (num_col - 1));
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
-    std::stringstream query;
-    query << "SELECT COUNT(*) FROM "
-          << execution::sql::TableGenerator::GenerateTableName(type::TypeId::INTEGER, 31, row, car) << " GROUP BY ";
+    std::stringstream cols;
     for (auto i = 1; i <= num_col; i++) {
-      query << "col" << (i + 14);
+      cols << "col" << (i + 14);
       if (i != num_col) {
-        query << ", ";
+        cols << ", ";
       }
     }
+
+    std::stringstream query;
+    query << "SELECT SUM(" << cols.str() << ") FROM "
+          << execution::sql::TableGenerator::GenerateTableName(type::TypeId::INTEGER, 31, row, car) << " GROUP BY "
+          << cols.str();
 
     BenchmarkSqlStatement(query.str(), &units, std::make_unique<optimizer::TrivialCostModel>(), true);
     metrics_manager_->Aggregate();
