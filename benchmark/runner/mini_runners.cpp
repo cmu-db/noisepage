@@ -740,8 +740,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_AggregateRunners)(benchmark::State &state) 
     brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4 * num_col, num_col, car);
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, row, 4 * num_col, num_col, car);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE, car, 4 * num_col, num_col, car);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, car * (num_col - 1), 4, 1, car * (num_col - 1));
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE, car, 4 * num_col + 4, num_col + 1, car);
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
@@ -754,7 +753,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_AggregateRunners)(benchmark::State &state) 
     }
 
     std::stringstream query;
-    query << "SELECT SUM(" << cols.str() << ") FROM "
+    query << "SELECT COUNT(*), " << cols.str() << " FROM "
           << execution::sql::TableGenerator::GenerateTableName(type::TypeId::INTEGER, 31, row, car) << " GROUP BY "
           << cols.str();
 
