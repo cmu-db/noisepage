@@ -293,6 +293,7 @@ TEST_F(RecoveryTests, DropDatabaseTest) {
   // Create and drop the database
   auto *txn = txn_manager_->BeginTransaction();
   auto db_oid = CreateDatabase(txn, catalog_, database_name);
+
   DropDatabase(txn, catalog_, db_oid);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
@@ -632,13 +633,14 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
                                               .SetInsertUpdateSelectDeleteRatio({0.2, 0.5, 0.2, 0.1})
                                               .SetVarlenAllowed(true)
                                               .Build();
+
   auto *tested =
       new LargeSqlTableTestObject(config, txn_manager_.Get(), catalog_.Get(), block_store_.Get(), &generator_);
-
   // Run workload
   tested->SimulateOltp(100, 4);
 
-  ShutdownAndRestartSystem();
+
+ShutdownAndRestartSystem();
 
   // Override the recovery DBMain to now log out
   recovery_db_main_ = terrier::DBMain::Builder()
@@ -798,7 +800,14 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
 
   Checkpoint ckpt(catalog_,
                   static_cast<const common::ManagedPointer <transaction::TransactionContext>>(txn_manager_->BeginTransaction()));
-  ckpt.TakeCheckpoint(ckpt_path, catalog::db_oid_t(0));
+
+  // get db_oid
+  catalog::db_oid_t db;
+  for (auto &database : tested->GetTables()) {
+    db = database.first;
+  }
+
+  ckpt.TakeCheckpoint(ckpt_path, db);
   ShutdownAndRestartSystem();
 
 
@@ -839,8 +848,8 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
     for (auto &table_oid : database.second) {
     // Get original sql table
     auto original_txn = txn_manager_->BeginTransaction();
-    //auto original_sql_table = catalog_->GetDatabaseCatalog(common::ManagedPointer(original_txn), database_oid)
-    //        ->GetTable(common::ManagedPointer(original_txn), table_oid);
+    auto original_sql_table = catalog_->GetDatabaseCatalog(common::ManagedPointer(original_txn), database_oid)
+            ->GetTable(common::ManagedPointer(original_txn), table_oid);
 
     // Get Recovered table
     auto *recovery_txn = recovery_txn_manager_->BeginTransaction();
