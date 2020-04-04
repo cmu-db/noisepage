@@ -389,7 +389,7 @@ TEST_F(DataTableTests, SimpleNumaTest) {
           int status;
           auto *page = static_cast<void *>((*it).GetBlock());
           EXPECT_NE(move_pages(0, 1, &page, NULL, &status, 0), -1);
-          EXPECT_EQ(staic_cast<int>(staic_cast<int16_t>(numa_region)), status);
+          EXPECT_EQ(static_cast<int>(static_cast<int16_t>(numa_region)), status);
         }
 #endif
       }
