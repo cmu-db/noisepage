@@ -1,21 +1,21 @@
 #pragma once
 
+#include <sched.h>
+#include <storage/storage_defs.h>
 #include <atomic>
 #include <condition_variable>  // NOLINT
 #include <functional>
 #include <iostream>
 #include <mutex>  // NOLINT
 #include <queue>
-#include <sched.h>
 #include <string>
 #include <thread>  // NOLINT
 #include <utility>
 #include <vector>
-#include <storage/storage_defs.h>
 #include "common/macros.h"
-#include "tbb/concurrent_queue.h"
 #include "dedicated_thread_registry.h"
 #include "shared_latch.h"
+#include "tbb/concurrent_queue.h"
 
 namespace terrier::common {
 
@@ -40,19 +40,18 @@ using ExecutionTaskQueue = tbb::concurrent_queue<Task>;
  */
 class ExecutionThreadPool : DedicatedThreadOwner {
  public:
-
-  enum class ThreadStatus {
-    FREE = 0,
-    BUSY = 1,
-    SWITCHING = 2,
-    PARKED = 3
-  };
+  enum class ThreadStatus { FREE = 0, BUSY = 1, SWITCHING = 2, PARKED = 3 };
 
   // NOLINTNEXTLINE  lint thinks it has only one arguement
   ExecutionThreadPool(common::ManagedPointer<DedicatedThreadRegistry> thread_registry, std::vector<int> *cpu_ids)
-      : DedicatedThreadOwner(thread_registry), thread_registry_(thread_registry), workers_(num_regions_), task_queue_(num_regions_), busy_workers_(0) {
+      : DedicatedThreadOwner(thread_registry),
+        thread_registry_(thread_registry),
+        workers_(num_regions_),
+        task_queue_(num_regions_),
+        busy_workers_(0) {
     for (int cpu_id : *cpu_ids) {
-      thread_registry_.operator->()->RegisterDedicatedThread<TerrierThread>(static_cast<DedicatedThreadOwner *>(this), cpu_id, this);
+      thread_registry_.operator->()->RegisterDedicatedThread<TerrierThread>(static_cast<DedicatedThreadOwner *>(this),
+                                                                            cpu_id, this);
     }
   }
 
@@ -64,13 +63,12 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     shutting_down_ = true;
     for (std::vector<TerrierThread *> vector : workers_) {
       for (TerrierThread *t : vector) {
-        bool result UNUSED_ATTRIBUTE = thread_registry_.operator->()->StopTask(static_cast<DedicatedThreadOwner *>(this), common::ManagedPointer(
-            static_cast<DedicatedThreadTask *>(t)));
+        bool result UNUSED_ATTRIBUTE = thread_registry_.operator->()->StopTask(
+            static_cast<DedicatedThreadOwner *>(this), common::ManagedPointer(static_cast<DedicatedThreadTask *>(t)));
         TERRIER_ASSERT(result, "StopTask should succeed");
       }
     }
   }
-
 
   void SubmitTask(Task task, storage::numa_region_t numa_hint = storage::UNSUPPORTED_NUMA_REGION) {
     if (numa_hint == storage::UNSUPPORTED_NUMA_REGION) {
@@ -92,16 +90,13 @@ class ExecutionThreadPool : DedicatedThreadOwner {
   /*
    * @param num the number of worker threads.
    */
-  void SetNumWorkers(uint32_t num) {
-
-  }
+  void SetNumWorkers(uint32_t num) {}
 
  private:
   // Private thread co-class
   class TerrierThread : public DedicatedThreadTask {
    public:
-    TerrierThread(int cpu_id, ExecutionThreadPool *pool) :
-        pool_(pool), cpu_id_(cpu_id) {
+    TerrierThread(int cpu_id, ExecutionThreadPool *pool) : pool_(pool), cpu_id_(cpu_id) {
 #ifndef __APPLE__
       cpu_set_t mask;
       CPU_ZERO(&mask);
@@ -137,7 +132,6 @@ class ExecutionThreadPool : DedicatedThreadOwner {
         pool_->task_cv_.wait(l);
         status_ = ThreadStatus::SWITCHING;
         pool_->busy_workers_++;
-
       }
     }
 
@@ -190,7 +184,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
 #else
   int16_t num_regions_ = static_cast<int16_t>(numa_max_node());
 #endif
-  std::vector<std::vector<TerrierThread*>> workers_;
+  std::vector<std::vector<TerrierThread *>> workers_;
   std::vector<ExecutionTaskQueue> task_queue_;
 
   std::atomic<uint32_t> busy_workers_, total_workers_;
@@ -199,17 +193,18 @@ class ExecutionThreadPool : DedicatedThreadOwner {
   std::mutex task_lock_;
   std::condition_variable task_cv_;
 
-  void AddThread(TerrierThread* thread) {
+  void AddThread(TerrierThread *thread) {
     common::SharedLatch::ScopedExclusiveLatch l(&array_latch_);
     total_workers_++;
     auto vector = workers_[static_cast<int16_t>(thread->numa_region_)];
     vector.emplace_back(thread);
   }
-  void RemoveThread(TerrierThread* thread) {
+  void RemoveThread(TerrierThread *thread) {
     common::SharedLatch::ScopedExclusiveLatch l(&array_latch_);
     std::vector<TerrierThread *> vector = workers_[static_cast<int16_t>(thread->numa_region_)];
     auto it = vector.begin();
-    for (; it != vector.end() && *it != thread; ++it) {}
+    for (; it != vector.end() && *it != thread; ++it) {
+    }
     if (it != vector.end()) {
       vector.erase(it);
     }

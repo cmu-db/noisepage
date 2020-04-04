@@ -37,6 +37,7 @@ class RandomDataTableTestObject {
   template <class Random>
   storage::TupleSlot InsertRandomTuple(const transaction::timestamp_t timestamp, Random *generator,
                                        storage::RecordBufferSegmentPool *buffer_pool) {
+    common::SpinLatch::ScopedSpinLatch l(&latch_);
     // generate a random redo ProjectedRow to Insert
     auto *redo_buffer = common::AllocationUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
     loose_pointers_.push_back(redo_buffer);
@@ -46,7 +47,7 @@ class RandomDataTableTestObject {
     // generate a txn with an UndoRecord to populate on Insert
     auto *txn =
         new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(buffer_pool), DISABLED);
-    loose_txns_.push_back(txn);
+    loose_txns_.emplace_back(txn);
 
     storage::TupleSlot slot = table_.Insert(common::ManagedPointer(txn), *redo);
     inserted_slots_.push_back(slot);
@@ -181,6 +182,7 @@ class RandomDataTableTestObject {
   storage::ProjectedRowInitializer redo_initializer_ =
       storage::ProjectedRowInitializer::Create(layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
   byte *select_buffer_ = common::AllocationUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
+  common::SpinLatch latch_;
 };
 
 struct DataTableTests : public TerrierTest {
@@ -353,8 +355,8 @@ TEST_F(DataTableTests, SimpleNumaTest) {
     RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
     // make sure we test the edge case where a block is filled
     uint32_t num_inserts = iteration == 0
-                           ? tested.Layout().NumSlots()
-                           : std::uniform_int_distribution<uint32_t>(1, tested.Layout().NumSlots())(generator_);
+                               ? tested.Layout().NumSlots()
+                               : std::uniform_int_distribution<uint32_t>(1, tested.Layout().NumSlots())(generator_);
 
     // Populate the table with random tuples
     for (uint32_t i = 0; i < num_inserts; ++i)
@@ -374,7 +376,8 @@ TEST_F(DataTableTests, SimpleNumaTest) {
     EXPECT_EQ(numa_regions.size(), 1);
     EXPECT_EQ(numa_regions[0], storage::UNSUPPORTED_NUMA_REGION);
 #else
-    bool numa_available_unsupported = numa_available() != -1 && numa_regions.size() == 1 && numa_regions[0] == storage::UNSUPPORTED_NUMA_REGION;
+    bool numa_available_unsupported =
+        numa_available() != -1 && numa_regions.size() == 1 && numa_regions[0] == storage::UNSUPPORTED_NUMA_REGION;
     for (uint64_t i = 0; i < numa_regions.size(); i++) {
       if (numa_available() != -1) {
         EXPECT_TRUE(numa_available_unsupported || numa_regions[i] != storage::UNSUPPORTED_NUMA_REGION);
@@ -403,6 +406,102 @@ TEST_F(DataTableTests, SimpleNumaTest) {
     EXPECT_EQ(num_inserts, columns->NumTuples());
 
     delete[] buffer;
+  }
+}
+
+TEST_F(DataTableTests, ConcurrentNumaTest) {
+  const uint32_t num_iterations = 10;
+  const uint32_t num_threads = std::thread::hardware_concurrency();
+  const uint16_t max_columns = 20;
+  const uint32_t object_pool_size = 100000;
+
+  for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
+    RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
+    // make sure we test the edge case where a block is filled
+    uint32_t num_inserts = iteration == 0
+                               ? tested.Layout().NumSlots()
+                               : std::uniform_int_distribution<uint32_t>(1, tested.Layout().NumSlots())(generator_);
+
+    if (num_inserts > object_pool_size / num_threads) num_inserts = object_pool_size / num_threads;
+
+    std::thread threads[num_threads];
+    for (uint32_t t = 0; t < num_threads; t++) {
+      threads[t] = std::thread([&] {
+        // Populate the table with random tuples
+        for (uint32_t i = 0; i < num_inserts; i++) {
+          tested.InsertRandomTuple(transaction::timestamp_t(0), &generator_, &buffer_pool_);
+        }
+      });
+    }
+
+    for (uint32_t i = 0; i < num_threads; i++) {
+      threads[i].join();
+    }
+
+    uint32_t num_slots = 0;
+    for (auto it = tested.GetTable().begin(); it != tested.GetTable().end(); ++it) {
+      num_slots++;
+    }
+
+    EXPECT_EQ(num_slots, num_inserts * num_threads);
+
+    std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
+    EXPECT_NE((!all_cols[all_cols.size() - 1]), -1);
+
+    std::vector<storage::numa_region_t> numa_regions;
+    tested.GetTable().GetNUMARegions(&numa_regions);
+    EXPECT_TRUE(numa_regions.size() >= 1);
+
+#ifdef __APPLE__
+    EXPECT_EQ(numa_regions.size(), 1);
+    EXPECT_EQ(numa_regions[0], storage::UNSUPPORTED_NUMA_REGION);
+#else
+    bool numa_available_unsupported =
+        numa_available() != -1 && numa_regions.size() == 1 && numa_regions[0] == storage::UNSUPPORTED_NUMA_REGION;
+    for (uint64_t i = 0; i < numa_regions.size(); i++) {
+      if (numa_available() != -1) {
+        EXPECT_TRUE(numa_available_unsupported || numa_regions[i] != storage::UNSUPPORTED_NUMA_REGION);
+      }
+    }
+#endif
+
+    std::thread numa_threads[numa_regions.size()];
+    std::atomic<uint32_t> counted_numa_iteration = 0;
+
+    for (uint32_t i = 0; i < numa_regions.size(); i++) {
+      numa_threads[i] = std::thread([&, i] {
+        storage::numa_region_t numa_region = numa_regions[i];
+        storage::ProjectedColumnsInitializer initializer(tested.Layout(), all_cols, 10 * num_inserts * num_threads);
+        auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
+        storage::ProjectedColumns *columns = initializer.Initialize(buffer);
+        tested.NUMAScan(transaction::timestamp_t(1), columns, &initializer, &buffer_pool_);
+        EXPECT_EQ(columns->NumTuples(), num_inserts * num_threads);
+        for (auto it = tested.GetTable().begin(numa_region); it != tested.GetTable().end(numa_region); it++) {
+          counted_numa_iteration++;
+          EXPECT_NE((*it).GetBlock(), nullptr);
+          EXPECT_EQ((*it).GetBlock()->numa_region_, numa_region);
+#ifndef __APPLE__
+          if (numa_available() != -1) {
+            int status;
+            auto *page = static_cast<void *>((*it).GetBlock());
+            if (move_pages(0, 1, &page, NULL, &status, 0) != -1) {
+              EXPECT_EQ(static_cast<int>(static_cast<int16_t>(numa_region)), status);
+            } else {
+              EXPECT_TRUE(numa_available_unsupported);
+            }
+          }
+#endif
+        }
+
+        delete[] buffer;
+      });
+    }
+
+    for (uint32_t i = 0; i < numa_regions.size(); i++) {
+      numa_threads[i].join();
+    }
+
+    EXPECT_EQ(num_inserts * num_threads, counted_numa_iteration);
   }
 }
 }  // namespace terrier

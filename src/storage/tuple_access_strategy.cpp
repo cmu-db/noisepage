@@ -30,10 +30,11 @@ void TupleAccessStrategy::InitializeRawBlock(storage::DataTable *const data_tabl
   // Intentional unsafe cast
   raw->data_table_ = data_table;
 #ifndef __APPLE__
-  auto page = static_cast<void*>(raw);
+  auto page = static_cast<void *>(raw);
   int status;
-  raw->numa_region_ = numa_available() == -1 || move_pages(0, 1, &page, NULL, &status, 0) == -1 ? UNSUPPORTED_NUMA_REGION :
-                                                              static_cast<numa_region_t>(static_cast<int16_t>(status));
+  raw->numa_region_ = numa_available() == -1 || move_pages(0, 1, &page, NULL, &status, 0) == -1
+                          ? UNSUPPORTED_NUMA_REGION
+                          : static_cast<numa_region_t>(static_cast<int16_t>(status));
 #else
   raw->numa_region_ = UNSUPPORTED_NUMA_REGION;
 #endif
