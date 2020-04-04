@@ -112,6 +112,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
 
  private:
   FRIEND_TEST(RecoveryTests, DoubleRecoveryTest);
+  FRIEND_TEST(RecoveryTests, CatalogOnlyTest);
   friend class RecoveryTests;
   friend class terrier::RecoveryBenchmark;
 

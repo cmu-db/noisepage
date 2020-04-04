@@ -291,6 +291,7 @@ class LargeSqlTableTestObject {
 
   friend class RandomSqlTableTransaction;
   FRIEND_TEST(RecoveryTests, DoubleRecoveryTest);
+  FRIEND_TEST(RecoveryTests, CatalogOnlyTest);
   uint32_t txn_length_;
   std::vector<double> insert_update_select_delete_ratio_;
   std::default_random_engine *generator_;
