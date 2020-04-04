@@ -20,11 +20,11 @@ class TransactionManager;
  */
 class TimestampManager {
  public:
-  TimestampManager() : curr_running_txns_(HASH_VAL, std::unordered_set<timestamp_t>()), curr_running_txns_latch_(HASH_VAL) {};
+  TimestampManager()
+      : curr_running_txns_(HASH_VAL, std::unordered_set<timestamp_t>()), curr_running_txns_latch_(HASH_VAL) {}
 
   ~TimestampManager() {
-    TERRIER_ASSERT(!HasRunningTxn(),
-                   "Destroying the TimestampManager while txns are still running. That seems wrong.");
+    TERRIER_ASSERT(!HasRunningTxn(), "Destroying the TimestampManager while txns are still running. That seems wrong.");
   }
 
   /**
@@ -66,16 +66,6 @@ class TimestampManager {
   friend class TransactionManager;
   friend class storage::LogSerializerTask;
 
-  void LockAll() {
-    for (auto &latch : curr_running_txns_latch_)
-      latch.latch_.Lock();
-  }
-
-  void UnlockAll() {
-    for (auto &latch : curr_running_txns_latch_)
-      latch.latch_.Unlock();
-  }
-
   bool HasRunningTxn() {
     for (const auto &txn_list : curr_running_txns_) {
       if (!txn_list.empty()) return true;
@@ -86,7 +76,6 @@ class TimestampManager {
   timestamp_t BeginTransaction() {
     timestamp_t start_time;
     {
-      // common::SpinLatch::ScopedSpinLatch outer_guard(&temp_latch_);
       start_time = time_++;
       const auto idx = uint64_t(start_time) % HASH_VAL;
       {
