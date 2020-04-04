@@ -733,6 +733,7 @@ table_oid_t DatabaseCatalog::CreateTable(const common::ManagedPointer<transactio
                                          const namespace_oid_t ns, const std::string &name, const Schema &schema) {
   if (!TryLock(txn)) return INVALID_TABLE_OID;
   const table_oid_t table_oid = static_cast<table_oid_t>(next_oid_++);
+  table_oids.insert(table_oid);
 
   return CreateTableEntry(txn, table_oid, ns, name, schema) ? table_oid : INVALID_TABLE_OID;
 }
@@ -843,6 +844,8 @@ bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::Tran
   });
 
   delete[] buffer;
+//  auto iter = table_oids.equal_range(table);
+  table_oids.erase(table);
   return true;
 }
 

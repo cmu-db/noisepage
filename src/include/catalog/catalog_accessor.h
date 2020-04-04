@@ -340,7 +340,7 @@ class CatalogAccessor {
   /**
     * @return All table oids
     */
-  std::unordered_set<table_oid_t> &GetAllTableOids() { return table_oids; }
+  std::unordered_set<table_oid_t> &GetAllTableOids() { return dbc_->GetTableOidsFromDBC(); }
 
   /**
    * Instantiates a new accessor into the catalog for the given database.
@@ -361,7 +361,6 @@ class CatalogAccessor {
   const common::ManagedPointer<DatabaseCatalog> dbc_;
   const common::ManagedPointer<transaction::TransactionContext> txn_;
   std::vector<namespace_oid_t> search_path_;
-  mutable std::unordered_set<table_oid_t> table_oids;
   namespace_oid_t default_namespace_;
 
   /**

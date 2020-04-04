@@ -348,6 +348,10 @@ class DatabaseCatalog {
    */
   type_oid_t GetTypeOidForType(type::TypeId type);
 
+
+  std::unordered_set<table_oid_t> &GetTableOidsFromDBC() { return table_oids; }
+
+
  private:
   // TODO(tanujnay112) Add support for other parameters
 
@@ -485,6 +489,10 @@ class DatabaseCatalog {
 
   const db_oid_t db_oid_;
   const common::ManagedPointer<storage::GarbageCollector> garbage_collector_;
+
+  // save all table_oids in this databse
+  mutable std::unordered_set<table_oid_t> table_oids;
+
 
   DatabaseCatalog(const db_oid_t oid, const common::ManagedPointer<storage::GarbageCollector> garbage_collector)
       : write_lock_(transaction::INITIAL_TXN_TIMESTAMP), db_oid_(oid), garbage_collector_(garbage_collector) {}
