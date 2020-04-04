@@ -153,6 +153,7 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   index_builder.SetSqlTable(accessor->GetTable(table));
   index_builder.SetKeySchema(schema);
   index_builder.SetIndexOid(index_oid);
+  index_builder.SetTransactionContext(accessor->GetTransactionContext());
   auto *const index = index_builder.Build();
 
   bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
