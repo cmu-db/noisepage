@@ -55,15 +55,18 @@ class MiniTrainer:
                 y = purified_y_matrix[xidx]
                 if tuple(stat_vec) in self.stats_map:
                     predict = self.stats_map[tuple(stat_vec)]
-                    purified_y_matrix[xidx] = [y_val if y_val <= predict[idx] else y_val - predict[idx] for idx, y_val in enumerate(y)]
+                    # purified_y_matrix[xidx] = [y_val if y_val <= predict[idx] else y_val - predict[idx] for idx, y_val in enumerate(y)]
+                    purified_y_matrix[xidx] = [0 if y_val <= predict[idx] else y_val - predict[idx] for idx, y_val in enumerate(y)]
                 elif opunit in self.model_map:
+                    print("Predict {}".format(stat_vec))
                     predict_vec = [input_arr[idx] if type(input_arr) == list else input_arr for input_arr in x]
                     predict_vec = np.array(predict_vec).reshape(1, -1)
 
                     # store prediction
                     predict = self.model_map[opunit].predict(predict_vec)[0]
                     self.stats_map[tuple(stat_vec)] = predict
-                    purified_y_matrix[xidx] = [y_val if y_val <= predict[idx] else y_val - predict[idx] for idx, y_val in enumerate(y)]
+                    # purified_y_matrix[xidx] = [y_val if y_val <= predict[idx] else y_val - predict[idx] for idx, y_val in enumerate(y)]
+                    purified_y_matrix[xidx] = [0 if y_val <= predict[idx] else y_val - predict[idx] for idx, y_val in enumerate(y)]
 
         if len(unmodelled_opunits) > 1:
             raise Exception('Unmodelled OperatingUnits detected: {}'.format(unmodelled_opunits))
@@ -98,7 +101,7 @@ class MiniTrainer:
         if modeling_transformer is not None:
             transformers.append(modeling_transformer)
 
-        min_percentage_error = 3
+        min_percentage_error = 1
         pred_results = None
         elapsed_us_index = data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
 

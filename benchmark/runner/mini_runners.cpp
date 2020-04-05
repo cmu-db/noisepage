@@ -344,7 +344,6 @@ class MiniRunners : public benchmark::Fixture {
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
                                                                         nullptr, common::ManagedPointer(accessor));
     exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode_));
-    exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
 
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
@@ -354,48 +353,56 @@ class MiniRunners : public benchmark::Fixture {
 
     switch (type) {
       case brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS: {
+        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
         uint32_t ret = __uint32_t_PLUS(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(0));
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY: {
+        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
         uint32_t ret = __uint32_t_MULTIPLY(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(0));
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_INTEGER_DIVIDE: {
+        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
         uint32_t ret = __uint32_t_DIVIDE(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(0));
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE: {
+        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
         uint32_t ret = __uint32_t_GEQ(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(0));
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_DECIMAL_PLUS_OR_MINUS: {
+        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
         double ret = __double_PLUS(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(0));
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_DECIMAL_MULTIPLY: {
+        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
         double ret = __double_MULTIPLY(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(0));
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE: {
+        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
         double ret = __double_DIVIDE(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(0));
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE: {
+        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
         double ret = __double_GEQ(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(0));
         DoNotOptimizeAway(ret);
@@ -690,15 +697,15 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinRunners)(benchmark::State &state) {
   for (auto _ : state) {
     metrics_manager_->RegisterThread();
 
+    auto hj_output = row * row / car;
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4 * num_col, num_col, car);
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, row, 4 * num_col, num_col, car);
     pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4 * num_col, num_col, car);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, row, 4 * num_col, num_col,
-                           row * row / car);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, row * row / car, 4, 1, row * row / car);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, hj_output, 4 * num_col, num_col, hj_output);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, hj_output, 4, 1, hj_output);
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
