@@ -3,6 +3,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <tbb/concurrent_queue.h>
 
 #include "storage/garbage_collector.h"
 #include "storage/write_ahead_log/log_manager.h"
@@ -26,7 +27,7 @@ class DeferredActionManager {
       : timestamp_manager_(timestamp_manager) {}
 
   ~DeferredActionManager() {
-    common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
+    common::SharedLatch::ScopedExclusiveLatch guard(&deferred_actions_latch_);
     TERRIER_ASSERT(back_log_.empty(), "Backlog is not empty");
     TERRIER_ASSERT(new_deferred_actions_.empty(), "Some deferred actions remaining at time of destruction");
   }
@@ -41,7 +42,7 @@ class DeferredActionManager {
     timestamp_t result = timestamp_manager_->CurrentTime();
     std::pair<timestamp_t, DeferredAction> elem = {result, a};
 
-    common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
+    common::SharedLatch::ScopedSharedLatch guard(&deferred_actions_latch_);
     // Timestamp needs to be fetched inside the critical section such that actions in the
     // deferred action queue is in order. This simplifies the interleavings we need to deal
     // with in the face of DDL changes.
@@ -121,8 +122,9 @@ class DeferredActionManager {
  private:
   const common::ManagedPointer<TimestampManager> timestamp_manager_;
   // TODO(Tianyu): We might want to change this data structure to be more specialized than std::queue
-  std::queue<std::pair<timestamp_t, DeferredAction>> new_deferred_actions_, back_log_;
-  common::SpinLatch deferred_actions_latch_;
+  tbb::concurrent_queue<std::pair<timestamp_t, DeferredAction>> new_deferred_actions_;
+  std::queue<std::pair<timestamp_t, DeferredAction>> back_log_;
+  common::SharedLatch deferred_actions_latch_;
 
   std::unordered_set<common::ManagedPointer<storage::index::Index>> indexes_;
   common::SharedLatch indexes_latch_;
@@ -152,23 +154,39 @@ class DeferredActionManager {
     uint32_t processed = 0;
     // swap the new actions queue with a local queue, so the rest of the system can continue
     // while we process actions
-    std::queue<std::pair<timestamp_t, DeferredAction>> new_actions_local;
-    {
-      common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
-      new_actions_local = std::move(new_deferred_actions_);
-    }
+//    tbb::concurrent_queue<std::pair<timestamp_t, DeferredAction>> new_actions_local;
+//    {
+//      common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
+//      new_actions_local = std::move(new_deferred_actions_);
+//    }
 
-    // Iterate through the new actions queue and execute as many as possible
-    while (!new_actions_local.empty() && oldest_txn >= new_actions_local.front().first) {
-      new_actions_local.front().second(oldest_txn);
+    deferred_actions_latch_.LockExclusive();
+    tbb::concurrent_queue<std::pair<timestamp_t, DeferredAction>> new_actions_local(std::move(new_deferred_actions_));
+    deferred_actions_latch_.Unlock();
+
+    std::pair<timestamp_t, DeferredAction> curr_action;
+    bool reinsert = false;
+    while (!new_actions_local.empty()) {
+      reinsert = new_actions_local.try_pop(curr_action);
+      if (reinsert && oldest_txn < curr_action.first) break;
+
+      curr_action.second(oldest_txn);
       processed++;
-      new_actions_local.pop();
+      reinsert = false;
     }
+    if (reinsert) back_log_.push(curr_action);
+//
+//    // Iterate through the new actions queue and execute as many as possible
+//    while (!new_actions_local.empty() && oldest_txn >= new_actions_local.front().first) {
+//      new_actions_local.front().second(oldest_txn);
+//      processed++;
+//      new_actions_local.pop();
+//    }
 
     // Add the rest to back log otherwise
     while (!new_actions_local.empty()) {
-      back_log_.push(new_actions_local.front());
-      new_actions_local.pop();
+      new_actions_local.try_pop(curr_action);
+      back_log_.push(curr_action);
     }
     return processed;
   }
