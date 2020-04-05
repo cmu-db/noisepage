@@ -9,6 +9,7 @@
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
 #include "llvm/Support/Casting.h"
+#include "execution/sql/cte_scan_iterator.h"
 
 namespace terrier::execution::ast {
 
@@ -71,6 +72,7 @@ class Context;
   NON_PRIM(ThreadStateContainer, terrier::execution::sql::ThreadStateContainer)                 \
   NON_PRIM(ProjectedColumnsIterator, terrier::execution::sql::ProjectedColumnsIterator)         \
   NON_PRIM(IndexIterator, terrier::execution::sql::IndexIterator)                               \
+  NON_PRIM(CteScanIterator, terrier::execution::sql::CteScanIterator)                           \
                                                                                                 \
   /* SQL Aggregate types (if you add, remember to update BuiltinType) */                        \
   NON_PRIM(CountAggregate, terrier::execution::sql::CountAggregate)                             \
@@ -101,7 +103,7 @@ class Context;
 // Ignore a builtin
 #define IGNORE_BUILTIN_TYPE(...)
 
-// Only consider the primitive builtin types
+// Only consider the primitive builtin typesTableIterAdvance
 #define PRIMITIVE_BUILTIN_TYPE_LIST(F) BUILTIN_TYPE_LIST(F, IGNORE_BUILTIN_TYPE, IGNORE_BUILTIN_TYPE)
 
 // Only consider the non-primitive builtin types

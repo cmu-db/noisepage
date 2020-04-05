@@ -52,6 +52,10 @@ namespace terrier::execution::ast {
   F(TableIterReset, tableIterReset)                                     \
   F(TableIterParallel, iterateTableParallel)                            \
                                                                         \
+  /*Cte Scans*/                                                         \
+  F(CteScanInit, cteScanInit)                                           \
+  F(CteScanNext, cteScanNext)                                           \
+                                                                        \
   /* PCI */                                                             \
   F(PCIIsFiltered, pciIsFiltered)                                       \
   F(PCIHasNext, pciHasNext)                                             \

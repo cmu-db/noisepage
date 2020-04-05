@@ -31,6 +31,7 @@
 #include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/insert_plan_node.h"
 #include "planner/plannodes/limit_plan_node.h"
+#include "planner/plannodes/cte_scan_plan_node.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
 #include "planner/plannodes/output_schema.h"
@@ -1946,6 +1947,64 @@ TEST_F(CompilerTest, LimitAndOffsetTest) {
   auto executable = ExecutableQuery(common::ManagedPointer(limit), common::ManagedPointer(exec_ctx));
   executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
+}
+
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, CTEBasicTest) {
+  // OUTPUT (WITH SELECT * FROM COMPANY AS EMPLOYEE)
+  // This test uses an explicit limit node.
+  // Get accessor
+  auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
+  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+  auto table_schema = accessor->GetSchema(table_oid);
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
+  {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    // Get Table columns
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    seq_scan_out.AddOutput("col1", col1);
+    auto schema = seq_scan_out.MakeSchema();
+    // Build
+    planner::SeqScanPlanNode::Builder builder;
+    seq_scan = builder.SetOutputSchema(std::move(schema))
+        .SetColumnOids({cola_oid})
+        .SetIsForUpdateFlag(false)
+        .SetNamespaceOid(NSOid())
+        .SetTableOid(table_oid)
+        .Build();
+  }
+  // Limit
+  std::unique_ptr<planner::AbstractPlanNode> cte_scan;
+  OutputSchemaHelper cte_scan_out{0, &expr_maker};
+  {
+    // Output Colums col1
+    auto col1 = seq_scan_out.GetOutput("col1");
+    cte_scan_out.AddOutput("col1", col1);
+    auto schema = cte_scan_out.MakeSchema();
+    // Build
+    planner::CteScanPlanNode::Builder builder;
+    cte_scan =
+        builder.SetOutputSchema(std::move(schema)).AddChild(std::move(seq_scan)).Build();
+  }
+  // Dummy checkers
+  RowChecker row_checker = [](const std::vector<sql::Val *> &vals) {
+  };
+  CorrectnessFn correcteness_fn = []() {
+  };
+  GenericChecker checker(row_checker, correcteness_fn);
+
+  // Create exec ctx
+  OutputStore store{&checker, cte_scan->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(cte_scan->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), cte_scan->GetOutputSchema().Get());
+
+  // Run & Check
+  auto executable = ExecutableQuery(common::ManagedPointer(cte_scan), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
 }
 
 // NOLINTNEXTLINE

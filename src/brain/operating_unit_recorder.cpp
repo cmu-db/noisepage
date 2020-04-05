@@ -38,6 +38,7 @@
 #include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/insert_plan_node.h"
 #include "planner/plannodes/limit_plan_node.h"
+#include "planner/plannodes/cte_scan_plan_node.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
@@ -513,6 +514,16 @@ void OperatingUnitRecorder::Visit(const planner::LimitPlanNode *plan) {
   auto num_keys = plan->GetOutputSchema()->GetColumns().size();
   auto key_size = ComputeKeySizeOutputSchema(plan);
   AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);
+}
+
+void OperatingUnitRecorder::Visit(const planner::CteScanPlanNode *plan) {
+  VisitAbstractPlanNode(plan);
+  RecordArithmeticFeatures(plan, 1);
+
+  // Copy outwards
+  auto num_keys = plan->GetOutputSchema()->GetColumns().size();
+  auto key_size = ComputeKeySizeOutputSchema(plan);
+  AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) {

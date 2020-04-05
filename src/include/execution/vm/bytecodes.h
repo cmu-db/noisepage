@@ -121,6 +121,10 @@ namespace terrier::execution::vm {
   F(ParallelScanTable, OperandType::UImm4, OperandType::UImm4, OperandType::Local, OperandType::Local,                \
     OperandType::FunctionId)                                                                                          \
                                                                                                                       \
+  F(CteScanInit, OperandType::Local)                                                                                  \
+  F(CteScanNext, OperandType::Local, OperandType::Local, OperandType::Local)                                          \
+                                                                                                                      \
+                                                                                                                      \
   /* ProjectedColumns Iterator (PCI) */                                                                               \
   F(PCIIsFiltered, OperandType::Local, OperandType::Local)                                                            \
   F(PCIHasNext, OperandType::Local, OperandType::Local)                                                               \

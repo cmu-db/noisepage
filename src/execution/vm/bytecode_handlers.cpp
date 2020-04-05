@@ -3,6 +3,7 @@
 #include "catalog/catalog_defs.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/projected_columns_iterator.h"
+#include "execution/sql/cte_scan_iterator.h"
 
 extern "C" {
 
@@ -82,6 +83,20 @@ void OpPCIFilterNotEqual(uint64_t *size, terrier::execution::sql::ProjectedColum
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
   *size = iter->FilterColByVal<std::not_equal_to>(col_idx, sql_type, v);
+}
+
+// ---------------------------------------------------------
+// Cte Scan
+// ---------------------------------------------------------
+
+void OpCteScanInit(terrier::execution::sql::CteScanIterator *iter) {
+  new (iter) terrier::execution::sql::CteScanIterator();
+
+}
+
+void OpCteScanNext(terrier::storage::TupleSlot *return_slot,
+                         terrier::execution::sql::CteScanIterator *iter, terrier::storage::TupleSlot *slot) {
+  *return_slot = iter->Next(*slot);
 }
 
 // ---------------------------------------------------------

@@ -28,6 +28,7 @@ enum class ExecutionOperatingUnitType : uint32_t {
   PROJECTION,
   OUTPUT,
   LIMIT,
+  CTE_SCAN,
 
   // Use to demarcate plan and operations
   PLAN_OPS_DELIMITER,
