@@ -27,7 +27,6 @@ class DeferredActionManager {
       : timestamp_manager_(timestamp_manager) {}
 
   ~DeferredActionManager() {
-    common::SharedLatch::ScopedExclusiveLatch guard(&deferred_actions_latch_);
     TERRIER_ASSERT(back_log_.empty(), "Backlog is not empty");
     TERRIER_ASSERT(new_deferred_actions_.empty(), "Some deferred actions remaining at time of destruction");
   }
@@ -42,7 +41,6 @@ class DeferredActionManager {
     timestamp_t result = timestamp_manager_->CurrentTime();
     std::pair<timestamp_t, DeferredAction> elem = {result, a};
 
-    common::SharedLatch::ScopedSharedLatch guard(&deferred_actions_latch_);
     // Timestamp needs to be fetched inside the critical section such that actions in the
     // deferred action queue is in order. This simplifies the interleavings we need to deal
     // with in the face of DDL changes.
@@ -124,7 +122,6 @@ class DeferredActionManager {
   // TODO(Tianyu): We might want to change this data structure to be more specialized than std::queue
   tbb::concurrent_queue<std::pair<timestamp_t, DeferredAction>> new_deferred_actions_;
   std::queue<std::pair<timestamp_t, DeferredAction>> back_log_;
-  common::SharedLatch deferred_actions_latch_;
 
   std::unordered_set<common::ManagedPointer<storage::index::Index>> indexes_;
   common::SharedLatch indexes_latch_;
@@ -159,16 +156,17 @@ class DeferredActionManager {
 //      common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
 //      new_actions_local = std::move(new_deferred_actions_);
 //    }
-
-    deferred_actions_latch_.LockExclusive();
-    tbb::concurrent_queue<std::pair<timestamp_t, DeferredAction>> new_actions_local(std::move(new_deferred_actions_));
-    deferred_actions_latch_.Unlock();
+//
+//    deferred_actions_latch_.LockExclusive();
+//    tbb::concurrent_queue<std::pair<timestamp_t, DeferredAction>> new_actions_local(std::move(new_deferred_actions_));
+//    deferred_actions_latch_.Unlock();
 
     std::pair<timestamp_t, DeferredAction> curr_action;
     bool reinsert = false;
-    while (!new_actions_local.empty()) {
-      reinsert = new_actions_local.try_pop(curr_action);
-      if (reinsert && oldest_txn < curr_action.first) break;
+    auto curr_size = new_deferred_actions_.unsafe_size();
+    while (!new_deferred_actions_.empty()) {
+      reinsert = new_deferred_actions_.try_pop(curr_action);
+      if (processed == curr_size || (reinsert && oldest_txn < curr_action.first)) break;
 
       curr_action.second(oldest_txn);
       processed++;
@@ -183,11 +181,11 @@ class DeferredActionManager {
 //      new_actions_local.pop();
 //    }
 
-    // Add the rest to back log otherwise
-    while (!new_actions_local.empty()) {
-      new_actions_local.try_pop(curr_action);
-      back_log_.push(curr_action);
-    }
+//    // Add the rest to back log otherwise
+//    while (!new_actions_local.empty()) {
+//      new_deferred_actions_.try_pop(curr_action);
+//      back_log_.push(curr_action);
+//    }
     return processed;
   }
 };
