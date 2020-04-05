@@ -338,8 +338,8 @@ class CatalogAccessor {
   common::ManagedPointer<storage::BlockStore> GetBlockStore() const;
 
   /**
-    * @return All table oids
-    */
+   * @return All table oids
+   */
   std::unordered_set<table_oid_t> &GetAllTableOids() { return dbc_->GetTableOidsFromDBC(); }
 
   /**
@@ -356,6 +356,7 @@ class CatalogAccessor {
         txn_(txn),
         search_path_({postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID}),
         default_namespace_(postgres::NAMESPACE_DEFAULT_NAMESPACE_OID) {}
+
  private:
   const common::ManagedPointer<Catalog> catalog_;
   const common::ManagedPointer<DatabaseCatalog> dbc_;

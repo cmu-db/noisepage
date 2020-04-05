@@ -15,9 +15,9 @@
 #include "catalog/postgres/pg_index.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "common/dedicated_thread_owner.h"
+#include "storage/checkpoints/checkpoint.h"
 #include "storage/recovery/abstract_log_provider.h"
 #include "storage/sql_table.h"
-#include "storage/checkpoints/checkpoint.h"
 #include "transaction/transaction_manager.h"
 
 namespace terrier {
@@ -39,8 +39,8 @@ class RecoveryManager : public common::DedicatedThreadOwner {
     /**
      * @param recovery_manager pointer to recovery manager who initialized task
      */
-    explicit RecoveryTask(RecoveryManager *recovery_manager, bool catalog_only = false) : recovery_manager_(recovery_manager),
-                                                                                  catalog_only_(catalog_only){}
+    explicit RecoveryTask(RecoveryManager *recovery_manager, bool catalog_only = false)
+        : recovery_manager_(recovery_manager), catalog_only_(catalog_only) {}
 
     /**
      * Runs the recovery task. Our task only calls Recover on the log manager.
@@ -96,8 +96,8 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    */
   void StartRecovery(bool catalog_only = false) {
     TERRIER_ASSERT(recovery_task_ == nullptr, "Recovery already started");
-    recovery_task_ =
-        thread_registry_->RegisterDedicatedThread<RecoveryTask>(this /* dedicated thread owner */, this /* task arg */, catalog_only);
+    recovery_task_ = thread_registry_->RegisterDedicatedThread<RecoveryTask>(this /* dedicated thread owner */,
+                                                                             this /* task arg */, catalog_only);
   }
 
   /**
@@ -163,9 +163,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * Recovers the databases using the provided log provider
    * @return number of committed transactions replayed
    */
-  void Recover(bool catalog_only = false) {
-    RecoverFromLogs(catalog_only);
-  }
+  void Recover(bool catalog_only = false) { RecoverFromLogs(catalog_only); }
 
   /**
    * Recovers the databases from the logs.
@@ -173,7 +171,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    */
   void RecoverFromLogs(bool catalog_only = false);
 
-  void RecoverFromCheckpoint(const std::string& path);
+  void RecoverFromCheckpoint(const std::string &path);
 
   /**
    * @brief Replay a committed transaction corresponding to txn_id.

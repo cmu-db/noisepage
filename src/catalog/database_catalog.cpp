@@ -844,7 +844,7 @@ bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::Tran
   });
 
   delete[] buffer;
-//  auto iter = table_oids.equal_range(table);
+  //  auto iter = table_oids.equal_range(table);
   table_oids.erase(table);
   return true;
 }

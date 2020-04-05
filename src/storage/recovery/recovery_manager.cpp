@@ -75,59 +75,102 @@ void RecoveryManager::RecoverFromLogs(bool catalog_only) {
   }
 }
 
-void RecoveryManager::RecoverFromCheckpoint(const std::string& path) {
+void RecoveryManager::RecoverFromCheckpoint(const std::string &path) {
   // Get the db_oid
   catalog::db_oid_t db_oid;
   auto *recovery_txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(common::ManagedPointer(recovery_txn), db_oid);
 
-  // For each table, create a new object by reading the dumnped bytes
-  // Are they stored in catalog_table_schemas_?
-  for (auto& kv : catalog_table_schemas_) {
-    auto table_oid = kv.first;
-    auto schema = kv.second;
-    std::string in_file = storage::Checkpoint::GenFileName(db_oid, table_oid);
+  // Get all table oids
+  auto table_oids = accessor->GetAllTableOids();
+  for (auto &table_oid : table_oids) {
+    // Find the table
+    common::ManagedPointer<storage::SqlTable> table = accessor->GetTable(table_oid);
+    auto &data_table = table->table_.data_table_;
+    // const auto &layout = data_table->GetBlockLayout();
+    // const auto &column_ids = layout.AllColumns();
+    // auto col_num = column_ids.size();
+
+    // Find the file
+    std::string in_file = Checkpoint::GenFileName(db_oid, table_oid);
     std::ifstream f;
-    f.open(path + in_file, std::ofstream::in);
+    f.open(path + in_file, std::ios::binary);
 
-    //get length of file
-    f.seekg(0, std::ios::end);
-    size_t length = f.tellg();
-    f.seekg(0, std::ios::beg);
+    // Get our metadata first
+    uint32_t block_num;
+    f.read(reinterpret_cast<char *>(&block_num), sizeof(block_num));
+    unsigned long varchar_cols;
+    f.read(reinterpret_cast<char *>(&varchar_cols), sizeof(varchar_cols));
+    unsigned long dict_cols;
+    f.read(reinterpret_cast<char *>(&dict_cols), sizeof(dict_cols));
 
-    char buffer[length];
-    // Don't overflow the buffer!
-    if (length > sizeof (buffer)) {
-      length = sizeof (buffer);
-    }
+    // Get varlen information
+    std::vector<col_id_t> col_ids;
+    std::vector<uint32_t> offset_lengths;
+    std::vector<uint32_t> value_lengths;
+    std::vector<uint64_t *> varlen_col_offsets_vec;
+    std::vector<byte *> varlen_col_values_vec;
+    col_id_t col_id;
+    uint32_t offset_length;
+    uint32_t value_length;
+    uint64_t *varlen_col_offsets;
+    byte *varlen_col_values;
+    auto content_size = common::Constants::BLOCK_SIZE - sizeof(uintptr_t) - sizeof(uint16_t) -
+                        sizeof(layout_version_t) - sizeof(uint32_t) - sizeof(BlockAccessController);
 
-    // Read file
-    f.read(buffer, length);
-
-    // Convert to bytes
-    std::vector<std::byte> bytes;
-    for (char &c : buffer) {
-      bytes.push_back(static_cast<std::byte>(c));
-    }
-
-    // Do we have any blocks left?
+    // Assuming just VARCHAR
     std::list<RawBlock *> blocks;
-    auto start_pos = 0u;
-    auto content_size = common::Constants::BLOCK_SIZE - sizeof(uintptr_t) - sizeof(uint16_t) - sizeof(layout_version_t) -
-                        sizeof(uint32_t) - sizeof(BlockAccessController);
-    while (start_pos < bytes.size()) {
+    for (auto i = 0u; i < block_num; i++) {
+      for (auto j = 0u; j < varchar_cols; i++) {
+        f.read(reinterpret_cast<char *>(&col_id), sizeof(col_id));
+        f.read(reinterpret_cast<char *>(&offset_length), sizeof(offset_length));
+        f.read(reinterpret_cast<char *>(&value_length), sizeof(offset_length));
+        f.read(reinterpret_cast<char *>(&varlen_col_offsets), offset_length * sizeof(uint64_t));
+        f.read(reinterpret_cast<char *>(&varlen_col_values), value_length);
+        col_ids.push_back(col_id);
+        offset_lengths.push_back(offset_length);
+        value_lengths.push_back(value_length);
+        varlen_col_offsets_vec.push_back(varlen_col_offsets);
+        varlen_col_values_vec.push_back(varlen_col_values);
+      }
+
       byte content[content_size];
-      std::copy(bytes.begin() + start_pos, bytes.begin() + start_pos + content_size, content);
-      start_pos += content_size + sizeof('\n');
+      f.read(reinterpret_cast<char *>(&content), sizeof(content));
+
+      /**
+       * Recover the block
+       */
+      RawBlock *block = new RawBlock();
+      blocks.push_back(block);
+
+      // Set datatable
+      block->data_table_ = data_table;
+
+      // Set padding
+      uint16_t padding;
+      f.seekg(sizeof(void *), std::ios::cur);  // skip data table
+      f.read(reinterpret_cast<char *>(&padding), sizeof(padding));
+      block->padding_ = padding;
+
+      // Set layout_version
+      layout_version_t layout_version;
+      f.read(reinterpret_cast<char *>(&layout_version), sizeof(layout_version));
+      block->layout_version_ = layout_version;
+
+      // Set insert_head
+      uint32_t insert_head;
+      f.read(reinterpret_cast<char *>(&insert_head), sizeof(insert_head));
+      block->insert_head_ = insert_head;
+
+      // Set content
+      std::memcpy(block->content_, content, content_size);
     }
 
+    // Now we have all the blocks and metadata, so we can recover the table
     // Create the new table
-    // TODO (tianlei): modify table content
-    SqlTable* new_table = new SqlTable(accessor->GetBlockStore(), schema, blocks);
-
+    SqlTable *new_table = new SqlTable(accessor->GetBlockStore(), accessor->GetSchema(table_oid), blocks);
     accessor->SetTablePointer(table_oid, new_table);
   }
-
 }
 
 void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestamp_t txn_id, bool catalog_only) {
@@ -174,7 +217,8 @@ void RecoveryManager::DeferRecordDeletes(terrier::transaction::timestamp_t txn_i
   });
 }
 
-uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::timestamp_t upper_bound_ts, bool catalog_only) {
+uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::timestamp_t upper_bound_ts,
+                                                      bool catalog_only) {
   auto txns_processed = 0;
   // If the upper bound is INVALID_TXN_TIMESTAMP, then we should process all deferred txns. We can accomplish this by
   // setting the upper bound to INT_MAX

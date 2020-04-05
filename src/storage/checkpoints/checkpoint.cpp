@@ -3,8 +3,7 @@
 #include "storage/checkpoints/checkpoint.h"
 #include <common/worker_pool.h>
 #include <fstream>
-namespace terrier::storage{
-
+namespace terrier::storage {
 
 bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db) {
   // get db catalog accessor
@@ -15,21 +14,19 @@ bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db) {
     queue.push_back(oid);
   }
 
-
   // initalize threads
   auto num_threads = 1u;
   common::WorkerPool thread_pool_{num_threads, {}};
   thread_pool_.Startup();
-  auto workload = [&](uint32_t worker_id){
+  auto workload = [&](uint32_t worker_id) {
     // copy contents of table to disk
     WriteToDisk(path, accessor, db);
-
   };
-  for (auto i = 0u; i < num_threads; i++){
-    thread_pool_.SubmitTask([i, &workload]{workload(i);});
+  for (auto i = 0u; i < num_threads; i++) {
+    thread_pool_.SubmitTask([i, &workload] { workload(i); });
   }
   thread_pool_.WaitUntilAllFinished();
-  if (queue.size() > 0){
+  if (queue.size() > 0) {
     // the table oid that failed to be backup
     return false;
   }
@@ -37,10 +34,10 @@ bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db) {
 }
 
 void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<catalog::CatalogAccessor> &accessor,
-    catalog::db_oid_t db_oid) {
-  while (queue.size() > 0){
+                             catalog::db_oid_t db_oid) {
+  while (queue.size() > 0) {
     queue_latch.lock();
-    if (queue.size() <= 0){
+    if (queue.size() <= 0) {
       queue_latch.unlock();
       return;
     }
@@ -63,7 +60,7 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
     f.open(path + out_file, std::ios::binary);
 
     // write # of varlen col in the table
-    if (f.is_open()){
+    if (f.is_open()) {
       unsigned long var_col_num = varlens.size();
       f.write(reinterpret_cast<const char *>(&var_col_num), sizeof(unsigned long));
     } else {
@@ -75,28 +72,28 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
     }
 
     // traverse each block in the block list
-    for (RawBlock *block : blocks){
+    for (RawBlock *block : blocks) {
       ArrowBlockMetadata &metadata = curr_data_table->accessor_.GetArrowBlockMetadata(block);
 
       // traverse all cols
-      for (auto i = 0u; i < col_num; i++){
+      for (auto i = 0u; i < col_num; i++) {
         col_id_t col_id = column_ids[i];
         ArrowColumnInfo &col_info = metadata.GetColumnInfo(layout, col_id);
 
         // if varlength or dictionary
-        if (layout.IsVarlen(col_id) && !(col_info.Type() == ArrowColumnType::FIXED_LENGTH)){
-          switch (col_info.Type()){
-            case ArrowColumnType::GATHERED_VARLEN:{
+        if (layout.IsVarlen(col_id) && !(col_info.Type() == ArrowColumnType::FIXED_LENGTH)) {
+          switch (col_info.Type()) {
+            case ArrowColumnType::GATHERED_VARLEN: {
               ArrowVarlenColumn &varlen_col = col_info.VarlenColumn();
               uint32_t value_len = varlen_col.ValuesLength();
               uint32_t offset_len = varlen_col.OffsetsLength();
               f.write(reinterpret_cast<const char *>(&col_id), sizeof(col_id_t));
               f.write(reinterpret_cast<const char *>(&offset_len), sizeof(uint32_t));
               f.write(reinterpret_cast<const char *>(&value_len), sizeof(uint32_t));
-              f.write(reinterpret_cast<const char *>(varlen_col.Offsets()), offset_len*sizeof(uint64_t));
+              f.write(reinterpret_cast<const char *>(varlen_col.Offsets()), offset_len * sizeof(uint64_t));
               f.write(reinterpret_cast<const char *>(varlen_col.Values()), value_len);
             }
-            case ArrowColumnType::DICTIONARY_COMPRESSED:{
+            case ArrowColumnType::DICTIONARY_COMPRESSED: {
               uint32_t num_slots = metadata.NumRecords();
               auto indices = col_info.Indices();
               f.write(reinterpret_cast<const char *>(&col_id), sizeof(col_id_t));
@@ -107,16 +104,12 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
             default:
               throw std::runtime_error("unexpected control flow");
           }
-
         }
-
       }
       // write block contents
       f.write(reinterpret_cast<const char *>(block->content_), sizeof(block->content_));
     }
-
   }
 }
 
-
-} //namespace terrier::storage
+}  // namespace terrier::storage
