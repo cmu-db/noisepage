@@ -2,9 +2,11 @@
 
 #include <sched.h>
 #include <storage/storage_defs.h>
+
 #include <atomic>
 #include <condition_variable>  // NOLINT
 #include <functional>
+#include <future>
 #include <iostream>
 #include <mutex>  // NOLINT
 #include <queue>
@@ -12,6 +14,7 @@
 #include <thread>  // NOLINT
 #include <utility>
 #include <vector>
+
 #include "common/macros.h"
 #include "dedicated_thread_registry.h"
 #include "shared_latch.h"
@@ -25,7 +28,7 @@ namespace terrier::common {
  * it on its own with latches.
  */
 // TODO(Deepayan): change from void later
-using Task = std::function<void()>;
+using Task = std::pair<std::promise<void>, std::function<void()>>;
 using ExecutionTaskQueue = tbb::concurrent_queue<Task>;
 
 /**
@@ -50,8 +53,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
         task_queue_(num_regions_),
         busy_workers_(0) {
     for (int cpu_id : *cpu_ids) {
-      thread_registry_.operator->()->RegisterDedicatedThread<TerrierThread>(static_cast<DedicatedThreadOwner *>(this),
-                                                                            cpu_id, this);
+      thread_registry_.operator->()->RegisterDedicatedThread<TerrierThread>(this, cpu_id, this);
     }
   }
 
@@ -64,20 +66,23 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     for (std::vector<TerrierThread *> vector : workers_) {
       for (TerrierThread *t : vector) {
         bool result UNUSED_ATTRIBUTE = thread_registry_.operator->()->StopTask(
-            static_cast<DedicatedThreadOwner *>(this), common::ManagedPointer(static_cast<DedicatedThreadTask *>(t)));
+            this, common::ManagedPointer(static_cast<DedicatedThreadTask *>(t)));
         TERRIER_ASSERT(result, "StopTask should succeed");
       }
     }
   }
 
-  void SubmitTask(Task task, storage::numa_region_t numa_hint = storage::UNSUPPORTED_NUMA_REGION) {
+  std::future<void> SubmitTask(std::function<void()> task, storage::numa_region_t numa_hint = storage::UNSUPPORTED_NUMA_REGION) {
     if (numa_hint == storage::UNSUPPORTED_NUMA_REGION) {
       numa_hint = static_cast<storage::numa_region_t>(0);
     }
-    task_queue_[static_cast<int16_t>(numa_hint)].push(task);
+    Task t({std::promise<void>(), task});
+    task_queue_[static_cast<int16_t>(numa_hint)].push(std::move(t));
     if (total_workers_ != busy_workers_) {
       task_cv_.notify_one();
     }
+
+    return t.first.get_future();
   }
 
   /**
@@ -87,16 +92,11 @@ class ExecutionThreadPool : DedicatedThreadOwner {
    */
   uint32_t NumWorkers() const { return total_workers_; }
 
-  /*
-   * @param num the number of worker threads.
-   */
-  void SetNumWorkers(uint32_t num) {}
-
  private:
   // Private thread co-class
   class TerrierThread : public DedicatedThreadTask {
    public:
-    TerrierThread(int cpu_id, ExecutionThreadPool *pool) : pool_(pool), cpu_id_(cpu_id) {
+    TerrierThread(int cpu_id, ExecutionThreadPool *pool) : pool_(pool),  cpu_id_(cpu_id) {
 #ifndef __APPLE__
       cpu_set_t mask;
       CPU_ZERO(&mask);
@@ -106,6 +106,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
       numa_region_ = static_cast<storage::numa_region_t>(numa_node_of_cpu(cpu_id));
       TERRIER_ASSERT(static_cast<int16_t>(numa_region_) >= 0, "cpu_id must be valid");
 #else
+      //TODO(emmanuee) figure out processor_assign and put here
       numa_region_ = static_cast<storage::numa_region_t>(0);
 #endif
       pool_->total_workers_++;
@@ -113,15 +114,16 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     ~TerrierThread() = default;
 
     void RunNextTask() {
-      while (!exit_task_loop_) {
+      while (UNLIKELY(!exit_task_loop_)) {
         int16_t index = static_cast<int16_t>(numa_region_);
         for (int16_t i = 0; i < pool_->num_regions_; i++) {
-          index = (index + i) % pool_->num_regions_;
+          index = (index + 1) % pool_->num_regions_;
           Task task;
           if (!pool_->task_queue_[index].try_pop(task)) continue;
 
           status_ = ThreadStatus::BUSY;
-          task();
+          task.second();
+          task.first.set_value();
           status_ = ThreadStatus::SWITCHING;
           return;
         }
@@ -139,17 +141,15 @@ class ExecutionThreadPool : DedicatedThreadOwner {
      * Implements the DedicatedThreadTask api
      */
     void RunTask() {
-      pool_->busy_workers_++;
       status_ = ThreadStatus::SWITCHING;
-      while (true) {
-        if (exit_task_loop_) {
-          done_exiting_ = true;
-          done_cv_.notify_all();
-          return;
-        }
+      pool_->busy_workers_++;
 
+      while (LIKELY(!exit_task_loop_)) {
         RunNextTask();
       }
+
+      done_exiting_ = true;
+      done_cv_.notify_all();
     }
 
     /*
@@ -195,18 +195,19 @@ class ExecutionThreadPool : DedicatedThreadOwner {
 
   void AddThread(TerrierThread *thread) {
     common::SharedLatch::ScopedExclusiveLatch l(&array_latch_);
-    total_workers_++;
-    auto vector = workers_[static_cast<int16_t>(thread->numa_region_)];
-    vector.emplace_back(thread);
+    TERRIER_ASSERT(0 <= static_cast<int16_t>(thread->numa_region_) && static_cast<int16_t>(thread->numa_region_) <= num_regions_,"numa region should be in range");
+    auto *vector = &workers_[static_cast<int16_t>(thread->numa_region_)];
+    vector->emplace_back(thread);
   }
   void RemoveThread(TerrierThread *thread) {
     common::SharedLatch::ScopedExclusiveLatch l(&array_latch_);
-    std::vector<TerrierThread *> vector = workers_[static_cast<int16_t>(thread->numa_region_)];
-    auto it = vector.begin();
-    for (; it != vector.end() && *it != thread; ++it) {
+    TERRIER_ASSERT(0 <= static_cast<int16_t>(thread->numa_region_) && static_cast<int16_t>(thread->numa_region_) <= num_regions_,"numa region should be in range");
+    std::vector<TerrierThread *> *vector = &workers_[static_cast<int16_t>(thread->numa_region_)];
+    auto it = vector->begin();
+    for (; it != vector->end() && *it != thread; ++it) {
     }
-    if (it != vector.end()) {
-      vector.erase(it);
+    if (it != vector->end()) {
+      vector->erase(it);
     }
   }
 
@@ -217,6 +218,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     if (shutting_down_) return true;
 
     common::SharedLatch::ScopedSharedLatch l(&array_latch_);
+    TERRIER_ASSERT(0 <= static_cast<int16_t>(thread->numa_region_) && static_cast<int16_t>(thread->numa_region_) <= num_regions_,"numa region should be in range");
     auto *vector = &workers_[static_cast<int16_t>(thread->numa_region_)];
     TERRIER_ASSERT(!vector->empty(), "if this thread is potentially being closed it must be tracked");
     // if there is another thread running in this numa region
