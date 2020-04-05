@@ -2,6 +2,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "execution/exec/execution_context.h"
+#include "execution/sql/cte_scan_iterator.h"
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/storage_interface.h"
 #include "execution/sql/vector_projection_iterator.h"
@@ -39,6 +40,20 @@ void OpVPIInitWithList(terrier::execution::sql::VectorProjectionIterator *vpi,
 }
 
 void OpVPIFree(terrier::execution::sql::VectorProjectionIterator *vpi) { vpi->~VectorProjectionIterator(); }
+
+// ---------------------------------------------------------
+// Cte Scan
+// ---------------------------------------------------------
+
+void OpCteScanInit(terrier::execution::sql::CteScanIterator *iter) {
+  new (iter) terrier::execution::sql::CteScanIterator();
+
+}
+
+void OpCteScanNext(terrier::storage::TupleSlot *return_slot,
+                         terrier::execution::sql::CteScanIterator *iter, terrier::storage::TupleSlot *slot) {
+  *return_slot = iter->Next(*slot);
+}
 
 // ---------------------------------------------------------
 // Filter Manager

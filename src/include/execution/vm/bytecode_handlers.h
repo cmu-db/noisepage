@@ -280,6 +280,15 @@ VM_OP_HOT void OpParallelScanTable(uint32_t table_oid, uint32_t *col_oids, uint3
 }
 
 // ---------------------------------------------------------
+// CTE Scan
+// ---------------------------------------------------------
+
+VM_OP void OpCteScanInit(terrier::execution::sql::CteScanIterator *iter);
+
+VM_OP void OpCteScanNext(terrier::storage::TupleSlot *return_slot,
+    terrier::execution::sql::CteScanIterator *iter, terrier::storage::TupleSlot *slot);
+
+// ---------------------------------------------------------
 // Vector Projection Iterator
 // ---------------------------------------------------------
 

@@ -593,6 +593,24 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   }
 
   // -------------------------------------------------------
+  // Cte Scan operations
+  // -------------------------------------------------------
+
+  OP(CteScanInit) : {
+    auto iter = frame->LocalAt<sql::CteScanIterator *>(READ_LOCAL_ID());
+    OpCteScanInit(iter);
+    DISPATCH_NEXT();
+  }
+  OP(CteScanNext) : {
+  auto *return_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
+  auto iter = frame->LocalAt<sql::CteScanIterator *>(READ_LOCAL_ID());
+  auto *slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
+  OpCteScanNext(return_slot, iter, slot);
+  DISPATCH_NEXT();
+}
+
+
+  // -------------------------------------------------------
   // VPI iteration operations
   // -------------------------------------------------------
 

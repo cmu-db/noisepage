@@ -51,6 +51,9 @@ namespace terrier::execution::ast {
   F(TableIterClose, tableIterClose)                                     \
   F(TableIterParallel, iterateTableParallel)                            \
                                                                         \
+  /*Cte Scans*/                                                         \
+  F(CteScanInit, cteScanInit)                                           \
+  F(CteScanNext, cteScanNext)                                           \
   /* VPI */                                                             \
   F(VPIInit, vpiInit)                                                   \
   F(VPIIsFiltered, vpiIsFiltered)                                       \

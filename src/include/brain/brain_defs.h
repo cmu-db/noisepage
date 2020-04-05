@@ -28,6 +28,7 @@ enum class ExecutionOperatingUnitType : uint32_t {
   PROJECTION,
   OUTPUT,
   LIMIT,
+  CTE_SCAN,
 
   HASH_JOIN,
   HASH_AGGREGATE,

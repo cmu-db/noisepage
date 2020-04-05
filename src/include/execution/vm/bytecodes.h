@@ -122,6 +122,8 @@ namespace terrier::execution::vm {
   F(ParallelScanTable, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                \
     OperandType::Local, OperandType::FunctionId)                                                                      \
                                                                                                                       \
+  F(CteScanInit, OperandType::Local)                                                                                  \
+  F(CteScanNext, OperandType::Local, OperandType::Local, OperandType::Local)                                          \
   /* Vector Projection Iterator (VPI) */                                                                              \
   F(VPIInit, OperandType::Local, OperandType::Local)                                                                  \
   F(VPIInitWithList, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
@@ -184,7 +186,6 @@ namespace terrier::execution::vm {
   F(VPISetDateNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
   F(VPISetTimestampNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                  \
   F(VPISetStringNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                     \
-                                                                                                                      \
   /* Filter Manager */                                                                                                \
   F(FilterManagerInit, OperandType::Local, OperandType::Local)                                                        \
   F(FilterManagerStartNewClause, OperandType::Local)                                                                  \
