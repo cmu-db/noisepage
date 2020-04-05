@@ -15,6 +15,7 @@
 #include "execution/sql/projected_columns_iterator.h"
 #include "execution/sql/sorter.h"
 #include "execution/sql/table_vector_iterator.h"
+#include "execution/sql/cte_scan_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/value.h"
 
