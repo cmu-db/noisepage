@@ -833,7 +833,7 @@ void RunBenchmarkSequence(void) {
   const char *argv[2];
   argv[0] = "mini_runners";
   argv[1] = buffer;
-  for (size_t i = 0; i < 6; i++) {
+  for (size_t i = 0; i < 5; i++) {
     int argc = 2;
     snprintf(buffer, sizeof(buffer), "--benchmark_filter=SEQ%lu", i);
     benchmark::Initialize(&argc, const_cast<char **>(argv));
