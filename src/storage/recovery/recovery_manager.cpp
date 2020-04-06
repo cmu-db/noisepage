@@ -96,7 +96,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
     f.open(path + in_file, std::ios::binary);
 
     // Get our metadata first
-    uint32_t block_num;
+    unsigned long block_num;
     f.read(reinterpret_cast<char *>(&block_num), sizeof(block_num));
     unsigned long varchar_cols;
     f.read(reinterpret_cast<char *>(&varchar_cols), sizeof(varchar_cols));

@@ -6,6 +6,7 @@
 namespace terrier::storage {
 
 bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db) {
+  std::cout << "here" << std::endl;
   // get db catalog accessor
   auto accessor = catalog_->GetAccessor(txn_, db);
   std::unordered_set<catalog::table_oid_t> table_oids = accessor->GetAllTableOids();
@@ -33,6 +34,7 @@ bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db) {
   return true;
 }
 
+
 void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                              catalog::db_oid_t db_oid) {
   while (queue.size() > 0) {
@@ -53,16 +55,33 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
     const std::vector<col_id_t> varlens = layout.Varlens();
     auto column_ids = layout.AllColumns();
     size_t col_num = column_ids.size();
+    std::cout << "col num: " << col_num <<std::endl;
 
     curr_data_table->blocks_latch_.Lock();
-    std::list<RawBlock *> blocks = curr_data_table->blocks_;
+    const std::list<RawBlock *> blocks = curr_data_table->blocks_;
     curr_data_table->blocks_latch_.Unlock();
     f.open(path + out_file, std::ios::binary);
 
-    // write # of varlen col in the table
+    // record # of blocks in block list, # of varlen col and # of dict col in the table
     if (f.is_open()) {
+      unsigned long block_num = blocks.size();
       unsigned long var_col_num = varlens.size();
+      unsigned long dict_col_num = 0;
+      std::cout << "block num: " << block_num <<std::endl;
+      std::cout << "var col num: " << var_col_num <<std::endl;
+      std::cout << "dict col num: " << dict_col_num <<std::endl;
+      ArrowBlockMetadata &metadata = curr_data_table->accessor_.GetArrowBlockMetadata(blocks.front());
+      //count dict_col num
+      for (auto i = 0u; i < col_num; i++) {
+        col_id_t col_id = column_ids[i];
+        ArrowColumnInfo &col_info = metadata.GetColumnInfo(layout, col_id);
+        if (col_info.Type() == ArrowColumnType::DICTIONARY_COMPRESSED) {
+          dict_col_num += 1;
+        }
+      }
+      f.write(reinterpret_cast<const char *>(&block_num), sizeof(unsigned long));
       f.write(reinterpret_cast<const char *>(&var_col_num), sizeof(unsigned long));
+      f.write(reinterpret_cast<const char *>(&dict_col_num), sizeof(unsigned long));
     } else {
       // failed to copy to disk, add the table_oid back to queue
       queue_latch.lock();
@@ -71,44 +90,50 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
       return;
     }
 
-    // traverse each block in the block list
+    // record varlen_col data for all blocks
     for (RawBlock *block : blocks) {
       ArrowBlockMetadata &metadata = curr_data_table->accessor_.GetArrowBlockMetadata(block);
-
-      // traverse all cols
       for (auto i = 0u; i < col_num; i++) {
         col_id_t col_id = column_ids[i];
         ArrowColumnInfo &col_info = metadata.GetColumnInfo(layout, col_id);
+        if (layout.IsVarlen(col_id) && col_info.Type() == ArrowColumnType::GATHERED_VARLEN) {
+          std::cout << "varchar" << std::endl;
+          ArrowVarlenColumn &varlen_col = col_info.VarlenColumn();
+          uint32_t value_len = varlen_col.ValuesLength();
+          uint32_t offset_len = varlen_col.OffsetsLength();
+          f.write(reinterpret_cast<const char *>(&col_id), sizeof(col_id_t));
+          f.write(reinterpret_cast<const char *>(&offset_len), sizeof(uint32_t));
+          f.write(reinterpret_cast<const char *>(&value_len), sizeof(uint32_t));
+          f.write(reinterpret_cast<const char *>(varlen_col.Offsets()), offset_len * sizeof(uint64_t));
+          f.write(reinterpret_cast<const char *>(varlen_col.Values()), value_len);
 
-        // if varlength or dictionary
-        if (layout.IsVarlen(col_id) && !(col_info.Type() == ArrowColumnType::FIXED_LENGTH)) {
-          switch (col_info.Type()) {
-            case ArrowColumnType::GATHERED_VARLEN: {
-              ArrowVarlenColumn &varlen_col = col_info.VarlenColumn();
-              uint32_t value_len = varlen_col.ValuesLength();
-              uint32_t offset_len = varlen_col.OffsetsLength();
-              f.write(reinterpret_cast<const char *>(&col_id), sizeof(col_id_t));
-              f.write(reinterpret_cast<const char *>(&offset_len), sizeof(uint32_t));
-              f.write(reinterpret_cast<const char *>(&value_len), sizeof(uint32_t));
-              f.write(reinterpret_cast<const char *>(varlen_col.Offsets()), offset_len * sizeof(uint64_t));
-              f.write(reinterpret_cast<const char *>(varlen_col.Values()), value_len);
-            }
-            case ArrowColumnType::DICTIONARY_COMPRESSED: {
-              uint32_t num_slots = metadata.NumRecords();
-              auto indices = col_info.Indices();
-              f.write(reinterpret_cast<const char *>(&col_id), sizeof(col_id_t));
-              f.write(reinterpret_cast<const char *>(&num_slots), sizeof(uint32_t));
-              f.write(reinterpret_cast<const char *>(indices), num_slots * sizeof(uint64_t));
-              continue;
-            }
-            default:
-              throw std::runtime_error("unexpected control flow");
-          }
         }
       }
-      // write block contents
+    }
+
+    // record all dict cols data
+    for (RawBlock *block : blocks) {
+      ArrowBlockMetadata &metadata = curr_data_table->accessor_.GetArrowBlockMetadata(block);
+      for (auto i = 0u; i < col_num; i++) {
+        col_id_t col_id = column_ids[i];
+        ArrowColumnInfo &col_info = metadata.GetColumnInfo(layout, col_id);
+        if (layout.IsVarlen(col_id) && col_info.Type() == ArrowColumnType::DICTIONARY_COMPRESSED) {
+          std::cout << "dictionary" << std::endl;
+          uint32_t num_slots = metadata.NumRecords();
+          auto indices = col_info.Indices();
+          f.write(reinterpret_cast<const char *>(&col_id), sizeof(col_id_t));
+          f.write(reinterpret_cast<const char *>(&num_slots), sizeof(uint32_t));
+          f.write(reinterpret_cast<const char *>(indices), num_slots * sizeof(uint64_t));
+        }
+      }
+    }
+
+    // record block contents
+    for (RawBlock *block : blocks) {
       f.write(reinterpret_cast<const char *>(block->content_), sizeof(block->content_));
     }
+
+
   }
 }
 
