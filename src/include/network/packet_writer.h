@@ -115,7 +115,11 @@ class PacketWriter {
     // After the static assert, the compiler should be smart enough to throw
     // away the other cases and only leave the relevant return statement.
     static_assert(sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8, "Invalid size for integer");
-    if constexpr (!std::is_floating_point<T>::value) {
+
+    if constexpr (std::is_floating_point_v<T>) {
+      const auto *const double_val = reinterpret_cast<const uint64_t *const>(&val);
+      return AppendRawValue(htobe64(*double_val));
+    } else {  // NOLINT: false positive on indentation with clang-tidy, fixed in upstream check-clang-tidy
       switch (sizeof(T)) {
         case 1:
           return AppendRawValue(val);
@@ -130,8 +134,6 @@ class PacketWriter {
           throw NETWORK_PROCESS_EXCEPTION("invalid size for integer");
       }
     }
-    const auto *const double_val = reinterpret_cast<const uint64_t *const>(&val);
-    return AppendRawValue(htobe64(*double_val));
   }
 
   /**
