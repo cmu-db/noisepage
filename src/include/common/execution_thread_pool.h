@@ -103,7 +103,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
         numa_region_ = static_cast<storage::numa_region_t>(numa_node_of_cpu(cpu_id));
         TERRIER_ASSERT(static_cast<int16_t>(numa_region_) >= 0, "cpu_id must be valid");
       } else {
-        numa_region_ = static_cast<storage::numa_region_t>(0)
+        numa_region_ = static_cast<storage::numa_region_t>(0);
       }
 #else
       //TODO(emmanuee) figure out processor_assign and put here
