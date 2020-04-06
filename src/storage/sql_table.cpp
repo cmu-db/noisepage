@@ -62,7 +62,7 @@ SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog
   auto layout = storage::BlockLayout(attr_sizes);
   tables_ = {
       {layout_version_t(0),
-       {new DataTable(block_store_, layout, layout_version_t(0)), layout, col_oid_to_id, col_id_to_oid}}
+       {new DataTable(block_store_, layout, layout_version_t(0)), layout, col_oid_to_id, col_id_to_oid, common::ManagedPointer<const catalog::Schema>(&schema)}}
   };
 }
 
@@ -91,7 +91,7 @@ bool SqlTable::Select(const common::ManagedPointer <transaction::TransactionCont
     // TODO(Schema-Change): fill in default values if there are missing columns.
     //   The missing columns can be in any datatable version between the tuple version and layout version
     if (!missing_cols.empty()) {
-
+      // fill in default values
     }
     // TODO(Schema-Change): Do we need to copy back the original header
     std::memcpy(out_buffer->ColumnIds(), ori_header, sizeof(col_id_t) * out_buffer->NumColumns());

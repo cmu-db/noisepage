@@ -41,6 +41,7 @@ class SqlTable {
     //  It only works for adding and dropping columns, but not modifying type/constraint/default of the column
     //  Consider storing forward and backward delta of the schema change maybe in the future
     ColumnIdToOidMap column_id_to_oid_map_;
+    common::ManagedPointer<const catalog::Schema> schema_;
   };
 
  public:
