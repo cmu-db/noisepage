@@ -99,10 +99,11 @@ class ExecutionThreadPool : DedicatedThreadOwner {
       CPU_SET(cpu_id_, &mask);
       int result = sched_setaffinity(0, sizeof(cpu_set_t), &mask);
       TERRIER_ASSERT(result == 0, "sched_setaffinity should succeed");
-      if (numa_available() >= 0 && numa_max_node() >= 0) {
+      numa_region_ = storage::UNSUPPORTED_NUMA_REGION;
+      if (numa_available() >= 0) {
         numa_region_ = static_cast<storage::numa_region_t>(numa_node_of_cpu(cpu_id));
-        TERRIER_ASSERT(static_cast<int16_t>(numa_region_) >= 0, "cpu_id must be valid");
-      } else {
+      }
+      if (static_cast<int16_t>(numa_region) < 0) {
         numa_region_ = static_cast<storage::numa_region_t>(0);
       }
 #else
