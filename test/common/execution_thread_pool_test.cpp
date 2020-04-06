@@ -127,7 +127,7 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
   for (uint32_t i = 0; i < num_threads; i++) {
     cpu_ids.emplace_back(i);
   }
-  common::ExecutionThreadPool thread_pool(common::ManagedPointer(&registry), &cpu_ids);
+  common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
   for (uint32_t it = 0; it < iteration; it++) {
     std::atomic<uint32_t> flag1 = 0, flag2 = 0;
     auto stall_on_flag = [&] {
