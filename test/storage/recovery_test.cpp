@@ -798,8 +798,9 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   // Create directory
   std::filesystem::create_directory(ckpt_path);
 
+  auto ckpt_txn = txn_manager_->BeginTransaction();
   Checkpoint ckpt(catalog_,
-                  static_cast<const common::ManagedPointer <transaction::TransactionContext>>(txn_manager_->BeginTransaction()));
+                  static_cast<const common::ManagedPointer <transaction::TransactionContext>>(ckpt_txn));
 
   // get db_oid
   catalog::db_oid_t db;
@@ -808,6 +809,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   }
 
   ckpt.TakeCheckpoint(ckpt_path, db);
+  txn_manager_->Commit(ckpt_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   ShutdownAndRestartSystem();
 
 
@@ -841,6 +843,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   recovery_manager.StartRecovery(true);
   recovery_manager.WaitForRecoveryToFinish();
 
+
   recovery_manager.RecoverFromCheckpoint(ckpt_path, db);
   // Check we recovered all the original tables
   for (auto &database : tested->GetTables()) {
@@ -867,9 +870,9 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
     }
   }
 
-// Contrary to other tests, we clean up the recovery catalog and gc thread here because the secondary_log_manager is a
-  // local object. Setting the appropriate variables to nullptr will allow the TearDown code to run normally.
-  recovery_db_main_.reset();
+  // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
+  // DeferredAction
+  db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; });
 }
 
 }  // namespace terrier::storage
