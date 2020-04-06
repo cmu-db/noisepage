@@ -59,7 +59,8 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
   out_buffer->SetNumTuples(filled);
 }
 
-// TODO(Schema-Change): we will need to go to the next DataTable once we reached the end of current block by either chasing
+// TODO(Schema-Change): we will need to go to the next DataTable once we reached the end of current block by either
+// chasing
 //  the pointer to the next datatable, or consulting SqlTable to obtain such information
 DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
   // TODO(Lin): We need to temporarily comment out this latch for the concurrent TPCH experiments. Should be replaced

@@ -35,7 +35,7 @@ class SqlTable {
    */
   struct DataTableVersion {
     DataTable *data_table_;
-    BlockLayout layout_;
+    const BlockLayout layout_;
     ColumnOidToIdMap column_oid_to_id_map_;
     // TODO(Ling): used in transforming between different versions.
     //  It only works for adding and dropping columns, but not modifying type/constraint/default of the column
@@ -58,7 +58,7 @@ class SqlTable {
    * Destructs a SqlTable, frees all its members.
    */
   ~SqlTable() {
-    for (const auto &it :tables_) delete it.second.data_table_;
+    for (const auto &it : tables_) delete it.second.data_table_;
   }
 
   /**
@@ -69,8 +69,8 @@ class SqlTable {
    * @param out_buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
    * @return true if tuple is visible to this txn and ProjectedRow has been populated, false otherwise
    */
-  bool Select(common::ManagedPointer <transaction::TransactionContext> txn,
-              layout_version_t layout_version, TupleSlot slot, ProjectedRow * out_buffer) const;
+  bool Select(common::ManagedPointer<transaction::TransactionContext> txn, layout_version_t layout_version,
+              TupleSlot slot, ProjectedRow *out_buffer) const;
 
   /**
    * Update the tuple according to the redo buffer given. StageWrite must have been called as well in order for the
@@ -81,8 +81,8 @@ class SqlTable {
    * TupleSlot in this RedoRecord must be set to the intended tuple.
    * @return true if successful, false otherwise
    */
-  bool Update(common::ManagedPointer <transaction::TransactionContext> txn,
-              layout_version_t layout_version, RedoRecord * redo) const;
+  bool Update(common::ManagedPointer<transaction::TransactionContext> txn, layout_version_t layout_version,
+              RedoRecord *redo) const;
 
   /**
    * Inserts a tuple, as given in the redo, and return the slot allocated for the tuple. StageWrite must have been
@@ -92,8 +92,7 @@ class SqlTable {
    * @param redo after-image of the inserted tuple.
    * @return TupleSlot for the inserted tuple
    */
-  TupleSlot Insert(const common::ManagedPointer <transaction::TransactionContext> txn,
-                   layout_version_t layout_version,
+  TupleSlot Insert(const common::ManagedPointer<transaction::TransactionContext> txn, layout_version_t layout_version,
                    RedoRecord *const redo) const {
     TERRIER_ASSERT(redo->GetTupleSlot() == TupleSlot(nullptr, 0), "TupleSlot was set in this RedoRecord.");
     TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
@@ -111,7 +110,8 @@ class SqlTable {
    * @param slot the slot of the tuple to delete
    * @return true if successful, false otherwise
    */
-  bool Delete(const common::ManagedPointer<transaction::TransactionContext> txn, layout_version_t layout_version, const TupleSlot slot) {
+  bool Delete(const common::ManagedPointer<transaction::TransactionContext> txn, layout_version_t layout_version,
+              const TupleSlot slot) {
     TERRIER_ASSERT(txn->redo_buffer_.LastRecord() != nullptr,
                    "The RedoBuffer is empty even though StageDelete should have been called.");
     TERRIER_ASSERT(
@@ -148,6 +148,23 @@ class SqlTable {
     return table_.data_table_->Scan(txn, start_pos, out_buffer);
   }
 
+  /**
+   * Creates a new tableversion given a schema. Conccurent UpdateSchema is synchronized at the Catalog table.
+   * Since the catalog table prevents write-write conflict with version pointer, calling UpdateSchema here is always
+   * thread-safe.
+   * @param txn
+   * @param layout_version
+   * @param schema
+   */
+  void UpdateSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
+                    const layout_version_t layout_version, const catalog::Schema &schema) {
+    TERRIER_ASSERT(tables_.lower_bound(version) == tables_.end(),
+                   "input version should be strictly larger than all versions");
+    auto table = CreateTable(common::ManagedPointer<const catalog::Schema>(&schema), block_store_, version);
+    const auto [_it, success] = tables_.insert({version, table});
+    TERRIER_ASSERT(success, "inserting new tableversion should not fail");
+  }
+
   // TODO(Schema-Change): Do we retain the begin() and end(), or implement begin and end function with version number?
 
   /**
@@ -164,14 +181,16 @@ class SqlTable {
    * @param: layout_version the last version I should be able to see
    * @return one past the last tuple slot contained in the underlying DataTable
    */
-  DataTable::SlotIterator end(layout_version_t layout_version) const { return table_.tables_.at[layout_version]->end(); }  // NOLINT for STL name compability
+  DataTable::SlotIterator end(layout_version_t layout_version) const {
+    return table_.tables_.at[layout_version]->end();
+  }  // NOLINT for STL name compability
 
   // TODO(Schema-Change): add projection considering table
-  //  We might have to seperate the use cases here: one implementation that does not expect schema chnage at all, one does.
-  //  In many cases, this function is called not in transactional context (thus layout_version not really relevant).
-  //  For example, in TPCC, the worker will pre-allocate a buffer with size equal to the projectedrow's size.
-  //  For the version that does expect a version change: we can save the col_oids and the reference to the SqlTable in the
-  //  ProjRow(Colum)Initlizer, and only later when a transactional context is known, we materialize this initializer
+  //  We might have to seperate the use cases here: one implementation that does not expect schema chnage at all, one
+  //  does. In many cases, this function is called not in transactional context (thus layout_version not really
+  //  relevant). For example, in TPCC, the worker will pre-allocate a buffer with size equal to the projectedrow's size.
+  //  For the version that does expect a version change: we can save the col_oids and the reference to the SqlTable in
+  //  the ProjRow(Colum)Initlizer, and only later when a transactional context is known, we materialize this initializer
   //  with the correct layout_version
   /**
    * Generates an ProjectedColumnsInitializer for the execution layer to use. This performs the translation from col_oid
@@ -191,7 +210,6 @@ class SqlTable {
     return ProjectedColumnsInitializer(table_.layout_, col_ids, max_tuples);
   }
 
-
   /**
    * Generates an ProjectedRowInitializer for the execution layer to use. This performs the translation from col_oid to
    * col_id for the Initializer's constructor so that the execution layer doesn't need to know anything about col_id.
@@ -199,7 +217,8 @@ class SqlTable {
    * @return initializer to create ProjectedRow
    * @warning col_oids must be a set (no repeats)
    */
-  ProjectedRowInitializer InitializerForProjectedRow(const std::vector<catalog::col_oid_t> &col_oids, layout_version_t layout_version) const {
+  ProjectedRowInitializer InitializerForProjectedRow(const std::vector<catalog::col_oid_t> &col_oids,
+                                                     layout_version_t layout_version) const {
     // TODO(Schema-Change): this function is called for calculating the optimal layout of the columns
     //  (so they are not stored in logical order).
     //  This should not be using the inside data, but only the layout/column information.
@@ -234,16 +253,27 @@ class SqlTable {
   // Used orderred map for traversing data table that are less or equal to curr version
   std::map<layout_version_t, DataTableVersion> tables_;
 
-  void AlignHeaderToVersion(ProjectedRow * out_buffer, const DataTableVersion &tuple_version,
+  void AlignHeaderToVersion(ProjectedRow *out_buffer, const DataTableVersion &tuple_version,
                             const DataTableVersion &desired_version, col_id_t *cached_ori_header,
-                            std::vector<catalog::col_oid_t>* missing_cols) const;
+                            std::vector<catalog::col_oid_t> *missing_cols) const;
+
+  /**
+   * Creates a new datatble version given the schema and version number
+   * @param schema
+   * @param store
+   * @param version
+   * @return DataTableVersion
+   */
+  DataTableVersion CreateTable(const common::ManagedPointer<const catalog::Schema> schema,
+                               const common::ManagedPointer<BlockStore> store, layout_version_t version);
 
   /**
    * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization
    * @param col_oids set of col_oids, they must be in the table's ColumnMap
    * @return vector of col_ids for these col_oids
    */
-  std::vector<col_id_t> ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids, layout_version_t layout_version) const;
+  std::vector<col_id_t> ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids,
+                                      layout_version_t layout_version) const;
 
   /**
    * @warning This function is expensive to call and should be used with caution and sparingly.
