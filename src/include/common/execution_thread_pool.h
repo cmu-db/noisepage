@@ -78,9 +78,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     }
     Task t({std::promise<void>(), task});
     task_queue_[static_cast<int16_t>(numa_hint)].push(std::move(t));
-    if (total_workers_ != busy_workers_) {
-      task_cv_.notify_one();
-    }
+    task_cv_.notify_all();
 
     return t.first.get_future();
   }
@@ -130,11 +128,11 @@ class ExecutionThreadPool : DedicatedThreadOwner {
 
         pool_->busy_workers_--;
         status_ = ThreadStatus::PARKED;
-        std::unique_lock<std::mutex> l(pool_->task_lock_);
-        pool_->task_cv_.wait(l);
+        pool_->WaitForTask();
         status_ = ThreadStatus::SWITCHING;
         pool_->busy_workers_++;
       }
+
     }
 
     /*
@@ -156,11 +154,11 @@ class ExecutionThreadPool : DedicatedThreadOwner {
      * Implements the DedicatedThreadTask api
      */
     void Terminate() {
-      std::unique_lock<std::mutex> l(cv_mutex_);
       exit_task_loop_ = true;
-      pool_->task_cv_.notify_all();
       while (!done_exiting_) {
-        done_cv_.wait_for(l, std::chrono::milliseconds(10));
+        pool_->SignalTasks();
+        std::unique_lock<std::mutex> l(cv_mutex_);
+        done_cv_.wait_for(l, std::chrono::seconds(1));
       }
       pool_->busy_workers_--;
       pool_->total_workers_--;
@@ -214,22 +212,32 @@ class ExecutionThreadPool : DedicatedThreadOwner {
   bool OnThreadRemoval(common::ManagedPointer<DedicatedThreadTask> dedicated_task) {
     // we dont want to deplete a numa region while other numa regions have multiple threads to prevent starvation
     // on the queue for this region
-    auto *thread = static_cast<TerrierThread *>(dedicated_task.operator->());
-    if (shutting_down_) return true;
-
-    common::SharedLatch::ScopedSharedLatch l(&array_latch_);
-    TERRIER_ASSERT(0 <= static_cast<int16_t>(thread->numa_region_) && static_cast<int16_t>(thread->numa_region_) <= num_regions_,"numa region should be in range");
-    auto *vector = &workers_[static_cast<int16_t>(thread->numa_region_)];
-    TERRIER_ASSERT(!vector->empty(), "if this thread is potentially being closed it must be tracked");
-    // if there is another thread running in this numa region
-    if (vector->size() > 1) return true;
-    for (int16_t i = 0; i < num_regions_; i++) {
-      vector = &workers_[i];
-      // if another numa region has extra threads
-      if (vector->size() > 1) return false;
-    }
+//    auto *thread = static_cast<TerrierThread *>(dedicated_task.operator->());
+//    if (shutting_down_) return true;
+//
+//    common::SharedLatch::ScopedSharedLatch l(&array_latch_);
+//    TERRIER_ASSERT(0 <= static_cast<int16_t>(thread->numa_region_) && static_cast<int16_t>(thread->numa_region_) <= num_regions_,"numa region should be in range");
+//    auto *vector = &workers_[static_cast<int16_t>(thread->numa_region_)];
+//    TERRIER_ASSERT(!vector->empty(), "if this thread is potentially being closed it must be tracked");
+//    // if there is another thread running in this numa region
+//    if (vector->size() > 1) return true;
+//    for (int16_t i = 0; i < num_regions_; i++) {
+//      vector = &workers_[i];
+//      // if another numa region has extra threads
+//      if (vector->size() > 1) return false;
+//    }
     // no numa region has multiple threads
     return true;
+  }
+
+  void WaitForTask() {
+    std::unique_lock<std::mutex> l(task_lock_);
+    task_cv_.wait(l);
+
+  }
+
+  void SignalTasks() {
+    task_cv_.notify_all();
   }
 };
 }  // namespace terrier::common
