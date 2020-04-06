@@ -103,7 +103,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
       if (numa_available() >= 0) {
         numa_region_ = static_cast<storage::numa_region_t>(numa_node_of_cpu(cpu_id));
       }
-      if (static_cast<int16_t>(numa_region) < 0) {
+      if (static_cast<int16_t>(numa_region_) < 0) {
         numa_region_ = static_cast<storage::numa_region_t>(0);
       }
 #else
