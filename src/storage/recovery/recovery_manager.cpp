@@ -75,9 +75,8 @@ void RecoveryManager::RecoverFromLogs(bool catalog_only) {
   }
 }
 
-void RecoveryManager::RecoverFromCheckpoint(const std::string &path) {
+void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db_oid_t db_oid) {
   // Get the db_oid
-  catalog::db_oid_t db_oid;
   auto *recovery_txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(common::ManagedPointer(recovery_txn), db_oid);
 
@@ -171,6 +170,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path) {
     SqlTable *new_table = new SqlTable(accessor->GetBlockStore(), accessor->GetSchema(table_oid), blocks);
     accessor->SetTablePointer(table_oid, new_table);
   }
+  std::cout << "ok" << std::endl;
 }
 
 void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestamp_t txn_id, bool catalog_only) {

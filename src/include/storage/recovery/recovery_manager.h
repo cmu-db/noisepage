@@ -110,6 +110,8 @@ class RecoveryManager : public common::DedicatedThreadOwner {
     }
   }
 
+  void RecoverFromCheckpoint(const std::string &path, catalog::db_oid_t db);
+
  private:
   FRIEND_TEST(RecoveryTests, DoubleRecoveryTest);
   FRIEND_TEST(RecoveryTests, CatalogOnlyTest);
@@ -170,8 +172,6 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @note this is a separate method so in the future, we can also have a RecoverFromCheckpoint method
    */
   void RecoverFromLogs(bool catalog_only = false);
-
-  void RecoverFromCheckpoint(const std::string &path);
 
   /**
    * @brief Replay a committed transaction corresponding to txn_id.
