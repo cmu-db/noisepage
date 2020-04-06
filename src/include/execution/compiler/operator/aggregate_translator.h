@@ -1,6 +1,7 @@
 #pragma once
 
 #include <utility>
+#include "execution/compiler/operator/aggregate_util.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 
@@ -22,19 +23,19 @@ class AggregateBottomTranslator : public OperatorTranslator {
    */
   AggregateBottomTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen);
 
-  // Declare the hash table
+  // Declare the hash tables
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override;
 
-  // Declare payload and probe structs
+  // Declare the values and payload structs
   void InitializeStructs(util::RegionVector<ast::Decl *> *decls) override;
 
-  // Create the key check function.
+  // Create the key check functions.
   void InitializeHelperFunctions(util::RegionVector<ast::Decl *> *decls) override;
 
-  // Call @aggHTInit on the hash table
+  // Initialize all hash tables.
   void InitializeSetup(util::RegionVector<ast::Stmt *> *setup_stmts) override;
 
-  // Call @aggHTFree
+  // Free all hash tables.
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override;
 
   void Produce(FunctionBuilder *builder) override;
@@ -44,8 +45,10 @@ class AggregateBottomTranslator : public OperatorTranslator {
   // Pass through to the child
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
 
-  // Return the attribute at idx
-  ast::Expr *GetOutput(uint32_t attr_idx) override;
+  // Should not be called.
+  ast::Expr *GetOutput(uint32_t attr_idx) override {
+    UNREACHABLE("Use the more descriptive 'GetGroupByOutput' and 'GetAggregateOutput instead'");
+  }
 
   // This is materializer
   bool IsMaterializer(bool *is_ptr) override {
@@ -54,92 +57,34 @@ class AggregateBottomTranslator : public OperatorTranslator {
   }
 
   // Return the payload and its type
-  std::pair<ast::Identifier *, ast::Identifier *> GetMaterializedTuple() override {
-    return {&agg_payload_, &payload_struct_};
+  std::pair<const ast::Identifier *, const ast::Identifier *> GetMaterializedTuple() override {
+    auto global_aht = helper_.GetGlobalAHT();
+    return {&global_aht->Entry(), &global_aht->StructType()};
   }
 
   const planner::AbstractPlanNode *Op() override { return op_; }
 
  private:
   /**
-   * Return the group by term at the given index
-   * @param object either agg_payload_ or agg_values_
+   * Return the group by output at the given index
    * @param idx index of the term
    * @return the group by term at the given index
    */
-  ast::Expr *GetGroupByTerm(ast::Identifier object, uint32_t idx);
+  ast::Expr *GetGroupByOutput(uint32_t idx);
 
   /**
-   * Return the aggregate term at the given index
-   * @param object with agg_payload_ or agg_value_
+   * Return the aggregate output at the given index
    * @param idx index of the term
-   * @param ptr whether to return a pointer to the term or not
-   * @return the group by term at the given index
+   * @return the agg by term at the given index
    */
-  ast::Expr *GetAggTerm(ast::Identifier object, uint32_t idx, bool ptr);
-
-  /*
-   * Generate the aggregation hash table's payload struct
-   */
-  void GenPayloadStruct(util::RegionVector<ast::Decl *> *decls);
-
-  /*
-   * Generate the aggregation's input values
-   */
-  void GenValuesStruct(util::RegionVector<ast::Decl *> *decls);
-
-  /*
-   * Generate the key check logic
-   */
-  void GenKeyCheck(FunctionBuilder *builder);
-
-  /*
-   * First declare var agg_values : AggValues
-   * For each group by term, generate agg_values.term_i = group_by_term_i
-   * For each aggregation expression, agg_values.expr_i = agg_expr_i
-   */
-  void FillValues(FunctionBuilder *builder);
-
-  // Generate var agg_payload = @ptrCast(*AggPayload, @aggHTLookup(&state.agg_ht, agg_hash_val, keyCheck, &agg_values))
-  void GenLookupCall(FunctionBuilder *builder);
-
-  /*
-   * First check if agg_payload == nil
-   * If so, set agg_payload.term_i = agg_values.term_i for each group by terms
-   * Add call @aggInit(&agg_payload.expr_i) for each expression
-   */
-  void GenConstruct(FunctionBuilder *builder);
-
-  /*
-   * For each aggregate expression, call @aggAdvance(&agg_payload.expr_i, &agg_values.expr_i)
-   */
-  void GenAdvance(FunctionBuilder *builder);
-
-  // Generate var agg_hash_val = @hash(groub_by_term1, group_by_term2, ...)
-  void GenHashCall(FunctionBuilder *builder);
-
-  // Tuple at a time key check
-  void GenSingleKeyCheckFn(util::RegionVector<ast::Decl *> *decls);
+  ast::Expr *GetAggregateOutput(uint32_t idx);
 
   // Make the top translator a friend class.
   friend class AggregateTopTranslator;
 
  private:
-  // The number of group by terms.
-  uint32_t num_group_by_terms_;
   const planner::AggregatePlanNode *op_;
-
-  // Structs, Functions, and local variables needed.
-  // TODO(Amadou): This list is blowing up. Figure out a different to manage local variable names.
-  static constexpr const char *GROUP_BY_TERM_NAMES = "group_by_term";
-  static constexpr const char *AGG_TERM_NAMES = "agg_term";
-  ast::Identifier hash_val_;
-  ast::Identifier agg_values_;
-  ast::Identifier values_struct_;
-  ast::Identifier payload_struct_;
-  ast::Identifier agg_payload_;
-  ast::Identifier key_check_;
-  ast::Identifier agg_ht_;
+  AggregateHelper helper_;
 };
 
 /**
@@ -155,7 +100,7 @@ class AggregateTopTranslator : public OperatorTranslator {
    * @param bottom The corresponding bottom translator
    */
   AggregateTopTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen, OperatorTranslator *bottom)
-      : OperatorTranslator(codegen),
+      : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE),
         op_(op),
         bottom_(dynamic_cast<AggregateBottomTranslator *>(bottom)),
         agg_iterator_("agg_iter") {}
@@ -190,7 +135,7 @@ class AggregateTopTranslator : public OperatorTranslator {
   }
 
   // Pass the call to the bottom translator.
-  std::pair<ast::Identifier *, ast::Identifier *> GetMaterializedTuple() override {
+  std::pair<const ast::Identifier *, const ast::Identifier *> GetMaterializedTuple() override {
     return bottom_->GetMaterializedTuple();
   }
 

@@ -14,6 +14,8 @@
 
 namespace terrier::planner {
 
+class PlanVisitor;
+
 /**
  * An abstract plan node should be the base class for (almost) all plan nodes
  */
@@ -194,6 +196,12 @@ class AbstractPlanNode {
    * @return true if two plan nodes are not equivalent
    */
   bool operator!=(const AbstractPlanNode &rhs) const { return !(*this == rhs); }
+
+  /**
+   * Visitor pattern for plan nodes
+   * @param v Visitor
+   */
+  virtual void Accept(common::ManagedPointer<PlanVisitor> v) const = 0;
 
  private:
   std::vector<std::unique_ptr<AbstractPlanNode>> children_;

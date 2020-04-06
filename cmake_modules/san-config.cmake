@@ -101,7 +101,7 @@ if ("${TERRIER_USE_UBSAN}" OR "${TERRIER_USE_ASAN}" OR "${TERRIER_USE_TSAN}")
           " Detected unsupported version ${COMPILER_VERSION}."
           " Try using clang from $NATIVE_TOOLCHAIN/.")
     endif ()
-    add_definitions("-fsanitize-blacklist=${BUILD_SUPPORT_DIR}/sanitize-blacklist.txt")
+    add_definitions("-fsanitize-blacklist=${BUILD_SUPPORT_DATA_DIR}/sanitize_suppressions.txt")
   else ()
     message(WARNING "GCC does not support specifying a sanitizer blacklist. Known sanitizer check failures will not be suppressed.")
   endif ()

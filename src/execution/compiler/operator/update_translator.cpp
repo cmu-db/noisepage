@@ -8,7 +8,7 @@
 
 namespace terrier::execution::compiler {
 UpdateTranslator::UpdateTranslator(const terrier::planner::UpdatePlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(codegen),
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::UPDATE),
       op_(op),
       updater_(codegen->NewIdentifier("updater")),
       update_pr_(codegen->NewIdentifier("update_pr")),
@@ -75,6 +75,12 @@ void UpdateTranslator::GenUpdaterFree(terrier::execution::compiler::FunctionBuil
 ast::Expr *UpdateTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) {
   TERRIER_ASSERT(child_idx == 0, "Update plan can only have one child");
   return child_translator_->GetOutput(attr_idx);
+}
+
+ast::Expr *UpdateTranslator::GetTableColumn(const catalog::col_oid_t &col_oid) {
+  // TODO(Amadou): This relies on the fact that update plan nodes come after table or index scans.
+  // If that turns out to not be the case, then update plans should use DVEs instead of CVEs.
+  return child_translator_->GetTableColumn(col_oid);
 }
 
 void UpdateTranslator::SetOids(FunctionBuilder *builder) {

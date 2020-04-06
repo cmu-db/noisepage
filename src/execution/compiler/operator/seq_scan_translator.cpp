@@ -12,7 +12,7 @@
 namespace terrier::execution::compiler {
 
 SeqScanTranslator::SeqScanTranslator(const terrier::planner::SeqScanPlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(codegen),
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::SEQ_SCAN),
       op_(op),
       schema_(codegen->Accessor()->GetSchema(op_->GetTableOid())),
       input_oids_(MakeInputOids(schema_, op_)),

@@ -12,6 +12,8 @@
 #include "test_util/test_harness.h"
 #include "transaction/deferred_action_manager.h"
 
+#define EXPORT_TABLE_NAME "test_table.arrow"
+
 namespace terrier {
 
 class ProjectedRowDeepEqual {
@@ -81,7 +83,8 @@ TEST_F(BlockCompactorTest, CompactionTest) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayoutWithVarlens(100, &generator_);
     storage::TupleAccessStrategy accessor(layout);
     // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
-    storage::DataTable table(&block_store_, layout, storage::layout_version_t(0));
+    storage::DataTable table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout,
+                             storage::layout_version_t(0));
     storage::RawBlock *block = block_store_.Get();
     accessor.InitializeRawBlock(&table, block, storage::layout_version_t(0));
 
@@ -164,7 +167,8 @@ TEST_F(BlockCompactorTest, GatherTest) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayoutWithVarlens(100, &generator_);
     storage::TupleAccessStrategy accessor(layout);
     // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
-    storage::DataTable table(&block_store_, layout, storage::layout_version_t(0));
+    storage::DataTable table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout,
+                             storage::layout_version_t(0));
     storage::RawBlock *block = block_store_.Get();
     accessor.InitializeRawBlock(&table, block, storage::layout_version_t(0));
 
@@ -270,7 +274,8 @@ TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
     storage::BlockLayout layout = StorageTestUtil::RandomLayoutWithVarlens(100, &generator_);
     storage::TupleAccessStrategy accessor(layout);
     // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
-    storage::DataTable table(&block_store_, layout, storage::layout_version_t(0));
+    storage::DataTable table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout,
+                             storage::layout_version_t(0));
     storage::RawBlock *block = block_store_.Get();
     accessor.InitializeRawBlock(&table, block, storage::layout_version_t(0));
 

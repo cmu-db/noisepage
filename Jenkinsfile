@@ -22,7 +22,6 @@ pipeline {
                         sh 'cd build && timeout 1h make check-format'
                         sh 'cd build && timeout 1h make check-lint'
                         sh 'cd build && timeout 1h make check-censored'
-                        sh 'cd build && make -j4'
                     }
                     post {
                         cleanup {
@@ -35,7 +34,6 @@ pipeline {
                     agent {
                         docker {
                             image 'ubuntu:bionic'
-                            args '--cap-add sys_ptrace'
                         }
                     }
                     steps {
@@ -47,7 +45,6 @@ pipeline {
                         sh 'cd build && timeout 1h make check-format'
                         sh 'cd build && timeout 1h make check-lint'
                         sh 'cd build && timeout 1h make check-censored'
-                        sh 'cd build && make -j$(nproc)'
                     }
                     post {
                         cleanup {
@@ -60,7 +57,6 @@ pipeline {
                     agent {
                         docker {
                             image 'ubuntu:bionic'
-                            args '--cap-add sys_ptrace'
                         }
                     }
                     environment {
@@ -76,7 +72,6 @@ pipeline {
                         sh 'cd build && timeout 1h make check-format'
                         sh 'cd build && timeout 1h make check-lint'
                         sh 'cd build && timeout 1h make check-censored'
-                        sh 'cd build  && make -j$(nproc)'
                     }
                     post {
                         cleanup {
@@ -116,14 +111,15 @@ pipeline {
                     agent {
                         docker {
                             image 'ubuntu:bionic'
-                            args '--cap-add sys_ptrace'
+                            args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
                     steps {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh'
+                        sh 'sudo apt-get -y install ccache'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j$(nproc)'
+                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j$(nproc)'
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
@@ -140,7 +136,7 @@ pipeline {
                     agent {
                         docker {
                             image 'ubuntu:bionic'
-                            args '--cap-add sys_ptrace'
+                            args '-v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
                     environment {
@@ -149,9 +145,9 @@ pipeline {
                     steps {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh'
-                        sh 'sudo apt-get -y install curl lcov'
+                        sh 'sudo apt-get -y install curl lcov ccache'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_GENERATE_COVERAGE=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
+                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_GENERATE_COVERAGE=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && python ../script/testing/junit/run_junit.py'
@@ -178,7 +174,7 @@ pipeline {
                     agent {
                         docker {
                             image 'ubuntu:bionic'
-                            args '--cap-add sys_ptrace'
+                            args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
                     environment {
@@ -188,8 +184,9 @@ pipeline {
                     steps {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh'
+                        sh 'sudo apt-get -y install ccache'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j$(nproc)'
+                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j$(nproc)'
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
@@ -228,13 +225,15 @@ pipeline {
                     agent {
                         docker {
                             image 'ubuntu:bionic'
+                            args '-v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
                     steps {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh'
+                        sh 'sudo apt-get -y install ccache'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
+                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && python ../script/testing/junit/run_junit.py --build_type=release'
@@ -250,6 +249,7 @@ pipeline {
                     agent {
                         docker {
                             image 'ubuntu:bionic'
+                            args '-v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
                     environment {
@@ -259,8 +259,9 @@ pipeline {
                     steps {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh'
+                        sh 'sudo apt-get -y install ccache'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
+                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && python ../script/testing/junit/run_junit.py --build_type=release'
@@ -279,8 +280,9 @@ pipeline {
             steps {
                 sh 'echo $NODE_NAME'
                 sh 'echo y | sudo ./script/installation/packages.sh'
+                sh 'sudo apt-get -y install ccache'
                 sh 'mkdir build'
-                sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON .. && make -j$(nproc) all'
+                sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
                 // We want to use a ramdisk on Jenkins to avoid the overhead of disk writes.
                 sh 'cd script/micro_bench && timeout 1h ./run_micro_bench.py --run --num-threads=4 --logfile-path=/mnt/ramdisk/benchmark.log'
                 archiveArtifacts 'script/micro_bench/*.json'

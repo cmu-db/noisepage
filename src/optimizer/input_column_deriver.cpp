@@ -4,7 +4,7 @@
 
 #include "optimizer/input_column_deriver.h"
 #include "optimizer/memo.h"
-#include "optimizer/operator_expression.h"
+#include "optimizer/operator_node.h"
 #include "optimizer/physical_operators.h"
 #include "optimizer/properties.h"
 #include "optimizer/util.h"
@@ -212,7 +212,7 @@ void InputColumnDeriver::ScanHelper() {
   output_input_cols_ = std::make_pair(std::move(output_cols), std::move(input));
 }
 
-void InputColumnDeriver::AggregateHelper(const BaseOperatorNode *op) {
+void InputColumnDeriver::AggregateHelper(const BaseOperatorNodeContents *op) {
   ExprSet input_cols_set;
   ExprMap output_cols_map;
   unsigned int output_col_idx = 0;
@@ -284,7 +284,7 @@ void InputColumnDeriver::AggregateHelper(const BaseOperatorNode *op) {
   output_input_cols_ = std::make_pair(std::move(output_cols), std::move(child_cols));
 }
 
-void InputColumnDeriver::JoinHelper(const BaseOperatorNode *op) {
+void InputColumnDeriver::JoinHelper(const BaseOperatorNodeContents *op) {
   std::vector<AnnotatedExpression> join_conds;
   std::vector<common::ManagedPointer<parser::AbstractExpression>> left_keys;
   std::vector<common::ManagedPointer<parser::AbstractExpression>> right_keys;
@@ -296,8 +296,6 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNode *op) {
   } else if (op->GetType() == OpType::INNERNLJOIN) {
     auto join_op = reinterpret_cast<const InnerNLJoin *>(op);
     join_conds = join_op->GetJoinPredicates();
-    left_keys = join_op->GetLeftKeys();
-    right_keys = join_op->GetRightKeys();
   }
 
   ExprSet input_cols_set;

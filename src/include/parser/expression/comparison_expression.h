@@ -3,7 +3,12 @@
 #include <memory>
 #include <utility>
 #include <vector>
+
 #include "parser/expression/abstract_expression.h"
+#include "parser/expression/constant_value_expression.h"
+#include "parser/postgresparser.h"
+#include "type/transient_value_factory.h"
+#include "type/type_id.h"
 
 namespace terrier::parser {
 
@@ -48,7 +53,13 @@ class ComparisonExpression : public AbstractExpression {
     return expr;
   }
 
-  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
+              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
+    sherpa->CheckDesiredType(common::ManagedPointer(this).CastManagedPointerTo<AbstractExpression>());
+    sherpa->SetDesiredTypePair(GetChild(0), GetChild(1));
+    // Invoke the visitor pattern on the children.
+    v->Visit(common::ManagedPointer(this), sherpa);
+  }
 };
 
 DEFINE_JSON_DECLARATIONS(ComparisonExpression);

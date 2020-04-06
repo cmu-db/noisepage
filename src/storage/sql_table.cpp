@@ -1,13 +1,17 @@
 #include "storage/sql_table.h"
+
 #include <map>
 #include <set>
+#include <string>
 #include <vector>
+
 #include "common/macros.h"
 #include "storage/storage_util.h"
 
 namespace terrier::storage {
 
-SqlTable::SqlTable(BlockStore *const store, const catalog::Schema &schema) : block_store_(store) {
+SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog::Schema &schema)
+    : block_store_(store) {
   // Begin with the NUM_RESERVED_COLUMNS in the attr_sizes
   std::vector<uint16_t> attr_sizes;
   attr_sizes.reserve(NUM_RESERVED_COLUMNS + schema.GetColumns().size());
@@ -88,4 +92,5 @@ catalog::col_oid_t SqlTable::OidForColId(const col_id_t col_id) const {
                                       [&](const auto &oid_to_id) -> bool { return oid_to_id.second == col_id; });
   return oid_to_id->first;
 }
+
 }  // namespace terrier::storage

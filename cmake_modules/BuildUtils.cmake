@@ -228,6 +228,7 @@ function(ADD_TERRIER_BENCHMARK REL_BENCHMARK_NAME)
     set(BENCHMARK_PATH "${EXECUTABLE_OUTPUT_PATH}/${BENCHMARK_NAME}")
     add_executable(${BENCHMARK_NAME} "${REL_BENCHMARK_NAME}.cpp")
     target_link_libraries(${BENCHMARK_NAME} ${TERRIER_BENCHMARK_LINK_LIBS})
+    set_target_properties(${BENCHMARK_NAME} PROPERTIES ENABLE_EXPORTS 1)
     add_dependencies(runbenchmark ${BENCHMARK_NAME})
     set(NO_COLOR "--color_print=false")
   else ()
@@ -312,8 +313,12 @@ function(ADD_TERRIER_TEST REL_TEST_NAME)
         COMPILE_FLAGS " -DTERRIER_VALGRIND")
     add_test(${TEST_NAME}
         bash -c "cd '${CMAKE_SOURCE_DIR}'; \
-               valgrind --suppressions=valgrind.supp --tool=memcheck --gen-suppressions=all \
-                 --leak-check=full --leak-check-heuristics=stdstring --error-exitcode=1 ${TEST_PATH}")
+               valgrind --suppressions=${BUILD_SUPPORT_DIR}/valgrind_suppressions.txt \
+                 --tool=memcheck \
+                 --gen-suppressions=all \
+                 --leak-check=full \
+                 --leak-check-heuristics=stdstring \
+                 --error-exitcode=1 ${TEST_PATH}")
   else ()
     add_test(${TEST_NAME}
         ${BUILD_SUPPORT_DIR}/run-test.sh ${CMAKE_BINARY_DIR} test ${TEST_PATH})
