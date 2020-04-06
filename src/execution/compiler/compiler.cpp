@@ -176,6 +176,11 @@ ast::Decl *Compiler::GenMainFunction() {
   // Make the function
   FunctionBuilder builder{codegen_, fn_name, std::move(params), ret_type};
 
+  // Step 0.0: Call Launch Work
+//  for (const auto &pipeline : pipelines_) {
+//    pipeline->Root()->LaunchWork(&builder, pipeline->GetWorkFunctionName());
+//  }
+
   // Step 0: Define the state variable.
   ast::Identifier state = codegen_->GetStateVar();
   ast::Expr *state_type = codegen_->MakeExpr(codegen_->GetStateType());

@@ -40,6 +40,21 @@ class Pipeline {
     return codegen_->Context()->GetIdentifier("pipeline" + std::to_string(!pipeline_idx_));
   }
 
+  std::string ConstructPipelineFunctionName(const std::string &func_name) const {
+    auto result = fmt::format("Pipeline{}", pipeline_idx_);
+    if (!func_name.empty()) {
+      result += "_" + func_name;
+    }
+    return result;
+  }
+
+  ast::Identifier GetWorkFunctionName() const {
+    const auto &name = ConstructPipelineFunctionName("ParallelWork");
+    return codegen_->MakeIdentifier(name);
+  }
+
+  OperatorTranslator *Root() const { return pipeline_[0].get(); }
+
   /**
    * Generate the top level declarations of this pipeline
    * @param decls list of functions and structs
