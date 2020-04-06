@@ -21,7 +21,7 @@ TEST(ExecutionThreadPoolTests, SimpleTest) {
   for (int i = 0; i < static_cast<int>(std::thread::hardware_concurrency()); i++) {
     cpu_ids.emplace_back(i);
   }
-  common::ExecutionThreadPool thread_pool(common::ManagedPointer(&registry), &cpu_ids);
+  common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
   std::atomic<int> counter(0);
 
   int var1 = 1;
@@ -46,7 +46,7 @@ TEST(ExecutionThreadPoolTests, BasicTest) {
   for (int i = 0; i < static_cast<int>(std::thread::hardware_concurrency()); i++) {
     cpu_ids.emplace_back(i);
   }
-  common::ExecutionThreadPool thread_pool(common::ManagedPointer(&registry), &cpu_ids);
+  common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
   std::atomic<int> counter(0);
 
   int var1 = 1;
@@ -95,7 +95,7 @@ TEST(ExecutionThreadPoolTests, MoreTest) {
   for (int i = 0; i < static_cast<int>(std::thread::hardware_concurrency()); i++) {
     cpu_ids.emplace_back(i);
   }
-  common::ExecutionThreadPool thread_pool(common::ManagedPointer(&registry), &cpu_ids);
+  common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
   uint32_t iteration = 10;
   std::default_random_engine generator;
   std::uniform_int_distribution<uint32_t> num_thread{1, MultiThreadTestUtil::HardwareConcurrency()};
