@@ -11,6 +11,11 @@
 #include "test_util/multithread_test_util.h"
 #include "test_util/random_test_util.h"
 
+#ifndef __APPLE__
+#include <numa.h>
+#include "numaif.h"
+#endif
+
 namespace terrier {
 
 // Rather minimalistic checks for whether we reuse memory
@@ -110,6 +115,86 @@ TEST(ExecutionThreadPoolTests, MoreTest) {
 
     for (uint32_t i = 0; i < num_threads_used; i++) {
       promises[i].get_future().get();
+    }
+  }
+}
+
+// NOLINTNEXTLINE
+TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
+  common::DedicatedThreadRegistry registry(DISABLED);
+  std::vector<int> cpu_ids;
+  uint32_t iteration = 10, num_threads = std::thread::hardware_concurrency();
+  for (uint32_t i = 0; i < num_threads; i++) {
+    cpu_ids.emplace_back(i);
+  }
+  common::ExecutionThreadPool thread_pool(common::ManagedPointer(&registry), &cpu_ids);
+  for (uint32_t it = 0; it < iteration; it++) {
+    std::atomic<uint32_t> flag1 = 0, flag2 = 0;
+    auto stall_on_flag = [&] {
+      flag1++;
+      while(flag1 != 0)
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    };
+
+    std::promise<void> stall_promises[num_threads];
+    for (uint32_t i = 0; i < num_threads; i++) {
+      thread_pool.SubmitTask(&stall_promises[i], stall_on_flag);
+    }
+
+    // make sure that all threads are stalled
+    while(flag1 != num_threads)
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+    std::promise<void> check_promises[num_threads];
+    for (uint32_t i = 0; i < num_threads; i++) {
+#ifdef __APPLE__
+      storage::numa_region_t numa_hint = storage::UNSUPPORTED_NUMA_REGION;
+      auto workload = [&] () {
+        flag2++;
+        while (flag2 != 0)
+          std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      };
+#else
+      storage::numa_region_t numa_hint = static_cast<storage::numa_region_t>(numa_node_of_cpu(i));
+      auto workload = [&, numa_hint] () {
+        cpu_set_t mask;
+        int result = sched_getaffinity(0, sizeof(cpu_set_t), &mask);
+        TERRIER_ASSERT(result == 0, "sched_getaffinity should succeed");
+
+        uint32_t num_set = 0;
+        for (uint32_t cpu_id = 0; cpu_id < num_threads; cpu_id++) {
+          if (CPU_ISSET(cpu_id, &mask)) {
+            TERRIER_ASSERT(static_cast<storage::numa_region_t>(numa_node_of_cpu(cpu_id)) == numa_hint,
+                "workload should be running on cpu on numa_hint's region");
+            num_set++;
+          }
+        }
+
+        TERRIER_ASSERT(num_set == 1, "affinity should only have 1 core");
+
+        flag2++;
+        while (flag2 != 0)
+          std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      };
+#endif
+
+      thread_pool.SubmitTask(&check_promises[i], workload, numa_hint);
+    }
+
+
+    // un-stall all threads and make sure they finish
+    flag1 = 0;
+    for (uint32_t i = 0; i < num_threads; i++) {
+      stall_promises[i].get_future().get();
+    }
+
+    // wait for all threads to stall again
+    while(flag2 != num_threads)
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    // un-stall all threads and make sure they finish again
+    flag2 = 0;
+    for (uint32_t i = 0; i < num_threads; i++) {
+      check_promises[i].get_future().get();
     }
   }
 }
