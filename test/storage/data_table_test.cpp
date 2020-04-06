@@ -620,7 +620,7 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
   std::vector<int> cpu_ids;
   for (int i = 0; i < static_cast<int>(std::thread::hardware_concurrency()); i++)
     cpu_ids.emplace_back(i);
-  common::ExecutionThreadPool thread_pool(common::ManagedPointer(&registry), &cpu_ids);
+  common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
 
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
