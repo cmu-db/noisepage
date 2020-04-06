@@ -164,10 +164,9 @@ class ReadBufferView {
         default:
           throw NETWORK_PROCESS_EXCEPTION("invalid size for integer");
       }
-    } else {
-      const auto *const double_val = reinterpret_cast<const uint64_t *const>(&val);
-      return static_cast<double>(be64toh(*double_val));
     }
+    const auto *const double_val = reinterpret_cast<const uint64_t *const>(&val);
+    return static_cast<double>(be64toh(*double_val));
   }
 
   /**
