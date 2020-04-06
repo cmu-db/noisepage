@@ -47,6 +47,10 @@ class LimitTranslator : public OperatorTranslator {
   // Does nothing
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
 
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override {
+    UNREACHABLE("LaunchWork for parallel execution is not implemented yet");
+  }
+
   ast::Expr *GetOutput(uint32_t attr_idx) override {
     auto output_expr = op_->GetOutputSchema()->GetColumn(attr_idx).GetExpr();
     auto translator = TranslatorFactory::CreateExpressionTranslator(output_expr.Get(), codegen_);

@@ -45,6 +45,10 @@ class StaticAggregateBottomTranslator : public OperatorTranslator {
   void Abort(FunctionBuilder *builder) override { child_translator_->Abort(builder); }
   void Consume(FunctionBuilder *builder) override;
 
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override {
+    UNREACHABLE("LaunchWork for parallel execution is not implemented yet");
+  }
+
   // Pass through to the child
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {
     return child_translator_->GetOutput(attr_idx);
@@ -106,6 +110,10 @@ class StaticAggregateTopTranslator : public OperatorTranslator {
 
   // Pass through
   void Consume(FunctionBuilder *builder) override { parent_translator_->Consume(builder); }
+
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override {
+    UNREACHABLE("LaunchWork for parallel execution is not implemented yet");
+  }
 
   // Pass through to the child
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {

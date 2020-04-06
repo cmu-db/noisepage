@@ -402,6 +402,10 @@ class CodeGen {
    */
   ast::Identifier NewIdentifier(const std::string &prefix);
 
+  ast::Identifier MakeIdentifier(std::string_view str) {
+    return Context()->GetIdentifier({str.data(), str.length()});
+  }
+
   /**
    * @return an empty BlockStmt
    */
@@ -436,6 +440,19 @@ class CodeGen {
    * @return The expression corresponding to the builtin call.
    */
   ast::Expr *TableIterInit(ast::Identifier tvi, uint32_t table_oid, ast::Identifier col_oids);
+
+  /**
+ * Call @iterateTableParallel(). Performs a parallel scan over the table with the provided name,
+ * using the provided query state and thread-state container and calling the provided scan
+ * function.
+ * @param table_name The name of the table to scan.
+ * @param query_state The query state pointer.
+ * @param tls The thread state container.
+ * @param worker_name The work function name.
+ * @return The call.
+ */
+  ast::Expr *IterateTableParallel(uint32_t table_oid, ast::Expr *query_state,
+                                                ast::Expr *tls, ast::Identifier worker_name);
 
   /**
    * Call pciGetTypeNullable(pci, idx)

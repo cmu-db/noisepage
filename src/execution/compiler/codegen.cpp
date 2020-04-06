@@ -122,6 +122,16 @@ ast::Expr *CodeGen::TableIterInit(ast::Identifier tvi, uint32_t table_oid, ast::
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
+ast::Expr *CodeGen::IterateTableParallel(uint32_t table_oid, ast::Expr *query_state,
+                                             ast::Expr *tls, ast::Identifier worker_name) {
+  ast::Expr *fun = BuiltinFunction(ast::Builtin::TableIterParallel);
+  ast::Expr *table_oid_expr = IntLiteral(static_cast<int64_t>(table_oid));
+
+  // TODO(Ron): update arguments with query state and tls
+  util::RegionVector<ast::Expr *> args{{table_oid_expr, MakeExpr(worker_name)}, Region()};
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+}
+
 ast::Expr *CodeGen::PCIGet(ast::Identifier pci, type::TypeId type, bool nullable, uint32_t idx) {
   ast::Builtin builtin;
   ast::Type *ast_type;

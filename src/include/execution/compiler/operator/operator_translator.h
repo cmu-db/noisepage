@@ -123,6 +123,13 @@ class OperatorTranslator : public ExpressionEvaluator {
   virtual ast::Expr *GetOutput(uint32_t attr_idx) = 0;
 
   /**
+   * This is called on the source/root of parallel pipelines to launch the provided worker function
+   * in parallel across a set of threads.
+   * @param work_func_name The name of the work function that implements the pipeline logic.
+   */
+  virtual void LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const = 0;
+
+  /**
    * Whether this operator materializes structs.
    * Currently, this is used to simplify the probe phase of hash joins. The right side of the join does not have
    * to materialize a tuple if the right child already materialized it.

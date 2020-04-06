@@ -42,6 +42,10 @@ class AggregateBottomTranslator : public OperatorTranslator {
   void Abort(FunctionBuilder *builder) override;
   void Consume(FunctionBuilder *builder) override;
 
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override {
+    UNREACHABLE("LaunchWork for parallel execution is not implemented yet");
+  }
+
   // Pass through to the child
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
 
@@ -123,6 +127,10 @@ class AggregateTopTranslator : public OperatorTranslator {
   void Produce(FunctionBuilder *builder) override;
   void Abort(FunctionBuilder *builder) override;
   void Consume(FunctionBuilder *builder) override;
+
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override {
+    UNREACHABLE("LaunchWork for parallel execution is not implemented yet");
+  }
 
   // Let the bottom translator handle these call
   ast::Expr *GetOutput(uint32_t attr_idx) override;

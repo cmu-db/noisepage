@@ -39,6 +39,10 @@ class SortBottomTranslator : public OperatorTranslator {
   void Abort(FunctionBuilder *builder) override;
   void Consume(FunctionBuilder *builder) override;
 
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override {
+    UNREACHABLE("LaunchWork for parallel execution is not implemented yet");
+  }
+
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
   ast::Expr *GetOutput(uint32_t attr_idx) override;
 
@@ -126,6 +130,10 @@ class SortTopTranslator : public OperatorTranslator {
   void Produce(FunctionBuilder *builder) override;
   void Abort(FunctionBuilder *builder) override;
   void Consume(FunctionBuilder *builder) override;
+
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override {
+    UNREACHABLE("LaunchWork for parallel execution is not implemented yet");
+  }
 
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
   ast::Expr *GetOutput(uint32_t attr_idx) override;

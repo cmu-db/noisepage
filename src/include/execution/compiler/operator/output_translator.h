@@ -39,6 +39,10 @@ class OutputTranslator : public OperatorTranslator {
   // Does nothing
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
 
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override {
+    UNREACHABLE("LaunchWork for parallel execution is not implemented yet");
+  }
+
   // Should never called since this the last layer.
   ast::Expr *GetOutput(uint32_t attr_idx) override { UNREACHABLE("Should not be called on this translator"); }
 

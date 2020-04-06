@@ -44,6 +44,10 @@ class NestedLoopLeftTranslator : public OperatorTranslator {
   // Pass through
   void Consume(FunctionBuilder *builder) override { parent_translator_->Consume(builder); }
 
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override {
+    UNREACHABLE("LaunchWork for parallel execution is not implemented yet");
+  }
+
   // Pass Through
   ast::Expr *GetOutput(uint32_t attr_idx) override { return child_translator_->GetOutput(attr_idx); }
 
@@ -111,6 +115,10 @@ class NestedLoopRightTranslator : public OperatorTranslator {
       // Directly let parent consume
       parent_translator_->Consume(builder);
     }
+  }
+
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override {
+    UNREACHABLE("LaunchWork for parallel execution is not implemented yet");
   }
 
   // Return the output at the given index

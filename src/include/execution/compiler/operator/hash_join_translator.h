@@ -41,6 +41,10 @@ class HashJoinLeftTranslator : public OperatorTranslator {
   // Call @joinHTFree on the hash table
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override;
 
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override {
+    UNREACHABLE("LaunchWork for parallel execution is not implemented yet");
+  }
+
   ast::Expr *GetOutput(uint32_t attr_idx) override;
 
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
@@ -113,6 +117,10 @@ class HashJoinRightTranslator : public OperatorTranslator {
 
   // Does nothing (left operator already freed the hash table)
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
+
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override {
+    UNREACHABLE("LaunchWork for parallel execution is not implemented yet");
+  }
 
   // Get the output at idx
   ast::Expr *GetOutput(uint32_t attr_idx) override;

@@ -40,6 +40,12 @@ class SeqScanTranslator : public OperatorTranslator {
 
   ast::Expr *GetOutput(uint32_t attr_idx) override;
 
+  /**
+  * Launch a parallel table scan.
+  * @param work_func The worker function that'll be called during the parallel scan.
+  */
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override;
+
   // Should not be called here
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {
     UNREACHABLE("SeqScan nodes should use column value expressions");

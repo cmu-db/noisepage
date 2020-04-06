@@ -85,6 +85,11 @@ void SeqScanTranslator::Consume(FunctionBuilder *builder) {
   GenTVIReset(builder);
 }
 
+void SeqScanTranslator::LaunchWork(FunctionBuilder *builder, ast::Identifier work_func) const {
+  ast::Expr *parallel_call = codegen_->IterateTableParallel(!op_->GetTableOid(), nullptr, nullptr, work_func);
+  builder->Append(codegen_->MakeStmt(parallel_call));
+}
+
 ast::Expr *SeqScanTranslator::GetOutput(uint32_t attr_idx) {
   auto output_expr = op_->GetOutputSchema()->GetColumn(attr_idx).GetExpr();
   auto translator = TranslatorFactory::CreateExpressionTranslator(output_expr.Get(), codegen_);
