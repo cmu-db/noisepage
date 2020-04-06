@@ -120,7 +120,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
     // Assuming just VARCHAR
     std::list<RawBlock *> blocks;
     for (auto i = 0u; i < block_num; i++) {
-      for (auto j = 0u; j < varchar_cols; i++) {
+      for (auto j = 0u; j < varchar_cols; j++) {
         f.read(reinterpret_cast<char *>(&col_id), sizeof(col_id));
         f.read(reinterpret_cast<char *>(&offset_length), sizeof(offset_length));
         f.read(reinterpret_cast<char *>(&value_length), sizeof(offset_length));
