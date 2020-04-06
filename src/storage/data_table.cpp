@@ -93,7 +93,9 @@ void DataTable::NUMAScan(common::ManagedPointer<transaction::TransactionContext>
       lambda();
       continue;
     }
-    thread_pool->SubmitTask(lambda, region);
+    std::promise<void> p;
+    thread_pool->SubmitTask(&p, lambda, region);
+    p.get_future().get();
   }
 
   uint32_t result_index = 0;

@@ -28,7 +28,7 @@ namespace terrier::common {
  * it on its own with latches.
  */
 // TODO(Deepayan): change from void later
-using Task = std::pair<std::promise<void>, std::function<void()>>;
+using Task = std::pair<std::promise<void>*, std::function<void()>>;
 using ExecutionTaskQueue = tbb::concurrent_queue<Task>;
 
 /**
@@ -72,15 +72,13 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     }
   }
 
-  std::future<void> SubmitTask(std::function<void()> task, storage::numa_region_t numa_hint = storage::UNSUPPORTED_NUMA_REGION) {
+  void SubmitTask(std::promise<void> *promise, std::function<void()> task, storage::numa_region_t numa_hint = storage::UNSUPPORTED_NUMA_REGION) {
     if (numa_hint == storage::UNSUPPORTED_NUMA_REGION) {
       numa_hint = static_cast<storage::numa_region_t>(0);
     }
-    Task t({std::promise<void>(), task});
-    task_queue_[static_cast<int16_t>(numa_hint)].push(std::move(t));
+    Task t({promise, task});
+    task_queue_[static_cast<int16_t>(numa_hint)].push(t);
     task_cv_.notify_all();
-
-    return t.first.get_future();
   }
 
   /**
@@ -121,7 +119,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
 
           status_ = ThreadStatus::BUSY;
           task.second();
-          task.first.set_value();
+          task.first->set_value();
           status_ = ThreadStatus::SWITCHING;
           return;
         }
