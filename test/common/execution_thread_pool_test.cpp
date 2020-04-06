@@ -26,13 +26,14 @@ TEST(ExecutionThreadPoolTests, SimpleTest) {
 
   int var1 = 1;
 
-  auto result = thread_pool.SubmitTask([&]() {
+  std::promise<void> p;
+  thread_pool.SubmitTask(&p, [&]() {
     var1++;
     counter.fetch_add(1);
   });
 
   // Wait for all the test to finish
-  result.get();
+  p.get_future().get();
 
   EXPECT_EQ(2, var1);
 
@@ -53,32 +54,31 @@ TEST(ExecutionThreadPoolTests, BasicTest) {
   int var3 = 3;
   int var4 = 4;
   int var5 = 5;
-  thread_pool.SubmitTask([&]() {
+  std::promise<void> ps[5];
+  thread_pool.SubmitTask(&ps[0], [&]() {
     var1++;
     counter.fetch_add(1);
   });
-  thread_pool.SubmitTask([&]() {
+  thread_pool.SubmitTask(&ps[1], [&]() {
     var2--;
     counter.fetch_add(1);
   });
-  thread_pool.SubmitTask([&]() {
+  thread_pool.SubmitTask(&ps[2], [&]() {
     var3 *= var3;
     counter.fetch_add(1);
   });
-  thread_pool.SubmitTask([&]() {
+  thread_pool.SubmitTask(&ps[3], [&]() {
     var4 = var4 / var4;
     counter.fetch_add(1);
   });
 
-  thread_pool.SubmitTask([&]() {
+  thread_pool.SubmitTask(&ps[4], [&]() {
     var5 = var5 / var5;
     counter.fetch_add(1);
   });
 
-  // Wait for all the test to finish
-  while (counter.load() != 5) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  }
+  for (int i = 0; i < 5; i++)
+    ps[i].get_future().get();
 
   EXPECT_EQ(2, var1);
   EXPECT_EQ(1, var2);
@@ -103,13 +103,13 @@ TEST(ExecutionThreadPoolTests, MoreTest) {
     auto workload = [] { std::this_thread::sleep_for(std::chrono::milliseconds(200)); };
 
     uint32_t num_threads_used = num_thread(generator);
-    std::future<void> futures[num_threads_used];
+    std::promise<void> promises[num_threads_used];
     for (uint32_t i = 0; i < num_threads_used; i++) {
-      futures[i] = thread_pool.SubmitTask(workload);
+      thread_pool.SubmitTask(&promises[i], workload);
     }
 
     for (uint32_t i = 0; i < num_threads_used; i++) {
-      futures[i].get();
+      promises[i].get_future().get();
     }
   }
 }
