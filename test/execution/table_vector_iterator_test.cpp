@@ -163,7 +163,7 @@ TEST_F(TableVectorIteratorTest, ParallelScanTest) {
                                     nullptr,                  // Query state to pass to scan threads
                                     &thread_state_container,  // Container for thread states
                                     scanner,                  // Scan function
-                                    3, exec_ctx_.get());
+                                    32, exec_ctx_.get());
 
   // Count total aggregate tuple count seen by all threads
   uint32_t aggregate_tuple_count = 0;
