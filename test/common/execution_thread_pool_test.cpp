@@ -15,6 +15,30 @@ namespace terrier {
 
 // Rather minimalistic checks for whether we reuse memory
 // NOLINTNEXTLINE
+TEST(ExecutionThreadPoolTests, SimpleTest) {
+  common::DedicatedThreadRegistry registry(DISABLED);
+  std::vector<int> cpu_ids;
+  for (int i = 0; i < static_cast<int>(std::thread::hardware_concurrency()); i++) {
+    cpu_ids.emplace_back(i);
+  }
+  common::ExecutionThreadPool thread_pool(common::ManagedPointer(&registry), &cpu_ids);
+  std::atomic<int> counter(0);
+
+  int var1 = 1;
+
+  auto result = thread_pool.SubmitTask([&]() {
+    var1++;
+    counter.fetch_add(1);
+  });
+
+  // Wait for all the test to finish
+  result.get();
+
+  EXPECT_EQ(2, var1);
+
+}
+
+// NOLINTNEXTLINE
 TEST(ExecutionThreadPoolTests, BasicTest) {
   common::DedicatedThreadRegistry registry(DISABLED);
   std::vector<int> cpu_ids;
