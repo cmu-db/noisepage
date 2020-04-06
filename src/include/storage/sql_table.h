@@ -80,25 +80,8 @@ class SqlTable {
    * TupleSlot in this RedoRecord must be set to the intended tuple.
    * @return true if successful, false otherwise
    */
-  bool Update(const common::ManagedPointer <transaction::TransactionContext> txn,
-              layout_version_t layout_version,
-              RedoRecord *const redo) const {
-    TERRIER_ASSERT(redo->GetTupleSlot() != TupleSlot(nullptr, 0), "TupleSlot was never set in this RedoRecord.");
-    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
-                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
-                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
-                   "immediately before?");
-    // TODO(Schema-Change): Similarly, need to go through all relavent datatables.
-    //  Also need to take care of tuple migration if the update touches the new columns added
-    //  The migration should be a delete (MVCC style) in old datatable followed by an insert in new datatable.
-    const auto result = table_.data_table_->Update(txn, redo->GetTupleSlot(), *(redo->Delta()));
-    if (!result) {
-      // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
-      // correctly.
-      txn->SetMustAbort();
-    }
-    return result;
-  }
+  bool Update(common::ManagedPointer <transaction::TransactionContext> txn,
+              layout_version_t layout_version, RedoRecord * redo) const;
 
   /**
    * Inserts a tuple, as given in the redo, and return the slot allocated for the tuple. StageWrite must have been
@@ -215,13 +198,18 @@ class SqlTable {
    * @return initializer to create ProjectedRow
    * @warning col_oids must be a set (no repeats)
    */
-  ProjectedRowInitializer InitializerForProjectedRow(const std::vector<catalog::col_oid_t> &col_oids) const {
+  ProjectedRowInitializer InitializerForProjectedRow(const std::vector<catalog::col_oid_t> &col_oids, layout_version_t layout_version) const {
+    // TODO(Schema-Change): this function is called for calculating the optimal layout of the columns
+    //  (so they are not stored in logical order).
+    //  This should not be using the inside data, but only the layout/column information.
+    //  Therefore it should return the initializer of the current intended datatable version
     TERRIER_ASSERT((std::set<catalog::col_oid_t>(col_oids.cbegin(), col_oids.cend())).size() == col_oids.size(),
                    "There should not be any duplicated in the col_ids!");
+    // TODO(Schema-Change): add layout version to ColIdsForOids.
     auto col_ids = ColIdsForOids(col_oids);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
                    "Projection should be the same number of columns as requested col_oids.");
-    return ProjectedRowInitializer::Create(table_.layout_, col_ids);
+    return ProjectedRowInitializer::Create(tables_.at(layout_version).layout_, col_ids);
   }
 
   /**
@@ -229,7 +217,7 @@ class SqlTable {
    * @param col_oids oids that will be scanned.
    * @return the projection map
    */
-  ProjectionMap ProjectionMapForOids(const std::vector<catalog::col_oid_t> &col_oids);
+  ProjectionMap ProjectionMapForOids(const std::vector<catalog::col_oid_t> &col_oids, layout_version_t layout_version);
 
  private:
   friend class RecoveryManager;  // Needs access to OID and ID mappings
@@ -254,7 +242,7 @@ class SqlTable {
    * @param col_oids set of col_oids, they must be in the table's ColumnMap
    * @return vector of col_ids for these col_oids
    */
-  std::vector<col_id_t> ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids) const;
+  std::vector<col_id_t> ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids, layout_version_t layout_version) const;
 
   /**
    * @warning This function is expensive to call and should be used with caution and sparingly.
@@ -262,6 +250,6 @@ class SqlTable {
    * @param col_id given col id
    * @return col oid for the provided col id
    */
-  catalog::col_oid_t OidForColId(col_id_t col_id) const;
+  catalog::col_oid_t OidForColId(col_id_t col_id, layout_version_t layout_version) const;
 };
 }  // namespace terrier::storage
