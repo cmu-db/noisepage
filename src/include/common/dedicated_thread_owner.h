@@ -71,7 +71,7 @@ class DedicatedThreadOwner {
   /**
    * Notifies the owner that a new thread has been given to it
    */
-  void AddThread(DedicatedThreadTask *task) {
+  virtual void AddThread(DedicatedThreadTask *task) {
     common::SpinLatch::ScopedSpinLatch guard(&thread_count_latch_);
     thread_count_++;
   }
@@ -79,7 +79,7 @@ class DedicatedThreadOwner {
   /**
    * Notifies the owner that a new thread has removed from them
    */
-  void RemoveThread(DedicatedThreadTask *task) {
+  virtual void RemoveThread(DedicatedThreadTask *task) {
     common::SpinLatch::ScopedSpinLatch guard(&thread_count_latch_);
     thread_count_--;
   }

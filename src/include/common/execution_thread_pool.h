@@ -128,7 +128,6 @@ class ExecutionThreadPool : DedicatedThreadOwner {
 
         pool_->busy_workers_--;
         status_ = ThreadStatus::PARKED;
-        pool_->WaitForTask();
         status_ = ThreadStatus::SWITCHING;
         pool_->busy_workers_++;
       }
@@ -147,7 +146,6 @@ class ExecutionThreadPool : DedicatedThreadOwner {
       }
 
       done_exiting_ = true;
-      done_cv_.notify_all();
     }
 
     /*
@@ -157,15 +155,13 @@ class ExecutionThreadPool : DedicatedThreadOwner {
       exit_task_loop_ = true;
       while (!done_exiting_) {
         pool_->SignalTasks();
-        std::unique_lock<std::mutex> l(cv_mutex_);
-        done_cv_.wait_for(l, std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
       }
       pool_->busy_workers_--;
       pool_->total_workers_--;
     }
 
     std::mutex cv_mutex_;
-    std::condition_variable done_cv_;
     ExecutionThreadPool *pool_;
     int cpu_id_;
     ThreadStatus status_ = ThreadStatus::FREE;
@@ -191,13 +187,15 @@ class ExecutionThreadPool : DedicatedThreadOwner {
   std::mutex task_lock_;
   std::condition_variable task_cv_;
 
-  void AddThread(TerrierThread *thread) {
+  void AddThread(DedicatedThreadTask *t) override {
+    TerrierThread *thread = static_cast<TerrierThread *>(t);
     common::SharedLatch::ScopedExclusiveLatch l(&array_latch_);
     TERRIER_ASSERT(0 <= static_cast<int16_t>(thread->numa_region_) && static_cast<int16_t>(thread->numa_region_) <= num_regions_,"numa region should be in range");
     auto *vector = &workers_[static_cast<int16_t>(thread->numa_region_)];
     vector->emplace_back(thread);
   }
-  void RemoveThread(TerrierThread *thread) {
+  void RemoveThread(DedicatedThreadTask *t) override {
+    TerrierThread *thread = static_cast<TerrierThread *>(t);
     common::SharedLatch::ScopedExclusiveLatch l(&array_latch_);
     TERRIER_ASSERT(0 <= static_cast<int16_t>(thread->numa_region_) && static_cast<int16_t>(thread->numa_region_) <= num_regions_,"numa region should be in range");
     std::vector<TerrierThread *> *vector = &workers_[static_cast<int16_t>(thread->numa_region_)];
@@ -209,7 +207,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     }
   }
 
-  bool OnThreadRemoval(common::ManagedPointer<DedicatedThreadTask> dedicated_task) {
+  bool OnThreadRemoval(common::ManagedPointer<DedicatedThreadTask> dedicated_task) override {
     // we dont want to deplete a numa region while other numa regions have multiple threads to prevent starvation
     // on the queue for this region
 //    auto *thread = static_cast<TerrierThread *>(dedicated_task.operator->());
