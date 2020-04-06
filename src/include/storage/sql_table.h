@@ -90,6 +90,7 @@ class SqlTable {
    *
    * @param txn the calling transaction
    * @param redo after-image of the inserted tuple.
+   * @param layout_version schema layout version for the inserted tuple
    * @return TupleSlot for the inserted tuple
    */
   TupleSlot Insert(const common::ManagedPointer<transaction::TransactionContext> txn, layout_version_t layout_version,
@@ -120,8 +121,10 @@ class SqlTable {
                 ->GetTupleSlot() == slot,
         "This Delete is not the most recent entry in the txn's RedoBuffer. Was StageDelete called immediately before?");
 
-    // TODO(Schema-Change): among all relavant datatables.
-    const auto result = table_.data_table_->Delete(txn, slot);
+    const auto tuple_version = slot.GetBlock()->data_table_->layout_version_;
+    TERRIER_ASSERT(tables_.find(tuple_version) != tables_.end(), "we are not deleting any layout version for now");
+    const auto result = tables_.at(tuple_version).data_table_->Delete(txn, slot);
+
     if (!result) {
       // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
       // correctly.
