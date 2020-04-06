@@ -140,6 +140,7 @@ class PG_Constraint {
 /**
  * Manager class for pg_constraints
  * responsible for creating and registering a constraint in the system
+ *  create this when database start 
  */
 class PG_Constraint_Manager {
  public:
