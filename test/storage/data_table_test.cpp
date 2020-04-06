@@ -631,9 +631,9 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
 
     if (num_inserts > object_pool_size / num_threads) num_inserts = object_pool_size / num_threads;
 
-    std::future<void> threads[num_threads];
+    std::promise<void> threads[num_threads];
     for (uint32_t t = 0; t < num_threads; t++) {
-      threads[t] = thread_pool.SubmitTask([&] {
+      thread_pool.SubmitTask(&threads[t],[&] {
         // Populate the table with random tuples
         for (uint32_t i = 0; i < num_inserts; i++) {
           tested.InsertRandomTuple(transaction::timestamp_t(0), &generator_, &buffer_pool_);
@@ -642,7 +642,7 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
     }
 
     for (uint32_t i = 0; i < num_threads; i++) {
-      threads[i].get();
+      threads[i].get_future().get();
     }
 
     uint32_t num_slots = 0;
@@ -672,12 +672,12 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
     }
 #endif
 
-    std::future<void> numa_threads[numa_regions.size()];
+    std::promise<void> numa_threads[numa_regions.size()];
     std::atomic<uint32_t> counted_numa_iteration = 0;
 
     for (uint32_t i = 0; i < numa_regions.size(); i++) {
       storage::numa_region_t numa_region = numa_regions[i];
-      numa_threads[i] = thread_pool.SubmitTask([&, numa_region] {
+      thread_pool.SubmitTask(&numa_threads[i], [&, numa_region] {
         storage::ProjectedColumnsInitializer initializer(tested.Layout(), all_cols, 10 * num_inserts * num_threads);
         auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
         storage::ProjectedColumns *columns = initializer.Initialize(buffer);
@@ -705,7 +705,7 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
     }
 
     for (uint32_t i = 0; i < numa_regions.size(); i++) {
-      numa_threads[i].get();
+      numa_threads[i].get_future().get();
     }
 
     EXPECT_EQ(num_inserts * num_threads, counted_numa_iteration);
