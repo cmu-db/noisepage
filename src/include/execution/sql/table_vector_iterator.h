@@ -88,7 +88,7 @@ class EXPORT TableVectorIterator {
    * @param scan_fn The callback function invoked for vectors of table input
    * @param min_grain_size The minimum number of blocks to give a scan task
    */
-  static bool ParallelScan(uint32_t db_oid, uint32_t table_oid, void *const query_state, ThreadStateContainer *const thread_states,
+  static bool ParallelScan(uint32_t table_oid, void *const query_state, ThreadStateContainer *const thread_states,
                            const ScanFn scan_fn, const uint32_t min_grain_size, exec::ExecutionContext *exec_ctx);
 
  private:

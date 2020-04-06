@@ -637,7 +637,22 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
 }
 
 void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call) {
-  UNREACHABLE("Parallel scan is not implemented yet!");
+  // First argument is table oid
+  const auto table_oid = static_cast<uint32_t >(call->Arguments()[0]->As<ast::LitExpr>()->Int64Val());
+  TERRIER_ASSERT(table_oid != 0, "Table does not exist!");
+
+  // Execution context
+  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
+
+  // Next is the thread state container
+  LocalVar thread_state_container = VisitExpressionForRValue(call->Arguments()[2]);
+
+  // Finally the scan function as an identifier
+  const auto scan_fn_name = call->Arguments()[3]->As<ast::IdentifierExpr>()->Name().Data();
+  const FunctionId scan_fn_id = LookupFuncIdByName(scan_fn_name);
+
+  // Done
+  Emitter()->EmitParallelTableScan(table_oid, exec_ctx, thread_state_container, scan_fn_id);
 }
 
 void BytecodeGenerator::VisitBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin) {
@@ -2100,7 +2115,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinTableIterCall(call, builtin);
       break;
     }
-    case ast::Builtin::TableIterParallel: {
+    case ast::Builtin::TableIterParallel:
+    {
       VisitBuiltinTableIterParallelCall(call);
       break;
     }
