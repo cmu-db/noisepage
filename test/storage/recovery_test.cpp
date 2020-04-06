@@ -841,7 +841,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   recovery_manager.StartRecovery(true);
   recovery_manager.WaitForRecoveryToFinish();
 
-  recovery_manager.RecoverFromCheckpoint(ckpt_path);
+  recovery_manager.RecoverFromCheckpoint(ckpt_path, db);
   // Check we recovered all the original tables
   for (auto &database : tested->GetTables()) {
     auto database_oid = database.first;
