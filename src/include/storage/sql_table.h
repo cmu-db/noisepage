@@ -94,17 +94,8 @@ class SqlTable {
    * @param layout_version schema layout version for the inserted tuple
    * @return TupleSlot for the inserted tuple
    */
-  TupleSlot Insert(const common::ManagedPointer<transaction::TransactionContext> txn, layout_version_t layout_version,
-                   RedoRecord *const redo) const {
-    TERRIER_ASSERT(redo->GetTupleSlot() == TupleSlot(nullptr, 0), "TupleSlot was set in this RedoRecord.");
-    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
-                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
-                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
-                   "immediately before?");
-    const auto slot = tables_.at(layout_version).data_table_->Insert(txn, *(redo->Delta()));
-    redo->SetTupleSlot(slot);
-    return slot;
-  }
+  TupleSlot Insert(common::ManagedPointer<transaction::TransactionContext> txn, layout_version_t layout_version,
+                   RedoRecord *redo) const;
 
   /**
    * Deletes the given TupleSlot. StageDelete must have been called as well in order for the operation to be logged.
@@ -229,8 +220,7 @@ class SqlTable {
     //  Therefore it should return the initializer of the current intended datatable version
     TERRIER_ASSERT((std::set<catalog::col_oid_t>(col_oids.cbegin(), col_oids.cend())).size() == col_oids.size(),
                    "There should not be any duplicated in the col_ids!");
-    // TODO(Schema-Change): add layout version to ColIdsForOids.
-    auto col_ids = ColIdsForOids(col_oids);
+    auto col_ids = ColIdsForOids(col_oids, layout_version);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
                    "Projection should be the same number of columns as requested col_oids.");
     return ProjectedRowInitializer::Create(tables_.at(layout_version).layout_, col_ids);
@@ -257,9 +247,9 @@ class SqlTable {
   // Used orderred map for traversing data table that are less or equal to curr version
   std::map<layout_version_t, DataTableVersion> tables_;
 
-  void AlignHeaderToVersion(ProjectedRow *out_buffer, const DataTableVersion &tuple_version,
-                            const DataTableVersion &desired_version, col_id_t *cached_ori_header,
-                            std::vector<catalog::col_oid_t> *missing_cols) const;
+  // return if there is any columns touched in new schema but not old schema
+  bool AlignHeaderToVersion(ProjectedRow *out_buffer, const DataTableVersion &tuple_version,
+                            const DataTableVersion &desired_version, col_id_t *cached_ori_header) const;
 
   void FillMissingColumns(ProjectedRow *out_buffer, const DataTableVersion &desired_version) const;
 
@@ -270,8 +260,8 @@ class SqlTable {
    * @param version
    * @return DataTableVersion
    */
-  DataTableVersion CreateTable(const common::ManagedPointer<const catalog::Schema> schema,
-                               const common::ManagedPointer<BlockStore> store, layout_version_t version);
+  DataTableVersion CreateTable(common::ManagedPointer<const catalog::Schema> schema,
+                               common::ManagedPointer<BlockStore> store, layout_version_t version);
 
   /**
    * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization

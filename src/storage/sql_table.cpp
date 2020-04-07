@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "common/macros.h"
+#include "parser/expression/abstract_expression.h"
 #include "storage/storage_util.h"
 
 namespace terrier::storage {
@@ -35,7 +36,7 @@ bool SqlTable::Select(const common::ManagedPointer<transaction::TransactionConte
 
     auto desired_v = tables_.at(layout_version);
     auto tuple_v = tables_.at(tuple_version);
-    AlignHeaderToVersion(out_buffer, tuple_v, desired_v, &ori_header[0]);
+    auto missing UNUSED_ATTRIBUTE = AlignHeaderToVersion(out_buffer, tuple_v, desired_v, &ori_header[0]);
     auto result = tables_.at(tuple_version).data_table_->Select(txn, slot, out_buffer);
 
     // copy back the original header
@@ -54,8 +55,7 @@ bool SqlTable::Update(const common::ManagedPointer<transaction::TransactionConte
                              ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
                  "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
                  "immediately before?");
-  // TODO(Schema-Change): Similarly, need to go through all relavent datatables.
-  //  Also need to take care of tuple migration if the update touches the new columns added
+  // TODO(Schema-Change): need to take care of tuple migration if the update touches the new columns added
   //  The migration should be a delete (MVCC style) in old datatable followed by an insert in new datatable.
 
   // get the version of current tuple slot
@@ -72,15 +72,39 @@ bool SqlTable::Update(const common::ManagedPointer<transaction::TransactionConte
     // tuple in an older version, check if all modified columns are in the datatable version where the tuple is in
 
     col_id_t ori_header[redo->Delta()->NumColumns()];
-    std::vector<catalog::col_oid_t> missing_cols;
-    AlignHeaderToVersion(redo->Delta(), tuple_v, desired_v, &ori_header[0]);
+    auto desired_v = tables_.at(layout_version);
+    auto tuple_v = tables_.at(tuple_version);
+    auto missing = AlignHeaderToVersion(redo->Delta(), tuple_v, desired_v, &ori_header[0]);
 
-    if (missing_cols.empty()) {
+    if (!missing) {
       result = tuple_v.data_table_->Update(txn, redo->GetTupleSlot(), *(redo->Delta()));
       std::memcpy(redo->Delta()->ColumnIds(), ori_header, sizeof(col_id_t) * redo->Delta()->NumColumns());
     } else {
       // touching columns that are in the desired schema, but not the actual schema
       // do an delete followed by an insert
+
+      // get projected row from redo (This projection is deterministic for identical set of columns)
+      std::vector<col_id_t> col_ids;
+      for (const auto &it : desired_v.column_id_to_oid_map_) col_ids.emplace_back(it.first);
+      auto initializer = ProjectedRowInitializer::Create(desired_v.layout_, col_ids);
+      auto *const buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+      auto *pr = initializer.InitializeRow(buffer);
+
+      // fill in values to the projection
+      result = Select(txn, layout_version, curr_tuple, pr);
+
+      if (result) {
+        // delete it from old datatable
+        result = tuple_v.data_table_->Delete(txn, curr_tuple);
+        if (result) {
+          // insert it to new datatable
+
+          // apply the change
+          StorageUtil::ApplyDelta(desired_v.layout_, *(redo->Delta()), pr);
+          const auto slot UNUSED_ATTRIBUTE = desired_v.data_table_->Insert(txn, *pr);
+        }
+      }
+      delete[] buffer;
     }
   }
   if (!result) {
@@ -89,6 +113,18 @@ bool SqlTable::Update(const common::ManagedPointer<transaction::TransactionConte
     txn->SetMustAbort();
   }
   return result;
+}
+
+TupleSlot SqlTable::Insert(const common::ManagedPointer<transaction::TransactionContext> txn,
+                           layout_version_t layout_version, RedoRecord *const redo) const {
+  TERRIER_ASSERT(redo->GetTupleSlot() == TupleSlot(nullptr, 0), "TupleSlot was set in this RedoRecord.");
+  TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+                             ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
+                 "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
+                 "immediately before?");
+  const auto slot = tables_.at(layout_version).data_table_->Insert(txn, *(redo->Delta()));
+  redo->SetTupleSlot(slot);
+  return slot;
 }
 
 void SqlTable::FillMissingColumns(ProjectedRow *const out_buffer, const DataTableVersion &desired_version) const {
@@ -102,8 +138,9 @@ void SqlTable::FillMissingColumns(ProjectedRow *const out_buffer, const DataTabl
     }
   }
 }
-void SqlTable::AlignHeaderToVersion(ProjectedRow *const out_buffer, const DataTableVersion &tuple_version,
+bool SqlTable::AlignHeaderToVersion(ProjectedRow *const out_buffer, const DataTableVersion &tuple_version,
                                     const DataTableVersion &desired_version, col_id_t *cached_ori_header) const {
+  bool missing_col = false;
   // reserve the original header, aka intended column ids'
   std::memcpy(cached_ori_header, out_buffer->ColumnIds(), sizeof(col_id_t) * out_buffer->NumColumns());
 
@@ -115,9 +152,11 @@ void SqlTable::AlignHeaderToVersion(ProjectedRow *const out_buffer, const DataTa
     if (tuple_version.column_oid_to_id_map_.count(col_oid) > 0) {
       out_buffer->ColumnIds()[i] = tuple_version.column_oid_to_id_map_.at(col_oid);
     } else {
+      missing_col = true;
       out_buffer->ColumnIds()[i] = IGNORE_COLUMN_ID;
     }
   }
+  return missing_col;
 }
 
 SqlTable::DataTableVersion SqlTable::CreateTable(
