@@ -131,17 +131,16 @@ class SqlTable {
    * output buffer. The tuples materialized are guaranteed to be visible and valid, and the function makes best effort
    * to fill the buffer, unless there are no more tuples. The given iterator is mutated to point to one slot past the
    * last slot scanned in the invocation.
-   *
+   * @warning a tuple inserted early than start_pos might appear in the scan (by migrating into a later version schema
+   * datatable so the ordering of the scanning is not strictly defined here. However, if start_pos is obtained through
+   * SqlTable::begin(), the results will always contain the same tuples
    * @param txn the calling transaction
-   * @param start_pos iterator to the starting location for the sequential scan
+   * @param start_pos iterator to the starting location for the sequential scan.
    * @param out_buffer output buffer. The object should already contain projection list information. This buffer is
    *                   always cleared of old values.
    */
   void Scan(const common::ManagedPointer<transaction::TransactionContext> txn, DataTable::SlotIterator *const start_pos,
-            ProjectedColumns *const out_buffer) const {
-    // TODO(Schema-Change): among all relavant datatables.
-    return table_.data_table_->Scan(txn, start_pos, out_buffer);
-  }
+            ProjectedColumns *const out_buffer, const layout_version_t layout_version) const;
 
   /**
    * Creates a new tableversion given a schema. Conccurent UpdateSchema is synchronized at the Catalog table.
