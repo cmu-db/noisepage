@@ -201,6 +201,14 @@ class DataTable {
   TupleSlot Insert(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo);
 
   /**
+   * Inserts a tuple, as given in the redo into the specified block.
+   * @param txn the calling transaction
+   * @param redo after-image of the inserted tuple
+   * @param block the block to which the tuple should be inserted into
+   */
+  void InsertIntoBlock(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo, RawBlock *block);
+
+  /**
    * Deletes the given TupleSlot, this will call StageDelete on the provided txn to generate the RedoRecord for delete.
    * The rest of the behavior follows Update's behavior.
    * @param txn the calling transaction
