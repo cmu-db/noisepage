@@ -91,6 +91,51 @@ bool SqlTable::Update(const common::ManagedPointer<transaction::TransactionConte
   return result;
 }
 
+void SqlTable::Scan(const terrier::common::ManagedPointer<transaction::TransactionContext> txn,
+                    DataTable::SlotIterator *const start_pos, ProjectedColumns *const out_buffer,
+                    const layout_version_t layout_version) const {
+  TERRIER_ASSERT(tables_.find(layout_version) != tables_.end(), "layout_version should exist");
+  auto desired_v = tables_.at(layout_version);
+  auto end = tables_.upper_bound(layout_version);
+
+  // iterate through all the datatables visible to this transaction
+  uint32_t filled = 0;
+  for (auto itr = tables_.begin(); itr != end; itr++) {
+    // Convert the projected row to select a tuple from a datatable
+    const auto table = itr->second.data_table_;
+    const auto select_v = itr->second;
+    col_id_t ori_header[out_buffer->NumColumns()];
+    std::vector<uint16_t> missing_cols;
+
+    if (itr->first != layout_version) {
+      AlignHeaderToVersion(out_buffer, select_v, desired_v, &ori_header[0], &missing_cols);
+    }
+
+    // update the start_pos only if not the first table
+    if (itr != tables_.begin()) *start_pos = table->begin();
+    auto table_end = table->end();
+
+    // Scan through the datable
+    while (filled < out_buffer->MaxTuples() && *start_pos != table_end) {
+      ProjectedColumns::RowView row = out_buffer->InterpretAsRow(filled);
+      const TupleSlot slot = **start_pos;
+      // Only fill the buffer with valid, visible tuples
+      if (table->SelectIntoBuffer(txn, slot, &row)) {
+        // Fill the missing ones
+        if (itr->first != layout_version) FillMissingColumns(&row, desired_v);
+
+        out_buffer->TupleSlots()[filled] = slot;
+        filled++;
+      }
+      ++(*start_pos);
+    }
+
+    // Max number of tuples filled in the buffer
+    if (filled >= out_buffer->MaxTuples()) {
+      return;
+    }
+  }
+}
 void SqlTable::FillMissingColumns(ProjectedRow *const out_buffer, const DataTableVersion &desired_version) const {
   const auto col_ids = out_buffer->ColumnIds();
   for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {

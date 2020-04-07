@@ -143,20 +143,23 @@ class DataTable {
   // save a point of scan and come back to it later?
   // Alternatively, we can provide an easy wrapper that takes in a const SlotIterator & and returns a SlotIterator,
   // just like the ++i and i++ dichotomy.
-  /**
-   * Sequentially scans the table starting from the given iterator(inclusive) and materializes as many tuples as would
-   * fit into the given buffer, as visible to the transaction given, according to the format described by the given
-   * output buffer. The tuples materialized are guaranteed to be visible and valid, and the function makes best effort
-   * to fill the buffer, unless there are no more tuples. The given iterator is mutated to point to one slot passed the
-   * last slot scanned in the invocation.
-   *
-   * @param txn the calling transaction
-   * @param start_pos iterator to the starting location for the sequential scan
-   * @param out_buffer output buffer. The object should already contain projection list information. This buffer is
-   *                   always cleared of old values.
-   */
-  void Scan(common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *start_pos,
-            ProjectedColumns *out_buffer) const;
+  // /**
+  //  * Sequentially scans the table starting from the given iterator(inclusive) and materializes as many tuples as
+  //  would
+  //  * fit into the given buffer, as visible to the transaction given, according to the format described by the given
+  //  * output buffer. The tuples materialized are guaranteed to be visible and valid, and the function makes best
+  //  effort
+  //  * to fill the buffer, unless there are no more tuples. The given iterator is mutated to point to one slot passed
+  //  the
+  //  * last slot scanned in the invocation.
+  //  *
+  //  * @param txn the calling transaction
+  //  * @param start_pos iterator to the starting location for the sequential scan
+  //  * @param out_buffer output buffer. The object should already contain projection list information. This buffer is
+  //  *                   always cleared of old values.
+  //  */
+  // void Scan(common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *start_pos,
+  //           ProjectedColumns *out_buffer) const;
 
   /**
    * @return the first tuple slot contained in the data table
