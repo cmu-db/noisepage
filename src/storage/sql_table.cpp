@@ -176,8 +176,8 @@ SqlTable::DataTableVersion SqlTable::CreateTable(
 
   auto layout = storage::BlockLayout(attr_sizes);
   tables_ = {{layout_version_t(0),
-              {new DataTable(block_store_, layout, layout_version_t(0)), layout, col_oid_to_id, col_id_to_oid,
-               schema, default_value_map}}};
+              {new DataTable(block_store_, layout, layout_version_t(0)), layout, col_oid_to_id, col_id_to_oid, schema,
+               default_value_map}}};
 }
 
 std::vector<col_id_t> SqlTable::ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids,
