@@ -43,6 +43,9 @@ using ExecutionTaskQueue = tbb::concurrent_queue<Task>;
  */
 class ExecutionThreadPool : DedicatedThreadOwner {
  public:
+  /*
+   * All possible states that a thread could be in
+   */
   enum class ThreadStatus { FREE = 0, BUSY = 1, SWITCHING = 2, PARKED = 3 };
 
   // NOLINTNEXTLINE  lint thinks it has only one arguement
