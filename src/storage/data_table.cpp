@@ -210,6 +210,22 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
   return result;
 }
 
+void DataTable::InsertIntoBlock(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo, RawBlock *block) {
+
+  TupleSlot new_slot;
+  // Set block status to busy
+  accessor_.SetBlockBusyStatus(block);
+  // Allocate a new TupleSlot
+  accessor_.Allocate(block, &new_slot);
+  // Clear the busy status
+  accessor_.ClearBlockBusyStatus(block);
+
+  // Insert the redo into the new TupleSlot created
+  InsertInto(txn, redo, new_slot);
+
+  data_table_counter_.IncrementNumInsert(1);
+}
+
 void DataTable::InsertInto(const common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo,
                            TupleSlot dest) {
   TERRIER_ASSERT(accessor_.Allocated(dest), "destination slot must already be allocated");
