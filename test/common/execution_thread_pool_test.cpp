@@ -182,19 +182,83 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
     }
 
 
-    // un-stall all threads and make sure they finish
+    // un-stall all tasks and make sure they finish
     flag1 = 0;
     for (uint32_t i = 0; i < num_threads; i++) {
       stall_promises[i].get_future().get();
     }
 
-    // wait for all threads to stall again
+    // wait for all tasks to stall again
     while(flag2 != num_threads)
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    // un-stall all threads and make sure they finish again
+    // un-stall all tasks and make sure they finish again
     flag2 = 0;
     for (uint32_t i = 0; i < num_threads; i++) {
       check_promises[i].get_future().get();
+    }
+  }
+}
+
+
+// NOLINTNEXTLINE
+TEST(ExecutionThreadPoolTests, TaskStealingCorrectnessTest) {
+  common::DedicatedThreadRegistry registry(DISABLED);
+  std::vector<int> cpu_ids;
+  cpu_ids.emplace_back(0);
+  uint32_t iteration = 10, num_threads = 1;
+  common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
+  for (uint32_t it = 0; it < iteration; it++) {
+    std::atomic<uint32_t> flag1 = 0;
+    auto stall_on_flag = [&] {
+      flag1++;
+      while(flag1 != 0)
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    };
+
+    std::promise<void> stall_promises[num_threads];
+    for (uint32_t i = 0; i < num_threads; i++) {
+      thread_pool.SubmitTask(&stall_promises[i], stall_on_flag);
+    }
+
+    // make sure that all threads are stalled
+    while(flag1 != num_threads)
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+#ifdef __APPLE__
+    int16_t num_numa_regions = 1;
+#else
+    int16_t num_numa_regions = numa_available() < 0 || numa_max_node() < 0 ? 1 : numa_max_node();
+#endif
+
+    std::atomic<int16_t> order_count = 0;
+    common::SpinLatch order_latch_;
+    std::map<uint32_t, storage::numa_region_t> numa_order;
+    std::promise<void> check_promises[num_numa_regions];
+    for (int16_t i = 0; i < num_numa_regions; i++) {
+      storage::numa_region_t numa_hint = static_cast<storage::numa_region_t>(i);
+      auto workload = [&, numa_hint] {
+        common::SpinLatch::ScopedSpinLatch l(&order_latch_);
+        uint16_t pos = order_count++;
+        TERRIER_ASSERT(numa_order.find(pos) == numa_order.end(), "there should be no other node at this position");
+        numa_order[pos] = numa_hint;
+      };
+      thread_pool.SubmitTask(&check_promises[i], workload, numa_hint);
+    }
+
+
+    // un-stall all tasks and make sure they finish
+    flag1 = 0;
+    for (uint32_t i = 0; i < num_threads; i++) {
+      stall_promises[i].get_future().get();
+    }
+
+    // wait for checking tasks to finish
+    for (int16_t i = 0; i < num_numa_regions; i++) {
+      check_promises[i].get_future().get();
+    }
+    TERRIER_ASSERT(numa_order.size() == num_numa_regions, "we should have as many nodes as hints");
+    for (auto numa_pair UNUSED_ATTRIBUTE : numa_order) {
+      TERRIER_ASSERT(numa_pair.first == numa_pair.second, "thread should take from queues starting at its region and continuing mod number of nodes");
     }
   }
 }
