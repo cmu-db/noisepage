@@ -262,8 +262,8 @@ class DataTable {
    *                   always cleared of old values.
    */
   void NUMAScan(common::ManagedPointer<transaction::TransactionContext> txn,
-                std::vector<ProjectedColumns *> *out_buffers, ProjectedColumns *const result_buffer,
-                common::ExecutionThreadPool *thread_pool = nullptr);
+                std::vector<ProjectedColumns *> *out_buffers, ProjectedColumns *const result_buffer, // NOLINT
+                common::ExecutionThreadPool *thread_pool = nullptr); // NOLINT
 
   /**
    * @return the first tuple slot contained in the data table
