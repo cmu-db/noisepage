@@ -714,7 +714,8 @@ TEST(ExpressionTests, ParameterValueExpressionTest) {
   EXPECT_EQ(param_expr_1->Hash(), param_expr_2->Hash());
   EXPECT_NE(param_expr_1->Hash(), param_expr_3->Hash());
   EXPECT_EQ(param_expr_1->GetExpressionType(), ExpressionType::VALUE_PARAMETER);
-  EXPECT_EQ(param_expr_1->GetReturnValueType(), type::TypeId::INTEGER);
+  EXPECT_EQ(param_expr_1->GetReturnValueType(),
+            type::TypeId::INVALID);  // default type is now INVALID so we know in the binder whether it's been bound yet
   EXPECT_EQ(param_expr_1->GetChildrenSize(), 0);
   EXPECT_EQ(param_expr_1->GetValueIdx(), 42);
   param_expr_1->DeriveExpressionName();
