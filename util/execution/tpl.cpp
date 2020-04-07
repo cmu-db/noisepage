@@ -13,6 +13,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/managed_pointer.h"
 #include "execution/ast/ast_dump.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
@@ -116,7 +117,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   params.emplace_back(type::TransientValueFactory::GetDecimal(37.73));
   params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date.val_.ToNative())));
   params.emplace_back(type::TransientValueFactory::GetVarChar("37 Strings"));
-  exec_ctx.SetParams(std::move(params));
+  exec_ctx.SetParams(common::ManagedPointer<const std::vector<type::TransientValue>>(&params));
 
   // Generate test tables
   sql::TableGenerator table_generator{&exec_ctx, db_main->GetStorageLayer()->GetBlockStore(), ns_oid};

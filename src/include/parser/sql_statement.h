@@ -152,10 +152,8 @@ class SQLStatement {
   /**
    * Visitor pattern used to access and create optimizer objects.
    * @param v Visitor pattern for the statement
-   * @param sherpa The BinderSherpa for storing state through visitor pattern
    */
-  virtual void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
-                      common::ManagedPointer<binder::BinderSherpa> sherpa) = 0;
+  virtual void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) = 0;
 
   /**
    * @return statement serialized to json
