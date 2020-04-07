@@ -1094,4 +1094,35 @@ void LogicalAnalyzeToPhysicalAnalyze::Transform(common::ManagedPointer<AbstractO
   transformed->emplace_back(std::move(op));
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// LogicalCteScanToPhysicalCteScan
+///////////////////////////////////////////////////////////////////////////////
+LogicalCteScanToPhysicalCteScan::LogicalCteScanToPhysicalCteScan() {
+  type_ = RuleType::CTESCAN_TO_PHYSICAL;
+
+  match_pattern_ = new Pattern(OpType::LOGICALCTESCAN);
+  match_pattern_->AddChild(new Pattern(OpType::LEAF));
+}
+
+bool LogicalCteScanToPhysicalCteScan::Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const {
+  (void)context;
+  (void)plan;
+  return true;
+}
+
+void LogicalCteScanToPhysicalCteScan::Transform(common::ManagedPointer<OperatorNode> input,
+                                            std::vector<std::unique_ptr<OperatorNode>> *transformed,
+                                            OptimizationContext *context) const {
+  (void)context;
+  TERRIER_ASSERT(input->GetChildren().size() == 1, "LogicalCteScan should have 1 child");
+
+  std::vector<std::unique_ptr<OperatorNode>> c;
+  auto child = input->GetChildren()[0]->Copy();
+  c.emplace_back(std::move(child));
+
+  auto result_plan = std::make_unique<OperatorNode>(
+      CteScan::Make(), std::move(c));
+  transformed->emplace_back(std::move(result_plan));
+}
+
 }  // namespace terrier::optimizer

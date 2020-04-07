@@ -317,6 +317,12 @@ class OperatorVisitor {
   virtual void Visit(const Analyze *analyze) {}
 
   /**
+   * Visit a CteScan operator
+   * @param cte_scan operator
+   */
+  virtual void Visit(const CteScan *cte_scan) {}
+
+  /**
    * Visit a LogicalGet operator
    * @param logical_get operator
    */
@@ -519,6 +525,12 @@ class OperatorVisitor {
    * @param logical_analyze operator
    */
   virtual void Visit(const LogicalAnalyze *logical_analyze) {}
+
+  /**
+   * Visit a LogicalCteScan operator
+   * @param logical_cte_scan operator
+   */
+  virtual void Visit(const LogicalCteScan *logical_cte_scan) {}
 };
 
 }  // namespace terrier::optimizer
