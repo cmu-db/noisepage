@@ -149,10 +149,10 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
         while (flag2 != 0) std::this_thread::sleep_for(std::chrono::milliseconds(50));
       };
 #else
-      storage::numa_region_t numa_hint = static_cast<storage::numa_region_t>(numa_node_of_cpu(i));
+      storage::numa_region_t numa_hint UNUSED_ATTRIBUTE = static_cast<storage::numa_region_t>(numa_node_of_cpu(i));
       auto workload = [&, numa_hint]() {
         cpu_set_t mask;
-        int result = sched_getaffinity(0, sizeof(cpu_set_t), &mask);
+        int result UNUSED_ATTRIBUTE = sched_getaffinity(0, sizeof(cpu_set_t), &mask);
         TERRIER_ASSERT(result == 0, "sched_getaffinity should succeed");
 
         uint32_t num_set = 0;
