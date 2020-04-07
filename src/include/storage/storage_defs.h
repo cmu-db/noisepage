@@ -1,8 +1,8 @@
 #pragma once
 
 #ifndef __APPLE__
-#include "numa.h"
-#include "numaif.h"
+#include <numa.h>
+#include <numaif.h>
 #endif
 #include <algorithm>
 #include <functional>

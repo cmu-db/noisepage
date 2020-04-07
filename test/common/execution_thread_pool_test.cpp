@@ -13,7 +13,7 @@
 
 #ifndef __APPLE__
 #include <numa.h>
-#include "numaif.h"
+#include <numaif.h>
 #endif
 
 namespace terrier {
@@ -41,7 +41,6 @@ TEST(ExecutionThreadPoolTests, SimpleTest) {
   p.get_future().get();
 
   EXPECT_EQ(2, var1);
-
 }
 
 // NOLINTNEXTLINE
@@ -82,15 +81,13 @@ TEST(ExecutionThreadPoolTests, BasicTest) {
     counter.fetch_add(1);
   });
 
-  for (int i = 0; i < 5; i++)
-    ps[i].get_future().get();
+  for (int i = 0; i < 5; i++) ps[i].get_future().get();
 
   EXPECT_EQ(2, var1);
   EXPECT_EQ(1, var2);
   EXPECT_EQ(9, var3);
   EXPECT_EQ(1, var4);
   EXPECT_EQ(1, var5);
-
 }
 
 // NOLINTNEXTLINE
@@ -132,8 +129,7 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
     std::atomic<uint32_t> flag1 = 0, flag2 = 0;
     auto stall_on_flag = [&] {
       flag1++;
-      while(flag1 != 0)
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      while (flag1 != 0) std::this_thread::sleep_for(std::chrono::milliseconds(50));
     };
 
     std::promise<void> stall_promises[num_threads];
@@ -142,21 +138,19 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
     }
 
     // make sure that all threads are stalled
-    while(flag1 != num_threads)
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    while (flag1 != num_threads) std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     std::promise<void> check_promises[num_threads];
     for (uint32_t i = 0; i < num_threads; i++) {
 #ifdef __APPLE__
       storage::numa_region_t numa_hint = storage::UNSUPPORTED_NUMA_REGION;
-      auto workload = [&] () {
+      auto workload = [&]() {
         flag2++;
-        while (flag2 != 0)
-          std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        while (flag2 != 0) std::this_thread::sleep_for(std::chrono::milliseconds(50));
       };
 #else
       storage::numa_region_t numa_hint = static_cast<storage::numa_region_t>(numa_node_of_cpu(i));
-      auto workload = [&, numa_hint] () {
+      auto workload = [&, numa_hint]() {
         cpu_set_t mask;
         int result = sched_getaffinity(0, sizeof(cpu_set_t), &mask);
         TERRIER_ASSERT(result == 0, "sched_getaffinity should succeed");
@@ -165,7 +159,7 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
         for (uint32_t cpu_id = 0; cpu_id < num_threads; cpu_id++) {
           if (CPU_ISSET(cpu_id, &mask)) {
             TERRIER_ASSERT(static_cast<storage::numa_region_t>(numa_node_of_cpu(cpu_id)) == numa_hint,
-                "workload should be running on cpu on numa_hint's region");
+                           "workload should be running on cpu on numa_hint's region");
             num_set++;
           }
         }
@@ -173,14 +167,12 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
         TERRIER_ASSERT(num_set == 1, "affinity should only have 1 core");
 
         flag2++;
-        while (flag2 != 0)
-          std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        while (flag2 != 0) std::this_thread::sleep_for(std::chrono::milliseconds(50));
       };
 #endif
 
       thread_pool.SubmitTask(&check_promises[i], workload, numa_hint);
     }
-
 
     // un-stall all tasks and make sure they finish
     flag1 = 0;
@@ -189,8 +181,7 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
     }
 
     // wait for all tasks to stall again
-    while(flag2 != num_threads)
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    while (flag2 != num_threads) std::this_thread::sleep_for(std::chrono::milliseconds(50));
     // un-stall all tasks and make sure they finish again
     flag2 = 0;
     for (uint32_t i = 0; i < num_threads; i++) {
@@ -198,7 +189,6 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
     }
   }
 }
-
 
 // NOLINTNEXTLINE
 TEST(ExecutionThreadPoolTests, TaskStealingCorrectnessTest) {
@@ -211,8 +201,7 @@ TEST(ExecutionThreadPoolTests, TaskStealingCorrectnessTest) {
     std::atomic<uint32_t> flag1 = 0;
     auto stall_on_flag = [&] {
       flag1++;
-      while(flag1 != 0)
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      while (flag1 != 0) std::this_thread::sleep_for(std::chrono::milliseconds(50));
     };
 
     std::promise<void> stall_promises[num_threads];
@@ -221,8 +210,7 @@ TEST(ExecutionThreadPoolTests, TaskStealingCorrectnessTest) {
     }
 
     // make sure that all threads are stalled
-    while(flag1 != num_threads)
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    while (flag1 != num_threads) std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
 #ifdef __APPLE__
     int16_t num_numa_regions = 1;
@@ -245,7 +233,6 @@ TEST(ExecutionThreadPoolTests, TaskStealingCorrectnessTest) {
       thread_pool.SubmitTask(&check_promises[i], workload, numa_hint);
     }
 
-
     // un-stall all tasks and make sure they finish
     flag1 = 0;
     for (uint32_t i = 0; i < num_threads; i++) {
@@ -256,9 +243,11 @@ TEST(ExecutionThreadPoolTests, TaskStealingCorrectnessTest) {
     for (int16_t i = 0; i < num_numa_regions; i++) {
       check_promises[i].get_future().get();
     }
-    TERRIER_ASSERT(static_cast<int16_t>(numa_order.size()) == num_numa_regions, "we should have as many nodes as hints");
+    TERRIER_ASSERT(static_cast<int16_t>(numa_order.size()) == num_numa_regions,
+                   "we should have as many nodes as hints");
     for (auto numa_pair UNUSED_ATTRIBUTE : numa_order) {
-      TERRIER_ASSERT(numa_pair.first == static_cast<int16_t>(numa_pair.second), "thread should take from queues starting at its region and continuing mod number of nodes");
+      TERRIER_ASSERT(numa_pair.first == static_cast<int16_t>(numa_pair.second),
+                     "thread should take from queues starting at its region and continuing mod number of nodes");
     }
   }
 }

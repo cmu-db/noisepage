@@ -143,14 +143,14 @@ DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compabi
 
 void DataTable::GetNUMARegions(std::vector<numa_region_t> *regions) {
   common::SharedLatch::ScopedSharedLatch l(&(this->map_latch_));
-  for (auto elem : this->region_blocks_map_) {
+  for (const auto &elem : this->region_blocks_map_) {
     regions->emplace_back(elem.first);
   }
 }
 
-DataTable::NUMAIterator DataTable::begin(numa_region_t index) const { return {this, index}; }
+DataTable::NUMAIterator DataTable::begin(numa_region_t index) const { return {this, index}; } // NOLINT
 
-DataTable::NUMAIterator DataTable::end(numa_region_t index) const { return {}; }
+DataTable::NUMAIterator DataTable::end(numa_region_t index) const { return {}; } // NOLINT
 
 DataTable::NUMAIterator &DataTable::NUMAIterator::operator++() {
   // Jump to the next block if already the last slot in the block.
