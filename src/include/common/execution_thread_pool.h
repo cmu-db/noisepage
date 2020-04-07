@@ -135,7 +135,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     ~TerrierThread() override = default;
 
     void RunNextTask() {
-      while (UNLIKELY(!exit_task_loop_)) {
+      while (LIKELY(!exit_task_loop_)) {
         auto index = static_cast<int16_t>(numa_region_);
         for (int16_t i = 0; i < pool_->num_regions_; i++) {
           index = (index + 1) % pool_->num_regions_;
@@ -151,6 +151,8 @@ class ExecutionThreadPool : DedicatedThreadOwner {
 
         pool_->busy_workers_--;
         status_ = ThreadStatus::PARKED;
+        std::unique_lock<std::mutex> l(pool_->task_lock_);
+        pool_->task_cv_.wait_for(l, std::chrono::milliseconds (50));
         status_ = ThreadStatus::SWITCHING;
         pool_->busy_workers_++;
       }
