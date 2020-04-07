@@ -176,7 +176,7 @@ class BlockAllocator {
  public:
   /**
    * Allocates a new object by calling its constructor.
-   * @param optional NUMA region to allocate object
+   * @param region optional NUMA region to allocate object
    * @return a pointer to the allocated object.
    */
   RawBlock *New(numa_region_t region = UNSUPPORTED_NUMA_REGION) {

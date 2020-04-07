@@ -258,8 +258,10 @@ class DataTable {
    *
    * @param txn the calling transaction
    * @param start_pos iterator to the starting location for the sequential scan
-   * @param out_buffer output buffer. The object should already contain projection list information. This buffer is
+   * @param out_buffers output buffers. The object should already contain projection list information. This buffer is
    *                   always cleared of old values.
+   * @param result_buffer final buffer into which the results are placed.
+   * @param thread_pool thread pool to be used for the scan.
    */
   void NUMAScan(common::ManagedPointer<transaction::TransactionContext> txn,
                 std::vector<ProjectedColumns *> *out_buffers, ProjectedColumns *const result_buffer, // NOLINT
