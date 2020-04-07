@@ -256,9 +256,9 @@ TEST(ExecutionThreadPoolTests, TaskStealingCorrectnessTest) {
     for (int16_t i = 0; i < num_numa_regions; i++) {
       check_promises[i].get_future().get();
     }
-    TERRIER_ASSERT(numa_order.size() == num_numa_regions, "we should have as many nodes as hints");
+    TERRIER_ASSERT(static_cast<int16_t>(numa_order.size()) == num_numa_regions, "we should have as many nodes as hints");
     for (auto numa_pair UNUSED_ATTRIBUTE : numa_order) {
-      TERRIER_ASSERT(numa_pair.first == numa_pair.second, "thread should take from queues starting at its region and continuing mod number of nodes");
+      TERRIER_ASSERT(numa_pair.first == static_cast<int16_t>(numa_pair.second), "thread should take from queues starting at its region and continuing mod number of nodes");
     }
   }
 }
