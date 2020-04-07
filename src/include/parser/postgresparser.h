@@ -205,6 +205,7 @@ class PostgresParser {
   static std::unique_ptr<SQLStatement> CreateIndexTransform(ParseResult *parse_result, IndexStmt *root);
   static std::unique_ptr<SQLStatement> CreateSchemaTransform(ParseResult *parse_result, CreateSchemaStmt *root);
   static std::unique_ptr<SQLStatement> CreateTriggerTransform(ParseResult *parse_result, CreateTrigStmt *root);
+  static std::unique_ptr<SQLStatement> CreateSequenceTransform(ParseResult *parse_result, CreateSeqStmt *root);
   static std::unique_ptr<SQLStatement> CreateViewTransform(ParseResult *parse_result, ViewStmt *root);
 
   // CREATE helpers

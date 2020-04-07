@@ -788,6 +788,29 @@ void LogicalCreateTriggerToPhysicalCreateTrigger::Transform(common::ManagedPoint
   transformed->emplace_back(std::move(op));
 }
 
+LogicalCreateSequenceToPhysicalCreateSequence::LogicalCreateSequenceToPhysicalCreateSequence() {
+  type_ = RuleType::CREATE_SEQUENCE_TO_PHYSICAL;
+  match_pattern_ = new Pattern(OpType::LOGICALCREATESEQUENCE);
+}
+
+bool LogicalCreateSequenceToPhysicalCreateSequence::Check(common::ManagedPointer<OperatorNode> plan,
+                                                        OptimizationContext *context) const {
+  return true;
+}
+
+void LogicalCreateSequenceToPhysicalCreateSequence::Transform(common::ManagedPointer<OperatorNode> input,
+                                                            std::vector<std::unique_ptr<OperatorNode>> *transformed,
+                                                            UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  auto ct_op = input->GetOp().As<LogicalCreateSequence>();
+  TERRIER_ASSERT(input->GetChildren().empty(), "LogicalCreateSequence should have 0 children");
+
+  auto op = std::make_unique<OperatorNode>(
+      CreateSequence::Make(ct_op->GetSequenceName()),
+      std::vector<std::unique_ptr<OperatorNode>>());
+
+  transformed->emplace_back(std::move(op));
+}
+
 LogicalCreateViewToPhysicalCreateView::LogicalCreateViewToPhysicalCreateView() {
   type_ = RuleType::CREATE_VIEW_TO_PHYSICAL;
   match_pattern_ = new Pattern(OpType::LOGICALCREATEVIEW);

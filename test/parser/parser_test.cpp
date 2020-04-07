@@ -241,6 +241,14 @@ TEST_F(ParserTestBase, CreateTableTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(ParserTestBase, CreateSequenceTest) {
+  auto result = parser::PostgresParser::BuildParseTree("CREATE SEQUENCE seq_a;");
+  auto create_stmt = result->GetStatement(0).CastManagedPointerTo<CreateStatement>();
+
+  EXPECT_EQ(create_stmt->GetSequenceName(), "seq_a");
+}
+
+// NOLINTNEXTLINE
 TEST_F(ParserTestBase, CreateViewTest) {
   auto result = parser::PostgresParser::BuildParseTree("CREATE VIEW foo AS SELECT * FROM bar WHERE baz = 1;");
   auto create_stmt = result->GetStatement(0).CastManagedPointerTo<CreateStatement>();

@@ -1640,6 +1640,38 @@ class CreateTrigger : public OperatorNodeContents<CreateTrigger> {
 };
 
 /**
+ * Physical operator for CreateSequence
+ */
+class CreateSequence : public OperatorNodeContents<CreateSequence> {
+ public:
+  /**
+   * @param sequence_name Name of the sequence
+   * @return
+   */
+  static Operator Make(std::string sequence_name);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNodeContents *Copy() const override;
+
+  bool operator==(const BaseOperatorNodeContents &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return sequence name
+   */
+  std::string GetSequenceName() const { return sequence_name_; }
+
+ private:
+  /**
+   * Name of the sequence
+   */
+  std::string sequence_name_;
+};
+
+/**
  * Physical operator for DropDatabase
  */
 class DropDatabase : public OperatorNodeContents<DropDatabase> {

@@ -219,6 +219,12 @@ class ChildPropertyDeriver : public OperatorVisitor {
   void Visit(const CreateTrigger *create_trigger) override;
 
   /**
+   * Visit a CreateSequence operator
+   * @param create_sequence operator
+   */
+  void Visit(const CreateSequence *create_sequence) override;
+
+  /**
    * Visit a CreateView operator
    * @param create_view operator
    */

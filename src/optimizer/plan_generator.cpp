@@ -22,6 +22,7 @@
 #include "planner/plannodes/create_function_plan_node.h"
 #include "planner/plannodes/create_index_plan_node.h"
 #include "planner/plannodes/create_namespace_plan_node.h"
+#include "planner/plannodes/create_sequence_plan_node.h"
 #include "planner/plannodes/create_table_plan_node.h"
 #include "planner/plannodes/create_trigger_plan_node.h"
 #include "planner/plannodes/create_view_plan_node.h"
@@ -837,6 +838,12 @@ void PlanGenerator::Visit(const CreateTrigger *create_trigger) {
                      .SetTriggerColumns(create_trigger->GetTriggerColumns())
                      .SetTriggerWhen(create_trigger->GetTriggerWhen())
                      .SetTriggerType(create_trigger->GetTriggerType())
+                     .Build();
+}
+
+void PlanGenerator::Visit(const CreateSequence *create_sequence) {
+  output_plan_ = planner::CreateSequencePlanNode::Builder()
+                     .SetSequenceName(create_sequence->GetSequenceName())
                      .Build();
 }
 

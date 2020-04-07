@@ -898,6 +898,15 @@ TEST_F(BinderCorrectnessTest, CreateTriggerTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, CreateSequenceTest) {
+  BINDER_LOG_DEBUG("Checking create sequence");
+
+  std::string create_sql = "CREATE SEQUENCE seq_a;";
+  auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
+  EXPECT_NO_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree)));
+}
+
+// NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, CreateViewTest) {
   std::string create_sql = "CREATE VIEW a_view AS SELECT * FROM a WHERE a1 = 4;";
 

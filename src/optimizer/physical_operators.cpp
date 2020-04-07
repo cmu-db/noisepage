@@ -958,6 +958,29 @@ bool CreateTrigger::operator==(const BaseOperatorNodeContents &r) {
 }
 
 //===--------------------------------------------------------------------===//
+// CreateSequence
+//===--------------------------------------------------------------------===//
+BaseOperatorNodeContents *CreateSequence::Copy() const { return new CreateSequence(*this); }
+
+Operator CreateSequence::Make(std::string sequence_name) {
+  auto op = std::make_unique<CreateSequence>();
+  op->sequence_name_ = std::move(sequence_name);
+  return Operator(std::move(op));
+}
+
+common::hash_t CreateSequence::Hash() const {
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sequence_name_));
+  return hash;
+}
+
+bool CreateSequence::operator==(const BaseOperatorNodeContents &r) {
+  if (r.GetType() != OpType::CREATESEQUENCE) return false;
+  const CreateSequence &node = *dynamic_cast<const CreateSequence *>(&r);
+  return sequence_name_ == node.sequence_name_;
+}
+
+//===--------------------------------------------------------------------===//
 // CreateView
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *CreateView::Copy() const { return new CreateView(*this); }
@@ -1302,6 +1325,8 @@ const char *OperatorNodeContents<CreateNamespace>::name = "CreateNamespace";
 template <>
 const char *OperatorNodeContents<CreateTrigger>::name = "CreateTrigger";
 template <>
+const char *OperatorNodeContents<CreateSequence>::name = "CreateSequence";
+template <>
 const char *OperatorNodeContents<CreateView>::name = "CreateView";
 template <>
 const char *OperatorNodeContents<DropDatabase>::name = "DropDatabase";
@@ -1377,6 +1402,8 @@ template <>
 OpType OperatorNodeContents<CreateNamespace>::type = OpType::CREATENAMESPACE;
 template <>
 OpType OperatorNodeContents<CreateTrigger>::type = OpType::CREATETRIGGER;
+template <>
+OpType OperatorNodeContents<CreateSequence>::type = OpType::CREATESEQUENCE;
 template <>
 OpType OperatorNodeContents<CreateView>::type = OpType::CREATEVIEW;
 template <>

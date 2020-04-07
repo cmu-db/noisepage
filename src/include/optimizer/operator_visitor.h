@@ -193,6 +193,12 @@ class OperatorVisitor {
   virtual void Visit(const CreateTrigger *create_trigger) {}
 
   /**
+   * Visit a CreateSequence operator
+   * @param create_sequence operator
+   */
+  virtual void Visit(const CreateSequence *create_sequence) {}
+
+  /**
    * Visit a CreateView operator
    * @param create_view operator
    */
@@ -394,6 +400,12 @@ class OperatorVisitor {
    * @param logical_create_trigger operator
    */
   virtual void Visit(const LogicalCreateTrigger *logical_create_trigger) {}
+
+  /**
+   * Visit a LogicalCreateSequence operator
+   * @param logical_create_sequence operator
+   */
+  virtual void Visit(const LogicalCreateSequence *logical_create_sequence) {}
 
   /**
    * Visit a LogicalCreateView operator

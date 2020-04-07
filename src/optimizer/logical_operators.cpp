@@ -1001,6 +1001,29 @@ bool LogicalCreateTrigger::operator==(const BaseOperatorNodeContents &r) {
 }
 
 //===--------------------------------------------------------------------===//
+// LogicalCreateSequence
+//===--------------------------------------------------------------------===//
+BaseOperatorNodeContents *LogicalCreateSequence::Copy() const { return new LogicalCreateSequence(*this); }
+
+Operator LogicalCreateSequence::Make(std::string sequence_name) {
+  auto op = std::make_unique<LogicalCreateSequence>();
+  op->sequence_name_ = std::move(sequence_name);
+  return Operator(std::move(op));
+}
+
+common::hash_t LogicalCreateSequence::Hash() const {
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sequence_name_));
+  return hash;
+}
+
+bool LogicalCreateSequence::operator==(const BaseOperatorNodeContents &r) {
+  if (r.GetType() != OpType::LOGICALCREATESEQUENCE) return false;
+  const LogicalCreateSequence &node = *dynamic_cast<const LogicalCreateSequence *>(&r);
+  return sequence_name_ == node.sequence_name_;
+}
+
+//===--------------------------------------------------------------------===//
 // LogicalCreateView
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalCreateView::Copy() const { return new LogicalCreateView(*this); }
@@ -1285,6 +1308,8 @@ const char *OperatorNodeContents<LogicalCreateNamespace>::name = "LogicalCreateN
 template <>
 const char *OperatorNodeContents<LogicalCreateTrigger>::name = "LogicalCreateTrigger";
 template <>
+const char *OperatorNodeContents<LogicalCreateSequence>::name = "LogicalCreateSequence";
+template <>
 const char *OperatorNodeContents<LogicalCreateView>::name = "LogicalCreateView";
 template <>
 const char *OperatorNodeContents<LogicalDropDatabase>::name = "LogicalDropDatabase";
@@ -1356,6 +1381,8 @@ template <>
 OpType OperatorNodeContents<LogicalCreateNamespace>::type = OpType::LOGICALCREATENAMESPACE;
 template <>
 OpType OperatorNodeContents<LogicalCreateTrigger>::type = OpType::LOGICALCREATETRIGGER;
+template <>
+OpType OperatorNodeContents<LogicalCreateSequence>::type = OpType::LOGICALCREATESEQUENCE;
 template <>
 OpType OperatorNodeContents<LogicalCreateView>::type = OpType::LOGICALCREATEVIEW;
 template <>

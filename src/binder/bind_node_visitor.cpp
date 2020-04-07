@@ -345,6 +345,9 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CreateStatement> node
       if (node->GetTriggerWhen() != nullptr)
         node->GetTriggerWhen()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
       break;
+    case parser::CreateStatement::CreateType::kSequence:
+      // nothing for binder to handler
+      break;
     case parser::CreateStatement::CreateType::kSchema:
       // nothing for binder to handler
       break;

@@ -348,6 +348,10 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CreateStat
           std::vector<std::unique_ptr<OperatorNode>>{});
       break;
     }
+    case parser::CreateStatement::CreateType::kSequence:
+      create_expr = std::make_unique<OperatorNode>(LogicalCreateSequence::Make(op->GetSequenceName()),
+                                                   std::vector<std::unique_ptr<OperatorNode>>{});
+      break;
     case parser::CreateStatement::CreateType::kSchema:
       create_expr = std::make_unique<OperatorNode>(LogicalCreateNamespace::Make(op->GetNamespaceName()),
                                                    std::vector<std::unique_ptr<OperatorNode>>{});

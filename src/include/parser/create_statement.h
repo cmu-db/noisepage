@@ -383,7 +383,7 @@ class CreateStatement : public TableRefStatement {
   /**
    * Create statement type.
    */
-  enum CreateType { kTable, kDatabase, kIndex, kTrigger, kSchema, kView };
+  enum CreateType { kTable, kDatabase, kIndex, kTrigger, kSequence, kSchema, kView };
 
   /**
    * CREATE TABLE and CREATE DATABASE
@@ -449,6 +449,15 @@ class CreateStatement : public TableRefStatement {
         trigger_columns_(std::move(trigger_columns)),
         trigger_when_(trigger_when),
         trigger_type_(trigger_type) {}
+
+  /**
+   * CREATE SEQUENCE
+   * @param sequence_info table information
+   */
+  CreateStatement(std::string sequence_name)
+      : TableRefStatement(StatementType::CREATE, nullptr),
+        create_type_(kSequence),
+        sequence_name_(std::move(sequence_name)) {}
 
   /**
    * CREATE VIEW
@@ -524,6 +533,9 @@ class CreateStatement : public TableRefStatement {
   /** @return trigger type, i.e. information about row, timing, events, access by pg_trigger */
   int16_t GetTriggerType() { return trigger_type_; }
 
+  /** @return sequence name for [CREATE SEQUENCE] */
+  std::string GetSequenceName() { return sequence_name_; }
+
   /** @return view name for [CREATE VIEW] */
   std::string GetViewName() { return view_name_; }
 
@@ -554,6 +566,9 @@ class CreateStatement : public TableRefStatement {
   const std::vector<std::string> trigger_columns_;
   const common::ManagedPointer<AbstractExpression> trigger_when_ = common::ManagedPointer<AbstractExpression>(nullptr);
   const int16_t trigger_type_ = 0;
+
+  // CREATE SEQUENCE
+  const std::string sequence_name_;
 
   // CREATE VIEW
   const std::string view_name_;

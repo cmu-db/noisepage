@@ -10,6 +10,7 @@ class CreateIndexPlanNode;
 class CreateNamespacePlanNode;
 class CreateTablePlanNode;
 class CreateTriggerPlanNode;
+class CreateSequencePlanNode;
 class CreateViewPlanNode;
 class CSVScanPlanNode;
 class DeletePlanNode;
@@ -87,6 +88,12 @@ class PlanVisitor {
    * @param plan CreateTriggerPlanNode
    */
   virtual void Visit(UNUSED_ATTRIBUTE const CreateTriggerPlanNode *plan) {}
+
+  /**
+   * Visit an CreateSequencePlanNode
+   * @param plan CreateSequencePlanNode
+   */
+  virtual void Visit(UNUSED_ATTRIBUTE const CreateSequencePlanNode *plan) {}
 
   /**
    * Visit an CreateViewPlanNode

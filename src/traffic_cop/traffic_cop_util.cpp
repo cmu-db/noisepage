@@ -106,6 +106,8 @@ network::QueryType TrafficCopUtil::QueryTypeForStatement(const common::ManagedPo
           return network::QueryType::QUERY_CREATE_INDEX;
         case parser::CreateStatement::CreateType::kTrigger:
           return network::QueryType::QUERY_CREATE_TRIGGER;
+        case parser::CreateStatement::CreateType::kSequence:
+          return network::QueryType::QUERY_CREATE_SEQUENCE;
         case parser::CreateStatement::CreateType::kSchema:
           return network::QueryType::QUERY_CREATE_SCHEMA;
         case parser::CreateStatement::CreateType::kView:

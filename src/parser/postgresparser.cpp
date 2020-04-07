@@ -112,6 +112,10 @@ std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(ParseResult *parse_r
       result = CreateTriggerTransform(parse_result, reinterpret_cast<CreateTrigStmt *>(node));
       break;
     }
+    case T_CreateSeqStmt: {
+      result = CreateSequenceTransform(parse_result, reinterpret_cast<CreateSeqStmt *>(node));
+      break;
+    }
     case T_DropdbStmt: {
       result = DropDatabaseTransform(parse_result, reinterpret_cast<DropDatabaseStmt *>(node));
       break;
@@ -1432,6 +1436,15 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateTriggerTransform(ParseResult
   auto result = std::make_unique<CreateStatement>(std::move(table_info), trigger_name, std::move(trigger_funcnames),
                                                   std::move(trigger_args), std::move(trigger_columns), trigger_when_ptr,
                                                   trigger_type);
+  return result;
+}
+
+// Postgres.CreateSeqStmt -> terrier.CreateStatement
+std::unique_ptr<parser::SQLStatement> PostgresParser::CreateSequenceTransform(ParseResult *parse_result,
+                                                                              CreateSeqStmt *root) {
+  auto sequence_name = root->sequence_->relname_ == nullptr ? "" : root->sequence_->relname_;
+
+  auto result = std::make_unique<CreateStatement>(sequence_name);
   return result;
 }
 
