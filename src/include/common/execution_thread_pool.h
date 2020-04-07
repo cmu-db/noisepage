@@ -117,7 +117,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
       cpu_set_t mask;
       CPU_ZERO(&mask);
       CPU_SET(cpu_id_, &mask);
-      int result UNUSEDUNUSED_ATTRIBUTE = sched_setaffinity(0, sizeof(cpu_set_t), &mask);
+      int result UNUSED_ATTRIBUTE = sched_setaffinity(0, sizeof(cpu_set_t), &mask);
       TERRIER_ASSERT(result == 0, "sched_setaffinity should succeed");
       numa_region_ = storage::UNSUPPORTED_NUMA_REGION;
       if (numa_available() >= 0) {
