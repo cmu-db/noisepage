@@ -58,11 +58,8 @@ class OrderByDescription {
   // TODO(WAN): no SQLStatement? maybe a Description base class?
   /**
    * @param v Visitor pattern for the statement
-   * @param sherpa The BinderSherpa for storing state through visitor pattern
    */
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v, common::ManagedPointer<binder::BinderSherpa> sherpa) {
-    v->Visit(common::ManagedPointer(this), sherpa);
-  }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) { v->Visit(common::ManagedPointer(this)); }
 
   /**
    * @return order by types
@@ -190,11 +187,8 @@ class LimitDescription {
   // TODO(WAN): not SQL statement?
   /**
    * @param v Visitor pattern for the statement
-   * @param sherpa The BinderSherpa for storing state through visitor pattern
    */
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v, common::ManagedPointer<binder::BinderSherpa> sherpa) {
-    v->Visit(common::ManagedPointer(this), sherpa);
-  }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) { v->Visit(common::ManagedPointer(this)); }
 
   /**
    * @return limit
@@ -293,11 +287,8 @@ class GroupByDescription {
   /**
    * Visitor pattern for GroupByDescription.
    * @param v Visitor pattern for the statement
-   * @param sherpa The BinderSherpa for storing state through visitor pattern
    */
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v, common::ManagedPointer<binder::BinderSherpa> sherpa) {
-    v->Visit(common::ManagedPointer(this), sherpa);
-  }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) { v->Visit(common::ManagedPointer(this)); }
 
   /** @return group by columns */
   const std::vector<common::ManagedPointer<AbstractExpression>> &GetColumns() { return columns_; }
@@ -422,10 +413,7 @@ class SelectStatement : public SQLStatement {
   /** Default constructor for deserialization. */
   SelectStatement() = default;
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
-              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
-    v->Visit(common::ManagedPointer(this), sherpa);
-  }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   /** @return a copy of the select statement */
   std::unique_ptr<SelectStatement> Copy();
