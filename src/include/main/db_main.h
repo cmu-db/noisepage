@@ -228,7 +228,8 @@ class DBMain {
     /**
      * @param thread_registry argument to the TerrierServer
      * @param traffic_cop argument to the ConnectionHandleFactor
-     * @param port needed for safe destruction of CatalogLayer if logging is enabled
+     * @param port argument to TerrierServer
+     * @param connection_thread_count argument to TerrierServer
      */
     NetworkLayer(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
                  const common::ManagedPointer<trafficcop::TrafficCop> traffic_cop, const uint16_t port,
