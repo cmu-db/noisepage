@@ -148,8 +148,8 @@ enum class QueryType : uint8_t {
   QUERY_SET,
   QUERY_SHOW,
   QUERY_OTHER,
-  QUERY_INVALID,
-  QUERY_EXPLAIN
+  QUERY_EXPLAIN,
+  QUERY_INVALID
 };
 
 enum class NetworkTransactionStateType : unsigned char {
@@ -159,6 +159,7 @@ enum class NetworkTransactionStateType : unsigned char {
   FAIL = 'E',   // In a failed transaction
 };
 
-enum class FieldFormat : uint8_t { text = 0, binary = 1 };
+// postgres uses 0 for text, 1 for binary, so this is fine
+enum class FieldFormat : bool { text = false, binary = true };
 
 }  // namespace terrier::network

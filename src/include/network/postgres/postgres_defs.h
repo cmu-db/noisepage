@@ -35,7 +35,8 @@ const std::unordered_map<std::string, std::string> PG_PARAMETER_STATUS_MAP = {
  * For more information, see 'pg_type.h' in Postgres
  * https://github.com/postgres/postgres/blob/master/src/include/catalog/pg_type.h#L273
  */
-enum class PostgresValueType {
+
+enum class PostgresValueType : int32_t {
   INVALID = INVALID_TYPE_ID,
   BOOLEAN = 16,
   TINYINT = 16,  // BOOLEAN is an alias for TINYINT
