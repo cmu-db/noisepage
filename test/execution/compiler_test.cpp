@@ -1,3 +1,5 @@
+#include "execution/compiler/compiler.h"
+
 #include <functional>
 #include <limits>
 #include <memory>
@@ -7,7 +9,6 @@
 
 #include "catalog/catalog_defs.h"
 #include "execution/ast/ast_dump.h"
-#include "execution/compiler/compiler.h"
 #include "execution/compiler/expression_util.h"
 #include "execution/compiler/output_checker.h"
 #include "execution/compiler/output_schema_util.h"
@@ -275,7 +276,7 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
   params.emplace_back(type::TransientValueFactory::GetInteger(100));
   params.emplace_back(type::TransientValueFactory::GetInteger(500));
   params.emplace_back(type::TransientValueFactory::GetInteger(3));
-  exec_ctx->SetParams(std::move(params));
+  exec_ctx->SetParams(common::ManagedPointer<const std::vector<type::TransientValue>>(&params));
 
   // Run & Check
   auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
@@ -2863,7 +2864,7 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     std::vector<type::TransientValue> params;
     params.emplace_back(type::TransientValueFactory::GetInteger(495));
     params.emplace_back(type::TransientValueFactory::GetInteger(505));
-    exec_ctx->SetParams(std::move(params));
+    exec_ctx->SetParams(common::ManagedPointer<const std::vector<type::TransientValue>>(&params));
     auto executable = ExecutableQuery(common::ManagedPointer(insert), common::ManagedPointer(exec_ctx));
     executable.Run(common::ManagedPointer(exec_ctx), MODE);
 
@@ -3093,7 +3094,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     params.emplace_back(type::TransientValueFactory::GetSmallInt(smallint2));
     params.emplace_back(type::TransientValueFactory::GetInteger(int2));
     params.emplace_back(type::TransientValueFactory::GetBigInt(bigint2));
-    exec_ctx->SetParams(std::move(params));
+    exec_ctx->SetParams(common::ManagedPointer<const std::vector<type::TransientValue>>(&params));
     auto executable = ExecutableQuery(common::ManagedPointer(insert), common::ManagedPointer(exec_ctx));
     executable.Run(common::ManagedPointer(exec_ctx), MODE);
 
@@ -3273,7 +3274,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     std::vector<type::TransientValue> params;
     params.emplace_back(type::TransientValueFactory::GetVarChar(str1));
     params.emplace_back(type::TransientValueFactory::GetVarChar(str2));
-    exec_ctx->SetParams(std::move(params));
+    exec_ctx->SetParams(common::ManagedPointer<const std::vector<type::TransientValue>>(&params));
     auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
     executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
