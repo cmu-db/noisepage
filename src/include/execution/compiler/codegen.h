@@ -220,6 +220,11 @@ class CodeGen {
   ast::Expr *PointerType(ast::Expr *base_expr);
 
   /**
+   * @return A type representation expression that is a pointer to the provided builtin type.
+   */
+  ast::Expr *PointerType(ast::BuiltinType::Kind builtin);
+
+  /**
    * @return the type represented by [num_elems]kind;
    */
   ast::Expr *ArrayType(uint64_t num_elems, ast::BuiltinType::Kind kind);
@@ -451,8 +456,7 @@ class CodeGen {
  * @param worker_name The work function name.
  * @return The call.
  */
-  ast::Expr *IterateTableParallel(uint32_t table_oid, ast::Expr *query_state,
-                                                ast::Expr *tls, ast::Identifier worker_name);
+  ast::Expr *IterateTableParallel(uint32_t table_oid, ast::Identifier worker_name);
 
   /**
    * Call pciGetTypeNullable(pci, idx)
@@ -592,6 +596,12 @@ class CodeGen {
    * @return The expression corresponding to the builtin call.
    */
   ast::Expr *ZeroArgCall(ast::Builtin builtin);
+
+  /**
+ * @return A field list with the given fields.
+ */
+  util::RegionVector<ast::FieldDecl *> MakeFieldList(
+          std::initializer_list<ast::FieldDecl *> fields);
 
  private:
   // Counter for the identifiers. Allows the creation of unique names.

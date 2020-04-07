@@ -176,6 +176,7 @@ ast::Decl *Compiler::GenMainFunction() {
   // Make the function
   FunctionBuilder builder{codegen_, fn_name, std::move(params), ret_type};
 
+  // TODO(Ron): Enabled this when we have isParallel global variable
   // Step 0.0: Call Launch Work
 //  for (const auto &pipeline : pipelines_) {
 //    pipeline->Root()->LaunchWork(&builder, pipeline->GetWorkFunctionName());
@@ -190,7 +191,7 @@ ast::Decl *Compiler::GenMainFunction() {
   builder.Append(codegen_->ExecCall(codegen_->GetSetupFn()));
   // Step 2: For each pipeline, call its function
   for (const auto &pipeline : pipelines_) {
-    builder.Append(codegen_->ExecCall(pipeline->GetPipelineName()));
+    builder.Append(codegen_->ExecCall(pipeline->GetWorkFunctionName()));
   }
   // Step 3: Call the teardown function
   builder.Append(codegen_->ExecCall(codegen_->GetTeardownFn()));

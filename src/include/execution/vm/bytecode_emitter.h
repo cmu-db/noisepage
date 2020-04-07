@@ -322,8 +322,7 @@ class BytecodeEmitter {
   /**
    * Emit a parallel table scan
    */
-  void EmitParallelTableScan(uint32_t table_oid, LocalVar ctx, LocalVar thread_states,
-                             FunctionId scan_fn);
+  void EmitParallelTableScan(uint32_t table_oid, FunctionId scan_fn, LocalVar ctx);
 
   // Reading integer values from an iterator
   /**

@@ -29,10 +29,14 @@ void Pipeline::Initialize(util::RegionVector<ast::Decl *> *decls, util::RegionVe
 ast::Decl *Pipeline::Produce(query_id_t query_id, pipeline_id_t pipeline_idx) {
   pipeline_idx_ = pipeline_idx;
   // Function name
-  ast::Identifier fn_name = GetPipelineName();
+  ast::Identifier fn_name = GetWorkFunctionName();
 
   // Function parameter
   util::RegionVector<ast::FieldDecl *> params = codegen_->ExecParams();
+
+  // TODO(Ron): Add additional parameters when seq_scan_translator is ready.
+//  auto additional_params = Root()->GetWorkerParams();
+//  params.insert(params.end(), additional_params.begin(), additional_params.end());
 
   // Function return type (nil)
   ast::Expr *ret_type = codegen_->BuiltinType(ast::BuiltinType::Kind::Nil);

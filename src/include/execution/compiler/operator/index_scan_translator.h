@@ -50,7 +50,11 @@ class IndexScanTranslator : public OperatorTranslator {
     return {&table_pr_, &pr_type_};
   }
 
-  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override {
+  util::RegionVector<ast::FieldDecl *> GetWorkerParams() override {
+    UNREACHABLE("Not implemented yet");
+  }
+
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) override {
     UNREACHABLE("LaunchWork for parallel execution is not implemented yet");
   }
 

@@ -27,7 +27,11 @@ SeqScanTranslator::SeqScanTranslator(const terrier::planner::SeqScanPlanNode *op
 
 void SeqScanTranslator::Produce(FunctionBuilder *builder) {
   SetOids(builder);
-  DeclareTVI(builder);
+//  const bool declare_local_tvi = !GetPipeline()->IsParallel() || this != GetPipeline()->Root();
+//  if (declare_local_tvi) {
+    DeclareTVI(builder);
+//  }
+
 
   // There may be a child translator in nested loop joins.
   if (child_translator_ != nullptr) {
@@ -39,7 +43,9 @@ void SeqScanTranslator::Produce(FunctionBuilder *builder) {
   }
 
   // Close iterator
+//  if (declare_local_tvi) {
   GenTVIClose(builder);
+//}
 }
 
 void SeqScanTranslator::Abort(FunctionBuilder *builder) {
@@ -85,8 +91,13 @@ void SeqScanTranslator::Consume(FunctionBuilder *builder) {
   GenTVIReset(builder);
 }
 
-void SeqScanTranslator::LaunchWork(FunctionBuilder *builder, ast::Identifier work_func) const {
-  ast::Expr *parallel_call = codegen_->IterateTableParallel(!op_->GetTableOid(), nullptr, nullptr, work_func);
+util::RegionVector<ast::FieldDecl *> SeqScanTranslator::GetWorkerParams() {
+  auto tvi_type = codegen_->PointerType(ast::BuiltinType::TableVectorIterator);
+  return codegen_->MakeFieldList({codegen_->MakeField(tvi_, tvi_type)});
+}
+
+void SeqScanTranslator::LaunchWork(FunctionBuilder *builder, ast::Identifier work_func) {
+  ast::Expr *parallel_call = codegen_->IterateTableParallel(!op_->GetTableOid(), work_func);
   builder->Append(codegen_->MakeStmt(parallel_call));
 }
 

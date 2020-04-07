@@ -100,14 +100,17 @@ class ScanTask {
 }  // namespace
 
 bool TableVectorIterator::ParallelScan(uint32_t table_oid, void *const query_state,
-                                       ThreadStateContainer *const thread_states, const ScanFn scan_fn,
-                                       const uint32_t min_grain_size, exec::ExecutionContext *exec_ctx) {
+                                       ThreadStateContainer *const thread_states, const ScanFn scan_fn, exec::ExecutionContext *exec_ctx) {
+
   // Lookup table
   common::ManagedPointer<storage::SqlTable> table = exec_ctx->GetAccessor()->GetTable((catalog::table_oid_t)table_oid);
   if (table == nullptr) {
     return false;
   }
   auto block_count = table->GetBlockListSize();
+
+  // TODO(Ron): min_grain_size = num_blocks / num_threads
+  size_t min_grain_size = 3;
 
   // Time
   util::Timer<std::milli> timer;

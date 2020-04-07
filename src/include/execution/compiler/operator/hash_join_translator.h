@@ -41,7 +41,11 @@ class HashJoinLeftTranslator : public OperatorTranslator {
   // Call @joinHTFree on the hash table
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override;
 
-  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override {
+  util::RegionVector<ast::FieldDecl *> GetWorkerParams() override {
+    UNREACHABLE("Not implemented yet");
+  }
+
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) override {
     UNREACHABLE("LaunchWork for parallel execution is not implemented yet");
   }
 
@@ -118,7 +122,11 @@ class HashJoinRightTranslator : public OperatorTranslator {
   // Does nothing (left operator already freed the hash table)
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
 
-  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override {
+  util::RegionVector<ast::FieldDecl *> GetWorkerParams() override {
+    UNREACHABLE("Not implemented yet");
+  }
+
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) override {
     UNREACHABLE("LaunchWork for parallel execution is not implemented yet");
   }
 

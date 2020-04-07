@@ -122,13 +122,13 @@ ast::Expr *CodeGen::TableIterInit(ast::Identifier tvi, uint32_t table_oid, ast::
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::IterateTableParallel(uint32_t table_oid, ast::Expr *query_state,
-                                             ast::Expr *tls, ast::Identifier worker_name) {
+ast::Expr *CodeGen::IterateTableParallel(uint32_t table_oid, ast::Identifier worker_name) {
   ast::Expr *fun = BuiltinFunction(ast::Builtin::TableIterParallel);
   ast::Expr *table_oid_expr = IntLiteral(static_cast<int64_t>(table_oid));
+  ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
 
   // TODO(Ron): update arguments with query state and tls
-  util::RegionVector<ast::Expr *> args{{table_oid_expr, MakeExpr(worker_name)}, Region()};
+  util::RegionVector<ast::Expr *> args{{table_oid_expr, MakeExpr(worker_name), exec_ctx_expr}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
@@ -510,6 +510,10 @@ ast::Expr *CodeGen::PointerType(ast::Identifier base_type) {
   return PointerTo(base_expr);
 }
 
+ast::Expr *CodeGen::PointerType(ast::BuiltinType::Kind builtin) {
+  return PointerType(BuiltinType(builtin));
+}
+
 ast::Expr *CodeGen::ArrayType(uint64_t num_elems, ast::BuiltinType::Kind kind) {
   return Factory()->NewArrayType(DUMMY_POS, IntLiteral(num_elems), BuiltinType(kind));
 }
@@ -628,5 +632,10 @@ ast::Expr *CodeGen::BuiltinCall(ast::Builtin builtin, std::vector<ast::Expr *> &
     args.emplace_back(expr);
   }
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+}
+
+util::RegionVector<ast::FieldDecl *> CodeGen::MakeFieldList(
+            std::initializer_list<ast::FieldDecl *> fields) {
+  return util::RegionVector<ast::FieldDecl *>(fields, Context()->Region());
 }
 }  // namespace terrier::execution::compiler

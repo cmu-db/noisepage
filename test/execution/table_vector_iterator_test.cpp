@@ -158,12 +158,11 @@ TEST_F(TableVectorIteratorTest, ParallelScanTest) {
                                nullptr           // Context passed to init/destroy functions
   );
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
-  TableVectorIterator::ParallelScan(0,
-                                    (uint32_t)table_oid,      // ID of table to scan
+  TableVectorIterator::ParallelScan((uint32_t)table_oid,      // ID of table to scan
                                     nullptr,                  // Query state to pass to scan threads
                                     &thread_state_container,  // Container for thread states
                                     scanner,                  // Scan function
-                                    32, exec_ctx_.get());
+                                    exec_ctx_.get());
 
   // Count total aggregate tuple count seen by all threads
   uint32_t aggregate_tuple_count = 0;

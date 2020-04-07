@@ -44,7 +44,11 @@ class NestedLoopLeftTranslator : public OperatorTranslator {
   // Pass through
   void Consume(FunctionBuilder *builder) override { parent_translator_->Consume(builder); }
 
-  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override {
+  util::RegionVector<ast::FieldDecl *> GetWorkerParams() override {
+    UNREACHABLE("Not implemented yet");
+  }
+
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) override {
     UNREACHABLE("LaunchWork for parallel execution is not implemented yet");
   }
 
@@ -117,7 +121,11 @@ class NestedLoopRightTranslator : public OperatorTranslator {
     }
   }
 
-  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override {
+  util::RegionVector<ast::FieldDecl *> GetWorkerParams() override {
+    UNREACHABLE("Not implemented yet");
+  }
+
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) override {
     UNREACHABLE("LaunchWork for parallel execution is not implemented yet");
   }
 

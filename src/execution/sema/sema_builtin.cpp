@@ -1094,46 +1094,55 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
 }
 
 void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
-  if (!CheckArgCount(call, 4)) {
+  if (!CheckArgCount(call, 3)) {
     return;
   }
 
   const auto &call_args = call->Arguments();
 
   // First argument is table name as a string literal
-  if (!call_args[0]->IsStringLiteral()) {
+  if (!call_args[0]->IsIntegerLiteral()) {
     ReportIncorrectCallArg(call, 0, ast::StringType::Get(GetContext()));
     return;
   }
 
-  // Second argument is an opaque query state. For now, check it's a pointer.
-  const auto void_kind = ast::BuiltinType::Nil;
-  if (!call_args[1]->GetType()->IsPointerType()) {
-    ReportIncorrectCallArg(call, 1, GetBuiltinType(void_kind)->PointerTo());
-    return;
-  }
 
-  // Third argument is the thread state container
-  const auto tls_kind = ast::BuiltinType::ThreadStateContainer;
-  if (!IsPointerToSpecificBuiltin(call_args[2]->GetType(), tls_kind)) {
-    ReportIncorrectCallArg(call, 2, GetBuiltinType(tls_kind)->PointerTo());
-    return;
-  }
+  // TODO(Ron): Update type checks here when the argument types are finalized
+//  // Second argument is an opaque query state. For now, check it's a pointer.
+//  const auto void_kind = ast::BuiltinType::Nil;
+//  if (!call_args[1]->GetType()->IsPointerType()) {
+//    ReportIncorrectCallArg(call, 1, GetBuiltinType(void_kind)->PointerTo());
+//    return;
+//  }
+//
+//  // Third argument is the thread state container
+//  const auto tls_kind = ast::BuiltinType::ThreadStateContainer;
+//  if (!IsPointerToSpecificBuiltin(call_args[2]->GetType(), tls_kind)) {
+//    ReportIncorrectCallArg(call, 2, GetBuiltinType(tls_kind)->PointerTo());
+//    return;
+//  }
 
-  // Third argument is scanner function
-  auto *scan_fn_type = call_args[3]->GetType()->SafeAs<ast::FunctionType>();
+// Third argument is scanner function
+  auto *scan_fn_type = call_args[1]->GetType()->SafeAs<ast::FunctionType>();
   if (scan_fn_type == nullptr) {
     GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[3]->GetType());
     return;
   }
-  // Check type
-  const auto tvi_kind = ast::BuiltinType::TableVectorIterator;
-  const auto &params = scan_fn_type->Params();
-  if (params.size() != 3 || !params[0].type_->IsPointerType() || !params[1].type_->IsPointerType() ||
-      !IsPointerToSpecificBuiltin(params[2].type_, tvi_kind)) {
-    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[3]->GetType());
+
+  auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+  if (!IsPointerToSpecificBuiltin(call_args[2]->GetType(), exec_ctx_kind)) {
+    ReportIncorrectCallArg(call, 2, GetBuiltinType(exec_ctx_kind)->PointerTo());
     return;
   }
+
+  // Check type
+//  const auto tvi_kind = ast::BuiltinType::TableVectorIterator;
+//  const auto &params = scan_fn_type->Params();
+//  if (params.size() != 3 || !params[0].type_->IsPointerType() || !params[1].type_->IsPointerType() ||
+//      !IsPointerToSpecificBuiltin(params[2].type_, tvi_kind)) {
+//    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[1]->GetType());
+//    return;
+//  }
 
   // Nil
   call->SetType(GetBuiltinType(ast::BuiltinType::Nil));

@@ -39,7 +39,11 @@ class SortBottomTranslator : public OperatorTranslator {
   void Abort(FunctionBuilder *builder) override;
   void Consume(FunctionBuilder *builder) override;
 
-  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override {
+  util::RegionVector<ast::FieldDecl *> GetWorkerParams() override {
+    UNREACHABLE("Not implemented yet");
+  }
+
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) override {
     UNREACHABLE("LaunchWork for parallel execution is not implemented yet");
   }
 
@@ -131,7 +135,11 @@ class SortTopTranslator : public OperatorTranslator {
   void Abort(FunctionBuilder *builder) override;
   void Consume(FunctionBuilder *builder) override;
 
-  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override {
+  util::RegionVector<ast::FieldDecl *> GetWorkerParams() override {
+    UNREACHABLE("Not implemented yet");
+  }
+
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) override {
     UNREACHABLE("LaunchWork for parallel execution is not implemented yet");
   }
 
