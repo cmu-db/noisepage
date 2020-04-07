@@ -49,7 +49,7 @@ class CteScanTranslator : public OperatorTranslator {
   ast::Expr *GetOutput(uint32_t attr_idx) override {
     auto output_expr = op_->GetOutputSchema()->GetColumn(attr_idx).GetExpr();
     auto translator = TranslatorFactory::CreateExpressionTranslator(output_expr.Get(), codegen_);
-    return codegen_->OneArgCall(ast::Builtin::CteScanNext, child_translator_->GetOutput(attr_idx));
+    return translator->DeriveExpr(this);
   }
 
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {
