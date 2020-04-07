@@ -35,7 +35,7 @@ class SqlTable {
    */
   struct DataTableVersion {
     DataTable *data_table_;
-    BlockLayout layout_;
+    const BlockLayout layout_;
     ColumnOidToIdMap column_oid_to_id_map_;
     // TODO(Ling): used in transforming between different versions.
     //  It only works for adding and dropping columns, but not modifying type/constraint/default of the column
@@ -91,6 +91,7 @@ class SqlTable {
    *
    * @param txn the calling transaction
    * @param redo after-image of the inserted tuple.
+   * @param layout_version schema layout version for the inserted tuple
    * @return TupleSlot for the inserted tuple
    */
   TupleSlot Insert(const common::ManagedPointer<transaction::TransactionContext> txn, layout_version_t layout_version,
@@ -121,8 +122,10 @@ class SqlTable {
                 ->GetTupleSlot() == slot,
         "This Delete is not the most recent entry in the txn's RedoBuffer. Was StageDelete called immediately before?");
 
-    // TODO(Schema-Change): among all relavant datatables.
-    const auto result = table_.data_table_->Delete(txn, slot);
+    const auto tuple_version = slot.GetBlock()->data_table_->layout_version_;
+    TERRIER_ASSERT(tables_.find(tuple_version) != tables_.end(), "we are not deleting any layout version for now");
+    const auto result = tables_.at(tuple_version).data_table_->Delete(txn, slot);
+
     if (!result) {
       // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
       // correctly.
@@ -147,6 +150,23 @@ class SqlTable {
             ProjectedColumns *const out_buffer) const {
     // TODO(Schema-Change): among all relavant datatables.
     return table_.data_table_->Scan(txn, start_pos, out_buffer);
+  }
+
+  /**
+   * Creates a new tableversion given a schema. Conccurent UpdateSchema is synchronized at the Catalog table.
+   * Since the catalog table prevents write-write conflict with version pointer, calling UpdateSchema here is always
+   * thread-safe.
+   * @param txn
+   * @param layout_version
+   * @param schema
+   */
+  void UpdateSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
+                    const layout_version_t layout_version, const catalog::Schema &schema) {
+    TERRIER_ASSERT(tables_.lower_bound(version) == tables_.end(),
+                   "input version should be strictly larger than all versions");
+    auto table = CreateTable(common::ManagedPointer<const catalog::Schema>(&schema), block_store_, version);
+    const auto [_it, success] = tables_.insert({version, table});
+    TERRIER_ASSERT(success, "inserting new tableversion should not fail");
   }
 
   // TODO(Schema-Change): Do we retain the begin() and end(), or implement begin and end function with version number?
@@ -237,11 +257,21 @@ class SqlTable {
   // Used orderred map for traversing data table that are less or equal to curr version
   std::map<layout_version_t, DataTableVersion> tables_;
 
-  // TODO(Schema-Change): Make the below two functions static maybe
   void AlignHeaderToVersion(ProjectedRow *out_buffer, const DataTableVersion &tuple_version,
-                            const DataTableVersion &desired_version, col_id_t *cached_ori_header) const;
+                            const DataTableVersion &desired_version, col_id_t *cached_ori_header,
+                            std::vector<catalog::col_oid_t> *missing_cols) const;
 
   void FillMissingColumns(ProjectedRow *out_buffer, const DataTableVersion &desired_version) const;
+
+  /**
+   * Creates a new datatble version given the schema and version number
+   * @param schema
+   * @param store
+   * @param version
+   * @return DataTableVersion
+   */
+  DataTableVersion CreateTable(const common::ManagedPointer<const catalog::Schema> schema,
+                               const common::ManagedPointer<BlockStore> store, layout_version_t version);
 
   /**
    * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization
