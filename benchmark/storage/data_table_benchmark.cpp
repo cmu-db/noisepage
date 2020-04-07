@@ -279,8 +279,8 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SingleThreadedIteration)(benchmark::State
     };
     common::DedicatedThreadRegistry registry(DISABLED);
     std::vector<int> cpu_ids(BenchmarkConfig::num_threads);
-    for (int i = 0; i < BenchmarkConfig::num_threads; i++) {
-      cpu_ids.emplace_back(i);
+    for (uint32_t i = 0; i < BenchmarkConfig::num_threads; i++) {
+      cpu_ids.emplace_back(static_cast<int>(i));
     }
     common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
                                             &cpu_ids);
@@ -335,8 +335,8 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMASingleThreadedIteration)(benchmark::S
     };
     common::DedicatedThreadRegistry registry(DISABLED);
     std::vector<int> cpu_ids(BenchmarkConfig::num_threads);
-    for (int i = 0; i < BenchmarkConfig::num_threads; i++) {
-      cpu_ids.emplace_back(i);
+    for (uint32_t i = 0; i < BenchmarkConfig::num_threads; i++) {
+      cpu_ids.emplace_back(static_cast<int>(i));
     }
     common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
                                             &cpu_ids);
@@ -388,8 +388,8 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedIteration)(benchmark::St
     };
     common::DedicatedThreadRegistry registry(DISABLED);
     std::vector<int> cpu_ids(BenchmarkConfig::num_threads);
-    for (int i = 0; i < BenchmarkConfig::num_threads; i++) {
-      cpu_ids.emplace_back(i);
+    for (uint32_t i = 0; i < BenchmarkConfig::num_threads; i++) {
+      cpu_ids.emplace_back(static_cast<int>(i));
     }
     common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
                                             &cpu_ids);
@@ -442,8 +442,8 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)(benc
     };
     common::DedicatedThreadRegistry registry(DISABLED);
     std::vector<int> cpu_ids(BenchmarkConfig::num_threads);
-    for (int i = 0; i < BenchmarkConfig::num_threads; i++) {
-      cpu_ids.emplace_back(i);
+    for (uint32_t i = 0; i < BenchmarkConfig::num_threads; i++) {
+      cpu_ids.emplace_back(static_cast<int>(i));
     }
     common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
                                             &cpu_ids);
