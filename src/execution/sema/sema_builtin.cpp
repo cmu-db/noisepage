@@ -2562,7 +2562,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       break;
     }
     default: {
-      UNREACHABLE("Unhandled builtin!");
+      //UNREACHABLE("Unhandled builtin!");
     }
   }
 }

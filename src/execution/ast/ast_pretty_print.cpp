@@ -159,7 +159,7 @@ void AstPrettyPrintImpl::VisitIdentifierExpr(IdentifierExpr *node) {
 }
 
 void AstPrettyPrintImpl::VisitImplicitCastExpr(ImplicitCastExpr *node) {
-  os_ << "(Do not know what comes here)"<< (terrier::execution::ast::CastKindToInt(node->GetCastKind())) << "(";
+  os_ << (terrier::execution::ast::CastKindToInt(node->GetCastKind())) << "(";
   Visit(node->Input());
   os_ << ")";
 }
