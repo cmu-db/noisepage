@@ -342,6 +342,10 @@ void AstDumperImpl::VisitImplicitCastExpr(ImplicitCastExpr *node) {
         DumpPrimitive("TimestampToSqlTimestamp");
         break;
       }
+      case CastKind::SqlIntToSqlReal: {
+        DumpPrimitive("SqlIntToSqlReal");
+        break;
+      }
     }
   }
   DumpPrimitive(">");

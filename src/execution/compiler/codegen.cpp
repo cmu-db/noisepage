@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include "brain/operating_unit.h"
 #include "execution/sql/value.h"
 #include "type/transient_value_peeker.h"
 #include "util/time_util.h"
@@ -16,6 +17,7 @@ CodeGen::CodeGen(exec::ExecutionContext *exec_ctx)
       ast_ctx_(std::make_unique<ast::Context>(region_.get(), &error_reporter_)),
       factory_(region_.get()),
       exec_ctx_(exec_ctx),
+      pipeline_operating_units_(std::make_unique<brain::PipelineOperatingUnits>()),
       state_struct_{Context()->GetIdentifier("State")},
       state_var_{Context()->GetIdentifier("state")},
       exec_ctx_var_(Context()->GetIdentifier("execCtx")),
@@ -73,6 +75,12 @@ ast::Identifier CodeGen::NewIdentifier(const std::string &prefix) {
   return Context()->GetIdentifier(id_str);
 }
 
+ast::Expr *CodeGen::ZeroArgCall(ast::Builtin builtin) {
+  ast::Expr *fun = BuiltinFunction(builtin);
+  util::RegionVector<ast::Expr *> args{{}, Region()};
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+}
+
 ast::Expr *CodeGen::OneArgCall(ast::Builtin builtin, ast::Expr *arg) {
   ast::Expr *fun = BuiltinFunction(builtin);
   util::RegionVector<ast::Expr *> args{{arg}, Region()};
@@ -116,33 +124,46 @@ ast::Expr *CodeGen::TableIterInit(ast::Identifier tvi, uint32_t table_oid, ast::
 
 ast::Expr *CodeGen::PCIGet(ast::Identifier pci, type::TypeId type, bool nullable, uint32_t idx) {
   ast::Builtin builtin;
+  ast::Type *ast_type;
   switch (type) {
     case type::TypeId::BOOLEAN:
       builtin = nullable ? ast::Builtin::PCIGetBoolNull : ast::Builtin::PCIGetBool;
+      // TODO(WAN): pmenon points out that this should be Boolean, throughout codegen.cpp,
+      // but that we will hold off on the change until codegen v2
+      ast_type = ast::BuiltinType::Get(Context(), ast::BuiltinType::Bool);
       break;
     case type::TypeId::TINYINT:
       builtin = nullable ? ast::Builtin::PCIGetTinyIntNull : ast::Builtin::PCIGetTinyInt;
+      ast_type = ast::BuiltinType::Get(Context(), ast::BuiltinType::Integer);
       break;
     case type::TypeId::SMALLINT:
       builtin = nullable ? ast::Builtin::PCIGetSmallIntNull : ast::Builtin::PCIGetSmallInt;
+      ast_type = ast::BuiltinType::Get(Context(), ast::BuiltinType::Integer);
       break;
     case type::TypeId::INTEGER:
       builtin = nullable ? ast::Builtin::PCIGetIntNull : ast::Builtin::PCIGetInt;
+      ast_type = ast::BuiltinType::Get(Context(), ast::BuiltinType::Integer);
       break;
     case type::TypeId::BIGINT:
       builtin = nullable ? ast::Builtin::PCIGetBigIntNull : ast::Builtin::PCIGetBigInt;
+      ast_type = ast::BuiltinType::Get(Context(), ast::BuiltinType::Integer);
       break;
     case type::TypeId::DECIMAL:
       builtin = nullable ? ast::Builtin ::PCIGetDoubleNull : ast::Builtin::PCIGetDouble;
+      ast_type = ast::BuiltinType::Get(Context(), ast::BuiltinType::Real);
       break;
     case type::TypeId::DATE:
       builtin = nullable ? ast::Builtin ::PCIGetDateNull : ast::Builtin::PCIGetDate;
+      ast_type = ast::BuiltinType::Get(Context(), ast::BuiltinType::Date);
       break;
     case type::TypeId::TIMESTAMP:
       builtin = nullable ? ast::Builtin ::PCIGetTimestampNull : ast::Builtin::PCIGetTimestamp;
+      ast_type = ast::BuiltinType::Get(Context(), ast::BuiltinType::Timestamp);
       break;
     case type::TypeId::VARCHAR:
+    case type::TypeId::VARBINARY:
       builtin = nullable ? ast::Builtin ::PCIGetVarlenNull : ast::Builtin::PCIGetVarlen;
+      ast_type = ast::BuiltinType::Get(Context(), ast::BuiltinType::StringVal);
       break;
     default:
       UNREACHABLE("Cannot @pciGetType unsupported type");
@@ -151,7 +172,9 @@ ast::Expr *CodeGen::PCIGet(ast::Identifier pci, type::TypeId type, bool nullable
   ast::Expr *pci_expr = MakeExpr(pci);
   ast::Expr *idx_expr = Factory()->NewIntLiteral(DUMMY_POS, idx);
   util::RegionVector<ast::Expr *> args{{pci_expr, idx_expr}, Region()};
-  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+  ast::Expr *ret = Factory()->NewBuiltinCallExpr(fun, std::move(args));
+  ret->SetType(ast_type);
+  return ret;
 }
 
 ast::Expr *CodeGen::PCIFilter(ast::Identifier pci, parser::ExpressionType comp_type, uint32_t col_idx,
@@ -342,6 +365,7 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
       builtin = nullable ? ast::Builtin::PRSetTimestampNull : ast::Builtin::PRSetTimestamp;
       break;
     case type::TypeId::VARCHAR:
+    case type::TypeId::VARBINARY:
       builtin = nullable ? ast::Builtin::PRSetVarlenNull : ast::Builtin::PRSetVarlen;
       break;
     default:
@@ -350,13 +374,43 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
   ast::Expr *fun = BuiltinFunction(builtin);
   ast::Expr *idx_expr = Factory()->NewIntLiteral(DUMMY_POS, attr_idx);
   util::RegionVector<ast::Expr *> args{{pr, idx_expr, val}, Region()};
-  if (type == type::TypeId::VARCHAR) {
+  if ((type == type::TypeId::VARCHAR) || (type == type::TypeId::VARBINARY)) {
     args.emplace_back(BoolLiteral(own));
   }
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
 ast::Expr *CodeGen::PeekValue(const type::TransientValue &transient_val) {
+  if (transient_val.Null()) {
+    // NullToSql(&expr) produces a NULL of expr's type.
+    ast::Expr *dummy_expr;
+    switch (transient_val.Type()) {
+      case type::TypeId::BOOLEAN:
+        dummy_expr = BoolLiteral(false);
+        break;
+      case type::TypeId::TINYINT:  /* fall-through */
+      case type::TypeId::SMALLINT: /* fall-through */
+      case type::TypeId::INTEGER:  /* fall-through */
+      case type::TypeId::BIGINT:   /* fall-through */
+        dummy_expr = IntToSql(0);
+        break;
+      case type::TypeId::DATE:
+        dummy_expr = DateToSql(0, 0, 0);
+        break;
+      case type::TypeId::TIMESTAMP:
+        dummy_expr = TimestampToSql(0);
+        break;
+      case type::TypeId::VARCHAR:
+        dummy_expr = StringToSql("");
+        break;
+      case type::TypeId::DECIMAL:
+      case type::TypeId::VARBINARY:
+      default:
+        UNREACHABLE("Unsupported NULL type!");
+    }
+    return OneArgCall(ast::Builtin::NullToSql, PointerTo(dummy_expr));
+  }
+
   switch (transient_val.Type()) {
     case type::TypeId::BOOLEAN: {
       auto val = type::TransientValuePeeker::PeekBoolean(transient_val);
@@ -395,11 +449,11 @@ ast::Expr *CodeGen::PeekValue(const type::TransientValue &transient_val) {
       auto val = type::TransientValuePeeker::PeekDecimal(transient_val);
       return FloatToSql(val);
     }
-    case type::TypeId::VARCHAR: {
+    case type::TypeId::VARCHAR:
+    case type::TypeId::VARBINARY: {
       auto val = terrier::type::TransientValuePeeker::PeekVarChar(transient_val);
       return StringToSql(val);
     }
-    case type::TypeId::VARBINARY:
     default:
       // TODO(Amadou): Add support for these types.
       UNREACHABLE("Should not peek on given type!");
@@ -422,8 +476,8 @@ ast::Expr *CodeGen::TplType(type::TypeId type) {
     case type::TypeId::DECIMAL:
       return BuiltinType(ast::BuiltinType::Kind::Real);
     case type::TypeId::VARCHAR:
-      return BuiltinType(ast::BuiltinType::Kind::StringVal);
     case type::TypeId::VARBINARY:
+      return BuiltinType(ast::BuiltinType::Kind::StringVal);
     default:
       UNREACHABLE("Cannot codegen unsupported type.");
   }
@@ -506,6 +560,12 @@ ast::Expr *CodeGen::MemberExpr(ast::Identifier lhs, ast::Identifier rhs) {
   ast::Expr *member = MakeExpr(rhs);
   return Factory()->NewMemberExpr(DUMMY_POS, object, member);
 }
+
+ast::Expr *CodeGen::IsSqlNull(ast::Expr *expr) { return OneArgCall(ast::Builtin::IsSqlNull, expr); }
+
+ast::Expr *CodeGen::IsSqlNotNull(ast::Expr *expr) { return OneArgCall(ast::Builtin::IsSqlNotNull, expr); }
+
+ast::Expr *CodeGen::NullToSql(ast::Expr *expr) { return OneArgCall(ast::Builtin::NullToSql, expr); }
 
 ast::Expr *CodeGen::IntToSql(int64_t num) {
   ast::Expr *int_lit = IntLiteral(num);

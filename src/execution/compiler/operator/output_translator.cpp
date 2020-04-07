@@ -4,7 +4,7 @@
 
 namespace terrier::execution::compiler {
 OutputTranslator::OutputTranslator(execution::compiler::CodeGen *codegen)
-    : OperatorTranslator(codegen),
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::OUTPUT),
       output_struct_(codegen->NewIdentifier("Output")),
       output_var_(codegen->NewIdentifier("out")) {}
 

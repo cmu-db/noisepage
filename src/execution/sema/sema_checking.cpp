@@ -121,6 +121,20 @@ Sema::CheckResult Sema::CheckArithmeticOperands(parsing::Token::Type op, const S
     return {left->GetType(), left, new_right};
   }
 
+  // SQL int <OP> SQL real
+  if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer) &&
+      right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real)) {
+    auto new_left = ImplCastExprToType(left, right->GetType(), ast::CastKind::SqlIntToSqlReal);
+    return {right->GetType(), new_left, right};
+  }
+
+  // SQL real <OP> SQL int
+  if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real) &&
+      right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
+    auto new_right = ImplCastExprToType(right, left->GetType(), ast::CastKind::SqlIntToSqlReal);
+    return {left->GetType(), left, new_right};
+  }
+
   // TODO(Amadou): Add more types if necessary
   GetErrorReporter()->Report(pos, ErrorMessages::kIllegalTypesForBinary, op, left->GetType(), right->GetType());
   return {nullptr, left, right};
@@ -151,7 +165,7 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
     return {nullptr, left, right};
   }
 
-  auto built_ret_type = [this](ast::Type *input_type) {
+  auto build_ret_type = [this](ast::Type *input_type) {
     if (input_type->IsSqlValueType()) {
       return ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Boolean);
     }
@@ -160,18 +174,18 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
 
   // If the input types are the same, we don't need to do any work
   if (left->GetType() == right->GetType()) {
-    return {built_ret_type(left->GetType()), left, right};
+    return {build_ret_type(left->GetType()), left, right};
   }
 
   // Primitive bool -> Sql Boolean
   if (left->GetType()->IsBoolType() && right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Boolean)) {
     auto new_left = ImplCastExprToType(left, right->GetType(), ast::CastKind::BoolToSqlBool);
-    return {built_ret_type(right->GetType()), new_left, right};
+    return {build_ret_type(right->GetType()), new_left, right};
   }
   // Sql Boolean <- Primitive bool
   if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::Boolean) && right->GetType()->IsBoolType()) {
     auto new_right = ImplCastExprToType(right, left->GetType(), ast::CastKind::BoolToSqlBool);
-    return {built_ret_type(left->GetType()), left, new_right};
+    return {build_ret_type(left->GetType()), left, new_right};
   }
 
   // If neither input expression is arithmetic, it's an ill-formed operation
@@ -193,24 +207,38 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
   // Primitive float -> Sql Float
   if (left->GetType()->IsFloatType() && right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real)) {
     auto new_left = ImplCastExprToType(left, right->GetType(), ast::CastKind::FloatToSqlReal);
-    return {built_ret_type(right->GetType()), new_left, right};
+    return {build_ret_type(right->GetType()), new_left, right};
   }
 
   // Sql Float <- Primitive Float
   if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real) && right->GetType()->IsFloatType()) {
     auto new_right = ImplCastExprToType(right, left->GetType(), ast::CastKind::FloatToSqlReal);
-    return {built_ret_type(left->GetType()), left, new_right};
+    return {build_ret_type(left->GetType()), left, new_right};
   }
 
   // Primitive int -> Sql Integer
   if (left->GetType()->IsIntegerType() && right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
     auto new_left = ImplCastExprToType(left, right->GetType(), ast::CastKind::IntToSqlInt);
-    return {built_ret_type(right->GetType()), new_left, right};
+    return {build_ret_type(right->GetType()), new_left, right};
   }
   // Sql Integer <- Primitive int
   if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer) && right->GetType()->IsIntegerType()) {
     auto new_right = ImplCastExprToType(right, left->GetType(), ast::CastKind::IntToSqlInt);
-    return {built_ret_type(left->GetType()), left, new_right};
+    return {build_ret_type(left->GetType()), left, new_right};
+  }
+
+  // SQL int -> SQL real
+  if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer) &&
+      right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real)) {
+    auto new_left = ImplCastExprToType(left, right->GetType(), ast::CastKind::SqlIntToSqlReal);
+    return {build_ret_type(right->GetType()), new_left, right};
+  }
+
+  // SQL real <- SQL int
+  if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real) &&
+      right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
+    auto new_right = ImplCastExprToType(right, left->GetType(), ast::CastKind::SqlIntToSqlReal);
+    return {build_ret_type(left->GetType()), left, new_right};
   }
 
   // TODO(Amadou): Add more types if necessary

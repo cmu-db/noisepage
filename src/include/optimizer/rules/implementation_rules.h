@@ -19,20 +19,19 @@ class LogicalGetToPhysicalSeqScan : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -48,20 +47,19 @@ class LogicalExternalFileGetToPhysicalExternalFileGet : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -78,20 +76,19 @@ class LogicalGetToPhysicalTableFreeScan : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -107,20 +104,19 @@ class LogicalGetToPhysicalIndexScan : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -136,20 +132,19 @@ class LogicalQueryDerivedGetToPhysicalQueryDerivedScan : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -165,20 +160,19 @@ class LogicalDeleteToPhysicalDelete : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -194,20 +188,19 @@ class LogicalUpdateToPhysicalUpdate : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -223,20 +216,19 @@ class LogicalInsertToPhysicalInsert : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -252,20 +244,19 @@ class LogicalInsertSelectToPhysicalInsertSelect : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -281,20 +272,19 @@ class LogicalGroupByToPhysicalHashGroupBy : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -310,20 +300,19 @@ class LogicalAggregateToPhysicalAggregate : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -339,20 +328,19 @@ class LogicalInnerJoinToPhysicalInnerNLJoin : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -368,20 +356,19 @@ class LogicalInnerJoinToPhysicalInnerHashJoin : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -397,20 +384,19 @@ class LogicalLimitToPhysicalLimit : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -426,20 +412,19 @@ class LogicalExportToPhysicalExport : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -455,20 +440,19 @@ class LogicalCreateDatabaseToPhysicalCreateDatabase : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -484,20 +468,19 @@ class LogicalCreateFunctionToPhysicalCreateFunction : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -513,20 +496,19 @@ class LogicalCreateIndexToPhysicalCreateIndex : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -542,20 +524,19 @@ class LogicalCreateTableToPhysicalCreateTable : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -571,20 +552,19 @@ class LogicalCreateNamespaceToPhysicalCreateNamespace : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -600,20 +580,19 @@ class LogicalCreateTriggerToPhysicalCreateTrigger : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -629,20 +608,19 @@ class LogicalCreateViewToPhysicalCreateView : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -658,20 +636,19 @@ class LogicalDropDatabaseToPhysicalDropDatabase : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -687,20 +664,19 @@ class LogicalDropTableToPhysicalDropTable : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -716,20 +692,19 @@ class LogicalDropIndexToPhysicalDropIndex : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -745,20 +720,19 @@ class LogicalDropNamespaceToPhysicalDropNamespace : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -774,20 +748,19 @@ class LogicalDropTriggerToPhysicalDropTrigger : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 
@@ -803,20 +776,47 @@ class LogicalDropViewToPhysicalDropView : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
+   * @param plan OperatorNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorExpression passes the check
+   * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorExpression> input,
-                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
+                 OptimizationContext *context) const override;
+};
+
+/**
+ * Rule transforms Logical Analyze -> Physical Analyze
+ */
+class LogicalAnalyzeToPhysicalAnalyze : public Rule {
+ public:
+  /**
+   * Constructor
+   */
+  LogicalAnalyzeToPhysicalAnalyze();
+
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorNode to check
+   * @param context Current OptimizationContext executing under
+   * @returns Whether the input OperatorNode passes the check
+   */
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
+
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
+   * @param context Current OptimizationContext executing under
+   */
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 

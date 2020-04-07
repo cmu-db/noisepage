@@ -9,7 +9,7 @@
 namespace terrier::execution::compiler {
 HashJoinLeftTranslator::HashJoinLeftTranslator(const terrier::planner::HashJoinPlanNode *op,
                                                execution::compiler::CodeGen *codegen)
-    : OperatorTranslator(codegen),
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD),
       op_(op),
       hash_val_{codegen->NewIdentifier("hash_val")},
       build_struct_{codegen->NewIdentifier("BuildRow")},
@@ -139,7 +139,7 @@ ast::Expr *HashJoinLeftTranslator::GetChildOutput(uint32_t child_idx, uint32_t a
 HashJoinRightTranslator::HashJoinRightTranslator(const terrier::planner::HashJoinPlanNode *op,
                                                  execution::compiler::CodeGen *codegen,
                                                  execution::compiler::OperatorTranslator *left)
-    : OperatorTranslator{codegen},
+    : OperatorTranslator{codegen, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE},
       op_(op),
       left_(dynamic_cast<HashJoinLeftTranslator *>(left)),
       hash_val_{codegen->NewIdentifier("hash_val")},

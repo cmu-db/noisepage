@@ -470,6 +470,28 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
+  OP(ExecutionContextStartResourceTracker) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto cmp = static_cast<metrics::MetricsComponent>(frame->LocalAt<uint64_t>(READ_LOCAL_ID()));
+    OpExecutionContextStartResourceTracker(exec_ctx, cmp);
+    DISPATCH_NEXT();
+  }
+
+  OP(ExecutionContextEndResourceTracker) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *name = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    OpExecutionContextEndResourceTracker(exec_ctx, *name);
+    DISPATCH_NEXT();
+  }
+
+  OP(ExecutionContextEndPipelineTracker) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto query_id = execution::query_id_t{frame->LocalAt<uint64_t>(READ_LOCAL_ID())};
+    auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint64_t>(READ_LOCAL_ID())};
+    OpExecutionContextEndPipelineTracker(exec_ctx, query_id, pipeline_id);
+    DISPATCH_NEXT();
+  }
+
   OP(ThreadStateContainerInit) : {
     auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());
     auto *memory = frame->LocalAt<execution::sql::MemoryPool *>(READ_LOCAL_ID());
@@ -755,6 +777,17 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   }
 
   // -------------------------------------------------------
+  // Date functions
+  // -------------------------------------------------------
+
+  OP(ExtractYear) : {
+    auto *sql_int = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<sql::DateVal *>(READ_LOCAL_ID());
+    OpExtractYear(sql_int, input);
+    DISPATCH_NEXT();
+  }
+
+  // -------------------------------------------------------
   // SQL Comparison Operations
   // -------------------------------------------------------
 
@@ -762,6 +795,12 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
     auto *sql_bool = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());
     OpForceBoolTruth(result, sql_bool);
+    DISPATCH_NEXT();
+  }
+
+  OP(InitSqlNull) : {
+    auto *sql_null = frame->LocalAt<sql::Val *>(READ_LOCAL_ID());
+    OpInitSqlNull(sql_null);
     DISPATCH_NEXT();
   }
 
@@ -774,7 +813,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
 
   OP(InitInteger) : {
     auto *sql_int = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
-    auto val = frame->LocalAt<int32_t>(READ_LOCAL_ID());
+    auto val = frame->LocalAt<int64_t>(READ_LOCAL_ID());
     OpInitInteger(sql_int, val);
     DISPATCH_NEXT();
   }
@@ -783,6 +822,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     auto *sql_real = frame->LocalAt<sql::Real *>(READ_LOCAL_ID());
     auto val = frame->LocalAt<double>(READ_LOCAL_ID());
     OpInitReal(sql_real, val);
+    DISPATCH_NEXT();
+  }
+
+  OP(IntegerToReal) : {
+    auto *sql_real = frame->LocalAt<sql::Real *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
+    OpIntegerToReal(sql_real, input);
     DISPATCH_NEXT();
   }
 
@@ -900,14 +946,14 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
 #undef GEN_UNARY_MATH_OPS
 
   OP(ValIsNull) : {
-    auto *result = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());
+    auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
     auto *val = frame->LocalAt<const sql::Val *>(READ_LOCAL_ID());
     OpValIsNull(result, val);
     DISPATCH_NEXT();
   }
 
   OP(ValIsNotNull) : {
-    auto *result = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());
+    auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
     auto *val = frame->LocalAt<const sql::Val *>(READ_LOCAL_ID());
     OpValIsNotNull(result, val);
     DISPATCH_NEXT();

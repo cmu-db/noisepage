@@ -300,7 +300,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
       parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
   StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(0));
   auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
-  auto *const sql_table = new storage::SqlTable(store_.Get(), table_schema);
+  auto *const sql_table = new storage::SqlTable(store_, table_schema);
   auto tuple_initializer = sql_table->InitializerForProjectedRow({catalog::col_oid_t(0)});
 
   // Initialize first transaction, this txn will write a single tuple
@@ -372,7 +372,7 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
       parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
   StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(0));
   auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
-  auto *const sql_table = new storage::SqlTable(store_.Get(), table_schema);
+  auto *const sql_table = new storage::SqlTable(store_, table_schema);
   auto tuple_initializer = sql_table->InitializerForProjectedRow({catalog::col_oid_t(0)});
 
   // Initialize first transaction, this txn will write a single tuple
@@ -429,7 +429,7 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyCallbackTest) {
       parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
   StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(0));
   auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
-  auto *const sql_table = new storage::SqlTable(store_.Get(), table_schema);
+  auto *const sql_table = new storage::SqlTable(store_, table_schema);
 
   // Initialize first transaction, this txn will write a single tuple
   auto *const txn = txn_manager_->BeginTransaction();

@@ -1,10 +1,12 @@
 <project name="test" basedir=".">
-<property name="src" value="." />
-<property name="lib" value="./lib" />
+<property name="src.dir" value="./src" />
+<property name="lib.dir" value="./lib" />
+<property name="out.dir" value="./out" />
 
 <target name="compile">
-  <javac srcdir="${src}"
-         destdir="."
+  <mkdir dir="${out.dir}"/>
+  <javac srcdir="${src.dir}"
+         destdir="${out.dir}"
          includeantruntime="false"
          debug="true">
     <classpath refid="test.jars"/>
@@ -13,14 +15,14 @@
 
 <target name="clean">
   <delete failonerror="false">
-    <fileset dir="${src}" >
+    <fileset dir="${out.dir}" >
       <include name="*.class"/>
     </fileset>
   </delete>
 </target>
 
 <path id="test.jars">
-  <fileset dir="${lib}">
+  <fileset dir="${lib.dir}">
     <include name="**/*.jar"/>
     <exclude name="junit-platform-console-standalone-1.1.0.jar" />
   </fileset>
@@ -28,7 +30,7 @@
 
 <path id="test.classpath">
   <path refid="test.jars"/>
-  <pathelement location="${src}" />
+  <pathelement location="${out.dir}" />
 </path>
 
 <target name="testconsole" depends="compile">
@@ -47,7 +49,7 @@
     <formatter type="plain" usefile="false" />
     <classpath refid="test.classpath" />
     <batchtest skipNonTests="true">
-      <fileset dir="${src}" includes="*.class"/>
+      <fileset dir="${out.dir}" includes="*.class"/>
     </batchtest>
   </junit>
 </target>

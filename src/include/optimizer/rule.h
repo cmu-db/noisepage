@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "optimizer/operator_expression.h"
+#include "optimizer/operator_node.h"
 #include "optimizer/optimization_context.h"
 #include "optimizer/pattern.h"
 
@@ -38,6 +38,7 @@ enum class RuleType : uint32_t {
   IMPLEMENT_DISTINCT,
   IMPLEMENT_LIMIT,
   EXPORT_EXTERNAL_FILE_TO_PHYSICAL,
+  ANALYZE_TO_PHYSICAL,
 
   // Create/Drop
   CREATE_DATABASE_TO_PHYSICAL,
@@ -180,7 +181,7 @@ class Rule {
    * @param context The current context for the optimization
    * @return If the rule is applicable, return true, otherwise return false
    */
-  virtual bool Check(common::ManagedPointer<OperatorExpression> expr, OptimizationContext *context) const = 0;
+  virtual bool Check(common::ManagedPointer<OperatorNode> expr, OptimizationContext *context) const = 0;
 
   /**
    * Convert a "before" operator tree to an "after" operator tree
@@ -189,8 +190,8 @@ class Rule {
    * @param transformed Vector of "after" operator trees
    * @param context The current optimization context
    */
-  virtual void Transform(common::ManagedPointer<OperatorExpression> input,
-                         std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+  virtual void Transform(common::ManagedPointer<OperatorNode> input,
+                         std::vector<std::unique_ptr<OperatorNode>> *transformed,
                          OptimizationContext *context) const = 0;
 
  protected:

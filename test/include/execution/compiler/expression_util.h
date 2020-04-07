@@ -228,31 +228,31 @@ class ExpressionMaker {
   /**
    * Create an aggregate expression
    */
-  ManagedAggExpression AggregateTerm(parser::ExpressionType agg_type, ManagedExpression child) {
+  ManagedAggExpression AggregateTerm(parser::ExpressionType agg_type, ManagedExpression child, bool distinct) {
     std::vector<OwnedExpression> children;
     children.emplace_back(child->Copy());
-    return MakeAggManaged(std::make_unique<parser::AggregateExpression>(agg_type, std::move(children), false));
+    return MakeAggManaged(std::make_unique<parser::AggregateExpression>(agg_type, std::move(children), distinct));
   }
 
   /**
    * Create a sum aggregate expression
    */
-  ManagedAggExpression AggSum(ManagedExpression child) {
-    return AggregateTerm(parser::ExpressionType::AGGREGATE_SUM, child);
+  ManagedAggExpression AggSum(ManagedExpression child, bool distinct = false) {
+    return AggregateTerm(parser::ExpressionType::AGGREGATE_SUM, child, distinct);
   }
 
   /**
    * Create a avg aggregate expression
    */
-  ManagedAggExpression AggAvg(ManagedExpression child) {
-    return AggregateTerm(parser::ExpressionType::AGGREGATE_AVG, child);
+  ManagedAggExpression AggAvg(ManagedExpression child, bool distinct = false) {
+    return AggregateTerm(parser::ExpressionType::AGGREGATE_AVG, child, distinct);
   }
 
   /**
    * Create a count aggregate expression
    */
-  ManagedAggExpression AggCount(ManagedExpression child) {
-    return AggregateTerm(parser::ExpressionType::AGGREGATE_COUNT, child);
+  ManagedAggExpression AggCount(ManagedExpression child, bool distinct = false) {
+    return AggregateTerm(parser::ExpressionType::AGGREGATE_COUNT, child, distinct);
   }
 
  private:

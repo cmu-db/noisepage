@@ -8,7 +8,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
-#include "optimizer/operator_node.h"
+#include "optimizer/operator_node_contents.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 #include "parser/parser_defs.h"
@@ -27,7 +27,7 @@ namespace terrier::optimizer {
 /**
  * Operator that represents another group
  */
-class LeafOperator : public OperatorNode<LeafOperator> {
+class LeafOperator : public OperatorNodeContents<LeafOperator> {
  public:
   /**
    * Make a LeafOperator
@@ -39,9 +39,9 @@ class LeafOperator : public OperatorNode<LeafOperator> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
 
   common::hash_t Hash() const override;
 
@@ -61,7 +61,7 @@ class LeafOperator : public OperatorNode<LeafOperator> {
 /**
  * Logical operator for get
  */
-class LogicalGet : public OperatorNode<LogicalGet> {
+class LogicalGet : public OperatorNodeContents<LogicalGet> {
  public:
   /**
    * @param database_oid OID of the database
@@ -86,9 +86,9 @@ class LogicalGet : public OperatorNode<LogicalGet> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
 
   common::hash_t Hash() const override;
 
@@ -157,7 +157,7 @@ class LogicalGet : public OperatorNode<LogicalGet> {
 /**
  * Logical operator for external file get
  */
-class LogicalExternalFileGet : public OperatorNode<LogicalExternalFileGet> {
+class LogicalExternalFileGet : public OperatorNodeContents<LogicalExternalFileGet> {
  public:
   /**
    * @param format file format
@@ -174,9 +174,9 @@ class LogicalExternalFileGet : public OperatorNode<LogicalExternalFileGet> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
   /**
@@ -234,7 +234,7 @@ class LogicalExternalFileGet : public OperatorNode<LogicalExternalFileGet> {
 /**
  * Logical operator for query derived get (get on result sets of subqueries)
  */
-class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
+class LogicalQueryDerivedGet : public OperatorNodeContents<LogicalQueryDerivedGet> {
  public:
   /**
    * @param table_alias alias of the table
@@ -249,9 +249,9 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
 
   common::hash_t Hash() const override;
 
@@ -287,7 +287,7 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
  * CONJUNCTION_AND. Refer to QueryToOperatorTransformer::CollectPredicates
  * and QueryToOperatorTransformer::SplitPredicates for reference.
  */
-class LogicalFilter : public OperatorNode<LogicalFilter> {
+class LogicalFilter : public OperatorNodeContents<LogicalFilter> {
  public:
   /**
    * @param predicates The list of predicates used to perform the scan
@@ -299,9 +299,9 @@ class LogicalFilter : public OperatorNode<LogicalFilter> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
 
   common::hash_t Hash() const override;
 
@@ -322,7 +322,7 @@ class LogicalFilter : public OperatorNode<LogicalFilter> {
 /**
  * Logical operator for projections
  */
-class LogicalProjection : public OperatorNode<LogicalProjection> {
+class LogicalProjection : public OperatorNodeContents<LogicalProjection> {
  public:
   /**
    * @param expressions list of AbstractExpressions in the projection list.
@@ -334,9 +334,9 @@ class LogicalProjection : public OperatorNode<LogicalProjection> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
 
   common::hash_t Hash() const override;
 
@@ -355,7 +355,7 @@ class LogicalProjection : public OperatorNode<LogicalProjection> {
 /**
  * Logical operator for dependent join
  */
-class LogicalDependentJoin : public OperatorNode<LogicalDependentJoin> {
+class LogicalDependentJoin : public OperatorNodeContents<LogicalDependentJoin> {
  public:
   /**
    * @return a DependentJoin operator
@@ -372,9 +372,9 @@ class LogicalDependentJoin : public OperatorNode<LogicalDependentJoin> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
 
   common::hash_t Hash() const override;
 
@@ -393,7 +393,7 @@ class LogicalDependentJoin : public OperatorNode<LogicalDependentJoin> {
 /**
  * Logical operator for mark join
  */
-class LogicalMarkJoin : public OperatorNode<LogicalMarkJoin> {
+class LogicalMarkJoin : public OperatorNodeContents<LogicalMarkJoin> {
  public:
   /**
    * @return a MarkJoin operator
@@ -410,9 +410,9 @@ class LogicalMarkJoin : public OperatorNode<LogicalMarkJoin> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
 
   common::hash_t Hash() const override;
 
@@ -431,7 +431,7 @@ class LogicalMarkJoin : public OperatorNode<LogicalMarkJoin> {
 /**
  * Logical operator for single join
  */
-class LogicalSingleJoin : public OperatorNode<LogicalSingleJoin> {
+class LogicalSingleJoin : public OperatorNodeContents<LogicalSingleJoin> {
  public:
   /**
    * @return a SingleJoin operator
@@ -448,9 +448,9 @@ class LogicalSingleJoin : public OperatorNode<LogicalSingleJoin> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
 
   common::hash_t Hash() const override;
 
@@ -469,7 +469,7 @@ class LogicalSingleJoin : public OperatorNode<LogicalSingleJoin> {
 /**
  * Logical operator for inner join
  */
-class LogicalInnerJoin : public OperatorNode<LogicalInnerJoin> {
+class LogicalInnerJoin : public OperatorNodeContents<LogicalInnerJoin> {
  public:
   /**
    * @return an InnerJoin operator
@@ -486,9 +486,9 @@ class LogicalInnerJoin : public OperatorNode<LogicalInnerJoin> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
 
   common::hash_t Hash() const override;
 
@@ -507,7 +507,7 @@ class LogicalInnerJoin : public OperatorNode<LogicalInnerJoin> {
 /**
  * Logical operator for left join
  */
-class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
+class LogicalLeftJoin : public OperatorNodeContents<LogicalLeftJoin> {
  public:
   /**
    * @return a LeftJoin operator
@@ -524,9 +524,9 @@ class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
 
   common::hash_t Hash() const override;
 
@@ -545,7 +545,7 @@ class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
 /**
  * Logical operator for right join
  */
-class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
+class LogicalRightJoin : public OperatorNodeContents<LogicalRightJoin> {
  public:
   /**
    * @return a RightJoin operator
@@ -562,9 +562,9 @@ class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
 
   common::hash_t Hash() const override;
 
@@ -583,7 +583,7 @@ class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
 /**
  * Logical operator for outer join
  */
-class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
+class LogicalOuterJoin : public OperatorNodeContents<LogicalOuterJoin> {
  public:
   /**
    * @return an OuterJoin operator
@@ -600,9 +600,9 @@ class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
 
   common::hash_t Hash() const override;
 
@@ -621,7 +621,7 @@ class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
 /**
  * Logical operator for semi join
  */
-class LogicalSemiJoin : public OperatorNode<LogicalSemiJoin> {
+class LogicalSemiJoin : public OperatorNodeContents<LogicalSemiJoin> {
  public:
   /**
    * @return a SemiJoin operator
@@ -638,9 +638,9 @@ class LogicalSemiJoin : public OperatorNode<LogicalSemiJoin> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
 
   common::hash_t Hash() const override;
 
@@ -659,7 +659,7 @@ class LogicalSemiJoin : public OperatorNode<LogicalSemiJoin> {
 /**
  * Logical operator for aggregation or group by operation
  */
-class LogicalAggregateAndGroupBy : public OperatorNode<LogicalAggregateAndGroupBy> {
+class LogicalAggregateAndGroupBy : public OperatorNodeContents<LogicalAggregateAndGroupBy> {
  public:
   /**
    * @return a GroupBy operator
@@ -684,9 +684,9 @@ class LogicalAggregateAndGroupBy : public OperatorNode<LogicalAggregateAndGroupB
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
 
   common::hash_t Hash() const override;
 
@@ -715,7 +715,7 @@ class LogicalAggregateAndGroupBy : public OperatorNode<LogicalAggregateAndGroupB
 /**
  * Logical operation for an Insert
  */
-class LogicalInsert : public OperatorNode<LogicalInsert> {
+class LogicalInsert : public OperatorNodeContents<LogicalInsert> {
  public:
   /**
    * @param database_oid OID of the database
@@ -734,9 +734,9 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
   /**
@@ -798,7 +798,7 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
 /**
  * Logical operator for an Insert that uses the output from a Select
  */
-class LogicalInsertSelect : public OperatorNode<LogicalInsertSelect> {
+class LogicalInsertSelect : public OperatorNodeContents<LogicalInsertSelect> {
  public:
   /**
    * @param database_oid OID of the database
@@ -813,9 +813,9 @@ class LogicalInsertSelect : public OperatorNode<LogicalInsertSelect> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
   /**
@@ -854,7 +854,7 @@ class LogicalInsertSelect : public OperatorNode<LogicalInsertSelect> {
  * Logical operator for LIMIT
  * This supports embedded ORDER BY information
  */
-class LogicalLimit : public OperatorNode<LogicalLimit> {
+class LogicalLimit : public OperatorNodeContents<LogicalLimit> {
  public:
   /**
    * @param offset offset of the LIMIT operator
@@ -871,9 +871,9 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
   /**
@@ -926,7 +926,7 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
 /**
  * Logical operator for Delete
  */
-class LogicalDelete : public OperatorNode<LogicalDelete> {
+class LogicalDelete : public OperatorNodeContents<LogicalDelete> {
  public:
   /**
    * @param database_oid OID of the database
@@ -942,9 +942,9 @@ class LogicalDelete : public OperatorNode<LogicalDelete> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
   /**
@@ -992,7 +992,7 @@ class LogicalDelete : public OperatorNode<LogicalDelete> {
 /**
  * Logical operator for Update
  */
-class LogicalUpdate : public OperatorNode<LogicalUpdate> {
+class LogicalUpdate : public OperatorNodeContents<LogicalUpdate> {
  public:
   /**
    * @param database_oid OID of the database
@@ -1010,9 +1010,9 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
   /**
@@ -1070,7 +1070,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
 /**
  * Logical operator for exporting data to an external file
  */
-class LogicalExportExternalFile : public OperatorNode<LogicalExportExternalFile> {
+class LogicalExportExternalFile : public OperatorNodeContents<LogicalExportExternalFile> {
  public:
   /**
    * @param format how the data should be formatted
@@ -1087,9 +1087,9 @@ class LogicalExportExternalFile : public OperatorNode<LogicalExportExternalFile>
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
   /**
@@ -1149,7 +1149,7 @@ class LogicalExportExternalFile : public OperatorNode<LogicalExportExternalFile>
 /**
  * Logical operator for CreateDatabase
  */
-class LogicalCreateDatabase : public OperatorNode<LogicalCreateDatabase> {
+class LogicalCreateDatabase : public OperatorNodeContents<LogicalCreateDatabase> {
  public:
   /**
    * @param database_name Name of the database to be created
@@ -1161,9 +1161,9 @@ class LogicalCreateDatabase : public OperatorNode<LogicalCreateDatabase> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
   /**
@@ -1181,7 +1181,7 @@ class LogicalCreateDatabase : public OperatorNode<LogicalCreateDatabase> {
 /**
  * Logical operator for CreateFunction
  */
-class LogicalCreateFunction : public OperatorNode<LogicalCreateFunction> {
+class LogicalCreateFunction : public OperatorNodeContents<LogicalCreateFunction> {
  public:
   /**
    * @param database_oid OID of the database
@@ -1206,9 +1206,9 @@ class LogicalCreateFunction : public OperatorNode<LogicalCreateFunction> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
   /**
@@ -1318,7 +1318,7 @@ class LogicalCreateFunction : public OperatorNode<LogicalCreateFunction> {
 /**
  * Logical operator for CreateIndex
  */
-class LogicalCreateIndex : public OperatorNode<LogicalCreateIndex> {
+class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
  public:
   /**
    * @param namespace_oid OID of the namespace
@@ -1337,9 +1337,9 @@ class LogicalCreateIndex : public OperatorNode<LogicalCreateIndex> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
   /**
@@ -1407,7 +1407,7 @@ class LogicalCreateIndex : public OperatorNode<LogicalCreateIndex> {
 /**
  * Logical operator for CreateTable
  */
-class LogicalCreateTable : public OperatorNode<LogicalCreateTable> {
+class LogicalCreateTable : public OperatorNodeContents<LogicalCreateTable> {
  public:
   /**
    * @param namespace_oid OID of the namespace
@@ -1424,9 +1424,9 @@ class LogicalCreateTable : public OperatorNode<LogicalCreateTable> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
   /**
@@ -1471,7 +1471,7 @@ class LogicalCreateTable : public OperatorNode<LogicalCreateTable> {
 /**
  * Logical operator for CreateNamespace/Namespace
  */
-class LogicalCreateNamespace : public OperatorNode<LogicalCreateNamespace> {
+class LogicalCreateNamespace : public OperatorNodeContents<LogicalCreateNamespace> {
  public:
   /**
    * @param namespace_name Name of the namespace to be created
@@ -1483,9 +1483,9 @@ class LogicalCreateNamespace : public OperatorNode<LogicalCreateNamespace> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
   /**
@@ -1503,7 +1503,7 @@ class LogicalCreateNamespace : public OperatorNode<LogicalCreateNamespace> {
 /**
  * Logical operator for CreateTrigger
  */
-class LogicalCreateTrigger : public OperatorNode<LogicalCreateTrigger> {
+class LogicalCreateTrigger : public OperatorNodeContents<LogicalCreateTrigger> {
  public:
   /**
    * @param database_oid OID of the database
@@ -1527,9 +1527,9 @@ class LogicalCreateTrigger : public OperatorNode<LogicalCreateTrigger> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
   /**
@@ -1629,7 +1629,7 @@ class LogicalCreateTrigger : public OperatorNode<LogicalCreateTrigger> {
 /**
  * Logical operator for CreateView
  */
-class LogicalCreateView : public OperatorNode<LogicalCreateView> {
+class LogicalCreateView : public OperatorNodeContents<LogicalCreateView> {
  public:
   /**
    * @param database_oid OID of the database
@@ -1645,9 +1645,9 @@ class LogicalCreateView : public OperatorNode<LogicalCreateView> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
   /**
@@ -1694,7 +1694,7 @@ class LogicalCreateView : public OperatorNode<LogicalCreateView> {
 /**
  * Logical operator for DropDatabase
  */
-class LogicalDropDatabase : public OperatorNode<LogicalDropDatabase> {
+class LogicalDropDatabase : public OperatorNodeContents<LogicalDropDatabase> {
  public:
   /**
    * @param db_oid OID of the database to be dropped
@@ -1706,9 +1706,9 @@ class LogicalDropDatabase : public OperatorNode<LogicalDropDatabase> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
   /**
@@ -1726,7 +1726,7 @@ class LogicalDropDatabase : public OperatorNode<LogicalDropDatabase> {
 /**
  * Logical operator for DropTable
  */
-class LogicalDropTable : public OperatorNode<LogicalDropTable> {
+class LogicalDropTable : public OperatorNodeContents<LogicalDropTable> {
  public:
   /**
    * @param table_oid OID of the table to be dropped
@@ -1738,9 +1738,9 @@ class LogicalDropTable : public OperatorNode<LogicalDropTable> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
   /**
@@ -1758,7 +1758,7 @@ class LogicalDropTable : public OperatorNode<LogicalDropTable> {
 /**
  * Logical operator for DropIndex
  */
-class LogicalDropIndex : public OperatorNode<LogicalDropIndex> {
+class LogicalDropIndex : public OperatorNodeContents<LogicalDropIndex> {
  public:
   /**
    * @param index_oid OID of index to be dropped
@@ -1770,9 +1770,9 @@ class LogicalDropIndex : public OperatorNode<LogicalDropIndex> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
   /**
@@ -1790,7 +1790,7 @@ class LogicalDropIndex : public OperatorNode<LogicalDropIndex> {
 /**
  * Logical operator for DropNamespace
  */
-class LogicalDropNamespace : public OperatorNode<LogicalDropNamespace> {
+class LogicalDropNamespace : public OperatorNodeContents<LogicalDropNamespace> {
  public:
   /**
    * @param namespace_oid OID of the schema to be dropped
@@ -1802,9 +1802,9 @@ class LogicalDropNamespace : public OperatorNode<LogicalDropNamespace> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
   /**
@@ -1822,7 +1822,7 @@ class LogicalDropNamespace : public OperatorNode<LogicalDropNamespace> {
 /**
  * Logical operator for DropTrigger
  */
-class LogicalDropTrigger : public OperatorNode<LogicalDropTrigger> {
+class LogicalDropTrigger : public OperatorNodeContents<LogicalDropTrigger> {
  public:
   /**
    * @param database_oid OID of the database
@@ -1838,9 +1838,9 @@ class LogicalDropTrigger : public OperatorNode<LogicalDropTrigger> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
   /**
@@ -1888,7 +1888,7 @@ class LogicalDropTrigger : public OperatorNode<LogicalDropTrigger> {
 /**
  * Logical operator for DropView
  */
-class LogicalDropView : public OperatorNode<LogicalDropView> {
+class LogicalDropView : public OperatorNodeContents<LogicalDropView> {
  public:
   /**
    * @param database_oid OID of the database
@@ -1904,9 +1904,9 @@ class LogicalDropView : public OperatorNode<LogicalDropView> {
    * Copy
    * @returns copy of this
    */
-  BaseOperatorNode *Copy() const override;
+  BaseOperatorNodeContents *Copy() const override;
 
-  bool operator==(const BaseOperatorNode &r) override;
+  bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
   /**
@@ -1949,6 +1949,61 @@ class LogicalDropView : public OperatorNode<LogicalDropView> {
    * Whether "IF EXISTS" was used
    */
   bool if_exists_;
+};
+
+/**
+ * Logical operator for Analyze
+ */
+class LogicalAnalyze : public OperatorNodeContents<LogicalAnalyze> {
+ public:
+  /**
+   * @param database_oid OID of the database
+   * @param table_oid OID of the table
+   * @param columns OIDs of Analyze columns
+   * @return
+   */
+  static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
+                       std::vector<catalog::col_oid_t> &&columns);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNodeContents *Copy() const override;
+
+  bool operator==(const BaseOperatorNodeContents &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the database
+   */
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the table
+   */
+  const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
+
+  /**
+   * @return columns
+   */
+  std::vector<catalog::col_oid_t> GetColumns() const { return columns_; }
+
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the target table
+   */
+  catalog::table_oid_t table_oid_;
+
+  /**
+   * Vector of column to Analyze
+   */
+  std::vector<catalog::col_oid_t> columns_;
 };
 
 }  // namespace terrier::optimizer

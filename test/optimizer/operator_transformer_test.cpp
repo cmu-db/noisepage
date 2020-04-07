@@ -5,15 +5,15 @@
 
 #include "benchmark_util/data_table_benchmark_util.h"
 #include "binder/bind_node_visitor.h"
+#include "binder/sql_node_visitor.h"
 #include "catalog/catalog.h"
 #include "catalog/postgres/pg_namespace.h"
-#include "common/sql_node_visitor.h"
 #include "loggers/optimizer_logger.h"
 #include "main/db_main.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/logical_operators.h"
-#include "optimizer/operator_expression.h"
+#include "optimizer/operator_node.h"
 #include "optimizer/optimization_context.h"
 #include "optimizer/optimizer_context.h"
 #include "optimizer/plan_generator.h"
@@ -28,6 +28,7 @@
 #include "parser/expression/subquery_expression.h"
 #include "parser/expression_defs.h"
 #include "parser/postgresparser.h"
+#include "planner/plannodes/analyze_plan_node.h"
 #include "planner/plannodes/create_database_plan_node.h"
 #include "planner/plannodes/create_function_plan_node.h"
 #include "planner/plannodes/create_index_plan_node.h"
@@ -68,7 +69,7 @@ class OperatorTransformerTest : public TerrierTest {
   std::unique_ptr<catalog::CatalogAccessor> accessor_;
   binder::BindNodeVisitor *binder_;
   std::unique_ptr<optimizer::QueryToOperatorTransformer> operator_transformer_;
-  std::unique_ptr<optimizer::OperatorExpression> operator_tree_;
+  std::unique_ptr<optimizer::OperatorNode> operator_tree_;
   std::vector<optimizer::OpType> op_types_;
   std::unique_ptr<optimizer::TrivialCostModel> trivial_cost_model_;
   std::unique_ptr<optimizer::OptimizerContext> optimizer_context_;
@@ -99,7 +100,7 @@ class OperatorTransformerTest : public TerrierTest {
     auto schema_a = catalog::Schema(cols_a);
 
     table_a_oid_ = accessor_->CreateTable(accessor_->GetDefaultNamespace(), "a", schema_a);
-    auto table_a = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), schema_a);
+    auto table_a = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), schema_a);
     EXPECT_TRUE(accessor_->SetTablePointer(table_a_oid_, table_a));
 
     txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -116,7 +117,7 @@ class OperatorTransformerTest : public TerrierTest {
 
     auto schema_b = catalog::Schema(cols_b);
     table_b_oid_ = accessor_->CreateTable(accessor_->GetDefaultNamespace(), "b", schema_b);
-    auto table_b = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore().Get(), schema_b);
+    auto table_b = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), schema_b);
     EXPECT_TRUE(accessor_->SetTablePointer(table_b_oid_, table_b));
     txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 
@@ -147,7 +148,7 @@ class OperatorTransformerTest : public TerrierTest {
     // prepare for testing
     txn_ = txn_manager_->BeginTransaction();
     accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_);
-    binder_ = new binder::BindNodeVisitor(common::ManagedPointer(accessor_), default_database_name_);
+    binder_ = new binder::BindNodeVisitor(common::ManagedPointer(accessor_), db_oid_);
 
     trivial_cost_model_ = std::make_unique<optimizer::TrivialCostModel>();
     optimizer_context_ = std::make_unique<optimizer::OptimizerContext>(
@@ -169,7 +170,7 @@ class OperatorTransformerTest : public TerrierTest {
     operator_tree_.reset(nullptr);
   }
 
-  std::string GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression> op) const {
+  std::string GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode> op) const {
     std::string info = "{";
     {
       info += "\"Op\":";
@@ -205,11 +206,12 @@ TEST_F(OperatorTransformerTest, SelectStatementSimpleTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -229,11 +231,12 @@ TEST_F(OperatorTransformerTest, InsertStatementSimpleTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(insert_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -267,11 +270,12 @@ TEST_F(OperatorTransformerTest, InsertStatementSelectTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(insert_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -305,11 +309,12 @@ TEST_F(OperatorTransformerTest, UpdateStatementSimpleTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(update_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -342,11 +347,12 @@ TEST_F(OperatorTransformerTest, SelectStatementAggregateTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -376,11 +382,12 @@ TEST_F(OperatorTransformerTest, SelectStatementDistinctTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -408,11 +415,12 @@ TEST_F(OperatorTransformerTest, SelectStatementOrderByTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -446,11 +454,12 @@ TEST_F(OperatorTransformerTest, SelectStatementLeftJoinTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -484,11 +493,12 @@ TEST_F(OperatorTransformerTest, SelectStatementRightJoinTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -522,11 +532,12 @@ TEST_F(OperatorTransformerTest, SelectStatementInnerJoinTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -560,11 +571,12 @@ TEST_F(OperatorTransformerTest, SelectStatementOuterJoinTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -603,10 +615,11 @@ TEST_F(OperatorTransformerTest, SelectStatementComplexTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 }
@@ -625,10 +638,11 @@ TEST_F(OperatorTransformerTest, SelectStatementMarkJoinTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 }
@@ -649,10 +663,11 @@ TEST_F(OperatorTransformerTest, SelectStatementStarNestedSelectTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 }
@@ -668,10 +683,11 @@ TEST_F(OperatorTransformerTest, SelectStatementNestedColumnTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 }
@@ -688,10 +704,11 @@ TEST_F(OperatorTransformerTest, SelectStatementDiffTableSameSchemaTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 }
@@ -709,10 +726,11 @@ TEST_F(OperatorTransformerTest, SelectStatementSelectListAliasTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 }
@@ -727,11 +745,12 @@ TEST_F(OperatorTransformerTest, DeleteStatementWhereTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(delete_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -767,10 +786,11 @@ TEST_F(OperatorTransformerTest, AggregateComplexTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 }
@@ -789,11 +809,12 @@ TEST_F(OperatorTransformerTest, OperatorComplexTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -821,7 +842,7 @@ TEST_F(OperatorTransformerTest, SubqueryComplexTest) {
 
   std::string select_sql =
       "SELECT A.a1 FROM A WHERE A.a1 IN (SELECT b1 FROM B WHERE b1 = 2 AND "
-      "b2 > (SELECT a1 FROM A WHERE a2 > 0)) AND EXISTS (SELECT b1 FROM B WHERE B.b1 = A.a1)";
+      "b1 > (SELECT a1 FROM A WHERE a1 > 0)) AND EXISTS (SELECT b1 FROM B WHERE B.b1 = A.a1)";
 
   std::string ref =
       "{\"Op\":\"LogicalFilter\",\"Children\":"
@@ -835,10 +856,11 @@ TEST_F(OperatorTransformerTest, SubqueryComplexTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 }
@@ -851,10 +873,11 @@ TEST_F(OperatorTransformerTest, CreateDatabaseTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -864,7 +887,7 @@ TEST_F(OperatorTransformerTest, CreateDatabaseTest) {
 
   auto optree_ptr = common::ManagedPointer(operator_tree_);
   auto *op_ctx = optimization_context_.get();
-  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+  std::vector<std::unique_ptr<optimizer::OperatorNode>> transformed;
 
   optimizer::LogicalCreateDatabaseToPhysicalCreateDatabase rule;
   EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
@@ -885,8 +908,8 @@ TEST_F(OperatorTransformerTest, CreateDatabaseTest) {
   std::vector<optimizer::ExprMap> children_expr_map{};
 
   auto plan_node =
-      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                   output_cols, std::move(children_plans), std::move(children_expr_map));
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::CREATE_DATABASE);
   auto cdpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::CreateDatabasePlanNode>();
   EXPECT_EQ(cdpn->GetDatabaseName(), "c");
@@ -902,11 +925,12 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
   auto ns_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -919,7 +943,7 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
 
   auto optree_ptr = common::ManagedPointer(operator_tree_);
   auto *op_ctx = optimization_context_.get();
-  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+  std::vector<std::unique_ptr<optimizer::OperatorNode>> transformed;
 
   optimizer::LogicalCreateTableToPhysicalCreateTable rule;
   EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
@@ -995,8 +1019,8 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   std::vector<optimizer::ExprMap> children_expr_map{};
 
   auto plan_node =
-      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                   output_cols, std::move(children_plans), std::move(children_expr_map));
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::CREATE_TABLE);
   auto ctpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::CreateTablePlanNode>();
 
@@ -1031,7 +1055,7 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   EXPECT_EQ(ctpn->GetForeignKeys()[0].foreign_key_sinks_.size(), 1);
   EXPECT_EQ(ctpn->GetForeignKeys()[0].foreign_key_sinks_[0], "a1");
   EXPECT_EQ(ctpn->GetForeignKeys()[0].sink_table_name_, "a");
-  EXPECT_EQ(ctpn->GetForeignKeys()[0].constraint_name_, "FK_c->a");
+  EXPECT_EQ(ctpn->GetForeignKeys()[0].constraint_name_, "c_a_fkey");
   EXPECT_EQ(ctpn->GetForeignKeys()[0].del_action_, parser::FKConstrActionType::NOACTION);
   EXPECT_EQ(ctpn->GetForeignKeys()[0].upd_action_, parser::FKConstrActionType::NOACTION);
   EXPECT_EQ(ctpn->GetUniqueConstraints().size(), 1);
@@ -1053,13 +1077,14 @@ TEST_F(OperatorTransformerTest, CreateIndexTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
   auto ns_oid = accessor_->GetDefaultNamespace();
   auto col_a1_oid = accessor_->GetSchema(table_a_oid_).GetColumn("a1").Oid();
   auto col_a2_oid = accessor_->GetSchema(table_a_oid_).GetColumn("a2").Oid();
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -1089,7 +1114,7 @@ TEST_F(OperatorTransformerTest, CreateIndexTest) {
 
   auto optree_ptr = common::ManagedPointer(operator_tree_);
   auto *op_ctx = optimization_context_.get();
-  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+  std::vector<std::unique_ptr<optimizer::OperatorNode>> transformed;
 
   optimizer::LogicalCreateIndexToPhysicalCreateIndex rule;
   EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
@@ -1125,8 +1150,8 @@ TEST_F(OperatorTransformerTest, CreateIndexTest) {
   std::vector<optimizer::ExprMap> children_expr_map{};
 
   auto plan_node =
-      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                   output_cols, std::move(children_plans), std::move(children_expr_map));
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::CREATE_INDEX);
   auto cipn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::CreateIndexPlanNode>();
   EXPECT_EQ(cipn->GetIndexName(), "idx_d");
@@ -1150,11 +1175,12 @@ TEST_F(OperatorTransformerTest, CreateFunctionTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
   auto ns_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -1178,7 +1204,7 @@ TEST_F(OperatorTransformerTest, CreateFunctionTest) {
 
   auto optree_ptr = common::ManagedPointer(operator_tree_);
   auto *op_ctx = optimization_context_.get();
-  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+  std::vector<std::unique_ptr<optimizer::OperatorNode>> transformed;
 
   optimizer::LogicalCreateFunctionToPhysicalCreateFunction rule;
   EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
@@ -1210,8 +1236,8 @@ TEST_F(OperatorTransformerTest, CreateFunctionTest) {
   std::vector<optimizer::ExprMap> children_expr_map{};
 
   auto plan_node =
-      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                   output_cols, std::move(children_plans), std::move(children_expr_map));
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::CREATE_FUNC);
   auto cfpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::CreateFunctionPlanNode>();
   EXPECT_EQ(cfpn->GetNamespaceOid(), ns_oid);
@@ -1235,10 +1261,11 @@ TEST_F(OperatorTransformerTest, CreateNamespaceTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -1248,7 +1275,7 @@ TEST_F(OperatorTransformerTest, CreateNamespaceTest) {
 
   auto optree_ptr = common::ManagedPointer(operator_tree_);
   auto *op_ctx = optimization_context_.get();
-  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+  std::vector<std::unique_ptr<optimizer::OperatorNode>> transformed;
 
   optimizer::LogicalCreateNamespaceToPhysicalCreateNamespace rule;
   EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
@@ -1269,8 +1296,8 @@ TEST_F(OperatorTransformerTest, CreateNamespaceTest) {
   std::vector<optimizer::ExprMap> children_expr_map{};
 
   auto plan_node =
-      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                   output_cols, std::move(children_plans), std::move(children_expr_map));
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::CREATE_NAMESPACE);
   auto cnpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::CreateNamespacePlanNode>();
   EXPECT_EQ(cnpn->GetNamespaceName(), "e");
@@ -1284,11 +1311,12 @@ TEST_F(OperatorTransformerTest, CreateViewTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
   auto ns_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -1300,7 +1328,7 @@ TEST_F(OperatorTransformerTest, CreateViewTest) {
 
   auto optree_ptr = common::ManagedPointer(operator_tree_);
   auto *op_ctx = optimization_context_.get();
-  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+  std::vector<std::unique_ptr<optimizer::OperatorNode>> transformed;
 
   optimizer::LogicalCreateViewToPhysicalCreateView rule;
   EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
@@ -1333,8 +1361,8 @@ TEST_F(OperatorTransformerTest, CreateViewTest) {
   std::vector<optimizer::ExprMap> children_expr_map{};
 
   auto plan_node =
-      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                   output_cols, std::move(children_plans), std::move(children_expr_map));
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::CREATE_VIEW);
   auto cvpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::CreateViewPlanNode>();
   EXPECT_EQ(cvpn->GetDatabaseOid(), db_oid_);
@@ -1363,12 +1391,13 @@ TEST_F(OperatorTransformerTest, CreateTriggerTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
   auto ns_oid = accessor_->GetDefaultNamespace();
   auto col_a1_oid = accessor_->GetSchema(table_a_oid_).GetColumn("a1").Oid();
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -1395,7 +1424,7 @@ TEST_F(OperatorTransformerTest, CreateTriggerTest) {
 
   auto optree_ptr = common::ManagedPointer(operator_tree_);
   auto *op_ctx = optimization_context_.get();
-  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+  std::vector<std::unique_ptr<optimizer::OperatorNode>> transformed;
 
   optimizer::LogicalCreateTriggerToPhysicalCreateTrigger rule;
   EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
@@ -1432,8 +1461,8 @@ TEST_F(OperatorTransformerTest, CreateTriggerTest) {
   std::vector<optimizer::ExprMap> children_expr_map{};
 
   auto plan_node =
-      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                   output_cols, std::move(children_plans), std::move(children_expr_map));
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::CREATE_TRIGGER);
   auto ctpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::CreateTriggerPlanNode>();
   EXPECT_EQ(ctpn->GetTriggerName(), "check_update");
@@ -1463,10 +1492,11 @@ TEST_F(OperatorTransformerTest, DropDatabaseTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -1476,7 +1506,7 @@ TEST_F(OperatorTransformerTest, DropDatabaseTest) {
 
   auto optree_ptr = common::ManagedPointer(operator_tree_);
   auto *op_ctx = optimization_context_.get();
-  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+  std::vector<std::unique_ptr<optimizer::OperatorNode>> transformed;
 
   optimizer::LogicalDropDatabaseToPhysicalDropDatabase rule;
   EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
@@ -1497,8 +1527,8 @@ TEST_F(OperatorTransformerTest, DropDatabaseTest) {
   std::vector<optimizer::ExprMap> children_expr_map{};
 
   auto plan_node =
-      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                   output_cols, std::move(children_plans), std::move(children_expr_map));
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_DATABASE);
   auto ddpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropDatabasePlanNode>();
   EXPECT_EQ(ddpn->GetDatabaseOid(), db_oid_);
@@ -1512,10 +1542,11 @@ TEST_F(OperatorTransformerTest, DropTableTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -1525,7 +1556,7 @@ TEST_F(OperatorTransformerTest, DropTableTest) {
 
   auto optree_ptr = common::ManagedPointer(operator_tree_);
   auto *op_ctx = optimization_context_.get();
-  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+  std::vector<std::unique_ptr<optimizer::OperatorNode>> transformed;
 
   optimizer::LogicalDropTableToPhysicalDropTable rule;
   EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
@@ -1546,8 +1577,8 @@ TEST_F(OperatorTransformerTest, DropTableTest) {
   std::vector<optimizer::ExprMap> children_expr_map{};
 
   auto plan_node =
-      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                   output_cols, std::move(children_plans), std::move(children_expr_map));
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_TABLE);
   auto dtpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropTablePlanNode>();
   EXPECT_EQ(dtpn->GetTableOid(), table_a_oid_);
@@ -1560,10 +1591,11 @@ TEST_F(OperatorTransformerTest, DropIndexTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -1573,7 +1605,7 @@ TEST_F(OperatorTransformerTest, DropIndexTest) {
 
   auto optree_ptr = common::ManagedPointer(operator_tree_);
   auto *op_ctx = optimization_context_.get();
-  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+  std::vector<std::unique_ptr<optimizer::OperatorNode>> transformed;
 
   optimizer::LogicalDropIndexToPhysicalDropIndex rule;
   EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
@@ -1594,8 +1626,8 @@ TEST_F(OperatorTransformerTest, DropIndexTest) {
   std::vector<optimizer::ExprMap> children_expr_map{};
 
   auto plan_node =
-      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                   output_cols, std::move(children_plans), std::move(children_expr_map));
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_INDEX);
   auto dipn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropIndexPlanNode>();
   EXPECT_EQ(dipn->GetIndexOid(), a_index_oid_);
@@ -1608,10 +1640,11 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereExistTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -1620,7 +1653,7 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereExistTest) {
 
   auto optree_ptr = common::ManagedPointer(operator_tree_);
   auto *op_ctx = optimization_context_.get();
-  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+  std::vector<std::unique_ptr<optimizer::OperatorNode>> transformed;
 
   optimizer::LogicalDropNamespaceToPhysicalDropNamespace rule;
   EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
@@ -1641,8 +1674,8 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereExistTest) {
   std::vector<optimizer::ExprMap> children_expr_map{};
 
   auto plan_node =
-      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                   output_cols, std::move(children_plans), std::move(children_expr_map));
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_NAMESPACE);
   auto dnpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropNamespacePlanNode>();
   EXPECT_EQ(dnpn->GetNamespaceOid(), catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID);
@@ -1655,10 +1688,11 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereNotExistTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -1667,7 +1701,7 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereNotExistTest) {
 
   auto optree_ptr = common::ManagedPointer(operator_tree_);
   auto *op_ctx = optimization_context_.get();
-  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+  std::vector<std::unique_ptr<optimizer::OperatorNode>> transformed;
 
   optimizer::LogicalDropNamespaceToPhysicalDropNamespace rule;
   EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
@@ -1688,8 +1722,8 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereNotExistTest) {
   std::vector<optimizer::ExprMap> children_expr_map{};
 
   auto plan_node =
-      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                   output_cols, std::move(children_plans), std::move(children_expr_map));
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_NAMESPACE);
   auto dnpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropNamespacePlanNode>();
   EXPECT_EQ(dnpn->GetNamespaceOid(), catalog::INVALID_NAMESPACE_OID);
@@ -1702,10 +1736,11 @@ TEST_F(OperatorTransformerTest, DISABLED_DropTriggerIfExistsWhereNotExistTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -1714,7 +1749,7 @@ TEST_F(OperatorTransformerTest, DISABLED_DropTriggerIfExistsWhereNotExistTest) {
 
   auto optree_ptr = common::ManagedPointer(operator_tree_);
   auto *op_ctx = optimization_context_.get();
-  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+  std::vector<std::unique_ptr<optimizer::OperatorNode>> transformed;
 
   optimizer::LogicalDropTriggerToPhysicalDropTrigger rule;
   EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
@@ -1735,8 +1770,8 @@ TEST_F(OperatorTransformerTest, DISABLED_DropTriggerIfExistsWhereNotExistTest) {
   std::vector<optimizer::ExprMap> children_expr_map{};
 
   auto plan_node =
-      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                   output_cols, std::move(children_plans), std::move(children_expr_map));
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_VIEW);
   auto dtpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropTriggerPlanNode>();
   EXPECT_EQ(dtpn->GetTriggerOid(), catalog::INVALID_TRIGGER_OID);
@@ -1749,10 +1784,11 @@ TEST_F(OperatorTransformerTest, DISABLED_DropViewIfExistsWhereNotExistTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(statement, parse_tree.get());
-  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, parse_tree.get());
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -1761,7 +1797,7 @@ TEST_F(OperatorTransformerTest, DISABLED_DropViewIfExistsWhereNotExistTest) {
 
   auto optree_ptr = common::ManagedPointer(operator_tree_);
   auto *op_ctx = optimization_context_.get();
-  std::vector<std::unique_ptr<optimizer::OperatorExpression>> transformed;
+  std::vector<std::unique_ptr<optimizer::OperatorNode>> transformed;
 
   optimizer::LogicalDropViewToPhysicalDropView rule;
   EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
@@ -1782,11 +1818,120 @@ TEST_F(OperatorTransformerTest, DISABLED_DropViewIfExistsWhereNotExistTest) {
   std::vector<optimizer::ExprMap> children_expr_map{};
 
   auto plan_node =
-      plan_generator.ConvertOpExpression(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                         output_cols, std::move(children_plans), std::move(children_expr_map));
+      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                   output_cols, std::move(children_plans), std::move(children_expr_map));
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_VIEW);
   auto dvpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropViewPlanNode>();
   EXPECT_EQ(dvpn->GetViewOid(), catalog::INVALID_VIEW_OID);
 }
 
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, AnalyzeTest) {
+  std::string create_sql = "ANALYZE A(A1)";
+  std::string ref = R"({"Op":"LogicalAnalyze",})";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  auto col_a1_oid = accessor_->GetSchema(table_a_oid_).GetColumn("a1").Oid();
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
+
+  EXPECT_EQ(ref, info);
+
+  // Test logical analyze
+  auto logical_analyze = operator_tree_->GetOp().As<optimizer::LogicalAnalyze>();
+  EXPECT_EQ(logical_analyze->GetColumns().size(), 1);
+  EXPECT_EQ(logical_analyze->GetColumns().at(0), col_a1_oid);
+  EXPECT_EQ(logical_analyze->GetTableOid(), table_a_oid_);
+  EXPECT_EQ(operator_tree_->GetChildren().size(), 0);
+
+  auto optree_ptr = common::ManagedPointer(operator_tree_);
+  auto *op_ctx = optimization_context_.get();
+  std::vector<std::unique_ptr<optimizer::OperatorNode>> transformed;
+
+  optimizer::LogicalAnalyzeToPhysicalAnalyze rule;
+  EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
+  rule.Transform(optree_ptr, &transformed, op_ctx);
+
+  auto op = transformed[0]->GetOp();
+  EXPECT_EQ(op.GetType(), optimizer::OpType::ANALYZE);
+  EXPECT_TRUE(op.IsPhysical());
+  EXPECT_EQ(op.GetName(), "Analyze");
+  auto physical_op = op.As<optimizer::Analyze>();
+  EXPECT_EQ(physical_op->GetColumns().size(), 1);
+  EXPECT_EQ(physical_op->GetColumns().at(0), col_a1_oid);
+  EXPECT_EQ(physical_op->GetTableOid(), table_a_oid_);
+
+  optimizer::PlanGenerator plan_generator{};
+  optimizer::PropertySet property_set{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
+  std::vector<optimizer::ExprMap> children_expr_map{};
+
+  auto plan_node =
+      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                   output_cols, std::move(children_plans), std::move(children_expr_map));
+  EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::ANALYZE);
+  auto analyze_plan = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::AnalyzePlanNode>();
+  EXPECT_EQ(analyze_plan->GetColumnOids().size(), 1);
+  EXPECT_EQ(analyze_plan->GetColumnOids().at(0), col_a1_oid);
+  EXPECT_EQ(analyze_plan->GetTableOid(), table_a_oid_);
+}
+
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, AnalyzeTest2) {
+  std::string create_sql = "ANALYZE A";
+  std::string ref = R"({"Op":"LogicalAnalyze",})";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
+
+  EXPECT_EQ(ref, info);
+
+  // Test logical analyze
+  auto logical_analyze = operator_tree_->GetOp().As<optimizer::LogicalAnalyze>();
+  EXPECT_EQ(logical_analyze->GetColumns().size(), 0);
+  EXPECT_EQ(logical_analyze->GetTableOid(), table_a_oid_);
+  EXPECT_EQ(operator_tree_->GetChildren().size(), 0);
+
+  auto optree_ptr = common::ManagedPointer(operator_tree_);
+  auto *op_ctx = optimization_context_.get();
+  std::vector<std::unique_ptr<optimizer::OperatorNode>> transformed;
+
+  optimizer::LogicalAnalyzeToPhysicalAnalyze rule;
+  EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
+  rule.Transform(optree_ptr, &transformed, op_ctx);
+
+  auto op = transformed[0]->GetOp();
+  EXPECT_EQ(op.GetType(), optimizer::OpType::ANALYZE);
+  EXPECT_TRUE(op.IsPhysical());
+  EXPECT_EQ(op.GetName(), "Analyze");
+  auto physical_op = op.As<optimizer::Analyze>();
+  EXPECT_EQ(physical_op->GetColumns().size(), 0);
+  EXPECT_EQ(physical_op->GetTableOid(), table_a_oid_);
+
+  optimizer::PlanGenerator plan_generator{};
+  optimizer::PropertySet property_set{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
+  std::vector<optimizer::ExprMap> children_expr_map{};
+
+  auto plan_node =
+      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                   output_cols, std::move(children_plans), std::move(children_expr_map));
+  EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::ANALYZE);
+  auto analyze_plan = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::AnalyzePlanNode>();
+  EXPECT_EQ(analyze_plan->GetColumnOids().size(), 0);
+  EXPECT_EQ(analyze_plan->GetTableOid(), table_a_oid_);
+}
 }  // namespace terrier
