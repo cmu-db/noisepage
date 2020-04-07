@@ -59,7 +59,8 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
   out_buffer->SetNumTuples(filled);
 }
 
-// TODO(Schema-Change): we will need to go to the next DataTable once we reached the end of current block by either chasing
+// TODO(Schema-Change): we will need to go to the next DataTable once we reached the end of current block by either
+// chasing
 //  the pointer to the next datatable, or consulting SqlTable to obtain such information
 DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
   // TODO(Lin): We need to temporarily comment out this latch for the concurrent TPCH experiments. Should be replaced
@@ -261,9 +262,9 @@ bool DataTable::Delete(const common::ManagedPointer<transaction::TransactionCont
 template <class RowType>
 bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::TransactionContext> txn,
                                  const TupleSlot slot, RowType *const out_buffer) const {
-  TERRIER_ASSERT(out_buffer->NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
-                 "The output buffer never returns the version pointer columns, so it should have "
-                 "fewer attributes.");
+  //  TERRIER_ASSERT(out_buffer->NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
+  //                 "The output buffer never returns the version pointer columns, so it should have "
+  //                 "fewer attributes.");
   TERRIER_ASSERT(out_buffer->NumColumns() > 0, "The output buffer should return at least one attribute.");
   // This cannot be visible if it's already deallocated.
   if (!accessor_.Allocated(slot)) return false;
@@ -278,7 +279,8 @@ bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::Trans
     for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
       TERRIER_ASSERT(out_buffer->ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
                      "Output buffer should not read the version pointer column.");
-      if (out_buffer->ColumnIds()[i] != IGNORE_COLUMN_ID) continue;
+      // TODO(Schem-Change): pre-set columns belonging to newer schema to null to facilitate future default value change
+      if (out_buffer->ColumnIds()[i] != IGNORE_COLUMN_ID) StorageUtil::CopyWithNullCheck(nullptr, out_buffer, 0, i);
       StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
     }
 
