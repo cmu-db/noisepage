@@ -252,6 +252,221 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, Scan)(benchmark::State &state) {
   state.SetItemsProcessed(state.iterations() * num_reads_ * BenchmarkConfig::num_threads);
 }
 
+// Read the num_reads_ of tuples in the sequential  order from a DataTable concurrently
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(DataTableBenchmark, SingleThreadedIteration)(benchmark::State &state) {
+  storage::DataTable read_table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout_,
+                                storage::layout_version_t(0));
+
+  // populate read_table_ by inserting tuples
+  // We can use dummy timestamps here since we're not invoking concurrency control
+  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
+                                      common::ManagedPointer(&buffer_pool_), DISABLED);
+  std::vector<storage::TupleSlot> read_order;
+
+  // inserted the table with 10 million rows
+  for (uint32_t i = 0; i < num_reads_; ++i) {
+    read_order.emplace_back(read_table.Insert(common::ManagedPointer(&txn), *redo_));
+  }
+
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    auto workload = [&](uint32_t id) {
+      uint32_t count = 0;
+      for (auto _ UNUSED_ATTRIBUTE : read_table) {
+        count++;
+      }
+    };
+    common::DedicatedThreadRegistry registry(DISABLED);
+    std::vector<int> cpu_ids(BenchmarkConfig::num_threads);
+    for (int i = 0; i < BenchmarkConfig::num_threads; i++) {
+      cpu_ids.emplace_back(i);
+    }
+    common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
+                                            &cpu_ids);
+    std::promise<void> promises[1];
+    uint64_t elapsed_ms;
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      // Single threaded iteration
+      for (uint32_t j = 0; j < 1; j++) {
+        thread_pool.SubmitTask(&promises[j], [j, &workload] { workload(j); });
+      }
+
+      for (uint32_t j = 0; j < 1; j++) {
+        promises[j].get_future().get();
+      }
+    }
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+  }
+
+  state.SetItemsProcessed(state.iterations() * num_reads_);
+}
+
+// Read the num_reads_ of tuples in the sequential  order from a DataTable concurrently
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(DataTableBenchmark, NUMASingleThreadedIteration)(benchmark::State &state) {
+  storage::DataTable read_table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout_,
+                                storage::layout_version_t(0));
+
+  // populate read_table_ by inserting tuples
+  // We can use dummy timestamps here since we're not invoking concurrency control
+  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
+                                      common::ManagedPointer(&buffer_pool_), DISABLED);
+  std::vector<storage::TupleSlot> read_order;
+
+  // inserted the table with 10 million rows
+  for (uint32_t i = 0; i < num_reads_; ++i) {
+    read_order.emplace_back(read_table.Insert(common::ManagedPointer(&txn), *redo_));
+  }
+
+  std::vector<storage::numa_region_t> numa_regions;
+  read_table.GetNUMARegions(&numa_regions);
+
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    auto workload = [&](uint32_t id) {
+      uint32_t count = 0;
+      for (auto numa_region : numa_regions) {
+        for (auto it = read_table.begin(numa_region); it != read_table.end(numa_region); ++it) {
+          count++;
+        }
+      }
+    };
+    common::DedicatedThreadRegistry registry(DISABLED);
+    std::vector<int> cpu_ids(BenchmarkConfig::num_threads);
+    for (int i = 0; i < BenchmarkConfig::num_threads; i++) {
+      cpu_ids.emplace_back(i);
+    }
+    common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
+                                            &cpu_ids);
+    std::promise<void> promises[numa_regions.size()];
+    uint64_t elapsed_ms;
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      // Single threaded iteration
+      for (uint32_t j = 0; j < 1; j++) {
+        thread_pool.SubmitTask(&promises[j], [j, &workload] { workload(j); });
+      }
+      for (uint32_t j = 0; j < 1; j++) {
+        promises[j].get_future().get();
+      }
+    }
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+  }
+
+  state.SetItemsProcessed(state.iterations() * num_reads_);
+}
+
+// Read the num_reads_ of tuples in the sequential  order from a DataTable concurrently
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedIteration)(benchmark::State &state) {
+  storage::DataTable read_table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout_,
+                                storage::layout_version_t(0));
+
+  // populate read_table_ by inserting tuples
+  // We can use dummy timestamps here since we're not invoking concurrency control
+  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
+                                      common::ManagedPointer(&buffer_pool_), DISABLED);
+  std::vector<storage::TupleSlot> read_order;
+
+  // inserted the table with 10 million rows
+  for (uint32_t i = 0; i < num_reads_; ++i) {
+    read_order.emplace_back(read_table.Insert(common::ManagedPointer(&txn), *redo_));
+  }
+
+  std::vector<storage::numa_region_t> numa_regions;
+  read_table.GetNUMARegions(&numa_regions);
+
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    auto workload = [&](uint32_t id) {
+      uint32_t count = 0;
+      for (auto it = read_table.begin(numa_regions[id]); it != read_table.end(numa_regions[id]); ++it) {
+        count++;
+      }
+    };
+    common::DedicatedThreadRegistry registry(DISABLED);
+    std::vector<int> cpu_ids(BenchmarkConfig::num_threads);
+    for (int i = 0; i < BenchmarkConfig::num_threads; i++) {
+      cpu_ids.emplace_back(i);
+    }
+    common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
+                                            &cpu_ids);
+    std::promise<void> promises[numa_regions.size()];
+    uint64_t elapsed_ms;
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      // Single threaded iteration
+      for (uint32_t j = 0; j < numa_regions.size(); j++) {
+        thread_pool.SubmitTask(&promises[j], [j, &workload] { workload(j); });
+      }
+
+      for (uint32_t j = 0; j < numa_regions.size(); j++) {  // NOLINT
+        promises[j].get_future().get();
+      }
+    }
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+  }
+
+  state.SetItemsProcessed(state.iterations() * num_reads_);
+}
+
+// Read the num_reads_ of tuples in the sequential  order from a DataTable concurrently
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)(benchmark::State &state) {
+  storage::DataTable read_table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout_,
+                                storage::layout_version_t(0));
+
+  // populate read_table_ by inserting tuples
+  // We can use dummy timestamps here since we're not invoking concurrency control
+  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
+                                      common::ManagedPointer(&buffer_pool_), DISABLED);
+  std::vector<storage::TupleSlot> read_order;
+
+  // inserted the table with 10 million rows
+  for (uint32_t i = 0; i < num_reads_; ++i) {
+    read_order.emplace_back(read_table.Insert(common::ManagedPointer(&txn), *redo_));
+  }
+
+  std::vector<storage::numa_region_t> numa_regions;
+  read_table.GetNUMARegions(&numa_regions);
+
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    auto workload = [&](uint32_t id) {
+      uint32_t count = 0;
+      for (auto it = read_table.begin(numa_regions[id]); it != read_table.end(numa_regions[id]); ++it) {
+        count++;
+      }
+    };
+    common::DedicatedThreadRegistry registry(DISABLED);
+    std::vector<int> cpu_ids(BenchmarkConfig::num_threads);
+    for (int i = 0; i < BenchmarkConfig::num_threads; i++) {
+      cpu_ids.emplace_back(i);
+    }
+    common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
+                                            &cpu_ids);
+    std::promise<void> promises[numa_regions.size()];
+    uint64_t elapsed_ms;
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      // Single threaded iteration
+      for (uint32_t j = 0; j < numa_regions.size(); j++) {
+        thread_pool.SubmitTask(
+            &promises[j], [j, &workload] { workload(j); }, numa_regions[j]);
+      }
+
+      for (uint32_t j = 0; j < numa_regions.size(); j++) {  // NOLINT
+        promises[j].get_future().get();
+      }
+    }
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+  }
+
+  state.SetItemsProcessed(state.iterations() * num_reads_);
+}
+
 // ----------------------------------------------------------------------------
 // Benchmark Registration
 // ----------------------------------------------------------------------------
@@ -270,6 +485,22 @@ BENCHMARK_REGISTER_F(DataTableBenchmark, SelectSequential)
     ->UseManualTime();
 BENCHMARK_REGISTER_F(DataTableBenchmark, Scan)
     ->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, SingleThreadedIteration)
+->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, NUMASingleThreadedIteration)
+->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, NUMAMultiThreadedIteration)
+->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)
+->Unit(benchmark::kMillisecond)
     ->UseRealTime()
     ->UseManualTime();
 // clang-format on
