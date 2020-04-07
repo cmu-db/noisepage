@@ -121,7 +121,7 @@ void SqlTable::AlignHeaderToVersion(ProjectedRow *const out_buffer, const DataTa
 }
 
 SqlTable::DataTableVersion SqlTable::CreateTable(
-    const terrier::common::ManagedPoint<const terrier::catalog::Schema> schema,
+    const terrier::common::ManagedPointer<const terrier::catalog::Schema> schema,
     const terrier::common::ManagedPointer<terrier::storage::BlockStore> store,
     terrier::storage::layout_version_t version) {
   // Begin with the NUM_RESERVED_COLUMNS in the attr_sizes
@@ -135,7 +135,7 @@ SqlTable::DataTableVersion SqlTable::CreateTable(
   TERRIER_ASSERT(attr_sizes.size() == NUM_RESERVED_COLUMNS,
                  "attr_sizes should be initialized with NUM_RESERVED_COLUMNS elements.");
 
-  for (const auto &column : schema.GetColumns()) {
+  for (const auto &column : schema->GetColumns()) {
     attr_sizes.push_back(column.AttrSize());
   }
 
@@ -143,8 +143,9 @@ SqlTable::DataTableVersion SqlTable::CreateTable(
 
   ColumnOidToIdMap col_oid_to_id;
   ColumnIdToOidMap col_id_to_oid;
+  DefaultValueMap default_value_map;
   // Build the map from Schema columns to underlying columns
-  for (const auto &column : schema.GetColumns()) {
+  for (const auto &column : schema->GetColumns()) {
     switch (column.AttrSize()) {
       case VARLEN_COLUMN:
         col_id_to_oid[col_id_t(offsets[0])] = column.Oid();
@@ -169,10 +170,14 @@ SqlTable::DataTableVersion SqlTable::CreateTable(
       default:
         throw std::runtime_error("unexpected switch case value");
     }
+    auto default_value = column.StoredExpression();
+    if (default_value != nullptr) default_value_map[col_id_t(offsets[0])] = default_value;
   }
 
   auto layout = storage::BlockLayout(attr_sizes);
-  return {new DataTable(block_store_, layout, layout_version_t(0)), layout, col_oid_to_id, col_id_to_oid, schema};
+  tables_ = {{layout_version_t(0),
+              {new DataTable(block_store_, layout, layout_version_t(0)), layout, col_oid_to_id, col_id_to_oid,
+               schema, default_value_map}}};
 }
 
 std::vector<col_id_t> SqlTable::ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids,
