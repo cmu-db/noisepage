@@ -29,9 +29,6 @@ class ReadBuffer;
 // want anyone using it to directly access the socket downstream
 STRONG_TYPEDEF(connection_id_t, uint16_t);
 
-// For threads
-#define CONNECTION_THREAD_COUNT 4
-
 // Number of seconds to timeout on a client read
 #define READ_TIMEOUT (20 * 60)
 
