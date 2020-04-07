@@ -52,6 +52,11 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
 
   if(op->GetSelectWith() != nullptr) {
     op->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
+    auto cte_scan_expr = std::make_unique<OperatorNode>(
+        LogicalCteScan::Make(),
+        std::vector<std::unique_ptr<OperatorNode>>{});
+    cte_scan_expr->PushChild(std::move(output_expr_));
+    output_expr_ = std::move(cte_scan_expr);
   } else {
     if (op->GetSelectTable() != nullptr) {
       // SELECT with FROM

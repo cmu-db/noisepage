@@ -28,6 +28,7 @@
 #include "planner/plannodes/create_trigger_plan_node.h"
 #include "planner/plannodes/create_view_plan_node.h"
 #include "planner/plannodes/csv_scan_plan_node.h"
+#include "planner/plannodes/cte_scan_plan_node.h"
 #include "planner/plannodes/delete_plan_node.h"
 #include "planner/plannodes/drop_database_plan_node.h"
 #include "planner/plannodes/drop_index_plan_node.h"
@@ -966,6 +967,35 @@ void PlanGenerator::Visit(const Analyze *analyze) {
                      .SetTableOid(analyze->GetTableOid())
                      .SetColumnOIDs(analyze->GetColumns())
                      .Build();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Limit + Sort
+///////////////////////////////////////////////////////////////////////////////
+
+void PlanGenerator::Visit(const CteScan *op) {
+  // CteScan has the same output schema as the child plan!
+  TERRIER_ASSERT(children_plans_.size() == 1, "CteScan needs 1 child plan");
+  output_plan_ = std::move(children_plans_[0]);
+
+  // CteScan OutputSchema does not add/drop columns. All output columns of CteScan
+  // are the same as the output columns of the child plan. As such, the OutputSchema
+  // of a CteScan has the same columns vector as the child OutputSchema, with only
+  // DerivedValueExpressions
+  auto idx = 0;
+  auto &child_plan_cols = output_plan_->GetOutputSchema()->GetColumns();
+  std::vector<planner::OutputSchema::Column> child_columns;
+  for (auto &col : child_plan_cols) {
+    auto dve = std::make_unique<parser::DerivedValueExpression>(col.GetType(), 0, idx);
+    child_columns.emplace_back(col.GetName(), col.GetType(), std::move(dve));
+    idx++;
+  }
+
+  auto cte_scan_out = std::make_unique<planner::OutputSchema>(std::move(child_columns));
+  output_plan_ = planner::CteScanPlanNode::Builder()
+      .SetOutputSchema(std::move(cte_scan_out))
+      .AddChild(std::move(output_plan_))
+      .Build();
 }
 
 }  // namespace terrier::optimizer

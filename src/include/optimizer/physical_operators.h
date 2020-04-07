@@ -2171,5 +2171,23 @@ class Analyze : public OperatorNodeContents<Analyze> {
   std::vector<catalog::col_oid_t> columns_;
 };
 
+/**
+ * Physical operator for CteScan
+ */
+class CteScan : public OperatorNodeContents<CteScan> {
+ public:
+  static Operator Make();
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNodeContents *Copy() const override;
+
+  bool operator==(const BaseOperatorNodeContents &r) override;
+  common::hash_t Hash() const override;
+};
+
+
 }  // namespace optimizer
 }  // namespace terrier

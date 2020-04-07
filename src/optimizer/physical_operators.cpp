@@ -1319,6 +1319,26 @@ bool Analyze::operator==(const BaseOperatorNodeContents &r) {
 }
 
 //===--------------------------------------------------------------------===//
+// PhysicalCteScan
+//===--------------------------------------------------------------------===//
+BaseOperatorNodeContents *CteScan::Copy() const { return new CteScan(*this); }
+
+Operator CteScan::Make() {
+  auto cte_scan_op = std::make_unique<CteScan>();
+  return Operator(std::move(cte_scan_op));
+}
+
+bool CteScan::operator==(const BaseOperatorNodeContents &r) {
+  if (r.GetType() != OpType::CTESCAN) return false;
+  return (true);
+}
+
+common::hash_t CteScan::Hash() const {
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
+  return hash;
+}
+
+//===--------------------------------------------------------------------===//
 template <typename T>
 void OperatorNodeContents<T>::Accept(common::ManagedPointer<OperatorVisitor> v) const {
   v->Visit(reinterpret_cast<const T *>(this));
@@ -1401,6 +1421,8 @@ template <>
 const char *OperatorNodeContents<DropView>::name = "DropView";
 template <>
 const char *OperatorNodeContents<Analyze>::name = "Analyze";
+template <>
+const char *OperatorNodeContents<CteScan>::name = "CteScan";
 
 //===--------------------------------------------------------------------===//
 template <>
@@ -1479,6 +1501,8 @@ template <>
 OpType OperatorNodeContents<DropView>::type = OpType::DROPVIEW;
 template <>
 OpType OperatorNodeContents<Analyze>::type = OpType::ANALYZE;
+template <>
+OpType OperatorNodeContents<CteScan>::type = OpType::CTESCAN;
 
 template <typename T>
 bool OperatorNodeContents<T>::IsLogical() const {

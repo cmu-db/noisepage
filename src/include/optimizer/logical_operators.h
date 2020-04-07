@@ -2005,4 +2005,24 @@ class LogicalAnalyze : public OperatorNodeContents<LogicalAnalyze> {
   std::vector<catalog::col_oid_t> columns_;
 };
 
+/**
+ * Logical operator for CTE SCAN
+ */
+class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
+ public:
+  /**
+   * @return
+   */
+  static Operator Make();
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNodeContents *Copy() const override;
+
+  bool operator==(const BaseOperatorNodeContents &r) override;
+  common::hash_t Hash() const override;
+};
+
 }  // namespace terrier::optimizer

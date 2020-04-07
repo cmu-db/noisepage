@@ -80,6 +80,7 @@ enum class OpType {
   LOGICALDROPTRIGGER,
   LOGICALDROPVIEW,
   LOGICALANALYZE,
+  LOGICALCTESCAN,
   // Separation of logical and physical operators
   LOGICALPHYSICALDELIMITER,
 
@@ -122,7 +123,8 @@ enum class OpType {
   DROPFUNCTION,
   DROPTRIGGER,
   DROPVIEW,
-  ANALYZE
+  ANALYZE,
+  CTESCAN
 };
 
 /**
