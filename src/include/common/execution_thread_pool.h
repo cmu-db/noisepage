@@ -151,8 +151,6 @@ class ExecutionThreadPool : DedicatedThreadOwner {
 
         pool_->busy_workers_--;
         status_ = ThreadStatus::PARKED;
-        std::unique_lock<std::mutex> l(pool_->task_lock_);
-        pool_->task_cv_.wait_for(l, std::chrono::milliseconds (50));
         status_ = ThreadStatus::SWITCHING;
         pool_->busy_workers_++;
       }
