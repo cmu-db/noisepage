@@ -6,7 +6,7 @@
 #include <atomic>
 #include <condition_variable>  // NOLINT
 #include <functional>
-#include <future> // NOLINT
+#include <future>  // NOLINT
 #include <iostream>
 #include <mutex>  // NOLINT
 #include <queue>
@@ -15,8 +15,8 @@
 #include <utility>
 #include <vector>
 
-#include "common/macros.h"
 #include "common/dedicated_thread_registry.h"
+#include "common/macros.h"
 #include "common/shared_latch.h"
 #include "tbb/concurrent_queue.h"
 
@@ -43,13 +43,23 @@ using ExecutionTaskQueue = tbb::concurrent_queue<Task>;
  */
 class ExecutionThreadPool : DedicatedThreadOwner {
  public:
-  /*
+  /**
    * All possible states that a thread could be in
    */
-  enum class ThreadStatus { FREE = 0, BUSY = 1, SWITCHING = 2, PARKED = 3 };
+  enum class ThreadStatus {
+    FREE = 0,      /* !< thread is currently not executing or looking for a task but is not parked */
+    BUSY = 1,      /* !< thread is currently executing a task */
+    SWITCHING = 2, /* !< thread is currently looking for a task */
+    PARKED = 3     /* !< thread is currently not executing or looking for a task and is waiting */
+  };
 
-  // NOLINTNEXTLINE  lint thinks it has only one arguement
-  ExecutionThreadPool(common::ManagedPointer<DedicatedThreadRegistry> thread_registry, std::vector<int> *cpu_ids)
+  /**
+   * Constructor for ExecutionThreadPool
+   * @param thread_registry registry to which the the threads maintained by the pool are registered
+   * @param cpu_ids the vector of CPUs on which to run the threads in the pool
+   */
+  ExecutionThreadPool(common::ManagedPointer<DedicatedThreadRegistry> thread_registry,
+                      std::vector<int> *cpu_ids)  // NOLINT
       : DedicatedThreadOwner(thread_registry),
         thread_registry_(thread_registry),
         workers_(num_regions_),
@@ -66,7 +76,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
   ~ExecutionThreadPool() override {
     std::unique_lock<std::mutex> lock(task_lock_);  // grab the lock
     shutting_down_ = true;
-    for (const std::vector<TerrierThread *> &vector : workers_) {
+    for (std::vector<TerrierThread *> vector : workers_) {  // NOLINT
       for (TerrierThread *t : vector) {
         bool result UNUSED_ATTRIBUTE = thread_registry_.operator->()->StopTask(
             this, common::ManagedPointer(static_cast<DedicatedThreadTask *>(t)));
@@ -75,6 +85,12 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     }
   }
 
+  /**
+   * SubmitTask allows for a user to submit a task to the given NUMA region
+   * @param promise a void promise pointer that will be set when the task has been executed
+   * @param task a void to void function that is the task to be executed
+   * @param numa_hint a hint as to which NUMA region would be ideal for this task to be executed on, default is any
+   */
   void SubmitTask(std::promise<void> *promise, const std::function<void()> &task,
                   storage::numa_region_t numa_hint = storage::UNSUPPORTED_NUMA_REGION) {
     if (numa_hint == storage::UNSUPPORTED_NUMA_REGION) {

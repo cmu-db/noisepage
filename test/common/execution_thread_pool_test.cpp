@@ -22,7 +22,7 @@ namespace terrier {
 // NOLINTNEXTLINE
 TEST(ExecutionThreadPoolTests, SimpleTest) {
   common::DedicatedThreadRegistry registry(DISABLED);
-  std::vector<int> cpu_ids;
+  std::vector<int> cpu_ids(std::thread::hardware_concurrency());
   for (int i = 0; i < static_cast<int>(std::thread::hardware_concurrency()); i++) {
     cpu_ids.emplace_back(i);
   }
@@ -46,7 +46,7 @@ TEST(ExecutionThreadPoolTests, SimpleTest) {
 // NOLINTNEXTLINE
 TEST(ExecutionThreadPoolTests, BasicTest) {
   common::DedicatedThreadRegistry registry(DISABLED);
-  std::vector<int> cpu_ids;
+  std::vector<int> cpu_ids(std::thread::hardware_concurrency());
   for (int i = 0; i < static_cast<int>(std::thread::hardware_concurrency()); i++) {
     cpu_ids.emplace_back(i);
   }
@@ -81,7 +81,7 @@ TEST(ExecutionThreadPoolTests, BasicTest) {
     counter.fetch_add(1);
   });
 
-  for (int i = 0; i < 5; i++) ps[i].get_future().get();
+  for (int i = 0; i < 5; i++) ps[i].get_future().get();  // NOLINT
 
   EXPECT_EQ(2, var1);
   EXPECT_EQ(1, var2);
@@ -93,7 +93,7 @@ TEST(ExecutionThreadPoolTests, BasicTest) {
 // NOLINTNEXTLINE
 TEST(ExecutionThreadPoolTests, MoreTest) {
   common::DedicatedThreadRegistry registry(DISABLED);
-  std::vector<int> cpu_ids;
+  std::vector<int> cpu_ids(std::thread::hardware_concurrency());
   for (int i = 0; i < static_cast<int>(std::thread::hardware_concurrency()); i++) {
     cpu_ids.emplace_back(i);
   }
@@ -132,7 +132,7 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
       while (flag1 != 0) std::this_thread::sleep_for(std::chrono::milliseconds(50));
     };
 
-    std::promise<void> stall_promises[num_threads];
+    std::promise<void> stall_promises[num_threads];  // NOLINT
     for (uint32_t i = 0; i < num_threads; i++) {
       thread_pool.SubmitTask(&stall_promises[i], stall_on_flag);
     }
@@ -219,13 +219,13 @@ TEST(ExecutionThreadPoolTests, TaskStealingCorrectnessTest) {
 #endif
 
     std::atomic<int16_t> order_count = 0;
-    common::SpinLatch order_latch_;
+    common::SpinLatch order_latch;
     std::map<int16_t, storage::numa_region_t> numa_order;
     std::promise<void> check_promises[num_numa_regions];
     for (int16_t i = 0; i < num_numa_regions; i++) {
-      storage::numa_region_t numa_hint = static_cast<storage::numa_region_t>(i);
+      auto numa_hint = static_cast<storage::numa_region_t>(i);
       auto workload = [&, numa_hint] {
-        common::SpinLatch::ScopedSpinLatch l(&order_latch_);
+        common::SpinLatch::ScopedSpinLatch l(&order_latch);
         int16_t pos = order_count++;
         TERRIER_ASSERT(numa_order.find(pos) == numa_order.end(), "there should be no other node at this position");
         numa_order[pos] = numa_hint;

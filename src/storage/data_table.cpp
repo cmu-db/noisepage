@@ -144,9 +144,9 @@ void DataTable::GetNUMARegions(std::vector<numa_region_t> *regions) {
   }
 }
 
-DataTable::NUMAIterator DataTable::begin(numa_region_t index) const { return {this, index}; } // NOLINT
+DataTable::NUMAIterator DataTable::begin(numa_region_t index) const { return {this, index}; }  // NOLINT
 
-DataTable::NUMAIterator DataTable::end(numa_region_t index) const { return {}; } // NOLINT
+DataTable::NUMAIterator DataTable::end(numa_region_t index) const { return {}; }  // NOLINT
 
 DataTable::NUMAIterator &DataTable::NUMAIterator::operator++() {
   // Jump to the next block if already the last slot in the block.

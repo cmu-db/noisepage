@@ -264,8 +264,8 @@ class DataTable {
    * @param thread_pool thread pool to be used for the scan.
    */
   void NUMAScan(common::ManagedPointer<transaction::TransactionContext> txn,
-                std::vector<ProjectedColumns *> *out_buffers, ProjectedColumns *const result_buffer, // NOLINT
-                common::ExecutionThreadPool *thread_pool = nullptr); // NOLINT
+                std::vector<ProjectedColumns *> *out_buffers, ProjectedColumns *const result_buffer,  // NOLINT
+                common::ExecutionThreadPool *thread_pool = nullptr);                                  // NOLINT
 
   /**
    * @return the first tuple slot contained in the data table
