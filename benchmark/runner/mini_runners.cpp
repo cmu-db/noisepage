@@ -1,5 +1,6 @@
 #include <common/macros.h>
 #include <cstdio>
+#include <functional>
 #include <random>
 #include <utility>
 
@@ -14,6 +15,7 @@
 #include "execution/util/cpu_info.h"
 #include "execution/vm/module.h"
 #include "loggers/loggers_util.h"
+#include "planner/plannodes/seq_scan_plan_node.h"
 #include "main/db_main.h"
 #include "optimizer/cost_model/forced_cost_model.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
@@ -150,6 +152,8 @@ static void GenScanArguments(benchmark::internal::Benchmark *b) {
         b->Args({col, row, car});
         car *= 2;
       }
+
+      b->Args({col, row, row});
     }
   }
 }
@@ -160,7 +164,7 @@ static void GenScanArguments(benchmark::internal::Benchmark *b) {
  * 1 - Number of rows
  * 2 - Cardinality
  */
-static void GenJoinArguments(benchmark::internal::Benchmark *b) {
+static void GenJoinSelfArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
@@ -170,6 +174,36 @@ static void GenJoinArguments(benchmark::internal::Benchmark *b) {
       while (car < row) {
         if (row * row / car <= 1000000000) b->Args({col, row, car});
         car *= 2;
+      }
+
+      b->Args({col, row, row});
+    }
+  }
+}
+
+/**
+ * Arg <0, 1, 2, 3, 4>
+ * 0 - Number of columns
+ * 1 - Build # rows
+ * 2 - Build Cardinality
+ * 3 - Probe # rows
+ * 4 - Probe Cardinality
+ */
+static void GenJoinNonSelfArguments(benchmark::internal::Benchmark *b) {
+  auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
+  for (auto col : num_cols) {
+    for (size_t i = 0; i < row_nums.size(); i++) {
+      auto build_rows = row_nums[i];
+      auto build_car = row_nums[i];
+      for (size_t j = i + 1; j < row_nums.size(); j++) {
+        auto probe_rows = row_nums[j];
+        auto probe_car = row_nums[j];
+
+        auto matched_num = row_nums[i];
+        auto matched_car = row_nums[i];
+        b->Args({col, build_rows, build_car, probe_rows, probe_car, matched_num, matched_car});
       }
     }
   }
@@ -217,9 +251,38 @@ static void GenInsertArguments(benchmark::internal::Benchmark *b) {
 class MiniRunners : public benchmark::Fixture {
  public:
   static execution::query_id_t query_id;
-
   const uint64_t optimizer_timeout_ = 1000000;
   const execution::vm::ExecutionMode mode_ = execution::vm::ExecutionMode::Interpret;
+
+  typedef std::unique_ptr<planner::AbstractPlanNode> (*PlanCorrect)(
+      common::ManagedPointer<transaction::TransactionContext> txn, std::unique_ptr<planner::AbstractPlanNode>);
+
+  static std::unique_ptr<planner::AbstractPlanNode> PassthroughPlanCorrect(
+      UNUSED_ATTRIBUTE common::ManagedPointer<transaction::TransactionContext> txn,
+      std::unique_ptr<planner::AbstractPlanNode> plan) {
+    return std::move(plan);
+  }
+
+  std::unique_ptr<planner::AbstractPlanNode> JoinNonSelfCorrector(
+      std::string build_tbl, common::ManagedPointer<transaction::TransactionContext> txn,
+      std::unique_ptr<planner::AbstractPlanNode> plan) {
+    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
+    auto build_oid = accessor->GetTableOid(build_tbl);
+
+    if (plan->GetPlanNodeType() != planner::PlanNodeType::HASHJOIN) throw "Expected HashJoin";
+    if (plan->GetChild(0)->GetPlanNodeType() != planner::PlanNodeType::SEQSCAN) throw "Expected Left SeqScan";
+    if (plan->GetChild(1)->GetPlanNodeType() != planner::PlanNodeType::SEQSCAN) throw "Expected Right SeqScan";
+
+    // Assumes the build side is the left (since that is the HashJoinLeftTranslator)
+    auto *l_scan = reinterpret_cast<const planner::SeqScanPlanNode *>(plan->GetChild(0));
+    if (l_scan->GetTableOid() != build_oid) {
+      // Don't modify join_predicate/left/right hash keys because derivedindex DerivedValueExpression
+      // Don't modify output_schema since just output 1 side tuple anyways
+      plan->SwapChildren();
+    }
+
+    return plan;
+  }
 
   TIGHT_LOOP_OPERATION(uint32_t, PLUS, +);
   TIGHT_LOOP_OPERATION(uint32_t, MULTIPLY, *);
@@ -236,8 +299,14 @@ class MiniRunners : public benchmark::Fixture {
     metrics_manager_ = db_main->GetMetricsManager();
   }
 
-  void BenchmarkSqlStatement(const std::string &query, brain::PipelineOperatingUnits *units,
-                             std::unique_ptr<optimizer::AbstractCostModel> cost_model, bool commit) {
+  void BenchmarkSqlStatement(
+      const std::string &query, brain::PipelineOperatingUnits *units,
+      std::unique_ptr<optimizer::AbstractCostModel> cost_model, bool commit,
+      std::function<std::unique_ptr<planner::AbstractPlanNode>(common::ManagedPointer<transaction::TransactionContext>,
+                                                               std::unique_ptr<planner::AbstractPlanNode>)>
+          corrector = std::function<std::unique_ptr<planner::AbstractPlanNode>(
+              common::ManagedPointer<transaction::TransactionContext>, std::unique_ptr<planner::AbstractPlanNode>)>(
+              PassthroughPlanCorrect)) {
     auto txn = txn_manager_->BeginTransaction();
     auto stmt_list = parser::PostgresParser::BuildParseTree(query);
 
@@ -248,6 +317,8 @@ class MiniRunners : public benchmark::Fixture {
     auto out_plan = trafficcop::TrafficCopUtil::Optimize(
         common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid,
         db_main->GetStatsStorage(), std::move(cost_model), optimizer_timeout_);
+
+    out_plan = corrector(common::ManagedPointer(txn), std::move(out_plan));
 
     execution::ExecutableQuery::query_identifier.store(MiniRunners::query_id++);
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
@@ -688,7 +759,7 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ2_SortRunners)
     ->Apply(GenScanArguments);
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinRunners)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinSelfRunners)(benchmark::State &state) {
   auto num_col = state.range(0);
   auto row = state.range(1);
   auto car = state.range(2);
@@ -704,14 +775,23 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinRunners)(benchmark::State &state) {
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4 * num_col, num_col, car);
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, row, 4 * num_col, num_col, car);
     pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4 * num_col, num_col, car);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, hj_output, 4 * num_col, num_col, hj_output);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, hj_output, 4 * num_col, num_col,
+                           hj_output);
     pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, hj_output, 4, 1, hj_output);
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
     std::stringstream query;
+    query << "SELECT ";
+    for (auto i = 1; i <= num_col; i++) {
+      query << "b.col" << (i + 14);
+      if (i != num_col) {
+        query << ", ";
+      }
+    }
+
     auto tbl_name = execution::sql::TableGenerator::GenerateTableName(type::TypeId::INTEGER, 31, row, car);
-    query << "SELECT b.col15 FROM " << tbl_name << ", " << tbl_name << " as b WHERE ";
+    query << " FROM " << tbl_name << ", " << tbl_name << " as b WHERE ";
     for (auto i = 1; i <= num_col; i++) {
       query << tbl_name << ".col" << (i + 14) << " = b.col" << (i + 14);
       if (i != num_col) {
@@ -727,10 +807,71 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinRunners)(benchmark::State &state) {
   state.SetItemsProcessed(row);
 }
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ3_HashJoinRunners)
+BENCHMARK_REGISTER_F(MiniRunners, SEQ3_HashJoinSelfRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
-    ->Apply(GenJoinArguments);
+    ->Apply(GenJoinSelfArguments);
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinNonSelfRunners)(benchmark::State &state) {
+  auto num_col = state.range(0);
+  auto build_row = state.range(1);
+  auto build_car = state.range(2);
+  auto probe_row = state.range(3);
+  auto probe_car = state.range(4);
+  auto matched_row = state.range(5);
+  auto matched_car = state.range(6);
+
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    metrics_manager_->RegisterThread();
+
+    brain::PipelineOperatingUnits units;
+    brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
+    brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, build_row, 4 * num_col, num_col, build_car);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, build_row, 4 * num_col, num_col,
+                           build_car);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, probe_row, 4 * num_col, num_col, probe_car);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, matched_row, 4 * num_col, num_col,
+                           matched_car);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, matched_row, 4, 1, matched_car);
+    units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
+    units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
+
+    auto build_tbl = execution::sql::TableGenerator::GenerateTableName(type::TypeId::INTEGER, 31, build_row, build_car);
+    auto probe_tbl = execution::sql::TableGenerator::GenerateTableName(type::TypeId::INTEGER, 31, probe_row, probe_car);
+
+    std::stringstream query;
+    query << "SELECT ";
+    for (auto i = 1; i <= num_col; i++) {
+      query << "b.col" << (i + 14);
+      if (i != num_col) {
+        query << ", ";
+      }
+    }
+
+    query << " FROM " << build_tbl << ", " << probe_tbl << " as b WHERE ";
+    for (auto i = 1; i <= num_col; i++) {
+      query << build_tbl << ".col" << (i + 14) << " = b.col" << (i + 14);
+      if (i != num_col) {
+        query << " AND ";
+      }
+    }
+
+    auto f = std::bind(&MiniRunners::JoinNonSelfCorrector, this, build_tbl, std::placeholders::_1, std::placeholders::_2);
+    BenchmarkSqlStatement(query.str(), &units, std::make_unique<optimizer::ForcedCostModel>(true), true, f);
+    metrics_manager_->Aggregate();
+    metrics_manager_->UnregisterThread();
+  }
+
+  state.SetItemsProcessed(matched_row);
+}
+
+BENCHMARK_REGISTER_F(MiniRunners, SEQ3_HashJoinNonSelfRunners)
+    ->Unit(benchmark::kMillisecond)
+    ->Iterations(1)
+    ->Apply(GenJoinNonSelfArguments);
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ4_AggregateRunners)(benchmark::State &state) {
@@ -747,7 +888,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_AggregateRunners)(benchmark::State &state) 
     brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4 * num_col, num_col, car);
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, row, 4 * num_col, num_col, car);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE, car, 4 * num_col + 4, num_col + 1, car);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE, car, 4 * num_col + 4, num_col + 1,
+                           car);
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
