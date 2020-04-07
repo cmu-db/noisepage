@@ -257,7 +257,6 @@ class DataTable {
    * passed the last slot scanned in the invocation.
    *
    * @param txn the calling transaction
-   * @param start_pos iterator to the starting location for the sequential scan
    * @param out_buffers output buffers. The object should already contain projection list information. This buffer is
    *                   always cleared of old values.
    * @param result_buffer final buffer into which the results are placed.
