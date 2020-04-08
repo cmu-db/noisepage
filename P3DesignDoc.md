@@ -53,11 +53,14 @@ Supporting Constraints:
 * TRIGGER (CONTYPE_COL_OID = 't') - Trigger constraint to invoke trigger during insert
 * EXCLUSION (CONTYPE_COL_OID = 'e') - Exclusion constraint to exclude some set of data in this column
 
-### Constraint Creation during Table Creation
+### Constraint Creation during Table creation
 
+### Constraint Checking during Insertion
 
 ## Design Rationale
->Explain the goals of this design and how the design achieves these goals. Present alternatives considered and document why they are not chosen.
+The primary focus is to align with what other postgres APIs such as ph_index and pg_namespace are currently formulated. We want to make sure that their creation, check and modification are positioned under the same files with similar APIs to ensure consistency. At the same time we still want a separate pg_constratin class module to encapsulate the specific constratin checking logic to isolate that from the other modules but can be accessed from the same APY call style.
+
+
 
 ## Testing Plan
 >How should the component be tested?
