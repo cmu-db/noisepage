@@ -48,6 +48,8 @@ class MiniTrainer:
             if opunit not in self.model_map:
                 unmodelled_opunits.append((opunit, idx))
 
+            continue
+
             for xidx, x in enumerate(data.x):
                 # Use the entire input feature vector for exact
                 stat_vec = [opunit]
@@ -58,7 +60,6 @@ class MiniTrainer:
                     # purified_y_matrix[xidx] = [y_val if y_val <= predict[idx] else y_val - predict[idx] for idx, y_val in enumerate(y)]
                     purified_y_matrix[xidx] = [0 if y_val <= predict[idx] else y_val - predict[idx] for idx, y_val in enumerate(y)]
                 elif opunit in self.model_map:
-                    print("Predict {}".format(stat_vec))
                     predict_vec = [input_arr[idx] if type(input_arr) == list else input_arr for input_arr in x]
                     predict_vec = np.array(predict_vec).reshape(1, -1)
 

@@ -201,9 +201,8 @@ static void GenJoinNonSelfArguments(benchmark::internal::Benchmark *b) {
         auto probe_rows = row_nums[j];
         auto probe_car = row_nums[j];
 
-        auto matched_num = row_nums[i];
         auto matched_car = row_nums[i];
-        b->Args({col, build_rows, build_car, probe_rows, probe_car, matched_num, matched_car});
+        b->Args({col, build_rows, build_car, probe_rows, probe_car, matched_car});
       }
     }
   }
@@ -775,8 +774,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinSelfRunners)(benchmark::State &stat
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4 * num_col, num_col, car);
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, row, 4 * num_col, num_col, car);
     pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4 * num_col, num_col, car);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, hj_output, 4 * num_col, num_col,
-                           hj_output);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, row, 4 * num_col, num_col, hj_output);
     pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, hj_output, 4, 1, hj_output);
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
@@ -819,8 +817,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinNonSelfRunners)(benchmark::State &s
   auto build_car = state.range(2);
   auto probe_row = state.range(3);
   auto probe_car = state.range(4);
-  auto matched_row = state.range(5);
-  auto matched_car = state.range(6);
+  auto matched_car = state.range(5);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
@@ -833,9 +830,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinNonSelfRunners)(benchmark::State &s
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, build_row, 4 * num_col, num_col,
                            build_car);
     pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, probe_row, 4 * num_col, num_col, probe_car);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, matched_row, 4 * num_col, num_col,
-                           matched_car);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, matched_row, 4, 1, matched_car);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, probe_row, 4 * num_col, num_col, matched_car);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, matched_car, 4, 1, matched_car);
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
@@ -865,7 +861,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinNonSelfRunners)(benchmark::State &s
     metrics_manager_->UnregisterThread();
   }
 
-  state.SetItemsProcessed(matched_row);
+  state.SetItemsProcessed(matched_car);
 }
 
 BENCHMARK_REGISTER_F(MiniRunners, SEQ3_HashJoinNonSelfRunners)
