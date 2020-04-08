@@ -27,7 +27,6 @@ class IndexBuilder {
   catalog::IndexSchema key_schema_;
   common::ManagedPointer<storage::SqlTable> sql_table_;
   catalog::index_oid_t index_oid_;
-  execution::sql::MemoryPool mem_pool_; //TODO(Kunal) Can't just do this
   common::ManagedPointer<transaction::TransactionContext> txn_;
 
  public:
@@ -108,9 +107,10 @@ class IndexBuilder {
   * @param newly created index
   * @return index with all the keys inserted
   */
-  Index *BulkInsert(Index *index) {
+  Index *BulkInsert(Index *index) const {
     uint32_t pr_size = index->GetProjectedRowInitializer().ProjectedRowSize();
-    void *index_pr_buffer = mem_pool_.AllocateAligned(pr_size, alignof(uint64_t), false);
+    byte *index_pr_buffer = common::AllocationUtil::AllocateAligned(pr_size);
+
     ProjectedRow *index_pr = index->GetProjectedRowInitializer().InitializeRow(index_pr_buffer);
 
     for (auto it = sql_table_->begin(); it != sql_table_->end(); ++it) {
@@ -118,7 +118,7 @@ class IndexBuilder {
       index->Insert(txn_, *index_pr, slot);
     }
 
-    mem_pool_.Deallocate(index_pr_buffer, pr_size);
+    delete[] index_pr_buffer;
     return index;
   }
 
