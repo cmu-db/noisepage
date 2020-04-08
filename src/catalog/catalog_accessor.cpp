@@ -138,6 +138,20 @@ sequence_oid_t CatalogAccessor::CreateSequence(namespace_oid_t ns, std::string n
   return dbc_->CreateSequence(txn_, ns, name);
 }
 
+sequence_oid_t CatalogAccessor::GetSequenceOid(std::string name) const {
+  NormalizeObjectName(&name);
+  for (auto &path : search_path_) {
+    sequence_oid_t search_result = dbc_->GetSequenceOid(txn_, path, name);
+    if (search_result != INVALID_SEQUENCE_OID) return search_result;
+  }
+  return INVALID_SEQUENCE_OID;
+}
+
+sequence_oid_t CatalogAccessor::GetSequenceOid(namespace_oid_t ns, std::string name) const {
+  NormalizeObjectName(&name);
+  return dbc_->GetSequenceOid(txn_, ns, name);
+}
+
 language_oid_t CatalogAccessor::CreateLanguage(const std::string &lanname) {
   return dbc_->CreateLanguage(txn_, lanname);
 }

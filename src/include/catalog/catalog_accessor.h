@@ -265,6 +265,21 @@ class CatalogAccessor {
   common::ManagedPointer<storage::index::Index> GetIndex(index_oid_t index) const;
 
   /**
+   * Given a sequence name, resolve it to the corresponding OID
+   * @param name of the sequence
+   * @return OID of the sequence, INVALID_SEQUENCE_OID if the sequence was not found
+   */
+  sequence_oid_t GetSequenceOid(std::string name) const;
+
+  /**
+   * Given a sequence name and the owning namespace, resolve it to the corresponding OID
+   * @param ns in which to search for the sequence
+   * @param name of the sequence
+   * @return OID of the sequence, INVALID_SEQUENCE_OID if the sequence was not found
+   */
+  sequence_oid_t GetSequenceOid(namespace_oid_t ns, std::string name) const;
+
+  /**
    * Given the sequence name and its specification, add it to the catalog
    * @param ns is the namespace in which the sequence will exist
    * @param name of the sequence

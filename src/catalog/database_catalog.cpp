@@ -1369,7 +1369,7 @@ bool DatabaseCatalog::CreateSequence(common::ManagedPointer<transaction::Transac
   const auto next_col_oid_offset = pg_class_all_cols_prm_[postgres::REL_NEXTCOLOID_COL_OID];
   class_insert_pr->SetNull(next_col_oid_offset);
 
-  // Set index_ptr to NULL because sequences don't need index_ptr
+  // Set sequence_ptr to NULL because it gets set by execution layer after instantiation
   const auto index_ptr_offset = pg_class_all_cols_prm_[postgres::REL_PTR_COL_OID];
   class_insert_pr->SetNull(index_ptr_offset);
 
@@ -1418,6 +1418,16 @@ bool DatabaseCatalog::CreateSequence(common::ManagedPointer<transaction::Transac
   return true;
 }
 
+sequence_oid_t DatabaseCatalog::GetSequenceOid(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                               namespace_oid_t ns, const std::string &name) {
+  const auto oid_pair = GetClassOidKind(txn, ns, name);
+  if (oid_pair.first == NULL_OID || oid_pair.second != postgres::ClassKind::SEQUENCE) {
+    // User called GetIndexOid on an object that doesn't have type INDEX
+    return INVALID_SEQUENCE_OID;
+  }
+  return sequence_oid_t(oid_pair.first);
+}
+
 void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::TransactionContext> txn) {
   std::vector<parser::AbstractExpression *> expressions;
   std::vector<Schema *> table_schemas;
@@ -1445,8 +1455,9 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
   while (table_iter != classes_->end()) {
     classes_->Scan(txn, &table_iter, pc);
     for (uint i = 0; i < pc->NumTuples(); i++) {
-      TERRIER_ASSERT(objects[i] != nullptr, "Pointer to objects in pg_class should not be nullptr");
-      TERRIER_ASSERT(schemas[i] != nullptr, "Pointer to schemas in pg_class should not be nullptr");
+      // TODO(zianke): Temporarily remove TERRIER_ASSERT
+      // TERRIER_ASSERT(objects[i] != nullptr, "Pointer to objects in pg_class should not be nullptr");
+      // TERRIER_ASSERT(schemas[i] != nullptr, "Pointer to schemas in pg_class should not be nullptr");
       switch (classes[i]) {
         case postgres::ClassKind::REGULAR_TABLE:
           table_schemas.emplace_back(reinterpret_cast<Schema *>(schemas[i]));
@@ -1455,6 +1466,9 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
         case postgres::ClassKind::INDEX:
           index_schemas.emplace_back(reinterpret_cast<IndexSchema *>(schemas[i]));
           indexes.emplace_back(reinterpret_cast<storage::index::Index *>(objects[i]));
+          break;
+        case postgres::ClassKind::SEQUENCE:
+          // TODO(zianke): Destructor of sequence
           break;
         default:
           throw std::runtime_error("Unimplemented destructor needed");

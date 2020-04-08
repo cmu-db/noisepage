@@ -270,6 +270,16 @@ class DatabaseCatalog {
                       sequence_oid_t sequence_oid, const std::string &name);
 
   /**
+   * Resolve an sequence name to its OID
+   * @param txn for the operation
+   * @param ns OID for the namespace in which the sequence belongs
+   * @param name of the sequence
+   * @return OID of the sequence or INVALID_SEQUENCE_OID if it does not exist
+   */
+  sequence_oid_t GetSequenceOid(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
+                                const std::string &name);
+
+  /**
    * Creates a language entry into the pg_language table
    * @param txn transaction to use
    * @param lanname name of language to insert

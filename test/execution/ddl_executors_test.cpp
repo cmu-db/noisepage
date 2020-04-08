@@ -11,6 +11,7 @@
 #include "planner/plannodes/create_database_plan_node.h"
 #include "planner/plannodes/create_index_plan_node.h"
 #include "planner/plannodes/create_namespace_plan_node.h"
+#include "planner/plannodes/create_sequence_plan_node.h"
 #include "planner/plannodes/create_table_plan_node.h"
 #include "planner/plannodes/drop_database_plan_node.h"
 #include "planner/plannodes/drop_index_plan_node.h"
@@ -305,6 +306,20 @@ TEST_F(DDLExecutorsTests, CreateIndexPlanNodeIndexNameConflict) {
       common::ManagedPointer<planner::CreateIndexPlanNode>(create_index_node),
       common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
   txn_manager_->Abort(txn_);
+}
+
+// NOLINTNEXTLINE
+TEST_F(DDLExecutorsTests, CreateSequencePlanNode) {
+  planner::CreateSequencePlanNode::Builder builder;
+  auto create_sequence_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
+      .SetSequenceName("foo")
+      .Build();
+  EXPECT_TRUE(execution::sql::DDLExecutors::CreateSequenceExecutor(
+      common::ManagedPointer<planner::CreateSequencePlanNode>(create_sequence_node),
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
+  auto sequence_oid = accessor_->GetSequenceOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
+  EXPECT_NE(sequence_oid, catalog::INVALID_SEQUENCE_OID);
+  txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 // NOLINTNEXTLINE
