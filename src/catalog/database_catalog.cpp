@@ -1082,9 +1082,35 @@ bool DatabaseCatalog::CreateConstraintsEntry(const common::ManagedPointer<transa
 
 std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(
     const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table) {
-  // TODO(John): Implement
-  TERRIER_ASSERT(false, "Not implemented");
-  return {};
+    // Initialize PR for constraint scan
+  auto con_pri = constraints_table_index_->GetProjectedRowInitializer();
+
+  auto *const buffer = common::AllocationUtil::AllocateAligned(con_pri.ProjectedRowSize());
+
+  // Find all entries for the given table using the index
+  auto *key_pr = con_pri.InitializeRow(buffer);
+  *(reinterpret_cast<table_oid_t *>(key_pr->AccessForceNotNull(0))) = table;
+  std::vector<storage::TupleSlot> index_scan_results;
+  constraints_table_index_->ScanKey(*txn, *key_pr, &index_scan_results);
+
+  // If we found no indexes, return an empty list
+  if (index_scan_results.empty()) {
+    delete[] buffer;
+    return {};
+  }
+
+  std::vector<constraint_oid_t> con_oids;
+  con_oids.reserve(index_scan_results.size());
+  auto *select_pr = con_pri.InitializeRow(buffer);
+  for (auto &slot : index_scan_results) {
+    const auto result UNUSED_ATTRIBUTE = constraints_->Select(txn, slot, select_pr);
+    TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
+    con_oids.emplace_back(*(reinterpret_cast<constraint_oid_t *>(select_pr->AccessForceNotNull(0))));
+  }
+
+  // Finish
+  delete[] buffer;
+  return con_oids;
 }
 
 std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
