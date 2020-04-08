@@ -203,14 +203,10 @@ bool BinderContext::CheckNestedTableColumn(const std::string &alias, const std::
   return false;
 }
 
-void BinderContext::GenerateAllColumnExpressions(parser::ParseResult *parse_result,
-                                                 std::vector<common::ManagedPointer<parser::AbstractExpression>> *exprs,
-                                                 const std::string &table_name) {
+void BinderContext::GenerateAllColumnExpressions(
+    common::ManagedPointer<parser::ParseResult> parse_result,
+    common::ManagedPointer<std::vector<common::ManagedPointer<parser::AbstractExpression>>> exprs) {
   for (auto &entry : regular_table_alias_map_) {
-    // If the table name is empty, we want all the columns. Otherwise, we just want the columns from that table.
-    if (!table_name.empty() && entry.first != table_name) {
-      continue;
-    }
     auto &schema = std::get<2>(entry.second);
     auto col_cnt = schema.GetColumns().size();
     for (uint32_t i = 0; i < col_cnt; i++) {
@@ -232,10 +228,6 @@ void BinderContext::GenerateAllColumnExpressions(parser::ParseResult *parse_resu
   }
 
   for (auto &entry : nested_table_alias_map_) {
-    // If the table name is empty, we want all the columns. Otherwise, we just want the columns from that table.
-    if (!table_name.empty() && entry.first != table_name) {
-      continue;
-    }
     auto &table_alias = entry.first;
     auto &cols = entry.second;
     for (auto &col_entry : cols) {
