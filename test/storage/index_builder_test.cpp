@@ -117,7 +117,7 @@ TEST_F(IndexBuilderTests, OneTxnFullTable) {
 
   txn_manager_->Commit(table_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  auto index = (IndexBuilder().SetKeySchema(index_schema_).SetTable(sql_table_).Build());
+  auto index = (IndexBuilder().SetKeySchema(index_schema_).SetSqlTable(common::ManagedPointer(sql_table_)).Build());
 
   auto index_txn = txn_manager_->BeginTransaction();
   std::vector<TupleSlot> values;

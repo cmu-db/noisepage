@@ -107,7 +107,7 @@ class IndexBuilder {
   * @param newly created index
   * @return index with all the keys inserted
   */
-  Index *BulkInsert(Index *index) const {
+  void BulkInsert(Index *index) const {
     uint32_t pr_size = index->GetProjectedRowInitializer().ProjectedRowSize();
     byte *index_pr_buffer = common::AllocationUtil::AllocateAligned(pr_size);
 
@@ -119,7 +119,6 @@ class IndexBuilder {
     }
 
     delete[] index_pr_buffer;
-    return index;
   }
 
   Index *BuildBwTreeIntsKey(IndexMetadata metadata) const {
@@ -137,7 +136,8 @@ class IndexBuilder {
       index = new BwTreeIndex<CompactIntsKey<32>>(std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
-    return BulkInsert(index);
+    if (sql_table_ != nullptr) BulkInsert(index);
+    return index;
   }
 
   Index *BuildBwTreeGenericKey(IndexMetadata metadata) const {
@@ -158,7 +158,8 @@ class IndexBuilder {
       index = new BwTreeIndex<GenericKey<256>>(std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an GenericKey index.");
-    return BulkInsert(index);
+    if (sql_table_ != nullptr) BulkInsert(index);
+    return index;
   }
 
   Index *BuildHashIntsKey(IndexMetadata metadata) const {
@@ -180,7 +181,8 @@ class IndexBuilder {
       index = new HashIndex<HashKey<256>>(std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
-    return BulkInsert(index);
+    if (sql_table_ != nullptr) BulkInsert(index);
+    return index;
   }
 
   Index *BuildHashGenericKey(IndexMetadata metadata) const {
@@ -200,7 +202,8 @@ class IndexBuilder {
       index = new HashIndex<GenericKey<256>>(std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
-    return BulkInsert(index);
+    if (sql_table_ != nullptr) BulkInsert(index);
+    return index;
   }
 };
 
