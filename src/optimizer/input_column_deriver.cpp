@@ -95,6 +95,27 @@ void InputColumnDeriver::Visit(const Limit *op) {
   output_input_cols_ = std::make_pair(std::move(cols), std::move(child_cols));
 }
 
+void InputColumnDeriver::Visit(const CteScan *op) {
+  // All aggregate expressions and TVEs in the required columns and internal
+  // sort columns are needed by the child node
+  ExprSet input_cols_set;
+  for (auto expr : required_cols_) {
+    if (parser::ExpressionUtil::IsAggregateExpression(expr)) {
+      input_cols_set.insert(expr);
+    } else {
+      parser::ExpressionUtil::GetTupleValueExprs(&input_cols_set, expr);
+    }
+  }
+
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> cols;
+  for (const auto &expr : input_cols_set) {
+    cols.push_back(expr);
+  }
+
+  PT2 child_cols = PT2{cols};
+  output_input_cols_ = std::make_pair(std::move(cols), std::move(child_cols));
+}
+
 void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {
   // we need to pass down both required columns and sort columns
   auto prop = properties_->GetPropertyOfType(PropertyType::SORT);
