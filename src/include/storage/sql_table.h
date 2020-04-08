@@ -244,6 +244,16 @@ class SqlTable {
   ProjectionMap ProjectionMapForOids(const std::vector<catalog::col_oid_t> &col_oids,
                                      layout_version_t layout_version = layout_version_t{0});
 
+  /**
+   * Returns the layout version of a datatable.
+   * @warning This is only used for testing purpose
+   * @param layout_version
+   * @return
+   */
+  const BlockLayout &GetBlockLayout(layout_version_t layout_version = layout_version_t{0}) {
+    return tables_.at(layout_version).layout_;
+  }
+
  private:
   friend class RecoveryManager;  // Needs access to OID and ID mappings
   friend class terrier::RandomSqlTableTransaction;
