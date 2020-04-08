@@ -81,7 +81,9 @@ TEST(ExecutionThreadPoolTests, BasicTest) {
     counter.fetch_add(1);
   });
 
-  for (int i = 0; i < 5; i++) ps[i].get_future().get();  // NOLINT
+  for (auto &promise : ps) {
+    promise.get_future().get();
+  }
 
   EXPECT_EQ(2, var1);
   EXPECT_EQ(1, var2);
@@ -106,12 +108,12 @@ TEST(ExecutionThreadPoolTests, MoreTest) {
 
     uint32_t num_threads_used = num_thread(generator);
     std::promise<void> promises[num_threads_used];
-    for (uint32_t i = 0; i < num_threads_used; i++) {
-      thread_pool.SubmitTask(&promises[i], workload);
+    for (auto &promise : promises) {
+      thread_pool.SubmitTask(&promise, workload);
     }
 
-    for (uint32_t i = 0; i < num_threads_used; i++) {
-      promises[i].get_future().get();
+    for (auto &promise : promises) {
+      promise.get_future().get();
     }
   }
 }
@@ -133,8 +135,8 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
     };
 
     std::promise<void> stall_promises[num_threads];  // NOLINT
-    for (uint32_t i = 0; i < num_threads; i++) {
-      thread_pool.SubmitTask(&stall_promises[i], stall_on_flag);
+    for (auto &promise : stall_promises) {
+      thread_pool.SubmitTask(&promise, stall_on_flag);
     }
 
     // make sure that all threads are stalled
@@ -176,16 +178,17 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
 
     // un-stall all tasks and make sure they finish
     flag1 = 0;
-    for (uint32_t i = 0; i < num_threads; i++) {
-      stall_promises[i].get_future().get();
+    for (auto &promise : stall_promises) {
+      promise.get_future().get();
     }
 
     // wait for all tasks to stall again
     while (flag2 != num_threads) std::this_thread::sleep_for(std::chrono::milliseconds(50));
     // un-stall all tasks and make sure they finish again
     flag2 = 0;
-    for (uint32_t i = 0; i < num_threads; i++) {
-      check_promises[i].get_future().get();
+    // wait for checking tasks to finish
+    for (auto &promise : check_promises) {
+      promise.get_future().get();
     }
   }
 }
@@ -235,13 +238,13 @@ TEST(ExecutionThreadPoolTests, TaskStealingCorrectnessTest) {
 
     // un-stall all tasks and make sure they finish
     flag1 = 0;
-    for (uint32_t i = 0; i < num_threads; i++) {
-      stall_promises[i].get_future().get();
+    for (auto &promise : stall_promises) {
+      promise.get_future().get();
     }
 
     // wait for checking tasks to finish
-    for (int16_t i = 0; i < num_numa_regions; i++) {
-      check_promises[i].get_future().get();
+    for (auto &promise : check_promises) {
+      promise.get_future().get();
     }
     TERRIER_ASSERT(static_cast<int16_t>(numa_order.size()) == num_numa_regions,
                    "we should have as many nodes as hints");
