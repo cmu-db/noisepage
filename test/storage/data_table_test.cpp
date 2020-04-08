@@ -534,8 +534,9 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
       });
     }
 
-    for (uint32_t i = 0; i < num_threads; i++) {
-      threads[i].get_future().get();
+    // NOLINTNEXTLINE
+    for (auto &promise : threads) {  // NOLINT
+      promise.get_future().get();
     }
 
     uint32_t num_slots = 0;
@@ -600,8 +601,9 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
           numa_region);
     }
 
-    for (uint32_t i = 0; i < numa_regions.size(); i++) {
-      numa_threads[i].get_future().get();
+    // NOLINTNEXTLINE
+    for (auto &promise : numa_threads) {  // NOLINT
+      promise.get_future().get();
     }
 
     EXPECT_EQ(num_inserts * num_threads, counted_numa_iteration);
