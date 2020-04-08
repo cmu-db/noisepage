@@ -132,7 +132,7 @@ network::QueryType TrafficCopUtil::QueryTypeForStatement(const common::ManagedPo
         case parser::DropStatement::DropType::kTrigger:
           return network::QueryType::QUERY_DROP_TRIGGER;
         case parser::DropStatement::DropType::kSequence:
-          return network::QueryType::QUERY_CREATE_SEQUENCE;
+          return network::QueryType::QUERY_DROP_SEQUENCE;
       }
     }
     case parser::StatementType::VARIABLE_SET:

@@ -342,7 +342,7 @@ TEST_F(DDLExecutorsTests, CreateSequencePlanNodeAbort) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(DDLExecutorsTests, CreateSequencePlanNodeIndexNameConflict) {
+TEST_F(DDLExecutorsTests, CreateSequencePlanNodeNameConflict) {
   planner::CreateSequencePlanNode::Builder builder;
   auto create_sequence_node =
       builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID).SetSequenceName("foo").Build();
