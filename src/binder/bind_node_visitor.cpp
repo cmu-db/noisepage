@@ -68,10 +68,28 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
   BINDER_LOG_TRACE("Gathering select columns...");
   for (auto &select_element : node->GetSelectColumns()) {
     if (select_element->GetExpressionType() == parser::ExpressionType::STAR) {
-      context_->GenerateAllColumnExpressions(sherpa->GetParseResult(), common::ManagedPointer(&new_select_list));
+      constexpr auto empty_table_name = "";
+      context_->GenerateAllColumnExpressions(sherpa->GetParseResult().Get(), &new_select_list, empty_table_name);
       continue;
     }
 
+    // Check if there is a table qualifier with a star expression
+    if (select_element->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
+      auto expr = common::ManagedPointer(static_cast<parser::ColumnValueExpression *>(select_element.Get()));
+      std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple;
+      std::string table_name = expr->GetTableName();
+      std::string col_name = expr->GetColumnName();
+      if (col_name == "*") {
+        if (context_ != nullptr && context_->GetRegularTableObj(table_name, expr, common::ManagedPointer(&tuple))) {
+          if (!BinderContext::ColumnInSchema(std::get<2>(tuple), col_name)) {
+            // Valid star qualifier, populate columns
+            context_->GenerateAllColumnExpressions(sherpa->GetParseResult().Get(), &new_select_list, table_name);
+            continue;
+          }
+          throw BINDER_EXCEPTION(("Cannot find column " + col_name).c_str());
+        }
+      }
+    }
     select_element->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
 
     // Derive depth for all exprs in the select clause
@@ -228,9 +246,9 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CopyStatement> node,
 
     // If the table is given, we're either writing or reading all columns
     std::vector<common::ManagedPointer<parser::AbstractExpression>> new_select_list;
-    context_->GenerateAllColumnExpressions(sherpa->GetParseResult(), common::ManagedPointer(&new_select_list));
-    auto col = node->GetSelectStatement()->GetSelectColumns();
-    col.insert(std::end(col), std::begin(new_select_list), std::end(new_select_list));
+    context_->GenerateAllColumnExpressions(sherpa->GetParseResult().Get(), &new_select_list, "");
+    auto columns = node->GetSelectStatement()->GetSelectColumns();
+    columns.insert(std::end(columns), std::begin(new_select_list), std::end(new_select_list));
   } else {
     node->GetSelectStatement()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
   }

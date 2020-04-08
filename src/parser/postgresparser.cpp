@@ -528,7 +528,13 @@ std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ParseResu
         table_name = "";
       } else {
         auto next_node = reinterpret_cast<Node *>(fields->head->next->data.ptr_value);
-        col_name = reinterpret_cast<value *>(next_node)->val_.str_;
+        if (next_node->type == T_A_Star) {
+          // Can't directly return StarExpression in this case, because there is a table qualifier. We only want all the
+          // columns for the given table. Consider SELECT x.* FROM y.
+          col_name = "*";
+        } else {
+          col_name = reinterpret_cast<value *>(next_node)->val_.str_;
+        }
         table_name = reinterpret_cast<value *>(node)->val_.str_;
       }
 
