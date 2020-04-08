@@ -54,11 +54,17 @@ Supporting Constraints:
 * EXCLUSION (CONTYPE_COL_OID = 'e') - Exclusion constraint to exclude some set of data in this column
 
 ### Constraint Creation during Table creation
+>catalog/catalog_accessor.h
+>catalog/database_catalog.h
+>execution/sql/ddlexecutor.h
+
+Here we added API for CreateConstraints and added that into the ddlexecutor when creating table. This is called in a similar style as create_index when creating table to create constraint and record that in pg_constraint table.
 
 ### Constraint Checking during Insertion
+>storage/data_table.h
 
 ## Design Rationale
-The primary focus is to align with what other postgres APIs such as ph_index and pg_namespace are currently formulated. We want to make sure that their creation, check and modification are positioned under the same files with similar APIs to ensure consistency. At the same time we still want a separate pg_constratin class module to encapsulate the specific constratin checking logic to isolate that from the other modules but can be accessed from the same APY call style.
+The primary focus is to align with what other postgres APIs such as ph_index and pg_namespace are currently formulated. We want to make sure that their creation, check and modification are positioned under the same files with similar APIs to ensure consistency. At the same time we still want a separate pg_constratin class module to encapsulate the specific constratin checking logic to isolate that from the other modules but can be accessed from the same API call style.
 
 
 
