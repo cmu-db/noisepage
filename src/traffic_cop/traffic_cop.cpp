@@ -187,7 +187,8 @@ void TrafficCop::ExecuteDropStatement(const common::ManagedPointer<network::Conn
   TERRIER_ASSERT(
       query_type == network::QueryType::QUERY_DROP_TABLE || query_type == network::QueryType::QUERY_DROP_SCHEMA ||
           query_type == network::QueryType::QUERY_DROP_INDEX || query_type == network::QueryType::QUERY_DROP_DB ||
-          query_type == network::QueryType::QUERY_DROP_VIEW || query_type == network::QueryType::QUERY_DROP_TRIGGER,
+          query_type == network::QueryType::QUERY_DROP_VIEW || query_type == network::QueryType::QUERY_DROP_TRIGGER ||
+          query_type == network::QueryType::QUERY_DROP_SEQUENCE,
       "ExecuteDropStatement called with invalid QueryType.");
   switch (query_type) {
     case network::QueryType::QUERY_DROP_TABLE: {
@@ -223,6 +224,14 @@ void TrafficCop::ExecuteDropStatement(const common::ManagedPointer<network::Conn
     case network::QueryType::QUERY_DROP_SCHEMA: {
       if (execution::sql::DDLExecutors::DropNamespaceExecutor(
               physical_plan.CastManagedPointerTo<planner::DropNamespacePlanNode>(), connection_ctx->Accessor())) {
+        out->WriteCommandComplete(query_type, 0);
+        return;
+      }
+      break;
+    }
+    case network::QueryType::QUERY_DROP_SEQUENCE: {
+      if (execution::sql::DDLExecutors::DropSequenceExecutor(
+              physical_plan.CastManagedPointerTo<planner::DropSequencePlanNode>(), connection_ctx->Accessor())) {
         out->WriteCommandComplete(query_type, 0);
         return;
       }

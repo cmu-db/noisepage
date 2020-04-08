@@ -134,6 +134,7 @@ enum class QueryType : uint8_t {
   QUERY_DROP_DB,
   QUERY_DROP_INDEX,
   QUERY_DROP_TRIGGER,
+  QUERY_DROP_SEQUENCE,
   QUERY_DROP_SCHEMA,
   QUERY_DROP_VIEW,
   // end of what we support in the traffic cop right now
