@@ -152,6 +152,8 @@ sequence_oid_t CatalogAccessor::GetSequenceOid(namespace_oid_t ns, std::string n
   return dbc_->GetSequenceOid(txn_, ns, name);
 }
 
+bool CatalogAccessor::DropSequence(sequence_oid_t sequence) const { return dbc_->DeleteSequence(txn_, sequence); }
+
 language_oid_t CatalogAccessor::CreateLanguage(const std::string &lanname) {
   return dbc_->CreateLanguage(txn_, lanname);
 }

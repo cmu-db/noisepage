@@ -270,6 +270,14 @@ class DatabaseCatalog {
                       sequence_oid_t sequence_oid, const std::string &name);
 
   /**
+   * Delete a sequence.
+   * @param txn for the operation
+   * @param sequence to be deleted
+   * @return true if the deletion succeeded, otherwise false.
+   */
+  bool DeleteSequence(common::ManagedPointer<transaction::TransactionContext> txn, sequence_oid_t sequence);
+
+  /**
    * Resolve an sequence name to its OID
    * @param txn for the operation
    * @param ns OID for the namespace in which the sequence belongs

@@ -288,6 +288,13 @@ class CatalogAccessor {
   sequence_oid_t CreateSequence(namespace_oid_t ns, std::string name) const;
 
   /**
+   * Drop the corresponding sequence from the catalog.
+   * @param sequence to be dropped, this must be a valid oid from GetSequenceOid. Invalid input will trigger an assert
+   * @return whether the operation succeeded
+   */
+  bool DropSequence(sequence_oid_t sequence) const;
+
+  /**
    * Adds a language to the catalog (with default parameters for now) if
    * it doesn't exist in pg_language already
    * @param lanname name of language

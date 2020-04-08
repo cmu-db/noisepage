@@ -16,6 +16,7 @@
 #include "planner/plannodes/drop_database_plan_node.h"
 #include "planner/plannodes/drop_index_plan_node.h"
 #include "planner/plannodes/drop_namespace_plan_node.h"
+#include "planner/plannodes/drop_sequence_plan_node.h"
 #include "planner/plannodes/drop_table_plan_node.h"
 #include "storage/index/index_builder.h"
 #include "storage/sql_table.h"
@@ -141,6 +142,13 @@ bool DDLExecutors::DropIndexExecutor(const common::ManagedPointer<planner::DropI
                                      const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
   const bool result = accessor->DropIndex(node->GetIndexOid());
   // TODO(Matt): CASCADE?
+  return result;
+}
+
+bool DDLExecutors::DropSequenceExecutor(const common::ManagedPointer<planner::DropSequencePlanNode> node,
+                                        const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
+  const bool result = accessor->DropSequence(node->GetSequenceOid());
+  // TODO(zianke): CASCADE?
   return result;
 }
 

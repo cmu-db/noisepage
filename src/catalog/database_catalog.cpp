@@ -1418,6 +1418,89 @@ bool DatabaseCatalog::CreateSequence(common::ManagedPointer<transaction::Transac
   return true;
 }
 
+bool DatabaseCatalog::DeleteSequence(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                     sequence_oid_t sequence) {
+  if (!TryLock(txn)) return false;
+  bool result;
+  // TODO(zianke): We should respect foreign key relations and attempt to delete the sequence's columns first
+  // auto result = DeleteColumns<SequenceSchema::Column, sequence_oid_t>(txn, sequence);
+  // if (!result) return false;
+
+  // Initialize PRs for pg_class
+  const auto class_oid_pri = classes_oid_index_->GetProjectedRowInitializer();
+
+  // Allocate buffer for largest PR
+  TERRIER_ASSERT(pg_class_all_cols_pri_.ProjectedRowSize() >= class_oid_pri.ProjectedRowSize(),
+                 "Buffer must be allocated for largest ProjectedRow size");
+  auto *const buffer = common::AllocationUtil::AllocateAligned(pg_class_all_cols_pri_.ProjectedRowSize());
+  auto *key_pr = class_oid_pri.InitializeRow(buffer);
+
+  // Find the entry using the index
+  *(reinterpret_cast<sequence_oid_t *>(key_pr->AccessForceNotNull(0))) = sequence;
+  std::vector<storage::TupleSlot> index_results;
+  classes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
+  TERRIER_ASSERT(
+      index_results.size() == 1,
+      "Incorrect number of results from index scan. Expect 1 because it's a unique index. 0 implies that function was "
+      "called with an oid that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense. "
+      "Was a DROP plan node reused twice? IF EXISTS should be handled in the Binder, rather than pushing logic here.");
+
+  // Select the tuple out of the table before deletion. We need the attributes to do index deletions later
+  auto *table_pr = pg_class_all_cols_pri_.InitializeRow(buffer);
+  result = classes_->Select(txn, index_results[0], table_pr);
+  TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
+
+  // Delete from pg_classes table
+  txn->StageDelete(db_oid_, postgres::CLASS_TABLE_OID, index_results[0]);
+  result = classes_->Delete(txn, index_results[0]);
+  if (!result) {
+    // write-write conflict. Someone beat us to this operation.
+    delete[] buffer;
+    return false;
+  }
+
+  // Get the attributes we need for pg_class indexes
+  sequence_oid_t sequence_oid = *(reinterpret_cast<const sequence_oid_t *const>(
+      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::RELOID_COL_OID])));
+  const namespace_oid_t ns_oid = *(reinterpret_cast<const namespace_oid_t *const>(
+      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::RELNAMESPACE_COL_OID])));
+  const storage::VarlenEntry name_varlen = *(reinterpret_cast<const storage::VarlenEntry *const>(
+      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::RELNAME_COL_OID])));
+
+  // TODO(zianke): schema_ptr and sequence_ptr currently empty
+  // auto *const schema_ptr = *(reinterpret_cast<const IndexSchema *const *const>(
+  //      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_SCHEMA_COL_OID])));
+  // auto *const sequence_ptr = *(reinterpret_cast<storage::index::Index *const *const>(
+  //      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_PTR_COL_OID])));
+
+  const auto class_oid_index_init = classes_oid_index_->GetProjectedRowInitializer();
+  const auto class_name_index_init = classes_name_index_->GetProjectedRowInitializer();
+  const auto class_ns_index_init = classes_namespace_index_->GetProjectedRowInitializer();
+
+  // Delete from classes_oid_index_
+  auto *index_pr = class_oid_index_init.InitializeRow(buffer);
+  *(reinterpret_cast<sequence_oid_t *const>(index_pr->AccessForceNotNull(0))) = sequence_oid;
+  classes_oid_index_->Delete(txn, *index_pr, index_results[0]);
+
+  // Delete from classes_name_index_
+  index_pr = class_name_index_init.InitializeRow(buffer);
+  *(reinterpret_cast<storage::VarlenEntry *const>(index_pr->AccessForceNotNull(0))) = name_varlen;
+  *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(1))) = ns_oid;
+  classes_name_index_->Delete(txn, *index_pr, index_results[0]);
+
+  // Delete from classes_namespace_index_
+  index_pr = class_ns_index_init.InitializeRow(buffer);
+  *(reinterpret_cast<namespace_oid_t *const>(index_pr->AccessForceNotNull(0))) = ns_oid;
+  classes_namespace_index_->Delete(txn, *index_pr, index_results[0]);
+
+  // TODO(zianke): Next we need to delete from pg_sequence
+
+  // delete schema_ptr;
+  // delete sequence_ptr;
+  delete[] buffer;
+  return true;
+}
+
 sequence_oid_t DatabaseCatalog::GetSequenceOid(const common::ManagedPointer<transaction::TransactionContext> txn,
                                                namespace_oid_t ns, const std::string &name) {
   const auto oid_pair = GetClassOidKind(txn, ns, name);

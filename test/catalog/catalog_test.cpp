@@ -265,7 +265,23 @@ TEST_F(CatalogTests, SequenceTest) {
   EXPECT_EQ(sequence_oid, catalog::INVALID_SEQUENCE_OID);  // Should cause a name conflict
   txn_manager_->Abort(txn);
 
-  // TODO(zianke): Delete sequence
+  // Get an accessor into the database and validate the catalog tables exist
+  // then delete it and verify an invalid OID is now returned for the lookup
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+  EXPECT_NE(accessor, nullptr);
+  VerifyCatalogTables(*accessor);  // Check visibility to me
+  sequence_oid = accessor->GetSequenceOid("test_sequence");
+  EXPECT_TRUE(accessor->DropSequence(sequence_oid));
+  sequence_oid = accessor->GetSequenceOid("test_sequence");
+  EXPECT_EQ(sequence_oid, catalog::INVALID_SEQUENCE_OID);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+  sequence_oid = accessor->GetSequenceOid("test_sequence");
+  EXPECT_EQ(sequence_oid, catalog::INVALID_SEQUENCE_OID);
+  txn_manager_->Abort(txn);
 }
 
 /*
