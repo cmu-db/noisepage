@@ -242,10 +242,10 @@ TEST_F(ParserTestBase, CreateTableTest) {
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, CreateSequenceTest) {
-  auto result = parser::PostgresParser::BuildParseTree("CREATE SEQUENCE seq_a;");
+  auto result = parser::PostgresParser::BuildParseTree("CREATE SEQUENCE foo;");
   auto create_stmt = result->GetStatement(0).CastManagedPointerTo<CreateStatement>();
 
-  EXPECT_EQ(create_stmt->GetSequenceName(), "seq_a");
+  EXPECT_EQ(create_stmt->GetSequenceName(), "foo");
 }
 
 // NOLINTNEXTLINE
