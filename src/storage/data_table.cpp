@@ -36,7 +36,7 @@ DataTable::DataTable(const common::ManagedPointer<BlockStore> store, const Block
     blocks_.push_back(block);
   }
   insertion_head_ = blocks_.begin();
-  /*
+
   // Run a fake iteration of insert to update insertion_head_
   TupleSlot result;
   auto block = insertion_head_;
@@ -73,7 +73,7 @@ DataTable::DataTable(const common::ManagedPointer<BlockStore> store, const Block
 
   // Do not need to wait unit finish inserting,
   // can flip back the status bit once the thread gets the allocated tuple slot
-  accessor_.ClearBlockBusyStatus(*block);*/
+  accessor_.ClearBlockBusyStatus(*block);
 }
 
 DataTable::~DataTable() {

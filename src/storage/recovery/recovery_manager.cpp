@@ -96,7 +96,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
     f.open(path + in_file, std::ios::binary);
 
     // Get our metadata first
-    uint32_t block_num;
+    unsigned long block_num;
     f.read(reinterpret_cast<char *>(&block_num), sizeof(block_num));
     unsigned long varchar_cols;
     f.read(reinterpret_cast<char *>(&varchar_cols), sizeof(varchar_cols));
@@ -171,6 +171,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
     accessor->SetTablePointer(table_oid, new_table);
   }
   std::cout << "ok" << std::endl;
+  txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestamp_t txn_id, bool catalog_only) {
@@ -192,6 +193,18 @@ void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestam
       } else {
         ReplayDeleteRecord(txn, buffered_record);
       }
+    } else {
+      if (buffered_record->RecordType() == LogRecordType::REDO) {
+        auto staged_record = txn->StageRecoveryWrite(buffered_record);
+        if (IsCatalogTable(staged_record->GetTableOid())) {
+          ReplayRedoRecord(txn, buffered_record);
+        }
+      } else {
+        auto delete_record = buffered_record->GetUnderlyingRecordBodyAs<DeleteRecord>();
+        if (IsCatalogTable(delete_record->GetTableOid())) {
+          ReplayDeleteRecord(txn, buffered_record);
+        }
+      }
     }
   }
 
@@ -201,6 +214,14 @@ void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestam
 
   // Commit the txn
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+}
+
+bool RecoveryManager::IsCatalogTable(catalog::table_oid_t table_oid) {
+  return !table_oid == !catalog::postgres::DATABASE_TABLE_OID ||
+         !table_oid == !catalog::postgres::NAMESPACE_TABLE_OID || !table_oid == !catalog::postgres::CLASS_TABLE_OID ||
+         !table_oid == !catalog::postgres::COLUMN_TABLE_OID || !table_oid == !catalog::postgres::CONSTRAINT_TABLE_OID ||
+         !table_oid == !catalog::postgres::INDEX_TABLE_OID || !table_oid == !catalog::postgres::TYPE_TABLE_OID ||
+         !table_oid == !catalog::postgres::LANGUAGE_TABLE_OID || !table_oid == !catalog::postgres::PRO_TABLE_OID;
 }
 
 void RecoveryManager::DeferRecordDeletes(terrier::transaction::timestamp_t txn_id, bool delete_varlens) {
