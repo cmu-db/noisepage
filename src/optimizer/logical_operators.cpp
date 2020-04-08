@@ -1,3 +1,5 @@
+#include "optimizer/logical_operators.h"
+
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -7,7 +9,6 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/macros.h"
-#include "optimizer/logical_operators.h"
 #include "optimizer/operator_visitor.h"
 #include "parser/expression/abstract_expression.h"
 
@@ -1005,14 +1006,19 @@ bool LogicalCreateTrigger::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalCreateSequence::Copy() const { return new LogicalCreateSequence(*this); }
 
-Operator LogicalCreateSequence::Make(std::string sequence_name) {
+Operator LogicalCreateSequence::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                                     std::string sequence_name) {
   auto op = std::make_unique<LogicalCreateSequence>();
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
   op->sequence_name_ = std::move(sequence_name);
   return Operator(std::move(op));
 }
 
 common::hash_t LogicalCreateSequence::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sequence_name_));
   return hash;
 }
@@ -1020,6 +1026,8 @@ common::hash_t LogicalCreateSequence::Hash() const {
 bool LogicalCreateSequence::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::LOGICALCREATESEQUENCE) return false;
   const LogicalCreateSequence &node = *dynamic_cast<const LogicalCreateSequence *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
   return sequence_name_ == node.sequence_name_;
 }
 

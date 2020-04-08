@@ -843,6 +843,8 @@ void PlanGenerator::Visit(const CreateTrigger *create_trigger) {
 
 void PlanGenerator::Visit(const CreateSequence *create_sequence) {
   output_plan_ = planner::CreateSequencePlanNode::Builder()
+                     .SetDatabaseOid(create_sequence->GetDatabaseOid())
+                     .SetNamespaceOid(create_sequence->GetNamespaceOid())
                      .SetSequenceName(create_sequence->GetSequenceName())
                      .Build();
 }

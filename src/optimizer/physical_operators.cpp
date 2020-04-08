@@ -1,4 +1,5 @@
 #include "optimizer/physical_operators.h"
+
 #include <algorithm>
 #include <memory>
 #include <string>
@@ -6,6 +7,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+
 #include "common/macros.h"
 #include "optimizer/operator_visitor.h"
 #include "parser/expression/abstract_expression.h"
@@ -962,14 +964,19 @@ bool CreateTrigger::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *CreateSequence::Copy() const { return new CreateSequence(*this); }
 
-Operator CreateSequence::Make(std::string sequence_name) {
+Operator CreateSequence::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                              std::string sequence_name) {
   auto op = std::make_unique<CreateSequence>();
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
   op->sequence_name_ = std::move(sequence_name);
   return Operator(std::move(op));
 }
 
 common::hash_t CreateSequence::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sequence_name_));
   return hash;
 }
@@ -977,6 +984,8 @@ common::hash_t CreateSequence::Hash() const {
 bool CreateSequence::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::CREATESEQUENCE) return false;
   const CreateSequence &node = *dynamic_cast<const CreateSequence *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
   return sequence_name_ == node.sequence_name_;
 }
 

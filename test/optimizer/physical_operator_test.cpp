@@ -1487,22 +1487,27 @@ TEST(OperatorTests, CreateSequenceTest) {
   //===--------------------------------------------------------------------===//
   // CreateSequence
   //===--------------------------------------------------------------------===//
-  Operator op1 =
-      CreateSequence::Make("Sequence_1");
+  Operator op1 = CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1");
 
   EXPECT_EQ(op1.GetType(), OpType::CREATESEQUENCE);
   EXPECT_EQ(op1.GetName(), "CreateSequence");
   EXPECT_EQ(op1.As<CreateSequence>()->GetSequenceName(), "Sequence_1");
 
-  Operator op2 =
-      CreateSequence::Make("Sequence_1");
+  Operator op2 = CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1");
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
-  Operator op3 =
-      CreateSequence::Make("Sequence_2");
+  Operator op3 = CreateSequence::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), "Sequence_1");
   EXPECT_FALSE(op3 == op1);
   EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 = CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), "Sequence_1");
+  EXPECT_FALSE(op4 == op1);
+  EXPECT_NE(op1.Hash(), op4.Hash());
+
+  Operator op5 = CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_2");
+  EXPECT_FALSE(op5 == op1);
+  EXPECT_NE(op1.Hash(), op5.Hash());
 }
 
 // NOLINTNEXTLINE

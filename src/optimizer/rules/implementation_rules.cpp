@@ -794,18 +794,18 @@ LogicalCreateSequenceToPhysicalCreateSequence::LogicalCreateSequenceToPhysicalCr
 }
 
 bool LogicalCreateSequenceToPhysicalCreateSequence::Check(common::ManagedPointer<OperatorNode> plan,
-                                                        OptimizationContext *context) const {
+                                                          OptimizationContext *context) const {
   return true;
 }
 
 void LogicalCreateSequenceToPhysicalCreateSequence::Transform(common::ManagedPointer<OperatorNode> input,
-                                                            std::vector<std::unique_ptr<OperatorNode>> *transformed,
-                                                            UNUSED_ATTRIBUTE OptimizationContext *context) const {
+                                                              std::vector<std::unique_ptr<OperatorNode>> *transformed,
+                                                              UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto ct_op = input->GetOp().As<LogicalCreateSequence>();
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalCreateSequence should have 0 children");
 
   auto op = std::make_unique<OperatorNode>(
-      CreateSequence::Make(ct_op->GetSequenceName()),
+      CreateSequence::Make(ct_op->GetDatabaseOid(), ct_op->GetNamespaceOid(), ct_op->GetSequenceName()),
       std::vector<std::unique_ptr<OperatorNode>>());
 
   transformed->emplace_back(std::move(op));

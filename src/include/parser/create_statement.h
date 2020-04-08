@@ -452,10 +452,12 @@ class CreateStatement : public TableRefStatement {
 
   /**
    * CREATE SEQUENCE
-   * @param sequence_info table information
+   * @param table_info table information
+   * @param sequence_name sequence name
    */
-  CreateStatement(std::string sequence_name)
-      : TableRefStatement(StatementType::CREATE, nullptr),
+   // TODO(zianke): Add other sequence metadata
+  CreateStatement(std::unique_ptr<TableInfo> table_info, std::string sequence_name, int sequence_increment)
+      : TableRefStatement(StatementType::CREATE, std::move(table_info)),
         create_type_(kSequence),
         sequence_name_(std::move(sequence_name)) {}
 

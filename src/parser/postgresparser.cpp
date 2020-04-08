@@ -1442,9 +1442,15 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateTriggerTransform(ParseResult
 // Postgres.CreateSeqStmt -> terrier.CreateStatement
 std::unique_ptr<parser::SQLStatement> PostgresParser::CreateSequenceTransform(ParseResult *parse_result,
                                                                               CreateSeqStmt *root) {
-  auto sequence_name = root->sequence_->relname_ == nullptr ? "" : root->sequence_->relname_;
+  auto schema_name = root->sequence_->schemaname_ == nullptr ? "" : root->sequence_->schemaname_;
+  auto database_name = root->sequence_->catalogname_ == nullptr ? "" : root->sequence_->catalogname_;
+  auto table_info = std::make_unique<TableInfo>("", schema_name, database_name);
 
-  auto result = std::make_unique<CreateStatement>(sequence_name);
+  auto sequence_name = root->sequence_->relname_ == nullptr ? "" : root->sequence_->relname_;
+  // TODO(zianke): Placeholder, to be changed to real metadata
+  auto sequence_increment = 1;
+
+  auto result = std::make_unique<CreateStatement>(std::move(table_info), sequence_name, sequence_increment);
   return result;
 }
 

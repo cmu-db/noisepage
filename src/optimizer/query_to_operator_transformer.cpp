@@ -349,8 +349,9 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CreateStat
       break;
     }
     case parser::CreateStatement::CreateType::kSequence:
-      create_expr = std::make_unique<OperatorNode>(LogicalCreateSequence::Make(op->GetSequenceName()),
-                                                   std::vector<std::unique_ptr<OperatorNode>>{});
+      create_expr = std::make_unique<OperatorNode>(
+          LogicalCreateSequence::Make(db_oid_, accessor_->GetDefaultNamespace(), op->GetSequenceName()),
+          std::vector<std::unique_ptr<OperatorNode>>{});
       break;
     case parser::CreateStatement::CreateType::kSchema:
       create_expr = std::make_unique<OperatorNode>(LogicalCreateNamespace::Make(op->GetNamespaceName()),

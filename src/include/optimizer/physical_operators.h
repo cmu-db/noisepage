@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "catalog/index_schema.h"
 #include "catalog/schema.h"
@@ -1645,10 +1646,13 @@ class CreateTrigger : public OperatorNodeContents<CreateTrigger> {
 class CreateSequence : public OperatorNodeContents<CreateSequence> {
  public:
   /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
    * @param sequence_name Name of the sequence
    * @return
    */
-  static Operator Make(std::string sequence_name);
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       std::string sequence_name);
 
   /**
    * Copy
@@ -1660,11 +1664,30 @@ class CreateSequence : public OperatorNodeContents<CreateSequence> {
   common::hash_t Hash() const override;
 
   /**
+   * @return OID of the database
+   */
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
    * @return sequence name
    */
   std::string GetSequenceName() const { return sequence_name_; }
 
  private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
   /**
    * Name of the sequence
    */
