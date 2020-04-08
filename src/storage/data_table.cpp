@@ -210,20 +210,34 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
   return result;
 }
 
-void DataTable::InsertIntoBlock(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo, RawBlock *block) {
+RawBlock* DataTable::CreateCompactedBlock() {
+  RawBlock* block = NewBlock();
+  // This function is ONLY called during the compaction process, set the status to FREEZING.
+  block->controller_.GetBlockState()->store(BlockState::FREEZING);
+  return block;
+}
 
+bool DataTable::InsertIntoFreezingBlock(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo, RawBlock *block) {
+  // This function should be called only from the compactor, while the block is FREEZING.
+  TERRIER_ASSERT(block->controller_.GetBlockState()->load() == BlockState::FREEZING, "InsertIntoFreezingBlock should be called only from the compactor, and the block should be FREEZING.");
+
+  bool status = false;
   TupleSlot new_slot;
   // Set block status to busy
   accessor_.SetBlockBusyStatus(block);
+
   // Allocate a new TupleSlot
-  accessor_.Allocate(block, &new_slot);
+  if (accessor_.Allocate(block, &new_slot)) {
+    // Insert the redo into the new TupleSlot created
+    InsertInto(txn, redo, new_slot);
+    data_table_counter_.IncrementNumInsert(1);
+    status = true;
+  }
+
   // Clear the busy status
   accessor_.ClearBlockBusyStatus(block);
 
-  // Insert the redo into the new TupleSlot created
-  InsertInto(txn, redo, new_slot);
-
-  data_table_counter_.IncrementNumInsert(1);
+  return status;
 }
 
 void DataTable::InsertInto(const common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo,
