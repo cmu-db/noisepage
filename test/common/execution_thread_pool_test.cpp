@@ -153,6 +153,7 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
 #else
       storage::numa_region_t numa_hint UNUSED_ATTRIBUTE = static_cast<storage::numa_region_t>(numa_node_of_cpu(i));
       auto workload = [&, numa_hint]() {
+        auto temp UNUSED_ATTRIBUTE = static_cast<int16_t>(numa_hint);
         cpu_set_t mask;
         int result UNUSED_ATTRIBUTE = sched_getaffinity(0, sizeof(cpu_set_t), &mask);
         TERRIER_ASSERT(result == 0, "sched_getaffinity should succeed");
