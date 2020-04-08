@@ -131,6 +131,7 @@ class TestOLTPBench(TestServer):
 
     def validate_result(self):
         # read the results file
+        print("\n".join(os.listdir(os.path.dirname(self.oltpbench_result_path))))
         with open(self.oltpbench_result_path) as oltp_result_file:
             test_result = json.load(oltp_result_file)
         unexpected_result = test_result.get("unexpected", {}).get("HISTOGRAM")
