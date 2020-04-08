@@ -158,9 +158,6 @@ class DatabaseCatalog {
    */
   const Schema &GetSchema(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
 
-  constraint_oid_t CreateConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
-                                    table_oid_t table, std::vector<std::string> unique_cols, std::string constraint_name)
-
   /**
    * A list of all constraints on this table
    * @param txn for the operation
