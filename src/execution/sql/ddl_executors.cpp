@@ -108,9 +108,9 @@ bool DDLExecutors::CreateIndexExecutor(const common::ManagedPointer<planner::Cre
 }
 
 bool DDLExecutors::CreateSequenceExecutor(const common::ManagedPointer<planner::CreateSequencePlanNode> node,
-                                       const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
+                                          const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
   // Request permission from the Catalog to see if this a valid sequence name
-  return accessor->CreateSequence(node->GetSequenceName()) != catalog::INVALID_SEQUENCE_OID;
+  return accessor->CreateSequence(node->GetNamespaceOid(), node->GetSequenceName()) != catalog::INVALID_SEQUENCE_OID;
 }
 
 bool DDLExecutors::DropDatabaseExecutor(const common::ManagedPointer<planner::DropDatabasePlanNode> node,

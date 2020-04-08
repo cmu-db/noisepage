@@ -266,10 +266,11 @@ class CatalogAccessor {
 
   /**
    * Given the sequence name and its specification, add it to the catalog
+   * @param ns is the namespace in which the sequence will exist
    * @param name of the sequence
    * @return OID for the sequence, INVALID_SEQUENCE_OID if the operation failed
    */
-  sequence_oid_t CreateSequence(std::string name) const;
+  sequence_oid_t CreateSequence(namespace_oid_t ns, std::string name) const;
 
   /**
    * Adds a language to the catalog (with default parameters for now) if

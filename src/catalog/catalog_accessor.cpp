@@ -133,9 +133,9 @@ common::ManagedPointer<storage::index::Index> CatalogAccessor::GetIndex(index_oi
   return dbc_->GetIndex(txn_, index);
 }
 
-sequence_oid_t CatalogAccessor::CreateSequence(std::string name) const {
+sequence_oid_t CatalogAccessor::CreateSequence(namespace_oid_t ns, std::string name) const {
   NormalizeObjectName(&name);
-  return dbc_->CreateSequence(txn_, name);
+  return dbc_->CreateSequence(txn_, ns, name);
 }
 
 language_oid_t CatalogAccessor::CreateLanguage(const std::string &lanname) {
