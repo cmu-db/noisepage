@@ -24,7 +24,7 @@ class RunJunit:
         self.db_server_process = None
 
         # db server location
-        self.db_server_host = "localhost"
+        self.db_server_host = "127.0.0.1"
         self.db_server_port = 15721
         return
 
@@ -68,17 +68,22 @@ class RunJunit:
     def _wait_for_db_server(self):
         """ Wait for the db_server server to come up.
         """
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # max wait of 10s in 0.1s increments
-        for i in range(100):
+        # max wait of 15s in 0.1s increments
+        start_time = time.time()
+        for i in range(150):
             try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 s.connect((self.db_server_host, self.db_server_port))
                 s.close()
                 print ("connected to server in {} seconds".format(i*0.1))
+                print("--- %s seconds ---" % (time.time() - start_time))
                 return
             except:
                 time.sleep(0.1)
                 continue
+        self._print_output(self.db_server_output_file)
+        self._stop_db_server()
+        raise RuntimeError("test connection time out")
         return
 
     def _stop_db_server(self):
@@ -88,7 +93,9 @@ class RunJunit:
         if self.db_server_process.returncode is not None:
             # Db_Server terminated already
             self.db_server_output_fd.close()
+            print ("============ db_error output  ===============")
             self._print_output(self.db_server_output_file)
+            print ("=============================================")
             msg = "Db_Server terminated with return code {}".format(
                 self.db_server_process.returncode)
             raise RuntimeError(msg)
@@ -157,6 +164,7 @@ if __name__ == "__main__":
         exit_code = junit.run()
     except:
         print ("Exception trying to run junit tests")
+        print ("================ Python Error Output ==================")
         traceback.print_exc(file=sys.stdout)
         exit_code = 1
 

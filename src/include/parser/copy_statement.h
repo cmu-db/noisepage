@@ -41,10 +41,7 @@ class CopyStatement : public SQLStatement {
 
   ~CopyStatement() override = default;
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
-              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
-    v->Visit(common::ManagedPointer(this), sherpa);
-  }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   /** @return copy table */
   common::ManagedPointer<TableRef> GetCopyTable() { return common::ManagedPointer(table_); }

@@ -16,11 +16,11 @@ namespace terrier::network {
 TerrierServer::TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provider> protocol_provider,
                              common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
                              common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
-                             const uint16_t port)
+                             const uint16_t port, const uint16_t connection_thread_count)
     : DedicatedThreadOwner(thread_registry),
       running_(false),
       port_(port),
-      max_connections_(CONNECTION_THREAD_COUNT),
+      max_connections_(connection_thread_count),
       connection_handle_factory_(connection_handle_factory),
       provider_(protocol_provider) {
   // For logging purposes
