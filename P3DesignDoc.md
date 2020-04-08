@@ -25,7 +25,9 @@ To align with each stage of the development, we formulate our design goal in ter
 
 ## Architectural Design
 
-### catalog/postgres/pg_constraint.h
+### Constraint Storage Definition
+>catalog/postgres/pg_constraint.h
+
 This is the definition of what information of what a constraint information should be stored. The constraints are stored in forms of table and the row definition is also defined here.
 
 ```C++
@@ -42,6 +44,17 @@ col_oid_t CONFRELID_COL_OID;      // INTEGER (fkey: pg_class) - if a foreign key
 col_oid_t CONBIN_COL_OID;         // BIGINT (assumes 64-bit pointers) - if a check constraint, the internal representation of expression of check
 col_oid_t CONSRC_COL_OID;         // VARCHAR - The identifier of the columns that the constraint applies to
 ```
+
+Supporting Constraints:
+* CHECK (CONTYPE_COL_OID = 'c') - The CHECK constraint to verify the column data is in a specific set.
+* FOREIGN KEY (CONTYPE_COL_OID = 'f') - Associate the data of the column in one table with data in another
+* PROMARY KEY (CONTYPE_COL_OID = 'p') - The promary key constraint of the table, implies UNIQUE and NOT NULL
+* UNIQUE (CONTYPE_COL_OID = 'u') - Data in the column has to be unique
+* TRIGGER (CONTYPE_COL_OID = 't') - Trigger constraint to invoke trigger during insert
+* EXCLUSION (CONTYPE_COL_OID = 'e') - Exclusion constraint to exclude some set of data in this column
+
+### Constraint Creation during Table Creation
+
 
 ## Design Rationale
 >Explain the goals of this design and how the design achieves these goals. Present alternatives considered and document why they are not chosen.
