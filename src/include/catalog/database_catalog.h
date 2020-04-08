@@ -158,6 +158,9 @@ class DatabaseCatalog {
    */
   const Schema &GetSchema(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
 
+  constraint_oid_t CreateConstraint(common::ManagedPointer<transaction::TransactionContext> txn,
+                                    table_oid_t table, std::vector<std::string> unique_cols, std::string constraint_name)
+
   /**
    * A list of all constraints on this table
    * @param txn for the operation
@@ -467,6 +470,8 @@ class DatabaseCatalog {
   storage::index::Index *constraints_table_index_;
   storage::index::Index *constraints_index_index_;
   storage::index::Index *constraints_foreigntable_index_;
+  storage::ProjectedRowInitializer pg_constraint_all_cols_pri_;
+  storage::ProjectionMap pg_constraint_all_cols_prm_;
 
   storage::SqlTable *languages_;
   storage::index::Index *languages_oid_index_;

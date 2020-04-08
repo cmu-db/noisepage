@@ -347,6 +347,12 @@ void DatabaseCatalog::BootstrapPRIs() {
                                                 postgres::PG_PRO_ALL_COL_OIDS.cend()};
   pg_proc_all_cols_pri_ = procs_->InitializerForProjectedRow(pg_proc_all_oids);
   pg_proc_all_cols_prm_ = procs_->ProjectionMapForOids(pg_proc_all_oids);
+
+  // pg_constraint 
+  const std::vector<col_oid_t> pg_constraint_all_oids{postgres::PG_CONSTRAINT_ALL_COL_OIDS.cbegin(),
+                                                 postgres::PG_CONSTRAINT_ALL_COL_OIDS.cend()};
+  pg_constraint_all_cols_pri_ = constraints_->InitializerForProjectedRow(pg_constraint_all_oids);
+  pg_constraint_all_cols_prm_ = constraints_->ProjectionMapForOids(pg_constraint_all_oids);
 }
 
 namespace_oid_t DatabaseCatalog::CreateNamespace(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -962,7 +968,7 @@ std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(
 
   // Find all entries for the given table using the index
   auto *key_pr = con_pri.InitializeRow(buffer);
-  *(reinterpret_cast<table_oid_t *>(key_pr->AccessForceNotNull(0))) = table;
+  *(reinterpret_cast<table_oid_t *>(key_pr->AccessForceNotNull(pg_constraint_all_cols_prm_[postgres::CONSTRAINT_TABLE_OID]))) = table;
   std::vector<storage::TupleSlot> index_scan_results;
   constraints_table_index_->ScanKey(*txn, *key_pr, &index_scan_results);
 
@@ -978,7 +984,7 @@ std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(
   for (auto &slot : index_scan_results) {
     const auto result UNUSED_ATTRIBUTE = constraints_->Select(txn, slot, select_pr);
     TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
-    con_oids.emplace_back(*(reinterpret_cast<constraint_oid_t *>(select_pr->AccessForceNotNull(0))));
+    con_oids.emplace_back(*(reinterpret_cast<constraint_oid_t *>(select_pr->AccessForceNotNull(pg_constraint_all_cols_prm_[postgres::CONOID_COL_OID]))));
   }
 
   // Finish
