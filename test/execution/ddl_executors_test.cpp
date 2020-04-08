@@ -1,7 +1,5 @@
 #include "execution/sql/ddl_executors.h"
 
-#include <planner/plannodes/drop_sequence_plan_node.h>
-
 #include <memory>
 #include <utility>
 #include <vector>
@@ -18,6 +16,7 @@
 #include "planner/plannodes/drop_database_plan_node.h"
 #include "planner/plannodes/drop_index_plan_node.h"
 #include "planner/plannodes/drop_namespace_plan_node.h"
+#include "planner/plannodes/drop_sequence_plan_node.h"
 #include "planner/plannodes/drop_table_plan_node.h"
 #include "test_util/catalog_test_util.h"
 #include "test_util/test_harness.h"

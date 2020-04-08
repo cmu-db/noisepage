@@ -1,5 +1,3 @@
-#include "optimizer/logical_operators.h"
-
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -9,6 +7,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/macros.h"
+#include "optimizer/logical_operators.h"
 #include "optimizer/operator_visitor.h"
 #include "parser/expression/abstract_expression.h"
 

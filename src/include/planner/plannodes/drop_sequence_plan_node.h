@@ -4,7 +4,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-
 #include "catalog/catalog_defs.h"
 #include "parser/drop_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"

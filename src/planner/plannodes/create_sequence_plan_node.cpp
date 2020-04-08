@@ -3,9 +3,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "parser/expression/abstract_expression.h"
-#include "parser/expression/constant_value_expression.h"
-#include "parser/parser_defs.h"
 
 namespace terrier::planner {
 

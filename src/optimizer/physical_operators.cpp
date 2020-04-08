@@ -1,5 +1,3 @@
-#include "optimizer/physical_operators.h"
-
 #include <algorithm>
 #include <memory>
 #include <string>
@@ -9,6 +7,7 @@
 #include <vector>
 
 #include "common/macros.h"
+#include "optimizer/physical_operators.h"
 #include "optimizer/operator_visitor.h"
 #include "parser/expression/abstract_expression.h"
 

@@ -5,7 +5,6 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-
 #include "catalog/catalog_defs.h"
 #include "catalog/index_schema.h"
 #include "catalog/schema.h"
