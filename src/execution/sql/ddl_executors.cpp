@@ -11,6 +11,7 @@
 #include "planner/plannodes/create_database_plan_node.h"
 #include "planner/plannodes/create_index_plan_node.h"
 #include "planner/plannodes/create_namespace_plan_node.h"
+#include "planner/plannodes/create_sequence_plan_node.h"
 #include "planner/plannodes/create_table_plan_node.h"
 #include "planner/plannodes/drop_database_plan_node.h"
 #include "planner/plannodes/drop_index_plan_node.h"
@@ -104,6 +105,12 @@ bool DDLExecutors::CreateIndexExecutor(const common::ManagedPointer<planner::Cre
                                        const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
   return CreateIndex(accessor, node->GetNamespaceOid(), node->GetIndexName(), node->GetTableOid(),
                      *(node->GetSchema()));
+}
+
+bool DDLExecutors::CreateSequenceExecutor(const common::ManagedPointer<planner::CreateSequencePlanNode> node,
+                                       const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
+  // Request permission from the Catalog to see if this a valid sequence name
+  return accessor->CreateSequence(node->GetSequenceName()) != catalog::INVALID_SEQUENCE_OID;
 }
 
 bool DDLExecutors::DropDatabaseExecutor(const common::ManagedPointer<planner::DropDatabasePlanNode> node,

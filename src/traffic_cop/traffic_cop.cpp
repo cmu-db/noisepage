@@ -120,7 +120,8 @@ void TrafficCop::ExecuteCreateStatement(const common::ManagedPointer<network::Co
   TERRIER_ASSERT(
       query_type == network::QueryType::QUERY_CREATE_TABLE || query_type == network::QueryType::QUERY_CREATE_SCHEMA ||
           query_type == network::QueryType::QUERY_CREATE_INDEX || query_type == network::QueryType::QUERY_CREATE_DB ||
-          query_type == network::QueryType::QUERY_CREATE_VIEW || query_type == network::QueryType::QUERY_CREATE_TRIGGER,
+          query_type == network::QueryType::QUERY_CREATE_VIEW || query_type == network::QueryType::QUERY_CREATE_TRIGGER ||
+          query_type == network::QueryType::QUERY_CREATE_SEQUENCE,
       "ExecuteCreateStatement called with invalid QueryType.");
   switch (query_type) {
     case network::QueryType::QUERY_CREATE_TABLE: {
@@ -156,6 +157,14 @@ void TrafficCop::ExecuteCreateStatement(const common::ManagedPointer<network::Co
     case network::QueryType::QUERY_CREATE_SCHEMA: {
       if (execution::sql::DDLExecutors::CreateNamespaceExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateNamespacePlanNode>(), connection_ctx->Accessor())) {
+        out->WriteCommandComplete(query_type, 0);
+        return;
+      }
+      break;
+    }
+    case network::QueryType::QUERY_CREATE_SEQUENCE: {
+      if (execution::sql::DDLExecutors::CreateSequenceExecutor(
+              physical_plan.CastManagedPointerTo<planner::CreateSequencePlanNode>(), connection_ctx->Accessor())) {
         out->WriteCommandComplete(query_type, 0);
         return;
       }

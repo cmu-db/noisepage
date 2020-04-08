@@ -249,6 +249,24 @@ class DatabaseCatalog {
       common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
 
   /**
+   * Create the catalog entries for a new sequence.
+   * @param txn for the operation
+   * @param name of the new sequence
+   * @return OID of the new sequence or INVALID_SEQUENCE_OID if creation failed
+   */
+  sequence_oid_t CreateSequence(common::ManagedPointer<transaction::TransactionContext> txn, const std::string &name);
+
+  /**
+   * Helper method to create sequence entries into pg_class and pg_indexes.
+   * @param txn txn for the operation
+   * @param sequence_oid OID for the sequence to create
+   * @param name name of the new sequence
+   * @return true if creation succeeded, false otherwise
+   */
+  bool CreateSequence(common::ManagedPointer<transaction::TransactionContext> txn, sequence_oid_t sequence_oid,
+                           const std::string &name);
+
+  /**
    * Creates a language entry into the pg_language table
    * @param txn transaction to use
    * @param lanname name of language to insert

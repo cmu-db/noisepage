@@ -23,6 +23,7 @@ STRONG_TYPEDEF(settings_oid_t, uint32_t);
 STRONG_TYPEDEF(table_oid_t, uint32_t);
 STRONG_TYPEDEF(tablespace_oid_t, uint32_t);
 STRONG_TYPEDEF(trigger_oid_t, uint32_t);
+STRONG_TYPEDEF(sequence_oid_t, uint32_t);
 STRONG_TYPEDEF(type_oid_t, uint32_t);
 STRONG_TYPEDEF(view_oid_t, uint32_t);
 
@@ -36,6 +37,7 @@ constexpr language_oid_t INVALID_LANGUAGE_OID = language_oid_t(NULL_OID);
 constexpr proc_oid_t INVALID_PROC_OID = proc_oid_t(NULL_OID);
 constexpr table_oid_t INVALID_TABLE_OID = table_oid_t(NULL_OID);
 constexpr trigger_oid_t INVALID_TRIGGER_OID = trigger_oid_t(NULL_OID);
+constexpr sequence_oid_t INVALID_SEQUENCE_OID = sequence_oid_t(NULL_OID);
 constexpr type_oid_t INVALID_TYPE_OID = type_oid_t(NULL_OID);
 constexpr view_oid_t INVALID_VIEW_OID = view_oid_t(NULL_OID);
 

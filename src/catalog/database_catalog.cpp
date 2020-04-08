@@ -1,10 +1,11 @@
+#include "catalog/database_catalog.h"
+
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "catalog/database_catalog.h"
 #include "catalog/index_schema.h"
 #include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_attribute.h"
@@ -1322,6 +1323,102 @@ std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const Index
   }
   delete[] buffer;
   return index_objects;
+}
+
+sequence_oid_t DatabaseCatalog::CreateSequence(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                               const std::string &name) {
+  if (!TryLock(txn)) return INVALID_SEQUENCE_OID;
+  const sequence_oid_t sequence_oid = static_cast<sequence_oid_t>(next_oid_++);
+  return CreateSequence(txn, sequence_oid, name) ? sequence_oid : INVALID_SEQUENCE_OID;
+}
+
+bool DatabaseCatalog::CreateSequence(common::ManagedPointer<transaction::TransactionContext> txn,
+                                          sequence_oid_t sequence_oid, const std::string &name) {
+  // First, insert into pg_class
+  auto *const class_insert_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, pg_class_all_cols_pri_);
+  auto *const class_insert_pr = class_insert_redo->Delta();
+
+  // Write the sequence_oid into the PR
+  auto sequence_oid_offset = pg_class_all_cols_prm_[postgres::RELOID_COL_OID];
+  auto *sequence_oid_ptr = class_insert_pr->AccessForceNotNull(sequence_oid_offset);
+  *(reinterpret_cast<sequence_oid_t *>(sequence_oid_ptr)) = sequence_oid;
+
+  const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
+
+  // Write the name into the PR
+  const auto name_offset = pg_class_all_cols_prm_[postgres::RELNAME_COL_OID];
+  auto *const name_ptr = class_insert_pr->AccessForceNotNull(name_offset);
+  *(reinterpret_cast<storage::VarlenEntry *>(name_ptr)) = name_varlen;
+
+  // Write the ns_oid into the PR
+  const auto ns_offset = pg_class_all_cols_prm_[postgres::RELNAMESPACE_COL_OID];
+  // TODO(zianke): Write the ns_oid into the PR
+  //  auto *const ns_ptr = class_insert_pr->AccessForceNotNull(ns_offset);
+  //  *(reinterpret_cast<namespace_oid_t *>(ns_ptr)) = ns_oid;
+  class_insert_pr->SetNull(ns_offset);
+
+  // Write the kind into the PR
+  const auto kind_offset = pg_class_all_cols_prm_[postgres::RELKIND_COL_OID];
+  auto *const kind_ptr = class_insert_pr->AccessForceNotNull(kind_offset);
+  *(reinterpret_cast<postgres::ClassKind *>(kind_ptr)) = postgres::ClassKind::SEQUENCE;
+
+  // Set schema to NULL because sequences don't need schema
+  const auto index_schema_ptr_offset = pg_class_all_cols_prm_[postgres::REL_SCHEMA_COL_OID];
+  class_insert_pr->SetNull(index_schema_ptr_offset);
+
+  // Set next_col_oid to NULL because sequences don't need col_oid
+  const auto next_col_oid_offset = pg_class_all_cols_prm_[postgres::REL_NEXTCOLOID_COL_OID];
+  class_insert_pr->SetNull(next_col_oid_offset);
+
+  // Set index_ptr to NULL because sequences don't need index_ptr
+  const auto index_ptr_offset = pg_class_all_cols_prm_[postgres::REL_PTR_COL_OID];
+  class_insert_pr->SetNull(index_ptr_offset);
+
+  // Insert into pg_class table
+  const auto class_tuple_slot = classes_->Insert(txn, class_insert_redo);
+
+  // Now we insert into indexes on pg_class
+  // Get PR initializers allocate a buffer from the largest one
+  const auto class_oid_index_init = classes_oid_index_->GetProjectedRowInitializer();
+  const auto class_name_index_init = classes_name_index_->GetProjectedRowInitializer();
+  const auto class_ns_index_init = classes_namespace_index_->GetProjectedRowInitializer();
+  TERRIER_ASSERT((class_name_index_init.ProjectedRowSize() >= class_oid_index_init.ProjectedRowSize()) &&
+                     (class_name_index_init.ProjectedRowSize() >= class_ns_index_init.ProjectedRowSize()),
+                 "Index buffer must be allocated based on the largest PR initializer");
+  auto *index_buffer = common::AllocationUtil::AllocateAligned(class_name_index_init.ProjectedRowSize());
+
+  // Insert into oid_index
+  auto *index_pr = class_oid_index_init.InitializeRow(index_buffer);
+  *(reinterpret_cast<sequence_oid_t *>(index_pr->AccessForceNotNull(0))) = sequence_oid;
+  if (!classes_oid_index_->InsertUnique(txn, *index_pr, class_tuple_slot)) {
+    // There was an oid conflict and we need to abort.  Free the buffer and
+    // return INVALID_TABLE_OID to indicate the database was not created.
+    delete[] index_buffer;
+    return false;
+  }
+
+  // Insert into name_index
+  index_pr = class_name_index_init.InitializeRow(index_buffer);
+  *(reinterpret_cast<storage::VarlenEntry *>(index_pr->AccessForceNotNull(0))) = name_varlen;
+  // TODO(zianke): Set ns_oid
+  //  *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(1))) = ns_oid;
+  *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(1))) = (namespace_oid_t)0;
+  if (!classes_name_index_->InsertUnique(txn, *index_pr, class_tuple_slot)) {
+    // There was a name conflict and we need to abort.  Free the buffer and
+    // return INVALID_TABLE_OID to indicate the database was not created.
+    delete[] index_buffer;
+    return false;
+  }
+
+  // TODO(zianke): Insert into namespace_index
+  //  index_pr = class_ns_index_init.InitializeRow(index_buffer);
+  //  *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(0))) = ns_oid;
+  //  const auto result UNUSED_ATTRIBUTE = classes_namespace_index_->Insert(txn, *index_pr, class_tuple_slot);
+  //  TERRIER_ASSERT(result, "Insertion into non-unique namespace index failed.");
+
+  // TODO(zianke): Next, insert sequence metadata into pg_sequence
+
+  return true;
 }
 
 void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::TransactionContext> txn) {

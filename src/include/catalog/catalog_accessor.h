@@ -265,6 +265,13 @@ class CatalogAccessor {
   common::ManagedPointer<storage::index::Index> GetIndex(index_oid_t index) const;
 
   /**
+   * Given the sequence name and its specification, add it to the catalog
+   * @param name of the sequence
+   * @return OID for the sequence, INVALID_SEQUENCE_OID if the operation failed
+   */
+  sequence_oid_t CreateSequence(std::string name) const;
+
+  /**
    * Adds a language to the catalog (with default parameters for now) if
    * it doesn't exist in pg_language already
    * @param lanname name of language
