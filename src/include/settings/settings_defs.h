@@ -11,6 +11,17 @@ SETTING_int(
     terrier::settings::Callbacks::NoOp
 )
 
+// Preallocated connection handler threads and maximum number of connected clients
+SETTING_int(
+    connection_thread_count,
+    "Preallocated connection handler threads and maximum number of connected clients (default: 4)",
+    4,
+    1,
+    256,
+    false,
+    terrier::settings::Callbacks::NoOp
+)
+
 // RecordBufferSegmentPool size limit
 SETTING_int(
     record_buffer_segment_size,
