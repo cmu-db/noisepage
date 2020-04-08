@@ -151,8 +151,7 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
 
         // because fuck you c++
         bool f = false;
-        bool t = true;
-        if (!resizing_.compare_exchange_strong(f, t)) {
+        if (!resizing_.compare_exchange_strong(f, true)) {
           continue;
         }
 

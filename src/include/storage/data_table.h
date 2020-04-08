@@ -9,6 +9,7 @@
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
+#include "common/concurrent_vector.h"
 
 namespace terrier::transaction {
 class TransactionContext;
