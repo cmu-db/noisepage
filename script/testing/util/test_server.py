@@ -9,7 +9,6 @@ import traceback
 from util import constants
 from util.common import run_command
 
-
 class TestServer:
     """ Class to run general tests """
     def __init__(self, args):
@@ -88,17 +87,21 @@ class TestServer:
 
     def wait_for_db(self):
         """ Wait for the db server to come up """
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # Check that PID is running
+        if not self.check_pid(self.db_process.pid):
+            raise RuntimeError("Unable to find DBMS PID {}".format(self.db_process.pid))
 
         # flag to check if the db is running
         is_db_running = False
 
         # max wait of 10s in 0.1s increments
         for i in range(100):
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
                 s.connect((self.db_host, int(self.db_port)))
                 s.close()
-                print("connected to server in {} seconds".format(i * 0.1))
+                print("Connected to server in {} seconds".format(i * 0.1))
                 is_db_running = True
                 break
             except:
@@ -106,9 +109,12 @@ class TestServer:
                 continue
 
         if not is_db_running:
-            print("Error: DB is not running")
-            sys.exit(constants.ErrorCode.ERROR)
-
+            msg = "Unable to connect to DBMS [PID={} / {}]"
+            status = "RUNNING"
+            if not self.check_pid(self.db_process.pid):
+                status = "NOT RUNNING"
+            msg = msg.format(self.db_process.pid, status)
+            raise RuntimeError(msg)
         return
 
     def stop_db(self):
@@ -166,3 +172,12 @@ class TestServer:
             # print the db log file, only if we had a failure
             self.print_output(self.db_output_file)
         return ret_val
+    
+    def check_pid(self, pid):        
+        """ Check For the existence of a unix pid. """
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            return False
+        else:
+            return True
