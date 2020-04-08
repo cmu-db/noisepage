@@ -198,7 +198,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
   int16_t num_regions_ = 1;
 #else
   int16_t num_regions_ =
-      numa_available() < 0 || static_cast<int16_t>(numa_max_node()) <= 0 ? 1 : static_cast<int16_t>(numa_max_node());
+      numa_available() < 0 || static_cast<int16_t>(numa_max_node()) <= 0 ? 1 : static_cast<int16_t>(numa_max_node()) + 1;
 #endif
   std::vector<std::vector<TerrierThread *>> workers_;
   std::vector<ExecutionTaskQueue> task_queue_;
