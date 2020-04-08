@@ -145,7 +145,7 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
     std::promise<void> check_promises[num_threads];
     for (uint32_t i = 0; i < num_threads; i++) {
 #ifdef __APPLE__
-      storage::numa_region_t numa_hint = storage::UNSUPPORTED_NUMA_REGION;
+      storage::numa_region_t numa_hint UNUSED_ATTRIBUTE = storage::UNSUPPORTED_NUMA_REGION;
       auto workload = [&]() {
         flag2++;
         while (flag2 != 0) std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -153,6 +153,7 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
 #else
       storage::numa_region_t numa_hint UNUSED_ATTRIBUTE = static_cast<storage::numa_region_t>(numa_node_of_cpu(i));
       auto workload = [&, numa_hint]() {
+        auto temp UNUSED_ATTRIBUTE = static_cast<int16_t>(numa_hint);
         cpu_set_t mask;
         int result UNUSED_ATTRIBUTE = sched_getaffinity(0, sizeof(cpu_set_t), &mask);
         TERRIER_ASSERT(result == 0, "sched_getaffinity should succeed");
@@ -226,7 +227,7 @@ TEST(ExecutionThreadPoolTests, TaskStealingCorrectnessTest) {
     std::map<int16_t, storage::numa_region_t> numa_order;
     std::promise<void> check_promises[num_numa_regions];
     for (int16_t i = 0; i < num_numa_regions; i++) {
-      auto numa_hint = static_cast<storage::numa_region_t>(i);
+      auto numa_hint UNUSED_ATTRIBUTE = static_cast<storage::numa_region_t>(i);
       auto workload = [&, numa_hint] {
         common::SpinLatch::ScopedSpinLatch l(&order_latch);
         int16_t pos = order_count++;
