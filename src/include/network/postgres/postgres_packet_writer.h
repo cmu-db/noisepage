@@ -218,6 +218,9 @@ class PostgresPacketWriter : public PacketWriter {
       case QueryType::QUERY_CREATE_SCHEMA:
         WriteCommandComplete("CREATE SCHEMA");
         break;
+      case QueryType::QUERY_CREATE_SEQUENCE:
+        WriteCommandComplete("CREATE SEQUENCE");
+        break;
       case QueryType::QUERY_DROP_DB:
         WriteCommandComplete("DROP DATABASE");
         break;
@@ -229,6 +232,9 @@ class PostgresPacketWriter : public PacketWriter {
         break;
       case QueryType::QUERY_DROP_SCHEMA:
         WriteCommandComplete("DROP SCHEMA");
+        break;
+      case QueryType::QUERY_DROP_SEQUENCE:
+        WriteCommandComplete("DROP SEQUENCE");
         break;
       case QueryType::QUERY_SET:
         WriteCommandComplete("SET");
