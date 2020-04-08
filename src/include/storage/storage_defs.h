@@ -1,6 +1,5 @@
 #pragma once
 
-#include <parser/expression/abstract_expression.h>
 #include <algorithm>
 #include <functional>
 #include <ostream>
@@ -205,10 +204,6 @@ using ColumnOidToIdMap = std::unordered_map<catalog::col_oid_t, col_id_t>;
  * Used by SqlTable to map between col_ids in BlockLayout and col_oids in Schema
  */
 using ColumnIdToOidMap = std::unordered_map<col_id_t, catalog::col_oid_t>;
-/*
- * Used by SqlTable to map between col_ids in BlockLayout and default values in Schema
- */
-using DefaultValueMap = std::unordered_map<col_id_t, common::ManagedPointer<parser::AbstractExpression>>;
 /**
  * Used by execution and storage layers to map between col_oids and offsets within a ProjectedRow
  */

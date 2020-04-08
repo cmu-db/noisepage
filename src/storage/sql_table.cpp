@@ -1,7 +1,6 @@
 #include "storage/sql_table.h"
 
 #include <map>
-#include <set>
 #include <string>
 #include <vector>
 
@@ -18,8 +17,8 @@ SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog
               CreateTable(common::ManagedPointer<const catalog::Schema>(&schema), store, layout_version_t(0))}};
 }
 
-bool SqlTable::Select(const common::ManagedPointer<transaction::TransactionContext> txn,
-                      layout_version_t layout_version, const TupleSlot slot, ProjectedRow *const out_buffer) const {
+bool SqlTable::Select(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
+                      ProjectedRow *const out_buffer, layout_version_t layout_version) const {
   // get the version of current tuple slot
   const auto tuple_version = slot.GetBlock()->data_table_->layout_version_;
 
@@ -29,27 +28,27 @@ bool SqlTable::Select(const common::ManagedPointer<transaction::TransactionConte
   if (tuple_version == layout_version) {
     // when current version is same as the intended layout version, get the tuple without transformation
     return tables_.at(tuple_version).data_table_->Select(txn, slot, out_buffer);
-  } else {
-    // the tuple exists in an older version.
-    // TODO(schema-change): handle versions from add and/or drop column only
-    col_id_t ori_header[out_buffer->NumColumns()];
-
-    auto desired_v = tables_.at(layout_version);
-    auto tuple_v = tables_.at(tuple_version);
-    auto missing UNUSED_ATTRIBUTE = AlignHeaderToVersion(out_buffer, tuple_v, desired_v, &ori_header[0]);
-    auto result = tables_.at(tuple_version).data_table_->Select(txn, slot, out_buffer);
-
-    // copy back the original header
-    std::memcpy(out_buffer->ColumnIds(), ori_header, sizeof(col_id_t) * out_buffer->NumColumns());
-
-    // fill in missing columns and default values
-    FillMissingColumns(out_buffer, desired_v);
-    return result;
   }
+
+  // the tuple exists in an older version.
+  // TODO(schema-change): handle versions from add and/or drop column only
+  col_id_t ori_header[out_buffer->NumColumns()];
+
+  auto desired_v = tables_.at(layout_version);
+  auto tuple_v = tables_.at(tuple_version);
+  auto missing UNUSED_ATTRIBUTE = AlignHeaderToVersion(out_buffer, tuple_v, desired_v, &ori_header[0]);
+  auto result = tables_.at(tuple_version).data_table_->Select(txn, slot, out_buffer);
+
+  // copy back the original header
+  std::memcpy(out_buffer->ColumnIds(), ori_header, sizeof(col_id_t) * out_buffer->NumColumns());
+
+  // fill in missing columns and default values
+  FillMissingColumns(out_buffer, desired_v);
+  return result;
 }
 
-bool SqlTable::Update(const common::ManagedPointer<transaction::TransactionContext> txn,
-                      layout_version_t layout_version, RedoRecord *const redo) const {
+bool SqlTable::Update(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo,
+                      layout_version_t layout_version) const {
   TERRIER_ASSERT(redo->GetTupleSlot() != TupleSlot(nullptr, 0), "TupleSlot was never set in this RedoRecord.");
   TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
                              ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
@@ -91,7 +90,7 @@ bool SqlTable::Update(const common::ManagedPointer<transaction::TransactionConte
       auto *pr = initializer.InitializeRow(buffer);
 
       // fill in values to the projection
-      result = Select(txn, layout_version, curr_tuple, pr);
+      result = Select(txn, curr_tuple, pr, layout_version);
 
       if (result) {
         // delete it from old datatable
@@ -115,8 +114,8 @@ bool SqlTable::Update(const common::ManagedPointer<transaction::TransactionConte
   return result;
 }
 
-TupleSlot SqlTable::Insert(const common::ManagedPointer<transaction::TransactionContext> txn,
-                           layout_version_t layout_version, RedoRecord *const redo) const {
+TupleSlot SqlTable::Insert(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo,
+                           layout_version_t layout_version) const {
   TERRIER_ASSERT(redo->GetTupleSlot() == TupleSlot(nullptr, 0), "TupleSlot was set in this RedoRecord.");
   TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
                              ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
@@ -142,9 +141,9 @@ void SqlTable::Scan(const terrier::common::ManagedPointer<transaction::Transacti
     const auto select_v = itr->second;
     col_id_t ori_header[out_buffer->NumColumns()];
     std::vector<uint16_t> missing_cols;
-
+    bool missing = false;
     if (itr->first != layout_version) {
-      AlignHeaderToVersion(out_buffer, select_v, desired_v, &ori_header[0], &missing_cols);
+      missing = AlignHeaderToVersion(out_buffer, select_v, desired_v, &ori_header[0]);
     }
 
     // update the start_pos only if not the first table
@@ -158,7 +157,7 @@ void SqlTable::Scan(const terrier::common::ManagedPointer<transaction::Transacti
       // Only fill the buffer with valid, visible tuples
       if (table->SelectIntoBuffer(txn, slot, &row)) {
         // Fill the missing ones
-        if (itr->first != layout_version) FillMissingColumns(&row, desired_v);
+        if (itr->first != layout_version && missing) FillMissingColumns(&row, desired_v);
 
         out_buffer->TupleSlots()[filled] = slot;
         filled++;
@@ -172,18 +171,28 @@ void SqlTable::Scan(const terrier::common::ManagedPointer<transaction::Transacti
     }
   }
 }
-void SqlTable::FillMissingColumns(ProjectedRow *const out_buffer, const DataTableVersion &desired_version) const {
+
+template <class RowType>
+void SqlTable::FillMissingColumns(RowType *out_buffer, const DataTableVersion &desired_version) const {
   const auto col_ids = out_buffer->ColumnIds();
   for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
-    const auto default_val = desired_version.default_value_map_[col_ids[i]];
+    const auto default_val = desired_version.default_value_map_.at(col_ids[i]);
     if (out_buffer->AccessWithNullCheck(i) == nullptr && default_val != nullptr) {
       auto col_oid = desired_version.column_id_to_oid_map_.at(col_ids[i]);
-      StorageUtil::CopyWithNullCheck(default_val, out_buffer, desired_version.schema_->GetColumn(col_oid).AttrSize(),
-                                     i);
+      // FIXME(all): proper way to use AbstractExpression
+      StorageUtil::CopyWithNullCheck(default_val.template CastManagedPointerTo<const byte>().Get(), out_buffer,
+                                     desired_version.schema_->GetColumn(col_oid).AttrSize(), i);
     }
   }
 }
-bool SqlTable::AlignHeaderToVersion(ProjectedRow *const out_buffer, const DataTableVersion &tuple_version,
+
+template void SqlTable::FillMissingColumns<ProjectedRow>(ProjectedRow *out_buffer,
+                                                         const DataTableVersion &desired_version) const;
+template void SqlTable::FillMissingColumns<ProjectedColumns::RowView>(ProjectedColumns::RowView *out_buffer,
+                                                                      const DataTableVersion &desired_version) const;
+
+template <class RowType>
+bool SqlTable::AlignHeaderToVersion(RowType *const out_buffer, const DataTableVersion &tuple_version,
                                     const DataTableVersion &desired_version, col_id_t *cached_ori_header) const {
   bool missing_col = false;
   // reserve the original header, aka intended column ids'
@@ -204,13 +213,22 @@ bool SqlTable::AlignHeaderToVersion(ProjectedRow *const out_buffer, const DataTa
   return missing_col;
 }
 
+template bool SqlTable::AlignHeaderToVersion<ProjectedRow>(ProjectedRow *const out_buffer,
+                                                           const DataTableVersion &tuple_version,
+                                                           const DataTableVersion &desired_version,
+                                                           col_id_t *cached_ori_header) const;
+template bool SqlTable::AlignHeaderToVersion<ProjectedColumns::RowView>(ProjectedColumns::RowView *const out_buffer,
+                                                                        const DataTableVersion &tuple_version,
+                                                                        const DataTableVersion &desired_version,
+                                                                        col_id_t *cached_ori_header) const;
+
 SqlTable::DataTableVersion SqlTable::CreateTable(
     const terrier::common::ManagedPointer<const terrier::catalog::Schema> schema,
     const terrier::common::ManagedPointer<terrier::storage::BlockStore> store,
     terrier::storage::layout_version_t version) {
   // Begin with the NUM_RESERVED_COLUMNS in the attr_sizes
   std::vector<uint16_t> attr_sizes;
-  attr_sizes.reserve(NUM_RESERVED_COLUMNS + schema.GetColumns().size());
+  attr_sizes.reserve(NUM_RESERVED_COLUMNS + schema->GetColumns().size());
 
   for (uint8_t i = 0; i < NUM_RESERVED_COLUMNS; i++) {
     attr_sizes.emplace_back(8);
@@ -259,9 +277,12 @@ SqlTable::DataTableVersion SqlTable::CreateTable(
   }
 
   auto layout = storage::BlockLayout(attr_sizes);
-  tables_ = {{layout_version_t(0),
-              {new DataTable(block_store_, layout, layout_version_t(0)), layout, col_oid_to_id, col_id_to_oid, schema,
-               default_value_map}}};
+  return {new DataTable(block_store_, layout, layout_version_t(0)),
+          layout,
+          col_oid_to_id,
+          col_id_to_oid,
+          schema,
+          default_value_map};
 }
 
 std::vector<col_id_t> SqlTable::ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids,
