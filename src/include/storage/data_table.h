@@ -205,7 +205,7 @@ class DataTable {
    * any other transaction from accessing it.
    * @return block that has been newly created
    */
-  RawBlock* CreateCompactedBlock();
+  RawBlock *CreateCompactedBlock();
 
   /**
    * Inserts a tuple, as given in the redo into the specified block. Normally, we do not allow insertion into a
@@ -216,7 +216,8 @@ class DataTable {
    * @param block the block to which the tuple should be inserted into
    * @return true if successful, false otherwise
    */
-  bool InsertIntoFreezingBlock(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo, RawBlock *block);
+  bool InsertIntoFreezingBlock(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo,
+                               RawBlock *block);
 
   /**
    * Deletes the given TupleSlot, this will call StageDelete on the provided txn to generate the RedoRecord for delete.

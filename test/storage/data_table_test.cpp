@@ -68,6 +68,20 @@ class RandomDataTableTestObject {
     return slot;
   }
 
+  // Generate an insert a random tuple into the block (FREEZING) passed as argument
+  template <class Random>
+  bool InsertRandomTupleIntoFreezingBlock(transaction::TransactionContext *txn, Random *generator,
+                                          storage::RawBlock *block) {
+    // generate a random redo ProjectedRow to Insert
+    auto *redo_buffer = common::AllocationUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
+    loose_pointers_.push_back(redo_buffer);
+    storage::ProjectedRow *redo = redo_initializer_.InitializeRow(redo_buffer);
+    StorageTestUtil::PopulateRandomRow(redo, layout_, null_bias_, generator);
+
+    table_.InsertIntoFreezingBlock(common::ManagedPointer(txn), *redo, block);
+    return block;
+  }
+
   // be sure to only update tuple incrementally (cannot go back in time)
   template <class Random>
   bool RandomlyUpdateTuple(const transaction::timestamp_t timestamp, const storage::TupleSlot slot, Random *generator,
@@ -320,5 +334,30 @@ TEST_F(DataTableTests, InsertNoWrap) {
     EXPECT_NE(block, tested.InsertRandomTuple(transaction::timestamp_t(0), &generator_, &buffer_pool_).GetBlock());
     delete txn;
   }
+}
+
+// Test insertion into a block, mimicing behaviour while called from the Compactor.
+// A new block is created, then a random tuple is inserted into it.
+// NOLINTNEXTLINE
+TEST_F(DataTableTests, InsertIntoFreezingBlock) {
+  const uint16_t max_columns = 10;
+  RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
+
+  // Create a new block
+  storage::RawBlock *block = tested.GetTable().CreateCompactedBlock();
+
+  // The Compacted Block created should be FREEZING by default
+  EXPECT_EQ(block->controller_.GetBlockState()->load(), storage::BlockState::FREEZING);
+  // Verify that the insertion_head of the block is set at 0 (new block)
+  EXPECT_EQ(block->GetInsertHead(), 0);
+
+  // Insert a random tuple into the newly created block
+  transaction::timestamp_t timestamp(0);
+  auto *txn =
+      new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(&buffer_pool_), DISABLED);
+  tested.InsertRandomTupleIntoFreezingBlock(txn, &generator_, block);
+
+  // Once the tuple is inserted, the insertion head should be incremented by 1
+  EXPECT_EQ(block->GetInsertHead(), 1);
 }
 }  // namespace terrier
