@@ -974,7 +974,7 @@ std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(
 
   // Find all entries for the given table using the index
   auto *key_pr = con_pri.InitializeRow(buffer);
-  *(reinterpret_cast<table_oid_t *>(key_pr->AccessForceNotNull(pg_constraint_all_cols_prm_[postgres::CONSTRAINT_TABLE_OID]))) = table;
+  *(reinterpret_cast<table_oid_t *>(key_pr->AccessForceNotNull(0))) = table;
   std::vector<storage::TupleSlot> index_scan_results;
   constraints_table_index_->ScanKey(*txn, *key_pr, &index_scan_results);
 
@@ -990,7 +990,7 @@ std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(
   for (auto &slot : index_scan_results) {
     const auto result UNUSED_ATTRIBUTE = constraints_->Select(txn, slot, select_pr);
     TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
-    con_oids.emplace_back(*(reinterpret_cast<constraint_oid_t *>(select_pr->AccessForceNotNull(pg_constraint_all_cols_prm_[postgres::CONOID_COL_OID]))));
+    con_oids.emplace_back(*(reinterpret_cast<constraint_oid_t *>(select_pr->AccessForceNotNull(0))));
   }
 
   // Finish
