@@ -157,6 +157,17 @@ class DataTable {
    */
   void Scan(common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *start_pos,
             ProjectedColumns *out_buffer) const;
+  /**
+   * Similar to the scan function, sequentially scans the table starting from the given start iterator(inclusive)
+   * to the end iterator(exclusive)  and materializes as many tuples as would fit into the given buffer,
+   * as visible to the transaction given,  according to the format described by the given output buffer.
+   *
+   * @param txn the calling transaction
+   * @param start_pos iterator to the starting location for the sequential scan
+   * @param end_pos iterator to the stop location for the sequential scan
+   * @param out_buffer output buffer. The object should already contain projection list information. This buffer is
+   *                   always cleared of old values.
+   */
   void RangeScan(const common::ManagedPointer<transaction::TransactionContext> txn,
                             SlotIterator *const start_pos, SlotIterator *const end_pos,
                             ProjectedColumns *const out_buffer) const;
@@ -168,7 +179,9 @@ class DataTable {
     common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
     return {this, blocks_.begin(), 0};
   }
-
+  /**
+   * @return the first tuple slot of nth RawBlock stored in the block list
+   */
   SlotIterator beginAt(uint32_t start_block_idx) const {
     common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
     if (blocks_.empty()) return {this, blocks_.end(), 0};
@@ -254,6 +267,9 @@ class DataTable {
    */
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
 
+  /**
+   * @return the size of block list in the underlying DataTable
+   */
   size_t GetBlockListSize() const;
 
  private:

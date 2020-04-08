@@ -150,15 +150,30 @@ class SqlTable {
             ProjectedColumns *const out_buffer) const {
     return table_.data_table_->Scan(txn, start_pos, out_buffer);
   }
-
+  /**
+   * Similar to the scan function, sequentially scans the table starting from the given start iterator(inclusive) 
+   * to the end iterator(exclusive)  and materializes as many tuples as would fit into the given buffer, 
+   * as visible to the transaction given,  according to the format described by the given output buffer. 
+   *
+   * @param txn the calling transaction
+   * @param start_pos iterator to the starting location for the sequential scan
+   * @param end_pos iterator to the stop location for the sequential scan
+   * @param out_buffer output buffer. The object should already contain projection list information. This buffer is
+   *                   always cleared of old values.
+   */
   void RangeScan(const common::ManagedPointer<transaction::TransactionContext> txn,
                  DataTable::SlotIterator *const start_pos, DataTable::SlotIterator *const end_pos,
                  ProjectedColumns *const out_buffer) const {
     return table_.data_table_->RangeScan(txn, start_pos, end_pos, out_buffer);
   }
-
+  /**
+   * @return the size of block list in the underlying DataTable
+   */
   size_t GetBlockListSize() { return table_.data_table_->GetBlockListSize(); }
 
+  /**
+   * Get all ColOid in the underlying DataTable and push into the input vector
+   */
   void GetAllColOid(std::vector<catalog::col_oid_t> &col_oids) const;
 
   /**

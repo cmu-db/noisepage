@@ -37,7 +37,7 @@ bool TableVectorIterator::Init() {
   projected_columns_ = pc_init.Initialize(buffer_);
   initialized_ = true;
 
-  // Begin iterating
+  // Create the start and end iterator
   iter_ = std::make_unique<storage::DataTable::SlotIterator>(table_->beginAt(start_block_idx_));
   iter_end_ = std::make_unique<storage::DataTable::SlotIterator>(table_->endAt(end_block_idx_));
   return true;
@@ -57,6 +57,7 @@ bool TableVectorIterator::Advance() {
 
 void TableVectorIterator::Reset() {
   if (!initialized_) return;
+  // set the iterator to the start position specified by tbb
   iter_ = std::make_unique<storage::DataTable::SlotIterator>(table_->beginAt(start_block_idx_));
 }
 
@@ -78,7 +79,7 @@ class ScanTask {
     // Create the iterator over the specified block range
     TableVectorIterator iter(exec_ctx_, table_id_, {}, 0, block_range.begin(), block_range.end());
 
-    // Initialize it
+    // Initialize the table vector iterator
     if (!iter.Init()) {
       return;
     }
@@ -86,7 +87,7 @@ class ScanTask {
     // Pull out the thread-local state
     byte *thread_state = thread_state_container_->AccessThreadStateOfCurrentThread();
 
-    // Call scanning function
+    // Call scanning function which should be passed at runtime
     scanner_(query_state_, thread_state, &iter);
   }
 
@@ -107,6 +108,7 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, void *const query_sta
   if (table == nullptr) {
     return false;
   }
+  // get the number of blocks in the table
   auto block_count = table->GetBlockListSize();
 
   // TODO(Ron): min_grain_size = num_blocks / num_threads
@@ -118,12 +120,13 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, void *const query_sta
 
   // Execute parallel scan
   tbb::task_scheduler_init scan_scheduler;
+  // partition the block list
   tbb::blocked_range<uint32_t> block_range(0, block_count, min_grain_size);
+  // invoke parallel scan for multiple workers
   tbb::parallel_for(block_range, ScanTask(exec_ctx, table_oid, query_state, thread_states, scan_fn));
 
   timer.Stop();
-
-  double tps = block_count / timer.Elapsed() / 1000.0;
+  double tps = timer.Elapsed();
   std::cout << "scanned " << block_count << " in " << tps << " ms" << std::endl;
   return true;
 }
