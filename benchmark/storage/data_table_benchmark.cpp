@@ -293,8 +293,9 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SingleThreadedIteration)(benchmark::State
         thread_pool.SubmitTask(&promises[j], [j, &workload] { workload(j); });
       }
 
-      for (uint32_t j = 0; j < 1; j++) {
-        promises[j].get_future().get();
+      // NOLINTNEXTLINE
+      for (auto &promise : promises) {  // NOLINT
+        promise.get_future().get();
       }
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
@@ -348,8 +349,9 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMASingleThreadedIteration)(benchmark::S
       for (uint32_t j = 0; j < 1; j++) {
         thread_pool.SubmitTask(&promises[j], [j, &workload] { workload(j); });
       }
-      for (uint32_t j = 0; j < 1; j++) {
-        promises[j].get_future().get();
+      // NOLINTNEXTLINE
+      for (auto &promise : promises) {  // NOLINT
+        promise.get_future().get();
       }
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
@@ -402,8 +404,8 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedIteration)(benchmark::St
         thread_pool.SubmitTask(&promises[j], [j, &workload] { workload(j); });
       }
 
-      for (uint32_t j = 0; j < numa_regions.size(); j++) {  // NOLINT
-        promises[j].get_future().get();
+      for (auto &promise : promises) {
+        promise.get_future().get();
       }
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
@@ -458,8 +460,8 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)(benc
       }
 
       // NOLINTNEXTLINE
-      for (uint32_t j = 0; j < numa_regions.size(); j++) {  // NOLINT
-        promises[j].get_future().get();
+      for (auto &promise : promises) {  // NOLINT
+        promise.get_future().get();
       }
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
