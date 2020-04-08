@@ -787,7 +787,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
           .SetInitialTableSize(1000)
           .SetTxnLength(5)
           .SetInsertUpdateSelectDeleteRatio({0.2, 0.5, 0.2, 0.1})
-          .SetVarlenAllowed(true)
+          .SetVarlenAllowed(false)
           .Build();
   auto *tested =
           new LargeSqlTableTestObject(config, txn_manager_.Get(), catalog_.Get(), block_store_.Get(), &generator_);
@@ -860,7 +860,9 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
     EXPECT_TRUE(db_catalog != nullptr);
     auto recovered_sql_table = db_catalog->GetTable(common::ManagedPointer(recovery_txn), table_oid);
     EXPECT_TRUE(recovered_sql_table != nullptr);
-
+    for (auto it = recovered_sql_table->begin(); it != recovered_sql_table->end(); it ++) {
+      recovery_manager.tuple_slot_map_[*it] = *it;
+    }
     EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
             GetBlockLayout(original_sql_table), original_sql_table, recovered_sql_table,
             tested->GetTupleSlotsForTable(database_oid, table_oid), recovery_manager.tuple_slot_map_, txn_manager_.Get(),
