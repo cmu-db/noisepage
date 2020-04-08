@@ -1972,4 +1972,27 @@ TEST_F(OperatorTransformerTest, AnalyzeTest2) {
   EXPECT_EQ(analyze_plan->GetColumnOids().size(), 0);
   EXPECT_EQ(analyze_plan->GetTableOid(), table_a_oid_);
 }
+
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, SelectWithTest) {
+  OPTIMIZER_LOG_DEBUG("Parsing sql query");
+  std::string select_sql = "WITH COMPANY as (SELECT A1,A2 FROM A) SELECT * FROM COMPANY;";
+
+  std::string ref =
+      "{\"Op\":\"LogicalCteScan\",\"Children\":"
+      "[{\"Op\":\"LogicalQueryDerivedGet\",\"Children\":"
+      "[{\"Op\":\"LogicalGet\",}]}]}";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
+
+  EXPECT_EQ(ref, info);
+}
+
+
 }  // namespace terrier
