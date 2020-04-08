@@ -162,7 +162,6 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     void RunTask() override {
       status_ = ThreadStatus::SWITCHING;
       pool_->busy_workers_++;
-
       while (LIKELY(!exit_task_loop_)) {
         RunNextTask();
       }

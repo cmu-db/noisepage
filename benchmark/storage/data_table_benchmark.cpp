@@ -457,6 +457,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)(benc
             &promises[j], [j, &workload] { workload(j); }, numa_regions[j]);
       }
 
+      // NOLINTNEXTLINE
       for (uint32_t j = 0; j < numa_regions.size(); j++) {  // NOLINT
         promises[j].get_future().get();
       }
