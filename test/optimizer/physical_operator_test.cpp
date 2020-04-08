@@ -1483,6 +1483,29 @@ TEST(OperatorTests, CreateTriggerTest) {
 }
 
 // NOLINTNEXTLINE
+TEST(OperatorTests, CreateSequenceTest) {
+  //===--------------------------------------------------------------------===//
+  // CreateSequence
+  //===--------------------------------------------------------------------===//
+  Operator op1 =
+      CreateSequence::Make("Sequence_1");
+
+  EXPECT_EQ(op1.GetType(), OpType::CREATESEQUENCE);
+  EXPECT_EQ(op1.GetName(), "CreateSequence");
+  EXPECT_EQ(op1.As<CreateSequence>()->GetSequenceName(), "Sequence_1");
+
+  Operator op2 =
+      CreateSequence::Make("Sequence_1");
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 =
+      CreateSequence::Make("Sequence_2");
+  EXPECT_FALSE(op3 == op1);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
+// NOLINTNEXTLINE
 TEST(OperatorTests, CreateViewTest) {
   //===--------------------------------------------------------------------===//
   // CreateView
