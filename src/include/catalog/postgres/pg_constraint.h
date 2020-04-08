@@ -110,8 +110,8 @@ class PG_Constraint {
     col_id_ = col_id;
 
     // void FK attr
-    fk_ref_col_id_ = 0;
-    fk_ref_table_id_ = 0;
+    fk_ref_col_id_ = col_oid_t(0);
+    fk_ref_table_id_ = table_oid_t(0);
     fk_update_cascade_ = false;
     fk_delete_cascade_ = false;
   }
@@ -152,7 +152,7 @@ class PG_Constraint_Manager {
   std::queue<constraint_oid_t> unused_con_oid_;
 
   PG_Constraint_Manager() {
-    cur_oid_ = 1;  // starting with 1 as 0 is the default voided id
+    cur_oid_ = constraint_oid_t(1);  // starting with 1 as 0 is the default voided id
   }
   // create a new normal constraint
   PG_Constraint *GetNewConstraint(namespace_oid_t namespace_id, ConstraintType con_type, table_oid_t con_table_id,
@@ -198,17 +198,17 @@ class PG_Constraint_Manager {
   // return false if failed
   // failed when constraint with current oid does not exists
   bool DeleteConstraint(constraint_oid_t oid) {
-    PG_Constraint_Manager *con;
+    PG_Constraint *con;
     bool res = false;
     latch_.Lock();
-    if (con_id_map_.count() != 0) {
-      con = con_id_map_[oid];
+    if (con_id_map_.count(oid) != 0) {
+      con = con_id_map_.at(oid);
       con_id_map_.erase(oid);
       unused_con_oid_.push(oid);
       delete con;
       res = true;
     }
-    latch.UnLock();
+    latch_.Unlock();
     return res;
   }
 
