@@ -1135,6 +1135,29 @@ bool LogicalDropIndex::operator==(const BaseOperatorNodeContents &r) {
 }
 
 //===--------------------------------------------------------------------===//
+// LogicalDropSequence
+//===--------------------------------------------------------------------===//
+BaseOperatorNodeContents *LogicalDropSequence::Copy() const { return new LogicalDropSequence(*this); }
+
+Operator LogicalDropSequence::Make(catalog::sequence_oid_t sequence_oid) {
+  auto op = std::make_unique<LogicalDropSequence>();
+  op->sequence_oid_ = sequence_oid;
+  return Operator(std::move(op));
+}
+
+common::hash_t LogicalDropSequence::Hash() const {
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sequence_oid_));
+  return hash;
+}
+
+bool LogicalDropSequence::operator==(const BaseOperatorNodeContents &r) {
+  if (r.GetType() != OpType::LOGICALDROPSEQUENCE) return false;
+  const LogicalDropSequence &node = *dynamic_cast<const LogicalDropSequence *>(&r);
+  return node.sequence_oid_ == sequence_oid_;
+}
+
+//===--------------------------------------------------------------------===//
 // LogicalDropNamespace
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalDropNamespace::Copy() const { return new LogicalDropNamespace(*this); }
@@ -1330,6 +1353,8 @@ const char *OperatorNodeContents<LogicalDropNamespace>::name = "LogicalDropNames
 template <>
 const char *OperatorNodeContents<LogicalDropTrigger>::name = "LogicalDropTrigger";
 template <>
+const char *OperatorNodeContents<LogicalDropSequence>::name = "LogicalDropSequence";
+template <>
 const char *OperatorNodeContents<LogicalDropView>::name = "LogicalDropView";
 template <>
 const char *OperatorNodeContents<LogicalAnalyze>::name = "LogicalAnalyze";
@@ -1403,6 +1428,8 @@ template <>
 OpType OperatorNodeContents<LogicalDropNamespace>::type = OpType::LOGICALDROPNAMESPACE;
 template <>
 OpType OperatorNodeContents<LogicalDropTrigger>::type = OpType::LOGICALDROPTRIGGER;
+template <>
+OpType OperatorNodeContents<LogicalDropSequence>::type = OpType::LOGICALDROPSEQUENCE;
 template <>
 OpType OperatorNodeContents<LogicalDropView>::type = OpType::LOGICALDROPVIEW;
 template <>

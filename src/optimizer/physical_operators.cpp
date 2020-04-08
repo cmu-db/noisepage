@@ -1149,6 +1149,29 @@ bool DropIndex::operator==(const BaseOperatorNodeContents &r) {
 }
 
 //===--------------------------------------------------------------------===//
+// DropSequence
+//===--------------------------------------------------------------------===//
+BaseOperatorNodeContents *DropSequence::Copy() const { return new DropSequence(*this); }
+
+Operator DropSequence::Make(catalog::sequence_oid_t sequence_oid) {
+  auto op = std::make_unique<DropSequence>();
+  op->sequence_oid_ = sequence_oid;
+  return Operator(std::move(op));
+}
+
+common::hash_t DropSequence::Hash() const {
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sequence_oid_));
+  return hash;
+}
+
+bool DropSequence::operator==(const BaseOperatorNodeContents &r) {
+  if (r.GetType() != OpType::DROPSEQUENCE) return false;
+  const DropSequence &node = *dynamic_cast<const DropSequence *>(&r);
+  return node.sequence_oid_ == sequence_oid_;
+}
+
+//===--------------------------------------------------------------------===//
 // DropNamespace
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *DropNamespace::Copy() const { return new DropNamespace(*this); }
@@ -1348,6 +1371,8 @@ const char *OperatorNodeContents<DropNamespace>::name = "DropNamespace";
 template <>
 const char *OperatorNodeContents<DropTrigger>::name = "DropTrigger";
 template <>
+const char *OperatorNodeContents<DropSequence>::name = "DropSequence";
+template <>
 const char *OperatorNodeContents<DropView>::name = "DropView";
 template <>
 const char *OperatorNodeContents<Analyze>::name = "Analyze";
@@ -1425,6 +1450,8 @@ template <>
 OpType OperatorNodeContents<DropNamespace>::type = OpType::DROPNAMESPACE;
 template <>
 OpType OperatorNodeContents<DropTrigger>::type = OpType::DROPTRIGGER;
+template <>
+OpType OperatorNodeContents<DropSequence>::type = OpType::DROPSEQUENCE;
 template <>
 OpType OperatorNodeContents<DropView>::type = OpType::DROPVIEW;
 template <>

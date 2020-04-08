@@ -1608,6 +1608,26 @@ TEST(OperatorTests, DropIndexTest) {
 }
 
 // NOLINTNEXTLINE
+TEST(OperatorTests, DropSequenceTest) {
+  //===--------------------------------------------------------------------===//
+  // DropSequence
+  //===--------------------------------------------------------------------===//
+  Operator op1 = DropSequence::Make(catalog::sequence_oid_t(1));
+  Operator op2 = DropSequence::Make(catalog::sequence_oid_t(1));
+  Operator op3 = DropSequence::Make(catalog::sequence_oid_t(2));
+
+  EXPECT_EQ(op1.GetType(), OpType::DROPSEQUENCE);
+  EXPECT_EQ(op3.GetType(), OpType::DROPSEQUENCE);
+  EXPECT_EQ(op1.GetName(), "DropSequence");
+  EXPECT_EQ(op1.As<DropSequence>()->GetSequenceOID(), catalog::sequence_oid_t(1));
+  EXPECT_EQ(op3.As<DropSequence>()->GetSequenceOID(), catalog::sequence_oid_t(2));
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
+// NOLINTNEXTLINE
 TEST(OperatorTests, DropNamespaceTest) {
   //===--------------------------------------------------------------------===//
   // DropNamespace

@@ -260,6 +260,12 @@ class ChildPropertyDeriver : public OperatorVisitor {
   void Visit(const DropTrigger *drop_trigger) override;
 
   /**
+   * Visit a DropSequence operator
+   * @param drop_sequence operator
+   */
+  void Visit(const DropSequence *drop_sequence) override;
+
+  /**
    * Visit a DropView operator
    * @param drop_view operator
    */

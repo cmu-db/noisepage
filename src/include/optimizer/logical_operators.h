@@ -1841,6 +1841,38 @@ class LogicalDropIndex : public OperatorNodeContents<LogicalDropIndex> {
 };
 
 /**
+ * Logical operator for DropSequence
+ */
+class LogicalDropSequence : public OperatorNodeContents<LogicalDropSequence> {
+ public:
+  /**
+   * @param sequence_oid OID of sequence to be dropped
+   * @return
+   */
+  static Operator Make(catalog::sequence_oid_t sequence_oid);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNodeContents *Copy() const override;
+
+  bool operator==(const BaseOperatorNodeContents &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return the OID of the index we want to drop
+   */
+  const catalog::sequence_oid_t &GetSequenceOID() const { return sequence_oid_; }
+
+ private:
+  /**
+   * OID of the sequence
+   */
+  catalog::sequence_oid_t sequence_oid_ = catalog::INVALID_SEQUENCE_OID;
+};
+
+/**
  * Logical operator for DropNamespace
  */
 class LogicalDropNamespace : public OperatorNodeContents<LogicalDropNamespace> {

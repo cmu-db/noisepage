@@ -1695,6 +1695,9 @@ std::unique_ptr<DropStatement> PostgresParser::DropTransform(ParseResult *parse_
     case ObjectType::OBJECT_TRIGGER: {
       return DropTriggerTransform(parse_result, root);
     }
+    case ObjectType::OBJECT_SEQUENCE: {
+      return DropSequenceTransform(parse_result, root);
+    }
     default: {
       PARSER_LOG_AND_THROW("DropTransform", "Drop ObjectType", root->remove_type_);
     }
@@ -1794,6 +1797,20 @@ std::unique_ptr<DropStatement> PostgresParser::DropTriggerTransform(ParseResult 
   auto table_info = std::make_unique<TableInfo>(table_name, schema_name, "");
 
   auto result = std::make_unique<DropStatement>(std::move(table_info), DropStatement::DropType::kTrigger, trigger_name);
+  return result;
+}
+
+std::unique_ptr<DropStatement> PostgresParser::DropSequenceTransform(ParseResult *parse_result, DropStmt *root) {
+  auto list = reinterpret_cast<List *>(root->objects_->head->data.ptr_value);
+
+  // TODO(zianke): Not sure if this is complete.
+  std::string sequence_name = reinterpret_cast<value *>(list->tail->data.ptr_value)->val_.str_;
+  std::string schema_name = reinterpret_cast<value *>(list->head->data.ptr_value)->val_.str_;
+
+  auto table_info = std::make_unique<TableInfo>("", schema_name, "");
+
+  auto result =
+      std::make_unique<DropStatement>(std::move(table_info), DropStatement::DropType::kSequence, sequence_name, 1);
   return result;
 }
 

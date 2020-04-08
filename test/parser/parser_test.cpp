@@ -292,6 +292,16 @@ TEST_F(ParserTestBase, DropIndexTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(ParserTestBase, DropSequenceTest) {
+  auto result = parser::PostgresParser::BuildParseTree("DROP SEQUENCE foo;");
+  EXPECT_EQ(result->GetStatements().size(), 1);
+
+  auto drop_stmt = result->GetStatement(0).CastManagedPointerTo<DropStatement>();
+  EXPECT_EQ(drop_stmt->GetDropType(), DropStatement::DropType::kSequence);
+  EXPECT_EQ(drop_stmt->GetSequenceName(), "foo");
+}
+
+// NOLINTNEXTLINE
 TEST_F(ParserTestBase, DropSchemaTest) {
   auto result = parser::PostgresParser::BuildParseTree("DROP SCHEMA IF EXISTS foo CASCADE;");
   EXPECT_EQ(result->GetStatements().size(), 1);

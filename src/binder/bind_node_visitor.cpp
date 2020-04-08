@@ -566,6 +566,12 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::DropStatement> node,
         throw BINDER_EXCEPTION("Index does not exist");
       }
       break;
+    case parser::DropStatement::DropType::kSequence:
+      ValidateDatabaseName(node->GetDatabaseName());
+      if (catalog_accessor_->GetSequenceOid(node->GetSequenceName()) == catalog::INVALID_SEQUENCE_OID) {
+        throw BINDER_EXCEPTION("Sequence does not exist");
+      }
+      break;
     case parser::DropStatement::DropType::kTrigger:
       // TODO(Ling): Get Trigger OID in catalog?
     case parser::DropStatement::DropType::kSchema:

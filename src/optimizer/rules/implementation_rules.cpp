@@ -897,6 +897,27 @@ void LogicalDropIndexToPhysicalDropIndex::Transform(common::ManagedPointer<Opera
   transformed->emplace_back(std::move(op));
 }
 
+LogicalDropSequenceToPhysicalDropSequence::LogicalDropSequenceToPhysicalDropSequence() {
+  type_ = RuleType::DROP_SEQUENCE_TO_PHYSICAL;
+  match_pattern_ = new Pattern(OpType::LOGICALDROPSEQUENCE);
+}
+
+bool LogicalDropSequenceToPhysicalDropSequence::Check(common::ManagedPointer<OperatorNode> plan,
+                                                      OptimizationContext *context) const {
+  return true;
+}
+
+void LogicalDropSequenceToPhysicalDropSequence::Transform(common::ManagedPointer<OperatorNode> input,
+                                                          std::vector<std::unique_ptr<OperatorNode>> *transformed,
+                                                          UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  auto ds_op = input->GetOp().As<LogicalDropSequence>();
+  TERRIER_ASSERT(input->GetChildren().empty(), "LogicalDropSequence should have 0 children");
+
+  auto op = std::make_unique<OperatorNode>(DropSequence::Make(ds_op->GetSequenceOID()),
+                                           std::vector<std::unique_ptr<OperatorNode>>());
+  transformed->emplace_back(std::move(op));
+}
+
 LogicalDropTriggerToPhysicalDropTrigger::LogicalDropTriggerToPhysicalDropTrigger() {
   type_ = RuleType::DROP_TRIGGER_TO_PHYSICAL;
   match_pattern_ = new Pattern(OpType::LOGICALDROPTRIGGER);

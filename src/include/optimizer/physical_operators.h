@@ -1928,6 +1928,38 @@ class DropIndex : public OperatorNodeContents<DropIndex> {
 };
 
 /**
+ * Physical operator for DropSequence
+ */
+class DropSequence : public OperatorNodeContents<DropSequence> {
+ public:
+  /**
+   * @param sequence_oid OID of the sequence to be dropped
+   * @return
+   */
+  static Operator Make(catalog::sequence_oid_t sequence_oid);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNodeContents *Copy() const override;
+
+  bool operator==(const BaseOperatorNodeContents &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return the OID of the sequence we want to drop
+   */
+  const catalog::sequence_oid_t &GetSequenceOID() const { return sequence_oid_; }
+
+ private:
+  /**
+   * OID of the sequence
+   */
+  catalog::sequence_oid_t sequence_oid_ = catalog::INVALID_SEQUENCE_OID;
+};
+
+/**
  * Physical operator for DropNamespace
  */
 class DropNamespace : public OperatorNodeContents<DropNamespace> {

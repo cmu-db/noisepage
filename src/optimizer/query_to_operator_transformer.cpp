@@ -499,6 +499,11 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DropStatem
       drop_expr = std::make_unique<OperatorNode>(LogicalDropIndex::Make(accessor_->GetIndexOid(op->GetIndexName())),
                                                  std::vector<std::unique_ptr<OperatorNode>>{});
       break;
+    case parser::DropStatement::DropType::kSequence:
+      drop_expr =
+          std::make_unique<OperatorNode>(LogicalDropSequence::Make(accessor_->GetSequenceOid(op->GetSequenceName())),
+                                         std::vector<std::unique_ptr<OperatorNode>>{});
+      break;
     case parser::DropStatement::DropType::kSchema:
       drop_expr =
           std::make_unique<OperatorNode>(LogicalDropNamespace::Make(accessor_->GetNamespaceOid(op->GetNamespaceName())),

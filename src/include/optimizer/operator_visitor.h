@@ -234,6 +234,12 @@ class OperatorVisitor {
   virtual void Visit(const DropTrigger *drop_trigger) {}
 
   /**
+   * Visit a DropSequence operator
+   * @param drop_sequence operator
+   */
+  virtual void Visit(const DropSequence *drop_sequence) {}
+
+  /**
    * Visit a DropView operator
    * @param drop_view operator
    */
@@ -442,6 +448,12 @@ class OperatorVisitor {
    * @param logical_drop_trigger operator
    */
   virtual void Visit(const LogicalDropTrigger *logical_drop_trigger) {}
+
+  /**
+   * Visit a LogicalDropSequence operator
+   * @param logical_drop_sequence operator
+   */
+  virtual void Visit(const LogicalDropSequence *logical_drop_sequence) {}
 
   /**
    * Visit a LogicalDropView operator

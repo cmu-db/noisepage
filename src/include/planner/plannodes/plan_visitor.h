@@ -19,6 +19,7 @@ class DropIndexPlanNode;
 class DropNamespacePlanNode;
 class DropTablePlanNode;
 class DropTriggerPlanNode;
+class DropSequencePlanNode;
 class DropViewPlanNode;
 class ExportExternalFilePlanNode;
 class HashJoinPlanNode;
@@ -142,6 +143,12 @@ class PlanVisitor {
    * @param plan DropTriggerPlanNode
    */
   virtual void Visit(UNUSED_ATTRIBUTE const DropTriggerPlanNode *plan) {}
+
+  /**
+   * Visit an DropSequencePlanNode
+   * @param plan DropSequencePlanNode
+   */
+  virtual void Visit(UNUSED_ATTRIBUTE const DropSequencePlanNode *plan) {}
 
   /**
    * Visit an DropViewPlanNode

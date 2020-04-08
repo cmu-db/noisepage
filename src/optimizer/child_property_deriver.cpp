@@ -249,6 +249,11 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const DropTrigger *drop_trigge
   output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
 }
 
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const DropSequence *drop_sequence) {
+  // Operator does not provide any properties
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
+}
+
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const DropView *drop_view) {
   // Operator does not provide any properties
   output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
