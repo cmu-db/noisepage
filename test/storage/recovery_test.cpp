@@ -155,7 +155,8 @@ class RecoveryTests : public TerrierTest {
   storage::RedoBuffer &GetRedoBuffer(transaction::TransactionContext *txn) { return txn->redo_buffer_; }
 
   storage::BlockLayout &GetBlockLayout(common::ManagedPointer<storage::SqlTable> table) const {
-    return table->table_.layout_;
+    // TODO(Schema-Change): get layout version here
+    return table->tables_.at(storage::layout_version_t(0)).layout_;
   }
 
   // Simulates the system shutting down and restarting
@@ -219,8 +220,9 @@ class RecoveryTests : public TerrierTest {
         auto recovered_sql_table = db_catalog->GetTable(common::ManagedPointer(recovery_txn), table_oid);
         EXPECT_TRUE(recovered_sql_table != nullptr);
 
+        // TODO(Schema-Change):: take care of current default 0 layout version
         EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
-            original_sql_table->table_.layout_, original_sql_table, recovered_sql_table,
+            original_sql_table->tables_.at(storage::layout_version_t(0)).layout_, original_sql_table, recovered_sql_table,
             tested->GetTupleSlotsForTable(database_oid, table_oid), recovery_manager.tuple_slot_map_,
             txn_manager_.Get(), recovery_txn_manager_.Get()));
         txn_manager_->Commit(original_txn, transaction::TransactionUtil::EmptyCallback, nullptr);

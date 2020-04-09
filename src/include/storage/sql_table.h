@@ -38,7 +38,7 @@ class SqlTable {
    */
   struct DataTableVersion {
     DataTable *data_table_;
-    const BlockLayout layout_;
+    BlockLayout layout_;
     ColumnOidToIdMap column_oid_to_id_map_;
     // TODO(Ling): used in transforming between different versions.
     //  It only works for adding and dropping columns, but not modifying type/constraint/default of the column
@@ -87,7 +87,7 @@ class SqlTable {
    * @param layout_version Schema version the current querying transaction should see
    * @return true if successful, false otherwise
    */
-  std::pair<bool, TupleSlot> Update(const common::ManagedPointer <TransactionContext> txn, RedoRecord *const redo,
+  std::pair<bool, TupleSlot> Update(common::ManagedPointer <transaction::TransactionContext> txn, RedoRecord *const redo,
                                     layout_version_t layout_version = layout_version_t{0}) const;
 
   /**
@@ -102,7 +102,7 @@ class SqlTable {
   TupleSlot Insert(common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *redo,
                    layout_version_t layout_version = layout_version_t{0}) const;
 
-  // TODO(Schema-Change): implement this
+  // TODO(Schema-change): remove the layout_version?
   /**
    * Deletes the given TupleSlot. StageDelete must have been called as well in order for the operation to be logged.
    * @param txn the calling transaction
@@ -121,7 +121,8 @@ class SqlTable {
         "This Delete is not the most recent entry in the txn's RedoBuffer. Was StageDelete called immediately before?");
 
     const auto tuple_version = slot.GetBlock()->data_table_->layout_version_;
-    TERRIER_ASSERT(tables_.find(tuple_version) != tables_.end(), "we are not deleting any layout version for now");
+    TERRIER_ASSERT(tables_.find(tuple_version) != tables_.end() && tuple_version <= layout_version,
+        "we are not deleting any layout version for now. Tuple version should be visible to current transaction");
     const auto result = tables_.at(tuple_version).data_table_->Delete(txn, slot);
 
     if (!result) {
