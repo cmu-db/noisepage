@@ -138,9 +138,12 @@ class ExecutionThreadPool : DedicatedThreadOwner {
       while (LIKELY(!exit_task_loop_)) {
         auto index = static_cast<int16_t>(numa_region_);
         for (int16_t i = 0; i < pool_->num_regions_; i++) {
-          index = (index + 1) % pool_->num_regions_;
+
           Task task;
-          if (!pool_->task_queue_[index].try_pop(task)) continue;
+          if (!pool_->task_queue_[index].try_pop(task)) {
+            index = (index + 1) % pool_->num_regions_;
+            continue;
+          }
 
           status_ = ThreadStatus::BUSY;
           task.second();
