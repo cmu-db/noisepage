@@ -510,9 +510,7 @@ ast::Expr *CodeGen::PointerType(ast::Identifier base_type) {
   return PointerTo(base_expr);
 }
 
-ast::Expr *CodeGen::PointerType(ast::BuiltinType::Kind builtin) {
-  return PointerType(BuiltinType(builtin));
-}
+ast::Expr *CodeGen::PointerType(ast::BuiltinType::Kind builtin) { return PointerType(BuiltinType(builtin)); }
 
 ast::Expr *CodeGen::ArrayType(uint64_t num_elems, ast::BuiltinType::Kind kind) {
   return Factory()->NewArrayType(DUMMY_POS, IntLiteral(num_elems), BuiltinType(kind));
@@ -634,8 +632,7 @@ ast::Expr *CodeGen::BuiltinCall(ast::Builtin builtin, std::vector<ast::Expr *> &
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-util::RegionVector<ast::FieldDecl *> CodeGen::MakeFieldList(
-            std::initializer_list<ast::FieldDecl *> fields) {
+util::RegionVector<ast::FieldDecl *> CodeGen::MakeFieldList(std::initializer_list<ast::FieldDecl *> fields) {
   return util::RegionVector<ast::FieldDecl *>(fields, Context()->Region());
 }
 }  // namespace terrier::execution::compiler

@@ -27,11 +27,11 @@ SeqScanTranslator::SeqScanTranslator(const terrier::planner::SeqScanPlanNode *op
 
 void SeqScanTranslator::Produce(FunctionBuilder *builder) {
   SetOids(builder);
-//  const bool declare_local_tvi = !GetPipeline()->IsParallel() || this != GetPipeline()->Root();
-//  if (declare_local_tvi) {
-    DeclareTVI(builder);
-//  }
-
+  // TODO(Ron): Declare the tvi only for serial scan
+  //  const bool declare_local_tvi = !GetPipeline()->IsParallel() || this != GetPipeline()->Root();
+  //  if (declare_local_tvi) {
+  DeclareTVI(builder);
+  //  }
 
   // There may be a child translator in nested loop joins.
   if (child_translator_ != nullptr) {
@@ -43,9 +43,9 @@ void SeqScanTranslator::Produce(FunctionBuilder *builder) {
   }
 
   // Close iterator
-//  if (declare_local_tvi) {
+  //  if (declare_local_tvi) {
   GenTVIClose(builder);
-//}
+  //}
 }
 
 void SeqScanTranslator::Abort(FunctionBuilder *builder) {
@@ -97,7 +97,9 @@ util::RegionVector<ast::FieldDecl *> SeqScanTranslator::GetWorkerParams() {
 }
 
 void SeqScanTranslator::LaunchWork(FunctionBuilder *builder, ast::Identifier work_func) {
+  // Build and make the function call to IterateTableParallel()
   ast::Expr *parallel_call = codegen_->IterateTableParallel(!op_->GetTableOid(), work_func);
+  // add the function call to the calling function (main()  )
   builder->Append(codegen_->MakeStmt(parallel_call));
 }
 

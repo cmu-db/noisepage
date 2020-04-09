@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 #include "common/strong_typedef.h"
@@ -40,7 +41,13 @@ class Pipeline {
     return codegen_->Context()->GetIdentifier("pipeline" + std::to_string(!pipeline_idx_));
   }
 
+  /**
+   * Create a unique name for a function local to this pipeline
+   * @param func_name The function name
+   * @return the constructed string
+   */
   std::string ConstructPipelineFunctionName(const std::string &func_name) const {
+    // The result will be in the format of PipelineX_funcname
     auto result = fmt::format("Pipeline{}", pipeline_idx_);
     if (!func_name.empty()) {
       result += "_" + func_name;
@@ -48,11 +55,19 @@ class Pipeline {
     return result;
   }
 
+  /**
+   * Get the identifier of the pipeline function
+   * @return the identifier made from the unique pipeline function name
+   */
   ast::Identifier GetWorkFunctionName() const {
+    // TODO(Yuhong): name the function according to whether the pipeline is parallel
     const auto &name = ConstructPipelineFunctionName("ParallelWork");
     return codegen_->MakeIdentifier(name);
   }
 
+  /**
+   * @return the root operator in the pipeline
+   */
   OperatorTranslator *Root() const { return pipeline_[0].get(); }
 
   /**

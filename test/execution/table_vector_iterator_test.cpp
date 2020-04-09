@@ -155,8 +155,7 @@ TEST_F(TableVectorIteratorTest, ParallelScanTest) {
   thread_state_container.Reset(sizeof(Counter),  // The type of each thread state structure
                                init_count,       // The thread state initialization function
                                nullptr,          // The thread state destruction function
-                               nullptr           // Context passed to init/destroy functions
-  );
+                               nullptr);         // Context passed to init/destroy functions
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   TableVectorIterator::ParallelScan((uint32_t)table_oid,      // ID of table to scan
                                     nullptr,                  // Query state to pass to scan threads

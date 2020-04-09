@@ -69,7 +69,7 @@ class CompilerTest : public SqlBasedTest {
 };
 
 // NOLINTNEXTLINE
-//TEST_F(CompilerTest, SimplerSeqScanTest) {
+// TEST_F(CompilerTest, SimplerSeqScanTest) {
 //  // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1;
 //  auto accessor = MakeAccessor();
 //  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");

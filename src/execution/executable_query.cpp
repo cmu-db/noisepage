@@ -30,7 +30,7 @@ ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractP
     EXECUTION_LOG_ERROR(execution::ast::AstDump::Dump(root));
     return;
   }
-  
+
   // Convert to bytecode
   auto bytecode_module = vm::BytecodeGenerator::Compile(root, exec_ctx.Get(), "tmp-tpl");
 

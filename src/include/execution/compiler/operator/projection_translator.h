@@ -46,10 +46,15 @@ class ProjectionTranslator : public OperatorTranslator {
   // Does nothing
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
 
-  util::RegionVector<ast::FieldDecl *> GetWorkerParams() override {
-    UNREACHABLE("Not implemented yet");
-  }
+  /**
+   * @return The pipeline work function parameters
+   */
+  util::RegionVector<ast::FieldDecl *> GetWorkerParams() override { UNREACHABLE("Not implemented yet"); }
 
+  /**
+   * @param function The caller function
+   * @param work_func The worker function that'll be called
+   */
   void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) override {
     UNREACHABLE("LaunchWork for parallel execution is not implemented yet");
   }

@@ -178,9 +178,9 @@ ast::Decl *Compiler::GenMainFunction() {
 
   // TODO(Ron): Enabled this when we have isParallel global variable
   // Step 0.0: Call Launch Work
-//  for (const auto &pipeline : pipelines_) {
-//    pipeline->Root()->LaunchWork(&builder, pipeline->GetWorkFunctionName());
-//  }
+  //  for (const auto &pipeline : pipelines_) {
+  //    pipeline->Root()->LaunchWork(&builder, pipeline->GetWorkFunctionName());
+  //  }
 
   // Step 0: Define the state variable.
   ast::Identifier state = codegen_->GetStateVar();

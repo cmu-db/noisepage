@@ -34,7 +34,7 @@ class EXPORT TableVectorIterator {
                                uint32_t num_oids);
 
   /**
-   * Create a new vectorized iterator over the given table
+   * Create a new vectorized iterator over the given table block range [start, end)
    * @param exec_ctx execution context of the query
    * @param table_oid oid of the table
    * @param col_oids array column oids to scan
@@ -43,7 +43,7 @@ class EXPORT TableVectorIterator {
    * @param end_block_idx end block index to scan
    */
   TableVectorIterator(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids,
-                     uint32_t start_block_idx, uint32_t end_block_idx);
+                      uint32_t start_block_idx, uint32_t end_block_idx);
   /**
    * Destructor
    */

@@ -39,10 +39,15 @@ class SortBottomTranslator : public OperatorTranslator {
   void Abort(FunctionBuilder *builder) override;
   void Consume(FunctionBuilder *builder) override;
 
-  util::RegionVector<ast::FieldDecl *> GetWorkerParams() override {
-    UNREACHABLE("Not implemented yet");
-  }
+  /**
+   * @return The pipeline work function parameters
+   */
+  util::RegionVector<ast::FieldDecl *> GetWorkerParams() override { UNREACHABLE("Not implemented yet"); }
 
+  /**
+   * @param function The caller function
+   * @param work_func The worker function that'll be called
+   */
   void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) override {
     UNREACHABLE("LaunchWork for parallel execution is not implemented yet");
   }
@@ -135,9 +140,7 @@ class SortTopTranslator : public OperatorTranslator {
   void Abort(FunctionBuilder *builder) override;
   void Consume(FunctionBuilder *builder) override;
 
-  util::RegionVector<ast::FieldDecl *> GetWorkerParams() override {
-    UNREACHABLE("Not implemented yet");
-  }
+  util::RegionVector<ast::FieldDecl *> GetWorkerParams() override { UNREACHABLE("Not implemented yet"); }
 
   void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) override {
     UNREACHABLE("LaunchWork for parallel execution is not implemented yet");

@@ -407,9 +407,12 @@ class CodeGen {
    */
   ast::Identifier NewIdentifier(const std::string &prefix);
 
-  ast::Identifier MakeIdentifier(std::string_view str) {
-    return Context()->GetIdentifier({str.data(), str.length()});
-  }
+  /**
+   * Create a new identifier with the given string
+   * @param str The name of the identifier
+   * @return The generated identifier
+   */
+  ast::Identifier MakeIdentifier(std::string_view str) { return Context()->GetIdentifier({str.data(), str.length()}); }
 
   /**
    * @return an empty BlockStmt
@@ -447,15 +450,13 @@ class CodeGen {
   ast::Expr *TableIterInit(ast::Identifier tvi, uint32_t table_oid, ast::Identifier col_oids);
 
   /**
- * Call @iterateTableParallel(). Performs a parallel scan over the table with the provided name,
- * using the provided query state and thread-state container and calling the provided scan
- * function.
- * @param table_name The name of the table to scan.
- * @param query_state The query state pointer.
- * @param tls The thread state container.
- * @param worker_name The work function name.
- * @return The call.
- */
+   * Call iterateTableParallel(). Performs a parallel scan over the table with the provided table id
+   * and the provided scan function.
+   * TODO(Ron): Add the query state and thread-state container
+   * @param table_oid The id of the table to scan.
+   * @param worker_name The work function name.
+   * @return The call.
+   */
   ast::Expr *IterateTableParallel(uint32_t table_oid, ast::Identifier worker_name);
 
   /**
@@ -598,10 +599,9 @@ class CodeGen {
   ast::Expr *ZeroArgCall(ast::Builtin builtin);
 
   /**
- * @return A field list with the given fields.
- */
-  util::RegionVector<ast::FieldDecl *> MakeFieldList(
-          std::initializer_list<ast::FieldDecl *> fields);
+   * @return A field list with the given fields.
+   */
+  util::RegionVector<ast::FieldDecl *> MakeFieldList(std::initializer_list<ast::FieldDecl *> fields);
 
  private:
   // Counter for the identifiers. Allows the creation of unique names.

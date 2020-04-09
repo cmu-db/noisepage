@@ -17,7 +17,11 @@ TableVectorIterator::TableVectorIterator(exec::ExecutionContext *exec_ctx, uint3
 
 TableVectorIterator::TableVectorIterator(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *col_oids,
                                          uint32_t num_oids, uint32_t start_block_idx, uint32_t end_block_idx)
-    : exec_ctx_(exec_ctx), table_oid_(table_oid), col_oids_(col_oids, col_oids + num_oids), start_block_idx_(start_block_idx), end_block_idx_(end_block_idx) {}
+    : exec_ctx_(exec_ctx),
+      table_oid_(table_oid),
+      col_oids_(col_oids, col_oids + num_oids),
+      start_block_idx_(start_block_idx),
+      end_block_idx_(end_block_idx) {}
 
 TableVectorIterator::~TableVectorIterator() {
   exec_ctx_->GetMemoryPool()->Deallocate(buffer_, projected_columns_->Size());
@@ -28,10 +32,10 @@ bool TableVectorIterator::Init() {
   table_ = exec_ctx_->GetAccessor()->GetTable(table_oid_);
   TERRIER_ASSERT(table_ != nullptr, "Table must exist!!");
   if (col_oids_.empty()) {
-    table_->GetAllColOid(col_oids_);
+    table_->GetAllColOid(&col_oids_);
   }
   // Initialize the projected column
-  //TERRIER_ASSERT(!col_oids_.empty(), "There must be at least one col oid!");
+  // TERRIER_ASSERT(!col_oids_.empty(), "There must be at least one col oid!");
   auto pc_init = table_->InitializerForProjectedColumns(col_oids_, common::Constants::K_DEFAULT_VECTOR_SIZE);
   buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(pc_init.ProjectedColumnsSize(), alignof(uint64_t), false);
   projected_columns_ = pc_init.Initialize(buffer_);
@@ -61,14 +65,12 @@ void TableVectorIterator::Reset() {
   iter_ = std::make_unique<storage::DataTable::SlotIterator>(table_->beginAt(start_block_idx_));
 }
 
-
 namespace {
 
 class ScanTask {
  public:
-  ScanTask(exec::ExecutionContext *exec_ctx, uint16_t table_id, 
-           void *const query_state, ThreadStateContainer *const thread_state_container,
-           TableVectorIterator::ScanFn scanner)
+  ScanTask(exec::ExecutionContext *exec_ctx, uint16_t table_id, void *const query_state,
+           ThreadStateContainer *const thread_state_container, TableVectorIterator::ScanFn scanner)
       : exec_ctx_(exec_ctx),
         table_id_(table_id),
         query_state_(query_state),
@@ -101,8 +103,8 @@ class ScanTask {
 }  // namespace
 
 bool TableVectorIterator::ParallelScan(uint32_t table_oid, void *const query_state,
-                                       ThreadStateContainer *const thread_states, const ScanFn scan_fn, exec::ExecutionContext *exec_ctx) {
-
+                                       ThreadStateContainer *const thread_states, const ScanFn scan_fn,
+                                       exec::ExecutionContext *exec_ctx) {
   // Lookup table
   common::ManagedPointer<storage::SqlTable> table = exec_ctx->GetAccessor()->GetTable((catalog::table_oid_t)table_oid);
   if (table == nullptr) {

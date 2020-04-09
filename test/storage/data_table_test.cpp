@@ -145,8 +145,8 @@ class RandomDataTableTestObject {
   }
 
   void RangeScan(storage::DataTable::SlotIterator *begin, storage::DataTable::SlotIterator *const end_pos,
-                 const transaction::timestamp_t timestamp,
-            storage::ProjectedColumns *buffer, storage::RecordBufferSegmentPool *buffer_pool) {
+                 const transaction::timestamp_t timestamp, storage::ProjectedColumns *buffer,
+                 storage::RecordBufferSegmentPool *buffer_pool) {
     auto *txn =
         new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(buffer_pool), DISABLED);
     loose_txns_.push_back(txn);
@@ -280,7 +280,6 @@ TEST_F(DataTableTests, SimpleRangeScan) {
     delete[] buffer;
   }
 }
-
 
 // Generates a random table layout and coin flip bias for an attribute being null, inserts 1 random tuple into an empty
 // DataTable. Then, randomly updates the tuple num_updates times. Finally, Selects at each timestamp to verify that the

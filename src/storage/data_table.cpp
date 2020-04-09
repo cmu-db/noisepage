@@ -61,7 +61,7 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
 
 void DataTable::RangeScan(const common::ManagedPointer<transaction::TransactionContext> txn,
                           SlotIterator *const start_pos, SlotIterator *const end_pos,
-                     ProjectedColumns *const out_buffer) const {
+                          ProjectedColumns *const out_buffer) const {
   uint32_t filled = 0;
   while (filled < out_buffer->MaxTuples() && *start_pos != *end_pos) {
     ProjectedColumns::RowView row = out_buffer->InterpretAsRow(filled);

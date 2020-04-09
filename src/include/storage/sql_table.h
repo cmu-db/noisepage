@@ -151,9 +151,9 @@ class SqlTable {
     return table_.data_table_->Scan(txn, start_pos, out_buffer);
   }
   /**
-   * Similar to the scan function, sequentially scans the table starting from the given start iterator(inclusive) 
-   * to the end iterator(exclusive)  and materializes as many tuples as would fit into the given buffer, 
-   * as visible to the transaction given,  according to the format described by the given output buffer. 
+   * Similar to the scan function, sequentially scans the table starting from the given start iterator(inclusive)
+   * to the end iterator(exclusive) and materializes as many tuples as would fit into the given buffer,
+   * as visible to the transaction given,  according to the format described by the given output buffer.
    *
    * @param txn the calling transaction
    * @param start_pos iterator to the starting location for the sequential scan
@@ -174,13 +174,14 @@ class SqlTable {
   /**
    * Get all ColOid in the underlying DataTable and push into the input vector
    */
-  void GetAllColOid(std::vector<catalog::col_oid_t> &col_oids) const;
+  void GetAllColOid(std::vector<catalog::col_oid_t> *col_oids) const;
 
   /**
    * @return the first tuple slot contained in the underlying DataTable
    */
   DataTable::SlotIterator begin() const { return table_.data_table_->begin(); }  // NOLINT for STL name compability
   /**
+   * @param start_block_idx The index of the starting block
    * @return the first tuple slot of nth RawBlock stored in the block list
    */
   DataTable::SlotIterator beginAt(uint32_t start_block_idx) const {
@@ -190,12 +191,13 @@ class SqlTable {
    * @return one past the last tuple slot contained in the underlying DataTable
    */
   DataTable::SlotIterator end() const { return table_.data_table_->end(); }  // NOLINT for STL name compability
+
   /**
-   * @return either the first slot of block at the given index if prev block full, or the last empty slot in prev block of given index
+   * @param The index of the ending block
+   * @return either the first slot of block at the given index if prev block full,
+   * or the last empty slot in prev block of given index
    */
-  DataTable::SlotIterator endAt(uint32_t end_block_idx) const { 
-    return table_.data_table_->endAt(end_block_idx);
-  }
+  DataTable::SlotIterator endAt(uint32_t end_block_idx) const { return table_.data_table_->endAt(end_block_idx); }
   /**
    * Generates an ProjectedColumnsInitializer for the execution layer to use. This performs the translation from col_oid
    * to col_id for the Initializer's constructor so that the execution layer doesn't need to know anything about col_id.

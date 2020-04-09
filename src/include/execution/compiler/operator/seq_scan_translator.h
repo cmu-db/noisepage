@@ -46,9 +46,10 @@ class SeqScanTranslator : public OperatorTranslator {
   util::RegionVector<ast::FieldDecl *> GetWorkerParams() override;
 
   /**
-  * Launch a parallel table scan.
-  * @param work_func The worker function that'll be called during the parallel scan.
-  */
+   * Launch a parallel table scan.
+   * @param function The caller function which calls the to be built function call
+   * @param work_func The worker function that'll be called during the parallel scan.
+   */
   void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) override;
 
   // Should not be called here
