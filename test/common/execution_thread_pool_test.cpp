@@ -122,14 +122,10 @@ TEST(ExecutionThreadPoolTests, MoreTest) {
 TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
   common::DedicatedThreadRegistry registry(DISABLED);
   std::vector<int> cpu_ids;
-  //  uint32_t iteration = 10, num_threads = std::thread::hardware_concurrency();
-  // TEMPORARY TEST
-  uint32_t iteration = 10;
-  uint32_t num_threads = 4;
-  uint32_t threads[4] = {0, 1, 38, 39};
-  // END TEMPORARY TEST
-  for (auto thread : threads) {
-    cpu_ids.emplace_back(thread);
+    uint32_t iteration = 10, num_threads = std::thread::hardware_concurrency();
+
+  for (uint32_t thread = 0; thread < num_threads; thread++) {
+    cpu_ids.emplace_back(static_cast<int32_t>(thread));
   }
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
   for (uint32_t it = 0; it < iteration; it++) {
@@ -156,7 +152,7 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
         while (flag2 != 0) std::this_thread::sleep_for(std::chrono::milliseconds(50));
       };
 #else
-      auto this_cpu_id = threads[i];
+      auto this_cpu_id = i;
       storage::numa_region_t numa_hint UNUSED_ATTRIBUTE = static_cast<storage::numa_region_t>(numa_node_of_cpu(this_cpu_id));
       auto workload = [&, numa_hint, this_cpu_id]() {
         auto temp_i UNUSED_ATTRIBUTE = static_cast<int16_t>(this_cpu_id);
