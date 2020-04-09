@@ -184,20 +184,24 @@ class SqlTable {
    * @param start_block_idx The index of the starting block
    * @return the first tuple slot of nth RawBlock stored in the block list
    */
-  DataTable::SlotIterator beginAt(uint32_t start_block_idx) const {
+  DataTable::SlotIterator beginAt(uint32_t start_block_idx) const {  // NOLINT for STL name compability
     return table_.data_table_->beginAt(start_block_idx);
   }
   /**
    * @return one past the last tuple slot contained in the underlying DataTable
    */
-  DataTable::SlotIterator end() const { return table_.data_table_->end(); }  // NOLINT for STL name compability
+  DataTable::SlotIterator end() const {  // NOLINT for STL name compability
+    return table_.data_table_->end();
+  }
 
   /**
    * @param end_block_idx The index of the ending block
    * @return either the first slot of block at the given index if prev block full,
    * or the last empty slot in prev block of given index
    */
-  DataTable::SlotIterator endAt(uint32_t end_block_idx) const { return table_.data_table_->endAt(end_block_idx); }
+  DataTable::SlotIterator endAt(uint32_t end_block_idx) const {
+    return table_.data_table_->endAt(end_block_idx);
+  }  // NOLINT for STL name compability
   /**
    * Generates an ProjectedColumnsInitializer for the execution layer to use. This performs the translation from col_oid
    * to col_id for the Initializer's constructor so that the execution layer doesn't need to know anything about col_id.

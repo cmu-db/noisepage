@@ -102,11 +102,11 @@ class ScanTask {
 };
 }  // namespace
 
-bool TableVectorIterator::ParallelScan(uint32_t table_oid, void *const query_state,
-                                       ThreadStateContainer *const thread_states, const ScanFn scan_fn,
-                                       exec::ExecutionContext *exec_ctx) {
+bool TableVectorIterator::ParallelScan(uint32_t table_oid, void *query_state, ThreadStateContainer *thread_states,
+                                       const ScanFn scan_fn, exec::ExecutionContext *exec_ctx) {
   // Lookup table
-  common::ManagedPointer<storage::SqlTable> table = exec_ctx->GetAccessor()->GetTable((catalog::table_oid_t)table_oid);
+  common::ManagedPointer<storage::SqlTable> table =
+      exec_ctx->GetAccessor()->GetTable(static_cast<catalog::table_oid_t>(table_oid));
   if (table == nullptr) {
     return false;
   }
@@ -116,10 +116,6 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, void *const query_sta
   // TODO(Ron): min_grain_size = num_blocks / num_threads
   size_t min_grain_size = 3;
 
-  // Time
-  util::Timer<std::milli> timer;
-  timer.Start();
-
   // Execute parallel scan
   tbb::task_scheduler_init scan_scheduler;
   // partition the block list
@@ -127,9 +123,6 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, void *const query_sta
   // invoke parallel scan for multiple workers
   tbb::parallel_for(block_range, ScanTask(exec_ctx, table_oid, query_state, thread_states, scan_fn));
 
-  timer.Stop();
-  double tps = timer.Elapsed();
-  std::cout << "scanned " << block_count << " in " << tps << " ms" << std::endl;
   return true;
 }
 

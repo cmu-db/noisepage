@@ -50,7 +50,7 @@ class SeqScanTranslator : public OperatorTranslator {
    * @param function The caller function which calls the to be built function call
    * @param work_func The worker function that'll be called during the parallel scan.
    */
-  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) override;
+  void LaunchWork(FunctionBuilder *builder, ast::Identifier work_func) override;
 
   // Should not be called here
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {

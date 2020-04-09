@@ -168,8 +168,8 @@ class DataTable {
    * @param out_buffer output buffer. The object should already contain projection list information. This buffer is
    *                   always cleared of old values.
    */
-  void RangeScan(const common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *const start_pos,
-                 SlotIterator *const end_pos, ProjectedColumns *const out_buffer) const;
+  void RangeScan(common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *start_pos,
+                 SlotIterator *end_pos, ProjectedColumns *out_buffer) const;
 
   /**
    * @return the first tuple slot contained in the data table
@@ -183,7 +183,7 @@ class DataTable {
    * @param start_block_idx The index of the begin block
    * @return the first tuple slot of nth RawBlock stored in the block list
    */
-  SlotIterator beginAt(uint32_t start_block_idx) const {
+  SlotIterator beginAt(uint32_t start_block_idx) const {  // NOLINT for STL name compability
     common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
     if (blocks_.empty()) return {this, blocks_.end(), 0};
     uint32_t count = 0;
@@ -200,7 +200,7 @@ class DataTable {
    * @return either the first slot of block at the given index if prev block full,
    * or the last empty slot in prev block of given index
    */
-  SlotIterator endAt(uint32_t end_block_idx) const {
+  SlotIterator endAt(uint32_t end_block_idx) const {  // NOLINT for STL name compability
     common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
     if (blocks_.empty()) return {this, blocks_.end(), 0};
     uint32_t count = 0;

@@ -135,17 +135,17 @@ TEST_F(TableVectorIteratorTest, ParallelScanTest) {
   //
 
   struct Counter {
-    uint32_t c;
+    uint32_t c_;
   };
 
-  auto init_count = [](void *ctx, void *tls) { reinterpret_cast<Counter *>(tls)->c = 0; };
+  auto init_count = [](void *ctx, void *tls) { reinterpret_cast<Counter *>(tls)->c_ = 0; };
 
   // Scan function just counts all tuples it sees
   auto scanner = [](void *state, void *tls, TableVectorIterator *tvi) {
     auto *counter = reinterpret_cast<Counter *>(tls);
     while (tvi->Advance()) {
       for (auto *pci = tvi->GetProjectedColumnsIterator(); pci->HasNext(); pci->Advance()) {
-        counter->c++;
+        counter->c_++;
       }
     }
   };
@@ -157,15 +157,15 @@ TEST_F(TableVectorIteratorTest, ParallelScanTest) {
                                nullptr,          // The thread state destruction function
                                nullptr);         // Context passed to init/destroy functions
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
-  TableVectorIterator::ParallelScan((uint32_t)table_oid,      // ID of table to scan
-                                    nullptr,                  // Query state to pass to scan threads
-                                    &thread_state_container,  // Container for thread states
-                                    scanner,                  // Scan function
+  TableVectorIterator::ParallelScan(static_cast<uint32_t>(table_oid),  // ID of table to scan
+                                    nullptr,                           // Query state to pass to scan threads
+                                    &thread_state_container,           // Container for thread states
+                                    scanner,                           // Scan function
                                     exec_ctx_.get());
 
   // Count total aggregate tuple count seen by all threads
   uint32_t aggregate_tuple_count = 0;
-  thread_state_container.ForEach<Counter>([&](Counter *counter) { aggregate_tuple_count += counter->c; });
+  thread_state_container.ForEach<Counter>([&](Counter *counter) { aggregate_tuple_count += counter->c_; });
 
   EXPECT_EQ(sql::TEST1_SIZE, aggregate_tuple_count);
 }
