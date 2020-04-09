@@ -78,6 +78,8 @@ class IndexBuilder {
   */
   IndexBuilder &SetSqlTableAndTransactionContext(common::ManagedPointer<storage::SqlTable> sql_table,
                                                  const common::ManagedPointer<transaction::TransactionContext> txn) {
+    TERRIER_ASSERT(sql_table == nullptr && txn == nullptr || sql_table != nullptr && txn != nullptr,
+                   "sql_table / txn is null and txn / sql_table is not.");
     sql_table_ = sql_table;
     txn_ = txn;
     return *this;
