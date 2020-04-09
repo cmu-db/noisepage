@@ -146,8 +146,23 @@ void TrafficCop::ExecuteCreateStatement(const common::ManagedPointer<network::Co
       break;
     }
     case network::QueryType::QUERY_CREATE_INDEX: {
+      // Create a transaction for the index builder
+      const auto populate_txn = txn_manager_->BeginTransaction();
       if (execution::sql::DDLExecutors::CreateIndexExecutor(
-              physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor())) {
+              physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor(),
+              common::ManagedPointer(populate_txn))) {
+        if (populate_txn->MustAbort()) {
+          out->WriteErrorResponse("ERROR:  failed to execute CREATE INDEX");
+          connection_ctx->Transaction()->SetMustAbort();
+          txn_manager_->Abort(populate_txn);
+          return;
+        }
+        // Set up a blocking callback to wait for the populate txn to finish
+        std::promise<bool> promise;
+        auto future = promise.get_future();
+        TERRIER_ASSERT(future.valid(), "future must be valid for synchronization to work.");
+        txn_manager_->Commit(populate_txn, CommitCallback, &promise);
+        future.wait();
         out->WriteCommandComplete(query_type, 0);
         return;
       }

@@ -193,7 +193,7 @@ class CatalogAccessor {
    * @param table being queried
    * @return vector of OIDs for all of the indexes on this table
    */
-  std::vector<index_oid_t> GetIndexOids(table_oid_t table) const;
+  std::vector<index_oid_t> GetIndexOids(table_oid_t table, bool only_live = false) const;
 
   /**
    * Returns index pointers and schemas for every index on a table. Provides much better performance than individual
@@ -229,6 +229,13 @@ class CatalogAccessor {
    * @return OID for the index, INVALID_INDEX_OID if the operation failed
    */
   index_oid_t CreateIndex(namespace_oid_t ns, table_oid_t table, std::string name, const IndexSchema &schema) const;
+
+  /**
+   * Given the index name, set the index to be live in the catalog.
+   * @param index to be set to live
+   * @return whether the operation succeeded
+   */
+  bool SetIndexLive(index_oid_t index) const;
 
   /**
    * Gets the schema that was used to define the index
@@ -342,6 +349,14 @@ class CatalogAccessor {
   * @return TransactionContext to be used for creating and building an index
   */
   common::ManagedPointer<transaction::TransactionContext> GetTransactionContext() const;
+
+  /**
+   * Instantiates a new accessor into for the same catalog with the new txn
+   * @param new_txn the new transaction
+   */
+  CatalogAccessor SetTxn(const common::ManagedPointer<transaction::TransactionContext> new_txn) const {
+    return CatalogAccessor(catalog_, dbc_, new_txn);
+  }
 
   /**
    * Instantiates a new accessor into the catalog for the given database.

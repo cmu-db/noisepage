@@ -961,7 +961,7 @@ std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(
 }
 
 std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
-    const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table) {
+    const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table, bool only_live) {
   // Initialize PR for index scan
   auto oid_pri = indexes_table_index_->GetProjectedRowInitializer();
 
@@ -988,7 +988,10 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
   for (auto &slot : index_scan_results) {
     const auto result UNUSED_ATTRIBUTE = indexes_->Select(txn, slot, select_pr);
     TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
-    index_oids.emplace_back(*(reinterpret_cast<index_oid_t *>(select_pr->AccessForceNotNull(0))));
+    if (!only_live || *(reinterpret_cast<bool *>(select_pr->AccessForceNotNull(
+        pg_index_all_cols_prm_[postgres::INDISLIVE_COL_OID])))) {
+      index_oids.emplace_back(*(reinterpret_cast<index_oid_t *>(select_pr->AccessForceNotNull(0))));
+    }
   }
 
   // Finish
@@ -1002,6 +1005,12 @@ index_oid_t DatabaseCatalog::CreateIndex(const common::ManagedPointer<transactio
   if (!TryLock(txn)) return INVALID_INDEX_OID;
   const index_oid_t index_oid = static_cast<index_oid_t>(next_oid_++);
   return CreateIndexEntry(txn, ns, table, index_oid, name, schema) ? index_oid : INVALID_INDEX_OID;
+}
+
+bool DatabaseCatalog::SetIndexLive(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                  index_oid_t index) {
+  //TODO
+  return true;
 }
 
 bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -1525,7 +1534,7 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
   *(reinterpret_cast<bool *>(
       indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::INDISREADY_COL_OID]))) = true;
   *(reinterpret_cast<bool *>(
-      indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::INDISLIVE_COL_OID]))) = true;
+      indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::INDISLIVE_COL_OID]))) = false;
   *(reinterpret_cast<storage::index::IndexType *>(
       indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::IND_TYPE_COL_OID]))) = schema.type_;
 
