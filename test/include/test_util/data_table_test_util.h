@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "common/concurrent_vector.h"
+#include "common/concurrent_pointer_vector.h"
 #include "gtest/gtest.h"
 #include "storage/data_table.h"
 #include "test_util/storage_test_util.h"
