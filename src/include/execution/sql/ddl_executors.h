@@ -67,7 +67,7 @@ class DDLExecutors {
    */
   static bool CreateIndexExecutor(common::ManagedPointer<planner::CreateIndexPlanNode> node,
                                   common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                                  terrier::transaction::TransactionContext *populate_txn);
+                                  const common::ManagedPointer<terrier::transaction::TransactionContext> populate_txn);
 
   /**
    * @param node node to executed
@@ -107,6 +107,6 @@ class DDLExecutors {
   static bool CreateIndex(common::ManagedPointer<catalog::CatalogAccessor> accessor, catalog::namespace_oid_t ns,
                           const std::string &name, catalog::table_oid_t table,
                           const catalog::IndexSchema &input_schema,
-                          terrier::transaction::TransactionContext *populate_txn);
+                          const common::ManagedPointer<terrier::transaction::TransactionContext> populate_txn);
 };
 }  // namespace terrier::execution::sql

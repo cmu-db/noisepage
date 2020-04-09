@@ -190,6 +190,14 @@ class DatabaseCatalog {
                           const std::string &name, table_oid_t table, const IndexSchema &schema);
 
   /**
+   * Sets an index to be live, after it has been populated.
+   * @param txn for the operation
+   * @param index to be set to live
+   * @return true if the operation succeeded, otherwise false.
+   */
+  bool SetIndexLive(common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t index);
+
+  /**
    * Delete an index.  Any constraints that utilize this index must be deleted
    * or transitioned to a different index prior to deleting an index.
    * @param txn for the operation

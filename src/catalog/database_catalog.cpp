@@ -1007,6 +1007,12 @@ index_oid_t DatabaseCatalog::CreateIndex(const common::ManagedPointer<transactio
   return CreateIndexEntry(txn, ns, table, index_oid, name, schema) ? index_oid : INVALID_INDEX_OID;
 }
 
+bool DatabaseCatalog::SetIndexLive(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                  index_oid_t index) {
+  //TODO
+  return true;
+}
+
 bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::TransactionContext> txn,
                                   index_oid_t index) {
   if (!TryLock(txn)) return false;
@@ -1527,9 +1533,8 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
       indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::INDISVALID_COL_OID]))) = true;
   *(reinterpret_cast<bool *>(
       indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::INDISREADY_COL_OID]))) = true;
-  // TODO(Cal) update live
   *(reinterpret_cast<bool *>(
-      indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::INDISLIVE_COL_OID]))) = true;
+      indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::INDISLIVE_COL_OID]))) = false;
   *(reinterpret_cast<storage::index::IndexType *>(
       indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::IND_TYPE_COL_OID]))) = schema.type_;
 

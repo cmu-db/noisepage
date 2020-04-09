@@ -120,7 +120,6 @@ class IndexBuilder {
       index = new BwTreeIndex<CompactIntsKey<32>>(std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
-    if (sql_table_ != nullptr) BulkInsert(index);
     return index;
   }
 
@@ -142,7 +141,6 @@ class IndexBuilder {
       index = new BwTreeIndex<GenericKey<256>>(std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an GenericKey index.");
-    if (sql_table_ != nullptr) BulkInsert(index);
     return index;
   }
 
@@ -165,7 +163,6 @@ class IndexBuilder {
       index = new HashIndex<HashKey<256>>(std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
-    if (sql_table_ != nullptr) BulkInsert(index);
     return index;
   }
 
@@ -186,7 +183,6 @@ class IndexBuilder {
       index = new HashIndex<GenericKey<256>>(std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
-    if (sql_table_ != nullptr) BulkInsert(index);
     return index;
   }
 };

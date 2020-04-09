@@ -150,7 +150,7 @@ void TrafficCop::ExecuteCreateStatement(const common::ManagedPointer<network::Co
       const auto populate_txn = txn_manager_->BeginTransaction();
       if (execution::sql::DDLExecutors::CreateIndexExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor(),
-              populate_txn)) {
+              common::ManagedPointer(populate_txn))) {
         if (populate_txn->MustAbort()) {
           out->WriteErrorResponse("ERROR:  failed to execute CREATE INDEX");
           connection_ctx->Transaction()->SetMustAbort();
