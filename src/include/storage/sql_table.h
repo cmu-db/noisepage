@@ -87,8 +87,8 @@ class SqlTable {
    * @param layout_version Schema version the current querying transaction should see
    * @return true if successful, false otherwise
    */
-  bool Update(common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *redo,
-              layout_version_t layout_version = layout_version_t{0}) const;
+  std::pair<bool, TupleSlot> Update(const common::ManagedPointer <TransactionContext> txn, RedoRecord *const redo,
+                                    layout_version_t layout_version = layout_version_t{0}) const;
 
   /**
    * Inserts a tuple, as given in the redo, and return the slot allocated for the tuple. StageWrite must have been

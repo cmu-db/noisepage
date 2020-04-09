@@ -46,8 +46,9 @@ bool SqlTable::Select(const common::ManagedPointer<transaction::TransactionConte
   return result;
 }
 
-bool SqlTable::Update(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo,
-                      layout_version_t layout_version) const {
+std::pair<bool, TupleSlot> SqlTable::Update(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                            RedoRecord *const redo,
+                                            layout_version_t layout_version) const {
   TERRIER_ASSERT(redo->GetTupleSlot() != TupleSlot(nullptr, 0), "TupleSlot was never set in this RedoRecord.");
   TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
                              ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
@@ -57,7 +58,9 @@ bool SqlTable::Update(const common::ManagedPointer<transaction::TransactionConte
   //  The migration should be a delete (MVCC style) in old datatable followed by an insert in new datatable.
 
   // get the version of current tuple slot
-  const auto curr_tuple = redo->GetTupleSlot();
+  auto curr_tuple = redo->GetTupleSlot();
+  auto returned_slot = curr_tuple;
+
   const auto tuple_version = curr_tuple.GetBlock()->data_table_->layout_version_;
 
   TERRIER_ASSERT(tuple_version <= layout_version,
@@ -110,7 +113,7 @@ bool SqlTable::Update(const common::ManagedPointer<transaction::TransactionConte
     // correctly.
     txn->SetMustAbort();
   }
-  return result;
+  return std::make_pair(result, returned_slot);
 }
 
 TupleSlot SqlTable::Insert(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo,
