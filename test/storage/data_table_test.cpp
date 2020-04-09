@@ -359,5 +359,9 @@ TEST_F(DataTableTests, InsertIntoFreezingBlock) {
 
   // Once the tuple is inserted, the insertion head should be incremented by 1
   EXPECT_EQ(block->GetInsertHead(), 1);
+
+  // Cleanup
+  delete txn;
+  delete block;
 }
 }  // namespace terrier
