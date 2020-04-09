@@ -337,6 +337,12 @@ class CatalogAccessor {
    */
   common::ManagedPointer<storage::BlockStore> GetBlockStore() const;
 
+ /**
+  *
+  * @return TransactionContext to be used for creating and building an index
+  */
+  common::ManagedPointer<transaction::TransactionContext> GetTransactionContext() const;
+
   /**
    * Instantiates a new accessor into the catalog for the given database.
    * @param catalog pointer to the catalog being accessed

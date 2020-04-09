@@ -175,4 +175,6 @@ common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() con
   return catalog_->GetBlockStore();
 }
 
+common::ManagedPointer<transaction::TransactionContext> CatalogAccessor::GetTransactionContext() const { return txn_; }
+
 }  // namespace terrier::catalog
