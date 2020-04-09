@@ -47,7 +47,7 @@ class SeqScanTranslator : public OperatorTranslator {
 
   /**
    * Launch a parallel table scan.
-   * @param function The caller function which calls the to be built function call
+   * @param builder The caller function which calls the to be built function call
    * @param work_func The worker function that'll be called during the parallel scan.
    */
   void LaunchWork(FunctionBuilder *builder, ast::Identifier work_func) override;
