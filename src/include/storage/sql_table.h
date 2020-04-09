@@ -199,9 +199,9 @@ class SqlTable {
    * @return either the first slot of block at the given index if prev block full,
    * or the last empty slot in prev block of given index
    */
-  DataTable::SlotIterator endAt(uint32_t end_block_idx) const {
+  DataTable::SlotIterator endAt(uint32_t end_block_idx) const { // NOLINT for STL name compability
     return table_.data_table_->endAt(end_block_idx);
-  }  // NOLINT for STL name compability
+  }
   /**
    * Generates an ProjectedColumnsInitializer for the execution layer to use. This performs the translation from col_oid
    * to col_id for the Initializer's constructor so that the execution layer doesn't need to know anything about col_id.
