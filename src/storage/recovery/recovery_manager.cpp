@@ -150,7 +150,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
 
       // Set padding
       uint16_t padding;
-      f.seekg(sizeof(void *), std::ios::cur);  // skip data table
+//      f.seekg(sizeof(void *), std::ios::cur);  // skip data table
       f.read(reinterpret_cast<char *>(&padding), sizeof(padding));
       block->padding_ = padding;
 

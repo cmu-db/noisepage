@@ -90,9 +90,11 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
       return;
     }
 
-    // record varlen_col data for all blocks
+    // traverse each block in the block list
     for (RawBlock *block : blocks) {
       ArrowBlockMetadata &metadata = curr_data_table->accessor_.GetArrowBlockMetadata(block);
+
+      // first pass: record var len data
       for (auto i = 0u; i < col_num; i++) {
         col_id_t col_id = column_ids[i];
         ArrowColumnInfo &col_info = metadata.GetColumnInfo(layout, col_id);
@@ -108,11 +110,7 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
           f.write(reinterpret_cast<const char *>(varlen_col.Values()), value_len);
         }
       }
-    }
-
-    // record all dict cols data
-    for (RawBlock *block : blocks) {
-      ArrowBlockMetadata &metadata = curr_data_table->accessor_.GetArrowBlockMetadata(block);
+      // second pass: record dictionary data
       for (auto i = 0u; i < col_num; i++) {
         col_id_t col_id = column_ids[i];
         ArrowColumnInfo &col_info = metadata.GetColumnInfo(layout, col_id);
@@ -125,11 +123,7 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
           f.write(reinterpret_cast<const char *>(indices), num_slots * sizeof(uint64_t));
         }
       }
-    }
-
-    // record block contents
-    for (RawBlock *block : blocks) {
-      std::cout << "content" << std::endl;
+      //record block headers and contents
       uint16_t padding = block->padding_;
       layout_version_t layout_version = block->layout_version_;
       uint32_t insert_head = block->insert_head_;
@@ -137,7 +131,10 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
       f.write(reinterpret_cast<const char *>(&padding), sizeof(uint16_t));
       f.write(reinterpret_cast<const char *>(&layout_version), sizeof(layout_version_t));
       f.write(reinterpret_cast<const char *>(&insert_head), sizeof(uint32_t));
+
     }
+
+
   }
 }
 
