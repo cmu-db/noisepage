@@ -33,10 +33,6 @@ TEST_F(PostgresProtocolUtilTests, TypeConversionTest) {
     EXPECT_NE(PostgresValueType::INVALID, postgres_type);
     EXPECT_EQ(internal_type, orig_internal_type);
   }
-
-  // Check that we get an exception if we try to cast something that we don't handle
-  EXPECT_THROW(PostgresProtocolUtil::PostgresValueTypeToInternalValueType(PostgresValueType::INVALID),
-               NetworkProcessException);
 }
 
 }  // namespace terrier::network
