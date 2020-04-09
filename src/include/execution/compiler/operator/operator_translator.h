@@ -30,6 +30,11 @@ class OperatorTranslator : public ExpressionEvaluator {
   virtual ~OperatorTranslator() = default;
 
   /**
+   * @returns child translator
+   */
+  OperatorTranslator *GetChildTranslator() const { return child_translator_; }
+
+  /**
    * Add top-level struct declarations
    * @param decls list of top-level declarations
    */

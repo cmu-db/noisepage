@@ -15,13 +15,13 @@
 #include "execution/util/cpu_info.h"
 #include "execution/vm/module.h"
 #include "loggers/loggers_util.h"
-#include "planner/plannodes/seq_scan_plan_node.h"
 #include "main/db_main.h"
 #include "optimizer/cost_model/forced_cost_model.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/optimizer.h"
 #include "optimizer/properties.h"
 #include "optimizer/query_to_operator_transformer.h"
+#include "planner/plannodes/seq_scan_plan_node.h"
 #include "traffic_cop/traffic_cop_util.h"
 
 namespace terrier::runner {
@@ -830,7 +830,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinNonSelfRunners)(benchmark::State &s
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, build_row, 4 * num_col, num_col,
                            build_car);
     pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, probe_row, 4 * num_col, num_col, probe_car);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, probe_row, 4 * num_col, num_col, matched_car);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, probe_row, 4 * num_col, num_col,
+                           matched_car);
     pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, matched_car, 4, 1, matched_car);
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
@@ -855,7 +856,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinNonSelfRunners)(benchmark::State &s
       }
     }
 
-    auto f = std::bind(&MiniRunners::JoinNonSelfCorrector, this, build_tbl, std::placeholders::_1, std::placeholders::_2);
+    auto f =
+        std::bind(&MiniRunners::JoinNonSelfCorrector, this, build_tbl, std::placeholders::_1, std::placeholders::_2);
     BenchmarkSqlStatement(query.str(), &units, std::make_unique<optimizer::ForcedCostModel>(true), true, f);
     metrics_manager_->Aggregate();
     metrics_manager_->UnregisterThread();

@@ -485,10 +485,17 @@ ExecutionOperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
   pipeline_features_ = {};
   for (const auto &translator : translators) {
     plan_feature_type_ = translator->GetFeatureType();
-    if (plan_feature_type_ != ExecutionOperatingUnitType::INVALID &&
-        plan_feature_type_ != ExecutionOperatingUnitType::OUTPUT) {
-      translator->Op()->Accept(common::ManagedPointer<planner::PlanVisitor>(this));
-      TERRIER_ASSERT(arithmetic_feature_types_.empty(), "aggregate_feature_types_ should be empty");
+    if (plan_feature_type_ != ExecutionOperatingUnitType::INVALID) {
+      if (plan_feature_type_ == ExecutionOperatingUnitType::OUTPUT) {
+        TERRIER_ASSERT(translator->GetChildTranslator(), "OUTPUT should have child translator");
+        auto *op = translator->GetChildTranslator()->Op();
+        auto num_keys = op->GetOutputSchema()->GetColumns().size();
+        auto key_size = ComputeKeySizeOutputSchema(op);
+        AggregateFeatures(plan_feature_type_, key_size, num_keys, op, 1);
+      } else {
+        translator->Op()->Accept(common::ManagedPointer<planner::PlanVisitor>(this));
+        TERRIER_ASSERT(arithmetic_feature_types_.empty(), "aggregate_feature_types_ should be empty");
+      }
     }
   }
 

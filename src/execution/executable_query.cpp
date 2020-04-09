@@ -42,8 +42,7 @@ ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractP
 }
 
 ExecutableQuery::ExecutableQuery(const std::string &contents,
-                                 const common::ManagedPointer<exec::ExecutionContext> exec_ctx,
-                                 bool is_file) {
+                                 const common::ManagedPointer<exec::ExecutionContext> exec_ctx, bool is_file) {
   std::string source;
   if (is_file) {
     auto file = llvm::MemoryBuffer::getFile(contents);
