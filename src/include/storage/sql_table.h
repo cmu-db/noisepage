@@ -300,9 +300,9 @@ class SqlTable {
 
   /**
    * Creates a new datatble version given the schema and version number
-   * @param schema Schema of
-   * @param store
-   * @param version
+   * @param schema the initial Schema of this SqlTable
+   * @param store the Block store to use.
+   * @param version Schema version of the created/updated table version
    * @return DataTableVersion
    */
   DataTableVersion CreateTable(common::ManagedPointer<const catalog::Schema> schema,
