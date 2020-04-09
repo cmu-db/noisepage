@@ -852,12 +852,15 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
 
       // Get Recovered table
       auto *recovery_txn = recovery_txn_manager_->BeginTransaction();
-      auto db_catalog = recovery_catalog_->GetDatabaseCatalog(common::ManagedPointer(recovery_txn), database_oid);
-      EXPECT_TRUE(db_catalog != nullptr);
-      auto recovered_sql_table = db_catalog->GetTable(common::ManagedPointer(recovery_txn), table_oid);
+      auto recovered_db_catalog = recovery_catalog_->GetDatabaseCatalog(common::ManagedPointer(recovery_txn), database_oid);
+      EXPECT_TRUE(recovered_db_catalog != nullptr);
+      auto recovered_sql_table = recovered_db_catalog->GetTable(common::ManagedPointer(recovery_txn), table_oid);
       EXPECT_TRUE(recovered_sql_table != nullptr);
+
+      auto original_it = original_sql_table->begin();
       for (auto it = recovered_sql_table->begin(); it != recovered_sql_table->end(); it++) {
-        recovery_manager.tuple_slot_map_[*it] = *it;
+        recovery_manager.tuple_slot_map_[*original_it] = *it;
+        original_it ++;
       }
       EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
           GetBlockLayout(original_sql_table), original_sql_table, recovered_sql_table,
