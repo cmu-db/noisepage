@@ -119,7 +119,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'sudo apt-get -y install ccache'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j$(nproc)'
+                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
 //                         sh 'cd build && make check-clang-tidy'
 //                         sh 'cd build && timeout 1h make unittest'
 //                         sh 'cd build && timeout 1h make check-tpl'
@@ -186,7 +186,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'sudo apt-get -y install ccache'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j$(nproc)'
+                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
 //                         sh 'cd build && make check-clang-tidy'
 //                         sh 'cd build && timeout 1h make unittest'
 //                         sh 'cd build && timeout 1h make check-tpl'
@@ -275,7 +275,7 @@ pipeline {
 //                 }
             }
         }
-        stage('E2E Test') {
+        stage('End-to-End Test') {
             parallel{
                 stage('macos-10.14/AppleClang-1001.0.46.4 (Debug/e2etest/oltpbench)') {
                     agent { label 'macos' }
@@ -289,6 +289,8 @@ pipeline {
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
                         sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release'
+                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=release'
+                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=release'
                     }
                     post {
                         cleanup {
@@ -309,6 +311,8 @@ pipeline {
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
                         sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release'
+                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=release'
+                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=release'
                     }
                     post {
                         cleanup {
