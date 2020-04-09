@@ -8,6 +8,7 @@ Files/folders that will be modified:
    - storage/recovery/recovery_manager
    - storage/catalog/*
    - storage/recovery_test
+
 New files/folder:
    - storage/checkpoint/*
 
@@ -17,6 +18,14 @@ Our implementation is divided into three sections: checkpoint formatting, creati
 ### Checkpoint Formatting
 We are still debating on whether to use the internal Arrow format or our own recovery format. The Arrow format would be defined in arrow_serializer, which is being used to dump tables for data analysis.
 Currently, our checkpoint has the following header format, followed by data table content:
+```
+   * -----------------------------------------------------------------------------------------------------------------
+   * | data_table *(64) | padding (16) | layout_version (16) | insert_head (32) |        control_block (64)          |
+   * -----------------------------------------------------------------------------------------------------------------
+   * | ArrowBlockMetadata | attr_offsets[num_col] (32) | bitmap for slots (64-bit aligned) | data (64-bit aligned)   |
+   * -----------------------------------------------------------------------------------------------------------------
+   *
+```
 
 ### Creating Checkpoints
 We plan to take checkpoints on an epoch-based rule. Checkpoints will be taken in intervals by scanning through every table. For each data table, we write its content specified by the format mentioned above into a single file. Therefore, a single checkpoint would contain a series of data table files. Eventually, we will write all these data table files into a single file to avoid exploding the filesystem.
