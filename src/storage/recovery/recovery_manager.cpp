@@ -170,11 +170,11 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
 
     // Now we have all the blocks and metadata, so we can recover the table
     // Create the new table
-    SqlTable *new_table = new SqlTable(accessor->GetBlockStore(), accessor->GetSchema(table_oid), blocks);
-    accessor->SetTablePointer(table_oid, new_table);
+    auto sql_table = accessor->GetTable(table_oid);
+    sql_table->table_.data_table_ = new DataTable(accessor->GetBlockStore(), sql_table->table_.layout_, layout_version_t(0), blocks);
   }
-  std::cout << "ok" << std::endl;
   txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  std::cout << "ok" << std::endl;
 }
 
 void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestamp_t txn_id, bool catalog_only) {
