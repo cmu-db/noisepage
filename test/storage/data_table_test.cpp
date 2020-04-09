@@ -610,7 +610,6 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
   }
 }
 
-
 TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
   const uint32_t num_iterations = 10;
   const uint32_t num_threads = std::thread::hardware_concurrency();
@@ -618,22 +617,21 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
   const uint32_t object_pool_size = 100000;
   common::DedicatedThreadRegistry registry(DISABLED);
   std::vector<int> cpu_ids;
-  for (int i = 0; i < static_cast<int>(std::thread::hardware_concurrency()); i++)
-    cpu_ids.emplace_back(i);
+  for (int i = 0; i < static_cast<int>(std::thread::hardware_concurrency()); i++) cpu_ids.emplace_back(i);
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
 
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
     // make sure we test the edge case where a block is filled
     uint32_t num_inserts = iteration == 0
-                           ? tested.Layout().NumSlots()
-                           : std::uniform_int_distribution<uint32_t>(1, tested.Layout().NumSlots())(generator_);
+                               ? tested.Layout().NumSlots()
+                               : std::uniform_int_distribution<uint32_t>(1, tested.Layout().NumSlots())(generator_);
 
     if (num_inserts > object_pool_size / num_threads) num_inserts = object_pool_size / num_threads;
 
     std::promise<void> threads[num_threads];
     for (uint32_t t = 0; t < num_threads; t++) {
-      thread_pool.SubmitTask(&threads[t],[&] {
+      thread_pool.SubmitTask(&threads[t], [&] {
         // Populate the table with random tuples
         for (uint32_t i = 0; i < num_inserts; i++) {
           tested.InsertRandomTuple(transaction::timestamp_t(0), &generator_, &buffer_pool_);
@@ -677,31 +675,34 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
 
     for (uint32_t i = 0; i < numa_regions.size(); i++) {
       storage::numa_region_t numa_region = numa_regions[i];
-      thread_pool.SubmitTask(&numa_threads[i], [&, numa_region] {
-        storage::ProjectedColumnsInitializer initializer(tested.Layout(), all_cols, 10 * num_inserts * num_threads);
-        auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
-        storage::ProjectedColumns *columns = initializer.Initialize(buffer);
-        tested.NUMAScan(transaction::timestamp_t(1), columns, &initializer, &buffer_pool_);
-        EXPECT_EQ(columns->NumTuples(), num_inserts * num_threads);
-        for (auto it = tested.GetTable().begin(numa_region); it != tested.GetTable().end(numa_region); it++) {
-          counted_numa_iteration++;
-          EXPECT_NE((*it).GetBlock(), nullptr);
-          EXPECT_EQ((*it).GetBlock()->numa_region_, numa_region);
+      thread_pool.SubmitTask(
+          &numa_threads[i],
+          [&, numa_region] {
+            storage::ProjectedColumnsInitializer initializer(tested.Layout(), all_cols, 10 * num_inserts * num_threads);
+            auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
+            storage::ProjectedColumns *columns = initializer.Initialize(buffer);
+            tested.NUMAScan(transaction::timestamp_t(1), columns, &initializer, &buffer_pool_);
+            EXPECT_EQ(columns->NumTuples(), num_inserts * num_threads);
+            for (auto it = tested.GetTable().begin(numa_region); it != tested.GetTable().end(numa_region); it++) {
+              counted_numa_iteration++;
+              EXPECT_NE((*it).GetBlock(), nullptr);
+              EXPECT_EQ((*it).GetBlock()->numa_region_, numa_region);
 #ifndef __APPLE__
-          if (numa_available() != -1) {
-            int status;
-            auto *page = static_cast<void *>((*it).GetBlock());
-            if (move_pages(0, 1, &page, NULL, &status, 0) != -1) {
-              EXPECT_EQ(static_cast<int>(static_cast<int16_t>(numa_region)), status);
-            } else {
-              EXPECT_TRUE(numa_available_unsupported);
-            }
-          }
+              if (numa_available() != -1) {
+                int status;
+                auto *page = static_cast<void *>((*it).GetBlock());
+                if (move_pages(0, 1, &page, NULL, &status, 0) != -1) {
+                  EXPECT_EQ(static_cast<int>(static_cast<int16_t>(numa_region)), status);
+                } else {
+                  EXPECT_TRUE(numa_available_unsupported);
+                }
+              }
 #endif
-        }
+            }
 
-        delete[] buffer;
-      }, numa_region);
+            delete[] buffer;
+          },
+          numa_region);
     }
 
     for (uint32_t i = 0; i < numa_regions.size(); i++) {

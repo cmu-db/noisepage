@@ -122,7 +122,7 @@ TEST(ExecutionThreadPoolTests, MoreTest) {
 TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
   common::DedicatedThreadRegistry registry(DISABLED);
   std::vector<int> cpu_ids;
-    uint32_t iteration = 10, num_threads = std::thread::hardware_concurrency();
+  uint32_t iteration = 10, num_threads = std::thread::hardware_concurrency();
 
   for (uint32_t thread = 0; thread < num_threads; thread++) {
     cpu_ids.emplace_back(static_cast<int32_t>(thread));
@@ -153,7 +153,8 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
       };
 #else
       auto this_cpu_id = i;
-      storage::numa_region_t numa_hint UNUSED_ATTRIBUTE = static_cast<storage::numa_region_t>(numa_node_of_cpu(this_cpu_id));
+      storage::numa_region_t numa_hint UNUSED_ATTRIBUTE =
+          static_cast<storage::numa_region_t>(numa_node_of_cpu(this_cpu_id));
       auto workload = [&, numa_hint, this_cpu_id]() {
         auto temp_i UNUSED_ATTRIBUTE = static_cast<int16_t>(this_cpu_id);
         auto temp UNUSED_ATTRIBUTE = static_cast<int16_t>(numa_hint);
