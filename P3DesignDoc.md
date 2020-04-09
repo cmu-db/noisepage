@@ -63,16 +63,57 @@ Here we added API for CreateConstraints and added that into the ddlexecutor when
 ### Constraint Checking during Insertion
 >storage/data_table.h
 
+During the insertion, and deletion, we want to add code to the existing API to enforce the constraints. 
+
+During Insertion, we check for:
+* UNIQUE Constraints
+* NOT NULL constraints on the projected vector
+* FOREIGN KEY constraints to ensure their foreign key matches
+
+During Update and Deletion we check for:
+* FOREIGN KEY cascade if necessary
+
+### Constraint Class APIs for check
+>catalog/pg_constraint.h
+**Constraint Modifier** - modify the constraints by their id
+* Constraint Getter - get the constraints by oid, table and by type
+* Constraint Setter/Updater - set and update according to the table id and constraint id
+* Constraint Deletion - delete constraints by table_oid/constraint_oid
+
+**Constraint Enforcer** - check and enfoce constraint during operation
+* Constraint checker for NULL on different types of data and different def of NULL
+* Constraint checker for FOREIGN KEY/UNIQUE: comparator for equality among different data types
+* Constraint checker for PRIMARY KEY: implied check for their UNIQUE and NOT NULL property
+* Constraint CASCAD: going recursively from child constraint to parent table and modify CASCADE
+
 ## Design Rationale
 The primary focus is to align with what other postgres APIs such as ph_index and pg_namespace are currently formulated. We want to make sure that their creation, check and modification are positioned under the same files with similar APIs to ensure consistency. At the same time we still want a separate pg_constratin class module to encapsulate the specific constratin checking logic to isolate that from the other modules but can be accessed from the same API call style.
 
 
 
 ## Testing Plan
->How should the component be tested?
+**Runtime testing**
+Runtime testing is the basic and most straight-forward way to test constraint. We will have automated terminal loading and enter the SQL statement for creation, INSERTION and DELETE and check if the constraints are enfoced during the process. We will also check for resistence on the conflicting statements such as FOREIGN KEY on a non-key parent.
+
+**Unit Testing**
+unittesting is meant to ensure that each of our module are correctly implement and behaves correctly under different edge cases and concurrency. (More to add as development moves to FOREIGN KEY)
+
+**Performance Testing**
+We also want to create benchmark test to look for potential bottleneck or overhead in our implementation that migh hurdle the overall performance and try to address in case the constraint is in a hot area.
 
 ## Trade-offs and Potential Problems
->Write down any conscious trade-off you made that can be problematic in the future, or any problems discovered during the design process that remain unaddressed (technical debts).
+The original (abandoned) plan was to create a completely separate hash table structure and manager for the constraint instead of utilizing a table to manage constraint. This could further isolate constraint API and utilization from other parts of the code and make them more modular, we choose not to use this for two reason: 
+* It adds additional overhead for checkpoint and concurrency, as additional component are frozen for checkpoint and update and might create additional bottleneck for optimization. 
+* Secondly, the constraints are not aligned with the format of other components which makes harder to manage through a consistent API format for where and how APIs are located and called.
 
 ## Future Work
->Write down future work to fix known problems or otherwise improve the component.
+This would be a TODO list and will keep updating:
+* Create the above mentioned Constraint class for all APIs
+* Implement NOT NULL Constraint
+* Implement the FOREIGN KEY Constraint
+* Implement FOREIGN KEY to support CASCADE
+* Write the runtime test queries and expected result
+* Write the unittest for edge cases on both constraints
+* Implement support for planning for ALTER constraint statement
+* Implement online ALTER statement on constraints
+* Write the benchmark test
