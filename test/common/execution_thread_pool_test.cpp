@@ -125,6 +125,7 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
 //  uint32_t iteration = 10, num_threads = std::thread::hardware_concurrency();
   // TEMPORARY TEST
   uint32_t iteration = 10;
+  uint32_t num_threads = 4;
   uint32_t threads[4] = {0, 1, 38, 39};
   // END TEMPORARY TEST
   for (auto thread : threads) {
