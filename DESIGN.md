@@ -14,6 +14,8 @@ The goal of this project is to add schema change functionality to Terrier, and d
 
 150%: Codegen layer to precompile tuple transformations.
 
+We have yet to design our system for unsafe schema changes and precompilation. In this design doc we will focus on the 75% and 100% goals.
+
 ## Scope
 
 Our project will mainly modify Sqltable and Catalog. Sqltable will be modified to handle multiple datatables . The datatables are transparent to the users of Sqltable,  who view Sqltable as a logical table with multiple versions. All functions in the Sqltable API (such as insert/delete/update/scan/begin/end/projectmapforoids) are augmented with an extra argument, layout_version. layout_version tells Sqltable which version of the table the function is targeted to.
@@ -26,15 +28,40 @@ We will also make minor changes to upper levels of Terrier, such the execution l
 
 ## Architectural Design
 
-Each Sqltable has a separate version number counter, managed by the catalog. Each Sqltable starts out with version number 0, and manages a single datatable. When UpdateSchema() is called, the version number is incremented, and we create a new datatable via SqlTable::CreateTable(), which is the intended location for all tuples under the new schema. Note that within a Sqltable, each datatable uniquely corresponds to a version number and a schema, both of which never change. Therefore, in each datatable, we store its version number and a map specifying the default values of columns in its schema. 
+To manage multiple datatables, each Sqltable keeps a ordered map (tables_) from version number to a struct containing the metadata of each datatable (called DataTableVersion). 
 
-To manage multiple datatables, each Sqltable keeps a ordered map from version number to datatable. We will make this map 
+Note that in the vast majority of cases, there will be no schema changes, and each Sqltable manages only one Datatable. If we need to go through tables_, which is a concurrent map (or vector), on each call to Sqltable, that will be a huge overhead. Therefore, we will cache the DataTable in the SqlTable when there is only one DataTable to bypass the map/vector lookup.
 
-To do an SQL query such as updating a tuple, a transaction first uses the index on Sqltable to find the tupleslot of the tuple (note that when we update the index when migrating tupeslots). We can get the raw block from the top 44 bits of the tupleslot, and the raw block has reference to the datatable of the tupleslot.  
+Each Sqltable has a separate version number counter, managed by the catalog. Each Sqltable starts out with version number 0, and manages a single datatable. When UpdateSchema() is called, the version number is incremented, and we create a new datatable via SqlTable::CreateTable(), which is the intended location for all tuples under the new schema. Note that within a Sqltable, each datatable uniquely corresponds to a version number and a schema, both of which never change. Therefore, in each datatable, we store its version number.  Moreover, for each datatable within Sqltable,  we store in DataTableVersion its schema, a map specifying the default values of columns in its schema, and maps from column oid to id and id to oid.
 
-We store within each datatable a layout_version. Note that apart from the 
+To do an SQL query such as updating a tuple, a transaction first uses the index on Sqltable to find the tupleslot of the tuple (note that when we update the index when migrating tupeslots). We can get the raw block from the top 44 bits of the tupleslot, and the raw block has reference to the datatable of the tupleslot.   Thus we know the version number of the datatable the tuple is current stored in, call this the *storage_version*.
 
-In Sqltable, we use a concurrent hashmap to map layout_version to datatables.
+Each SQL query also comes with an argument, version_number, which is the schema version of the Sqltable that should be seen by the current transaction. Let us call these versions *intended_version*. 
+
+To migrate a tuple with primary key *K* from an older datatable to a newer datatable, we first logically delete the tuple from the older datatable with the current transaction's timestamp, then insert the tuple to the newer datatable. Note that the old tupleslot for *K* has been deleted and a new tupleslot was created. We will update the index by logically deleting *K* then inserting *K* with the new tupleslot.
+
+Note that *storage_version* might be smaller than *intended_version*, which occurs if a transaction accesses a tuple of a newer schema version, but the tuple has not yet been migrated over from old datatables. Different Sqltable operations deal with this special case of  *storage_version < intended_version* differently, as we will  describe below.
+
+#### Sqltable::insert 
+
+There is no *storage_version* in this case. We directly insert to the table corresponding to *intended_version*.
+
+#### Sqltable::delete
+
+Whether *storage_version < intended_version* or *storage_version = intended_version*, we always logically delete the tuple from the datatable it is currently stored in.
+
+#### Sqltable::update
+
+If *storage_version < intended_version* we will read the tuple from the old datatable, do tuple transformation to new schema and update the tuple, then logically delete it from the old datatable  (corresponding to 
+*storage_version*) and then insert it to the new datatable (corresponding to *intended_version*).  We will return the old tupleslot and the new tupleslot to the execution layer, which will update the index as described above.
+
+#### Sqltable::scan
+
+Note that each tuple might physically exist in multiple datatables under a single Sqltable. However, for each transaction, only one copy of each tuple is visible across all datatables (we guarantee this by always logically deleting a tuple before migration).
+
+Therefore, scan works by scanning all datatables in order. Recall that tables_ is an ordered map, so we can simply scan from tables_.begin() to tables_.end(). We will scan each datatable fully, can jump to the next datatable when we reach the end. It is possible that we need to revise the order to scan from tables_.end() to tables_.begin(), because in the special case that a single transaction interleaves scanning with updating, we might scan the same tuple twice (it is first scanned, then migrated to the end of tables_, then scanned again).
+
+#### Tuple Transformation
 
 ## Design Rationale
 
