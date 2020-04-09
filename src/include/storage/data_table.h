@@ -19,6 +19,7 @@ class TransactionManager;
 }  // namespace terrier::transaction
 
 namespace terrier::storage {
+class SqlTable;
 
 namespace index {
 class Index;
@@ -143,10 +144,13 @@ class DataTable {
   // Alternatively, we can provide an easy wrapper that takes in a const SlotIterator & and returns a SlotIterator,
   // just like the ++i and i++ dichotomy.
   /**
-   * Sequentially scans the table starting from the given iterator(inclusive) and materializes as many tuples as would
+   * Sequentially scans the table starting from the given iterator(inclusive) and materializes as many tuples as
+   would
    * fit into the given buffer, as visible to the transaction given, according to the format described by the given
-   * output buffer. The tuples materialized are guaranteed to be visible and valid, and the function makes best effort
-   * to fill the buffer, unless there are no more tuples. The given iterator is mutated to point to one slot passed the
+   * output buffer. The tuples materialized are guaranteed to be visible and valid, and the function makes best
+   effort
+   * to fill the buffer, unless there are no more tuples. The given iterator is mutated to point to one slot passed
+   the
    * last slot scanned in the invocation.
    *
    * @param txn the calling transaction
@@ -236,10 +240,18 @@ class DataTable {
   // The block compactor elides transactional protection in the gather/compression phase and
   // needs raw access to the underlying table.
   friend class BlockCompactor;
+  // The SqlTable needs to access the layout version
+  friend class SqlTable;
 
   const common::ManagedPointer<BlockStore> block_store_;
   const layout_version_t layout_version_;
   const TupleAccessStrategy accessor_;
+
+  // TODO(Schema-Change)
+  // Singly-linked list for tables with different version?
+  std::atomic<DataTable *> next_table_ = nullptr;
+  // Or pointer to the SqlTable which has information about different versions?
+  const SqlTable *sql_table_ = nullptr;
 
   // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
   // new one when the current one is full. Needless to say, we will need to revisit this when extending GC to handle

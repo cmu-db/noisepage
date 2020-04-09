@@ -5,6 +5,7 @@
 #include <random>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -267,6 +268,57 @@ class StorageTestUtil {
     if (one.Size() != other.Size()) return false;
     return memcmp(one.Content(), other.Content(), one.Size()) == 0;
   }
+
+  template <class RowType1, class RowType2>
+  static bool ProjectionListEqualShallowMatchSchema(const storage::BlockLayout &layout1, const RowType1 *const one,
+                                                    const storage::ProjectionMap &oid_map1,
+                                                    const storage::BlockLayout &layout2, const RowType2 *const other,
+                                                    const storage::ProjectionMap &oid_map2,
+                                                    const std::unordered_set<catalog::col_oid_t> &add_cols,
+                                                    const std::unordered_set<catalog::col_oid_t> &drop_cols) {
+    EXPECT_EQ(one->NumColumns(), other->NumColumns());
+    if (one->NumColumns() != other->NumColumns()) return false;
+
+    for (const auto &itr : oid_map1) {
+      auto oid1 = itr.first;
+      auto idx1 = itr.second;
+      if (drop_cols.find(oid1) != drop_cols.end()) {
+        auto idx2 = oid_map2.at(oid1);
+        storage::col_id_t one_id = one->ColumnIds()[idx1];
+        storage::col_id_t other_id = other->ColumnIds()[idx2];
+        EXPECT_EQ(one_id, other_id);
+        if (one_id != other_id) return false;
+
+        // Check that the two have the same content bit-wise
+        uint8_t attr_size = layout1.AttrSize(one_id);
+        const byte *one_content = one->AccessWithNullCheck(idx1);
+        const byte *other_content = other->AccessWithNullCheck(idx2);
+        // Either both are null or neither is null.
+        if (one_content == nullptr || other_content == nullptr) {
+          EXPECT_EQ(one_content, other_content);
+          if (one_content == other_content) continue;
+          return false;
+        }
+        // Otherwise, they should be bit-wise identical.
+        if (memcmp(one_content, other_content, attr_size) != 0) return false;
+      } else {  // Column is dropped
+        // a dropped column should not exists in the map
+        EXPECT_EQ(oid_map2.find(oid1), oid_map2.end());
+        if (oid_map2.find(oid1) != oid_map2.end()) return false;
+      }
+    }
+
+    // Check for added columns
+    // TODO(Schema-change): how to check for the default value?
+    for (auto &added : add_cols) {
+      EXPECT_EQ(oid_map1.find(added), oid_map1.end());
+      if (oid_map1.find(added) != oid_map1.end()) return false;
+    }
+
+    return true;
+  }
+
+  static void SetOid(catalog::Schema::Column *col, catalog::col_oid_t oid) { col->SetOid(oid); }
 
   template <class RowType1, class RowType2>
   static bool ProjectionListEqualDeep(const storage::BlockLayout &layout, const RowType1 *const one,

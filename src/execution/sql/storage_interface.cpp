@@ -62,7 +62,7 @@ bool StorageInterface::TableDelete(storage::TupleSlot table_tuple_slot) {
 bool StorageInterface::TableUpdate(storage::TupleSlot table_tuple_slot) {
   exec_ctx_->RowsAffected()++;  // believe this should only happen in root plan nodes, so should reflect count of query
   table_redo_->SetTupleSlot(table_tuple_slot);
-  return table_->Update(exec_ctx_->GetTxn(), table_redo_);
+  return table_->Update(exec_ctx_->GetTxn(), table_redo_).first;
 }
 
 bool StorageInterface::IndexInsert() {

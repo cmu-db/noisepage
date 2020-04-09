@@ -20,6 +20,9 @@
 #include "storage/write_ahead_log/log_io.h"
 #include "transaction/transaction_defs.h"
 
+namespace terrier::parser {
+class AbstractExpression;
+}
 namespace terrier::storage {
 
 // In type_util.h there are a total of 5 possible inlined attribute sizes:
@@ -37,6 +40,7 @@ STRONG_TYPEDEF(layout_version_t, uint16_t);
 // This is not to be confused with a non-null version vector that has value nullptr (0).
 
 constexpr col_id_t VERSION_POINTER_COLUMN_ID = col_id_t(0);
+constexpr col_id_t IGNORE_COLUMN_ID = col_id_t(UINT16_MAX);
 constexpr uint8_t NUM_RESERVED_COLUMNS = 1;
 
 class DataTable;
@@ -198,7 +202,12 @@ using BlockStore = common::ObjectPool<RawBlock, BlockAllocator>;
 /**
  * Used by SqlTable to map between col_oids in Schema and col_ids in BlockLayout
  */
-using ColumnMap = std::unordered_map<catalog::col_oid_t, col_id_t>;
+using ColumnOidToIdMap = std::unordered_map<catalog::col_oid_t, col_id_t>;
+/**
+ * Used by SqlTable to map between col_ids in BlockLayout and col_oids in Schema
+ */
+using ColumnIdToOidMap = std::unordered_map<col_id_t, catalog::col_oid_t>;
+using DefaultValueMap = std::unordered_map<col_id_t, common::ManagedPointer<const parser::AbstractExpression>>;
 /**
  * Used by execution and storage layers to map between col_oids and offsets within a ProjectedRow
  */
