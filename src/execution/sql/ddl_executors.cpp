@@ -101,9 +101,10 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
 }
 
 bool DDLExecutors::CreateIndexExecutor(const common::ManagedPointer<planner::CreateIndexPlanNode> node,
-                                       const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
+                                       const common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                                       terrier::transaction::TransactionContext *populate_txn) {
   return CreateIndex(accessor, node->GetNamespaceOid(), node->GetIndexName(), node->GetTableOid(),
-                     *(node->GetSchema()));
+                     *(node->GetSchema()), populate_txn);
 }
 
 bool DDLExecutors::DropDatabaseExecutor(const common::ManagedPointer<planner::DropDatabasePlanNode> node,
@@ -139,7 +140,8 @@ bool DDLExecutors::DropIndexExecutor(const common::ManagedPointer<planner::DropI
 
 bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAccessor> accessor,
                                const catalog::namespace_oid_t ns, const std::string &name,
-                               const catalog::table_oid_t table, const catalog::IndexSchema &input_schema) {
+                               const catalog::table_oid_t table, const catalog::IndexSchema &input_schema,
+                               terrier::transaction::TransactionContext *populate_txn) {
   // Request permission from the Catalog to see if this a valid namespace and table name
   const auto index_oid = accessor->CreateIndex(ns, table, name, input_schema);
   if (index_oid == catalog::INVALID_INDEX_OID) {
