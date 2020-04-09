@@ -7,6 +7,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <filesystem>
 
 #include "catalog/postgres/pg_attribute.h"
 #include "catalog/postgres/pg_class.h"
@@ -82,8 +83,11 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
 
   // Get all table oids
   auto table_oids = accessor->GetAllTableOids();
-  for (auto &table_oid : table_oids) {
+  for (auto file_entry : std::filesystem::directory_iterator(path)) {
     // Find the table
+    catalog::table_oid_t table_oid;
+    std::string in_file = file_entry.path();
+    Checkpoint::GenOidFromFileName(in_file.substr(path.length(), in_file.length()), db_oid, table_oid);
     common::ManagedPointer<storage::SqlTable> table = accessor->GetTable(table_oid);
     auto &data_table = table->table_.data_table_;
     // const auto &layout = data_table->GetBlockLayout();
@@ -91,9 +95,8 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
     // auto col_num = column_ids.size();
 
     // Find the file
-    std::string in_file = Checkpoint::GenFileName(db_oid, table_oid);
     std::ifstream f;
-    f.open(path + in_file, std::ios::binary);
+    f.open(in_file, std::ios::binary);
 
     // Get our metadata first
     unsigned long block_num;

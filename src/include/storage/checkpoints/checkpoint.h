@@ -48,6 +48,13 @@ class Checkpoint {
     return std::to_string((uint32_t)db_oid) + "-" + std::to_string((uint32_t)tb_oid);
   }
 
+
+  static void GenOidFromFileName(std::string file_name, catalog::db_oid_t& db_oid, catalog::table_oid_t& tb_oid) {
+    auto sep_ind = file_name.find("-");
+    db_oid = (catalog::db_oid_t)std::stoi(file_name.substr(0, sep_ind));
+    tb_oid = (catalog::table_oid_t)std::stoi(file_name.substr(sep_ind + 1, file_name.length()));
+  }
+
   static const std::vector<std::string> StringSplit(const std::string &s, const char &c) {
     std::string buff{""};
     std::vector<std::string> v;
