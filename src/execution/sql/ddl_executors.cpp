@@ -150,8 +150,10 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   const auto &schema = accessor->GetIndexSchema(index_oid);
   // Instantiate an Index and update the pointer in the Catalog
   storage::index::IndexBuilder index_builder;
+  index_builder.SetSqlTableAndTransactionContext(accessor->GetTable(table), accessor->GetTransactionContext());
   index_builder.SetKeySchema(schema);
   auto *const index = index_builder.Build();
+
   bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
   TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
   return true;

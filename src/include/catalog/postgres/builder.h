@@ -225,6 +225,7 @@ class Builder {
     TERRIER_ASSERT(key_schema.Unique(), "KeySchema must represent a unique index.");
     storage::index::IndexBuilder index_builder;
     index_builder.SetKeySchema(key_schema);
+    index_builder.SetSqlTableAndTransactionContext(nullptr, nullptr);
     return index_builder.Build();
   }
 
@@ -238,6 +239,7 @@ class Builder {
     TERRIER_ASSERT(!(key_schema.Unique()), "KeySchema must represent a non-unique index.");
     storage::index::IndexBuilder index_builder;
     index_builder.SetKeySchema(key_schema);
+    index_builder.SetSqlTableAndTransactionContext(nullptr, nullptr);
     return index_builder.Build();
   }
 };

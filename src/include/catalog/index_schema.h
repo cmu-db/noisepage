@@ -36,7 +36,7 @@ class Builder;
 
 /**
  * A schema for an index.  It contains the definitions for the columns in the
- * key as well as additional metdata.
+ * key as well as additional metadata.
  */
 class IndexSchema {
  public:
