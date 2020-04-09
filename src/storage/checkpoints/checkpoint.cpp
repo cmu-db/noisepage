@@ -6,7 +6,6 @@
 namespace terrier::storage {
 
 bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db) {
-  std::cout << "here" << std::endl;
   // get db catalog accessor
   auto accessor = catalog_->GetAccessor(txn_, db);
   std::unordered_set<catalog::table_oid_t> table_oids = accessor->GetAllTableOids();
@@ -69,6 +68,7 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
       std::cout << "block num: " << block_num << std::endl;
       std::cout << "var col num: " << var_col_num << std::endl;
       std::cout << "dict col num: " << dict_col_num << std::endl;
+
       ArrowBlockMetadata &metadata = curr_data_table->accessor_.GetArrowBlockMetadata(blocks.front());
       // count dict_col num
       for (auto i = 0u; i < col_num; i++) {
@@ -78,6 +78,7 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
           dict_col_num += 1;
         }
       }
+      std::cout << "dict col num: " << dict_col_num <<std::endl;
       f.write(reinterpret_cast<const char *>(&block_num), sizeof(unsigned long));
       f.write(reinterpret_cast<const char *>(&var_col_num), sizeof(unsigned long));
       f.write(reinterpret_cast<const char *>(&dict_col_num), sizeof(unsigned long));
@@ -128,7 +129,14 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
 
     // record block contents
     for (RawBlock *block : blocks) {
+      std::cout << "content" << std::endl;
+      uint16_t padding = block->padding_;
+      layout_version_t layout_version = block->layout_version_;
+      uint32_t insert_head = block->insert_head_;
       f.write(reinterpret_cast<const char *>(block->content_), sizeof(block->content_));
+      f.write(reinterpret_cast<const char *>(&padding), sizeof(uint16_t));
+      f.write(reinterpret_cast<const char *>(&layout_version), sizeof(layout_version_t));
+      f.write(reinterpret_cast<const char *>(&insert_head), sizeof(uint32_t));
     }
   }
 }
