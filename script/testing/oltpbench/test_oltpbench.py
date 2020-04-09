@@ -135,8 +135,19 @@ class TestOLTPBench(TestServer):
         xml.write(self.xml_config)
 
     def validate_result(self):
-        # read the results file
-        print("\n".join(os.listdir(os.path.dirname(self.oltpbench_result_path))))
+        """read the results file"""
+        
+        # Make sure the file exists before we try to open it.
+        # If it's not there, we'll dump out the contents of the directory to make it 
+        # easier to determine whether or not we are crazy when running Jenkins.
+        if not os.path.exists(self.oltpbench_result_path):
+            print("="*50)
+            print("Directory Contents: {}".format(os.path.dirname(self.oltpbench_result_path)))
+            print("\n".join(os.listdir(os.path.dirname(self.oltpbench_result_path))))
+            print("="*50)
+            msg = "Unable to find OLTP-Bench result file '{}'".format(self.oltpbench_result_path)
+            raise RuntimeError(msg)
+        
         with open(self.oltpbench_result_path) as oltp_result_file:
             test_result = json.load(oltp_result_file)
         unexpected_result = test_result.get("unexpected", {}).get("HISTOGRAM")

@@ -126,7 +126,7 @@ class TestServer:
             # Db terminated already
             self.db_output_fd.close()
             self.print_output(self.db_output_file)
-            msg = "Db terminated with return code {}".format(
+            msg = "DB terminated with return code {}".format(
                 self.db_process.returncode)
             raise RuntimeError(msg)
 
