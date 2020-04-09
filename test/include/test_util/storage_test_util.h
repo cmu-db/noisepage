@@ -5,6 +5,7 @@
 #include <random>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -268,7 +269,6 @@ class StorageTestUtil {
     return memcmp(one.Content(), other.Content(), one.Size()) == 0;
   }
 
-
   template <class RowType1, class RowType2>
   static bool ProjectionListEqualShallowMatchSchema(const storage::BlockLayout &layout1, const RowType1 *const one,
                                                     const storage::ProjectionMap &oid_map1,
@@ -279,9 +279,9 @@ class StorageTestUtil {
     EXPECT_EQ(one->NumColumns(), other->NumColumns());
     if (one->NumColumns() != other->NumColumns()) return false;
 
-    for (auto itr = oid_map1.begin(); itr != oid_map1.end(); itr++) {
-      auto oid1 = itr->first;
-      auto idx1 = itr->second;
+    for (const auto &itr : oid_map1) {
+      auto oid1 = itr.first;
+      auto idx1 = itr.second;
       if (drop_cols.find(oid1) != drop_cols.end()) {
         auto idx2 = oid_map2.at(oid1);
         storage::col_id_t one_id = one->ColumnIds()[idx1];
@@ -301,26 +301,24 @@ class StorageTestUtil {
         }
         // Otherwise, they should be bit-wise identical.
         if (memcmp(one_content, other_content, attr_size) != 0) return false;
-      } else { // Column is dropped
+      } else {  // Column is dropped
         // a dropped column should not exists in the map
         EXPECT_EQ(oid_map2.find(oid1), oid_map2.end());
-        if(oid_map2.find(oid1) != oid_map2.end()) return false;
+        if (oid_map2.find(oid1) != oid_map2.end()) return false;
       }
     }
 
     // Check for added columns
     // TODO(Schema-change): how to check for the default value?
-    for(auto &added: add_cols) {
+    for (auto &added : add_cols) {
       EXPECT_EQ(oid_map1.find(added), oid_map1.end());
-      if(oid_map1.find(added) != oid_map1.end()) return false;
+      if (oid_map1.find(added) != oid_map1.end()) return false;
     }
 
     return true;
   }
 
-  static void SetOid(catalog::Schema::Column &col, catalog::col_oid_t oid) {
-    col.SetOid(oid);
-  }
+  static void SetOid(catalog::Schema::Column *col, catalog::col_oid_t oid) { col->SetOid(oid); }
 
   template <class RowType1, class RowType2>
   static bool ProjectionListEqualDeep(const storage::BlockLayout &layout, const RowType1 *const one,
@@ -356,7 +354,6 @@ class StorageTestUtil {
     }
     return true;
   }
-
 
   template <class RowType1, class RowType2>
   static bool ProjectionListEqualShallow(const storage::BlockLayout &layout, const RowType1 *const one,

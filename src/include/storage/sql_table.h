@@ -31,8 +31,6 @@ namespace terrier::storage {
  * translation to BlockLayout and col_id_t to talk to the DataTable and other areas of the storage layer.
  */
 class SqlTable {
-  using DefaultValueMap = std::unordered_map<col_id_t, common::ManagedPointer<const parser::AbstractExpression>>;
-
   /**
    * Contains all of the metadata the SqlTable needs to reference a DataTable. We shouldn't ever have to expose these
    * concepts to anyone above the SqlTable level. If you find yourself wanting to return BlockLayout or col_id_t above

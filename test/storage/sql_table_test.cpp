@@ -17,31 +17,29 @@ struct SqlTableTests : public TerrierTest {
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
 };
 
-
-static std::unique_ptr<catalog::Schema> AddColumn(const catalog::Schema &schema, catalog::Schema::Column column) {
+static std::unique_ptr<catalog::Schema> AddColumn(const catalog::Schema &schema, catalog::Schema::Column *column) {
   std::vector<catalog::Schema::Column> new_columns(schema.GetColumns());
   std::vector<catalog::col_oid_t> oids;
   oids.reserve(new_columns.size() + 1);
   catalog::col_oid_t next_oid = new_columns.begin()->Oid();
-  for(auto &col: new_columns) {
+  for (auto &col : new_columns) {
     if (col.Oid() > next_oid) {
       next_oid = col.Oid();
     }
   }
   next_oid = next_oid + 1;
   StorageTestUtil::SetOid(column, next_oid);
-  new_columns.push_back(column);
-  return std::unique_ptr<catalog::Schema>(new catalog::Schema(new_columns));
+  new_columns.push_back(*column);
+  return std::make_unique<catalog::Schema>(new_columns);
 }
 
 class RandomSqlTableTestObject {
  public:
-  struct tuple_version {
+  struct TupleVersion {
     transaction::timestamp_t ts_;
-    storage::ProjectedRow * pr_;
+    storage::ProjectedRow *pr_;
     storage::layout_version_t version_;
   };
-
 
   template <class Random>
   RandomSqlTableTestObject(storage::BlockStore *block_store, const uint16_t max_col, Random *generator,
@@ -52,9 +50,9 @@ class RandomSqlTableTestObject {
     UpdateSchema({nullptr}, std::unique_ptr<catalog::Schema>(schema), storage::layout_version_t(0));
   }
 
-  ~RandomSqlTableTestObject() {
-    // redos_ seems to be producing problem here
-  }
+  // TODO(Schema-Change): redos_ seems to be producing problem here.
+  //  We should look into this function further
+  ~RandomSqlTableTestObject() = default;
 
   template <class Random>
   storage::TupleSlot InsertRandomTuple(const transaction::timestamp_t timestamp, Random *generator,
@@ -80,16 +78,14 @@ class RandomSqlTableTestObject {
     return slot;
   }
 
-  tuple_version GetReferenceVersionedTuple(const storage::TupleSlot slot,
-                                                          const transaction::timestamp_t timestamp) {
+  TupleVersion GetReferenceVersionedTuple(const storage::TupleSlot slot, const transaction::timestamp_t timestamp) {
     TERRIER_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
     auto &versions = tuple_versions_[slot];
     // search backwards so the first entry with smaller timestamp can be returned
     for (auto i = static_cast<int64_t>(versions.size() - 1); i >= 0; i--)
       if (transaction::TransactionUtil::NewerThan(timestamp, versions[i].ts_) || timestamp == versions[i].ts_)
         return versions[i];
-    return {transaction::timestamp_t{transaction::INVALID_TXN_TIMESTAMP},nullptr,
-            storage::layout_version_t {0}};
+    return {transaction::timestamp_t{transaction::INVALID_TXN_TIMESTAMP}, nullptr, storage::layout_version_t{0}};
   }
 
   storage::ProjectedRow *Select(const storage::TupleSlot slot, const transaction::timestamp_t timestamp,
@@ -105,8 +101,9 @@ class RandomSqlTableTestObject {
     return select_row;
   }
 
-  void UpdateSchema(common::ManagedPointer<transaction::TransactionContext> txn, std::unique_ptr<catalog::Schema> schema, const storage::layout_version_t layout_version) {
-    if(txn != nullptr) table_->UpdateSchema(txn, *schema, layout_version);
+  void UpdateSchema(common::ManagedPointer<transaction::TransactionContext> txn,
+                    std::unique_ptr<catalog::Schema> schema, const storage::layout_version_t layout_version) {
+    if (txn != nullptr) table_->UpdateSchema(txn, *schema, layout_version);
 
     auto columns = schema->GetColumns();
     std::vector<catalog::col_oid_t> oids;
@@ -120,8 +117,8 @@ class RandomSqlTableTestObject {
     buffers_.insert(std::make_pair(layout_version, common::AllocationUtil::AllocateAligned(pri.ProjectedRowSize())));
   }
 
-  common::ManagedPointer<transaction::TransactionContext> NewTransaction(transaction::timestamp_t timestamp,
-      storage::RecordBufferSegmentPool *buffer_pool) {
+  common::ManagedPointer<transaction::TransactionContext> NewTransaction(
+      transaction::timestamp_t timestamp, storage::RecordBufferSegmentPool *buffer_pool) {
     auto *txn =
         new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(buffer_pool), DISABLED);
     txns_.emplace_back(txn);
@@ -134,16 +131,14 @@ class RandomSqlTableTestObject {
     return table_->GetBlockLayout(version);
   }
 
-  const catalog::Schema &GetSchema(storage::layout_version_t version) const {
-    return *schemas_.at(version);
-  }
+  const catalog::Schema &GetSchema(storage::layout_version_t version) const { return *schemas_.at(version); }
 
   storage::ProjectionMap GetProjectionMapForOids(storage::layout_version_t version) {
     auto &schema = schemas_.at(version);
     auto columns = schema->GetColumns();
     std::vector<catalog::col_oid_t> oids;
     oids.reserve(columns.size());
-    for(auto &col : columns) oids.push_back(col.Oid());
+    for (auto &col : columns) oids.push_back(col.Oid());
     return table_->ProjectionMapForOids(oids, version);
   }
 
@@ -156,8 +151,8 @@ class RandomSqlTableTestObject {
   std::vector<std::unique_ptr<transaction::TransactionContext>> txns_;
   std::vector<storage::TupleSlot> inserted_slots_;
   // oldest to newest
-  std::unordered_map<storage::TupleSlot, std::vector<tuple_version>> tuple_versions_;
-  std::unordered_map<storage::layout_version_t , std::unique_ptr<catalog::Schema>> schemas_;
+  std::unordered_map<storage::TupleSlot, std::vector<TupleVersion>> tuple_versions_;
+  std::unordered_map<storage::layout_version_t, std::unique_ptr<catalog::Schema>> schemas_;
 };
 
 // NOLINTNEXTLINE
@@ -179,8 +174,7 @@ TEST_F(SqlTableTests, SimpleInsertSelect) {
   for (const auto &inserted_tuple : test_table.InsertedTuples()) {
     storage::ProjectedRow *stored =
         test_table.Select(inserted_tuple, transaction::timestamp_t(1), &buffer_pool_, version);
-    auto *ref =
-        test_table.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(1)).pr_;
+    auto *ref = test_table.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(1)).pr_;
 
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(test_table.GetBlockLayout(version), stored, ref));
   }
@@ -202,22 +196,20 @@ TEST_F(SqlTableTests, DISABLED_SimpleAddColumnTest) {
 
   EXPECT_EQ(num_inserts / 2, test_table.InsertedTuples().size());
 
-
   // Schema Update with column added
   storage::layout_version_t new_version(1);
   txn_ts++;
   catalog::Schema::Column col("new_col", type::TypeId::INTEGER, false,
-      parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(1)));
-  auto new_schema = AddColumn(test_table.GetSchema(version), col);
-  test_table.UpdateSchema(test_table.NewTransaction(transaction::timestamp_t{txn_ts},
-                                                    &buffer_pool_), std::move(new_schema), new_version);
+                              parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(1)));
+  auto new_schema = AddColumn(test_table.GetSchema(version), &col);
+  test_table.UpdateSchema(test_table.NewTransaction(transaction::timestamp_t{txn_ts}, &buffer_pool_),
+                          std::move(new_schema), new_version);
 
   // Insert the second half with new version
   txn_ts++;
-  for (uint16_t i = num_inserts / 2 ; i < num_inserts; i++) {
+  for (uint16_t i = num_inserts / 2; i < num_inserts; i++) {
     test_table.InsertRandomTuple(transaction::timestamp_t(txn_ts), &generator_, &buffer_pool_, new_version);
   }
-
 
   EXPECT_EQ(num_inserts, test_table.InsertedTuples().size());
   // Compare each inserted
@@ -227,16 +219,15 @@ TEST_F(SqlTableTests, DISABLED_SimpleAddColumnTest) {
   for (const auto &inserted_tuple : test_table.InsertedTuples()) {
     storage::ProjectedRow *stored =
         test_table.Select(inserted_tuple, transaction::timestamp_t(txn_ts), &buffer_pool_, version);
-    auto tuple_version =
-        test_table.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(txn_ts));
-    //TODO(Schema-change): we need to find a way to compare these 2 projected rows with different schema/blocklayout with
+    auto tuple_version = test_table.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(txn_ts));
+    // TODO(Schema-change): we need to find a way to compare these 2 projected rows with different schema/blocklayout
+    // with
     // other schema changes. e.g: change column type, add constrain.
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallowMatchSchema(
-        test_table.GetBlockLayout(tuple_version.version_), tuple_version.pr_, test_table.GetProjectionMapForOids(tuple_version.version_),
-        test_table.GetBlockLayout(version), stored, test_table.GetProjectionMapForOids(version),
-        add_cols, drop_cols));
+        test_table.GetBlockLayout(tuple_version.version_), tuple_version.pr_,
+        test_table.GetProjectionMapForOids(tuple_version.version_), test_table.GetBlockLayout(version), stored,
+        test_table.GetProjectionMapForOids(version), add_cols, drop_cols));
   }
 }
-
 
 }  // namespace terrier

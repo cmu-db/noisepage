@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "common/macros.h"
-#include "parser/expression/abstract_expression.h"
 #include "storage/storage_util.h"
 
 namespace terrier::storage {

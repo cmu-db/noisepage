@@ -20,6 +20,9 @@
 #include "storage/write_ahead_log/log_io.h"
 #include "transaction/transaction_defs.h"
 
+namespace terrier::parser {
+class AbstractExpression;
+}
 namespace terrier::storage {
 
 // In type_util.h there are a total of 5 possible inlined attribute sizes:
@@ -204,6 +207,7 @@ using ColumnOidToIdMap = std::unordered_map<catalog::col_oid_t, col_id_t>;
  * Used by SqlTable to map between col_ids in BlockLayout and col_oids in Schema
  */
 using ColumnIdToOidMap = std::unordered_map<col_id_t, catalog::col_oid_t>;
+using DefaultValueMap = std::unordered_map<col_id_t, common::ManagedPointer<const parser::AbstractExpression>>;
 /**
  * Used by execution and storage layers to map between col_oids and offsets within a ProjectedRow
  */
