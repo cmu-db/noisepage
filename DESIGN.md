@@ -18,7 +18,7 @@ We have yet to design our system for unsafe schema changes and precompilation. I
 
 ## Scope
 
-Our project will mainly modify Sqltable and Catalog. Sqltable will be modified to handle multiple datatables . The datatables are transparent to the users of Sqltable,  who view Sqltable as a logical table with multiple versions. All functions in the Sqltable API (such as insert/delete/update/scan/begin/end/projectmapforoids) are augmented with an extra argument, layout_version. layout_version tells Sqltable which version of the table the function is targeted to.
+Our project will mainly modify Sqltable and Catalog. Sqltable will be modified to handle multiple datatables . The datatables are transparent to the users of Sqltable,  who view Sqltable as a logical table with multiple versions. All functions in the Sqltable API (such as insert/delete/update/select/scan/begin/end/projectmapforoids) are augmented with an extra argument, layout_version. layout_version tells Sqltable which version of the table the function is targeted to.
 
 We will modify the Catalog to support the functions DatabaseCatalog::UpdateSchema()/GetSchema()/GetConstraints(). The catalog will be store information about the schema versions of each Sqltable, and use the timestamp of a transaction to infer the correct schema version of each Sqltable the transaction accesses. 
 
@@ -32,7 +32,7 @@ To manage multiple datatables, each Sqltable keeps a ordered map (tables_) from 
 
 Note that in the vast majority of cases, there will be no schema changes, and each Sqltable manages only one Datatable. If we need to go through tables_, which is a concurrent map (or vector), on each call to Sqltable, that will be a huge overhead. Therefore, we will cache the DataTable in the SqlTable when there is only one DataTable to bypass the map/vector lookup.
 
-Each Sqltable has a separate version number counter, managed by the catalog. Each Sqltable starts out with version number 0, and manages a single datatable. When UpdateSchema() is called, the version number is incremented, and we create a new datatable via SqlTable::CreateTable(), which is the intended location for all tuples under the new schema. Note that within a Sqltable, each datatable uniquely corresponds to a version number and a schema, both of which never change. Therefore, in each datatable, we store its version number.  Moreover, for each datatable within Sqltable,  we store in DataTableVersion its schema, a map specifying the default values of columns in its schema, and maps from column oid to id and id to oid.
+Each Sqltable has a separate version number counter, managed by the catalog. Each Sqltable starts out with version number 0, and manages a single datatable. When UpdateSchema() is called, the version number is incremented, and we create a new datatable via SqlTable::CreateTable(), which is the intended location for all tuples under the new schema. Note that within a Sqltable, each datatable uniquely corresponds to a version number and a schema, both of which never change. Therefore, in each datatable, we store its version number.  Moreover, for each datatable within Sqltable,  we store in DataTableVersion its schema, a default value map, and two maps from column oid to id and from id to oid.
 
 To do an SQL query such as updating a tuple, a transaction first uses the index on Sqltable to find the tupleslot of the tuple (note that when we update the index when migrating tupeslots). We can get the raw block from the top 44 bits of the tupleslot, and the raw block has reference to the datatable of the tupleslot.   Thus we know the version number of the datatable the tuple is current stored in, call this the *storage_version*.
 
@@ -55,13 +55,23 @@ Whether *storage_version < intended_version* or *storage_version = intended_vers
 If *storage_version < intended_version* we will read the tuple from the old datatable, do tuple transformation to new schema and update the tuple, then logically delete it from the old datatable  (corresponding to 
 *storage_version*) and then insert it to the new datatable (corresponding to *intended_version*).  We will return the old tupleslot and the new tupleslot to the execution layer, which will update the index as described above.
 
+#### Sqltable::select
+
+Since we don't do migration on reads for now, we will not migrate tuples even in the case of *storage_version < intended_version*. We will read the tuple, transform it to the new schema, select its columns and return.
+
 #### Sqltable::scan
 
 Note that each tuple might physically exist in multiple datatables under a single Sqltable. However, for each transaction, only one copy of each tuple is visible across all datatables (we guarantee this by always logically deleting a tuple before migration).
 
 Therefore, scan works by scanning all datatables in order. Recall that tables_ is an ordered map, so we can simply scan from tables_.begin() to tables_.end(). We will scan each datatable fully, can jump to the next datatable when we reach the end. It is possible that we need to revise the order to scan from tables_.end() to tables_.begin(), because in the special case that a single transaction interleaves scanning with updating, we might scan the same tuple twice (it is first scanned, then migrated to the end of tables_, then scanned again).
 
+#### Default Values
+
+Default values of columns are abstract expressions that can be evaluated. Since the schema of each datatable is fixed, for each datatablewe store a map in its DatatableVersion struct specifying the default values of all columns in its schema. The map is from column id to abstract expression. We can use this map for tuple transformation.
+
 #### Tuple Transformation
+
+We need to translate column_ids in the storage version to column_ids of the intended version. For any column present in the storage version but not present in the intended version we set the column_id to IGNORE_COLUMN_ID, and within DataTable we will skip over any columns with IGNORE_COLUMN_ID . For any column present in the intended version but not present in the storage version, we fill in default values for columns that were not present in the storage version.
 
 ## Design Rationale
 
@@ -85,7 +95,7 @@ Our current decision is to not do migration on reads, since it might affect thro
 
 ## Testing Plan
 
-First, we will write single-threaded unit tests in sql_table_test.cpp that tests schema changes. Currently, we wrote the testing framework, and have a test that tests inserting and a test that updates the schema by adding a single column. We will add more unit tests that add and drop multiple columns for multiple rounds. We will test that Sqltable::insert/delete/update/scan still works properly, after our change.
+First, we will write single-threaded unit tests in sql_table_test.cpp that tests schema changes. Currently, we wrote the testing framework, and have a test that tests inserting and a test that updates the schema by adding a single column. We will add more unit tests that add and drop multiple columns for multiple rounds. We will test that Sqltable::insert/delete/select/update/scan still works properly, after our change.
 
 We will also write benchmarks that concurrently performs schema updates with normal Sqltable queries. This is mainly to test the correctness of our approach in the multi-threaded case, and can test the correctness of our changes to the catalog and storage layer. We will also use benchmarks with different workloads (read-heavy, update-heavy, eg.) to test the performance under schema changes.
 
@@ -93,7 +103,9 @@ Finally, as a stretch goal, we can integrate the Pantha Rei Schema Evolution Ben
 
 ## Trade-offs and Potential Problems
 
+One potential problem is we are unsure how adding versions and multiple datatables will influence logging and recovery. We will revisit this later when we finish the 100% goal.
+
 ## Future Work
 
-One optimization is to precompile the tuple transformations.  
+One optimization is to precompile the tuple transformations. The code for different tuple transformations are mostly similar, except that the types of columns are different. Therefore, we can add code to the codegen layer to precompile the tuple transformation logic for different column types. This may speed up tuple transformations.
 
