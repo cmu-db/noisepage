@@ -148,7 +148,7 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
     while (flag1 != num_threads) std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     std::promise<void> check_promises[num_threads];
-    for (auto i = 0; i < num_threads; i++) {
+    for (int32_t i = 0; i < num_threads; i++) {
 #ifdef __APPLE__
       storage::numa_region_t numa_hint UNUSED_ATTRIBUTE = storage::UNSUPPORTED_NUMA_REGION;
       auto workload = [&]() {
