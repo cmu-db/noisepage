@@ -197,6 +197,16 @@ class EXPORT CatalogAccessor {
   const Schema &GetSchema(table_oid_t table) const;
 
   /**
+ * Given the constraint name and its specification, add it to the catalog
+ * @param ns is the namespace in which the constraint will exist
+ * @param table on which this constraint exists
+ * @param name of the constraint
+ * @param schema describing the new constraint
+ * @return OID for the constraint, INVALID_CONSTRAINT_OID if the operation failed
+ */
+  constraint_oid_t CreateConstraints(namespace_oid_t ns, table_oid_t table, std::string name, const IndexSchema &schema) const;
+
+  /**
    * A list of all constraints on this table
    * @param table being queried, this must be a valid oid from GetTableOid. Invalid input will trigger an assert
    * @return vector of OIDs for all of the constraints that apply to this table

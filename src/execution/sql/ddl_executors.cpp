@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
+#include "catalog/postgres/pg_constraint.h"
 #include "common/macros.h"
 #include "execution/exec/execution_context.h"
 #include "parser/expression/column_value_expression.h"
@@ -92,6 +93,8 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
     // Create the index, and use its return value as overall success result
     result = result && CreateIndex(accessor, node->GetNamespaceOid(), unique_constraint.constraint_name_, table_oid,
                                    index_schema);
+    result = result && CreateConstraint(accessor, node->GetNamespaceOid(), unique_constraint.constraint_name_, table_oid,
+                                        index_schema);
   }
 
   // TODO(Matt): interpret other fields in CreateTablePlanNode when we support them in the Catalog:
@@ -156,4 +159,17 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
   return true;
 }
+
+bool DDLExecutors::CreateConstraint(const common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                               const catalog::namespace_oid_t ns, const std::string &name,
+                               const catalog::table_oid_t table, const catalog::IndexSchema &input_schema) {
+  const auto constraint_oid = accessor->CreateConstraints(ns, table, name, input_schema);
+  if (constraint_oid == catalog::INVALID_CONSTRAINT_OID) {
+    // Catalog wasn't able to proceed, txn must now abort
+    return false;
+  }
+  return true;
+
+}
+
 }  // namespace terrier::execution::sql

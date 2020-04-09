@@ -97,6 +97,12 @@ bool CatalogAccessor::UpdateSchema(table_oid_t table, Schema *new_schema) const 
 
 const Schema &CatalogAccessor::GetSchema(table_oid_t table) const { return dbc_->GetSchema(txn_, table); }
 
+constraint_oid_t CatalogAccessor::CreateConstraints(namespace_oid_t ns, table_oid_t table, std::string name,
+                                         const IndexSchema &schema) const {
+  NormalizeObjectName(&name);
+  return dbc_->CreateConstraints(txn_, ns, name, table, schema);
+}
+
 std::vector<constraint_oid_t> CatalogAccessor::GetConstraints(table_oid_t table) const {
   return dbc_->GetConstraints(txn_, table);
 }
