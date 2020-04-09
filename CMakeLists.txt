@@ -195,6 +195,11 @@ string(REPLACE "-std=c++17" "" CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
 # Add C++-only flags, like -std=c++17
 set(CMAKE_CXX_FLAGS "${CXX_ONLY_FLAGS} ${CMAKE_CXX_FLAGS}")
 
+if (NOT APPLE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lnuma -ldl -Wno-unused-command-line-argument")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -lnuma -ldl -Wno-unused-command-line-argument")
+endif ()
+
 # CMAKE_CXX_FLAGS now fully assembled
 message(STATUS "CXX_ONLY_FLAGS: ${CXX_ONLY_FLAGS}")
 message(STATUS "CXX_COMMON_FLAGS: ${CXX_COMMON_FLAGS}")
