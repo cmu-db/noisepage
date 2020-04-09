@@ -165,7 +165,7 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
         TERRIER_ASSERT(result == 0, "sched_getaffinity should succeed");
 
         uint32_t num_set = 0;
-        for (uint32_t cpu_id = 0; cpu_id < sizeof(cpu_set_t); cpu_id++) {
+        for (uint32_t cpu_id = 0; cpu_id < sizeof(cpu_set_t) * 8; cpu_id++) {
           if (CPU_ISSET(cpu_id, &mask)) {
             TERRIER_ASSERT(static_cast<storage::numa_region_t>(numa_node_of_cpu(cpu_id)) == numa_hint,
                            "workload should be running on cpu on numa_hint's region");
