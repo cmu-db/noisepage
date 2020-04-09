@@ -122,9 +122,13 @@ TEST(ExecutionThreadPoolTests, MoreTest) {
 TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
   common::DedicatedThreadRegistry registry(DISABLED);
   std::vector<int> cpu_ids;
-  uint32_t iteration = 10, num_threads = std::thread::hardware_concurrency();
-  for (uint32_t i = 0; i < num_threads; i++) {
-    cpu_ids.emplace_back(i);
+//  uint32_t iteration = 10, num_threads = std::thread::hardware_concurrency();
+  // TEMPORARY TEST
+  uint32_t iteration = 10;
+  uint32_t threads[4] = {0, 1, 38, 39};
+  // END TEMPORARY TEST
+  for (auto thread : threads) {
+    cpu_ids.emplace_back(thread);
   }
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
   for (uint32_t it = 0; it < iteration; it++) {
