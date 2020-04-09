@@ -71,6 +71,7 @@ class SqlTable {
    * @param txn the calling transaction
    * @param slot the tuple slot to read
    * @param out_buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
+   * @param layout_version Schema version the current querying transaction should see
    * @return true if tuple is visible to this txn and ProjectedRow has been populated, false otherwise
    */
   bool Select(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot, ProjectedRow *out_buffer,
@@ -83,6 +84,7 @@ class SqlTable {
    * @param txn the calling transaction
    * @param redo the desired change to be applied. This should be the after-image of the attributes of interest. The
    * TupleSlot in this RedoRecord must be set to the intended tuple.
+   * @param layout_version Schema version the current querying transaction should see
    * @return true if successful, false otherwise
    */
   bool Update(common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *redo,
@@ -94,16 +96,18 @@ class SqlTable {
    *
    * @param txn the calling transaction
    * @param redo after-image of the inserted tuple.
-   * @param layout_version schema layout version for the inserted tuple
+   * @param layout_version Schema version the current querying transaction should see
    * @return TupleSlot for the inserted tuple
    */
   TupleSlot Insert(common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *redo,
                    layout_version_t layout_version = layout_version_t{0}) const;
 
+  // TODO(Schema-Change): implement this
   /**
    * Deletes the given TupleSlot. StageDelete must have been called as well in order for the operation to be logged.
    * @param txn the calling transaction
    * @param slot the slot of the tuple to delete
+   * @param layout_version Schema version the current querying transaction should see
    * @return true if successful, false otherwise
    */
   bool Delete(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
@@ -141,7 +145,8 @@ class SqlTable {
    * @param start_pos iterator to the starting location for the sequential scan.
    * @param out_buffer output buffer. The object should already contain projection list information. This buffer is
    *                   always cleared of old values.
-   */
+   * @param layout_version Schema version the current querying transaction should see
+  */
   void Scan(common::ManagedPointer<transaction::TransactionContext> txn, DataTable::SlotIterator *start_pos,
             ProjectedColumns *out_buffer, layout_version_t layout_version = layout_version_t{0}) const;
 
@@ -149,9 +154,9 @@ class SqlTable {
    * Creates a new tableversion given a schema. Conccurent UpdateSchema is synchronized at the Catalog table.
    * Since the catalog table prevents write-write conflict with version pointer, calling UpdateSchema here is always
    * thread-safe.
-   * @param txn
-   * @param layout_version
-   * @param schema
+   * @param txn the calling transaction
+   * @param layout_version Version number for the new schema
+   * @param schema the updated schema of this SqlTable
    */
   void UpdateSchema(const common::ManagedPointer<transaction::TransactionContext> txn, const catalog::Schema &schema,
                     const layout_version_t layout_version = layout_version_t{0}) {
@@ -179,7 +184,7 @@ class SqlTable {
   }  // NOLINT for STL name compability
 
   /**
-   * @param: layout_version the last version I should be able to see
+   * @param layout_version the last schema version the querying transaction should be able to see
    * @return one past the last tuple slot contained in the underlying DataTable
    */
   // NOLINTNEXTLINE for STL name compability
@@ -199,6 +204,7 @@ class SqlTable {
    * to col_id for the Initializer's constructor so that the execution layer doesn't need to know anything about col_id.
    * @param col_oids set of col_oids to be projected
    * @param max_tuples the maximum number of tuples to store in the ProjectedColumn
+   * @param layout_version Version of schema to be projected
    * @return initializer to create ProjectedColumns
    * @warning col_oids must be a set (no repeats)
    */
@@ -217,6 +223,7 @@ class SqlTable {
    * Generates an ProjectedRowInitializer for the execution layer to use. This performs the translation from col_oid to
    * col_id for the Initializer's constructor so that the execution layer doesn't need to know anything about col_id.
    * @param col_oids set of col_oids to be projected
+   * @param layout_version Version of schema to be projected
    * @return initializer to create ProjectedRow
    * @warning col_oids must be a set (no repeats)
    */
@@ -237,6 +244,7 @@ class SqlTable {
   /**
    * Generate a projection map given column oids
    * @param col_oids oids that will be scanned.
+   * @param layout_version Version of schema to be projected
    * @return the projection map
    */
   ProjectionMap ProjectionMapForOids(const std::vector<catalog::col_oid_t> &col_oids,
@@ -245,7 +253,7 @@ class SqlTable {
   /**
    * Returns the layout version of a datatable.
    * @warning This is only used for testing purpose
-   * @param layout_version
+   * @param layout_version Version of schema
    * @return
    */
   const BlockLayout &GetBlockLayout(layout_version_t layout_version = layout_version_t{0}) {
@@ -269,8 +277,8 @@ class SqlTable {
   /**
    *  Aligns the given row with the desired database version by copying in the col_ids to the physical layout's col_ids.
    *  This effectively ignores those columns which are in the desired schema version but not in the out_buffer's .
-   * @tparam RowType
-   * @param out_buffer a buffer row that corresponds to an old schema version
+   * @tparam RowType Type of the output (i.e. projected row, projected column)
+   * @param out_buffer a buffer that corresponds to an old schema version
    * @param tuple_version the old schema version
    * @param desired_version desired schema version
    * @param cached_ori_header original header cached
@@ -282,16 +290,16 @@ class SqlTable {
 
   /**
    * Fill the missing columns in the out_buffer with default values of those columns in the desired_version
-   * @tparam RowType
-   * @param out_buffer
-   * @param desired_version
+   * @tparam RowType Type of the output (i.e. projected row, projected column)
+   * @param out_buffer a buffer that corresponds to an old schema version
+   * @param desired_version desired schema version
    */
   template <class RowType>
   void FillMissingColumns(RowType *out_buffer, const DataTableVersion &desired_version) const;
 
   /**
    * Creates a new datatble version given the schema and version number
-   * @param schema
+   * @param schema Schema of
    * @param store
    * @param version
    * @return DataTableVersion
