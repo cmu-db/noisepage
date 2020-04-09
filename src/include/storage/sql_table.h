@@ -193,7 +193,7 @@ class SqlTable {
   DataTable::SlotIterator end() const { return table_.data_table_->end(); }  // NOLINT for STL name compability
 
   /**
-   * @param The index of the ending block
+   * @param end_block_idx The index of the ending block
    * @return either the first slot of block at the given index if prev block full,
    * or the last empty slot in prev block of given index
    */

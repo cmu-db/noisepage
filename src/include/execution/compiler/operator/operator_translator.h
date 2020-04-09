@@ -122,6 +122,12 @@ class OperatorTranslator : public ExpressionEvaluator {
    */
   virtual ast::Expr *GetOutput(uint32_t attr_idx) = 0;
 
+  /**
+   * @return The list of extra fields added to the main work function. This is only called on
+   *         parallel pipelines and only for the source/root of the pipeline that's responsible for
+   *         launching the worker function. By default, the first two argument of a parallel work
+   *         function are the query state and thread-local pipeline state.
+   */
   virtual util::RegionVector<ast::FieldDecl *> GetWorkerParams() = 0;
 
   /**
