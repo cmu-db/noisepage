@@ -194,6 +194,9 @@ class DataTable {
     return {this, iter, 0};
   }
 
+  /**
+   * @return either the first slot of block at the given index if prev block full, or the last empty slot in prev block of given index
+   */
   SlotIterator endAt(uint32_t end_block_idx) const {
     common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
     if (blocks_.empty()) return {this, blocks_.end(), 0};

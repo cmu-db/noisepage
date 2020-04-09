@@ -180,7 +180,9 @@ class SqlTable {
    * @return the first tuple slot contained in the underlying DataTable
    */
   DataTable::SlotIterator begin() const { return table_.data_table_->begin(); }  // NOLINT for STL name compability
-
+  /**
+   * @return the first tuple slot of nth RawBlock stored in the block list
+   */
   DataTable::SlotIterator beginAt(uint32_t start_block_idx) const {
     return table_.data_table_->beginAt(start_block_idx);
   }
@@ -188,6 +190,9 @@ class SqlTable {
    * @return one past the last tuple slot contained in the underlying DataTable
    */
   DataTable::SlotIterator end() const { return table_.data_table_->end(); }  // NOLINT for STL name compability
+  /**
+   * @return either the first slot of block at the given index if prev block full, or the last empty slot in prev block of given index
+   */
   DataTable::SlotIterator endAt(uint32_t end_block_idx) const { 
     return table_.data_table_->endAt(end_block_idx);
   }

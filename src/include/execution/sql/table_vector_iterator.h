@@ -32,6 +32,16 @@ class EXPORT TableVectorIterator {
    */
   explicit TableVectorIterator(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *col_oids,
                                uint32_t num_oids);
+
+  /**
+   * Create a new vectorized iterator over the given table
+   * @param exec_ctx execution context of the query
+   * @param table_oid oid of the table
+   * @param col_oids array column oids to scan
+   * @param num_oids length of the array
+   * @param start_block_idx start block index to scan
+   * @param end_block_idx end block index to scan
+   */
   TableVectorIterator(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids,
                      uint32_t start_block_idx, uint32_t end_block_idx);
   /**
@@ -81,12 +91,11 @@ class EXPORT TableVectorIterator {
    * callback function @em scanner on each input vector projection from the
    * source table. This call is blocking, meaning that it only returns after
    * the whole table has been scanned. Iteration order is non-deterministic.
-   * @param db_oid The ID of the database containing the table
    * @param table_oid The ID of the table
    * @param query_state the query state
    * @param thread_states the thread state container
    * @param scan_fn The callback function invoked for vectors of table input
-   * @param min_grain_size The minimum number of blocks to give a scan task
+   * @param exec_ctx Current execution context
    */
   static bool ParallelScan(uint32_t table_oid, void *const query_state, ThreadStateContainer *const thread_states,
                            const ScanFn scan_fn, exec::ExecutionContext *exec_ctx);
