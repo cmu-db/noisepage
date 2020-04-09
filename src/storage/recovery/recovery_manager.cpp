@@ -105,6 +105,8 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
     f.read(reinterpret_cast<char *>(&varchar_cols), sizeof(varchar_cols));
     unsigned long dict_cols;
     f.read(reinterpret_cast<char *>(&dict_cols), sizeof(dict_cols));
+    unsigned long insertion_head_index;
+    f.read(reinterpret_cast<char *>(&insertion_head_index), sizeof(insertion_head_index));
 
     // Get varlen information
     std::vector<col_id_t> col_ids;
@@ -171,7 +173,10 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
     // Now we have all the blocks and metadata, so we can recover the table
     // Create the new table
     auto sql_table = accessor->GetTable(table_oid);
-    sql_table->table_.data_table_ = new DataTable(accessor->GetBlockStore(), sql_table->table_.layout_, layout_version_t(0), blocks);
+    sql_table->table_.data_table_->blocks_ = blocks;
+    for (auto i = 0; i < insertion_head_index; i++) {
+      sql_table->table_.data_table_->insertion_head_++;
+    }
   }
   txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   std::cout << "ok" << std::endl;

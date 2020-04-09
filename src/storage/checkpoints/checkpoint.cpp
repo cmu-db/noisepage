@@ -45,6 +45,7 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
     queue.erase(queue.begin());
     queue_latch.unlock();
     common::ManagedPointer<storage::SqlTable> curr_table = accessor->GetTable(curr_table_oid);
+
     std::string out_file = GenFileName(db_oid, curr_table_oid);
     std::ofstream f;
 
@@ -65,6 +66,7 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
       unsigned long block_num = blocks.size();
       unsigned long var_col_num = varlens.size();
       unsigned long dict_col_num = 0;
+      unsigned long insertion_head_index = std::distance(curr_data_table->blocks_.begin(), curr_data_table->insertion_head_);
       std::cout << "block num: " << block_num << std::endl;
       std::cout << "var col num: " << var_col_num << std::endl;
       std::cout << "dict col num: " << dict_col_num << std::endl;
@@ -82,6 +84,7 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
       f.write(reinterpret_cast<const char *>(&block_num), sizeof(unsigned long));
       f.write(reinterpret_cast<const char *>(&var_col_num), sizeof(unsigned long));
       f.write(reinterpret_cast<const char *>(&dict_col_num), sizeof(unsigned long));
+      f.write(reinterpret_cast<const char *>(&insertion_head_index), sizeof(unsigned long));
     } else {
       // failed to copy to disk, add the table_oid back to queue
       queue_latch.lock();
