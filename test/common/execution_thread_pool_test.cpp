@@ -122,7 +122,7 @@ TEST(ExecutionThreadPoolTests, MoreTest) {
 TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
   common::DedicatedThreadRegistry registry(DISABLED);
   std::vector<int> cpu_ids;
-//  uint32_t iteration = 10, num_threads = std::thread::hardware_concurrency();
+  //  uint32_t iteration = 10, num_threads = std::thread::hardware_concurrency();
   // TEMPORARY TEST
   uint32_t iteration = 10;
   uint32_t num_threads = 4;
@@ -148,7 +148,7 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
     while (flag1 != num_threads) std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     std::promise<void> check_promises[num_threads];
-    for (uint32_t i = 0; i < num_threads; i++) {
+    for (auto i : threads) {
 #ifdef __APPLE__
       storage::numa_region_t numa_hint UNUSED_ATTRIBUTE = storage::UNSUPPORTED_NUMA_REGION;
       auto workload = [&]() {
