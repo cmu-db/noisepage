@@ -193,7 +193,7 @@ class CatalogAccessor {
    * @param table being queried
    * @return vector of OIDs for all of the indexes on this table
    */
-  std::vector<index_oid_t> GetIndexOids(table_oid_t table) const;
+  std::vector<index_oid_t> GetIndexOids(table_oid_t table, bool only_live = false) const;
 
   /**
    * Returns index pointers and schemas for every index on a table. Provides much better performance than individual

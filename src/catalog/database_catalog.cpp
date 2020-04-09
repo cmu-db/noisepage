@@ -961,7 +961,7 @@ std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(
 }
 
 std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
-    const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table) {
+    const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table, bool only_live) {
   // Initialize PR for index scan
   auto oid_pri = indexes_table_index_->GetProjectedRowInitializer();
 
@@ -988,7 +988,10 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
   for (auto &slot : index_scan_results) {
     const auto result UNUSED_ATTRIBUTE = indexes_->Select(txn, slot, select_pr);
     TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
-    index_oids.emplace_back(*(reinterpret_cast<index_oid_t *>(select_pr->AccessForceNotNull(0))));
+    if (!only_live || *(reinterpret_cast<bool *>(select_pr->AccessForceNotNull(
+        pg_index_all_cols_prm_[postgres::INDISLIVE_COL_OID])))) {
+      index_oids.emplace_back(*(reinterpret_cast<index_oid_t *>(select_pr->AccessForceNotNull(0))));
+    }
   }
 
   // Finish
@@ -1524,6 +1527,7 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
       indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::INDISVALID_COL_OID]))) = true;
   *(reinterpret_cast<bool *>(
       indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::INDISREADY_COL_OID]))) = true;
+  // TODO(Cal) update live
   *(reinterpret_cast<bool *>(
       indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::INDISLIVE_COL_OID]))) = true;
   *(reinterpret_cast<storage::index::IndexType *>(

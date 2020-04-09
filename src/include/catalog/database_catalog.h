@@ -171,9 +171,11 @@ class DatabaseCatalog {
    * A list of all indexes on the given table
    * @param txn for the operation
    * @param table being queried
+   * @param only_live whether to only get the live indexes
    * @return vector of OIDs for all of the indexes on this table
    */
-  std::vector<index_oid_t> GetIndexOids(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
+  std::vector<index_oid_t> GetIndexOids(common::ManagedPointer<transaction::TransactionContext> txn,
+      table_oid_t table, bool only_live = false);
 
   /**
    * Create the catalog entries for a new index.

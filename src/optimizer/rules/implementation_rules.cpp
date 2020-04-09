@@ -101,7 +101,8 @@ bool LogicalGetToPhysicalIndexScan::Check(common::ManagedPointer<OperatorNode> p
   }
 
   auto *accessor = context->GetOptimizerContext()->GetCatalogAccessor();
-  return !accessor->GetIndexOids(get->GetTableOid()).empty();
+  // Only access live indexes for this check: if we don't have a live index, we can't use it
+  return !accessor->GetIndexOids(get->GetTableOid(), true).empty();
 }
 
 void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<OperatorNode> input,

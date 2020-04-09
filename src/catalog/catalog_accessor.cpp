@@ -90,8 +90,8 @@ std::vector<constraint_oid_t> CatalogAccessor::GetConstraints(table_oid_t table)
   return dbc_->GetConstraints(txn_, table);
 }
 
-std::vector<index_oid_t> CatalogAccessor::GetIndexOids(table_oid_t table) const {
-  return dbc_->GetIndexOids(txn_, table);
+std::vector<index_oid_t> CatalogAccessor::GetIndexOids(table_oid_t table, bool only_live) const {
+  return dbc_->GetIndexOids(txn_, table, only_live);
 }
 
 std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> CatalogAccessor::GetIndexes(
