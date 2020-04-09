@@ -26,7 +26,6 @@ class IndexBuilder {
  private:
   catalog::IndexSchema key_schema_;
   common::ManagedPointer<storage::SqlTable> sql_table_;
-  catalog::index_oid_t index_oid_;
   common::ManagedPointer<transaction::TransactionContext> txn_;
 
  public:
@@ -74,29 +73,12 @@ class IndexBuilder {
   }
 
  /**
-  * @param sql_table
+  * @param sql_table, transaction context
   * @return the builder object
   */
-  IndexBuilder &SetSqlTable(common::ManagedPointer<storage::SqlTable> sql_table) {
+  IndexBuilder &SetSqlTableAndTransactionContext(common::ManagedPointer<storage::SqlTable> sql_table,
+                                                 const common::ManagedPointer<transaction::TransactionContext> txn) {
     sql_table_ = sql_table;
-    return *this;
-  }
-
- /**
-  * @param index_oid
-  * @return the builder object
-  */
-  IndexBuilder &SetIndexOid(const catalog::index_oid_t index_oid) {
-    index_oid_ = index_oid;
-    return *this;
-  }
-
- /**
-  *
-  * @param txn
-  * @return the builder object
-  */
-  IndexBuilder &SetTransactionContext(const common::ManagedPointer<transaction::TransactionContext> txn) {
     txn_ = txn;
     return *this;
   }

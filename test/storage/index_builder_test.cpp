@@ -117,11 +117,16 @@ TEST_F(IndexBuilderTests, OneTxnFullTable) {
 
   txn_manager_->Commit(table_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  auto index = (IndexBuilder().SetKeySchema(index_schema_).SetSqlTable(common::ManagedPointer(sql_table_)).Build());
+  auto index_build_txn = txn_manager_->BeginTransaction();
 
-  auto index_txn = txn_manager_->BeginTransaction();
+  auto index = (IndexBuilder().SetKeySchema(index_schema_).SetSqlTableAndTransactionContext(common::ManagedPointer(sql_table_),
+      common::ManagedPointer(index_build_txn)).Build());
+
+  txn_manager_->Commit(index_build_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  auto index_scan_txn = txn_manager_->BeginTransaction();
   std::vector<TupleSlot> values;
-  index->ScanAscending(*index_txn, storage::index::ScanType::OpenBoth, 1, nullptr, nullptr, 0, &values);
+  index->ScanAscending(*index_scan_txn, storage::index::ScanType::OpenBoth, 1, nullptr, nullptr, 0, &values);
 
   std::unordered_set<TupleSlot> result;
   for(TupleSlot t : values) {
@@ -130,6 +135,6 @@ TEST_F(IndexBuilderTests, OneTxnFullTable) {
 
   EXPECT_EQ(result, reference);
 
-  txn_manager_->Commit(index_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(index_scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 }
