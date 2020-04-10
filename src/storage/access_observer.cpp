@@ -17,7 +17,7 @@ void AccessObserver::ObserveGCInvocation() {
 void AccessObserver::ObserveWrite(RawBlock *block) {
   // The compactor is only concerned with blocks that are already full. We assume that partially empty blocks are
   // always hot.
-  if (block->GetInsertHead() == block->data_table_->GetBlockLayout().NumSlots()) last_touched_[block] = gc_epoch_;
+  if (block->GetInsertHead() == block->data_table_->GetBlockLayout()->NumSlots()) last_touched_[block] = gc_epoch_;
 }
 
 }  // namespace terrier::storage

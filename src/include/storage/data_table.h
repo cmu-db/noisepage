@@ -54,7 +54,7 @@ class DataTable {
      * @return reference to the underlying tuple slot
      */
     TupleSlot &operator*() {
-      uint64_t max_slots = static_cast<uint64_t>(table_->accessor_.GetBlockLayout().NumSlots());
+      auto max_slots = static_cast<uint64_t>(table_->accessor_.GetBlockLayout().NumSlots());
       uint64_t block_num = i_ / max_slots;
       RawBlock *b = const_cast<common::ConcurrentPointerVector<RawBlock> *>(&table_->blocks_)->LookUp(block_num);
       current_slot_ = {b, static_cast<uint32_t>(i_ % max_slots)};
@@ -113,7 +113,7 @@ class DataTable {
 
     SlotIterator() : is_end_(true) {}
 
-    SlotIterator(const DataTable *table) : table_(table), i_(0), is_end_(false) { // NOLINT
+    SlotIterator(const DataTable *table) : table_(table), i_(0), is_end_(false) {  // NOLINT
       uint64_t num_blocks = table->blocks_.size();
       TERRIER_ASSERT(num_blocks >= 1, "there should allways be at least one block");
       end_index_ = (num_blocks - 1) * table_->accessor_.GetBlockLayout().NumSlots() +
@@ -127,7 +127,7 @@ class DataTable {
     const DataTable *table_{};
     uint64_t i_ = 0, end_index_ = 0;
     TupleSlot current_slot_;
-    bool is_end_;
+    bool is_end_ = false;
   };
   /**
    * Constructs a new DataTable with the given layout, using the given BlockStore as the source
@@ -137,7 +137,8 @@ class DataTable {
    * @param layout the initial layout of this DataTable. First 2 columns must be 8 bytes.
    * @param layout_version the layout version of this DataTable
    */
-  DataTable(BlockStore *const store, const BlockLayout &layout, layout_version_t layout_version);
+  DataTable(common::ManagedPointer<BlockStore> const store, const BlockLayout &layout,  // NOLINT
+            const layout_version_t layout_version);                                     // NOLINT
 
   /**
    * Destructs a DataTable, frees all its blocks and any potential varlen entries.
@@ -234,17 +235,23 @@ class DataTable {
   DataTableCounter *GetDataTableCounter() { return &data_table_counter_; }
 
   /**
-   * @return read-only view of this DataTable's BlockLayout
+   * @return pointer to this DataTable's BlockLayout
    */
-  const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
+  BlockLayout *GetBlockLayout() const { return const_cast<BlockLayout *>(&accessor_.GetBlockLayout()); }
 
-  const TupleAccessStrategy GetAccessor() const { return accessor_; }
+  /**
+   * @return this DataTable's Accessor
+   */
+  TupleAccessStrategy GetAccessor() const { return accessor_; }
 
   /**
    * @return the number of blocks that are in the RawBlock* array
    */
   uint64_t GetNumBlocks() const { return blocks_.size(); }
 
+  /**
+   * @return pointer to underlying vector of blocks
+   */
   common::ConcurrentPointerVector<RawBlock> *GetBlocks() const {
     return const_cast<common::ConcurrentPointerVector<RawBlock> *>(&blocks_);
   }
@@ -265,7 +272,7 @@ class DataTable {
   // needs raw access to the underlying table.
   friend class BlockCompactor;
 
-  BlockStore *const block_store_;
+  const common::ManagedPointer<BlockStore> block_store_;
   const layout_version_t layout_version_;
   const TupleAccessStrategy accessor_;
   common::ConcurrentPointerVector<RawBlock> blocks_;
