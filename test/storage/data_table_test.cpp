@@ -559,7 +559,7 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
 #else
     bool numa_available_unsupported =
         numa_available() != -1 && numa_regions.size() == 1 && numa_regions[0] == storage::UNSUPPORTED_NUMA_REGION;
-    for (auto & numa_region : numa_regions) {
+    for (auto &numa_region : numa_regions) {
       if (numa_available() != -1) {
         EXPECT_TRUE(numa_available_unsupported || numa_region != storage::UNSUPPORTED_NUMA_REGION);
       }
