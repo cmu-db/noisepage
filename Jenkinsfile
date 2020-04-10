@@ -123,7 +123,7 @@ pipeline {
 //                         sh 'cd build && make check-clang-tidy'
 //                         sh 'cd build && timeout 1h make unittest'
 //                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
                         cleanup {
