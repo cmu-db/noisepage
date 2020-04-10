@@ -109,6 +109,12 @@ class OperatorVisitor {
   virtual void Visit(const OuterHashJoin *outer_hash_join) {}
 
   /**
+   * Visit a LeftSemiHashJoin operator
+   * @param left_semi_hash_join operator
+   */
+  virtual void Visit(const LeftSemiHashJoin *left_semi_hash_join) {}
+
+  /**
    * Visit a Insert operator
    * @param insert operator
    */

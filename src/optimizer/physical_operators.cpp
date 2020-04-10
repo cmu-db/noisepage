@@ -413,6 +413,54 @@ bool InnerHashJoin::operator==(const BaseOperatorNodeContents &r) {
   return true;
 }
 
+
+
+//===--------------------------------------------------------------------===//
+// LeftSemiHashJoin
+//===--------------------------------------------------------------------===//
+BaseOperatorNodeContents *LeftSemiHashJoin::Copy() const { return new LeftSemiHashJoin(*this); }
+
+Operator LeftSemiHashJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
+                             std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
+std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_keys) {
+auto join = std::make_unique<LeftSemiHashJoin>();
+join->join_predicates_ = std::move(join_predicates);
+join->left_keys_ = std::move(left_keys);
+join->right_keys_ = std::move(right_keys);
+return Operator(std::move(join));
+}
+
+common::hash_t LeftSemiHashJoin::Hash() const {
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
+  for (auto &expr : left_keys_) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
+  for (auto &expr : right_keys_) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
+  for (auto &pred : join_predicates_) {
+    auto expr = pred.GetExpr();
+    if (expr)
+      hash = common::HashUtil::SumHashes(hash, expr->Hash());
+    else
+      hash = common::HashUtil::SumHashes(hash, BaseOperatorNodeContents::Hash());
+  }
+  return hash;
+}
+
+bool LeftSemiHashJoin::operator==(const BaseOperatorNodeContents &r) {
+  if (r.GetType() != OpType::LEFTSEMIHASHJOIN) return false;
+  const LeftSemiHashJoin &node = *dynamic_cast<const LeftSemiHashJoin *>(&r);
+  if (left_keys_.size() != node.left_keys_.size() || right_keys_.size() != node.right_keys_.size() ||
+      join_predicates_.size() != node.join_predicates_.size())
+    return false;
+  if (join_predicates_ != node.join_predicates_) return false;
+  for (size_t i = 0; i < left_keys_.size(); i++) {
+    if (*(left_keys_[i]) != *(node.left_keys_[i])) return false;
+  }
+  for (size_t i = 0; i < right_keys_.size(); i++) {
+    if (*(right_keys_[i]) != *(node.right_keys_[i])) return false;
+  }
+  return true;
+}
+
+
 //===--------------------------------------------------------------------===//
 // LeftHashJoin
 //===--------------------------------------------------------------------===//
@@ -481,6 +529,7 @@ bool OuterHashJoin::operator==(const BaseOperatorNodeContents &r) {
   const OuterHashJoin &node = *static_cast<const OuterHashJoin *>(&r);
   return (*join_predicate_ == *(node.join_predicate_));
 }
+
 
 //===--------------------------------------------------------------------===//
 // Insert
@@ -1268,6 +1317,8 @@ const char *OperatorNodeContents<OuterNLJoin>::name = "OuterNLJoin";
 template <>
 const char *OperatorNodeContents<InnerHashJoin>::name = "InnerHashJoin";
 template <>
+const char *OperatorNodeContents<LeftSemiHashJoin>::name = "LeftSemiHashJoin";
+template <>
 const char *OperatorNodeContents<LeftHashJoin>::name = "LeftHashJoin";
 template <>
 const char *OperatorNodeContents<RightHashJoin>::name = "RightHashJoin";
@@ -1343,6 +1394,8 @@ template <>
 OpType OperatorNodeContents<OuterNLJoin>::type = OpType::OUTERNLJOIN;
 template <>
 OpType OperatorNodeContents<InnerHashJoin>::type = OpType::INNERHASHJOIN;
+template <>
+OpType OperatorNodeContents<LeftSemiHashJoin>::type = OpType::LEFTSEMIHASHJOIN;
 template <>
 OpType OperatorNodeContents<LeftHashJoin>::type = OpType::LEFTHASHJOIN;
 template <>
