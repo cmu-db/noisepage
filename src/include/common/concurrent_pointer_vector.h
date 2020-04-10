@@ -4,6 +4,7 @@
 #include <common/shared_latch.h>
 #include <execution/util/execution_common.h>
 #include <tbb/mutex.h>
+#include <atomic>              // NOLINT
 #include <condition_variable>  // NOLINT
 
 namespace terrier::common {
