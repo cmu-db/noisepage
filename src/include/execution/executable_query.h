@@ -15,6 +15,7 @@ class AbstractPlanNode;
 
 namespace terrier::runner {
 class MiniRunners;
+class MiniRunners_SEQ0_OutputRunners_Benchmark;
 }
 
 namespace terrier::execution {
@@ -107,5 +108,6 @@ class ExecutableQuery {
 
   // MiniRunners needs to set query_identifier
   friend class terrier::runner::MiniRunners;
+  friend class terrier::runner::MiniRunners_SEQ0_OutputRunners_Benchmark;
 };
 }  // namespace terrier::execution
