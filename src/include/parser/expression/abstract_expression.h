@@ -84,11 +84,6 @@ class AbstractExpression {
   void SetExpressionName(std::string expression_name) { expression_name_ = std::move(expression_name); }
 
   /**
-   * @param expression_type Set the expression type of the current expression
-   */
-  void SetExpressionType(ExpressionType expression_type) { expression_type_ = expression_type; }
-
-  /**
    * @param return_value_type Set the return value type of the current expression
    */
   void SetReturnValueType(type::TypeId return_value_type) { return_value_type_ = return_value_type; }
@@ -240,6 +235,10 @@ class AbstractExpression {
    */
   virtual std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j);
 
+  /**
+   * @param expression_type Set the expression type of the current expression
+   */
+  void SetExpressionType(ExpressionType expression_type) { expression_type_ = expression_type; }
  protected:
   // We make abstract expression friend with both binder and query to operator transformer
   // as they each traverse the ast independently and add in necessary information to the ast
