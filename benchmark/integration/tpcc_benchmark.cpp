@@ -89,9 +89,9 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
     gc_ = new storage::GarbageCollector(common::ManagedPointer(&timestamp_manager),
                                         common::ManagedPointer(&deferred_action_manager),
                                         common::ManagedPointer(&txn_manager), DISABLED);
-    catalog::Catalog catalog{common::ManagedPointer(&txn_manager), common::ManagedPointer(&block_store_),
+    catalog::Catalog catalog{common::ManagedPointer(&txn_manager), common::ManagedPointer<storage::BlockStore>(&block_store_),
                              common::ManagedPointer(gc_)};
-    Builder tpcc_builder{common::ManagedPointer(&block_store_), common::ManagedPointer(&catalog),
+    Builder tpcc_builder{common::ManagedPointer<storage::BlockStore>(&block_store_), common::ManagedPointer(&catalog),
                          common::ManagedPointer(&txn_manager)};
 
     // build the TPCC database using HashMaps where possible
@@ -181,9 +181,9 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     gc_ = new storage::GarbageCollector(common::ManagedPointer(&timestamp_manager),
                                         common::ManagedPointer(&deferred_action_manager),
                                         common::ManagedPointer(&txn_manager), DISABLED);
-    catalog::Catalog catalog{common::ManagedPointer(&txn_manager), common::ManagedPointer(&block_store_),
+    catalog::Catalog catalog{common::ManagedPointer(&txn_manager), common::ManagedPointer<storage::BlockStore>(&block_store_),
                              common::ManagedPointer(gc_)};
-    Builder tpcc_builder{common::ManagedPointer(&block_store_), common::ManagedPointer(&catalog),
+    Builder tpcc_builder{common::ManagedPointer<storage::BlockStore>(&block_store_), common::ManagedPointer(&catalog),
                          common::ManagedPointer(&txn_manager)};
 
     // build the TPCC database
@@ -279,9 +279,9 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
     gc_ = new storage::GarbageCollector(common::ManagedPointer(&timestamp_manager),
                                         common::ManagedPointer(&deferred_action_manager),
                                         common::ManagedPointer(&txn_manager), DISABLED);
-    catalog::Catalog catalog{common::ManagedPointer(&txn_manager), common::ManagedPointer(&block_store_),
+    catalog::Catalog catalog{common::ManagedPointer(&txn_manager), common::ManagedPointer<storage::BlockStore>(&block_store_),
                              common::ManagedPointer(gc_)};
-    Builder tpcc_builder{common::ManagedPointer(&block_store_), common::ManagedPointer(&catalog),
+    Builder tpcc_builder{common::ManagedPointer<storage::BlockStore>(&block_store_), common::ManagedPointer(&catalog),
                          common::ManagedPointer(&txn_manager)};
 
     // build the TPCC database using HashMaps where possible
@@ -375,9 +375,9 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
     gc_ = new storage::GarbageCollector(common::ManagedPointer(&timestamp_manager),
                                         common::ManagedPointer(&deferred_action_manager),
                                         common::ManagedPointer(&txn_manager), DISABLED);
-    catalog::Catalog catalog{common::ManagedPointer(&txn_manager), common::ManagedPointer(&block_store_),
+    catalog::Catalog catalog{common::ManagedPointer(&txn_manager), common::ManagedPointer<storage::BlockStore>(&block_store_),
                              common::ManagedPointer(gc_)};
-    Builder tpcc_builder{common::ManagedPointer(&block_store_), common::ManagedPointer(&catalog),
+    Builder tpcc_builder{common::ManagedPointer<storage::BlockStore>(&block_store_), common::ManagedPointer(&catalog),
                          common::ManagedPointer(&txn_manager)};
 
     // build the TPCC database

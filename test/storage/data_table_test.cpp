@@ -20,7 +20,7 @@ class RandomDataTableTestObject {
   RandomDataTableTestObject(storage::BlockStore *block_store, const uint16_t max_col, const double null_bias,
                             Random *generator)
       : layout_(StorageTestUtil::RandomLayoutNoVarlen(max_col, generator)),
-        table_(block_store, layout_, storage::layout_version_t(0)),
+        table_(common::ManagedPointer<storage::BlockStore>(block_store), layout_, storage::layout_version_t(0)),
         null_bias_(null_bias) {}
 
   ~RandomDataTableTestObject() {

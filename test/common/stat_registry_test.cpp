@@ -168,7 +168,8 @@ TEST(StatRegistryTest, GTEST_DEBUG_ONLY(DataTableStatTest)) {
   terrier::storage::BlockLayout block_layout({8, 8, 8});
   const std::vector<terrier::storage::col_id_t> col_ids = {terrier::storage::col_id_t{1},
                                                            terrier::storage::col_id_t{2}};
-  terrier::storage::DataTable data_table(&block_store, block_layout, terrier::storage::layout_version_t{0});
+  terrier::storage::DataTable data_table(common::ManagedPointer<storage::BlockStore>(&block_store), block_layout,
+                                         terrier::storage::layout_version_t{0});
   terrier::transaction::timestamp_t timestamp(0);
   auto *txn = new terrier::transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(&buffer_pool),
                                                            DISABLED);
