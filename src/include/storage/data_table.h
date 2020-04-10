@@ -54,17 +54,17 @@ class DataTable {
      * @return reference to the underlying tuple slot
      */
     TupleSlot &operator*() {
-      auto max_slots = static_cast<uint64_t>(table_->accessor_.GetBlockLayout().NumSlots());
-      uint64_t block_num = i_ / max_slots;
-      RawBlock *b = const_cast<common::ConcurrentPointerVector<RawBlock> *>(&table_->blocks_)->LookUp(block_num);
-      current_slot_ = {b, static_cast<uint32_t>(i_ % max_slots)};
+      UpdateCurrentSlot();
       return current_slot_;
     }
 
     /**
      * @return pointer to the underlying tuple slot
      */
-    TupleSlot *operator->() { return &current_slot_; }
+    TupleSlot *operator->() {
+      UpdateCurrentSlot();
+      return &current_slot_;
+    }
 
     /**
      * pre-fix increment.
@@ -117,6 +117,13 @@ class DataTable {
                    static_cast<uint64_t>(const_cast<common::ConcurrentPointerVector<RawBlock> *>(&table->blocks_)
                                              ->LookUp(num_blocks - 1)
                                              ->GetInsertHead());
+    }
+
+    void UpdateCurrentSlot() {
+      auto max_slots = static_cast<uint64_t>(table_->accessor_.GetBlockLayout().NumSlots());
+      uint64_t block_num = i_ / max_slots;
+      RawBlock *b = const_cast<common::ConcurrentPointerVector<RawBlock> *>(&table_->blocks_)->LookUp(block_num);
+      current_slot_ = {b, static_cast<uint32_t>(i_ % max_slots)};
     }
 
     const DataTable *table_{};
@@ -235,9 +242,9 @@ class DataTable {
   BlockLayout *GetBlockLayout() const { return const_cast<BlockLayout *>(&accessor_.GetBlockLayout()); }
 
   /**
-   * @return this DataTable's Accessor
+   * @return reference to this DataTable's Accessor
    */
-  TupleAccessStrategy GetAccessor() const { return accessor_; }
+  TupleAccessStrategy &GetAccessor() const { return const_cast<TupleAccessStrategy &>(accessor_); }
 
   /**
    * @return the number of blocks that are in the RawBlock* array
