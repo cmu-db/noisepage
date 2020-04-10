@@ -35,9 +35,9 @@
 #define VM_OP_COLD VM_OP NEVER_INLINE
 
 namespace terrier::execution::vm {
-  STRONG_TYPEDEF(col_id_t, uint16_t);
-  STRONG_TYPEDEF(col_id_32_t, uint32_t);
-}
+STRONG_TYPEDEF(col_id_t, uint16_t);
+STRONG_TYPEDEF(col_id_32_t, uint32_t);
+}  // namespace terrier::execution::vm
 
 extern "C" {
 
@@ -300,7 +300,7 @@ VM_OP_HOT void OpPCIGetBool(terrier::execution::sql::BoolVal *out,
                             terrier::execution::sql::ProjectedColumnsIterator *iter,
                             terrier::execution::vm::col_id_32_t col_idx) {
   // Read
-  auto *ptr = iter->Get<bool, false>(static_cast<uint32_t>(col_idx), nullptr);
+  auto *ptr = iter->Get<bool, false>(!col_idx, nullptr);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read bool");
 
   // Set
@@ -312,7 +312,7 @@ VM_OP_HOT void OpPCIGetTinyInt(terrier::execution::sql::Integer *out,
                                terrier::execution::sql::ProjectedColumnsIterator *iter,
                                terrier::execution::vm::col_id_32_t col_idx) {
   // Read
-  auto *ptr = iter->Get<int8_t, false>(static_cast<uint32_t>(col_idx), nullptr);
+  auto *ptr = iter->Get<int8_t, false>(!col_idx, nullptr);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
@@ -324,7 +324,7 @@ VM_OP_HOT void OpPCIGetSmallInt(terrier::execution::sql::Integer *out,
                                 terrier::execution::sql::ProjectedColumnsIterator *iter,
                                 terrier::execution::vm::col_id_32_t col_idx) {
   // Read
-  auto *ptr = iter->Get<int16_t, false>(static_cast<uint32_t>(col_idx), nullptr);
+  auto *ptr = iter->Get<int16_t, false>(!col_idx, nullptr);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
@@ -336,7 +336,7 @@ VM_OP_HOT void OpPCIGetInteger(terrier::execution::sql::Integer *out,
                                terrier::execution::sql::ProjectedColumnsIterator *iter,
                                terrier::execution::vm::col_id_32_t col_idx) {
   // Read
-  auto *ptr = iter->Get<int32_t, false>(static_cast<uint32_t>(col_idx), nullptr);
+  auto *ptr = iter->Get<int32_t, false>(!col_idx, nullptr);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
@@ -348,7 +348,7 @@ VM_OP_HOT void OpPCIGetBigInt(terrier::execution::sql::Integer *out,
                               terrier::execution::sql::ProjectedColumnsIterator *iter,
                               terrier::execution::vm::col_id_32_t col_idx) {
   // Read
-  auto *ptr = iter->Get<int64_t, false>(static_cast<uint32_t>(col_idx), nullptr);
+  auto *ptr = iter->Get<int64_t, false>(!col_idx, nullptr);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
@@ -356,11 +356,10 @@ VM_OP_HOT void OpPCIGetBigInt(terrier::execution::sql::Integer *out,
   out->val_ = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetReal(terrier::execution::sql::Real *out,
-        terrier::execution::sql::ProjectedColumnsIterator *iter,
+VM_OP_HOT void OpPCIGetReal(terrier::execution::sql::Real *out, terrier::execution::sql::ProjectedColumnsIterator *iter,
                             terrier::execution::vm::col_id_32_t col_idx) {
   // Read
-  auto *ptr = iter->Get<float, false>(static_cast<uint32_t>(col_idx), nullptr);
+  auto *ptr = iter->Get<float, false>(!col_idx, nullptr);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read real value");
 
   // Set
@@ -372,7 +371,7 @@ VM_OP_HOT void OpPCIGetDouble(terrier::execution::sql::Real *out,
                               terrier::execution::sql::ProjectedColumnsIterator *iter,
                               terrier::execution::vm::col_id_32_t col_idx) {
   // Read
-  auto *ptr = iter->Get<double, false>(static_cast<uint32_t>(col_idx), nullptr);
+  auto *ptr = iter->Get<double, false>(!col_idx, nullptr);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read double value");
 
   // Set
@@ -394,7 +393,7 @@ VM_OP_HOT void OpPCIGetDateVal(terrier::execution::sql::DateVal *out,
                                terrier::execution::sql::ProjectedColumnsIterator *iter,
                                terrier::execution::vm::col_id_32_t col_idx) {
   // Read
-  auto *ptr = iter->Get<uint32_t, false>(static_cast<uint32_t>(col_idx), nullptr);
+  auto *ptr = iter->Get<uint32_t, false>(!col_idx, nullptr);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
 
   // Set
@@ -406,7 +405,7 @@ VM_OP_HOT void OpPCIGetTimestampVal(terrier::execution::sql::TimestampVal *out,
                                     terrier::execution::sql::ProjectedColumnsIterator *iter,
                                     terrier::execution::vm::col_id_32_t col_idx) {
   // Read
-  auto *ptr = iter->Get<uint64_t, false>(static_cast<uint32_t>(col_idx), nullptr);
+  auto *ptr = iter->Get<uint64_t, false>(!col_idx, nullptr);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
 
   // Set
@@ -418,7 +417,7 @@ VM_OP_HOT void OpPCIGetVarlen(terrier::execution::sql::StringVal *out,
                               terrier::execution::sql::ProjectedColumnsIterator *iter,
                               terrier::execution::vm::col_id_32_t col_idx) {
   // Read
-  auto *varlen = iter->Get<terrier::storage::VarlenEntry, false>(static_cast<uint32_t>(col_idx), nullptr);
+  auto *varlen = iter->Get<terrier::storage::VarlenEntry, false>(!col_idx, nullptr);
   TERRIER_ASSERT(varlen != nullptr, "Null pointer when trying to read varlen");
 
   // Set
@@ -430,7 +429,7 @@ VM_OP_HOT void OpPCIGetBoolNull(terrier::execution::sql::BoolVal *out,
                                 terrier::execution::vm::col_id_32_t col_idx) {
   // Read
   bool null = false;
-  auto *ptr = iter->Get<bool, true>(static_cast<uint32_t>(col_idx), &null);
+  auto *ptr = iter->Get<bool, true>(!col_idx, &null);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read bool");
 
   // Set
@@ -443,7 +442,7 @@ VM_OP_HOT void OpPCIGetTinyIntNull(terrier::execution::sql::Integer *out,
                                    terrier::execution::vm::col_id_32_t col_idx) {
   // Read
   bool null = false;
-  auto *ptr = iter->Get<int8_t, true>(static_cast<uint32_t>(col_idx), &null);
+  auto *ptr = iter->Get<int8_t, true>(!col_idx, &null);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
@@ -456,7 +455,7 @@ VM_OP_HOT void OpPCIGetSmallIntNull(terrier::execution::sql::Integer *out,
                                     terrier::execution::vm::col_id_32_t col_idx) {
   // Read
   bool null = false;
-  auto *ptr = iter->Get<int16_t, true>(static_cast<uint32_t>(col_idx), &null);
+  auto *ptr = iter->Get<int16_t, true>(!col_idx, &null);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
@@ -469,7 +468,7 @@ VM_OP_HOT void OpPCIGetIntegerNull(terrier::execution::sql::Integer *out,
                                    terrier::execution::vm::col_id_32_t col_idx) {
   // Read
   bool null = false;
-  auto *ptr = iter->Get<int32_t, true>(static_cast<uint32_t>(col_idx), &null);
+  auto *ptr = iter->Get<int32_t, true>(!col_idx, &null);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
@@ -482,7 +481,7 @@ VM_OP_HOT void OpPCIGetBigIntNull(terrier::execution::sql::Integer *out,
                                   terrier::execution::vm::col_id_32_t col_idx) {
   // Read
   bool null = false;
-  auto *ptr = iter->Get<int64_t, true>(static_cast<uint32_t>(col_idx), &null);
+  auto *ptr = iter->Get<int64_t, true>(!col_idx, &null);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
@@ -495,7 +494,7 @@ VM_OP_HOT void OpPCIGetRealNull(terrier::execution::sql::Real *out,
                                 terrier::execution::vm::col_id_32_t col_idx) {
   // Read
   bool null = false;
-  auto *ptr = iter->Get<float, true>(static_cast<uint32_t>(col_idx), &null);
+  auto *ptr = iter->Get<float, true>(!col_idx, &null);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read real value");
 
   // Set
@@ -508,7 +507,7 @@ VM_OP_HOT void OpPCIGetDoubleNull(terrier::execution::sql::Real *out,
                                   terrier::execution::vm::col_id_32_t col_idx) {
   // Read
   bool null = false;
-  auto *ptr = iter->Get<double, true>(static_cast<uint32_t>(col_idx), &null);
+  auto *ptr = iter->Get<double, true>(!col_idx, &null);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read double value");
 
   // Set
@@ -528,7 +527,7 @@ VM_OP_HOT void OpPCIGetDateValNull(terrier::execution::sql::DateVal *out,
                                    terrier::execution::vm::col_id_32_t col_idx) {
   // Read
   bool null = false;
-  auto *ptr = iter->Get<uint32_t, true>(static_cast<uint32_t>(col_idx), &null);
+  auto *ptr = iter->Get<uint32_t, true>(!col_idx, &null);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
 
   // Set
@@ -541,7 +540,7 @@ VM_OP_HOT void OpPCIGetTimestampValNull(terrier::execution::sql::TimestampVal *o
                                         terrier::execution::vm::col_id_32_t col_idx) {
   // Read
   bool null = false;
-  auto *ptr = iter->Get<uint64_t, true>(static_cast<uint32_t>(col_idx), &null);
+  auto *ptr = iter->Get<uint64_t, true>(!col_idx, &null);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
 
   // Set
@@ -554,7 +553,7 @@ VM_OP_HOT void OpPCIGetVarlenNull(terrier::execution::sql::StringVal *out,
                                   terrier::execution::vm::col_id_32_t col_idx) {
   // Read
   bool null = false;
-  auto *varlen = iter->Get<terrier::storage::VarlenEntry, true>(static_cast<uint32_t>(col_idx), &null);
+  auto *varlen = iter->Get<terrier::storage::VarlenEntry, true>(!col_idx, &null);
   TERRIER_ASSERT(varlen != nullptr, "Null pointer when trying to read varlen");
 
   // Set
@@ -1504,22 +1503,22 @@ VM_OP_WARM void OpIndexIteratorGetSlot(terrier::storage::TupleSlot *slot,
   *slot = iter->CurrentSlot();
 }
 
-#define GEN_PR_SCALAR_SET_CALLS(Name, SqlType, CppType)                                    \
+#define GEN_PR_SCALAR_SET_CALLS(Name, SqlType, CppType)                                                            \
   VM_OP_HOT void OpPRSet##Name(terrier::storage::ProjectedRow *pr, terrier::execution::vm::col_id_t col_idx,       \
-                               terrier::execution::sql::SqlType *val) {                    \
-    pr->Set<CppType, false>(static_cast<uint16_t>(col_idx), static_cast<CppType>(val->val_), val->is_null_);      \
-  }                                                                                        \
-                                                                                           \
+                               terrier::execution::sql::SqlType *val) {                                            \
+    pr->Set<CppType, false>(!col_idx, static_cast<CppType>(val->val_), val->is_null_);                             \
+  }                                                                                                                \
+                                                                                                                   \
   VM_OP_HOT void OpPRSet##Name##Null(terrier::storage::ProjectedRow *pr, terrier::execution::vm::col_id_t col_idx, \
-                                     terrier::execution::sql::SqlType *val) {              \
-    pr->Set<CppType, true>(static_cast<uint16_t>(col_idx), static_cast<CppType>(val->val_), val->is_null_);       \
+                                     terrier::execution::sql::SqlType *val) {                                      \
+    pr->Set<CppType, true>(!col_idx, static_cast<CppType>(val->val_), val->is_null_);                              \
   }
 
 #define GEN_PR_SCALAR_GET_CALLS(Name, SqlType, CppType)                                                         \
   VM_OP_HOT void OpPRGet##Name(terrier::execution::sql::SqlType *out, terrier::storage::ProjectedRow *pr,       \
-                               terrier::execution::vm::col_id_t col_idx) {                                                              \
+                               terrier::execution::vm::col_id_t col_idx) {                                      \
     /* Read */                                                                                                  \
-    auto *ptr = pr->Get<CppType, false>(static_cast<uint16_t>(col_idx), nullptr);                                                      \
+    auto *ptr = pr->Get<CppType, false>(!col_idx, nullptr);                                                     \
     TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");                                 \
     /* Set */                                                                                                   \
     out->is_null_ = false;                                                                                      \
@@ -1527,10 +1526,10 @@ VM_OP_WARM void OpIndexIteratorGetSlot(terrier::storage::TupleSlot *slot,
   }                                                                                                             \
                                                                                                                 \
   VM_OP_HOT void OpPRGet##Name##Null(terrier::execution::sql::SqlType *out, terrier::storage::ProjectedRow *pr, \
-                                     terrier::execution::vm::col_id_t col_idx) {                                                        \
+                                     terrier::execution::vm::col_id_t col_idx) {                                \
     /* Read */                                                                                                  \
     bool null = false;                                                                                          \
-    auto *ptr = pr->Get<CppType, true>(static_cast<uint16_t>(col_idx), &null);                                                         \
+    auto *ptr = pr->Get<CppType, true>(!col_idx, &null);                                                        \
     /* Set */                                                                                                   \
     out->is_null_ = null;                                                                                       \
     out->val_ = null ? 0 : *ptr;                                                                                \
@@ -1554,43 +1553,43 @@ GEN_PR_SCALAR_GET_CALLS(Double, Real, double);
 VM_OP_HOT void OpPRSetVarlen(terrier::storage::ProjectedRow *pr, terrier::execution::vm::col_id_t col_idx,
                              terrier::execution::sql::StringVal *val, bool own) {
   const auto varlen = terrier::execution::sql::StringVal::CreateVarlen(*val, own);
-  pr->Set<terrier::storage::VarlenEntry, false>(static_cast<uint16_t>(col_idx), varlen, val->is_null_);
+  pr->Set<terrier::storage::VarlenEntry, false>(!col_idx, varlen, val->is_null_);
 }
 
 VM_OP_HOT void OpPRSetVarlenNull(terrier::storage::ProjectedRow *pr, terrier::execution::vm::col_id_t col_idx,
                                  terrier::execution::sql::StringVal *val, bool own) {
   const auto varlen = terrier::execution::sql::StringVal::CreateVarlen(*val, own);
-  pr->Set<terrier::storage::VarlenEntry, true>(static_cast<uint16_t>(col_idx), varlen, val->is_null_);
+  pr->Set<terrier::storage::VarlenEntry, true>(!col_idx, varlen, val->is_null_);
 }
 
 VM_OP_HOT void OpPRSetDateVal(terrier::storage::ProjectedRow *pr, terrier::execution::vm::col_id_t col_idx,
                               terrier::execution::sql::DateVal *val) {
   auto pr_val = val->val_.ToNative();
-  pr->Set<uint32_t, false>(static_cast<uint16_t>(col_idx), pr_val, val->is_null_);
+  pr->Set<uint32_t, false>(!col_idx, pr_val, val->is_null_);
 }
 
 VM_OP_HOT void OpPRSetDateValNull(terrier::storage::ProjectedRow *pr, terrier::execution::vm::col_id_t col_idx,
                                   terrier::execution::sql::DateVal *val) {
   auto pr_val = val->is_null_ ? 0 : val->val_.ToNative();
-  pr->Set<uint32_t, true>(static_cast<uint16_t>(col_idx), pr_val, val->is_null_);
+  pr->Set<uint32_t, true>(!col_idx, pr_val, val->is_null_);
 }
 
 VM_OP_HOT void OpPRSetTimestampVal(terrier::storage::ProjectedRow *pr, terrier::execution::vm::col_id_t col_idx,
                                    terrier::execution::sql::TimestampVal *val) {
   auto pr_val = val->val_.ToNative();
-  pr->Set<uint64_t, false>(static_cast<uint16_t>(col_idx), pr_val, val->is_null_);
+  pr->Set<uint64_t, false>(!col_idx, pr_val, val->is_null_);
 }
 
 VM_OP_HOT void OpPRSetTimestampValNull(terrier::storage::ProjectedRow *pr, terrier::execution::vm::col_id_t col_idx,
                                        terrier::execution::sql::TimestampVal *val) {
   auto pr_val = val->is_null_ ? 0 : val->val_.ToNative();
-  pr->Set<uint64_t, true>(static_cast<uint16_t>(col_idx), pr_val, val->is_null_);
+  pr->Set<uint64_t, true>(!col_idx, pr_val, val->is_null_);
 }
 
 VM_OP_HOT void OpPRGetDateVal(terrier::execution::sql::DateVal *out, terrier::storage::ProjectedRow *pr,
                               terrier::execution::vm::col_id_t col_idx) {
   // Read
-  auto *ptr = pr->Get<uint32_t, false>(static_cast<uint16_t>(col_idx), nullptr);
+  auto *ptr = pr->Get<uint32_t, false>(!col_idx, nullptr);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
   // Set
   out->is_null_ = false;
@@ -1601,7 +1600,7 @@ VM_OP_HOT void OpPRGetDateValNull(terrier::execution::sql::DateVal *out, terrier
                                   terrier::execution::vm::col_id_t col_idx) {
   // Read
   bool null = false;
-  auto *ptr = pr->Get<uint32_t, true>(static_cast<uint16_t>(col_idx), &null);
+  auto *ptr = pr->Get<uint32_t, true>(!col_idx, &null);
 
   // Set
   out->is_null_ = null;
@@ -1611,7 +1610,7 @@ VM_OP_HOT void OpPRGetDateValNull(terrier::execution::sql::DateVal *out, terrier
 VM_OP_HOT void OpPRGetTimestampVal(terrier::execution::sql::TimestampVal *out, terrier::storage::ProjectedRow *pr,
                                    terrier::execution::vm::col_id_t col_idx) {
   // Read
-  auto *ptr = pr->Get<uint64_t, false>(static_cast<uint16_t>(col_idx), nullptr);
+  auto *ptr = pr->Get<uint64_t, false>(!col_idx, nullptr);
   TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
 
   // Set
@@ -1623,7 +1622,7 @@ VM_OP_HOT void OpPRGetTimestampValNull(terrier::execution::sql::TimestampVal *ou
                                        terrier::execution::vm::col_id_t col_idx) {
   // Read
   bool null = false;
-  auto *ptr = pr->Get<uint64_t, true>(static_cast<uint16_t>(col_idx), &null);
+  auto *ptr = pr->Get<uint64_t, true>(!col_idx, &null);
 
   // Set
   out->is_null_ = null;
@@ -1633,7 +1632,7 @@ VM_OP_HOT void OpPRGetTimestampValNull(terrier::execution::sql::TimestampVal *ou
 VM_OP_HOT void OpPRGetVarlen(terrier::execution::sql::StringVal *out, terrier::storage::ProjectedRow *pr,
                              terrier::execution::vm::col_id_t col_idx) {
   // Read
-  auto *varlen = pr->Get<terrier::storage::VarlenEntry, false>(static_cast<uint16_t>(col_idx), nullptr);
+  auto *varlen = pr->Get<terrier::storage::VarlenEntry, false>(!col_idx, nullptr);
   TERRIER_ASSERT(varlen != nullptr, "Null pointer when trying to read varlen");
 
   // Set
@@ -1644,7 +1643,7 @@ VM_OP_HOT void OpPRGetVarlenNull(terrier::execution::sql::StringVal *out, terrie
                                  terrier::execution::vm::col_id_t col_idx) {
   // Read
   bool null = false;
-  auto *varlen = pr->Get<terrier::storage::VarlenEntry, true>(static_cast<uint16_t>(col_idx), &null);
+  auto *varlen = pr->Get<terrier::storage::VarlenEntry, true>(!col_idx, &null);
 
   // Set
   if (null) {
