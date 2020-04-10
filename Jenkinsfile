@@ -119,7 +119,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'sudo apt-get -y install ccache lsof'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc)'
+                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc)'
 //                         sh 'cd build && make check-clang-tidy'
 //                         sh 'cd build && timeout 1h make unittest'
 //                         sh 'cd build && timeout 1h make check-tpl'
@@ -169,35 +169,35 @@ pipeline {
 //                         }
 //                     }
 //                 }
-
-                stage('ubuntu-18.04/clang-8.0.0 (Debug/ASAN/unittest)') {
-                    agent {
-                        docker {
-                            image 'ubuntu:bionic'
-                            args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
-                        }
-                    }
-                    environment {
-                        CC="/usr/bin/clang-8"
-                        CXX="/usr/bin/clang++-8"
-                    }
-                    steps {
-                        sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh'
-                        sh 'sudo apt-get -y install ccache lsof'
-                        sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc)'
-//                         sh 'cd build && make check-clang-tidy'
-//                         sh 'cd build && timeout 1h make unittest'
-//                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py'
-                    }
-                    post {
-                        cleanup {
-                            deleteDir()
-                        }
-                    }
-                }
+// 
+//                 stage('ubuntu-18.04/clang-8.0.0 (Debug/ASAN/unittest)') {
+//                     agent {
+//                         docker {
+//                             image 'ubuntu:bionic'
+//                             args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
+//                         }
+//                     }
+//                     environment {
+//                         CC="/usr/bin/clang-8"
+//                         CXX="/usr/bin/clang++-8"
+//                     }
+//                     steps {
+//                         sh 'echo $NODE_NAME'
+//                         sh 'echo y | sudo ./script/installation/packages.sh'
+//                         sh 'sudo apt-get -y install ccache lsof'
+//                         sh 'mkdir build'
+//                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc)'
+// //                         sh 'cd build && make check-clang-tidy'
+// //                         sh 'cd build && timeout 1h make unittest'
+// //                         sh 'cd build && timeout 1h make check-tpl'
+//                         sh 'cd build && python3 ../script/testing/junit/run_junit.py'
+//                     }
+//                     post {
+//                         cleanup {
+//                             deleteDir()
+//                         }
+//                     }
+//                 }
 // 
 //                 stage('macos-10.14/AppleClang-1001.0.46.4 (Release/unittest)') {
 //                     agent { label 'macos' }

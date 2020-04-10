@@ -124,8 +124,7 @@ class TestServer:
                 if i > 0 and i % 20 == 0:
                     print("*"*100)
                     print("Failed to connect to DB server [{}/100]".format(i))
-                    os.system('ps aux | grep terrier')
-                    print("X"*20)
+                    os.system('ps aux | grep terrier | grep {}'.format(self.db_process.pid))
                     os.system('lsof -i :15721')
                     traceback.print_exc(file=sys.stdout)
                 time.sleep(constants.DB_CONNECT_SLEEP)
