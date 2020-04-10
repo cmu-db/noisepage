@@ -63,7 +63,7 @@ class TestOLTPBench(TestServer):
             BENCHMARK=self.benchmark,
             XML=self.xml_config,
             FLAGS=constants.OLTP_DEFAULT_COMMAND_FLAGS,
-            RESULTS=self.test_output_json_file)
+            RESULTS=self.oltpbench_result_path)
         self.test_command_cwd = constants.OLTP_GIT_LOCAL_PATH
         self.test_error_msg = constants.OLTP_TEST_ERROR_MSG
 
@@ -136,18 +136,21 @@ class TestOLTPBench(TestServer):
 
     def validate_result(self):
         """read the results file"""
-        
+
         # Make sure the file exists before we try to open it.
-        # If it's not there, we'll dump out the contents of the directory to make it 
+        # If it's not there, we'll dump out the contents of the directory to make it
         # easier to determine whether or not we are crazy when running Jenkins.
         if not os.path.exists(self.oltpbench_result_path):
-            print("="*50)
-            print("Directory Contents: {}".format(os.path.dirname(self.oltpbench_result_path)))
-            print("\n".join(os.listdir(os.path.dirname(self.oltpbench_result_path))))
-            print("="*50)
-            msg = "Unable to find OLTP-Bench result file '{}'".format(self.oltpbench_result_path)
+            print("=" * 50)
+            print("Directory Contents: {}".format(
+                os.path.dirname(self.oltpbench_result_path)))
+            print("\n".join(
+                os.listdir(os.path.dirname(self.oltpbench_result_path))))
+            print("=" * 50)
+            msg = "Unable to find OLTP-Bench result file '{}'".format(
+                self.oltpbench_result_path)
             raise RuntimeError(msg)
-        
+
         with open(self.oltpbench_result_path) as oltp_result_file:
             test_result = json.load(oltp_result_file)
         unexpected_result = test_result.get("unexpected", {}).get("HISTOGRAM")
