@@ -28,7 +28,7 @@ TEST(ConcurrentVectorTest, BasicInsertLookUpTest) {
 // NOLINTNEXTLINE
 TEST(ConcurrentVectorTest, ConcurrentInsert) {
   const uint64_t num_inserts = 100000;
-  const uint64_t num_iterations = 100;
+  const uint64_t num_iterations = 3;
   const uint64_t num_threads = std::thread::hardware_concurrency();
   for (uint64_t _ = 0; _ < num_iterations; _++) {  // NOLINT
     std::thread threads[num_threads];              // NOLINT
@@ -43,9 +43,27 @@ TEST(ConcurrentVectorTest, ConcurrentInsert) {
       });
     }
 
+    bool done = false;
+    int num_prints = 0;
+    auto printer = std::thread([&] {
+      while (!done) {
+
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        if (!done) {
+          std::cout << v.counter() << std::endl;
+          num_prints++;
+        }
+      }
+    });
+
     for (uint64_t i = 0; i < num_threads; i++) {  // NOLINT
       threads[i].join();
     }
+    done = true;
+    printer.join();
+
+    if (num_prints != 0)
+      std::cout << "done with iteration" << std::endl;
 
     for (uint64_t i = 0; i < num_threads; i++) {
       for (uint64_t index = 0; index < num_inserts / num_threads; index++) {
