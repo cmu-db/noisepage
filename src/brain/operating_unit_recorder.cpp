@@ -117,6 +117,8 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
                                               UNUSED_ATTRIBUTE const planner::AbstractPlanNode *plan,
                                               size_t scaling_factor) {
   // TODO(wz2): Populate actual num_rows/cardinality after #759
+  // TODO(wz2): For OUTPUT, cardinality is just set to num_rows
+  // TODO(wz2): For HASHJOIN_PROBE, cardinality is # matched rows
   size_t num_rows = 0;
   auto cardinality = 0.0;
 
