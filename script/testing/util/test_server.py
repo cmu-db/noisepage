@@ -106,9 +106,10 @@ class TestServer:
                 is_db_running = True
                 break
             except:
-                if i == 20:
+                if i % 20 == 0:
                     print("*"*100)
                     print("Failed to connect to DB server [{}/100]".format(i))
+                    os.system('ps aux | grep terrier')
                     traceback.print_exc(file=sys.stdout)
                     print("*"*100)
                 time.sleep(0.1)
