@@ -117,7 +117,7 @@ pipeline {
                     steps {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh'
-                        sh 'sudo apt-get -y install ccache'
+                        sh 'sudo apt-get -y install ccache lsof'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc)'
 //                         sh 'cd build && make check-clang-tidy'
@@ -184,7 +184,7 @@ pipeline {
                     steps {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh'
-                        sh 'sudo apt-get -y install ccache'
+                        sh 'sudo apt-get -y install ccache lsof'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc)'
 //                         sh 'cd build && make check-clang-tidy'
