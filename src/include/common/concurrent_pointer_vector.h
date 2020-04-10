@@ -122,7 +122,8 @@ class ConcurrentPointerVector {
     common::SharedLatch::ScopedSharedLatch l(&array_pointer_latch_);
 
     // it is possible that this lookup is by iteration through an index that is not yet readable
-    // in that case we just wait until it is readable
+    // in that case we just wait until it is readable. But it is possible that we might be blocking a resize to get
+    // the index we are trying to read so we must unlock to allow that resize to happen.
     while (UNLIKELY(!GetReadability(array_, index))) {
       array_pointer_latch_.Unlock();
       array_pointer_latch_.LockShared();
