@@ -67,24 +67,26 @@ class ConcurrentPointerVector {
       // copy over all remaining values into the new_array
       {
         common::SharedLatch::ScopedExclusiveLatch l(&array_pointer_latch_);
-        counter_++;
         for (; i < capacity_; i++) {
           new_array[i] = array_[i];
         }
         array_ = new_array;
-        counter_--;
       }
 
       // change capacity and notify threads waiting on resize
       {
+        std::unique_lock<std::mutex> l(resize_mutex_);
         capacity_ = capacity_ * RESIZE_FACTOR;
       }
+
+      resize_cv_.notify_all();
 
       delete[] old_array;
 
     } else if (my_index > capacity_) {
       // must wait for resize
-      while (my_index > capacity_) {}
+      std::unique_lock<std::mutex> l(resize_mutex_);
+      resize_cv_.wait(l, [&] { return my_index < capacity_; });
     }
 
     TERRIER_ASSERT(my_index < capacity_, "must safely index into array");
@@ -134,8 +136,6 @@ class ConcurrentPointerVector {
    * @return size of the vector which is the current claimable vector
    */
   uint64_t size() const { return claimable_index_; }  // NOLINT
-
-  uint64_t counter() { return counter_; }
 
   /**
    * Iterator iterator for the vector, Snapshot compliant
@@ -260,10 +260,10 @@ class ConcurrentPointerVector {
     return static_cast<bool>(reinterpret_cast<uint64_t>(array[i]) >> SHIFT_AMOUNT);
   }
 
+  std::condition_variable resize_cv_;
   std::atomic<uint64_t> capacity_;
   std::atomic<uint64_t> claimable_index_;
   std::atomic<uint64_t> first_not_readable_index_;
-  std::atomic<uint64_t> counter_ = 0;
   T **array_;
   common::SharedLatch array_pointer_latch_;
   std::mutex resize_mutex_;
