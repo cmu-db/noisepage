@@ -234,7 +234,7 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
       delete schema;
       table_oids_[database_oid].emplace_back(table_oid);
       auto catalog_schema = db_catalog_ptr->GetSchema(common::ManagedPointer(initial_txn_), table_oid);
-      auto *sql_table = new storage::SqlTable(common::ManagedPointer(block_store), catalog_schema);
+      auto *sql_table = new storage::SqlTable(common::ManagedPointer<storage::BlockStore>(block_store), catalog_schema);
       auto result UNUSED_ATTRIBUTE =
           db_catalog_ptr->SetTablePointer(common::ManagedPointer(initial_txn_), table_oid, sql_table);
       TERRIER_ASSERT(result, "Setting table pointer in catalog should succeed");
