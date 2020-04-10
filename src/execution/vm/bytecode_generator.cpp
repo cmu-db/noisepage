@@ -1233,9 +1233,9 @@ void BytecodeGenerator::VisitBuiltinAggregatorCall(ast::CallExpr *call, ast::Bui
 void BytecodeGenerator::VisitBuiltinTopKAggregatorCall(ast::CallExpr *call, ast::Builtin builtin) {
   switch (builtin) {
     case ast::Builtin::IntegerTopKAggInit: {
-      LocalVar topK_aggr = VisitExpressionForRValue(call->Arguments()[0]);
-      LocalVar topK = VisitExpressionForRValue(call->Arguments()[1]);
-      Emitter()->Emit(Bytecode::IntegerTopKAggregateInit, topK_aggr, topK);
+      LocalVar top_k_aggr = VisitExpressionForRValue(call->Arguments()[0]);
+      LocalVar top_k = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::IntegerTopKAggregateInit, top_k_aggr, top_k);
       break;
     }
     case ast::Builtin::IntegerTopKAggReset: {
@@ -1280,9 +1280,9 @@ void BytecodeGenerator::VisitBuiltinTopKAggregatorCall(ast::CallExpr *call, ast:
       break;
     }
     case ast::Builtin::RealTopKAggInit: {
-      LocalVar topK_aggr = VisitExpressionForRValue(call->Arguments()[0]);
-      LocalVar topK = VisitExpressionForRValue(call->Arguments()[1]);
-      Emitter()->Emit(Bytecode::RealTopKAggregateInit, topK_aggr, topK);
+      LocalVar top_k_aggr = VisitExpressionForRValue(call->Arguments()[0]);
+      LocalVar top_k = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::RealTopKAggregateInit, top_k_aggr, top_k);
       break;
     }
     case ast::Builtin::RealTopKAggReset: {

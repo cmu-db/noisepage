@@ -285,7 +285,6 @@ class IntegerMaxAggregate {
   bool null_{true};
 };
 
-
 /*
  * TopKAggregate
  */
@@ -297,7 +296,7 @@ class TopKAggregate {
   /**
    * Constructor.
    */
-  explicit TopKAggregate(size_t topK) : histogram_(topK, 64), topK_(topK), index_(0) {}
+  explicit TopKAggregate(size_t topK) : histogram_(topK, 64), top_k_(topK), index_(0) {}
 
   /**
    * This class cannot be copied or moved.
@@ -350,8 +349,7 @@ class TopKAggregate {
    * Returns whether there are more elements left
    */
   bool HasResult() const {
-    if(index_ < std::min(topK_, histogram_.GetSize())) return true;
-    else return false;
+    return index_ < std::min(top_k_, histogram_.GetSize());
   }
 
   /**
@@ -363,7 +361,7 @@ class TopKAggregate {
   // Histogram keeping track of the topK elements.
   terrier::optimizer::TopKElements<CppType> histogram_;
   bool null_{true};
-  size_t topK_;
+  size_t top_k_;
   size_t index_;
 };
 
@@ -371,7 +369,7 @@ class TopKAggregate {
 Integer Top K aggregate
 */
 class IntegerTopKAggregate : public TopKAggregate<Integer> {
-  public:
+ public:
   explicit IntegerTopKAggregate(size_t topK) : TopKAggregate<Integer>(topK) {}
 };
 
@@ -379,7 +377,7 @@ class IntegerTopKAggregate : public TopKAggregate<Integer> {
 Real Top K aggregate
 */
 class RealTopKAggregate : public TopKAggregate<Real> {
-  public:
+ public:
   explicit RealTopKAggregate(size_t topK) : TopKAggregate<Real>(topK) {}
 };
 /**

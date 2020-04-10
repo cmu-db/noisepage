@@ -151,14 +151,14 @@ class CountMinSketch {
   void Clear() { sketch_.clear(); }
 
   /*
-  * @return the sketch object inside count min sketch.
-  */
+   * @return the sketch object inside count min sketch.
+   */
   const madoka::Sketch &GetSketch() const { return sketch_; }
 
   /*
-  * @param const reference of the sketch to be merged with.
-  * Merge the count min sketch with the rhs sketch
-  */
+   * @param const reference of the sketch to be merged with.
+   * Merge the count min sketch with the rhs sketch
+   */
   void Merge(const CountMinSketch &rhs) { sketch_.merge(rhs.GetSketch()); }
 
  private:

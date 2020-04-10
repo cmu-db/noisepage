@@ -9,7 +9,6 @@ class AggregatorsTest : public TplTest {};
 
 // NOLINTNEXTLINE
 TEST_F(AggregatorsTest, Count) {
-
   // Count on empty input
 
   {
@@ -32,7 +31,6 @@ TEST_F(AggregatorsTest, Count) {
 
 // NOLINTNEXTLINE
 TEST_F(AggregatorsTest, CountMerge) {
-
   // Even inputs are NULL
   CountAggregate count_1, count_2;
 
@@ -55,7 +53,6 @@ TEST_F(AggregatorsTest, CountMerge) {
 
 // NOLINTNEXTLINE
 TEST_F(AggregatorsTest, SumInteger) {
-
   // SUM on empty input is null
 
   {
@@ -94,12 +91,11 @@ TEST_F(AggregatorsTest, SumInteger) {
 
 // NOLINTNEXTLINE
 TEST_F(AggregatorsTest, TopKInteger) {
-
   // TopK on empty input should be nothing
   {
     TopKAggregate<Integer> topk(2);
     std::vector<Integer> result;
-    while(topk.HasResult()) {
+    while (topk.HasResult()) {
       result.push_back(topk.GetResult());
     }
     EXPECT_TRUE(result.empty());
@@ -116,7 +112,7 @@ TEST_F(AggregatorsTest, TopKInteger) {
     }
 
     std::vector<Integer> result;
-    while(topk.HasResult()) {
+    while (topk.HasResult()) {
       result.push_back(topk.GetResult());
     }
     EXPECT_EQ(2, result.size());
@@ -143,7 +139,7 @@ TEST_F(AggregatorsTest, TopKInteger) {
 
     topk.Merge(topksecond);
     std::vector<Integer> result;
-    while(topk.HasResult()) {
+    while (topk.HasResult()) {
       result.push_back(topk.GetResult());
     }
     EXPECT_EQ(2, result.size());
@@ -154,12 +150,11 @@ TEST_F(AggregatorsTest, TopKInteger) {
 
 // NOLINTNEXTLINE
 TEST_F(AggregatorsTest, TopKReal) {
-
   // TopK on empty input should be nothing
   {
     TopKAggregate<Real> topk(2);
     std::vector<Real> result;
-    while(topk.HasResult()) {
+    while (topk.HasResult()) {
       result.push_back(topk.GetResult());
     }
     EXPECT_TRUE(result.empty());
@@ -176,7 +171,7 @@ TEST_F(AggregatorsTest, TopKReal) {
     }
 
     std::vector<Real> result;
-    while(topk.HasResult()) {
+    while (topk.HasResult()) {
       result.push_back(topk.GetResult());
     }
     EXPECT_EQ(2, result.size());
@@ -203,7 +198,7 @@ TEST_F(AggregatorsTest, TopKReal) {
 
     topk.Merge(topksecond);
     std::vector<Real> result;
-    while(topk.HasResult()) {
+    while (topk.HasResult()) {
       result.push_back(topk.GetResult());
     }
     EXPECT_EQ(2, result.size());

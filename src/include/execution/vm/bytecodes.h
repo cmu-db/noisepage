@@ -341,7 +341,6 @@ namespace terrier::execution::vm {
   F(RealTopKAggregateFree, OperandType::Local)                                                                        \
   F(RealTopKAggregateHasResult, OperandType::Local, OperandType::Local)                                               \
                                                                                                                       \
-                                                                                                                      \
   /* Hash Joins */                                                                                                    \
   F(JoinHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
   F(JoinHashTableAllocTuple, OperandType::Local, OperandType::Local, OperandType::Local)                              \

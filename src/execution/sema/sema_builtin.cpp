@@ -831,7 +831,6 @@ void Sema::CheckBuiltinTopKAggregatorCall(ast::CallExpr *call, ast::Builtin buil
   }
 }
 
-
 void Sema::CheckBuiltinJoinHashTableInit(ast::CallExpr *call) {
   if (!CheckArgCount(call, 3)) {
     return;

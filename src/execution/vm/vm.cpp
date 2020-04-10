@@ -1293,8 +1293,6 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
 
 #undef Gen_TopK_Aggregate
 
-
-
   OP(AvgAggregateInit) : {
     auto *agg = frame->LocalAt<sql::AvgAggregate *>(READ_LOCAL_ID());
     OpAvgAggregateInit(agg);
