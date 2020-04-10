@@ -523,6 +523,7 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
                                ? tested.Layout().NumSlots()
                                : std::uniform_int_distribution<uint32_t>(1, tested.Layout().NumSlots())(generator_);
 
+    // NOLINTNEXTLINE
     if (num_inserts > object_pool_size / num_threads) num_inserts = object_pool_size / num_threads;
 
     std::promise<void> threads[num_threads];
