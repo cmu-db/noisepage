@@ -106,7 +106,7 @@ class TestServer:
                 is_db_running = True
                 break
             except:
-                if i % 20 == 0:
+                if i > 0 and i % 20 == 0:
                     print("*"*100)
                     print("Failed to connect to DB server [{}/100]".format(i))
                     os.system('ps aux | grep terrier')
@@ -170,12 +170,17 @@ class TestServer:
     def run(self):
         """ Orchestrate the overall test execution """
         self.check_db_binary()
-        self.run_db()
-        ret_val = self.run_test()
-        self.print_output(self.test_output_file)
+        ret_val = None
+        try:
+            self.run_db()
+            ret_val = self.run_test()
+            self.print_output(self.test_output_file)
+        except:
+            traceback.print_exc(file=sys.stdout)
+            pass
 
         self.stop_db()
-        if ret_val:
+        if ret_val is None or ret_val != 0:
             # print the db log file, only if we had a failure
             self.print_output(self.db_output_file)
         return ret_val
