@@ -91,6 +91,8 @@ class TestServer:
                 break
             except:
                 self.stop_db()
+                print("+"*100)
+                print("DATABASE OUTPUT")
                 self.print_output(self.db_output_file)
                 if attempt + 1 == constants.DB_START_ATTEMPTS:
                     raise
