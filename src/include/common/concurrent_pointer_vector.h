@@ -73,19 +73,16 @@ class ConcurrentPointerVector {
         array_ = new_array;
       }
 
-      delete[] old_array;
-
       // change capacity and notify threads waiting on resize
       {
-        std::unique_lock<std::mutex> l(resize_mutex_);
         capacity_ = capacity_ * RESIZE_FACTOR;
-        resize_cv_.notify_all();
       }
+
+      delete[] old_array;
 
     } else if (my_index > capacity_) {
       // must wait for resize
-      std::unique_lock<std::mutex> l(resize_mutex_);
-      resize_cv_.wait(l, [&] { return my_index < capacity_; });
+      while (my_index > capacity_) {}
     }
 
     TERRIER_ASSERT(my_index < capacity_, "must safely index into array");
@@ -116,13 +113,15 @@ class ConcurrentPointerVector {
    * @return pointer at desired index
    */
   T *LookUp(uint64_t index) {
-    TERRIER_ASSERT(index <= claimable_index_, "vector access out of bounds");
+    TERRIER_ASSERT(index < claimable_index_, "vector access out of bounds");
 
     common::SharedLatch::ScopedSharedLatch l(&array_pointer_latch_);
 
     // it is possible that this lookup is by iteration through an index that is not yet readable
     // in that case we just wait until it is readable
     while (UNLIKELY(!GetReadability(array_, index))) {
+      array_pointer_latch_.Unlock();
+      array_pointer_latch_.LockShared();
     }
 
     // remove the readability flag
