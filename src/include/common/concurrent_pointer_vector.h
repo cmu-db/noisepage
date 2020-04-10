@@ -256,7 +256,7 @@ class ConcurrentPointerVector {
   }
 
   std::condition_variable resize_cv_;
-  std::atomic<uint64_t> capacity_, claimable_index_ = 0, first_not_readable_index_ = 0;
+  std::atomic<uint64_t> capacity_ = 0, claimable_index_ = 0, first_not_readable_index_ = 0;
   T **array_;
   common::SharedLatch array_pointer_latch_;
   std::mutex resize_mutex_;
