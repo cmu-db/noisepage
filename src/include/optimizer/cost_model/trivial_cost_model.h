@@ -127,6 +127,12 @@ class TrivialCostModel : public AbstractCostModel {
   void Visit(UNUSED_ATTRIBUTE const OuterHashJoin *op) override {}
 
   /**
+   * Visit a LeftSemiHashJoin operator
+   * @param op operator
+   */
+  void Visit(UNUSED_ATTRIBUTE const LeftSemiHashJoin *op) override { output_cost_ = 1.f; }
+
+  /**
    * Visit a Insert operator
    * @param op operator
    */
