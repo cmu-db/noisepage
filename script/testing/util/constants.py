@@ -17,6 +17,10 @@ DEFAULT_DB_BIN = "terrier"
 DEFAULT_TEST_OUTPUT_FILE = "/tmp/terrier_test_{}.log".format(
     datetime.utcnow().isoformat(sep="-", timespec="seconds").replace(":", "-"))
 
+DB_START_ATTEMPTS = 3
+DB_CONNECT_ATTEMPTS = 100
+DB_CONNECT_SLEEP = 0.1 # seconds
+
 
 # error code
 class ErrorCode:

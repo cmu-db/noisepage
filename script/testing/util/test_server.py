@@ -79,11 +79,24 @@ class TestServer:
 
     def run_db(self):
         """ Start the DB server """
-        self.db_output_fd = open(self.db_output_file, "w+")
-        self.db_process = subprocess.Popen(self.db_path,
-                                           stdout=self.db_output_fd,
-                                           stderr=self.db_output_fd)
-        self.wait_for_db()
+        
+        # Allow ourselves to try to restart the DBMS multiple times
+        for attempt in range(constants.DB_START_ATTEMPTS):
+            self.db_output_fd = open(self.db_output_file, "w+")
+            self.db_process = subprocess.Popen(self.db_path,
+                                               stdout=self.db_output_fd,
+                                               stderr=self.db_output_fd)
+            try:
+                self.wait_for_db()
+                break
+            except:
+                self.stop_db()
+                self.print_output(self.db_output_file)
+                if attempt + 1 == constants.DB_START_ATTEMPTS:
+                    raise
+                traceback.print_exc(file=sys.stdout)
+                pass
+        ## FOR
         return
 
     def wait_for_db(self):
@@ -97,12 +110,12 @@ class TestServer:
         is_db_running = False
 
         # max wait of 10s in 0.1s increments
-        for i in range(100):
+        for i in range(constants.DB_CONNECT_ATTEMPTS):
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
                 s.connect((self.db_host, int(self.db_port)))
                 s.close()
-                print("Connected to server in {} seconds [PID={}]".format(i * 0.1, self.db_process.pid))
+                print("Connected to server in {} seconds [PID={}]".format(i * constants.DB_CONNECT_SLEEP, self.db_process.pid))
                 is_db_running = True
                 break
             except:
@@ -111,8 +124,7 @@ class TestServer:
                     print("Failed to connect to DB server [{}/100]".format(i))
                     os.system('ps aux | grep terrier')
                     traceback.print_exc(file=sys.stdout)
-                    print("*"*100)
-                time.sleep(0.1)
+                time.sleep(constants.DB_CONNECT_SLEEP)
                 continue
 
         if not is_db_running:
