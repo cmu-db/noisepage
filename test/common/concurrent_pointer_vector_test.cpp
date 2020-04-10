@@ -30,8 +30,8 @@ TEST(ConcurrentVectorTest, ConcurrentInsert) {
   const uint64_t num_inserts = 100000;
   const uint64_t num_iterations = 100;
   const uint64_t num_threads = std::thread::hardware_concurrency();
-  for (uint64_t _ = 0; _ < num_iterations; _++) {
-    std::thread threads[num_threads];
+  for (uint64_t _ = 0; _ < num_iterations; _++) {  // NOLINT
+    std::thread threads[num_threads];              // NOLINT
     std::vector<std::vector<uint64_t>> indexes(num_threads);
     uint64_t location_array[num_inserts];
     common::ConcurrentPointerVector<uint64_t> v;
@@ -60,8 +60,8 @@ TEST(ConcurrentVectorTest, ConcurrentInsertAndLookup) {
   const uint64_t num_inserts = 100000;
   const uint64_t num_iterations = 100;
   const uint64_t num_threads = std::thread::hardware_concurrency();
-  for (uint64_t _ = 0; _ < num_iterations; _++) {
-    std::thread threads[num_threads];
+  for (uint64_t _ = 0; _ < num_iterations; _++) {  // NOLINT
+    std::thread threads[num_threads];              // NOLINT
     std::vector<std::vector<uint64_t>> indexes(num_threads);
     uint64_t location_array[num_inserts];
     common::ConcurrentPointerVector<uint64_t> v;
@@ -91,8 +91,8 @@ TEST(ConcurrentVectorTest, ConcurrentInsertLookupAndIteration) {
   const uint64_t num_inserts = 100000;
   const uint64_t num_iterations = 100;
   const uint64_t num_threads = std::thread::hardware_concurrency();
-  for (uint64_t _ = 0; _ < num_iterations; _++) {
-    std::thread threads[num_threads];
+  for (uint64_t _ = 0; _ < num_iterations; _++) {  // NOLINT
+    std::thread threads[num_threads];              // NOLINT
     std::vector<std::vector<uint64_t>> indexes(num_threads);
     uint64_t location_array[num_inserts];
     common::ConcurrentPointerVector<uint64_t> v;

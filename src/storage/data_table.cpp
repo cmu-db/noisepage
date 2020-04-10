@@ -17,17 +17,15 @@ DataTable::DataTable(common::ManagedPointer<BlockStore> const store, const Block
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
                  "First column is reserved for version info, second column is reserved for logical delete.");
-  blocks_.Insert(NewBlock());
+  if (store != DISABLED) blocks_.Insert(NewBlock());
 }
 
 DataTable::~DataTable() {
-  for (auto it = blocks_.begin(); it != blocks_.end(); it++) {
-    StorageUtil::DeallocateVarlens(const_cast<RawBlock *>(*it), accessor_);
+  for (auto block : blocks_) {
+    StorageUtil::DeallocateVarlens(block, accessor_);
     for (col_id_t i : accessor_.GetBlockLayout().Varlens())
-      accessor_.GetArrowBlockMetadata(const_cast<RawBlock *>(*it))
-          .GetColumnInfo(accessor_.GetBlockLayout(), i)
-          .Deallocate();
-    block_store_.operator->()->Release(const_cast<RawBlock *>(*it));
+      accessor_.GetArrowBlockMetadata(block).GetColumnInfo(accessor_.GetBlockLayout(), i).Deallocate();
+    block_store_.operator->()->Release(block);
   }
 }
 
@@ -121,8 +119,8 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
                  "attribute than the DataTable's layout.");
 
   TupleSlot result;
-  uint64_t current_insert_idx = insert_index_.load(); // the index into which we will try to insert the tuple
-  RawBlock *block; // the block into which the insert will occur
+  uint64_t current_insert_idx = insert_index_.load();  // the index into which we will try to insert the tuple
+  RawBlock *block;                                     // the block into which the insert will occur
   while (true) {
     // No free block left
     if (current_insert_idx >= blocks_.size()) {

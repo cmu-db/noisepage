@@ -19,7 +19,7 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
   storage::BlockLayout layout_{{8, 8, storage::VARLEN_COLUMN}};
   storage::TupleAccessStrategy accessor_{layout_};
 
-  storage::DataTable table_{&block_store_, layout_, storage::layout_version_t(0)};
+  storage::DataTable table_{common::ManagedPointer(&block_store_), layout_, storage::layout_version_t(0)};
   transaction::TimestampManager timestamp_manager_;
   transaction::DeferredActionManager deferred_action_manager_{common::ManagedPointer(&timestamp_manager_)};
   transaction::TransactionManager txn_manager_{common::ManagedPointer(&timestamp_manager_),
