@@ -655,7 +655,7 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
 
     std::vector<storage::numa_region_t> numa_regions;
     tested.GetTable().GetNUMARegions(&numa_regions);
-    EXPECT_TRUE(numa_regions.size() >= 1);
+    EXPECT_GE(numa_regions.size(), 1);
 
 #ifdef __APPLE__
     EXPECT_EQ(numa_regions.size(), 1);
