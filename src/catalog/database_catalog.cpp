@@ -536,6 +536,8 @@ namespace_oid_t DatabaseCatalog::GetNamespaceOid(const common::ManagedPointer<tr
   return ns_oid;
 }
 
+// TODO(khg,moreshko): update for pg_statistic
+
 template <typename Column, typename ClassOid, typename ColOid>
 bool DatabaseCatalog::CreateColumn(const common::ManagedPointer<transaction::TransactionContext> txn,
                                    const ClassOid class_oid, const ColOid col_oid, const Column &col) {
@@ -661,6 +663,7 @@ std::vector<Column> DatabaseCatalog::GetColumns(const common::ManagedPointer<tra
 }
 
 // TODO(Matt): we need a DeleteColumn()
+// TODO(khg,moreshko): update for pg_statistic
 
 template <typename Column, typename ClassOid>
 bool DatabaseCatalog::DeleteColumns(const common::ManagedPointer<transaction::TransactionContext> txn,

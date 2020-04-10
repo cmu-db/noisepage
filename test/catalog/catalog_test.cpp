@@ -44,6 +44,7 @@ struct CatalogTests : public TerrierTest {
     VerifyTablePresent(accessor, ns_oid, "pg_type");
     VerifyTablePresent(accessor, ns_oid, "pg_language");
     VerifyTablePresent(accessor, ns_oid, "pg_proc");
+    VerifyTablePresent(accessor, ns_oid, "pg_statistic");
   }
 
   void VerifyTablePresent(const catalog::CatalogAccessor &accessor, catalog::namespace_oid_t ns_oid,
@@ -256,6 +257,7 @@ TEST_F(CatalogTests, NamespaceTest) {
 
 /*
  * Create and delete a user table.
+ * TODO(khg,moreshko): update for pg_statistic
  */
 // NOLINTNEXTLINE
 TEST_F(CatalogTests, UserTableTest) {
