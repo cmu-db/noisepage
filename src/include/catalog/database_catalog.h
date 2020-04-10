@@ -511,6 +511,9 @@ class DatabaseCatalog {
   storage::ProjectionMap pg_proc_all_cols_prm_;
   storage::ProjectedRowInitializer pg_proc_ptr_pri_;
 
+  storage::SqlTable *statistics_;
+  storage::index::Index *statistics_oid_index_;  // indexed on class OID and column OID
+
   std::atomic<uint32_t> next_oid_;
   std::atomic<transaction::timestamp_t> write_lock_;
 
