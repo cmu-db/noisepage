@@ -64,10 +64,7 @@ class DataTable {
     /**
      * @return pointer to the underlying tuple slot
      */
-    TupleSlot *operator->() {
-      current_slot_ = operator*();
-      return &current_slot_;
-    }
+    TupleSlot *operator->() { return &current_slot_; }
 
     /**
      * pre-fix increment.
@@ -122,8 +119,6 @@ class DataTable {
                                              ->GetInsertHead());
     }
 
-    // TODO(Tianyu): Can potentially collapse this information into the RawBlock so we don't have to hold a pointer to
-    // the table anymore. Right now we need the table to know how many slots there are in the block
     const DataTable *table_{};
     uint64_t i_ = 0, end_index_ = 0;
     TupleSlot current_slot_;
@@ -272,13 +267,12 @@ class DataTable {
   // needs raw access to the underlying table.
   friend class BlockCompactor;
 
-  const common::ManagedPointer<BlockStore> block_store_;
+  common::ManagedPointer<BlockStore> const block_store_;
   const layout_version_t layout_version_;
   const TupleAccessStrategy accessor_;
   common::ConcurrentPointerVector<RawBlock> blocks_;
   std::atomic<uint64_t> insert_index_ = 0;
-  // Check if we need to advance the insertion_head_
-  // This function uses header_latch_ to ensure correctness
+  const SlotIterator end_ = {};
   mutable DataTableCounter data_table_counter_;
 
   // A templatized version for select, so that we can use the same code for both row and column access.

@@ -55,19 +55,12 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
 }
 
 DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
-  //  if (current_slot_.GetOffset() == table_->accessor_.GetBlockLayout().NumSlots() - 1 ||
-  //      current_slot_.GetOffset() == current_slot_.GetBlock()->GetInsertHead() - 1) {
-  //    block_++;
-  //    current_slot_ = {block_ == table_->blocks_.end() ? nullptr : *block_, 0};
-  //  } else {
-  //    current_slot_ = {*block_, current_slot_.GetOffset() + 1};
-  //  }
-  i_++;
+  ++i_;
   return *this;
 }
 
 DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compability
-  return {};
+  return end_;
 }
 
 bool DataTable::Update(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
@@ -331,7 +324,7 @@ bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot, const TupleAccess
 }
 
 RawBlock *DataTable::NewBlock() {
-  RawBlock *new_block = block_store_->Get();
+  RawBlock *new_block = block_store_.operator->()->Get();
   accessor_.InitializeRawBlock(this, new_block, layout_version_);
   data_table_counter_.IncrementNumNewBlock(1);
   return new_block;
