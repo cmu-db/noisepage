@@ -512,7 +512,8 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
   const uint32_t object_pool_size = 100000;
   common::DedicatedThreadRegistry registry(DISABLED);
   std::vector<int> cpu_ids;
-  for (int i = 0; i < static_cast<int>(std::thread::hardware_concurrency()); i++) cpu_ids.emplace_back(i);
+  cpu_ids.reserve(num_threads);
+  for (uint32_t i = 0; i < num_threads; i++) cpu_ids.emplace_back(i);
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
 
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
