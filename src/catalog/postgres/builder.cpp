@@ -359,6 +359,9 @@ Schema Builder::GetStatisticTableSchema() {
   columns.emplace_back("stadistinct", type::TypeId::DECIMAL, false, MakeNull(type::TypeId::DECIMAL));
   columns.back().SetOid(STADISTINCT_COL_OID);
 
+  columns.emplace_back("numrows", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(STA_NUMROWS_COL_OID);
+
   return Schema(columns);
 }
 
