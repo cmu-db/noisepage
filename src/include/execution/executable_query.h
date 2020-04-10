@@ -16,7 +16,7 @@ class AbstractPlanNode;
 namespace terrier::runner {
 class MiniRunners;
 class MiniRunners_SEQ0_OutputRunners_Benchmark;
-}
+}  // namespace terrier::runner
 
 namespace terrier::execution {
 

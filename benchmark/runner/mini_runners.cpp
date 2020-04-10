@@ -214,6 +214,7 @@ static void GenJoinNonSelfArguments(benchmark::internal::Benchmark *b) {
  * 1 - Idx Size
  * 2 - Lookup size
  */
+/*
 static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
   auto key_sizes = {1, 2, 4, 8, 15};
   auto idx_sizes = {1, 10, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 500000, 1000000};
@@ -231,6 +232,7 @@ static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
     }
   }
 }
+*/
 
 /**
  * Arg <0, 1>
@@ -522,9 +524,9 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   // NOLINTNEXTLINE
   metrics_manager_->RegisterThread();
   for (auto _ : state) {
-    std::vector<type::TypeId> types = { type::TypeId::INTEGER };
+    std::vector<type::TypeId> types = {type::TypeId::INTEGER};
     auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
-    std::vector<std::string> types_strs = { "int64" };
+    std::vector<std::string> types_strs = {"int64"};
     std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
                                      2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
     for (size_t type_idx = 0; type_idx < types.size(); type_idx++) {
@@ -532,11 +534,10 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
         for (auto row_num : row_nums) {
           std::stringstream output;
           output << "struct Output {\n";
-          for (auto i = 0; i < num_col; i++) 
-            output << "col" << i << " : " << types_strs[type_idx] << "\n";
+          for (auto i = 0; i < num_col; i++) output << "col" << i << " : " << types_strs[type_idx] << "\n";
           output << "}\n";
 
-          output << "struct State {\n}\n";
+          output << "struct State {\ncount : int64\n}\n";
           output << "fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {\n}\n";
           output << "fun teardownState(execCtx: *ExecutionContext, state: *State) -> nil {\n}\n";
 
@@ -545,8 +546,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
           output << "\tvar out: *Output\n";
           output << "\tfor(var it = 0; it < " << row_num << "; it = it + 1) {\n";
           output << "\t\tout = @ptrCast(*Output, @outputAlloc(execCtx))\n";
-          for (auto i = 0; i < num_col; i++)
-            output << "\t\tout.col" << i << " = " << i << "\n";
+          for (auto i = 0; i < num_col; i++) output << "\t\tout.col" << i << " = " << i << "\n";
           output << "\t}\n";
           output << "\t@outputFinalize(execCtx)\n";
           output << "}\n";
@@ -562,7 +562,6 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
           output << "\treturn 0\n";
           output << "}\n";
 
-          std::cout << output.str() << "\n";
           std::vector<planner::OutputSchema::Column> cols;
           for (auto i = 0; i < num_col; i++) {
             std::stringstream col;
@@ -576,8 +575,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
 
           execution::ExecutableQuery::query_identifier.store(MiniRunners::query_id++);
           auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-              db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(),
-              schema.get(), common::ManagedPointer(accessor));
+              db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), schema.get(),
+              common::ManagedPointer(accessor));
 
           auto exec_query = execution::ExecutableQuery(output.str(), common::ManagedPointer(exec_ctx), false);
 
@@ -589,24 +588,16 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
           exec_query.Run(common::ManagedPointer(exec_ctx), mode_);
 
           txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-          metrics_manager_->Aggregate();
-          metrics_manager_->UnregisterThread();
-          exit(0);
         }
       }
     }
 
-    /*
     metrics_manager_->Aggregate();
     metrics_manager_->UnregisterThread();
-    */
   }
 };
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ0_OutputRunners)
-    ->Unit(benchmark::kMillisecond)
-    ->Iterations(1);
+BENCHMARK_REGISTER_F(MiniRunners, SEQ0_OutputRunners)->Unit(benchmark::kMillisecond)->Iterations(1);
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ1_SeqScanRunners)(benchmark::State &state) {
