@@ -210,9 +210,11 @@ void RewritePushExplicitFilterThroughJoin::Transform(common::ManagedPointer<Oper
   for (auto &join_predicate: join_predicates) {
     if (join_predicate.GetExpr()->GetExpressionType() == parser::ExpressionType::COMPARE_IN) {
       semi_join = true;
-      continue;
-    }
+    join_predicate.GetExpr()->SetExpressionType(parser::ExpressionType::COMPARE_EQUAL);
     semi_join_predicates.push_back(join_predicate);
+    } else {
+      semi_join_predicates.push_back(join_predicate);
+    }
   }
   std::unique_ptr<OperatorNode> output;
   if (semi_join) {
