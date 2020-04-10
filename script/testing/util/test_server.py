@@ -125,6 +125,7 @@ class TestServer:
                     print("*"*100)
                     print("Failed to connect to DB server [{}/100]".format(i))
                     os.system('ps aux | grep terrier')
+                    os.system('lsof -i :15721')
                     traceback.print_exc(file=sys.stdout)
                 time.sleep(constants.DB_CONNECT_SLEEP)
                 continue
