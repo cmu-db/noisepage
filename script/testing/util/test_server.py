@@ -177,6 +177,7 @@ class TestServer:
             self.print_output(self.test_output_file)
         except:
             traceback.print_exc(file=sys.stdout)
+            ret_val = -1
             pass
 
         self.stop_db()
