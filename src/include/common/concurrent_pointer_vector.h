@@ -19,7 +19,8 @@ class ConcurrentPointerVector {
    *
    * @param start_size optional initial allocation size for the vector. Default is START_SIZE
    */
-  explicit ConcurrentPointerVector(uint64_t start_size = START_SIZE) : capacity_(start_size == 0 ? 1 : start_size) {
+  explicit ConcurrentPointerVector(uint64_t start_size = START_SIZE)
+      : capacity_(start_size == 0 ? 1 : start_size), claimable_index_(0), first_not_readable_index_(0) {
     array_ = new T *[capacity_];
     for (uint64_t i = 0; i < capacity_; i++) SetNotReadable(array_, i);
   }
@@ -256,9 +257,9 @@ class ConcurrentPointerVector {
   }
 
   std::condition_variable resize_cv_;
-  std::atomic<uint64_t> capacity_ = static_cast<uint64_t>(0);
-  std::atomic<uint64_t> claimable_index_ = static_cast<uint64_t>(0);
-  std::atomic<uint64_t> first_not_readable_index_ = static_cast<uint64_t>(0);
+  std::atomic<uint64_t> capacity_;
+  std::atomic<uint64_t> claimable_index_;
+  std::atomic<uint64_t> first_not_readable_index_;
   T **array_;
   common::SharedLatch array_pointer_latch_;
   std::mutex resize_mutex_;
