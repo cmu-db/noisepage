@@ -8,13 +8,16 @@
 #include "test_util/test_harness.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier {
+namespace terrier::storage {
 
-struct SqlTableTests : public TerrierTest {
+class SqlTableTests : public TerrierTest {
+ public:
   storage::BlockStore block_store_{100, 100};
   storage::RecordBufferSegmentPool buffer_pool_{100000, 10000};
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
+  void SetUp() {};
+  void TearDown() {};
 };
 
 static std::unique_ptr<catalog::Schema> AddColumn(const catalog::Schema &schema, catalog::Schema::Column *column) {
@@ -52,7 +55,14 @@ class RandomSqlTableTestObject {
 
   // TODO(Schema-Change): redos_ seems to be producing problem here.
   //  We should look into this function further
-  ~RandomSqlTableTestObject() = default;
+  ~RandomSqlTableTestObject() {
+    for (auto &it : buffers_) {
+      delete[] it.second;
+    }
+    for (auto &txn: txns_) {
+      txn->redo_buffer_.Finalize(false);
+    }
+  };
 
   template <class Random>
   storage::TupleSlot InsertRandomTuple(const transaction::timestamp_t timestamp, Random *generator,

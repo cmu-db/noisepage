@@ -19,6 +19,7 @@ class LogManager;
 class BlockCompactor;
 class LogSerializerTask;
 class SqlTable;
+class RandomSqlTableTestObject;
 class WriteAheadLoggingTests;
 class RecoveryManager;
 class RecoveryTests;
@@ -210,6 +211,7 @@ class TransactionContext {
   friend class storage::LogSerializerTask;
   friend class storage::SqlTable;
   friend class storage::WriteAheadLoggingTests;  // Needs access to redo buffer
+  friend class storage::RandomSqlTableTestObject;  // Needs access to redo buffer
   friend class storage::RecoveryManager;         // Needs access to StageRecoveryUpdate
   friend class storage::RecoveryTests;           // Needs access to redo buffer
   const timestamp_t start_time_;
