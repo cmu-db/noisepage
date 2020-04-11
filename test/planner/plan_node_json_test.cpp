@@ -131,7 +131,6 @@ TEST(PlanNodeJsonTest, AnalyzePlanNodeJsonTest) {
                                               catalog::col_oid_t(4), catalog::col_oid_t(5)};
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetDatabaseOid(catalog::db_oid_t(1))
-                       .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .SetTableOid(catalog::table_oid_t(2))
                        .SetColumnOIDs(std::move(col_oids))
                        .Build();

@@ -176,11 +176,16 @@ if (TERRIER_GENERATE_COVERAGE)
         message(FATAL_ERROR "Coverage can only be generated with a debug build type!")
     endif ()
 
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage -lnuma")
 endif ()
 
 # Add common flags
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_COMMON_FLAGS}")
+
+if (NOT APPLE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lnuma -ldl")
+    set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -lnuma -ldl")
+endif ()
 
 # For any C code, use the same flags.
 set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS}")

@@ -31,8 +31,6 @@ TEST_F(TpccPlanStockLevelTests, GetCountStock) {
     EXPECT_EQ(plan->GetChildrenSize(), 1);
     EXPECT_EQ(plan->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::NESTLOOP);
     auto nl = reinterpret_cast<const planner::NestedLoopJoinPlanNode *>(plan->GetChild(0));
-    EXPECT_EQ(nl->GetLeftKeys().size(), 1);
-    EXPECT_EQ(nl->GetRightKeys().size(), 1);
     EXPECT_EQ(nl->GetLogicalJoinType(), planner::LogicalJoinType::INNER);
     EXPECT_NE(nl->GetJoinPredicate().Get(), nullptr);
     EXPECT_EQ(nl->GetOutputSchema()->GetColumns().size(), 1);
@@ -59,16 +57,6 @@ TEST_F(TpccPlanStockLevelTests, GetJoinStock) {
     EXPECT_EQ(plan->GetChildrenSize(), 2);
     auto *join = reinterpret_cast<planner::NestedLoopJoinPlanNode *>(plan.get());
     EXPECT_EQ(join->GetLogicalJoinType(), planner::LogicalJoinType::INNER);
-
-    // Join key check
-    EXPECT_EQ(join->GetLeftKeys().size(), 1);
-    EXPECT_EQ(join->GetRightKeys().size(), 1);
-    auto lj_key = join->GetLeftKeys()[0].CastManagedPointerTo<parser::DerivedValueExpression>();
-    auto rj_key = join->GetRightKeys()[0].CastManagedPointerTo<parser::DerivedValueExpression>();
-    EXPECT_EQ(lj_key->GetTupleIdx(), 0);
-    EXPECT_EQ(lj_key->GetValueIdx(), 0);
-    EXPECT_EQ(rj_key->GetTupleIdx(), 0);
-    EXPECT_EQ(rj_key->GetValueIdx(), 0);
 
     // Output schema check
     auto j_schema = plan->GetOutputSchema();

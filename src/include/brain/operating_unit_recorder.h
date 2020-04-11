@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "brain/operating_unit.h"
@@ -19,6 +20,12 @@ namespace terrier::brain {
 class OperatingUnitRecorder : planner::PlanVisitor {
  public:
   /**
+   * Constructor
+   * @param accessor CatalogAccessor
+   */
+  explicit OperatingUnitRecorder(common::ManagedPointer<catalog::CatalogAccessor> accessor) : accessor_(accessor) {}
+
+  /**
    * Extracts features from OperatorTranslators
    * @param translators Vector of OperatorTranslators to extract from
    * @returns Vector of extracted features (ExecutionOperatingUnitFeature)
@@ -27,32 +34,6 @@ class OperatingUnitRecorder : planner::PlanVisitor {
       const std::vector<std::unique_ptr<execution::compiler::OperatorTranslator>> &translators);
 
  private:
-  /**
-   * Derive the type of computation
-   * @param expr Expression
-   * @returns type of computation
-   */
-  type::TypeId DeriveComputation(common::ManagedPointer<parser::AbstractExpression> expr);
-
-  /**
-   * Converts a expression to brain::ExecutionOperatingUnitType
-   *
-   * Function returns brain::ExecutionOperatingUnitType::INVALID if the
-   * parser::ExpressionType does not have an equivalent conversion.
-   *
-   * @param expr Expression
-   * @returns converted equivalent brain::ExecutionOperatingUnitType
-   */
-  ExecutionOperatingUnitType ConvertExpressionType(common::ManagedPointer<parser::AbstractExpression> expr);
-
-  /**
-   * Extracts features from an expression into a vector
-   * @param expr Expression to extract features from
-   * @return vector of extracted features
-   */
-  std::vector<ExecutionOperatingUnitType> ExtractFeaturesFromExpression(
-      common::ManagedPointer<parser::AbstractExpression> expr);
-
   /**
    * Handle additional processing for AbstractPlanNode
    * @param plan plan to process
@@ -85,14 +66,78 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   void Visit(const planner::AggregatePlanNode *plan) override;
 
   /**
-   * Feature of plan currently being visited
+   * Accumulate Feature Information
+   * @param type Type
+   * @param key_size Key size
+   * @param num_keys Number keys
+   * @param plan Plan Node
+   * @param scaling_factor Scaling factor
    */
-  ExecutionOperatingUnitType plan_feature_;
+  void AggregateFeatures(brain::ExecutionOperatingUnitType type, size_t key_size, size_t num_keys,
+                         UNUSED_ATTRIBUTE const planner::AbstractPlanNode *plan, size_t scaling_factor);
 
   /**
-   * Structure used to store features for a single plan visit
+   * Compute key size from vector of expressions
+   * @param exprs Expressions
+   * @returns key size
    */
-  std::vector<ExecutionOperatingUnitType> plan_features_;
+  size_t ComputeKeySize(const std::vector<common::ManagedPointer<parser::AbstractExpression>> &exprs);
+
+  /**
+   * Compute key size from output schema
+   * @param plan Plan
+   * @returns key size
+   */
+  size_t ComputeKeySizeOutputSchema(const planner::AbstractPlanNode *plan);
+
+  /**
+   * Compute key size from output schema
+   * @param tbl_oid Table OID
+   * @returns key size
+   */
+  size_t ComputeKeySize(catalog::table_oid_t tbl_oid);
+
+  /**
+   * Compute key size from vector of column oids
+   * @param tbl_oid Table OID
+   * @param cols vector of column oids
+   */
+  size_t ComputeKeySize(catalog::table_oid_t tbl_oid, const std::vector<catalog::col_oid_t> &cols);
+
+  /**
+   * Compute key size from vector of index oids
+   * @param idx_oid Index OID
+   * @param cols index column oids
+   * @returns key size
+   */
+  size_t ComputeKeySize(catalog::index_oid_t idx_oid, const std::vector<catalog::indexkeycol_oid_t> &cols);
+
+  /**
+   * Record arithmetic features
+   * @param plan Plan
+   * @param scaling Scaling Factor
+   */
+  void RecordArithmeticFeatures(const planner::AbstractPlanNode *plan, size_t scaling);
+
+  /**
+   * Current Translator Feature Type
+   */
+  ExecutionOperatingUnitType plan_feature_type_;
+
+  /**
+   * Arithmetic features for a given plan
+   */
+  std::vector<std::pair<type::TypeId, ExecutionOperatingUnitType>> arithmetic_feature_types_;
+
+  /**
+   * Structure for storing features of a pipeline
+   */
+  std::unordered_multimap<ExecutionOperatingUnitType, ExecutionOperatingUnitFeature> pipeline_features_;
+
+  /**
+   * CatalogAccessor
+   */
+  common::ManagedPointer<catalog::CatalogAccessor> accessor_;
 };
 
 }  // namespace terrier::brain

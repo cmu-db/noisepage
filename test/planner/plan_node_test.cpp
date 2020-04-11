@@ -33,12 +33,10 @@ class PlanNodeTest : public TerrierTest {
 // NOLINTNEXTLINE
 TEST(PlanNodeTest, AnalyzePlanTest) {
   catalog::db_oid_t db_oid(1);
-  catalog::namespace_oid_t ns_oid(2);
   catalog::table_oid_t table_oid(3);
 
   AnalyzePlanNode::Builder builder;
   auto plan = builder.SetDatabaseOid(db_oid)
-                  .SetNamespaceOid(ns_oid)
                   .SetTableOid(table_oid)
                   .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
                   .Build();
@@ -46,27 +44,23 @@ TEST(PlanNodeTest, AnalyzePlanTest) {
   EXPECT_TRUE(plan != nullptr);
   EXPECT_EQ(PlanNodeType::ANALYZE, plan->GetPlanNodeType());
   EXPECT_EQ(plan->GetDatabaseOid(), db_oid);
-  EXPECT_EQ(plan->GetNamespaceOid(), ns_oid);
   EXPECT_EQ(plan->GetTableOid(), table_oid);
 
   // Make sure that the hash and equality function works correctly
   AnalyzePlanNode::Builder builder2;
   auto plan2 = builder2.SetDatabaseOid(catalog::db_oid_t(db_oid))
-                   .SetNamespaceOid(catalog::namespace_oid_t(2))
                    .SetTableOid(table_oid)
                    .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
                    .Build();
   EXPECT_EQ(plan->GetDatabaseOid(), plan2->GetDatabaseOid());
-  EXPECT_EQ(plan->GetNamespaceOid(), plan2->GetNamespaceOid());
   EXPECT_EQ(plan->GetTableOid(), plan2->GetTableOid());
   EXPECT_EQ(*plan, *plan2);
   EXPECT_EQ(plan->Hash(), plan2->Hash());
 
   // Make different variations of the plan node and make
   // sure that they are not equal
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 3; i++) {
     catalog::db_oid_t other_db_oid = db_oid;
-    catalog::namespace_oid_t other_ns_oid = ns_oid;
     catalog::table_oid_t other_table_oid = table_oid;
     auto other_schema = PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER);
 
@@ -75,19 +69,15 @@ TEST(PlanNodeTest, AnalyzePlanTest) {
         other_db_oid = catalog::db_oid_t(999);
         break;
       case 1:
-        other_ns_oid = catalog::namespace_oid_t(888);
-        break;
-      case 2:
         other_table_oid = catalog::table_oid_t(777);
         break;
-      case 3:
+      case 2:
         other_schema = PlanNodeTest::BuildOneColumnSchema("XXXX", type::TypeId::INTEGER);
         break;
     }
 
     AnalyzePlanNode::Builder builder3;
     auto plan3 = builder3.SetDatabaseOid(other_db_oid)
-                     .SetNamespaceOid(other_ns_oid)
                      .SetTableOid(other_table_oid)
                      .SetOutputSchema(std::move(other_schema))
                      .Build();

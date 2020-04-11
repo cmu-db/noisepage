@@ -3,6 +3,7 @@
 #include <memory>
 #include <utility>
 #include <vector>
+
 #include "parser/expression/abstract_expression.h"
 
 namespace terrier::parser {
@@ -15,7 +16,7 @@ class ConjunctionExpression : public AbstractExpression {
   /**
    * Instantiates a new conjunction expression.
    * @param cmp_type type of conjunction
-   * @param children vector containing exactly two children, left then right
+   * @param children vector containing exactly two children, left then right  TODO(WAN): wtf? tpcc_plan_delivery_test
    */
   ConjunctionExpression(const ExpressionType cmp_type, std::vector<std::unique_ptr<AbstractExpression>> &&children)
       : AbstractExpression(cmp_type, type::TypeId::BOOLEAN, std::move(children)) {}
@@ -48,7 +49,7 @@ class ConjunctionExpression : public AbstractExpression {
     return expr;
   }
 
-  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 };
 
 DEFINE_JSON_DECLARATIONS(ConjunctionExpression);

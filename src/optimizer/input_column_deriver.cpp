@@ -296,8 +296,6 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNodeContents *op) {
   } else if (op->GetType() == OpType::INNERNLJOIN) {
     auto join_op = reinterpret_cast<const InnerNLJoin *>(op);
     join_conds = join_op->GetJoinPredicates();
-    left_keys = join_op->GetLeftKeys();
-    right_keys = join_op->GetRightKeys();
   }
 
   ExprSet input_cols_set;

@@ -4,8 +4,8 @@
 #include <string>
 #include <utility>
 
+#include "binder/sql_node_visitor.h"
 #include "common/managed_pointer.h"
-#include "common/sql_node_visitor.h"
 #include "parser/select_statement.h"
 #include "parser/sql_statement.h"
 #include "parser/table_ref.h"
@@ -41,7 +41,7 @@ class CopyStatement : public SQLStatement {
 
   ~CopyStatement() override = default;
 
-  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   /** @return copy table */
   common::ManagedPointer<TableRef> GetCopyTable() { return common::ManagedPointer(table_); }

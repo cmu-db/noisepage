@@ -151,13 +151,19 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
   }
 
   for (uint32_t i = 0; i < num_batches; i++) {
+    std::vector<std::pair<byte *, uint32_t *>> alloc_buffers;
     std::vector<std::pair<byte *, uint32_t *>> column_data;
 
     // Generate column data for all columns
     uint32_t num_vals = std::min(batch_size, table_meta->num_rows_ - (i * batch_size));
     TERRIER_ASSERT(num_vals != 0, "Can't have empty columns.");
     for (auto &col_meta : table_meta->col_meta_) {
-      column_data.emplace_back(GenerateColumnData(&col_meta, num_vals));
+      if (col_meta.is_clone_) {
+        column_data.emplace_back(column_data[col_meta.clone_idx_]);
+      } else {
+        column_data.emplace_back(GenerateColumnData(&col_meta, num_vals));
+        alloc_buffers.emplace_back(column_data.back());
+      }
     }
 
     // Insert into the table
@@ -178,12 +184,64 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
     }
 
     // Free allocated buffers
-    for (const auto &col_data : column_data) {
+    for (const auto &col_data : alloc_buffers) {
       delete[] col_data.first;
       delete[] col_data.second;
     }
   }
   // EXECUTION_LOG_INFO("Wrote {} tuples into table {}.", vals_written, table_meta->name_);
+}
+
+void TableGenerator::CreateTable(TableInsertMeta *metadata) {
+  // Create Schema.
+  std::vector<catalog::Schema::Column> cols;
+  for (const auto &col_meta : metadata->col_meta_) {
+    if (col_meta.type_ != type::TypeId::VARCHAR) {
+      cols.emplace_back(col_meta.name_, col_meta.type_, col_meta.nullable_, DummyCVE());
+    } else {
+      cols.emplace_back(col_meta.name_, col_meta.type_, 100, col_meta.nullable_, DummyCVE());
+    }
+  }
+  catalog::Schema tmp_schema(cols);
+  // Create Table.
+  auto table_oid = exec_ctx_->GetAccessor()->CreateTable(ns_oid_, metadata->name_, tmp_schema);
+  auto &schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
+  auto *tmp_table = new storage::SqlTable(common::ManagedPointer(store_), schema);
+  exec_ctx_->GetAccessor()->SetTablePointer(table_oid, tmp_table);
+  auto table = exec_ctx_->GetAccessor()->GetTable(table_oid);
+  FillTable(table_oid, table, schema, metadata);
+}
+
+void TableGenerator::CreateIndex(IndexInsertMeta *index_meta) {
+  storage::index::IndexBuilder index_builder;
+
+  // Get Corresponding Table
+  auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(ns_oid_, index_meta->table_name_);
+  auto table = exec_ctx_->GetAccessor()->GetTable(table_oid);
+  auto &table_schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
+
+  // Create Index Schema
+  std::vector<catalog::IndexSchema::Column> index_cols;
+  for (const auto &col_meta : index_meta->cols_) {
+    const auto &table_col = table_schema.GetColumn(col_meta.table_col_name_);
+    parser::ColumnValueExpression col_expr(table_oid, table_col.Oid(), table_col.Type());
+    if (table_col.Type() != type::TypeId::VARCHAR) {
+      index_cols.emplace_back(col_meta.name_, col_meta.type_, col_meta.nullable_, col_expr);
+    } else {
+      index_cols.emplace_back(col_meta.name_, col_meta.type_, 100, col_meta.nullable_, col_expr);
+    }
+  }
+  catalog::IndexSchema tmp_index_schema{index_cols, storage::index::IndexType::BWTREE, false, false, false, false};
+  // Create Index
+  auto index_oid = exec_ctx_->GetAccessor()->CreateIndex(ns_oid_, table_oid, index_meta->index_name_, tmp_index_schema);
+  auto &index_schema = exec_ctx_->GetAccessor()->GetIndexSchema(index_oid);
+  index_builder.SetKeySchema(index_schema);
+  auto *tmp_index = index_builder.Build();
+  exec_ctx_->GetAccessor()->SetIndexPointer(index_oid, tmp_index);
+
+  auto index = exec_ctx_->GetAccessor()->GetIndex(index_oid);
+  // Fill up the index
+  FillIndex(index, index_schema, *index_meta, table, table_schema);
 }
 
 void TableGenerator::GenerateTestTables(bool is_mini_runner) {
@@ -249,26 +307,53 @@ void TableGenerator::GenerateTestTables(bool is_mini_runner) {
   }
 
   for (auto &table_meta : insert_meta) {
-    // Create Schema.
-    std::vector<catalog::Schema::Column> cols;
-    for (const auto &col_meta : table_meta.col_meta_) {
-      if (col_meta.type_ != type::TypeId::VARCHAR) {
-        cols.emplace_back(col_meta.name_, col_meta.type_, col_meta.nullable_, DummyCVE());
-      } else {
-        cols.emplace_back(col_meta.name_, col_meta.type_, 100, col_meta.nullable_, DummyCVE());
-      }
-    }
-    catalog::Schema tmp_schema(cols);
-    // Create Table.
-    auto table_oid = exec_ctx_->GetAccessor()->CreateTable(ns_oid_, table_meta.name_, tmp_schema);
-    auto &schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
-    auto *tmp_table = new storage::SqlTable(common::ManagedPointer(store_), schema);
-    exec_ctx_->GetAccessor()->SetTablePointer(table_oid, tmp_table);
-    auto table = exec_ctx_->GetAccessor()->GetTable(table_oid);
-    FillTable(table_oid, table, schema, &table_meta);
+    CreateTable(&table_meta);
   }
 
   InitTestIndexes();
+}
+
+void TableGenerator::GenerateMiniRunnerIndexes() {
+  std::vector<TableInsertMeta> table_metas;
+  std::vector<uint32_t> idx_key = {1, 4, 8, 15};
+  std::vector<uint32_t> row_nums = {1, 100, 1000, 10000};
+  std::vector<type::TypeId> types = {type::TypeId::INTEGER};
+  for (auto row_num : row_nums) {
+    for (type::TypeId type : types) {
+      auto table_name = GenerateTableIndexName(type, row_num);
+      std::vector<ColumnInsertMeta> col_metas;
+      for (uint32_t j = 1; j <= 15; j++) {
+        std::stringstream col_name;
+        col_name << "col" << j;
+        col_metas.emplace_back(col_name.str(), type, false, Dist::Serial, 0, 0);
+      }
+
+      auto meta = TableInsertMeta(table_name, row_num, col_metas);
+      CreateTable(&meta);
+
+      // Create Index Schema
+      for (auto key_num : idx_key) {
+        std::stringstream idx_name;
+        idx_name << table_name << "_index_" << key_num;
+        auto idx_name_str = idx_name.str();
+
+        std::vector<std::string> index_strs;
+        std::vector<IndexColumn> idx_meta_cols;
+        index_strs.reserve(key_num);
+        idx_meta_cols.reserve(key_num);
+        for (uint32_t j = 1; j <= key_num; j++) {
+          std::stringstream col_name;
+          col_name << "col" << j;
+
+          index_strs.push_back(col_name.str());
+          idx_meta_cols.emplace_back(index_strs.back().c_str(), type, false, index_strs.back().c_str());
+        }
+
+        auto index_meta = IndexInsertMeta(idx_name_str.c_str(), table_name.c_str(), idx_meta_cols);
+        CreateIndex(&index_meta);
+      }
+    }
+  }
 }
 
 void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> index,
@@ -330,7 +415,7 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
   std::vector<uint32_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
                                     2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   std::vector<type::TypeId> types = {type::TypeId::INTEGER};
-  for (int col_num = 15; col_num <= 15; col_num++) {
+  for (int col_num = 31; col_num <= 31; col_num++) {
     for (uint32_t row_num : row_nums) {
       // Cardinality of the last column
       std::vector<uint32_t> cardinalities;
@@ -340,9 +425,6 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
 
       for (uint32_t cardinality : cardinalities) {
         for (type::TypeId type : types) {
-          std::stringstream table_name;
-          std::string type_name = type::TypeUtil::TypeIdToString(type);
-          table_name << type_name << "Col" << col_num << "Row" << row_num << "Car" << cardinality;
           std::vector<ColumnInsertMeta> col_metas;
           for (int j = 1; j <= col_num; j++) {
             std::stringstream col_name;
@@ -350,15 +432,18 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
             if (j == 1) {
               // The first column would be serial
               col_metas.emplace_back(col_name.str(), type, false, Dist::Serial, 0, 0);
-            } else if (j == col_num) {
-              // The last column is related to the cardinality
-              col_metas.emplace_back(col_name.str(), type, false, Dist::Rotate, 0, row_num * cardinality / 100);
+            } else if (j == 15) {
+              // The 15th column is related to the cardinality
+              col_metas.emplace_back(col_name.str(), type, false, Dist::Rotate, 0, cardinality);
+            } else if (j > 15) {
+              // Columns after the 15th column duplicate the 15th column
+              col_metas.emplace_back(col_metas[14], col_name.str(), 14);
             } else {
               // All the rest of the columns are uniformly distributed
               col_metas.emplace_back(col_name.str(), type, false, Dist::Uniform, 0, row_num - 1);
             }
           }
-          table_metas.emplace_back(table_name.str(), row_num, col_metas);
+          table_metas.emplace_back(GenerateTableName(type, col_num, row_num, cardinality), row_num, col_metas);
         }
       }
     }
@@ -370,7 +455,7 @@ void TableGenerator::InitTestIndexes() {
   /**
    * This array configures indexes. To add an index, modify this array
    */
-  const std::vector<IndexInsertMeta> index_metas = {
+  std::vector<IndexInsertMeta> index_metas = {
       // The empty table
       {"index_empty", "empty_table", {{"index_colA", type::TypeId::INTEGER, false, "colA"}}},
 
@@ -388,36 +473,8 @@ void TableGenerator::InitTestIndexes() {
       // Index on a varchar
       {"varchar_index", "all_types_empty_table", {{"index_varchar_col", type::TypeId::VARCHAR, false, "varchar_col"}}}};
 
-  storage::index::IndexBuilder index_builder;
-  for (const auto &index_meta : index_metas) {
-    // Get Corresponding Table
-    auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(ns_oid_, index_meta.table_name_);
-    auto table = exec_ctx_->GetAccessor()->GetTable(table_oid);
-    auto &table_schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
-
-    // Create Index Schema
-    std::vector<catalog::IndexSchema::Column> index_cols;
-    for (const auto &col_meta : index_meta.cols_) {
-      const auto &table_col = table_schema.GetColumn(col_meta.table_col_name_);
-      parser::ColumnValueExpression col_expr(table_oid, table_col.Oid(), table_col.Type());
-      if (table_col.Type() != type::TypeId::VARCHAR) {
-        index_cols.emplace_back(col_meta.name_, col_meta.type_, col_meta.nullable_, col_expr);
-      } else {
-        index_cols.emplace_back(col_meta.name_, col_meta.type_, 100, col_meta.nullable_, col_expr);
-      }
-    }
-    catalog::IndexSchema tmp_index_schema{index_cols, storage::index::IndexType::BWTREE, false, false, false, false};
-    // Create Index
-    auto index_oid =
-        exec_ctx_->GetAccessor()->CreateIndex(ns_oid_, table_oid, index_meta.index_name_, tmp_index_schema);
-    auto &index_schema = exec_ctx_->GetAccessor()->GetIndexSchema(index_oid);
-    index_builder.SetKeySchema(index_schema);
-    auto *tmp_index = index_builder.Build();
-    exec_ctx_->GetAccessor()->SetIndexPointer(index_oid, tmp_index);
-
-    auto index = exec_ctx_->GetAccessor()->GetIndex(index_oid);
-    // Fill up the index
-    FillIndex(index, index_schema, index_meta, table, table_schema);
+  for (auto &index_meta : index_metas) {
+    CreateIndex(&index_meta);
   }
 }
 }  // namespace terrier::execution::sql

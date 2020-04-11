@@ -26,10 +26,6 @@ class BrainUtil {
         return "HASHJOIN_BUILD";
       case ExecutionOperatingUnitType::HASHJOIN_PROBE:
         return "HASHJOIN_PROBE";
-      case ExecutionOperatingUnitType::NLJOIN_LEFT:
-        return "NLJOIN_LEFT";
-      case ExecutionOperatingUnitType::NLJOIN_RIGHT:
-        return "NLJOIN_RIGHT";
       case ExecutionOperatingUnitType::IDXJOIN:
         return "IDXJOIN";
       case ExecutionOperatingUnitType::SORT_BUILD:
@@ -48,8 +44,6 @@ class BrainUtil {
         return "DELETE";
       case ExecutionOperatingUnitType::PROJECTION:
         return "PROJECTION";
-      case ExecutionOperatingUnitType::OUTPUT:
-        return "OUTPUT";
       case ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS:
         return "OP_INTEGER_PLUS_OR_MINUS";
       case ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY:

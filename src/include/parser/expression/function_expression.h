@@ -85,7 +85,7 @@ class FunctionExpression : public AbstractExpression {
     this->SetExpressionName(name);
   }
 
-  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   /** @return expression serialized to json */
   nlohmann::json ToJson() const override {

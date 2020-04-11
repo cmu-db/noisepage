@@ -372,15 +372,15 @@ TEST(OperatorTests, InnerNLJoinTest) {
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
 
-  Operator inner_nl_join_1 = InnerNLJoin::Make(std::vector<AnnotatedExpression>(), {x_1}, {x_1});
-  Operator inner_nl_join_2 = InnerNLJoin::Make(std::vector<AnnotatedExpression>(), {x_1}, {x_1});
-  Operator inner_nl_join_3 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0}, {x_1}, {x_1});
-  Operator inner_nl_join_4 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_1});
-  Operator inner_nl_join_5 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2}, {x_2}, {x_1});
-  Operator inner_nl_join_6 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_2});
-  Operator inner_nl_join_7 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3}, {x_1}, {x_1});
-  Operator inner_nl_join_8 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_3}, {x_1});
-  Operator inner_nl_join_9 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_3});
+  Operator inner_nl_join_1 = InnerNLJoin::Make(std::vector<AnnotatedExpression>());
+  Operator inner_nl_join_2 = InnerNLJoin::Make(std::vector<AnnotatedExpression>());
+  Operator inner_nl_join_3 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0});
+  Operator inner_nl_join_4 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator inner_nl_join_5 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2});
+  Operator inner_nl_join_6 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator inner_nl_join_7 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3});
+  Operator inner_nl_join_8 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator inner_nl_join_9 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1});
 
   EXPECT_EQ(inner_nl_join_1.GetType(), OpType::INNERNLJOIN);
   EXPECT_EQ(inner_nl_join_3.GetType(), OpType::INNERNLJOIN);
@@ -388,26 +388,18 @@ TEST(OperatorTests, InnerNLJoinTest) {
   EXPECT_EQ(inner_nl_join_1.As<InnerNLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
   EXPECT_EQ(inner_nl_join_3.As<InnerNLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr_0});
   EXPECT_EQ(inner_nl_join_4.As<InnerNLJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
-  EXPECT_EQ(inner_nl_join_1.As<InnerNLJoin>()->GetLeftKeys(),
-            std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1});
-  EXPECT_EQ(inner_nl_join_9.As<InnerNLJoin>()->GetRightKeys(),
-            std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3});
   EXPECT_TRUE(inner_nl_join_1 == inner_nl_join_2);
   EXPECT_FALSE(inner_nl_join_1 == inner_nl_join_3);
   EXPECT_FALSE(inner_nl_join_4 == inner_nl_join_3);
   EXPECT_TRUE(inner_nl_join_4 == inner_nl_join_5);
   EXPECT_TRUE(inner_nl_join_4 == inner_nl_join_6);
   EXPECT_FALSE(inner_nl_join_4 == inner_nl_join_7);
-  EXPECT_FALSE(inner_nl_join_4 == inner_nl_join_8);
-  EXPECT_FALSE(inner_nl_join_4 == inner_nl_join_9);
   EXPECT_EQ(inner_nl_join_1.Hash(), inner_nl_join_2.Hash());
   EXPECT_NE(inner_nl_join_1.Hash(), inner_nl_join_3.Hash());
   EXPECT_NE(inner_nl_join_4.Hash(), inner_nl_join_3.Hash());
   EXPECT_EQ(inner_nl_join_4.Hash(), inner_nl_join_5.Hash());
   EXPECT_EQ(inner_nl_join_4.Hash(), inner_nl_join_6.Hash());
   EXPECT_NE(inner_nl_join_4.Hash(), inner_nl_join_7.Hash());
-  EXPECT_NE(inner_nl_join_4.Hash(), inner_nl_join_8.Hash());
-  EXPECT_NE(inner_nl_join_4.Hash(), inner_nl_join_9.Hash());
 
   delete expr_b_1;
   delete expr_b_2;

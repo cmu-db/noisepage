@@ -132,7 +132,8 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
     std::atomic<uint32_t> flag1 = 0, flag2 = 0;
     auto stall_on_flag = [&] {
       flag1++;
-      while (flag1 != 0) {}
+      while (flag1 != 0) {
+      }
     };
 
     std::promise<void> stall_promises[num_threads];  // NOLINT
@@ -149,18 +150,22 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
       storage::numa_region_t numa_hint UNUSED_ATTRIBUTE = storage::UNSUPPORTED_NUMA_REGION;
       auto workload = [&]() {
         flag2++;
-        while (flag2 != 0) {}
+        while (flag2 != 0) {
+        }
       };
 #else
-      storage::numa_region_t numa_hint UNUSED_ATTRIBUTE = static_cast<storage::numa_region_t>(numa_node_of_cpu(i));
-      auto workload = [&, numa_hint]() {
+      auto this_cpu_id = i;
+      storage::numa_region_t numa_hint UNUSED_ATTRIBUTE =
+          static_cast<storage::numa_region_t>(numa_node_of_cpu(this_cpu_id));
+      auto workload = [&, numa_hint, this_cpu_id]() {
+        auto temp_i UNUSED_ATTRIBUTE = static_cast<int16_t>(this_cpu_id);
         auto temp UNUSED_ATTRIBUTE = static_cast<int16_t>(numa_hint);
         cpu_set_t mask;
         int result UNUSED_ATTRIBUTE = sched_getaffinity(0, sizeof(cpu_set_t), &mask);
         TERRIER_ASSERT(result == 0, "sched_getaffinity should succeed");
 
         uint32_t num_set = 0;
-        for (uint32_t cpu_id = 0; cpu_id < num_threads; cpu_id++) {
+        for (uint32_t cpu_id = 0; cpu_id < sizeof(cpu_set_t) * 8; cpu_id++) {
           if (CPU_ISSET(cpu_id, &mask)) {
             TERRIER_ASSERT(static_cast<storage::numa_region_t>(numa_node_of_cpu(cpu_id)) == numa_hint,
                            "workload should be running on cpu on numa_hint's region");

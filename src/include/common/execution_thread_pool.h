@@ -135,11 +135,12 @@ class ExecutionThreadPool : DedicatedThreadOwner {
 
     void RunNextTask() {
       while (true) {
-        auto index = static_cast<int16_t>(numa_region_);
         for (int16_t i = 0; i < pool_->num_regions_; i++) {
-          index = (index + 1) % pool_->num_regions_;
+          auto index = (static_cast<int16_t>(numa_region_) + i) % pool_->num_regions_;
           Task task;
-          if (!pool_->task_queue_[index].try_pop(task)) continue;
+          if (!pool_->task_queue_[index].try_pop(task)) {
+            continue;
+          }
 
           status_ = ThreadStatus::BUSY;
           task.second();
@@ -200,8 +201,9 @@ class ExecutionThreadPool : DedicatedThreadOwner {
 #ifdef __APPLE__
   int16_t num_regions_ = 1;
 #else
-  int16_t num_regions_ =
-      numa_available() < 0 || static_cast<int16_t>(numa_max_node()) <= 0 ? 1 : static_cast<int16_t>(numa_max_node());
+  int16_t num_regions_ = numa_available() < 0 || static_cast<int16_t>(numa_max_node()) <= 0
+                             ? 1
+                             : static_cast<int16_t>(numa_max_node()) + 1;
 #endif
   std::vector<std::vector<TerrierThread *>> workers_;
   std::vector<ExecutionTaskQueue> task_queue_;

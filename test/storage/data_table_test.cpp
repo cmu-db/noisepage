@@ -349,7 +349,7 @@ TEST_F(DataTableTests, InsertNoWrap) {
 // a lot easier to write.
 // NOLINTNEXTLINE
 TEST_F(DataTableTests, SimpleNumaTest) {
-  const uint32_t num_iterations = 10;
+  const uint32_t num_iterations = 3;
   const uint16_t max_columns = 20;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
@@ -511,8 +511,9 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
   const uint16_t max_columns = 20;
   const uint32_t object_pool_size = 100000;
   common::DedicatedThreadRegistry registry(DISABLED);
-  std::vector<int> cpu_ids(std::thread::hardware_concurrency());
-  for (int i = 0; i < static_cast<int>(std::thread::hardware_concurrency()); i++) cpu_ids.emplace_back(i);
+  std::vector<int> cpu_ids;
+  cpu_ids.reserve(num_threads);
+  for (uint32_t i = 0; i < num_threads; i++) cpu_ids.emplace_back(i);
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
 
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
@@ -522,6 +523,7 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
                                ? tested.Layout().NumSlots()
                                : std::uniform_int_distribution<uint32_t>(1, tested.Layout().NumSlots())(generator_);
 
+    // NOLINTNEXTLINE
     if (num_inserts > object_pool_size / num_threads) num_inserts = object_pool_size / num_threads;
 
     std::promise<void> threads[num_threads];
@@ -534,9 +536,8 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
       });
     }
 
-    // NOLINTNEXTLINE
-    for (auto &promise : threads) {  // NOLINT
-      promise.get_future().get();
+    for (uint32_t i = 0; i < num_threads; i++) {
+      threads[i].get_future().get();
     }
 
     uint32_t num_slots = 0;
@@ -559,7 +560,7 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
 #else
     bool numa_available_unsupported =
         numa_available() != -1 && numa_regions.size() == 1 && numa_regions[0] == storage::UNSUPPORTED_NUMA_REGION;
-    for (auto numa_region : numa_regions) {
+    for (auto &numa_region : numa_regions) {
       if (numa_available() != -1) {
         EXPECT_TRUE(numa_available_unsupported || numa_region != storage::UNSUPPORTED_NUMA_REGION);
       }
@@ -601,9 +602,8 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
           numa_region);
     }
 
-    // NOLINTNEXTLINE
-    for (auto &promise : numa_threads) {  // NOLINT
-      promise.get_future().get();
+    for (uint32_t i = 0; i < numa_regions.size(); i++) {
+      numa_threads[i].get_future().get();
     }
 
     EXPECT_EQ(num_inserts * num_threads, counted_numa_iteration);
