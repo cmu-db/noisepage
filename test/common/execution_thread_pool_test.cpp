@@ -22,9 +22,10 @@ namespace terrier {
 // NOLINTNEXTLINE
 TEST(ExecutionThreadPoolTests, SimpleTest) {
   common::DedicatedThreadRegistry registry(DISABLED);
-  std::vector<int> cpu_ids(std::thread::hardware_concurrency());
-  for (int i = 0; i < static_cast<int>(std::thread::hardware_concurrency()); i++) {
-    cpu_ids.emplace_back(i);
+  const int num_threads = 1;
+  std::vector<int> cpu_ids(num_threads);
+  for (int i = 0; i < num_threads; i++) {
+    cpu_ids[i] = i;
   }
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
   std::atomic<int> counter(0);
@@ -48,7 +49,7 @@ TEST(ExecutionThreadPoolTests, BasicTest) {
   common::DedicatedThreadRegistry registry(DISABLED);
   std::vector<int> cpu_ids(std::thread::hardware_concurrency());
   for (int i = 0; i < static_cast<int>(std::thread::hardware_concurrency()); i++) {
-    cpu_ids.emplace_back(i);
+    cpu_ids[i] = i;
   }
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
   std::atomic<int> counter(0);
@@ -121,17 +122,17 @@ TEST(ExecutionThreadPoolTests, MoreTest) {
 // NOLINTNEXTLINE
 TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
   common::DedicatedThreadRegistry registry(DISABLED);
-  std::vector<int> cpu_ids;
   uint32_t iteration = 10, num_threads = std::thread::hardware_concurrency();
+  std::vector<int> cpu_ids(num_threads);
   for (uint32_t i = 0; i < num_threads; i++) {
-    cpu_ids.emplace_back(i);
+    cpu_ids[i] = i;
   }
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
   for (uint32_t it = 0; it < iteration; it++) {
     std::atomic<uint32_t> flag1 = 0, flag2 = 0;
     auto stall_on_flag = [&] {
       flag1++;
-      while (flag1 != 0) std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      while (flag1 != 0) {}
     };
 
     std::promise<void> stall_promises[num_threads];  // NOLINT
@@ -148,7 +149,7 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
       storage::numa_region_t numa_hint UNUSED_ATTRIBUTE = storage::UNSUPPORTED_NUMA_REGION;
       auto workload = [&]() {
         flag2++;
-        while (flag2 != 0) std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        while (flag2 != 0) {}
       };
 #else
       storage::numa_region_t numa_hint UNUSED_ATTRIBUTE = static_cast<storage::numa_region_t>(numa_node_of_cpu(i));

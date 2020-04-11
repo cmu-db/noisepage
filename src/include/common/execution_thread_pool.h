@@ -74,7 +74,6 @@ class ExecutionThreadPool : DedicatedThreadOwner {
    * Destructor. Wake up all workers and let them finish before it's destroyed.
    */
   ~ExecutionThreadPool() override {
-    std::unique_lock<std::mutex> lock(task_lock_);  // grab the lock
     shutting_down_ = true;
     for (std::vector<TerrierThread *> vector : workers_) {  // NOLINT
       for (TerrierThread *t : vector) {
@@ -135,7 +134,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     ~TerrierThread() override = default;
 
     void RunNextTask() {
-      while (LIKELY(!exit_task_loop_)) {
+      while (true) {
         auto index = static_cast<int16_t>(numa_region_);
         for (int16_t i = 0; i < pool_->num_regions_; i++) {
           index = (index + 1) % pool_->num_regions_;
@@ -151,6 +150,11 @@ class ExecutionThreadPool : DedicatedThreadOwner {
 
         pool_->busy_workers_--;
         status_ = ThreadStatus::PARKED;
+        {
+          std::unique_lock<std::mutex> l(pool_->task_lock_);
+          pool_->task_cv_.wait(l);
+          if (UNLIKELY(exit_task_loop_)) return;
+        }
         status_ = ThreadStatus::SWITCHING;
         pool_->busy_workers_++;
       }
@@ -175,10 +179,9 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     void Terminate() override {
       exit_task_loop_ = true;
       while (!done_exiting_) {
-        pool_->SignalTasks();
+        pool_->task_cv_.notify_all();
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
       }
-      pool_->busy_workers_--;
       pool_->total_workers_--;
     }
 
