@@ -119,11 +119,11 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'sudo apt-get -y install ccache lsof'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc)'
+                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=relwithdebinfo -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc)'
 //                         sh 'cd build && make check-clang-tidy'
 //                         sh 'cd build && timeout 1h make unittest'
 //                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=relwithdebinfo'
                     }
                     post {
                         cleanup {
