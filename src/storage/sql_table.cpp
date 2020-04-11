@@ -131,45 +131,39 @@ TupleSlot SqlTable::Insert(const common::ManagedPointer<transaction::Transaction
 void SqlTable::Scan(const terrier::common::ManagedPointer<transaction::TransactionContext> txn,
                     DataTable::SlotIterator *const start_pos, ProjectedColumns *const out_buffer,
                     const layout_version_t layout_version) const {
-  TERRIER_ASSERT(tables_.find(layout_version) != tables_.end(), "layout_version should exist");
-  auto desired_v = tables_.at(layout_version);
-  auto end = tables_.upper_bound(layout_version);
+  layout_version_t tuple_version = (*start_pos)->GetBlock()->layout_version_;
 
-  // iterate through all the datatables visible to this transaction
+  TERRIER_ASSERT(out_buffer->NumColumns() <= tables_.at(layout_version).column_oid_to_id_map_.size(),
+                 "The output buffer never returns the version pointer columns, so it should have "
+                 "fewer attributes.");
+
+  // Check for version match
+  if (tuple_version == layout_version) {
+    tables_.at(layout_version).data_table_->Scan(txn, start_pos, out_buffer);
+    return;
+  }
+
+  col_id_t ori_header[out_buffer->NumColumns()];
+  bool missing = false;
   uint32_t filled = 0;
-  for (auto itr = tables_.begin(); itr != end; itr++) {
-    // Convert the projected row to select a tuple from a datatable
-    const auto table = itr->second.data_table_;
-    const auto select_v = itr->second;
-    col_id_t ori_header[out_buffer->NumColumns()];
-    std::vector<uint16_t> missing_cols;
-    bool missing = false;
-    if (itr->first != layout_version) {
-      missing = AlignHeaderToVersion(out_buffer, select_v, desired_v, &ori_header[0]);
-    }
+  auto desired_v = tables_.at(layout_version);
 
-    // update the start_pos only if not the first table
-    if (itr != tables_.begin()) *start_pos = table->begin();
-    auto table_end = table->end();
+  for (layout_version_t i = tuple_version; i <= layout_version && out_buffer->NumTuples() < out_buffer->MaxTuples(); i++) {
+    auto tuple_v = tables_.at(i);
+    if(AlignHeaderToVersion(out_buffer, tuple_v, desired_v, &ori_header[0])) missing = true;
 
-    // Scan through the datable
-    while (filled < out_buffer->MaxTuples() && *start_pos != table_end) {
-      ProjectedColumns::RowView row = out_buffer->InterpretAsRow(filled);
-      const TupleSlot slot = **start_pos;
-      // Only fill the buffer with valid, visible tuples
-      if (table->SelectIntoBuffer(txn, slot, &row)) {
-        // Fill the missing ones
-        if (itr->first != layout_version && missing) FillMissingColumns(&row, desired_v);
+    if (i != tuple_version) *start_pos = tuple_v.data_table_->begin();
+    tuple_v.data_table_->IncrementalScan(txn, start_pos, out_buffer, filled);
+    filled = out_buffer->NumTuples();
+  }
 
-        out_buffer->TupleSlots()[filled] = slot;
-        filled++;
-      }
-      ++(*start_pos);
-    }
+  // copy back the original header
+  std::memcpy(out_buffer->ColumnIds(), ori_header, sizeof(col_id_t) * out_buffer->NumColumns());
 
-    // Max number of tuples filled in the buffer
-    if (filled >= out_buffer->MaxTuples()) {
-      return;
+  if (missing) {
+    for (uint32_t idx = 0; idx < out_buffer->NumTuples(); idx++) {
+      ProjectedColumns::RowView row = out_buffer->InterpretAsRow(idx);
+      FillMissingColumns(&row, desired_v);
     }
   }
 }

@@ -40,6 +40,26 @@ bool DataTable::Select(const common::ManagedPointer<transaction::TransactionCont
   return SelectIntoBuffer(txn, slot, out_buffer);
 }
 
+void DataTable::IncrementalScan(const common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *const start_pos,
+                     ProjectedColumns *const out_buffer, uint32_t filled) const {
+  // TODO(Tianyu): So far this is not that much better than tuple-at-a-time access,
+  // but can be improved if block is read-only, or if we implement version synopsis, to just use std::memcpy when it's
+  // safe
+  // TODO(Schema-Change): do we auto advance to next table?
+  //  start_pos->version == this.version?
+  while (filled < out_buffer->MaxTuples() && *start_pos != end()) {
+    ProjectedColumns::RowView row = out_buffer->InterpretAsRow(filled);
+    const TupleSlot slot = **start_pos;
+    // Only fill the buffer with valid, visible tuples
+    if (SelectIntoBuffer(txn, slot, &row)) {
+      out_buffer->TupleSlots()[filled] = slot;
+      filled++;
+    }
+    ++(*start_pos);
+  }
+  out_buffer->SetNumTuples(filled);
+}
+
 void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *const start_pos,
                      ProjectedColumns *const out_buffer) const {
   // TODO(Tianyu): So far this is not that much better than tuple-at-a-time access,
@@ -280,7 +300,7 @@ bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::Trans
       TERRIER_ASSERT(out_buffer->ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
                      "Output buffer should not read the version pointer column.");
       // TODO(Schem-Change): pre-set columns belonging to newer schema to null to facilitate future default value change
-      if (out_buffer->ColumnIds()[i] != IGNORE_COLUMN_ID) StorageUtil::CopyWithNullCheck(nullptr, out_buffer, 0, i);
+      if (out_buffer->ColumnIds()[i] == IGNORE_COLUMN_ID) StorageUtil::CopyWithNullCheck(nullptr, out_buffer, 0, i);
       StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
     }
 
