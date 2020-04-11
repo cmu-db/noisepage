@@ -301,7 +301,7 @@ bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::Trans
                      "Output buffer should not read the version pointer column.");
       // TODO(Schem-Change): pre-set columns belonging to newer schema to null to facilitate future default value change
       if (out_buffer->ColumnIds()[i] == IGNORE_COLUMN_ID) StorageUtil::CopyWithNullCheck(nullptr, out_buffer, 0, i);
-      StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
+      else StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
     }
 
     // We still need to check the allocated bit because GC could have flipped it since last check

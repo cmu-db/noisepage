@@ -276,18 +276,18 @@ class StorageTestUtil {
                                                     const storage::ProjectionMap &oid_map2,
                                                     const std::unordered_set<catalog::col_oid_t> &add_cols,
                                                     const std::unordered_set<catalog::col_oid_t> &drop_cols) {
-    EXPECT_EQ(one->NumColumns(), other->NumColumns());
-    if (one->NumColumns() != other->NumColumns()) return false;
 
     for (const auto &itr : oid_map1) {
       auto oid1 = itr.first;
       auto idx1 = itr.second;
-      if (drop_cols.find(oid1) != drop_cols.end()) {
+      if (drop_cols.find(oid1) == drop_cols.end()) { // Column not dropped
         auto idx2 = oid_map2.at(oid1);
         storage::col_id_t one_id = one->ColumnIds()[idx1];
         storage::col_id_t other_id = other->ColumnIds()[idx2];
-        EXPECT_EQ(one_id, other_id);
-        if (one_id != other_id) return false;
+
+        if (one_id != other_id) {
+          return false;
+        }
 
         // Check that the two have the same content bit-wise
         uint8_t attr_size = layout1.AttrSize(one_id);

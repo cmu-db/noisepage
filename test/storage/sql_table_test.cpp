@@ -71,7 +71,7 @@ class RandomSqlTableTestObject {
     StorageTestUtil::PopulateRandomRow(insert_tuple, layout, null_bias_, generator);
 
     redos_.emplace_back(insert_redo);
-    storage::TupleSlot slot = table_->Insert(common::ManagedPointer(txn), insert_redo);
+    storage::TupleSlot slot = table_->Insert(common::ManagedPointer(txn), insert_redo, layout_version);
     inserted_slots_.push_back(slot);
     tuple_versions_[slot].push_back({timestamp, insert_tuple, layout_version});
 
@@ -181,7 +181,7 @@ TEST_F(SqlTableTests, SimpleInsertSelect) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(SqlTableTests, DISABLED_SimpleAddColumnTest) {
+TEST_F(SqlTableTests, SimpleAddColumnTest) {
   const uint16_t max_columns = 20;
   const uint32_t num_inserts = 100;
   uint64_t txn_ts = 0;
@@ -214,11 +214,11 @@ TEST_F(SqlTableTests, DISABLED_SimpleAddColumnTest) {
   EXPECT_EQ(num_inserts, test_table.InsertedTuples().size());
   // Compare each inserted
   txn_ts++;
-  std::unordered_set<catalog::col_oid_t> add_cols;
-  std::unordered_set<catalog::col_oid_t> drop_cols{col.Oid()};
+  std::unordered_set<catalog::col_oid_t> add_cols{col.Oid()};
+  std::unordered_set<catalog::col_oid_t> drop_cols;
   for (const auto &inserted_tuple : test_table.InsertedTuples()) {
     storage::ProjectedRow *stored =
-        test_table.Select(inserted_tuple, transaction::timestamp_t(txn_ts), &buffer_pool_, version);
+        test_table.Select(inserted_tuple, transaction::timestamp_t(txn_ts), &buffer_pool_, new_version);
     auto tuple_version = test_table.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(txn_ts));
     // TODO(Schema-change): we need to find a way to compare these 2 projected rows with different schema/blocklayout
     // with
