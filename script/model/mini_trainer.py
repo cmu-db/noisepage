@@ -35,53 +35,7 @@ class MiniTrainer:
         self.model_map = {}
         self.stats_map = {}
 
-    def _purify_data_pipeline(self, data):
-        if len(data.opunits) == 1:
-            data.opunit = data.opunits[0]
-            return data
-
-        unmodelled_opunits = []
-        modelled_opunits = []
-        purified_x_matrix = []
-        purified_y_matrix = data.y.tolist()
-        for idx, opunit in enumerate(data.opunits):
-            if opunit not in self.model_map:
-                unmodelled_opunits.append((opunit, idx))
-
-            continue
-
-            for xidx, x in enumerate(data.x):
-                # Use the entire input feature vector for exact
-                stat_vec = [opunit]
-                stat_vec.extend([input_arr[idx] if type(input_arr) == list else input_arr for input_arr in x])
-                y = purified_y_matrix[xidx]
-                if tuple(stat_vec) in self.stats_map:
-                    predict = self.stats_map[tuple(stat_vec)]
-                    # purified_y_matrix[xidx] = [y_val if y_val <= predict[idx] else y_val - predict[idx] for idx, y_val in enumerate(y)]
-                    purified_y_matrix[xidx] = [0 if y_val <= predict[idx] else y_val - predict[idx] for idx, y_val in enumerate(y)]
-                elif opunit in self.model_map:
-                    predict_vec = [input_arr[idx] if type(input_arr) == list else input_arr for input_arr in x]
-                    predict_vec = np.array(predict_vec).reshape(1, -1)
-
-                    # store prediction
-                    predict = self.model_map[opunit].predict(predict_vec)[0]
-                    self.stats_map[tuple(stat_vec)] = predict
-                    # purified_y_matrix[xidx] = [y_val if y_val <= predict[idx] else y_val - predict[idx] for idx, y_val in enumerate(y)]
-                    purified_y_matrix[xidx] = [0 if y_val <= predict[idx] else y_val - predict[idx] for idx, y_val in enumerate(y)]
-
-        if len(unmodelled_opunits) > 1:
-            raise Exception('Unmodelled OperatingUnits detected: {}'.format(unmodelled_opunits))
-
-        for x in data.x:
-            purified_x_matrix.append([val[unmodelled_opunits[0][1]] if type(val) == list else val for val in x])
-
-        data.opunit = unmodelled_opunits[0][0]
-        data.y = np.array(purified_y_matrix)
-        data.x = np.array(purified_x_matrix)
-        assert len(data.x) == len(data.y)
-        return data
-
-    def _train_cleaned_data(self, data):
+    def _train_data(self, data):
         x_train, x_test, y_train, y_test = model_selection.train_test_split(data.x, data.y,
                                                                             test_size=self.test_ratio,
                                                                             random_state=0)
@@ -166,21 +120,9 @@ class MiniTrainer:
         # First get the data for all mini runners
         for filename in glob.glob(os.path.join(self.input_path, '*.csv')):
             print(filename)
-            data_list = opunit_data.get_mini_runner_data(filename)
-
-            data_map = {}
+            data_list = opunit_data.get_mini_runner_data(filename, self.model_map, self.stats_map)
             for data in data_list:
-                data = self._purify_data_pipeline(data)
-                opunit = data.opunit
-                if opunit in data_map:
-                    raise Exception('')
-                    data_map[opunit].x = np.array(data_map[opunit].x.append(data.x))
-                    data_map[opunit].y = np.array(data_map[opunit].y.append(data.y))
-                else:
-                    data_map[opunit] = data
-
-            for data, val in data_map.items():
-                self._train_cleaned_data(val)
+                self._train_data(data)
 
         return self.model_map
 

@@ -546,7 +546,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
           output << "\tvar out: *Output\n";
           output << "\tfor(var it = 0; it < " << row_num << "; it = it + 1) {\n";
           output << "\t\tout = @ptrCast(*Output, @outputAlloc(execCtx))\n";
-          for (auto i = 0; i < num_col; i++) output << "\t\tout.col" << i << " = " << i << "\n";
+          // for (auto i = 0; i < num_col; i++) output << "\t\tout.col" << i << " = " << i << "\n";
           output << "\t}\n";
           output << "\t@outputFinalize(execCtx)\n";
           output << "}\n";

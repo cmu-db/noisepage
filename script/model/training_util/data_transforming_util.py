@@ -62,6 +62,7 @@ OPUNIT_MODELING_TRANSFORMER_MAP = {
     OpUnit.OP_DECIMAL_MULTIPLY: _tuple_num_linear_transformer,
     OpUnit.OP_DECIMAL_DIVIDE: _tuple_num_linear_transformer,
     OpUnit.OP_DECIMAL_COMPARE: _tuple_num_linear_transformer,
+    OpUnit.OUTPUT: _tuple_num_linear_transformer,
 
     OpUnit.SORT_BUILD: _tuple_num_linear_log_transformer,
 }
