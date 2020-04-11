@@ -87,7 +87,7 @@ TEST_F(StorageInterfaceTest, SimpleInsertTest) {
   EXPECT_EQ(num_tuples, (hi_match - lo_match) + 1);
 }
 
-TEST_F(StorageInterfaceTest, DISABLED_NonCatalogTableTest) {
+TEST_F(StorageInterfaceTest, NonCatalogTableTest) {
   // INSERT INTO cte_table SELECT colA FROM test_1 WHERE colA BETWEEN 495 and 505.
 
   // initialize the test_1 and the index on the table
@@ -153,7 +153,7 @@ TEST_F(StorageInterfaceTest, DISABLED_NonCatalogTableTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(StorageInterfaceTest, DISABLED_SimpleDeleteTest) {
+TEST_F(StorageInterfaceTest, SimpleDeleteTest) {
   // DELETE FROM test_1 where colA BETWEEN 495 and 505.
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_1");
@@ -210,7 +210,7 @@ TEST_F(StorageInterfaceTest, DISABLED_SimpleDeleteTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(StorageInterfaceTest, DISABLED_SimpleNonIndexedUpdateTest) {
+TEST_F(StorageInterfaceTest, SimpleNonIndexedUpdateTest) {
   // Add 10000 to colB where colA BETWEEN 495 and 505.
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_1");
@@ -262,7 +262,7 @@ TEST_F(StorageInterfaceTest, DISABLED_SimpleNonIndexedUpdateTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(StorageInterfaceTest, DISABLED_SimpleIndexedUpdateTest) {
+TEST_F(StorageInterfaceTest, SimpleIndexedUpdateTest) {
   // Add 10000 to colA where colA BETWEEN 495 and 505.
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_1");
@@ -328,7 +328,7 @@ TEST_F(StorageInterfaceTest, DISABLED_SimpleIndexedUpdateTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(StorageInterfaceTest, DISABLED_MultiIndexedUpdateTest) {
+TEST_F(StorageInterfaceTest, MultiIndexedUpdateTest) {
   // Set colA += 10000 and colB = 0 where colA BETWEEN 495 and 505.
   // Here there are two indexes to update.
   // One of the indexes contains a nullable value.
