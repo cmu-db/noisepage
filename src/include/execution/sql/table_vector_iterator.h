@@ -47,6 +47,8 @@ class EXPORT TableVectorIterator {
    */
   bool Init();
 
+  bool InitTempTable(common::ManagedPointer<storage::SqlTable> cte_table);
+
   /**
    * Advance the iterator by a vector of input
    * @return True if there is more data in the iterator; false otherwise
