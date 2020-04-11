@@ -61,6 +61,23 @@ bool TableVectorIterator::Init(uint32_t block_start, uint32_t block_end) {
   return true;
 }
 
+bool TableVectorIterator::InitTempTable(common::ManagedPointer<storage::SqlTable> cte_table) {
+  // Find the table
+  table_ = cte_table;
+  TERRIER_ASSERT(table_ != nullptr, "Table must exist!!");
+
+  // Initialize the projected column
+  TERRIER_ASSERT(!col_oids_.empty(), "There must be at least one col oid!");
+  auto pc_init = table_->InitializerForProjectedColumns(col_oids_, common::Constants::K_DEFAULT_VECTOR_SIZE);
+  buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(pc_init.ProjectedColumnsSize(), alignof(uint64_t), false);
+  projected_columns_ = pc_init.Initialize(buffer_);
+  initialized_ = true;
+
+  // Begin iterating
+  iter_ = std::make_unique<storage::DataTable::SlotIterator>(table_->begin());
+  return true;
+}
+
 bool TableVectorIterator::Advance() {
   // Cannot advance if not initialized.
   if (!IsInitialized()) {

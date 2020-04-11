@@ -55,6 +55,8 @@ class EXPORT TableVectorIterator {
    */
   bool Init();
 
+  bool InitTempTable(common::ManagedPointer<storage::SqlTable> cte_table);
+
   /**
    * Initialize the iterator over a chunk of blocks [start, end), returning true if the iteration succeeded.
    *
