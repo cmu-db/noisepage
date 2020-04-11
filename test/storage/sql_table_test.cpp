@@ -225,8 +225,8 @@ TEST_F(SqlTableTests, SimpleAddColumnTest) {
     // other schema changes. e.g: change column type, add constrain.
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallowMatchSchema(
         test_table.GetBlockLayout(tuple_version.version_), tuple_version.pr_,
-        test_table.GetProjectionMapForOids(tuple_version.version_), test_table.GetBlockLayout(version), stored,
-        test_table.GetProjectionMapForOids(version), add_cols, drop_cols));
+        test_table.GetProjectionMapForOids(tuple_version.version_), test_table.GetBlockLayout(new_version), stored,
+        test_table.GetProjectionMapForOids(new_version), add_cols, drop_cols));
   }
 }
 

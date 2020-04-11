@@ -244,32 +244,36 @@ SqlTable::DataTableVersion SqlTable::CreateTable(
   DefaultValueMap default_value_map;
   // Build the map from Schema columns to underlying columns
   for (const auto &column : schema->GetColumns()) {
+    auto default_value = column.StoredExpression();
     switch (column.AttrSize()) {
       case VARLEN_COLUMN:
+        if (default_value != nullptr) default_value_map[col_id_t(offsets[0])] = default_value;
         col_id_to_oid[col_id_t(offsets[0])] = column.Oid();
         col_oid_to_id[column.Oid()] = col_id_t(offsets[0]++);
         break;
       case 8:
+        if (default_value != nullptr) default_value_map[col_id_t(offsets[1])] = default_value;
         col_id_to_oid[col_id_t(offsets[1])] = column.Oid();
         col_oid_to_id[column.Oid()] = col_id_t(offsets[1]++);
         break;
       case 4:
+        if (default_value != nullptr) default_value_map[col_id_t(offsets[2])] = default_value;
         col_id_to_oid[col_id_t(offsets[2])] = column.Oid();
         col_oid_to_id[column.Oid()] = col_id_t(offsets[2]++);
         break;
       case 2:
+        if (default_value != nullptr) default_value_map[col_id_t(offsets[3])] = default_value;
         col_id_to_oid[col_id_t(offsets[3])] = column.Oid();
         col_oid_to_id[column.Oid()] = col_id_t(offsets[3]++);
         break;
       case 1:
+        if (default_value != nullptr) default_value_map[col_id_t(offsets[4])] = default_value;
         col_id_to_oid[col_id_t(offsets[4])] = column.Oid();
         col_oid_to_id[column.Oid()] = col_id_t(offsets[4]++);
         break;
       default:
         throw std::runtime_error("unexpected switch case value");
     }
-    auto default_value = column.StoredExpression();
-    if (default_value != nullptr) default_value_map[col_id_t(offsets[0])] = default_value;
   }
 
   auto layout = storage::BlockLayout(attr_sizes);

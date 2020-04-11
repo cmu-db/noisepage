@@ -283,11 +283,6 @@ class StorageTestUtil {
       if (drop_cols.find(oid1) == drop_cols.end()) { // Column not dropped
         auto idx2 = oid_map2.at(oid1);
         storage::col_id_t one_id = one->ColumnIds()[idx1];
-        storage::col_id_t other_id = other->ColumnIds()[idx2];
-
-        if (one_id != other_id) {
-          return false;
-        }
 
         // Check that the two have the same content bit-wise
         uint8_t attr_size = layout1.AttrSize(one_id);
@@ -300,11 +295,15 @@ class StorageTestUtil {
           return false;
         }
         // Otherwise, they should be bit-wise identical.
-        if (memcmp(one_content, other_content, attr_size) != 0) return false;
+        if (memcmp(one_content, other_content, attr_size) != 0) {
+          return false;
+        }
       } else {  // Column is dropped
         // a dropped column should not exists in the map
         EXPECT_EQ(oid_map2.find(oid1), oid_map2.end());
-        if (oid_map2.find(oid1) != oid_map2.end()) return false;
+        if (oid_map2.find(oid1) != oid_map2.end()) {
+          return false;
+        }
       }
     }
 
@@ -654,7 +653,9 @@ class StorageTestUtil {
             "col" + std::to_string(i), random_type, false,
             parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
       }
-      col.SetOid(catalog::col_oid_t(i));
+      // NOTE(Schema-change):
+      // col_oid_t {0} is an INVALID_COLUMN_OID, which will not generate the correct schema.col_oid_to_offset_ map
+      col.SetOid(catalog::col_oid_t(i+1));
       columns.push_back(col);
     }
 

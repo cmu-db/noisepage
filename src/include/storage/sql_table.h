@@ -251,6 +251,17 @@ class SqlTable {
   ProjectionMap ProjectionMapForOids(const std::vector<catalog::col_oid_t> &col_oids,
                                      layout_version_t layout_version = layout_version_t{0});
 
+
+  /**
+   * Returns the column oid to id map of a layout_version
+   * @param version  version of the datatable
+   * @return
+   */
+  const ColumnOidToIdMap &GetColumnOidToIdMap(layout_version_t version) const {
+    TERRIER_ASSERT(tables_.count(version) > 0, "version not existing..");
+    return tables_.at(version).column_oid_to_id_map_;
+  }
+
   /**
    * Returns the layout version of a datatable.
    * @warning This is only used for testing purpose
