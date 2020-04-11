@@ -660,7 +660,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());                       \
     auto *pci = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID()); \
     auto col_idx = READ_UIMM2();                                                  \
-    terrier::execution::vm::col_id_32_t col_id(col_idx);                          \
+    terrier::storage::col_id_t col_id(col_idx);                                   \
     OpPCIGet##type_str(result, pci, col_id);                                      \
     DISPATCH_NEXT();                                                              \
   }                                                                               \
@@ -668,7 +668,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());                       \
     auto *pci = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID()); \
     auto col_idx = READ_UIMM2();                                                  \
-    terrier::execution::vm::col_id_32_t col_id(col_idx);                          \
+    terrier::storage::col_id_t col_id(col_idx);                                   \
     OpPCIGet##type_str##Null(result, pci, col_id);                                \
     DISPATCH_NEXT();                                                              \
   }
@@ -1586,7 +1586,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());              \
     auto *pr = frame->LocalAt<storage::ProjectedRow *>(READ_LOCAL_ID()); \
     auto col_idx = READ_UIMM2();                                         \
-    terrier::execution::vm::col_id_t col_id(col_idx);                    \
+    terrier::storage::col_id_t col_id(col_idx);                          \
     OpPRGet##type_str(result, pr, col_id);                               \
     DISPATCH_NEXT();                                                     \
   }                                                                      \
@@ -1594,7 +1594,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());              \
     auto *pr = frame->LocalAt<storage::ProjectedRow *>(READ_LOCAL_ID()); \
     auto col_idx = READ_UIMM2();                                         \
-    terrier::execution::vm::col_id_t col_id(col_idx);                    \
+    terrier::storage::col_id_t col_id(col_idx);                          \
     OpPRGet##type_str##Null(result, pr, col_id);                         \
     DISPATCH_NEXT();                                                     \
   }
@@ -1615,14 +1615,14 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     auto *pr = frame->LocalAt<storage::ProjectedRow *>(READ_LOCAL_ID()); \
     auto col_idx = READ_UIMM2();                                         \
     auto val = frame->LocalAt<type *>(READ_LOCAL_ID());                  \
-    terrier::execution::vm::col_id_t col_id(col_idx);                    \
+    terrier::storage::col_id_t col_id(col_idx);                          \
     OpPRSet##type_str(pr, col_id, val);                                  \
     DISPATCH_NEXT();                                                     \
   }                                                                      \
   OP(PRSet##type_str##Null) : {                                          \
     auto *pr = frame->LocalAt<storage::ProjectedRow *>(READ_LOCAL_ID()); \
     auto col_idx = READ_UIMM2();                                         \
-    terrier::execution::vm::col_id_t col_id(col_idx);                    \
+    terrier::storage::col_id_t col_id(col_idx);                          \
     auto val = frame->LocalAt<type *>(READ_LOCAL_ID());                  \
     OpPRSet##type_str##Null(pr, col_id, val);                            \
     DISPATCH_NEXT();                                                     \
@@ -1641,7 +1641,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   OP(PRSetVarlen) : {
     auto *pr = frame->LocalAt<storage::ProjectedRow *>(READ_LOCAL_ID());
     auto col_idx = READ_UIMM2();
-    terrier::execution::vm::col_id_t col_id(col_idx);
+    terrier::storage::col_id_t col_id(col_idx);
     auto val = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
     auto own = frame->LocalAt<bool>(READ_LOCAL_ID());
     OpPRSetVarlen(pr, col_id, val, own);
@@ -1651,7 +1651,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   OP(PRSetVarlenNull) : {
     auto *pr = frame->LocalAt<storage::ProjectedRow *>(READ_LOCAL_ID());
     auto col_idx = READ_UIMM2();
-    terrier::execution::vm::col_id_t col_id(col_idx);
+    terrier::storage::col_id_t col_id(col_idx);
     auto val = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
     auto own = frame->LocalAt<bool>(READ_LOCAL_ID());
     OpPRSetVarlenNull(pr, col_id, val, own);
