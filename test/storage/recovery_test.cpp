@@ -39,6 +39,10 @@ class RecoveryTests : public TerrierTest {
   common::ManagedPointer<storage::BlockStore> block_store_;
   common::ManagedPointer<catalog::Catalog> catalog_;
 
+  // added for ckpt
+  common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;
+  common::ManagedPointer<storage::GarbageCollector> gc_;
+
   // Recovery Components
   std::unique_ptr<DBMain> recovery_db_main_;
   common::ManagedPointer<transaction::TransactionManager> recovery_txn_manager_;
@@ -62,6 +66,8 @@ class RecoveryTests : public TerrierTest {
     log_manager_ = db_main_->GetLogManager();
     block_store_ = db_main_->GetStorageLayer()->GetBlockStore();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
+    deferred_action_manager_ = db_main_->GetTransactionLayer()->GetDeferredActionManager();
+    gc_ = db_main_->GetGarbageCollectorThread()->GetGarbageCollector();
 
     recovery_db_main_ = terrier::DBMain::Builder()
                             .SetUseThreadRegistry(true)
@@ -797,8 +803,8 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   // Create directory
   std::filesystem::create_directory(ckpt_path);
 
-  auto ckpt_txn = txn_manager_->BeginTransaction();
-  Checkpoint ckpt(catalog_, static_cast<const common::ManagedPointer<transaction::TransactionContext>>(ckpt_txn));
+//  auto ckpt_txn = txn_manager_->BeginTransaction();
+  Checkpoint ckpt(catalog_, txn_manager_, deferred_action_manager_, gc_);
 
   // get db_oid
   catalog::db_oid_t db;
@@ -807,7 +813,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   }
 
   ckpt.TakeCheckpoint(ckpt_path, db);
-  txn_manager_->Commit(ckpt_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+//  txn_manager_->Commit(ckpt_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   ShutdownAndRestartSystem();
 
   // Override the recovery DBMain to now log out

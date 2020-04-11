@@ -2,12 +2,14 @@
 
 #include "storage/checkpoints/checkpoint.h"
 #include <common/worker_pool.h>
+#include <storage/block_compactor.h>
 #include <fstream>
 namespace terrier::storage {
 
 bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db) {
   // get db catalog accessor
-  auto accessor = catalog_->GetAccessor(txn_, db);
+  auto txn = txn_manager_->BeginTransaction();
+  auto accessor = catalog_->GetAccessor(static_cast<common::ManagedPointer<transaction::TransactionContext>>(txn), db);
   std::unordered_set<catalog::table_oid_t> table_oids = accessor->GetAllTableOids();
 
   for (const auto &oid : table_oids) {
@@ -26,10 +28,12 @@ bool Checkpoint::TakeCheckpoint(const std::string &path, catalog::db_oid_t db) {
     thread_pool_.SubmitTask([i, &workload] { workload(i); });
   }
   thread_pool_.WaitUntilAllFinished();
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   if (queue.size() > 0) {
     // the table oid that failed to be backup
     return false;
   }
+
   return true;
 }
 
@@ -46,97 +50,49 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
     queue_latch.unlock();
     common::ManagedPointer<storage::SqlTable> curr_table = accessor->GetTable(curr_table_oid);
 
-    std::string out_file = GenFileName(db_oid, curr_table_oid);
-    std::ofstream f;
+    // get daga table
+    storage::DataTable *curr_data_table = curr_table->table_.data_table_;
+    std::string out_file = path + GenFileName(db_oid, curr_table_oid);
 
-    auto curr_data_table = curr_table->table_.data_table_;
+    // copy data table
+    std::list<RawBlock *> new_blocks(curr_data_table->blocks_);
+    storage::DataTable new_table(curr_data_table->block_store_, curr_data_table->GetBlockLayout(),
+        curr_data_table->layout_version_, new_blocks);
+
+
+
     const BlockLayout &layout = curr_data_table->GetBlockLayout();
-    const std::vector<col_id_t> varlens = layout.Varlens();
-    auto column_ids = layout.AllColumns();
-    size_t col_num = column_ids.size();
-    std::cout << "col num: " << col_num << std::endl;
-
-    curr_data_table->blocks_latch_.Lock();
-    const std::list<RawBlock *> blocks = curr_data_table->blocks_;
-    curr_data_table->blocks_latch_.Unlock();
-    f.open(path + out_file, std::ios::binary);
-
-    // record # of blocks in block list, # of varlen col and # of dict col in the table
-    if (f.is_open()) {
-      unsigned long block_num = blocks.size();
-      unsigned long var_col_num = varlens.size();
-      unsigned long dict_col_num = 0;
-      unsigned long insertion_head_index = std::distance(curr_data_table->blocks_.begin(), curr_data_table->insertion_head_);
-      std::cout << "block num: " << block_num << std::endl;
-      std::cout << "var col num: " << var_col_num << std::endl;
-      std::cout << "dict col num: " << dict_col_num << std::endl;
-
-      ArrowBlockMetadata &metadata = curr_data_table->accessor_.GetArrowBlockMetadata(blocks.front());
-      // count dict_col num
-      for (auto i = 0u; i < col_num; i++) {
-        col_id_t col_id = column_ids[i];
-        ArrowColumnInfo &col_info = metadata.GetColumnInfo(layout, col_id);
-        if (col_info.Type() == ArrowColumnType::DICTIONARY_COMPRESSED) {
-          dict_col_num += 1;
-        }
+    std::vector<type::TypeId> column_types;
+    column_types.resize(layout.NumColumns());
+    auto &arrow_metadata = new_table.accessor_.GetArrowBlockMetadata(new_table.blocks_.front());
+    for (storage::col_id_t col_id : layout.AllColumns()) {
+      if (layout.IsVarlen(col_id)) {
+        arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::GATHERED_VARLEN;
+        column_types[!col_id] = type::TypeId::VARCHAR;
+      } else {
+        arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::FIXED_LENGTH;
+        column_types[!col_id] = type::TypeId::INTEGER;
       }
-      std::cout << "dict col num: " << dict_col_num <<std::endl;
-      f.write(reinterpret_cast<const char *>(&block_num), sizeof(unsigned long));
-      f.write(reinterpret_cast<const char *>(&var_col_num), sizeof(unsigned long));
-      f.write(reinterpret_cast<const char *>(&dict_col_num), sizeof(unsigned long));
-      f.write(reinterpret_cast<const char *>(&insertion_head_index), sizeof(unsigned long));
-    } else {
-      // failed to copy to disk, add the table_oid back to queue
-      queue_latch.lock();
-      queue.push_back(curr_table_oid);
-      queue_latch.unlock();
-      return;
     }
 
-    // traverse each block in the block list
-    for (RawBlock *block : blocks) {
-      ArrowBlockMetadata &metadata = curr_data_table->accessor_.GetArrowBlockMetadata(block);
 
-      // first pass: record var len data
-      for (auto i = 0u; i < col_num; i++) {
-        col_id_t col_id = column_ids[i];
-        ArrowColumnInfo &col_info = metadata.GetColumnInfo(layout, col_id);
-        if (layout.IsVarlen(col_id) && col_info.Type() == ArrowColumnType::GATHERED_VARLEN) {
-          std::cout << "varchar" << std::endl;
-          ArrowVarlenColumn &varlen_col = col_info.VarlenColumn();
-          uint32_t value_len = varlen_col.ValuesLength();
-          uint32_t offset_len = varlen_col.OffsetsLength();
-          f.write(reinterpret_cast<const char *>(&col_id), sizeof(col_id_t));
-          f.write(reinterpret_cast<const char *>(&offset_len), sizeof(uint32_t));
-          f.write(reinterpret_cast<const char *>(&value_len), sizeof(uint32_t));
-          f.write(reinterpret_cast<const char *>(varlen_col.Offsets()), offset_len * sizeof(uint64_t));
-          f.write(reinterpret_cast<const char *>(varlen_col.Values()), value_len);
-        }
-      }
-      // second pass: record dictionary data
-      for (auto i = 0u; i < col_num; i++) {
-        col_id_t col_id = column_ids[i];
-        ArrowColumnInfo &col_info = metadata.GetColumnInfo(layout, col_id);
-        if (layout.IsVarlen(col_id) && col_info.Type() == ArrowColumnType::DICTIONARY_COMPRESSED) {
-          std::cout << "dictionary" << std::endl;
-          uint32_t num_slots = metadata.NumRecords();
-          auto indices = col_info.Indices();
-          f.write(reinterpret_cast<const char *>(&col_id), sizeof(col_id_t));
-          f.write(reinterpret_cast<const char *>(&num_slots), sizeof(uint32_t));
-          f.write(reinterpret_cast<const char *>(indices), num_slots * sizeof(uint64_t));
-        }
-      }
-      //record block headers and contents
-      uint16_t padding = block->padding_;
-      layout_version_t layout_version = block->layout_version_;
-      uint32_t insert_head = block->insert_head_;
-      f.write(reinterpret_cast<const char *>(block->content_), sizeof(block->content_));
-      f.write(reinterpret_cast<const char *>(&padding), sizeof(uint16_t));
-      f.write(reinterpret_cast<const char *>(&layout_version), sizeof(layout_version_t));
-      f.write(reinterpret_cast<const char *>(&insert_head), sizeof(uint32_t));
-
+    // compact blocks into arrow format
+    storage::BlockCompactor compactor;
+    for (RawBlock *block : new_table.blocks_) {
+      compactor.PutInQueue(block);
     }
+    compactor.ProcessCompactionQueue(deferred_action_manager_.Get(), txn_manager_.Get());  // compaction pass
 
+    // Need to prune the version chain in order to make sure that the second pass succeeds
+    gc_->PerformGarbageCollection();
+    for (RawBlock *block : new_table.blocks_) {
+      compactor.PutInQueue(block);
+    }
+    compactor.ProcessCompactionQueue(deferred_action_manager_.Get(), txn_manager_.Get());  // gathering pass
+
+    // write to disk
+    storage::ArrowSerializer arrow_serializer(new_table);
+    arrow_serializer.ExportTable(out_file, &column_types);
 
   }
 }

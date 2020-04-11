@@ -17,8 +17,10 @@ namespace terrier::storage {
 class Checkpoint {
  public:
   Checkpoint(const common::ManagedPointer<catalog::Catalog> catalog,
-             const common::ManagedPointer<transaction::TransactionContext> txn)
-      : catalog_(catalog), txn_(txn) {
+             common::ManagedPointer<transaction::TransactionManager>txn_manager,
+             common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager,
+             common::ManagedPointer<storage::GarbageCollector> gc)
+      : catalog_(catalog), txn_manager_(txn_manager),  deferred_action_manager_(deferred_action_manager), gc_(gc){
     // Initialize catalog_table_schemas_ map
     catalog_table_schemas_[catalog::postgres::CLASS_TABLE_OID] = catalog::postgres::Builder::GetClassTableSchema();
     catalog_table_schemas_[catalog::postgres::NAMESPACE_TABLE_OID] =
@@ -76,7 +78,9 @@ class Checkpoint {
   // Catalog to fetch table pointers
   const common::ManagedPointer<catalog::Catalog> catalog_;
   //  const common::ManagedPointer<BlockStore> block_store_;
-  const common::ManagedPointer<transaction::TransactionContext> txn_;
+  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
+  common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;
+  common::ManagedPointer<storage::GarbageCollector> gc_;
   std::unordered_map<catalog::table_oid_t, catalog::Schema> catalog_table_schemas_;
   std::vector<catalog::table_oid_t> queue;  // for multithreading
   std::mutex queue_latch;
