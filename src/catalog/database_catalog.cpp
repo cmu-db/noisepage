@@ -262,6 +262,12 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
   retval = CreateTableEntry(txn, postgres::STATISTIC_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID,
                             "pg_statistic", postgres::Builder::GetStatisticTableSchema());
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetTablePointer(txn, postgres::STATISTIC_TABLE_OID, statistics_);
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::STATISTIC_TABLE_OID,
+                            postgres::STATISTIC_OID_INDEX_OID, "pg_statistic_index",
+                            postgres::Builder::GetStatisticOidIndexSchema(db_oid_));
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::STATISTIC_OID_INDEX_OID, statistics_oid_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 }
