@@ -143,8 +143,9 @@ static void GenArithArguments(benchmark::internal::Benchmark *b) {
  */
 static void GenScanArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
-                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50};
+ // ,     100,    500,    1000,
+  //                                 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto col : num_cols) {
     for (auto row : row_nums) {
       int64_t car = 1;
@@ -248,12 +249,13 @@ static void GenInsertArguments(benchmark::internal::Benchmark *b) {
     }
   }
 }
+*/
 
 class MiniRunners : public benchmark::Fixture {
  public:
   static execution::query_id_t query_id;
+  static execution::vm::ExecutionMode mode;
   const uint64_t optimizer_timeout_ = 1000000;
-  const execution::vm::ExecutionMode mode_ = execution::vm::ExecutionMode::Interpret;
 
   typedef std::unique_ptr<planner::AbstractPlanNode> (*PlanCorrect)(
       common::ManagedPointer<transaction::TransactionContext> txn, std::unique_ptr<planner::AbstractPlanNode>);
@@ -327,7 +329,7 @@ class MiniRunners : public benchmark::Fixture {
         common::ManagedPointer(accessor));
     auto exec_query = execution::ExecutableQuery(common::ManagedPointer(out_plan), common::ManagedPointer(exec_ctx));
     exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(units));
-    exec_query.Run(common::ManagedPointer(exec_ctx), mode_);
+    exec_query.Run(common::ManagedPointer(exec_ctx), mode);
 
     if (commit)
       txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -341,7 +343,7 @@ class MiniRunners : public benchmark::Fixture {
     auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
                                                                         nullptr, common::ManagedPointer(accessor));
-    exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode_));
+    exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode));
 
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
@@ -415,7 +417,7 @@ class MiniRunners : public benchmark::Fixture {
     auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
                                                                         nullptr, common::ManagedPointer(accessor));
-    exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode_));
+    exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode));
 
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
@@ -495,9 +497,16 @@ class MiniRunners : public benchmark::Fixture {
 };
 
 execution::query_id_t MiniRunners::query_id = execution::query_id_t(0);
+execution::vm::ExecutionMode MiniRunners::mode = execution::vm::ExecutionMode::Interpret;
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ0_ArithmeticRunners)(benchmark::State &state) {
+  // Only benchmark arithmetic runners in interpret mode
+  if (MiniRunners::mode != execution::vm::ExecutionMode::Interpret) {
+    state.SetItemsProcessed(0);
+    return;
+  }
+
   // NOLINTNEXTLINE
   for (auto _ : state) {
     metrics_manager_->RegisterThread();
@@ -585,7 +594,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
           exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(&units));
           pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, row_num, num_col * 4, num_col, row_num);
           units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
-          exec_query.Run(common::ManagedPointer(exec_ctx), mode_);
+          exec_query.Run(common::ManagedPointer(exec_ctx), mode);
 
           txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
         }
@@ -641,6 +650,11 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ1_SeqScanRunners)
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ1_IndexScanRunners)(benchmark::State &state) {
+  if (MiniRunners::mode != execution::vm::ExecutionMode::Interpret) {
+    state.SetItemsProcessed(0);
+    return;
+  }
+
   // NOLINTNEXTLINE
   for (auto _ : state) {
     metrics_manager_->RegisterThread();
@@ -1069,17 +1083,23 @@ void RunBenchmarkSequence(void) {
   const char *argv[2];
   argv[0] = "mini_runners";
   argv[1] = buffer;
-  for (size_t i = 0; i < 5; i++) {
-    int argc = 2;
-    snprintf(buffer, sizeof(buffer), "--benchmark_filter=SEQ%lu", i);
-    benchmark::Initialize(&argc, const_cast<char **>(argv));
-    benchmark::RunSpecifiedBenchmarks();
+
+  auto vm_modes = {terrier::execution::vm::ExecutionMode::Interpret, terrier::execution::vm::ExecutionMode::Compiled};
+  for (size_t i = 1; i < 2; i++) {
+    for (auto mode : vm_modes) {
+      terrier::runner::MiniRunners::mode = mode;
+
+      int argc = 2;
+      snprintf(buffer, sizeof(buffer), "--benchmark_filter=SEQ%lu", i);
+      benchmark::Initialize(&argc, const_cast<char **>(argv));
+      benchmark::RunSpecifiedBenchmarks();
+    }
 
     std::this_thread::sleep_for(std::chrono::seconds(2));
     terrier::runner::db_main->GetMetricsManager()->Aggregate();
     terrier::runner::db_main->GetMetricsManager()->ToCSV();
 
-    snprintf(buffer, sizeof(buffer), "SEQ%lu.csv", i);
+    snprintf(buffer, sizeof(buffer), "execution_SEQ%lu.csv", i);
     std::rename("pipeline.csv", buffer);
   }
 }
