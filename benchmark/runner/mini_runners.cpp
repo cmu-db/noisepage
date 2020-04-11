@@ -143,9 +143,8 @@ static void GenArithArguments(benchmark::internal::Benchmark *b) {
  */
 static void GenScanArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50};
- // ,     100,    500,    1000,
-  //                                 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto col : num_cols) {
     for (auto row : row_nums) {
       int64_t car = 1;
@@ -249,7 +248,6 @@ static void GenInsertArguments(benchmark::internal::Benchmark *b) {
     }
   }
 }
-*/
 
 class MiniRunners : public benchmark::Fixture {
  public:
@@ -1085,7 +1083,7 @@ void RunBenchmarkSequence(void) {
   argv[1] = buffer;
 
   auto vm_modes = {terrier::execution::vm::ExecutionMode::Interpret, terrier::execution::vm::ExecutionMode::Compiled};
-  for (size_t i = 1; i < 2; i++) {
+  for (size_t i = 0; i < 5; i++) {
     for (auto mode : vm_modes) {
       terrier::runner::MiniRunners::mode = mode;
 
