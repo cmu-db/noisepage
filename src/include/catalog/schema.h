@@ -80,6 +80,27 @@ class Schema {
     }
 
     /**
+     * Instantiates a Column object, primary to be used for building a Schema object (non VARLEN attributes)
+     * @param name column name
+     * @param type SQL type for this column
+     * @param nullable true if the column is nullable, false otherwise
+     * @param default_value for the column
+     * @param oid col_oid for the column, must be unique for each column in the table
+     */
+    Column(std::string name, const type::TypeId type, const bool nullable,
+           const parser::AbstractExpression &default_value, const col_oid_t oid)
+        : name_(std::move(name)),
+          type_(type),
+          attr_size_(type::TypeUtil::GetTypeSize(type_)),
+          nullable_(nullable),
+          oid_(oid),
+          default_value_(default_value.Copy()) {
+      TERRIER_ASSERT(attr_size_ == 1 || attr_size_ == 2 || attr_size_ == 4 || attr_size_ == 8,
+                     "This constructor is meant for non-VARLEN columns.");
+      TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
+    }
+
+    /**
      * Overrides default copy constructor to ensure we do a deep copy on the abstract expressions
      * @param old_column to be copied
      */
