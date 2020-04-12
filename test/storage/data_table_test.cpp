@@ -199,7 +199,7 @@ struct DataTableTests : public TerrierTest {
 // into an empty DataTable. Then, Selects the inserted TupleSlots and compares the results to the original inserted
 // random tuple. Repeats for num_iterations.
 // NOLINTNEXTLINE
-TEST_F(DataTableTests, DISABLED_SimpleInsertSelect) {
+TEST_F(DataTableTests, SimpleInsertSelect) {
   const uint32_t num_iterations = 50;
   const uint32_t num_inserts = 1000;
   const uint16_t max_columns = 100;
@@ -224,7 +224,7 @@ TEST_F(DataTableTests, DISABLED_SimpleInsertSelect) {
 
 // Insert some number of tuples and sequentially scan for them down the table
 // NOLINTNEXTLINE
-TEST_F(DataTableTests, DISABLED_SimpleSequentialScan) {
+TEST_F(DataTableTests, SimpleSequentialScan) {
   const uint32_t num_iterations = 10;
   const uint16_t max_columns = 20;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
@@ -264,7 +264,7 @@ TEST_F(DataTableTests, DISABLED_SimpleSequentialScan) {
 // DataTable. Then, randomly updates the tuple num_updates times. Finally, Selects at each timestamp to verify that the
 // delta chain produces the correct tuple. Repeats for num_iterations.
 // NOLINTNEXTLINE
-TEST_F(DataTableTests, DISABLED_SimpleVersionChain) {
+TEST_F(DataTableTests, SimpleVersionChain) {
   const uint32_t num_iterations = 50;
   const uint32_t num_updates = 10;
   const uint16_t max_columns = 100;
@@ -300,7 +300,7 @@ TEST_F(DataTableTests, DISABLED_SimpleVersionChain) {
 // timestamp is changed to positive. Lastly, Selects at first timestamp to verify that the delta chain produces the
 // correct tuple. Repeats for num_iterations.
 // NOLINTNEXTLINE
-TEST_F(DataTableTests, DISABLED_WriteWriteConflictUpdateFails) {
+TEST_F(DataTableTests, WriteWriteConflictUpdateFails) {
   const uint32_t num_iterations = 50;
   const uint16_t max_columns = 100;
 
@@ -322,7 +322,7 @@ TEST_F(DataTableTests, DISABLED_WriteWriteConflictUpdateFails) {
 // Test that insertion into a block does not wrap around even in the presence of deleted slots. This makes compaction
 // a lot easier to write.
 // NOLINTNEXTLINE
-TEST_F(DataTableTests, DISABLED_InsertNoWrap) {
+TEST_F(DataTableTests, InsertNoWrap) {
   const uint32_t num_iterations = 10;
   const uint16_t max_columns = 10;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
@@ -351,7 +351,7 @@ TEST_F(DataTableTests, DISABLED_InsertNoWrap) {
 // Test that insertion into a block does not wrap around even in the presence of deleted slots. This makes compaction
 // a lot easier to write.
 // NOLINTNEXTLINE
-TEST_F(DataTableTests, DISABLED_SimpleNumaTest) {
+TEST_F(DataTableTests, SimpleNumaTest) {
   const uint32_t num_iterations = 3;
   const uint16_t max_columns = 20;
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
@@ -407,7 +407,7 @@ TEST_F(DataTableTests, DISABLED_SimpleNumaTest) {
   }
 }
 
-TEST_F(DataTableTests, DISABLED_ConcurrentNumaTest) {
+TEST_F(DataTableTests, ConcurrentNumaTest) {
   const uint32_t num_iterations = 10;
   const uint32_t num_threads = std::thread::hardware_concurrency();
   const uint16_t max_columns = 20;
