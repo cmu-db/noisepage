@@ -476,22 +476,22 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)(benc
 // Benchmark Registration
 // ----------------------------------------------------------------------------
 // clang-format off
-BENCHMARK_REGISTER_F(DataTableBenchmark, Insert)
-    ->Unit(benchmark::kMillisecond)
-    ->UseRealTime()
-    ->UseManualTime();
-BENCHMARK_REGISTER_F(DataTableBenchmark, SelectRandom)
-    ->Unit(benchmark::kMillisecond)
-    ->UseRealTime()
-    ->UseManualTime();
-BENCHMARK_REGISTER_F(DataTableBenchmark, SelectSequential)
-    ->Unit(benchmark::kMillisecond)
-    ->UseRealTime()
-    ->UseManualTime();
-BENCHMARK_REGISTER_F(DataTableBenchmark, Scan)
-    ->Unit(benchmark::kMillisecond)
-    ->UseRealTime()
-    ->UseManualTime();
+//BENCHMARK_REGISTER_F(DataTableBenchmark, Insert)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseRealTime()
+//    ->UseManualTime();
+//BENCHMARK_REGISTER_F(DataTableBenchmark, SelectRandom)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseRealTime()
+//    ->UseManualTime();
+//BENCHMARK_REGISTER_F(DataTableBenchmark, SelectSequential)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseRealTime()
+//    ->UseManualTime();
+//BENCHMARK_REGISTER_F(DataTableBenchmark, Scan)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseRealTime()
+//    ->UseManualTime();
 BENCHMARK_REGISTER_F(DataTableBenchmark, SingleThreadedIteration)
 ->Unit(benchmark::kMillisecond)
     ->UseRealTime()
