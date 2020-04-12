@@ -325,7 +325,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMASingleThreadedIteration)(benchmark::S
   read_table.GetNUMARegions(&numa_regions);
 
   // NOLINTNEXTLINE
-//  for (auto _ : state) {
+  for (auto _ : state) {
     auto workload = [&](uint32_t id) {
       uint32_t count = 0;
       for (auto numa_region : numa_regions) {
@@ -355,7 +355,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMASingleThreadedIteration)(benchmark::S
       }
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
-//  }
+  }
 
   state.SetItemsProcessed(state.iterations() * num_reads_);
 }
@@ -476,38 +476,38 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)(benc
 // Benchmark Registration
 // ----------------------------------------------------------------------------
 // clang-format off
-//BENCHMARK_REGISTER_F(DataTableBenchmark, Insert)
-//    ->Unit(benchmark::kMillisecond)
-//    ->UseRealTime()
-//    ->UseManualTime();
-//BENCHMARK_REGISTER_F(DataTableBenchmark, SelectRandom)
-//    ->Unit(benchmark::kMillisecond)
-//    ->UseRealTime()
-//    ->UseManualTime();
-//BENCHMARK_REGISTER_F(DataTableBenchmark, SelectSequential)
-//    ->Unit(benchmark::kMillisecond)
-//    ->UseRealTime()
-//    ->UseManualTime();
-//BENCHMARK_REGISTER_F(DataTableBenchmark, Scan)
-//    ->Unit(benchmark::kMillisecond)
-//    ->UseRealTime()
-//    ->UseManualTime();
-//BENCHMARK_REGISTER_F(DataTableBenchmark, SingleThreadedIteration)
-//->Unit(benchmark::kMillisecond)
-//    ->UseRealTime()
-//    ->UseManualTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, Insert)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, SelectRandom)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, SelectSequential)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, Scan)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, SingleThreadedIteration)
+->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
 BENCHMARK_REGISTER_F(DataTableBenchmark, NUMASingleThreadedIteration)
 ->Unit(benchmark::kMillisecond)
     ->UseRealTime()
     ->UseManualTime();
-//BENCHMARK_REGISTER_F(DataTableBenchmark, NUMAMultiThreadedIteration)
-//->Unit(benchmark::kMillisecond)
-//    ->UseRealTime()
-//    ->UseManualTime();
-//BENCHMARK_REGISTER_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)
-//->Unit(benchmark::kMillisecond)
-//    ->UseRealTime()
-//    ->UseManualTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, NUMAMultiThreadedIteration)
+->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)
+->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
 // clang-format on
 
 }  // namespace terrier
