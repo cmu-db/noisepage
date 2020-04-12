@@ -164,6 +164,9 @@ class RandomDataTableTestObject {
       colunms.emplace_back(column);
     }
     table_.NUMAScan(common::ManagedPointer(txn), &colunms, result_colunm);
+    for (auto *column : colunms) {
+       delete[] reinterpret_cast<byte *>(column);
+    }
   }
 
   storage::DataTable &GetTable() { return table_; }
