@@ -13,6 +13,7 @@ _Q1_P2 = [(OpUnit.AGG_ITERATE, [4, 92, 10, 4]),
           ]
 
 _Q1_Q3 = [(OpUnit.SORT_ITERATE, [4, 92, 10, 4]),
+          (OpUnit.OUTPUT, [4, 92, 10, 4]),
           ]
 
 _Q4_P1 = [(OpUnit.SEQ_SCAN, [150000, 24, 3, 100]),
@@ -32,6 +33,7 @@ _Q4_P3 = [(OpUnit.AGG_ITERATE, [5, 20, 2,  5]),
           ]
 
 _Q4_P4 = [(OpUnit.SORT_ITERATE, [5, 20, 2, 5]),
+          (OpUnit.OUTPUT, [5, 20, 2, 5]),
           ]
 
 _Q5_P1 = [(OpUnit.SEQ_SCAN, [5, 16, 2, 5]),
@@ -72,6 +74,7 @@ _Q5_P7 = [(OpUnit.AGG_ITERATE, [5, 20, 2, 5]),
           ]
 
 _Q5_P8 = [(OpUnit.SORT_ITERATE, [5, 20, 2, 5]),
+          (OpUnit.OUTPUT, [5, 20, 2, 5]),
           ]
 
 _Q6_P1 = [(OpUnit.SEQ_SCAN, [600000, 24, 4, 600000]),
@@ -79,6 +82,7 @@ _Q6_P1 = [(OpUnit.SEQ_SCAN, [600000, 24, 4, 600000]),
           (OpUnit.OP_INTEGER_COMPARE, [1200000, 4, 1, 1200000]),
           (OpUnit.OP_DECIMAL_MULTIPLY, [4285, 4, 1, 4285]),
           (OpUnit.OP_DECIMAL_PLUS_OR_MINUS, [4285, 4, 1, 4285]),
+          (OpUnit.OUTPUT, [1, 8, 1, 1]),
           ]
 
 _Q7_P1 = [(OpUnit.SEQ_SCAN, [25, 20, 2, 25]),
@@ -116,6 +120,7 @@ _Q7_P6 = [(OpUnit.AGG_ITERATE, [4, 44, 4, 4]),
           ]
 
 _Q7_P7 = [(OpUnit.SORT_ITERATE, [4, 44, 4, 4]),
+          (OpUnit.OUTPUT, [4, 44, 4, 4]),
           ]
 
 
@@ -149,6 +154,7 @@ _Q11_P5 = [(OpUnit.AGG_ITERATE, [4000, 12, 2, 4000]),
            ]
 
 _Q11_P6 = [(OpUnit.SORT_ITERATE, [2500, 12, 2, 2500]),
+           (OpUnit.OUTPUT, [2500, 12, 2, 2500]),
            ]
 
 
