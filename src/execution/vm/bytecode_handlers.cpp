@@ -46,7 +46,7 @@ void OpVPIFree(terrier::execution::sql::VectorProjectionIterator *vpi) { vpi->~V
 // ---------------------------------------------------------
 
 void OpCteScanInit(terrier::execution::sql::CteScanIterator *iter) {
-  new (iter) terrier::execution::sql::CteScanIterator();
+//  new (iter) terrier::execution::sql::CteScanIterator();
 
 }
 

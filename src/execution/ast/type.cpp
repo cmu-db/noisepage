@@ -14,7 +14,6 @@
 #include "execution/sql/join_hash_table_vector_probe.h"
 #include "execution/sql/sorter.h"
 #include "execution/sql/table_vector_iterator.h"
-#include "execution/sql/cte_scan_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/value.h"
 #include "execution/sql/vector_projection_iterator.h"
