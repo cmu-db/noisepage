@@ -1,5 +1,4 @@
 #pragma once
-#include <common/shared_latch.h>
 #include <tbb/concurrent_unordered_set.h>
 #include <list>
 #include <map>
