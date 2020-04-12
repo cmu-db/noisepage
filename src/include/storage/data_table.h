@@ -181,7 +181,7 @@ class DataTable {
       int16_t numa_index = static_cast<int16_t>(region_number);
       set_ = &table_->regions_[numa_index];
       block_ = set_->cbegin();
-      current_slot_ = {*block_, 0};
+      current_slot_ = {block_ == set_->cend() ? nullptr : *block_, 0};
     }
 
     NUMAIterator() { is_end_ = true; }

@@ -12,16 +12,12 @@ namespace terrier::storage {
 
 DataTable::DataTable(const common::ManagedPointer<BlockStore> store, const BlockLayout &layout,
                      const layout_version_t layout_version)
-    : block_store_(store), layout_version_(layout_version), accessor_(layout) {
+    : block_store_(store), layout_version_(layout_version), accessor_(layout), regions_(NUM_NUMA_REGIONS) {
   TERRIER_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
                  "First column is reserved for version info, second column is reserved for logical delete.");
 
-  for (int16_t i = 0; i < NUM_NUMA_REGIONS; i++) {
-    tbb::concurrent_unordered_set<RawBlock *> new_set;
-    regions_.emplace_back(new_set);
-  }
   if (block_store_ != nullptr) {
     RawBlock *new_block = NewBlock();
     // insert block
@@ -147,7 +143,7 @@ DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compabi
 }
 
 void DataTable::GetNUMARegions(std::vector<numa_region_t> *regions) {
-  for (int16_t i = 0; i < NUM_NUMA_REGIONS; i++) {
+  for (int16_t i = 0; i < static_cast<int16_t>(regions_.size()); i++) {
     regions->emplace_back(static_cast<numa_region_t>(i));
   }
 }

@@ -376,13 +376,8 @@ TEST_F(DataTableTests, SimpleNumaTest) {
     EXPECT_EQ(numa_regions.size(), 1);
     EXPECT_EQ(numa_regions[0], storage::UNSUPPORTED_NUMA_REGION);
 #else
-    bool numa_available_unsupported =
+    bool single_numa_system =
         numa_available() != -1 && numa_regions.size() == 1 && numa_regions[0] == storage::UNSUPPORTED_NUMA_REGION;
-    for (auto numa_region : numa_regions) {
-      if (numa_available() != -1) {
-        EXPECT_TRUE(numa_available_unsupported || numa_region != storage::UNSUPPORTED_NUMA_REGION);
-      }
-    }
 #endif
 
     for (storage::numa_region_t numa_region : numa_regions) {
@@ -397,7 +392,7 @@ TEST_F(DataTableTests, SimpleNumaTest) {
           if (move_pages(0, 1, &page, nullptr, &status, 0) != -1) {
             EXPECT_EQ(static_cast<int>(static_cast<int16_t>(numa_region)), status);
           } else {
-            EXPECT_TRUE(numa_available_unsupported);
+            EXPECT_TRUE(single_numa_system);
           }
         }
 #endif
@@ -456,13 +451,8 @@ TEST_F(DataTableTests, ConcurrentNumaTest) {
     EXPECT_EQ(numa_regions.size(), 1);
     EXPECT_EQ(numa_regions[0], storage::UNSUPPORTED_NUMA_REGION);
 #else
-    bool numa_available_unsupported =
+    bool single_numa_system =
         numa_available() != -1 && numa_regions.size() == 1 && numa_regions[0] == storage::UNSUPPORTED_NUMA_REGION;
-    for (auto numa_region : numa_regions) {
-      if (numa_available() != -1) {
-        EXPECT_TRUE(numa_available_unsupported || numa_region != storage::UNSUPPORTED_NUMA_REGION);
-      }
-    }
 #endif
 
     std::thread numa_threads[numa_regions.size()];
@@ -487,7 +477,7 @@ TEST_F(DataTableTests, ConcurrentNumaTest) {
             if (move_pages(0, 1, &page, nullptr, &status, 0) != -1) {
               EXPECT_EQ(static_cast<int>(static_cast<int16_t>(numa_region)), status);
             } else {
-              EXPECT_TRUE(numa_available_unsupported);
+              EXPECT_TRUE(single_numa_system);
             }
           }
 #endif
@@ -558,13 +548,8 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
     EXPECT_EQ(numa_regions.size(), 1);
     EXPECT_EQ(numa_regions[0], storage::UNSUPPORTED_NUMA_REGION);
 #else
-    bool numa_available_unsupported =
+    bool single_numa_system =
         numa_available() != -1 && numa_regions.size() == 1 && numa_regions[0] == storage::UNSUPPORTED_NUMA_REGION;
-    for (auto &numa_region : numa_regions) {
-      if (numa_available() != -1) {
-        EXPECT_TRUE(numa_available_unsupported || numa_region != storage::UNSUPPORTED_NUMA_REGION);
-      }
-    }
 #endif
 
     std::promise<void> numa_threads[numa_regions.size()];
@@ -591,7 +576,7 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
                 if (move_pages(0, 1, &page, nullptr, &status, 0) != -1) {
                   EXPECT_EQ(static_cast<int>(static_cast<int16_t>(numa_region)), status);
                 } else {
-                  EXPECT_TRUE(numa_available_unsupported);
+                  EXPECT_TRUE(single_numa_system);
                 }
               }
 #endif
