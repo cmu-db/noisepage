@@ -90,7 +90,7 @@ void OpPCIFilterNotEqual(uint64_t *size, terrier::execution::sql::ProjectedColum
 // ---------------------------------------------------------
 
 void OpCteScanInit(terrier::execution::sql::CteScanIterator *iter) {
-  new (iter) terrier::execution::sql::CteScanIterator();
+//  new (iter) terrier::execution::sql::CteScanIterator();
 
 }
 
