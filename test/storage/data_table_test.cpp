@@ -572,17 +572,6 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
               counted_numa_iteration++;
               EXPECT_NE((*it).GetBlock(), nullptr);
               EXPECT_EQ((*it).GetBlock()->numa_region_, numa_region);
-#ifndef __APPLE__
-              if (numa_available() != -1) {
-                int status;
-                auto *page = static_cast<void *>((*it).GetBlock());
-                if (move_pages(0, 1, &page, nullptr, &status, 0) != -1) {
-                  EXPECT_EQ(static_cast<int>(static_cast<int16_t>(numa_region)), status);
-                } else {
-                  EXPECT_TRUE(single_numa_system);
-                }
-              }
-#endif
             }
 
             delete[] buffer;
