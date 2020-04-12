@@ -161,7 +161,6 @@ class DataTable {
       if (LIKELY(is_end_)) {
         return other.current_slot_.GetBlock() == nullptr || other.block_ == other.set_->cend();
       }
-      TERRIER_ASSERT(region_number_ == other.region_number_, "can only compare iterators from the same NUMA region");
       return current_slot_ == other.current_slot_;
     }
 
@@ -177,7 +176,7 @@ class DataTable {
     /**
      * @warning MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
      */
-    NUMAIterator(const DataTable *table, numa_region_t region_number) : table_(table), region_number_(region_number) {
+    NUMAIterator(const DataTable *table, numa_region_t region_number) : table_(table) {
       int16_t numa_index = static_cast<int16_t>(region_number);
       set_ = &table_->regions_[numa_index];
       block_ = set_->cbegin();
@@ -190,7 +189,6 @@ class DataTable {
     tbb::concurrent_unordered_set<RawBlock *>::const_iterator block_;
     const tbb::concurrent_unordered_set<RawBlock *> *set_;
     TupleSlot current_slot_;
-    numa_region_t region_number_ UNUSED_ATTRIBUTE;
     bool is_end_ = false;
   };
 
