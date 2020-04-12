@@ -417,6 +417,8 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedIteration)(benchmark::St
 // Read the num_reads_ of tuples in the sequential  order from a DataTable concurrently
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)(benchmark::State &state) {
+
+
   storage::DataTable read_table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout_,
                                 storage::layout_version_t(0));
 
