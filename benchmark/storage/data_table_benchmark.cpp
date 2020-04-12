@@ -350,8 +350,8 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMASingleThreadedIteration)(benchmark::S
         thread_pool.SubmitTask(&promises[j], [j, &workload] { workload(j); });
       }
       // NOLINTNEXTLINE
-      for (auto &promise : promises) {  // NOLINT
-        promise.get_future().get();
+      for (uint32_t j = 0; j < 1; j++) {  // NOLINT
+        promises[j].get_future().get();
       }
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
