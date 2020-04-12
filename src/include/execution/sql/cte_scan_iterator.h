@@ -3,16 +3,46 @@
 #include <memory>
 #include <vector>
 #include "storage/sql_table.h"
+#include "execution/exec/execution_context.h"
+#include "execution/sql/table_vector_iterator.h"
 
 namespace terrier::execution::sql {
 
 class CteScanIterator {
  public:
   /**
+   * Constructor for the CTEScanIterator
    */
-  explicit CteScanIterator() {
 
-  }
+  CteScanIterator(terrier::execution::exec::ExecutionContext *exec_ctx,
+                  uint32_t *schema_cols_type, uint32_t num_schema_cols);
+
+  /**
+   * Returns the temporary table that the cte has made
+   */
+  storage::SqlTable* GetTable();
+
+  /**
+   * Returns the oid of the temporary table that the cte has made
+   */
+  catalog::table_oid_t GetTableOid();
+
+  /**
+   * Returns a projected row of the table for insertion
+   */
+  storage::ProjectedRow *GetInsertTempTablePR();
+
+  /**
+   * Returns the slot which was inserted in the table using the projected row
+   */
+
+  storage::TupleSlot TableInsert();
+
+  /**
+   * Return the iterator that will scan the temp table
+   */
+
+
 
   /**
    * Destructor
@@ -24,6 +54,7 @@ class CteScanIterator {
    */
   DISALLOW_COPY_AND_MOVE(CteScanIterator);
 
+
   /**
    * Initialize the iterator, returning true if the initialization succeeded
    * @return True if the initialization succeeded; false otherwise
@@ -34,6 +65,11 @@ class CteScanIterator {
 
 
  private:
+  terrier::execution::exec::ExecutionContext *exec_ctx_;
+  storage::SqlTable* cte_table_;
+  catalog::table_oid_t cte_table_oid_;
+  std::vector<catalog::col_oid_t> col_oids_;
+  storage::RedoRecord *table_redo_;
 };
 
 }  // namespace terrier::execution::sql
