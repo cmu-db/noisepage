@@ -147,7 +147,7 @@ DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compabi
 }
 
 void DataTable::GetNUMARegions(std::vector<numa_region_t> *regions) {
-  for (int16_t i = 0; i < NUM_NUMA_REGIONS; i++) {
+  for (int16_t i = 0; i < static_cast<int16_t>(regions_.size()); i++) {
     regions->emplace_back(static_cast<numa_region_t>(i));
   }
 }
