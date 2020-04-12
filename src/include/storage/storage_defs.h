@@ -43,7 +43,12 @@ STRONG_TYPEDEF(numa_region_t, int16_t);
 
 constexpr col_id_t VERSION_POINTER_COLUMN_ID = col_id_t(0);
 constexpr uint8_t NUM_RESERVED_COLUMNS = 1;
-constexpr numa_region_t UNSUPPORTED_NUMA_REGION = static_cast<numa_region_t>(-1);
+constexpr numa_region_t UNSUPPORTED_NUMA_REGION = static_cast<numa_region_t>(0);
+#ifdef __APPLE__
+constexpr int16_t NUM_NUMA_REGIONS = 1;
+#else
+constexpr int16_t NUM_NUMA_REGIONS = numa_available() >= 0 && numa_max_node() >= 0 ? numa_max_node() + 1 ? 1;
+#endif
 
 class DataTable;
 

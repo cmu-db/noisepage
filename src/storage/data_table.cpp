@@ -17,6 +17,11 @@ DataTable::DataTable(const common::ManagedPointer<BlockStore> store, const Block
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
                  "First column is reserved for version info, second column is reserved for logical delete.");
+
+  for (int16_t i = 0; i < NUM_NUMA_REGIONS; i++) {
+    tbb::concurrent_unordered_set<RawBlock *> new_set;
+    regions_.emplace_back(new_set);
+  }
   if (block_store_ != nullptr) {
     RawBlock *new_block = NewBlock();
     // insert block
@@ -142,9 +147,8 @@ DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compabi
 }
 
 void DataTable::GetNUMARegions(std::vector<numa_region_t> *regions) {
-  common::SharedLatch::ScopedSharedLatch l(&(this->map_latch_));
-  for (const auto &elem : this->region_blocks_map_) {
-    regions->emplace_back(elem.first);
+  for (int16_t i = 0; i < NUM_NUMA_REGIONS; i++) {
+    regions->emplace_back(static_cast<numa_region_t>(i));
   }
 }
 
@@ -160,9 +164,7 @@ DataTable::NUMAIterator &DataTable::NUMAIterator::operator++() {
   if (current_slot_.GetOffset() == table_->accessor_.GetBlockLayout().NumSlots() - 1 ||
       current_slot_.GetOffset() == current_slot_.GetBlock()->GetInsertHead() - 1) {
     ++block_;
-    // Cannot dereference if the next block is end(), so just use nullptr to denote
-    common::SharedLatch::ScopedSharedLatch l(&table_->map_latch_);
-    current_slot_ = {block_ == table_->region_blocks_map_.at(region_number_).cend() ? nullptr : *block_, 0};
+    current_slot_ = {block_ == set_->cend() ? nullptr : *block_, 0};
   } else {
     current_slot_ = {*block_, current_slot_.GetOffset() + 1};
   }
@@ -464,23 +466,8 @@ RawBlock *DataTable::NewBlock() {
   RawBlock *new_block = block_store_->Get();
   accessor_.InitializeRawBlock(this, new_block, layout_version_);
   data_table_counter_.IncrementNumNewBlock(1);
-  map_latch_.LockShared();
-  auto it = region_blocks_map_.find(new_block->numa_region_);
-  if (it == region_blocks_map_.end()) {
-    map_latch_.Unlock();
-    map_latch_.LockExclusive();
-    if (region_blocks_map_.find(new_block->numa_region_) == region_blocks_map_.end()) {
-      tbb::concurrent_unordered_set<RawBlock *> new_set;
-      new_set.insert(new_block);
-      region_blocks_map_.insert({new_block->numa_region_, new_set});
-    } else {
-      it->second.insert(new_block);
-    }
-    map_latch_.Unlock();
-  } else {
-    it->second.insert(new_block);
-  }
-
+  regions_[new_block->numa_region_ == UNSUPPORTED_NUMA_REGION ? 0 : static_cast<int16_t>(new_block->numa_region_)]
+      .insert(new_block);
   return new_block;
 }
 

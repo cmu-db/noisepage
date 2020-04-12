@@ -156,17 +156,12 @@ class DataTable {
     bool operator==(const NUMAIterator &other) const {
       // TODO(Tianyu): I believe this is enough?
       if (LIKELY(other.is_end_)) {
-        common::SharedLatch::ScopedSharedLatch l(&table_->map_latch_);
-        auto it = table_->region_blocks_map_.find(region_number_);
-        if (it == table_->region_blocks_map_.end()) return true;
-        return current_slot_.GetBlock() == nullptr || block_ == it->second.cend();
+        return current_slot_.GetBlock() == nullptr || block_ == set_->cend();
       }
       if (LIKELY(is_end_)) {
-        common::SharedLatch::ScopedSharedLatch l(&other.table_->map_latch_);
-        auto it = other.table_->region_blocks_map_.find(region_number_);
-        if (it == other.table_->region_blocks_map_.end()) return true;
-        return other.current_slot_.GetBlock() == nullptr || other.block_ == it->second.cend();
+        return other.current_slot_.GetBlock() == nullptr || other.block_ == other.set_->cend();
       }
+      TERRIER_ASSERT(region_number_ == other.region_number_, "can only compare iterators from the same NUMA region");
       return current_slot_ == other.current_slot_;
     }
 
@@ -183,13 +178,9 @@ class DataTable {
      * @warning MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
      */
     NUMAIterator(const DataTable *table, numa_region_t region_number) : table_(table), region_number_(region_number) {
-      common::SharedLatch::ScopedSharedLatch l(&table->map_latch_);
-      auto it = table->region_blocks_map_.find(region_number);
-      if (UNLIKELY(it == table->region_blocks_map_.end())) {
-        current_slot_ = {nullptr, 0};
-        return;
-      }
-      block_ = it->second.cbegin();
+      int16_t numa_index = static_cast<int16_t>(region_number);
+      set_ = &table_->regions_[numa_index];
+      block_ = set_->cbegin();
       current_slot_ = {*block_, 0};
     }
 
@@ -197,6 +188,7 @@ class DataTable {
 
     const DataTable *table_;
     tbb::concurrent_unordered_set<RawBlock *>::const_iterator block_;
+    const tbb::concurrent_unordered_set<RawBlock *> *set_;
     TupleSlot current_slot_;
     numa_region_t region_number_;
     bool is_end_ = false;
@@ -388,10 +380,7 @@ class DataTable {
   mutable common::SpinLatch blocks_latch_;
   // latch used to protect insertion_head_
   mutable common::SpinLatch header_latch_;
-  // latch to protect region_blocks_map
-  mutable common::SharedLatch map_latch_;
-  // map from numa region to vector of raw blocks in said region and vector's shared latch
-  std::map<numa_region_t, tbb::concurrent_unordered_set<RawBlock *>> region_blocks_map_;
+  std::vector<tbb::concurrent_unordered_set<RawBlock *>> regions_;
   std::list<RawBlock *>::iterator insertion_head_;
   // Check if we need to advance the insertion_head_
   // This function uses header_latch_ to ensure correctness
