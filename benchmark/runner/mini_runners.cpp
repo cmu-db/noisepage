@@ -158,6 +158,26 @@ static void GenScanArguments(benchmark::internal::Benchmark *b) {
   }
 }
 
+static void GenSeqScanArguments(benchmark::internal::Benchmark *b) {
+  auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
+  auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
+  for (auto type : types) {
+    for (auto col : num_cols) {
+      for (auto row : row_nums) {
+        int64_t car = 1;
+        while (car < row) {
+          b->Args({static_cast<int64_t>(type), col, row, car});
+          car *= 2;
+        }
+
+        b->Args({static_cast<int64_t>(type), col, row, row});
+      }
+    }
+  }
+}
+
 /**
  * Arg <0, 1, 2>
  * 0 - Number of columns
@@ -608,18 +628,20 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ0_OutputRunners)->Unit(benchmark::kMillisec
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ1_SeqScanRunners)(benchmark::State &state) {
-  auto num_col = state.range(0);
-  auto row = state.range(1);
-  auto car = state.range(2);
+  auto type = static_cast<type::TypeId>(state.range(0));
+  auto num_col = state.range(1);
+  auto row = state.range(2);
+  auto car = state.range(3);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
     metrics_manager_->RegisterThread();
 
+    auto type_size = type::TypeUtil::GetTypeSize(type);
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4 * num_col, num_col, car);
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, row, 4 * num_col, num_col, row);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, type_size * num_col, num_col, car);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, row, type_size * num_col, num_col, row);
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
     std::stringstream cols;
@@ -632,7 +654,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ1_SeqScanRunners)(benchmark::State &state) {
 
     std::stringstream query;
     query << "SELECT " << (cols.str()) << " FROM "
-          << execution::sql::TableGenerator::GenerateTableName(type::TypeId::INTEGER, 31, row, car);
+          << execution::sql::TableGenerator::GenerateTableName(type, 31, row, car);
     BenchmarkSqlStatement(query.str(), &units, std::make_unique<optimizer::TrivialCostModel>(), true);
     metrics_manager_->Aggregate();
     metrics_manager_->UnregisterThread();
@@ -644,7 +666,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ1_SeqScanRunners)(benchmark::State &state) {
 BENCHMARK_REGISTER_F(MiniRunners, SEQ1_SeqScanRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
-    ->Apply(GenScanArguments);
+    ->Apply(GenSeqScanArguments);
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ1_IndexScanRunners)(benchmark::State &state) {
