@@ -316,9 +316,25 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMASingleThreadedIteration)(benchmark::S
                                       common::ManagedPointer(&buffer_pool_), DISABLED);
   std::vector<storage::TupleSlot> read_order;
 
-  // inserted the table with 10 million rows
-  for (uint32_t i = 0; i < num_reads_; ++i) {
-    read_order.emplace_back(read_table.Insert(common::ManagedPointer(&txn), *redo_));
+  common::DedicatedThreadRegistry registry(DISABLED);
+  std::vector<int> cpu_ids(BenchmarkConfig::num_threads);
+  for (int i = 0; i < static_cast<int>(BenchmarkConfig::num_threads); i++) {
+    cpu_ids[i] = i;
+  }
+  common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
+  &cpu_ids);
+  std::promise<void> ps[BenchmarkConfig::num_threads];
+  for (int thread = 0; thread < static_cast<int>(BenchmarkConfig::num_threads); thread++) {
+    thread_pool.SubmitTask(&ps[thread], [&] {
+      // inserted the table with 10 million rows
+      for (uint32_t i = 0; i < num_reads_ / BenchmarkConfig::num_threads; ++i) {
+        read_order.emplace_back(read_table.Insert(common::ManagedPointer(&txn), *redo_));
+      }
+    });
+  }
+
+  for (int thread = 0; thread < static_cast<int>(BenchmarkConfig::num_threads); thread++) {
+    ps[thread].get_future().wait();
   }
 
   std::vector<storage::numa_region_t> numa_regions;
@@ -334,13 +350,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMASingleThreadedIteration)(benchmark::S
         }
       }
     };
-    common::DedicatedThreadRegistry registry(DISABLED);
-    std::vector<int> cpu_ids(BenchmarkConfig::num_threads);
-    for (int i = 0; i < static_cast<int>(BenchmarkConfig::num_threads); i++) {
-      cpu_ids[i] = i;
-    }
-    common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
-                                            &cpu_ids);
+
     std::promise<void> promises[numa_regions.size()];
     uint64_t elapsed_ms;
     {
@@ -372,9 +382,25 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedIteration)(benchmark::St
                                       common::ManagedPointer(&buffer_pool_), DISABLED);
   std::vector<storage::TupleSlot> read_order;
 
-  // inserted the table with 10 million rows
-  for (uint32_t i = 0; i < num_reads_; ++i) {
-    read_order.emplace_back(read_table.Insert(common::ManagedPointer(&txn), *redo_));
+  common::DedicatedThreadRegistry registry(DISABLED);
+  std::vector<int> cpu_ids(BenchmarkConfig::num_threads);
+  for (int i = 0; i < static_cast<int>(BenchmarkConfig::num_threads); i++) {
+    cpu_ids[i] = i;
+  }
+  common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
+  &cpu_ids);
+  std::promise<void> ps[BenchmarkConfig::num_threads];
+  for (int thread = 0; thread < static_cast<int>(BenchmarkConfig::num_threads); thread++) {
+    thread_pool.SubmitTask(&ps[thread], [&] {
+      // inserted the table with 10 million rows
+      for (uint32_t i = 0; i < num_reads_ / BenchmarkConfig::num_threads; ++i) {
+        read_order.emplace_back(read_table.Insert(common::ManagedPointer(&txn), *redo_));
+      }
+    });
+  }
+
+  for (int thread = 0; thread < static_cast<int>(BenchmarkConfig::num_threads); thread++) {
+    ps[thread].get_future().wait();
   }
 
   std::vector<storage::numa_region_t> numa_regions;
@@ -388,13 +414,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedIteration)(benchmark::St
         count++;
       }
     };
-    common::DedicatedThreadRegistry registry(DISABLED);
-    std::vector<int> cpu_ids(BenchmarkConfig::num_threads);
-    for (int i = 0; i < static_cast<int>(BenchmarkConfig::num_threads); i++) {
-      cpu_ids[i] = i;
-    }
-    common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
-                                            &cpu_ids);
+
     std::promise<void> promises[numa_regions.size()];
     uint64_t elapsed_ms;
     {
@@ -428,9 +448,25 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)(benc
                                       common::ManagedPointer(&buffer_pool_), DISABLED);
   std::vector<storage::TupleSlot> read_order;
 
-  // inserted the table with 10 million rows
-  for (uint32_t i = 0; i < num_reads_; ++i) {
-    read_order.emplace_back(read_table.Insert(common::ManagedPointer(&txn), *redo_));
+  common::DedicatedThreadRegistry registry(DISABLED);
+  std::vector<int> cpu_ids(BenchmarkConfig::num_threads);
+  for (int i = 0; i < static_cast<int>(BenchmarkConfig::num_threads); i++) {
+    cpu_ids[i] = i;
+  }
+  common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
+  &cpu_ids);
+  std::promise<void> ps[BenchmarkConfig::num_threads];
+  for (int thread = 0; thread < static_cast<int>(BenchmarkConfig::num_threads); thread++) {
+    thread_pool.SubmitTask(&ps[thread], [&] {
+      // inserted the table with 10 million rows
+      for (uint32_t i = 0; i < num_reads_ / BenchmarkConfig::num_threads; ++i) {
+        read_order.emplace_back(read_table.Insert(common::ManagedPointer(&txn), *redo_));
+      }
+    });
+  }
+
+  for (int thread = 0; thread < static_cast<int>(BenchmarkConfig::num_threads); thread++) {
+    ps[thread].get_future().wait();
   }
 
   std::vector<storage::numa_region_t> numa_regions;
@@ -444,13 +480,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)(benc
         count++;
       }
     };
-    common::DedicatedThreadRegistry registry(DISABLED);
-    std::vector<int> cpu_ids(BenchmarkConfig::num_threads);
-    for (int i = 0; i < static_cast<int>(BenchmarkConfig::num_threads); i++) {
-      cpu_ids[i] = i;
-    }
-    common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
-                                            &cpu_ids);
+
     std::promise<void> promises[numa_regions.size()];
     uint64_t elapsed_ms;
     {
