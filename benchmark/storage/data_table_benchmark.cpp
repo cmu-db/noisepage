@@ -317,7 +317,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMASingleThreadedIteration)(benchmark::S
   std::vector<storage::TupleSlot> read_order;
 
   // inserted the table with 10 million rows
-  for (uint32_t i = 0; i < 10; ++i) {
+  for (uint32_t i = 0; i < num_reads_; ++i) {
     read_order.emplace_back(read_table.Insert(common::ManagedPointer(&txn), *redo_));
   }
 
