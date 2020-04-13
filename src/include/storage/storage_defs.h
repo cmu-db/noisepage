@@ -47,7 +47,7 @@ constexpr numa_region_t UNSUPPORTED_NUMA_REGION = static_cast<numa_region_t>(0);
 #ifdef __APPLE__
 constexpr int16_t NUM_NUMA_REGIONS = (1);
 #else
-#define NUM_NUMA_REGIONS (static_cast<int16_t>((numa_available() >= 0 && numa_max_node()) >= 0 ?( numa_max_node() + 1) : 1)) // NOLINT
+#define NUM_NUMA_REGIONS (static_cast<int16_t>((numa_available() >= 0 && numa_max_node() >= 0) ?( numa_max_node() + 1) : 1)) // NOLINT
 #endif
 
 class DataTable;
