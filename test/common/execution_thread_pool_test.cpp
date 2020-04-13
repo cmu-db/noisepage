@@ -146,9 +146,9 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
         uint32_t num_set = 0;
         for (uint32_t cpu_id = 0; cpu_id < sizeof(cpu_set_t) * 8; cpu_id++) {
           if (CPU_ISSET(cpu_id, &mask)) {
-            TERRIER_ASSERT(numa_available() == -1 ||
-                            static_cast<storage::numa_region_t>(numa_node_of_cpu(cpu_id)) == numa_hint,
-                           "workload should be running on cpu on numa_hint's region");
+            TERRIER_ASSERT(
+                numa_available() == -1 || static_cast<storage::numa_region_t>(numa_node_of_cpu(cpu_id)) == numa_hint,
+                "workload should be running on cpu on numa_hint's region");
             TERRIER_ASSERT(cpu_id == static_cast<uint32_t>(cpu), "should be running on CPU passed into thread pool");
             num_set++;
           }
