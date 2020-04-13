@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <vector>
+
 #include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
 
@@ -14,9 +15,11 @@ class ParameterValueExpression : public AbstractExpression {
   /**
    * Instantiates a new ParameterValueExpression with the given offset.
    * @param value_idx the offset of the parameter
+   * @warning we set the type to INVALID as an indicator to the binder that we have not visited this expression yet.
+   * After being visited by the binder, the type should reflect the correct value
    */
   explicit ParameterValueExpression(const uint32_t value_idx)
-      : AbstractExpression(ExpressionType::VALUE_PARAMETER, type::TypeId::INTEGER, {}), value_idx_(value_idx) {}
+      : AbstractExpression(ExpressionType::VALUE_PARAMETER, type::TypeId::INVALID, {}), value_idx_(value_idx) {}
 
   /**
    * Instantiates a new ParameterValueExpression with the given offset and the given type
@@ -66,10 +69,7 @@ class ParameterValueExpression : public AbstractExpression {
     return GetValueIdx() == other.GetValueIdx();
   }
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
-              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
-    v->Visit(common::ManagedPointer(this), sherpa);
-  }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   /** @return expression serialized to json */
   nlohmann::json ToJson() const override {

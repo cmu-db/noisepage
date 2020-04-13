@@ -119,6 +119,7 @@ class Sema : public ast::AstVisitor<Sema> {
   void CheckBuiltinMapCall(ast::CallExpr *call);
   void CheckBuiltinSqlNullCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinDateFunctionCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinFilterCall(ast::CallExpr *call);
   void CheckBuiltinAggHashTableCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinAggHashTableIterCall(ast::CallExpr *call, ast::Builtin builtin);

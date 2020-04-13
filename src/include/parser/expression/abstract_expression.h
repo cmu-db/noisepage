@@ -221,22 +221,16 @@ class AbstractExpression {
    */
   virtual void DeriveReturnValueType() {}
 
-  // TODO(WAN): it looks like we are returning to Peloton style Accept calls AcceptChildren calls Accept, must we?
+  /**
+   * @param v Visitor pattern for the expression
+   */
+  virtual void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) = 0;
 
   /**
    * @param v Visitor pattern for the expression
-   * @param sherpa The BinderSherpa for storing state through visitor pattern
    */
-  virtual void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
-                      common::ManagedPointer<binder::BinderSherpa> sherpa) = 0;
-
-  /**
-   * @param v Visitor pattern for the expression
-   * @param sherpa The BinderSherpa for storing state through visitor pattern
-   */
-  virtual void AcceptChildren(common::ManagedPointer<binder::SqlNodeVisitor> v,
-                              common::ManagedPointer<binder::BinderSherpa> sherpa) {
-    for (auto &child : children_) child->Accept(v, sherpa);
+  virtual void AcceptChildren(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+    for (auto &child : children_) child->Accept(v);
   }
 
   /** @return the sub-query depth level (SEE COMMENT in depth_) */

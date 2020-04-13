@@ -22,6 +22,9 @@ namespace terrier::execution::ast {
   F(TimestampToSql, timestampToSql)                                     \
   F(TimestampToSqlHMSu, timestampToSqlHMSu)                             \
                                                                         \
+  /* Date Functions */                                                  \
+  F(ExtractYear, extractYear)                                           \
+                                                                        \
   /* Vectorized Filters */                                              \
   F(FilterEq, filterEq)                                                 \
   F(FilterGe, filterGe)                                                 \
