@@ -286,17 +286,17 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SingleThreadedIteration)(benchmark::State
   std::vector<int> cpu_ids = GetOneCPUPerRegion();
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
   &cpu_ids);
-  std::promise<void> ps[BenchmarkConfig::num_threads];
-  for (int thread = 0; thread < static_cast<int>(BenchmarkConfig::num_threads); thread++) {
+  std::promise<void> ps[cpu_ids.size()];
+  for (int thread = 0; thread < static_cast<int>(cpu_ids.size()); thread++) {
     thread_pool.SubmitTask(&ps[thread], [&] {
       // inserted the table with 10 million rows
-      for (uint32_t i = 0; i < num_reads_ / BenchmarkConfig::num_threads; ++i) {
+      for (uint32_t i = 0; i < num_reads_ / cpu_ids.size(); ++i) {
         read_order.emplace_back(read_table.Insert(common::ManagedPointer(&txn), *redo_));
       }
     });
   }
 
-  for (int thread = 0; thread < static_cast<int>(BenchmarkConfig::num_threads); thread++) {
+  for (int thread = 0; thread < static_cast<int>(cpu_ids.size()); thread++) {
     ps[thread].get_future().wait();
   }
 
@@ -344,17 +344,17 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMASingleThreadedIteration)(benchmark::S
   std::vector<int> cpu_ids = GetOneCPUPerRegion();
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
   &cpu_ids);
-  std::promise<void> ps[BenchmarkConfig::num_threads];
-  for (int thread = 0; thread < static_cast<int>(BenchmarkConfig::num_threads); thread++) {
+  std::promise<void> ps[cpu_ids.size()];
+  for (int thread = 0; thread < static_cast<int>(cpu_ids.size()); thread++) {
     thread_pool.SubmitTask(&ps[thread], [&] {
       // inserted the table with 10 million rows
-      for (uint32_t i = 0; i < num_reads_ / BenchmarkConfig::num_threads; ++i) {
+      for (uint32_t i = 0; i < num_reads_ / cpu_ids.size(); ++i) {
         read_order.emplace_back(read_table.Insert(common::ManagedPointer(&txn), *redo_));
       }
     });
   }
 
-  for (int thread = 0; thread < static_cast<int>(BenchmarkConfig::num_threads); thread++) {
+  for (int thread = 0; thread < static_cast<int>(cpu_ids.size()); thread++) {
     ps[thread].get_future().wait();
   }
 
@@ -407,17 +407,17 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedIteration)(benchmark::St
   std::vector<int> cpu_ids = GetOneCPUPerRegion();
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
   &cpu_ids);
-  std::promise<void> ps[BenchmarkConfig::num_threads];
-  for (int thread = 0; thread < static_cast<int>(BenchmarkConfig::num_threads); thread++) {
+  std::promise<void> ps[cpu_ids.size()];
+  for (int thread = 0; thread < static_cast<int>(cpu_ids.size()); thread++) {
     thread_pool.SubmitTask(&ps[thread], [&] {
       // inserted the table with 10 million rows
-      for (uint32_t i = 0; i < num_reads_ / BenchmarkConfig::num_threads; ++i) {
+      for (uint32_t i = 0; i < num_reads_ / cpu_ids.size(); ++i) {
         read_order.emplace_back(read_table.Insert(common::ManagedPointer(&txn), *redo_));
       }
     });
   }
 
-  for (int thread = 0; thread < static_cast<int>(BenchmarkConfig::num_threads); thread++) {
+  for (int thread = 0; thread < static_cast<int>(cpu_ids.size()); thread++) {
     ps[thread].get_future().wait();
   }
 
@@ -470,17 +470,17 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)(benc
   std::vector<int> cpu_ids = GetOneCPUPerRegion();
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
   &cpu_ids);
-  std::promise<void> ps[BenchmarkConfig::num_threads];
-  for (int thread = 0; thread < static_cast<int>(BenchmarkConfig::num_threads); thread++) {
+  std::promise<void> ps[cpu_ids.size()];
+  for (int thread = 0; thread < static_cast<int>(cpu_ids.size()); thread++) {
     thread_pool.SubmitTask(&ps[thread], [&] {
       // inserted the table with 10 million rows
-      for (uint32_t i = 0; i < num_reads_ / BenchmarkConfig::num_threads; ++i) {
+      for (uint32_t i = 0; i < num_reads_ / cpu_ids.size(); ++i) {
         read_order.emplace_back(read_table.Insert(common::ManagedPointer(&txn), *redo_));
       }
     });
   }
 
-  for (int thread = 0; thread < static_cast<int>(BenchmarkConfig::num_threads); thread++) {
+  for (int thread = 0; thread < static_cast<int>(cpu_ids.size()); thread++) {
     ps[thread].get_future().wait();
   }
 
