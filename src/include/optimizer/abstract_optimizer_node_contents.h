@@ -27,7 +27,7 @@ class AbstractOptimizerNodeContents {
   explicit AbstractOptimizerNodeContents(common::ManagedPointer<AbstractOptimizerNodeContents> contents)
       : contents_(contents) {}
 
-  ~AbstractOptimizerNodeContents() = default;
+  virtual ~AbstractOptimizerNodeContents() = default;
 
   /**
    * Accepts a visitor

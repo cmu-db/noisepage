@@ -7,6 +7,7 @@
 
 #include "optimizer/abstract_optimizer_node.h"
 #include "optimizer/operator_node_contents.h"
+#include "transaction/transaction_context.h"
 namespace terrier::optimizer {
 
 /**
@@ -30,9 +31,13 @@ class OperatorNode : public AbstractOptimizerNode {
    * @param op an operator to bind to this OperatorNode
    * @param children Children of this OperatorNode
    */
-  explicit OperatorNode(Operator op, std::vector<std::unique_ptr<AbstractOptimizerNode>> &&children)
+  explicit OperatorNode(Operator op, std::vector<std::unique_ptr<AbstractOptimizerNode>> &&children,
+                        transaction::TransactionContext *txn)
       : contents_(common::ManagedPointer<AbstractOptimizerNodeContents>(new Operator(std::move(op)))),
-        children_(std::move(children)) {}
+        children_(std::move(children)) {
+    txn->RegisterCommitAction([=]() { delete reinterpret_cast<Operator *>(contents_.Get()); });
+    txn->RegisterAbortAction([=]() { delete reinterpret_cast<Operator *>(contents_.Get()); });
+  }
 
   /**
    * Copy

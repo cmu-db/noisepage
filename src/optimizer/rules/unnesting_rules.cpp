@@ -56,7 +56,8 @@ void UnnestMarkJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOptimiz
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   c.emplace_back(join_children[0]->Copy());
   c.emplace_back(join_children[1]->Copy());
-  auto output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(c));
+  auto output =
+      std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(output));
 }
 
@@ -96,7 +97,8 @@ void UnnestSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOptim
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   c.emplace_back(join_children[0]->Copy());
   c.emplace_back(join_children[1]->Copy());
-  auto output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(c));
+  auto output =
+      std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(output));
 }
 

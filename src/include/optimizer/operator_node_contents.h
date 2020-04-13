@@ -193,6 +193,8 @@ class Operator : public AbstractOptimizerNodeContents {
    */
   Operator(const Operator &op) : AbstractOptimizerNodeContents(op.contents_) {}
 
+  ~Operator() = default;
+
   /**
    * Calls corresponding visitor to this operator node
    */

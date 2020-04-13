@@ -13,6 +13,7 @@
 #include "optimizer/operator_node.h"
 #include "optimizer/operator_node_contents.h"
 #include "optimizer/pattern.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::optimizer {
 
@@ -64,13 +65,14 @@ class GroupBindingIterator : public BindingIterator {
    * @param id ID of the Group for binding
    * @param pattern Pattern to bind
    */
-  GroupBindingIterator(const Memo &memo, group_id_t id, Pattern *pattern)
+  GroupBindingIterator(const Memo &memo, group_id_t id, Pattern *pattern, transaction::TransactionContext *txn)
       : BindingIterator(memo),
         group_id_(id),
         pattern_(pattern),
         target_group_(memo_.GetGroupByID(id)),
         num_group_items_(target_group_->GetLogicalExpressions().size()),
-        current_item_index_(0) {
+        current_item_index_(0),
+        txn_(txn) {
     OPTIMIZER_LOG_TRACE("Attempting to bind on group {0}", id);
   }
 
@@ -116,6 +118,11 @@ class GroupBindingIterator : public BindingIterator {
    * Iterator used for binding against GroupExpression
    */
   std::unique_ptr<BindingIterator> current_iterator_;
+
+  /**
+   * Transaction context for managing memory of on-the-fly operator creation
+   */
+  transaction::TransactionContext *txn_;
 };
 
 /**
@@ -130,7 +137,8 @@ class GroupExprBindingIterator : public BindingIterator {
    * @param gexpr GroupExpression to bind to
    * @param pattern Pattern to bind
    */
-  GroupExprBindingIterator(const Memo &memo, GroupExpression *gexpr, Pattern *pattern);
+  GroupExprBindingIterator(const Memo &memo, GroupExpression *gexpr, Pattern *pattern,
+                           transaction::TransactionContext *txn);
 
   /**
    * Virtual function for whether a binding exists
@@ -178,6 +186,11 @@ class GroupExprBindingIterator : public BindingIterator {
    * Position indicators tracking progress within children_bindings_
    */
   std::vector<size_t> children_bindings_pos_;
+
+  /**
+   * Transaction context to manage the memory of on-the-fly operators.
+   */
+  transaction::TransactionContext *txn_;
 };
 
 }  // namespace terrier::optimizer

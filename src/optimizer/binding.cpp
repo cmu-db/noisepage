@@ -27,7 +27,7 @@ bool GroupBindingIterator::HasNext() {
     // Keep checking item iterators until we find a match
     while (current_item_index_ < num_group_items_) {
       auto gexpr = target_group_->GetLogicalExpressions()[current_item_index_];
-      auto gexpr_it = new GroupExprBindingIterator(memo_, gexpr, pattern_);
+      auto gexpr_it = new GroupExprBindingIterator(memo_, gexpr, pattern_, txn_);
       current_iterator_.reset(gexpr_it);
 
       if (current_iterator_->HasNext()) {
@@ -45,14 +45,15 @@ std::unique_ptr<AbstractOptimizerNode> GroupBindingIterator::Next() {
   if (pattern_->Type() == OpType::LEAF) {
     current_item_index_ = num_group_items_;
     std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
-    return std::make_unique<OperatorNode>(LeafOperator::Make(group_id_), std::move(c));
+    return std::make_unique<OperatorNode>(LeafOperator::Make(group_id_), std::move(c), txn_);
   }
 
   return current_iterator_->Next();
 }
 
-GroupExprBindingIterator::GroupExprBindingIterator(const Memo &memo, GroupExpression *gexpr, Pattern *pattern)
-    : BindingIterator(memo), gexpr_(gexpr), first_(true), has_next_(false), current_binding_(nullptr) {
+GroupExprBindingIterator::GroupExprBindingIterator(const Memo &memo, GroupExpression *gexpr, Pattern *pattern,
+                                                   transaction::TransactionContext *txn)
+    : BindingIterator(memo), gexpr_(gexpr), first_(true), has_next_(false), current_binding_(nullptr), txn_(txn) {
   if (gexpr->Contents()->GetOpType() != pattern->Type()) {
     // Check root node type
     return;
@@ -79,7 +80,7 @@ GroupExprBindingIterator::GroupExprBindingIterator(const Memo &memo, GroupExpres
   for (size_t i = 0; i < child_groups.size(); ++i) {
     // Try to find a match in the given group
     std::vector<std::unique_ptr<AbstractOptimizerNode>> &child_bindings = children_bindings_[i];
-    GroupBindingIterator iterator(memo_, child_groups[i], child_patterns[i]);
+    GroupBindingIterator iterator(memo_, child_groups[i], child_patterns[i], txn_);
 
     // Get all bindings
     while (iterator.HasNext()) {
@@ -96,8 +97,7 @@ GroupExprBindingIterator::GroupExprBindingIterator(const Memo &memo, GroupExpres
   }
 
   has_next_ = true;
-  Operator op = Operator(*(gexpr->Contents().CastManagedPointerTo<Operator>()));
-  current_binding_ = std::make_unique<OperatorNode>(op, std::move(children));
+  current_binding_ = std::make_unique<OperatorNode>(gexpr->Contents(), std::move(children));
 }
 
 bool GroupExprBindingIterator::HasNext() {
@@ -132,8 +132,8 @@ bool GroupExprBindingIterator::HasNext() {
       }
 
       TERRIER_ASSERT(!current_binding_, "Next() should have been called");
-      current_binding_ = std::make_unique<OperatorNode>(Operator(*gexpr_->Contents()->GetContentsAs<Operator>().Get()),
-                                                        std::move(children));
+      current_binding_ = std::make_unique<OperatorNode>(Operator(*gexpr_->Contents()->GetContentsAs<Operator>()),
+                                                        std::move(children), txn_);
     }
   }
 

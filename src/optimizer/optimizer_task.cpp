@@ -155,7 +155,8 @@ void ApplyRule::Execute() {
   OPTIMIZER_LOG_TRACE("ApplyRule::Execute() for rule: {0}", rule_->GetRuleIdx());
   if (group_expr_->HasRuleExplored(rule_)) return;
 
-  GroupExprBindingIterator iterator(GetMemo(), group_expr_, rule_->GetMatchPattern());
+  GroupExprBindingIterator iterator(GetMemo(), group_expr_, rule_->GetMatchPattern(),
+                                    context_->GetOptimizerContext()->GetTxn());
   while (iterator.HasNext()) {
     auto before = iterator.Next();
     if (!rule_->Check(common::ManagedPointer(before.get()), context_)) {
@@ -394,7 +395,8 @@ void TopDownRewrite::Execute() {
 
   for (auto &r : valid_rules) {
     Rule *rule = r.GetRule();
-    GroupExprBindingIterator iterator(GetMemo(), cur_group_expr, rule->GetMatchPattern());
+    GroupExprBindingIterator iterator(GetMemo(), cur_group_expr, rule->GetMatchPattern(),
+                                      context_->GetOptimizerContext()->GetTxn());
     if (iterator.HasNext()) {
       auto before = iterator.Next();
       TERRIER_ASSERT(!iterator.HasNext(), "there should only be 1 binding");
@@ -451,7 +453,8 @@ void BottomUpRewrite::Execute() {
 
   for (auto &r : valid_rules) {
     Rule *rule = r.GetRule();
-    GroupExprBindingIterator iterator(GetMemo(), cur_group_expr, rule->GetMatchPattern());
+    GroupExprBindingIterator iterator(GetMemo(), cur_group_expr, rule->GetMatchPattern(),
+                                      context_->GetOptimizerContext()->GetTxn());
     if (iterator.HasNext()) {
       auto before = iterator.Next();
       TERRIER_ASSERT(!iterator.HasNext(), "should only bind to 1");
