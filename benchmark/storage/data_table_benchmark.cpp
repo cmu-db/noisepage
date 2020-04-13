@@ -71,14 +71,16 @@ class DataTableBenchmark : public benchmark::Fixture {
     reads_.clear();
   }
 
-  static std::vector<int> GetCPUsIn0thNUMARegion() {
+  static std::vector<int> GetNCPUsInFewRegions(int n) {
     std::vector<int> result;
-    for (int cpu = 0; cpu < static_cast<int>(std::thread::hardware_concurrency()); cpu++) {
+    for (int region = 0; region < static_cast<int>(storage::RawBlock::GetNumNumaRegions()) && result.size() < n; region++) {
+      for (int cpu = 0; cpu < static_cast<int>(std::thread::hardware_concurrency()) && result.size() < n; cpu++) {
 #ifdef __APPLE__
-      result.emplace_back(cpu);  // NOLINT
+        result.emplace_back(cpu);  // NOLINT
 #else
-      if (numa_available() != -1 && numa_node_of_cpu(cpu) == 0) result.emplace_back(cpu);
+        if (numa_available() != -1 && numa_node_of_cpu(cpu) == region) result.emplace_back(cpu);
 #endif
+      }
     }
     return result;
   }
@@ -314,7 +316,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SingleThreadedIteration)(benchmark::State
   FillAcrossNUMARegions(&read_table);
 
   common::DedicatedThreadRegistry registry(DISABLED);
-  std::vector<int> cpu_ids = GetCPUsIn0thNUMARegion();
+  std::vector<int> cpu_ids = GetNCPUsInFewRegions(1);
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
 
   // NOLINTNEXTLINE
@@ -354,7 +356,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMASingleThreadedIteration)(benchmark::S
   FillAcrossNUMARegions(&read_table);
 
   common::DedicatedThreadRegistry registry(DISABLED);
-  std::vector<int> cpu_ids = GetCPUsIn0thNUMARegion();
+  std::vector<int> cpu_ids = GetNCPUsInFewRegions(1);
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
 
   std::vector<storage::numa_region_t> numa_regions;
@@ -399,9 +401,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedIteration)(benchmark::St
   FillAcrossNUMARegions(&read_table);
 
   common::DedicatedThreadRegistry registry(DISABLED);
-  std::vector<int> cpu_ids = GetCPUsIn0thNUMARegion();
-  TERRIER_ASSERT(cpu_ids.size() >= static_cast<uint64_t>(storage::RawBlock::GetNumNumaRegions()),
-                 "should be more CPUs in the 0th NUMA region than there are NUMA regions");
+  std::vector<int> cpu_ids = GetNCPUsInFewRegions(storage::RawBlock::GetNumNumaRegions());
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
 
   std::vector<storage::numa_region_t> numa_regions;
