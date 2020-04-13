@@ -19,6 +19,7 @@ class ExpressionNode : public AbstractOptimizerNode {
   /**
    * Constructor that wraps an ExpressionNode around a provided ExpressionNodeContents.
    * @param contents The contents to be wrapped
+   * @param txn transaction context for managing memory
    */
   explicit ExpressionNode(common::ManagedPointer<AbstractOptimizerNodeContents> contents,
                           transaction::TransactionContext *txn)
@@ -28,10 +29,12 @@ class ExpressionNode : public AbstractOptimizerNode {
    * Create an ExpressionNode
    * @param contents the contents to bind to this expression node
    * @param children children of this ExpressionNode
+   * @param txn transaction context for managing memory
    */
   explicit ExpressionNode(common::ManagedPointer<AbstractOptimizerNodeContents> contents,
-                          std::vector<std::unique_ptr<AbstractOptimizerNode>> &&children)
-      : contents_(contents), children_(std::move(children)) {}
+                          std::vector<std::unique_ptr<AbstractOptimizerNode>> &&children,
+                          transaction::TransactionContext *txn)
+      : contents_(contents), children_(std::move(children)), txn_(txn) {}
 
   /**
    * Pushes a child node onto this node's children

@@ -19,6 +19,7 @@ class PropertyEnforcer : public PropertyVisitor {
    * Enforces a property for a given GroupExpression
    * @param gexpr GroupExpression to enforce the property for
    * @param property Property to enforce
+   * @param txn transaction context for memory management
    * @returns GroupExpression that enforces this property
    */
   GroupExpression *EnforceProperty(GroupExpression *gexpr, Property *property, transaction::TransactionContext *txn);

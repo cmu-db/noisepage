@@ -32,6 +32,7 @@ class LeafOperator : public OperatorNodeContents<LeafOperator> {
   /**
    * Make a LeafOperator
    * @param group Group to wrap
+   * @param txn transaction context for memory management
    */
   static Operator Make(group_id_t group, transaction::TransactionContext *txn);
 
@@ -48,6 +49,7 @@ class LeafOperator : public OperatorNodeContents<LeafOperator> {
   /**
    * Gets the original group (i.e group being wrapped)
    * @returns GroupID of wrapped group
+   * @param txn transaction context for memory management
    */
   group_id_t GetOriginGroup() const { return origin_group_; }
 
@@ -70,6 +72,7 @@ class LogicalGet : public OperatorNodeContents<LogicalGet> {
    * @param predicates predicates for get
    * @param table_alias alias of table to get from
    * @param is_for_update whether the scan is used for update
+   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
@@ -78,6 +81,7 @@ class LogicalGet : public OperatorNodeContents<LogicalGet> {
 
   /**
    * For select statement without a from table
+   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(transaction::TransactionContext *txn);
@@ -165,6 +169,7 @@ class LogicalExternalFileGet : public OperatorNodeContents<LogicalExternalFileGe
    * @param delimiter character used as delimiter
    * @param quote character used for quotation
    * @param escape character used for escape sequences
+   * @param txn transaction context for memory management
    * @return an LogicalExternalFileGet operator
    */
   static Operator Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
@@ -239,6 +244,7 @@ class LogicalQueryDerivedGet : public OperatorNodeContents<LogicalQueryDerivedGe
   /**
    * @param table_alias alias of the table
    * @param alias_to_expr_map map from table aliases to expressions of those tables
+   * @param txn transaction context for memory management
    * @return a LogicalQueryDerivedGet operator
    */
   static Operator Make(
@@ -292,6 +298,7 @@ class LogicalFilter : public OperatorNodeContents<LogicalFilter> {
  public:
   /**
    * @param predicates The list of predicates used to perform the scan
+   * @param txn transaction context for memory management
    * @return a LogicalFilter operator
    */
   static Operator Make(std::vector<AnnotatedExpression> &&predicates, transaction::TransactionContext *txn);
@@ -327,6 +334,7 @@ class LogicalProjection : public OperatorNodeContents<LogicalProjection> {
  public:
   /**
    * @param expressions list of AbstractExpressions in the projection list.
+   * @param txn transaction context for memory management
    * @return a LogicalProjection operator
    */
   static Operator Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&expressions,
@@ -360,12 +368,14 @@ class LogicalProjection : public OperatorNodeContents<LogicalProjection> {
 class LogicalDependentJoin : public OperatorNodeContents<LogicalDependentJoin> {
  public:
   /**
+   * @param txn transaction context for memory management
    * @return a DependentJoin operator
    */
   static Operator Make(transaction::TransactionContext *txn);
 
   /**
    * @param join_predicates conditions of the join
+   * @param txn transaction context for memory management
    * @return a DependentJoin operator
    */
   static Operator Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn);
@@ -398,12 +408,14 @@ class LogicalDependentJoin : public OperatorNodeContents<LogicalDependentJoin> {
 class LogicalMarkJoin : public OperatorNodeContents<LogicalMarkJoin> {
  public:
   /**
+   * @param txn transaction context for memory management
    * @return a MarkJoin operator
    */
   static Operator Make(transaction::TransactionContext *txn);
 
   /**
    * @param join_predicates conditions of the join
+   * @param txn transaction context for memory management
    * @return a MarkJoin operator
    */
   static Operator Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn);
@@ -436,12 +448,14 @@ class LogicalMarkJoin : public OperatorNodeContents<LogicalMarkJoin> {
 class LogicalSingleJoin : public OperatorNodeContents<LogicalSingleJoin> {
  public:
   /**
+   * @param txn transaction context for memory management
    * @return a SingleJoin operator
    */
   static Operator Make(transaction::TransactionContext *txn);
 
   /**
    * @param join_predicates conditions of the join
+   * @param txn transaction context for memory management
    * @return a SingleJoin operator
    */
   static Operator Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn);
@@ -474,12 +488,14 @@ class LogicalSingleJoin : public OperatorNodeContents<LogicalSingleJoin> {
 class LogicalInnerJoin : public OperatorNodeContents<LogicalInnerJoin> {
  public:
   /**
+   * @param txn transaction context for memory management
    * @return an InnerJoin operator
    */
   static Operator Make(transaction::TransactionContext *txn);
 
   /**
    * @param join_predicates conditions of the join
+   * @param txn transaction context for memory management
    * @return an InnerJoin operator
    */
   static Operator Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn);
@@ -512,12 +528,14 @@ class LogicalInnerJoin : public OperatorNodeContents<LogicalInnerJoin> {
 class LogicalLeftJoin : public OperatorNodeContents<LogicalLeftJoin> {
  public:
   /**
+   * @param txn transaction context for memory management
    * @return a LeftJoin operator
    */
   static Operator Make(transaction::TransactionContext *txn);
 
   /**
    * @param join_predicates conditions of the join
+   * @param txn transaction context for memory management
    * @return a LeftJoin operator
    */
   static Operator Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn);
@@ -550,12 +568,14 @@ class LogicalLeftJoin : public OperatorNodeContents<LogicalLeftJoin> {
 class LogicalRightJoin : public OperatorNodeContents<LogicalRightJoin> {
  public:
   /**
+   * @param txn transaction context for memory management
    * @return a RightJoin operator
    */
   static Operator Make(transaction::TransactionContext *txn);
 
   /**
    * @param join_predicates conditions of the join
+   * @param txn transaction context for memory management
    * @return a RightJoin operator
    */
   static Operator Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn);
@@ -588,12 +608,14 @@ class LogicalRightJoin : public OperatorNodeContents<LogicalRightJoin> {
 class LogicalOuterJoin : public OperatorNodeContents<LogicalOuterJoin> {
  public:
   /**
+   * @param txn transaction context for memory management
    * @return an OuterJoin operator
    */
   static Operator Make(transaction::TransactionContext *txn);
 
   /**
    * @param join_predicates conditions of the join
+   * @param txn transaction context for memory management
    * @return an OuterJoin operator
    */
   static Operator Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn);
@@ -626,12 +648,14 @@ class LogicalOuterJoin : public OperatorNodeContents<LogicalOuterJoin> {
 class LogicalSemiJoin : public OperatorNodeContents<LogicalSemiJoin> {
  public:
   /**
+   * @param txn transaction context for memory management
    * @return a SemiJoin operator
    */
   static Operator Make(transaction::TransactionContext *txn);
 
   /**
    * @param join_predicates conditions of the join
+   * @param txn transaction context for memory management
    * @return a SemiJoin operator
    */
   static Operator Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn);
@@ -664,12 +688,14 @@ class LogicalSemiJoin : public OperatorNodeContents<LogicalSemiJoin> {
 class LogicalAggregateAndGroupBy : public OperatorNodeContents<LogicalAggregateAndGroupBy> {
  public:
   /**
+   * @param txn transaction context for memory management
    * @return a GroupBy operator
    */
   static Operator Make(transaction::TransactionContext *txn);
 
   /**
    * @param columns columns to group by
+   * @param txn transaction context for memory management
    * @return a GroupBy operator
    */
   static Operator Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
@@ -678,6 +704,7 @@ class LogicalAggregateAndGroupBy : public OperatorNodeContents<LogicalAggregateA
   /**
    * @param columns columns to group by
    * @param having HAVING clause
+   * @param txn transaction context for memory management
    * @return a GroupBy operator
    */
   static Operator Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
@@ -726,6 +753,7 @@ class LogicalInsert : public OperatorNodeContents<LogicalInsert> {
    * @param table_oid OID of the table
    * @param columns list of columns to insert into
    * @param values list of expressions that provide the values to insert into columns
+   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(
@@ -808,6 +836,7 @@ class LogicalInsertSelect : public OperatorNodeContents<LogicalInsertSelect> {
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
+   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
@@ -865,6 +894,7 @@ class LogicalLimit : public OperatorNodeContents<LogicalLimit> {
    * @param limit the max # of tuples to produce
    * @param sort_exprs inlined ORDER BY expressions (can be empty)
    * @param sort_directions inlined sort directions (can be empty)
+   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(size_t offset, size_t limit,
@@ -938,6 +968,7 @@ class LogicalDelete : public OperatorNodeContents<LogicalDelete> {
    * @param namespace_oid OID of the namespace
    * @param table_alias Alias
    * @param table_oid OID of the table
+   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
@@ -1005,6 +1036,7 @@ class LogicalUpdate : public OperatorNodeContents<LogicalUpdate> {
    * @param table_alias Table's Alias
    * @param table_oid OID of the table
    * @param updates the update clauses from the SET portion of the query
+   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
@@ -1084,6 +1116,7 @@ class LogicalExportExternalFile : public OperatorNodeContents<LogicalExportExter
    * @param delimiter the character to use to split each attribute
    * @param quote the character to use to 'quote' each value
    * @param escape the character to use to escape characters in values
+   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
@@ -1159,6 +1192,7 @@ class LogicalCreateDatabase : public OperatorNodeContents<LogicalCreateDatabase>
  public:
   /**
    * @param database_name Name of the database to be created
+   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(std::string database_name, transaction::TransactionContext *txn);
@@ -1200,6 +1234,7 @@ class LogicalCreateFunction : public OperatorNodeContents<LogicalCreateFunction>
    * @param return_type Return type of the user defined function
    * @param param_count Number of parameters of the user defined function
    * @param replace If this function should replace existing definitions
+   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
@@ -1334,6 +1369,7 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
    * @param unique If the index to be created should be unique
    * @param index_name Name of the index
    * @param index_attrs Attributes of the index
+   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
@@ -1422,6 +1458,7 @@ class LogicalCreateTable : public OperatorNodeContents<LogicalCreateTable> {
    * @param table_name Name of the table to be created
    * @param columns Vector of definitions of the columns in the new table
    * @param foreign_keys Vector of definitions of foreign key columns in the new table
+   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid, std::string table_name,
@@ -1484,6 +1521,7 @@ class LogicalCreateNamespace : public OperatorNodeContents<LogicalCreateNamespac
  public:
   /**
    * @param namespace_name Name of the namespace to be created
+   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(std::string namespace_name, transaction::TransactionContext *txn);
@@ -1524,6 +1562,7 @@ class LogicalCreateTrigger : public OperatorNodeContents<LogicalCreateTrigger> {
    * @param trigger_columns OIDs of trigger columns
    * @param trigger_when Trigger when clause
    * @param trigger_type Type of the trigger
+   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
@@ -1646,6 +1685,7 @@ class LogicalCreateView : public OperatorNodeContents<LogicalCreateView> {
    * @param namespace_oid OID of the namespace
    * @param view_name Name of the view
    * @param view_query Query statement of the view
+   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string view_name,
@@ -1709,6 +1749,7 @@ class LogicalDropDatabase : public OperatorNodeContents<LogicalDropDatabase> {
  public:
   /**
    * @param db_oid OID of the database to be dropped
+   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::db_oid_t db_oid, transaction::TransactionContext *txn);
@@ -1741,6 +1782,7 @@ class LogicalDropTable : public OperatorNodeContents<LogicalDropTable> {
  public:
   /**
    * @param table_oid OID of the table to be dropped
+   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::table_oid_t table_oid, transaction::TransactionContext *txn);
@@ -1773,6 +1815,7 @@ class LogicalDropIndex : public OperatorNodeContents<LogicalDropIndex> {
  public:
   /**
    * @param index_oid OID of index to be dropped
+   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::index_oid_t index_oid, transaction::TransactionContext *txn);
@@ -1805,6 +1848,7 @@ class LogicalDropNamespace : public OperatorNodeContents<LogicalDropNamespace> {
  public:
   /**
    * @param namespace_oid OID of the schema to be dropped
+   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid, transaction::TransactionContext *txn);
@@ -1840,6 +1884,7 @@ class LogicalDropTrigger : public OperatorNodeContents<LogicalDropTrigger> {
    * @param namespace_oid OID of the namespace
    * @param trigger_oid OID of the trigger to be dropped
    * @param if_exists If "IF EXISTS" condition is used
+   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
@@ -1906,6 +1951,7 @@ class LogicalDropView : public OperatorNodeContents<LogicalDropView> {
    * @param namespace_oid OID of the namespace
    * @param view_oid OID of the view to be dropped
    * @param if_exists If "IF EXISTS" condition is used
+   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
@@ -1971,6 +2017,7 @@ class LogicalAnalyze : public OperatorNodeContents<LogicalAnalyze> {
    * @param database_oid OID of the database
    * @param table_oid OID of the table
    * @param columns OIDs of Analyze columns
+   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,

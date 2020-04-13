@@ -37,6 +37,7 @@ class GroupExpression {
   /**
    * Operator-based constructor
    * @param op Operator
+   * @param txn transaction context for managing memory
    * @param child_groups Vector of children groups
    */
   GroupExpression(Operator op, std::vector<group_id_t> &&child_groups, transaction::TransactionContext *txn) {

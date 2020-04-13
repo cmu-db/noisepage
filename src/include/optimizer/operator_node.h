@@ -21,6 +21,7 @@ class OperatorNode : public AbstractOptimizerNode {
    * Create an OperatorNode
    * @param contents an AbstractOperatorNodeContents to bind to this node
    * @param children children of this OperatorNode
+   * @param txn transaction context for memory management
    */
   explicit OperatorNode(common::ManagedPointer<AbstractOptimizerNodeContents> contents,
                         std::vector<std::unique_ptr<AbstractOptimizerNode>> &&children,
@@ -31,6 +32,7 @@ class OperatorNode : public AbstractOptimizerNode {
    * Operator-based constructor for an OperatorNode
    * @param op an operator to bind to this OperatorNode
    * @param children Children of this OperatorNode
+   * @param txn transaction context for memory management
    */
   explicit OperatorNode(Operator op, std::vector<std::unique_ptr<AbstractOptimizerNode>> &&children,
                         transaction::TransactionContext *txn)
