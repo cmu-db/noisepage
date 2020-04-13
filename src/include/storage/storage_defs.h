@@ -100,6 +100,10 @@ class alignas(common::Constants::BLOCK_SIZE) RawBlock {
    */
   uint32_t GetInsertHead() { return INT32_MAX & insert_head_.load(); }
 
+  /**
+   * GetNumNumaRegions returns the number of NUMA regions that a RawBlock can be allocated on in the current system
+   * @return Number of NUMA regions that RawBlocks can be allocated on
+   */
   static int16_t GetNumNumaRegions() {
 #ifdef __APPLE__
     return 1;
