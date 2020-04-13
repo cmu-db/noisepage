@@ -48,6 +48,24 @@ class DataTableBenchmark : public benchmark::Fixture {
     reads_.clear();
   }
 
+  static std::vector<int> GetOneCPUPerRegion() {
+    std::vector<int> result;
+    for (int region = 0; region < static_cast<int>(storage::NUM_NUMA_REGIONS); region++) {
+      for (int cpu = 0; cpu < std::thread::hardware_concurrency(); cpu++) {
+#ifdef __APPLE__
+        result.emplace_back(cpu);
+        break;
+#else
+        if (numa_available() != -1 && numa_node_of_cpu(cpu) == region) {
+        result.emplace_back(cpu);
+        break;
+      }
+#endif
+      }
+    }
+    return result;
+  }
+
   // Tuple layout
   const uint8_t column_size_ = 8;
   const storage::BlockLayout layout_{{column_size_, column_size_, column_size_}};
@@ -264,9 +282,22 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SingleThreadedIteration)(benchmark::State
                                       common::ManagedPointer(&buffer_pool_), DISABLED);
   std::vector<storage::TupleSlot> read_order;
 
-  // inserted the table with 10 million rows
-  for (uint32_t i = 0; i < num_reads_; ++i) {
-    read_order.emplace_back(read_table.Insert(common::ManagedPointer(&txn), *redo_));
+  common::DedicatedThreadRegistry registry(DISABLED);
+  std::vector<int> cpu_ids = GetOneCPUPerRegion();
+  common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
+  &cpu_ids);
+  std::promise<void> ps[BenchmarkConfig::num_threads];
+  for (int thread = 0; thread < static_cast<int>(BenchmarkConfig::num_threads); thread++) {
+    thread_pool.SubmitTask(&ps[thread], [&] {
+      // inserted the table with 10 million rows
+      for (uint32_t i = 0; i < num_reads_ / BenchmarkConfig::num_threads; ++i) {
+        read_order.emplace_back(read_table.Insert(common::ManagedPointer(&txn), *redo_));
+      }
+    });
+  }
+
+  for (int thread = 0; thread < static_cast<int>(BenchmarkConfig::num_threads); thread++) {
+    ps[thread].get_future().wait();
   }
 
   // NOLINTNEXTLINE
@@ -277,13 +308,6 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SingleThreadedIteration)(benchmark::State
         count++;
       }
     };
-    common::DedicatedThreadRegistry registry(DISABLED);
-    std::vector<int> cpu_ids(BenchmarkConfig::num_threads);
-    for (int i = 0; i < static_cast<int>(BenchmarkConfig::num_threads); i++) {
-      cpu_ids[i] = i;
-    }
-    common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
-                                            &cpu_ids);
     std::promise<void> promises[1];
     uint64_t elapsed_ms;
     {
@@ -317,10 +341,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMASingleThreadedIteration)(benchmark::S
   std::vector<storage::TupleSlot> read_order;
 
   common::DedicatedThreadRegistry registry(DISABLED);
-  std::vector<int> cpu_ids(BenchmarkConfig::num_threads);
-  for (int i = 0; i < static_cast<int>(BenchmarkConfig::num_threads); i++) {
-    cpu_ids[i] = i;
-  }
+  std::vector<int> cpu_ids = GetOneCPUPerRegion();
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
   &cpu_ids);
   std::promise<void> ps[BenchmarkConfig::num_threads];
@@ -383,10 +404,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedIteration)(benchmark::St
   std::vector<storage::TupleSlot> read_order;
 
   common::DedicatedThreadRegistry registry(DISABLED);
-  std::vector<int> cpu_ids(BenchmarkConfig::num_threads);
-  for (int i = 0; i < static_cast<int>(BenchmarkConfig::num_threads); i++) {
-    cpu_ids[i] = i;
-  }
+  std::vector<int> cpu_ids = GetOneCPUPerRegion();
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
   &cpu_ids);
   std::promise<void> ps[BenchmarkConfig::num_threads];
@@ -449,10 +467,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)(benc
   std::vector<storage::TupleSlot> read_order;
 
   common::DedicatedThreadRegistry registry(DISABLED);
-  std::vector<int> cpu_ids(BenchmarkConfig::num_threads);
-  for (int i = 0; i < static_cast<int>(BenchmarkConfig::num_threads); i++) {
-    cpu_ids[i] = i;
-  }
+  std::vector<int> cpu_ids = GetOneCPUPerRegion();
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
   &cpu_ids);
   std::promise<void> ps[BenchmarkConfig::num_threads];
