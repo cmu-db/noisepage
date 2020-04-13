@@ -108,10 +108,13 @@ class TestServer:
         if not self.check_pid(self.db_process.pid):
             raise RuntimeError("Unable to find DBMS PID {}".format(self.db_process.pid))
 
+        # Wait a bit before checking if we can connect to give the system time to setup
+        time.sleep(constants.DB_START_WAIT)
+
         # flag to check if the db is running
         is_db_running = False
 
-        # max wait of 10s in 0.1s increments
+        # Keep trying to connect to the DBMS until we run out of attempts or we succeeed
         for i in range(constants.DB_CONNECT_ATTEMPTS):
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
@@ -122,7 +125,7 @@ class TestServer:
                 break
             except:
                 if i > 0 and i % 20 == 0:
-                    print("Failed to connect to DB server [{}/100]".format(i))
+                    print("Failed to connect to DB server [Attemp #{}/{}]".format(i, constants.DB_CONNECT_ATTEMPTS))
                     # os.system('ps aux | grep terrier | grep {}'.format(self.db_process.pid))
                     # os.system('lsof -i :15721')
                     traceback.print_exc(file=sys.stdout)
