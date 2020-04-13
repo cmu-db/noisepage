@@ -314,7 +314,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SingleThreadedIteration)(benchmark::State
   FillAcrossNUMARegions(&read_table);
 
   common::DedicatedThreadRegistry registry(DISABLED);
-  std::vector<int> cpu_ids = GetOneCPUPerRegion();
+  std::vector<int> cpu_ids = GetCPUsIn0thNUMARegion();
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
 
   // NOLINTNEXTLINE
@@ -354,7 +354,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMASingleThreadedIteration)(benchmark::S
   FillAcrossNUMARegions(&read_table);
 
   common::DedicatedThreadRegistry registry(DISABLED);
-  std::vector<int> cpu_ids = GetOneCPUPerRegion();
+  std::vector<int> cpu_ids = GetCPUsIn0thNUMARegion();
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
 
   std::vector<storage::numa_region_t> numa_regions;
