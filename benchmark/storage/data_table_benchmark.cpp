@@ -280,7 +280,6 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SingleThreadedIteration)(benchmark::State
   // We can use dummy timestamps here since we're not invoking concurrency control
   transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
                                       common::ManagedPointer(&buffer_pool_), DISABLED);
-  std::vector<storage::TupleSlot> read_order;
 
   common::DedicatedThreadRegistry registry(DISABLED);
   std::vector<int> cpu_ids = GetOneCPUPerRegion();
@@ -291,7 +290,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SingleThreadedIteration)(benchmark::State
     thread_pool.SubmitTask(&ps[thread], [&] {
       // inserted the table with 10 million rows
       for (uint32_t i = 0; i < num_reads_ / cpu_ids.size(); ++i) {
-        read_order.emplace_back(read_table.Insert(common::ManagedPointer(&txn), *redo_));
+        read_table.Insert(common::ManagedPointer(&txn), *redo_);
       }
     });
   }
@@ -338,7 +337,6 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMASingleThreadedIteration)(benchmark::S
   // We can use dummy timestamps here since we're not invoking concurrency control
   transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
                                       common::ManagedPointer(&buffer_pool_), DISABLED);
-  std::vector<storage::TupleSlot> read_order;
 
   common::DedicatedThreadRegistry registry(DISABLED);
   std::vector<int> cpu_ids = GetOneCPUPerRegion();
@@ -349,7 +347,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMASingleThreadedIteration)(benchmark::S
     thread_pool.SubmitTask(&ps[thread], [&] {
       // inserted the table with 10 million rows
       for (uint32_t i = 0; i < num_reads_ / cpu_ids.size(); ++i) {
-        read_order.emplace_back(read_table.Insert(common::ManagedPointer(&txn), *redo_));
+        read_table.Insert(common::ManagedPointer(&txn), *redo_);
       }
     });
   }
@@ -401,7 +399,6 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedIteration)(benchmark::St
   // We can use dummy timestamps here since we're not invoking concurrency control
   transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
                                       common::ManagedPointer(&buffer_pool_), DISABLED);
-  std::vector<storage::TupleSlot> read_order;
 
   common::DedicatedThreadRegistry registry(DISABLED);
   std::vector<int> cpu_ids = GetOneCPUPerRegion();
@@ -412,7 +409,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedIteration)(benchmark::St
     thread_pool.SubmitTask(&ps[thread], [&] {
       // inserted the table with 10 million rows
       for (uint32_t i = 0; i < num_reads_ / cpu_ids.size(); ++i) {
-        read_order.emplace_back(read_table.Insert(common::ManagedPointer(&txn), *redo_));
+        read_table.Insert(common::ManagedPointer(&txn), *redo_);
       }
     });
   }
@@ -464,7 +461,6 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)(benc
   // We can use dummy timestamps here since we're not invoking concurrency control
   transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
                                       common::ManagedPointer(&buffer_pool_), DISABLED);
-  std::vector<storage::TupleSlot> read_order;
 
   common::DedicatedThreadRegistry registry(DISABLED);
   std::vector<int> cpu_ids = GetOneCPUPerRegion();
@@ -475,7 +471,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)(benc
     thread_pool.SubmitTask(&ps[thread], [&] {
       // inserted the table with 10 million rows
       for (uint32_t i = 0; i < num_reads_ / cpu_ids.size(); ++i) {
-        read_order.emplace_back(read_table.Insert(common::ManagedPointer(&txn), *redo_));
+        read_table.Insert(common::ManagedPointer(&txn), *redo_);
       }
     });
   }
