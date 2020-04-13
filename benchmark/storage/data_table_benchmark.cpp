@@ -43,7 +43,7 @@ class DataTableBenchmark : public benchmark::Fixture {
     common::DedicatedThreadRegistry registry(DISABLED);
     std::vector<int> cpu_ids = GetOneCPUPerRegion();
     common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
-    &cpu_ids);
+                                            &cpu_ids);
     std::promise<void> ps[cpu_ids.size()];
     for (int thread = 0; thread < static_cast<int>(cpu_ids.size()); thread++) {
       thread_pool.SubmitTask(&ps[thread], [&] {
@@ -75,7 +75,7 @@ class DataTableBenchmark : public benchmark::Fixture {
     std::vector<int> result;
     for (int cpu = 0; cpu < static_cast<int>(std::thread::hardware_concurrency()); cpu++) {
 #ifdef __APPLE__
-      result.emplace_back(cpu);
+      result.emplace_back(cpu);  // NOLINT
 #else
       if (numa_available() != -1 && numa_node_of_cpu(cpu) == 0) result.emplace_back(cpu);
 #endif
@@ -349,7 +349,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SingleThreadedIteration)(benchmark::State
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, NUMASingleThreadedIteration)(benchmark::State &state) {
   storage::DataTable read_table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout_,
-  storage::layout_version_t(0));
+                                storage::layout_version_t(0));
 
   FillAcrossNUMARegions(&read_table);
 
@@ -394,13 +394,14 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMASingleThreadedIteration)(benchmark::S
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedIteration)(benchmark::State &state) {
   storage::DataTable read_table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout_,
-  storage::layout_version_t(0));
+                                storage::layout_version_t(0));
 
   FillAcrossNUMARegions(&read_table);
 
   common::DedicatedThreadRegistry registry(DISABLED);
   std::vector<int> cpu_ids = GetCPUsIn0thNUMARegion();
-  TERRIER_ASSERT(cpu_ids.size() >= static_cast<uint64_t>(storage::RawBlock::GetNumNumaRegions()), "should be more CPUs in the 0th NUMA region than there are NUMA regions");
+  TERRIER_ASSERT(cpu_ids.size() >= static_cast<uint64_t>(storage::RawBlock::GetNumNumaRegions()),
+                 "should be more CPUs in the 0th NUMA region than there are NUMA regions");
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
 
   std::vector<storage::numa_region_t> numa_regions;
@@ -424,7 +425,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedIteration)(benchmark::St
         thread_pool.SubmitTask(&promises[j], [j, &workload] { workload(j); });
       }
 
-      for (auto &promise : promises) {
+      for (auto &promise : promises) {  // NOLINT
         promise.get_future().get();
       }
     }
@@ -438,7 +439,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedIteration)(benchmark::St
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)(benchmark::State &state) {
   storage::DataTable read_table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout_,
-  storage::layout_version_t(0));
+                                storage::layout_version_t(0));
 
   FillAcrossNUMARegions(&read_table);
 
@@ -483,22 +484,22 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)(benc
 // Benchmark Registration
 // ----------------------------------------------------------------------------
 // clang-format off
-//BENCHMARK_REGISTER_F(DataTableBenchmark, Insert)
-//    ->Unit(benchmark::kMillisecond)
-//    ->UseRealTime()
-//    ->UseManualTime();
-//BENCHMARK_REGISTER_F(DataTableBenchmark, SelectRandom)
-//    ->Unit(benchmark::kMillisecond)
-//    ->UseRealTime()
-//    ->UseManualTime();
-//BENCHMARK_REGISTER_F(DataTableBenchmark, SelectSequential)
-//    ->Unit(benchmark::kMillisecond)
-//    ->UseRealTime()
-//    ->UseManualTime();
-//BENCHMARK_REGISTER_F(DataTableBenchmark, Scan)
-//    ->Unit(benchmark::kMillisecond)
-//    ->UseRealTime()
-//    ->UseManualTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, Insert)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, SelectRandom)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, SelectSequential)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, Scan)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
 BENCHMARK_REGISTER_F(DataTableBenchmark, SingleThreadedIteration)
 ->Unit(benchmark::kMillisecond)
     ->UseRealTime()

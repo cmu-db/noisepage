@@ -176,7 +176,7 @@ class DataTable {
      * @warning MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
      */
     NUMAIterator(const DataTable *table, numa_region_t region_number) : table_(table) {
-      int16_t numa_index = static_cast<int16_t>(region_number);
+      auto numa_index = static_cast<int16_t>(region_number);
       set_ = &table_->regions_[numa_index];
       block_ = set_->cbegin();
       current_slot_ = {block_ == set_->cend() ? nullptr : *block_, 0};

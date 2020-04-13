@@ -104,7 +104,7 @@ class alignas(common::Constants::BLOCK_SIZE) RawBlock {
 #ifdef __APPLE__
     return 1;
 #else
-    return static_cast<int16_t>((numa_available() >= 0 && numa_max_node() >= 0) ?( numa_max_node() + 1) : 1);
+    return static_cast<int16_t>((numa_available() >= 0 && numa_max_node() >= 0) ? (numa_max_node() + 1) : 1);
 #endif
   }
 };

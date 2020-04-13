@@ -165,7 +165,7 @@ class RandomDataTableTestObject {
     }
     table_.NUMAScan(common::ManagedPointer(txn), &colunms, result_colunm);
     for (auto *column : colunms) {
-       delete[] reinterpret_cast<byte *>(column);
+      delete[] reinterpret_cast<byte *>(column);
     }
   }
 
