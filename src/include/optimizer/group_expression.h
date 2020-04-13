@@ -39,8 +39,13 @@ class GroupExpression {
    * @param op Operator
    * @param child_groups Vector of children groups
    */
-  GroupExpression(Operator op, std::vector<group_id_t> &&child_groups) {
-    contents_ = common::ManagedPointer<AbstractOptimizerNodeContents>(new Operator(std::move(op)));
+  GroupExpression(Operator op, std::vector<group_id_t> &&child_groups, transaction::TransactionContext *txn) {
+    auto *op_ptr = new Operator(std::move(op));
+    if (txn) {
+      txn->RegisterCommitAction([=]() { delete op_ptr; });
+      txn->RegisterAbortAction([=]() { delete op_ptr; });
+    }
+    contents_ = common::ManagedPointer<AbstractOptimizerNodeContents>(op_ptr);
     group_id_ = UNDEFINED_GROUP;
     child_groups_ = child_groups;
     stats_derived_ = false;

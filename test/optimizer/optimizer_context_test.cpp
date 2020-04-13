@@ -9,6 +9,9 @@
 #include "optimizer/optimizer_task.h"
 #include "optimizer/optimizer_task_pool.h"
 #include "optimizer/pattern.h"
+#include "transaction/transaction_manager.h"
+#include "transaction/deferred_action_manager.h"
+#include "transaction/timestamp_manager.h"
 
 #include "test_util/test_harness.h"
 
@@ -113,15 +116,26 @@ TEST_F(OptimizerContextTest, OptimizerContextTaskStackNullptrTest) {
 TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateSingleLayer) {
   auto context = OptimizerContext(nullptr);
 
+  // Due to the deferred action framework being used to manage memory, we need to
+  // simulate a transaction to prevent leaks
+  auto timestamp_manager = transaction::TimestampManager();
+  auto *deferred_action_manager = new transaction::DeferredActionManager(common::ManagedPointer(&timestamp_manager));
+  auto *buffer_pool = new storage::RecordBufferSegmentPool(100, 2);
+  transaction::TransactionManager txn_manager = transaction::TransactionManager(common::ManagedPointer(&timestamp_manager),
+          common::ManagedPointer(deferred_action_manager), common::ManagedPointer(buffer_pool), false, nullptr);
+
+  transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
+
   // Create OperatorNode of JOIN <= (GET A, GET A)
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   Operator logical_get =
-      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false);
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2),
+              catalog::table_oid_t(3), {}, "tbl", false, txn_context);
   std::unique_ptr<Operator> logical_get_contents = std::make_unique<Operator>(logical_get);
   std::unique_ptr<OperatorNode> left_get =
       std::make_unique<OperatorNode>(common::ManagedPointer<AbstractOptimizerNodeContents>(
                                          dynamic_cast<AbstractOptimizerNodeContents *>(logical_get_contents.get())),
-                                     std::move(c));
+                                     std::move(c), txn_context);
 
   std::unique_ptr<OperatorNode> right_get =
       std::unique_ptr<OperatorNode>(dynamic_cast<OperatorNode *>(left_get->Copy().release()));
@@ -132,11 +146,11 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateSingleLayer) {
   std::vector<std::unique_ptr<AbstractOptimizerNode>> jc;
   jc.emplace_back(std::move(left_get));
   jc.emplace_back(std::move(right_get));
-  Operator logical_inner_join = LogicalInnerJoin::Make();
+  Operator logical_inner_join = LogicalInnerJoin::Make(txn_context);
   std::unique_ptr<Operator> logical_inner_join_contents = std::make_unique<Operator>(logical_inner_join);
   std::unique_ptr<AbstractOptimizerNode> join = std::make_unique<OperatorNode>(
       common::ManagedPointer(dynamic_cast<AbstractOptimizerNodeContents *>(logical_inner_join_contents.get())),
-      std::move(jc));
+      std::move(jc), txn_context);
 
   // RecordOptimizerNodeIntoGroup
   GroupExpression *join_gexpr;
@@ -155,17 +169,35 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateSingleLayer) {
   EXPECT_EQ(child_gexpr->Contents(), lg_copy->Contents());
   EXPECT_EQ(child_gexpr->Contents(), rg_copy->Contents());
   EXPECT_EQ(child_gexpr->GetChildGroupIDs().size(), 0);
+
+  // All operators created during optimization should be cleaned up on abort
+  txn_manager.Abort(txn_context);
+
+  delete deferred_action_manager;
+  delete buffer_pool;
+  delete txn_context;
 }
 
 // NOLINTNEXTLINE
 TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateMultiLayer) {
   auto context = OptimizerContext(nullptr);
 
+  // Due to the deferred action framework being used to manage memory, we need to
+  // simulate a transaction to prevent leaks
+  auto timestamp_manager = transaction::TimestampManager();
+  auto *deferred_action_manager = new transaction::DeferredActionManager(common::ManagedPointer(&timestamp_manager));
+  auto *buffer_pool = new storage::RecordBufferSegmentPool(100, 2);
+  transaction::TransactionManager txn_manager = transaction::TransactionManager(common::ManagedPointer(&timestamp_manager),
+                                                                                common::ManagedPointer(deferred_action_manager), common::ManagedPointer(buffer_pool), false, nullptr);
+
+  transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
+
   // Create OperatorNode (A JOIN B) JOIN (A JOIN B)
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto left_get = std::make_unique<OperatorNode>(
-      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
-      std::move(c));
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2),
+              catalog::table_oid_t(3), {}, "tbl", false, txn_context),
+      std::move(c), txn_context);
   auto lg_copy = left_get->Copy();
 
   auto right_get = std::unique_ptr<OperatorNode>(dynamic_cast<OperatorNode *>(left_get->Copy().release()));
@@ -175,7 +207,7 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateMultiLayer) {
   std::vector<std::unique_ptr<AbstractOptimizerNode>> jc;
   jc.emplace_back(std::move(left_get));
   jc.emplace_back(std::move(right_get));
-  auto left_join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(jc));
+  auto left_join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(txn_context), std::move(jc), txn_context);
   auto lj_copy = left_join->Copy();
 
   auto right_join = std::unique_ptr<OperatorNode>(dynamic_cast<OperatorNode *>(left_join->Copy().release()));
@@ -185,7 +217,7 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateMultiLayer) {
   std::vector<std::unique_ptr<AbstractOptimizerNode>> jjc;
   jjc.emplace_back(std::move(left_join));
   jjc.emplace_back(std::move(right_join));
-  auto join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(jjc))->Copy();
+  auto join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(txn_context), std::move(jjc), txn_context)->Copy();
 
   // RecordOptimizerNodeIntoGroup
   GroupExpression *join_g_expr;
@@ -214,14 +246,31 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateMultiLayer) {
   EXPECT_EQ(child_gexpr->Contents(), lg_copy->Contents());
   EXPECT_EQ(child_gexpr->Contents(), rg_copy->Contents());
   EXPECT_EQ(child_gexpr->GetChildGroupIDs().size(), 0);
+
+  // All operators created during optimization should be cleaned up on abort
+  txn_manager.Abort(txn_context);
+
+  delete deferred_action_manager;
+  delete buffer_pool;
+  delete txn_context;
 }
 
 // NOLINTNEXTLINE
 TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicate) {
   auto context = OptimizerContext(nullptr);
 
+  // Due to the deferred action framework being used to manage memory, we need to
+  // simulate a transaction to prevent leaks
+  auto timestamp_manager = transaction::TimestampManager();
+  auto *deferred_action_manager = new transaction::DeferredActionManager(common::ManagedPointer(&timestamp_manager));
+  auto *buffer_pool = new storage::RecordBufferSegmentPool(100, 2);
+  transaction::TransactionManager txn_manager = transaction::TransactionManager(common::ManagedPointer(&timestamp_manager),
+                                                                                common::ManagedPointer(deferred_action_manager), common::ManagedPointer(buffer_pool), false, nullptr);
+
+  transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
+
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
-  auto tbl_free = std::make_unique<OperatorNode>(TableFreeScan::Make(), std::move(c))->Copy();
+  auto tbl_free = std::make_unique<OperatorNode>(TableFreeScan::Make(txn_context), std::move(c), txn_context)->Copy();
 
   GroupExpression *tbl_free_gexpr;
   EXPECT_TRUE(context.RecordOptimizerNodeIntoGroup(common::ManagedPointer(tbl_free), &tbl_free_gexpr));
@@ -232,73 +281,110 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicate) {
   EXPECT_TRUE(!context.RecordOptimizerNodeIntoGroup(common::ManagedPointer(tbl_free), &dup_free_gexpr));
   EXPECT_TRUE(dup_free_gexpr != nullptr);
   EXPECT_EQ(tbl_free_gexpr, dup_free_gexpr);
+
+  // All operators created during optimization should be cleaned up on abort
+  txn_manager.Abort(txn_context);
+
+  delete deferred_action_manager;
+  delete buffer_pool;
+  delete txn_context;
 }
 
 // NOLINTNEXTLINE
 TEST_F(OptimizerContextTest, SimpleBindingTest) {
   auto context = OptimizerContext(nullptr);
 
+  // Due to the deferred action framework being used to manage memory, we need to
+  // simulate a transaction to prevent leaks
+  auto timestamp_manager = transaction::TimestampManager();
+  auto *deferred_action_manager = new transaction::DeferredActionManager(common::ManagedPointer(&timestamp_manager));
+  auto *buffer_pool = new storage::RecordBufferSegmentPool(100, 2);
+  transaction::TransactionManager txn_manager = transaction::TransactionManager(common::ManagedPointer(&timestamp_manager),
+                                                                                common::ManagedPointer(deferred_action_manager), common::ManagedPointer(buffer_pool), false, nullptr);
+
+  transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
+
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto left_get = std::make_unique<OperatorNode>(
-      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
-      std::move(c));
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2),
+              catalog::table_oid_t(3), {}, "tbl", false, txn_context),
+      std::move(c), txn_context);
   auto right_get = std::unique_ptr<OperatorNode>(dynamic_cast<OperatorNode *>(left_get->Copy().release()));
   EXPECT_EQ(*left_get, *right_get);
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> jc;
   jc.emplace_back(std::move(left_get));
   jc.emplace_back(std::move(right_get));
-  auto join = common::ManagedPointer<AbstractOptimizerNode>(new OperatorNode(LogicalInnerJoin::Make(), std::move(jc)));
+  std::unique_ptr<AbstractOptimizerNode> join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(txn_context), std::move(jc), txn_context);
 
   GroupExpression *gexpr = nullptr;
-  EXPECT_TRUE(context.RecordOptimizerNodeIntoGroup(join, &gexpr));
+  EXPECT_TRUE(context.RecordOptimizerNodeIntoGroup(common::ManagedPointer(join), &gexpr));
   EXPECT_TRUE(gexpr != nullptr);
 
   auto *pattern = new Pattern(OpType::LOGICALINNERJOIN);
   pattern->AddChild(new Pattern(OpType::LOGICALGET));
   pattern->AddChild(new Pattern(OpType::LOGICALGET));
 
-  auto *binding_iterator = new GroupExprBindingIterator(context.GetMemo(), gexpr, pattern);
+  auto *binding_iterator = new GroupExprBindingIterator(context.GetMemo(), gexpr, pattern, txn_context);
 
   EXPECT_TRUE(binding_iterator->HasNext());
 
-  auto binding = dynamic_cast<OperatorNode *>(binding_iterator->Next().release());
+  std::unique_ptr<AbstractOptimizerNode> next = binding_iterator->Next();
+  auto binding = dynamic_cast<OperatorNode *>(next.get());
 
   auto &val1 = *binding;
-  auto &val2 = *dynamic_cast<OperatorNode *>(join.Get());
+  auto &val2 = *dynamic_cast<OperatorNode *>(join.get());
   EXPECT_EQ(val1, val2);
 
   EXPECT_TRUE(!binding_iterator->HasNext());
 
+  // All operators created during optimization should be cleaned up on abort
+  txn_manager.Abort(txn_context);
+
+  delete deferred_action_manager;
+  delete buffer_pool;
+  delete txn_context;
   delete binding_iterator;
   delete pattern;
 }
+
 
 // NOLINTNEXTLINE
 TEST_F(OptimizerContextTest, SingleWildcardTest) {
   auto context = OptimizerContext(nullptr);
 
+  // Due to the deferred action framework being used to manage memory, we need to
+  // simulate a transaction to prevent leaks
+  auto timestamp_manager = transaction::TimestampManager();
+  auto *deferred_action_manager = new transaction::DeferredActionManager(common::ManagedPointer(&timestamp_manager));
+  auto *buffer_pool = new storage::RecordBufferSegmentPool(100, 2);
+  transaction::TransactionManager txn_manager = transaction::TransactionManager(common::ManagedPointer(&timestamp_manager),
+                                                                                common::ManagedPointer(deferred_action_manager), common::ManagedPointer(buffer_pool), false, nullptr);
+
+  transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
+
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto left_get = std::make_unique<OperatorNode>(
-      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
-      std::move(c));
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2),
+              catalog::table_oid_t(3), {}, "tbl", false, txn_context),
+      std::move(c), txn_context);
   auto right_get = left_get->Copy();
   EXPECT_EQ(*left_get, *reinterpret_cast<OperatorNode *>(right_get.get()));
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> jc;
   jc.emplace_back(std::move(left_get));
   jc.emplace_back(std::move(right_get));
-  auto join = common::ManagedPointer<AbstractOptimizerNode>(new OperatorNode(LogicalInnerJoin::Make(), std::move(jc)));
+  std::unique_ptr<AbstractOptimizerNode> join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(txn_context), std::move(jc), txn_context);
 
   GroupExpression *gexpr = nullptr;
-  EXPECT_TRUE(context.RecordOptimizerNodeIntoGroup(join, &gexpr));
+  EXPECT_TRUE(context.RecordOptimizerNodeIntoGroup(common::ManagedPointer(join), &gexpr));
   EXPECT_TRUE(gexpr != nullptr);
 
   auto *pattern = new Pattern(OpType::LOGICALINNERJOIN);
   pattern->AddChild(new Pattern(OpType::LEAF));
   pattern->AddChild(new Pattern(OpType::LEAF));
 
-  auto *binding_iterator = new GroupExprBindingIterator(context.GetMemo(), gexpr, pattern);
+  auto *binding_iterator = new GroupExprBindingIterator(context.GetMemo(), gexpr, pattern, txn_context);
   EXPECT_TRUE(binding_iterator->HasNext());
 
   auto binding = binding_iterator->Next();
@@ -315,6 +401,12 @@ TEST_F(OptimizerContextTest, SingleWildcardTest) {
 
   EXPECT_TRUE(!binding_iterator->HasNext());
 
+  // All operators created during optimization should be cleaned up on abort
+  txn_manager.Abort(txn_context);
+
+  delete deferred_action_manager;
+  delete buffer_pool;
+  delete txn_context;
   delete binding_iterator;
   delete pattern;
 }

@@ -335,7 +335,7 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
       // to derive the optimal enforce order or perform a cost-based full enumeration.
       for (auto &prop : context_->GetRequiredProperties()->Properties()) {
         if (!output_prop->HasProperty(*prop)) {
-          auto enforced_expr = prop_enforcer.EnforceProperty(group_expr_, prop);
+          auto enforced_expr = prop_enforcer.EnforceProperty(group_expr_, prop, context_->GetOptimizerContext()->GetTxn());
           // Cannot enforce the missing property
           if (enforced_expr == nullptr) {
             meet_requirement = false;

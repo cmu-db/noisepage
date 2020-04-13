@@ -38,8 +38,10 @@ class OperatorNode : public AbstractOptimizerNode {
         children_(std::move(children)),
         txn_(common::ManagedPointer(txn)) {
     auto *op_node = reinterpret_cast<Operator *>(contents_.Get());
-    txn_->RegisterCommitAction([=]() { delete op_node; });
-    txn_->RegisterAbortAction([=]() { delete op_node; });
+    if (txn_) {
+      txn_->RegisterCommitAction([=]() { delete op_node; });
+      txn_->RegisterAbortAction([=]() { delete op_node; });
+    }
   }
 
   ~OperatorNode() override = default;
