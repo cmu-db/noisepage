@@ -345,7 +345,8 @@ bool InnerNLJoin::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LeftNLJoin::Copy() const { return new LeftNLJoin(*this); }
 
-Operator LeftNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate, transaction::TransactionContext *txn) {
+Operator LeftNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate,
+                          transaction::TransactionContext *txn) {
   auto *join = new LeftNLJoin();
   join->join_predicate_ = join_predicate;
   if (txn) {
@@ -371,7 +372,8 @@ bool LeftNLJoin::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *RightNLJoin::Copy() const { return new RightNLJoin(*this); }
 
-Operator RightNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate, transaction::TransactionContext *txn) {
+Operator RightNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate,
+                           transaction::TransactionContext *txn) {
   auto *join = new RightNLJoin();
   join->join_predicate_ = join_predicate;
   if (txn) {
@@ -398,7 +400,8 @@ bool RightNLJoin::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *OuterNLJoin::Copy() const { return new OuterNLJoin(*this); }
 
-Operator OuterNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate, transaction::TransactionContext *txn) {
+Operator OuterNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate,
+                           transaction::TransactionContext *txn) {
   auto *join = new OuterNLJoin();
   join->join_predicate_ = join_predicate;
   if (txn) {
@@ -475,7 +478,8 @@ bool InnerHashJoin::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LeftHashJoin::Copy() const { return new LeftHashJoin(*this); }
 
-Operator LeftHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate, transaction::TransactionContext *txn) {
+Operator LeftHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate,
+                            transaction::TransactionContext *txn) {
   auto *join = new LeftHashJoin();
   join->join_predicate_ = join_predicate;
   if (txn) {
@@ -503,7 +507,7 @@ bool LeftHashJoin::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *RightHashJoin::Copy() const { return new RightHashJoin(*this); }
 
 Operator RightHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate,
-        transaction::TransactionContext *txn) {
+                             transaction::TransactionContext *txn) {
   auto *join = new RightHashJoin();
   join->join_predicate_ = join_predicate;
   if (txn) {
@@ -530,7 +534,8 @@ bool RightHashJoin::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *OuterHashJoin::Copy() const { return new OuterHashJoin(*this); }
 
-Operator OuterHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate, transaction::TransactionContext *txn) {
+Operator OuterHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate,
+                             transaction::TransactionContext *txn) {
   auto *join = new OuterHashJoin();
   join->join_predicate_ = join_predicate;
   if (txn) {
@@ -560,8 +565,7 @@ BaseOperatorNodeContents *Insert::Copy() const { return new Insert(*this); }
 Operator Insert::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                       catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
                       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values,
-                      std::vector<catalog::index_oid_t> &&index_oids,
-                      transaction::TransactionContext *txn) {
+                      std::vector<catalog::index_oid_t> &&index_oids, transaction::TransactionContext *txn) {
 #ifndef NDEBUG
   // We need to check whether the number of values for each insert vector
   // matches the number of columns
@@ -690,7 +694,8 @@ BaseOperatorNodeContents *Update::Copy() const { return new Update(*this); }
 
 Operator Update::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
                       catalog::table_oid_t table_oid,
-                      std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates, transaction::TransactionContext *txn) {
+                      std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates,
+                      transaction::TransactionContext *txn) {
   auto *op = new Update();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -1090,7 +1095,8 @@ bool CreateTrigger::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *CreateView::Copy() const { return new CreateView(*this); }
 
 Operator CreateView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string view_name,
-                          common::ManagedPointer<parser::SelectStatement> view_query, transaction::TransactionContext *txn) {
+                          common::ManagedPointer<parser::SelectStatement> view_query,
+                          transaction::TransactionContext *txn) {
   auto *op = new CreateView();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;

@@ -335,7 +335,8 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
       // to derive the optimal enforce order or perform a cost-based full enumeration.
       for (auto &prop : context_->GetRequiredProperties()->Properties()) {
         if (!output_prop->HasProperty(*prop)) {
-          auto enforced_expr = prop_enforcer.EnforceProperty(group_expr_, prop, context_->GetOptimizerContext()->GetTxn());
+          auto enforced_expr =
+              prop_enforcer.EnforceProperty(group_expr_, prop, context_->GetOptimizerContext()->GetTxn());
           // Cannot enforce the missing property
           if (enforced_expr == nullptr) {
             meet_requirement = false;
@@ -407,8 +408,7 @@ void TopDownRewrite::Execute() {
       TERRIER_ASSERT(after.size() <= 1, "rule provided too many transformations");
       if (!after.empty()) {
         auto &new_expr = after[0];
-        context_->GetOptimizerContext()->ReplaceRewriteExpression(common::ManagedPointer(new_expr.get()),
-                                                                  group_id_);
+        context_->GetOptimizerContext()->ReplaceRewriteExpression(common::ManagedPointer(new_expr.get()), group_id_);
         PushTask(new TopDownRewrite(group_id_, context_, rule_set_name_));
         return;
       }

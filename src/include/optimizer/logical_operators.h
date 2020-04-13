@@ -243,7 +243,8 @@ class LogicalQueryDerivedGet : public OperatorNodeContents<LogicalQueryDerivedGe
    */
   static Operator Make(
       std::string table_alias,
-      std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map, transaction::TransactionContext *txn);
+      std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map,
+      transaction::TransactionContext *txn);
 
   /**
    * Copy
@@ -328,7 +329,8 @@ class LogicalProjection : public OperatorNodeContents<LogicalProjection> {
    * @param expressions list of AbstractExpressions in the projection list.
    * @return a LogicalProjection operator
    */
-  static Operator Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&expressions, transaction::TransactionContext *txn);
+  static Operator Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&expressions,
+                       transaction::TransactionContext *txn);
 
   /**
    * Copy
@@ -670,7 +672,8 @@ class LogicalAggregateAndGroupBy : public OperatorNodeContents<LogicalAggregateA
    * @param columns columns to group by
    * @return a GroupBy operator
    */
-  static Operator Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns, transaction::TransactionContext *txn);
+  static Operator Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
+                       transaction::TransactionContext *txn);
 
   /**
    * @param columns columns to group by
@@ -728,7 +731,8 @@ class LogicalInsert : public OperatorNodeContents<LogicalInsert> {
   static Operator Make(
       catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
       std::vector<catalog::col_oid_t> &&columns,
-      common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values, transaction::TransactionContext *txn);
+      common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values,
+      transaction::TransactionContext *txn);
 
   /**
    * Copy
@@ -865,7 +869,8 @@ class LogicalLimit : public OperatorNodeContents<LogicalLimit> {
    */
   static Operator Make(size_t offset, size_t limit,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
-                       std::vector<optimizer::OrderByOrderingType> &&sort_directions, transaction::TransactionContext *txn);
+                       std::vector<optimizer::OrderByOrderingType> &&sort_directions,
+                       transaction::TransactionContext *txn);
 
   /**
    * Copy
@@ -1004,7 +1009,8 @@ class LogicalUpdate : public OperatorNodeContents<LogicalUpdate> {
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
                        catalog::table_oid_t table_oid,
-                       std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates, transaction::TransactionContext *txn);
+                       std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates,
+                       transaction::TransactionContext *txn);
 
   /**
    * Copy
@@ -1200,7 +1206,8 @@ class LogicalCreateFunction : public OperatorNodeContents<LogicalCreateFunction>
                        std::string function_name, parser::PLType language, std::vector<std::string> &&function_body,
                        std::vector<std::string> &&function_param_names,
                        std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
-                       parser::BaseFunctionParameter::DataType return_type, size_t param_count, bool replace, transaction::TransactionContext *txn);
+                       parser::BaseFunctionParameter::DataType return_type, size_t param_count, bool replace,
+                       transaction::TransactionContext *txn);
 
   /**
    * Copy
@@ -1331,7 +1338,8 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
                        parser::IndexType index_type, bool unique, std::string index_name,
-                       std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs, transaction::TransactionContext *txn);
+                       std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs,
+                       transaction::TransactionContext *txn);
 
   /**
    * Copy
@@ -1418,7 +1426,8 @@ class LogicalCreateTable : public OperatorNodeContents<LogicalCreateTable> {
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid, std::string table_name,
                        std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&columns,
-                       std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&foreign_keys, transaction::TransactionContext *txn);
+                       std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&foreign_keys,
+                       transaction::TransactionContext *txn);
 
   /**
    * Copy
@@ -1521,7 +1530,8 @@ class LogicalCreateTrigger : public OperatorNodeContents<LogicalCreateTrigger> {
                        catalog::table_oid_t table_oid, std::string trigger_name,
                        std::vector<std::string> &&trigger_funcnames, std::vector<std::string> &&trigger_args,
                        std::vector<catalog::col_oid_t> &&trigger_columns,
-                       common::ManagedPointer<parser::AbstractExpression> &&trigger_when, int16_t trigger_type, transaction::TransactionContext *txn);
+                       common::ManagedPointer<parser::AbstractExpression> &&trigger_when, int16_t trigger_type,
+                       transaction::TransactionContext *txn);
 
   /**
    * Copy
@@ -1639,7 +1649,8 @@ class LogicalCreateView : public OperatorNodeContents<LogicalCreateView> {
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string view_name,
-                       common::ManagedPointer<parser::SelectStatement> view_query, transaction::TransactionContext *txn);
+                       common::ManagedPointer<parser::SelectStatement> view_query,
+                       transaction::TransactionContext *txn);
 
   /**
    * Copy

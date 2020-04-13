@@ -19,8 +19,8 @@ Operator LeafOperator::Make(group_id_t group, transaction::TransactionContext *t
   auto *leaf = new LeafOperator();
   leaf->origin_group_ = group;
   if (txn) {
-    txn->RegisterCommitAction([=](){ delete leaf; });
-    txn->RegisterAbortAction([=](){ delete leaf; });
+    txn->RegisterCommitAction([=]() { delete leaf; });
+    txn->RegisterAbortAction([=]() { delete leaf; });
   }
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(leaf));
 }
@@ -53,8 +53,8 @@ Operator LogicalGet::Make(catalog::db_oid_t database_oid, catalog::namespace_oid
   get->table_alias_ = std::move(table_alias);
   get->is_for_update_ = is_for_update;
   if (txn) {
-    txn->RegisterCommitAction([=](){ delete get; });
-    txn->RegisterAbortAction([=](){ delete get; });
+    txn->RegisterCommitAction([=]() { delete get; });
+    txn->RegisterAbortAction([=]() { delete get; });
   }
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(get));
 }
@@ -66,8 +66,8 @@ Operator LogicalGet::Make(transaction::TransactionContext *txn) {
   get->table_oid_ = catalog::INVALID_TABLE_OID;
   get->is_for_update_ = false;
   if (txn) {
-    txn->RegisterCommitAction([=](){ delete get; });
-    txn->RegisterAbortAction([=](){ delete get; });
+    txn->RegisterCommitAction([=]() { delete get; });
+    txn->RegisterAbortAction([=]() { delete get; });
   }
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(get));
 }
@@ -111,8 +111,8 @@ Operator LogicalExternalFileGet::Make(parser::ExternalFileFormat format, std::st
   get->quote_ = quote;
   get->escape_ = escape;
   if (txn) {
-    txn->RegisterCommitAction([=](){ delete get; });
-    txn->RegisterAbortAction([=](){ delete get; });
+    txn->RegisterCommitAction([=]() { delete get; });
+    txn->RegisterAbortAction([=]() { delete get; });
   }
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(get));
 }
@@ -147,8 +147,8 @@ Operator LogicalQueryDerivedGet::Make(
   get->table_alias_ = std::move(table_alias);
   get->alias_to_expr_map_ = std::move(alias_to_expr_map);
   if (txn) {
-    txn->RegisterCommitAction([=](){ delete get; });
-    txn->RegisterAbortAction([=](){ delete get; });
+    txn->RegisterCommitAction([=]() { delete get; });
+    txn->RegisterAbortAction([=]() { delete get; });
   }
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(get));
 }
@@ -179,8 +179,8 @@ Operator LogicalFilter::Make(std::vector<AnnotatedExpression> &&predicates, tran
   auto *op = new LogicalFilter();
   op->predicates_ = std::move(predicates);
   if (txn) {
-    txn->RegisterCommitAction([=](){ delete op; });
-    txn->RegisterAbortAction([=](){ delete op; });
+    txn->RegisterCommitAction([=]() { delete op; });
+    txn->RegisterAbortAction([=]() { delete op; });
   }
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
@@ -214,7 +214,8 @@ common::hash_t LogicalFilter::Hash() const {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalProjection::Copy() const { return new LogicalProjection(*this); }
 
-Operator LogicalProjection::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&expressions, transaction::TransactionContext *txn) {
+Operator LogicalProjection::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&expressions,
+                                 transaction::TransactionContext *txn) {
   auto *op = new LogicalProjection();
   op->expressions_ = std::move(expressions);
   if (txn) {
@@ -338,7 +339,8 @@ BaseOperatorNodeContents *LogicalLimit::Copy() const { return new LogicalLimit(*
 
 Operator LogicalLimit::Make(size_t offset, size_t limit,
                             std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
-                            std::vector<optimizer::OrderByOrderingType> &&sort_directions, transaction::TransactionContext *txn) {
+                            std::vector<optimizer::OrderByOrderingType> &&sort_directions,
+                            transaction::TransactionContext *txn) {
   TERRIER_ASSERT(sort_exprs.size() == sort_directions.size(), "Mismatched ORDER BY expressions + directions");
   auto *op = new LogicalLimit();
   op->offset_ = offset;
@@ -377,7 +379,8 @@ common::hash_t LogicalLimit::Hash() const {
 BaseOperatorNodeContents *LogicalDelete::Copy() const { return new LogicalDelete(*this); }
 
 Operator LogicalDelete::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                             std::string table_alias, catalog::table_oid_t table_oid, transaction::TransactionContext *txn) {
+                             std::string table_alias, catalog::table_oid_t table_oid,
+                             transaction::TransactionContext *txn) {
   auto *op = new LogicalDelete();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -415,7 +418,8 @@ BaseOperatorNodeContents *LogicalUpdate::Copy() const { return new LogicalUpdate
 
 Operator LogicalUpdate::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                              std::string table_alias, catalog::table_oid_t table_oid,
-                             std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates, transaction::TransactionContext *txn) {
+                             std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates,
+                             transaction::TransactionContext *txn) {
   auto *op = new LogicalUpdate();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -510,7 +514,8 @@ Operator LogicalDependentJoin::Make(transaction::TransactionContext *txn) {
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
-Operator LogicalDependentJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn) {
+Operator LogicalDependentJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
+                                    transaction::TransactionContext *txn) {
   auto *join = new LogicalDependentJoin();
   join->join_predicates_ = std::move(join_predicates);
   if (txn) {
@@ -553,7 +558,8 @@ Operator LogicalMarkJoin::Make(transaction::TransactionContext *txn) {
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
-Operator LogicalMarkJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn) {
+Operator LogicalMarkJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
+                               transaction::TransactionContext *txn) {
   auto *join = new LogicalMarkJoin();
   join->join_predicates_ = join_predicates;
   if (txn) {
@@ -596,7 +602,8 @@ Operator LogicalSingleJoin::Make(transaction::TransactionContext *txn) {
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
-Operator LogicalSingleJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn) {
+Operator LogicalSingleJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
+                                 transaction::TransactionContext *txn) {
   auto *join = new LogicalSingleJoin();
   join->join_predicates_ = join_predicates;
   if (txn) {
@@ -639,7 +646,8 @@ Operator LogicalInnerJoin::Make(transaction::TransactionContext *txn) {
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
-Operator LogicalInnerJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn) {
+Operator LogicalInnerJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
+                                transaction::TransactionContext *txn) {
   auto *join = new LogicalInnerJoin();
   join->join_predicates_ = join_predicates;
   if (txn) {
@@ -674,7 +682,7 @@ bool LogicalInnerJoin::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *LogicalLeftJoin::Copy() const { return new LogicalLeftJoin(*this); }
 
 Operator LogicalLeftJoin::Make(transaction::TransactionContext *txn) {
-  auto *join= new LogicalLeftJoin();
+  auto *join = new LogicalLeftJoin();
   if (txn) {
     txn->RegisterCommitAction([=]() { delete join; });
     txn->RegisterAbortAction([=]() { delete join; });
@@ -682,7 +690,8 @@ Operator LogicalLeftJoin::Make(transaction::TransactionContext *txn) {
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
-Operator LogicalLeftJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn) {
+Operator LogicalLeftJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
+                               transaction::TransactionContext *txn) {
   auto *join = new LogicalLeftJoin();
   join->join_predicates_ = join_predicates;
   if (txn) {
@@ -725,7 +734,8 @@ Operator LogicalRightJoin::Make(transaction::TransactionContext *txn) {
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
-Operator LogicalRightJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn) {
+Operator LogicalRightJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
+                                transaction::TransactionContext *txn) {
   auto *join = new LogicalRightJoin();
   join->join_predicates_ = join_predicates;
   if (txn) {
@@ -768,7 +778,8 @@ Operator LogicalOuterJoin::Make(transaction::TransactionContext *txn) {
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
-Operator LogicalOuterJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn) {
+Operator LogicalOuterJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
+                                transaction::TransactionContext *txn) {
   auto *join = new LogicalOuterJoin();
   join->join_predicates_ = join_predicates;
   if (txn) {
@@ -811,7 +822,8 @@ Operator LogicalSemiJoin::Make(transaction::TransactionContext *txn) {
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
-Operator LogicalSemiJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn) {
+Operator LogicalSemiJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
+                               transaction::TransactionContext *txn) {
   auto *join = new LogicalSemiJoin();
   join->join_predicates_ = join_predicates;
   if (txn) {
@@ -854,7 +866,8 @@ Operator LogicalAggregateAndGroupBy::Make(transaction::TransactionContext *txn) 
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(group_by));
 }
 
-Operator LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns, transaction::TransactionContext *txn) {
+Operator LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
+                                          transaction::TransactionContext *txn) {
   auto *group_by = new LogicalAggregateAndGroupBy();
   group_by->columns_ = std::move(columns);
   if (txn) {
@@ -865,7 +878,8 @@ Operator LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<par
 }
 
 Operator LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
-                                          std::vector<AnnotatedExpression> &&having, transaction::TransactionContext *txn) {
+                                          std::vector<AnnotatedExpression> &&having,
+                                          transaction::TransactionContext *txn) {
   auto *group_by = new LogicalAggregateAndGroupBy();
   group_by->columns_ = std::move(columns);
   group_by->having_ = std::move(having);
@@ -1136,8 +1150,7 @@ Operator LogicalCreateTrigger::Make(catalog::db_oid_t database_oid, catalog::nam
                                     std::vector<std::string> &&trigger_args,
                                     std::vector<catalog::col_oid_t> &&trigger_columns,
                                     common::ManagedPointer<parser::AbstractExpression> &&trigger_when,
-                                    int16_t trigger_type,
-                                    transaction::TransactionContext *txn) {
+                                    int16_t trigger_type, transaction::TransactionContext *txn) {
   auto *op = new LogicalCreateTrigger();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -1337,7 +1350,8 @@ bool LogicalDropNamespace::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *LogicalDropTrigger::Copy() const { return new LogicalDropTrigger(*this); }
 
 Operator LogicalDropTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                                  catalog::trigger_oid_t trigger_oid, bool if_exists, transaction::TransactionContext *txn) {
+                                  catalog::trigger_oid_t trigger_oid, bool if_exists,
+                                  transaction::TransactionContext *txn) {
   auto *op = new LogicalDropTrigger();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;

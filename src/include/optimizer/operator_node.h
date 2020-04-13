@@ -148,7 +148,7 @@ class OperatorNode : public AbstractOptimizerNode {
    * Transaction context for managing memory, both in terms of eventually freeing the on-the-fly operators created
    * and for eventually freeing copies made of this node.
    */
-   common::ManagedPointer<transaction::TransactionContext> txn_;
+  common::ManagedPointer<transaction::TransactionContext> txn_;
 };
 
 }  // namespace terrier::optimizer

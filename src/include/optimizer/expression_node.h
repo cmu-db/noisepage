@@ -20,7 +20,9 @@ class ExpressionNode : public AbstractOptimizerNode {
    * Constructor that wraps an ExpressionNode around a provided ExpressionNodeContents.
    * @param contents The contents to be wrapped
    */
-  explicit ExpressionNode(common::ManagedPointer<AbstractOptimizerNodeContents> contents, transaction::TransactionContext *txn) : contents_(contents), txn_(txn) {}
+  explicit ExpressionNode(common::ManagedPointer<AbstractOptimizerNodeContents> contents,
+                          transaction::TransactionContext *txn)
+      : contents_(contents), txn_(txn) {}
 
   /**
    * Create an ExpressionNode

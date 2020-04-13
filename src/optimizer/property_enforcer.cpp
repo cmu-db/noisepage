@@ -8,7 +8,8 @@
 
 namespace terrier::optimizer {
 
-GroupExpression *PropertyEnforcer::EnforceProperty(GroupExpression *gexpr, Property *property, transaction::TransactionContext *txn) {
+GroupExpression *PropertyEnforcer::EnforceProperty(GroupExpression *gexpr, Property *property,
+                                                   transaction::TransactionContext *txn) {
   input_gexpr_ = gexpr;
   txn_ = txn;
   property->Accept(this);
