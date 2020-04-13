@@ -110,8 +110,8 @@ class DataTableBenchmark : public benchmark::Fixture {
       storage::ProjectedRowInitializer::Create(layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
 
   // Workload
-  const uint32_t num_inserts_ = 1000000;
-  const uint32_t num_reads_ = 1000000;
+  const uint32_t num_inserts_ = 50000000;
+  const uint32_t num_reads_ = 50000000;
   const uint64_t buffer_pool_reuse_limit_ = 10000000;
 
   // Test infrastructure
