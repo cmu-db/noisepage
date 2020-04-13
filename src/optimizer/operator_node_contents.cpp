@@ -8,8 +8,8 @@ namespace terrier::optimizer {
 
 Operator::Operator() noexcept = default;
 
-Operator::Operator(std::unique_ptr<BaseOperatorNodeContents> contents)
-    : AbstractOptimizerNodeContents(common::ManagedPointer<AbstractOptimizerNodeContents>(contents.release())) {}
+Operator::Operator(common::ManagedPointer<BaseOperatorNodeContents> contents)
+    : AbstractOptimizerNodeContents(contents.CastManagedPointerTo<AbstractOptimizerNodeContents>()) {}
 
 Operator::Operator(Operator &&o) noexcept : AbstractOptimizerNodeContents(o.contents_) {}
 

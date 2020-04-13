@@ -55,7 +55,7 @@ void LogicalInnerJoinCommutativity::Transform(common::ManagedPointer<AbstractOpt
   new_child.emplace_back(children[1]->Copy());
   new_child.emplace_back(children[0]->Copy());
 
-  auto result_plan = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates)),
+  auto result_plan = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates), context->GetOptimizerContext()->GetTxn()),
                                                     std::move(new_child), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(result_plan));
 }
@@ -139,7 +139,7 @@ void LogicalInnerJoinAssociativity::Transform(common::ManagedPointer<AbstractOpt
   child_children.emplace_back(middle->Copy());
   child_children.emplace_back(right->Copy());
   auto new_child_join =
-      std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(new_child_join_predicates)),
+      std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(new_child_join_predicates), context->GetOptimizerContext()->GetTxn()),
                                      std::move(child_children), context->GetOptimizerContext()->GetTxn());
 
   // Construct new parent join operator
@@ -147,7 +147,7 @@ void LogicalInnerJoinAssociativity::Transform(common::ManagedPointer<AbstractOpt
   parent_children.emplace_back(left->Copy());
   parent_children.emplace_back(std::move(new_child_join));
   auto new_parent_join =
-      std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(new_parent_join_predicates)),
+      std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(new_parent_join_predicates), context->GetOptimizerContext()->GetTxn()),
                                      std::move(parent_children), context->GetOptimizerContext()->GetTxn());
 
   transformed->emplace_back(std::move(new_parent_join));

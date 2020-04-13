@@ -7,6 +7,7 @@
 
 #include "common/managed_pointer.h"
 #include "optimizer/abstract_optimizer_node.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::optimizer {
 
@@ -19,7 +20,7 @@ class ExpressionNode : public AbstractOptimizerNode {
    * Constructor that wraps an ExpressionNode around a provided ExpressionNodeContents.
    * @param contents The contents to be wrapped
    */
-  explicit ExpressionNode(common::ManagedPointer<AbstractOptimizerNodeContents> contents) { contents_ = contents; }
+  explicit ExpressionNode(common::ManagedPointer<AbstractOptimizerNodeContents> contents, transaction::TransactionContext *txn) : contents_(contents), txn_(txn) {}
 
   /**
    * Create an ExpressionNode
@@ -42,7 +43,14 @@ class ExpressionNode : public AbstractOptimizerNode {
   std::vector<common::ManagedPointer<AbstractOptimizerNode>> GetChildren() const override {
     std::vector<common::ManagedPointer<AbstractOptimizerNode>> result;
     result.reserve(children_.size());
-    for (auto &i : children_) result.emplace_back(common::ManagedPointer(i->Copy().release()));
+    for (auto &i : children_) {
+      ExpressionNode *copy_node = reinterpret_cast<ExpressionNode *>(i->Copy().release());
+      if (txn_) {
+        txn_->RegisterCommitAction([=]() { delete copy_node; });
+        txn_->RegisterAbortAction([=]() { delete copy_node; });
+      }
+      result.emplace_back(common::ManagedPointer<AbstractOptimizerNode>(copy_node));
+    }
     return result;
   }
 
@@ -77,6 +85,11 @@ class ExpressionNode : public AbstractOptimizerNode {
    * vector of child nodes
    */
   std::vector<std::unique_ptr<AbstractOptimizerNode>> children_;
+
+  /**
+   * Transaction context for managing memory
+   */
+  common::ManagedPointer<transaction::TransactionContext> txn_;
 };
 
 }  // namespace terrier::optimizer

@@ -180,7 +180,7 @@ class Operator : public AbstractOptimizerNodeContents {
    * Create a new operator from a BaseOperatorNodeContents
    * @param contents a BaseOperatorNodeContents that specifies basic info about the operator to be created
    */
-  explicit Operator(std::unique_ptr<BaseOperatorNodeContents> contents);
+  explicit Operator(common::ManagedPointer<BaseOperatorNodeContents> contents);
 
   /**
    * Move constructor

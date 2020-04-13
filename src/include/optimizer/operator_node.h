@@ -23,8 +23,9 @@ class OperatorNode : public AbstractOptimizerNode {
    * @param children children of this OperatorNode
    */
   explicit OperatorNode(common::ManagedPointer<AbstractOptimizerNodeContents> contents,
-                        std::vector<std::unique_ptr<AbstractOptimizerNode>> &&children)
-      : contents_(contents), children_(std::move(children)) {}
+                        std::vector<std::unique_ptr<AbstractOptimizerNode>> &&children,
+                        transaction::TransactionContext *txn)
+      : contents_(contents), children_(std::move(children)), txn_(common::ManagedPointer(txn)) {}
 
   /**
    * Operator-based constructor for an OperatorNode
@@ -34,10 +35,14 @@ class OperatorNode : public AbstractOptimizerNode {
   explicit OperatorNode(Operator op, std::vector<std::unique_ptr<AbstractOptimizerNode>> &&children,
                         transaction::TransactionContext *txn)
       : contents_(common::ManagedPointer<AbstractOptimizerNodeContents>(new Operator(std::move(op)))),
-        children_(std::move(children)) {
-    txn->RegisterCommitAction([=]() { delete reinterpret_cast<Operator *>(contents_.Get()); });
-    txn->RegisterAbortAction([=]() { delete reinterpret_cast<Operator *>(contents_.Get()); });
+        children_(std::move(children)),
+        txn_(common::ManagedPointer(txn)) {
+    auto *op_node = reinterpret_cast<Operator *>(contents_.Get());
+    txn_->RegisterCommitAction([=]() { delete op_node; });
+    txn_->RegisterAbortAction([=]() { delete op_node; });
   }
+
+  ~OperatorNode() override = default;
 
   /**
    * Copy
@@ -50,7 +55,7 @@ class OperatorNode : public AbstractOptimizerNode {
 
       new_children.emplace_back(op->Copy());
     }
-    auto result = std::make_unique<OperatorNode>(contents_, std::move(new_children));
+    auto result = std::make_unique<OperatorNode>(contents_, std::move(new_children), txn_.Get());
     return std::move(result);
   }
 
@@ -104,7 +109,12 @@ class OperatorNode : public AbstractOptimizerNode {
     int count = 0;
 
     for (const std::unique_ptr<AbstractOptimizerNode> &i : children_) {
-      result.emplace_back(common::ManagedPointer(i->Copy().release()));
+      OperatorNode *copy_node = reinterpret_cast<OperatorNode *>(i->Copy().release());
+      result.emplace_back(common::ManagedPointer<AbstractOptimizerNode>(copy_node));
+      if (txn_) {
+        txn_->RegisterCommitAction([=]() { delete copy_node; });
+        txn_->RegisterAbortAction([=]() { delete copy_node; });
+      }
       count++;
     }
     return result;
@@ -131,6 +141,12 @@ class OperatorNode : public AbstractOptimizerNode {
    * Vector of children
    */
   std::vector<std::unique_ptr<AbstractOptimizerNode>> children_;
+
+  /**
+   * Transaction context for managing memory, both in terms of eventually freeing the on-the-fly operators created
+   * and for eventually freeing copies made of this node.
+   */
+   common::ManagedPointer<transaction::TransactionContext> txn_;
 };
 
 }  // namespace terrier::optimizer

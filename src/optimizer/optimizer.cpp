@@ -105,7 +105,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   }
 
   // Derive root plan
-  auto *op = new OperatorNode(gexpr->Contents(), {});
+  auto *op = new OperatorNode(gexpr->Contents(), {}, txn);
 
   PlanGenerator generator;
   auto plan = generator.ConvertOpNode(txn, accessor, op, required_props, required_cols, output_cols,

@@ -407,7 +407,7 @@ void TopDownRewrite::Execute() {
       TERRIER_ASSERT(after.size() <= 1, "rule provided too many transformations");
       if (!after.empty()) {
         auto &new_expr = after[0];
-        context_->GetOptimizerContext()->ReplaceRewriteExpression(common::ManagedPointer(new_expr.release()),
+        context_->GetOptimizerContext()->ReplaceRewriteExpression(common::ManagedPointer(new_expr.get()),
                                                                   group_id_);
         PushTask(new TopDownRewrite(group_id_, context_, rule_set_name_));
         return;

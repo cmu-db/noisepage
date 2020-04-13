@@ -56,7 +56,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
   } else {
     // SELECT without FROM
     output_expr_ = std::make_unique<OperatorNode>(
-        LogicalGet::Make(), std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
+        LogicalGet::Make(accessor_->GetTxn().Get()), std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
   }
 
   if (op->GetSelectCondition() != nullptr) {
@@ -65,7 +65,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
   }
 
   if (!predicates_.empty()) {
-    auto filter_expr = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(predicates_)),
+    auto filter_expr = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(predicates_), accessor_->GetTxn().Get()),
                                                       std::vector<std::unique_ptr<AbstractOptimizerNode>>{},
                                                       accessor_->GetTxn().Get());
     filter_expr->PushChild(std::move(output_expr_));
@@ -79,7 +79,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
     std::unique_ptr<OperatorNode> agg_expr;
     if (op->GetSelectGroupBy() == nullptr) {
       // TODO(boweic): aggregation without groupby could still have having clause
-      agg_expr = std::make_unique<OperatorNode>(LogicalAggregateAndGroupBy::Make(),
+      agg_expr = std::make_unique<OperatorNode>(LogicalAggregateAndGroupBy::Make(accessor_->GetTxn().Get()),
                                                 std::vector<std::unique_ptr<AbstractOptimizerNode>>{},
                                                 accessor_->GetTxn().Get());
       agg_expr->PushChild(std::move(output_expr_));
@@ -90,7 +90,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       for (size_t i = 0; i < num_group_by_cols; i++) {
         group_by_cols[i] = common::ManagedPointer<parser::AbstractExpression>(op->GetSelectGroupBy()->GetColumns()[i]);
       }
-      agg_expr = std::make_unique<OperatorNode>(LogicalAggregateAndGroupBy::Make(std::move(group_by_cols)),
+      agg_expr = std::make_unique<OperatorNode>(LogicalAggregateAndGroupBy::Make(std::move(group_by_cols), accessor_->GetTxn().Get()),
                                                 std::vector<std::unique_ptr<AbstractOptimizerNode>>{},
                                                 accessor_->GetTxn().Get());
       agg_expr->PushChild(std::move(output_expr_));
@@ -101,7 +101,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
         CollectPredicates(op->GetSelectGroupBy()->GetHaving(), sherpa, &having);
       }
       if (!having.empty()) {
-        auto filter_expr = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(having)),
+        auto filter_expr = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(having), accessor_->GetTxn().Get()),
                                                           std::vector<std::unique_ptr<AbstractOptimizerNode>>{},
                                                           accessor_->GetTxn().Get());
         filter_expr->PushChild(std::move(output_expr_));
@@ -119,7 +119,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
 
     std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
     c.emplace_back(std::move(output_expr_));
-    output_expr_ = std::make_unique<OperatorNode>(LogicalAggregateAndGroupBy::Make(std::move(group_by_cols)),
+    output_expr_ = std::make_unique<OperatorNode>(LogicalAggregateAndGroupBy::Make(std::move(group_by_cols), accessor_->GetTxn().Get()),
                                                   std::move(c), accessor_->GetTxn().Get());
   }
 
@@ -142,7 +142,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
     }
     auto limit_expr = std::make_unique<OperatorNode>(
         LogicalLimit::Make(std::max(op->GetSelectLimit()->GetOffset(), static_cast<int64_t>(0)),
-                           op->GetSelectLimit()->GetLimit(), std::move(sort_exprs), std::move(sort_direction)),
+                           op->GetSelectLimit()->GetLimit(), std::move(sort_exprs), std::move(sort_direction), accessor_->GetTxn().Get()),
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
     limit_expr->PushChild(std::move(output_expr_));
     output_expr_ = std::move(limit_expr);
@@ -168,7 +168,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::JoinDefini
   CollectPredicates(node->GetJoinCondition(), sherpa, &join_predicates);
   switch (node->GetJoinType()) {
     case parser::JoinType::INNER: {
-      join_expr = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates)),
+      join_expr = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates), accessor_->GetTxn().Get()),
                                                  std::vector<std::unique_ptr<AbstractOptimizerNode>>{},
                                                  accessor_->GetTxn().Get());
       join_expr->PushChild(std::move(left_expr));
@@ -176,7 +176,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::JoinDefini
       break;
     }
     case parser::JoinType::OUTER: {
-      join_expr = std::make_unique<OperatorNode>(LogicalOuterJoin::Make(std::move(join_predicates)),
+      join_expr = std::make_unique<OperatorNode>(LogicalOuterJoin::Make(std::move(join_predicates), accessor_->GetTxn().Get()),
                                                  std::vector<std::unique_ptr<AbstractOptimizerNode>>{},
                                                  accessor_->GetTxn().Get());
       join_expr->PushChild(std::move(left_expr));
@@ -184,7 +184,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::JoinDefini
       break;
     }
     case parser::JoinType::LEFT: {
-      join_expr = std::make_unique<OperatorNode>(LogicalLeftJoin::Make(std::move(join_predicates)),
+      join_expr = std::make_unique<OperatorNode>(LogicalLeftJoin::Make(std::move(join_predicates), accessor_->GetTxn().Get()),
                                                  std::vector<std::unique_ptr<AbstractOptimizerNode>>{},
                                                  accessor_->GetTxn().Get());
       join_expr->PushChild(std::move(left_expr));
@@ -192,7 +192,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::JoinDefini
       break;
     }
     case parser::JoinType::RIGHT: {
-      join_expr = std::make_unique<OperatorNode>(LogicalRightJoin::Make(std::move(join_predicates)),
+      join_expr = std::make_unique<OperatorNode>(LogicalRightJoin::Make(std::move(join_predicates), accessor_->GetTxn().Get()),
                                                  std::vector<std::unique_ptr<AbstractOptimizerNode>>{},
                                                  accessor_->GetTxn().Get());
       join_expr->PushChild(std::move(left_expr));
@@ -200,7 +200,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::JoinDefini
       break;
     }
     case parser::JoinType::SEMI: {
-      join_expr = std::make_unique<OperatorNode>(LogicalSemiJoin::Make(std::move(join_predicates)),
+      join_expr = std::make_unique<OperatorNode>(LogicalSemiJoin::Make(std::move(join_predicates), accessor_->GetTxn().Get()),
                                                  std::vector<std::unique_ptr<AbstractOptimizerNode>>{},
                                                  accessor_->GetTxn().Get());
       join_expr->PushChild(std::move(left_expr));
@@ -232,7 +232,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
 
     auto child_expr = std::move(output_expr_);
     output_expr_ = std::make_unique<OperatorNode>(
-        LogicalQueryDerivedGet::Make(table_alias, std::move(alias_to_expr_map)),
+        LogicalQueryDerivedGet::Make(table_alias, std::move(alias_to_expr_map), accessor_->GetTxn().Get()),
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
     output_expr_->PushChild(std::move(child_expr));
   } else if (node->GetJoin() != nullptr) {
@@ -250,7 +250,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
 
       list_elem->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
       auto join_expr = std::make_unique<OperatorNode>(
-          LogicalInnerJoin::Make(), std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
+          LogicalInnerJoin::Make(accessor_->GetTxn().Get()), std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
       join_expr->PushChild(std::move(prev_expr));
       join_expr->PushChild(std::move(output_expr_));
       TERRIER_ASSERT(join_expr->GetChildren().size() == 2, "The join expr should have exactly 2 elements");
@@ -264,7 +264,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
     // TODO(Ling): how should we determine the value of `is_for_update` field of logicalGet constructor?
     output_expr_ = std::make_unique<OperatorNode>(
         LogicalGet::Make(db_oid_, accessor_->GetDefaultNamespace(), accessor_->GetTableOid(node->GetTableName()), {},
-                         node->GetAlias(), false),
+                         node->GetAlias(), false, accessor_->GetTxn().Get()),
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
   }
 }
@@ -296,7 +296,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CreateFunc
       LogicalCreateFunction::Make(catalog::INVALID_DATABASE_OID, accessor_->GetDefaultNamespace(), op->GetFuncName(),
                                   op->GetPLType(), op->GetFuncBody(), std::move(function_param_names),
                                   std::move(function_param_types), op->GetFuncReturnType()->GetDataType(),
-                                  op->GetFuncParameters().size(), op->ShouldReplace()),
+                                  op->GetFuncParameters().size(), op->ShouldReplace(), accessor_->GetTxn().Get()),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
   output_expr_ = std::move(create_expr);
 }
@@ -308,14 +308,14 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CreateStat
   std::unique_ptr<OperatorNode> create_expr;
   switch (create_type) {
     case parser::CreateStatement::CreateType::kDatabase:
-      create_expr = std::make_unique<OperatorNode>(LogicalCreateDatabase::Make(op->GetDatabaseName()),
+      create_expr = std::make_unique<OperatorNode>(LogicalCreateDatabase::Make(op->GetDatabaseName(), accessor_->GetTxn().Get()),
                                                    std::vector<std::unique_ptr<AbstractOptimizerNode>>{},
                                                    accessor_->GetTxn().Get());
       break;
     case parser::CreateStatement::CreateType::kTable:
       create_expr = std::make_unique<OperatorNode>(
           LogicalCreateTable::Make(accessor_->GetNamespaceOid(op->GetNamespaceName()), op->GetTableName(),
-                                   op->GetColumns(), op->GetForeignKeys()),
+                                   op->GetColumns(), op->GetForeignKeys(), accessor_->GetTxn().Get()),
           std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
       // TODO(Ling): for other procedures to generate create table plan, refer to create_table_plan_node builder.
       //  Following part might be more adequate to be handled by optimizer when it it actually constructing the plan
@@ -344,7 +344,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CreateStat
       }
       create_expr = std::make_unique<OperatorNode>(
           LogicalCreateIndex::Make(accessor_->GetDefaultNamespace(), accessor_->GetTableOid(op->GetTableName()),
-                                   op->GetIndexType(), op->IsUniqueIndex(), op->GetIndexName(), std::move(entries)),
+                                   op->GetIndexType(), op->IsUniqueIndex(), op->GetIndexName(), std::move(entries), accessor_->GetTxn().Get()),
           std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
       break;
     }
@@ -357,19 +357,19 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CreateStat
 
           LogicalCreateTrigger::Make(db_oid_, accessor_->GetDefaultNamespace(), tb_oid, op->GetTriggerName(),
                                      op->GetTriggerFuncNames(), op->GetTriggerArgs(), std::move(trigger_columns),
-                                     op->GetTriggerWhen(), op->GetTriggerType()),
+                                     op->GetTriggerWhen(), op->GetTriggerType(), accessor_->GetTxn().Get()),
           std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
       break;
     }
     case parser::CreateStatement::CreateType::kSchema:
-      create_expr = std::make_unique<OperatorNode>(LogicalCreateNamespace::Make(op->GetNamespaceName()),
+      create_expr = std::make_unique<OperatorNode>(LogicalCreateNamespace::Make(op->GetNamespaceName(), accessor_->GetTxn().Get()),
                                                    std::vector<std::unique_ptr<AbstractOptimizerNode>>{},
                                                    accessor_->GetTxn().Get());
       break;
     case parser::CreateStatement::CreateType::kView:
       create_expr = std::make_unique<OperatorNode>(
 
-          LogicalCreateView::Make(db_oid_, accessor_->GetDefaultNamespace(), op->GetViewName(), op->GetViewQuery()),
+          LogicalCreateView::Make(db_oid_, accessor_->GetDefaultNamespace(), op->GetViewName(), op->GetViewQuery(), accessor_->GetTxn().Get()),
           std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
       break;
   }
@@ -386,7 +386,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::InsertStat
 
   if (op->GetInsertType() == parser::InsertType::SELECT) {
     auto insert_expr = std::make_unique<OperatorNode>(
-        LogicalInsertSelect::Make(target_db_id, target_ns_id, target_table_id),
+        LogicalInsertSelect::Make(target_db_id, target_ns_id, target_table_id, accessor_->GetTxn().Get()),
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
     op->GetSelect()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
     insert_expr->PushChild(std::move(output_expr_));
@@ -456,7 +456,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::InsertStat
   }
 
   auto insert_expr = std::make_unique<OperatorNode>(
-      LogicalInsert::Make(target_db_id, target_ns_id, target_table_id, std::move(col_ids), op->GetValues()),
+      LogicalInsert::Make(target_db_id, target_ns_id, target_table_id, std::move(col_ids), op->GetValues(), accessor_->GetTxn().Get()),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
   output_expr_ = std::move(insert_expr);
 }
@@ -472,7 +472,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DeleteStat
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto delete_expr = std::make_unique<OperatorNode>(
-      LogicalDelete::Make(target_db_id, target_ns_id, target_table_alias, target_table_id), std::move(c),
+      LogicalDelete::Make(target_db_id, target_ns_id, target_table_alias, target_table_id, accessor_->GetTxn().Get()), std::move(c),
       accessor_->GetTxn().Get());
 
   std::unique_ptr<OperatorNode> table_scan;
@@ -480,11 +480,11 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DeleteStat
     std::vector<AnnotatedExpression> predicates;
     QueryToOperatorTransformer::ExtractPredicates(op->GetDeleteCondition(), &predicates);
     table_scan = std::make_unique<OperatorNode>(
-        LogicalGet::Make(target_db_id, target_ns_id, target_table_id, predicates, target_table_alias, true),
+        LogicalGet::Make(target_db_id, target_ns_id, target_table_id, predicates, target_table_alias, true, accessor_->GetTxn().Get()),
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
   } else {
     table_scan = std::make_unique<OperatorNode>(
-        LogicalGet::Make(target_db_id, target_ns_id, target_table_id, {}, target_table_alias, true),
+        LogicalGet::Make(target_db_id, target_ns_id, target_table_id, {}, target_table_alias, true, accessor_->GetTxn().Get()),
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
   }
   delete_expr->PushChild(std::move(table_scan));
@@ -500,23 +500,23 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DropStatem
   switch (drop_type) {
     case parser::DropStatement::DropType::kDatabase:
 
-      drop_expr = std::make_unique<OperatorNode>(LogicalDropDatabase::Make(db_oid_),
+      drop_expr = std::make_unique<OperatorNode>(LogicalDropDatabase::Make(db_oid_, accessor_->GetTxn().Get()),
                                                  std::vector<std::unique_ptr<AbstractOptimizerNode>>{},
                                                  accessor_->GetTxn().Get());
       break;
     case parser::DropStatement::DropType::kTable:
-      drop_expr = std::make_unique<OperatorNode>(LogicalDropTable::Make(accessor_->GetTableOid(op->GetTableName())),
+      drop_expr = std::make_unique<OperatorNode>(LogicalDropTable::Make(accessor_->GetTableOid(op->GetTableName()), accessor_->GetTxn().Get()),
                                                  std::vector<std::unique_ptr<AbstractOptimizerNode>>{},
                                                  accessor_->GetTxn().Get());
       break;
     case parser::DropStatement::DropType::kIndex:
-      drop_expr = std::make_unique<OperatorNode>(LogicalDropIndex::Make(accessor_->GetIndexOid(op->GetIndexName())),
+      drop_expr = std::make_unique<OperatorNode>(LogicalDropIndex::Make(accessor_->GetIndexOid(op->GetIndexName()), accessor_->GetTxn().Get()),
                                                  std::vector<std::unique_ptr<AbstractOptimizerNode>>{},
                                                  accessor_->GetTxn().Get());
       break;
     case parser::DropStatement::DropType::kSchema:
       drop_expr = std::make_unique<OperatorNode>(
-          LogicalDropNamespace::Make(accessor_->GetNamespaceOid(op->GetNamespaceName())),
+          LogicalDropNamespace::Make(accessor_->GetNamespaceOid(op->GetNamespaceName()), accessor_->GetTxn().Get()),
           std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
       break;
     case parser::DropStatement::DropType::kTrigger:
@@ -553,18 +553,18 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::UpdateStat
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto update_expr = std::make_unique<OperatorNode>(
-      LogicalUpdate::Make(target_db_id, target_ns_id, target_table_alias, target_table_id, op->GetUpdateClauses()),
+      LogicalUpdate::Make(target_db_id, target_ns_id, target_table_alias, target_table_id, op->GetUpdateClauses(), accessor_->GetTxn().Get()),
       std::move(c), accessor_->GetTxn().Get());
 
   if (op->GetUpdateCondition() != nullptr) {
     std::vector<AnnotatedExpression> predicates;
     QueryToOperatorTransformer::ExtractPredicates(op->GetUpdateCondition(), &predicates);
     table_scan = std::make_unique<OperatorNode>(
-        LogicalGet::Make(target_db_id, target_ns_id, target_table_id, predicates, target_table_alias, true),
+        LogicalGet::Make(target_db_id, target_ns_id, target_table_id, predicates, target_table_alias, true, accessor_->GetTxn().Get()),
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
   } else {
     table_scan = std::make_unique<OperatorNode>(
-        LogicalGet::Make(target_db_id, target_ns_id, target_table_id, {}, target_table_alias, true),
+        LogicalGet::Make(target_db_id, target_ns_id, target_table_id, {}, target_table_alias, true, accessor_->GetTxn().Get()),
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
   }
   update_expr->PushChild(std::move(table_scan));
@@ -581,14 +581,14 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CopyStatem
     // as the root.
     auto get_op = std::make_unique<OperatorNode>(
         LogicalExternalFileGet::Make(op->GetExternalFileFormat(), op->GetFilePath(), op->GetDelimiter(),
-                                     op->GetQuoteChar(), op->GetEscapeChar()),
+                                     op->GetQuoteChar(), op->GetEscapeChar(), accessor_->GetTxn().Get()),
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
 
     auto target_table = op->GetCopyTable();
 
     auto insert_op = std::make_unique<OperatorNode>(
         LogicalInsertSelect::Make(db_oid_, accessor_->GetDefaultNamespace(),
-                                  accessor_->GetTableOid(target_table->GetTableName())),
+                                  accessor_->GetTableOid(target_table->GetTableName()), accessor_->GetTxn().Get()),
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
     insert_op->PushChild(std::move(get_op));
     output_expr_ = std::move(insert_op);
@@ -601,7 +601,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CopyStatem
     }
     auto export_op = std::make_unique<OperatorNode>(
         LogicalExportExternalFile::Make(op->GetExternalFileFormat(), op->GetFilePath(), op->GetDelimiter(),
-                                        op->GetQuoteChar(), op->GetEscapeChar()),
+                                        op->GetQuoteChar(), op->GetEscapeChar(), accessor_->GetTxn().Get()),
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
     export_op->PushChild(std::move(output_expr_));
 
@@ -618,7 +618,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::AnalyzeSta
   for (const auto &col : *(op->GetColumns())) columns.emplace_back(schema.GetColumn(col).Oid());
   auto analyze_expr = std::make_unique<OperatorNode>(
       LogicalAnalyze::Make(accessor_->GetDatabaseOid(op->GetAnalyzeTable()->GetDatabaseName()), tb_oid,
-                           std::move(columns)),
+                           std::move(columns), accessor_->GetTxn().Get()),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
   output_expr_ = std::move(analyze_expr);
 }
@@ -791,11 +791,11 @@ bool QueryToOperatorTransformer::GenerateSubqueryTree(common::ManagedPointer<par
   std::unique_ptr<OperatorNode> op_expr;
   if (single_join) {
     op_expr = std::make_unique<OperatorNode>(
-        LogicalSingleJoin::Make(), std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
+        LogicalSingleJoin::Make(accessor_->GetTxn().Get()), std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
     op_expr->PushChild(std::move(output_expr_));
   } else {
     op_expr = std::make_unique<OperatorNode>(
-        LogicalMarkJoin::Make(), std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
+        LogicalMarkJoin::Make(accessor_->GetTxn().Get()), std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, accessor_->GetTxn().Get());
     op_expr->PushChild(std::move(output_expr_));
   }
 

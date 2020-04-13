@@ -15,10 +15,14 @@ namespace terrier::optimizer {
 
 BaseOperatorNodeContents *LeafOperator::Copy() const { return new LeafOperator(*this); }
 
-Operator LeafOperator::Make(group_id_t group) {
-  auto leaf = std::make_unique<LeafOperator>();
+Operator LeafOperator::Make(group_id_t group, transaction::TransactionContext *txn) {
+  auto *leaf = new LeafOperator();
   leaf->origin_group_ = group;
-  return Operator(std::move(leaf));
+  if (txn) {
+    txn->RegisterCommitAction([=](){ delete leaf; });
+    txn->RegisterAbortAction([=](){ delete leaf; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(leaf));
 }
 
 common::hash_t LeafOperator::Hash() const {
@@ -40,24 +44,32 @@ BaseOperatorNodeContents *LogicalGet::Copy() const { return new LogicalGet(*this
 
 Operator LogicalGet::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                           catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> predicates,
-                          std::string table_alias, bool is_for_update) {
-  auto get = std::make_unique<LogicalGet>();
+                          std::string table_alias, bool is_for_update, transaction::TransactionContext *txn) {
+  auto *get = new LogicalGet();
   get->database_oid_ = database_oid;
   get->namespace_oid_ = namespace_oid;
   get->table_oid_ = table_oid;
   get->predicates_ = std::move(predicates);
   get->table_alias_ = std::move(table_alias);
   get->is_for_update_ = is_for_update;
-  return Operator(std::move(get));
+  if (txn) {
+    txn->RegisterCommitAction([=](){ delete get; });
+    txn->RegisterAbortAction([=](){ delete get; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(get));
 }
 
-Operator LogicalGet::Make() {
-  auto get = std::make_unique<LogicalGet>();
+Operator LogicalGet::Make(transaction::TransactionContext *txn) {
+  auto get = new LogicalGet();
   get->database_oid_ = catalog::INVALID_DATABASE_OID;
   get->namespace_oid_ = catalog::INVALID_NAMESPACE_OID;
   get->table_oid_ = catalog::INVALID_TABLE_OID;
   get->is_for_update_ = false;
-  return Operator(std::move(get));
+  if (txn) {
+    txn->RegisterCommitAction([=](){ delete get; });
+    txn->RegisterAbortAction([=](){ delete get; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(get));
 }
 
 common::hash_t LogicalGet::Hash() const {
@@ -91,14 +103,18 @@ bool LogicalGet::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *LogicalExternalFileGet::Copy() const { return new LogicalExternalFileGet(*this); }
 
 Operator LogicalExternalFileGet::Make(parser::ExternalFileFormat format, std::string file_name, char delimiter,
-                                      char quote, char escape) {
-  auto get = std::make_unique<LogicalExternalFileGet>();
+                                      char quote, char escape, transaction::TransactionContext *txn) {
+  auto get = new LogicalExternalFileGet();
   get->format_ = format;
   get->file_name_ = std::move(file_name);
   get->delimiter_ = delimiter;
   get->quote_ = quote;
   get->escape_ = escape;
-  return Operator(std::move(get));
+  if (txn) {
+    txn->RegisterCommitAction([=](){ delete get; });
+    txn->RegisterAbortAction([=](){ delete get; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(get));
 }
 
 bool LogicalExternalFileGet::operator==(const BaseOperatorNodeContents &r) {
@@ -125,11 +141,16 @@ BaseOperatorNodeContents *LogicalQueryDerivedGet::Copy() const { return new Logi
 
 Operator LogicalQueryDerivedGet::Make(
     std::string table_alias,
-    std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map) {
-  auto get = std::make_unique<LogicalQueryDerivedGet>();
+    std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map,
+    transaction::TransactionContext *txn) {
+  auto *get = new LogicalQueryDerivedGet();
   get->table_alias_ = std::move(table_alias);
   get->alias_to_expr_map_ = std::move(alias_to_expr_map);
-  return Operator(std::move(get));
+  if (txn) {
+    txn->RegisterCommitAction([=](){ delete get; });
+    txn->RegisterAbortAction([=](){ delete get; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(get));
 }
 
 bool LogicalQueryDerivedGet::operator==(const BaseOperatorNodeContents &r) {
@@ -154,10 +175,14 @@ common::hash_t LogicalQueryDerivedGet::Hash() const {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalFilter::Copy() const { return new LogicalFilter(*this); }
 
-Operator LogicalFilter::Make(std::vector<AnnotatedExpression> &&predicates) {
-  auto op = std::make_unique<LogicalFilter>();
+Operator LogicalFilter::Make(std::vector<AnnotatedExpression> &&predicates, transaction::TransactionContext *txn) {
+  auto *op = new LogicalFilter();
   op->predicates_ = std::move(predicates);
-  return Operator(std::move(op));
+  if (txn) {
+    txn->RegisterCommitAction([=](){ delete op; });
+    txn->RegisterAbortAction([=](){ delete op; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 bool LogicalFilter::operator==(const BaseOperatorNodeContents &r) {
@@ -189,10 +214,14 @@ common::hash_t LogicalFilter::Hash() const {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalProjection::Copy() const { return new LogicalProjection(*this); }
 
-Operator LogicalProjection::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&expressions) {
-  auto op = std::make_unique<LogicalProjection>();
+Operator LogicalProjection::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&expressions, transaction::TransactionContext *txn) {
+  auto *op = new LogicalProjection();
   op->expressions_ = std::move(expressions);
-  return Operator(std::move(op));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete op; });
+    txn->RegisterAbortAction([=]() { delete op; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 bool LogicalProjection::operator==(const BaseOperatorNodeContents &r) {
@@ -218,7 +247,8 @@ BaseOperatorNodeContents *LogicalInsert::Copy() const { return new LogicalInsert
 Operator LogicalInsert::Make(
     catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
     std::vector<catalog::col_oid_t> &&columns,
-    common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values) {
+    common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values,
+    transaction::TransactionContext *txn) {
 #ifndef NDEBUG
   // We need to check whether the number of values for each insert vector
   // matches the number of columns
@@ -227,13 +257,17 @@ Operator LogicalInsert::Make(
   }
 #endif
 
-  auto op = std::make_unique<LogicalInsert>();
+  auto *op = new LogicalInsert();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
   op->columns_ = std::move(columns);
   op->values_ = values;
-  return Operator(std::move(op));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete op; });
+    txn->RegisterAbortAction([=]() { delete op; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t LogicalInsert::Hash() const {
@@ -268,12 +302,16 @@ bool LogicalInsert::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *LogicalInsertSelect::Copy() const { return new LogicalInsertSelect(*this); }
 
 Operator LogicalInsertSelect::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                                   catalog::table_oid_t table_oid) {
-  auto op = std::make_unique<LogicalInsertSelect>();
+                                   catalog::table_oid_t table_oid, transaction::TransactionContext *txn) {
+  auto *op = new LogicalInsertSelect();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
-  return Operator(std::move(op));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete op; });
+    txn->RegisterAbortAction([=]() { delete op; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t LogicalInsertSelect::Hash() const {
@@ -300,14 +338,18 @@ BaseOperatorNodeContents *LogicalLimit::Copy() const { return new LogicalLimit(*
 
 Operator LogicalLimit::Make(size_t offset, size_t limit,
                             std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
-                            std::vector<optimizer::OrderByOrderingType> &&sort_directions) {
+                            std::vector<optimizer::OrderByOrderingType> &&sort_directions, transaction::TransactionContext *txn) {
   TERRIER_ASSERT(sort_exprs.size() == sort_directions.size(), "Mismatched ORDER BY expressions + directions");
-  auto op = std::make_unique<LogicalLimit>();
+  auto *op = new LogicalLimit();
   op->offset_ = offset;
   op->limit_ = limit;
   op->sort_exprs_ = sort_exprs;
   op->sort_directions_ = std::move(sort_directions);
-  return Operator(std::move(op));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete op; });
+    txn->RegisterAbortAction([=]() { delete op; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 bool LogicalLimit::operator==(const BaseOperatorNodeContents &r) {
@@ -335,13 +377,17 @@ common::hash_t LogicalLimit::Hash() const {
 BaseOperatorNodeContents *LogicalDelete::Copy() const { return new LogicalDelete(*this); }
 
 Operator LogicalDelete::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                             std::string table_alias, catalog::table_oid_t table_oid) {
-  auto op = std::make_unique<LogicalDelete>();
+                             std::string table_alias, catalog::table_oid_t table_oid, transaction::TransactionContext *txn) {
+  auto *op = new LogicalDelete();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->table_alias_ = std::move(table_alias);
   op->table_oid_ = table_oid;
-  return Operator(std::move(op));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete op; });
+    txn->RegisterAbortAction([=]() { delete op; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t LogicalDelete::Hash() const {
@@ -369,14 +415,18 @@ BaseOperatorNodeContents *LogicalUpdate::Copy() const { return new LogicalUpdate
 
 Operator LogicalUpdate::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                              std::string table_alias, catalog::table_oid_t table_oid,
-                             std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates) {
-  auto op = std::make_unique<LogicalUpdate>();
+                             std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates, transaction::TransactionContext *txn) {
+  auto *op = new LogicalUpdate();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->table_alias_ = std::move(table_alias);
   op->table_oid_ = table_oid;
   op->updates_ = std::move(updates);
-  return Operator(std::move(op));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete op; });
+    txn->RegisterAbortAction([=]() { delete op; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t LogicalUpdate::Hash() const {
@@ -411,14 +461,18 @@ bool LogicalUpdate::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *LogicalExportExternalFile::Copy() const { return new LogicalExportExternalFile(*this); }
 
 Operator LogicalExportExternalFile::Make(parser::ExternalFileFormat format, std::string file_name, char delimiter,
-                                         char quote, char escape) {
-  auto op = std::make_unique<LogicalExportExternalFile>();
+                                         char quote, char escape, transaction::TransactionContext *txn) {
+  auto *op = new LogicalExportExternalFile();
   op->format_ = format;
   op->file_name_ = std::move(file_name);
   op->delimiter_ = delimiter;
   op->quote_ = quote;
   op->escape_ = escape;
-  return Operator(std::move(op));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete op; });
+    txn->RegisterAbortAction([=]() { delete op; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t LogicalExportExternalFile::Hash() const {
@@ -447,12 +501,23 @@ bool LogicalExportExternalFile::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalDependentJoin::Copy() const { return new LogicalDependentJoin(*this); }
 
-Operator LogicalDependentJoin::Make() { return Operator(std::make_unique<LogicalDependentJoin>()); }
+Operator LogicalDependentJoin::Make(transaction::TransactionContext *txn) {
+  auto *join = new LogicalDependentJoin();
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete join; });
+    txn->RegisterAbortAction([=]() { delete join; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
+}
 
-Operator LogicalDependentJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto join = std::make_unique<LogicalDependentJoin>();
+Operator LogicalDependentJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn) {
+  auto *join = new LogicalDependentJoin();
   join->join_predicates_ = std::move(join_predicates);
-  return Operator(std::move(join));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete join; });
+    txn->RegisterAbortAction([=]() { delete join; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
 common::hash_t LogicalDependentJoin::Hash() const {
@@ -479,12 +544,23 @@ bool LogicalDependentJoin::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalMarkJoin::Copy() const { return new LogicalMarkJoin(*this); }
 
-Operator LogicalMarkJoin::Make() { return Operator(std::make_unique<LogicalMarkJoin>()); }
+Operator LogicalMarkJoin::Make(transaction::TransactionContext *txn) {
+  auto *join = new LogicalMarkJoin();
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete join; });
+    txn->RegisterAbortAction([=]() { delete join; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
+}
 
-Operator LogicalMarkJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto join = std::make_unique<LogicalMarkJoin>();
+Operator LogicalMarkJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn) {
+  auto *join = new LogicalMarkJoin();
   join->join_predicates_ = join_predicates;
-  return Operator(std::move(join));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete join; });
+    txn->RegisterAbortAction([=]() { delete join; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
 common::hash_t LogicalMarkJoin::Hash() const {
@@ -511,12 +587,23 @@ bool LogicalMarkJoin::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalSingleJoin::Copy() const { return new LogicalSingleJoin(*this); }
 
-Operator LogicalSingleJoin::Make() { return Operator(std::make_unique<LogicalSingleJoin>()); }
+Operator LogicalSingleJoin::Make(transaction::TransactionContext *txn) {
+  auto *join = new LogicalSingleJoin();
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete join; });
+    txn->RegisterAbortAction([=]() { delete join; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
+}
 
-Operator LogicalSingleJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto join = std::make_unique<LogicalSingleJoin>();
+Operator LogicalSingleJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn) {
+  auto *join = new LogicalSingleJoin();
   join->join_predicates_ = join_predicates;
-  return Operator(std::move(join));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete join; });
+    txn->RegisterAbortAction([=]() { delete join; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
 common::hash_t LogicalSingleJoin::Hash() const {
@@ -543,12 +630,23 @@ bool LogicalSingleJoin::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalInnerJoin::Copy() const { return new LogicalInnerJoin(*this); }
 
-Operator LogicalInnerJoin::Make() { return Operator(std::make_unique<LogicalInnerJoin>()); }
+Operator LogicalInnerJoin::Make(transaction::TransactionContext *txn) {
+  auto *join = new LogicalInnerJoin();
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete join; });
+    txn->RegisterAbortAction([=]() { delete join; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
+}
 
-Operator LogicalInnerJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto join = std::make_unique<LogicalInnerJoin>();
+Operator LogicalInnerJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn) {
+  auto *join = new LogicalInnerJoin();
   join->join_predicates_ = join_predicates;
-  return Operator(std::move(join));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete join; });
+    txn->RegisterAbortAction([=]() { delete join; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
 common::hash_t LogicalInnerJoin::Hash() const {
@@ -575,12 +673,23 @@ bool LogicalInnerJoin::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalLeftJoin::Copy() const { return new LogicalLeftJoin(*this); }
 
-Operator LogicalLeftJoin::Make() { return Operator(std::make_unique<LogicalLeftJoin>()); }
+Operator LogicalLeftJoin::Make(transaction::TransactionContext *txn) {
+  auto *join= new LogicalLeftJoin();
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete join; });
+    txn->RegisterAbortAction([=]() { delete join; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
+}
 
-Operator LogicalLeftJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto join = std::make_unique<LogicalLeftJoin>();
+Operator LogicalLeftJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn) {
+  auto *join = new LogicalLeftJoin();
   join->join_predicates_ = join_predicates;
-  return Operator(std::move(join));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete join; });
+    txn->RegisterAbortAction([=]() { delete join; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
 common::hash_t LogicalLeftJoin::Hash() const {
@@ -607,12 +716,23 @@ bool LogicalLeftJoin::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalRightJoin::Copy() const { return new LogicalRightJoin(*this); }
 
-Operator LogicalRightJoin::Make() { return Operator(std::make_unique<LogicalRightJoin>()); }
+Operator LogicalRightJoin::Make(transaction::TransactionContext *txn) {
+  auto *join = new LogicalRightJoin();
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete join; });
+    txn->RegisterAbortAction([=]() { delete join; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
+}
 
-Operator LogicalRightJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto join = std::make_unique<LogicalRightJoin>();
+Operator LogicalRightJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn) {
+  auto *join = new LogicalRightJoin();
   join->join_predicates_ = join_predicates;
-  return Operator(std::move(join));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete join; });
+    txn->RegisterAbortAction([=]() { delete join; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
 common::hash_t LogicalRightJoin::Hash() const {
@@ -639,12 +759,23 @@ bool LogicalRightJoin::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalOuterJoin::Copy() const { return new LogicalOuterJoin(*this); }
 
-Operator LogicalOuterJoin::Make() { return Operator(std::make_unique<LogicalOuterJoin>()); }
+Operator LogicalOuterJoin::Make(transaction::TransactionContext *txn) {
+  auto *join = new LogicalOuterJoin();
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete join; });
+    txn->RegisterAbortAction([=]() { delete join; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
+}
 
-Operator LogicalOuterJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto join = std::make_unique<LogicalOuterJoin>();
+Operator LogicalOuterJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn) {
+  auto *join = new LogicalOuterJoin();
   join->join_predicates_ = join_predicates;
-  return Operator(std::move(join));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete join; });
+    txn->RegisterAbortAction([=]() { delete join; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
 common::hash_t LogicalOuterJoin::Hash() const {
@@ -671,12 +802,23 @@ bool LogicalOuterJoin::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalSemiJoin::Copy() const { return new LogicalSemiJoin(*this); }
 
-Operator LogicalSemiJoin::Make() { return Operator(std::make_unique<LogicalSemiJoin>()); }
+Operator LogicalSemiJoin::Make(transaction::TransactionContext *txn) {
+  auto *join = new LogicalSemiJoin();
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete join; });
+    txn->RegisterAbortAction([=]() { delete join; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
+}
 
-Operator LogicalSemiJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto join = std::make_unique<LogicalSemiJoin>();
+Operator LogicalSemiJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn) {
+  auto *join = new LogicalSemiJoin();
   join->join_predicates_ = join_predicates;
-  return Operator(std::move(join));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete join; });
+    txn->RegisterAbortAction([=]() { delete join; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
 common::hash_t LogicalSemiJoin::Hash() const {
@@ -703,20 +845,35 @@ bool LogicalSemiJoin::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalAggregateAndGroupBy::Copy() const { return new LogicalAggregateAndGroupBy(*this); }
 
-Operator LogicalAggregateAndGroupBy::Make() { return Operator(std::make_unique<LogicalAggregateAndGroupBy>()); }
+Operator LogicalAggregateAndGroupBy::Make(transaction::TransactionContext *txn) {
+  auto *group_by = new LogicalAggregateAndGroupBy();
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete group_by; });
+    txn->RegisterAbortAction([=]() { delete group_by; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(group_by));
+}
 
-Operator LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns) {
-  auto group_by = std::make_unique<LogicalAggregateAndGroupBy>();
+Operator LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns, transaction::TransactionContext *txn) {
+  auto *group_by = new LogicalAggregateAndGroupBy();
   group_by->columns_ = std::move(columns);
-  return Operator(std::move(group_by));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete group_by; });
+    txn->RegisterAbortAction([=]() { delete group_by; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(group_by));
 }
 
 Operator LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
-                                          std::vector<AnnotatedExpression> &&having) {
-  auto group_by = std::make_unique<LogicalAggregateAndGroupBy>();
+                                          std::vector<AnnotatedExpression> &&having, transaction::TransactionContext *txn) {
+  auto *group_by = new LogicalAggregateAndGroupBy();
   group_by->columns_ = std::move(columns);
   group_by->having_ = std::move(having);
-  return Operator(std::move(group_by));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete group_by; });
+    txn->RegisterAbortAction([=]() { delete group_by; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(group_by));
 }
 bool LogicalAggregateAndGroupBy::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetOpType() != OpType::LOGICALAGGREGATEANDGROUPBY) return false;
@@ -759,10 +916,14 @@ common::hash_t LogicalAggregateAndGroupBy::Hash() const {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalCreateDatabase::Copy() const { return new LogicalCreateDatabase(*this); }
 
-Operator LogicalCreateDatabase::Make(std::string database_name) {
-  auto op = std::make_unique<LogicalCreateDatabase>();
+Operator LogicalCreateDatabase::Make(std::string database_name, transaction::TransactionContext *txn) {
+  auto *op = new LogicalCreateDatabase();
   op->database_name_ = std::move(database_name);
-  return Operator(std::move(op));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete op; });
+    txn->RegisterAbortAction([=]() { delete op; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t LogicalCreateDatabase::Hash() const {
@@ -788,8 +949,8 @@ Operator LogicalCreateFunction::Make(catalog::db_oid_t database_oid, catalog::na
                                      std::vector<std::string> &&function_param_names,
                                      std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
                                      parser::BaseFunctionParameter::DataType return_type, size_t param_count,
-                                     bool replace) {
-  auto op = std::make_unique<LogicalCreateFunction>();
+                                     bool replace, transaction::TransactionContext *txn) {
+  auto *op = new LogicalCreateFunction();
   TERRIER_ASSERT(function_param_names.size() == param_count && function_param_types.size() == param_count,
                  "Mismatched number of items in vector and number of function parameters");
   op->database_oid_ = database_oid;
@@ -802,7 +963,11 @@ Operator LogicalCreateFunction::Make(catalog::db_oid_t database_oid, catalog::na
   op->param_count_ = param_count;
   op->return_type_ = return_type;
   op->language_ = language;
-  return Operator(std::move(op));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete op; });
+    txn->RegisterAbortAction([=]() { delete op; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t LogicalCreateFunction::Hash() const {
@@ -842,15 +1007,20 @@ BaseOperatorNodeContents *LogicalCreateIndex::Copy() const { return new LogicalC
 
 Operator LogicalCreateIndex::Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
                                   parser::IndexType index_type, bool unique, std::string index_name,
-                                  std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs) {
-  auto op = std::make_unique<LogicalCreateIndex>();
+                                  std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs,
+                                  transaction::TransactionContext *txn) {
+  auto *op = new LogicalCreateIndex();
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
   op->index_type_ = index_type;
   op->unique_index_ = unique;
   op->index_name_ = std::move(index_name);
   op->index_attrs_ = std::move(index_attrs);
-  return Operator(std::move(op));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete op; });
+    txn->RegisterAbortAction([=]() { delete op; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t LogicalCreateIndex::Hash() const {
@@ -888,13 +1058,18 @@ BaseOperatorNodeContents *LogicalCreateTable::Copy() const { return new LogicalC
 
 Operator LogicalCreateTable::Make(catalog::namespace_oid_t namespace_oid, std::string table_name,
                                   std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&columns,
-                                  std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&foreign_keys) {
-  auto op = std::make_unique<LogicalCreateTable>();
+                                  std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&foreign_keys,
+                                  transaction::TransactionContext *txn) {
+  auto *op = new LogicalCreateTable();
   op->namespace_oid_ = namespace_oid;
   op->table_name_ = std::move(table_name);
   op->columns_ = std::move(columns);
   op->foreign_keys_ = std::move(foreign_keys);
-  return Operator(std::move(op));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete op; });
+    txn->RegisterAbortAction([=]() { delete op; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t LogicalCreateTable::Hash() const {
@@ -928,10 +1103,14 @@ bool LogicalCreateTable::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalCreateNamespace::Copy() const { return new LogicalCreateNamespace(*this); }
 
-Operator LogicalCreateNamespace::Make(std::string namespace_name) {
-  auto op = std::make_unique<LogicalCreateNamespace>();
+Operator LogicalCreateNamespace::Make(std::string namespace_name, transaction::TransactionContext *txn) {
+  auto *op = new LogicalCreateNamespace();
   op->namespace_name_ = std::move(namespace_name);
-  return Operator(std::move(op));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete op; });
+    txn->RegisterAbortAction([=]() { delete op; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t LogicalCreateNamespace::Hash() const {
@@ -957,8 +1136,9 @@ Operator LogicalCreateTrigger::Make(catalog::db_oid_t database_oid, catalog::nam
                                     std::vector<std::string> &&trigger_args,
                                     std::vector<catalog::col_oid_t> &&trigger_columns,
                                     common::ManagedPointer<parser::AbstractExpression> &&trigger_when,
-                                    int16_t trigger_type) {
-  auto op = std::make_unique<LogicalCreateTrigger>();
+                                    int16_t trigger_type,
+                                    transaction::TransactionContext *txn) {
+  auto *op = new LogicalCreateTrigger();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
@@ -968,7 +1148,11 @@ Operator LogicalCreateTrigger::Make(catalog::db_oid_t database_oid, catalog::nam
   op->trigger_columns_ = std::move(trigger_columns);
   op->trigger_when_ = trigger_when;
   op->trigger_type_ = trigger_type;
-  return Operator(std::move(op));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete op; });
+    txn->RegisterAbortAction([=]() { delete op; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t LogicalCreateTrigger::Hash() const {
@@ -1006,13 +1190,18 @@ bool LogicalCreateTrigger::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *LogicalCreateView::Copy() const { return new LogicalCreateView(*this); }
 
 Operator LogicalCreateView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                                 std::string view_name, common::ManagedPointer<parser::SelectStatement> view_query) {
-  auto op = std::make_unique<LogicalCreateView>();
+                                 std::string view_name, common::ManagedPointer<parser::SelectStatement> view_query,
+                                 transaction::TransactionContext *txn) {
+  auto *op = new LogicalCreateView();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->view_name_ = std::move(view_name);
   op->view_query_ = view_query;
-  return Operator(std::move(op));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete op; });
+    txn->RegisterAbortAction([=]() { delete op; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t LogicalCreateView::Hash() const {
@@ -1039,10 +1228,14 @@ bool LogicalCreateView::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalDropDatabase::Copy() const { return new LogicalDropDatabase(*this); }
 
-Operator LogicalDropDatabase::Make(catalog::db_oid_t db_oid) {
-  auto op = std::make_unique<LogicalDropDatabase>();
+Operator LogicalDropDatabase::Make(catalog::db_oid_t db_oid, transaction::TransactionContext *txn) {
+  auto *op = new LogicalDropDatabase();
   op->db_oid_ = db_oid;
-  return Operator(std::move(op));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete op; });
+    txn->RegisterAbortAction([=]() { delete op; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t LogicalDropDatabase::Hash() const {
@@ -1062,10 +1255,14 @@ bool LogicalDropDatabase::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalDropTable::Copy() const { return new LogicalDropTable(*this); }
 
-Operator LogicalDropTable::Make(catalog::table_oid_t table_oid) {
-  auto op = std::make_unique<LogicalDropTable>();
+Operator LogicalDropTable::Make(catalog::table_oid_t table_oid, transaction::TransactionContext *txn) {
+  auto *op = new LogicalDropTable();
   op->table_oid_ = table_oid;
-  return Operator(std::move(op));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete op; });
+    txn->RegisterAbortAction([=]() { delete op; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t LogicalDropTable::Hash() const {
@@ -1085,10 +1282,14 @@ bool LogicalDropTable::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalDropIndex::Copy() const { return new LogicalDropIndex(*this); }
 
-Operator LogicalDropIndex::Make(catalog::index_oid_t index_oid) {
-  auto op = std::make_unique<LogicalDropIndex>();
+Operator LogicalDropIndex::Make(catalog::index_oid_t index_oid, transaction::TransactionContext *txn) {
+  auto *op = new LogicalDropIndex();
   op->index_oid_ = index_oid;
-  return Operator(std::move(op));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete op; });
+    txn->RegisterAbortAction([=]() { delete op; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t LogicalDropIndex::Hash() const {
@@ -1108,10 +1309,14 @@ bool LogicalDropIndex::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalDropNamespace::Copy() const { return new LogicalDropNamespace(*this); }
 
-Operator LogicalDropNamespace::Make(catalog::namespace_oid_t namespace_oid) {
-  auto op = std::make_unique<LogicalDropNamespace>();
+Operator LogicalDropNamespace::Make(catalog::namespace_oid_t namespace_oid, transaction::TransactionContext *txn) {
+  auto *op = new LogicalDropNamespace();
   op->namespace_oid_ = namespace_oid;
-  return Operator(std::move(op));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete op; });
+    txn->RegisterAbortAction([=]() { delete op; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t LogicalDropNamespace::Hash() const {
@@ -1132,13 +1337,17 @@ bool LogicalDropNamespace::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *LogicalDropTrigger::Copy() const { return new LogicalDropTrigger(*this); }
 
 Operator LogicalDropTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                                  catalog::trigger_oid_t trigger_oid, bool if_exists) {
-  auto op = std::make_unique<LogicalDropTrigger>();
+                                  catalog::trigger_oid_t trigger_oid, bool if_exists, transaction::TransactionContext *txn) {
+  auto *op = new LogicalDropTrigger();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->trigger_oid_ = trigger_oid;
   op->if_exists_ = if_exists;
-  return Operator(std::move(op));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete op; });
+    txn->RegisterAbortAction([=]() { delete op; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t LogicalDropTrigger::Hash() const {
@@ -1165,13 +1374,17 @@ bool LogicalDropTrigger::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *LogicalDropView::Copy() const { return new LogicalDropView(*this); }
 
 Operator LogicalDropView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                               catalog::view_oid_t view_oid, bool if_exists) {
-  auto op = std::make_unique<LogicalDropView>();
+                               catalog::view_oid_t view_oid, bool if_exists, transaction::TransactionContext *txn) {
+  auto *op = new LogicalDropView();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->view_oid_ = view_oid;
   op->if_exists_ = if_exists;
-  return Operator(std::move(op));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete op; });
+    txn->RegisterAbortAction([=]() { delete op; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t LogicalDropView::Hash() const {
@@ -1198,12 +1411,16 @@ bool LogicalDropView::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *LogicalAnalyze::Copy() const { return new LogicalAnalyze(*this); }
 
 Operator LogicalAnalyze::Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
-                              std::vector<catalog::col_oid_t> &&columns) {
-  auto op = std::make_unique<LogicalAnalyze>();
+                              std::vector<catalog::col_oid_t> &&columns, transaction::TransactionContext *txn) {
+  auto *op = new LogicalAnalyze();
   op->database_oid_ = database_oid;
   op->table_oid_ = table_oid;
   op->columns_ = std::move(columns);
-  return Operator(std::move(op));
+  if (txn) {
+    txn->RegisterCommitAction([=]() { delete op; });
+    txn->RegisterAbortAction([=]() { delete op; });
+  }
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
 common::hash_t LogicalAnalyze::Hash() const {
