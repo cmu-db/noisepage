@@ -87,7 +87,7 @@ class SqlTable {
    * @param layout_version Schema version the current querying transaction should see
    * @return true if successful, false otherwise
    */
-  std::pair<bool, TupleSlot> Update(common::ManagedPointer <transaction::TransactionContext> txn, RedoRecord *const redo,
+  std::pair<bool, TupleSlot> Update(common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo,
                                     layout_version_t layout_version = layout_version_t{0}) const;
 
   /**
@@ -121,7 +121,8 @@ class SqlTable {
         "This Delete is not the most recent entry in the txn's RedoBuffer. Was StageDelete called immediately before?");
 
     const auto tuple_version = slot.GetBlock()->data_table_->layout_version_;
-    TERRIER_ASSERT(tables_.find(tuple_version) != tables_.end() && tuple_version <= layout_version,
+    TERRIER_ASSERT(
+        tables_.find(tuple_version) != tables_.end() && tuple_version <= layout_version,
         "we are not deleting any layout version for now. Tuple version should be visible to current transaction");
     const auto result = tables_.at(tuple_version).data_table_->Delete(txn, slot);
 
@@ -147,7 +148,7 @@ class SqlTable {
    * @param out_buffer output buffer. The object should already contain projection list information. This buffer is
    *                   always cleared of old values.
    * @param layout_version Schema version the current querying transaction should see
-  */
+   */
   void Scan(common::ManagedPointer<transaction::TransactionContext> txn, DataTable::SlotIterator *start_pos,
             ProjectedColumns *out_buffer, layout_version_t layout_version = layout_version_t{0}) const;
 
@@ -251,7 +252,6 @@ class SqlTable {
   ProjectionMap ProjectionMapForOids(const std::vector<catalog::col_oid_t> &col_oids,
                                      layout_version_t layout_version = layout_version_t{0});
 
-
   /**
    * Returns the column oid to id map of a layout_version
    * @param version  version of the datatable
@@ -260,6 +260,16 @@ class SqlTable {
   const ColumnOidToIdMap &GetColumnOidToIdMap(layout_version_t version) const {
     TERRIER_ASSERT(tables_.count(version) > 0, "version not existing..");
     return tables_.at(version).column_oid_to_id_map_;
+  }
+
+  /**
+   * Returns the column oid to id map of a layout_version
+   * @param version  version of the datatable
+   * @return columnid to oid map
+   */
+  const ColumnIdToOidMap &GetColumnIdToOidMap(layout_version_t version) const {
+    TERRIER_ASSERT(tables_.count(version) > 0, "version not existing..");
+    return tables_.at(version).column_id_to_oid_map_;
   }
 
   /**

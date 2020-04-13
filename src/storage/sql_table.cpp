@@ -47,8 +47,7 @@ bool SqlTable::Select(const common::ManagedPointer<transaction::TransactionConte
 }
 
 std::pair<bool, TupleSlot> SqlTable::Update(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                            RedoRecord *const redo,
-                                            layout_version_t layout_version) const {
+                                            RedoRecord *const redo, layout_version_t layout_version) const {
   TERRIER_ASSERT(redo->GetTupleSlot() != TupleSlot(nullptr, 0), "TupleSlot was never set in this RedoRecord.");
   TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
                              ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
@@ -148,9 +147,10 @@ void SqlTable::Scan(const terrier::common::ManagedPointer<transaction::Transacti
   uint32_t filled = 0;
   auto desired_v = tables_.at(layout_version);
 
-  for (layout_version_t i = tuple_version; i <= layout_version && out_buffer->NumTuples() < out_buffer->MaxTuples(); i++) {
+  for (layout_version_t i = tuple_version; i <= layout_version && out_buffer->NumTuples() < out_buffer->MaxTuples();
+       i++) {
     auto tuple_v = tables_.at(i);
-    if(AlignHeaderToVersion(out_buffer, tuple_v, desired_v, &ori_header[0])) missing = true;
+    if (AlignHeaderToVersion(out_buffer, tuple_v, desired_v, &ori_header[0])) missing = true;
 
     if (i != tuple_version) *start_pos = tuple_v.data_table_->begin();
     tuple_v.data_table_->IncrementalScan(txn, start_pos, out_buffer, filled);
@@ -277,12 +277,8 @@ SqlTable::DataTableVersion SqlTable::CreateTable(
   }
 
   auto layout = storage::BlockLayout(attr_sizes);
-  return {new DataTable(block_store_, layout, layout_version_t(0)),
-          layout,
-          col_oid_to_id,
-          col_id_to_oid,
-          schema,
-          default_value_map};
+  return {
+      new DataTable(block_store_, layout, version), layout, col_oid_to_id, col_id_to_oid, schema, default_value_map};
 }
 
 std::vector<col_id_t> SqlTable::ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids,

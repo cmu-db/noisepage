@@ -83,7 +83,8 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
     auto *const order_update_redo = txn->StageWrite(db->db_oid_, db->order_table_oid_, order_update_pr_initializer_);
     *reinterpret_cast<int8_t *>(order_update_redo->Delta()->AccessForceNotNull(0)) = args.o_carrier_id_;
     order_update_redo->SetTupleSlot(order_slot);
-    bool update_result UNUSED_ATTRIBUTE = db->order_table_->Update(common::ManagedPointer(txn), order_update_redo).first;
+    bool update_result UNUSED_ATTRIBUTE =
+        db->order_table_->Update(common::ManagedPointer(txn), order_update_redo).first;
     TERRIER_ASSERT(select_result,
                    "Order update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 

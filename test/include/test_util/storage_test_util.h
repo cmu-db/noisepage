@@ -143,6 +143,7 @@ class StorageTestUtil {
           FillWithRandomBytes(layout.AttrSize(col), row->AccessForceNotNull(projection_list_idx), generator);
         }
       } else {
+        // If not nullable, then needs to set to default value
         row->SetNull(projection_list_idx);
       }
     }
@@ -276,11 +277,10 @@ class StorageTestUtil {
                                                     const storage::ProjectionMap &oid_map2,
                                                     const std::unordered_set<catalog::col_oid_t> &add_cols,
                                                     const std::unordered_set<catalog::col_oid_t> &drop_cols) {
-
     for (const auto &itr : oid_map1) {
       auto oid1 = itr.first;
       auto idx1 = itr.second;
-      if (drop_cols.find(oid1) == drop_cols.end()) { // Column not dropped
+      if (drop_cols.find(oid1) == drop_cols.end()) {  // Column not dropped
         auto idx2 = oid_map2.at(oid1);
         storage::col_id_t one_id = one->ColumnIds()[idx1];
 
@@ -308,7 +308,6 @@ class StorageTestUtil {
     }
 
     // Check for added columns
-    // TODO(Schema-change): how to check for the default value?
     for (auto &added : add_cols) {
       EXPECT_EQ(oid_map1.find(added), oid_map1.end());
       if (oid_map1.find(added) != oid_map1.end()) return false;
@@ -655,7 +654,7 @@ class StorageTestUtil {
       }
       // NOTE(Schema-change):
       // col_oid_t {0} is an INVALID_COLUMN_OID, which will not generate the correct schema.col_oid_to_offset_ map
-      col.SetOid(catalog::col_oid_t(i+1));
+      col.SetOid(catalog::col_oid_t(i + 1));
       columns.push_back(col);
     }
 
