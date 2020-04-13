@@ -50,8 +50,8 @@ class DataTableBenchmark : public benchmark::Fixture {
 
   static std::vector<int> GetOneCPUPerRegion() {
     std::vector<int> result;
-    for (int region = 0; region < static_cast<int>(storage::NUM_NUMA_REGIONS); region++) {
-      for (int cpu = 0; cpu < std::thread::hardware_concurrency(); cpu++) {
+    for (int region = 0; region < static_cast<int>(storage::RawBlock::GetNumNumaRegions()); region++) {
+      for (int cpu = 0; cpu < static_cast<int>(std::thread::hardware_concurrency()); cpu++) {
 #ifdef __APPLE__
         result.emplace_back(cpu);
         break;

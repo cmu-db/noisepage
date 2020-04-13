@@ -44,11 +44,6 @@ STRONG_TYPEDEF(numa_region_t, int16_t);
 constexpr col_id_t VERSION_POINTER_COLUMN_ID = col_id_t(0);
 constexpr uint8_t NUM_RESERVED_COLUMNS = 1;
 constexpr numa_region_t UNSUPPORTED_NUMA_REGION = static_cast<numa_region_t>(0);
-#ifdef __APPLE__
-constexpr int16_t NUM_NUMA_REGIONS = (1);
-#else
-#define NUM_NUMA_REGIONS (static_cast<int16_t>((numa_available() >= 0 && numa_max_node() >= 0) ?( numa_max_node() + 1) : 1))
-#endif
 
 class DataTable;
 
@@ -104,6 +99,14 @@ class alignas(common::Constants::BLOCK_SIZE) RawBlock {
    * @return the offset which tells us where the next insertion should take place
    */
   uint32_t GetInsertHead() { return INT32_MAX & insert_head_.load(); }
+
+  static int16_t GetNumNumaRegions() {
+#ifdef __APPLE__
+    return 1;
+#else
+    return static_cast<int16_t>((numa_available() >= 0 && numa_max_node() >= 0) ?( numa_max_node() + 1) : 1);
+#endif
+  }
 };
 
 /**

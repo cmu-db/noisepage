@@ -12,7 +12,7 @@ namespace terrier::storage {
 
 DataTable::DataTable(const common::ManagedPointer<BlockStore> store, const BlockLayout &layout,
                      const layout_version_t layout_version)
-    : block_store_(store), layout_version_(layout_version), accessor_(layout), regions_(NUM_NUMA_REGIONS) {
+    : block_store_(store), layout_version_(layout_version), accessor_(layout), regions_(RawBlock::GetNumNumaRegions()) {
   TERRIER_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
