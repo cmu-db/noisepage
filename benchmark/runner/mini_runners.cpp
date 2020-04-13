@@ -535,9 +535,9 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   // NOLINTNEXTLINE
   metrics_manager_->RegisterThread();
   for (auto _ : state) {
-    std::vector<type::TypeId> types = {type::TypeId::INTEGER};
+    std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
     auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
-    std::vector<std::string> types_strs = {"int64"};
+    std::vector<std::string> types_strs = {"Integer", "Real"};
     std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
                                      2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
     for (size_t type_idx = 0; type_idx < types.size(); type_idx++) {
@@ -573,11 +573,13 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
           output << "\treturn 0\n";
           output << "}\n";
 
+          auto type = types[type_idx];
+          auto type_size = type::TypeUtil::GetTypeSize(type);
           std::vector<planner::OutputSchema::Column> cols;
           for (auto i = 0; i < num_col; i++) {
             std::stringstream col;
             col << "col" << i;
-            cols.emplace_back(col.str(), types[type_idx], nullptr);
+            cols.emplace_back(col.str(), type, nullptr);
           }
 
           auto txn = txn_manager_->BeginTransaction();
@@ -594,7 +596,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
           brain::PipelineOperatingUnits units;
           brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
           exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(&units));
-          pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, row_num, num_col * 4, num_col, row_num);
+          pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, row_num, num_col * type_size, num_col, row_num);
           units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
           exec_query.Run(common::ManagedPointer(exec_ctx), mode);
 
