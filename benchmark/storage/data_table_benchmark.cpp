@@ -45,7 +45,7 @@ class DataTableBenchmark : public benchmark::Fixture {
     common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
     &cpu_ids);
     std::promise<void> ps[cpu_ids.size()];
-    for (int thread = 0; thread < cpu_ids.size(); thread++) {
+    for (int thread = 0; thread < static_cast<int>(cpu_ids.size()); thread++) {
       thread_pool.SubmitTask(&ps[thread], [&] {
         // populate read_table_ by inserting tuples
         // We can use dummy timestamps here since we're not invoking concurrency control
@@ -57,7 +57,7 @@ class DataTableBenchmark : public benchmark::Fixture {
       });
     }
 
-    for (int thread = 0; thread < cpu_ids.size(); thread++) {
+    for (int thread = 0; thread < static_cast<int>(cpu_ids.size()); thread++) {
       ps[thread].get_future().wait();
     }
   }
