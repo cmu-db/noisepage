@@ -116,7 +116,7 @@ class DataTableBenchmark : public benchmark::Fixture {
 
   // Test infrastructure
   std::default_random_engine generator_;
-  storage::BlockStore block_store_{1000, 1000};
+  storage::BlockStore block_store_{10000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{num_inserts_, buffer_pool_reuse_limit_};
 
   // Insert buffer pointers
