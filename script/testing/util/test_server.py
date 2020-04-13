@@ -125,7 +125,7 @@ class TestServer:
                 break
             except:
                 if i > 0 and i % 20 == 0:
-                    print("Failed to connect to DB server [Attemp #{}/{}]".format(i, constants.DB_CONNECT_ATTEMPTS))
+                    print("Failed to connect to DB server [Attempt` #{}/{}]".format(i, constants.DB_CONNECT_ATTEMPTS))
                     # os.system('ps aux | grep terrier | grep {}'.format(self.db_process.pid))
                     # os.system('lsof -i :15721')
                     traceback.print_exc(file=sys.stdout)
