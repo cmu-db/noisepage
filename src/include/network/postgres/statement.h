@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "common/managed_pointer.h"
+#include "execution/executable_query.h"
 #include "network/postgres/statement.h"
 #include "parser/postgresparser.h"
 #include "traffic_cop/traffic_cop_util.h"
@@ -81,11 +82,36 @@ class Statement {
    */
   QueryType GetQueryType() const { return type_; }
 
+  /**
+   * @return the optimized physical plan for this query
+   */
+  common::ManagedPointer<planner::AbstractPlanNode> PhysicalPlan() const {
+    return common::ManagedPointer(physical_plan_);
+  }
+
+  /**
+   * @return the compiled executable query
+   */
+  common::ManagedPointer<execution::ExecutableQuery> GetExecutableQuery() const {
+    return common::ManagedPointer(executable_query_);
+  }
+
+  void SetPhysicalPlan(std::unique_ptr<planner::AbstractPlanNode> &&physical_plan) {
+    physical_plan_ = std::move(physical_plan);
+  }
+
+  void SetExecutableQuery(std::unique_ptr<execution::ExecutableQuery> &&executable_query) {
+    executable_query_ = std::move(executable_query);
+  }
+
  private:
   const std::unique_ptr<parser::ParseResult> parse_result_ = nullptr;
   const std::vector<type::TypeId> param_types_;
   common::ManagedPointer<parser::SQLStatement> root_statement_ = nullptr;
   enum QueryType type_ = QueryType::QUERY_INVALID;
+
+  std::unique_ptr<planner::AbstractPlanNode> physical_plan_ = nullptr;
+  std::unique_ptr<execution::ExecutableQuery> executable_query_ = nullptr;
 };
 
 }  // namespace terrier::network
