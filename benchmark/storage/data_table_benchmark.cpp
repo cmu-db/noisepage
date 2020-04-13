@@ -400,7 +400,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedIteration)(benchmark::St
 
   common::DedicatedThreadRegistry registry(DISABLED);
   std::vector<int> cpu_ids = GetCPUsIn0thNUMARegion();
-  TERRIER_ASSERT(cpu_ids.size() >= storage::RawBlock::GetNumNumaRegions(), "should be more CPUs in the 0th NUMA region than there are NUMA regions");
+  TERRIER_ASSERT(cpu_ids.size() >= static_cast<uint64_t>(storage::RawBlock::GetNumNumaRegions()), "should be more CPUs in the 0th NUMA region than there are NUMA regions");
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
 
   std::vector<storage::numa_region_t> numa_regions;
