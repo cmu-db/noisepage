@@ -38,12 +38,15 @@ class OperatorNode : public AbstractOptimizerNode {
         children_(std::move(children)),
         txn_(common::ManagedPointer(txn)) {
     auto *op_node = reinterpret_cast<Operator *>(contents_.Get());
-    if (txn_) {
+    if (txn_ != nullptr) {
       txn_->RegisterCommitAction([=]() { delete op_node; });
       txn_->RegisterAbortAction([=]() { delete op_node; });
     }
   }
 
+  /**
+   * Default destructor
+   */
   ~OperatorNode() override = default;
 
   /**
@@ -113,7 +116,7 @@ class OperatorNode : public AbstractOptimizerNode {
     for (const std::unique_ptr<AbstractOptimizerNode> &i : children_) {
       OperatorNode *copy_node = reinterpret_cast<OperatorNode *>(i->Copy().release());
       result.emplace_back(common::ManagedPointer<AbstractOptimizerNode>(copy_node));
-      if (txn_) {
+      if (txn_ != nullptr) {
         txn_->RegisterCommitAction([=]() { delete copy_node; });
         txn_->RegisterAbortAction([=]() { delete copy_node; });
       }

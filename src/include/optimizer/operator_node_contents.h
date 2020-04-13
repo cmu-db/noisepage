@@ -28,7 +28,7 @@ class BaseOperatorNodeContents : public AbstractOptimizerNodeContents {
   /**
    * Default destructor
    */
-  virtual ~BaseOperatorNodeContents() = default;
+  ~BaseOperatorNodeContents() override = default;
 
   /**
    * Copy
@@ -193,7 +193,10 @@ class Operator : public AbstractOptimizerNodeContents {
    */
   Operator(const Operator &op) : AbstractOptimizerNodeContents(op.contents_) {}
 
-  ~Operator() = default;
+  /**
+   * Default destructor
+   */
+  ~Operator() override = default;
 
   /**
    * Calls corresponding visitor to this operator node

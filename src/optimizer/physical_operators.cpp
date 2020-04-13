@@ -19,7 +19,7 @@ BaseOperatorNodeContents *TableFreeScan::Copy() const { return new TableFreeScan
 
 Operator TableFreeScan::Make(transaction::TransactionContext *txn) {
   auto *scan = new TableFreeScan();
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete scan; });
     txn->RegisterAbortAction([=]() { delete scan; });
   }
@@ -52,7 +52,7 @@ Operator SeqScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t 
   scan->predicates_ = std::move(predicates);
   scan->is_for_update_ = is_for_update;
   scan->table_alias_ = std::move(table_alias);
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete scan; });
     txn->RegisterAbortAction([=]() { delete scan; });
   }
@@ -104,7 +104,7 @@ Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_
   scan->predicates_ = std::move(predicates);
   scan->scan_type_ = scan_type;
   scan->bounds_ = std::move(bounds);
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete scan; });
     txn->RegisterAbortAction([=]() { delete scan; });
   }
@@ -180,7 +180,7 @@ Operator ExternalFileScan::Make(parser::ExternalFileFormat format, std::string f
   get->delimiter_ = delimiter;
   get->quote_ = quote;
   get->escape_ = escape;
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete get; });
     txn->RegisterAbortAction([=]() { delete get; });
   }
@@ -216,7 +216,7 @@ Operator QueryDerivedScan::Make(
   auto *get = new QueryDerivedScan();
   get->table_alias_ = std::move(table_alias);
   get->alias_to_expr_map_ = alias_to_expr_map;
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete get; });
     txn->RegisterAbortAction([=]() { delete get; });
   }
@@ -247,7 +247,7 @@ BaseOperatorNodeContents *OrderBy::Copy() const { return new OrderBy(*this); }
 
 Operator OrderBy::Make(transaction::TransactionContext *txn) {
   auto *order_by = new OrderBy();
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete order_by; });
     txn->RegisterAbortAction([=]() { delete order_by; });
   }
@@ -279,7 +279,7 @@ Operator Limit::Make(size_t offset, size_t limit,
   limit_op->limit_ = limit;
   limit_op->sort_exprs_ = std::move(sort_columns);
   limit_op->sort_directions_ = std::move(sort_directions);
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete limit_op; });
     txn->RegisterAbortAction([=]() { delete limit_op; });
   }
@@ -313,7 +313,7 @@ BaseOperatorNodeContents *InnerNLJoin::Copy() const { return new InnerNLJoin(*th
 Operator InnerNLJoin::Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn) {
   auto *join = new InnerNLJoin();
   join->join_predicates_ = std::move(join_predicates);
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete join; });
     txn->RegisterAbortAction([=]() { delete join; });
   }
@@ -349,7 +349,7 @@ Operator LeftNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> joi
                           transaction::TransactionContext *txn) {
   auto *join = new LeftNLJoin();
   join->join_predicate_ = join_predicate;
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete join; });
     txn->RegisterAbortAction([=]() { delete join; });
   }
@@ -376,7 +376,7 @@ Operator RightNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> jo
                            transaction::TransactionContext *txn) {
   auto *join = new RightNLJoin();
   join->join_predicate_ = join_predicate;
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete join; });
     txn->RegisterAbortAction([=]() { delete join; });
   }
@@ -404,7 +404,7 @@ Operator OuterNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> jo
                            transaction::TransactionContext *txn) {
   auto *join = new OuterNLJoin();
   join->join_predicate_ = join_predicate;
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete join; });
     txn->RegisterAbortAction([=]() { delete join; });
   }
@@ -436,7 +436,7 @@ Operator InnerHashJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
   join->join_predicates_ = std::move(join_predicates);
   join->left_keys_ = std::move(left_keys);
   join->right_keys_ = std::move(right_keys);
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete join; });
     txn->RegisterAbortAction([=]() { delete join; });
   }
@@ -482,7 +482,7 @@ Operator LeftHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> j
                             transaction::TransactionContext *txn) {
   auto *join = new LeftHashJoin();
   join->join_predicate_ = join_predicate;
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete join; });
     txn->RegisterAbortAction([=]() { delete join; });
   }
@@ -510,7 +510,7 @@ Operator RightHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> 
                              transaction::TransactionContext *txn) {
   auto *join = new RightHashJoin();
   join->join_predicate_ = join_predicate;
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete join; });
     txn->RegisterAbortAction([=]() { delete join; });
   }
@@ -538,7 +538,7 @@ Operator OuterHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> 
                              transaction::TransactionContext *txn) {
   auto *join = new OuterHashJoin();
   join->join_predicate_ = join_predicate;
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete join; });
     txn->RegisterAbortAction([=]() { delete join; });
   }
@@ -581,7 +581,7 @@ Operator Insert::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t n
   op->columns_ = std::move(columns);
   op->values_ = std::move(values);
   op->index_oids_ = std::move(index_oids);
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete op; });
     txn->RegisterAbortAction([=]() { delete op; });
   }
@@ -627,7 +627,7 @@ Operator InsertSelect::Make(catalog::db_oid_t database_oid, catalog::namespace_o
   insert_op->namespace_oid_ = namespace_oid;
   insert_op->table_oid_ = table_oid;
   insert_op->index_oids_ = index_oids;
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete insert_op; });
     txn->RegisterAbortAction([=]() { delete insert_op; });
   }
@@ -663,7 +663,7 @@ Operator Delete::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t n
   delete_op->namespace_oid_ = namespace_oid;
   delete_op->table_alias_ = std::move(table_alias);
   delete_op->table_oid_ = table_oid;
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete delete_op; });
     txn->RegisterAbortAction([=]() { delete delete_op; });
   }
@@ -702,7 +702,7 @@ Operator Update::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t n
   op->table_alias_ = std::move(table_alias);
   op->table_oid_ = table_oid;
   op->updates_ = updates;
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete op; });
     txn->RegisterAbortAction([=]() { delete op; });
   }
@@ -742,7 +742,7 @@ Operator ExportExternalFile::Make(parser::ExternalFileFormat format, std::string
   export_op->delimiter_ = delimiter;
   export_op->quote_ = quote;
   export_op->escape_ = escape;
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete export_op; });
     txn->RegisterAbortAction([=]() { delete export_op; });
   }
@@ -776,7 +776,7 @@ Operator HashGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractEx
   auto *agg = new HashGroupBy();
   agg->columns_ = std::move(columns);
   agg->having_ = std::move(having);
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete agg; });
     txn->RegisterAbortAction([=]() { delete agg; });
   }
@@ -819,7 +819,7 @@ Operator SortGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractEx
   auto *agg = new SortGroupBy();
   agg->columns_ = std::move(columns);
   agg->having_ = move(having);
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete agg; });
     txn->RegisterAbortAction([=]() { delete agg; });
   }
@@ -859,7 +859,7 @@ BaseOperatorNodeContents *Aggregate::Copy() const { return new Aggregate(*this);
 
 Operator Aggregate::Make(transaction::TransactionContext *txn) {
   auto *agg = new Aggregate();
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete agg; });
     txn->RegisterAbortAction([=]() { delete agg; });
   }
@@ -885,7 +885,7 @@ BaseOperatorNodeContents *CreateDatabase::Copy() const { return new CreateDataba
 Operator CreateDatabase::Make(std::string database_name, transaction::TransactionContext *txn) {
   auto *op = new CreateDatabase();
   op->database_name_ = std::move(database_name);
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete op; });
     txn->RegisterAbortAction([=]() { delete op; });
   }
@@ -918,7 +918,7 @@ Operator CreateTable::Make(catalog::namespace_oid_t namespace_oid, std::string t
   op->table_name_ = std::move(table_name);
   op->columns_ = std::move(columns);
   op->foreign_keys_ = std::move(foreign_keys);
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete op; });
     txn->RegisterAbortAction([=]() { delete op; });
   }
@@ -978,7 +978,7 @@ Operator CreateIndex::Make(catalog::namespace_oid_t namespace_oid, catalog::tabl
   op->table_oid_ = table_oid;
   op->index_name_ = std::move(index_name);
   op->schema_ = std::move(schema);
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete op; });
     txn->RegisterAbortAction([=]() { delete op; });
   }
@@ -1013,7 +1013,7 @@ BaseOperatorNodeContents *CreateNamespace::Copy() const { return new CreateNames
 Operator CreateNamespace::Make(std::string namespace_name, transaction::TransactionContext *txn) {
   auto *op = new CreateNamespace();
   op->namespace_name_ = std::move(namespace_name);
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete op; });
     txn->RegisterAbortAction([=]() { delete op; });
   }
@@ -1053,7 +1053,7 @@ Operator CreateTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_
   op->trigger_columns_ = std::move(trigger_columns);
   op->trigger_when_ = trigger_when;
   op->trigger_type_ = trigger_type;
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete op; });
     txn->RegisterAbortAction([=]() { delete op; });
   }
@@ -1102,7 +1102,7 @@ Operator CreateView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid
   op->namespace_oid_ = namespace_oid;
   op->view_name_ = std::move(view_name);
   op->view_query_ = view_query;
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete op; });
     txn->RegisterAbortAction([=]() { delete op; });
   }
@@ -1152,7 +1152,7 @@ Operator CreateFunction::Make(catalog::db_oid_t database_oid, catalog::namespace
   op->param_count_ = param_count;
   op->return_type_ = return_type;
   op->language_ = language;
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete op; });
     txn->RegisterAbortAction([=]() { delete op; });
   }
@@ -1197,7 +1197,7 @@ BaseOperatorNodeContents *DropDatabase::Copy() const { return new DropDatabase(*
 Operator DropDatabase::Make(catalog::db_oid_t db_oid, transaction::TransactionContext *txn) {
   auto *op = new DropDatabase();
   op->db_oid_ = db_oid;
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete op; });
     txn->RegisterAbortAction([=]() { delete op; });
   }
@@ -1224,7 +1224,7 @@ BaseOperatorNodeContents *DropTable::Copy() const { return new DropTable(*this);
 Operator DropTable::Make(catalog::table_oid_t table_oid, transaction::TransactionContext *txn) {
   auto *op = new DropTable();
   op->table_oid_ = table_oid;
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete op; });
     txn->RegisterAbortAction([=]() { delete op; });
   }
@@ -1251,7 +1251,7 @@ BaseOperatorNodeContents *DropIndex::Copy() const { return new DropIndex(*this);
 Operator DropIndex::Make(catalog::index_oid_t index_oid, transaction::TransactionContext *txn) {
   auto *op = new DropIndex();
   op->index_oid_ = index_oid;
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete op; });
     txn->RegisterAbortAction([=]() { delete op; });
   }
@@ -1278,7 +1278,7 @@ BaseOperatorNodeContents *DropNamespace::Copy() const { return new DropNamespace
 Operator DropNamespace::Make(catalog::namespace_oid_t namespace_oid, transaction::TransactionContext *txn) {
   auto *op = new DropNamespace();
   op->namespace_oid_ = namespace_oid;
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete op; });
     txn->RegisterAbortAction([=]() { delete op; });
   }
@@ -1309,7 +1309,7 @@ Operator DropTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_oi
   op->namespace_oid_ = namespace_oid;
   op->trigger_oid_ = trigger_oid;
   op->if_exists_ = if_exists;
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete op; });
     txn->RegisterAbortAction([=]() { delete op; });
   }
@@ -1346,7 +1346,7 @@ Operator DropView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t
   op->namespace_oid_ = namespace_oid;
   op->view_oid_ = view_oid;
   op->if_exists_ = if_exists;
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete op; });
     txn->RegisterAbortAction([=]() { delete op; });
   }
@@ -1382,7 +1382,7 @@ Operator Analyze::Make(catalog::db_oid_t database_oid, catalog::table_oid_t tabl
   op->database_oid_ = database_oid;
   op->table_oid_ = table_oid;
   op->columns_ = std::move(columns);
-  if (txn) {
+  if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete op; });
     txn->RegisterAbortAction([=]() { delete op; });
   }

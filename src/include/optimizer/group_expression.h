@@ -41,7 +41,7 @@ class GroupExpression {
    */
   GroupExpression(Operator op, std::vector<group_id_t> &&child_groups, transaction::TransactionContext *txn) {
     auto *op_ptr = new Operator(std::move(op));
-    if (txn) {
+    if (txn != nullptr) {
       txn->RegisterCommitAction([=]() { delete op_ptr; });
       txn->RegisterAbortAction([=]() { delete op_ptr; });
     }

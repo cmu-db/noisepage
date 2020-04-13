@@ -47,7 +47,7 @@ class ExpressionNode : public AbstractOptimizerNode {
     result.reserve(children_.size());
     for (auto &i : children_) {
       ExpressionNode *copy_node = reinterpret_cast<ExpressionNode *>(i->Copy().release());
-      if (txn_) {
+      if (txn_ != nullptr) {
         txn_->RegisterCommitAction([=]() { delete copy_node; });
         txn_->RegisterAbortAction([=]() { delete copy_node; });
       }
