@@ -136,29 +136,13 @@ static void GenArithArguments(benchmark::internal::Benchmark *b) {
 }
 
 /**
- * Arg <0, 1, 2>
- * 0 - Number of columns
- * 1 - Number of rows
- * 2 - Cardinality
+ * Arg <0, 1, 2, 3>
+ * 0 - Type
+ * 1 - Number of columns
+ * 2 - Number of rows
+ * 3 - Cardinality
  */
 static void GenScanArguments(benchmark::internal::Benchmark *b) {
-  auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
-                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
-  for (auto col : num_cols) {
-    for (auto row : row_nums) {
-      int64_t car = 1;
-      while (car < row) {
-        b->Args({col, row, car});
-        car *= 2;
-      }
-
-      b->Args({col, row, row});
-    }
-  }
-}
-
-static void GenSeqScanArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
   std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
@@ -666,7 +650,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ1_SeqScanRunners)(benchmark::State &state) {
 BENCHMARK_REGISTER_F(MiniRunners, SEQ1_SeqScanRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
-    ->Apply(GenSeqScanArguments);
+    ->Apply(GenScanArguments);
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ1_IndexScanRunners)(benchmark::State &state) {
@@ -834,21 +818,25 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ2_UpdateRunners)
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ2_SortRunners)(benchmark::State &state) {
-  auto num_col = state.range(0);
-  auto row = state.range(1);
-  auto car = state.range(2);
+  auto type = static_cast<type::TypeId>(state.range(0));
+  auto num_col = state.range(1);
+  auto row = state.range(2);
+  auto car = state.range(3);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
     metrics_manager_->RegisterThread();
 
+    auto type_size = type::TypeUtil::GetTypeSize(type);
+    auto tuple_size = type_size * num_col;
+
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4 * num_col, num_col, car);
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SORT_BUILD, row, 4 * num_col, num_col, car);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::SORT_ITERATE, row, 4 * num_col, num_col, car);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, row, 4 * num_col, num_col, row);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size, num_col, car);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SORT_BUILD, row, tuple_size, num_col, car);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::SORT_ITERATE, row, tuple_size, num_col, car);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, row, tuple_size, num_col, row);
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
@@ -862,7 +850,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_SortRunners)(benchmark::State &state) {
 
     std::stringstream query;
     query << "SELECT " << (cols.str()) << " FROM "
-          << execution::sql::TableGenerator::GenerateTableName(type::TypeId::INTEGER, 31, row, car) << " ORDER BY "
+          << execution::sql::TableGenerator::GenerateTableName(type, 31, row, car) << " ORDER BY "
           << (cols.str());
     BenchmarkSqlStatement(query.str(), &units, std::make_unique<optimizer::TrivialCostModel>(), true);
     metrics_manager_->Aggregate();
@@ -879,6 +867,7 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ2_SortRunners)
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinSelfRunners)(benchmark::State &state) {
+  auto type = type::TypeId::INTEGER;
   auto num_col = state.range(0);
   auto row = state.range(1);
   auto car = state.range(2);
@@ -887,16 +876,22 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinSelfRunners)(benchmark::State &stat
   for (auto _ : state) {
     metrics_manager_->RegisterThread();
 
+    auto type_size = type::TypeUtil::GetTypeSize(type);
+
+    // Size of the scan tuple
+    // Size of hash key size, probe key size
+    // Size of output since only output 1 side
+    auto tuple_size = type_size * num_col;
+
     auto hj_output = row * row / car;
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4 * num_col, num_col, car);
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, row, 4 * num_col, num_col, car);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4 * num_col, num_col, car);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, row, 4 * num_col, num_col, hj_output);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, hj_output, 4, 1, hj_output);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, hj_output, 4 * num_col, num_col, hj_output);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size, num_col, car);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, row, tuple_size, num_col, car);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size, num_col, car);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, row, tuple_size, num_col, hj_output);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, hj_output, tuple_size, num_col, hj_output);
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
@@ -909,7 +904,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinSelfRunners)(benchmark::State &stat
       }
     }
 
-    auto tbl_name = execution::sql::TableGenerator::GenerateTableName(type::TypeId::INTEGER, 31, row, car);
+    auto tbl_name = execution::sql::TableGenerator::GenerateTableName(type, 31, row, car);
     query << " FROM " << tbl_name << ", " << tbl_name << " as b WHERE ";
     for (auto i = 1; i <= num_col; i++) {
       query << tbl_name << ".col" << (i + 14) << " = b.col" << (i + 14);
@@ -933,6 +928,7 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ3_HashJoinSelfRunners)
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinNonSelfRunners)(benchmark::State &state) {
+  auto type = type::TypeId::INTEGER;
   auto num_col = state.range(0);
   auto build_row = state.range(1);
   auto build_car = state.range(2);
@@ -944,22 +940,22 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinNonSelfRunners)(benchmark::State &s
   for (auto _ : state) {
     metrics_manager_->RegisterThread();
 
+    auto type_size = type::TypeUtil::GetTypeSize(type);
+    auto tuple_size = num_col * type_size;
+
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, build_row, 4 * num_col, num_col, build_car);
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, build_row, 4 * num_col, num_col,
-                           build_car);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, probe_row, 4 * num_col, num_col, probe_car);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, probe_row, 4 * num_col, num_col,
-                           matched_car);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, matched_car, 4, 1, matched_car);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, matched_car, 4 * num_col, num_col, matched_car);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, build_row, tuple_size, num_col, build_car);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, build_row, tuple_size, num_col, build_car);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, probe_row, tuple_size, num_col, probe_car);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, probe_row, tuple_size, num_col, matched_car);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, matched_car, tuple_size, num_col, matched_car);
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
-    auto build_tbl = execution::sql::TableGenerator::GenerateTableName(type::TypeId::INTEGER, 31, build_row, build_car);
-    auto probe_tbl = execution::sql::TableGenerator::GenerateTableName(type::TypeId::INTEGER, 31, probe_row, probe_car);
+    auto build_tbl = execution::sql::TableGenerator::GenerateTableName(type, 31, build_row, build_car);
+    auto probe_tbl = execution::sql::TableGenerator::GenerateTableName(type, 31, probe_row, probe_car);
 
     std::stringstream query;
     query << "SELECT ";
@@ -995,22 +991,27 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ3_HashJoinNonSelfRunners)
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ4_AggregateRunners)(benchmark::State &state) {
-  auto num_col = state.range(0);
-  auto row = state.range(1);
-  auto car = state.range(2);
+  auto type = static_cast<type::TypeId>(state.range(0));
+  auto num_col = state.range(1);
+  auto row = state.range(2);
+  auto car = state.range(3);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
     metrics_manager_->RegisterThread();
 
+    auto type_size = type::TypeUtil::GetTypeSize(type);
+    auto tuple_size = type_size * num_col;
+    auto out_cols = num_col + 1; // pulling the count(*) out
+    auto out_size = tuple_size + 4; // count(*) is an integer
+
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, 4 * num_col, num_col, car);
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, row, 4 * num_col, num_col, car);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE, car, 4 * num_col + 4, num_col + 1,
-                           car);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, car, 4 * num_col + 4, num_col + 1, car);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size, num_col, car);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, row, tuple_size, num_col, car);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE, car, out_size, out_cols, car);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, car, out_size, out_cols, car);
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
@@ -1024,7 +1025,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_AggregateRunners)(benchmark::State &state) 
 
     std::stringstream query;
     query << "SELECT COUNT(*), " << cols.str() << " FROM "
-          << execution::sql::TableGenerator::GenerateTableName(type::TypeId::INTEGER, 31, row, car) << " GROUP BY "
+          << execution::sql::TableGenerator::GenerateTableName(type, 31, row, car) << " GROUP BY "
           << cols.str();
 
     BenchmarkSqlStatement(query.str(), &units, std::make_unique<optimizer::TrivialCostModel>(), true);
