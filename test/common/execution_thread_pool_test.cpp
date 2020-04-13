@@ -122,44 +122,22 @@ TEST(ExecutionThreadPoolTests, MoreTest) {
 // NOLINTNEXTLINE
 TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
   common::DedicatedThreadRegistry registry(DISABLED);
-  uint32_t iteration = 10, num_threads = std::thread::hardware_concurrency();
-  std::vector<int> cpu_ids(num_threads);
-  for (uint32_t i = 0; i < num_threads; i++) {
-    cpu_ids[i] = i;
-  }
-  common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
-  for (uint32_t it = 0; it < iteration; it++) {
-    std::atomic<uint32_t> flag1 = 0, flag2 = 0;
-    auto stall_on_flag = [&] {
-      flag1++;
-      while (flag1 != 0) {
-      }
-    };
-
-    std::promise<void> stall_promises[num_threads];  // NOLINT
-    for (auto &promise : stall_promises) {
-      thread_pool.SubmitTask(&promise, stall_on_flag);
-    }
-
-    // make sure that all threads are stalled
-    while (flag1 != num_threads) std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-    std::promise<void> check_promises[num_threads];
-    for (uint32_t i = 0; i < num_threads; i++) {
+  int iteration = 10, num_threads = static_cast<int>(std::thread::hardware_concurrency());
+  for (int _ = 0; _ < iteration; _++) {
+    for (int cpu = 0; cpu < num_threads; cpu++) {
+      std::vector<int> cpu_ids({cpu});
+      common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
+      std::promise<void> p;
 #ifdef __APPLE__
       storage::numa_region_t numa_hint UNUSED_ATTRIBUTE = storage::UNSUPPORTED_NUMA_REGION;
-      auto workload = [&]() {
-        flag2++;
-        while (flag2 != 0) {
-        }
-      };
 #else
-      auto this_cpu_id = i;
-      storage::numa_region_t numa_hint UNUSED_ATTRIBUTE =
-          static_cast<storage::numa_region_t>(numa_node_of_cpu(this_cpu_id));
-      auto workload = [&, numa_hint, this_cpu_id]() {
-        auto temp_i UNUSED_ATTRIBUTE = static_cast<int16_t>(this_cpu_id);
-        auto temp UNUSED_ATTRIBUTE = static_cast<int16_t>(numa_hint);
+      storage::numa_region_t numa_hint UNUSED_ATTRIBUTE = numa_available() == -1 ? storage::UNSUPPORTED_NUMA_REGION : numa_node_of_cpu(cpu);
+#endif
+
+      thread_pool.SubmitTask(&p, [&] {
+#ifdef __APPLE__
+        return;
+#else
         cpu_set_t mask;
         int result UNUSED_ATTRIBUTE = sched_getaffinity(0, sizeof(cpu_set_t), &mask);
         TERRIER_ASSERT(result == 0, "sched_getaffinity should succeed");
@@ -167,37 +145,21 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
         uint32_t num_set = 0;
         for (uint32_t cpu_id = 0; cpu_id < sizeof(cpu_set_t) * 8; cpu_id++) {
           if (CPU_ISSET(cpu_id, &mask)) {
-            TERRIER_ASSERT(static_cast<storage::numa_region_t>(numa_node_of_cpu(cpu_id)) == numa_hint,
+            TERRIER_ASSERT(numa_available() == -1 || static_cast<storage::numa_region_t>(numa_node_of_cpu(cpu_id)) == numa_hint,
                            "workload should be running on cpu on numa_hint's region");
+            TERRIER_ASSERT(cpu_id == static_cast<uint32_t>(cpu), "should be running on CPU passed into thread pool");
             num_set++;
           }
         }
+        TERRIER_ASSERT(num_set == 1, "should only have 1 CPU set in mask");
 
-        TERRIER_ASSERT(num_set == 1, "affinity should only have 1 core");
-
-        flag2++;
-        while (flag2 != 0) std::this_thread::sleep_for(std::chrono::milliseconds(50));
-      };
 #endif
+      });
 
-      thread_pool.SubmitTask(&check_promises[i], workload, numa_hint);
-    }
-
-    // un-stall all tasks and make sure they finish
-    flag1 = 0;
-    for (auto &promise : stall_promises) {
-      promise.get_future().get();
-    }
-
-    // wait for all tasks to stall again
-    while (flag2 != num_threads) std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    // un-stall all tasks and make sure they finish again
-    flag2 = 0;
-    // wait for checking tasks to finish
-    for (auto &promise : check_promises) {
-      promise.get_future().get();
+      p.get_future().get();
     }
   }
+
 }
 
 // NOLINTNEXTLINE
