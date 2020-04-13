@@ -110,13 +110,13 @@ class DataTableBenchmark : public benchmark::Fixture {
       storage::ProjectedRowInitializer::Create(layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
 
   // Workload
-  const uint32_t num_inserts_ = 10000000;
-  const uint32_t num_reads_ = 10000000;
+  const uint32_t num_inserts_ = 100000000;
+  const uint32_t num_reads_ = 100000000;
   const uint64_t buffer_pool_reuse_limit_ = 10000000;
 
   // Test infrastructure
   std::default_random_engine generator_;
-  storage::BlockStore block_store_{1000, 1000};
+  storage::BlockStore block_store_{10000, 10000};
   storage::RecordBufferSegmentPool buffer_pool_{num_inserts_, buffer_pool_reuse_limit_};
 
   // Insert buffer pointers
@@ -484,22 +484,22 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)(benc
 // Benchmark Registration
 // ----------------------------------------------------------------------------
 // clang-format off
-BENCHMARK_REGISTER_F(DataTableBenchmark, Insert)
-    ->Unit(benchmark::kMillisecond)
-    ->UseRealTime()
-    ->UseManualTime();
-BENCHMARK_REGISTER_F(DataTableBenchmark, SelectRandom)
-    ->Unit(benchmark::kMillisecond)
-    ->UseRealTime()
-    ->UseManualTime();
-BENCHMARK_REGISTER_F(DataTableBenchmark, SelectSequential)
-    ->Unit(benchmark::kMillisecond)
-    ->UseRealTime()
-    ->UseManualTime();
-BENCHMARK_REGISTER_F(DataTableBenchmark, Scan)
-    ->Unit(benchmark::kMillisecond)
-    ->UseRealTime()
-    ->UseManualTime();
+//BENCHMARK_REGISTER_F(DataTableBenchmark, Insert)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseRealTime()
+//    ->UseManualTime();
+//BENCHMARK_REGISTER_F(DataTableBenchmark, SelectRandom)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseRealTime()
+//    ->UseManualTime();
+//BENCHMARK_REGISTER_F(DataTableBenchmark, SelectSequential)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseRealTime()
+//    ->UseManualTime();
+//BENCHMARK_REGISTER_F(DataTableBenchmark, Scan)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseRealTime()
+//    ->UseManualTime();
 BENCHMARK_REGISTER_F(DataTableBenchmark, SingleThreadedIteration)
 ->Unit(benchmark::kMillisecond)
     ->UseRealTime()
