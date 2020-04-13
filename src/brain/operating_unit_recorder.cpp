@@ -64,7 +64,7 @@ size_t OperatingUnitRecorder::ComputeKeySize(catalog::table_oid_t tbl_oid) {
   size_t key_size = 0;
   auto &schema = accessor_->GetSchema(tbl_oid);
   for (auto &col : schema.GetColumns()) {
-    if (col.AttrSize() == storage::VARLEN_COLUMN) {
+    if (col.AttrSize() == storage::VARLEN_COLUMN && col.MaxVarlenSize() > 0) {
       key_size += col.MaxVarlenSize();
     } else {
       key_size += col.AttrSize();
@@ -81,7 +81,7 @@ size_t OperatingUnitRecorder::ComputeKeySize(catalog::table_oid_t tbl_oid,
   auto &schema = accessor_->GetSchema(tbl_oid);
   for (auto &oid : cols) {
     auto &col = schema.GetColumn(oid);
-    if (col.AttrSize() == storage::VARLEN_COLUMN) {
+    if (col.AttrSize() == storage::VARLEN_COLUMN && col.MaxVarlenSize() > 0) {
       key_size += col.MaxVarlenSize();
     } else {
       key_size += col.AttrSize();
@@ -101,7 +101,7 @@ size_t OperatingUnitRecorder::ComputeKeySize(catalog::index_oid_t idx_oid,
   auto &schema = accessor_->GetIndexSchema(idx_oid);
   for (auto &col : schema.GetColumns()) {
     if (kcols.find(col.Oid()) != kcols.end()) {
-      if (col.Type() == type::TypeId::VARCHAR || col.Type() == type::TypeId::VARBINARY) {
+      if ((col.Type() == type::TypeId::VARCHAR || col.Type() == type::TypeId::VARBINARY) && col.MaxVarlenSize() > 0) {
         key_size += col.MaxVarlenSize();
       } else {
         key_size += col.AttrSize();
@@ -118,7 +118,7 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
                                               size_t scaling_factor) {
   // TODO(wz2): Populate actual num_rows/cardinality after #759
   // TODO(wz2): For OUTPUT, cardinality is just set to num_rows
-  // TODO(wz2): For HASHJOIN_PROBE, cardinality is # matched rows
+  // TODO(wz2): For HASHJOIN_PROBE, # rows is number of probe, cardinality is # matched rows
   size_t num_rows = 0;
   auto cardinality = 0.0;
 
@@ -231,11 +231,6 @@ void OperatingUnitRecorder::VisitAbstractJoinPlanNode(const planner::AbstractJoi
       plan_feature_type_ == ExecutionOperatingUnitType::IDXJOIN) {
     // Right side stiches together outputs
     VisitAbstractPlanNode(plan);
-
-    // Join predicates only get handled by the "right" translator (probe)
-    auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(plan->GetJoinPredicate());
-    arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
-                                     std::make_move_iterator(features.end()));
   }
 }
 
@@ -329,21 +324,31 @@ void OperatingUnitRecorder::Visit(const planner::IndexJoinPlanNode *plan) {
 }
 
 void OperatingUnitRecorder::Visit(const planner::InsertPlanNode *plan) {
-  for (size_t idx = 0; idx < plan->GetBulkInsertCount(); idx++) {
-    for (auto &col : plan->GetValues(idx)) {
-      auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(col);
-      arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
-                                       std::make_move_iterator(features.end()));
+  if (plan->GetChildrenSize() == 0) {
+    // INSERT without a SELECT
+    for (size_t idx = 0; idx < plan->GetBulkInsertCount(); idx++) {
+      for (auto &col : plan->GetValues(idx)) {
+        auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(col);
+        arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
+            std::make_move_iterator(features.end()));
+      }
     }
+
+    // Record features
+    VisitAbstractPlanNode(plan);
+    RecordArithmeticFeatures(plan, 1);
+
+    // Record the Insert
+    auto key_size = ComputeKeySize(plan->GetTableOid(), plan->GetParameterInfo());
+    AggregateFeatures(plan_feature_type_, key_size, plan->GetParameterInfo().size(), plan, 1);
+  } else {
+    // INSERT with a SELECT
+    auto *c_plan = plan->GetChild(0);
+    TERRIER_ASSERT(c_plan->GetOutputSchema() != nullptr, "Child must have OutputSchema");
+
+    auto size = ComputeKeySizeOutputSchema(c_plan);
+    AggregateFeatures(plan_feature_type_, size, c_plan->GetOutputSchema()->GetColumns().size(), plan, 1);
   }
-
-  // Record features
-  VisitAbstractPlanNode(plan);
-  RecordArithmeticFeatures(plan, 1);
-
-  // Record the Insert
-  auto key_size = ComputeKeySize(plan->GetTableOid(), plan->GetParameterInfo());
-  AggregateFeatures(plan_feature_type_, key_size, plan->GetParameterInfo().size(), plan, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::UpdatePlanNode *plan) {

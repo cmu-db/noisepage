@@ -265,7 +265,7 @@ class MiniRunners : public benchmark::Fixture {
   static std::unique_ptr<planner::AbstractPlanNode> PassthroughPlanCorrect(
       UNUSED_ATTRIBUTE common::ManagedPointer<transaction::TransactionContext> txn,
       std::unique_ptr<planner::AbstractPlanNode> plan) {
-    return std::move(plan);
+    return plan;
   }
 
   std::unique_ptr<planner::AbstractPlanNode> JoinNonSelfCorrector(
