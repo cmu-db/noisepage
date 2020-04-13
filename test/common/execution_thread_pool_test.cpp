@@ -126,18 +126,19 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
   for (int _ = 0; _ < iteration; _++) {
     for (int cpu = 0; cpu < num_threads; cpu++) {
       std::vector<int> cpu_ids({cpu});
-      common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
+      common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
+                                              &cpu_ids);
       std::promise<void> p;
 #ifdef __APPLE__
       storage::numa_region_t numa_hint UNUSED_ATTRIBUTE = storage::UNSUPPORTED_NUMA_REGION;
 #else
-      storage::numa_region_t numa_hint UNUSED_ATTRIBUTE = numa_available() == -1 ? storage::UNSUPPORTED_NUMA_REGION : static_cast<storage::numa_region_t>(static_cast<int16_t>(numa_node_of_cpu(cpu)));
+      storage::numa_region_t numa_hint UNUSED_ATTRIBUTE =
+          numa_available() == -1 ? storage::UNSUPPORTED_NUMA_REGION
+                                 : static_cast<storage::numa_region_t>(static_cast<int16_t>(numa_node_of_cpu(cpu)));
 #endif
 
       thread_pool.SubmitTask(&p, [&] {
-#ifdef __APPLE__
-        return;
-#else
+#ifndef __APPLE__
         cpu_set_t mask;
         int result UNUSED_ATTRIBUTE = sched_getaffinity(0, sizeof(cpu_set_t), &mask);
         TERRIER_ASSERT(result == 0, "sched_getaffinity should succeed");
@@ -145,7 +146,8 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
         uint32_t num_set = 0;
         for (uint32_t cpu_id = 0; cpu_id < sizeof(cpu_set_t) * 8; cpu_id++) {
           if (CPU_ISSET(cpu_id, &mask)) {
-            TERRIER_ASSERT(numa_available() == -1 || static_cast<storage::numa_region_t>(numa_node_of_cpu(cpu_id)) == numa_hint,
+            TERRIER_ASSERT(numa_available() == -1 ||
+                            static_cast<storage::numa_region_t>(numa_node_of_cpu(cpu_id)) == numa_hint,
                            "workload should be running on cpu on numa_hint's region");
             TERRIER_ASSERT(cpu_id == static_cast<uint32_t>(cpu), "should be running on CPU passed into thread pool");
             num_set++;
@@ -159,7 +161,6 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
       p.get_future().get();
     }
   }
-
 }
 
 // NOLINTNEXTLINE
