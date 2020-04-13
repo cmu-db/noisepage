@@ -131,7 +131,7 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
 #ifdef __APPLE__
       storage::numa_region_t numa_hint UNUSED_ATTRIBUTE = storage::UNSUPPORTED_NUMA_REGION;
 #else
-      storage::numa_region_t numa_hint UNUSED_ATTRIBUTE = numa_available() == -1 ? storage::UNSUPPORTED_NUMA_REGION : numa_node_of_cpu(cpu);
+      storage::numa_region_t numa_hint UNUSED_ATTRIBUTE = numa_available() == -1 ? storage::UNSUPPORTED_NUMA_REGION : static_cast<storage::numa_region_t>(static_cast<int16_t>(numa_node_of_cpu(cpu)));
 #endif
 
       thread_pool.SubmitTask(&p, [&] {
