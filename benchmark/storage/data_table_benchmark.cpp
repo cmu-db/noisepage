@@ -39,6 +39,29 @@ class DataTableBenchmark : public benchmark::Fixture {
     }
   }
 
+  void FillAcrossNUMARegions(storage::DataTable *read_table) {
+    common::DedicatedThreadRegistry registry(DISABLED);
+    std::vector<int> cpu_ids = GetOneCPUPerRegion();
+    common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
+    &cpu_ids);
+    std::promise<void> ps[cpu_ids.size()];
+    for (int thread = 0; thread < cpu_ids.size(); thread++) {
+      thread_pool.SubmitTask(&ps[thread], [&] {
+        // populate read_table_ by inserting tuples
+        // We can use dummy timestamps here since we're not invoking concurrency control
+        transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
+                                            common::ManagedPointer(&buffer_pool_), DISABLED);
+        for (uint32_t i = 0; i < num_reads_ / cpu_ids.size(); ++i) {
+          read_table->Insert(common::ManagedPointer(&txn), *redo_);
+        }
+      });
+    }
+
+    for (int thread = 0; thread < cpu_ids.size(); thread++) {
+      ps[thread].get_future().wait();
+    }
+  }
+
   void TearDown(const benchmark::State &state) final {
     delete[] redo_buffer_;
     delete[] read_buffer_;
@@ -276,28 +299,11 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SingleThreadedIteration)(benchmark::State
   storage::DataTable read_table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout_,
                                 storage::layout_version_t(0));
 
-  // populate read_table_ by inserting tuples
-  // We can use dummy timestamps here since we're not invoking concurrency control
-  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
-                                      common::ManagedPointer(&buffer_pool_), DISABLED);
+  FillAcrossNUMARegions(&read_table);
 
   common::DedicatedThreadRegistry registry(DISABLED);
   std::vector<int> cpu_ids = GetOneCPUPerRegion();
-  common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
-  &cpu_ids);
-  std::promise<void> ps[cpu_ids.size()];
-  for (int thread = 0; thread < static_cast<int>(cpu_ids.size()); thread++) {
-    thread_pool.SubmitTask(&ps[thread], [&] {
-      // inserted the table with 10 million rows
-      for (uint32_t i = 0; i < num_reads_ / cpu_ids.size(); ++i) {
-        read_table.Insert(common::ManagedPointer(&txn), *redo_);
-      }
-    });
-  }
-
-  for (int thread = 0; thread < static_cast<int>(cpu_ids.size()); thread++) {
-    ps[thread].get_future().wait();
-  }
+  common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
@@ -331,30 +337,13 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SingleThreadedIteration)(benchmark::State
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, NUMASingleThreadedIteration)(benchmark::State &state) {
   storage::DataTable read_table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout_,
-                                storage::layout_version_t(0));
+  storage::layout_version_t(0));
 
-  // populate read_table_ by inserting tuples
-  // We can use dummy timestamps here since we're not invoking concurrency control
-  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
-                                      common::ManagedPointer(&buffer_pool_), DISABLED);
+  FillAcrossNUMARegions(&read_table);
 
   common::DedicatedThreadRegistry registry(DISABLED);
   std::vector<int> cpu_ids = GetOneCPUPerRegion();
-  common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
-  &cpu_ids);
-  std::promise<void> ps[cpu_ids.size()];
-  for (int thread = 0; thread < static_cast<int>(cpu_ids.size()); thread++) {
-    thread_pool.SubmitTask(&ps[thread], [&] {
-      // inserted the table with 10 million rows
-      for (uint32_t i = 0; i < num_reads_ / cpu_ids.size(); ++i) {
-        read_table.Insert(common::ManagedPointer(&txn), *redo_);
-      }
-    });
-  }
-
-  for (int thread = 0; thread < static_cast<int>(cpu_ids.size()); thread++) {
-    ps[thread].get_future().wait();
-  }
+  common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
 
   std::vector<storage::numa_region_t> numa_regions;
   read_table.GetNUMARegions(&numa_regions);
@@ -393,30 +382,13 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMASingleThreadedIteration)(benchmark::S
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedIteration)(benchmark::State &state) {
   storage::DataTable read_table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout_,
-                                storage::layout_version_t(0));
+  storage::layout_version_t(0));
 
-  // populate read_table_ by inserting tuples
-  // We can use dummy timestamps here since we're not invoking concurrency control
-  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
-                                      common::ManagedPointer(&buffer_pool_), DISABLED);
+  FillAcrossNUMARegions(&read_table);
 
   common::DedicatedThreadRegistry registry(DISABLED);
   std::vector<int> cpu_ids = GetOneCPUPerRegion();
-  common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
-  &cpu_ids);
-  std::promise<void> ps[cpu_ids.size()];
-  for (int thread = 0; thread < static_cast<int>(cpu_ids.size()); thread++) {
-    thread_pool.SubmitTask(&ps[thread], [&] {
-      // inserted the table with 10 million rows
-      for (uint32_t i = 0; i < num_reads_ / cpu_ids.size(); ++i) {
-        read_table.Insert(common::ManagedPointer(&txn), *redo_);
-      }
-    });
-  }
-
-  for (int thread = 0; thread < static_cast<int>(cpu_ids.size()); thread++) {
-    ps[thread].get_future().wait();
-  }
+  common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
 
   std::vector<storage::numa_region_t> numa_regions;
   read_table.GetNUMARegions(&numa_regions);
@@ -452,33 +424,14 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedIteration)(benchmark::St
 // Read the num_reads_ of tuples in the sequential  order from a DataTable concurrently
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)(benchmark::State &state) {
-
-
   storage::DataTable read_table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout_,
-                                storage::layout_version_t(0));
+  storage::layout_version_t(0));
 
-  // populate read_table_ by inserting tuples
-  // We can use dummy timestamps here since we're not invoking concurrency control
-  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
-                                      common::ManagedPointer(&buffer_pool_), DISABLED);
+  FillAcrossNUMARegions(&read_table);
 
   common::DedicatedThreadRegistry registry(DISABLED);
   std::vector<int> cpu_ids = GetOneCPUPerRegion();
-  common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
-  &cpu_ids);
-  std::promise<void> ps[cpu_ids.size()];
-  for (int thread = 0; thread < static_cast<int>(cpu_ids.size()); thread++) {
-    thread_pool.SubmitTask(&ps[thread], [&] {
-      // inserted the table with 10 million rows
-      for (uint32_t i = 0; i < num_reads_ / cpu_ids.size(); ++i) {
-        read_table.Insert(common::ManagedPointer(&txn), *redo_);
-      }
-    });
-  }
-
-  for (int thread = 0; thread < static_cast<int>(cpu_ids.size()); thread++) {
-    ps[thread].get_future().wait();
-  }
+  common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
 
   std::vector<storage::numa_region_t> numa_regions;
   read_table.GetNUMARegions(&numa_regions);
