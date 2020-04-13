@@ -34,7 +34,6 @@ QueryToOperatorTransformer::QueryToOperatorTransformer(
 
 std::unique_ptr<AbstractOptimizerNode> QueryToOperatorTransformer::ConvertToOpExpression(
     common::ManagedPointer<parser::SQLStatement> op, common::ManagedPointer<parser::ParseResult> parse_result) {
-
   output_expr_ = nullptr;
   parse_result_ = parse_result;
 

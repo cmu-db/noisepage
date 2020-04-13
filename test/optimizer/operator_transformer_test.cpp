@@ -794,7 +794,7 @@ TEST_F(OperatorTransformerTest, AggregateComplexTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  
+
   binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
 
   operator_transformer_ =
