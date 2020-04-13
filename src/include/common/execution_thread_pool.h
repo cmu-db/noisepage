@@ -153,7 +153,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
         status_ = ThreadStatus::PARKED;
         {
           std::unique_lock<std::mutex> l(pool_->task_lock_);
-//          pool_->task_cv_.wait(l);
+          pool_->task_cv_.wait(l);
           if (UNLIKELY(exit_task_loop_)) return;
         }
         status_ = ThreadStatus::SWITCHING;

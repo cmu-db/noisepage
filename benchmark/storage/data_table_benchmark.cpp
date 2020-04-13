@@ -71,6 +71,18 @@ class DataTableBenchmark : public benchmark::Fixture {
     reads_.clear();
   }
 
+  static std::vector<int> GetCPUsIn0thNUMARegion() {
+    std::vector<int> result;
+    for (int cpu = 0; cpu < static_cast<int>(std::thread::hardware_concurrency()); cpu++) {
+#ifdef __APPLE__
+      result.emplace_back(cpu);
+#else
+      if (numa_available() != -1 && numa_node_of_cpu(cpu) == 0) result.emplace_back(cpu);
+#endif
+    }
+    return result;
+  }
+
   static std::vector<int> GetOneCPUPerRegion() {
     std::vector<int> result;
     for (int region = 0; region < static_cast<int>(storage::RawBlock::GetNumNumaRegions()); region++) {
@@ -80,9 +92,9 @@ class DataTableBenchmark : public benchmark::Fixture {
         break;
 #else
         if (numa_available() != -1 && numa_node_of_cpu(cpu) == region) {
-        result.emplace_back(cpu);
-        break;
-      }
+          result.emplace_back(cpu);
+          break;
+        }
 #endif
       }
     }
@@ -387,7 +399,8 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedIteration)(benchmark::St
   FillAcrossNUMARegions(&read_table);
 
   common::DedicatedThreadRegistry registry(DISABLED);
-  std::vector<int> cpu_ids = GetOneCPUPerRegion();
+  std::vector<int> cpu_ids = GetCPUsIn0thNUMARegion();
+  TERRIER_ASSERT(cpu_ids.size() >= storage::RawBlock::GetNumNumaRegions(), "should be more CPUs in the 0th NUMA region than there are NUMA regions");
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
 
   std::vector<storage::numa_region_t> numa_regions;
