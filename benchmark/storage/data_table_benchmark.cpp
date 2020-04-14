@@ -44,7 +44,6 @@ class DataTableBenchmark : public benchmark::Fixture {
     std::vector<int> cpu_ids = GetOneCPUPerRegion();
     common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
                                             &cpu_ids);
-    std::cout << "inserting " << num_reads_ << " tuples across " << cpu_ids.size() << " regions" << std::endl;
     std::promise<void> ps[cpu_ids.size()];
     for (int thread = 0; thread < static_cast<int>(cpu_ids.size()); thread++) {
       thread_pool.SubmitTask(&ps[thread], [&] {
@@ -311,9 +310,6 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, Scan)(benchmark::State &state) {
 // Read the num_reads_ of tuples in the sequential  order from a DataTable concurrently
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, SingleThreadedIteration)(benchmark::State &state) {
-
-  std::cout << "inserting " << num_reads_ << " tuples" << std::endl;
-
   storage::DataTable read_table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout_,
                                 storage::layout_version_t(0));
 
