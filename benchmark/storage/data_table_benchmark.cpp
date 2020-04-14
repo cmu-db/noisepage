@@ -44,6 +44,7 @@ class DataTableBenchmark : public benchmark::Fixture {
     std::vector<int> cpu_ids = GetOneCPUPerRegion();
     common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry),
                                             &cpu_ids);
+    std::cout << "inserting " << num_reads_ << " tuples across " << cpu_ids.size() << " regions" << std::endl;
     std::promise<void> ps[cpu_ids.size()];
     for (int thread = 0; thread < static_cast<int>(cpu_ids.size()); thread++) {
       thread_pool.SubmitTask(&ps[thread], [&] {
