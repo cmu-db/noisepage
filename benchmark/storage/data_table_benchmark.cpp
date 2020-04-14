@@ -112,13 +112,13 @@ class DataTableBenchmark : public benchmark::Fixture {
       storage::ProjectedRowInitializer::Create(layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
 
   // Workload
-  const uint32_t num_inserts_ = 50000000;
-  const uint32_t num_reads_ = 50000000;
+  uint32_t num_inserts_ = atoi(std::getenv("NUM_OPS"));
+  uint32_t num_reads_ = atoi(std::getenv("NUM_OPS"));
   const uint64_t buffer_pool_reuse_limit_ = 10000000;
 
   // Test infrastructure
   std::default_random_engine generator_;
-  storage::BlockStore block_store_{10000, 1000};
+  storage::BlockStore block_store_{100000, 10000};
   storage::RecordBufferSegmentPool buffer_pool_{num_inserts_, buffer_pool_reuse_limit_};
 
   // Insert buffer pointers
