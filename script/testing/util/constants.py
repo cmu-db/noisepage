@@ -17,9 +17,14 @@ DEFAULT_DB_BIN = "terrier"
 DEFAULT_TEST_OUTPUT_FILE = "/tmp/terrier_test_{}.log".format(
     datetime.utcnow().isoformat(sep="-", timespec="seconds").replace(":", "-"))
 
+# Number of seconds to wait after starting the DBMS before trying to connect
+DB_START_WAIT = 5 # seconds
+# Number of times we will try to start the DBMS and connect to it
 DB_START_ATTEMPTS = 3
-DB_CONNECT_ATTEMPTS = 100
-DB_CONNECT_SLEEP = 0.1 # seconds
+# For each start attempt, the number of times we will attempt to connect to the DBMS
+DB_CONNECT_ATTEMPTS = 50
+# How long to wait before each connection attempt
+DB_CONNECT_SLEEP = 0.2 # seconds
 
 
 # error code

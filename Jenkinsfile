@@ -239,7 +239,7 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        // FIXME sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
                         cleanup {
@@ -267,7 +267,7 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        // FIXME sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
                         cleanup {
@@ -277,7 +277,7 @@ pipeline {
                 }
             }
         }
-        stage('End-to-End Test') {
+        stage('End-to-End') {
             parallel{
                 stage('macos-10.14/AppleClang-1001.0.46.4 (Debug/e2etest/oltpbench)') {
                     agent { label 'macos' }
@@ -326,7 +326,7 @@ pipeline {
             }
         }
 
-        stage('Benchmark') {
+        stage('Microbenchmark') {
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
