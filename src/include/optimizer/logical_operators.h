@@ -49,7 +49,6 @@ class LeafOperator : public OperatorNodeContents<LeafOperator> {
   /**
    * Gets the original group (i.e group being wrapped)
    * @returns GroupID of wrapped group
-   * @param txn transaction context for memory management
    */
   group_id_t GetOriginGroup() const { return origin_group_; }
 

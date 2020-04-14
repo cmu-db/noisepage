@@ -1926,6 +1926,7 @@ class DropIndex : public OperatorNodeContents<DropIndex> {
 class DropNamespace : public OperatorNodeContents<DropNamespace> {
  public:
   /**
+   * @param namespace_oid OID of namespace to drop
    * @param txn transaction context for memory management
    * @return
    */
@@ -1958,6 +1959,10 @@ class DropNamespace : public OperatorNodeContents<DropNamespace> {
 class DropTrigger : public OperatorNodeContents<DropTrigger> {
  public:
   /**
+   * @param database_oid OID of database
+   * @param namespace_oid OID of namespace
+   * @param trigger_oid OID of trigger to drop
+   * @param if_exists existence flag
    * @param txn transaction context for memory management
    * @return
    */
@@ -2021,6 +2026,10 @@ class DropTrigger : public OperatorNodeContents<DropTrigger> {
 class DropView : public OperatorNodeContents<DropView> {
  public:
   /**
+   * @param database_oid OID of database
+   * @param namespace_oid OID of namespace
+   * @param view_oid OID of view to drop
+   * @param if_exists existence flag
    * @param txn transaction context for memory management
    * @return
    */
