@@ -311,6 +311,9 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, Scan)(benchmark::State &state) {
 // Read the num_reads_ of tuples in the sequential  order from a DataTable concurrently
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, SingleThreadedIteration)(benchmark::State &state) {
+
+  std::cout << "inserting " << num_reads_ << " tuples" << std::endl;
+
   storage::DataTable read_table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout_,
                                 storage::layout_version_t(0));
 
