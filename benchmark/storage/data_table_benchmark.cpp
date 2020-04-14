@@ -74,8 +74,8 @@ class DataTableBenchmark : public benchmark::Fixture {
 
   static std::vector<int> GetNCPUsInFewRegions(int n) {
     std::vector<int> result;
-    for (int region = 0; region < static_cast<int>(storage::RawBlock::GetNumNumaRegions()) && result.size() < n; region++) {
-      for (int cpu = 0; cpu < static_cast<int>(std::thread::hardware_concurrency()) && result.size() < n; cpu++) {
+    for (int region = 0; region < static_cast<int>(storage::RawBlock::GetNumNumaRegions()) &&  static_cast<int>(result.size()) < n; region++) {
+      for (int cpu = 0; cpu < static_cast<int>(std::thread::hardware_concurrency()) &&  static_cast<int>(result.size()) < n; cpu++) {
 #ifdef __APPLE__
         result.emplace_back(cpu);  // NOLINT
 #else
