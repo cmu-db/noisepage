@@ -277,7 +277,7 @@ pipeline {
                 }
             }
         }
-        stage('End-to-End Test') {
+        stage('End-to-End') {
             parallel{
                 stage('macos-10.14/AppleClang-1001.0.46.4 (Debug/e2etest/oltpbench)') {
                     agent { label 'macos' }
@@ -326,7 +326,7 @@ pipeline {
             }
         }
 
-        stage('Benchmark') {
+        stage('Microbenchmark') {
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
