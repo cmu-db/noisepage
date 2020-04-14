@@ -216,7 +216,16 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
     out->WriteNoticeResponse("NOTICE:  we don't yet support that query type.");
   }
 
-  postgres_interpreter->SetStatement(statement_name, std::move(statement));
+  const auto fingerprint_result UNUSED_ATTRIBUTE = pg_query_fingerprint(query.c_str());
+  auto cached_statement = postgres_interpreter->LookupStatementInCache(fingerprint_result.hexdigest);
+  if (cached_statement == nullptr) {
+    // Not in the cache, add to cache
+    cached_statement = common::ManagedPointer(statement);
+    postgres_interpreter->AddStatementToCache(fingerprint_result.hexdigest, std::move(statement));
+  }
+  pg_query_free_fingerprint_result(fingerprint_result);
+
+  postgres_interpreter->SetStatement(statement_name, cached_statement);
 
   out->WriteParseComplete();
 
@@ -308,10 +317,12 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   // Bind it, plan it
   const auto bind_result = t_cop->BindQuery(connection, statement, common::ManagedPointer(&params));
   if (bind_result.type_ == trafficcop::ResultType::COMPLETE) {
-    // Binding succeeded, optimize to generate a physical plan and then execute
-    auto physical_plan = t_cop->OptimizeBoundQuery(connection, statement->ParseResult());
-
-    statement->SetPhysicalPlan(std::move(physical_plan));
+    // Binding succeeded, optimize to generate a physical plan
+    if (statement->PhysicalPlan() == nullptr) {
+      // it's not cached, optimize it
+      auto physical_plan = t_cop->OptimizeBoundQuery(connection, statement->ParseResult());
+      statement->SetPhysicalPlan(std::move(physical_plan));
+    }
 
     postgres_interpreter->SetPortal(portal_name,
                                     std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));

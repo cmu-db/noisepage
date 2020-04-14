@@ -158,11 +158,25 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   }
 
   /**
+   * @param fingerprint key
+   * @param statement statement to take ownership of
+   */
+  void AddStatementToCache(const std::string &fingerprint, std::unique_ptr<network::Statement> &&statement) {
+    statement_cache_[fingerprint] = std::move(statement);
+  }
+
+  common::ManagedPointer<network::Statement> LookupStatementInCache(const std::string &fingerprint) const {
+    const auto it = statement_cache_.find(fingerprint);
+    if (it != statement_cache_.end()) return common::ManagedPointer(it->second);
+    return nullptr;
+  }
+
+  /**
    * @param name key
    * @param statement statement to take ownership of
    */
-  void SetStatement(const std::string &name, std::unique_ptr<network::Statement> &&statement) {
-    statements_[name] = std::move(statement);
+  void SetStatement(const std::string &name, const common::ManagedPointer<network::Statement> statement) {
+    statements_[name] = statement;
   }
 
   /**
@@ -221,7 +235,14 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   bool explicit_txn_block_ = false;
 
   common::ManagedPointer<PostgresCommandFactory> command_factory_;
-  std::unordered_map<std::string, std::unique_ptr<network::Statement>> statements_;
+
+  // fingerprint to statement
+  std::unordered_map<std::string, std::unique_ptr<network::Statement>> statement_cache_;
+
+  // name to statement
+  std::unordered_map<std::string, common::ManagedPointer<network::Statement>> statements_;
+
+  // name to portal
   std::unordered_map<std::string, std::unique_ptr<network::Portal>> portals_;
 
   /**
