@@ -87,7 +87,7 @@ class SqlTable {
    * @param layout_version Schema version the current querying transaction should see
    * @return true if successful, false otherwise
    */
-  std::pair<bool, TupleSlot> Update(common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo,
+  std::pair<bool, TupleSlot> Update(common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord * redo,
                                     layout_version_t layout_version = layout_version_t{0}) const;
 
   /**

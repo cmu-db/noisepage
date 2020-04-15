@@ -1,9 +1,9 @@
 #include "storage/sql_table.h"
 
+#include <parser/expression/constant_value_expression.h>
 #include <map>
 #include <string>
 #include <vector>
-#include <parser/expression/constant_value_expression.h>
 
 #include "common/macros.h"
 #include "storage/storage_util.h"
@@ -208,12 +208,12 @@ static bool PeekValue(const type::TransientValue &transient_val, byte *value_out
     }
     case type::TypeId::DATE: {
       // TODO(Schema-Change): find a way to handle it without codegen
-//      auto val = type::TransientValuePeeker::PeekDate(transient_val);
-//      auto ymd = util::TimeConvertor::YMDFromDate(val);
-//      auto year = static_cast<int32_t>(ymd.year());
-//      auto month = static_cast<uint32_t>(ymd.month());
-//      auto day = static_cast<uint32_t>(ymd.day());
-//      return DateToSql(year, month, day);
+      //      auto val = type::TransientValuePeeker::PeekDate(transient_val);
+      //      auto ymd = util::TimeConvertor::YMDFromDate(val);
+      //      auto year = static_cast<int32_t>(ymd.year());
+      //      auto month = static_cast<uint32_t>(ymd.month());
+      //      auto day = static_cast<uint32_t>(ymd.day());
+      //      return DateToSql(year, month, day);
       break;
     }
     case type::TypeId::TIMESTAMP: {
@@ -246,9 +246,9 @@ void SqlTable::FillMissingColumns(RowType *out_buffer, const DataTableVersion &d
   for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
     if (out_buffer->AccessWithNullCheck(i) == nullptr) {
       // TODO(Schema-Change): Only handle constant value default
-      const common::ManagedPointer<const parser::AbstractExpression> default_val = desired_version.default_value_map_.at(col_ids[i]);
-      if (default_val->GetExpressionType() != parser::ExpressionType::VALUE_CONSTANT)
-        continue;
+      const common::ManagedPointer<const parser::AbstractExpression> default_val =
+          desired_version.default_value_map_.at(col_ids[i]);
+      if (default_val->GetExpressionType() != parser::ExpressionType::VALUE_CONSTANT) continue;
 
       auto default_const = default_val.CastManagedPointerTo<const parser::ConstantValueExpression>()->GetValue();
       auto col_oid = desired_version.column_id_to_oid_map_.at(col_ids[i]);

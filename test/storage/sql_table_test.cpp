@@ -16,8 +16,8 @@ class SqlTableTests : public TerrierTest {
   storage::RecordBufferSegmentPool buffer_pool_{100000, 10000};
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
-  void SetUp(){};
-  void TearDown(){};
+  void SetUp() override {}
+  void TearDown() override {}
 };
 
 static std::unique_ptr<catalog::Schema> AddColumn(const catalog::Schema &schema, catalog::Schema::Column *column) {
@@ -62,7 +62,7 @@ class RandomSqlTableTestObject {
     for (auto &txn : txns_) {
       txn->redo_buffer_.Finalize(false);
     }
-  };
+  }
 
   template <class Random>
   void FillNullValue(storage::ProjectedRow *pr, const catalog::Schema &schema, const ColumnIdToOidMap &col_id_to_oid,
@@ -73,7 +73,7 @@ class RandomSqlTableTestObject {
     for (uint16_t pr_idx = 0; pr_idx < pr->NumColumns(); pr_idx++) {
       auto col_id = pr->ColumnIds()[pr_idx];
       auto col_oid = col_id_to_oid.at(col_id);
-      auto schema_col = schema.GetColumn(col_oid);
+      const auto &schema_col = schema.GetColumn(col_oid);
 
       if (pr->IsNull(pr_idx) && !schema_col.Nullable()) {
         // Ricky (Schema-Change):
