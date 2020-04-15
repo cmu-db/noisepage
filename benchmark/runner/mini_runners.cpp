@@ -170,17 +170,20 @@ static void GenScanArguments(benchmark::internal::Benchmark *b) {
  */
 static void GenJoinSelfArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
+  auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
   std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
-  for (auto col : num_cols) {
-    for (auto row : row_nums) {
-      int64_t car = 1;
-      while (car < row) {
-        if (row * row / car <= 1000000000) b->Args({col, row, car});
-        car *= 2;
-      }
+  for (auto type : types) {
+    for (auto col : num_cols) {
+      for (auto row : row_nums) {
+        int64_t car = 1;
+        while (car < row) {
+          if (row * row / car <= 1000000000) b->Args({static_cast<int64_t>(type), col, row, car});
+          car *= 2;
+        }
 
-      b->Args({col, row, row});
+        b->Args({static_cast<int64_t>(type), col, row, row});
+      }
     }
   }
 }
@@ -195,18 +198,21 @@ static void GenJoinSelfArguments(benchmark::internal::Benchmark *b) {
  */
 static void GenJoinNonSelfArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
+  auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
   std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
-  for (auto col : num_cols) {
-    for (size_t i = 0; i < row_nums.size(); i++) {
-      auto build_rows = row_nums[i];
-      auto build_car = row_nums[i];
-      for (size_t j = i + 1; j < row_nums.size(); j++) {
-        auto probe_rows = row_nums[j];
-        auto probe_car = row_nums[j];
+  for (auto type : types) {
+    for (auto col : num_cols) {
+      for (size_t i = 0; i < row_nums.size(); i++) {
+        auto build_rows = row_nums[i];
+        auto build_car = row_nums[i];
+        for (size_t j = i + 1; j < row_nums.size(); j++) {
+          auto probe_rows = row_nums[j];
+          auto probe_car = row_nums[j];
 
-        auto matched_car = row_nums[i];
-        b->Args({col, build_rows, build_car, probe_rows, probe_car, matched_car});
+          auto matched_car = row_nums[i];
+          b->Args({static_cast<int64_t>(type), col, build_rows, build_car, probe_rows, probe_car, matched_car});
+        }
       }
     }
   }
@@ -869,10 +875,10 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ2_SortRunners)
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinSelfRunners)(benchmark::State &state) {
-  auto type = type::TypeId::INTEGER;
-  auto num_col = state.range(0);
-  auto row = state.range(1);
-  auto car = state.range(2);
+  auto type = static_cast<type::TypeId>(state.range(0));
+  auto num_col = state.range(1);
+  auto row = state.range(2);
+  auto car = state.range(3);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
@@ -930,13 +936,13 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ3_HashJoinSelfRunners)
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinNonSelfRunners)(benchmark::State &state) {
-  auto type = type::TypeId::INTEGER;
-  auto num_col = state.range(0);
-  auto build_row = state.range(1);
-  auto build_car = state.range(2);
-  auto probe_row = state.range(3);
-  auto probe_car = state.range(4);
-  auto matched_car = state.range(5);
+  auto type = static_cast<type::TypeId>(state.range(0));
+  auto num_col = state.range(1);
+  auto build_row = state.range(2);
+  auto build_car = state.range(3);
+  auto probe_row = state.range(4);
+  auto probe_car = state.range(5);
+  auto matched_car = state.range(6);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
