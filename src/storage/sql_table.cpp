@@ -3,9 +3,13 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <parser/expression/constant_value_expression.h>
 
 #include "common/macros.h"
 #include "storage/storage_util.h"
+#include "type/transient_value_peeker.h"
+#include "type/type_util.h"
+#include "util/time_util.h"
 
 namespace terrier::storage {
 
@@ -168,16 +172,96 @@ void SqlTable::Scan(const terrier::common::ManagedPointer<transaction::Transacti
   }
 }
 
+// return false if it is null
+static bool PeekValue(const type::TransientValue &transient_val, byte *value_output) {
+  // Value output should be zero filled before calling
+  if (transient_val.Null()) {
+    // NullToSql(&expr) produces a NULL of expr's type.
+    return false;
+  }
+
+  switch (transient_val.Type()) {
+    case type::TypeId::BOOLEAN: {
+      auto val = type::TransientValuePeeker::PeekBoolean(transient_val);
+      memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
+      break;
+    }
+    case type::TypeId::TINYINT: {
+      auto val = type::TransientValuePeeker::PeekTinyInt(transient_val);
+      memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
+      break;
+    }
+    case type::TypeId::SMALLINT: {
+      auto val = type::TransientValuePeeker::PeekSmallInt(transient_val);
+      memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
+      break;
+    }
+    case type::TypeId::INTEGER: {
+      auto val = type::TransientValuePeeker::PeekInteger(transient_val);
+      memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
+      break;
+    }
+    case type::TypeId::BIGINT: {
+      auto val = type::TransientValuePeeker::PeekBigInt(transient_val);
+      memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
+      break;
+    }
+    case type::TypeId::DATE: {
+      // TODO(Schema-Change): find a way to handle it without codegen
+//      auto val = type::TransientValuePeeker::PeekDate(transient_val);
+//      auto ymd = util::TimeConvertor::YMDFromDate(val);
+//      auto year = static_cast<int32_t>(ymd.year());
+//      auto month = static_cast<uint32_t>(ymd.month());
+//      auto day = static_cast<uint32_t>(ymd.day());
+//      return DateToSql(year, month, day);
+      break;
+    }
+    case type::TypeId::TIMESTAMP: {
+      auto val = type::TransientValuePeeker::PeekTimestamp(transient_val);
+      auto julian_usec = util::TimeConvertor::ExtractJulianMicroseconds(val);
+      memcpy(value_output, &julian_usec, type::TypeUtil::GetTypeSize(transient_val.Type()));
+      break;
+    }
+    case type::TypeId::DECIMAL: {
+      auto val = type::TransientValuePeeker::PeekDecimal(transient_val);
+      memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
+      break;
+    }
+    case type::TypeId::VARCHAR:
+    case type::TypeId::VARBINARY: {
+      auto val = terrier::type::TransientValuePeeker::PeekVarChar(transient_val);
+      memcpy(value_output, &val, val.size());
+      break;
+    }
+    default:
+      // TODO(Amadou): Add support for these types.
+      TERRIER_ASSERT(false, "Should not peek on given type!");
+  }
+  return true;
+}
+
 template <class RowType>
 void SqlTable::FillMissingColumns(RowType *out_buffer, const DataTableVersion &desired_version) const {
   const auto col_ids = out_buffer->ColumnIds();
   for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
-    const auto default_val = desired_version.default_value_map_.at(col_ids[i]);
-    if (out_buffer->AccessWithNullCheck(i) == nullptr && default_val != nullptr) {
+    if (out_buffer->AccessWithNullCheck(i) == nullptr) {
+      // TODO(Schema-Change): Only handle constant value default
+      const common::ManagedPointer<const parser::AbstractExpression> default_val = desired_version.default_value_map_.at(col_ids[i]);
+      if (default_val->GetExpressionType() != parser::ExpressionType::VALUE_CONSTANT)
+        continue;
+
+      auto default_const = default_val.CastManagedPointerTo<const parser::ConstantValueExpression>()->GetValue();
       auto col_oid = desired_version.column_id_to_oid_map_.at(col_ids[i]);
-      // FIXME(all): proper way to use AbstractExpression
-      StorageUtil::CopyWithNullCheck(default_val.template CastManagedPointerTo<const byte>().Get(), out_buffer,
-                                     desired_version.schema_->GetColumn(col_oid).AttrSize(), i);
+      auto value_size = desired_version.schema_->GetColumn(col_oid).AttrSize();
+
+      // zero out the temporary buffer before peeking
+      byte output[value_size];
+      memset(output, 0, value_size);
+
+      if (PeekValue(default_const, &(output[0]))) {
+        StorageUtil::CopyWithNullCheck(output, out_buffer, desired_version.schema_->GetColumn(col_oid).AttrSize(), i);
+        out_buffer->SetNotNull(i);
+      }
     }
   }
 }
