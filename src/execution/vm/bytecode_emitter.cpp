@@ -349,6 +349,11 @@ void BytecodeEmitter::EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, Lo
   EmitAll(bytecode, iter, exec_ctx, num_attrs, table_oid, index_oid, col_oids, num_oids);
 }
 
+void BytecodeEmitter::CteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar col_oids,
+                                          uint32_t num_oids) {
+  EmitAll(bytecode, iter, exec_ctx, col_oids, num_oids);
+}
+
 void BytecodeEmitter::EmitTestCatalogLookup(LocalVar oid_var, LocalVar exec_ctx, LocalVar table_name,
                                             uint32_t table_name_len, LocalVar col_name, uint32_t col_name_len) {
   EmitAll(Bytecode::TestCatalogLookup, oid_var, exec_ctx, table_name, table_name_len, col_name, col_name_len);

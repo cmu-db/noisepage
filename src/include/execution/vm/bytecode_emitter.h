@@ -356,6 +356,18 @@ class BytecodeEmitter {
   void EmitTestCatalogLookup(LocalVar oid_var, LocalVar exec_ctx, LocalVar table_name, uint32_t table_name_len,
                              LocalVar col_name, uint32_t col_name_len);
 
+  /*Cte Scan Calls*/
+
+  /**
+   * Emit code to initialize an index iterator
+   * @param bytecode index initialization bytecode
+   * @param iter iterator in initialize
+   * @param exec_ctx the execution context
+   * @param col_schema_defn array of defns
+   * @param num_oids length of the array
+   */
+  void CteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar col_oids, uint32_t num_oids);
+
   /** ONLY FOR TESTING! */
   void EmitTestCatalogIndexLookup(LocalVar oid_var, LocalVar exec_ctx, LocalVar table_name, uint32_t table_name_len);
 
