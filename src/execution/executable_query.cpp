@@ -39,15 +39,6 @@ ExecutableQuery::ExecutableQuery(const common::ManagedPointer<planner::AbstractP
   ast_ctx_ = codegen.ReleaseContext();
   pipeline_operating_units_ = codegen.ReleasePipelineOperatingUnits();
   exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(pipeline_operating_units_));
-
-  TERRIER_ASSERT(tpl_module_ != nullptr, "Trying to run a module that failed to compile.");
-
-  // Compile the main function
-  if (!tpl_module_->GetFunction("main", execution::vm::ExecutionMode::Compiled, &main_)) {
-    EXECUTION_LOG_ERROR(
-        "Missing 'main' entry function with signature "
-        "(*ExecutionContext)->int32");
-  }
 }
 
 ExecutableQuery::ExecutableQuery(const std::string &filename,
@@ -98,9 +89,14 @@ ExecutableQuery::ExecutableQuery(const std::string &filename,
 void ExecutableQuery::Run(const common::ManagedPointer<exec::ExecutionContext> exec_ctx, const vm::ExecutionMode mode) {
   TERRIER_ASSERT(tpl_module_ != nullptr, "Trying to run a module that failed to compile.");
   exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode));
-  exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(pipeline_operating_units_));
 
   // Run the main function
+  if (!tpl_module_->GetFunction("main", mode, &main_)) {
+    EXECUTION_LOG_ERROR(
+        "Missing 'main' entry function with signature "
+        "(*ExecutionContext)->int32");
+  }
+
   auto result = main_(exec_ctx.Get());
   EXECUTION_LOG_DEBUG("main() returned: {}", result);
   exec_ctx->SetPipelineOperatingUnits(nullptr);
