@@ -53,7 +53,11 @@ namespace terrier::execution::ast {
                                                                         \
   /*Cte Scans*/                                                         \
   F(CteScanInit, cteScanInit)                                           \
-  F(CteScanNext, cteScanNext)                                           \
+  F(CteScanGetTable, cteScanGetTable)                                   \
+  F(CteScanGetTableOid, cteScanGetTableOid)                             \
+  F(CteScanGetInsertTempTablePR, cteScanTableInsert)                    \
+  F(CteScanTableInsert, cteScanTableInsert)                             \
+                                                                        \
   /* VPI */                                                             \
   F(VPIInit, vpiInit)                                                   \
   F(VPIIsFiltered, vpiIsFiltered)                                       \

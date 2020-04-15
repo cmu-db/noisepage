@@ -41,19 +41,6 @@ void OpVPIInitWithList(terrier::execution::sql::VectorProjectionIterator *vpi,
 
 void OpVPIFree(terrier::execution::sql::VectorProjectionIterator *vpi) { vpi->~VectorProjectionIterator(); }
 
-// ---------------------------------------------------------
-// Cte Scan
-// ---------------------------------------------------------
-
-void OpCteScanInit(terrier::execution::sql::CteScanIterator *iter) {
-//  new (iter) terrier::execution::sql::CteScanIterator();
-
-}
-
-void OpCteScanNext(terrier::storage::TupleSlot *return_slot,
-                         terrier::execution::sql::CteScanIterator *iter, terrier::storage::TupleSlot *slot) {
-  *return_slot = iter->Next(*slot);
-}
 
 // ---------------------------------------------------------
 // Filter Manager

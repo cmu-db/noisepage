@@ -55,15 +55,6 @@ class CteScanIterator {
   DISALLOW_COPY_AND_MOVE(CteScanIterator);
 
 
-  /**
-   * Initialize the iterator, returning true if the initialization succeeded
-   * @return True if the initialization succeeded; false otherwise
-   */
-  storage::TupleSlot Next(storage::TupleSlot input) {
-    return input;
-  }
-
-
  private:
   terrier::execution::exec::ExecutionContext *exec_ctx_;
   storage::SqlTable* cte_table_;
