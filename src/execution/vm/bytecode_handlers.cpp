@@ -85,19 +85,6 @@ void OpPCIFilterNotEqual(uint64_t *size, terrier::execution::sql::ProjectedColum
   *size = iter->FilterColByVal<std::not_equal_to>(col_idx, sql_type, v);
 }
 
-// ---------------------------------------------------------
-// Cte Scan
-// ---------------------------------------------------------
-
-void OpCteScanInit(terrier::execution::sql::CteScanIterator *iter) {
-//  new (iter) terrier::execution::sql::CteScanIterator();
-
-}
-
-void OpCteScanNext(terrier::storage::TupleSlot *return_slot,
-                         terrier::execution::sql::CteScanIterator *iter, terrier::storage::TupleSlot *slot) {
-  *return_slot = iter->Next(*slot);
-}
 
 // ---------------------------------------------------------
 // Filter Manager

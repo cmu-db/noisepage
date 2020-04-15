@@ -2115,6 +2115,14 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinTableIterCall(call, builtin);
       break;
     }
+      case ast::Builtin::CteScanInit:
+      case ast::Builtin::CteScanGetTable:
+      case ast::Builtin::CteScanGetTableOid:
+      case ast::Builtin::CteScanGetInsertTempTablePR:
+      case ast::Builtin::CteScanTableInsert: {
+          VisitBuiltinCteScanCall(call, builtin);
+          break;
+      }
     case ast::Builtin::TableIterParallel: {
       VisitBuiltinTableIterParallelCall(call);
       break;
@@ -3006,5 +3014,6 @@ std::unique_ptr<BytecodeModule> BytecodeGenerator::Compile(ast::AstNode *root, e
   // array from the generator into the module.
   return std::make_unique<BytecodeModule>(name, std::move(generator.bytecode_), std::move(generator.functions_));
 }
+void BytecodeGenerator::VisitBuiltinCteScanCall(ast::CallExpr *pExpr, ast::Builtin builtin) {}
 
 }  // namespace terrier::execution::vm

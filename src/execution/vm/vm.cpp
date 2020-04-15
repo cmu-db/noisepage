@@ -594,16 +594,36 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
 
   OP(CteScanInit) : {
     auto iter = frame->LocalAt<sql::CteScanIterator *>(READ_LOCAL_ID());
-    OpCteScanInit(iter);
+    auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto schema_cols_type = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
+    auto num_oids = READ_UIMM4();
+    OpCteScanInit(iter, exec_ctx, schema_cols_type, num_oids);
     DISPATCH_NEXT();
   }
-  OP(CteScanNext) : {
-  auto *return_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
-  auto iter = frame->LocalAt<sql::CteScanIterator *>(READ_LOCAL_ID());
-  auto *slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
-  OpCteScanNext(return_slot, iter, slot);
-  DISPATCH_NEXT();
-}
+  OP(CteScanGetTable) : {
+    auto *table = frame->LocalAt<storage::SqlTable**>(READ_LOCAL_ID());
+    auto iter = frame->LocalAt<sql::CteScanIterator *>(READ_LOCAL_ID());
+    OpCteScanGetTable(table, iter);
+    DISPATCH_NEXT();
+  }
+  OP(CteScanGetTableOid) : {
+    auto table_oid = frame->LocalAt<terrier::catalog::table_oid_t*>(READ_LOCAL_ID());
+    auto iter = frame->LocalAt<sql::CteScanIterator *>(READ_LOCAL_ID());
+    OpCteScanGetTableOid(table_oid, iter);
+    DISPATCH_NEXT();
+  }
+  OP(CteScanGetInsertTempTablePR) : {
+    auto *pr = frame->LocalAt<storage::ProjectedRow **>(READ_LOCAL_ID());
+    auto iter = frame->LocalAt<sql::CteScanIterator *>(READ_LOCAL_ID());
+    OpCteScanGetInsertTempTablePR(pr, iter);
+    DISPATCH_NEXT();
+  }
+  OP(CteScanTableInsert) : {
+    auto tuple_slot = frame->LocalAt<terrier::storage::TupleSlot*>(READ_LOCAL_ID());
+    auto iter = frame->LocalAt<sql::CteScanIterator *>(READ_LOCAL_ID());
+    OpCteScanTableInsert(tuple_slot, iter);
+    DISPATCH_NEXT();
+  }
 
 
   // -------------------------------------------------------
