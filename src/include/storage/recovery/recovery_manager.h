@@ -247,6 +247,8 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    *   4. Delete into pg_class (renaming a table/index, drop a table/index)
    *   5. Delete into pg_index (cascading delete from drop index)
    *   6. Delete into pg_attribute (drop column (NYS) / cascading delete from drop table)
+   *   7. Insert into pg_proc
+   *   8. Updates into pg_proc
    * @param record log record we want to determine if its a special case
    * @return true if log record is a special case catalog record, false otherwise
    */
@@ -258,11 +260,13 @@ class RecoveryManager : public common::DedicatedThreadOwner {
       auto *redo_record = record->GetUnderlyingRecordBodyAs<RedoRecord>();
       if (IsInsertRecord(redo_record)) {
         // Case 1
-        return redo_record->GetTableOid() == catalog::postgres::DATABASE_TABLE_OID;
+        return redo_record->GetTableOid() == catalog::postgres::DATABASE_TABLE_OID ||
+               redo_record->GetTableOid() == catalog::postgres::PRO_TABLE_OID;
       }
 
       // Case 2
-      return redo_record->GetTableOid() == catalog::postgres::CLASS_TABLE_OID;
+      return redo_record->GetTableOid() == catalog::postgres::CLASS_TABLE_OID ||
+             redo_record->GetTableOid() == catalog::postgres::PRO_TABLE_OID;
     }
 
     // Case 3, 4, 5, and 6
@@ -316,6 +320,18 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   uint32_t ProcessSpecialCasePGClassRecord(transaction::TransactionContext *txn,
                                            std::vector<std::pair<LogRecord *, std::vector<byte *>>> *buffered_changes,
                                            uint32_t start_idx);
+
+  /**
+   * Processes a record that modifies pg_proc.
+   * @param txn transaction to use to replay the catalog changes
+   * @param buffered_changes list of buffered log records
+   * @param start_idx index of current log record in the list
+   * @return number of EXTRA log records processed
+   */
+  uint32_t ProcessSpecialCasePGProcRecord(
+      terrier::transaction::TransactionContext *txn,
+      std::vector<std::pair<terrier::storage::LogRecord *, std::vector<terrier::byte *>>> *buffered_changes,
+      uint32_t start_idx);
 
   /**
    * Replays a redo record. Updates necessary metadata maps
