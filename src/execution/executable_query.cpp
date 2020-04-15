@@ -96,7 +96,6 @@ void ExecutableQuery::Run(const common::ManagedPointer<exec::ExecutionContext> e
         "Missing 'main' entry function with signature "
         "(*ExecutionContext)->int32");
   }
-
   auto result = main_(exec_ctx.Get());
   EXECUTION_LOG_DEBUG("main() returned: {}", result);
   exec_ctx->SetPipelineOperatingUnits(nullptr);
