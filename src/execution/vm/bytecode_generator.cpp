@@ -2115,14 +2115,14 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinTableIterCall(call, builtin);
       break;
     }
-      case ast::Builtin::CteScanInit:
-      case ast::Builtin::CteScanGetTable:
-      case ast::Builtin::CteScanGetTableOid:
-      case ast::Builtin::CteScanGetInsertTempTablePR:
-      case ast::Builtin::CteScanTableInsert: {
-          VisitBuiltinCteScanCall(call, builtin);
-          break;
-      }
+    case ast::Builtin::CteScanInit:
+    case ast::Builtin::CteScanGetTable:
+    case ast::Builtin::CteScanGetTableOid:
+    case ast::Builtin::CteScanGetInsertTempTablePR:
+    case ast::Builtin::CteScanTableInsert: {
+      VisitBuiltinCteScanCall(call, builtin);
+      break;
+    }
     case ast::Builtin::TableIterParallel: {
       VisitBuiltinTableIterParallelCall(call);
       break;
