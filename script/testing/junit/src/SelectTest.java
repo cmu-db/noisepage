@@ -51,19 +51,35 @@ public class SelectTest extends TestUtility {
      */
     @Before
     public void setup() throws SQLException {
-        conn = makeDefaultConnection();
-        conn.setAutoCommit(true);
-        initDatabase();
+        try {
+            conn = makeDefaultConnection();
+            conn.setAutoCommit(true);
+            initDatabase();
+        } catch (SQLException e) {
+            DumpSQLException(e);
+        }
     }
 
     /**
      * Cleanup for each test, execute after each test
-     * drop the default table
+     * drop the default table and close connection
      */
     @After
     public void teardown() throws SQLException {
-        Statement stmt = conn.createStatement();
-        stmt.execute(SQL_DROP_TABLE);
+        try {
+            Statement stmt = conn.createStatement();
+            stmt.execute(SQL_DROP_TABLE);
+        } catch (SQLException e) {
+            DumpSQLException(e);
+        } finally {
+            try {
+                if (conn != null) {
+                    conn.close();
+                }
+            } catch (SQLException e) {
+                DumpSQLException(e);
+            }
+        }
     }
 
     /* --------------------------------------------
@@ -171,6 +187,40 @@ public class SelectTest extends TestUtility {
         rs.next();
         checkIntRow(rs, new String [] {"stock_count"}, new int [] {2});
         assertNoMoreRows(rs);
+    }
+
+    /**
+     * Test for selecting with a timestamp in the where clause.
+     * Fix #782: selecting with timestamp in where clause will crash the system.
+     */
+    @Test
+    public void testSelectWhereTimestamp() throws SQLException {
+        String ts1 = "2020-01-02 12:23:34.56789";
+        String ts2 = "2020-01-02 11:22:33.721-05";
+        String createSQL = "CREATE TABLE xxx (c1 int, c2 timestamp);";
+        String insertSQL1 = "INSERT INTO xxx (c1, c2) VALUES (1, '" + ts1 + "');";
+        String insertSQL2 = "INSERT INTO xxx (c1, c2) VALUES (2, '" + ts2 + "');";
+        String selectSQL = "SELECT * FROM xxx WHERE c2 = '" + ts2 + "';";
+        String dropSQL = "DROP TABLE xxx;";
+
+        conn.setAutoCommit(false);
+        Statement stmt = conn.createStatement();
+        stmt.addBatch(createSQL);
+        stmt.addBatch(insertSQL1);
+        stmt.addBatch(insertSQL2);
+        stmt.executeBatch();
+        conn.commit();
+        conn.setAutoCommit(true);
+
+        stmt = conn.createStatement();
+        rs = stmt.executeQuery(selectSQL);
+        rs.next();
+        assertEquals(2, rs.getInt("c1"));
+        assertEquals("2020-01-02 16:22:33.721", rs.getTimestamp("c2").toString());
+        assertNoMoreRows(rs);
+
+        stmt = conn.createStatement();
+        stmt.execute(dropSQL);
     }
 
     /**

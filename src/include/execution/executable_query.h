@@ -13,6 +13,10 @@ namespace terrier::planner {
 class AbstractPlanNode;
 }
 
+namespace terrier::runner {
+class MiniRunners;
+}
+
 namespace terrier::execution {
 
 namespace exec {
@@ -99,5 +103,8 @@ class ExecutableQuery {
   std::string query_name_;
   query_id_t query_id_;
   static std::atomic<query_id_t> query_identifier;
+
+  // MiniRunners needs to set query_identifier
+  friend class terrier::runner::MiniRunners;
 };
 }  // namespace terrier::execution

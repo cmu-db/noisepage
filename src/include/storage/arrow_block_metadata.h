@@ -37,7 +37,7 @@ class ArrowVarlenColumn {
       : values_length_(values_length),
         offsets_length_(offsets_length),
         values_(common::AllocationUtil::AllocateAligned(values_length_)),
-        offsets_(common::AllocationUtil::AllocateAligned<uint32_t>(offsets_length_)) {}
+        offsets_(common::AllocationUtil::AllocateAligned<uint64_t>(offsets_length_)) {}
 
   DISALLOW_COPY(ArrowVarlenColumn)
 
@@ -97,7 +97,7 @@ class ArrowVarlenColumn {
   /**
    * @return the offsets array
    */
-  uint32_t *Offsets() const { return offsets_; }
+  uint64_t *Offsets() const { return offsets_; }
 
   /**
    * Deallocates all associated buffers in the ArrowVarlenColumn
@@ -112,7 +112,7 @@ class ArrowVarlenColumn {
  private:
   uint32_t values_length_ = 0, offsets_length_ = 0;
   byte *values_ = nullptr;
-  uint32_t *offsets_ = nullptr;
+  uint64_t *offsets_ = nullptr;
 };
 
 /**
@@ -174,7 +174,7 @@ class ArrowColumnInfo {
    * size of this array is equal to the number of slots in a block.
    * @return the indices array
    */
-  uint32_t *&Indices() {
+  uint64_t *&Indices() {
     TERRIER_ASSERT(type_ == ArrowColumnType::DICTIONARY_COMPRESSED,
                    "this array is only meaningful if the column is dicationary compressed");
     return indices_;
@@ -195,7 +195,7 @@ class ArrowColumnInfo {
   ArrowColumnType type_;
   ArrowVarlenColumn varlen_column_;  // For varlen and dictionary
   // TODO(Tianyu): Add null bitmap
-  uint32_t *indices_ = nullptr;  // for dictionary
+  uint64_t *indices_ = nullptr;  // for dictionary
 };
 
 /**

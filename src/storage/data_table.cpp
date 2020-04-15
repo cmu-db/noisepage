@@ -1,14 +1,14 @@
-#include "storage/data_table.h"
-
 #include <list>
 
 #include "common/allocator.h"
 #include "storage/block_access_controller.h"
+#include "storage/data_table.h"
 #include "storage/storage_util.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_util.h"
 
 namespace terrier::storage {
+
 DataTable::DataTable(const common::ManagedPointer<BlockStore> store, const BlockLayout &layout,
                      const layout_version_t layout_version)
     : block_store_(store), layout_version_(layout_version), accessor_(layout) {
@@ -60,6 +60,8 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
 }
 
 DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
+  // TODO(Lin): We need to temporarily comment out this latch for the concurrent TPCH experiments. Should be replaced
+  //  with a real solution
   common::SpinLatch::ScopedSpinLatch guard(&table_->blocks_latch_);
   // Jump to the next block if already the last slot in the block.
   if (current_slot_.GetOffset() == table_->accessor_.GetBlockLayout().NumSlots() - 1) {
@@ -73,6 +75,8 @@ DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
 }
 
 DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compability
+  // TODO(Lin): We need to temporarily comment out this latch for the concurrent TPCH experiments. Should be replaced
+  //  with a real solution
   common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
   // TODO(Tianyu): Need to look in detail at how this interacts with compaction when that gets in.
 

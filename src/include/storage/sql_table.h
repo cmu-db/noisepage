@@ -1,6 +1,7 @@
 #pragma once
 #include <list>
 #include <set>
+#include <string>
 #include <utility>
 #include <vector>
 
