@@ -268,26 +268,15 @@ VM_OP_HOT void OpParallelScanTable(const uint32_t db_oid, const uint32_t table_o
 // ---------------------------------------------------------
 
 VM_OP void OpCteScanInit(terrier::execution::sql::CteScanIterator *iter, terrier::execution::exec::ExecutionContext *exec_ctx,
-                         uint32_t *schema_cols_type, uint32_t num_schema_cols) {
-  new (iter) terrier::execution::sql::CteScanIterator(exec_ctx, schema_cols_type, num_schema_cols);
-}
+                         uint32_t *schema_cols_type, uint32_t num_schema_cols);
 
-VM_OP void OpCteScanGetTable(terrier::storage::SqlTable** sql_table, terrier::execution::sql::CteScanIterator *iter) {
-  *sql_table = iter->GetTable();
-}
+VM_OP void OpCteScanGetTable(terrier::storage::SqlTable** sql_table, terrier::execution::sql::CteScanIterator *iter);
 
-VM_OP void OpCteScanGetTableOid(terrier::catalog::table_oid_t* table_oid, terrier::execution::sql::CteScanIterator *iter) {
-  *table_oid = iter->GetTableOid();
-}
+VM_OP void OpCteScanGetTableOid(terrier::catalog::table_oid_t* table_oid, terrier::execution::sql::CteScanIterator *iter);
 
 VM_OP void OpCteScanGetInsertTempTablePR(terrier::storage::ProjectedRow ** projected_row,
-    terrier::execution::sql::CteScanIterator *iter) {
-  *projected_row = iter->GetInsertTempTablePR();
-}
-
-VM_OP void OpCteScanTableInsert(terrier::storage::TupleSlot* tuple_slot, terrier::execution::sql::CteScanIterator *iter) {
-  *tuple_slot = iter->TableInsert();
-}
+    terrier::execution::sql::CteScanIterator *iter);
+VM_OP void OpCteScanTableInsert(terrier::storage::TupleSlot* tuple_slot, terrier::execution::sql::CteScanIterator *iter);
 
 
 // ---------------------------------------------------------
