@@ -101,10 +101,11 @@ void ChildPropertyDeriver::Visit(const Limit *op) {
 }
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {}
-void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const InnerNLJoin *op) { DeriveForJoin(); }
-void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const LeftNLJoin *op) {}
-void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const RightNLJoin *op) {}
-void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const OuterNLJoin *op) {}
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const NLJoin *op) {
+  if (op->GetJoinType() == PhysicalJoinType::INNER) {
+    DeriveForJoin();
+  }
+}
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const InnerHashJoin *op) { DeriveForJoin(); }
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const LeftHashJoin *op) {}

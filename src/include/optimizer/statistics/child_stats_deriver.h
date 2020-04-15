@@ -35,34 +35,10 @@ class ChildStatsDeriver : public OperatorVisitor {
   void Visit(const LogicalQueryDerivedGet *op) override;
 
   /**
-   * Visit for a LogicalInnerJoin
+   * Visit for a LogicalJoin
    * @param op Visiting LogicalInnerJoin
    */
-  void Visit(const LogicalInnerJoin *op) override;
-
-  /**
-   * Visit for a LogicalLeftJoin
-   * @param op Visiting LogicalLeftJoin
-   */
-  void Visit(const LogicalLeftJoin *op) override;
-
-  /**
-   * Visit for a LogicalRightJoin
-   * @param op Visiting LogicalRightJoin
-   */
-  void Visit(const LogicalRightJoin *op) override;
-
-  /**
-   * Visit for a LogicalOuterJoin
-   * @param op Visiting LogicalOuterJoin
-   */
-  void Visit(const LogicalOuterJoin *op) override;
-
-  /**
-   * Visit for a LogicalSemiJoin
-   * @param op Visiting LogicalSemiJoin
-   */
-  void Visit(const LogicalSemiJoin *op) override;
+  void Visit(const LogicalJoin *op) override;
 
   /**
    * Visit for a LogicalAggregateAndGroupBy

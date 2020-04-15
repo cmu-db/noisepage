@@ -26,7 +26,7 @@ namespace terrier::optimizer {
 UnnestMarkJoinToInnerJoin::UnnestMarkJoinToInnerJoin() {
   type_ = RuleType::MARK_JOIN_GET_TO_INNER_JOIN;
 
-  match_pattern_ = new Pattern(OpType::LOGICALMARKJOIN);
+  match_pattern_ = new Pattern(OpType::LOGICALJOIN);
   match_pattern_->AddChild(new Pattern(OpType::LEAF));
   match_pattern_->AddChild(new Pattern(OpType::LEAF));
 }
@@ -48,14 +48,15 @@ void UnnestMarkJoinToInnerJoin::Transform(common::ManagedPointer<OperatorNode> i
                                           std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                           UNUSED_ATTRIBUTE OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("UnnestMarkJoinToInnerJoin::Transform");
-  UNUSED_ATTRIBUTE auto mark_join = input->GetOp().As<LogicalMarkJoin>();
+  UNUSED_ATTRIBUTE auto mark_join = input->GetOp().As<LogicalJoin>();
+  TERRIER_ASSERT(mark_join->GetJoinType() == LogicalJoinType::MARK, "join type should be Mark");
   TERRIER_ASSERT(mark_join->GetJoinPredicates().empty(), "MarkJoin should have 0 predicates");
 
   auto join_children = input->GetChildren();
   std::vector<std::unique_ptr<OperatorNode>> c;
   c.emplace_back(join_children[0]->Copy());
   c.emplace_back(join_children[1]->Copy());
-  auto output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(c));
+  auto output = std::make_unique<OperatorNode>(LogicalJoin::Make(LogicalJoinType::INNER), std::move(c));
   transformed->emplace_back(std::move(output));
 }
 
@@ -65,7 +66,7 @@ void UnnestMarkJoinToInnerJoin::Transform(common::ManagedPointer<OperatorNode> i
 UnnestSingleJoinToInnerJoin::UnnestSingleJoinToInnerJoin() {
   type_ = RuleType::MARK_JOIN_GET_TO_INNER_JOIN;
 
-  match_pattern_ = new Pattern(OpType::LOGICALSINGLEJOIN);
+  match_pattern_ = new Pattern(OpType::LOGICALJOIN);
   match_pattern_->AddChild(new Pattern(OpType::LEAF));
   match_pattern_->AddChild(new Pattern(OpType::LEAF));
 }
@@ -87,14 +88,15 @@ void UnnestSingleJoinToInnerJoin::Transform(common::ManagedPointer<OperatorNode>
                                             std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                             UNUSED_ATTRIBUTE OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("UnnestSingleJoinToInnerJoin::Transform");
-  UNUSED_ATTRIBUTE auto single_join = input->GetOp().As<LogicalSingleJoin>();
+  UNUSED_ATTRIBUTE auto single_join = input->GetOp().As<LogicalJoin>();
+  TERRIER_ASSERT(single_join->GetJoinType() == LogicalJoinType::SINGLE, "join type should be Single");
   TERRIER_ASSERT(single_join->GetJoinPredicates().empty(), "SingleJoin should have no predicates");
 
   auto join_children = input->GetChildren();
   std::vector<std::unique_ptr<OperatorNode>> c;
   c.emplace_back(join_children[0]->Copy());
   c.emplace_back(join_children[1]->Copy());
-  auto output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(c));
+  auto output = std::make_unique<OperatorNode>(LogicalJoin::Make(LogicalJoinType::INNER), std::move(c));
   transformed->emplace_back(std::move(output));
 }
 

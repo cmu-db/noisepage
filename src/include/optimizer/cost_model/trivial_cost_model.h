@@ -69,28 +69,10 @@ class TrivialCostModel : public AbstractCostModel {
   void Visit(UNUSED_ATTRIBUTE const Limit *op) override { output_cost_ = 0.f; }
 
   /**
-   * Visit a InnerNLJoin operator
+   * Visit a NLJoin operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const InnerNLJoin *op) override { output_cost_ = 0.f; }
-
-  /**
-   * Visit a LeftNLJoin operator
-   * @param op operator
-   */
-  void Visit(UNUSED_ATTRIBUTE const LeftNLJoin *op) override {}
-
-  /**
-   * Visit a RightNLJoin operator
-   * @param op operator
-   */
-  void Visit(UNUSED_ATTRIBUTE const RightNLJoin *op) override {}
-
-  /**
-   * Visit a OuterNLJoin operator
-   * @param op operator
-   */
-  void Visit(UNUSED_ATTRIBUTE const OuterNLJoin *op) override {}
+  void Visit(UNUSED_ATTRIBUTE const NLJoin *op) override { output_cost_ = 0.f; }
 
   /**
    * Visit a InnerHashJoin operator

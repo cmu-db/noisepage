@@ -438,7 +438,7 @@ LogicalInnerJoinToPhysicalInnerNLJoin::LogicalInnerJoinToPhysicalInnerNLJoin() {
   auto right_child = new Pattern(OpType::LEAF);
 
   // Initialize a pattern for optimizer to match
-  match_pattern_ = new Pattern(OpType::LOGICALINNERJOIN);
+  match_pattern_ = new Pattern(OpType::LOGICALJOIN);
 
   // Add node - we match join relation R and S
   match_pattern_->AddChild(left_child);
@@ -455,8 +455,9 @@ bool LogicalInnerJoinToPhysicalInnerNLJoin::Check(common::ManagedPointer<Operato
 void LogicalInnerJoinToPhysicalInnerNLJoin::Transform(common::ManagedPointer<OperatorNode> input,
                                                       std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                       UNUSED_ATTRIBUTE OptimizationContext *context) const {
-  // first build an expression representing hash join
-  const auto inner_join = input->GetOp().As<LogicalInnerJoin>();
+  // first build an expression representing nl join
+  const auto inner_join = input->GetOp().As<LogicalJoin>();
+  TERRIER_ASSERT(inner_join->GetJoinType() == LogicalJoinType::INNER, "Join type should be inner");
 
   const auto &children = input->GetChildren();
   TERRIER_ASSERT(children.size() == 2, "Inner Join should have two child");
@@ -465,7 +466,7 @@ void LogicalInnerJoinToPhysicalInnerNLJoin::Transform(common::ManagedPointer<Ope
   std::vector<std::unique_ptr<OperatorNode>> child;
   child.emplace_back(children[0]->Copy());
   child.emplace_back(children[1]->Copy());
-  auto result = std::make_unique<OperatorNode>(InnerNLJoin::Make(std::move(join_preds)), std::move(child));
+  auto result = std::make_unique<OperatorNode>(NLJoin::Make(PhysicalJoinType::INNER, std::move(join_preds)), std::move(child));
   transformed->emplace_back(std::move(result));
 }
 
@@ -480,7 +481,7 @@ LogicalInnerJoinToPhysicalInnerHashJoin::LogicalInnerJoinToPhysicalInnerHashJoin
   auto right_child(new Pattern(OpType::LEAF));
 
   // Initialize a pattern for optimizer to match
-  match_pattern_ = new Pattern(OpType::LOGICALINNERJOIN);
+  match_pattern_ = new Pattern(OpType::LOGICALJOIN);
 
   // Add node - we match join relation R and S as well as the predicate exp
   match_pattern_->AddChild(left_child);
@@ -498,7 +499,8 @@ void LogicalInnerJoinToPhysicalInnerHashJoin::Transform(common::ManagedPointer<O
                                                         std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                         UNUSED_ATTRIBUTE OptimizationContext *context) const {
   // first build an expression representing hash join
-  const auto inner_join = input->GetOp().As<LogicalInnerJoin>();
+  const auto inner_join = input->GetOp().As<LogicalJoin>();
+  TERRIER_ASSERT(inner_join->GetJoinType() == LogicalJoinType::INNER, "Join type should be inner");
 
   auto children = input->GetChildren();
   TERRIER_ASSERT(children.size() == 2, "Inner Join should have two child");

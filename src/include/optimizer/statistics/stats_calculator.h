@@ -40,10 +40,10 @@ class StatsCalculator : public OperatorVisitor {
   void Visit(const LogicalQueryDerivedGet *op) override;
 
   /**
-   * Visit a LogicalInnerJoin
+   * Visit a LogicalJoin
    * @param op Operator being visited
    */
-  void Visit(const LogicalInnerJoin *op) override;
+  void Visit(const LogicalJoin *op) override;
 
   /**
    * Visit a LogicalAggregateAndGroupBy

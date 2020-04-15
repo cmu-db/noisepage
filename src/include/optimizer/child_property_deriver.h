@@ -87,28 +87,10 @@ class ChildPropertyDeriver : public OperatorVisitor {
   void Visit(const Limit *op) override;
 
   /**
-   * Visitor function for InnerNLJoin
-   * @param op InnerNLJoin operator to visit
+   * Visitor function for NLJoin
+   * @param op NLJoin operator to visit
    */
-  void Visit(const InnerNLJoin *op) override;
-
-  /**
-   * Visitor function for LeftNLJoin
-   * @param op LeftNLJoin operator to visit
-   */
-  void Visit(const LeftNLJoin *op) override;
-
-  /**
-   * Visitor function for RightNLJoin
-   * @param op RightNLJoin operator to visit
-   */
-  void Visit(const RightNLJoin *op) override;
-
-  /**
-   * Visitor function for OuterNLJoin
-   * @param op OuterNLJoin operator to visit
-   */
-  void Visit(const OuterNLJoin *op) override;
+  void Visit(const NLJoin *op) override;
 
   /**
    * Visitor function for InnerHashJoin

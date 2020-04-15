@@ -28,7 +28,7 @@ LogicalInnerJoinCommutativity::LogicalInnerJoinCommutativity() {
 
   auto left_child = new Pattern(OpType::LEAF);
   auto right_child = new Pattern(OpType::LEAF);
-  match_pattern_ = new Pattern(OpType::LOGICALINNERJOIN);
+  match_pattern_ = new Pattern(OpType::LOGICALJOIN);
   match_pattern_->AddChild(left_child);
   match_pattern_->AddChild(right_child);
 }
@@ -43,7 +43,8 @@ bool LogicalInnerJoinCommutativity::Check(common::ManagedPointer<OperatorNode> p
 void LogicalInnerJoinCommutativity::Transform(common::ManagedPointer<OperatorNode> input,
                                               std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                               UNUSED_ATTRIBUTE OptimizationContext *context) const {
-  auto join_op = input->GetOp().As<LogicalInnerJoin>();
+  auto join_op = input->GetOp().As<LogicalJoin>();
+  TERRIER_ASSERT(join_op->GetJoinType() == LogicalJoinType::INNER, "Join type should be Inner");
   auto join_predicates = std::vector<AnnotatedExpression>(join_op->GetJoinPredicates());
 
   const auto &children = input->GetChildren();
@@ -56,7 +57,7 @@ void LogicalInnerJoinCommutativity::Transform(common::ManagedPointer<OperatorNod
   new_child.emplace_back(children[0]->Copy());
 
   auto result_plan =
-      std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates)), std::move(new_child));
+      std::make_unique<OperatorNode>(LogicalJoin::Make(LogicalJoinType::INNER, std::move(join_predicates)), std::move(new_child));
   transformed->emplace_back(std::move(result_plan));
 }
 
@@ -67,13 +68,13 @@ LogicalInnerJoinAssociativity::LogicalInnerJoinAssociativity() {
   type_ = RuleType::INNER_JOIN_ASSOCIATE;
 
   // Create left nested join
-  auto left_child = new Pattern(OpType::LOGICALINNERJOIN);
+  auto left_child = new Pattern(OpType::LOGICALJOIN);
   left_child->AddChild(new Pattern(OpType::LEAF));
   left_child->AddChild(new Pattern(OpType::LEAF));
 
   auto right_child = new Pattern(OpType::LEAF);
 
-  match_pattern_ = new Pattern(OpType::LOGICALINNERJOIN);
+  match_pattern_ = new Pattern(OpType::LOGICALJOIN);
   match_pattern_->AddChild(left_child);
   match_pattern_->AddChild(right_child);
 }
@@ -90,13 +91,15 @@ void LogicalInnerJoinAssociativity::Transform(common::ManagedPointer<OperatorNod
                                               OptimizationContext *context) const {
   // NOTE: Transforms (left JOIN middle) JOIN right -> left JOIN (middle JOIN
   // right) Variables are named accordingly to above transformation
-  auto parent_join = input->GetOp().As<LogicalInnerJoin>();
+  auto parent_join = input->GetOp().As<LogicalJoin>();
+  TERRIER_ASSERT(parent_join->GetJoinType() == LogicalJoinType::INNER, "Join type should be Inner");
   const auto &children = input->GetChildren();
   TERRIER_ASSERT(children.size() == 2, "There should be 2 children");
-  TERRIER_ASSERT(children[0]->GetOp().GetType() == OpType::LOGICALINNERJOIN, "Left should be join");
+  TERRIER_ASSERT(children[0]->GetOp().GetType() == OpType::LOGICALJOIN, "Left should be join");
+  TERRIER_ASSERT(children[0]->GetOp().As<LogicalJoin>()->GetJoinType() == LogicalJoinType::INNER, "Left should be inner join");
   TERRIER_ASSERT(children[0]->GetChildren().size() == 2, "Left join should have 2 children");
 
-  auto child_join = children[0]->GetOp().As<LogicalInnerJoin>();
+  auto child_join = children[0]->GetOp().As<LogicalJoin>();
   auto left = children[0]->GetChildren()[0];
   auto middle = children[0]->GetChildren()[1];
   auto right = children[1];
@@ -138,14 +141,14 @@ void LogicalInnerJoinAssociativity::Transform(common::ManagedPointer<OperatorNod
   std::vector<std::unique_ptr<OperatorNode>> child_children;
   child_children.emplace_back(middle->Copy());
   child_children.emplace_back(right->Copy());
-  auto new_child_join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(new_child_join_predicates)),
+  auto new_child_join = std::make_unique<OperatorNode>(LogicalJoin::Make(LogicalJoinType::INNER, std::move(new_child_join_predicates)),
                                                        std::move(child_children));
 
   // Construct new parent join operator
   std::vector<std::unique_ptr<OperatorNode>> parent_children;
   parent_children.emplace_back(left->Copy());
   parent_children.emplace_back(std::move(new_child_join));
-  auto new_parent_join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(new_parent_join_predicates)),
+  auto new_parent_join = std::make_unique<OperatorNode>(LogicalJoin::Make(LogicalJoinType::INNER, std::move(new_parent_join_predicates)),
                                                         std::move(parent_children));
 
   transformed->emplace_back(std::move(new_parent_join));

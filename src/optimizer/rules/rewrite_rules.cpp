@@ -27,7 +27,7 @@ RewritePushImplicitFilterThroughJoin::RewritePushImplicitFilterThroughJoin() {
   type_ = RuleType::PUSH_FILTER_THROUGH_JOIN;
 
   // Make join for pattern matching
-  match_pattern_ = new Pattern(OpType::LOGICALINNERJOIN);
+  match_pattern_ = new Pattern(OpType::LOGICALJOIN);
   match_pattern_->AddChild(new Pattern(OpType::LEAF));
   match_pattern_->AddChild(new Pattern(OpType::LEAF));
 }
@@ -52,7 +52,8 @@ void RewritePushImplicitFilterThroughJoin::Transform(common::ManagedPointer<Oper
 
   const auto &left_group_aliases_set = memo.GetGroupByID(left_group_id)->GetTableAliases();
   const auto &right_group_aliases_set = memo.GetGroupByID(right_group_id)->GetTableAliases();
-  auto &predicates = input->GetOp().As<LogicalInnerJoin>()->GetJoinPredicates();
+  TERRIER_ASSERT(input->GetOp().As<LogicalJoin>()->GetJoinType() == LogicalJoinType::INNER, "join type should be Inner");
+  auto &predicates = input->GetOp().As<LogicalJoin>()->GetJoinPredicates();
 
   std::vector<AnnotatedExpression> left_predicates;
   std::vector<AnnotatedExpression> right_predicates;
@@ -105,7 +106,7 @@ void RewritePushImplicitFilterThroughJoin::Transform(common::ManagedPointer<Oper
     std::vector<std::unique_ptr<OperatorNode>> c;
     c.emplace_back(std::move(left_branch));
     c.emplace_back(std::move(right_branch));
-    auto output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates)), std::move(c));
+    auto output = std::make_unique<OperatorNode>(LogicalJoin::Make(LogicalJoinType::INNER, std::move(join_predicates)), std::move(c));
     transformed->emplace_back(std::move(output));
   }
 }
@@ -117,7 +118,7 @@ RewritePushExplicitFilterThroughJoin::RewritePushExplicitFilterThroughJoin() {
   type_ = RuleType::PUSH_FILTER_THROUGH_JOIN;
 
   // Make join for pattern matching
-  auto *join_pattern = new Pattern(OpType::LOGICALINNERJOIN);
+  auto *join_pattern = new Pattern(OpType::LOGICALJOIN);
   join_pattern->AddChild(new Pattern(OpType::LEAF));
   join_pattern->AddChild(new Pattern(OpType::LEAF));
 
@@ -145,7 +146,8 @@ void RewritePushExplicitFilterThroughJoin::Transform(common::ManagedPointer<Oper
 
   const auto &left_group_aliases_set = memo.GetGroupByID(left_group_id)->GetTableAliases();
   const auto &right_group_aliases_set = memo.GetGroupByID(right_group_id)->GetTableAliases();
-  auto &input_join_predicates = join_op_expr->GetOp().As<LogicalInnerJoin>()->GetJoinPredicates();
+  TERRIER_ASSERT(join_op_expr->GetOp().As<LogicalJoin>()->GetJoinType() == LogicalJoinType::INNER, "join type should be Inner");
+  auto &input_join_predicates = join_op_expr->GetOp().As<LogicalJoin>()->GetJoinPredicates();
   auto &filter_predicates = input->GetOp().As<LogicalFilter>()->GetPredicates();
 
   std::vector<AnnotatedExpression> left_predicates;
@@ -203,7 +205,7 @@ void RewritePushExplicitFilterThroughJoin::Transform(common::ManagedPointer<Oper
   std::vector<std::unique_ptr<OperatorNode>> c;
   c.emplace_back(std::move(left_branch));
   c.emplace_back(std::move(right_branch));
-  auto output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates)), std::move(c));
+  auto output = std::make_unique<OperatorNode>(LogicalJoin::Make(LogicalJoinType::INNER, std::move(join_predicates)), std::move(c));
   transformed->emplace_back(std::move(output));
 }
 
@@ -354,7 +356,7 @@ void RewriteEmbedFilterIntoGet::Transform(common::ManagedPointer<OperatorNode> i
 RewritePullFilterThroughMarkJoin::RewritePullFilterThroughMarkJoin() {
   type_ = RuleType::PULL_FILTER_THROUGH_MARK_JOIN;
 
-  match_pattern_ = new Pattern(OpType::LOGICALMARKJOIN);
+  match_pattern_ = new Pattern(OpType::LOGICALJOIN);
   match_pattern_->AddChild(new Pattern(OpType::LEAF));
   auto filter = new Pattern(OpType::LOGICALFILTER);
   filter->AddChild(new Pattern(OpType::LEAF));
@@ -382,7 +384,8 @@ void RewritePullFilterThroughMarkJoin::Transform(common::ManagedPointer<Operator
                                                  std::vector<std::unique_ptr<OperatorNode>> *transformed,
                                                  UNUSED_ATTRIBUTE OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("RewritePullFilterThroughMarkJoin::Transform");
-  UNUSED_ATTRIBUTE auto mark_join = input->GetOp().As<LogicalMarkJoin>();
+  UNUSED_ATTRIBUTE auto mark_join = input->GetOp().As<LogicalJoin>();
+  TERRIER_ASSERT(mark_join->GetJoinType() == LogicalJoinType::MARK, "Join type should be Mark");
   TERRIER_ASSERT(mark_join->GetJoinPredicates().empty(), "MarkJoin should have zero children");
 
   auto join_children = input->GetChildren();

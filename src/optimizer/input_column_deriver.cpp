@@ -130,16 +130,12 @@ void InputColumnDeriver::Visit(const SortGroupBy *op) { AggregateHelper(op); }
 
 void InputColumnDeriver::Visit(const Aggregate *op) { AggregateHelper(op); }
 
-void InputColumnDeriver::Visit(const InnerNLJoin *op) { JoinHelper(op); }
-
-void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const LeftNLJoin *op) { TERRIER_ASSERT(0, "LeftNLJoin not supported"); }
-
-void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const RightNLJoin *op) {
-  TERRIER_ASSERT(0, "RightNLJoin not supported");
-}
-
-void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const OuterNLJoin *op) {
-  TERRIER_ASSERT(0, "OuterNLJoin not supported");
+void InputColumnDeriver::Visit(const NLJoin *op) {
+  if (op->GetJoinType() == PhysicalJoinType::INNER) {
+    JoinHelper(op);
+  } else {
+    TERRIER_ASSERT(0, "join type not supported");
+  }
 }
 
 void InputColumnDeriver::Visit(const InnerHashJoin *op) { JoinHelper(op); }
@@ -293,8 +289,8 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNodeContents *op) {
     join_conds = join_op->GetJoinPredicates();
     left_keys = join_op->GetLeftKeys();
     right_keys = join_op->GetRightKeys();
-  } else if (op->GetType() == OpType::INNERNLJOIN) {
-    auto join_op = reinterpret_cast<const InnerNLJoin *>(op);
+  } else if (op->GetType() == OpType::NLJOIN) {
+    auto join_op = reinterpret_cast<const NLJoin *>(op);
     join_conds = join_op->GetJoinPredicates();
   }
 

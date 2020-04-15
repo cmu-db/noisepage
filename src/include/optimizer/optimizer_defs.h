@@ -26,6 +26,11 @@ STRONG_TYPEDEF(group_id_t, int32_t);
 const group_id_t UNDEFINED_GROUP = group_id_t(-1);
 
 /**
+ * Definition for an INVALID_TYPE
+ */
+constexpr int INVALID_TYPE = 0;
+
+/**
  * Enumeration defining external file formats
  */
 enum class ExternalFileFormat { CSV };
@@ -50,14 +55,7 @@ enum class OpType {
   LOGICALQUERYDERIVEDGET,
   LOGICALPROJECTION,
   LOGICALFILTER,
-  LOGICALMARKJOIN,
-  LOGICALDEPENDENTJOIN,
-  LOGICALSINGLEJOIN,
-  LOGICALINNERJOIN,
-  LOGICALLEFTJOIN,
-  LOGICALRIGHTJOIN,
-  LOGICALOUTERJOIN,
-  LOGICALSEMIJOIN,
+  LOGICALJOIN,
   LOGICALAGGREGATEANDGROUPBY,
   LOGICALINSERT,
   LOGICALINSERTSELECT,
@@ -91,10 +89,7 @@ enum class OpType {
   QUERYDERIVEDSCAN,
   ORDERBY,
   LIMIT,
-  INNERNLJOIN,
-  LEFTNLJOIN,
-  RIGHTNLJOIN,
-  OUTERNLJOIN,
+  NLJOIN,
   INNERHASHJOIN,
   LEFTHASHJOIN,
   RIGHTHASHJOIN,
@@ -122,6 +117,33 @@ enum class OpType {
   DROPTRIGGER,
   DROPVIEW,
   ANALYZE
+};
+
+/*
+ * Logical Join Types
+ */
+enum class LogicalJoinType {
+  INVALID = INVALID_TYPE,
+  DEPENDENT = 1,
+  MARK = 2,
+  SINGLE = 3,
+  INNER = 4,
+  LEFT = 5,
+  RIGHT = 6,
+  OUTER = 7,
+  SEMI = 8
+};
+
+/*
+ * Physical Join Types
+ */
+enum class PhysicalJoinType {
+  INVALID = INVALID_TYPE,
+  LEFT = 1,
+  RIGHT = 2,
+  INNER = 3,
+  OUTER = 4,
+  SEMI = 5,
 };
 
 /**

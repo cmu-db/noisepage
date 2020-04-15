@@ -443,52 +443,26 @@ bool LogicalExportExternalFile::operator==(const BaseOperatorNodeContents &r) {
 }
 
 //===--------------------------------------------------------------------===//
-// Logical Dependent Join
+// Join
 //===--------------------------------------------------------------------===//
-BaseOperatorNodeContents *LogicalDependentJoin::Copy() const { return new LogicalDependentJoin(*this); }
+BaseOperatorNodeContents *LogicalJoin::Copy() const { return new LogicalJoin(*this); }
 
-Operator LogicalDependentJoin::Make() { return Operator(std::make_unique<LogicalDependentJoin>()); }
-
-Operator LogicalDependentJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto join = std::make_unique<LogicalDependentJoin>();
-  join->join_predicates_ = std::move(join_predicates);
+Operator LogicalJoin::Make(LogicalJoinType join_type) {
+  auto join = std::make_unique<LogicalJoin>();
+  join->join_type_ = join_type;
   return Operator(std::move(join));
 }
 
-common::hash_t LogicalDependentJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
-  for (auto &pred : join_predicates_) {
-    auto expr = pred.GetExpr();
-    if (expr) {
-      hash = common::HashUtil::SumHashes(hash, expr->Hash());
-    } else {
-      hash = common::HashUtil::SumHashes(hash, BaseOperatorNodeContents::Hash());
-    }
-  }
-  return hash;
-}
-
-bool LogicalDependentJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::LOGICALDEPENDENTJOIN) return false;
-  const LogicalDependentJoin &node = *static_cast<const LogicalDependentJoin *>(&r);
-  return (join_predicates_ == node.join_predicates_);
-}
-
-//===--------------------------------------------------------------------===//
-// MarkJoin
-//===--------------------------------------------------------------------===//
-BaseOperatorNodeContents *LogicalMarkJoin::Copy() const { return new LogicalMarkJoin(*this); }
-
-Operator LogicalMarkJoin::Make() { return Operator(std::make_unique<LogicalMarkJoin>()); }
-
-Operator LogicalMarkJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto join = std::make_unique<LogicalMarkJoin>();
+Operator LogicalJoin::Make(LogicalJoinType join_type, std::vector<AnnotatedExpression> &&join_predicates) {
+  auto join = std::make_unique<LogicalJoin>();
+  join->join_type_ = join_type;
   join->join_predicates_ = join_predicates;
   return Operator(std::move(join));
 }
 
-common::hash_t LogicalMarkJoin::Hash() const {
+common::hash_t LogicalJoin::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(join_type_));
   for (auto &pred : join_predicates_) {
     auto expr = pred.GetExpr();
     if (expr) {
@@ -500,202 +474,12 @@ common::hash_t LogicalMarkJoin::Hash() const {
   return hash;
 }
 
-bool LogicalMarkJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::LOGICALMARKJOIN) return false;
-  const LogicalMarkJoin &node = *static_cast<const LogicalMarkJoin *>(&r);
-  return (join_predicates_ == node.join_predicates_);
-}
-
-//===--------------------------------------------------------------------===//
-// SingleJoin
-//===--------------------------------------------------------------------===//
-BaseOperatorNodeContents *LogicalSingleJoin::Copy() const { return new LogicalSingleJoin(*this); }
-
-Operator LogicalSingleJoin::Make() { return Operator(std::make_unique<LogicalSingleJoin>()); }
-
-Operator LogicalSingleJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto join = std::make_unique<LogicalSingleJoin>();
-  join->join_predicates_ = join_predicates;
-  return Operator(std::move(join));
-}
-
-common::hash_t LogicalSingleJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
-  for (auto &pred : join_predicates_) {
-    auto expr = pred.GetExpr();
-    if (expr) {
-      hash = common::HashUtil::SumHashes(hash, expr->Hash());
-    } else {
-      hash = common::HashUtil::SumHashes(hash, BaseOperatorNodeContents::Hash());
-    }
-  }
-  return hash;
-}
-
-bool LogicalSingleJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::LOGICALSINGLEJOIN) return false;
-  const LogicalSingleJoin &node = *static_cast<const LogicalSingleJoin *>(&r);
-  return (join_predicates_ == node.join_predicates_);
-}
-
-//===--------------------------------------------------------------------===//
-// InnerJoin
-//===--------------------------------------------------------------------===//
-BaseOperatorNodeContents *LogicalInnerJoin::Copy() const { return new LogicalInnerJoin(*this); }
-
-Operator LogicalInnerJoin::Make() { return Operator(std::make_unique<LogicalInnerJoin>()); }
-
-Operator LogicalInnerJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto join = std::make_unique<LogicalInnerJoin>();
-  join->join_predicates_ = join_predicates;
-  return Operator(std::move(join));
-}
-
-common::hash_t LogicalInnerJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
-  for (auto &pred : join_predicates_) {
-    auto expr = pred.GetExpr();
-    if (expr) {
-      hash = common::HashUtil::SumHashes(hash, expr->Hash());
-    } else {
-      hash = common::HashUtil::SumHashes(hash, BaseOperatorNodeContents::Hash());
-    }
-  }
-  return hash;
-}
-
-bool LogicalInnerJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::LOGICALINNERJOIN) return false;
-  const LogicalInnerJoin &node = *static_cast<const LogicalInnerJoin *>(&r);
-  return (join_predicates_ == node.join_predicates_);
-}
-
-//===--------------------------------------------------------------------===//
-// LeftJoin
-//===--------------------------------------------------------------------===//
-BaseOperatorNodeContents *LogicalLeftJoin::Copy() const { return new LogicalLeftJoin(*this); }
-
-Operator LogicalLeftJoin::Make() { return Operator(std::make_unique<LogicalLeftJoin>()); }
-
-Operator LogicalLeftJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto join = std::make_unique<LogicalLeftJoin>();
-  join->join_predicates_ = join_predicates;
-  return Operator(std::move(join));
-}
-
-common::hash_t LogicalLeftJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
-  for (auto &pred : join_predicates_) {
-    auto expr = pred.GetExpr();
-    if (expr) {
-      hash = common::HashUtil::SumHashes(hash, expr->Hash());
-    } else {
-      hash = common::HashUtil::SumHashes(hash, BaseOperatorNodeContents::Hash());
-    }
-  }
-  return hash;
-}
-
-bool LogicalLeftJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::LOGICALLEFTJOIN) return false;
-  const LogicalLeftJoin &node = *static_cast<const LogicalLeftJoin *>(&r);
-  return (join_predicates_ == node.join_predicates_);
-}
-
-//===--------------------------------------------------------------------===//
-// RightJoin
-//===--------------------------------------------------------------------===//
-BaseOperatorNodeContents *LogicalRightJoin::Copy() const { return new LogicalRightJoin(*this); }
-
-Operator LogicalRightJoin::Make() { return Operator(std::make_unique<LogicalRightJoin>()); }
-
-Operator LogicalRightJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto join = std::make_unique<LogicalRightJoin>();
-  join->join_predicates_ = join_predicates;
-  return Operator(std::move(join));
-}
-
-common::hash_t LogicalRightJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
-  for (auto &pred : join_predicates_) {
-    auto expr = pred.GetExpr();
-    if (expr) {
-      hash = common::HashUtil::SumHashes(hash, expr->Hash());
-    } else {
-      hash = common::HashUtil::SumHashes(hash, BaseOperatorNodeContents::Hash());
-    }
-  }
-  return hash;
-}
-
-bool LogicalRightJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::LOGICALRIGHTJOIN) return false;
-  const LogicalRightJoin &node = *static_cast<const LogicalRightJoin *>(&r);
-  return (join_predicates_ == node.join_predicates_);
-}
-
-//===--------------------------------------------------------------------===//
-// OuterJoin
-//===--------------------------------------------------------------------===//
-BaseOperatorNodeContents *LogicalOuterJoin::Copy() const { return new LogicalOuterJoin(*this); }
-
-Operator LogicalOuterJoin::Make() { return Operator(std::make_unique<LogicalOuterJoin>()); }
-
-Operator LogicalOuterJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto join = std::make_unique<LogicalOuterJoin>();
-  join->join_predicates_ = join_predicates;
-  return Operator(std::move(join));
-}
-
-common::hash_t LogicalOuterJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
-  for (auto &pred : join_predicates_) {
-    auto expr = pred.GetExpr();
-    if (expr) {
-      hash = common::HashUtil::SumHashes(hash, expr->Hash());
-    } else {
-      hash = common::HashUtil::SumHashes(hash, BaseOperatorNodeContents::Hash());
-    }
-  }
-  return hash;
-}
-
-bool LogicalOuterJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::LOGICALOUTERJOIN) return false;
-  const LogicalOuterJoin &node = *static_cast<const LogicalOuterJoin *>(&r);
-  return (join_predicates_ == node.join_predicates_);
-}
-
-//===--------------------------------------------------------------------===//
-// SemiJoin
-//===--------------------------------------------------------------------===//
-BaseOperatorNodeContents *LogicalSemiJoin::Copy() const { return new LogicalSemiJoin(*this); }
-
-Operator LogicalSemiJoin::Make() { return Operator(std::make_unique<LogicalSemiJoin>()); }
-
-Operator LogicalSemiJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto join = std::make_unique<LogicalSemiJoin>();
-  join->join_predicates_ = join_predicates;
-  return Operator(std::move(join));
-}
-
-common::hash_t LogicalSemiJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
-  for (auto &pred : join_predicates_) {
-    auto expr = pred.GetExpr();
-    if (expr) {
-      hash = common::HashUtil::SumHashes(hash, expr->Hash());
-    } else {
-      hash = common::HashUtil::SumHashes(hash, BaseOperatorNodeContents::Hash());
-    }
-  }
-  return hash;
-}
-
-bool LogicalSemiJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::LOGICALSEMIJOIN) return false;
-  const LogicalSemiJoin &node = *static_cast<const LogicalSemiJoin *>(&r);
-  return (join_predicates_ == node.join_predicates_);
+bool LogicalJoin::operator==(const BaseOperatorNodeContents &r) {
+  if (r.GetType() != OpType::LOGICALJOIN) return false;
+  const LogicalJoin &node = *static_cast<const LogicalJoin *>(&r);
+  if (join_type_ != node.join_type_) return false;
+  if (join_predicates_ != node.join_predicates_) return false;
+  return true;
 }
 
 //===--------------------------------------------------------------------===//
@@ -1243,21 +1027,7 @@ const char *OperatorNodeContents<LogicalFilter>::name = "LogicalFilter";
 template <>
 const char *OperatorNodeContents<LogicalProjection>::name = "LogicalProjection";
 template <>
-const char *OperatorNodeContents<LogicalMarkJoin>::name = "LogicalMarkJoin";
-template <>
-const char *OperatorNodeContents<LogicalSingleJoin>::name = "LogicalSingleJoin";
-template <>
-const char *OperatorNodeContents<LogicalDependentJoin>::name = "LogicalDependentJoin";
-template <>
-const char *OperatorNodeContents<LogicalInnerJoin>::name = "LogicalInnerJoin";
-template <>
-const char *OperatorNodeContents<LogicalLeftJoin>::name = "LogicalLeftJoin";
-template <>
-const char *OperatorNodeContents<LogicalRightJoin>::name = "LogicalRightJoin";
-template <>
-const char *OperatorNodeContents<LogicalOuterJoin>::name = "LogicalOuterJoin";
-template <>
-const char *OperatorNodeContents<LogicalSemiJoin>::name = "LogicalSemiJoin";
+const char *OperatorNodeContents<LogicalJoin>::name = "LogicalJoin";
 template <>
 const char *OperatorNodeContents<LogicalAggregateAndGroupBy>::name = "LogicalAggregateAndGroupBy";
 template <>
@@ -1315,21 +1085,7 @@ OpType OperatorNodeContents<LogicalFilter>::type = OpType::LOGICALFILTER;
 template <>
 OpType OperatorNodeContents<LogicalProjection>::type = OpType::LOGICALPROJECTION;
 template <>
-OpType OperatorNodeContents<LogicalMarkJoin>::type = OpType::LOGICALMARKJOIN;
-template <>
-OpType OperatorNodeContents<LogicalSingleJoin>::type = OpType::LOGICALSINGLEJOIN;
-template <>
-OpType OperatorNodeContents<LogicalDependentJoin>::type = OpType::LOGICALDEPENDENTJOIN;
-template <>
-OpType OperatorNodeContents<LogicalInnerJoin>::type = OpType::LOGICALINNERJOIN;
-template <>
-OpType OperatorNodeContents<LogicalLeftJoin>::type = OpType::LOGICALLEFTJOIN;
-template <>
-OpType OperatorNodeContents<LogicalRightJoin>::type = OpType::LOGICALRIGHTJOIN;
-template <>
-OpType OperatorNodeContents<LogicalOuterJoin>::type = OpType::LOGICALOUTERJOIN;
-template <>
-OpType OperatorNodeContents<LogicalSemiJoin>::type = OpType::LOGICALSEMIJOIN;
+OpType OperatorNodeContents<LogicalJoin>::type = OpType::LOGICALJOIN;
 template <>
 OpType OperatorNodeContents<LogicalAggregateAndGroupBy>::type = OpType::LOGICALAGGREGATEANDGROUPBY;
 template <>

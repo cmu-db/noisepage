@@ -161,35 +161,35 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::JoinDefini
   CollectPredicates(node->GetJoinCondition(), &join_predicates);
   switch (node->GetJoinType()) {
     case parser::JoinType::INNER: {
-      join_expr = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates)),
+      join_expr = std::make_unique<OperatorNode>(LogicalJoin::Make(LogicalJoinType::INNER, std::move(join_predicates)),
                                                  std::vector<std::unique_ptr<OperatorNode>>{});
       join_expr->PushChild(std::move(left_expr));
       join_expr->PushChild(std::move(right_expr));
       break;
     }
     case parser::JoinType::OUTER: {
-      join_expr = std::make_unique<OperatorNode>(LogicalOuterJoin::Make(std::move(join_predicates)),
+      join_expr = std::make_unique<OperatorNode>(LogicalJoin::Make(LogicalJoinType::OUTER, std::move(join_predicates)),
                                                  std::vector<std::unique_ptr<OperatorNode>>{});
       join_expr->PushChild(std::move(left_expr));
       join_expr->PushChild(std::move(right_expr));
       break;
     }
     case parser::JoinType::LEFT: {
-      join_expr = std::make_unique<OperatorNode>(LogicalLeftJoin::Make(std::move(join_predicates)),
+      join_expr = std::make_unique<OperatorNode>(LogicalJoin::Make(LogicalJoinType::LEFT, std::move(join_predicates)),
                                                  std::vector<std::unique_ptr<OperatorNode>>{});
       join_expr->PushChild(std::move(left_expr));
       join_expr->PushChild(std::move(right_expr));
       break;
     }
     case parser::JoinType::RIGHT: {
-      join_expr = std::make_unique<OperatorNode>(LogicalRightJoin::Make(std::move(join_predicates)),
+      join_expr = std::make_unique<OperatorNode>(LogicalJoin::Make(LogicalJoinType::RIGHT, std::move(join_predicates)),
                                                  std::vector<std::unique_ptr<OperatorNode>>{});
       join_expr->PushChild(std::move(left_expr));
       join_expr->PushChild(std::move(right_expr));
       break;
     }
     case parser::JoinType::SEMI: {
-      join_expr = std::make_unique<OperatorNode>(LogicalSemiJoin::Make(std::move(join_predicates)),
+      join_expr = std::make_unique<OperatorNode>(LogicalJoin::Make(LogicalJoinType::SEMI, std::move(join_predicates)),
                                                  std::vector<std::unique_ptr<OperatorNode>>{});
       join_expr->PushChild(std::move(left_expr));
       join_expr->PushChild(std::move(right_expr));
@@ -236,7 +236,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
       auto list_elem = node->GetList().at(i);
       list_elem->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
       auto join_expr =
-          std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::vector<std::unique_ptr<OperatorNode>>{});
+          std::make_unique<OperatorNode>(LogicalJoin::Make(LogicalJoinType::INNER), std::vector<std::unique_ptr<OperatorNode>>{});
       join_expr->PushChild(std::move(prev_expr));
       join_expr->PushChild(std::move(output_expr_));
       TERRIER_ASSERT(join_expr->GetChildren().size() == 2, "The join expr should have exactly 2 elements");
@@ -756,10 +756,10 @@ bool QueryToOperatorTransformer::GenerateSubqueryTree(common::ManagedPointer<par
   // Construct join
   std::unique_ptr<OperatorNode> op_expr;
   if (single_join) {
-    op_expr = std::make_unique<OperatorNode>(LogicalSingleJoin::Make(), std::vector<std::unique_ptr<OperatorNode>>{});
+    op_expr = std::make_unique<OperatorNode>(LogicalJoin::Make(LogicalJoinType::SINGLE), std::vector<std::unique_ptr<OperatorNode>>{});
     op_expr->PushChild(std::move(output_expr_));
   } else {
-    op_expr = std::make_unique<OperatorNode>(LogicalMarkJoin::Make(), std::vector<std::unique_ptr<OperatorNode>>{});
+    op_expr = std::make_unique<OperatorNode>(LogicalJoin::Make(LogicalJoinType::MARK), std::vector<std::unique_ptr<OperatorNode>>{});
     op_expr->PushChild(std::move(output_expr_));
   }
 

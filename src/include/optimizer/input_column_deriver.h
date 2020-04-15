@@ -91,28 +91,10 @@ class InputColumnDeriver : public OperatorVisitor {
   void Visit(const Limit *op) override;
 
   /**
-   * Visit function to derive input/output columns for InnerNLJoin
-   * @param op InnerNLJoin operator to visit
+   * Visit function to derive input/output columns for NLJoin
+   * @param op NLJoin operator to visit
    */
-  void Visit(const InnerNLJoin *op) override;
-
-  /**
-   * Visit function to derive input/output columns for LeftNLJoin
-   * @param op LeftNLJoin operator to visit
-   */
-  void Visit(const LeftNLJoin *op) override;
-
-  /**
-   * Visit function to derive input/output columns for RightNLJoin
-   * @param op RightNLJoin operator to visit
-   */
-  void Visit(const RightNLJoin *op) override;
-
-  /**
-   * Visit function to derive input/output columns for OuterNLJoin
-   * @param op OuterNLJoin operator to visit
-   */
-  void Visit(const OuterNLJoin *op) override;
+  void Visit(const NLJoin *op) override;
 
   /**
    * Visit function to derive input/output columns for InnerHashJoin

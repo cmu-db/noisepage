@@ -353,20 +353,22 @@ class LogicalProjection : public OperatorNodeContents<LogicalProjection> {
 };
 
 /**
- * Logical operator for dependent join
+ * Logical operator for join
  */
-class LogicalDependentJoin : public OperatorNodeContents<LogicalDependentJoin> {
+class LogicalJoin : public OperatorNodeContents<LogicalJoin> {
  public:
   /**
-   * @return a DependentJoin operator
+   * join_type type of join
+   * @return a join operator
    */
-  static Operator Make();
+  static Operator Make(LogicalJoinType join_type);
 
   /**
+   * @param join_type type of join
    * @param join_predicates conditions of the join
-   * @return a DependentJoin operator
+   * @return an join operator
    */
-  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
+  static Operator Make(LogicalJoinType join_type, std::vector<AnnotatedExpression> &&join_predicates);
 
   /**
    * Copy
@@ -379,42 +381,9 @@ class LogicalDependentJoin : public OperatorNodeContents<LogicalDependentJoin> {
   common::hash_t Hash() const override;
 
   /**
-   * @return vector of join predicates
+   * @return type of join
    */
-  const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
-
- private:
-  /**
-   * Join predicates
-   */
-  std::vector<AnnotatedExpression> join_predicates_;
-};
-
-/**
- * Logical operator for mark join
- */
-class LogicalMarkJoin : public OperatorNodeContents<LogicalMarkJoin> {
- public:
-  /**
-   * @return a MarkJoin operator
-   */
-  static Operator Make();
-
-  /**
-   * @param join_predicates conditions of the join
-   * @return a MarkJoin operator
-   */
-  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
-
-  /**
-   * Copy
-   * @returns copy of this
-   */
-  BaseOperatorNodeContents *Copy() const override;
-
-  bool operator==(const BaseOperatorNodeContents &r) override;
-
-  common::hash_t Hash() const override;
+  const LogicalJoinType &GetJoinType() const { return join_type_; }
 
   /**
    * @return vector of join predicates
@@ -423,233 +392,10 @@ class LogicalMarkJoin : public OperatorNodeContents<LogicalMarkJoin> {
 
  private:
   /**
-   * Join predicates
+   * Join type
    */
-  std::vector<AnnotatedExpression> join_predicates_;
-};
+  LogicalJoinType join_type_;
 
-/**
- * Logical operator for single join
- */
-class LogicalSingleJoin : public OperatorNodeContents<LogicalSingleJoin> {
- public:
-  /**
-   * @return a SingleJoin operator
-   */
-  static Operator Make();
-
-  /**
-   * @param join_predicates conditions of the join
-   * @return a SingleJoin operator
-   */
-  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
-
-  /**
-   * Copy
-   * @returns copy of this
-   */
-  BaseOperatorNodeContents *Copy() const override;
-
-  bool operator==(const BaseOperatorNodeContents &r) override;
-
-  common::hash_t Hash() const override;
-
-  /**
-   * @return vector of join predicates
-   */
-  const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
-
- private:
-  /**
-   * Join predicates
-   */
-  std::vector<AnnotatedExpression> join_predicates_;
-};
-
-/**
- * Logical operator for inner join
- */
-class LogicalInnerJoin : public OperatorNodeContents<LogicalInnerJoin> {
- public:
-  /**
-   * @return an InnerJoin operator
-   */
-  static Operator Make();
-
-  /**
-   * @param join_predicates conditions of the join
-   * @return an InnerJoin operator
-   */
-  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
-
-  /**
-   * Copy
-   * @returns copy of this
-   */
-  BaseOperatorNodeContents *Copy() const override;
-
-  bool operator==(const BaseOperatorNodeContents &r) override;
-
-  common::hash_t Hash() const override;
-
-  /**
-   * @return vector of join predicates
-   */
-  const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
-
- private:
-  /**
-   * Join predicates
-   */
-  std::vector<AnnotatedExpression> join_predicates_;
-};
-
-/**
- * Logical operator for left join
- */
-class LogicalLeftJoin : public OperatorNodeContents<LogicalLeftJoin> {
- public:
-  /**
-   * @return a LeftJoin operator
-   */
-  static Operator Make();
-
-  /**
-   * @param join_predicates conditions of the join
-   * @return a LeftJoin operator
-   */
-  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
-
-  /**
-   * Copy
-   * @returns copy of this
-   */
-  BaseOperatorNodeContents *Copy() const override;
-
-  bool operator==(const BaseOperatorNodeContents &r) override;
-
-  common::hash_t Hash() const override;
-
-  /**
-   * @return vector of join predicates
-   */
-  const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
-
- private:
-  /**
-   * Join predicates
-   */
-  std::vector<AnnotatedExpression> join_predicates_;
-};
-
-/**
- * Logical operator for right join
- */
-class LogicalRightJoin : public OperatorNodeContents<LogicalRightJoin> {
- public:
-  /**
-   * @return a RightJoin operator
-   */
-  static Operator Make();
-
-  /**
-   * @param join_predicates conditions of the join
-   * @return a RightJoin operator
-   */
-  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
-
-  /**
-   * Copy
-   * @returns copy of this
-   */
-  BaseOperatorNodeContents *Copy() const override;
-
-  bool operator==(const BaseOperatorNodeContents &r) override;
-
-  common::hash_t Hash() const override;
-
-  /**
-   * @return vector of join predicates
-   */
-  const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
-
- private:
-  /**
-   * Join predicates
-   */
-  std::vector<AnnotatedExpression> join_predicates_;
-};
-
-/**
- * Logical operator for outer join
- */
-class LogicalOuterJoin : public OperatorNodeContents<LogicalOuterJoin> {
- public:
-  /**
-   * @return an OuterJoin operator
-   */
-  static Operator Make();
-
-  /**
-   * @param join_predicates conditions of the join
-   * @return an OuterJoin operator
-   */
-  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
-
-  /**
-   * Copy
-   * @returns copy of this
-   */
-  BaseOperatorNodeContents *Copy() const override;
-
-  bool operator==(const BaseOperatorNodeContents &r) override;
-
-  common::hash_t Hash() const override;
-
-  /**
-   * @return vector of join predicates
-   */
-  const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
-
- private:
-  /**
-   * Join predicates
-   */
-  std::vector<AnnotatedExpression> join_predicates_;
-};
-
-/**
- * Logical operator for semi join
- */
-class LogicalSemiJoin : public OperatorNodeContents<LogicalSemiJoin> {
- public:
-  /**
-   * @return a SemiJoin operator
-   */
-  static Operator Make();
-
-  /**
-   * @param join_predicates conditions of the join
-   * @return a SemiJoin operator
-   */
-  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
-
-  /**
-   * Copy
-   * @returns copy of this
-   */
-  BaseOperatorNodeContents *Copy() const override;
-
-  bool operator==(const BaseOperatorNodeContents &r) override;
-
-  common::hash_t Hash() const override;
-
-  /**
-   * @return vector of join predicates
-   */
-  const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
-
- private:
   /**
    * Join predicates
    */

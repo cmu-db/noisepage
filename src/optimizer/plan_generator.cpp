@@ -475,29 +475,27 @@ std::unique_ptr<planner::OutputSchema> PlanGenerator::GenerateProjectionForJoin(
 // A NLJoin B (the join to not do on large relations)
 ///////////////////////////////////////////////////////////////////////////////
 
-void PlanGenerator::Visit(const InnerNLJoin *op) {
-  auto proj_schema = GenerateProjectionForJoin();
+void PlanGenerator::Visit(const NLJoin *op) {
+  if (op->GetJoinType() == PhysicalJoinType::INNER) {
+    auto proj_schema = GenerateProjectionForJoin();
 
-  auto comb_pred = parser::ExpressionUtil::JoinAnnotatedExprs(op->GetJoinPredicates());
-  auto eval_pred = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, common::ManagedPointer(comb_pred));
-  auto join_predicate =
-      parser::ExpressionUtil::ConvertExprCVNodes(common::ManagedPointer(eval_pred), children_expr_map_).release();
-  RegisterPointerCleanup<parser::AbstractExpression>(join_predicate, true, true);
+    auto comb_pred = parser::ExpressionUtil::JoinAnnotatedExprs(op->GetJoinPredicates());
+    auto eval_pred = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, common::ManagedPointer(comb_pred));
+    auto join_predicate =
+        parser::ExpressionUtil::ConvertExprCVNodes(common::ManagedPointer(eval_pred), children_expr_map_).release();
+    RegisterPointerCleanup<parser::AbstractExpression>(join_predicate, true, true);
 
-  output_plan_ = planner::NestedLoopJoinPlanNode::Builder()
-                     .SetOutputSchema(std::move(proj_schema))
-                     .SetJoinPredicate(common::ManagedPointer(join_predicate))
-                     .SetJoinType(planner::LogicalJoinType::INNER)
-                     .AddChild(std::move(children_plans_[0]))
-                     .AddChild(std::move(children_plans_[1]))
-                     .Build();
+    output_plan_ = planner::NestedLoopJoinPlanNode::Builder()
+        .SetOutputSchema(std::move(proj_schema))
+        .SetJoinPredicate(common::ManagedPointer(join_predicate))
+        .SetJoinType(planner::LogicalJoinType::INNER)
+        .AddChild(std::move(children_plans_[0]))
+        .AddChild(std::move(children_plans_[1]))
+        .Build();
+  } else {
+    TERRIER_ASSERT(0, "join type not implemented");
+  }
 }
-
-void PlanGenerator::Visit(UNUSED_ATTRIBUTE const LeftNLJoin *op) { TERRIER_ASSERT(0, "LeftNLJoin not implemented"); }
-
-void PlanGenerator::Visit(UNUSED_ATTRIBUTE const RightNLJoin *op) { TERRIER_ASSERT(0, "RightNLJoin not implemented"); }
-
-void PlanGenerator::Visit(UNUSED_ATTRIBUTE const OuterNLJoin *op) { TERRIER_ASSERT(0, "OuterNLJoin not implemented"); }
 
 ///////////////////////////////////////////////////////////////////////////////
 // A hashjoin B (what you should do for large relations.....)

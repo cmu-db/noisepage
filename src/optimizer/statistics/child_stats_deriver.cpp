@@ -25,21 +25,18 @@ std::vector<ExprSet> ChildStatsDeriver::DeriveInputStats(GroupExpression *gexpr,
 // TODO(boweic): support stats derivation for derivedGet
 void ChildStatsDeriver::Visit(UNUSED_ATTRIBUTE const LogicalQueryDerivedGet *op) {}
 
-void ChildStatsDeriver::Visit(const LogicalInnerJoin *op) {
-  PassDownRequiredCols();
-  for (auto &annotated_expr : op->GetJoinPredicates()) {
-    ExprSet expr_set;
-    parser::ExpressionUtil::GetTupleValueExprs(&expr_set, annotated_expr.GetExpr());
-    for (auto &col : expr_set) {
-      PassDownColumn(col);
+void ChildStatsDeriver::Visit(const LogicalJoin *op) {
+  if (op->GetJoinType() == LogicalJoinType::INNER) {
+    PassDownRequiredCols();
+    for (auto &annotated_expr : op->GetJoinPredicates()) {
+      ExprSet expr_set;
+      parser::ExpressionUtil::GetTupleValueExprs(&expr_set, annotated_expr.GetExpr());
+      for (auto &col : expr_set) {
+        PassDownColumn(col);
+      }
     }
   }
 }
-
-void ChildStatsDeriver::Visit(UNUSED_ATTRIBUTE const LogicalLeftJoin *op) {}
-void ChildStatsDeriver::Visit(UNUSED_ATTRIBUTE const LogicalRightJoin *op) {}
-void ChildStatsDeriver::Visit(UNUSED_ATTRIBUTE const LogicalOuterJoin *op) {}
-void ChildStatsDeriver::Visit(UNUSED_ATTRIBUTE const LogicalSemiJoin *op) {}
 
 // TODO(boweic): support stats of aggregation
 void ChildStatsDeriver::Visit(UNUSED_ATTRIBUTE const LogicalAggregateAndGroupBy *op) { PassDownRequiredCols(); }

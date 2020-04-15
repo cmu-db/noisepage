@@ -107,28 +107,10 @@ class PlanGenerator : public OperatorVisitor {
   void Visit(const Limit *op) override;
 
   /**
-   * Visitor function for a InnerNLJoin operator
-   * @param op InnerNLJoin operator being visited
+   * Visitor function for a NLJoin operator
+   * @param op NLJoin operator being visited
    */
-  void Visit(const InnerNLJoin *op) override;
-
-  /**
-   * Visitor function for a LeftNLJoin operator
-   * @param op LeftNLJoin operator being visited
-   */
-  void Visit(const LeftNLJoin *op) override;
-
-  /**
-   * Visitor function for a RightNLJoin operator
-   * @param op RightNLJoin operator being visited
-   */
-  void Visit(const RightNLJoin *op) override;
-
-  /**
-   * Visitor function for a OuterNLJoin operator
-   * @param op OuterNLJoin operator being visited
-   */
-  void Visit(const OuterNLJoin *op) override;
+  void Visit(const NLJoin *op) override;
 
   /**
    * Visitor function for a InnerHashJoin operator

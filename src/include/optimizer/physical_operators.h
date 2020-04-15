@@ -478,15 +478,16 @@ class Limit : public OperatorNodeContents<Limit> {
 };
 
 /**
- * Physical operator for inner nested loop join
+ * Physical operator for nested loop join
  */
-class InnerNLJoin : public OperatorNodeContents<InnerNLJoin> {
+class NLJoin : public OperatorNodeContents<NLJoin> {
  public:
   /**
-   * @param join_predicates predicates for join
-   * @return an InnerNLJoin operator
+   * @param join_type type of join
+   * @param join_predicates predicate(s) for join
+   * @return NL join operator
    */
-  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
+  static Operator Make(PhysicalJoinType join_type, std::vector<AnnotatedExpression> &&join_predicates);
 
   /**
    * Copy
@@ -499,114 +500,25 @@ class InnerNLJoin : public OperatorNodeContents<InnerNLJoin> {
   common::hash_t Hash() const override;
 
   /**
-   * @return Predicates for the Join
+   * @return type of join
+   */
+  const PhysicalJoinType &GetJoinType() const { return join_type_; }
+
+  /**
+   * @return Predicates for the join
    */
   const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
 
  private:
   /**
-   * Predicates for join
+   * Join type
+   */
+  PhysicalJoinType join_type_;
+
+  /**
+   * Predicate(s) for join
    */
   std::vector<AnnotatedExpression> join_predicates_;
-};
-
-/**
- * Physical operator for left outer nested loop join
- */
-class LeftNLJoin : public OperatorNodeContents<LeftNLJoin> {
- public:
-  /**
-   * @param join_predicate predicate for join
-   * @return a LeftNLJoin operator
-   */
-  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
-
-  /**
-   * Copy
-   * @returns copy of this
-   */
-  BaseOperatorNodeContents *Copy() const override;
-
-  bool operator==(const BaseOperatorNodeContents &r) override;
-
-  common::hash_t Hash() const override;
-
-  /**
-   * @return Predicate for the join
-   */
-  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
-
- private:
-  /**
-   * Predicate for join
-   */
-  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
-};
-
-/**
- * Physical operator for right outer nested loop join
- */
-class RightNLJoin : public OperatorNodeContents<RightNLJoin> {
- public:
-  /**
-   * @param join_predicate predicate for join
-   * @return a RightNLJoin operator
-   */
-  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
-
-  /**
-   * Copy
-   * @returns copy of this
-   */
-  BaseOperatorNodeContents *Copy() const override;
-
-  bool operator==(const BaseOperatorNodeContents &r) override;
-
-  common::hash_t Hash() const override;
-
-  /**
-   * @return Predicate for the join
-   */
-  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
-
- private:
-  /**
-   * Predicate for join
-   */
-  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
-};
-
-/**
- * Physical operator for full outer nested loop join
- */
-class OuterNLJoin : public OperatorNodeContents<OuterNLJoin> {
- public:
-  /**
-   * @param join_predicate predicate for join
-   * @return a OuterNLJoin operator
-   */
-  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
-
-  /**
-   * Copy
-   * @returns copy of this
-   */
-  BaseOperatorNodeContents *Copy() const override;
-
-  bool operator==(const BaseOperatorNodeContents &r) override;
-
-  common::hash_t Hash() const override;
-
-  /**
-   * @return Predicate for the join
-   */
-  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
-
- private:
-  /**
-   * Predicate for join
-   */
-  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
 };
 
 /**

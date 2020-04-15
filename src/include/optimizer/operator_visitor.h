@@ -61,28 +61,10 @@ class OperatorVisitor {
   virtual void Visit(const Limit *limit) {}
 
   /**
-   * Visit a InnerNLJoin operator
+   * Visit a NLJoin operator
    * @param inner_join operator
    */
-  virtual void Visit(const InnerNLJoin *inner_join) {}
-
-  /**
-   * Visit a LeftNLJoin operator
-   * @param left_nl_join operator
-   */
-  virtual void Visit(const LeftNLJoin *left_nl_join) {}
-
-  /**
-   * Visit a RightNLJoin operator
-   * @param right_nl_join operator
-   */
-  virtual void Visit(const RightNLJoin *right_nl_join) {}
-
-  /**
-   * Visit a OuterNLJoin operator
-   * @param outer_nl_join operator
-   */
-  virtual void Visit(const OuterNLJoin *outer_nl_join) {}
+  virtual void Visit(const NLJoin *inner_join) {}
 
   /**
    * Visit a InnerHashJoin operator
@@ -270,52 +252,10 @@ class OperatorVisitor {
   virtual void Visit(const LogicalProjection *logical_projection) {}
 
   /**
-   * Visit a LogicalMardJoin operator
-   * @param logical_mark_join operator
+   * Visit a LogicalJoin operator
+   * @param logical_join operator
    */
-  virtual void Visit(const LogicalMarkJoin *logical_mark_join) {}
-
-  /**
-   * Visit a LogicalSingleJoin operator
-   * @param logical_single_join operator
-   */
-  virtual void Visit(const LogicalSingleJoin *logical_single_join) {}
-
-  /**
-   * Visit a LogicalDependentJoin operator
-   * @param logical_dependent_join operator
-   */
-  virtual void Visit(const LogicalDependentJoin *logical_dependent_join) {}
-
-  /**
-   * Vusut a LogicalInnerJoin operator
-   * @param logical_inner_join operator
-   */
-  virtual void Visit(const LogicalInnerJoin *logical_inner_join) {}
-
-  /**
-   * Visit a LogicalLeftJoin operator
-   * @param logical_left_join operator
-   */
-  virtual void Visit(const LogicalLeftJoin *logical_left_join) {}
-
-  /**
-   * Visit a LogicalRightJoin operator
-   * @param logical_right_join operator
-   */
-  virtual void Visit(const LogicalRightJoin *logical_right_join) {}
-
-  /**
-   * Visit a LogicalOuterJoin operator
-   * @param logical_outer_join operator
-   */
-  virtual void Visit(const LogicalOuterJoin *logical_outer_join) {}
-
-  /**
-   * Visit a LogicalSemiJoin operator
-   * @param logical_semi_join operator
-   */
-  virtual void Visit(const LogicalSemiJoin *logical_semi_join) {}
+  virtual void Visit(const LogicalJoin *logical_join) {}
 
   /**
    * Visit a LogicalAggregateAndGroupBy operator

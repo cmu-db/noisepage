@@ -270,18 +270,20 @@ common::hash_t Limit::Hash() const {
 }
 
 //===--------------------------------------------------------------------===//
-// InnerNLJoin
+// NLJoin
 //===--------------------------------------------------------------------===//
-BaseOperatorNodeContents *InnerNLJoin::Copy() const { return new InnerNLJoin(*this); }
+BaseOperatorNodeContents *NLJoin::Copy() const { return new NLJoin(*this); }
 
-Operator InnerNLJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto join = std::make_unique<InnerNLJoin>();
+Operator NLJoin::Make(PhysicalJoinType join_type, std::vector<AnnotatedExpression> &&join_predicates) {
+  auto join = std::make_unique<NLJoin>();
+  join->join_type_ = join_type;
   join->join_predicates_ = std::move(join_predicates);
   return Operator(std::move(join));
 }
 
-common::hash_t InnerNLJoin::Hash() const {
+common::hash_t NLJoin::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(join_type_));
   for (auto &pred : join_predicates_) {
     auto expr = pred.GetExpr();
     if (expr)
@@ -292,80 +294,13 @@ common::hash_t InnerNLJoin::Hash() const {
   return hash;
 }
 
-bool InnerNLJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::INNERNLJOIN) return false;
-  const InnerNLJoin &node = *dynamic_cast<const InnerNLJoin *>(&r);
+bool NLJoin::operator==(const BaseOperatorNodeContents &r) {
+  if (r.GetType() != OpType::NLJOIN) return false;
+  const NLJoin &node = *static_cast<const NLJoin *>(&r);
+  if (join_type_ != node.join_type_) return false;
   if (join_predicates_.size() != node.join_predicates_.size()) return false;
   if (join_predicates_ != node.join_predicates_) return false;
   return true;
-}
-
-//===--------------------------------------------------------------------===//
-// LeftNLJoin
-//===--------------------------------------------------------------------===//
-BaseOperatorNodeContents *LeftNLJoin::Copy() const { return new LeftNLJoin(*this); }
-
-Operator LeftNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
-  auto join = std::make_unique<LeftNLJoin>();
-  join->join_predicate_ = join_predicate;
-  return Operator(std::move(join));
-}
-
-common::hash_t LeftNLJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
-  hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
-  return hash;
-}
-
-bool LeftNLJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::LEFTNLJOIN) return false;
-  const LeftNLJoin &node = *static_cast<const LeftNLJoin *>(&r);
-  return (*join_predicate_ == *(node.join_predicate_));
-}
-//===--------------------------------------------------------------------===//
-// RightNLJoin
-//===--------------------------------------------------------------------===//
-BaseOperatorNodeContents *RightNLJoin::Copy() const { return new RightNLJoin(*this); }
-
-Operator RightNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
-  auto join = std::make_unique<RightNLJoin>();
-  join->join_predicate_ = join_predicate;
-  return Operator(std::move(join));
-}
-
-common::hash_t RightNLJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
-  hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
-  return hash;
-}
-
-bool RightNLJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::RIGHTNLJOIN) return false;
-  const RightNLJoin &node = *static_cast<const RightNLJoin *>(&r);
-  return (*join_predicate_ == *(node.join_predicate_));
-}
-
-//===--------------------------------------------------------------------===//
-// OuterNLJoin
-//===--------------------------------------------------------------------===//
-BaseOperatorNodeContents *OuterNLJoin::Copy() const { return new OuterNLJoin(*this); }
-
-Operator OuterNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
-  auto join = std::make_unique<OuterNLJoin>();
-  join->join_predicate_ = join_predicate;
-  return Operator(std::move(join));
-}
-
-common::hash_t OuterNLJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNodeContents::Hash();
-  hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
-  return hash;
-}
-
-bool OuterNLJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::OUTERNLJOIN) return false;
-  const OuterNLJoin &node = *static_cast<const OuterNLJoin *>(&r);
-  return (*join_predicate_ == *(node.join_predicate_));
 }
 
 //===--------------------------------------------------------------------===//
@@ -1258,13 +1193,7 @@ const char *OperatorNodeContents<OrderBy>::name = "OrderBy";
 template <>
 const char *OperatorNodeContents<Limit>::name = "Limit";
 template <>
-const char *OperatorNodeContents<InnerNLJoin>::name = "InnerNLJoin";
-template <>
-const char *OperatorNodeContents<LeftNLJoin>::name = "LeftNLJoin";
-template <>
-const char *OperatorNodeContents<RightNLJoin>::name = "RightNLJoin";
-template <>
-const char *OperatorNodeContents<OuterNLJoin>::name = "OuterNLJoin";
+const char *OperatorNodeContents<NLJoin>::name = "NLJoin";
 template <>
 const char *OperatorNodeContents<InnerHashJoin>::name = "InnerHashJoin";
 template <>
@@ -1334,13 +1263,7 @@ OpType OperatorNodeContents<OrderBy>::type = OpType::ORDERBY;
 template <>
 OpType OperatorNodeContents<Limit>::type = OpType::LIMIT;
 template <>
-OpType OperatorNodeContents<InnerNLJoin>::type = OpType::INNERNLJOIN;
-template <>
-OpType OperatorNodeContents<LeftNLJoin>::type = OpType::LEFTNLJOIN;
-template <>
-OpType OperatorNodeContents<RightNLJoin>::type = OpType::RIGHTNLJOIN;
-template <>
-OpType OperatorNodeContents<OuterNLJoin>::type = OpType::OUTERNLJOIN;
+OpType OperatorNodeContents<NLJoin>::type = OpType::NLJOIN;
 template <>
 OpType OperatorNodeContents<InnerHashJoin>::type = OpType::INNERHASHJOIN;
 template <>
