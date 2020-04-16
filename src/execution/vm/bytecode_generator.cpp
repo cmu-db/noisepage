@@ -609,6 +609,21 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
       Emitter()->Emit(Bytecode::TableVectorIteratorPerformInit, iter);
       break;
     }
+    case ast::Builtin::TempTableIterInitBind: {
+      // The second argument should be the execution context
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
+      // The third argument is the table name
+      ast::Identifier table_name = call->Arguments()[2]->As<ast::LitExpr>()->RawStringVal();
+      TERRIER_ASSERT(std::string(table_name.Data()) == "temp_table", "Provided table is not a temp table");
+      auto *arr_type = call->Arguments()[3]->GetType()->As<ast::ArrayType>();
+      LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[3]);
+      LocalVar cte_scan_iterator = VisitExpressionForRValue(call->Arguments()[4]);
+      // Emit the initialization codes
+      Emitter()->EmitTableIterInit(Bytecode::TableVectorIteratorInit, iter, exec_ctx, 999, col_oids,
+                                   static_cast<uint32_t>(arr_type->Length()));
+      Emitter()->Emit(Bytecode::TempTableVectorIteratorPerformInit, iter, cte_scan_iterator);
+      break;
+    }
     case ast::Builtin::TableIterAdvance: {
       LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
       Emitter()->Emit(Bytecode::TableVectorIteratorNext, cond, iter);
@@ -2093,6 +2108,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     }
     case ast::Builtin::TableIterInit:
     case ast::Builtin::TableIterInitBind:
+    case ast::Builtin::TempTableIterInitBind:
     case ast::Builtin::TableIterAdvance:
     case ast::Builtin::TableIterReset:
     case ast::Builtin::TableIterGetPCI:
