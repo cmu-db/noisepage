@@ -46,10 +46,43 @@ class TableGenerator {
       : exec_ctx_{exec_ctx}, store_{store}, ns_oid_{ns_oid} {}
 
   /**
+   * Generate table name
+   * @param type Type
+   * @param col Number of columns
+   * @param row Number of rows
+   * @param car Cardinality
+   * @return table name
+   */
+  static std::string GenerateTableName(type::TypeId type, size_t col, size_t row, size_t car) {
+    std::stringstream table_name;
+    auto type_name = type::TypeUtil::TypeIdToString(type);
+    table_name << type_name << "Col" << col << "Row" << row << "Car" << car;
+    return table_name.str();
+  }
+
+  /**
+   * Generate table name that contains an index
+   * @param type Type
+   * @param row Number of rows
+   * @return table name
+   */
+  static std::string GenerateTableIndexName(type::TypeId type, size_t row) {
+    std::stringstream table_name;
+    auto type_name = type::TypeUtil::TypeIdToString(type);
+    table_name << type_name << "IndexRow" << row;
+    return table_name.str();
+  }
+
+  /**
    * Generate test tables.
    * @param is_mini_runner is this generation used for the mini runner
    */
   void GenerateTestTables(bool is_mini_runner);
+
+  /**
+   * Generate mini runners indexes
+   */
+  void GenerateMiniRunnerIndexes();
 
  private:
   exec::ExecutionContext *exec_ctx_;
@@ -98,12 +131,33 @@ class TableGenerator {
      * Counter to generate serial data
      */
     uint64_t serial_counter_{0};
+    /**
+     * Duplicate another column data
+     */
+    bool is_clone_;
+    /**
+     * Index to duplicate
+     */
+    size_t clone_idx_;
 
     /**
      * Constructor
      */
     ColumnInsertMeta(std::string name, const type::TypeId type, bool nullable, Dist dist, uint64_t min, uint64_t max)
-        : name_(std::move(name)), type_(type), nullable_(nullable), dist_(dist), min_(min), max_(max) {}
+        : name_(std::move(name)),
+          type_(type),
+          nullable_(nullable),
+          dist_(dist),
+          min_(min),
+          max_(max),
+          is_clone_(false) {}
+
+    ColumnInsertMeta(const ColumnInsertMeta &other, std::string name, size_t clone_idx)
+        : name_(std::move(name)),
+          type_(other.type_),
+          nullable_(other.nullable_),
+          is_clone_(true),
+          clone_idx_(clone_idx) {}
   };
 
   /**
@@ -215,6 +269,18 @@ class TableGenerator {
    * @return
    */
   std::pair<byte *, uint32_t *> GenerateColumnData(ColumnInsertMeta *col_meta, uint32_t num_rows);
+
+  /**
+   * Create table
+   * @param metadata TableInsertMeta
+   */
+  void CreateTable(TableInsertMeta *metadata);
+
+  /**
+   * Create Index
+   * @param index_meta Index Metadata
+   */
+  void CreateIndex(IndexInsertMeta *index_meta);
 
   /**
    * Fill a given table according to its metadata

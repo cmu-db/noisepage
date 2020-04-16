@@ -279,6 +279,12 @@ class PlanGenerator : public OperatorVisitor {
    */
   void Visit(const DropView *drop_view) override;
 
+  /**
+   * Visit a Analyze operator
+   * @param analyze operator
+   */
+  void Visit(const Analyze *analyze) override;
+
  private:
   /**
    * Register a pointer to be deleted on transaction commit/abort

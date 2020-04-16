@@ -708,8 +708,17 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
     }
 
     case T_Float: {
-      auto v = type::TransientValueFactory::GetDecimal(std::stod(val.val_.str_));
-      result = std::make_unique<ConstantValueExpression>(std::move(v));
+      // Per Postgres, T_Float just means that the string looks like a number.
+      // T_Float is also used for oversized ints, e.g. BIGINT.
+      // For this reason, a quick hack...
+      // TODO(WAN): figure out how Postgres does it once we care about floating point
+      if (std::strchr(val.val_.str_, '.') == nullptr) {
+        auto v = type::TransientValueFactory::GetBigInt(std::stol(val.val_.str_));
+        result = std::make_unique<ConstantValueExpression>(std::move(v));
+      } else {
+        auto v = type::TransientValueFactory::GetDecimal(std::stod(val.val_.str_));
+        result = std::make_unique<ConstantValueExpression>(std::move(v));
+      }
       break;
     }
 

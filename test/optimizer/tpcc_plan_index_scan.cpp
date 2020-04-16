@@ -48,7 +48,7 @@ TEST_F(TpccPlanIndexScanTests, SimplePredicateIndexScan) {
     auto cve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
     EXPECT_EQ(tve->GetColumnName(), "no_w_id");
     EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("no_w_id").Oid());
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
+    EXPECT_EQ(type::TransientValuePeeker::PeekTinyInt(cve->GetValue()), 1);
   };
 
   std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\" WHERE NO_W_ID = 1";
@@ -83,7 +83,7 @@ TEST_F(TpccPlanIndexScanTests, SimplePredicateFlippedIndexScan) {
     auto cve = scan_pred->GetChild(0).CastManagedPointerTo<parser::ConstantValueExpression>();
     EXPECT_EQ(tve->GetColumnName(), "no_w_id");
     EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("no_w_id").Oid());
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
+    EXPECT_EQ(type::TransientValuePeeker::PeekTinyInt(cve->GetValue()), 1);
   };
 
   std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\" WHERE 1 < NO_W_ID";
@@ -157,7 +157,7 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicate) {
     auto cve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
     EXPECT_EQ(tve->GetColumnName(), "no_w_id");
     EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("no_w_id").Oid());
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
+    EXPECT_EQ(type::TransientValuePeeker::PeekTinyInt(cve->GetValue()), 1);
   };
 
   std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\" WHERE NO_W_ID = 1 ORDER BY NO_W_ID";
@@ -221,7 +221,7 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicateWithLimitOffset) {
     auto cve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
     EXPECT_EQ(tve->GetColumnName(), "no_w_id");
     EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("no_w_id").Oid());
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
+    EXPECT_EQ(type::TransientValuePeeker::PeekTinyInt(cve->GetValue()), 1);
   };
 
   std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\" WHERE NO_W_ID = 1 ORDER BY NO_W_ID LIMIT 15 OFFSET 445";

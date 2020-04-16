@@ -1,3 +1,5 @@
+#include "execution/compiler/compiler.h"
+
 #include <functional>
 #include <limits>
 #include <memory>
@@ -7,7 +9,6 @@
 
 #include "catalog/catalog_defs.h"
 #include "execution/ast/ast_dump.h"
-#include "execution/compiler/compiler.h"
 #include "execution/compiler/expression_util.h"
 #include "execution/compiler/output_checker.h"
 #include "execution/compiler/output_schema_util.h"
@@ -275,7 +276,7 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
   params.emplace_back(type::TransientValueFactory::GetInteger(100));
   params.emplace_back(type::TransientValueFactory::GetInteger(500));
   params.emplace_back(type::TransientValueFactory::GetInteger(3));
-  exec_ctx->SetParams(std::move(params));
+  exec_ctx->SetParams(common::ManagedPointer<const std::vector<type::TransientValue>>(&params));
 
   // Run & Check
   auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
@@ -857,10 +858,11 @@ TEST_F(CompilerTest, CountStarTest) {
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     auto schema = seq_scan_out.MakeSchema();
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
-                   .SetColumnOids({})
+                   .SetColumnOids({cola_oid})
                    .SetScanPredicate(nullptr)
                    .SetIsForUpdateFlag(false)
                    .SetNamespaceOid(NSOid())
@@ -1056,9 +1058,10 @@ TEST_F(CompilerTest, StaticDistinctAggregateTest) {
 
   auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
   auto feature_vec1 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
-  auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_STATIC,
-                                                                 brain::ExecutionOperatingUnitType::SEQ_SCAN};
-  auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_STATIC};
+  auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
+      brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
+      brain::ExecutionOperatingUnitType::SEQ_SCAN};
+  auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
 }
@@ -2075,10 +2078,10 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
   EXPECT_EQ(pipeline->units_.size(), 1);
 
   // NLJOIN left and right are in same pipeline
+  // But NLJOIN left/right features do not exist
   auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
   auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
-      brain::ExecutionOperatingUnitType::NLJOIN_LEFT, brain::ExecutionOperatingUnitType::NLJOIN_RIGHT,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
       brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, brain::ExecutionOperatingUnitType::SEQ_SCAN};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
 }
@@ -2861,7 +2864,7 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     std::vector<type::TransientValue> params;
     params.emplace_back(type::TransientValueFactory::GetInteger(495));
     params.emplace_back(type::TransientValueFactory::GetInteger(505));
-    exec_ctx->SetParams(std::move(params));
+    exec_ctx->SetParams(common::ManagedPointer<const std::vector<type::TransientValue>>(&params));
     auto executable = ExecutableQuery(common::ManagedPointer(insert), common::ManagedPointer(exec_ctx));
     executable.Run(common::ManagedPointer(exec_ctx), MODE);
 
@@ -3091,7 +3094,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     params.emplace_back(type::TransientValueFactory::GetSmallInt(smallint2));
     params.emplace_back(type::TransientValueFactory::GetInteger(int2));
     params.emplace_back(type::TransientValueFactory::GetBigInt(bigint2));
-    exec_ctx->SetParams(std::move(params));
+    exec_ctx->SetParams(common::ManagedPointer<const std::vector<type::TransientValue>>(&params));
     auto executable = ExecutableQuery(common::ManagedPointer(insert), common::ManagedPointer(exec_ctx));
     executable.Run(common::ManagedPointer(exec_ctx), MODE);
 
@@ -3271,7 +3274,7 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     std::vector<type::TransientValue> params;
     params.emplace_back(type::TransientValueFactory::GetVarChar(str1));
     params.emplace_back(type::TransientValueFactory::GetVarChar(str2));
-    exec_ctx->SetParams(std::move(params));
+    exec_ctx->SetParams(common::ManagedPointer<const std::vector<type::TransientValue>>(&params));
     auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
     executable.Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();

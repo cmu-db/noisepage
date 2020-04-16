@@ -2,6 +2,7 @@
 
 #include <random>
 
+#include "common/managed_pointer.h"
 #include "execution/exec/execution_context.h"
 #include "execution/execution_util.h"
 #include "execution/table_generator/table_generator.h"
@@ -70,32 +71,46 @@ std::vector<type::TransientValue> Workload::GetQueryParams(const std::string &qu
   return params;
 }
 
-void Workload::Execute(int8_t worker_id, uint32_t num_precomputed_txns_per_worker, execution::vm::ExecutionMode mode) {
+void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint64_t avg_interval_us, uint32_t query_num,
+                       execution::vm::ExecutionMode mode) {
   // Shuffle the queries randomly for each thread
-  auto num_queries = queries_.size();
-  uint32_t index[num_queries];
-  for (uint32_t i = 0; i < num_queries; ++i) index[i] = i;
-  std::shuffle(&index[0], &index[num_queries], std::mt19937(worker_id));
+  auto total_query_num = queries_.size();
+  std::vector<uint32_t> index;
+  index.resize(total_query_num);
+  for (uint32_t i = 0; i < total_query_num; ++i) index[i] = i;
+  std::shuffle(index.begin(), index.end(), std::mt19937(time(nullptr) + worker_id));
+
+  // Get the sleep time range distribution
+  std::mt19937 generator{};
+  std::uniform_int_distribution<uint64_t> distribution(avg_interval_us - avg_interval_us / 2,
+                                                       avg_interval_us + avg_interval_us / 2);
 
   // Register to the metrics manager
   db_main_->GetMetricsManager()->RegisterThread();
   uint32_t counter = 0;
-  for (uint32_t i = 0; i < num_precomputed_txns_per_worker; i++) {
+  uint64_t end_time = metrics::MetricsUtil::Now() + execution_us_per_worker;
+  while (metrics::MetricsUtil::Now() < end_time) {
     // Executing all the queries on by one in round robin
     auto txn = txn_manager_->BeginTransaction();
     auto accessor = catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_);
     execution::ExecutableQuery &query = queries_[index[counter]];
     auto &query_name = query.GetQueryName();
     auto output_schema = sample_output_.GetSchema(query_name);
-    execution::exec::OutputPrinter printer{output_schema};
+    execution::exec::NoOpResultConsumer printer;
+    // execution::exec::OutputPrinter printer(output_schema);
     execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
                                                printer, output_schema,
                                                common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
-    auto params = GetQueryParams(query_name);
-    exec_ctx.SetParams(std::move(params));
+    const auto params = GetQueryParams(query_name);
+    exec_ctx.SetParams(common::ManagedPointer(&params));
     query.Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
-    counter = counter == num_queries - 1 ? 0 : counter + 1;
+    // Only execute up to query_num number of queries for this thread in round-robin
+    counter = counter == query_num - 1 ? 0 : counter + 1;
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+    // Sleep to create different execution frequency patterns
+    auto random_sleep_time = distribution(generator);
+    std::this_thread::sleep_for(std::chrono::microseconds(random_sleep_time));
   }
 
   // Unregister from the metrics manager

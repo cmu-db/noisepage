@@ -12,7 +12,6 @@
 #include "util/portable_endian.h"
 
 namespace terrier::network {
-#define _CAST(type, val) ((type)(val))
 /**
  * A plain old buffer with a movable cursor, the meaning of which is dependent
  * on the use case.
@@ -136,7 +135,7 @@ class ReadBufferView {
   }
 
   /**
-   * Read an integer of specified length off of the read buffer (1, 2,
+   * Read a value of specified length off of the read buffer (1, 2,
    * 4, or 8 bytes). It is assumed that the bytes in the buffer are in network
    * byte ordering and will be converted to the correct host ordering. It is up
    * to the caller to ensure that there are enough bytes available in the read
@@ -150,19 +149,25 @@ class ReadBufferView {
     // After the static assert, the compiler should be smart enough to throw
     // away the other cases and only leave the relevant return statement.
     static_assert(sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8, "Invalid size for integer");
-    auto val = ReadRawValue<T>();
-    switch (sizeof(T)) {
-      case 1:
-        return val;
-      case 2:
-        return _CAST(T, be16toh(_CAST(uint16_t, val)));
-      case 4:
-        return _CAST(T, be32toh(_CAST(uint32_t, val)));
-      case 8:
-        return _CAST(T, be64toh(_CAST(uint64_t, val)));
-        // Will never be here due to compiler optimization
-      default:
-        throw NETWORK_PROCESS_EXCEPTION("");
+    const auto val = ReadRawValue<T>();
+
+    if constexpr (std::is_floating_point_v<T>) {
+      const auto *const double_val = reinterpret_cast<const uint64_t *const>(&val);
+      return static_cast<double>(be64toh(*double_val));
+    } else {  // NOLINT: false positive on indentation with clang-tidy, fixed in upstream check-clang-tidy
+      switch (sizeof(T)) {
+        case 1:
+          return val;
+        case 2:
+          return static_cast<T>(be16toh(static_cast<uint16_t>(val)));
+        case 4:
+          return static_cast<T>(be32toh(static_cast<uint32_t>(val)));
+        case 8:
+          return static_cast<T>(be64toh(static_cast<uint64_t>(val)));
+          // Will never be here due to compiler optimization
+        default:
+          throw NETWORK_PROCESS_EXCEPTION("invalid size for integer");
+      }
     }
   }
 

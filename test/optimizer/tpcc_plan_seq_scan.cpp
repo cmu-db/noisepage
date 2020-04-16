@@ -69,7 +69,7 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicate) {
     auto cve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
     EXPECT_EQ(tve->GetColumnName(), "o_carrier_id");
     EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("o_carrier_id").Oid());
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 5);
+    EXPECT_EQ(type::TransientValuePeeker::PeekTinyInt(cve->GetValue()), 5);
   };
 
   std::string query = "SELECT o_id from \"ORDER\" where o_carrier_id = 5";
@@ -124,7 +124,7 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderBy) {
     auto cve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
     EXPECT_EQ(tve->GetColumnName(), "o_carrier_id");
     EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("o_carrier_id").Oid());
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 5);
+    EXPECT_EQ(type::TransientValuePeeker::PeekTinyInt(cve->GetValue()), 5);
   };
 
   std::string query = "SELECT o_id from \"ORDER\" where o_carrier_id = 5 ORDER BY o_ol_cnt DESC";
@@ -166,7 +166,7 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateLimit) {
     auto cve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
     EXPECT_EQ(tve->GetColumnName(), "o_carrier_id");
     EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("o_carrier_id").Oid());
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 5);
+    EXPECT_EQ(type::TransientValuePeeker::PeekTinyInt(cve->GetValue()), 5);
   };
 
   std::string query = "SELECT o_id from \"ORDER\" where o_carrier_id = 5 LIMIT 1 OFFSET 2";
@@ -229,7 +229,7 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderByLimit) {
     auto cve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
     EXPECT_EQ(tve->GetColumnName(), "o_carrier_id");
     EXPECT_EQ(tve->GetColumnOid(), schema.GetColumn("o_carrier_id").Oid());
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 5);
+    EXPECT_EQ(type::TransientValuePeeker::PeekTinyInt(cve->GetValue()), 5);
   };
 
   std::string query = "SELECT o_id from \"ORDER\" where o_carrier_id = 5 ORDER BY o_ol_cnt DESC LIMIT 1 OFFSET 2";
