@@ -1,11 +1,15 @@
 #include "storage/sql_table.h"
 
+#include <parser/expression/constant_value_expression.h>
 #include <map>
 #include <string>
 #include <vector>
 
 #include "common/macros.h"
 #include "storage/storage_util.h"
+#include "type/transient_value_peeker.h"
+#include "type/type_util.h"
+#include "util/time_util.h"
 
 namespace terrier::storage {
 
@@ -47,8 +51,7 @@ bool SqlTable::Select(const common::ManagedPointer<transaction::TransactionConte
 }
 
 std::pair<bool, TupleSlot> SqlTable::Update(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                            RedoRecord *const redo,
-                                            layout_version_t layout_version) const {
+                                            RedoRecord *const redo, layout_version_t layout_version) const {
   TERRIER_ASSERT(redo->GetTupleSlot() != TupleSlot(nullptr, 0), "TupleSlot was never set in this RedoRecord.");
   TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
                              ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
@@ -131,59 +134,134 @@ TupleSlot SqlTable::Insert(const common::ManagedPointer<transaction::Transaction
 void SqlTable::Scan(const terrier::common::ManagedPointer<transaction::TransactionContext> txn,
                     DataTable::SlotIterator *const start_pos, ProjectedColumns *const out_buffer,
                     const layout_version_t layout_version) const {
-  TERRIER_ASSERT(tables_.find(layout_version) != tables_.end(), "layout_version should exist");
-  auto desired_v = tables_.at(layout_version);
-  auto end = tables_.upper_bound(layout_version);
+  layout_version_t tuple_version = (*start_pos)->GetBlock()->layout_version_;
 
-  // iterate through all the datatables visible to this transaction
+  TERRIER_ASSERT(out_buffer->NumColumns() <= tables_.at(layout_version).column_oid_to_id_map_.size(),
+                 "The output buffer never returns the version pointer columns, so it should have "
+                 "fewer attributes.");
+
+  // Check for version match
+  if (tuple_version == layout_version) {
+    tables_.at(layout_version).data_table_->Scan(txn, start_pos, out_buffer);
+    return;
+  }
+
+  col_id_t ori_header[out_buffer->NumColumns()];
+  bool missing = false;
   uint32_t filled = 0;
-  for (auto itr = tables_.begin(); itr != end; itr++) {
-    // Convert the projected row to select a tuple from a datatable
-    const auto table = itr->second.data_table_;
-    const auto select_v = itr->second;
-    col_id_t ori_header[out_buffer->NumColumns()];
-    std::vector<uint16_t> missing_cols;
-    bool missing = false;
-    if (itr->first != layout_version) {
-      missing = AlignHeaderToVersion(out_buffer, select_v, desired_v, &ori_header[0]);
-    }
+  auto desired_v = tables_.at(layout_version);
 
-    // update the start_pos only if not the first table
-    if (itr != tables_.begin()) *start_pos = table->begin();
-    auto table_end = table->end();
+  for (layout_version_t i = tuple_version; i <= layout_version && out_buffer->NumTuples() < out_buffer->MaxTuples();
+       i++) {
+    auto tuple_v = tables_.at(i);
+    if (AlignHeaderToVersion(out_buffer, tuple_v, desired_v, &ori_header[0])) missing = true;
 
-    // Scan through the datable
-    while (filled < out_buffer->MaxTuples() && *start_pos != table_end) {
-      ProjectedColumns::RowView row = out_buffer->InterpretAsRow(filled);
-      const TupleSlot slot = **start_pos;
-      // Only fill the buffer with valid, visible tuples
-      if (table->SelectIntoBuffer(txn, slot, &row)) {
-        // Fill the missing ones
-        if (itr->first != layout_version && missing) FillMissingColumns(&row, desired_v);
+    if (i != tuple_version) *start_pos = tuple_v.data_table_->begin();
+    tuple_v.data_table_->IncrementalScan(txn, start_pos, out_buffer, filled);
+    filled = out_buffer->NumTuples();
+  }
 
-        out_buffer->TupleSlots()[filled] = slot;
-        filled++;
-      }
-      ++(*start_pos);
-    }
+  // copy back the original header
+  std::memcpy(out_buffer->ColumnIds(), ori_header, sizeof(col_id_t) * out_buffer->NumColumns());
 
-    // Max number of tuples filled in the buffer
-    if (filled >= out_buffer->MaxTuples()) {
-      return;
+  if (missing) {
+    for (uint32_t idx = 0; idx < out_buffer->NumTuples(); idx++) {
+      ProjectedColumns::RowView row = out_buffer->InterpretAsRow(idx);
+      FillMissingColumns(&row, desired_v);
     }
   }
+}
+
+// return false if it is null
+static bool PeekValue(const type::TransientValue &transient_val, byte *value_output) {
+  // Value output should be zero filled before calling
+  if (transient_val.Null()) {
+    // NullToSql(&expr) produces a NULL of expr's type.
+    return false;
+  }
+
+  switch (transient_val.Type()) {
+    case type::TypeId::BOOLEAN: {
+      auto val = type::TransientValuePeeker::PeekBoolean(transient_val);
+      memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
+      break;
+    }
+    case type::TypeId::TINYINT: {
+      auto val = type::TransientValuePeeker::PeekTinyInt(transient_val);
+      memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
+      break;
+    }
+    case type::TypeId::SMALLINT: {
+      auto val = type::TransientValuePeeker::PeekSmallInt(transient_val);
+      memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
+      break;
+    }
+    case type::TypeId::INTEGER: {
+      auto val = type::TransientValuePeeker::PeekInteger(transient_val);
+      memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
+      break;
+    }
+    case type::TypeId::BIGINT: {
+      auto val = type::TransientValuePeeker::PeekBigInt(transient_val);
+      memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
+      break;
+    }
+    case type::TypeId::DATE: {
+      // TODO(Schema-Change): find a way to handle it without codegen
+      //      auto val = type::TransientValuePeeker::PeekDate(transient_val);
+      //      auto ymd = util::TimeConvertor::YMDFromDate(val);
+      //      auto year = static_cast<int32_t>(ymd.year());
+      //      auto month = static_cast<uint32_t>(ymd.month());
+      //      auto day = static_cast<uint32_t>(ymd.day());
+      //      return DateToSql(year, month, day);
+      break;
+    }
+    case type::TypeId::TIMESTAMP: {
+      auto val = type::TransientValuePeeker::PeekTimestamp(transient_val);
+      auto julian_usec = util::TimeConvertor::ExtractJulianMicroseconds(val);
+      memcpy(value_output, &julian_usec, type::TypeUtil::GetTypeSize(transient_val.Type()));
+      break;
+    }
+    case type::TypeId::DECIMAL: {
+      auto val = type::TransientValuePeeker::PeekDecimal(transient_val);
+      memcpy(value_output, &val, type::TypeUtil::GetTypeSize(transient_val.Type()));
+      break;
+    }
+    case type::TypeId::VARCHAR:
+    case type::TypeId::VARBINARY: {
+      auto val = terrier::type::TransientValuePeeker::PeekVarChar(transient_val);
+      memcpy(value_output, &val, val.size());
+      break;
+    }
+    default:
+      // TODO(Amadou): Add support for these types.
+      TERRIER_ASSERT(false, "Should not peek on given type!");
+  }
+  return true;
 }
 
 template <class RowType>
 void SqlTable::FillMissingColumns(RowType *out_buffer, const DataTableVersion &desired_version) const {
   const auto col_ids = out_buffer->ColumnIds();
   for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
-    const auto default_val = desired_version.default_value_map_.at(col_ids[i]);
-    if (out_buffer->AccessWithNullCheck(i) == nullptr && default_val != nullptr) {
+    if (out_buffer->AccessWithNullCheck(i) == nullptr) {
+      // TODO(Schema-Change): Only handle constant value default
+      const common::ManagedPointer<const parser::AbstractExpression> default_val =
+          desired_version.default_value_map_.at(col_ids[i]);
+      if (default_val->GetExpressionType() != parser::ExpressionType::VALUE_CONSTANT) continue;
+
+      auto default_const = default_val.CastManagedPointerTo<const parser::ConstantValueExpression>()->GetValue();
       auto col_oid = desired_version.column_id_to_oid_map_.at(col_ids[i]);
-      // FIXME(all): proper way to use AbstractExpression
-      StorageUtil::CopyWithNullCheck(default_val.template CastManagedPointerTo<const byte>().Get(), out_buffer,
-                                     desired_version.schema_->GetColumn(col_oid).AttrSize(), i);
+      auto value_size = desired_version.schema_->GetColumn(col_oid).AttrSize();
+
+      // zero out the temporary buffer before peeking
+      byte output[value_size];
+      memset(output, 0, value_size);
+
+      if (PeekValue(default_const, &(output[0]))) {
+        StorageUtil::CopyWithNullCheck(output, out_buffer, desired_version.schema_->GetColumn(col_oid).AttrSize(), i);
+        out_buffer->SetNotNull(i);
+      }
     }
   }
 }
@@ -250,41 +328,41 @@ SqlTable::DataTableVersion SqlTable::CreateTable(
   DefaultValueMap default_value_map;
   // Build the map from Schema columns to underlying columns
   for (const auto &column : schema->GetColumns()) {
+    auto default_value = column.StoredExpression();
     switch (column.AttrSize()) {
       case VARLEN_COLUMN:
+        if (default_value != nullptr) default_value_map[col_id_t(offsets[0])] = default_value;
         col_id_to_oid[col_id_t(offsets[0])] = column.Oid();
         col_oid_to_id[column.Oid()] = col_id_t(offsets[0]++);
         break;
       case 8:
+        if (default_value != nullptr) default_value_map[col_id_t(offsets[1])] = default_value;
         col_id_to_oid[col_id_t(offsets[1])] = column.Oid();
         col_oid_to_id[column.Oid()] = col_id_t(offsets[1]++);
         break;
       case 4:
+        if (default_value != nullptr) default_value_map[col_id_t(offsets[2])] = default_value;
         col_id_to_oid[col_id_t(offsets[2])] = column.Oid();
         col_oid_to_id[column.Oid()] = col_id_t(offsets[2]++);
         break;
       case 2:
+        if (default_value != nullptr) default_value_map[col_id_t(offsets[3])] = default_value;
         col_id_to_oid[col_id_t(offsets[3])] = column.Oid();
         col_oid_to_id[column.Oid()] = col_id_t(offsets[3]++);
         break;
       case 1:
+        if (default_value != nullptr) default_value_map[col_id_t(offsets[4])] = default_value;
         col_id_to_oid[col_id_t(offsets[4])] = column.Oid();
         col_oid_to_id[column.Oid()] = col_id_t(offsets[4]++);
         break;
       default:
         throw std::runtime_error("unexpected switch case value");
     }
-    auto default_value = column.StoredExpression();
-    if (default_value != nullptr) default_value_map[col_id_t(offsets[0])] = default_value;
   }
 
   auto layout = storage::BlockLayout(attr_sizes);
-  return {new DataTable(block_store_, layout, layout_version_t(0)),
-          layout,
-          col_oid_to_id,
-          col_id_to_oid,
-          schema,
-          default_value_map};
+  return {
+      new DataTable(block_store_, layout, version), layout, col_oid_to_id, col_id_to_oid, schema, default_value_map};
 }
 
 std::vector<col_id_t> SqlTable::ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids,

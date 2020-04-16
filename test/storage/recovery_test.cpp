@@ -220,11 +220,11 @@ class RecoveryTests : public TerrierTest {
         auto recovered_sql_table = db_catalog->GetTable(common::ManagedPointer(recovery_txn), table_oid);
         EXPECT_TRUE(recovered_sql_table != nullptr);
 
-        // TODO(Schema-Change):: take care of current default 0 layout version
+        // TODO(Schema-Change): take care of current default 0 layout version
         EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
-            original_sql_table->tables_.at(storage::layout_version_t(0)).layout_, original_sql_table, recovered_sql_table,
-            tested->GetTupleSlotsForTable(database_oid, table_oid), recovery_manager.tuple_slot_map_,
-            txn_manager_.Get(), recovery_txn_manager_.Get()));
+            original_sql_table->tables_.at(storage::layout_version_t(0)).layout_, original_sql_table,
+            recovered_sql_table, tested->GetTupleSlotsForTable(database_oid, table_oid),
+            recovery_manager.tuple_slot_map_, txn_manager_.Get(), recovery_txn_manager_.Get()));
         txn_manager_->Commit(original_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
         recovery_txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
