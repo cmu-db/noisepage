@@ -46,6 +46,7 @@ namespace terrier::execution::ast {
                                                                         \
   /* Table scans */                                                     \
   F(TableIterInit, tableIterInit)                                       \
+  F(TempTableIterInitBind, tempTableIterInitBind)                       \
   F(TableIterAdvance, tableIterAdvance)                                 \
   F(TableIterGetVPI, tableIterGetVPI)                                   \
   F(TableIterClose, tableIterClose)                                     \
@@ -55,7 +56,7 @@ namespace terrier::execution::ast {
   F(CteScanInit, cteScanInit)                                           \
   F(CteScanGetTable, cteScanGetTable)                                   \
   F(CteScanGetTableOid, cteScanGetTableOid)                             \
-  F(CteScanGetInsertTempTablePR, cteScanTableInsert)                    \
+  F(CteScanGetInsertTempTablePR, cteScanGetInsertTempTablePR)           \
   F(CteScanTableInsert, cteScanTableInsert)                             \
                                                                         \
   /* VPI */                                                             \

@@ -116,17 +116,19 @@ namespace terrier::execution::vm {
   F(TableVectorIteratorInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,          \
     OperandType::UImm4)                                                                                               \
   F(TableVectorIteratorPerformInit, OperandType::Local)                                                               \
+  F(TempTableVectorIteratorPerformInit, OperandType::Local, OperandType::Local)                                       \
   F(TableVectorIteratorNext, OperandType::Local, OperandType::Local)                                                  \
   F(TableVectorIteratorFree, OperandType::Local)                                                                      \
   F(TableVectorIteratorGetVPI, OperandType::Local, OperandType::Local)                                                \
   F(ParallelScanTable, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                \
     OperandType::Local, OperandType::FunctionId)                                                                      \
                                                                                                                       \
-  F(CteScanInit, OperandType::Local)                                                                                  \
+  F(CteScanInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::UImm4)                      \
   F(CteScanGetTable, OperandType::Local)                                                                              \
   F(CteScanGetTableOid, OperandType::Local)                                                                           \
   F(CteScanGetInsertTempTablePR, OperandType::Local)                                                                  \
   F(CteScanTableInsert, OperandType::Local)                                                                           \
+                                                                                                                      \
   /* Vector Projection Iterator (VPI) */                                                                              \
   F(VPIInit, OperandType::Local, OperandType::Local)                                                                  \
   F(VPIInitWithList, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
