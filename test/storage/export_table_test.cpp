@@ -228,8 +228,7 @@ TEST_F(ExportTableTest, ExportDictionaryCompressedTableTest) {
   transaction::TransactionManager txn_manager{common::ManagedPointer(&timestamp_manager),
                                               common::ManagedPointer(&deferred_action_manager),
                                               common::ManagedPointer(&buffer_pool_), true, DISABLED};
-  storage::GarbageCollector gc{common::ManagedPointer(&deferred_action_manager),
-                               common::ManagedPointer(&txn_manager)};
+  storage::GarbageCollector gc{common::ManagedPointer(&deferred_action_manager), common::ManagedPointer(&txn_manager)};
 
   auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
 
@@ -297,8 +296,7 @@ TEST_F(ExportTableTest, ExportVarlenTableTest) {
   transaction::TransactionManager txn_manager{common::ManagedPointer(&timestamp_manager),
                                               common::ManagedPointer(&deferred_action_manager),
                                               common::ManagedPointer(&buffer_pool_), true, DISABLED};
-  storage::GarbageCollector gc{common::ManagedPointer(&deferred_action_manager),
-                               common::ManagedPointer(&txn_manager)};
+  storage::GarbageCollector gc{common::ManagedPointer(&deferred_action_manager), common::ManagedPointer(&txn_manager)};
   auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
 
   // Manually populate the block header's arrow metadata for test initialization
