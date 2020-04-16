@@ -91,6 +91,7 @@ TEST_F(StorageInterfaceTest, NonCatalogTableTest) {
   // INSERT INTO cte_table SELECT colA FROM test_1 WHERE colA BETWEEN 495 and 505.
 
   // initialize the test_1 and the index on the table
+  auto table_oid0 = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "empty_table");
   auto table_oid1 = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   auto index_oid1 = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_1");
 
@@ -109,7 +110,7 @@ TEST_F(StorageInterfaceTest, NonCatalogTableTest) {
 
   // TODO (Gautam) : Check if the materialized tuple can be used to make the schema
   // Using the store that was used in the set up
-  auto child_schema = exec_ctx_->GetAccessor()->GetSchema(table_oid1);
+  auto child_schema = exec_ctx_->GetAccessor()->GetSchema(table_oid0);
   auto cte_table = new storage::SqlTable(BlockStore(), child_schema);
 
   // Find the rows with colA BETWEEN 495 AND 505.
@@ -128,10 +129,10 @@ TEST_F(StorageInterfaceTest, NonCatalogTableTest) {
     inserted_vals.emplace_back(*val_a);
     // Insert into table
     storage::ProjectedRowInitializer pri = cte_table->InitializerForProjectedRow((cte_table_col_oids));
-    auto txn = exec_ctx_->GetTxn();
-    auto table_redo_ = txn->StageWrite(exec_ctx_->DBOid(), cte_table_oid, pri);
+    auto table_redo_ = exec_ctx_->GetTxn()->StageWrite(exec_ctx_->DBOid(), cte_table_oid, pri);
     auto *const insert_pr(table_redo_->Delta());
     insert_pr->Set<int32_t, false>(0, *val_a, false);
+    exec_ctx_->RowsAffected()++;
     cte_table->Insert(exec_ctx_->GetTxn(), table_redo_);
   }
 
