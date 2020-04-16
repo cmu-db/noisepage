@@ -1,9 +1,9 @@
 #pragma once
+#include <tbb/concurrent_queue.h>
 #include <queue>
 #include <unordered_set>
 #include <utility>
 #include <vector>
-#include <tbb/concurrent_queue.h>
 
 #include "storage/garbage_collector.h"
 #include "storage/write_ahead_log/log_manager.h"
@@ -44,7 +44,7 @@ class DeferredActionManager {
     // Timestamp needs to be fetched inside the critical section such that actions in the
     // deferred action queue is in order. This simplifies the interleavings we need to deal
     // with in the face of DDL changes.
-    new_deferred_actions_.push(std::move(elem));
+    new_deferred_actions_.push(elem);
     return result;
   }
 
@@ -149,17 +149,6 @@ class DeferredActionManager {
 
   uint32_t ProcessNewActions(timestamp_t oldest_txn) {
     uint32_t processed = 0;
-    // swap the new actions queue with a local queue, so the rest of the system can continue
-    // while we process actions
-//    tbb::concurrent_queue<std::pair<timestamp_t, DeferredAction>> new_actions_local;
-//    {
-//      common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
-//      new_actions_local = std::move(new_deferred_actions_);
-//    }
-//
-//    deferred_actions_latch_.LockExclusive();
-//    tbb::concurrent_queue<std::pair<timestamp_t, DeferredAction>> new_actions_local(std::move(new_deferred_actions_));
-//    deferred_actions_latch_.Unlock();
 
     std::pair<timestamp_t, DeferredAction> curr_action;
     bool reinsert = false;
@@ -167,25 +156,11 @@ class DeferredActionManager {
     while (!new_deferred_actions_.empty()) {
       reinsert = new_deferred_actions_.try_pop(curr_action);
       if (processed == curr_size || (reinsert && oldest_txn < curr_action.first)) break;
-
       curr_action.second(oldest_txn);
       processed++;
       reinsert = false;
     }
     if (reinsert) back_log_.push(curr_action);
-//
-//    // Iterate through the new actions queue and execute as many as possible
-//    while (!new_actions_local.empty() && oldest_txn >= new_actions_local.front().first) {
-//      new_actions_local.front().second(oldest_txn);
-//      processed++;
-//      new_actions_local.pop();
-//    }
-
-//    // Add the rest to back log otherwise
-//    while (!new_actions_local.empty()) {
-//      new_deferred_actions_.try_pop(curr_action);
-//      back_log_.push(curr_action);
-//    }
     return processed;
   }
 };
