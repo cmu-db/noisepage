@@ -563,7 +563,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
           output << "\tvar out: *Output\n";
           output << "\tfor(var it = 0; it < " << row_num << "; it = it + 1) {\n";
           output << "\t\tout = @ptrCast(*Output, @outputAlloc(execCtx))\n";
-          // for (auto i = 0; i < num_col; i++) output << "\t\tout.col" << i << " = " << i << "\n";
+          for (auto i = 0; i < num_col; i++) output << "\t\tout.col" << i << " = " << i << "\n";
           output << "\t}\n";
           output << "\t@outputFinalize(execCtx)\n";
           output << "}\n";
@@ -602,7 +602,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
           brain::PipelineOperatingUnits units;
           brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
           exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(&units));
-          pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, row_num, num_col * type_size, num_col, row_num);
+          pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, row_num, num_col * type_size, num_col,
+                                 row_num);
           units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
           exec_query.Run(common::ManagedPointer(exec_ctx), mode);
 
@@ -858,8 +859,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_SortRunners)(benchmark::State &state) {
 
     std::stringstream query;
     query << "SELECT " << (cols.str()) << " FROM "
-          << execution::sql::TableGenerator::GenerateTableName(type, 31, row, car) << " ORDER BY "
-          << (cols.str());
+          << execution::sql::TableGenerator::GenerateTableName(type, 31, row, car) << " ORDER BY " << (cols.str());
     BenchmarkSqlStatement(query.str(), &units, std::make_unique<optimizer::TrivialCostModel>(), true);
     metrics_manager_->Aggregate();
     metrics_manager_->UnregisterThread();
@@ -955,9 +955,11 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinNonSelfRunners)(benchmark::State &s
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, build_row, tuple_size, num_col, build_car);
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, build_row, tuple_size, num_col, build_car);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, build_row, tuple_size, num_col,
+                           build_car);
     pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, probe_row, tuple_size, num_col, probe_car);
-    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, probe_row, tuple_size, num_col, matched_car);
+    pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, probe_row, tuple_size, num_col,
+                           matched_car);
     pipe1_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, matched_car, tuple_size, num_col, matched_car);
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
@@ -1010,8 +1012,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_AggregateRunners)(benchmark::State &state) 
 
     auto type_size = type::TypeUtil::GetTypeSize(type);
     auto tuple_size = type_size * num_col;
-    auto out_cols = num_col + 1; // pulling the count(*) out
-    auto out_size = tuple_size + 4; // count(*) is an integer
+    auto out_cols = num_col + 1;     // pulling the count(*) out
+    auto out_size = tuple_size + 4;  // count(*) is an integer
 
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
@@ -1033,8 +1035,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_AggregateRunners)(benchmark::State &state) 
 
     std::stringstream query;
     query << "SELECT COUNT(*), " << cols.str() << " FROM "
-          << execution::sql::TableGenerator::GenerateTableName(type, 31, row, car) << " GROUP BY "
-          << cols.str();
+          << execution::sql::TableGenerator::GenerateTableName(type, 31, row, car) << " GROUP BY " << cols.str();
 
     BenchmarkSqlStatement(query.str(), &units, std::make_unique<optimizer::TrivialCostModel>(), true);
     metrics_manager_->Aggregate();

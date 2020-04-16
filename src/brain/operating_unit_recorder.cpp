@@ -330,7 +330,7 @@ void OperatingUnitRecorder::Visit(const planner::InsertPlanNode *plan) {
       for (auto &col : plan->GetValues(idx)) {
         auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(col);
         arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
-            std::make_move_iterator(features.end()));
+                                         std::make_move_iterator(features.end()));
       }
     }
 
