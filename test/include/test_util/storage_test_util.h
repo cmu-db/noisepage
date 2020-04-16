@@ -29,6 +29,7 @@
 #include "transaction/transaction_manager.h"
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
+
 namespace terrier {
 class StorageTestUtil {
  public:
@@ -268,6 +269,45 @@ class StorageTestUtil {
   static bool VarlenEntryEqualDeep(const storage::VarlenEntry &one, const storage::VarlenEntry &other) {
     if (one.Size() != other.Size()) return false;
     return memcmp(one.Content(), other.Content(), one.Size()) == 0;
+  }
+
+  template <class RowType>
+  static bool ProjectionListAtOidsNone(const RowType *const row, const storage::ProjectionMap &oid_map,
+                                       const storage::BlockLayout layout, std::vector<catalog::col_oid_t> oids) {
+    for (const auto &oid : oids) {
+      EXPECT_EQ(oid_map.find(oid), oid_map.end());
+      if (oid_map.find(oid) != oid_map.end()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  template <class RowType>
+  static bool ProjectionListAtOidsEqual(const RowType *const row, const storage::ProjectionMap &oid_map,
+                                        const storage::BlockLayout layout, std::vector<catalog::col_oid_t> oids,
+                                        std::vector<const byte *> default_values) {
+    // Check for each default value
+    for (size_t i = 0; i < oids.size(); i++) {
+      auto idx = oid_map.at(oids[i]);
+      storage::col_id_t col_id = row->ColumnIds()[idx];
+
+      // Check that the two have the same content bit-wise
+      uint8_t attr_size = layout.AttrSize(col_id);
+      const byte *row_content = row->AccessWithNullCheck(idx);
+      const byte *default_content = default_values[i];
+      // both are null or neither is null.
+      if (row_content == nullptr || default_content == nullptr) {
+        EXPECT_EQ(row_content, default_content);
+        if (default_content == row_content) continue;
+        return false;
+      }
+      // Otherwise, they should be bit-wise identical.
+      if (memcmp(row_content, default_content, attr_size) != 0) {
+        return false;
+      }
+    }
+    return true;
   }
 
   template <class RowType1, class RowType2>

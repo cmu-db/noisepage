@@ -36,6 +36,27 @@ static std::unique_ptr<catalog::Schema> AddColumn(const catalog::Schema &schema,
   return std::make_unique<catalog::Schema>(new_columns);
 }
 
+// static std::unique_ptr<catalog::Schema> DropColumn(const catalog::Schema &schema, size_t col_idx,
+//                                                    catalog::col_oid_t *oidp) {
+//   auto columns = schema.GetColumns();
+//   *oidp = columns[col_idx].Oid();
+//   columns.erase(columns.begin() + col_idx);
+//   return std::make_unique<catalog::Schema>(columns);
+// }
+
+static std::unique_ptr<catalog::Schema> DropColumn(const catalog::Schema &schema, const catalog::col_oid_t oid) {
+  auto columns = schema.GetColumns();
+  size_t i = 0;
+  for (; i < columns.size(); i++) {
+    if (columns[i].Oid() == oid) {
+      break;
+    }
+  }
+  TERRIER_ASSERT(i != columns.size(), "column to drop not found in the schema");
+  columns.erase(columns.begin() + i);
+  return std::make_unique<catalog::Schema>(columns);
+}
+
 class RandomSqlTableTestObject {
  public:
   struct TupleVersion {
@@ -77,10 +98,9 @@ class RandomSqlTableTestObject {
 
       if (pr->IsNull(pr_idx) && !schema_col.Nullable()) {
         // Ricky (Schema-Change):
-        // Some non null columns could be null. But the schema we generated have default values all being null, we just
-        // need to fill some random values here.
-        // Ideallly we want to do this while we populate the projectedrow, but that function has coupled with too many
-        // other parts
+        // Some non-nullable columns could be null. But the schema we generated have default values all being null, we
+        // just need to fill some random values here. Ideallly we want to do this while we populate the projectedrow,
+        // but that function has coupled with too many other parts
 
         if (layout.IsVarlen(col_id)) {
           uint32_t size = varlen_size(*generator);
@@ -129,6 +149,17 @@ class RandomSqlTableTestObject {
     tuple_versions_[slot].push_back({timestamp, insert_tuple, layout_version});
 
     return slot;
+  }
+
+  storage::ProjectedColumns *AllocateColumnBuffer(const storage::layout_version_t version, byte **bufferp,
+                                                  size_t size) {
+    auto old_layout = GetBlockLayout(version);
+    storage::ProjectedColumnsInitializer initializer(old_layout, StorageTestUtil::ProjectionListAllColumns(old_layout),
+                                                     size);
+    auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
+    storage::ProjectedColumns *columns = initializer.Initialize(buffer);
+    *bufferp = buffer;
+    return columns;
   }
 
   TupleVersion GetReferenceVersionedTuple(const storage::TupleSlot slot, const transaction::timestamp_t timestamp) {
@@ -186,6 +217,8 @@ class RandomSqlTableTestObject {
   }
 
   const catalog::Schema &GetSchema(storage::layout_version_t version) const { return *schemas_.at(version); }
+  const storage::SqlTable &GetTable() const { return *table_; }
+  storage::SqlTable &GetTable() { return *table_; }
 
   storage::ProjectionMap GetProjectionMapForOids(storage::layout_version_t version) {
     auto &schema = schemas_.at(version);
@@ -228,14 +261,16 @@ TEST_F(SqlTableTests, SimpleInsertSelect) {
   for (const auto &inserted_tuple : test_table.InsertedTuples()) {
     storage::ProjectedRow *stored =
         test_table.Select(inserted_tuple, transaction::timestamp_t(1), &buffer_pool_, version);
-    auto *ref = test_table.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(1)).pr_;
+    auto ref = test_table.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(1));
 
-    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(test_table.GetBlockLayout(version), stored, ref));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallowMatchSchema(
+        test_table.GetBlockLayout(ref.version_), ref.pr_, test_table.GetProjectionMapForOids(ref.version_),
+        test_table.GetBlockLayout(version), stored, test_table.GetProjectionMapForOids(version), {}, {}));
   }
 }
 
 // NOLINTNEXTLINE
-TEST_F(SqlTableTests, SimpleAddColumnTest) {
+TEST_F(SqlTableTests, InsertWithSchemaChange) {
   const uint16_t max_columns = 20;
   const uint32_t num_inserts = 8;
   uint64_t txn_ts = 0;
@@ -266,15 +301,12 @@ TEST_F(SqlTableTests, SimpleAddColumnTest) {
   }
 
   EXPECT_EQ(num_inserts, test_table.InsertedTuples().size());
-  // Compare each inserted
+  // Compare each inserted by selecting as the new version
   txn_ts++;
   for (const auto &inserted_tuple : test_table.InsertedTuples()) {
     storage::ProjectedRow *stored =
         test_table.Select(inserted_tuple, transaction::timestamp_t(txn_ts), &buffer_pool_, new_version);
     auto tuple_version = test_table.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(txn_ts));
-    // TODO(Schema-change): we need to find a way to compare these 2 projected rows with different schema/blocklayout
-    // with
-    // other schema changes. e.g: change column type, add constrain.
     std::unordered_set<catalog::col_oid_t> add_cols;
     std::unordered_set<catalog::col_oid_t> drop_cols;
     if (tuple_version.version_ != new_version) {
@@ -285,6 +317,124 @@ TEST_F(SqlTableTests, SimpleAddColumnTest) {
         test_table.GetProjectionMapForOids(tuple_version.version_), test_table.GetBlockLayout(new_version), stored,
         test_table.GetProjectionMapForOids(new_version), add_cols, drop_cols));
   }
+
+  // This txn should not observe the updated schema
+  for (const auto &inserted_tuple : test_table.InsertedTuples()) {
+    auto tuple_version = test_table.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(txn_ts));
+    if (tuple_version.version_ != new_version) {
+      // Select the tuple with its tuple version
+      storage::ProjectedRow *stored =
+          test_table.Select(inserted_tuple, transaction::timestamp_t(txn_ts), &buffer_pool_, tuple_version.version_);
+      EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(test_table.GetBlockLayout(tuple_version.version_), stored,
+                                                              tuple_version.pr_));
+    }
+  }
+
+  // Scan the table with version 0, seeing only half of the tuples
+  byte *buffer = nullptr;
+  auto columns = test_table.AllocateColumnBuffer(version, &buffer, num_inserts / 2);
+  auto it = test_table.GetTable().begin();
+  test_table.GetTable().Scan(test_table.NewTransaction(transaction::timestamp_t(txn_ts), &buffer_pool_), &it, columns,
+                             version);
+  EXPECT_EQ(num_inserts / 2, columns->NumTuples());
+  EXPECT_EQ(it, test_table.GetTable().end(version));
+  for (uint32_t i = 0; i < columns->NumTuples(); i++) {
+    storage::ProjectedColumns::RowView stored = columns->InterpretAsRow(i);
+    auto ref = test_table.GetReferenceVersionedTuple(columns->TupleSlots()[i], transaction::timestamp_t(txn_ts));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallowMatchSchema(
+        test_table.GetBlockLayout(ref.version_), ref.pr_, test_table.GetProjectionMapForOids(ref.version_),
+        test_table.GetBlockLayout(version), &stored, test_table.GetProjectionMapForOids(version), {}, {}));
+  }
+  delete[] buffer;
+
+  // Scan the table with the newest version, seeing all tuples
+  buffer = nullptr;
+  columns = test_table.AllocateColumnBuffer(new_version, &buffer, num_inserts);
+  it = test_table.GetTable().begin();
+  test_table.GetTable().Scan(test_table.NewTransaction(transaction::timestamp_t(txn_ts), &buffer_pool_), &it, columns,
+                             new_version);
+  EXPECT_EQ(num_inserts, columns->NumTuples());
+  EXPECT_EQ(it, test_table.GetTable().end(new_version));
+  for (uint32_t i = 0; i < columns->NumTuples(); i++) {
+    storage::ProjectedColumns::RowView stored = columns->InterpretAsRow(i);
+    auto ref = test_table.GetReferenceVersionedTuple(columns->TupleSlots()[i], transaction::timestamp_t(txn_ts));
+    std::unordered_set<catalog::col_oid_t> add_cols;
+    std::unordered_set<catalog::col_oid_t> drop_cols;
+    if (ref.version_ != new_version) {
+      add_cols.insert(col.Oid());
+    }
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallowMatchSchema(
+        test_table.GetBlockLayout(ref.version_), ref.pr_, test_table.GetProjectionMapForOids(ref.version_),
+        test_table.GetBlockLayout(new_version), &stored, test_table.GetProjectionMapForOids(new_version), add_cols,
+        drop_cols));
+  }
+  delete[] buffer;
 }
 
+// NOLINTNEXTLINE
+TEST_F(SqlTableTests, AddDropColumn) {
+  const uint16_t max_columns = 20;
+  const uint32_t num_inserts = 8;
+  uint64_t txn_ts = 0;
+
+  RandomSqlTableTestObject test_table(&block_store_, max_columns, &generator_, null_ratio_(generator_));
+
+  // Update the schema
+  storage::layout_version_t version(0);
+
+  // Inserted some
+  for (uint16_t i = 0; i < num_inserts; i++) {
+    test_table.InsertRandomTuple(transaction::timestamp_t(txn_ts), &generator_, &buffer_pool_, version);
+  }
+
+  EXPECT_EQ(num_inserts, test_table.InsertedTuples().size());
+  storage::layout_version_t new_version(1);
+  int32_t default_int = 15719;
+  catalog::Schema::Column col("new_col", type::TypeId::INTEGER, false,
+                              parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(default_int)));
+  auto new_schema = AddColumn(test_table.GetSchema(version), &col);
+  test_table.UpdateSchema(test_table.NewTransaction(transaction::timestamp_t{txn_ts}, &buffer_pool_),
+                          std::move(new_schema), new_version);
+
+  // Check the default values of those selected
+  byte default_value[type::TypeUtil::GetTypeSize(type::TypeId::INTEGER)];
+  memcpy(default_value, &default_int, type::TypeUtil::GetTypeSize(type::TypeId::INTEGER));
+
+  for (const auto &inserted_tuple : test_table.InsertedTuples()) {
+    // Check added column default value
+    storage::ProjectedRow *stored =
+        test_table.Select(inserted_tuple, transaction::timestamp_t(txn_ts), &buffer_pool_, new_version);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListAtOidsEqual(stored, test_table.GetProjectionMapForOids(new_version),
+                                                           test_table.GetBlockLayout(new_version), {col.Oid()},
+                                                           {&default_value[0]}));
+
+    // Check tuple equality
+    auto tuple_version = test_table.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(txn_ts));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallowMatchSchema(
+        test_table.GetBlockLayout(tuple_version.version_), tuple_version.pr_,
+        test_table.GetProjectionMapForOids(tuple_version.version_), test_table.GetBlockLayout(new_version), stored,
+        test_table.GetProjectionMapForOids(new_version), {col.Oid()}, {}));
+  }
+
+  // Drop a column
+  txn_ts++;
+  storage::layout_version_t vers2(2);
+  new_schema = DropColumn(test_table.GetSchema(new_version), col.Oid());
+  test_table.UpdateSchema(test_table.NewTransaction(transaction::timestamp_t{txn_ts}, &buffer_pool_),
+                          std::move(new_schema), vers2);
+
+  // Select check if the column is dropped
+  for (const auto &inserted_tuple : test_table.InsertedTuples()) {
+    storage::ProjectedRow *stored =
+        test_table.Select(inserted_tuple, transaction::timestamp_t(txn_ts), &buffer_pool_, vers2);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListAtOidsNone(stored, test_table.GetProjectionMapForOids(vers2),
+                                                          test_table.GetBlockLayout(vers2), {col.Oid()}));
+
+    auto tuple_version = test_table.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(txn_ts));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallowMatchSchema(
+        test_table.GetBlockLayout(tuple_version.version_), tuple_version.pr_,
+        test_table.GetProjectionMapForOids(tuple_version.version_), test_table.GetBlockLayout(vers2), stored,
+        test_table.GetProjectionMapForOids(vers2), {}, {}));
+  }
+}
 }  // namespace terrier::storage

@@ -159,10 +159,9 @@ void SqlTable::Scan(const terrier::common::ManagedPointer<transaction::Transacti
     if (i != tuple_version) *start_pos = tuple_v.data_table_->begin();
     tuple_v.data_table_->IncrementalScan(txn, start_pos, out_buffer, filled);
     filled = out_buffer->NumTuples();
+    // copy back the original header
+    std::memcpy(out_buffer->ColumnIds(), ori_header, sizeof(col_id_t) * out_buffer->NumColumns());
   }
-
-  // copy back the original header
-  std::memcpy(out_buffer->ColumnIds(), ori_header, sizeof(col_id_t) * out_buffer->NumColumns());
 
   if (missing) {
     for (uint32_t idx = 0; idx < out_buffer->NumTuples(); idx++) {
@@ -282,6 +281,7 @@ bool SqlTable::AlignHeaderToVersion(RowType *const out_buffer, const DataTableVe
   for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
     TERRIER_ASSERT(out_buffer->ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
                    "Output buffer should not read the version pointer column.");
+    TERRIER_ASSERT(desired_version.column_id_to_oid_map_.count(out_buffer->ColumnIds()[i]) > 0, "col_id missing");
     catalog::col_oid_t col_oid = desired_version.column_id_to_oid_map_.at(out_buffer->ColumnIds()[i]);
     if (tuple_version.column_oid_to_id_map_.count(col_oid) > 0) {
       out_buffer->ColumnIds()[i] = tuple_version.column_oid_to_id_map_.at(col_oid);
