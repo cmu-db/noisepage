@@ -32,6 +32,11 @@ void OpTableVectorIteratorInit(terrier::execution::sql::TableVectorIterator *ite
 
 void OpTableVectorIteratorPerformInit(terrier::execution::sql::TableVectorIterator *iter) { iter->Init(); }
 
+void OpTempTableVectorIteratorPerformInit(terrier::execution::sql::TableVectorIterator *iter,
+                                          terrier::execution::sql::CteScanIterator *cte_scan_iter) {
+  iter->InitTempTable(terrier::common::ManagedPointer(cte_scan_iter->GetTable()));
+}
+
 void OpTableVectorIteratorReset(terrier::execution::sql::TableVectorIterator *iter) {
   TERRIER_ASSERT(iter != nullptr, "NULL iterator given to reset");
   iter->Reset();

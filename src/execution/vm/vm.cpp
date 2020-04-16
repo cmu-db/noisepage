@@ -550,6 +550,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
+  OP(TempTableVectorIteratorPerformInit) : {
+    auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
+    auto *cte_scan_iter = frame->LocalAt<sql::CteScanIterator *>(READ_LOCAL_ID());
+    OpTempTableVectorIteratorPerformInit(iter, cte_scan_iter);
+    DISPATCH_NEXT();
+  }
+
   OP(TableVectorIteratorNext) : {
     auto *has_more = frame->LocalAt<bool *>(READ_LOCAL_ID());
     auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
