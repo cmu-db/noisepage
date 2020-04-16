@@ -1162,6 +1162,33 @@ ast::FieldDecl *CodeGen::MakeField(ast::Identifier name, ast::Expr *type) const 
   return context_->GetNodeFactory()->NewFieldDecl(position_, name, type);
 }
 
+ast::Expr *CodeGen::CteScanIteratorInit(ast::Identifier si, ast::Identifier col_types) {
+  ast::Expr *fun = BuiltinFunction(ast::Builtin::CteScanInit);
+  ast::Expr *si_ptr = PointerTo(si);
+  ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
+  ast::Expr *col_oids_expr = MakeExpr(col_types);
+
+  util::RegionVector<ast::Expr *> args{{si_ptr, exec_ctx_expr, col_oids_expr},
+                                       Region()};
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+}
+
+ast::FieldDecl *CodeGen::MakeField(ast::Identifier name, ast::Expr *type) const {
+  return context_->GetNodeFactory()->NewFieldDecl(position_, name, type);
+}
+
+ast::AstNodeFactory *CodeGen::GetFactory() { return context_->GetNodeFactory(); }
+
+void CodeGen::EnterScope() {
+  if (num_cached_scopes_ == 0) {
+    scope_ = new Scope(scope_);
+  } else {
+    auto scope = scope_cache_[--num_cached_scopes_].release();
+    scope->Init(scope_);
+    scope_ = scope;
+  }
+}
+
 ast::AstNodeFactory *CodeGen::GetFactory() { return context_->GetNodeFactory(); }
 
 void CodeGen::EnterScope() {
