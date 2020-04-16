@@ -30,7 +30,7 @@ void SeqScanTranslator::Produce(FunctionBuilder *builder) {
   // TODO(Ron): Declare the tvi only for serial scan
   //  const bool declare_local_tvi = !GetPipeline()->IsParallel() || this != GetPipeline()->Root();
   //  if (declare_local_tvi) {
-  // DeclareTVI(builder);
+   DeclareTVI(builder);
   //  }
 
   // There may be a child translator in nested loop joins.
@@ -44,7 +44,7 @@ void SeqScanTranslator::Produce(FunctionBuilder *builder) {
 
   // Close iterator
   //  if (declare_local_tvi) {
-  // GenTVIClose(builder);
+   GenTVIClose(builder);
   //}
 }
 
@@ -119,11 +119,17 @@ ast::Expr *SeqScanTranslator::GetTableColumn(const catalog::col_oid_t &col_oid) 
 
 void SeqScanTranslator::DeclareTVI(FunctionBuilder *builder) {
   // var tvi: TableVectorIterator
+  auto tvi_base = codegen_->NewIdentifier("tvi_base");
   ast::Expr *iter_type = codegen_->BuiltinType(ast::BuiltinType::Kind::TableVectorIterator);
-  builder->Append(codegen_->DeclareVariable(tvi_, iter_type, nullptr));
+  builder->Append(codegen_->DeclareVariable(tvi_base, iter_type, nullptr));
+
+  //
+  auto tvi_type = codegen_->PointerType(ast::BuiltinType::TableVectorIterator);
+  builder->Append(codegen_->DeclareVariable(tvi_, tvi_type, codegen_->AddressOf(tvi_base)));
+
 
   // Call @tableIterInit(&tvi, execCtx, table_oid, col_oids)
-  ast::Expr *init_call = codegen_->TableIterInit(tvi_, !op_->GetTableOid(), col_oids_);
+  ast::Expr *init_call = codegen_->TableIterInit(tvi_base, !op_->GetTableOid(), col_oids_);
   builder->Append(codegen_->MakeStmt(init_call));
 }
 
@@ -143,13 +149,13 @@ void SeqScanTranslator::SetOids(FunctionBuilder *builder) {
 // Generate for(@tableIterAdvance(&tvi)) {...}
 void SeqScanTranslator::GenTVILoop(FunctionBuilder *builder) {
   // The advance call
-  ast::Expr *advance_call = codegen_->OneArgCall(ast::Builtin::TableIterAdvance, tvi_, true);
+  ast::Expr *advance_call = codegen_->OneArgCall(ast::Builtin::TableIterAdvance, tvi_, false);
   builder->StartForStmt(nullptr, advance_call, nullptr);
 }
 
 void SeqScanTranslator::DeclarePCI(FunctionBuilder *builder) {
   // Assign var pci = @tableIterGetPCI(&tvi)
-  ast::Expr *get_pci_call = codegen_->OneArgCall(ast::Builtin::TableIterGetPCI, tvi_, true);
+  ast::Expr *get_pci_call = codegen_->OneArgCall(ast::Builtin::TableIterGetPCI, tvi_, false);
   builder->Append(codegen_->DeclareVariable(pci_, nullptr, get_pci_call));
 }
 
@@ -184,13 +190,13 @@ void SeqScanTranslator::GenScanCondition(FunctionBuilder *builder) {
 
 void SeqScanTranslator::GenTVIClose(execution::compiler::FunctionBuilder *builder) {
   // Close iterator
-  ast::Expr *close_call = codegen_->OneArgCall(ast::Builtin::TableIterClose, tvi_, true);
+  ast::Expr *close_call = codegen_->OneArgCall(ast::Builtin::TableIterClose, tvi_, false);
   builder->Append(codegen_->MakeStmt(close_call));
 }
 
 void SeqScanTranslator::GenTVIReset(execution::compiler::FunctionBuilder *builder) {
   // Reset iterator
-  ast::Expr *reset_call = codegen_->OneArgCall(ast::Builtin::TableIterReset, tvi_, true);
+  ast::Expr *reset_call = codegen_->OneArgCall(ast::Builtin::TableIterReset, tvi_, false);
   builder->Append(codegen_->MakeStmt(reset_call));
 }
 

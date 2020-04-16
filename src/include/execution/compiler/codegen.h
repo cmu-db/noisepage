@@ -137,6 +137,16 @@ class CodeGen {
   ast::Identifier GetTeardownFn() { return teardown_fn_; }
 
   /**
+   * @return An expression that represents the address of the provided object.
+   */
+  ast::Expr *AddressOf(ast::Expr *obj) { return UnaryOp(parsing::Token::Type::AMPERSAND, obj); }
+
+  /**
+   * @return An expression that represents the address of the provided object.
+   */
+  ast::Expr *AddressOf(ast::Identifier obj_name) { return UnaryOp(parsing::Token::Type::AMPERSAND, MakeExpr(obj_name));}
+
+  /**
    * The main function has the signature: (execCtx: *ExecutionContext) -> int32
    * @return the list of parameters of the main function
    */
