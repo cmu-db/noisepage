@@ -604,6 +604,17 @@ ast::Expr *CodeGen::StorageInterfaceInit(ast::Identifier si, uint32_t table_oid,
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
+ast::Expr *CodeGen::CteScanIteratorInit(ast::Identifier si, ast::Identifier col_types) {
+  ast::Expr *fun = BuiltinFunction(ast::Builtin::CteScanInit);
+  ast::Expr *si_ptr = PointerTo(si);
+  ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
+  ast::Expr *col_oids_expr = MakeExpr(col_types);
+
+  util::RegionVector<ast::Expr *> args{{si_ptr, exec_ctx_expr, col_oids_expr},
+                                       Region()};
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+}
+
 ast::Expr *CodeGen::BuiltinCall(ast::Builtin builtin, std::vector<ast::Expr *> &&params) {
   ast::Expr *fun = BuiltinFunction(builtin);
   util::RegionVector<ast::Expr *> args{{}, Region()};

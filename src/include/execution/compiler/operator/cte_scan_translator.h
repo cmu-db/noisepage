@@ -20,7 +20,16 @@ class CteScanTranslator : public OperatorTranslator {
    */
   CteScanTranslator(const terrier::planner::CteScanPlanNode *op, CodeGen *codegen)
       : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::CTE_SCAN),
-        op_(op) {}
+        op_(op),
+        cte_scan_iterator_(codegen->NewIdentifier("cte_scan_iterator")),
+        col_types_(codegen->NewIdentifier("col_types")){
+
+    auto & all_columns = op_->GetOutputSchema()->GetColumns();
+    for(auto &col: all_columns) {
+      all_types_.emplace_back(static_cast<int>(col.GetType()));
+    }
+
+  }
 
   // Pass through
   void Produce(FunctionBuilder *builder) override;
@@ -68,6 +77,11 @@ class CteScanTranslator : public OperatorTranslator {
 
  private:
   const planner::CteScanPlanNode *op_;
+  void DeclareCteScanIterator(FunctionBuilder *builder);
+  void SetColumnTypes(FunctionBuilder *builder);
+  ast::Identifier cte_scan_iterator_;
+  ast::Identifier col_types_;
+  std::vector<int> all_types_;
 };
 
 }  // namespace terrier::execution::compiler
