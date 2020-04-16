@@ -53,6 +53,7 @@ class FunctionExpression : public AbstractExpression {
     std::string func_name = GetFuncName();
     auto expr = std::make_unique<FunctionExpression>(std::move(func_name), GetReturnValueType(), std::move(children));
     expr->SetMutableStateForCopy(*this);
+    expr->SetProcOid(GetProcOid());
     return expr;
   }
 
@@ -115,7 +116,7 @@ class FunctionExpression : public AbstractExpression {
    * Gets the bound proc_oid of the function
    * @return proc_oid of the function bound to this expression
    */
-  catalog::proc_oid_t GetProcOid() { return proc_oid_; }
+  catalog::proc_oid_t GetProcOid() const { return proc_oid_; }
 
  private:
   /** Name of function to be invoked. */
