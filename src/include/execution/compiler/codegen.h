@@ -527,6 +527,14 @@ class CodeGen {
   ast::Expr *StorageInterfaceInit(ast::Identifier si, uint32_t table_oid, ast::Identifier col_oids, bool need_indexes);
 
   /**
+   * Call cteScanIteratorInit(&cte_scan_iterator, execCtx, col_types)
+   * @param si The cte scan iterator to initialize
+   * @param col_types The identifier of the array of column types to access.
+   * @return The expression corresponding to the builtin call.
+   */
+  ast::Expr *CteScanIteratorInit(ast::Identifier si, ast::Identifier col_types);
+
+  /**
    * Make a generic builtin call with the given arguments.
    * @param builtin builtin function to call
    * @param params parameters of the builtin function
