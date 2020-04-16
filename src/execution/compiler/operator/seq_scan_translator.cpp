@@ -30,7 +30,7 @@ void SeqScanTranslator::Produce(FunctionBuilder *builder) {
   // TODO(Ron): Declare the tvi only for serial scan
   //  const bool declare_local_tvi = !GetPipeline()->IsParallel() || this != GetPipeline()->Root();
   //  if (declare_local_tvi) {
-  DeclareTVI(builder);
+  // DeclareTVI(builder);
   //  }
 
   // There may be a child translator in nested loop joins.
@@ -44,7 +44,7 @@ void SeqScanTranslator::Produce(FunctionBuilder *builder) {
 
   // Close iterator
   //  if (declare_local_tvi) {
-  GenTVIClose(builder);
+  // GenTVIClose(builder);
   //}
 }
 

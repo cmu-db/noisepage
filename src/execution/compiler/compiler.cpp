@@ -177,24 +177,24 @@ ast::Decl *Compiler::GenMainFunction() {
   FunctionBuilder builder{codegen_, fn_name, std::move(params), ret_type};
 
   // TODO(Ron): Enabled this when we have isParallel global variable
-  // Step 0.0: Call Launch Work
-  //  for (const auto &pipeline : pipelines_) {
-  //    pipeline->Root()->LaunchWork(&builder, pipeline->GetWorkFunctionName());
-  //  }
+//   Step 0.0: Call Launch Work
+    for (const auto &pipeline : pipelines_) {
+      pipeline->Root()->LaunchWork(&builder, pipeline->GetWorkFunctionName());
+    }
 
-  // Step 0: Define the state variable.
-  ast::Identifier state = codegen_->GetStateVar();
-  ast::Expr *state_type = codegen_->MakeExpr(codegen_->GetStateType());
-  builder.Append(codegen_->DeclareVariable(state, state_type, nullptr));
-
-  // Step 1: Call setupFn(state, execCtx)
-  builder.Append(codegen_->ExecCall(codegen_->GetSetupFn()));
-  // Step 2: For each pipeline, call its function
-  for (const auto &pipeline : pipelines_) {
-    builder.Append(codegen_->ExecCall(pipeline->GetWorkFunctionName()));
-  }
-  // Step 3: Call the teardown function
-  builder.Append(codegen_->ExecCall(codegen_->GetTeardownFn()));
+//  // Step 0: Define the state variable.
+//  ast::Identifier state = codegen_->GetStateVar();
+//  ast::Expr *state_type = codegen_->MakeExpr(codegen_->GetStateType());
+//  builder.Append(codegen_->DeclareVariable(state, state_type, nullptr));
+//
+//  // Step 1: Call setupFn(state, execCtx)
+//  builder.Append(codegen_->ExecCall(codegen_->GetSetupFn()));
+//  // Step 2: For each pipeline, call its function
+//  for (const auto &pipeline : pipelines_) {
+//    builder.Append(codegen_->ExecCall(pipeline->GetWorkFunctionName()));
+//  }
+//  // Step 3: Call the teardown function
+//  builder.Append(codegen_->ExecCall(codegen_->GetTeardownFn()));
   // Step 4: return a value of 0
   builder.Append(codegen_->ReturnStmt(codegen_->IntLiteral(0)));
   return builder.Finish();
