@@ -100,6 +100,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
   /** Catalog accessor */
   const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor_;
   const catalog::db_oid_t db_oid_;
+  std::string cte_table_name_;
 
   static void InitTableRef(const common::ManagedPointer<parser::TableRef> node) {
     if (node->table_info_ == nullptr) node->table_info_ = std::make_unique<parser::TableInfo>();
