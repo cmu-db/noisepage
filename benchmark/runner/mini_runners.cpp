@@ -386,7 +386,6 @@ class MiniRunners : public benchmark::Fixture {
     }
 
     TERRIER_ASSERT(index != nullptr, "Invalid key_num specified");
-    exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
 
     std::vector<storage::TupleSlot> results;
     if (lookup_size == 1) {
@@ -401,7 +400,10 @@ class MiniRunners : public benchmark::Fixture {
         *reinterpret_cast<uint32_t *>(scan_key_pr->AccessForceNotNull(i)) = random_key;
       }
 
+      exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
       index->ScanKey(*txn, *scan_key_pr, &results);
+      exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(0));
+
       results.clear();
       delete[] key_buffer;
     } else {
@@ -423,13 +425,15 @@ class MiniRunners : public benchmark::Fixture {
         *reinterpret_cast<uint32_t *>(high_key_pr->AccessForceNotNull(i)) = high_key;
       }
 
+      exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
       index->ScanAscending(*txn, storage::index::ScanType::Closed, key_num, low_key_pr, high_key_pr, 0, &results);
+      exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(0));
+
       results.clear();
       delete[] low_buffer;
       delete[] high_buffer;
     }
 
-    exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(0));
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 
