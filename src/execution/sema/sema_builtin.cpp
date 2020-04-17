@@ -1067,7 +1067,7 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
       break;
     }
     case ast::Builtin::TempTableIterInitBind: {
-      if (!CheckArgCount(call, 5)) {
+      if (!CheckArgCount(call, 4)) {
         return;
       }
       // The second argument is the execution context
@@ -1076,24 +1076,19 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
         ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
         return;
       }
-      // The third argument is the table name as a literal string
-      if (!call_args[2]->IsStringLiteral()) {
-        ReportIncorrectCallArg(call, 2, ast::StringType::Get(GetContext()));
+      // The third argument is a uint32_t array
+      if (!call_args[2]->GetType()->IsArrayType()) {
+        ReportIncorrectCallArg(call, 2, "Fourth argument should be a uint32 array");
         return;
       }
-      // The fourth argument is a uint32_t array
-      if (!call_args[3]->GetType()->IsArrayType()) {
-        ReportIncorrectCallArg(call, 3, "Fourth argument should be a uint32 array");
-        return;
-      }
-      auto *arr_type = call_args[3]->GetType()->SafeAs<ast::ArrayType>();
+      auto *arr_type = call_args[2]->GetType()->SafeAs<ast::ArrayType>();
       auto uint32_t_kind = ast::BuiltinType::Uint32;
       if (!arr_type->ElementType()->IsSpecificBuiltin(uint32_t_kind)) {
-        ReportIncorrectCallArg(call, 3, "Fourth argument should be a uint32 array");
+        ReportIncorrectCallArg(call, 2, "Fourth argument should be a uint32 array");
       }
       const auto cte_scan_iterator_kind = ast::BuiltinType::CteScanIterator;
-      if (!IsPointerToSpecificBuiltin(call->Arguments()[4]->GetType(), cte_scan_iterator_kind)) {
-        ReportIncorrectCallArg(call, 4, GetBuiltinType(cte_scan_iterator_kind)->PointerTo());
+      if (!IsPointerToSpecificBuiltin(call->Arguments()[3]->GetType(), cte_scan_iterator_kind)) {
+        ReportIncorrectCallArg(call, 3, GetBuiltinType(cte_scan_iterator_kind)->PointerTo());
         return;
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));

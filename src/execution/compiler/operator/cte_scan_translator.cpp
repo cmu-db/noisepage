@@ -9,8 +9,17 @@ void CteScanTranslator::Produce(FunctionBuilder *builder) {
 
   if(op_->IsLeader()) {
     DeclareCteScanIterator(builder);
+    child_translator_->Produce(builder);
+  } else {
+    SetReadOids(builder);
+    DeclareReadTVI(builder);
+    DoTableScan(builder);
   }
-  child_translator_->Produce(builder);
+
+  if(!op_->IsLeader()) {
+    // Close iterator
+    GenReadTVIClose(builder);
+  }
 }
 
 parser::ConstantValueExpression DummyCVE() {
@@ -21,9 +30,11 @@ parser::ConstantValueExpression DummyCVE() {
 CteScanTranslator::CteScanTranslator(const terrier::planner::CteScanPlanNode *op, CodeGen *codegen):
   OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::CTE_SCAN),
   op_(op),
-  cte_scan_iterator_(codegen->NewIdentifier("cte_scan_iterator")),
   col_types_(codegen->NewIdentifier("col_types")),
-  insert_pr_(codegen->NewIdentifier("insert_pr")) {
+  insert_pr_(codegen->NewIdentifier("insert_pr")),
+  read_col_oids_(codegen_->NewIdentifier("read_col_oids")),
+  read_tvi_(codegen_->NewIdentifier("temp_table_iterator")),
+  read_pci_(codegen_->NewIdentifier("read_pci")) {
 
   // ToDo(Gautam,Preetansh): Send the complete schema in the plan node.
   auto & all_columns = op_->GetOutputSchema()->GetColumns();
@@ -60,7 +71,6 @@ CteScanTranslator::CteScanTranslator(const terrier::planner::CteScanPlanNode *op
   auto offsets = storage::StorageUtil::ComputeBaseAttributeOffsets(attr_sizes, storage::NUM_RESERVED_COLUMNS);
 
   storage::ColumnMap col_oid_to_id;
-  // Build the map from Schema columns to underlying columns
   for (const auto &column : schema.GetColumns()) {
     switch (column.AttrSize()) {
       case storage::VARLEN_COLUMN:
@@ -115,9 +125,9 @@ void CteScanTranslator::DeclareCteScanIterator(FunctionBuilder *builder) {
   SetColumnTypes(builder);
   // var cte_scan_iterator : CteScanIterator
   auto cte_scan_iterator_type = codegen_->BuiltinType(ast::BuiltinType::Kind::CteScanIterator);
-  builder->Append(codegen_->DeclareVariable(cte_scan_iterator_, cte_scan_iterator_type, nullptr));
+  builder->Append(codegen_->DeclareVariable(codegen_->GetCteScanIdentifier(), cte_scan_iterator_type, nullptr));
   // Call @cteScanIteratorInit
-  ast::Expr *cte_scan_iterator_setup = codegen_->CteScanIteratorInit(cte_scan_iterator_, col_types_);
+  ast::Expr *cte_scan_iterator_setup = codegen_->CteScanIteratorInit(codegen_->GetCteScanIdentifier(), col_types_);
   builder->Append(codegen_->MakeStmt(cte_scan_iterator_setup));
 }
 void CteScanTranslator::SetColumnTypes(FunctionBuilder *builder) {
@@ -142,14 +152,14 @@ void CteScanTranslator::DeclareInsertPR(terrier::execution::compiler::FunctionBu
 
 void CteScanTranslator::GetInsertPR(terrier::execution::compiler::FunctionBuilder *builder) {
   // var insert_pr = cteScanGetInsertTempTablePR(...)
-  auto get_pr_call = codegen_->OneArgCall(ast::Builtin::CteScanGetInsertTempTablePR, cte_scan_iterator_, true);
+  auto get_pr_call = codegen_->OneArgCall(ast::Builtin::CteScanGetInsertTempTablePR, codegen_->GetCteScanIdentifier(), true);
   builder->Append(codegen_->Assign(codegen_->MakeExpr(insert_pr_), get_pr_call));
 }
 
 void CteScanTranslator::GenTableInsert(FunctionBuilder *builder) {
   // var insert_slot = @cteScanTableInsert(&inserter_)
   auto insert_slot = codegen_->NewIdentifier("insert_slot");
-  auto insert_call = codegen_->OneArgCall(ast::Builtin::CteScanTableInsert, cte_scan_iterator_, true);
+  auto insert_call = codegen_->OneArgCall(ast::Builtin::CteScanTableInsert, codegen_->GetCteScanIdentifier(), true);
   builder->Append(codegen_->DeclareVariable(insert_slot, nullptr, insert_call));
 }
 
@@ -169,6 +179,81 @@ void CteScanTranslator::FillPRFromChild(terrier::execution::compiler::FunctionBu
     builder->Append(codegen_->MakeStmt(pr_set_call));
   }
 }
+void CteScanTranslator::SetReadOids(FunctionBuilder *builder) {
 
+  // Declare: var col_oids: [num_cols]uint32
+  ast::Expr *arr_type = codegen_->ArrayType(col_oids_.size(), ast::BuiltinType::Kind::Uint32);
+  builder->Append(codegen_->DeclareVariable(read_col_oids_, arr_type, nullptr));
+
+  // For each oid, set col_oids[i] = col_oid
+  for (uint16_t i = 0; i < col_oids_.size(); i++) {
+    ast::Expr *lhs = codegen_->ArrayAccess(read_col_oids_, i);
+    ast::Expr *rhs = codegen_->IntLiteral(!col_oids_[i]);
+    builder->Append(codegen_->Assign(lhs, rhs));
+  }
+}
+void CteScanTranslator::DeclareReadTVI(FunctionBuilder *builder) {
+  // var tvi: TableVectorIterator
+  ast::Expr *iter_type = codegen_->BuiltinType(ast::BuiltinType::Kind::TableVectorIterator);
+  builder->Append(codegen_->DeclareVariable(read_tvi_, iter_type, nullptr));
+
+  // Call @tableIterInit(&tvi, execCtx, table_oid, col_oids)
+  ast::Expr *init_call = codegen_->TempTableIterInit(read_tvi_, codegen_->GetCteScanIdentifier(), read_col_oids_);
+  builder->Append(codegen_->MakeStmt(init_call));
+}
+void CteScanTranslator::GenReadTVIClose(FunctionBuilder *builder) {
+  // Close iterator
+  ast::Expr *close_call = codegen_->OneArgCall(ast::Builtin::TableIterClose, read_tvi_, true);
+  builder->Append(codegen_->MakeStmt(close_call));
+}
+void CteScanTranslator::DoTableScan(FunctionBuilder *builder) {
+  // Start looping over the table
+  GenTVILoop(builder);
+  DeclarePCI(builder);
+  GenPCILoop(builder);
+  // Declare Slot.
+  DeclareSlot(builder);
+  // Let parent consume.
+  parent_translator_->Consume(builder);
+
+  // Close PCI loop
+  builder->FinishBlockStmt();
+  // Close TVI loop
+  builder->FinishBlockStmt();
+}
+
+
+// Generate for(@tableIterAdvance(&tvi)) {...}
+void CteScanTranslator::GenTVILoop(FunctionBuilder *builder) {
+  // The advance call
+  ast::Expr *advance_call = codegen_->OneArgCall(ast::Builtin::TableIterAdvance, read_tvi_, true);
+  builder->StartForStmt(nullptr, advance_call, nullptr);
+}
+
+void CteScanTranslator::DeclarePCI(FunctionBuilder *builder) {
+  // Assign var pci = @tableIterGetPCI(&tvi)
+  ast::Expr *get_pci_call = codegen_->OneArgCall(ast::Builtin::TableIterGetPCI, read_tvi_, true);
+  builder->Append(codegen_->DeclareVariable(read_pci_, nullptr, get_pci_call));
+}
+
+void CteScanTranslator::DeclareSlot(FunctionBuilder *builder) {
+  // Get var slot = @pciGetSlot(pci)
+  auto read_slot = codegen_->NewIdentifier("read_slot");
+  ast::Expr *get_slot_call = codegen_->OneArgCall(ast::Builtin::PCIGetSlot, read_pci_, false);
+  builder->Append(codegen_->DeclareVariable(read_slot, nullptr, get_slot_call));
+}
+
+void CteScanTranslator::GenPCILoop(FunctionBuilder *builder) {
+  // Generate for(; @pciHasNext(pci); @pciAdvance(pci)) {...} or the Filtered version
+  // The HasNext call
+  ast::Builtin has_next_fn = ast::Builtin::PCIHasNext;
+  ast::Expr *has_next_call = codegen_->OneArgCall(has_next_fn, read_pci_, false);
+  // The Advance call
+  ast::Builtin advance_fn = ast::Builtin::PCIAdvance;
+  ast::Expr *advance_call = codegen_->OneArgCall(advance_fn, read_pci_, false);
+  ast::Stmt *loop_advance = codegen_->MakeStmt(advance_call);
+  // Make the for loop.
+  builder->StartForStmt(nullptr, has_next_call, loop_advance);
+}
 
 }  // namespace terrier::execution::compiler
