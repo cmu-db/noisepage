@@ -5,7 +5,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "common/execution_thread_pool.h"
 #include "common/managed_pointer.h"
 #include "common/performance_counter.h"
 #include "execution/execution_util.h"
@@ -175,7 +174,7 @@ class DataTable {
     /**
      * @warning MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
      */
-    NUMAIterator(const DataTable *table, numa_region_t region_number) : table_(table) {
+    NUMAIterator(const DataTable *table, common::numa_region_t region_number) : table_(table) {
       auto numa_index = static_cast<int16_t>(region_number);
       set_ = &table_->regions_[numa_index];
       block_ = set_->cbegin();
@@ -252,14 +251,13 @@ class DataTable {
    * @param thread_pool thread pool to be used for the scan.
    */
   void NUMAScan(common::ManagedPointer<transaction::TransactionContext> txn,
-                std::vector<ProjectedColumns *> *out_buffers, ProjectedColumns *const result_buffer,  // NOLINT
-                common::ExecutionThreadPool *thread_pool = nullptr);                                  // NOLINT
+                std::vector<ProjectedColumns *> *out_buffers, ProjectedColumns *const result_buffer);                                  // NOLINT
 
   /**
    * @return the first tuple slot contained in the data table
    */
   SlotIterator begin() const {  // NOLINT for STL name compability
-    common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+    tbb::spin_mutex::scoped_lock l(blocks_latch_);
     return {this, blocks_.begin(), 0};
   }
 
@@ -275,7 +273,7 @@ class DataTable {
   /**
    * update the vector of numa regions passed in to match those in the map
    */
-  void GetNUMARegions(std::vector<numa_region_t> *regions);
+  void GetNUMARegions(std::vector<common::numa_region_t> *regions);
 
   /**
    * Returns first last tuple slot contained in the data table for specified NUMA region index. Note that this is not an
@@ -285,7 +283,7 @@ class DataTable {
    *
    * @return one past the last tuple slot contained in the data table.
    */
-  NUMAIterator begin(numa_region_t index) const;  // NOLINT for STL name compability
+  NUMAIterator begin(common::numa_region_t index) const;  // NOLINT for STL name compability
 
   /**
    * Returns first last tuple slot contained in the data table for specified NUMA region index. Note that this is not an
@@ -295,7 +293,7 @@ class DataTable {
    *
    * @return one past the last tuple slot contained in the data table.
    */
-  NUMAIterator end(numa_region_t index) const;  // NOLINT for STL name compability
+  NUMAIterator end(common::numa_region_t index) const;  // NOLINT for STL name compability
 
   /**
    * Update the tuple according to the redo buffer given, and update the version chain to link to an
@@ -374,9 +372,9 @@ class DataTable {
   // might be on it
   std::list<RawBlock *> blocks_;
   // latch used to protect block list
-  mutable common::SpinLatch blocks_latch_;
+  mutable tbb::spin_mutex blocks_latch_;
   // latch used to protect insertion_head_
-  mutable common::SpinLatch header_latch_;
+  mutable tbb::spin_mutex header_latch_;
   std::vector<tbb::concurrent_unordered_set<RawBlock *>> regions_;
   std::list<RawBlock *>::iterator insertion_head_;
   // Check if we need to advance the insertion_head_

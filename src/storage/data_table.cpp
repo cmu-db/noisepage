@@ -27,7 +27,7 @@ DataTable::DataTable(const common::ManagedPointer<BlockStore> store, const Block
 }
 
 DataTable::~DataTable() {
-  common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+  tbb::spin_mutex::scoped_lock l(blocks_latch_);
   for (RawBlock *block : blocks_) {
     StorageUtil::DeallocateVarlens(block, accessor_);
     for (col_id_t i : accessor_.GetBlockLayout().Varlens())
@@ -62,9 +62,8 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
 }
 
 void DataTable::NUMAScan(common::ManagedPointer<transaction::TransactionContext> txn,
-                         std::vector<ProjectedColumns *> *out_buffers, ProjectedColumns *const result_buffer,
-                         common::ExecutionThreadPool *thread_pool) {
-  std::vector<numa_region_t> numa_regions;
+                         std::vector<ProjectedColumns *> *out_buffers, ProjectedColumns *const result_buffer) {
+  std::vector<common::numa_region_t> numa_regions;
   GetNUMARegions(&numa_regions);
 
   // TODO(emmanuel) add additional buffers to the array so that the assert below is unnecessary
@@ -74,7 +73,7 @@ void DataTable::NUMAScan(common::ManagedPointer<transaction::TransactionContext>
   for (uint32_t i = 0; i < numa_regions.size(); i++) {
     // Lambda function to pass into thread pool
     ProjectedColumns *out_buffer = (*out_buffers)[i];
-    numa_region_t region = numa_regions[i];
+    common::numa_region_t region = numa_regions[i];
     auto lambda = [&, out_buffer, region] {
       uint32_t filled = 0;
 
@@ -90,13 +89,8 @@ void DataTable::NUMAScan(common::ManagedPointer<transaction::TransactionContext>
       out_buffer->SetNumTuples(filled);
     };
 
-    if (thread_pool == nullptr) {
-      lambda();
-      continue;
-    }
-    std::promise<void> p;
-    thread_pool->SubmitTask(&p, lambda, region);
-    p.get_future().get();
+    lambda();
+    continue;
   }
 
   uint32_t result_index = 0;
@@ -112,7 +106,7 @@ void DataTable::NUMAScan(common::ManagedPointer<transaction::TransactionContext>
 DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
   // TODO(Lin): We need to temporarily comment out this latch for the concurrent TPCH experiments. Should be replaced
   //  with a real solution
-  common::SpinLatch::ScopedSpinLatch guard(&table_->blocks_latch_);
+  tbb::spin_mutex::scoped_lock l(table_->blocks_latch_);
   // Jump to the next block if already the last slot in the block.
   if (current_slot_.GetOffset() == table_->accessor_.GetBlockLayout().NumSlots() - 1) {
     ++block_;
@@ -127,7 +121,7 @@ DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
 DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compability
   // TODO(Lin): We need to temporarily comment out this latch for the concurrent TPCH experiments. Should be replaced
   //  with a real solution
-  common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+  tbb::spin_mutex::scoped_lock l(blocks_latch_);
   // TODO(Tianyu): Need to look in detail at how this interacts with compaction when that gets in.
 
   // The end iterator could either point to an unfilled slot in a block, or point to nothing if every block in the
@@ -142,15 +136,15 @@ DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compabi
   return {this, last_block, insert_head};
 }
 
-void DataTable::GetNUMARegions(std::vector<numa_region_t> *regions) {
+void DataTable::GetNUMARegions(std::vector<common::numa_region_t> *regions) {
   for (int16_t i = 0; i < static_cast<int16_t>(regions_.size()); i++) {
-    regions->emplace_back(static_cast<numa_region_t>(i));
+    regions->emplace_back(static_cast<common::numa_region_t>(i));
   }
 }
 
-DataTable::NUMAIterator DataTable::begin(numa_region_t index) const { return {this, index}; }  // NOLINT
+DataTable::NUMAIterator DataTable::begin(common::numa_region_t index) const { return {this, index}; }  // NOLINT
 
-DataTable::NUMAIterator DataTable::end(numa_region_t index) const { return {}; }  // NOLINT
+DataTable::NUMAIterator DataTable::end(common::numa_region_t index) const { return {}; }  // NOLINT
 
 DataTable::NUMAIterator &DataTable::NUMAIterator::operator++() {
   // Jump to the next block if already the last slot in the block.
@@ -211,7 +205,7 @@ bool DataTable::Update(const common::ManagedPointer<transaction::TransactionCont
 
 void DataTable::CheckMoveHead(std::list<RawBlock *>::iterator block) {
   // Assume block is full
-  common::SpinLatch::ScopedSpinLatch guard_head(&header_latch_);
+  tbb::spin_mutex::scoped_lock l(header_latch_);
   if (block == insertion_head_) {
     // If the header block is full, move the header to point to the next block
     insertion_head_++;
@@ -221,7 +215,7 @@ void DataTable::CheckMoveHead(std::list<RawBlock *>::iterator block) {
   if (insertion_head_ == blocks_.end()) {
     RawBlock *new_block = NewBlock();
     // take latch
-    common::SpinLatch::ScopedSpinLatch guard_block(&blocks_latch_);
+    tbb::spin_mutex::scoped_lock guard_l(blocks_latch_);
     // insert block
     blocks_.push_back(new_block);
     // set insertion header to --end()
@@ -253,7 +247,7 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
       // No need to flip the busy status bit
       accessor_.Allocate(new_block, &result);
       // take latch
-      common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+      tbb::spin_mutex::scoped_lock l(blocks_latch_);
       // insert block
       blocks_.push_back(new_block);
       block = --blocks_.end();
@@ -462,7 +456,7 @@ RawBlock *DataTable::NewBlock() {
   RawBlock *new_block = block_store_->Get();
   accessor_.InitializeRawBlock(this, new_block, layout_version_);
   data_table_counter_.IncrementNumNewBlock(1);
-  regions_[new_block->numa_region_ == UNSUPPORTED_NUMA_REGION ? 0 : static_cast<int16_t>(new_block->numa_region_)]
+  regions_[new_block->numa_region_ == common::UNSUPPORTED_NUMA_REGION ? 0 : static_cast<int16_t>(new_block->numa_region_)]
       .insert(new_block);
   return new_block;
 }

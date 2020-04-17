@@ -8,9 +8,9 @@
 #include "common/dedicated_thread_task.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
-#include "common/spin_latch.h"
 
 #include "metrics/metrics_manager.h"
+#include <tbb/spin_mutex.h>
 
 namespace terrier::common {
 
@@ -46,7 +46,7 @@ class DedicatedThreadRegistry {
    * @warning This method does give the owners the opportunity to clean up their task
    */
   void TearDown() {
-    common::SpinLatch::ScopedSpinLatch guard(&table_latch_);
+    tbb::spin_mutex::scoped_lock l(table_latch_);
     for (auto &entry : thread_owners_table_) {
       for (auto *task : entry.second) {
         task->Terminate();
@@ -73,8 +73,8 @@ class DedicatedThreadRegistry {
    * yet
    */
   template <class T, class... Targs>
-  common::ManagedPointer<T> RegisterDedicatedThread(DedicatedThreadOwner *requester, Targs... args) {
-    common::SpinLatch::ScopedSpinLatch guard(&table_latch_);
+    common::ManagedPointer<T> RegisterDedicatedThread(DedicatedThreadOwner *requester, Targs... args) {
+    tbb::spin_mutex::scoped_lock l(table_latch_);
     auto *task = new T(args...);  // Create task
     thread_owners_table_[requester].insert(task);
     threads_table_.emplace(task, std::thread([=] {
@@ -99,7 +99,7 @@ class DedicatedThreadRegistry {
     DedicatedThreadTask *task_ptr;
     std::thread *task_thread;
     {
-      common::SpinLatch::ScopedSpinLatch guard(&table_latch_);
+      tbb::spin_mutex::scoped_lock l(table_latch_);
       // Exposing the raw pointer like this is okay because we own the underlying raw pointer
       auto search = threads_table_.find(task.operator->());
       TERRIER_ASSERT(search != threads_table_.end(), "Task is not registered");
@@ -116,7 +116,7 @@ class DedicatedThreadRegistry {
 
     // Clear Metadata
     {
-      common::SpinLatch::ScopedSpinLatch guard(&table_latch_);
+      tbb::spin_mutex::scoped_lock l(table_latch_);
       requester->RemoveThread(task.operator->());
       threads_table_.erase(task_ptr);
       thread_owners_table_[requester].erase(task_ptr);
@@ -133,7 +133,7 @@ class DedicatedThreadRegistry {
 
  private:
   // Latch to protect internal tables
-  common::SpinLatch table_latch_;
+  tbb::spin_mutex table_latch_;
   // Using raw pointer is okay since we never dereference said pointer,
   // but only use it as a lookup key
   std::unordered_map<DedicatedThreadTask *, std::thread> threads_table_;

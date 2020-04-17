@@ -3,7 +3,7 @@
 #include <atomic>
 #include <memory>
 
-#include "common/spin_latch.h"
+#include <tbb/spin_mutex.h>
 #include "metrics/abstract_raw_data.h"
 
 namespace terrier::metrics {
@@ -40,7 +40,7 @@ class RawDataWrapper {
   /**
    * Unblock aggregator
    */
-  ~RawDataWrapper() { latch_->Unlock(); }
+  ~RawDataWrapper() { latch_->unlock(); }
 
   /**
    * Don't allow RawDataWrapper to be copied, only allow change of ownership (move)
@@ -58,9 +58,9 @@ class RawDataWrapper {
    * @param ptr the pointer it wraps around
    * @param latch the boolean variable it uses to signal its lifetime
    */
-  RawDataWrapper(DataType *const ptr, common::SpinLatch *const latch) : ptr_(ptr), latch_(latch) {}
+  RawDataWrapper(DataType *const ptr, tbb::spin_mutex *const latch) : ptr_(ptr), latch_(latch) {}
   DataType *const ptr_;
-  common::SpinLatch *const latch_;
+  tbb::spin_mutex *const latch_;
 };
 
 /**
@@ -115,7 +115,7 @@ class AbstractMetric {
     // We will need to wait for last writer to finish before it's safe
     // to start reading the content. It is okay to block since this
     // method should only be called from the aggregator thread.
-    common::SpinLatch::ScopedSpinLatch guard(&latch_);
+    tbb::spin_mutex::scoped_lock guard(latch_);
     return std::unique_ptr<AbstractRawData>(old_data);
   }
 
@@ -131,7 +131,7 @@ class AbstractMetric {
     // that the aggregator would always be blocked when it tries to swap out if
     // there is a reader. At most one instance of this should be live at any
     // given time.
-    latch_.Lock();
+    latch_.lock();
     return {raw_data_.load(), &latch_};
   }
 
@@ -143,6 +143,6 @@ class AbstractMetric {
   /**
    * Indicate whether it is safe to read the raw data, similar to a latch
    */
-  common::SpinLatch latch_;
+  tbb::spin_mutex latch_;
 };
 }  // namespace terrier::metrics

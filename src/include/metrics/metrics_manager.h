@@ -5,8 +5,9 @@
 #include <unordered_map>
 #include <vector>
 
+#include <tbb/spin_mutex.h>
+
 #include "common/managed_pointer.h"
-#include "common/spin_latch.h"
 #include "common/thread_context.h"
 #include "metrics/abstract_raw_data.h"
 #include "metrics/metrics_store.h"
@@ -66,7 +67,7 @@ class MetricsManager {
    * @param sample_interval the interval between recording two metrics for the component. 0 means recording every metric
    */
   void EnableMetric(const MetricsComponent component, uint32_t sample_interval) {
-    common::SpinLatch::ScopedSpinLatch guard(&latch_);
+    tbb::spin_mutex::scoped_lock guard(latch_);
     TERRIER_ASSERT(!ComponentEnabled(component), "Metric is already enabled.");
 
     ResetMetric(component);
@@ -79,7 +80,7 @@ class MetricsManager {
    * @param component to be disabled
    */
   void DisableMetric(const MetricsComponent component) {
-    common::SpinLatch::ScopedSpinLatch guard(&latch_);
+    tbb::spin_mutex::scoped_lock guard(latch_);
     TERRIER_ASSERT(ComponentEnabled(component), "Metric is already disabled.");
     enabled_metrics_.set(static_cast<uint8_t>(component), false);
     aggregated_metrics_[static_cast<uint8_t>(component)].reset(nullptr);
@@ -88,7 +89,7 @@ class MetricsManager {
  private:
   void ResetMetric(MetricsComponent component) const;
 
-  mutable common::SpinLatch latch_;
+  mutable tbb::spin_mutex latch_;
   std::unordered_map<std::thread::id, std::unique_ptr<MetricsStore>> stores_map_;
 
   std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> aggregated_metrics_;

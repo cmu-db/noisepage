@@ -8,6 +8,7 @@
 #undef TRUE
 #undef FALSE
 #include "common/macros.h"
+#include "execution_thread_pool.h"
 
 namespace terrier::common {
 
@@ -24,7 +25,13 @@ class SpinLatch {
    * If another thread has already locked the spin latch, a call to lock will
    * block execution until the lock is acquired.
    */
-  void Lock() { latch_.lock(); }
+  void Lock(common::ExecutionThreadPool::PoolContext *ctx = nullptr) {
+    if (ctx != nullptr) {
+      while(!TryLock()) ctx->YieldToPool();
+      return;
+    }
+    latch_.lock();
+  }
 
   /**
    * @brief Tries to lock the spin latch.
