@@ -7,7 +7,9 @@
 namespace terrier::execution::compiler {
 void CteScanTranslator::Produce(FunctionBuilder *builder) {
 
-  DeclareCteScanIterator(builder);
+  if(op_->IsLeader()) {
+    DeclareCteScanIterator(builder);
+  }
   child_translator_->Produce(builder);
 }
 
@@ -94,16 +96,17 @@ CteScanTranslator::CteScanTranslator(const terrier::planner::CteScanPlanNode *op
 
 void CteScanTranslator::Consume(FunctionBuilder *builder) {
 
-  // Declare & Get table PR
-  DeclareInsertPR(builder);
-  GetInsertPR(builder);
+  if(op_->IsLeader()) {
+    // Declare & Get table PR
+    DeclareInsertPR(builder);
+    GetInsertPR(builder);
 
-  // Set the values to insert
-  FillPRFromChild(builder);
+    // Set the values to insert
+    FillPRFromChild(builder);
 
-  // Insert into table
-  GenTableInsert(builder);
-
+    // Insert into table
+    GenTableInsert(builder);
+  }
   parent_translator_->Consume(builder);
 }
 void CteScanTranslator::DeclareCteScanIterator(FunctionBuilder *builder) {

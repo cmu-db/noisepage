@@ -16,7 +16,7 @@ namespace terrier::planner {
 class CteScanPlanNode : public AbstractPlanNode {
  public:
   /**
-   * Builder for limit plan node
+   * Builder for cte scan plan node
    */
   class Builder : public AbstractPlanNode::Builder<Builder> {
    public:
@@ -28,15 +28,26 @@ class CteScanPlanNode : public AbstractPlanNode {
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
+     * @param is_leader bool indicating leader or not
+     * @return builder object
+     */
+    Builder &SetLeader(bool is_leader) {
+      is_leader_ = is_leader;
+      return *this;
+    }
+
+    /**
      * Build the limit plan node
      * @return plan node
      */
     std::unique_ptr<CteScanPlanNode> Build() {
       return std::unique_ptr<CteScanPlanNode>(
-          new CteScanPlanNode(std::move(children_), std::move(output_schema_)));
+          new CteScanPlanNode(std::move(children_), std::move(output_schema_), is_leader_));
     }
 
    protected:
+   private:
+    bool is_leader_;
   };
 
  private:
@@ -44,8 +55,9 @@ class CteScanPlanNode : public AbstractPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    */
-  CteScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)){}
+  CteScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
+      bool is_leader)
+      : AbstractPlanNode(std::move(children), std::move(output_schema)), is_leader_(is_leader){}
 
  public:
   /**
@@ -69,8 +81,13 @@ class CteScanPlanNode : public AbstractPlanNode {
 
   void Accept(common::ManagedPointer<PlanVisitor> v) const override { v->Visit(this); }
 
+  bool IsLeader() const {return  is_leader_;}
+
   nlohmann::json ToJson() const override;
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
+
+ private:
+  bool is_leader_;
 };
 
 DEFINE_JSON_DECLARATIONS(CteScanPlanNode);
