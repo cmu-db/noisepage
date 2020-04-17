@@ -69,68 +69,6 @@ class CompilerTest : public SqlBasedTest {
 };
 
 // NOLINTNEXTLINE
-// TEST_F(CompilerTest, SimplerSeqScanTest) {
-//  // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1;
-//  auto accessor = MakeAccessor();
-//  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
-//  auto table_schema = accessor->GetSchema(table_oid);
-//  ExpressionMaker expr_maker;
-//  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
-//  OutputSchemaHelper seq_scan_out{0, &expr_maker};
-//  {
-//    // OIDs
-//    auto cola_oid = table_schema.GetColumn("colA").Oid();
-//    auto colb_oid = table_schema.GetColumn("colB").Oid();
-//    // Get Table columns
-//    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-//    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
-//    // Make New Column
-//    auto col3 = expr_maker.OpMul(col1, col2);
-//    auto col4 = expr_maker.ComparisonGe(col1, expr_maker.OpMul(expr_maker.Constant(100), col2));
-//    seq_scan_out.AddOutput("col1", common::ManagedPointer(col1));
-//    seq_scan_out.AddOutput("col2", common::ManagedPointer(col2));
-//    seq_scan_out.AddOutput("col3", common::ManagedPointer(col3));
-//    seq_scan_out.AddOutput("col4", common::ManagedPointer(col4));
-//    auto schema = seq_scan_out.MakeSchema();
-//
-//    // Build
-//    planner::SeqScanPlanNode::Builder builder;
-//    seq_scan = builder.SetOutputSchema(std::move(schema))
-//        .SetColumnOids({cola_oid, colb_oid})
-//        .SetIsForUpdateFlag(false)
-//        .SetNamespaceOid(NSOid())
-//        .SetTableOid(table_oid)
-//        .Build();
-//  }
-//  // Make the output checkers
-//  MultiChecker multi_checker{std::vector<OutputChecker *>{}};
-//
-//  // Create the execution context
-//  OutputStore store{&multi_checker, seq_scan->GetOutputSchema().Get()};
-//  exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
-//  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-//  auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-//
-//  // Run & Check
-//  auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
-//  executable.Run(common::ManagedPointer(exec_ctx), MODE);
-//  multi_checker.CheckCorrectness();
-//
-//  // Pipeline Units
-//  auto pipeline = executable.GetPipelineOperatingUnits();
-////  EXPECT_EQ(pipeline->units_.size(), 1);
-//
-//  auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
-//  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{
-//      brain::ExecutionOperatingUnitType::SEQ_SCAN,
-//      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
-//      brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY,
-//  };
-//
-//  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
-//}
-
-// NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleSeqScanTest) {
   // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1 WHERE col1 < 500 AND col2 >= 3;
   auto accessor = MakeAccessor();

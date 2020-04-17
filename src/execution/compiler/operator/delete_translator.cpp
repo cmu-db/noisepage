@@ -7,8 +7,8 @@
 #include "execution/compiler/translator_factory.h"
 
 namespace terrier::execution::compiler {
-DeleteTranslator::DeleteTranslator(const terrier::planner::DeletePlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::DELETE),
+DeleteTranslator::DeleteTranslator(const terrier::planner::DeletePlanNode *op, CodeGen *codegen, Pipeline *pipeline)
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::DELETE, pipeline),
       op_(op),
       deleter_(codegen->NewIdentifier("deleter")),
       col_oids_(codegen->NewIdentifier("col_oids")),

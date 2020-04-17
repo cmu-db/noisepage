@@ -21,31 +21,33 @@ class TranslatorFactory {
    * Create a regular expression translator
    */
   static std::unique_ptr<OperatorTranslator> CreateRegularTranslator(const planner::AbstractPlanNode *op,
-                                                                     CodeGen *codegen);
+                                                                     CodeGen *codegen, Pipeline *pipeline);
 
   /**
    * Create a bottom expression translator
    */
   static std::unique_ptr<OperatorTranslator> CreateBottomTranslator(const planner::AbstractPlanNode *op,
-                                                                    CodeGen *codegen);
+                                                                    CodeGen *codegen, Pipeline *pipeline);
 
   /**
    * Create a top expression translator
    */
   static std::unique_ptr<OperatorTranslator> CreateTopTranslator(const planner::AbstractPlanNode *op,
-                                                                 OperatorTranslator *bottom, CodeGen *codegen);
+                                                                 OperatorTranslator *bottom, CodeGen *codegen,
+                                                                 Pipeline *pipeline);
 
   /**
    * Create a left expression translator
    */
   static std::unique_ptr<OperatorTranslator> CreateLeftTranslator(const planner::AbstractPlanNode *op,
-                                                                  CodeGen *codegen);
+                                                                  CodeGen *codegen, Pipeline *pipeline);
 
   /**
    * Create a right expression translator
    */
   static std::unique_ptr<OperatorTranslator> CreateRightTranslator(const planner::AbstractPlanNode *op,
-                                                                   OperatorTranslator *left, CodeGen *codegen);
+                                                                   OperatorTranslator *left, CodeGen *codegen,
+                                                                   Pipeline *pipeline);
 
   /**
    * Creates an expression translator

@@ -15,8 +15,9 @@ class DeleteTranslator : public OperatorTranslator {
    * Constructor
    * @param op The plan node
    * @param codegen The code generator
+   * @param pipeline The pipeline this translator is a part of
    */
-  DeleteTranslator(const terrier::planner::DeletePlanNode *op, CodeGen *codegen);
+  DeleteTranslator(const terrier::planner::DeletePlanNode *op, CodeGen *codegen, Pipeline *pipeline);
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}

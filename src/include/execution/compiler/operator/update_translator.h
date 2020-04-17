@@ -16,8 +16,9 @@ class UpdateTranslator : public OperatorTranslator {
    * Constructor
    * @param op The plan node
    * @param codegen The code generator
+   * @param pipeline The pipeline this translator is a part of
    */
-  UpdateTranslator(const terrier::planner::UpdatePlanNode *op, CodeGen *codegen);
+  UpdateTranslator(const terrier::planner::UpdatePlanNode *op, CodeGen *codegen, Pipeline *pipeline);
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}

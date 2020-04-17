@@ -3,8 +3,10 @@
 #include <vector>
 
 namespace terrier::execution::compiler {
-OutputTranslator::OutputTranslator(execution::compiler::CodeGen *codegen)
-    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::OUTPUT),
+bool OutputTranslator::IsParallelizable() { return true; }
+
+OutputTranslator::OutputTranslator(execution::compiler::CodeGen *codegen, Pipeline *pipeline)
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::OUTPUT, pipeline),
       output_struct_(codegen->NewIdentifier("Output")),
       output_var_(codegen->NewIdentifier("out")) {}
 

@@ -31,33 +31,33 @@
 namespace terrier::execution::compiler {
 
 std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateRegularTranslator(
-    const terrier::planner::AbstractPlanNode *op, CodeGen *codegen) {
+    const terrier::planner::AbstractPlanNode *op, CodeGen *codegen, Pipeline *pipeline) {
   // TODO(Amadou): Region allocation is causing issues here (memory content changes).
   // We are temporarily using the std allocation to avoid them.
   switch (op->GetPlanNodeType()) {
     case terrier::planner::PlanNodeType::SEQSCAN: {
-      return std::make_unique<SeqScanTranslator>(static_cast<const planner::SeqScanPlanNode *>(op), codegen);
+      return std::make_unique<SeqScanTranslator>(static_cast<const planner::SeqScanPlanNode *>(op), codegen, pipeline);
     }
     case terrier::planner::PlanNodeType::INSERT: {
-      return std::make_unique<InsertTranslator>(static_cast<const planner::InsertPlanNode *>(op), codegen);
+      return std::make_unique<InsertTranslator>(static_cast<const planner::InsertPlanNode *>(op), codegen, pipeline);
     }
     case terrier::planner::PlanNodeType::DELETE: {
-      return std::make_unique<DeleteTranslator>(static_cast<const planner::DeletePlanNode *>(op), codegen);
+      return std::make_unique<DeleteTranslator>(static_cast<const planner::DeletePlanNode *>(op), codegen, pipeline);
     }
     case terrier::planner::PlanNodeType::UPDATE: {
-      return std::make_unique<UpdateTranslator>(static_cast<const planner::UpdatePlanNode *>(op), codegen);
+      return std::make_unique<UpdateTranslator>(static_cast<const planner::UpdatePlanNode *>(op), codegen, pipeline);
     }
     case terrier::planner::PlanNodeType::INDEXNLJOIN: {
-      return std::make_unique<IndexJoinTranslator>(static_cast<const planner::IndexJoinPlanNode *>(op), codegen);
+      return std::make_unique<IndexJoinTranslator>(static_cast<const planner::IndexJoinPlanNode *>(op), codegen, pipeline);
     }
     case terrier::planner::PlanNodeType::INDEXSCAN: {
-      return std::make_unique<IndexScanTranslator>(static_cast<const planner::IndexScanPlanNode *>(op), codegen);
+      return std::make_unique<IndexScanTranslator>(static_cast<const planner::IndexScanPlanNode *>(op), codegen, pipeline);
     }
     case terrier::planner::PlanNodeType::PROJECTION: {
-      return std::make_unique<ProjectionTranslator>(static_cast<const planner::ProjectionPlanNode *>(op), codegen);
+      return std::make_unique<ProjectionTranslator>(static_cast<const planner::ProjectionPlanNode *>(op), codegen, pipeline);
     }
     case terrier::planner::PlanNodeType::LIMIT: {
-      return std::make_unique<LimitTranslator>(static_cast<const planner::LimitPlanNode *>(op), codegen);
+      return std::make_unique<LimitTranslator>(static_cast<const planner::LimitPlanNode *>(op), codegen, pipeline);
     }
     default:
       UNREACHABLE("Unsupported plan nodes");
@@ -65,17 +65,17 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateRegularTranslator(
 }
 
 std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateBottomTranslator(
-    const terrier::planner::AbstractPlanNode *op, CodeGen *codegen) {
+    const terrier::planner::AbstractPlanNode *op, CodeGen *codegen, Pipeline *pipeline) {
   switch (op->GetPlanNodeType()) {
     case terrier::planner::PlanNodeType::AGGREGATE: {
       auto agg_op = static_cast<const planner::AggregatePlanNode *>(op);
       if (agg_op->GetGroupByTerms().empty()) {
-        return std::make_unique<StaticAggregateBottomTranslator>(agg_op, codegen);
+        return std::make_unique<StaticAggregateBottomTranslator>(agg_op, codegen, pipeline);
       }
-      return std::make_unique<AggregateBottomTranslator>(agg_op, codegen);
+      return std::make_unique<AggregateBottomTranslator>(agg_op, codegen, pipeline);
     }
     case terrier::planner::PlanNodeType::ORDERBY:
-      return std::make_unique<SortBottomTranslator>(static_cast<const planner::OrderByPlanNode *>(op), codegen);
+      return std::make_unique<SortBottomTranslator>(static_cast<const planner::OrderByPlanNode *>(op), codegen, pipeline);
     default:
       UNREACHABLE("Not a pipeline boundary!");
   }
@@ -83,44 +83,44 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateBottomTranslator(
 
 std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateTopTranslator(const terrier::planner::AbstractPlanNode *op,
                                                                            OperatorTranslator *bottom,
-                                                                           CodeGen *codegen) {
+                                                                           CodeGen *codegen, Pipeline *pipeline) {
   switch (op->GetPlanNodeType()) {
     case terrier::planner::PlanNodeType::AGGREGATE: {
       auto agg_op = static_cast<const planner::AggregatePlanNode *>(op);
       if (agg_op->GetGroupByTerms().empty()) {
-        return std::make_unique<StaticAggregateTopTranslator>(agg_op, codegen, bottom);
+        return std::make_unique<StaticAggregateTopTranslator>(agg_op, codegen, bottom, pipeline);
       }
-      return std::make_unique<AggregateTopTranslator>(agg_op, codegen, bottom);
+      return std::make_unique<AggregateTopTranslator>(agg_op, codegen, bottom, pipeline);
     }
     case terrier::planner::PlanNodeType::ORDERBY:
-      return std::make_unique<SortTopTranslator>(static_cast<const planner::OrderByPlanNode *>(op), codegen, bottom);
+      return std::make_unique<SortTopTranslator>(static_cast<const planner::OrderByPlanNode *>(op), codegen, bottom, pipeline);
     default:
       UNREACHABLE("Not a pipeline boundary!");
   }
 }
 
 std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateLeftTranslator(
-    const terrier::planner::AbstractPlanNode *op, CodeGen *codegen) {
+    const terrier::planner::AbstractPlanNode *op, CodeGen *codegen, Pipeline *pipeline) {
   switch (op->GetPlanNodeType()) {
     case terrier::planner::PlanNodeType::HASHJOIN:
-      return std::make_unique<HashJoinLeftTranslator>(static_cast<const planner::HashJoinPlanNode *>(op), codegen);
+      return std::make_unique<HashJoinLeftTranslator>(static_cast<const planner::HashJoinPlanNode *>(op), codegen, pipeline);
     case terrier::planner::PlanNodeType::NESTLOOP:
       return std::make_unique<NestedLoopLeftTranslator>(static_cast<const planner::NestedLoopJoinPlanNode *>(op),
-                                                        codegen);
+                                                        codegen, pipeline);
     default:
       UNREACHABLE("Not a pipeline boundary!");
   }
 }
 
 std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateRightTranslator(
-    const terrier::planner::AbstractPlanNode *op, OperatorTranslator *left, CodeGen *codegen) {
+    const terrier::planner::AbstractPlanNode *op, OperatorTranslator *left, CodeGen *codegen, Pipeline *pipeline) {
   switch (op->GetPlanNodeType()) {
     case terrier::planner::PlanNodeType::HASHJOIN:
       return std::make_unique<HashJoinRightTranslator>(static_cast<const planner::HashJoinPlanNode *>(op), codegen,
-                                                       left);
+                                                       left, pipeline);
     case terrier::planner::PlanNodeType::NESTLOOP:
       return std::make_unique<NestedLoopRightTranslator>(static_cast<const planner::NestedLoopJoinPlanNode *>(op),
-                                                         codegen, left);
+                                                         codegen, left, pipeline);
     default:
       UNREACHABLE("Not a pipeline boundary!");
   }

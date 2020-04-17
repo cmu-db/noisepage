@@ -18,8 +18,10 @@ class HashJoinLeftTranslator : public OperatorTranslator {
    * Constructor
    * @param op The plan node
    * @param codegen The code generator
+   * @param pipeline The pipeline this translator is a part of
    */
-  HashJoinLeftTranslator(const terrier::planner::HashJoinPlanNode *op, CodeGen *codegen);
+  HashJoinLeftTranslator(const terrier::planner::HashJoinPlanNode *op,
+                         CodeGen *codegen, Pipeline *pipeline);
 
   // Insert tuples into the hash table
   void Produce(FunctionBuilder *builder) override;
@@ -105,8 +107,11 @@ class HashJoinRightTranslator : public OperatorTranslator {
    * @param op The plan node
    * @param codegen The code generator
    * @param left The corresponding left translator
+   * @param pipeline The pipeline this translator is a part of
    */
-  HashJoinRightTranslator(const terrier::planner::HashJoinPlanNode *op, CodeGen *codegen, OperatorTranslator *left);
+  HashJoinRightTranslator(const terrier::planner::HashJoinPlanNode *op,
+                          CodeGen *codegen, OperatorTranslator *left,
+                          Pipeline *pipeline);
 
   void Produce(FunctionBuilder *builder) override;
   void Abort(FunctionBuilder *builder) override;

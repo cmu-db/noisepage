@@ -18,9 +18,10 @@ class NestedLoopLeftTranslator : public OperatorTranslator {
    * Constructor
    * @param op The plan node
    * @param codegen The code generator
+   * @param pipeline The pipeline this translator is a part of
    */
-  NestedLoopLeftTranslator(const terrier::planner::NestedLoopJoinPlanNode *op, CodeGen *codegen)
-      : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::NLJOIN_LEFT), op_(op) {}
+  NestedLoopLeftTranslator(const terrier::planner::NestedLoopJoinPlanNode *op, CodeGen *codegen, Pipeline *pipeline)
+      : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::NLJOIN_LEFT, pipeline), op_(op) {}
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
@@ -82,10 +83,11 @@ class NestedLoopRightTranslator : public OperatorTranslator {
    * @param op The plan node
    * @param codegen The code generator
    * @param left The corresponding left translator
+   * @param pipeline The pipeline this translator is a part of
    */
   NestedLoopRightTranslator(const terrier::planner::NestedLoopJoinPlanNode *op, CodeGen *codegen,
-                            OperatorTranslator *left)
-      : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::NLJOIN_RIGHT),
+                            OperatorTranslator *left, Pipeline *pipeline)
+      : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::NLJOIN_RIGHT, pipeline),
         op_(op),
         left_(dynamic_cast<NestedLoopLeftTranslator *>(left)) {}
 

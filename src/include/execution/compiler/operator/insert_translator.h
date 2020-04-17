@@ -15,8 +15,9 @@ class InsertTranslator : public OperatorTranslator {
    * Constructor
    * @param op The plan node
    * @param codegen The code generator
+   * @param pipeline The pipeline this translator is a part of
    */
-  InsertTranslator(const terrier::planner::InsertPlanNode *op, CodeGen *codegen);
+  InsertTranslator(const terrier::planner::InsertPlanNode *op, CodeGen *codegen, Pipeline *pipeline);
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}

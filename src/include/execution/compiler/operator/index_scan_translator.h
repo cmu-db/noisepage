@@ -17,8 +17,9 @@ class IndexScanTranslator : public OperatorTranslator {
    * Constructor
    * @param op The plan node
    * @param codegen The code generator
+   * @param pipeline The pipeline this translator is a part of
    */
-  IndexScanTranslator(const terrier::planner::IndexScanPlanNode *op, CodeGen *codegen);
+  IndexScanTranslator(const terrier::planner::IndexScanPlanNode *op, CodeGen *codegen, Pipeline *pipeline);
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
@@ -50,9 +51,9 @@ class IndexScanTranslator : public OperatorTranslator {
     return {&table_pr_, &pr_type_};
   }
 
-  /**
-   * @return The pipeline work function parameters
-   */
+    /**
+     * @return The pipeline work function parameters
+     */
   util::RegionVector<ast::FieldDecl *> GetWorkerParams() override { UNREACHABLE("Not implemented yet"); }
 
   /**

@@ -17,9 +17,10 @@ class LimitTranslator : public OperatorTranslator {
    * Constructor
    * @param op The plan node
    * @param codegen The code generator
+   * @param pipeline The pipeline this translator is a part of
    */
-  LimitTranslator(const terrier::planner::LimitPlanNode *op, CodeGen *codegen)
-      : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::LIMIT),
+  LimitTranslator(const terrier::planner::LimitPlanNode *op, CodeGen *codegen, Pipeline *pipeline)
+      : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::LIMIT, pipeline),
         op_(op),
         num_tuples_(codegen->NewIdentifier("num_tuples")) {}
 

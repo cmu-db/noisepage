@@ -20,8 +20,9 @@ class AggregateBottomTranslator : public OperatorTranslator {
    * Constructor
    * @param op plan node to translate
    * @param codegen code generator
+   * @param pipeline The pipeline this translator is a part of
    */
-  AggregateBottomTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen);
+  AggregateBottomTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen, Pipeline *pipeline);
 
   // Declare the hash tables
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override;
@@ -111,9 +112,11 @@ class AggregateTopTranslator : public OperatorTranslator {
    * @param op plan node
    * @param codegen The code generator
    * @param bottom The corresponding bottom translator
+   * @param pipeline The pipeline this translator is a part of
    */
-  AggregateTopTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen, OperatorTranslator *bottom)
-      : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE),
+  AggregateTopTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen,
+                         OperatorTranslator *bottom, Pipeline *pipeline)
+      : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE, pipeline),
         op_(op),
         bottom_(dynamic_cast<AggregateBottomTranslator *>(bottom)),
         agg_iterator_("agg_iter") {}

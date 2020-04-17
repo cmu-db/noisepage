@@ -94,6 +94,11 @@ class Pipeline {
    */
   const std::vector<std::unique_ptr<OperatorTranslator>> &GetTranslators() const { return pipeline_; }
 
+  /**
+   * @return True if the pipeline is parallel; false otherwise.
+   */
+  bool IsParallel() const { return is_parallelizable_; }
+
  private:
   CodeGen *codegen_;
   std::vector<std::unique_ptr<OperatorTranslator>> pipeline_{};

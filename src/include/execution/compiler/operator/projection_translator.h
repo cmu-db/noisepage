@@ -18,9 +18,10 @@ class ProjectionTranslator : public OperatorTranslator {
    * Constructor
    * @param op The plan node
    * @param codegen The code generator
+   * @param pipeline The pipeline this translator is a part of
    */
-  ProjectionTranslator(const terrier::planner::ProjectionPlanNode *op, CodeGen *codegen)
-      : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::PROJECTION), op_(op) {}
+  ProjectionTranslator(const terrier::planner::ProjectionPlanNode *op, CodeGen *codegen, Pipeline *pipeline)
+      : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::PROJECTION, pipeline), op_(op) {}
 
   // Pass through
   void Produce(FunctionBuilder *builder) override { child_translator_->Produce(builder); }

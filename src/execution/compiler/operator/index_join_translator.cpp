@@ -7,8 +7,8 @@
 
 namespace terrier::execution::compiler {
 
-IndexJoinTranslator::IndexJoinTranslator(const planner::IndexJoinPlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::IDXJOIN),
+IndexJoinTranslator::IndexJoinTranslator(const planner::IndexJoinPlanNode *op, CodeGen *codegen, Pipeline *pipeline)
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::IDXJOIN, pipeline),
       op_(op),
       input_oids_(op_->CollectInputOids()),
       table_schema_(codegen_->Accessor()->GetSchema(op_->GetTableOid())),

@@ -7,8 +7,8 @@
 #include "planner/plannodes/order_by_plan_node.h"
 
 namespace terrier::execution::compiler {
-SortBottomTranslator::SortBottomTranslator(const terrier::planner::OrderByPlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::SORT_BUILD),
+SortBottomTranslator::SortBottomTranslator(const terrier::planner::OrderByPlanNode *op, CodeGen *codegen, Pipeline *pipeline)
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::SORT_BUILD, pipeline),
       op_(op),
       sorter_(codegen_->NewIdentifier("sorter")),
       sorter_row_(codegen_->NewIdentifier("sorter_row")),
@@ -172,8 +172,8 @@ void SortBottomTranslator::GenComparisons(FunctionBuilder *builder) {
 }
 
 SortTopTranslator::SortTopTranslator(const terrier::planner::OrderByPlanNode *op, CodeGen *codegen,
-                                     OperatorTranslator *bottom)
-    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::SORT_ITERATE),
+                                     OperatorTranslator *bottom, Pipeline *pipeline)
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::SORT_ITERATE, pipeline),
       op_(op),
       bottom_(dynamic_cast<SortBottomTranslator *>(bottom)),
       sort_iter_(codegen_->NewIdentifier("sort_iter")),

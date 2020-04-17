@@ -17,7 +17,7 @@ class SeqScanTranslator : public OperatorTranslator {
    * @param op The plan node
    * @param codegen The code generator
    */
-  SeqScanTranslator(const terrier::planner::SeqScanPlanNode *op, CodeGen *codegen);
+  SeqScanTranslator(const terrier::planner::SeqScanPlanNode *op, CodeGen *codegen, Pipeline *pipeline);
 
   void Produce(FunctionBuilder *builder) override;
   void Abort(FunctionBuilder *builder) override;
@@ -51,6 +51,11 @@ class SeqScanTranslator : public OperatorTranslator {
    * @param work_func The worker function that'll be called during the parallel scan.
    */
   void LaunchWork(FunctionBuilder *builder, ast::Identifier work_func) override;
+
+  /**
+   * SeqScan is set to Parallel by default
+   */
+  bool IsParallelizable() override;
 
   // Should not be called here
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {

@@ -16,8 +16,9 @@ class IndexJoinTranslator : public OperatorTranslator {
    * Constructor
    * @param op The plan node
    * @param codegen The code generator
+   * @param pipeline The pipeline this translator is a part of
    */
-  IndexJoinTranslator(const terrier::planner::IndexJoinPlanNode *op, CodeGen *codegen);
+  IndexJoinTranslator(const terrier::planner::IndexJoinPlanNode *op, CodeGen *codegen, Pipeline *pipeline);
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}

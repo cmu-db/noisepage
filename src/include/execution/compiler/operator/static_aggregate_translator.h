@@ -21,8 +21,9 @@ class StaticAggregateBottomTranslator : public OperatorTranslator {
    * Constructor
    * @param op plan node to translate
    * @param codegen code generator
+   * @param pipeline The pipeline this translator is a part of
    */
-  StaticAggregateBottomTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen);
+  StaticAggregateBottomTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen, Pipeline *pipeline);
 
   // Declare aggregates and distinct hash tables.
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override;
@@ -87,10 +88,11 @@ class StaticAggregateTopTranslator : public OperatorTranslator {
    * @param op plan node
    * @param codegen The code generator
    * @param bottom The corresponding bottom translator
+   * @param pipeline The pipeline this translator is a part of
    */
   StaticAggregateTopTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen,
-                               OperatorTranslator *bottom)
-      : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE),
+                               OperatorTranslator *bottom, Pipeline *pipeline)
+      : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE, pipeline),
         op_(op),
         bottom_(static_cast<StaticAggregateBottomTranslator *>(bottom)) {}
 

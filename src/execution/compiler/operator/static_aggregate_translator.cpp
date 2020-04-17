@@ -7,8 +7,8 @@
 
 namespace terrier::execution::compiler {
 StaticAggregateBottomTranslator::StaticAggregateBottomTranslator(const terrier::planner::AggregatePlanNode *op,
-                                                                 CodeGen *codegen)
-    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD), op_(op), helper_(codegen, op) {}
+                                                                 CodeGen *codegen, Pipeline *pipeline)
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, pipeline), op_(op), helper_(codegen, op) {}
 
 void StaticAggregateBottomTranslator::InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) {
   // Static aggregations add their aggregates directly in the state.

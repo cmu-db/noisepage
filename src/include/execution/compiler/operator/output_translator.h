@@ -17,8 +17,9 @@ class OutputTranslator : public OperatorTranslator {
   /**
    * Construction
    * @param codegen The code generator
+   * @param pipeline The pipeline this translator is a part of
    */
-  explicit OutputTranslator(CodeGen *codegen);
+  explicit OutputTranslator(CodeGen *codegen, Pipeline *pipeline);
 
   void Produce(FunctionBuilder *builder) override;
   void Abort(FunctionBuilder *builder) override {}
@@ -51,6 +52,11 @@ class OutputTranslator : public OperatorTranslator {
   void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) override {
     UNREACHABLE("LaunchWork for parallel execution is not implemented yet");
   }
+
+  /**
+   * Output is set to Parallel by default
+   */
+  bool IsParallelizable() override;
 
   // Should never called since this the last layer.
   ast::Expr *GetOutput(uint32_t attr_idx) override { UNREACHABLE("Should not be called on this translator"); }

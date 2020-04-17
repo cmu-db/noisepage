@@ -11,8 +11,8 @@
 
 namespace terrier::execution::compiler {
 
-SeqScanTranslator::SeqScanTranslator(const terrier::planner::SeqScanPlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::SEQ_SCAN),
+SeqScanTranslator::SeqScanTranslator(const terrier::planner::SeqScanPlanNode *op, CodeGen *codegen, Pipeline *pipeline)
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::SEQ_SCAN, pipeline),
       op_(op),
       schema_(codegen->Accessor()->GetSchema(op_->GetTableOid())),
       input_oids_(MakeInputOids(schema_, op_)),
@@ -25,13 +25,15 @@ SeqScanTranslator::SeqScanTranslator(const terrier::planner::SeqScanPlanNode *op
       slot_(codegen->NewIdentifier("slot")),
       pci_type_{codegen->Context()->GetIdentifier("ProjectedColumnsIterator")} {}
 
+bool SeqScanTranslator::IsParallelizable() { return true; }
+
 void SeqScanTranslator::Produce(FunctionBuilder *builder) {
   SetOids(builder);
   // TODO(Ron): Declare the tvi only for serial scan
-  //  const bool declare_local_tvi = !GetPipeline()->IsParallel() || this != GetPipeline()->Root();
-  //  if (declare_local_tvi) {
-//   DeclareTVI(builder);
-  //  }
+  const bool declare_local_tvi = !pipeline_->IsParallel() || this != pipeline_->Root();
+  if (declare_local_tvi) {
+    DeclareTVI(builder);
+  }
 
   // There may be a child translator in nested loop joins.
   if (child_translator_ != nullptr) {
@@ -43,9 +45,9 @@ void SeqScanTranslator::Produce(FunctionBuilder *builder) {
   }
 
   // Close iterator
-  //  if (declare_local_tvi) {
-//   GenTVIClose(builder);
-  //}
+  if (declare_local_tvi) {
+   GenTVIClose(builder);
+  }
 }
 
 void SeqScanTranslator::Abort(FunctionBuilder *builder) {

@@ -7,8 +7,8 @@
 #include "execution/compiler/translator_factory.h"
 
 namespace terrier::execution::compiler {
-UpdateTranslator::UpdateTranslator(const terrier::planner::UpdatePlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::UPDATE),
+UpdateTranslator::UpdateTranslator(const terrier::planner::UpdatePlanNode *op, CodeGen *codegen, Pipeline *pipeline)
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::UPDATE, pipeline),
       op_(op),
       updater_(codegen->NewIdentifier("updater")),
       update_pr_(codegen->NewIdentifier("update_pr")),

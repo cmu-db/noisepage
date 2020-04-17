@@ -8,8 +8,8 @@
 
 namespace terrier::execution::compiler {
 
-IndexScanTranslator::IndexScanTranslator(const planner::IndexScanPlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::IDX_SCAN),
+IndexScanTranslator::IndexScanTranslator(const planner::IndexScanPlanNode *op, CodeGen *codegen, Pipeline *pipeline)
+    : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::IDX_SCAN, pipeline),
       op_(op),
       input_oids_(op_->GetColumnOids()),
       table_schema_(codegen_->Accessor()->GetSchema(op_->GetTableOid())),

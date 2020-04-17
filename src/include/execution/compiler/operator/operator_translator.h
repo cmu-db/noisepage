@@ -8,6 +8,8 @@
 
 namespace terrier::execution::compiler {
 
+class Pipeline;
+
 /**
  * Generic Operator Translator
  * TODO(Amadou): Only a few operations need all of these methods at once (sorting, aggregations, hash joins).
@@ -20,9 +22,10 @@ class OperatorTranslator : public ExpressionEvaluator {
    * Constructor
    * @param codegen The code generator to use
    * @param feature Feature Type
+   * @param pipeline The pipeline this translator is a part of
    */
-  explicit OperatorTranslator(CodeGen *codegen, brain::ExecutionOperatingUnitType feature)
-      : codegen_(codegen), feature_type_(feature) {}
+  explicit OperatorTranslator(CodeGen *codegen, brain::ExecutionOperatingUnitType feature, Pipeline *pipeline)
+      : codegen_(codegen), feature_type_(feature), pipeline_(pipeline) {}
 
   /**
    * Destructor
@@ -214,8 +217,13 @@ class OperatorTranslator : public ExpressionEvaluator {
   bool vectorized_pipeline_{false};
 
   /**
-   * Whether the whole pipeline is produced in parallel mode
+   * Whether the operator is in parallel mode
    */
   bool parallelized_pipeline_{false};
+
+  /**
+   * The pipeline the operator belongs to.
+   */
+  Pipeline *pipeline_;
 };
 }  // namespace terrier::execution::compiler

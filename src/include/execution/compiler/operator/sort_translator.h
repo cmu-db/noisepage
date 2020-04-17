@@ -17,8 +17,9 @@ class SortBottomTranslator : public OperatorTranslator {
    * Constructor
    * @param op The plan node
    * @param codegen The code generator
+   * @param pipeline The pipeline this translator is a part of
    */
-  SortBottomTranslator(const terrier::planner::OrderByPlanNode *op, CodeGen *codegen);
+  SortBottomTranslator(const terrier::planner::OrderByPlanNode *op, CodeGen *codegen, Pipeline *pipeline);
 
   // Declare the Sorter
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override;
@@ -118,8 +119,9 @@ class SortTopTranslator : public OperatorTranslator {
    * @param op The plan node
    * @param codegen The code generator
    * @param bottom The corresponding bottom translator
+   * @param pipeline The pipeline this translator is a part of
    */
-  SortTopTranslator(const terrier::planner::OrderByPlanNode *op, CodeGen *codegen, OperatorTranslator *bottom);
+  SortTopTranslator(const terrier::planner::OrderByPlanNode *op, CodeGen *codegen, OperatorTranslator *bottom, Pipeline *pipeline);
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
