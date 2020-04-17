@@ -94,9 +94,9 @@ def _construct_interval_based_global_model_data(data_list, model_results_path):
         resource_data = resource_data_map[interval_start_time]
         cpu_id = data.cpu_id
         same_core_x = resource_data.x_list[cpu_id - physical_core_num if cpu_id > physical_core_num else cpu_id]
-        memory_idx = data_info.TARGET_CSV_INDEX[Target.MEMORY_B]
         # FIXME: fix the dummy memory value later
-        same_core_x[memory_idx] = 1
+        #memory_idx = data_info.TARGET_CSV_INDEX[Target.MEMORY_B]
+        #same_core_x[memory_idx] = 1
         impact_data_list.append(global_model_data.GlobalImpactData(data, resource_data, same_core_x))
 
     return list(resource_data_map.values()), impact_data_list
@@ -155,11 +155,11 @@ def _get_global_resource_data(start_time, concurrent_data_list, log_path):
     sum_adjusted_x = np.sum(adjusted_x_list, axis=0)
     std_adjusted_x = np.std(adjusted_x_list, axis=0)
 
-    memory_idx = data_info.TARGET_CSV_INDEX[Target.MEMORY_B]
     # FIXME: Using dummy memory value for now. Eventually we need to transfer the memory estimation between pipelines
-    adjusted_y[memory_idx] = 1
-    sum_adjusted_x[memory_idx] = 1
-    std_adjusted_x[memory_idx] = 1
+    #memory_idx = data_info.TARGET_CSV_INDEX[Target.MEMORY_B]
+    #adjusted_y[memory_idx] = 1
+    #sum_adjusted_x[memory_idx] = 1
+    #std_adjusted_x[memory_idx] = 1
 
     ratio_error = abs(adjusted_y - sum_adjusted_x) / (adjusted_y + 1e-6)
 
@@ -204,7 +204,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
     :param model_results_path: file path to log the prediction results
     """
     prediction_path = "{}/grouped_opunit_prediction.csv".format(model_results_path)
-    io_util.create_csv_file(prediction_path, ["Pipeline", "Actual Us", "Predicted Us", "", "Ratio Error"])
+    io_util.create_csv_file(prediction_path, ["Pipeline", "", "Actual", "", "Predicted", "", "Ratio Error"])
 
     # Have to use a prediction cache when having lots of global data...
     prediction_cache = {}
@@ -241,6 +241,6 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
         logging.debug("|Actual - Predict| / Actual: {}".format(ratio_error[-1]))
 
         io_util.write_csv_result(prediction_path, data.name + " " + str(x[0][-1]),
-                                 [y[-1], pipeline_y_pred[-1], ""] + list(ratio_error))
+                                 [""] + list(y) + [""] + list(pipeline_y_pred) + [""] + list(ratio_error))
 
         logging.debug("")
