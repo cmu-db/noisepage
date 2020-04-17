@@ -131,6 +131,14 @@ class TableGenerator {
      * Counter to generate serial data
      */
     uint64_t serial_counter_{0};
+    /**
+     * Whether is copy
+     */
+    bool is_clone_ = false;
+    /**
+     * Clone idx
+     */
+    size_t clone_idx_ = 0;
 
     /**
      * Constructor
@@ -142,6 +150,16 @@ class TableGenerator {
           dist_(dist),
           min_(min),
           max_(max) {}
+
+    /**
+     * Clone Constructor
+     */
+    ColumnInsertMeta(const ColumnInsertMeta &other, std::string name, size_t clone_idx)
+        : name_(std::move(name)),
+          type_(other.type_),
+          nullable_(other.nullable_),
+          is_clone_(true),
+          clone_idx_(clone_idx) {}
   };
 
   /**
