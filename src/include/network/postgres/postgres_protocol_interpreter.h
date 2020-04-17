@@ -165,6 +165,10 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
     statement_cache_[fingerprint] = std::move(statement);
   }
 
+  /**
+   * @param fingerprint key
+   * @return Statement if it exists in the cache, otherwise nullptr
+   */
   common::ManagedPointer<network::Statement> LookupStatementInCache(const std::string &fingerprint) const {
     const auto it = statement_cache_.find(fingerprint);
     if (it != statement_cache_.end()) return common::ManagedPointer(it->second);

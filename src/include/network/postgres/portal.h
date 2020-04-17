@@ -23,14 +23,12 @@ class Portal {
   /**
    * Constructor that doesnt have params or result_formats, i.e. Simple Query protocol
    * @param statement statement that this Portal refers to
-   * @param physical_plan optimized plan ready for execution
    */
   explicit Portal(const common::ManagedPointer<Statement> statement) : Portal(statement, {}, {FieldFormat::text}) {}
 
   /**
    * Constructor that doesnt have params or result_formats, i.e. Extended Query protocol
    * @param statement statement that this Portal refers to
-   * @param physical_plan optimized plan ready for execution
    * @param params params for this query
    * @param result_formats output formats for this query
    */

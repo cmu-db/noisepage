@@ -96,10 +96,16 @@ class Statement {
     return common::ManagedPointer(executable_query_);
   }
 
+  /**
+   * @param physical_plan physical plan to take ownership of
+   */
   void SetPhysicalPlan(std::unique_ptr<planner::AbstractPlanNode> &&physical_plan) {
     physical_plan_ = std::move(physical_plan);
   }
 
+  /**
+   * @param executable_query executable query to take ownership of
+   */
   void SetExecutableQuery(std::unique_ptr<execution::ExecutableQuery> &&executable_query) {
     executable_query_ = std::move(executable_query);
   }
