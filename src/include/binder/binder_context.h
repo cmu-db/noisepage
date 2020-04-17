@@ -78,6 +78,13 @@ class BinderContext {
                       const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list);
 
   /**
+   * Update the nested table alias map to create a copy of CTE table's entry for given alias
+   * @param cte_table_name CTE table name
+   * @param table_alias Alias of the table
+   */
+  void AddCTETable(const std::string &cte_table_name, const std::string &table_alias);
+
+  /**
    * Add the new table by update the nested table alias map. This is called only in create table statement.
    * We insert the new table information to the nested table alias map because the structure of the attribute matches
    * the information we have about the new table; the name of the attribute might confuse people.
