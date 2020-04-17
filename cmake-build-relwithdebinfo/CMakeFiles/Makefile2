@@ -339,7 +339,6 @@ CMakeFiles/googletest_ep.dir/clean:
 # Target rules for target CMakeFiles/runbenchmark.dir
 
 # All Build rule for target.
-CMakeFiles/runbenchmark.dir/all: benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all
@@ -356,6 +355,7 @@ CMakeFiles/runbenchmark.dir/all: benchmark/storage/CMakeFiles/cuckoomap_benchmar
 CMakeFiles/runbenchmark.dir/all: benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all
+CMakeFiles/runbenchmark.dir/all: benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/runner/CMakeFiles/transaction_logging_gc_runner.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/runner/CMakeFiles/tpch_runner.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/runner/CMakeFiles/tpcc_runner.dir/all
@@ -386,46 +386,6 @@ CMakeFiles/runbenchmark.dir/clean:
 # Target rules for target CMakeFiles/unittest.dir
 
 # All Build rule for target.
-CMakeFiles/unittest.dir/all: test/binder/CMakeFiles/binder_test.dir/all
-CMakeFiles/unittest.dir/all: test/catalog/CMakeFiles/name_builder_test.dir/all
-CMakeFiles/unittest.dir/all: test/catalog/CMakeFiles/catalog_test.dir/all
-CMakeFiles/unittest.dir/all: test/integration/CMakeFiles/tpcc_test.dir/all
-CMakeFiles/unittest.dir/all: test/metrics/CMakeFiles/metrics_test.dir/all
-CMakeFiles/unittest.dir/all: test/network/CMakeFiles/postgres_protocol_util_test.dir/all
-CMakeFiles/unittest.dir/all: test/network/CMakeFiles/network_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/histogram_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/tpcc_plan_payment_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/tpcc_plan_index_scan.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/tpcc_plan_orderstatus_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/tpcc_plan_delivery_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/column_stats_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/top_k_elements_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/count_min_sketch_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/table_stats_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/physical_operator_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/value_condition_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/tpcc_plan_stocklevel_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/optimizer_context_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/logical_operator_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/operator_transformer_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/stats_storage_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/tpcc_plan_seq_scan.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/tpcc_plan_neworder_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/hyperloglog_test.dir/all
-CMakeFiles/unittest.dir/all: test/parser/CMakeFiles/expression_test.dir/all
-CMakeFiles/unittest.dir/all: test/parser/CMakeFiles/pg_parser_test.dir/all
-CMakeFiles/unittest.dir/all: test/parser/CMakeFiles/parser_test.dir/all
-CMakeFiles/unittest.dir/all: test/parser/CMakeFiles/expression_util_test.dir/all
-CMakeFiles/unittest.dir/all: test/parser/CMakeFiles/expression_defs_test.dir/all
-CMakeFiles/unittest.dir/all: test/planner/CMakeFiles/plan_node_test.dir/all
-CMakeFiles/unittest.dir/all: test/planner/CMakeFiles/plan_node_json_test.dir/all
-CMakeFiles/unittest.dir/all: test/planner/CMakeFiles/output_schema_test.dir/all
-CMakeFiles/unittest.dir/all: test/settings/CMakeFiles/settings_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/garbage_collector_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/block_access_controller_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/recovery_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/bwtree_index_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/projected_row_test.dir/all
 CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/index_key_test.dir/all
 CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/data_table_test.dir/all
 CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/export_table_test.dir/all
@@ -437,16 +397,14 @@ CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/storage_util_test.dir/all
 CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/large_garbage_collector_test.dir/all
 CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/data_table_concurrent_test.dir/all
 CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/block_compactor_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/varlen_entry_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/access_observer_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/log_test.dir/all
-CMakeFiles/unittest.dir/all: test/traffic_cop/CMakeFiles/traffic_cop_test.dir/all
-CMakeFiles/unittest.dir/all: test/transaction/CMakeFiles/mvcc_test.dir/all
-CMakeFiles/unittest.dir/all: test/transaction/CMakeFiles/large_transaction_test.dir/all
-CMakeFiles/unittest.dir/all: test/transaction/CMakeFiles/deferred_actions_test.dir/all
-CMakeFiles/unittest.dir/all: test/type/CMakeFiles/type_util_test.dir/all
-CMakeFiles/unittest.dir/all: test/type/CMakeFiles/transient_value_test.dir/all
-CMakeFiles/unittest.dir/all: test/util/CMakeFiles/time_util_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/block_access_controller_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/recovery_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/bwtree_index_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/projected_row_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/garbage_collector_test.dir/all
+CMakeFiles/unittest.dir/all: test/binder/CMakeFiles/binder_test.dir/all
+CMakeFiles/unittest.dir/all: test/catalog/CMakeFiles/name_builder_test.dir/all
+CMakeFiles/unittest.dir/all: test/catalog/CMakeFiles/catalog_test.dir/all
 CMakeFiles/unittest.dir/all: test/common/CMakeFiles/worker_pool_test.dir/all
 CMakeFiles/unittest.dir/all: test/common/CMakeFiles/execution_thread_pool_test.dir/all
 CMakeFiles/unittest.dir/all: test/common/CMakeFiles/rusage_monitor_test.dir/all
@@ -502,6 +460,48 @@ CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/bit_util_test.dir/all
 CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/ast_context_test.dir/all
 CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/arithmetic_functions_test.dir/all
 CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/sema_expr_test.dir/all
+CMakeFiles/unittest.dir/all: test/integration/CMakeFiles/tpcc_test.dir/all
+CMakeFiles/unittest.dir/all: test/metrics/CMakeFiles/metrics_test.dir/all
+CMakeFiles/unittest.dir/all: test/network/CMakeFiles/postgres_protocol_util_test.dir/all
+CMakeFiles/unittest.dir/all: test/network/CMakeFiles/network_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/histogram_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/tpcc_plan_payment_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/tpcc_plan_index_scan.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/tpcc_plan_orderstatus_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/tpcc_plan_delivery_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/column_stats_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/top_k_elements_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/count_min_sketch_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/table_stats_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/physical_operator_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/value_condition_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/tpcc_plan_stocklevel_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/optimizer_context_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/logical_operator_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/operator_transformer_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/stats_storage_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/tpcc_plan_seq_scan.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/tpcc_plan_neworder_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/hyperloglog_test.dir/all
+CMakeFiles/unittest.dir/all: test/parser/CMakeFiles/expression_test.dir/all
+CMakeFiles/unittest.dir/all: test/parser/CMakeFiles/pg_parser_test.dir/all
+CMakeFiles/unittest.dir/all: test/parser/CMakeFiles/parser_test.dir/all
+CMakeFiles/unittest.dir/all: test/parser/CMakeFiles/expression_util_test.dir/all
+CMakeFiles/unittest.dir/all: test/parser/CMakeFiles/expression_defs_test.dir/all
+CMakeFiles/unittest.dir/all: test/planner/CMakeFiles/plan_node_test.dir/all
+CMakeFiles/unittest.dir/all: test/planner/CMakeFiles/plan_node_json_test.dir/all
+CMakeFiles/unittest.dir/all: test/planner/CMakeFiles/output_schema_test.dir/all
+CMakeFiles/unittest.dir/all: test/settings/CMakeFiles/settings_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/varlen_entry_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/access_observer_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/log_test.dir/all
+CMakeFiles/unittest.dir/all: test/traffic_cop/CMakeFiles/traffic_cop_test.dir/all
+CMakeFiles/unittest.dir/all: test/transaction/CMakeFiles/mvcc_test.dir/all
+CMakeFiles/unittest.dir/all: test/transaction/CMakeFiles/large_transaction_test.dir/all
+CMakeFiles/unittest.dir/all: test/transaction/CMakeFiles/deferred_actions_test.dir/all
+CMakeFiles/unittest.dir/all: test/type/CMakeFiles/type_util_test.dir/all
+CMakeFiles/unittest.dir/all: test/type/CMakeFiles/transient_value_test.dir/all
+CMakeFiles/unittest.dir/all: test/util/CMakeFiles/time_util_test.dir/all
 	$(MAKE) -f CMakeFiles/unittest.dir/build.make CMakeFiles/unittest.dir/depend
 	$(MAKE) -f CMakeFiles/unittest.dir/build.make CMakeFiles/unittest.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target unittest"
@@ -5095,13 +5095,13 @@ benchmark/catalog/preinstall:
 # Target rules for target benchmark/catalog/CMakeFiles/catalog_benchmark.dir
 
 # All Build rule for target.
-benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/catalog/CMakeFiles/catalog_benchmark.dir/build.make benchmark/catalog/CMakeFiles/catalog_benchmark.dir/depend
 	$(MAKE) -f benchmark/catalog/CMakeFiles/catalog_benchmark.dir/build.make benchmark/catalog/CMakeFiles/catalog_benchmark.dir/build
@@ -5147,13 +5147,13 @@ benchmark/integration/preinstall:
 # Target rules for target benchmark/integration/CMakeFiles/tpcc_benchmark.dir
 
 # All Build rule for target.
-benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/integration/CMakeFiles/tpcc_benchmark.dir/build.make benchmark/integration/CMakeFiles/tpcc_benchmark.dir/depend
 	$(MAKE) -f benchmark/integration/CMakeFiles/tpcc_benchmark.dir/build.make benchmark/integration/CMakeFiles/tpcc_benchmark.dir/build
@@ -5203,13 +5203,13 @@ benchmark/metrics/preinstall:
 # Target rules for target benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir
 
 # All Build rule for target.
-benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/build.make benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/depend
 	$(MAKE) -f benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/build.make benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/build
@@ -5237,13 +5237,13 @@ benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/clean:
 # Target rules for target benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir
 
 # All Build rule for target.
-benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/build.make benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/depend
 	$(MAKE) -f benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/build.make benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/build
@@ -5271,13 +5271,13 @@ benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/clean:
 # Target rules for target benchmark/metrics/CMakeFiles/garbage_collection_metrics_benchmark.dir
 
 # All Build rule for target.
-benchmark/metrics/CMakeFiles/garbage_collection_metrics_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/metrics/CMakeFiles/garbage_collection_metrics_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/metrics/CMakeFiles/garbage_collection_metrics_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/metrics/CMakeFiles/garbage_collection_metrics_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/metrics/CMakeFiles/garbage_collection_metrics_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/metrics/CMakeFiles/garbage_collection_metrics_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/metrics/CMakeFiles/garbage_collection_metrics_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/metrics/CMakeFiles/garbage_collection_metrics_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/metrics/CMakeFiles/garbage_collection_metrics_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/metrics/CMakeFiles/garbage_collection_metrics_benchmark.dir/build.make benchmark/metrics/CMakeFiles/garbage_collection_metrics_benchmark.dir/depend
 	$(MAKE) -f benchmark/metrics/CMakeFiles/garbage_collection_metrics_benchmark.dir/build.make benchmark/metrics/CMakeFiles/garbage_collection_metrics_benchmark.dir/build
@@ -5323,13 +5323,13 @@ benchmark/parser/preinstall:
 # Target rules for target benchmark/parser/CMakeFiles/parser_benchmark.dir
 
 # All Build rule for target.
-benchmark/parser/CMakeFiles/parser_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/parser/CMakeFiles/parser_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/parser/CMakeFiles/parser_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/parser/CMakeFiles/parser_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/parser/CMakeFiles/parser_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/parser/CMakeFiles/parser_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/parser/CMakeFiles/parser_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/parser/CMakeFiles/parser_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/parser/CMakeFiles/parser_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/parser/CMakeFiles/parser_benchmark.dir/build.make benchmark/parser/CMakeFiles/parser_benchmark.dir/depend
 	$(MAKE) -f benchmark/parser/CMakeFiles/parser_benchmark.dir/build.make benchmark/parser/CMakeFiles/parser_benchmark.dir/build
@@ -5393,13 +5393,13 @@ benchmark/storage/preinstall:
 # Target rules for target benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/build.make benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/build.make benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/build
@@ -5427,13 +5427,13 @@ benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/recovery_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/recovery_benchmark.dir/build.make benchmark/storage/CMakeFiles/recovery_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/recovery_benchmark.dir/build.make benchmark/storage/CMakeFiles/recovery_benchmark.dir/build
@@ -5461,13 +5461,13 @@ benchmark/storage/CMakeFiles/recovery_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/logging_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/logging_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/logging_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/logging_benchmark.dir/build.make benchmark/storage/CMakeFiles/logging_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/logging_benchmark.dir/build.make benchmark/storage/CMakeFiles/logging_benchmark.dir/build
@@ -5495,13 +5495,13 @@ benchmark/storage/CMakeFiles/logging_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/build.make benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/build.make benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/build
@@ -5529,13 +5529,13 @@ benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/build.make benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/build.make benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/build
@@ -5563,13 +5563,13 @@ benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/slot_iterator_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/slot_iterator_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/slot_iterator_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/slot_iterator_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/slot_iterator_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/slot_iterator_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/slot_iterator_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/slot_iterator_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/slot_iterator_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/slot_iterator_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/slot_iterator_benchmark.dir/build.make benchmark/storage/CMakeFiles/slot_iterator_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/slot_iterator_benchmark.dir/build.make benchmark/storage/CMakeFiles/slot_iterator_benchmark.dir/build
@@ -5597,13 +5597,13 @@ benchmark/storage/CMakeFiles/slot_iterator_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/data_table_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/data_table_benchmark.dir/build.make benchmark/storage/CMakeFiles/data_table_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/data_table_benchmark.dir/build.make benchmark/storage/CMakeFiles/data_table_benchmark.dir/build
@@ -5631,13 +5631,13 @@ benchmark/storage/CMakeFiles/data_table_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/build.make benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/build.make benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/build
@@ -5665,13 +5665,13 @@ benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/bwtree_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/bwtree_benchmark.dir/build.make benchmark/storage/CMakeFiles/bwtree_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/bwtree_benchmark.dir/build.make benchmark/storage/CMakeFiles/bwtree_benchmark.dir/build
@@ -5699,13 +5699,13 @@ benchmark/storage/CMakeFiles/bwtree_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/block_compactor_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/build.make benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/build.make benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/build
@@ -5751,13 +5751,13 @@ benchmark/transaction/preinstall:
 # Target rules for target benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir
 
 # All Build rule for target.
-benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/build.make benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/depend
 	$(MAKE) -f benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/build.make benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/build
@@ -5809,13 +5809,13 @@ benchmark/runner/preinstall:
 # Target rules for target benchmark/runner/CMakeFiles/transaction_logging_gc_runner.dir
 
 # All Build rule for target.
-benchmark/runner/CMakeFiles/transaction_logging_gc_runner.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/runner/CMakeFiles/transaction_logging_gc_runner.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/runner/CMakeFiles/transaction_logging_gc_runner.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/runner/CMakeFiles/transaction_logging_gc_runner.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/runner/CMakeFiles/transaction_logging_gc_runner.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/runner/CMakeFiles/transaction_logging_gc_runner.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/runner/CMakeFiles/transaction_logging_gc_runner.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/runner/CMakeFiles/transaction_logging_gc_runner.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/runner/CMakeFiles/transaction_logging_gc_runner.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/runner/CMakeFiles/transaction_logging_gc_runner.dir/build.make benchmark/runner/CMakeFiles/transaction_logging_gc_runner.dir/depend
 	$(MAKE) -f benchmark/runner/CMakeFiles/transaction_logging_gc_runner.dir/build.make benchmark/runner/CMakeFiles/transaction_logging_gc_runner.dir/build
@@ -5843,13 +5843,13 @@ benchmark/runner/CMakeFiles/transaction_logging_gc_runner.dir/clean:
 # Target rules for target benchmark/runner/CMakeFiles/tpch_runner.dir
 
 # All Build rule for target.
-benchmark/runner/CMakeFiles/tpch_runner.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/runner/CMakeFiles/tpch_runner.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/runner/CMakeFiles/tpch_runner.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/runner/CMakeFiles/tpch_runner.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/runner/CMakeFiles/tpch_runner.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/runner/CMakeFiles/tpch_runner.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/runner/CMakeFiles/tpch_runner.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/runner/CMakeFiles/tpch_runner.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/runner/CMakeFiles/tpch_runner.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/runner/CMakeFiles/tpch_runner.dir/build.make benchmark/runner/CMakeFiles/tpch_runner.dir/depend
 	$(MAKE) -f benchmark/runner/CMakeFiles/tpch_runner.dir/build.make benchmark/runner/CMakeFiles/tpch_runner.dir/build
@@ -5877,13 +5877,13 @@ benchmark/runner/CMakeFiles/tpch_runner.dir/clean:
 # Target rules for target benchmark/runner/CMakeFiles/tpcc_runner.dir
 
 # All Build rule for target.
-benchmark/runner/CMakeFiles/tpcc_runner.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/runner/CMakeFiles/tpcc_runner.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/runner/CMakeFiles/tpcc_runner.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/runner/CMakeFiles/tpcc_runner.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/runner/CMakeFiles/tpcc_runner.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/runner/CMakeFiles/tpcc_runner.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/runner/CMakeFiles/tpcc_runner.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/runner/CMakeFiles/tpcc_runner.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/runner/CMakeFiles/tpcc_runner.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/runner/CMakeFiles/tpcc_runner.dir/build.make benchmark/runner/CMakeFiles/tpcc_runner.dir/depend
 	$(MAKE) -f benchmark/runner/CMakeFiles/tpcc_runner.dir/build.make benchmark/runner/CMakeFiles/tpcc_runner.dir/build
@@ -5911,13 +5911,13 @@ benchmark/runner/CMakeFiles/tpcc_runner.dir/clean:
 # Target rules for target benchmark/runner/CMakeFiles/mini_runners.dir
 
 # All Build rule for target.
-benchmark/runner/CMakeFiles/mini_runners.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/runner/CMakeFiles/mini_runners.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/runner/CMakeFiles/mini_runners.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/runner/CMakeFiles/mini_runners.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/runner/CMakeFiles/mini_runners.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/runner/CMakeFiles/mini_runners.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/runner/CMakeFiles/mini_runners.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/runner/CMakeFiles/mini_runners.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/runner/CMakeFiles/mini_runners.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/runner/CMakeFiles/mini_runners.dir/build.make benchmark/runner/CMakeFiles/mini_runners.dir/depend
 	$(MAKE) -f benchmark/runner/CMakeFiles/mini_runners.dir/build.make benchmark/runner/CMakeFiles/mini_runners.dir/build

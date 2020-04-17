@@ -15,10 +15,11 @@
 #include <utility>
 #include <vector>
 
-#include "common/dedicated_thread_registry.h"
 #include "common/macros.h"
-#include "common/shared_latch.h"
+#include "common/dedicated_thread_owner.h"
+#include "common/dedicated_thread_registry.h"
 #include "tbb/concurrent_queue.h"
+#include <tbb/reader_writer_lock.h>
 
 namespace terrier::common {
 
@@ -80,16 +81,17 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     shutting_down_ = true;
     for (std::vector<TerrierThread *> vector : workers_) {  // NOLINT
       for (TerrierThread *t : vector) {
+        auto dedicated_thread_task = static_cast<DedicatedThreadTask *>(t);
         bool result UNUSED_ATTRIBUTE = thread_registry_.operator->()->StopTask(
-            this, common::ManagedPointer(static_cast<DedicatedThreadTask *>(t)));
+            this, common::ManagedPointer(dedicated_thread_task));
         TERRIER_ASSERT(result, "StopTask should succeed");
       }
     }
   }
 
-  void SubmitTask(PoolContext* ctx, const std::function<void(PoolContext *)> &task, storage::numa_region_t numa_hint = storage::UNSUPPORTED_NUMA_REGION) {
-    if (numa_hint == storage::UNSUPPORTED_NUMA_REGION) {
-      numa_hint = static_cast<storage::numa_region_t>(0);
+  void SubmitTask(PoolContext* ctx, const std::function<void(PoolContext *)> &task, common::numa_region_t numa_hint = UNSUPPORTED_NUMA_REGION) {
+    if (numa_hint == UNSUPPORTED_NUMA_REGION) {
+      numa_hint = static_cast<common::numa_region_t>(0);
     }
 
     ctx->func_ = task;
@@ -104,7 +106,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
    * @param numa_hint a hint as to which NUMA region would be ideal for this task to be executed on, default is any
    */
   void SubmitTask(PoolContext* ctx, const std::function<void()> &task,
-                  storage::numa_region_t numa_hint = storage::UNSUPPORTED_NUMA_REGION) {
+                  common::numa_region_t numa_hint = UNSUPPORTED_NUMA_REGION) {
     SubmitTask(ctx, [&] (PoolContext *ctx) {
       task();
     }, numa_hint);
@@ -130,14 +132,14 @@ class ExecutionThreadPool : DedicatedThreadOwner {
       TERRIER_ASSERT(result == 0, "sched_setaffinity should succeed");
       numa_region_ = storage::UNSUPPORTED_NUMA_REGION;
       if (numa_available() >= 0) {
-        numa_region_ = static_cast<storage::numa_region_t>(numa_node_of_cpu(cpu_id));
+        numa_region_ = static_cast<common::numa_region_t>(numa_node_of_cpu(cpu_id));
       }
       if (static_cast<int16_t>(numa_region_) < 0) {
-        numa_region_ = static_cast<storage::numa_region_t>(0);
+        numa_region_ = static_cast<common::numa_region_t>(0);
       }
 #else
       // TODO(emmanuee) figure out processor_assign and put here
-      numa_region_ = static_cast<storage::numa_region_t>(0);
+      numa_region_ = static_cast<common::numa_region_t>(0);
 #endif
       pool_->total_workers_++;
     }
@@ -153,8 +155,18 @@ class ExecutionThreadPool : DedicatedThreadOwner {
           }
 
           status_ = ThreadStatus::BUSY;
-          ctx->func_(ctx);
+          if (ctx->YieldToFunc()) {
+            status_ = ThreadStatus::SWITCHING;
+            return;
+          }
+
           status_ = ThreadStatus::SWITCHING;
+          bool is_empty = pool_->task_queue_[index].empty();
+          pool_->task_queue_[index].push(ctx);
+
+          if (is_empty) {
+            continue;
+          }
           return;
         }
 
@@ -199,17 +211,16 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     ExecutionThreadPool *pool_;
     int cpu_id_;
     ThreadStatus status_ = ThreadStatus::FREE;
-    storage::numa_region_t numa_region_;
+    common::numa_region_t numa_region_;
     std::atomic_bool exit_task_loop_ = false, done_exiting_ = false;
   };
 
  public:
   class PoolContext {
    public:
-    void YeildToThreadPool() {}
     void WaitForFinsh() { promise_.get_future().get(); }
-    bool YeildToFunc() { return true; }
-    void YeildToPool() {}
+    bool YieldToFunc() { return true; }
+    void YieldToPool() {}
     PoolContext() = default;
     ~PoolContext() = default;
 
@@ -224,7 +235,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
   common::ManagedPointer<DedicatedThreadRegistry> thread_registry_;
   // Number of NUMA regions
   // The worker threads
-  common::SharedLatch array_latch_;
+  tbb::reader_writer_lock array_latch_;
 #ifdef __APPLE__
   int16_t num_regions_ = 1;
 #else
@@ -243,7 +254,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
 
   void AddThread(DedicatedThreadTask *t) override {
     auto *thread = static_cast<TerrierThread *>(t);
-    common::SharedLatch::ScopedExclusiveLatch l(&array_latch_);
+    tbb::reader_writer_lock::scoped_lock l(array_latch_);
     TERRIER_ASSERT(
         0 <= static_cast<int16_t>(thread->numa_region_) && static_cast<int16_t>(thread->numa_region_) <= num_regions_,
         "numa region should be in range");
@@ -251,8 +262,8 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     vector->emplace_back(thread);
   }
   void RemoveThread(DedicatedThreadTask *t) override {
+    tbb::reader_writer_lock::scoped_lock l(array_latch_);
     auto *thread = static_cast<TerrierThread *>(t);
-    common::SharedLatch::ScopedExclusiveLatch l(&array_latch_);
     TERRIER_ASSERT(
         0 <= static_cast<int16_t>(thread->numa_region_) && static_cast<int16_t>(thread->numa_region_) <= num_regions_,
         "numa region should be in range");

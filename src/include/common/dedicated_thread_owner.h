@@ -3,7 +3,7 @@
 #include <thread>  // NOLINT
 #include "common/dedicated_thread_task.h"
 #include "common/managed_pointer.h"
-#include "common/spin_latch.h"
+#include <tbb/spin_mutex.h>
 
 namespace terrier::common {
 
@@ -45,7 +45,7 @@ class DedicatedThreadOwner {
    * @return the number of threads owned by this owner
    */
   size_t GetThreadCount() {
-    common::SpinLatch::ScopedSpinLatch guard(&thread_count_latch_);
+    tbb::spin_mutex::scoped_lock l(thread_count_latch_);
     return thread_count_;
   }
 
@@ -72,7 +72,7 @@ class DedicatedThreadOwner {
    * Notifies the owner that a new thread has been given to it
    */
   virtual void AddThread(DedicatedThreadTask *task) {
-    common::SpinLatch::ScopedSpinLatch guard(&thread_count_latch_);
+    tbb::spin_mutex::scoped_lock l(thread_count_latch_);
     thread_count_++;
   }
 
@@ -80,7 +80,7 @@ class DedicatedThreadOwner {
    * Notifies the owner that a new thread has removed from them
    */
   virtual void RemoveThread(DedicatedThreadTask *task) {
-    common::SpinLatch::ScopedSpinLatch guard(&thread_count_latch_);
+    tbb::spin_mutex::scoped_lock l(thread_count_latch_);
     thread_count_--;
   }
 
@@ -104,7 +104,7 @@ class DedicatedThreadOwner {
   virtual bool OnThreadRemoval(common::ManagedPointer<DedicatedThreadTask> task) { return true; }
 
   // Latch to protect thread count
-  common::SpinLatch thread_count_latch_;
+  tbb::spin_mutex thread_count_latch_;
   // Number of threads this owner has been granted
   size_t thread_count_ = 0;
 };

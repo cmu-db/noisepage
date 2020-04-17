@@ -1,7 +1,10 @@
 #pragma once
 
 #include <tbb/reader_writer_lock.h>
+
+#include "common/execution_thread_pool.h"
 #include "common/macros.h"
+#include "execution_thread_pool.h"
 
 namespace terrier::common {
 
@@ -18,12 +21,24 @@ class SharedLatch {
   /**
    * Acquire exclusive lock on mutex.
    */
-  void LockExclusive() { latch_.lock(); }
+  void LockExclusive(common::ExecutionThreadPool::PoolContext *ctx = nullptr) {
+    if (ctx != nullptr) {
+      while(!TryExclusiveLock()) ctx->YieldToPool();
+      return;
+    }
+    latch_.lock();
+  }
 
   /**
    * Acquire shared lock on mutex.
    */
-  void LockShared() { latch_.lock_read(); }
+  void LockShared(common::ExecutionThreadPool::PoolContext *ctx = nullptr) {
+    if (ctx != nullptr) {
+      while(!TryLockShared()) ctx->YieldToPool();
+      return;
+    }
+    latch_.lock_read();
+  }
 
   /**
    * Try to acquire exclusive lock on mutex.

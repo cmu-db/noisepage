@@ -1,12 +1,18 @@
 #pragma once
 
 #include <cstdint>
+#include "strong_typedef.h"
 
 namespace terrier::common {
+STRONG_TYPEDEF(numa_region_t, int16_t);
+constexpr numa_region_t UNSUPPORTED_NUMA_REGION = static_cast<numa_region_t>(0);
+
+
 /**
  * Declare all system-level constants that cannot change at runtime here.
  */
 struct Constants {
+
   /**
    * Block/RawBlock size, in bytes. Must be a power of 2.
    */

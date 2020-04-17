@@ -36,14 +36,12 @@ constexpr uint8_t NUM_ATTR_BOUNDARIES = 4;
 
 STRONG_TYPEDEF(col_id_t, uint16_t);
 STRONG_TYPEDEF(layout_version_t, uint16_t);
-STRONG_TYPEDEF(numa_region_t, int16_t);
 
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
 // This is not to be confused with a non-null version vector that has value nullptr (0).
 
 constexpr col_id_t VERSION_POINTER_COLUMN_ID = col_id_t(0);
 constexpr uint8_t NUM_RESERVED_COLUMNS = 1;
-constexpr numa_region_t UNSUPPORTED_NUMA_REGION = static_cast<numa_region_t>(0);
 
 class DataTable;
 
@@ -64,7 +62,7 @@ class alignas(common::Constants::BLOCK_SIZE) RawBlock {
   /**
    * Parameter to read NUMA region for RawBlock
    */
-  numa_region_t numa_region_;
+  common::numa_region_t numa_region_;
 
   /**
    * Layout version.
@@ -88,7 +86,7 @@ class alignas(common::Constants::BLOCK_SIZE) RawBlock {
   /**
    * Contents of the raw block.
    */
-  byte content_[common::Constants::BLOCK_SIZE - sizeof(uintptr_t) - sizeof(numa_region_t) - sizeof(layout_version_t) -
+  byte content_[common::Constants::BLOCK_SIZE - sizeof(uintptr_t) - sizeof(common::numa_region_t) - sizeof(layout_version_t) -
                 sizeof(uint32_t) - sizeof(BlockAccessController)];
   // A Block needs to always be aligned to 1 MB, so we can get free bytes to
   // store offsets within a block in one 8-byte word
@@ -191,8 +189,8 @@ class BlockAllocator {
    * @param region optional NUMA region to allocate object
    * @return a pointer to the allocated object.
    */
-  RawBlock *New(numa_region_t region = UNSUPPORTED_NUMA_REGION) {
-    if (region == UNSUPPORTED_NUMA_REGION) {
+  RawBlock *New(common::numa_region_t region = common::UNSUPPORTED_NUMA_REGION) {
+    if (region == common::UNSUPPORTED_NUMA_REGION) {
       return new RawBlock();
     }
 #ifndef __APPLE__

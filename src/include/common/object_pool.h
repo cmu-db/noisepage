@@ -4,8 +4,8 @@
 #include <string>
 #include <utility>
 #include "common/allocator.h"
-#include "common/spin_latch.h"
 #include "common/strong_typedef.h"
+#include <tbb/spin_mutex.h>
 
 namespace terrier::common {
 // TODO(Yangjun): this class should be moved somewhere else.
@@ -94,7 +94,7 @@ class ObjectPool {
    * @return pointer to memory that can hold T
    */
   T *Get() {
-    SpinLatch::ScopedSpinLatch guard(&latch_);
+    tbb::spin_mutex::scoped_lock l(latch_);
     if (reuse_queue_.empty() && current_size_ >= size_limit_) throw NoMoreObjectException(size_limit_);
     T *result = nullptr;
     if (reuse_queue_.empty()) {
@@ -121,7 +121,7 @@ class ObjectPool {
    * @return true if new_size is successfully set and false the operation fails
    */
   bool SetSizeLimit(uint64_t new_size) {
-    SpinLatch::ScopedSpinLatch guard(&latch_);
+    tbb::spin_mutex::scoped_lock l(latch_);
     if (new_size >= current_size_) {
       // current_size_ might increase and become > new_size if we don't use lock
       size_limit_ = new_size;
@@ -147,7 +147,7 @@ class ObjectPool {
    * @param new_reuse_limit
    */
   void SetReuseLimit(uint64_t new_reuse_limit) {
-    SpinLatch::ScopedSpinLatch guard(&latch_);
+    tbb::spin_mutex::scoped_lock l(latch_);
     reuse_limit_ = new_reuse_limit;
     T *obj = nullptr;
     while (reuse_queue_.size() > reuse_limit_) {
@@ -167,7 +167,7 @@ class ObjectPool {
    */
   void Release(T *obj) {
     TERRIER_ASSERT(obj != nullptr, "releasing a null pointer");
-    SpinLatch::ScopedSpinLatch guard(&latch_);
+    tbb::spin_mutex::scoped_lock l(latch_);
     if (reuse_queue_.size() >= reuse_limit_) {
       alloc_.Delete(obj);
       current_size_--;
@@ -183,7 +183,7 @@ class ObjectPool {
 
  private:
   Allocator alloc_;
-  SpinLatch latch_;
+  tbb::spin_mutex latch_;
   // TODO(yangjuns): We don't need to reuse objects in a FIFO pattern. We could potentially pass a second template
   // parameter to define the backing container for the std::queue. That way we can measure each backing container.
   std::queue<T *> reuse_queue_;
