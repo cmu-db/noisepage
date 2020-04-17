@@ -45,9 +45,12 @@ CodeGen::CodeGen(ast::Context *context, catalog::CatalogAccessor *accessor)
       num_cached_scopes_(0),
       scope_(nullptr),
       accessor_(accessor),
-      pipeline_operating_units_(std::make_unique<brain::PipelineOperatingUnits>()) {
+      pipeline_operating_units_(std::make_unique<brain::PipelineOperatingUnits>()),
+      cte_scan_iterator_(NewIdentifier("cte_scan_iterator"))
+// TODO(tanujnay112) ^get rid of this
+{
   for (auto &scope : scope_cache_) {
-    scope = std::make_unique<Scope>(nullptr);
+    scope = std::make_unique<Scope>(nullptr),;
   }
   num_cached_scopes_ = DEFAULT_SCOPE_CACHE_SIZE;
   EnterScope();
@@ -171,6 +174,17 @@ ast::Expr *CodeGen::PointerType(ast::BuiltinType::Kind builtin) const { return P
 
 ast::Expr *CodeGen::ArrayType(uint64_t num_elems, ast::BuiltinType::Kind kind) {
   return GetFactory()->NewArrayType(position_, Const64(num_elems), BuiltinType(kind));
+}
+
+ast::Expr *CodeGen::TempTableIterInit(ast::Identifier tvi, ast::Identifier cte_scan_iterator, ast::Identifier col_oids) {
+  ast::Expr *fun = BuiltinFunction(ast::Builtin::TempTableIterInitBind);
+  ast::Expr *tvi_ptr = PointerTo(tvi);
+  ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
+  ast::Expr *cte_scan_iterator_ptr = PointerTo(cte_scan_iterator);
+  ast::Expr *col_oids_expr = MakeExpr(col_oids);
+
+  util::RegionVector<ast::Expr *> args{{tvi_ptr, exec_ctx_expr, col_oids_expr, cte_scan_iterator_ptr}, Region()};
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
 ast::Expr *CodeGen::ArrayAccess(ast::Identifier arr, uint64_t idx) {

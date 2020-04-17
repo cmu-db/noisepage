@@ -78,12 +78,29 @@ class CteScanTranslator : public OperatorTranslator {
   void FillPRFromChild(FunctionBuilder *builder);
   // Insert into table.
   void GenTableInsert(FunctionBuilder *builder);
-  ast::Identifier cte_scan_iterator_;
   ast::Identifier col_types_;
   std::vector<int> all_types_;
   ast::Identifier insert_pr_;
   std::vector<catalog::col_oid_t> col_oids_;
   storage::ProjectionMap projection_map_;
+  ast::Identifier read_col_oids_;
+  ast::Identifier read_tvi_;
+  ast::Identifier read_pci_;
+  void SetReadOids(FunctionBuilder *builder);
+  void DeclareReadTVI(FunctionBuilder *builder);
+  void GenReadTVIClose(FunctionBuilder *builder);
+  void DoTableScan(FunctionBuilder *builder);
+
+  // for (@tableIterInit(&tvi, ...); @tableIterAdvance(&tvi);) {...}
+  void GenTVILoop(FunctionBuilder *builder);
+
+  void DeclarePCI(FunctionBuilder *builder);
+  void DeclareSlot(FunctionBuilder *builder);
+
+  // var pci = @tableIterGetPCI(&tvi)
+  // for (; @pciHasNext(pci); @pciAdvance(pci)) {...}
+  void GenPCILoop(FunctionBuilder *builder);
+
 };
 
 }  // namespace terrier::execution::compiler

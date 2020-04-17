@@ -1382,6 +1382,8 @@ class CodeGen {
     return std::move(pipeline_operating_units_);
   }
 
+  ast::Identifier GetCteScanIdentifier() { return cte_scan_iterator_;}
+
  private:
   // Enter a new lexical scope.
   void EnterScope();
@@ -1406,6 +1408,8 @@ class CodeGen {
   catalog::CatalogAccessor *accessor_;
   // Minirunner-related.
   std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units_;
+
+  ast::Identifier cte_scan_iterator_;
 };
 
 }  // namespace terrier::execution::compiler
