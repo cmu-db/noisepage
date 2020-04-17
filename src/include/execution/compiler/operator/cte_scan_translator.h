@@ -83,7 +83,7 @@ class CteScanTranslator : public OperatorTranslator {
   std::vector<int> all_types_;
   ast::Identifier insert_pr_;
   std::vector<catalog::col_oid_t> col_oids_;
-  storage::ColumnMap col_oid_to_id_;
+  storage::ProjectionMap projection_map_;
 };
 
 }  // namespace terrier::execution::compiler
