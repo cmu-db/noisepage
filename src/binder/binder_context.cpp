@@ -111,6 +111,30 @@ void BinderContext::AddNestedTable(const std::string &table_alias,
   nested_table_alias_map_[table_alias] = column_alias_map;
 }
 
+void BinderContext::AddCTETable(const std::string &cte_table_name, const std::string &table_alias) {
+  if (regular_table_alias_map_.find(table_alias) != regular_table_alias_map_.end() ||
+      nested_table_alias_map_.find(table_alias) != nested_table_alias_map_.end()) {
+    throw BINDER_EXCEPTION(("Duplicate alias " + table_alias).c_str());
+  }
+
+  // Find schema for CTE table in nested_table_map in this context or previous contexts
+  auto current_context = common::ManagedPointer(this);
+  while (current_context != nullptr) {
+    auto iter = current_context->nested_table_alias_map_.find(cte_table_name);
+    if (iter != current_context->nested_table_alias_map_.end()) {
+      // Copy schema for CTE table for this alias
+      nested_table_alias_map_[table_alias] = iter->second;
+      break;
+    }
+    current_context = current_context->GetUpperContext();
+  }
+
+  if (nested_table_alias_map_.find(table_alias) == nested_table_alias_map_.end()) {
+    throw BINDER_EXCEPTION(("CTE table not in nested alias map " + cte_table_name).c_str());
+  }
+
+}
+
 bool BinderContext::ColumnInSchema(const catalog::Schema &schema, const std::string &col_name) {
   try {
     const auto &column_object UNUSED_ATTRIBUTE = schema.GetColumn(col_name);
