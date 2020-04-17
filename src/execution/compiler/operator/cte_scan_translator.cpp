@@ -57,37 +57,42 @@ CteScanTranslator::CteScanTranslator(const terrier::planner::CteScanPlanNode *op
 
   auto offsets = storage::StorageUtil::ComputeBaseAttributeOffsets(attr_sizes, storage::NUM_RESERVED_COLUMNS);
 
+  storage::ColumnMap col_oid_to_id;
   // Build the map from Schema columns to underlying columns
   for (const auto &column : schema.GetColumns()) {
     switch (column.AttrSize()) {
       case storage::VARLEN_COLUMN:
-        col_oid_to_id_[column.Oid()] = storage::col_id_t(offsets[0]++);
+        col_oid_to_id[column.Oid()] = storage::col_id_t(offsets[0]++);
         break;
       case 8:
-        col_oid_to_id_[column.Oid()] = storage::col_id_t(offsets[1]++);
+        col_oid_to_id[column.Oid()] = storage::col_id_t(offsets[1]++);
         break;
       case 4:
-        col_oid_to_id_[column.Oid()] = storage::col_id_t(offsets[2]++);
+        col_oid_to_id[column.Oid()] = storage::col_id_t(offsets[2]++);
         break;
       case 2:
-        col_oid_to_id_[column.Oid()] = storage::col_id_t(offsets[3]++);
+        col_oid_to_id[column.Oid()] = storage::col_id_t(offsets[3]++);
         break;
       case 1:
-        col_oid_to_id_[column.Oid()] = storage::col_id_t(offsets[4]++);
+        col_oid_to_id[column.Oid()] = storage::col_id_t(offsets[4]++);
         break;
       default:
         throw std::runtime_error("unexpected switch case value");
     }
   }
+
+  // Use std::map to effectively sort OIDs by their corresponding ID
+  std::map<storage::col_id_t, catalog::col_oid_t> inverse_map;
+
+  // Notice the change in the inverse map argument different from sql_table get projection map function
+  for (uint16_t i = 0; i < col_oids_.size(); i++) inverse_map[col_oid_to_id[col_oids_[i]]] = col_oids_[i];
+
+  // Populate the projection map using the in-order iterator on std::map
+  uint16_t i = 0;
+  for (auto &iter : inverse_map) projection_map_[iter.second] = i++;
 }
 
 void CteScanTranslator::Consume(FunctionBuilder *builder) {
-
-  // TODO(Gautam, Preetansh, Rohan)
-  // Right now we are only generating @CteScanNext(@slot_bottom_query) in the tpl
-  // What we need is @slot4 = @CteScanInsert(@slot_bottom_query)
-  //builder->Append(codegen_->MakeStmt(codegen_->OneArgCall(ast::Builtin::CteScanNext, child_translator_->GetSlot())));
-  parent_translator_->Consume(builder);
 
   // Declare & Get table PR
   DeclareInsertPR(builder);
@@ -98,6 +103,8 @@ void CteScanTranslator::Consume(FunctionBuilder *builder) {
 
   // Insert into table
   GenTableInsert(builder);
+
+  parent_translator_->Consume(builder);
 }
 void CteScanTranslator::DeclareCteScanIterator(FunctionBuilder *builder) {
 
@@ -155,7 +162,7 @@ void CteScanTranslator::FillPRFromChild(terrier::execution::compiler::FunctionBu
     // TODO(Rohan): Figure how to get the general schema of a child node in case the field is Nullable
     // Right now it is only Non Null
     auto pr_set_call = codegen_->PRSet(codegen_->MakeExpr(insert_pr_), table_col.GetType(), false,
-                                       !col_oid_to_id_[table_col_oid], val, true);
+                                       projection_map_[table_col_oid], val, true);
     builder->Append(codegen_->MakeStmt(pr_set_call));
   }
 }
