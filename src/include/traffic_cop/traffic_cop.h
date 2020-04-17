@@ -164,18 +164,6 @@ class TrafficCop {
    * @param portal to be executed, may contain parameters
    * @return result of the operation
    */
-  //  TrafficCopResult CodegenAndRunPhysicalPlan(common::ManagedPointer<network::ConnectionContext> connection_ctx,
-  //                                             common::ManagedPointer<network::PostgresPacketWriter> out,
-  //                                             common::ManagedPointer<network::Portal> portal) const;
-
-  /**
-   * Contains the logic to reason about DML execution. Responsible for outputting results because we don't want to
-   * (can't) stick it in TrafficCopResult.
-   * @param connection_ctx context to be used to access the internal txn
-   * @param out packet writer to return results
-   * @param portal to be executed, may contain parameters
-   * @return result of the operation
-   */
   TrafficCopResult CodegenPhysicalPlan(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                        common::ManagedPointer<network::PostgresPacketWriter> out,
                                        common::ManagedPointer<network::Portal> portal) const;
