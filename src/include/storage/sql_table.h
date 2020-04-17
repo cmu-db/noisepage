@@ -128,6 +128,25 @@ class SqlTable {
   }
 
   /**
+   * Inserts a tuple, as given in the redo, into the tuple slot specified. StageWrite must have been
+   * called as well in order for the operation to be logged.
+   *
+   * @param txn the calling transaction.
+   * @param redo after-image of the inserted tuple.
+   * @param TupleSlot that the tuple was inserted into.
+   */
+  void InsertInto(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo,
+                 const TupleSlot dest) const {
+    TERRIER_ASSERT(redo->GetTupleSlot() == TupleSlot(nullptr, 0), "TupleSlot was set in this RedoRecord.");
+    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+        ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
+                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
+                   "immediately before?");
+    table_.data_table_->InsertInto(txn, *(redo->Delta()), dest);
+    redo->SetTupleSlot(dest);
+  }
+
+  /**
    * Deletes the given TupleSlot. StageDelete must have been called as well in order for the operation to be logged.
    * @param txn the calling transaction
    * @param slot the slot of the tuple to delete

@@ -54,6 +54,12 @@ class EXPORT StorageInterface {
   storage::TupleSlot TableInsert();
 
   /**
+   * Insert tuple into the table in the tuple slot specified
+   * @param table_tuple_slot where the tuple will be inserted
+   */
+  void TableInsertInto(storage::TupleSlot table_tuple_slot);
+
+  /**
    * @param index_oid OID of the index to access.
    * @return PR of the index.
    */
