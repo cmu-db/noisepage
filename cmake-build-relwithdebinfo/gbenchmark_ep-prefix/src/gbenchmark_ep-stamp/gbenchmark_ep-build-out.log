@@ -1,0 +1,22 @@
+Scanning dependencies of target benchmark
+[  5%] Building CXX object src/CMakeFiles/benchmark.dir/benchmark.cc.o
+[ 11%] Building CXX object src/CMakeFiles/benchmark.dir/benchmark_register.cc.o
+[ 16%] Building CXX object src/CMakeFiles/benchmark.dir/colorprint.cc.o
+[ 22%] Building CXX object src/CMakeFiles/benchmark.dir/commandlineflags.cc.o
+[ 27%] Building CXX object src/CMakeFiles/benchmark.dir/complexity.cc.o
+[ 33%] Building CXX object src/CMakeFiles/benchmark.dir/console_reporter.cc.o
+[ 38%] Building CXX object src/CMakeFiles/benchmark.dir/counter.cc.o
+[ 44%] Building CXX object src/CMakeFiles/benchmark.dir/csv_reporter.cc.o
+[ 50%] Building CXX object src/CMakeFiles/benchmark.dir/json_reporter.cc.o
+[ 55%] Building CXX object src/CMakeFiles/benchmark.dir/reporter.cc.o
+[ 61%] Building CXX object src/CMakeFiles/benchmark.dir/sleep.cc.o
+[ 66%] Building CXX object src/CMakeFiles/benchmark.dir/statistics.cc.o
+[ 72%] Building CXX object src/CMakeFiles/benchmark.dir/string_util.cc.o
+[ 77%] Building CXX object src/CMakeFiles/benchmark.dir/sysinfo.cc.o
+[ 83%] Building CXX object src/CMakeFiles/benchmark.dir/timers.cc.o
+[ 88%] Linking CXX static library libbenchmark.a
+[ 88%] Built target benchmark
+Scanning dependencies of target benchmark_main
+[ 94%] Building CXX object src/CMakeFiles/benchmark_main.dir/benchmark_main.cc.o
+[100%] Linking CXX static library libbenchmark_main.a
+[100%] Built target benchmark_main

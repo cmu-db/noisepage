@@ -23,15 +23,6 @@
 namespace terrier::common {
 
 /**
- * A task queue is a FIFO list of functions that we will execute.
- * This queue by itself is not threadsafe so the WorkerPool class has to protect
- * it on its own with latches.
- */
-// TODO(Deepayan): change from void later
-using Task = std::pair<std::promise<void> *, std::function<void()>>;
-using ExecutionTaskQueue = tbb::concurrent_queue<Task>;
-
-/**
  * A worker pool that maintains a group of worker threads and a task queue.
  *
  * As soon as there is a task in the task queue, a worker thread will be
@@ -43,6 +34,18 @@ using ExecutionTaskQueue = tbb::concurrent_queue<Task>;
  */
 class ExecutionThreadPool : DedicatedThreadOwner {
  public:
+
+
+  class PoolContext;
+
+  /**
+ * A task queue is a FIFO list of functions that we will execute.
+ * This queue by itself is not threadsafe so the WorkerPool class has to protect
+ * it on its own with latches.
+ */
+// TODO(Deepayan): change from void later
+  using ExecutionTaskQueue = tbb::concurrent_queue<PoolContext *>;
+
   /**
    * All possible states that a thread could be in
    */
@@ -84,20 +87,27 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     }
   }
 
+  void SubmitTask(PoolContext* ctx, const std::function<void(PoolContext *)> &task, storage::numa_region_t numa_hint = storage::UNSUPPORTED_NUMA_REGION) {
+    if (numa_hint == storage::UNSUPPORTED_NUMA_REGION) {
+      numa_hint = static_cast<storage::numa_region_t>(0);
+    }
+
+    ctx->func_ = task;
+    task_queue_[static_cast<int16_t>(numa_hint)].push(ctx);
+    task_cv_.notify_all();
+  }
+
   /**
    * SubmitTask allows for a user to submit a task to the given NUMA region
    * @param promise a void promise pointer that will be set when the task has been executed
    * @param task a void to void function that is the task to be executed
    * @param numa_hint a hint as to which NUMA region would be ideal for this task to be executed on, default is any
    */
-  void SubmitTask(std::promise<void> *promise, const std::function<void()> &task,
+  void SubmitTask(PoolContext* ctx, const std::function<void()> &task,
                   storage::numa_region_t numa_hint = storage::UNSUPPORTED_NUMA_REGION) {
-    if (numa_hint == storage::UNSUPPORTED_NUMA_REGION) {
-      numa_hint = static_cast<storage::numa_region_t>(0);
-    }
-    Task t({promise, task});
-    task_queue_[static_cast<int16_t>(numa_hint)].push(t);
-    task_cv_.notify_all();
+    SubmitTask(ctx, [&] (PoolContext *ctx) {
+      task();
+    }, numa_hint);
   }
 
   /**
@@ -137,14 +147,13 @@ class ExecutionThreadPool : DedicatedThreadOwner {
       while (true) {
         for (int16_t i = 0; i < pool_->num_regions_; i++) {
           auto index = (static_cast<int16_t>(numa_region_) + i) % pool_->num_regions_;
-          Task task;
-          if (!pool_->task_queue_[index].try_pop(task)) {
+          PoolContext* ctx;
+          if (!pool_->task_queue_[index].try_pop(ctx)) {
             continue;
           }
 
           status_ = ThreadStatus::BUSY;
-          task.second();
-          task.first->set_value();
+          ctx->func_(ctx);
           status_ = ThreadStatus::SWITCHING;
           return;
         }
@@ -193,6 +202,24 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     storage::numa_region_t numa_region_;
     std::atomic_bool exit_task_loop_ = false, done_exiting_ = false;
   };
+
+ public:
+  class PoolContext {
+   public:
+    void YeildToThreadPool() {}
+    void WaitForFinsh() { promise_.get_future().get(); }
+    bool YeildToFunc() { return true; }
+    void YeildToPool() {}
+    PoolContext() = default;
+    ~PoolContext() = default;
+
+    PoolContext(ExecutionThreadPool *pool, std::function<void(PoolContext *)> f) : func_(f) {}
+    std::function<void(PoolContext *)> func_ = nullptr;
+   private:
+    std::promise<void> promise_;
+  };
+
+ private:
 
   common::ManagedPointer<DedicatedThreadRegistry> thread_registry_;
   // Number of NUMA regions
