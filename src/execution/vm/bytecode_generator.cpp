@@ -1945,8 +1945,7 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
       break;
     }
     case ast::Builtin::TableInsertInto: {
-      ast::Type *tuple_slot_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::TupleSlot);
-      LocalVar tuple_slot = ExecutionResult()->GetOrCreateDestination(tuple_slot_type);
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
       Emitter()->Emit(Bytecode::StorageInterfaceTableInsertInto, storage_interface, tuple_slot);
       break;
     }
