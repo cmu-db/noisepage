@@ -271,6 +271,7 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   TERRIER_ASSERT(param_formats.size() == 1 || param_formats.size() == statement->ParamTypes().size(),
                  "Incorrect number of parameter format codes. Should either be 1 (all the same) or the number of "
                  "parameters required for this statement.");
+  // TODO(Matt): probably shouldn't be an assert, but rather an error response
 
   // read the params
   auto params =

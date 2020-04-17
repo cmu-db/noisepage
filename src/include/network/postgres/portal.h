@@ -25,7 +25,7 @@ class Portal {
    * @param statement statement that this Portal refers to
    * @param physical_plan optimized plan ready for execution
    */
-  Portal(const common::ManagedPointer<Statement> statement) : Portal(statement, {}, {FieldFormat::text}) {}
+  explicit Portal(const common::ManagedPointer<Statement> statement) : Portal(statement, {}, {FieldFormat::text}) {}
 
   /**
    * Constructor that doesnt have params or result_formats, i.e. Extended Query protocol
