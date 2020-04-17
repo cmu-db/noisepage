@@ -563,6 +563,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
     for (size_t type_idx = 0; type_idx < types.size(); type_idx++) {
       for (auto num_col : num_cols) {
         for (auto row_num : row_nums) {
+          auto type = types[type_idx];
+
           std::stringstream output;
           output << "struct Output {\n";
           for (auto i = 0; i < num_col; i++) output << "col" << i << " : " << types_strs[type_idx] << "\n";
@@ -574,10 +576,15 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
 
           // pipeline
           output << "fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {\n";
+          for (auto i = 0; i < num_col; i++) {
+            output << "\tvar outval" << i << " = ";
+            if (type == type::TypeId::INTEGER) output << "@intToSql(" << i << ")\n";
+            else if (type == type::TypeId::DECIMAL) output << "@floatToSql(" << i << ".0)\n";
+          }
           output << "\tvar out: *Output\n";
           output << "\tfor(var it = 0; it < " << row_num << "; it = it + 1) {\n";
           output << "\t\tout = @ptrCast(*Output, @outputAlloc(execCtx))\n";
-          for (auto i = 0; i < num_col; i++) output << "\t\tout.col" << i << " = " << i << "\n";
+          for (auto i = 0; i < num_col; i++) output << "\t\tout.col" << i << " = outval" << i << "\n";
           output << "\t}\n";
           output << "\t@outputFinalize(execCtx)\n";
           output << "}\n";
@@ -593,7 +600,6 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
           output << "\treturn 0\n";
           output << "}\n";
 
-          auto type = types[type_idx];
           auto type_size = type::TypeUtil::GetTypeSize(type);
           std::vector<planner::OutputSchema::Column> cols;
           for (auto i = 0; i < num_col; i++) {
