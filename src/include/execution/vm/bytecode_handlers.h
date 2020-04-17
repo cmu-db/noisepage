@@ -1648,6 +1648,9 @@ VM_OP void OpStorageInterfaceTableDelete(bool *result, terrier::execution::sql::
 VM_OP void OpStorageInterfaceTableInsert(terrier::storage::TupleSlot *tuple_slot,
                                          terrier::execution::sql::StorageInterface *storage_interface);
 
+VM_OP void OpStorageInterfaceTableInsertInto(terrier::execution::sql::StorageInterface *storage_interface,
+                                          terrier::storage::TupleSlot *tuple_slot);
+
 VM_OP void OpStorageInterfaceGetIndexPR(terrier::storage::ProjectedRow **pr_result,
                                         terrier::execution::sql::StorageInterface *storage_interface,
                                         uint32_t index_oid);

@@ -2073,6 +2073,25 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
       call->SetType(GetBuiltinType(tuple_slot_type));
       break;
     }
+    case ast::Builtin::TableInsertInto: {
+      // The Built-in has two arguments:
+      // 1) pointer to the storage interface
+      // 2) pointer to the tuple slot where the tuple will be inserted
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+
+      // Second argument is a tuple slot. If it is not, report that it is not.
+      auto tuple_slot_type = ast::BuiltinType::TupleSlot;
+      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), tuple_slot_type)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(tuple_slot_type)->PointerTo());
+        return;
+      }
+
+      // Set the return type as Nil (which is TPL's equivalent for void return types)
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
     case ast::Builtin::TableDelete: {
       if (!CheckArgCount(call, 2)) {
         return;
@@ -2577,6 +2596,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::StorageInterfaceInitBind:
     case ast::Builtin::GetTablePR:
     case ast::Builtin::TableInsert:
+    case ast::Builtin::TableInsertInto:
     case ast::Builtin::TableDelete:
     case ast::Builtin::TableUpdate:
     case ast::Builtin::GetIndexPR:

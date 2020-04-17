@@ -1682,6 +1682,14 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
+  OP(StorageInterfaceTableInsertInto) : {
+    auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
+    auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
+
+    OpStorageInterfaceTableInsertInto(storage_interface, tuple_slot);
+    DISPATCH_NEXT();
+  }
+
   OP(StorageInterfaceTableDelete) : {
     auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
     auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
