@@ -164,6 +164,9 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node,
       // table not in catalog, check if table referred is the cte table
       if (node->GetTableName() != cte_table_name_) {
         throw BINDER_EXCEPTION("Accessing non-existing table.");
+      } else {
+        // copy cte table's schema for this alias
+        context_->AddCTETable(node->GetTableName(), node->GetAlias());
       }
     } else {
       context_->AddRegularTable(catalog_accessor_, node, db_oid_);

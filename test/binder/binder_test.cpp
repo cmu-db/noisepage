@@ -130,6 +130,36 @@ TEST_F(BinderCorrectnessTest, SelectStatementInvalidColumnTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, CTEClauseInvalidTableTest) {
+  // Test regular table name
+  BINDER_LOG_DEBUG("Parsing sql query");
+  std::string select_sql = "WITH c AS (SELECT * FROM a) SELECT * FROM d;";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
+  EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree)), BinderException);
+}
+
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, CTEClauseInvalidColumnTest) {
+  // Test regular table name
+  BINDER_LOG_DEBUG("Parsing sql query");
+  std::string select_sql = "WITH c AS (SELECT a1 FROM a) SELECT t1.a2 FROM c AS t1;";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
+  EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree)), BinderException);
+}
+
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, CTEClauseInvalidAliasTableTest) {
+  // Test regular table name
+  BINDER_LOG_DEBUG("Parsing sql query");
+  std::string select_sql = "WITH c AS (SELECT a1 FROM a) SELECT t1.a1 FROM c AS t1, (SELECT * FROM t1) AS t2;";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
+  EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree)), BinderException);
+}
+
+// NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   // Test regular table name
   BINDER_LOG_DEBUG("Parsing sql query");
