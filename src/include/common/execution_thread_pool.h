@@ -239,24 +239,6 @@ class ExecutionThreadPool : DedicatedThreadOwner {
   }
 
   bool OnThreadRemoval(common::ManagedPointer<DedicatedThreadTask> dedicated_task) override {
-    // we dont want to deplete a numa region while other numa regions have multiple threads to prevent starvation
-    // on the queue for this region
-    //    auto *thread = static_cast<TerrierThread *>(dedicated_task.operator->());
-    //    if (shutting_down_) return true;
-    //
-    //    common::SharedLatch::ScopedSharedLatch l(&array_latch_);
-    //    TERRIER_ASSERT(0 <= static_cast<int16_t>(thread->numa_region_) && static_cast<int16_t>(thread->numa_region_)
-    //    <= num_regions_,"numa region should be in range"); auto *vector =
-    //    &workers_[static_cast<int16_t>(thread->numa_region_)]; TERRIER_ASSERT(!vector->empty(), "if this thread is
-    //    potentially being closed it must be tracked");
-    //    // if there is another thread running in this numa region
-    //    if (vector->size() > 1) return true;
-    //    for (int16_t i = 0; i < num_regions_; i++) {
-    //      vector = &workers_[i];
-    //      // if another numa region has extra threads
-    //      if (vector->size() > 1) return false;
-    //    }
-    // no numa region has multiple threads
     return true;
   }
 

@@ -56,14 +56,7 @@ void TableVectorIterator::Reset() {
 bool TableVectorIterator::ParallelScan(uint32_t db_oid, uint32_t table_oid, void *const query_state,
                                        ThreadStateContainer *const thread_states, const ScanFn scan_fn,
                                        const uint32_t min_grain_size) {
-  //  if (!initialized_) return false;
-  //  // First check if the iterator ended.
-  //  if (*iter_ == table_->end()) {
-  //    return false;
-  //  }
-  //  // Scan the table to set the projected column.
-  //  table_->NUMAScan(exec_ctx_->GetTxn(), iter_.get(), projected_columns_);
-  //  pci_.SetProjectedColumn(projected_columns_);
+  //TODO(Deepayan): Talk to Parallel Scan Group
 
   return false;
 }

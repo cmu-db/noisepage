@@ -61,6 +61,7 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
   out_buffer->SetNumTuples(filled);
 }
 
+// TODO(Deepayan): Can be removed once parallel scan support is added. Currently for testing framework only
 void DataTable::NUMAScan(common::ManagedPointer<transaction::TransactionContext> txn,
                          std::vector<ProjectedColumns *> *out_buffers, ProjectedColumns *const result_buffer,
                          common::ExecutionThreadPool *thread_pool) {
