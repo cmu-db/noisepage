@@ -16,7 +16,9 @@ namespace terrier::execution::compiler {
 catalog::CatalogAccessor *CodeGen::Accessor() { return exec_ctx_->GetAccessor(); }
 
 CodeGen::CodeGen(exec::ExecutionContext *exec_ctx)
-    : region_(std::make_unique<util::Region>("QueryRegion")),
+    :
+
+      region_(std::make_unique<util::Region>("QueryRegion")),
       error_reporter_(region_.get()),
       ast_ctx_(std::make_unique<ast::Context>(region_.get(), &error_reporter_)),
       factory_(region_.get()),
@@ -27,7 +29,9 @@ CodeGen::CodeGen(exec::ExecutionContext *exec_ctx)
       exec_ctx_var_(Context()->GetIdentifier("execCtx")),
       main_fn_(Context()->GetIdentifier("main")),
       setup_fn_(Context()->GetIdentifier("setupFn")),
-      teardown_fn_(Context()->GetIdentifier("teardownFn")) {}
+      teardown_fn_(Context()->GetIdentifier("teardownFn")),
+      cte_scan_iterator_(NewIdentifier("cte_scan_iterator"))
+      {}
 
 ast::BlockStmt *CodeGen::EmptyBlock() {
   util::RegionVector<ast::Stmt *> stmts(Region());
@@ -123,6 +127,17 @@ ast::Expr *CodeGen::TableIterInit(ast::Identifier tvi, uint32_t table_oid, ast::
   ast::Expr *col_oids_expr = MakeExpr(col_oids);
 
   util::RegionVector<ast::Expr *> args{{tvi_ptr, exec_ctx_expr, table_oid_expr, col_oids_expr}, Region()};
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+}
+
+ast::Expr *CodeGen::TempTableIterInit(ast::Identifier tvi, ast::Identifier cte_scan_iterator, ast::Identifier col_oids) {
+  ast::Expr *fun = BuiltinFunction(ast::Builtin::TempTableIterInitBind);
+  ast::Expr *tvi_ptr = PointerTo(tvi);
+  ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
+  ast::Expr *cte_scan_iterator_ptr = PointerTo(cte_scan_iterator);
+  ast::Expr *col_oids_expr = MakeExpr(col_oids);
+
+  util::RegionVector<ast::Expr *> args{{tvi_ptr, exec_ctx_expr, col_oids_expr, cte_scan_iterator_ptr}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
