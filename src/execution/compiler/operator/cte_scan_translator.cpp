@@ -1,12 +1,84 @@
 #include "execution/compiler/operator/cte_scan_translator.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/translator_factory.h"
+#include "parser/expression/constant_value_expression.h"
+
 
 namespace terrier::execution::compiler {
 void CteScanTranslator::Produce(FunctionBuilder *builder) {
 
   DeclareCteScanIterator(builder);
   child_translator_->Produce(builder);
+}
+
+parser::ConstantValueExpression DummyCVE() {
+  return parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0));
+}
+
+
+CteScanTranslator::CteScanTranslator(const terrier::planner::CteScanPlanNode *op, CodeGen *codegen):
+  OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::CTE_SCAN),
+  op_(op),
+  cte_scan_iterator_(codegen->NewIdentifier("cte_scan_iterator")),
+  col_types_(codegen->NewIdentifier("col_types")),
+  insert_pr_(codegen->NewIdentifier("insert_pr")) {
+
+  // ToDo(Gautam,Preetansh): Send the complete schema in the plan node.
+  auto & all_columns = op_->GetOutputSchema()->GetColumns();
+  for(auto &col: all_columns) {
+    all_types_.emplace_back(static_cast<int>(col.GetType()));
+  }
+
+  std::vector<catalog::Schema::Column> all_schema_columns;
+  for (uint32_t i = 0; i < all_types_.size(); i++) {
+    catalog::Schema::Column col("col" + std::to_string(i+1),
+                                static_cast<type::TypeId>(all_types_[i]), false,
+                                DummyCVE(), static_cast<catalog::col_oid_t>(i+1));
+    all_schema_columns.push_back(col);
+    col_oids_.push_back(static_cast<catalog::col_oid_t>(i+1));
+  }
+
+  // Create the table in the catalog.
+  catalog::Schema schema(all_schema_columns);
+
+  std::vector<uint16_t> attr_sizes;
+  attr_sizes.reserve(storage::NUM_RESERVED_COLUMNS + schema.GetColumns().size());
+
+  for (uint8_t i = 0; i < storage::NUM_RESERVED_COLUMNS; i++) {
+    attr_sizes.emplace_back(8);
+  }
+
+  TERRIER_ASSERT(attr_sizes.size() == storage::NUM_RESERVED_COLUMNS,
+                 "attr_sizes should be initialized with NUM_RESERVED_COLUMNS elements.");
+
+  for (const auto &column : schema.GetColumns()) {
+    attr_sizes.push_back(column.AttrSize());
+  }
+
+  auto offsets = storage::StorageUtil::ComputeBaseAttributeOffsets(attr_sizes, storage::NUM_RESERVED_COLUMNS);
+
+  // Build the map from Schema columns to underlying columns
+  for (const auto &column : schema.GetColumns()) {
+    switch (column.AttrSize()) {
+      case storage::VARLEN_COLUMN:
+        col_oid_to_id_[column.Oid()] = storage::col_id_t(offsets[0]++);
+        break;
+      case 8:
+        col_oid_to_id_[column.Oid()] = storage::col_id_t(offsets[1]++);
+        break;
+      case 4:
+        col_oid_to_id_[column.Oid()] = storage::col_id_t(offsets[2]++);
+        break;
+      case 2:
+        col_oid_to_id_[column.Oid()] = storage::col_id_t(offsets[3]++);
+        break;
+      case 1:
+        col_oid_to_id_[column.Oid()] = storage::col_id_t(offsets[4]++);
+        break;
+      default:
+        throw std::runtime_error("unexpected switch case value");
+    }
+  }
 }
 
 void CteScanTranslator::Consume(FunctionBuilder *builder) {
@@ -16,6 +88,16 @@ void CteScanTranslator::Consume(FunctionBuilder *builder) {
   // What we need is @slot4 = @CteScanInsert(@slot_bottom_query)
   //builder->Append(codegen_->MakeStmt(codegen_->OneArgCall(ast::Builtin::CteScanNext, child_translator_->GetSlot())));
   parent_translator_->Consume(builder);
+
+  // Declare & Get table PR
+  DeclareInsertPR(builder);
+  GetInsertPR(builder);
+
+  // Set the values to insert
+  FillPRFromChild(builder);
+
+  // Insert into table
+  GenTableInsert(builder);
 }
 void CteScanTranslator::DeclareCteScanIterator(FunctionBuilder *builder) {
 
@@ -40,4 +122,43 @@ void CteScanTranslator::SetColumnTypes(FunctionBuilder *builder) {
     builder->Append(codegen_->Assign(lhs, rhs));
   }
 }
+
+
+void CteScanTranslator::DeclareInsertPR(terrier::execution::compiler::FunctionBuilder *builder) {
+  // var insert_pr : *ProjectedRow
+  auto pr_type = codegen_->BuiltinType(ast::BuiltinType::Kind::ProjectedRow);
+  builder->Append(codegen_->DeclareVariable(insert_pr_, codegen_->PointerType(pr_type), nullptr));
+}
+
+void CteScanTranslator::GetInsertPR(terrier::execution::compiler::FunctionBuilder *builder) {
+  // var insert_pr = cteScanGetInsertTempTablePR(...)
+  auto get_pr_call = codegen_->OneArgCall(ast::Builtin::CteScanGetInsertTempTablePR, cte_scan_iterator_, true);
+  builder->Append(codegen_->Assign(codegen_->MakeExpr(insert_pr_), get_pr_call));
+}
+
+void CteScanTranslator::GenTableInsert(FunctionBuilder *builder) {
+  // var insert_slot = @cteScanTableInsert(&inserter_)
+  auto insert_slot = codegen_->NewIdentifier("insert_slot");
+  auto insert_call = codegen_->OneArgCall(ast::Builtin::CteScanTableInsert, cte_scan_iterator_, true);
+  builder->Append(codegen_->DeclareVariable(insert_slot, nullptr, insert_call));
+}
+
+void CteScanTranslator::FillPRFromChild(terrier::execution::compiler::FunctionBuilder *builder) {
+  const auto &cols = op_->GetOutputSchema()->GetColumns();
+
+
+
+  for (uint32_t i = 0; i < col_oids_.size(); i++) {
+    const auto &table_col = cols[i];
+    const auto &table_col_oid = col_oids_[i];
+    auto val = GetChildOutput(0, i, table_col.GetType());
+    // TODO(Rohan): Figure how to get the general schema of a child node in case the field is Nullable
+    // Right now it is only Non Null
+    auto pr_set_call = codegen_->PRSet(codegen_->MakeExpr(insert_pr_), table_col.GetType(), false,
+                                       !col_oid_to_id_[table_col_oid], val, true);
+    builder->Append(codegen_->MakeStmt(pr_set_call));
+  }
+}
+
+
 }  // namespace terrier::execution::compiler
