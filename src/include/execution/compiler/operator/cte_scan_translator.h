@@ -18,18 +18,7 @@ class CteScanTranslator : public OperatorTranslator {
    * @param op The plan node
    * @param codegen The code generator
    */
-  CteScanTranslator(const terrier::planner::CteScanPlanNode *op, CodeGen *codegen)
-      : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::CTE_SCAN),
-        op_(op),
-        cte_scan_iterator_(codegen->NewIdentifier("cte_scan_iterator")),
-        col_types_(codegen->NewIdentifier("col_types")){
-
-    auto & all_columns = op_->GetOutputSchema()->GetColumns();
-    for(auto &col: all_columns) {
-      all_types_.emplace_back(static_cast<int>(col.GetType()));
-    }
-
-  }
+  CteScanTranslator(const terrier::planner::CteScanPlanNode *op, CodeGen *codegen);
 
   // Pass through
   void Produce(FunctionBuilder *builder) override;
@@ -77,11 +66,24 @@ class CteScanTranslator : public OperatorTranslator {
 
  private:
   const planner::CteScanPlanNode *op_;
+  // Declare Cte Scan Itarator
   void DeclareCteScanIterator(FunctionBuilder *builder);
+  // Set Column Types for insertion
   void SetColumnTypes(FunctionBuilder *builder);
+  // Declare the insert PR
+  void DeclareInsertPR(FunctionBuilder *builder);
+  // Get the pr to insert
+  void GetInsertPR(FunctionBuilder *builder);
+  // Fill the insert PR from the child's output
+  void FillPRFromChild(FunctionBuilder *builder);
+  // Insert into table.
+  void GenTableInsert(FunctionBuilder *builder);
   ast::Identifier cte_scan_iterator_;
   ast::Identifier col_types_;
   std::vector<int> all_types_;
+  ast::Identifier insert_pr_;
+  std::vector<catalog::col_oid_t> col_oids_;
+  storage::ColumnMap col_oid_to_id_;
 };
 
 }  // namespace terrier::execution::compiler
