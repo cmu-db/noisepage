@@ -1,0 +1,2 @@
+/Library/Developer/CommandLineTools/usr/bin/ar qc ../relwithdebinfo/libutil_static.a  CMakeFiles/util_static.dir/execution/table_generator/table_generator.cpp.o CMakeFiles/util_static.dir/execution/table_generator/table_reader.cpp.o
+/Library/Developer/CommandLineTools/usr/bin/ranlib ../relwithdebinfo/libutil_static.a

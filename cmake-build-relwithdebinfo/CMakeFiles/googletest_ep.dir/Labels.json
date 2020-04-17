@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/cmake-build-relwithdebinfo/CMakeFiles/googletest_ep"
+		},
+		{
+			"file" : "/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/cmake-build-relwithdebinfo/CMakeFiles/googletest_ep.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/cmake-build-relwithdebinfo/CMakeFiles/googletest_ep-complete.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/cmake-build-relwithdebinfo/googletest_ep-prefix/src/googletest_ep-stamp/googletest_ep-install.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/cmake-build-relwithdebinfo/googletest_ep-prefix/src/googletest_ep-stamp/googletest_ep-mkdir.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/cmake-build-relwithdebinfo/googletest_ep-prefix/src/googletest_ep-stamp/googletest_ep-download.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/cmake-build-relwithdebinfo/googletest_ep-prefix/src/googletest_ep-stamp/googletest_ep-update.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/cmake-build-relwithdebinfo/googletest_ep-prefix/src/googletest_ep-stamp/googletest_ep-patch.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/cmake-build-relwithdebinfo/googletest_ep-prefix/src/googletest_ep-stamp/googletest_ep-configure.rule"
+		},
+		{
+			"file" : "/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/cmake-build-relwithdebinfo/googletest_ep-prefix/src/googletest_ep-stamp/googletest_ep-build.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"googletest_ep"
+		],
+		"name" : "googletest_ep"
+	}
+}
