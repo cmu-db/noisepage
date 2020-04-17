@@ -158,12 +158,8 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
     uint32_t num_vals = std::min(batch_size, table_meta->num_rows_ - (i * batch_size));
     TERRIER_ASSERT(num_vals != 0, "Can't have empty columns.");
     for (auto &col_meta : table_meta->col_meta_) {
-      if (col_meta.is_clone_) {
-        column_data.emplace_back(column_data[col_meta.clone_idx_]);
-      } else {
-        column_data.emplace_back(GenerateColumnData(&col_meta, num_vals));
-        alloc_buffers.emplace_back(column_data.back());
-      }
+      column_data.emplace_back(GenerateColumnData(&col_meta, num_vals));
+      alloc_buffers.emplace_back(column_data.back());
     }
 
     // Insert into the table
@@ -429,19 +425,9 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
           for (int j = 1; j <= col_num; j++) {
             std::stringstream col_name;
             col_name << "col" << j;
-            if (j == 1) {
-              // The first column would be serial
-              col_metas.emplace_back(col_name.str(), type, false, Dist::Serial, 0, 0);
-            } else if (j == 15) {
-              // The 15th column is related to the cardinality
-              col_metas.emplace_back(col_name.str(), type, false, Dist::Rotate, 0, cardinality);
-            } else if (j > 15) {
-              // Columns after the 15th column duplicate the 15th column
-              col_metas.emplace_back(col_metas[14], col_name.str(), 14);
-            } else {
-              // All the rest of the columns are uniformly distributed
-              col_metas.emplace_back(col_name.str(), type, false, Dist::Uniform, 0, row_num - 1);
-            }
+
+            // Last value passed to emplace_back() is the max_value which is inclusive
+            col_metas.emplace_back(col_name.str(), type, false, Dist::Rotate, 1, cardinality);
           }
           table_metas.emplace_back(GenerateTableName(type, col_num, row_num, cardinality), row_num, col_metas);
         }
