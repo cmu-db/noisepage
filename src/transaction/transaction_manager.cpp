@@ -128,12 +128,13 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
 }
 
 void TransactionManager::CleanTransaction(TransactionContext *txn) {
-  num_unlinked_++;
   if (txn->IsReadOnly()) {
+    num_unlinked_++;
     // This is a read-only transaction so this is safe to immediately delete
     delete txn;
   } else {
     deferred_action_manager_->RegisterDeferredAction([=]() {
+      num_unlinked_++;
       timestamp_manager_->CheckOutTimestamp();
       const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
       txn->Unlink(oldest_txn);
