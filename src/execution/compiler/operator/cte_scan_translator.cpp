@@ -49,6 +49,7 @@ CteScanTranslator::CteScanTranslator(const terrier::planner::CteScanPlanNode *op
                                 DummyCVE(), static_cast<catalog::col_oid_t>(i+1));
     all_schema_columns.push_back(col);
     col_oids_.push_back(static_cast<catalog::col_oid_t>(i+1));
+    col_name_to_oid[all_columns[i].GetName()] = i+1;
   }
 
   // Create the table in the catalog.
