@@ -115,7 +115,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   if (gc_enabled_ && deferred_action_manager_ != DISABLED) {
     // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
     // the critical path there anyway
-    deferred_action_manager_->RegisterDeferredAction([=]() { CleanTransaction(txn); });
+    CleanTransaction(txn);
   }
 
   if (txn_metrics_enabled) {
@@ -133,12 +133,14 @@ void TransactionManager::CleanTransaction(TransactionContext *txn) {
     // This is a read-only transaction so this is safe to immediately delete
     delete txn;
   } else {
-    timestamp_manager_->CheckOutTimestamp();
-    const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
-    txn->Unlink(oldest_txn);
     deferred_action_manager_->RegisterDeferredAction([=]() {
-      num_deallocated_++;
-      delete txn;
+      timestamp_manager_->CheckOutTimestamp();
+      const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
+      txn->Unlink(oldest_txn, deferred_action_manager_->GetVisitedSlotsLocation());
+      deferred_action_manager_->RegisterDeferredAction([=]() {
+        num_deallocated_++;
+        delete txn;
+      });
     });
   }
 }
@@ -205,7 +207,7 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   // We hand off txn to GC, however, it won't be GC'd until the LogManager marks it as serialized
   // TODO(Ling): eventually we will removed the gc_enabled flag after completely integrate the deferred action framework
   if (gc_enabled_ && deferred_action_manager_ != DISABLED) {
-    deferred_action_manager_->RegisterDeferredAction([=]() { CleanTransaction(txn); });
+    CleanTransaction(txn);
   }
 
   return abort_time;
