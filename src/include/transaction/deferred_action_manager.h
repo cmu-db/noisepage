@@ -121,7 +121,7 @@ class DeferredActionManager {
   /**
    * @return Pointer to the visited tuple slot set
    */
-  std::unordered_set<storage::TupleSlot> * GetVisitedSlotsLocation() { return &visited_slots_; }
+  std::unordered_set<storage::TupleSlot> *GetVisitedSlotsLocation() { return &visited_slots_; }
 
  private:
   const common::ManagedPointer<TimestampManager> timestamp_manager_;
@@ -134,7 +134,7 @@ class DeferredActionManager {
   std::unordered_set<storage::TupleSlot> visited_slots_;
 
   std::unordered_set<common::ManagedPointer<storage::index::Index>> indexes_;
-_  common::SharedLatch indexes_latch_;
+  common::SharedLatch indexes_latch_;
 
   // TODO(John, Ling): Eventually we should remove the special casing of indexes here.
   //  This gets invoked every epoch to look through all indexes. It potentially introduces stalls
