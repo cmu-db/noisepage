@@ -137,7 +137,7 @@ void TransactionManager::CleanTransaction(TransactionContext *txn) {
       num_unlinked_++;
       timestamp_manager_->CheckOutTimestamp();
       const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
-      txn->Unlink(oldest_txn);
+      txn->Unlink(oldest_txn, deferred_action_manager_->GetVisitedSlotsLocation());
       deferred_action_manager_->RegisterDeferredAction([=]() {
         num_deallocated_++;
         delete txn;

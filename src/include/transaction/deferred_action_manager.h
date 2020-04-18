@@ -84,6 +84,7 @@ class DeferredActionManager {
       // ingest all the new actions
       processed += ProcessNewActions(oldest_txn);
     }
+    visited_slots_.clear();
     ProcessIndexes();
     return processed;
   }
@@ -117,14 +118,23 @@ class DeferredActionManager {
    */
   void UnregisterIndexForGC(common::ManagedPointer<storage::index::Index> index);
 
+  /**
+   * @return Pointer to the visited tuple slot set
+   */
+  std::unordered_set<storage::TupleSlot> * GetVisitedSlotsLocation() { return &visited_slots_; }
+
  private:
   const common::ManagedPointer<TimestampManager> timestamp_manager_;
   // TODO(Tianyu): We might want to change this data structure to be more specialized than std::queue
   tbb::concurrent_queue<std::pair<timestamp_t, DeferredAction>> new_deferred_actions_;
   std::queue<std::pair<timestamp_t, DeferredAction>> back_log_;
+  // It is sufficient to truncate each version chain once in a GC invocation because we only read the maximal safe
+  // timestamp once, and the version chain is sorted by timestamp. Here we keep a set of slots to truncate to avoid
+  // wasteful traversals of the version chain.
+  std::unordered_set<storage::TupleSlot> visited_slots_;
 
   std::unordered_set<common::ManagedPointer<storage::index::Index>> indexes_;
-  common::SharedLatch indexes_latch_;
+_  common::SharedLatch indexes_latch_;
 
   // TODO(John, Ling): Eventually we should remove the special casing of indexes here.
   //  This gets invoked every epoch to look through all indexes. It potentially introduces stalls

@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <unordered_set>
 
 #include "common/macros.h"
 #include "common/managed_pointer.h"
@@ -213,7 +214,7 @@ class TransactionContext {
    * Unlink the transactionContext
    * @param oldest_txn timestamp of current running oldest transaction
    */
-  void Unlink(timestamp_t oldest_txn);
+  void Unlink(timestamp_t oldest_txn, std::unordered_set<storage::TupleSlot> *visited_slots);
 
  private:
   friend class storage::GarbageCollector;
