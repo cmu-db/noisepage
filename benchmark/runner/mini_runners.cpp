@@ -144,7 +144,7 @@ static void GenArithArguments(benchmark::internal::Benchmark *b) {
  */
 static void GenScanArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
-  auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
+  auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
   std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
@@ -170,7 +170,7 @@ static void GenScanArguments(benchmark::internal::Benchmark *b) {
  */
 static void GenJoinSelfArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
-  auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
+  auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
   std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
@@ -198,7 +198,7 @@ static void GenJoinSelfArguments(benchmark::internal::Benchmark *b) {
  */
 static void GenJoinNonSelfArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
-  auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
+  auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
   std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
@@ -225,7 +225,7 @@ static void GenJoinNonSelfArguments(benchmark::internal::Benchmark *b) {
  * 2 - Lookup size
  */
 static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
-  auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
+  auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
   auto key_sizes = {1, 2, 4, 8, 15};
   auto idx_sizes = {1, 10, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 500000, 1000000};
   std::vector<double> lookup_sizes = {0.1, 0.25, 0.33, 0.5, 0.66, 0.75, 0.9, 1};
@@ -252,7 +252,7 @@ static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
  * 1 - Number of rows
  */
 static void GenInsertArguments(benchmark::internal::Benchmark *b) {
-  auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
+  auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto num_rows = {1, 10, 100, 1000, 2000, 5000, 10000, 20000, 50000, 100000};
   for (auto type : types) {
@@ -354,6 +354,10 @@ class MiniRunners : public benchmark::Fixture {
       txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     else
       txn_manager_->Abort(txn);
+
+    auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
+    gc->PerformGarbageCollection();
+    gc->PerformGarbageCollection();
   }
 
   void BenchmarkIndexScan(type::TypeId type, int key_num, int num_rows, int lookup_size) {
@@ -435,6 +439,10 @@ class MiniRunners : public benchmark::Fixture {
     }
 
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+    auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
+    gc->PerformGarbageCollection();
+    gc->PerformGarbageCollection();
   }
 
   void BenchmarkArithmetic(brain::ExecutionOperatingUnitType type, size_t num_elem) {
@@ -514,6 +522,10 @@ class MiniRunners : public benchmark::Fixture {
     }
 
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+    auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
+    gc->PerformGarbageCollection();
+    gc->PerformGarbageCollection();
   }
 
  protected:
@@ -559,9 +571,9 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   // NOLINTNEXTLINE
   metrics_manager_->RegisterThread();
   for (auto _ : state) {
-    std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
+    std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
     auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
-    std::vector<std::string> types_strs = {"Integer", "Real"};
+    std::vector<std::string> types_strs = {"Integer", "Integer"};
     std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
                                      2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
     for (size_t type_idx = 0; type_idx < types.size(); type_idx++) {
@@ -582,8 +594,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
           output << "fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {\n";
           for (auto i = 0; i < num_col; i++) {
             output << "\tvar outval" << i << " = ";
-            if (type == type::TypeId::INTEGER) output << "@intToSql(" << i << ")\n";
-            else if (type == type::TypeId::DECIMAL) output << "@floatToSql(" << i << ".0)\n";
+            if (type == type::TypeId::INTEGER) output << "@intToSql(" << (i + num_col) << ")\n";
+            else if (type == type::TypeId::BIGINT) output << "@intToSql(" << (i + num_col) << ")\n";
           }
           output << "\tvar out: *Output\n";
           output << "\tfor(var it = 0; it < " << row_num << "; it = it + 1) {\n";
@@ -632,6 +644,10 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
           exec_query.Run(common::ManagedPointer(exec_ctx), mode);
 
           txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+          auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
+          gc->PerformGarbageCollection();
+          gc->PerformGarbageCollection();
         }
       }
     }
