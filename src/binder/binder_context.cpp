@@ -112,6 +112,10 @@ void BinderContext::AddNestedTable(const std::string &table_alias,
 }
 
 void BinderContext::AddCTETable(const std::string &cte_table_name, const std::string &table_alias) {
+  if (cte_table_name == table_alias) {
+    return;
+  }
+
   if (regular_table_alias_map_.find(table_alias) != regular_table_alias_map_.end() ||
       nested_table_alias_map_.find(table_alias) != nested_table_alias_map_.end()) {
     throw BINDER_EXCEPTION(("Duplicate alias " + table_alias).c_str());
