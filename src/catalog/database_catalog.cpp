@@ -1194,7 +1194,8 @@ bool DatabaseCatalog::SetClassPointer(const common::ManagedPointer<transaction::
 
   // Finish
   delete[] buffer;
-  return classes_->Update(txn, update_redo).first;
+  return classes_->Update(txn, update_redo);
+  // TODO: deal with the case in which tupleslot is migrated
 }
 
 bool DatabaseCatalog::SetIndexPointer(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -1581,8 +1582,9 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
 
   update_redo->SetTupleSlot(class_tuple_slot);
   *reinterpret_cast<IndexSchema **>(update_pr->AccessForceNotNull(0)) = new_schema;
-  auto UNUSED_ATTRIBUTE res = classes_->Update(txn, update_redo).first;
+  auto UNUSED_ATTRIBUTE res = classes_->Update(txn, update_redo);
   TERRIER_ASSERT(res, "Updating an uncommitted insert should not fail");
+  // TODO: deal with the case in which tupleslot is migrated
 
   return true;
 }
@@ -1860,8 +1862,9 @@ bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction:
 
   update_redo->SetTupleSlot(tuple_slot);
   *reinterpret_cast<Schema **>(update_pr->AccessForceNotNull(0)) = new_schema;
-  auto UNUSED_ATTRIBUTE res = classes_->Update(txn, update_redo).first;
+  auto UNUSED_ATTRIBUTE res = classes_->Update(txn, update_redo);
   TERRIER_ASSERT(res, "Updating an uncommitted insert should not fail");
+  // TODO: deal with the case in which tupleslot is migrated
 
   return true;
 }

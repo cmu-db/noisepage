@@ -16,8 +16,9 @@ namespace terrier::storage {
 SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog::Schema &schema)
     : block_store_(store) {
   // Initialize a DataTable
-  tables_ = {{layout_version_t(0),
-              CreateTable(common::ManagedPointer<const catalog::Schema>(&schema), store, layout_version_t(0))}};
+  tables_.clear();
+  tables_.insert(std::make_pair(layout_version_t(0),
+      CreateTable(common::ManagedPointer<const catalog::Schema>(&schema), store, layout_version_t(0))));
 }
 
 bool SqlTable::Select(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
@@ -29,40 +30,37 @@ bool SqlTable::Select(const common::ManagedPointer<transaction::TransactionConte
                  "The iterator should not go to data tables with more recent version than the current transaction.");
 
   if (tuple_version == layout_version) {
-    // when current version is same as the intended layout version, get the tuple without transformation
+    // when current version is same as the desired layout version, get the tuple without transformation
     return tables_.at(tuple_version).data_table_->Select(txn, slot, out_buffer);
   }
 
   // the tuple exists in an older version.
   // TODO(schema-change): handle versions from add and/or drop column only
-  col_id_t ori_header[out_buffer->NumColumns()];
+  col_id_t orig_header[out_buffer->NumColumns()];
 
   auto desired_v = tables_.at(layout_version);
   auto tuple_v = tables_.at(tuple_version);
-  auto missing UNUSED_ATTRIBUTE = AlignHeaderToVersion(out_buffer, tuple_v, desired_v, &ori_header[0]);
-  auto result = tables_.at(tuple_version).data_table_->Select(txn, slot, out_buffer);
+  AlignHeaderToVersion(out_buffer, tuple_v, desired_v, &orig_header[0]);
+  auto result = tuple_v.data_table_->Select(txn, slot, out_buffer);
 
   // copy back the original header
-  std::memcpy(out_buffer->ColumnIds(), ori_header, sizeof(col_id_t) * out_buffer->NumColumns());
+  std::memcpy(out_buffer->ColumnIds(), orig_header, sizeof(col_id_t) * out_buffer->NumColumns());
 
   // fill in missing columns and default values
   FillMissingColumns(out_buffer, desired_v);
   return result;
 }
 
-std::pair<bool, TupleSlot> SqlTable::Update(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                            RedoRecord *const redo, layout_version_t layout_version) const {
+bool SqlTable::Update(const common::ManagedPointer<transaction::TransactionContext> txn,
+    RedoRecord *const redo, TupleSlot *updated_slot, layout_version_t layout_version) const {
   TERRIER_ASSERT(redo->GetTupleSlot() != TupleSlot(nullptr, 0), "TupleSlot was never set in this RedoRecord.");
   TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
                              ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
                  "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
                  "immediately before?");
-  // TODO(Schema-Change): need to take care of tuple migration if the update touches the new columns added
-  //  The migration should be a delete (MVCC style) in old datatable followed by an insert in new datatable.
 
   // get the version of current tuple slot
   auto curr_tuple = redo->GetTupleSlot();
-  auto returned_slot = curr_tuple;
 
   const auto tuple_version = curr_tuple.GetBlock()->data_table_->layout_version_;
 
@@ -73,18 +71,18 @@ std::pair<bool, TupleSlot> SqlTable::Update(const common::ManagedPointer<transac
   if (tuple_version == layout_version) {
     result = tables_.at(layout_version).data_table_->Update(txn, curr_tuple, *(redo->Delta()));
   } else {
-    // tuple in an older version, check if all modified columns are in the datatable version where the tuple is in
-
-    col_id_t ori_header[redo->Delta()->NumColumns()];
+    // tuple is in an older version, check if all modified columns are in the datatable version where the tuple is in
+    col_id_t orig_header[redo->Delta()->NumColumns()];
     auto desired_v = tables_.at(layout_version);
     auto tuple_v = tables_.at(tuple_version);
-    auto missing = AlignHeaderToVersion(redo->Delta(), tuple_v, desired_v, &ori_header[0]);
+    auto missing = AlignHeaderToVersion(redo->Delta(), tuple_v, desired_v, &orig_header[0]);
 
     if (!missing) {
-      result = tuple_v.data_table_->Update(txn, redo->GetTupleSlot(), *(redo->Delta()));
-      std::memcpy(redo->Delta()->ColumnIds(), ori_header, sizeof(col_id_t) * redo->Delta()->NumColumns());
+      result = tuple_v.data_table_->Update(txn, curr_tuple, *(redo->Delta()));
+      *updated_slot = curr_tuple;
+      std::memcpy(redo->Delta()->ColumnIds(), orig_header, sizeof(col_id_t) * redo->Delta()->NumColumns());
     } else {
-      // touching columns that are in the desired schema, but not the actual schema
+      // touching columns that are in the desired version, but not the tuple version
       // do an delete followed by an insert
 
       // get projected row from redo (This projection is deterministic for identical set of columns)
@@ -96,6 +94,7 @@ std::pair<bool, TupleSlot> SqlTable::Update(const common::ManagedPointer<transac
 
       // fill in values to the projection
       result = Select(txn, curr_tuple, pr, layout_version);
+      *updated_slot = curr_tuple;
 
       if (result) {
         // delete it from old datatable
@@ -105,7 +104,7 @@ std::pair<bool, TupleSlot> SqlTable::Update(const common::ManagedPointer<transac
 
           // apply the change
           StorageUtil::ApplyDelta(desired_v.layout_, *(redo->Delta()), pr);
-          const auto slot UNUSED_ATTRIBUTE = desired_v.data_table_->Insert(txn, *pr);
+          *updated_slot = desired_v.data_table_->Insert(txn, *pr);
         }
       }
       delete[] buffer;
@@ -116,7 +115,7 @@ std::pair<bool, TupleSlot> SqlTable::Update(const common::ManagedPointer<transac
     // correctly.
     txn->SetMustAbort();
   }
-  return std::make_pair(result, returned_slot);
+  return result;
 }
 
 TupleSlot SqlTable::Insert(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo,
@@ -134,6 +133,9 @@ TupleSlot SqlTable::Insert(const common::ManagedPointer<transaction::Transaction
 void SqlTable::Scan(const terrier::common::ManagedPointer<transaction::TransactionContext> txn,
                     DataTable::SlotIterator *const start_pos, ProjectedColumns *const out_buffer,
                     const layout_version_t layout_version) const {
+  // typically Scan is done in a for loop, where start_pos is initially begin(), and then set to the tupleslot where the
+  // last Scan left off. Therefore, we can start from the physical tupleslot location the last Scan leftoff, until the
+  // last datatable this transaction can possibly view (the datatable with layout_version)
   layout_version_t tuple_version = (*start_pos)->GetBlock()->layout_version_;
 
   TERRIER_ASSERT(out_buffer->NumColumns() <= tables_.at(layout_version).column_oid_to_id_map_.size(),
@@ -146,7 +148,7 @@ void SqlTable::Scan(const terrier::common::ManagedPointer<transaction::Transacti
     return;
   }
 
-  col_id_t ori_header[out_buffer->NumColumns()];
+  col_id_t orig_header[out_buffer->NumColumns()];
   bool missing = false;
   uint32_t filled = 0;
   auto desired_v = tables_.at(layout_version);
@@ -154,13 +156,13 @@ void SqlTable::Scan(const terrier::common::ManagedPointer<transaction::Transacti
   for (layout_version_t i = tuple_version; i <= layout_version && out_buffer->NumTuples() < out_buffer->MaxTuples();
        i++) {
     auto tuple_v = tables_.at(i);
-    if (AlignHeaderToVersion(out_buffer, tuple_v, desired_v, &ori_header[0])) missing = true;
+    if (AlignHeaderToVersion(out_buffer, tuple_v, desired_v, &orig_header[0])) missing = true;
 
     if (i != tuple_version) *start_pos = tuple_v.data_table_->begin();
     tuple_v.data_table_->IncrementalScan(txn, start_pos, out_buffer, filled);
     filled = out_buffer->NumTuples();
     // copy back the original header
-    std::memcpy(out_buffer->ColumnIds(), ori_header, sizeof(col_id_t) * out_buffer->NumColumns());
+    std::memcpy(out_buffer->ColumnIds(), orig_header, sizeof(col_id_t) * out_buffer->NumColumns());
   }
 
   if (missing) {
@@ -244,7 +246,7 @@ void SqlTable::FillMissingColumns(RowType *out_buffer, const DataTableVersion &d
   const auto col_ids = out_buffer->ColumnIds();
   for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
     if (out_buffer->AccessWithNullCheck(i) == nullptr) {
-      // TODO(Schema-Change): Only handle constant value default
+      // TODO(Schema-Change): For now, we only handle constant default values
       const common::ManagedPointer<const parser::AbstractExpression> default_val =
           desired_version.default_value_map_.at(col_ids[i]);
       if (default_val->GetExpressionType() != parser::ExpressionType::VALUE_CONSTANT) continue;
@@ -272,20 +274,22 @@ template void SqlTable::FillMissingColumns<ProjectedColumns::RowView>(ProjectedC
 
 template <class RowType>
 bool SqlTable::AlignHeaderToVersion(RowType *const out_buffer, const DataTableVersion &tuple_version,
-                                    const DataTableVersion &desired_version, col_id_t *cached_ori_header) const {
+                                    const DataTableVersion &desired_version, col_id_t *cached_orig_header) const {
   bool missing_col = false;
-  // reserve the original header, aka intended column ids'
-  std::memcpy(cached_ori_header, out_buffer->ColumnIds(), sizeof(col_id_t) * out_buffer->NumColumns());
+  // reserve the original header, aka desired version column ids
+  std::memcpy(cached_orig_header, out_buffer->ColumnIds(), sizeof(col_id_t) * out_buffer->NumColumns());
 
-  // for each column id in the intended version of datatable, change it to match the current schema version
+  // map each desired version col_id (preserving order) to tuple version col_id, by matching col_oid
   for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
     TERRIER_ASSERT(out_buffer->ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
                    "Output buffer should not read the version pointer column.");
-    TERRIER_ASSERT(desired_version.column_id_to_oid_map_.count(out_buffer->ColumnIds()[i]) > 0, "col_id missing");
+    TERRIER_ASSERT(desired_version.column_id_to_oid_map_.count(out_buffer->ColumnIds()[i]) > 0,
+        "col_id from out_buffer should be in desired_version map");
     catalog::col_oid_t col_oid = desired_version.column_id_to_oid_map_.at(out_buffer->ColumnIds()[i]);
     if (tuple_version.column_oid_to_id_map_.count(col_oid) > 0) {
       out_buffer->ColumnIds()[i] = tuple_version.column_oid_to_id_map_.at(col_oid);
     } else {
+      // oid is not represented in datatable with tuple version, so put a placeholder in outbuffer
       missing_col = true;
       out_buffer->ColumnIds()[i] = IGNORE_COLUMN_ID;
     }
@@ -296,11 +300,11 @@ bool SqlTable::AlignHeaderToVersion(RowType *const out_buffer, const DataTableVe
 template bool SqlTable::AlignHeaderToVersion<ProjectedRow>(ProjectedRow *const out_buffer,
                                                            const DataTableVersion &tuple_version,
                                                            const DataTableVersion &desired_version,
-                                                           col_id_t *cached_ori_header) const;
+                                                           col_id_t *cached_orig_header) const;
 template bool SqlTable::AlignHeaderToVersion<ProjectedColumns::RowView>(ProjectedColumns::RowView *const out_buffer,
                                                                         const DataTableVersion &tuple_version,
                                                                         const DataTableVersion &desired_version,
-                                                                        col_id_t *cached_ori_header) const;
+                                                                        col_id_t *cached_orig_header) const;
 
 SqlTable::DataTableVersion SqlTable::CreateTable(
     const terrier::common::ManagedPointer<const terrier::catalog::Schema> schema,
@@ -399,7 +403,7 @@ ProjectionMap SqlTable::ProjectionMapForOids(const std::vector<catalog::col_oid_
 
   // for (uint16_t i = 0; i < col_oids.size(); i++) inverse_map[col_ids[i]] = col_oids[i];
 
-  // Populate the projection map using the in-order iterator on std::map
+  // Populate the projection map with oids using the in-order iterator on std::map
   // TODO(Schema-Change): Does this actually retain ordering?
   ProjectionMap projection_map;
   uint16_t i = 0;

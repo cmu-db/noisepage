@@ -59,7 +59,7 @@ class SqlTable {
   SqlTable(common::ManagedPointer<BlockStore> store, const catalog::Schema &schema);
 
   /**
-   * Destructs a SqlTable, frees all its members.
+   * Destructs a SqlTable, frees all its member datatables.
    */
   ~SqlTable() {
     for (const auto &it : tables_) delete it.second.data_table_;
@@ -85,14 +85,16 @@ class SqlTable {
    * @param redo the desired change to be applied. This should be the after-image of the attributes of interest. The
    * TupleSlot in this RedoRecord must be set to the intended tuple.
    * @param layout_version Schema version the current querying transaction should see
-   * @return true if successful, false otherwise
+   * @param migrated_slot used to return tupleslot T after the update. Set this to null if T is not used by caller.
+   * @return true if successful, false otherwise. Populates updated_slot with Tupleslot after the update. This will be
+   * different from the original tupleslot if migration occurs.
    */
-  std::pair<bool, TupleSlot> Update(common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *redo,
-                                    layout_version_t layout_version = layout_version_t{0}) const;
+  bool Update(common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *redo,
+      TupleSlot *updated_slot = nullptr, layout_version_t layout_version = layout_version_t{0}) const;
 
   /**
    * Inserts a tuple, as given in the redo, and return the slot allocated for the tuple. StageWrite must have been
-   * called as well in order for the operation to be logged.
+   * called as well in order for the operation to be logged. Always inserts to datatable with layout_version.
    *
    * @param txn the calling transaction
    * @param redo after-image of the inserted tuple.
@@ -102,16 +104,14 @@ class SqlTable {
   TupleSlot Insert(common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *redo,
                    layout_version_t layout_version = layout_version_t{0}) const;
 
-  // TODO(Schema-change): remove the layout_version?
   /**
    * Deletes the given TupleSlot. StageDelete must have been called as well in order for the operation to be logged.
+   * Note that we always delete from the datatable containing the tupleslot, regardless of the layout_version
    * @param txn the calling transaction
    * @param slot the slot of the tuple to delete
-   * @param layout_version Schema version the current querying transaction should see
    * @return true if successful, false otherwise
    */
-  bool Delete(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
-              layout_version_t layout_version = layout_version_t{0}) {
+  bool Delete(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot) {
     TERRIER_ASSERT(txn->redo_buffer_.LastRecord() != nullptr,
                    "The RedoBuffer is empty even though StageDelete should have been called.");
     TERRIER_ASSERT(
@@ -121,9 +121,6 @@ class SqlTable {
         "This Delete is not the most recent entry in the txn's RedoBuffer. Was StageDelete called immediately before?");
 
     const auto tuple_version = slot.GetBlock()->data_table_->layout_version_;
-    TERRIER_ASSERT(
-        tables_.find(tuple_version) != tables_.end() && tuple_version <= layout_version,
-        "we are not deleting any layout version for now. Tuple version should be visible to current transaction");
     const auto result = tables_.at(tuple_version).data_table_->Delete(txn, slot);
 
     if (!result) {
@@ -165,32 +162,37 @@ class SqlTable {
     TERRIER_ASSERT(tables_.lower_bound(layout_version) == tables_.end(),
                    "input version should be strictly larger than all versions");
     auto table = CreateTable(common::ManagedPointer<const catalog::Schema>(&schema), block_store_, layout_version);
-    const auto [it, success] = tables_.insert(std::make_pair(layout_version, table));
+    const auto UNUSED_ATTRIBUTE [it, success] = tables_.insert(std::make_pair(layout_version, table));
     TERRIER_ASSERT(it != tables_.end() && success, "inserting new tableversion should not fail");
   }
 
   // TODO(Schema-Change): Do we retain the begin() and end(), or implement begin and end function with version number?
 
   /**
-   * @return the first tuple slot contained in the underlying DataTable
+   * @return the first tuple slot contained in the first DataTable
    */
   // NOLINTNEXTLINE for STL name compability
-  DataTable::SlotIterator begin() const { return tables_.begin()->second.data_table_->begin(); }
+  DataTable::SlotIterator begin() const {
+    TERRIER_ASSERT(tables_.size() > 0, "sqltable should have at least one underlying datatable");
+    return tables_.begin()->second.data_table_->begin();
+  }
 
   /**
-   * @return one past the last tuple slot contained in the underlying DataTable
+   * @return one past the last tuple slot contained in the last DataTable
    */
   // NOLINTNEXTLINE for STL name compability
   DataTable::SlotIterator end() const {
+    TERRIER_ASSERT(tables_.size() > 0, "sqltable should have at least one underlying datatable");
     return std::prev(tables_.end())->second.data_table_->end();
   }  // NOLINT for STL name compability
 
   /**
    * @param layout_version the last schema version the querying transaction should be able to see
-   * @return one past the last tuple slot contained in the underlying DataTable
+   * @return one past the last tuple slot contained in the DataTable with layout_version
    */
   // NOLINTNEXTLINE for STL name compability
   DataTable::SlotIterator end(layout_version_t layout_version) const {
+    TERRIER_ASSERT(tables_.size() > 0, "sqltable should have at least one underlying datatable");
     return tables_.at(layout_version).data_table_->end();
   }  // NOLINT for STL name compability
 
@@ -297,18 +299,19 @@ class SqlTable {
   std::map<layout_version_t, DataTableVersion> tables_;
 
   /**
-   *  Aligns the given row with the desired database version by copying in the col_ids to the physical layout's col_ids.
-   *  This effectively ignores those columns which are in the desired schema version but not in the out_buffer's .
+   * Translates out_buffer from desired version col_ids to tuple version col_ids, by mapping each col_id in out_buffer
+   * to its matching col_id in tuple version (2 col_ids match if they map to the same col_oid) or IGNORE_COLUMN_ID if
+   * no match exists in tuple version.
    * @tparam RowType Type of the output (i.e. projected row, projected column)
-   * @param out_buffer a buffer that corresponds to an old schema version
+   * @param out_buffer a buffer initially with desired version, and translated to tuple version
    * @param tuple_version the old schema version
-   * @param desired_version desired schema version
-   * @param cached_ori_header original header cached
-   * @return
+   * @param desired_version the desired schema version
+   * @param cached_orig_header original header cached
+   * @return whether there are columns in the desired schema version but not in the tuple version.
    */
   template <class RowType>
   bool AlignHeaderToVersion(RowType *out_buffer, const DataTableVersion &tuple_version,
-                            const DataTableVersion &desired_version, col_id_t *cached_ori_header) const;
+                            const DataTableVersion &desired_version, col_id_t *cached_orig_header) const;
 
   /**
    * Fill the missing columns in the out_buffer with default values of those columns in the desired_version
@@ -339,6 +342,7 @@ class SqlTable {
 
   /**
    * @warning This function is expensive to call and should be used with caution and sparingly.
+   * (TODO: no longer expensive?)
    * Returns the col oid for the given col id
    * @param col_id given col id
    * @return col oid for the provided col id

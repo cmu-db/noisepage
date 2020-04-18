@@ -250,12 +250,6 @@ class DataTable {
   const layout_version_t layout_version_;
   const TupleAccessStrategy accessor_;
 
-  // TODO(Schema-Change)
-  // Singly-linked list for tables with different version?
-  std::atomic<DataTable *> next_table_ = nullptr;
-  // Or pointer to the SqlTable which has information about different versions?
-  const SqlTable *sql_table_ = nullptr;
-
   // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
   // new one when the current one is full. Needless to say, we will need to revisit this when extending GC to handle
   // deleted tuples and recycle slots
