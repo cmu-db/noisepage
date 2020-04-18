@@ -45,10 +45,24 @@ class CteScanTranslator : public OperatorTranslator {
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
 
   ast::Expr *GetOutput(uint32_t attr_idx) override {
-    // TODO(Rohan): Need to fix this for non leader nodes
-    auto output_expr = op_->GetOutputSchema()->GetColumn(attr_idx).GetExpr();
-    auto translator = TranslatorFactory::CreateExpressionTranslator(output_expr.Get(), codegen_);
-    return translator->DeriveExpr(this);
+    // We need to do this as the output schema can be only one thing
+    // Either a constant value expression or a derived value expression
+    // Leader is given preference - As that node is the LEADER..!!
+    if(op_->IsLeader()) {
+      // Leader derives assuming the output schema will always be a derived value expression
+      auto output_expr = op_->GetOutputSchema()->GetColumn(attr_idx).GetExpr();
+      auto translator = TranslatorFactory::CreateExpressionTranslator(output_expr.Get(), codegen_);
+      return translator->DeriveExpr(this);
+    } else {
+      auto type = op_->GetOutputSchema()->GetColumn(attr_idx).GetType();
+      auto nullable = false;
+      // ToDo(Rohan) : Think if this can be simplified
+      uint16_t projection_map_index =
+          projection_map_[static_cast<catalog::col_oid_t>(
+              col_name_to_oid[
+                  op_->GetOutputSchema()->GetColumn(attr_idx).GetName()])];
+      return codegen_->PCIGet(read_pci_, type, nullable, projection_map_index);
+    }
   }
 
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {
@@ -83,6 +97,7 @@ class CteScanTranslator : public OperatorTranslator {
   std::vector<int> all_types_;
   ast::Identifier insert_pr_;
   std::vector<catalog::col_oid_t> col_oids_;
+  std::unordered_map<std::string, uint32_t> col_name_to_oid;
   storage::ProjectionMap projection_map_;
   ast::Identifier read_col_oids_;
   ast::Identifier read_tvi_;
