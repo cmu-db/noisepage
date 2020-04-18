@@ -2013,9 +2013,7 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinWithCteTest) {
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
   auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
-  auto table_oid2 = accessor->GetTableOid(NSOid(), "test_2");
   auto table_schema1 = accessor->GetSchema(table_oid1);
-  auto table_schema2 = accessor->GetSchema(table_oid2);
 
   std::unique_ptr<planner::AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
@@ -2057,44 +2055,20 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinWithCteTest) {
         builder.SetOutputSchema(std::move(schema)).AddChild(std::move(seq_scan)).SetLeader(true).Build();
   }
 
-  std::unique_ptr<planner::AbstractPlanNode> seq_scan2;
-  OutputSchemaHelper seq_scan_out2{1, &expr_maker};
-  {
-    // OIDs
-    auto cola_oid = table_schema2.GetColumn("col1").Oid();
-    auto colb_oid = table_schema2.GetColumn("col2").Oid();
-    // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::SMALLINT);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
-    seq_scan_out2.AddOutput("col1", col1);
-    seq_scan_out2.AddOutput("col2", col2);
-    auto schema = seq_scan_out2.MakeSchema();
-    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(80));
-    // Build
-    planner::SeqScanPlanNode::Builder builder;
-    seq_scan2 = builder.SetOutputSchema(std::move(schema))
-        .SetColumnOids({cola_oid, colb_oid})
-        .SetScanPredicate(predicate)
-        .SetIsForUpdateFlag(false)
-        .SetNamespaceOid(NSOid())
-        .SetTableOid(table_oid2)
-        .Build();
-  }
-
   std::unique_ptr<planner::AbstractPlanNode> cte_scan2;
   OutputSchemaHelper cte_scan_out2{1, &expr_maker};
   {
     // Output Colums col1
     // Output Colums col1
-    auto col1 = seq_scan_out2.GetOutput("col1");
-    auto col2 = seq_scan_out2.GetOutput("col2");
+    auto col1 = seq_scan_out.GetOutput("colA");
+    auto col2 = seq_scan_out.GetOutput("colB");
     cte_scan_out2.AddOutput("col1", col1);
     cte_scan_out2.AddOutput("col2", col2);
     auto schema = cte_scan_out2.MakeSchema();
     // Build
     planner::CteScanPlanNode::Builder builder;
     cte_scan2 =
-        builder.SetOutputSchema(std::move(schema)).AddChild(std::move(seq_scan2)).SetLeader(false).Build();
+        builder.SetOutputSchema(std::move(schema)).SetLeader(false).Build();
   }
 
   // Make nested loop join
@@ -2127,9 +2101,24 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinWithCteTest) {
         .Build();
   }
 
-  auto exec_ctx = MakeExecCtx(nullptr, nl_join->GetOutputSchema().Get());
+  // Dummy checkers
+  RowChecker row_checker = [](const std::vector<sql::Val *> &vals) {
+  };
+  CorrectnessFn correcteness_fn = []() {
+  };
+  GenericChecker checker(row_checker, correcteness_fn);
+
+  // Make Exec Ctx
+  OutputStore store{&checker, nl_join->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(nl_join->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), nl_join->GetOutputSchema().Get());
+
   // Run & Check
   auto executable = ExecutableQuery(common::ManagedPointer(nl_join), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  checker.CheckCorrectness();
+
 }
 
 
