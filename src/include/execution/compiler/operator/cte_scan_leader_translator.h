@@ -4,21 +4,21 @@
 #include <vector>
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/translator_factory.h"
-#include "planner/plannodes/cte_scan_plan_node.h"
+#include "planner/plannodes/cte_scan_leader_plan_node.h"
 
 namespace terrier::execution::compiler {
 
 /**
- * CteScan Translator
+ * CteScanLeader Translator
  */
-class CteScanTranslator : public OperatorTranslator {
+class CteScanLeaderTranslator : public OperatorTranslator {
  public:
   /**
    * Constructor
    * @param op The plan node
    * @param codegen The code generator
    */
-  CteScanTranslator(const terrier::planner::CteScanPlanNode *op, CodeGen *codegen);
+  CteScanLeaderTranslator(const terrier::planner::CteScanLeaderPlanNode *op, CodeGen *codegen);
 
   // Pass through
   void Produce(FunctionBuilder *builder) override;
@@ -66,7 +66,7 @@ class CteScanTranslator : public OperatorTranslator {
   const planner::AbstractPlanNode *Op() override { return op_; }
 
  private:
-  const planner::CteScanPlanNode *op_;
+  const planner::CteScanLeaderPlanNode *op_;
   // Declare Cte Scan Itarator
   void DeclareCteScanIterator(FunctionBuilder *builder);
   // Set Column Types for insertion

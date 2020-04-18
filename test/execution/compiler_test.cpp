@@ -34,6 +34,7 @@
 #include "planner/plannodes/insert_plan_node.h"
 #include "planner/plannodes/limit_plan_node.h"
 #include "planner/plannodes/cte_scan_plan_node.h"
+#include "planner/plannodes/cte_scan_leader_plan_node.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
 #include "planner/plannodes/output_schema.h"
@@ -2200,7 +2201,7 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinWithCteTest) {
     cte_scan_out.AddOutput("colB", col2);
     auto schema = cte_scan_out.MakeSchema();
     // Build
-    planner::CteScanPlanNode::Builder builder;
+    planner::CteScanLeaderPlanNode::Builder builder;
     cte_scan =
         builder.SetOutputSchema(std::move(schema)).AddChild(std::move(seq_scan)).SetLeader(true).Build();
   }
