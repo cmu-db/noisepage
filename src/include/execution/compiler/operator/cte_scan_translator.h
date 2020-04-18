@@ -48,21 +48,15 @@ class CteScanTranslator : public OperatorTranslator {
     // We need to do this as the output schema can be only one thing
     // Either a constant value expression or a derived value expression
     // Leader is given preference - As that node is the LEADER..!!
-    if(op_->IsLeader()) {
-      // Leader derives assuming the output schema will always be a derived value expression
-      auto output_expr = op_->GetOutputSchema()->GetColumn(attr_idx).GetExpr();
-      auto translator = TranslatorFactory::CreateExpressionTranslator(output_expr.Get(), codegen_);
-      return translator->DeriveExpr(this);
-    } else {
-      auto type = op_->GetOutputSchema()->GetColumn(attr_idx).GetType();
-      auto nullable = false;
-      // ToDo(Rohan) : Think if this can be simplified
-      uint16_t projection_map_index =
-          projection_map_[static_cast<catalog::col_oid_t>(
-              col_name_to_oid[
-                  op_->GetOutputSchema()->GetColumn(attr_idx).GetName()])];
-      return codegen_->PCIGet(read_pci_, type, nullable, projection_map_index);
-    }
+
+  auto type = op_->GetOutputSchema()->GetColumn(attr_idx).GetType();
+  auto nullable = false;
+  // ToDo(Rohan) : Think if this can be simplified
+  uint16_t projection_map_index =
+      projection_map_[static_cast<catalog::col_oid_t>(
+          col_name_to_oid[
+              op_->GetOutputSchema()->GetColumn(attr_idx).GetName()])];
+  return codegen_->PCIGet(read_pci_, type, nullable, projection_map_index);
   }
 
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {
@@ -117,6 +111,7 @@ class CteScanTranslator : public OperatorTranslator {
   // for (; @pciHasNext(pci); @pciAdvance(pci)) {...}
   void GenPCILoop(FunctionBuilder *builder);
 
+  void GenReadTVIReset(FunctionBuilder *builder);
 };
 
 }  // namespace terrier::execution::compiler

@@ -6,20 +6,17 @@
 
 namespace terrier::execution::compiler {
 void CteScanTranslator::Produce(FunctionBuilder *builder) {
+  SetReadOids(builder);
+  DeclareReadTVI(builder);
 
-  if(op_->IsLeader()) {
-    DeclareCteScanIterator(builder);
+  if(child_translator_ != nullptr) {
     child_translator_->Produce(builder);
   } else {
-    SetReadOids(builder);
-    DeclareReadTVI(builder);
     DoTableScan(builder);
   }
 
-  if(!op_->IsLeader()) {
-    // Close iterator
-    GenReadTVIClose(builder);
-  }
+  // Close iterator
+  GenReadTVIClose(builder);
 }
 
 parser::ConstantValueExpression DummyCVE() {
@@ -106,20 +103,12 @@ CteScanTranslator::CteScanTranslator(const terrier::planner::CteScanPlanNode *op
 }
 
 void CteScanTranslator::Consume(FunctionBuilder *builder) {
-
-  if(op_->IsLeader()) {
-    // Declare & Get table PR
-    DeclareInsertPR(builder);
-    GetInsertPR(builder);
-
-    // Set the values to insert
-    FillPRFromChild(builder);
-
-    // Insert into table
-    GenTableInsert(builder);
-  }
-  parent_translator_->Consume(builder);
+  // This is called in nested loop joins
+  DoTableScan(builder);
+  // Need to reset the table iterator as one whole pass through the table is complete
+  GenReadTVIReset(builder);
 }
+
 void CteScanTranslator::DeclareCteScanIterator(FunctionBuilder *builder) {
 
   // Generate col types
@@ -153,21 +142,19 @@ void CteScanTranslator::DeclareInsertPR(terrier::execution::compiler::FunctionBu
 
 void CteScanTranslator::GetInsertPR(terrier::execution::compiler::FunctionBuilder *builder) {
   // var insert_pr = cteScanGetInsertTempTablePR(...)
-  auto get_pr_call = codegen_->OneArgCall(ast::Builtin::CteScanGetInsertTempTablePR, codegen_->GetCteScanIdentifier(), true);
+  auto get_pr_call = codegen_->OneArgCall(ast::Builtin::CteScanGetInsertTempTablePR, codegen_->GetStateMemberPtr(codegen_->GetCteScanIdentifier()));
   builder->Append(codegen_->Assign(codegen_->MakeExpr(insert_pr_), get_pr_call));
 }
 
 void CteScanTranslator::GenTableInsert(FunctionBuilder *builder) {
   // var insert_slot = @cteScanTableInsert(&inserter_)
   auto insert_slot = codegen_->NewIdentifier("insert_slot");
-  auto insert_call = codegen_->OneArgCall(ast::Builtin::CteScanTableInsert, codegen_->GetCteScanIdentifier(), true);
+  auto insert_call = codegen_->OneArgCall(ast::Builtin::CteScanTableInsert, codegen_->GetStateMemberPtr(codegen_->GetCteScanIdentifier()));
   builder->Append(codegen_->DeclareVariable(insert_slot, nullptr, insert_call));
 }
 
 void CteScanTranslator::FillPRFromChild(terrier::execution::compiler::FunctionBuilder *builder) {
   const auto &cols = op_->GetOutputSchema()->GetColumns();
-
-
 
   for (uint32_t i = 0; i < col_oids_.size(); i++) {
     const auto &table_col = cols[i];
@@ -255,6 +242,10 @@ void CteScanTranslator::GenPCILoop(FunctionBuilder *builder) {
   ast::Stmt *loop_advance = codegen_->MakeStmt(advance_call);
   // Make the for loop.
   builder->StartForStmt(nullptr, has_next_call, loop_advance);
+}
+void CteScanTranslator::GenReadTVIReset(FunctionBuilder *builder) {
+  ast::Expr *reset_call = codegen_->OneArgCall(ast::Builtin::TableIterReset, read_tvi_, true);
+  builder->Append(codegen_->MakeStmt(reset_call));
 }
 
 }  // namespace terrier::execution::compiler
