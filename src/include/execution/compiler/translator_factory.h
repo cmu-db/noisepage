@@ -29,6 +29,18 @@ class TranslatorFactory {
   static std::unique_ptr<OperatorTranslator> CreateBottomTranslator(const planner::AbstractPlanNode *op,
                                                                     CodeGen *codegen);
 
+  /*
+   * Translator for Leader Cte Scan nodes
+   * */
+  static std::unique_ptr<OperatorTranslator> CteScanLeaderNodeTranslator(
+      const terrier::planner::AbstractPlanNode *op, CodeGen *codegen);
+
+  /*
+   * Translator for Follower Cte Scan nodes
+   * */
+  static std::unique_ptr<OperatorTranslator> CteScanNodeTranslator(
+      const terrier::planner::AbstractPlanNode *op, CodeGen *codegen);
+
   /**
    * Create a top expression translator
    */

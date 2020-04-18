@@ -4,7 +4,7 @@
 #include <vector>
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/translator_factory.h"
-#include "planner/plannodes/cte_scan_leader_plan_node.h"
+#include "planner/plannodes/cte_scan_plan_node.h"
 
 namespace terrier::execution::compiler {
 
@@ -18,7 +18,7 @@ class CteScanLeaderTranslator : public OperatorTranslator {
    * @param op The plan node
    * @param codegen The code generator
    */
-  CteScanLeaderTranslator(const terrier::planner::CteScanLeaderPlanNode *op, CodeGen *codegen);
+  CteScanLeaderTranslator(const terrier::planner::CteScanPlanNode *op, CodeGen *codegen);
 
   // Pass through
   void Produce(FunctionBuilder *builder) override;
@@ -30,7 +30,10 @@ class CteScanLeaderTranslator : public OperatorTranslator {
   void Consume(FunctionBuilder *builder) override;
 
   // Does nothing
-  void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
+  void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {
+    ast::Expr *cte_scan_type = codegen_->BuiltinType(ast::BuiltinType::Kind::CteScanIterator);
+    state_fields->emplace_back(codegen_->MakeField(codegen_->GetCteScanIdentifier(), cte_scan_type));
+  }
 
   // Does nothing
   void InitializeStructs(util::RegionVector<ast::Decl *> *decls) override {}
@@ -66,7 +69,7 @@ class CteScanLeaderTranslator : public OperatorTranslator {
   const planner::AbstractPlanNode *Op() override { return op_; }
 
  private:
-  const planner::CteScanLeaderPlanNode *op_;
+  const planner::CteScanPlanNode *op_;
   // Declare Cte Scan Itarator
   void DeclareCteScanIterator(FunctionBuilder *builder);
   // Set Column Types for insertion

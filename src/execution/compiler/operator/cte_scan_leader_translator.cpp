@@ -7,19 +7,8 @@
 namespace terrier::execution::compiler {
 void CteScanLeaderTranslator::Produce(FunctionBuilder *builder) {
 
-  if(op_->IsLeader()) {
     DeclareCteScanIterator(builder);
     child_translator_->Produce(builder);
-  } else {
-    SetReadOids(builder);
-    DeclareReadTVI(builder);
-    DoTableScan(builder);
-  }
-
-  if(!op_->IsLeader()) {
-    // Close iterator
-    GenReadTVIClose(builder);
-  }
 }
 
 parser::ConstantValueExpression DummyLeaderCVE() {
@@ -27,7 +16,7 @@ parser::ConstantValueExpression DummyLeaderCVE() {
 }
 
 
-CteScanLeaderTranslator::CteScanLeaderTranslator(const terrier::planner::CteScanLeaderPlanNode *op, CodeGen *codegen):
+CteScanLeaderTranslator::CteScanLeaderTranslator(const terrier::planner::CteScanPlanNode *op, CodeGen *codegen):
   OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::CTE_SCAN),
   op_(op),
   col_types_(codegen->NewIdentifier("col_types")),
@@ -106,7 +95,6 @@ CteScanLeaderTranslator::CteScanLeaderTranslator(const terrier::planner::CteScan
 
 void CteScanLeaderTranslator::Consume(FunctionBuilder *builder) {
 
-  if(op_->IsLeader()) {
     // Declare & Get table PR
     DeclareInsertPR(builder);
     GetInsertPR(builder);
@@ -116,18 +104,11 @@ void CteScanLeaderTranslator::Consume(FunctionBuilder *builder) {
 
     // Insert into table
     GenTableInsert(builder);
-  }
-  if(parent_translator_ != NULL) {
-    parent_translator_->Consume(builder);
-  }
 }
 void CteScanLeaderTranslator::DeclareCteScanIterator(FunctionBuilder *builder) {
 
   // Generate col types
   SetColumnTypes(builder);
-  // var cte_scan_iterator : CteScanIterator
-  auto cte_scan_iterator_type = codegen_->BuiltinType(ast::BuiltinType::Kind::CteScanIterator);
-  builder->Append(codegen_->DeclareVariable(codegen_->GetCteScanIdentifier(), cte_scan_iterator_type, nullptr));
   // Call @cteScanIteratorInit
   ast::Expr *cte_scan_iterator_setup = codegen_->CteScanIteratorInit(codegen_->GetCteScanIdentifier(), col_types_);
   builder->Append(codegen_->MakeStmt(cte_scan_iterator_setup));
@@ -154,21 +135,19 @@ void CteScanLeaderTranslator::DeclareInsertPR(terrier::execution::compiler::Func
 
 void CteScanLeaderTranslator::GetInsertPR(terrier::execution::compiler::FunctionBuilder *builder) {
   // var insert_pr = cteScanGetInsertTempTablePR(...)
-  auto get_pr_call = codegen_->OneArgCall(ast::Builtin::CteScanGetInsertTempTablePR, codegen_->GetCteScanIdentifier(), true);
+  auto get_pr_call = codegen_->OneArgCall(ast::Builtin::CteScanGetInsertTempTablePR, codegen_->GetStateMemberPtr(codegen_->GetCteScanIdentifier()));
   builder->Append(codegen_->Assign(codegen_->MakeExpr(insert_pr_), get_pr_call));
 }
 
 void CteScanLeaderTranslator::GenTableInsert(FunctionBuilder *builder) {
   // var insert_slot = @cteScanTableInsert(&inserter_)
   auto insert_slot = codegen_->NewIdentifier("insert_slot");
-  auto insert_call = codegen_->OneArgCall(ast::Builtin::CteScanTableInsert, codegen_->GetCteScanIdentifier(), true);
+  auto insert_call = codegen_->OneArgCall(ast::Builtin::CteScanTableInsert, codegen_->GetStateMemberPtr(codegen_->GetCteScanIdentifier()));
   builder->Append(codegen_->DeclareVariable(insert_slot, nullptr, insert_call));
 }
 
 void CteScanLeaderTranslator::FillPRFromChild(terrier::execution::compiler::FunctionBuilder *builder) {
   const auto &cols = op_->GetOutputSchema()->GetColumns();
-
-
 
   for (uint32_t i = 0; i < col_oids_.size(); i++) {
     const auto &table_col = cols[i];

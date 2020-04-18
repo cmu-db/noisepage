@@ -61,16 +61,23 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateRegularTranslator(
     case terrier::planner::PlanNodeType::LIMIT: {
       return std::make_unique<LimitTranslator>(static_cast<const planner::LimitPlanNode *>(op), codegen);
     }
-    case terrier::planner::PlanNodeType::CTESCAN: {
-      return std::make_unique<CteScanTranslator>(static_cast<const planner::CteScanPlanNode *>(op), codegen);
-    }
-    case terrier::planner::PlanNodeType::CTESCANLEADER: {
-      return std::make_unique<CteScanLeaderTranslator>(static_cast<const planner::CteScanLeaderPlanNode *>(op), codegen);
-    }
     default:
       UNREACHABLE("Unsupported plan nodes");
   }
 }
+
+std::unique_ptr<OperatorTranslator> TranslatorFactory::CteScanNodeTranslator(
+    const terrier::planner::AbstractPlanNode *op, CodeGen *codegen) {
+  return std::make_unique<CteScanTranslator>(static_cast<const planner::CteScanPlanNode *>(op), codegen);
+
+}
+
+std::unique_ptr<OperatorTranslator> TranslatorFactory::CteScanLeaderNodeTranslator(
+    const terrier::planner::AbstractPlanNode *op, CodeGen *codegen) {
+  return std::make_unique<CteScanLeaderTranslator>(static_cast<const planner::CteScanPlanNode *>(op), codegen);
+
+}
+
 
 std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateBottomTranslator(
     const terrier::planner::AbstractPlanNode *op, CodeGen *codegen) {
