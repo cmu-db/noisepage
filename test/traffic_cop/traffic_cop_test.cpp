@@ -131,7 +131,7 @@ TEST_F(TrafficCopTests, BadBindingTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(TrafficCopTests, DISABLED_BasicTest) {
+TEST_F(TrafficCopTests, BasicTest) {
   try {
     pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
                                             port_, catalog::DEFAULT_DATABASE));

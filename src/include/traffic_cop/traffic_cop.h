@@ -5,15 +5,19 @@
 #include <vector>
 
 #include "catalog/catalog.h"
+#include "common/managed_pointer.h"
 #include "network/network_defs.h"
 #include "parser/create_statement.h"
 #include "parser/drop_statement.h"
 #include "parser/transaction_statement.h"
 #include "storage/recovery/replication_log_provider.h"
+#include "traffic_cop/traffic_cop_defs.h"
 
 namespace terrier::network {
 class ConnectionContext;
 class PostgresPacketWriter;
+class Statement;
+class Portal;
 }  // namespace terrier::network
 
 namespace terrier::optimizer {
@@ -27,13 +31,11 @@ class AbstractPlanNode;
 namespace terrier::trafficcop {
 
 /**
- *
- * Traffic Cop of the database. It provides access to all the backend components.
- *
- * *Should be a singleton*
- *
+ * The TrafficCop acts as a translation layer between protocol implementations at at the front-end and execution of
+ * queries in the back-end. We strive to encapsulate protocol-agnostic behavior at this layer (i.e. nothing
+ * Postgres-specific). Anything protocol specific should be done at the network's protocol interpreter or command
+ * processing layers.
  */
-
 class TrafficCop {
  public:
   /**
@@ -81,24 +83,90 @@ class TrafficCop {
   /**
    * @param query SQL string to be parsed
    * @param connection_ctx used to maintain state
-   * @param out used to write out results if necessary
    * @return parser's ParseResult, nullptr if failed
    */
-  std::unique_ptr<parser::ParseResult> ParseQuery(const std::string &query,
-                                                  common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                                  common::ManagedPointer<network::PostgresPacketWriter> out) const;
+  std::unique_ptr<parser::ParseResult> ParseQuery(
+      const std::string &query, common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
 
   /**
-   * Given a parsed SQL statement, attempts to bind, optimize, and execute
-   * @param connection_ctx used to maintain state
-   * @param out used to write out results if necessary
-   * @param parse_result parser's valid ParseResult
-   * @param query_type type of the query, can be re-derived but should already be known
+   * @param connection_ctx context containg txn and catalog accessor to be used
+   * @param query bound ParseResult
+   * @return physical plan that can be executed
    */
-  void ExecuteStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                        common::ManagedPointer<network::PostgresPacketWriter> out,
-                        common::ManagedPointer<parser::ParseResult> parse_result,
-                        terrier::network::QueryType query_type) const;
+  std::unique_ptr<planner::AbstractPlanNode> OptimizeBoundQuery(
+      common::ManagedPointer<network::ConnectionContext> connection_ctx,
+      common::ManagedPointer<parser::ParseResult> query) const;
+
+  /**
+   * Calls to txn manager to begin txn, and updates ConnectionContext state
+   * @param connection_ctx context to own this txn
+   */
+  void BeginTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
+
+  /**
+   * Calls to txn manager to end txn, and updates ConnectionContext state
+   * @param connection_ctx context to release its txn
+   * @param query_type if the txn is being ended with COMMIT or ROLLBACK
+   */
+  void EndTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                      network::QueryType query_type) const;
+
+  /**
+   * Contains the logic to reason about BEGIN, COMMIT, ROLLBACK execution. Responsible for outputting results, since we
+   * need to be able to do more than return a single TrafficCopResult (i.e. we may need a NOTICE and a COMPLETE)
+   * @param connection_ctx context to be modified by changing txn state
+   * @param out packet writer for writing results
+   * @param explicit_txn_block true if in a txn from BEGIN, false otherwise
+   * @param query_type BEGIN, COMMIT, or ROLLBACK
+   */
+  void ExecuteTransactionStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                   common::ManagedPointer<network::PostgresPacketWriter> out, bool explicit_txn_block,
+                                   terrier::network::QueryType query_type) const;
+
+  /**
+   * Contains logic to reason about binding, and basic IF EXISTS logic.
+   * @param connection_ctx context to be used to access the internal txn
+   * @param statement parse result to be bound
+   * @param parameters parameters for the query being bound, can be nullptr if there are no parameters
+   * @return result of the operation
+   */
+  TrafficCopResult BindQuery(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                             common::ManagedPointer<network::Statement> statement,
+                             common::ManagedPointer<std::vector<type::TransientValue>> parameters) const;
+
+  /**
+   * Contains the logic to reason about CREATE execution.
+   * @param connection_ctx context to be used to access the internal txn
+   * @param physical_plan to be executed
+   * @param query_type CREATE_TABLE, CREATE_INDEX, etc.
+   * @return result of the operation
+   */
+  TrafficCopResult ExecuteCreateStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                          common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
+                                          terrier::network::QueryType query_type) const;
+
+  /**
+   * Contains the logic to reason about DROP execution.
+   * @param connection_ctx context to be used to access the internal txn
+   * @param physical_plan to be executed
+   * @param query_type DROP_TABLE, DROP_INDEX, etc.
+   * @return result of the operation
+   */
+  TrafficCopResult ExecuteDropStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                        common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
+                                        terrier::network::QueryType query_type) const;
+
+  /**
+   * Contains the logic to reason about DML execution. Responsible for outputting results because we don't want to
+   * (can't) stick it in TrafficCopResult.
+   * @param connection_ctx context to be used to access the internal txn
+   * @param out packet writer to return results
+   * @param portal to be executed, may contain parameters
+   * @return result of the operation
+   */
+  TrafficCopResult CodegenAndRunPhysicalPlan(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                             common::ManagedPointer<network::PostgresPacketWriter> out,
+                                             common::ManagedPointer<network::Portal> portal) const;
 
   /**
    * Adjust the TrafficCop's optimizer timeout value (for use by SettingsManager)
@@ -107,44 +175,6 @@ class TrafficCop {
   void SetOptimizerTimeout(const uint64_t optimizer_timeout) { optimizer_timeout_ = optimizer_timeout; }
 
  private:
-  // Internal method to handle the logic of beginning a txn. Is not responsible for outputting results, only meant to be
-  // called by ExecuteTransactionStatement
-  void BeginTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
-
-  // Internal method to handle the logic of ending a txn. Is not responsible for outputting results, only meant to be
-  // called by ExecuteTransactionStatement
-  void EndTransaction(common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                      network::QueryType query_type) const;
-
-  // Contains the logic to reason about BEGIN, COMMIT, ROLLBACK execution. Responsible for outputting results.
-  void ExecuteTransactionStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                   common::ManagedPointer<network::PostgresPacketWriter> out,
-                                   terrier::network::QueryType query_type) const;
-
-  // Contains logic to reason about binding, and basic IF EXISTS logic. Responsible for outputting results.
-  bool BindStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                     common::ManagedPointer<network::PostgresPacketWriter> out,
-                     common::ManagedPointer<parser::ParseResult> parse_result,
-                     terrier::network::QueryType query_type) const;
-
-  // Contains the logic to reason about CREATE execution. Responsible for outputting results.
-  void ExecuteCreateStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                              common::ManagedPointer<network::PostgresPacketWriter> out,
-                              common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-                              terrier::network::QueryType query_type, bool single_statement_txn) const;
-
-  // Contains the logic to reason about DROP execution. Responsible for outputting results.
-  void ExecuteDropStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                            common::ManagedPointer<network::PostgresPacketWriter> out,
-                            common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-                            terrier::network::QueryType query_type, bool single_statement_txn) const;
-
-  // Contains the logic to reason about DML execution. Responsible for outputting results.
-  void CodegenAndRunPhysicalPlan(common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                 common::ManagedPointer<network::PostgresPacketWriter> out,
-                                 common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-                                 terrier::network::QueryType query_type) const;
-
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   common::ManagedPointer<catalog::Catalog> catalog_;
   // Hands logs off to replication component. TCop should forward these logs through this provider.
