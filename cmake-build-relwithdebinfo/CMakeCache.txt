@@ -14,6 +14,18 @@
 # EXTERNAL cache entries
 ########################
 
+//The directory containing a CMake configuration file for Boost.
+Boost_DIR:PATH=/usr/local/lib/cmake/Boost-1.72.0
+
+//Path to a file.
+Boost_INCLUDE_DIR:PATH=/usr/local/include
+
+Boost_REGEX_LIBRARY_RELEASE:STRING=/usr/local/lib/libboost_regex-mt.dylib
+
+Boost_SYSTEM_LIBRARY_RELEASE:STRING=/usr/local/lib/libboost_system-mt.dylib
+
+Boost_THREAD_LIBRARY_RELEASE:STRING=/usr/local/lib/libboost_thread-mt.dylib
+
 //Path to a program.
 CLANG:FILEPATH=/usr/bin/clang++
 
@@ -385,6 +397,18 @@ TERRIER_VERBOSE_THIRDPARTY_BUILD:BOOL=OFF
 //Dependencies for the target
 benchmark_util_LIB_DEPENDS:STATIC=general;test_util;general;gflags;general;/usr/local/lib/libevent.dylib;general;/usr/local/lib/libevent_pthreads.dylib;general;/usr/local/lib/libtbb.dylib;general;/usr/local/lib/libpqxx.dylib;general;/usr/local/lib/libpq.dylib;general;LLVMCore;general;LLVMMCJIT;general;LLVMX86CodeGen;general;LLVMX86Desc;general;LLVMX86Info;general;LLVMipo;general;LLVMX86CodeGen;general;LLVMX86AsmParser;general;LLVMX86AsmPrinter;general;LLVMX86Desc;general;LLVMX86Disassembler;general;LLVMX86Info;general;LLVMX86Utils;general;pg_query;
 
+//The directory containing a CMake configuration file for boost_headers.
+boost_headers_DIR:PATH=/usr/local/lib/cmake/boost_headers-1.72.0
+
+//The directory containing a CMake configuration file for boost_regex.
+boost_regex_DIR:PATH=/usr/local/lib/cmake/boost_regex-1.72.0
+
+//The directory containing a CMake configuration file for boost_system.
+boost_system_DIR:PATH=/usr/local/lib/cmake/boost_system-1.72.0
+
+//The directory containing a CMake configuration file for boost_thread.
+boost_thread_DIR:PATH=/usr/local/lib/cmake/boost_thread-1.72.0
+
 //Value Computed by CMake
 pg_query_BINARY_DIR:STATIC=/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/cmake-build-relwithdebinfo/src/libpg_query.a
 
@@ -411,6 +435,8 @@ util_static_LIB_DEPENDS:STATIC=general;terrier_static;general;gflags;general;/us
 # INTERNAL cache entries
 ########################
 
+//ADVANCED property for variable: Boost_DIR
+Boost_DIR-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_AR
 CMAKE_AR-ADVANCED:INTERNAL=1
 //This is the directory where this CMakeCache.txt was created
@@ -578,6 +604,8 @@ CMAKE_STRIP-ADVANCED:INTERNAL=1
 CMAKE_UNAME:INTERNAL=/usr/bin/uname
 //ADVANCED property for variable: CMAKE_VERBOSE_MAKEFILE
 CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
+//Details about finding Boost
+FIND_PACKAGE_MESSAGE_DETAILS_Boost:INTERNAL=[/usr/local/lib/cmake/Boost-1.72.0/BoostConfig.cmake][cfound components:  system thread regex ][v1.72.0(1.42.0)]
 //Details about finding TBB
 FIND_PACKAGE_MESSAGE_DETAILS_TBB:INTERNAL=[/usr/local/include][/usr/local/lib/libtbb.dylib][c ][v2020.1()]
 //Details about finding Threads
@@ -610,4 +638,12 @@ TBB_tbb_LIBRARY_DEBUG-ADVANCED:INTERNAL=1
 TBB_tbb_LIBRARY_RELEASE-ADVANCED:INTERNAL=1
 //CMAKE_INSTALL_PREFIX during last run
 _GNUInstallDirs_LAST_CMAKE_INSTALL_PREFIX:INTERNAL=/usr/local
+//ADVANCED property for variable: boost_headers_DIR
+boost_headers_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: boost_regex_DIR
+boost_regex_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: boost_system_DIR
+boost_system_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: boost_thread_DIR
+boost_thread_DIR-ADVANCED:INTERNAL=1
 

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <sched.h>
-#include <storage/storage_defs.h>
 
 #include <atomic>
 #include <condition_variable>  // NOLINT
@@ -19,6 +18,7 @@
 #include "common/dedicated_thread_owner.h"
 #include "common/dedicated_thread_registry.h"
 #include "tbb/concurrent_queue.h"
+#include "common/coroutine_defs.h"
 #include <tbb/reader_writer_lock.h>
 
 namespace terrier::common {
@@ -36,16 +36,13 @@ namespace terrier::common {
 class ExecutionThreadPool : DedicatedThreadOwner {
  public:
 
-
-  class PoolContext;
-
   /**
  * A task queue is a FIFO list of functions that we will execute.
  * This queue by itself is not threadsafe so the WorkerPool class has to protect
  * it on its own with latches.
  */
 // TODO(Deepayan): change from void later
-  using ExecutionTaskQueue = tbb::concurrent_queue<PoolContext *>;
+  using ExecutionTaskQueue = tbb::concurrent_queue<common::PoolContext *>;
 
   /**
    * All possible states that a thread could be in
@@ -94,7 +91,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
       numa_hint = static_cast<common::numa_region_t>(0);
     }
 
-    ctx->func_ = task;
+    ctx->SetFunction(task);
     task_queue_[static_cast<int16_t>(numa_hint)].push(ctx);
     task_cv_.notify_all();
   }
@@ -213,21 +210,6 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     ThreadStatus status_ = ThreadStatus::FREE;
     common::numa_region_t numa_region_;
     std::atomic_bool exit_task_loop_ = false, done_exiting_ = false;
-  };
-
- public:
-  class PoolContext {
-   public:
-    void WaitForFinsh() { promise_.get_future().get(); }
-    bool YieldToFunc() { return true; }
-    void YieldToPool() {}
-    PoolContext() = default;
-    ~PoolContext() = default;
-
-    PoolContext(ExecutionThreadPool *pool, std::function<void(PoolContext *)> f) : func_(f) {}
-    std::function<void(PoolContext *)> func_ = nullptr;
-   private:
-    std::promise<void> promise_;
   };
 
  private:

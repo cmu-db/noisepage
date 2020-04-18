@@ -95,6 +95,7 @@ install_mac() {
   brew ls --versions postgresql || brew install postgresql
   brew ls --versions tbb || brew install tbb
   brew ls --versions ant || brew install ant
+  brew ls --versions boost || brew install boost
   python3 -m pip --version || install_pip
   #install pyarrow
   python3 -m pip show pyarrow || python3 -m pip install pyarrow
