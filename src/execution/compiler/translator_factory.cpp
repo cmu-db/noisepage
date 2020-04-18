@@ -21,6 +21,7 @@
 #include "execution/compiler/operator/insert_translator.h"
 #include "execution/compiler/operator/limit_translator.h"
 #include "execution/compiler/operator/cte_scan_translator.h"
+#include "execution/compiler/operator/cte_scan_leader_translator.h"
 #include "execution/compiler/operator/nested_loop_translator.h"
 #include "execution/compiler/operator/projection_translator.h"
 #include "execution/compiler/operator/seq_scan_translator.h"
@@ -62,6 +63,9 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateRegularTranslator(
     }
     case terrier::planner::PlanNodeType::CTESCAN: {
       return std::make_unique<CteScanTranslator>(static_cast<const planner::CteScanPlanNode *>(op), codegen);
+    }
+    case terrier::planner::PlanNodeType::CTESCANLEADER: {
+      return std::make_unique<CteScanLeaderTranslator>(static_cast<const planner::CteScanLeaderPlanNode *>(op), codegen);
     }
     default:
       UNREACHABLE("Unsupported plan nodes");

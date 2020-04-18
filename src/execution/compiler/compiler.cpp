@@ -124,6 +124,20 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipel
       curr_pipeline->Add(std::move(right_translator));
       return;
     }
+    case terrier::planner::PlanNodeType::CTESCANLEADER: {
+      auto bottom_translator = TranslatorFactory::CreateRegularTranslator(&op, codegen_);
+      auto top_translator = TranslatorFactory::CreateRegularTranslator(&op, codegen_);
+      // The "build" side is a pipeline breaker. It belongs to a new pipeline.
+      auto next_pipeline = std::make_unique<Pipeline>(codegen_);
+      MakePipelines(*op.GetChild(0), next_pipeline.get());
+      next_pipeline->Add(std::move(bottom_translator));
+      pipelines_.emplace_back(std::move(next_pipeline));
+      // The "iterate" side terminates the current pipeline.
+      auto top_bottom_translator = TranslatorFactory::CreateRegularTranslator(op.GetChild(0), codegen_);
+      curr_pipeline->Add(std::move(top_bottom_translator));
+      curr_pipeline->Add(std::move(top_translator));
+      return;
+    }
     default: {
       // Every other operation just adds itself to the current pipeline.
       auto translator = TranslatorFactory::CreateRegularTranslator(&op, codegen_);
