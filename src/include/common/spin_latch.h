@@ -25,7 +25,7 @@ class SpinLatch {
    * If another thread has already locked the spin latch, a call to lock will
    * block execution until the lock is acquired.
    */
-  void Lock(common::ExecutionThreadPool::PoolContext *ctx = nullptr) {
+  void Lock(common::PoolContext *ctx = nullptr) {
     if (ctx != nullptr) {
       while(!TryLock()) ctx->YieldToPool();
       return;
