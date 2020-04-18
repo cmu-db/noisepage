@@ -151,10 +151,6 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipel
     default: {
       // Every other operation just adds itself to the current pipeline.
       auto translator = TranslatorFactory::CreateRegularTranslator(&op, codegen_);
-      if (op.GetChildrenSize() != 0) {
-        TERRIER_ASSERT(op.GetChildrenSize() == 1, "We only look at the first child.");
-        MakePipelines(*op.GetChild(0), curr_pipeline);
-      }
       curr_pipeline->Add(std::move(translator));
       return;
     }
