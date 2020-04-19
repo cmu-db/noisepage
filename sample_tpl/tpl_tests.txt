@@ -75,4 +75,4 @@ scan-index.tpl,true,1
 scan-index-2.tpl,true,1
 scan-index-3.tpl,true,32
 join-index.tpl,true,0
-insertInto.tpl,true,true
+insertInto.tpl,true,100495

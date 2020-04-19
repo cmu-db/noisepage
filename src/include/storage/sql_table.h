@@ -137,11 +137,6 @@ class SqlTable {
    */
   void InsertInto(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo,
                  const TupleSlot dest) const {
-    TERRIER_ASSERT(redo->GetTupleSlot() == TupleSlot(nullptr, 0), "TupleSlot was set in this RedoRecord.");
-    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
-        ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
-                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
-                   "immediately before?");
     table_.data_table_->InsertInto(txn, *(redo->Delta()), dest);
     redo->SetTupleSlot(dest);
   }
