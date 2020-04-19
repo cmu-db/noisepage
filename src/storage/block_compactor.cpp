@@ -35,8 +35,8 @@ void BlockCompactor::ProcessCompactionQueue(transaction::DeferredActionManager *
           // If no compaction was performed, we still need to shut out any potentially racey transactions that
           // are alive at the same time as us flipping the block status flag to cooling. However, we must manually
           // ask the GC to enqueue this block, because no access will be observed from the empty compaction transaction.
-          if (cg.txn_->IsReadOnly())
-            deferred_action_manager->RegisterDeferredAction([this, block]() { PutInQueue(block); });
+          // if (cg.txn_->IsReadOnly())
+          //   deferred_action_manager->RegisterDeferredAction([this, block]() { PutInQueue(block); });
           txn_manager->Commit(cg.txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
         } else {
           txn_manager->Abort(cg.txn_);
