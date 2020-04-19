@@ -735,98 +735,98 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ0_ArithmeticRunners)
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
+  // This parameters are duplciated from GenScanArguments
+  auto num_integers = state.range(0);
+  auto num_bigints = state.range(1);
+  auto row_num = state.range(4);
+  auto num_col = num_integers + num_bigints;
+
   // NOLINTNEXTLINE
   metrics_manager_->RegisterThread();
   for (auto _ : state) {
-    std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
-    auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
-    std::vector<std::string> types_strs = {"Integer", "Integer"};
-    std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
-                                     2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
-    for (size_t type_idx = 0; type_idx < types.size(); type_idx++) {
-      for (auto num_col : num_cols) {
-        for (auto row_num : row_nums) {
-          auto type = types[type_idx];
+    std::stringstream output;
+    output << "struct Output {\n";
+    for (auto i = 0; i < num_integers; i++) output << "col" << i << " : Integer\n";
+    for (auto i = num_integers; i < num_col; i++) output << "col" << i << " : Integer\n";
+    output << "}\n";
 
-          std::stringstream output;
-          output << "struct Output {\n";
-          for (auto i = 0; i < num_col; i++) output << "col" << i << " : " << types_strs[type_idx] << "\n";
-          output << "}\n";
+    output << "struct State {\ncount : int64\n}\n";
+    output << "fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {\n}\n";
+    output << "fun teardownState(execCtx: *ExecutionContext, state: *State) -> nil {\n}\n";
 
-          output << "struct State {\ncount : int64\n}\n";
-          output << "fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {\n}\n";
-          output << "fun teardownState(execCtx: *ExecutionContext, state: *State) -> nil {\n}\n";
+    // pipeline
+    output << "fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {\n";
+    for (auto i = 0; i < num_integers; i++) output << "\tvar outval" << i << " = @intToSql(" << (i + num_col) << ")\n";
+    for (auto i = num_integers; i < num_col; i++) output << "\tvar outval" << i << " = @intToSql(" << (i + num_col) << ")\n";
+    output << "\tvar out: *Output\n";
+    output << "\tfor(var it = 0; it < " << row_num << "; it = it + 1) {\n";
+    output << "\t\tout = @ptrCast(*Output, @outputAlloc(execCtx))\n";
+    for (auto i = 0; i < num_col; i++) output << "\t\tout.col" << i << " = outval" << i << "\n";
+    output << "\t}\n";
+    output << "\t@outputFinalize(execCtx)\n";
+    output << "}\n";
 
-          // pipeline
-          output << "fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {\n";
-          for (auto i = 0; i < num_col; i++) {
-            output << "\tvar outval" << i << " = ";
-            if (type == type::TypeId::INTEGER)
-              output << "@intToSql(" << (i + num_col) << ")\n";
-            else if (type == type::TypeId::BIGINT)
-              output << "@intToSql(" << (i + num_col) << ")\n";
-          }
-          output << "\tvar out: *Output\n";
-          output << "\tfor(var it = 0; it < " << row_num << "; it = it + 1) {\n";
-          output << "\t\tout = @ptrCast(*Output, @outputAlloc(execCtx))\n";
-          for (auto i = 0; i < num_col; i++) output << "\t\tout.col" << i << " = outval" << i << "\n";
-          output << "\t}\n";
-          output << "\t@outputFinalize(execCtx)\n";
-          output << "}\n";
+    // main
+    output << "fun main (execCtx: *ExecutionContext) -> int64 {\n";
+    output << "\tvar state: State\n";
+    output << "\tsetUpState(execCtx, &state)\n";
+    output << "\t@execCtxStartResourceTracker(execCtx, 4)\n";
+    output << "\tpipeline1(execCtx, &state)\n";
+    output << "\t@execCtxEndPipelineTracker(execCtx, 0, 0)\n";
+    output << "\tteardownState(execCtx, &state)\n";
+    output << "\treturn 0\n";
+    output << "}\n";
 
-          // main
-          output << "fun main (execCtx: *ExecutionContext) -> int64 {\n";
-          output << "\tvar state: State\n";
-          output << "\tsetUpState(execCtx, &state)\n";
-          output << "\t@execCtxStartResourceTracker(execCtx, 4)\n";
-          output << "\tpipeline1(execCtx, &state)\n";
-          output << "\t@execCtxEndPipelineTracker(execCtx, 0, 0)\n";
-          output << "\tteardownState(execCtx, &state)\n";
-          output << "\treturn 0\n";
-          output << "}\n";
-
-          auto type_size = type::TypeUtil::GetTypeSize(type);
-          std::vector<planner::OutputSchema::Column> cols;
-          for (auto i = 0; i < num_col; i++) {
-            std::stringstream col;
-            col << "col" << i;
-            cols.emplace_back(col.str(), type, nullptr);
-          }
-
-          auto txn = txn_manager_->BeginTransaction();
-          auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
-          auto schema = std::make_unique<planner::OutputSchema>(std::move(cols));
-
-          execution::ExecutableQuery::query_identifier.store(MiniRunners::query_id++);
-          auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-              db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), schema.get(),
-              common::ManagedPointer(accessor));
-
-          auto exec_query = execution::ExecutableQuery(output.str(), common::ManagedPointer(exec_ctx), false);
-
-          brain::PipelineOperatingUnits units;
-          brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-          exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(&units));
-          pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, row_num, num_col * type_size, num_col,
-                                 row_num);
-          units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
-          exec_query.Run(common::ManagedPointer(exec_ctx), mode);
-
-          txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-          auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
-          gc->PerformGarbageCollection();
-          gc->PerformGarbageCollection();
-        }
-      }
+    std::vector<planner::OutputSchema::Column> cols;
+    for (auto i = 0; i < num_integers; i++) {
+      std::stringstream col;
+      col << "col" << i;
+      cols.emplace_back(col.str(), type::TypeId::INTEGER, nullptr);
     }
 
-    metrics_manager_->Aggregate();
-    metrics_manager_->UnregisterThread();
+    for (auto i = 0; i < num_bigints; i++) {
+      std::stringstream col;
+      col << "col" << i;
+      cols.emplace_back(col.str(), type::TypeId::BIGINT, nullptr);
+    }
+
+    auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
+    auto bigint_size = type::TypeUtil::GetTypeSize(type::TypeId::BIGINT);
+    auto tuple_size = int_size * num_integers + bigint_size * num_bigints;
+
+    auto txn = txn_manager_->BeginTransaction();
+    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid);
+    auto schema = std::make_unique<planner::OutputSchema>(std::move(cols));
+
+    execution::ExecutableQuery::query_identifier.store(MiniRunners::query_id++);
+    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
+        db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), schema.get(),
+        common::ManagedPointer(accessor));
+
+    auto exec_query = execution::ExecutableQuery(output.str(), common::ManagedPointer(exec_ctx), false);
+
+    brain::PipelineOperatingUnits units;
+    brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
+    exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(&units));
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, row_num, tuple_size, num_col, row_num);
+    units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
+    exec_query.Run(common::ManagedPointer(exec_ctx), mode);
+
+    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+    auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
+    gc->PerformGarbageCollection();
+    gc->PerformGarbageCollection();
   }
+
+  metrics_manager_->Aggregate();
+  metrics_manager_->UnregisterThread();
 };
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ0_OutputRunners)->Unit(benchmark::kMillisecond)->Iterations(1);
+BENCHMARK_REGISTER_F(MiniRunners, SEQ0_OutputRunners)
+    ->Unit(benchmark::kMillisecond)
+    ->Apply(GenScanArguments)
+    ->Iterations(1);
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ1_SeqScanRunners)(benchmark::State &state) {
