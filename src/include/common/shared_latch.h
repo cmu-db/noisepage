@@ -2,7 +2,7 @@
 
 #include <tbb/reader_writer_lock.h>
 
-#include "common/execution_thread_pool.h"
+#include "common/coroutine_defs.h"
 #include "common/macros.h"
 #include "execution_thread_pool.h"
 
@@ -21,7 +21,7 @@ class SharedLatch {
   /**
    * Acquire exclusive lock on mutex.
    */
-  void LockExclusive(common::ExecutionThreadPool::PoolContext *ctx = nullptr) {
+  void LockExclusive(common::PoolContext *ctx = nullptr) {
     if (ctx != nullptr) {
       while(!TryExclusiveLock()) ctx->YieldToPool();
       return;
@@ -32,7 +32,7 @@ class SharedLatch {
   /**
    * Acquire shared lock on mutex.
    */
-  void LockShared(common::ExecutionThreadPool::PoolContext *ctx = nullptr) {
+  void LockShared(common::PoolContext *ctx = nullptr) {
     if (ctx != nullptr) {
       while(!TryLockShared()) ctx->YieldToPool();
       return;
