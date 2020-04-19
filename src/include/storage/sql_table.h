@@ -90,7 +90,7 @@ class SqlTable {
    * different from the original tupleslot if migration occurs.
    */
   bool Update(common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *redo,
-      TupleSlot *updated_slot = nullptr, layout_version_t layout_version = layout_version_t{0}) const;
+      layout_version_t layout_version = layout_version_t{0}, TupleSlot *updated_slot = nullptr) const;
 
   /**
    * Inserts a tuple, as given in the redo, and return the slot allocated for the tuple. StageWrite must have been

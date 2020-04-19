@@ -63,7 +63,8 @@ bool StorageInterface::TableUpdate(storage::TupleSlot table_tuple_slot) {
   exec_ctx_->RowsAffected()++;  // believe this should only happen in root plan nodes, so should reflect count of query
   table_redo_->SetTupleSlot(table_tuple_slot);
   storage::TupleSlot updated_slot;
-  bool res = table_->Update(exec_ctx_->GetTxn(), table_redo_, &updated_slot);
+
+  bool res = table_->Update(exec_ctx_->GetTxn(), table_redo_, storage::layout_version_t{0}, &updated_slot);
   // if migration occurs, tupleslot changed, so delete old tupleslot from index and add new tupleslot to index
   if (updated_slot != table_tuple_slot) {
     table_redo_->SetTupleSlot(updated_slot);

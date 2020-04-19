@@ -163,8 +163,8 @@ class RandomSqlTableTestObject {
     txns_.emplace_back(txn);
 
     // generate a random ProjectedRow to Insert
-    auto redo_initilizer = pris_.at(layout_version);
-    auto *insert_redo = txn->StageWrite(catalog::db_oid_t{0}, catalog::table_oid_t{0}, redo_initilizer);
+    auto redo_initializer = pris_.at(layout_version);
+    auto *insert_redo = txn->StageWrite(catalog::db_oid_t{0}, catalog::table_oid_t{0}, redo_initializer);
     auto *insert_tuple = insert_redo->Delta();
     auto layout = table_->GetBlockLayout(layout_version);
     StorageTestUtil::PopulateRandomRow(insert_tuple, layout, null_bias_, generator);
@@ -179,6 +179,39 @@ class RandomSqlTableTestObject {
     tuple_versions_[slot].push_back({timestamp, insert_tuple, layout_version});
 
     return slot;
+  }
+
+  template <class Random>
+  TupleSlot UpdateTuple(const storage::TupleSlot slot, const transaction::timestamp_t timestamp, Random *generator,
+      storage::RecordBufferSegmentPool *buffer_pool, storage::layout_version_t layout_version) {
+    // generate a txn with an UndoRecord to populate on Insert
+    auto *txn =
+        new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(buffer_pool), DISABLED);
+    txns_.emplace_back(txn);
+
+    // generate a random ProjectedRow to Insert
+    auto redo_initializer = pris_.at(layout_version);
+    auto *update_redo = txn->StageWrite(catalog::db_oid_t{0}, catalog::table_oid_t{0}, redo_initializer);
+    update_redo->SetTupleSlot(slot);
+    auto *update_tuple = update_redo->Delta();
+    auto layout = table_->GetBlockLayout(layout_version);
+    StorageTestUtil::PopulateRandomRow(update_tuple, layout, null_bias_, generator);
+
+    // Fill up the random bytes for non-nullable columns
+    FillNullValue(update_tuple, GetSchema(layout_version), table_->GetColumnIdToOidMap(layout_version),
+                  table_->GetBlockLayout(layout_version), generator);
+
+    redos_.emplace_back(update_redo);
+    storage::TupleSlot updated_slot;
+    bool res = table_->Update(common::ManagedPointer(txn), update_redo, layout_version, &updated_slot);
+
+    EXPECT_TRUE(res == true);
+    if (!res) { return TupleSlot(); }
+
+    tuple_versions_[updated_slot].push_back({timestamp, update_tuple, layout_version});
+    updated_slots_.push_back(updated_slot);
+
+    return updated_slot;
   }
 
   storage::ProjectedColumns *AllocateColumnBuffer(const storage::layout_version_t version, byte **bufferp,
@@ -221,7 +254,7 @@ class RandomSqlTableTestObject {
     auto *txn =
         new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(buffer_pool), DISABLED);
     txns_.emplace_back(txn);
-    txn -> StageDelete(static_cast<catalog::db_oid_t>(0), static_cast<catalog::table_oid_t>(0), slot);
+    txn -> StageDelete(catalog::db_oid_t{0}, catalog::table_oid_t{0}, slot);
 
     return table_->Delete(common::ManagedPointer(txn), slot);
   }
@@ -251,6 +284,7 @@ class RandomSqlTableTestObject {
   }
 
   const std::vector<storage::TupleSlot> &InsertedTuples() const { return inserted_slots_; }
+  const std::vector<storage::TupleSlot> &UpdatedTuples() const { return updated_slots_; }
 
   storage::BlockLayout GetBlockLayout(storage::layout_version_t version) const {
     return table_->GetBlockLayout(version);
@@ -277,6 +311,7 @@ class RandomSqlTableTestObject {
   std::vector<common::ManagedPointer<storage::RedoRecord>> redos_;
   std::vector<std::unique_ptr<transaction::TransactionContext>> txns_;
   std::vector<storage::TupleSlot> inserted_slots_;
+  std::vector<storage::TupleSlot> updated_slots_;
   // oldest to newest
   std::unordered_map<storage::TupleSlot, std::vector<TupleVersion>> tuple_versions_;
   std::unordered_map<storage::layout_version_t, std::unique_ptr<catalog::Schema>> schemas_;
@@ -404,7 +439,7 @@ TEST_F(SqlTableTests, InsertWithSchemaChange) {
 
   // Scan the table with the newest version, seeing all the tuples except for the first tuple
   buffer = nullptr;
-  columns = test_table.AllocateColumnBuffer(new_version, &buffer, num_inserts);
+  columns = test_table.AllocateColumnBuffer(new_version, &buffer, num_inserts - 1);
   it = test_table.GetTable().begin();
   test_table.GetTable().Scan(test_table.NewTransaction(transaction::timestamp_t(txn_ts), &buffer_pool_), &it, columns,
                              new_version);
@@ -426,6 +461,34 @@ TEST_F(SqlTableTests, InsertWithSchemaChange) {
         test_table.GetBlockLayout(new_version), &stored, test_table.GetProjectionMapForOids(new_version), add_cols,
         drop_cols));
   }
+
+  // update the first half of the tuples, under new version, these will migrate
+  txn_ts++;
+  for (uint32_t i = 1; i < num_inserts / 2; i++) {
+    auto slot = test_table.InsertedTuples()[i];
+    auto updated_slot = test_table.UpdateTuple(slot, transaction::timestamp_t(txn_ts), &generator_, &buffer_pool_ , new_version);
+    EXPECT_TRUE(slot != updated_slot);
+  }
+  EXPECT_EQ(test_table.UpdatedTuples().size(), num_inserts / 2 - 1);
+
+  // Scan the table with the newest version, seeing all updated tuples correctly
+  txn_ts++;
+  buffer = nullptr;
+  columns = test_table.AllocateColumnBuffer(new_version, &buffer, num_inserts / 2 - 1);
+  it = test_table.GetTable().begin();
+  test_table.GetTable().Scan(test_table.NewTransaction(transaction::timestamp_t(txn_ts), &buffer_pool_), &it, columns,
+                             new_version);
+  EXPECT_EQ(num_inserts / 2 - 1, columns->NumTuples());
+  for (uint32_t i = 0; i < columns->NumTuples(); i++) {
+    storage::ProjectedColumns::RowView stored = columns->InterpretAsRow(i);
+    auto ref = test_table.GetReferenceVersionedTuple(columns->TupleSlots()[i], transaction::timestamp_t(txn_ts));
+    EXPECT_EQ(ref.version_, new_version);
+
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallowMatchSchema(
+        test_table.GetBlockLayout(ref.version_), ref.pr_, test_table.GetProjectionMapForOids(ref.version_),
+        test_table.GetBlockLayout(new_version), &stored, test_table.GetProjectionMapForOids(new_version), {}, {}));
+  }
+
   delete[] buffer;
 }
 

@@ -52,13 +52,12 @@ bool SqlTable::Select(const common::ManagedPointer<transaction::TransactionConte
 }
 
 bool SqlTable::Update(const common::ManagedPointer<transaction::TransactionContext> txn,
-    RedoRecord *const redo, TupleSlot *updated_slot, layout_version_t layout_version) const {
+    RedoRecord *const redo, layout_version_t layout_version, TupleSlot *updated_slot) const {
   TERRIER_ASSERT(redo->GetTupleSlot() != TupleSlot(nullptr, 0), "TupleSlot was never set in this RedoRecord.");
   TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
                              ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
                  "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
                  "immediately before?");
-
   // get the version of current tuple slot
   auto curr_tuple = redo->GetTupleSlot();
 
