@@ -64,34 +64,36 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
     const BlockLayout &layout = curr_data_table->GetBlockLayout();
     std::vector<type::TypeId> column_types;
     column_types.resize(layout.NumColumns());
-    auto &arrow_metadata = new_table.accessor_.GetArrowBlockMetadata(new_table.blocks_.front());
-    for (storage::col_id_t col_id : layout.AllColumns()) {
-      if (layout.IsVarlen(col_id)) {
-        arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::GATHERED_VARLEN;
-        column_types[!col_id] = type::TypeId::VARCHAR;
-      } else {
-        arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::FIXED_LENGTH;
-        column_types[!col_id] = type::TypeId::INTEGER;
+    for (RawBlock * block : curr_data_table->blocks_){
+      auto &arrow_metadata = curr_data_table->accessor_.GetArrowBlockMetadata(block);
+      for (storage::col_id_t col_id : layout.AllColumns()) {
+        if (layout.IsVarlen(col_id)) {
+          arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::GATHERED_VARLEN;
+          column_types[!col_id] = type::TypeId::VARCHAR;
+        } else {
+          arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::FIXED_LENGTH;
+          column_types[!col_id] = type::TypeId::INTEGER;
+        }
       }
     }
 
+    // for check if metadata updated
+//    auto &md = curr_data_table->accessor_.GetArrowBlockMetadata(curr_data_table->blocks_.front());
+//    col_id_t id = layout.AllColumns()[0];
+//    md.GetColumnInfo(layout, id);
 
     // compact blocks into arrow format
     storage::BlockCompactor compactor;
-    for (RawBlock *block : new_table.blocks_) {
+    for (RawBlock *block : curr_data_table->blocks_) {
       compactor.PutInQueue(block);
-    }
-    compactor.ProcessCompactionQueue(deferred_action_manager_.Get(), txn_manager_.Get());  // compaction pass
-
-    // Need to prune the version chain in order to make sure that the second pass succeeds
-    gc_->PerformGarbageCollection();
-    for (RawBlock *block : new_table.blocks_) {
+      compactor.ProcessCompactionQueue(deferred_action_manager_.Get(), txn_manager_.Get());  // compaction pass
+      gc_->PerformGarbageCollection();
       compactor.PutInQueue(block);
+      compactor.ProcessCompactionQueue(deferred_action_manager_.Get(), txn_manager_.Get());  // gathering pass
     }
-    compactor.ProcessCompactionQueue(deferred_action_manager_.Get(), txn_manager_.Get());  // gathering pass
 
     // write to disk
-    storage::ArrowSerializer arrow_serializer(new_table);
+    storage::ArrowSerializer arrow_serializer(*curr_data_table);
     arrow_serializer.ExportTable(out_file, &column_types);
 
   }

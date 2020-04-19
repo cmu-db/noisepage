@@ -791,7 +791,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
                                               .SetMaxColumns(5)
                                               .SetInitialTableSize(1000)
                                               .SetTxnLength(5)
-                                              .SetInsertUpdateSelectDeleteRatio({0.2, 0.5, 0.2, 0.1})
+                                              .SetInsertUpdateSelectDeleteRatio({1.0, 0.0, 0.0, 0.0})
                                               .SetVarlenAllowed(false)
                                               .Build();
   auto *tested =
