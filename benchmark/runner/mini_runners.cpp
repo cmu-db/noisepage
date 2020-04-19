@@ -1270,10 +1270,10 @@ void InitializeRunnersState() {
                              .SetUseCatalog(true)
                              .SetUseStatsStorage(true)
                              .SetUseMetrics(true)
-                             .SetBlockStoreSize(1000000)
-                             .SetBlockStoreReuse(1000000)
-                             .SetRecordBufferSegmentSize(1000000)
-                             .SetRecordBufferSegmentReuse(1000000);
+                             .SetBlockStoreSize(10000000)
+                             .SetBlockStoreReuse(10000000)
+                             .SetRecordBufferSegmentSize(10000000)
+                             .SetRecordBufferSegmentReuse(10000000);
 
   db_main = db_main_builder.Build().release();
 
