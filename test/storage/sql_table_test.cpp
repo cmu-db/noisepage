@@ -216,6 +216,16 @@ class RandomSqlTableTestObject {
     return select_row;
   }
 
+  bool Delete(const storage::TupleSlot slot, const transaction::timestamp_t timestamp,
+                                storage::RecordBufferSegmentPool *buffer_pool) {
+    auto *txn =
+        new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(buffer_pool), DISABLED);
+    txns_.emplace_back(txn);
+    txn -> StageDelete(static_cast<catalog::db_oid_t>(0), static_cast<catalog::table_oid_t>(0), slot);
+
+    return table_->Delete(common::ManagedPointer(txn), slot);
+  }
+
   void UpdateSchema(common::ManagedPointer<transaction::TransactionContext> txn,
                     std::unique_ptr<catalog::Schema> schema, const storage::layout_version_t layout_version) {
     if (txn != nullptr) table_->UpdateSchema(txn, *schema, layout_version);
@@ -371,13 +381,17 @@ TEST_F(SqlTableTests, InsertWithSchemaChange) {
     }
   }
 
-  // Scan the table with version 0, seeing only half of the tuples
+  // Delete the first tuple. Note that this affects all transactions with higher timestamp, regardless of version
+  txn_ts++;
+  test_table.Delete(test_table.InsertedTuples()[0], transaction::timestamp_t(txn_ts), &buffer_pool_);
+
+  // Scan the table with version 0, seeing the first half of the tuples
   byte *buffer = nullptr;
   auto columns = test_table.AllocateColumnBuffer(version, &buffer, num_inserts / 2);
   auto it = test_table.GetTable().begin();
   test_table.GetTable().Scan(test_table.NewTransaction(transaction::timestamp_t(txn_ts), &buffer_pool_), &it, columns,
                              version);
-  EXPECT_EQ(num_inserts / 2, columns->NumTuples());
+  EXPECT_EQ(num_inserts / 2 - 1, columns->NumTuples());
   EXPECT_EQ(it, test_table.GetTable().end(version));
   for (uint32_t i = 0; i < columns->NumTuples(); i++) {
     storage::ProjectedColumns::RowView stored = columns->InterpretAsRow(i);
@@ -388,13 +402,13 @@ TEST_F(SqlTableTests, InsertWithSchemaChange) {
   }
   delete[] buffer;
 
-  // Scan the table with the newest version, seeing all tuples
+  // Scan the table with the newest version, seeing all the tuples except for the first tuple
   buffer = nullptr;
   columns = test_table.AllocateColumnBuffer(new_version, &buffer, num_inserts);
   it = test_table.GetTable().begin();
   test_table.GetTable().Scan(test_table.NewTransaction(transaction::timestamp_t(txn_ts), &buffer_pool_), &it, columns,
                              new_version);
-  EXPECT_EQ(num_inserts, columns->NumTuples());
+  EXPECT_EQ(num_inserts - 1, columns->NumTuples());
   EXPECT_EQ(it, test_table.GetTable().end(new_version));
   for (uint32_t i = 0; i < columns->NumTuples(); i++) {
     storage::ProjectedColumns::RowView stored = columns->InterpretAsRow(i);
