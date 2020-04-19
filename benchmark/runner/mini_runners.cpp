@@ -594,8 +594,10 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
           output << "fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {\n";
           for (auto i = 0; i < num_col; i++) {
             output << "\tvar outval" << i << " = ";
-            if (type == type::TypeId::INTEGER) output << "@intToSql(" << (i + num_col) << ")\n";
-            else if (type == type::TypeId::BIGINT) output << "@intToSql(" << (i + num_col) << ")\n";
+            if (type == type::TypeId::INTEGER)
+              output << "@intToSql(" << (i + num_col) << ")\n";
+            else if (type == type::TypeId::BIGINT)
+              output << "@intToSql(" << (i + num_col) << ")\n";
           }
           output << "\tvar out: *Output\n";
           output << "\tfor(var it = 0; it < " << row_num << "; it = it + 1) {\n";
@@ -845,8 +847,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_UpdateRunners)(benchmark::State &state) {
     // - Iterating over entire table for the slot
     // - Cost of "merging" updates with the undo/redos
     std::stringstream query;
-    query << "UPDATE " << execution::sql::TableGenerator::GenerateTableName(type, 15, num_rows, num_car)
-          << " SET ";
+    query << "UPDATE " << execution::sql::TableGenerator::GenerateTableName(type, 15, num_rows, num_car) << " SET ";
     std::vector<catalog::Schema::Column> cols;
     std::mt19937 generator{};
     std::uniform_int_distribution<int> distribution(0, INT_MAX);

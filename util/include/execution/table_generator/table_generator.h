@@ -61,6 +61,25 @@ class TableGenerator {
   }
 
   /**
+   * Generate Mixed Table Name
+   * @param types Number of types
+   * @param cols Number of columns per type
+   * @param row Number of rows
+   * @param car Cardinality
+   * @return table name
+   */
+  static std::string GenerateMixedTableName(std::vector<type::TypeId> types, std::vector<uint32_t> cols, size_t row,
+                                            size_t car) {
+    std::stringstream table_name;
+    for (auto idx = 0; idx < cols.size(); idx++) {
+      table_name << type::TypeUtil::TypeIdToString(types[idx]);
+      table_name << "Col" << cols[idx];
+    }
+    table_name << "Row" << row << "Car" << car;
+    return table_name.str();
+  }
+
+  /**
    * Generate table name that contains an index
    * @param type Type
    * @param row Number of rows
@@ -144,12 +163,7 @@ class TableGenerator {
      * Constructor
      */
     ColumnInsertMeta(std::string name, const type::TypeId type, bool nullable, Dist dist, uint64_t min, uint64_t max)
-        : name_(std::move(name)),
-          type_(type),
-          nullable_(nullable),
-          dist_(dist),
-          min_(min),
-          max_(max) {}
+        : name_(std::move(name)), type_(type), nullable_(nullable), dist_(dist), min_(min), max_(max) {}
 
     /**
      * Clone Constructor
