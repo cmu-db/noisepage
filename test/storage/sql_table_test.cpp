@@ -20,20 +20,15 @@ class SqlTableTests : public TerrierTest {
   void TearDown() override {}
 };
 
-// drop the columns with oids in the set drop_oids. And add the new columns to the end of columns in schema
-static std::unique_ptr<catalog::Schema> AddDropColumns(const catalog::Schema &schema,
-    const std::unordered_set<catalog::col_oid_t> drop_oids, std::vector<catalog::Schema::Column*>& new_columns) {
-  auto old_columns = schema.GetColumns();
-  std::vector<catalog::Schema::Column> columns;
+// given new columns without oids, add them to the end, and assign them oids larger than existing oids
+static std::unique_ptr<catalog::Schema> AddColumnsToEnd(const catalog::Schema &schema,
+    std::vector<catalog::Schema::Column*>& new_columns) {
+  std::vector<catalog::Schema::Column> columns(schema.GetColumns());
 
-  catalog::col_oid_t max_oid = old_columns.begin()->Oid();
-  for (auto &col : old_columns) {
+  catalog::col_oid_t max_oid = columns.begin()->Oid();
+  for (auto &col : columns) {
     if (col.Oid() > max_oid) {
       max_oid = col.Oid();
-    }
-    // only include cols that are not dropped
-    if (drop_oids.find(col.Oid()) == drop_oids.end()) {
-      columns.push_back(col);
     }
   }
 
@@ -43,6 +38,52 @@ static std::unique_ptr<catalog::Schema> AddDropColumns(const catalog::Schema &sc
     StorageTestUtil::SetOid(new_columns[i], new_oid);
     columns.push_back(*new_columns[i]);
   }
+  return std::make_unique<catalog::Schema>(columns);
+}
+
+bool oids_unique(std::vector<catalog::Schema::Column>& columns) {
+  std::unordered_set<catalog::col_oid_t> oids;
+  for (auto col: columns) {
+    oids.insert(col.Oid());
+  }
+  return oids.size() == columns.size();
+}
+
+// given new columns with oids, add them to the column vector so that the column vector is still sorted
+static std::unique_ptr<catalog::Schema> AddColumns(const catalog::Schema &schema,
+    std::vector<catalog::Schema::Column>& new_columns) {
+  std::vector<catalog::Schema::Column> columns(schema.GetColumns());
+
+  for (auto new_col: new_columns) {
+    columns.push_back(new_col);
+  }
+
+  struct {
+    bool operator()(catalog::Schema::Column a, catalog::Schema::Column b) const
+    {
+      return a.Oid() < b.Oid();
+    }
+  } columnLess;
+  std::sort(columns.begin(), columns.end(), columnLess);
+
+  TERRIER_ASSERT(oids_unique(columns), "New column oids should not conflict with existing ones");
+  return std::make_unique<catalog::Schema>(columns);
+}
+
+// drop the columns with oids in the set drop_oids
+static std::unique_ptr<catalog::Schema> DropColumns(const catalog::Schema &schema,
+    const std::unordered_set<catalog::col_oid_t> drop_oids) {
+  auto old_columns = schema.GetColumns();
+  std::vector<catalog::Schema::Column> columns;
+
+  for (auto &col : old_columns) {
+    // only include cols that are not dropped
+    if (drop_oids.find(col.Oid()) == drop_oids.end()) {
+      columns.push_back(col);
+    }
+  }
+  TERRIER_ASSERT(old_columns.size() == columns.size() + drop_oids.size(), "all drop oids should exist");
+
   return std::make_unique<catalog::Schema>(columns);
 }
 
@@ -285,8 +326,9 @@ TEST_F(SqlTableTests, InsertWithSchemaChange) {
 
   catalog::Schema::Column col_to_drop = test_table.GetSchema(version).GetColumns()[0];
   std::unordered_set<catalog::col_oid_t> drop_oids{col_to_drop.Oid()};
+  std::unique_ptr<catalog::Schema> temp_schema = DropColumns(test_table.GetSchema(version), drop_oids);
+  auto new_schema = AddColumnsToEnd(*temp_schema, cols);
 
-  auto new_schema = AddDropColumns(test_table.GetSchema(version), drop_oids, cols);
   test_table.UpdateSchema(test_table.NewTransaction(transaction::timestamp_t{txn_ts}, &buffer_pool_),
                           std::move(new_schema), new_version);
 
@@ -406,8 +448,8 @@ TEST_F(SqlTableTests, AddThenDropColumns) {
   catalog::Schema::Column col3("new_col3", type::TypeId::INTEGER, false,
                                parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(default_values[2])));
   std::vector<catalog::Schema::Column*> cols{&col1, &col2, &col3};
-  std::unordered_set<catalog::col_oid_t> drop_oids;
-  auto new_schema = AddDropColumns(test_table.GetSchema(version), drop_oids, cols);
+
+  auto new_schema = AddColumnsToEnd(test_table.GetSchema(version), cols);
 
   std::vector<catalog::col_oid_t> oids;
   for (auto col_ptr : cols) {
@@ -415,6 +457,7 @@ TEST_F(SqlTableTests, AddThenDropColumns) {
   }
   std::unordered_set<catalog::col_oid_t> oids_set(oids.begin(), oids.end());
 
+  // insert 3 new columns
   test_table.UpdateSchema(test_table.NewTransaction(transaction::timestamp_t{txn_ts}, &buffer_pool_),
                           std::move(new_schema), new_version);
 
@@ -434,16 +477,16 @@ TEST_F(SqlTableTests, AddThenDropColumns) {
         test_table.GetProjectionMapForOids(new_version), oids_set, {}));
   }
 
-  // Drop a column
+  // Drop all 3 columns we added
   txn_ts++;
   storage::layout_version_t vers2(2);
 
-  std::vector<catalog::Schema::Column*> new_cols;
-  new_schema = AddDropColumns(test_table.GetSchema(new_version), oids_set, new_cols);
+//  std::vector<catalog::Schema::Column*> new_cols;
+  new_schema = DropColumns(test_table.GetSchema(new_version), oids_set);
   test_table.UpdateSchema(test_table.NewTransaction(transaction::timestamp_t{txn_ts}, &buffer_pool_),
                           std::move(new_schema), vers2);
 
-  // Select check if the column is dropped
+  // Select check if the columns are dropped
   for (const auto &inserted_tuple : test_table.InsertedTuples()) {
     storage::ProjectedRow *stored =
         test_table.Select(inserted_tuple, transaction::timestamp_t(txn_ts), &buffer_pool_, vers2);
@@ -458,5 +501,76 @@ TEST_F(SqlTableTests, AddThenDropColumns) {
   }
 }
 
+// NOLINTNEXTLINE
+TEST_F(SqlTableTests, DropThenAddColumns) {
+  const uint16_t max_columns = 20;
+  const uint32_t num_inserts = 8;
+  uint64_t txn_ts = 0;
+
+  RandomSqlTableTestObject test_table(&block_store_, max_columns, &generator_, null_ratio_(generator_));
+
+  // Update the schema
+  storage::layout_version_t version(0);
+
+  // Insert some tuples
+  for (uint16_t i = 0; i < num_inserts; i++) {
+    test_table.InsertRandomTuple(transaction::timestamp_t(txn_ts), &generator_, &buffer_pool_, version);
+  }
+
+  EXPECT_EQ(num_inserts, test_table.InsertedTuples().size());
+  storage::layout_version_t version1(1);
+
+  int num_cols_to_drop = 3;
+  std::vector<catalog::Schema::Column> cols_to_drop;
+  std::vector<catalog::col_oid_t> drop_oids;
+  std::unordered_set<catalog::col_oid_t> drop_oids_set;
+
+  // drop the first 3 columns (insert them back later with same oids)
+  for (int i = 0; i < num_cols_to_drop; i++) {
+    std::vector<catalog::Schema::Column> columns = test_table.GetSchema(version).GetColumns();
+    cols_to_drop.push_back(columns[i]);
+    drop_oids.push_back(columns[i].Oid());
+    drop_oids_set.insert(columns[i].Oid());
+  }
+
+  auto new_schema = DropColumns(test_table.GetSchema(version), drop_oids_set);
+
+  test_table.UpdateSchema(test_table.NewTransaction(transaction::timestamp_t{txn_ts}, &buffer_pool_),
+                          std::move(new_schema), version1);
+
+  // Select check if the columns are dropped
+  for (const auto &inserted_tuple : test_table.InsertedTuples()) {
+    storage::ProjectedRow *stored =
+        test_table.Select(inserted_tuple, transaction::timestamp_t(txn_ts), &buffer_pool_, version1);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListAtOidsNone(stored, test_table.GetProjectionMapForOids(version1),
+                                                          test_table.GetBlockLayout(version1), drop_oids));
+
+    auto tuple_version = test_table.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(txn_ts));
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallowMatchSchema(
+        test_table.GetBlockLayout(tuple_version.version_), tuple_version.pr_,
+        test_table.GetProjectionMapForOids(tuple_version.version_), test_table.GetBlockLayout(version1), stored,
+        test_table.GetProjectionMapForOids(version1), {}, drop_oids_set));
+  }
+
+  // add back the columns we dropped with same oids as before
+  storage::layout_version_t version2(2);
+
+  new_schema = AddColumns(test_table.GetSchema(version1), cols_to_drop);
+  test_table.UpdateSchema(test_table.NewTransaction(transaction::timestamp_t{txn_ts}, &buffer_pool_),
+                          std::move(new_schema), version2);
+
+  for (const auto &inserted_tuple : test_table.InsertedTuples()) {
+    storage::ProjectedRow *stored =
+        test_table.Select(inserted_tuple, transaction::timestamp_t(txn_ts), &buffer_pool_, version2);
+
+    // Check tuple equality
+    auto tuple_version = test_table.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(txn_ts));
+
+    EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallowMatchSchema(
+        test_table.GetBlockLayout(tuple_version.version_), tuple_version.pr_,
+        test_table.GetProjectionMapForOids(tuple_version.version_), test_table.GetBlockLayout(version2), stored,
+        test_table.GetProjectionMapForOids(version2), {}, {}));
+  }
+}
 
 }  // namespace terrier::storage
