@@ -173,6 +173,35 @@ static void GenArithArguments(benchmark::internal::Benchmark *b) {
 }
 
 /**
+ * Arg <0, 1, 2>
+ * 0 - # integers to scan
+ * 1 - # big integers to scan
+ * 2 - row
+ */
+static void GenOutputArguments(benchmark::internal::Benchmark *b) {
+  auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
+  auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
+  for (auto type : types) {
+    for (auto col : num_cols) {
+      for (auto row : row_nums) {
+        if (type == type::TypeId::INTEGER) b->Args({col, 0, row});
+        else if (type == type::TypeId::BIGINT) b->Args({0, col, row});
+      }
+    }
+  }
+
+  std::vector<std::vector<int64_t>> args;
+  GENERATE_MIXED_ARGUMENTS(args);
+  for (auto arg : args) {
+    if (arg[4] == arg[5]) {
+      b->Args({arg[0], arg[1], arg[4]});
+    }
+  }
+}
+
+/**
  * Arg <0, 1, 2, 3, 4, 5>
  * 0 - # integers to scan
  * 1 - # big integers to scan
@@ -369,7 +398,6 @@ static void GenInsertArguments(benchmark::internal::Benchmark *b) {
     }
   }
 }
-*/
 
 /**
  * Arg <0, 1, 2, 3>
@@ -735,10 +763,9 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ0_ArithmeticRunners)
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
-  // This parameters are duplciated from GenScanArguments
   auto num_integers = state.range(0);
   auto num_bigints = state.range(1);
-  auto row_num = state.range(4);
+  auto row_num = state.range(2);
   auto num_col = num_integers + num_bigints;
 
   // NOLINTNEXTLINE
@@ -825,7 +852,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
 
 BENCHMARK_REGISTER_F(MiniRunners, SEQ0_OutputRunners)
     ->Unit(benchmark::kMillisecond)
-    ->Apply(GenScanArguments)
+    ->Apply(GenOutputArguments)
     ->Iterations(1);
 
 // NOLINTNEXTLINE
