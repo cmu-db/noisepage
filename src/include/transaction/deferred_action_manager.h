@@ -84,8 +84,8 @@ class DeferredActionManager {
       // ingest all the new actions
       processed += ProcessNewActions(oldest_txn);
     }
-    visited_slots_.clear();
     ProcessIndexes();
+    visited_slots_.clear();
     return processed;
   }
 
@@ -159,18 +159,15 @@ class DeferredActionManager {
 
   uint32_t ProcessNewActions(timestamp_t oldest_txn) {
     uint32_t processed = 0;
-
-    std::pair<timestamp_t, DeferredAction> curr_action;
-    bool reinsert = false;
+    std::pair<timestamp_t, DeferredAction> curr_action = std::make_pair(timestamp_t(0), [=](timestamp_t /*unused*/) {});
+    // bool reinsert = false;
     auto curr_size = new_deferred_actions_.unsafe_size();
-    while (!new_deferred_actions_.empty()) {
-      reinsert = new_deferred_actions_.try_pop(curr_action);
-      if (processed == curr_size || (reinsert && oldest_txn < curr_action.first)) break;
+    while (processed != curr_size) {
+      if (new_deferred_actions_.try_pop(curr_action) && oldest_txn < curr_action.first) break;
       curr_action.second(oldest_txn);
       processed++;
-      reinsert = false;
     }
-    if (reinsert) back_log_.push(curr_action);
+    if (processed != curr_size && curr_action.first != INVALID_TXN_TIMESTAMP) back_log_.push(curr_action);
     return processed;
   }
 };
