@@ -111,7 +111,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   }
 
   void RecoverFromCheckpoint(const std::string &path, catalog::db_oid_t db);
-  void ReadDataBlock(std::istream &infile, char *src, size_t len);
+  void ReadDataBlock(std::ifstream &infile, char *src, size_t len);
 
  private:
   FRIEND_TEST(RecoveryTests, DoubleRecoveryTest);

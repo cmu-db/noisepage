@@ -17,10 +17,10 @@ namespace terrier::storage {
 class Checkpoint {
  public:
   Checkpoint(const common::ManagedPointer<catalog::Catalog> catalog,
-             common::ManagedPointer<transaction::TransactionManager>txn_manager,
+             common::ManagedPointer<transaction::TransactionManager> txn_manager,
              common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager,
              common::ManagedPointer<storage::GarbageCollector> gc)
-      : catalog_(catalog), txn_manager_(txn_manager),  deferred_action_manager_(deferred_action_manager), gc_(gc){
+      : catalog_(catalog), txn_manager_(txn_manager), deferred_action_manager_(deferred_action_manager), gc_(gc) {
     // Initialize catalog_table_schemas_ map
     catalog_table_schemas_[catalog::postgres::CLASS_TABLE_OID] = catalog::postgres::Builder::GetClassTableSchema();
     catalog_table_schemas_[catalog::postgres::NAMESPACE_TABLE_OID] =
@@ -50,8 +50,7 @@ class Checkpoint {
     return std::to_string((uint32_t)db_oid) + "-" + std::to_string((uint32_t)tb_oid);
   }
 
-
-  static void GenOidFromFileName(std::string file_name, catalog::db_oid_t& db_oid, catalog::table_oid_t& tb_oid) {
+  static void GenOidFromFileName(std::string file_name, catalog::db_oid_t &db_oid, catalog::table_oid_t &tb_oid) {
     auto sep_ind = file_name.find("-");
     db_oid = (catalog::db_oid_t)std::stoi(file_name.substr(0, sep_ind));
     tb_oid = (catalog::table_oid_t)std::stoi(file_name.substr(sep_ind + 1, file_name.length()));

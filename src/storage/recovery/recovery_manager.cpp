@@ -2,12 +2,12 @@
 
 #include <catalog/postgres/pg_proc.h>
 #include <algorithm>
+#include <filesystem>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
-#include <filesystem>
 
 #include "catalog/postgres/pg_attribute.h"
 #include "catalog/postgres/pg_class.h"
@@ -22,7 +22,7 @@
 
 namespace terrier::storage {
 
-  constexpr uint8_t ARROW_ALIGNMENT = 8;
+constexpr uint8_t ARROW_ALIGNMENT = 8;
 
 void RecoveryManager::RecoverFromLogs(bool catalog_only) {
   // Replay logs until the log provider no longer gives us logs
@@ -78,11 +78,11 @@ void RecoveryManager::RecoverFromLogs(bool catalog_only) {
   }
 }
 
-  void RecoveryManager::ReadDataBlock(std::ifstream &infile, char *src, size_t len) {
-    auto new_len = StorageUtil::PadUpToSize(ARROW_ALIGNMENT, len);
-    infile.read(src, len);
-    infile.seekg(new_len - len, std::ios::cur);
-  }
+void RecoveryManager::ReadDataBlock(std::ifstream &infile, char *src, size_t len) {
+  auto new_len = StorageUtil::PadUpToSize(ARROW_ALIGNMENT, len);
+  infile.read(src, len);
+  infile.seekg(new_len - len, std::ios::cur);
+}
 
 void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db_oid_t db_oid) {
   // Get the db_oid
@@ -116,17 +116,17 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
     f.seekg(schema_size, std::ios::cur);
 
     // Convert RecordBatch
-    std::list<RawBlock*> blocks;
-    for (auto x = 0; x < 5; x++) {
-      RawBlock* block = new RawBlock();
+    std::list<RawBlock *> blocks;
+    while (!f.eof()) {
+      RawBlock *block = new RawBlock();
       // Read in the buffers in RecordBatch
       int32_t record_batch_size;
       f.read(reinterpret_cast<char *>(&record_batch_size), sizeof(record_batch_size));
       f.read(reinterpret_cast<char *>(&record_batch_size), sizeof(record_batch_size));
       char *buffer = new char[record_batch_size];
       f.read(buffer, record_batch_size);
-      auto* record_batch = org::apache::arrow::flatbuf::GetMessage(buffer)->header_as_RecordBatch();
-      auto* record_buffers = record_batch->buffers();
+      auto *record_batch = org::apache::arrow::flatbuf::GetMessage(buffer)->header_as_RecordBatch();
+      auto *record_buffers = record_batch->buffers();
 
       for (size_t i = 0; i < column_id_size; ++i) {
         auto col_id = column_ids[i];
@@ -159,7 +159,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
     }
 
     // Create DataTable
-    DataTable* new_data_table = new DataTable(block_store_, layout, data_table->layout_version_, blocks);
+    DataTable *new_data_table = new DataTable(block_store_, layout, data_table->layout_version_, blocks);
     table->table_.data_table_ = new_data_table;
   }
   txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);

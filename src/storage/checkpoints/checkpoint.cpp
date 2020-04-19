@@ -57,14 +57,12 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
     // copy data table
     std::list<RawBlock *> new_blocks(curr_data_table->blocks_);
     storage::DataTable new_table(curr_data_table->block_store_, curr_data_table->GetBlockLayout(),
-        curr_data_table->layout_version_, new_blocks);
-
-
+                                 curr_data_table->layout_version_, new_blocks);
 
     const BlockLayout &layout = curr_data_table->GetBlockLayout();
     std::vector<type::TypeId> column_types;
     column_types.resize(layout.NumColumns());
-    for (RawBlock * block : curr_data_table->blocks_){
+    for (RawBlock *block : curr_data_table->blocks_) {
       auto &arrow_metadata = curr_data_table->accessor_.GetArrowBlockMetadata(block);
       for (storage::col_id_t col_id : layout.AllColumns()) {
         if (layout.IsVarlen(col_id)) {
@@ -78,9 +76,9 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
     }
 
     // for check if metadata updated
-//    auto &md = curr_data_table->accessor_.GetArrowBlockMetadata(curr_data_table->blocks_.front());
-//    col_id_t id = layout.AllColumns()[0];
-//    md.GetColumnInfo(layout, id);
+    //    auto &md = curr_data_table->accessor_.GetArrowBlockMetadata(curr_data_table->blocks_.front());
+    //    col_id_t id = layout.AllColumns()[0];
+    //    md.GetColumnInfo(layout, id);
 
     // compact blocks into arrow format
     storage::BlockCompactor compactor;
@@ -95,7 +93,6 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
     // write to disk
     storage::ArrowSerializer arrow_serializer(*curr_data_table);
     arrow_serializer.ExportTable(out_file, &column_types);
-
   }
 }
 
