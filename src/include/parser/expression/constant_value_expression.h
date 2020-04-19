@@ -43,11 +43,7 @@ class ConstantValueExpression : public AbstractExpression {
    * Copies this ConstantValueExpression
    * @returns copy of this
    */
-  std::unique_ptr<AbstractExpression> Copy() const override {
-    auto expr = std::make_unique<ConstantValueExpression>(GetValue());
-    expr->SetMutableStateForCopy(*this);
-    return expr;
-  }
+  std::unique_ptr<AbstractExpression> Copy() const override;
 
   /**
    * Creates a copy of the current AbstractExpression with new children implanted.
@@ -63,13 +59,7 @@ class ConstantValueExpression : public AbstractExpression {
 
   void DeriveReturnValueType() override { return_value_type_ = GetValue().Type(); }
 
-  void DeriveExpressionName() override {
-    if (!this->GetAlias().empty()) {
-      this->SetExpressionName(this->GetAlias());
-    } else {
-      this->SetExpressionName(value_.ToString());
-    }
-  }
+  void DeriveExpressionName() override;
 
   /** @return the constant value stored in this expression */
   type::TransientValue GetValue() const { return value_; }
@@ -92,13 +82,7 @@ class ConstantValueExpression : public AbstractExpression {
    * @note TransientValue::FromJson() is private, ConstantValueExpression is a friend
    * @see TransientValue for why TransientValue::FromJson is private
    */
-  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override {
-    std::vector<std::unique_ptr<AbstractExpression>> exprs;
-    auto e1 = AbstractExpression::FromJson(j);
-    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
-    value_ = j.at("value").get<type::TransientValue>();
-    return exprs;
-  }
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   friend class binder::BindNodeVisitor; /* value_ may be modified, e.g., when parsing dates. */

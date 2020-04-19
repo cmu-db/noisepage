@@ -36,11 +36,7 @@ class ParameterValueExpression : public AbstractExpression {
    * Copies this ParameterValueExpression
    * @returns copy of this
    */
-  std::unique_ptr<AbstractExpression> Copy() const override {
-    auto expr = std::make_unique<ParameterValueExpression>(GetValueIdx());
-    expr->SetMutableStateForCopy(*this);
-    return expr;
-  }
+  std::unique_ptr<AbstractExpression> Copy() const override;
 
   /**
    * Creates a copy of the current AbstractExpression with new children implanted.
@@ -79,13 +75,7 @@ class ParameterValueExpression : public AbstractExpression {
   }
 
   /** @param j json to deserialize */
-  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override {
-    std::vector<std::unique_ptr<AbstractExpression>> exprs;
-    auto e1 = AbstractExpression::FromJson(j);
-    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
-    value_idx_ = j.at("value_idx").get<uint32_t>();
-    return exprs;
-  }
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   // TODO(Tianyu): Can we get a better name for this?

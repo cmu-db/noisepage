@@ -34,14 +34,7 @@ class FunctionExpression : public AbstractExpression {
    * Copies this FunctionExpression
    * @returns copy of this
    */
-  std::unique_ptr<AbstractExpression> Copy() const override {
-    std::vector<std::unique_ptr<AbstractExpression>> children;
-    for (const auto &child : GetChildren()) {
-      children.emplace_back(child->Copy());
-    }
-    return CopyWithChildren(std::move(children));
-  }
-
+  std::unique_ptr<AbstractExpression> Copy() const override;
   /**
    * Creates a copy of the current AbstractExpression with new children implanted.
    * The children should not be owned by any other AbstractExpression.
@@ -49,13 +42,7 @@ class FunctionExpression : public AbstractExpression {
    * @returns copy of this with new children
    */
   std::unique_ptr<AbstractExpression> CopyWithChildren(
-      std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
-    std::string func_name = GetFuncName();
-    auto expr = std::make_unique<FunctionExpression>(std::move(func_name), GetReturnValueType(), std::move(children));
-    expr->SetMutableStateForCopy(*this);
-    expr->SetProcOid(GetProcOid());
-    return expr;
-  }
+      std::vector<std::unique_ptr<AbstractExpression>> &&children) const override;
 
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();
@@ -72,19 +59,7 @@ class FunctionExpression : public AbstractExpression {
   /** @return function name */
   const std::string &GetFuncName() const { return func_name_; }
 
-  void DeriveExpressionName() override {
-    bool first = true;
-    std::string name = this->GetFuncName() + "(";
-    for (auto &child : children_) {
-      if (!first) name.append(",");
-
-      child->DeriveExpressionName();
-      name.append(child->GetExpressionName());
-      first = false;
-    }
-    name.append(")");
-    this->SetExpressionName(name);
-  }
+  void DeriveExpressionName() override;
 
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
@@ -98,13 +73,7 @@ class FunctionExpression : public AbstractExpression {
   /**
    * @param j json to deserialize
    */
-  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override {
-    std::vector<std::unique_ptr<AbstractExpression>> exprs;
-    auto e1 = AbstractExpression::FromJson(j);
-    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
-    func_name_ = j.at("func_name").get<std::string>();
-    return exprs;
-  }
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
   /**
    * Sets the proc oid of this node

@@ -45,6 +45,7 @@ class AbstractExpression {
   AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type,
                      std::vector<std::unique_ptr<AbstractExpression>> &&children)
       : expression_type_(expression_type), return_value_type_(return_value_type), children_(std::move(children)) {}
+
   /**
    * Instantiates a new abstract expression with alias used for select statement column references.
    * @param expression_type what type of expression we have
@@ -95,13 +96,7 @@ class AbstractExpression {
    * re-derive the expression.
    * @param copy_expr the expression whose mutable state should be copied
    */
-  void SetMutableStateForCopy(const AbstractExpression &copy_expr) {
-    SetExpressionName(copy_expr.GetExpressionName());
-    SetReturnValueType(copy_expr.GetReturnValueType());
-    SetDepth(copy_expr.GetDepth());
-    has_subquery_ = copy_expr.HasSubquery();
-    alias_ = copy_expr.alias_;
-  }
+  void SetMutableStateForCopy(const AbstractExpression &copy_expr);
 
  public:
   virtual ~AbstractExpression() = default;
@@ -109,36 +104,14 @@ class AbstractExpression {
   /**
    * Hashes the current abstract expression.
    */
-  virtual common::hash_t Hash() const {
-    common::hash_t hash = common::HashUtil::Hash(expression_type_);
-    for (const auto &child : children_) {
-      hash = common::HashUtil::CombineHashes(hash, child->Hash());
-    }
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(return_value_type_));
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expression_name_));
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(alias_));
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(depth_));
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(static_cast<char>(has_subquery_)));
-
-    return hash;
-  }
+  virtual common::hash_t Hash() const;
 
   /**
    * Logical equality check.
    * @param rhs other
    * @return true if the two expressions are logically equal
    */
-  virtual bool operator==(const AbstractExpression &rhs) const {
-    if (expression_type_ != rhs.expression_type_) return false;
-    if (alias_ != rhs.alias_) return false;
-    if (expression_name_ != rhs.expression_name_) return false;
-    if (depth_ != rhs.depth_) return false;
-    if (has_subquery_ != rhs.has_subquery_) return false;
-    if (children_.size() != rhs.children_.size()) return false;
-    for (size_t i = 0; i < children_.size(); i++)
-      if (*(children_[i]) != *(rhs.children_[i])) return false;
-    return return_value_type_ == rhs.return_value_type_;
-  }
+  virtual bool operator==(const AbstractExpression &rhs) const;
 
   /**
    * Logical inequality check.
@@ -182,15 +155,10 @@ class AbstractExpression {
    */
   size_t GetChildrenSize() const { return children_.size(); }
 
-  /** @return children of this abstract expression */
-  std::vector<common::ManagedPointer<AbstractExpression>> GetChildren() const {
-    std::vector<common::ManagedPointer<AbstractExpression>> children;
-    children.reserve(children_.size());
-    for (const auto &child : children_) {
-      children.emplace_back(common::ManagedPointer(child));
-    }
-    return children;
-  }
+  /**
+   * @return children of this abstract expression
+   */
+  std::vector<common::ManagedPointer<AbstractExpression>> GetChildren() const;
 
   /**
    * @param index index of child
@@ -214,6 +182,7 @@ class AbstractExpression {
 
   /** set alias of this abstract expression */
   void SetAlias(std::string alias) { alias_ = std::move(alias); }
+
   /**
    * Derive the expression type of the current expression.
    */
@@ -277,13 +246,7 @@ class AbstractExpression {
    * @param index Index of the child to be changed
    * @param expr The abstract expression which we set the child to
    */
-  void SetChild(int index, common::ManagedPointer<AbstractExpression> expr) {
-    if (index >= static_cast<int>(children_.size())) {
-      children_.resize(index + 1);
-    }
-    auto new_child = expr->Copy();
-    children_[index] = std::move(new_child);
-  }
+  void SetChild(int index, common::ManagedPointer<AbstractExpression> expr);
 
   /** Type of the current expression */
   ExpressionType expression_type_;
