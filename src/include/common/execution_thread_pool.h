@@ -37,12 +37,13 @@ class ExecutionThreadPool : DedicatedThreadOwner {
  public:
 
   /**
- * A task queue is a FIFO list of functions that we will execute.
- * This queue by itself is not threadsafe so the WorkerPool class has to protect
- * it on its own with latches.
- */
-// TODO(Deepayan): change from void later
-  using ExecutionTaskQueue = tbb::concurrent_queue<common::PoolContext *>;
+  * A task queue is a FIFO list of functions that we will execute.
+  * This queue by itself is not threadsafe so the WorkerPool class has to protect
+  * it on its own with latches.
+  */
+  // TODO(Deepayan): change from void later
+  using Task = std::pair<PoolContext *, std::promise<void> *>;
+  using ExecutionTaskQueue = tbb::concurrent_queue<Task>;
 
   /**
    * All possible states that a thread could be in
@@ -86,13 +87,13 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     }
   }
 
-  void SubmitTask(PoolContext* ctx, const std::function<void(PoolContext *)> &task, common::numa_region_t numa_hint = UNSUPPORTED_NUMA_REGION) {
+  void SubmitTask(std::promise<void> *promise, const std::function<void(PoolContext *)> &task, common::numa_region_t numa_hint = UNSUPPORTED_NUMA_REGION) {
     if (numa_hint == UNSUPPORTED_NUMA_REGION) {
       numa_hint = static_cast<common::numa_region_t>(0);
     }
-
+    PoolContext *ctx = context_pool_.Get();
     ctx->SetFunction(task);
-    task_queue_[static_cast<int16_t>(numa_hint)].push(ctx);
+    task_queue_[static_cast<int16_t>(numa_hint)].push({ctx, promise});
     task_cv_.notify_all();
   }
 
@@ -102,9 +103,9 @@ class ExecutionThreadPool : DedicatedThreadOwner {
    * @param task a void to void function that is the task to be executed
    * @param numa_hint a hint as to which NUMA region would be ideal for this task to be executed on, default is any
    */
-  void SubmitTask(PoolContext* ctx, const std::function<void()> &task,
+  void SubmitTask(std::promise<void> *promise, const std::function<void()> &task,
                   common::numa_region_t numa_hint = UNSUPPORTED_NUMA_REGION) {
-    SubmitTask(ctx, [&] (PoolContext *ctx) {
+    SubmitTask(promise, [&] (PoolContext *ctx) {
       task();
     }, numa_hint);
   }
@@ -146,20 +147,22 @@ class ExecutionThreadPool : DedicatedThreadOwner {
       while (true) {
         for (int16_t i = 0; i < pool_->num_regions_; i++) {
           auto index = (static_cast<int16_t>(numa_region_) + i) % pool_->num_regions_;
-          PoolContext* ctx;
-          if (!pool_->task_queue_[index].try_pop(ctx)) {
+          Task task;
+          if (!pool_->task_queue_[index].try_pop(task)) {
             continue;
           }
 
           status_ = ThreadStatus::BUSY;
-          if (ctx->YieldToFunc()) {
+          if (task.first->YieldToFunc()) {
+            pool_->context_pool_.Release(task.first);
+            task.second->set_value();
             status_ = ThreadStatus::SWITCHING;
             return;
           }
 
           status_ = ThreadStatus::SWITCHING;
           bool is_empty = pool_->task_queue_[index].empty();
-          pool_->task_queue_[index].push(ctx);
+          pool_->task_queue_[index].push(task);
 
           if (is_empty) {
             continue;
@@ -214,6 +217,8 @@ class ExecutionThreadPool : DedicatedThreadOwner {
 
  private:
 
+  static const uint32_t MAX_NUMBER_CONCURRENTLY_RUNNING_TASKS = 10000;
+
   common::ManagedPointer<DedicatedThreadRegistry> thread_registry_;
   // Number of NUMA regions
   // The worker threads
@@ -233,6 +238,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
 
   std::mutex task_lock_;
   std::condition_variable task_cv_;
+  PoolContextPool context_pool_{MAX_NUMBER_CONCURRENTLY_RUNNING_TASKS, MAX_NUMBER_CONCURRENTLY_RUNNING_TASKS};
 
   void AddThread(DedicatedThreadTask *t) override {
     auto *thread = static_cast<TerrierThread *>(t);
