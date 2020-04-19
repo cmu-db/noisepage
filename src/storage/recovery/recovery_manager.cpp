@@ -22,6 +22,8 @@
 
 namespace terrier::storage {
 
+  constexpr uint8_t ARROW_ALIGNMENT = 8;
+
 void RecoveryManager::RecoverFromLogs(bool catalog_only) {
   // Replay logs until the log provider no longer gives us logs
   while (true) {
@@ -76,6 +78,12 @@ void RecoveryManager::RecoverFromLogs(bool catalog_only) {
   }
 }
 
+  void RecoveryManager::ReadDataBlock(std::ifstream &infile, char *src, size_t len) {
+    auto new_len = StorageUtil::PadUpToSize(ARROW_ALIGNMENT, len);
+    infile.read(src, len);
+    infile.seekg(new_len - len, std::ios::cur);
+  }
+
 void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db_oid_t db_oid) {
   // Get the db_oid
   auto *recovery_txn = txn_manager_->BeginTransaction();
@@ -90,93 +98,69 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
     Checkpoint::GenOidFromFileName(in_file.substr(path.length(), in_file.length()), db_oid, table_oid);
     common::ManagedPointer<storage::SqlTable> table = accessor->GetTable(table_oid);
     auto &data_table = table->table_.data_table_;
-    // const auto &layout = data_table->GetBlockLayout();
-    // const auto &column_ids = layout.AllColumns();
-    // auto col_num = column_ids.size();
+    const auto &layout = data_table->GetBlockLayout();
+    const auto &column_ids = layout.AllColumns();
+    auto column_id_size = column_ids.size();
+    data_table->blocks_latch_.Lock();
+    std::list<RawBlock *> tmp_blocks = data_table->blocks_;
+    data_table->blocks_latch_.Unlock();
 
     // Find the file
     std::ifstream f;
     f.open(in_file, std::ios::binary);
 
-    // Get our metadata first
-    unsigned long block_num;
-    f.read(reinterpret_cast<char *>(&block_num), sizeof(block_num));
-    unsigned long varchar_cols;
-    f.read(reinterpret_cast<char *>(&varchar_cols), sizeof(varchar_cols));
-    unsigned long dict_cols;
-    f.read(reinterpret_cast<char *>(&dict_cols), sizeof(dict_cols));
-    unsigned long insertion_head_index;
-    f.read(reinterpret_cast<char *>(&insertion_head_index), sizeof(insertion_head_index));
+    // Convert Schema
+    int32_t schema_size;
+    f.read(reinterpret_cast<char *>(&schema_size), sizeof(schema_size));
+    f.read(reinterpret_cast<char *>(&schema_size), sizeof(schema_size));
+    f.seekg(schema_size, std::ios::cur);
 
-    // Get varlen information
-    std::vector<col_id_t> col_ids;
-    std::vector<uint32_t> offset_lengths;
-    std::vector<uint32_t> value_lengths;
-    std::vector<uint64_t *> varlen_col_offsets_vec;
-    std::vector<byte *> varlen_col_values_vec;
-    col_id_t col_id;
-    uint32_t offset_length;
-    uint32_t value_length;
-    uint64_t *varlen_col_offsets;
-    byte *varlen_col_values;
-    auto content_size = common::Constants::BLOCK_SIZE - sizeof(uintptr_t) - sizeof(uint16_t) -
-                        sizeof(layout_version_t) - sizeof(uint32_t) - sizeof(BlockAccessController);
+    // Convert RecordBatch
+    std::list<RawBlock*> blocks;
+    for (auto x = 0; x < 5; x++) {
+      RawBlock* block = new RawBlock();
+      // Read in the buffers in RecordBatch
+      int32_t record_batch_size;
+      f.read(reinterpret_cast<char *>(&record_batch_size), sizeof(record_batch_size));
+      f.read(reinterpret_cast<char *>(&record_batch_size), sizeof(record_batch_size));
+      char *buffer = new char[record_batch_size];
+      f.read(buffer, record_batch_size);
+      auto* record_batch = org::apache::arrow::flatbuf::GetMessage(buffer)->header_as_RecordBatch();
+      auto* record_buffers = record_batch->buffers();
 
-    // Assuming just VARCHAR
-    std::list<RawBlock *> blocks;
-    for (auto i = 0u; i < block_num; i++) {
-      for (auto j = 0u; j < varchar_cols; j++) {
-        f.read(reinterpret_cast<char *>(&col_id), sizeof(col_id));
-        f.read(reinterpret_cast<char *>(&offset_length), sizeof(offset_length));
-        f.read(reinterpret_cast<char *>(&value_length), sizeof(offset_length));
-        f.read(reinterpret_cast<char *>(&varlen_col_offsets), offset_length * sizeof(uint64_t));
-        f.read(reinterpret_cast<char *>(&varlen_col_values), value_length);
-        col_ids.push_back(col_id);
-        offset_lengths.push_back(offset_length);
-        value_lengths.push_back(value_length);
-        varlen_col_offsets_vec.push_back(varlen_col_offsets);
-        varlen_col_values_vec.push_back(varlen_col_values);
+      for (size_t i = 0; i < column_id_size; ++i) {
+        auto col_id = column_ids[i];
+        common::RawConcurrentBitmap *column_bitmap = data_table->accessor_.ColumnNullBitmap(block, col_id);
+        byte *column_start = data_table->accessor_.ColumnStart(block, col_id);
+        ReadDataBlock(f, reinterpret_cast<char *>(column_bitmap),
+                      reinterpret_cast<uintptr_t>(column_start) - reinterpret_cast<uintptr_t>(column_bitmap));
+
+        if (layout.IsVarlen(col_id)) {
+          int64_t offsets_length = (*record_buffers)[i]->offset() / sizeof(uint64_t);
+          int64_t values_length = (*record_buffers)[i]->length();
+          std::vector<uint64_t> offsets_array(offsets_length, 0);
+          ReadDataBlock(f, reinterpret_cast<char *>(&offsets_array), offsets_length);
+          byte *values_array = new byte[values_length];
+          ReadDataBlock(f, reinterpret_cast<char *>(values_array), values_length);
+
+          for (auto j = 0; j < offsets_length; j++) {
+            byte *varlen = new byte[offsets_array[j + 1] - offsets_array[j]];
+            memcpy(varlen, values_array + offsets_array[j], offsets_array[j + 1] - offsets_array[j]);
+            *(reinterpret_cast<byte **>(column_start + j * sizeof(void *))) = varlen;
+          }
+        } else {
+          int32_t cur_buffer_len = (*record_buffers)[i]->length();
+          byte *content = new byte[cur_buffer_len];
+          ReadDataBlock(reinterpret_cast<char *>(content), cur_buffer_len);
+          memcpy(column_start, content, cur_buffer_len);
+        }
       }
-
-      byte content[content_size];
-      f.read(reinterpret_cast<char *>(&content), sizeof(content));
-
-      /**
-       * Recover the block
-       */
-      RawBlock *block = new RawBlock();
       blocks.push_back(block);
-
-      // Set datatable
-      block->data_table_ = data_table;
-
-      // Set padding
-      uint16_t padding;
-//      f.seekg(sizeof(void *), std::ios::cur);  // skip data table
-      f.read(reinterpret_cast<char *>(&padding), sizeof(padding));
-      block->padding_ = padding;
-
-      // Set layout_version
-      layout_version_t layout_version;
-      f.read(reinterpret_cast<char *>(&layout_version), sizeof(layout_version));
-      block->layout_version_ = layout_version;
-
-      // Set insert_head
-      uint32_t insert_head;
-      f.read(reinterpret_cast<char *>(&insert_head), sizeof(insert_head));
-      block->insert_head_ = insert_head;
-
-      // Set content
-      std::memcpy(block->content_, content, content_size);
     }
 
-    // Now we have all the blocks and metadata, so we can recover the table
-    // Create the new table
-    auto sql_table = accessor->GetTable(table_oid);
-    sql_table->table_.data_table_->blocks_ = blocks;
-    for (auto i = 0; i < insertion_head_index; i++) {
-      sql_table->table_.data_table_->insertion_head_++;
-    }
+    // Create DataTable
+    DataTable* new_data_table = new DataTable(block_store_, layout, data_table->layout_version_, blocks);
+    table->table_.data_table_ = new_data_table;
   }
   txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   std::cout << "ok" << std::endl;
