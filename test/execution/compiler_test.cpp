@@ -2133,7 +2133,7 @@ TEST_F(CompilerTest, CTEBasicTest) {
     // Build
     planner::CteScanPlanNode::Builder builder;
     cte_scan =
-        builder.SetOutputSchema(std::move(schema)).AddChild(std::move(seq_scan)).Build();
+        builder.SetOutputSchema(std::move(schema)).AddChild(std::move(seq_scan)).SetLeader(true).Build();
   }
   // Dummy checkers
   RowChecker row_checker = [](const std::vector<sql::Val *> &vals) {
@@ -2155,7 +2155,7 @@ TEST_F(CompilerTest, CTEBasicTest) {
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleNestedLoopJoinWithCteTest) {
-  // With SELECT t.col1, t.col2 FROM test_1 as t.col1 < 10
+  // With t as SELECT t.col1, t.col2 FROM test_1 where test_1.col1 < 10
   // SELECT t1.col1, t2.col1, t2.col2, t1.col1 + t2.col2 FROM t as t1 INNER JOIN t as t2 ON t1.col1=t2.col1
   // Get accessor
   auto accessor = MakeAccessor();
@@ -2272,7 +2272,7 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinWithCteTest) {
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleHashJoinWithCteTest) {
-  // With SELECT t.col1, t.col2 FROM test_1 as t.col1 < 10
+  // With t as SELECT t.col1, t.col2 FROM test_1 where test_1.col1 < 10
   // SELECT t1.col1, t2.col1, t2.col2, t1.col1 + t2.col2 FROM t as t1 INNER JOIN t as t2 ON t1.col1=t2.col1
 
   // Get accessor
@@ -2383,6 +2383,176 @@ TEST_F(CompilerTest, SimpleHashJoinWithCteTest) {
 
   // Run & Check
   auto executable = ExecutableQuery(common::ManagedPointer(hash_join), common::ManagedPointer(exec_ctx));
+  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  checker.CheckCorrectness();
+}
+
+TEST_F(CompilerTest, NestedQueryWithHashJoinAndInnerJoinWithCteTest) {
+  // With t as SELECT t.col1, t.col2 FROM test_1 where test_1.col1 < 10
+  // Select t4.col1, t4.col2, t4.col3, t4.col4, t5.col1 FROM t as t5 INNER JOIN(Nested Loop)
+  // (SELECT t1.col1, t2.col1, t2.col2, t1.col1 + t2.col2 FROM t as t1 INNER JOIN(Hash Join) t as t2 ON t1.col1=t2.col1) AS t4
+  // ON t4.col1 = t5.col1
+
+  // Get accessor
+  auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
+  auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
+  auto table_schema1 = accessor->GetSchema(table_oid1);
+
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
+  {
+    // OIDs
+    auto cola_oid = table_schema1.GetColumn("colA").Oid();
+    auto colb_oid = table_schema1.GetColumn("colB").Oid();
+    // Get Table columns
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    seq_scan_out.AddOutput("colA", col1);
+    seq_scan_out.AddOutput("colB", col2);
+    auto schema = seq_scan_out.MakeSchema();
+    // Make predicate
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(10));
+    // Build
+    planner::SeqScanPlanNode::Builder builder;
+    seq_scan = builder.SetOutputSchema(std::move(schema))
+        .SetColumnOids({cola_oid, colb_oid})
+        .SetScanPredicate(predicate)
+        .SetIsForUpdateFlag(false)
+        .SetNamespaceOid(NSOid())
+        .SetTableOid(table_oid1)
+        .Build();
+  }
+
+  std::unique_ptr<planner::AbstractPlanNode> cte_scan;
+  OutputSchemaHelper cte_scan_out{0, &expr_maker};
+  {
+    // Output Colums col1
+    auto col1 = seq_scan_out.GetOutput("colA");
+    auto col2 = seq_scan_out.GetOutput("colB");
+    cte_scan_out.AddOutput("colA", col1);
+    cte_scan_out.AddOutput("colB", col2);
+    auto schema = cte_scan_out.MakeSchema();
+    // Build
+    planner::CteScanPlanNode::Builder builder;
+    cte_scan =
+        builder.SetOutputSchema(std::move(schema)).AddChild(std::move(seq_scan)).SetLeader(true).Build();
+  }
+
+  std::unique_ptr<planner::AbstractPlanNode> cte_scan2;
+  OutputSchemaHelper cte_scan_out2{1, &expr_maker};
+  {
+    // Output Colums col1
+    // Output Colums col1
+    auto col1 = seq_scan_out.GetOutput("colA");
+    auto col2 = seq_scan_out.GetOutput("colB");
+    cte_scan_out2.AddOutput("col1", col1);
+    cte_scan_out2.AddOutput("col2", col2);
+    auto schema = cte_scan_out2.MakeSchema();
+    // Build
+    planner::CteScanPlanNode::Builder builder;
+    cte_scan2 =
+        builder.SetOutputSchema(std::move(schema)).SetLeader(false).Build();
+  }
+
+  std::unique_ptr<planner::AbstractPlanNode> cte_scan3;
+  OutputSchemaHelper cte_scan_out3{1, &expr_maker};
+  {
+    // Output Colums col1
+    // Output Colums col1
+    auto col1 = seq_scan_out.GetOutput("colA");
+    auto col2 = seq_scan_out.GetOutput("colB");
+    cte_scan_out3.AddOutput("col1", col1);
+    cte_scan_out3.AddOutput("col2", col2);
+    auto schema = cte_scan_out3.MakeSchema();
+    // Build
+    planner::CteScanPlanNode::Builder builder;
+    cte_scan3 =
+        builder.SetOutputSchema(std::move(schema)).SetLeader(false).Build();
+  }
+
+  // Make hash join
+  std::unique_ptr<planner::AbstractPlanNode> hash_join;
+  OutputSchemaHelper hash_join_out{0, &expr_maker};
+  {
+    // t1.col1, and t1.col2
+    auto t1_col1 = cte_scan_out.GetOutput("colA");
+    // t2.col1 and t2.col2
+    auto t2_col1 = cte_scan_out2.GetOutput("col1");
+    auto t2_col2 = cte_scan_out2.GetOutput("col2");
+    // t1.col2 + t2.col2
+    auto sum = expr_maker.OpSum(t1_col1, t2_col2);
+    // Output Schema
+    hash_join_out.AddOutput("t1.col1", t1_col1);
+    hash_join_out.AddOutput("t2.col1", t2_col1);
+    hash_join_out.AddOutput("t2.col2", t2_col2);
+    hash_join_out.AddOutput("sum", sum);
+    auto schema = hash_join_out.MakeSchema();
+    // Predicate
+    auto predicate = expr_maker.ComparisonEq(t1_col1, t2_col1);
+    // Build
+    planner::HashJoinPlanNode::Builder builder;
+    hash_join = builder.AddChild(std::move(cte_scan))
+        .AddChild(std::move(cte_scan2))
+        .SetOutputSchema(std::move(schema))
+        .AddLeftHashKey(t1_col1)
+        .AddRightHashKey(t2_col1)
+        .SetJoinType(planner::LogicalJoinType::INNER)
+        .SetJoinPredicate(predicate)
+        .Build();
+  }
+
+
+  // Make nested loop join
+  std::unique_ptr<planner::AbstractPlanNode> nl_join;
+  OutputSchemaHelper nl_join_out{0, &expr_maker};
+  {
+    // t4 columns
+    auto t4_col1 = hash_join_out.GetOutput("t1.col1");
+    auto t4_col2 = hash_join_out.GetOutput("t2.col1");
+    auto t4_col3 = hash_join_out.GetOutput("t2.col2");
+    auto t4_col4 = hash_join_out.GetOutput("sum");
+
+    // t5 column
+    auto t5_col1 = cte_scan_out3.GetOutput("col1");
+
+    // Output Schema
+    nl_join_out.AddOutput("t4.col1", t4_col1);
+    nl_join_out.AddOutput("t4.col2", t4_col2);
+    nl_join_out.AddOutput("t4.col3", t4_col3);
+    nl_join_out.AddOutput("t4.col4", t4_col4);
+    nl_join_out.AddOutput("t5.col1", t5_col1);
+    auto schema = nl_join_out.MakeSchema();
+    // Predicate
+    auto predicate = expr_maker.ComparisonEq(t4_col1, t5_col1);
+    // Build
+
+    planner::NestedLoopJoinPlanNode::Builder builder;
+    // *** Note that the hash join has to be added first, otherwise the ordering of the
+    // Leader and non leader cte scan nodes will no longer be valid ***
+    nl_join = builder.AddChild(std::move(hash_join))
+        .AddChild(std::move(cte_scan3))
+        .SetOutputSchema(std::move(schema))
+        .SetJoinType(planner::LogicalJoinType::INNER)
+        .SetJoinPredicate(predicate)
+        .Build();
+  }
+
+  // Dummy checkers
+  RowChecker row_checker = [](const std::vector<sql::Val *> &vals) {
+  };
+  CorrectnessFn correcteness_fn = []() {
+  };
+  GenericChecker checker(row_checker, correcteness_fn);
+
+  // Make Exec Ctx
+  OutputStore store{&checker, nl_join->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(nl_join->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), nl_join->GetOutputSchema().Get());
+
+  // Run & Check
+  auto executable = ExecutableQuery(common::ManagedPointer(nl_join), common::ManagedPointer(exec_ctx));
   executable.Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
