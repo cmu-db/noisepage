@@ -284,7 +284,8 @@ class DBMain {
           use_settings_manager_ ? BootstrapSettingsManager(common::ManagedPointer(db_main)) : DISABLED;
 
       std::unique_ptr<metrics::MetricsManager> metrics_manager = DISABLED;
-      if (use_metrics_) metrics_manager = std::make_unique<metrics::MetricsManager>();
+      if (use_metrics_) metrics_manager = BootstrapMetricsManager(metrics_pipeline_, metrics_transaction_,
+                                                                  metrics_logging_, metrics_gc_);
 
       std::unique_ptr<metrics::MetricsThread> metrics_thread = DISABLED;
       if (use_metrics_thread_) {
@@ -608,6 +609,10 @@ class DBMain {
     bool use_metrics_ = false;
     uint32_t metrics_interval_ = 100;
     bool use_metrics_thread_ = false;
+    bool metrics_pipeline_= false;
+    bool metrics_transaction_ = false;
+    bool metrics_logging_ = false;
+    bool metrics_gc_ = false;
     uint64_t record_buffer_segment_size_ = 1e5;
     uint64_t record_buffer_segment_reuse_ = 1e4;
     std::string log_file_path_ = "wal.log";
@@ -662,8 +667,29 @@ class DBMain {
           static_cast<uint16_t>(settings_manager->GetInt(settings::Param::connection_thread_count));
       optimizer_timeout_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::task_execution_timeout));
 
+      metrics_pipeline_ = settings_manager->GetBool(settings::Param::metrics_pipeline);
+      metrics_transaction_ = settings_manager->GetBool(settings::Param::metrics_transaction);
+      metrics_logging_ = settings_manager->GetBool(settings::Param::metrics_logging);
+      metrics_gc_ = settings_manager->GetBool(settings::Param::metrics_gc);
+
       return settings_manager;
     }
+
+    /**
+     * Instantiate the MetricsManager and enable metrics for components arrocding to the Builder's settings.
+     * @return
+     */
+    std::unique_ptr<metrics::MetricsManager> BootstrapMetricsManager(bool metrics_pipeline, bool metrics_transaction,
+                                                                     bool metrics_logging, bool metrics_gc) {
+      std::unique_ptr<metrics::MetricsManager> metrics_manager = std::make_unique<metrics::MetricsManager>();
+      if (metrics_pipeline) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
+      if (metrics_transaction) metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 100);
+      if (metrics_logging) metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
+      if (metrics_gc) metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+
+      return metrics_manager;
+    }
+
   };
 
   /**
