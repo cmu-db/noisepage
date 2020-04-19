@@ -153,14 +153,15 @@ class ExecutionThreadPool : DedicatedThreadOwner {
           }
 
           status_ = ThreadStatus::BUSY;
-          if (task.first->YieldToFunc()) {
+          bool finished = task.first->YieldToFunc();
+          status_ = ThreadStatus::SWITCHING;
+
+          if (finished) {
             pool_->context_pool_.Release(task.first);
             task.second->set_value();
-            status_ = ThreadStatus::SWITCHING;
             return;
           }
 
-          status_ = ThreadStatus::SWITCHING;
           bool is_empty = pool_->task_queue_[index].empty();
           pool_->task_queue_[index].push(task);
 
@@ -223,13 +224,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
   // Number of NUMA regions
   // The worker threads
   tbb::reader_writer_lock array_latch_;
-#ifdef __APPLE__
-  int16_t num_regions_ = 1;
-#else
-  int16_t num_regions_ = numa_available() < 0 || static_cast<int16_t>(numa_max_node()) <= 0
-                             ? 1
-                             : static_cast<int16_t>(numa_max_node()) + 1;
-#endif
+  int16_t num_regions_ = storage::RawBlock::GetNumNumaRegions();
   std::vector<std::vector<TerrierThread *>> workers_;
   std::vector<ExecutionTaskQueue> task_queue_;
 
