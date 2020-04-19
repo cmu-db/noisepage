@@ -130,6 +130,22 @@ std::pair<byte *, uint32_t *> TableGenerator::GenerateColumnData(ColumnInsertMet
   return {col_data, null_bitmap};
 }
 
+template <typename T, typename S>
+std::pair<byte *, uint32_t *> TableGenerator::CloneColumnData(std::pair<byte *, uint32_t *> orig, uint32_t num_rows) {
+  uint64_t num_words = util::BitUtil::Num32BitWordsFor(num_rows);
+  auto *bitmap = new uint32_t[num_words];
+  for (auto i = 0; i < num_words; i++) {
+    bitmap[i] = orig.second[i];
+  }
+
+  auto *val = new S[num_rows];
+  for (auto i = 0; i < num_rows; i++) {
+    val[i] = (reinterpret_cast<T *>(orig.first))[i];
+  }
+
+  return {reinterpret_cast<byte*>(val), bitmap};
+}
+
 // Fill a given table according to its metadata
 void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPointer<storage::SqlTable> table,
                                const catalog::Schema &schema, TableInsertMeta *table_meta) {
@@ -159,7 +175,18 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
     TERRIER_ASSERT(num_vals != 0, "Can't have empty columns.");
     for (auto &col_meta : table_meta->col_meta_) {
       if (col_meta.is_clone_) {
-        column_data.emplace_back(column_data[col_meta.clone_idx_]);
+        auto &other = table_meta->col_meta_[col_meta.clone_idx_];
+        if (col_meta.type_ == other.type_) {
+          column_data.emplace_back(column_data[col_meta.clone_idx_]);
+        } else if (col_meta.type_ == type::TypeId::INTEGER && other.type_ == type::TypeId::BIGINT) {
+          auto copy = CloneColumnData<int64_t, int32_t>(column_data[col_meta.clone_idx_], num_vals);
+          column_data.emplace_back(copy);
+          alloc_buffers.emplace_back(copy);
+        } else if (col_meta.type_ == type::TypeId::BIGINT && other.type_ == type::TypeId::INTEGER) {
+          auto copy = CloneColumnData<int32_t, int64_t>(column_data[col_meta.clone_idx_], num_vals);
+          column_data.emplace_back(copy);
+          alloc_buffers.emplace_back(copy);
+        }
       } else {
         column_data.emplace_back(GenerateColumnData(&col_meta, num_vals));
         alloc_buffers.emplace_back(column_data.back());
@@ -426,29 +453,27 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
       cardinalities.emplace_back(row_num);
 
       for (uint32_t cardinality : cardinalities) {
-        int col_counter = 1;
+        int num_cols = 0;
         std::vector<ColumnInsertMeta> col_metas;
         for (size_t col_idx = 0; col_idx < col_dist.size(); col_idx++) {
-          int reuse_idx = -1;
-          for (auto j = 0; j < col_dist[col_idx]; j++) {
+          for (auto j = 1; j <= col_dist[col_idx]; j++) {
             std::stringstream col_name;
-            col_name << "col" << col_counter;
+            col_name << type::TypeUtil::TypeIdToString(types[col_idx]) << j;
 
-            if (j == 0) {
+            if (col_metas.empty()) {
               col_metas.emplace_back(col_name.str(), types[col_idx], false, Dist::Rotate, 1, cardinality);
-              reuse_idx = col_metas.size() - 1;
             } else {
-              col_metas.emplace_back(col_metas[reuse_idx], col_name.str(), reuse_idx);
+              col_metas.emplace_back(col_name.str(), types[col_idx], false, 0);
             }
-
-            col_counter++;
           }
+
+          num_cols += col_dist[col_idx];
         }
 
         std::string tbl_name = GenerateMixedTableName(types, col_dist, row_num, cardinality);
         for (auto col_idx = 0; col_idx < col_dist.size(); col_idx++) {
-          if (col_dist[col_idx] == col_counter - 1) {
-            tbl_name = GenerateTableName(types[col_idx], col_counter - 1, row_num, cardinality);
+          if (col_dist[col_idx] == num_cols) {
+            tbl_name = GenerateTableName(types[col_idx], num_cols, row_num, cardinality);
             break;
           }
         }

@@ -168,12 +168,8 @@ class TableGenerator {
     /**
      * Clone Constructor
      */
-    ColumnInsertMeta(const ColumnInsertMeta &other, std::string name, size_t clone_idx)
-        : name_(std::move(name)),
-          type_(other.type_),
-          nullable_(other.nullable_),
-          is_clone_(true),
-          clone_idx_(clone_idx) {}
+    ColumnInsertMeta(std::string name, const type::TypeId type, bool nullable, size_t clone_idx)
+        : name_(std::move(name)), type_(type), nullable_(nullable), is_clone_(true), clone_idx_(clone_idx) {}
   };
 
   /**
@@ -285,6 +281,17 @@ class TableGenerator {
    * @return
    */
   std::pair<byte *, uint32_t *> GenerateColumnData(ColumnInsertMeta *col_meta, uint32_t num_rows);
+
+  /**
+   * Clone Column Data
+   * T - underlying type of original
+   * S - underlying type of copied data
+   * @param orig original
+   * @param num_rows number of rows
+   * @returns cloned column data
+   */
+  template <typename T, typename S>
+  std::pair<byte *, uint32_t *> CloneColumnData(std::pair<byte *, uint32_t *> orig, uint32_t num_rows);
 
   /**
    * Create table
