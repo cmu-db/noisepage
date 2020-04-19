@@ -255,9 +255,8 @@ class SqlTable {
                                      layout_version_t layout_version = layout_version_t{0});
 
   /**
-   * Returns the column oid to id map of a layout_version
    * @param version  version of the datatable
-   * @return
+   * @return the column oid to id map of a layout_version
    */
   const ColumnOidToIdMap &GetColumnOidToIdMap(layout_version_t version) const {
     TERRIER_ASSERT(tables_.count(version) > 0, "version not existing..");
@@ -265,9 +264,8 @@ class SqlTable {
   }
 
   /**
-   * Returns the column oid to id map of a layout_version
    * @param version  version of the datatable
-   * @return columnid to oid map
+   * @return the column id to oid map of a layout_version
    */
   const ColumnIdToOidMap &GetColumnIdToOidMap(layout_version_t version) const {
     TERRIER_ASSERT(tables_.count(version) > 0, "version not existing..");
@@ -295,7 +293,7 @@ class SqlTable {
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   // TODO(Schema-Change): add concurrent access support. Implement single threaded version first
-  // Used orderred map for traversing data table that are less or equal to curr version
+  // Used ordered map for traversing data table that are less or equal to curr version
   std::map<layout_version_t, DataTableVersion> tables_;
 
   /**
