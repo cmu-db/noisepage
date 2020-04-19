@@ -71,7 +71,7 @@ class TableGenerator {
   static std::string GenerateMixedTableName(std::vector<type::TypeId> types, std::vector<uint32_t> cols, size_t row,
                                             size_t car) {
     std::stringstream table_name;
-    for (auto idx = 0; idx < cols.size(); idx++) {
+    for (size_t idx = 0; idx < cols.size(); idx++) {
       table_name << type::TypeUtil::TypeIdToString(types[idx]);
       table_name << "Col" << cols[idx];
     }

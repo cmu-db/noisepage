@@ -134,16 +134,16 @@ template <typename T, typename S>
 std::pair<byte *, uint32_t *> TableGenerator::CloneColumnData(std::pair<byte *, uint32_t *> orig, uint32_t num_rows) {
   uint64_t num_words = util::BitUtil::Num32BitWordsFor(num_rows);
   auto *bitmap = new uint32_t[num_words];
-  for (auto i = 0; i < num_words; i++) {
+  for (uint32_t i = 0; i < num_words; i++) {
     bitmap[i] = orig.second[i];
   }
 
   auto *val = new S[num_rows];
-  for (auto i = 0; i < num_rows; i++) {
+  for (uint32_t i = 0; i < num_rows; i++) {
     val[i] = (reinterpret_cast<T *>(orig.first))[i];
   }
 
-  return {reinterpret_cast<byte*>(val), bitmap};
+  return {reinterpret_cast<byte *>(val), bitmap};
 }
 
 // Fill a given table according to its metadata
@@ -440,8 +440,7 @@ void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> ind
 std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerTableMetas() {
   std::vector<TableInsertMeta> table_metas;
   std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
-  std::vector<std::vector<uint32_t>> mixed_dist = {{0, 15}, {1, 14}, {3, 12}, {5, 10}, {7, 8},
-                                                   {9, 6},  {11, 4}, {13, 2}, {15, 0}};
+  std::vector<std::vector<uint32_t>> mixed_dist = {{0, 15}, {3, 12}, {7, 8}, {11, 4}, {15, 0}};
   std::vector<uint32_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
                                     2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto col_dist : mixed_dist) {
@@ -453,13 +452,15 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
       cardinalities.emplace_back(row_num);
 
       for (uint32_t cardinality : cardinalities) {
-        int num_cols = 0;
+        uint32_t num_cols = 0;
         std::vector<ColumnInsertMeta> col_metas;
         for (size_t col_idx = 0; col_idx < col_dist.size(); col_idx++) {
-          for (auto j = 1; j <= col_dist[col_idx]; j++) {
-            std::stringstream col_name;
-            col_name << type::TypeUtil::TypeIdToString(types[col_idx]) << j;
+          for (uint32_t j = 1; j <= col_dist[col_idx]; j++) {
+            auto type_name = type::TypeUtil::TypeIdToString(types[col_idx]);
+            std::transform(type_name.begin(), type_name.end(), type_name.begin(), ::tolower);
 
+            std::stringstream col_name;
+            col_name << type_name << j;
             if (col_metas.empty()) {
               col_metas.emplace_back(col_name.str(), types[col_idx], false, Dist::Rotate, 1, cardinality);
             } else {
@@ -471,7 +472,7 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
         }
 
         std::string tbl_name = GenerateMixedTableName(types, col_dist, row_num, cardinality);
-        for (auto col_idx = 0; col_idx < col_dist.size(); col_idx++) {
+        for (size_t col_idx = 0; col_idx < col_dist.size(); col_idx++) {
           if (col_dist[col_idx] == num_cols) {
             tbl_name = GenerateTableName(types[col_idx], num_cols, row_num, cardinality);
             break;
