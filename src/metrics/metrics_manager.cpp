@@ -31,7 +31,7 @@ void OpenFiles(std::vector<std::ofstream> *outfiles) {
 }
 
 void MetricsManager::Aggregate() {
-  common::SpinLatch::ScopedSpinLatch guard(&latch_);
+  tbb::spin_mutex::scoped_lock guard(latch_);
   for (const auto &metrics_store : stores_map_) {
     auto raw_data = metrics_store.second->GetDataToAggregate();
 
@@ -79,7 +79,7 @@ void MetricsManager::ResetMetric(const MetricsComponent component) const {
 }
 
 void MetricsManager::RegisterThread() {
-  common::SpinLatch::ScopedSpinLatch guard(&latch_);
+  tbb::spin_mutex::scoped_lock guard(latch_);
   const auto thread_id = std::this_thread::get_id();
   TERRIER_ASSERT(stores_map_.count(thread_id) == 0, "This thread was already registered.");
   auto result = stores_map_.emplace(thread_id,
@@ -93,7 +93,7 @@ void MetricsManager::RegisterThread() {
  * segfault could happen when the unique_ptr releases the MetricsStore
  */
 void MetricsManager::UnregisterThread() {
-  common::SpinLatch::ScopedSpinLatch guard(&latch_);
+  tbb::spin_mutex::scoped_lock guard(latch_);
   const auto thread_id = std::this_thread::get_id();
   stores_map_.erase(thread_id);
   TERRIER_ASSERT(stores_map_.count(thread_id) == 0, "Deletion from concurrent map failed.");
@@ -101,7 +101,7 @@ void MetricsManager::UnregisterThread() {
 }
 
 void MetricsManager::ToCSV() const {
-  common::SpinLatch::ScopedSpinLatch guard(&latch_);
+  tbb::spin_mutex::scoped_lock guard(latch_);
   for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
     if (enabled_metrics_.test(component) && aggregated_metrics_[component] != nullptr) {
       std::vector<std::ofstream> outfiles;

@@ -19,6 +19,7 @@
 #include "common/dedicated_thread_registry.h"
 #include "tbb/concurrent_queue.h"
 #include "common/coroutine_defs.h"
+#include "storage/storage_defs.h"
 #include <tbb/reader_writer_lock.h>
 
 namespace terrier::common {

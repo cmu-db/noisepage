@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/coroutine2/all.hpp>
+#include "common/object_pool.h"
 #include <utility>
 
 namespace terrier::common {
@@ -57,6 +58,6 @@ namespace terrier::common {
   };
 
 
-  using PoolContextPool = common::ObjectPool<common::PoolContext, common::PoolContext::Allocator>;
+  using PoolContextPool = ObjectPool<common::PoolContext, common::PoolContext::Allocator>;
 
 }  // namespace terrier::common
