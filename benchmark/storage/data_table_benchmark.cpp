@@ -359,7 +359,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMASingleThreadedIteration)(benchmark::S
   std::vector<int> cpu_ids = GetNCPUsInFewRegions(1);
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
 
-  std::vector<storage::numa_region_t> numa_regions;
+  std::vector<common::numa_region_t> numa_regions;
   read_table.GetNUMARegions(&numa_regions);
 
   // NOLINTNEXTLINE
@@ -404,7 +404,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedIteration)(benchmark::St
   std::vector<int> cpu_ids = GetNCPUsInFewRegions(storage::RawBlock::GetNumNumaRegions());
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
 
-  std::vector<storage::numa_region_t> numa_regions;
+  std::vector<common::numa_region_t> numa_regions;
   read_table.GetNUMARegions(&numa_regions);
 
   // NOLINTNEXTLINE
@@ -447,7 +447,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, NUMAMultiThreadedNUMAAwareIteration)(benc
   std::vector<int> cpu_ids = GetOneCPUPerRegion();
   common::ExecutionThreadPool thread_pool(common::ManagedPointer<common::DedicatedThreadRegistry>(&registry), &cpu_ids);
 
-  std::vector<storage::numa_region_t> numa_regions;
+  std::vector<common::numa_region_t> numa_regions;
   read_table.GetNUMARegions(&numa_regions);
 
   // NOLINTNEXTLINE

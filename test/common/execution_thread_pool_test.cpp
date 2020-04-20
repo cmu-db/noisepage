@@ -130,11 +130,11 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
                                               &cpu_ids);
       std::promise<void> p;
 #ifdef __APPLE__
-      storage::numa_region_t numa_hint UNUSED_ATTRIBUTE = storage::UNSUPPORTED_NUMA_REGION;
+      common::numa_region_t numa_hint UNUSED_ATTRIBUTE = common::UNSUPPORTED_NUMA_REGION;
 #else
-      storage::numa_region_t numa_hint UNUSED_ATTRIBUTE =
-          numa_available() == -1 ? storage::UNSUPPORTED_NUMA_REGION
-                                 : static_cast<storage::numa_region_t>(static_cast<int16_t>(numa_node_of_cpu(cpu)));
+      common::numa_region_t numa_hint UNUSED_ATTRIBUTE =
+          numa_available() == -1 ? common::UNSUPPORTED_NUMA_REGION
+                                 : static_cast<common::numa_region_t>(static_cast<int16_t>(numa_node_of_cpu(cpu)));
 #endif
 
       thread_pool.SubmitTask(&p, [&] {
@@ -147,7 +147,7 @@ TEST(ExecutionThreadPoolTests, NUMACorrectnessTest) {
         for (uint32_t cpu_id = 0; cpu_id < sizeof(cpu_set_t) * 8; cpu_id++) {
           if (CPU_ISSET(cpu_id, &mask)) {
             TERRIER_ASSERT(
-                numa_available() == -1 || static_cast<storage::numa_region_t>(numa_node_of_cpu(cpu_id)) == numa_hint,
+                numa_available() == -1 || static_cast<common::numa_region_t>(numa_node_of_cpu(cpu_id)) == numa_hint,
                 "workload should be running on cpu on numa_hint's region");
             TERRIER_ASSERT(cpu_id == static_cast<uint32_t>(cpu), "should be running on CPU passed into thread pool");
             num_set++;
@@ -193,10 +193,10 @@ TEST(ExecutionThreadPoolTests, TaskStealingCorrectnessTest) {
 
     std::atomic<int16_t> order_count = 0;
     common::SpinLatch order_latch;
-    std::map<int16_t, storage::numa_region_t> numa_order;
+    std::map<int16_t, common::numa_region_t> numa_order;
     std::promise<void> check_promises[num_numa_regions];
     for (int16_t i = 0; i < num_numa_regions; i++) {
-      auto numa_hint UNUSED_ATTRIBUTE = static_cast<storage::numa_region_t>(i);
+      auto numa_hint UNUSED_ATTRIBUTE = static_cast<common::numa_region_t>(i);
       auto workload = [&, numa_hint] {
         common::SpinLatch::ScopedSpinLatch l(&order_latch);
         int16_t pos = order_count++;

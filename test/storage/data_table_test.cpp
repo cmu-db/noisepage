@@ -155,10 +155,10 @@ class RandomDataTableTestObject {
     auto *txn =
         new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(buffer_pool), DISABLED);
     loose_txns_.push_back(txn);
-    std::vector<storage::numa_region_t> regions;
+    std::vector<common::numa_region_t> regions;
     std::vector<storage::ProjectedColumns *> colunms;
     table_.GetNUMARegions(&regions);
-    for (storage::numa_region_t _ UNUSED_ATTRIBUTE : regions) {
+    for (common::numa_region_t _ UNUSED_ATTRIBUTE : regions) {
       auto *buffer = common::AllocationUtil::AllocateAligned(initializer->ProjectedColumnsSize());
       storage::ProjectedColumns *column = initializer->Initialize(buffer);
       colunms.emplace_back(column);
@@ -371,19 +371,19 @@ TEST_F(DataTableTests, SimpleNumaTest) {
     auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
     storage::ProjectedColumns *columns = initializer.Initialize(buffer);
 
-    std::vector<storage::numa_region_t> numa_regions;
+    std::vector<common::numa_region_t> numa_regions;
     tested.GetTable().GetNUMARegions(&numa_regions);
     EXPECT_GE(numa_regions.size(), 1);
 
 #ifdef __APPLE__
     EXPECT_EQ(numa_regions.size(), 1);
-    EXPECT_EQ(numa_regions[0], storage::UNSUPPORTED_NUMA_REGION);
+    EXPECT_EQ(numa_regions[0], common::UNSUPPORTED_NUMA_REGION);
 #else
     bool single_numa_system =
-        numa_available() != -1 && numa_regions.size() == 1 && numa_regions[0] == storage::UNSUPPORTED_NUMA_REGION;
+        numa_available() != -1 && numa_regions.size() == 1 && numa_regions[0] == common::UNSUPPORTED_NUMA_REGION;
 #endif
 
-    for (storage::numa_region_t numa_region : numa_regions) {
+    for (common::numa_region_t numa_region : numa_regions) {
       tested.NUMAScan(transaction::timestamp_t(1), columns, &initializer, &buffer_pool_);
       for (auto it = tested.GetTable().begin(numa_region); it != tested.GetTable().end(numa_region); ++it) {
         EXPECT_NE((*it).GetBlock(), nullptr);
@@ -446,13 +446,13 @@ TEST_F(DataTableTests, ConcurrentNumaTest) {
     std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
     EXPECT_NE((!all_cols[all_cols.size() - 1]), -1);
 
-    std::vector<storage::numa_region_t> numa_regions;
+    std::vector<common::numa_region_t> numa_regions;
     tested.GetTable().GetNUMARegions(&numa_regions);
     EXPECT_GE(numa_regions.size(), 1);
 
 #ifdef __APPLE__
     EXPECT_EQ(numa_regions.size(), 1);
-    EXPECT_EQ(numa_regions[0], storage::UNSUPPORTED_NUMA_REGION);
+    EXPECT_EQ(numa_regions[0], common::UNSUPPORTED_NUMA_REGION);
 #endif
 
     std::thread numa_threads[numa_regions.size()];
@@ -460,7 +460,7 @@ TEST_F(DataTableTests, ConcurrentNumaTest) {
 
     for (uint32_t i = 0; i < numa_regions.size(); i++) {
       numa_threads[i] = std::thread([&, i] {
-        storage::numa_region_t numa_region = numa_regions[i];
+        common::numa_region_t numa_region = numa_regions[i];
         storage::ProjectedColumnsInitializer initializer(tested.Layout(), all_cols, 10 * num_inserts * num_threads);
         auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
         storage::ProjectedColumns *columns = initializer.Initialize(buffer);
@@ -529,20 +529,20 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
     std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
     EXPECT_NE((!all_cols[all_cols.size() - 1]), -1);
 
-    std::vector<storage::numa_region_t> numa_regions;
+    std::vector<common::numa_region_t> numa_regions;
     tested.GetTable().GetNUMARegions(&numa_regions);
     EXPECT_GE(numa_regions.size(), 1);
 
 #ifdef __APPLE__
     EXPECT_EQ(numa_regions.size(), 1);
-    EXPECT_EQ(numa_regions[0], storage::UNSUPPORTED_NUMA_REGION);
+    EXPECT_EQ(numa_regions[0], stcommonorage::UNSUPPORTED_NUMA_REGION);
 #endif
 
     std::promise<void> numa_threads[numa_regions.size()];
     std::atomic<uint32_t> counted_numa_iteration = 0;
 
     for (uint32_t i = 0; i < numa_regions.size(); i++) {
-      storage::numa_region_t numa_region = numa_regions[i];
+      common::numa_region_t numa_region = numa_regions[i];
       thread_pool.SubmitTask(
           &numa_threads[i],
           [&, numa_region] {
