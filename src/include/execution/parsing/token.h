@@ -7,6 +7,8 @@
 namespace terrier::execution::parsing {
 
 #undef NIL  // pg_list.h defined this symbol, but TPL uses it as a different symbol so need to undef it
+#undef TRUE
+#undef FALSE
 
 /*
  * List of all tokens + keywords that accepts two callback functions. T() is
