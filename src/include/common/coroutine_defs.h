@@ -20,7 +20,6 @@ namespace terrier::common {
     bool YieldToFunc() {
       TERRIER_ASSERT(func_ != nullptr, "must have called SetFunction before yielding to function");
       TERRIER_ASSERT(sink_ != nullptr, "must have initialized sink_ before yielding to function");
-      TERRIER_ASSERT(!func_finished_, "function must not have finished to be yielding to it");
       TERRIER_ASSERT(in_, "in_ should always have yielded");
       in_();
       TERRIER_ASSERT(in_, "in_ should always have yielded");
@@ -42,9 +41,9 @@ namespace terrier::common {
     pull_type in_ = pull_type([&] (push_type &s) {
       this->sink_ = &s;
       while (true) {
-        this->func_finished_ = false;
         this->YieldToPool();
         TERRIER_ASSERT(this->func_ != nullptr, "should have initialized function before yielding to function");
+        this->func_finished_ = false;
         this->func_(this);
         this->func_finished_ = true;
         this->func_ = nullptr;
