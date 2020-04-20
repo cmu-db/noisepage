@@ -36,7 +36,7 @@ void TupleAccessStrategy::InitializeRawBlock(storage::DataTable *const data_tabl
                           ? UNSUPPORTED_NUMA_REGION
                           : static_cast<numa_region_t>(static_cast<int16_t>(status));
 #else
-  raw->numa_region_ = UNSUPPORTED_NUMA_REGION;
+  raw->numa_region_ = common::UNSUPPORTED_NUMA_REGION;
 #endif
   raw->layout_version_ = layout_version;
   raw->insert_head_ = 0;
