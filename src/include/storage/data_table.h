@@ -152,7 +152,6 @@ class DataTable {
      * @return if the two iterators point to the same slot
      */
     bool operator==(const NUMAIterator &other) const {
-      // TODO(Tianyu): I believe this is enough?
       if (LIKELY(other.is_end_)) {
         return current_slot_.GetBlock() == nullptr || block_ == set_->cend();
       }
@@ -271,7 +270,7 @@ class DataTable {
   SlotIterator end() const;  // NOLINT for STL name compability
 
   /**
-   * update the vector of numa regions passed in to match those in the map
+   * Update the vector of numa regions passed in to match those in the map
    */
   void GetNUMARegions(std::vector<common::numa_region_t> *regions);
 
@@ -375,6 +374,7 @@ class DataTable {
   mutable tbb::spin_mutex blocks_latch_;
   // latch used to protect insertion_head_
   mutable tbb::spin_mutex header_latch_;
+  // Set of all blocks in DataTable organized by NUMA region
   std::vector<tbb::concurrent_unordered_set<RawBlock *>> regions_;
   std::list<RawBlock *>::iterator insertion_head_;
   // Check if we need to advance the insertion_head_

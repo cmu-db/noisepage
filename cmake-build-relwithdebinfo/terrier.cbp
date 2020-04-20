@@ -10999,6 +10999,9 @@
 		<Unit filename="/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/src/include/common/container/concurrent_vector.h">
 			<Option target="terrier_objlib"/>
 		</Unit>
+		<Unit filename="/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/src/include/common/coroutine_defs.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
 		<Unit filename="/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/src/include/common/dedicated_thread_owner.h">
 			<Option target="terrier_objlib"/>
 		</Unit>
