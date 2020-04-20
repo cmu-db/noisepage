@@ -1,6 +1,0 @@
-CMake Warning:
-  Manually-specified variables were not used by the project:
-
-    BUILD_CONFIG_TESTS
-
-
