@@ -68,8 +68,10 @@ bool StorageInterface::TableUpdate(storage::TupleSlot table_tuple_slot) {
   // if migration occurs, tupleslot changed, so delete old tupleslot from index and add new tupleslot to index
   if (updated_slot != table_tuple_slot) {
     table_redo_->SetTupleSlot(updated_slot);
-    IndexDelete(table_tuple_slot);
-    IndexInsert(); // TODO: is this insert or insertunique?
+    if (need_indexes_) {
+      IndexDelete(table_tuple_slot);
+      IndexInsert(); // TODO: is this insert or insertunique?
+    }
   }
   return res;
 }
