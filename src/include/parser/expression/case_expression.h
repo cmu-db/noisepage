@@ -78,9 +78,9 @@ class CaseExpression : public AbstractExpression {
   CaseExpression() = default;
 
   /**
-  * Hashe the current case expression.
-  * @return hash of CaseExpression
-  */
+   * Hashe the current case expression.
+   * @return hash of CaseExpression
+   */
   common::hash_t Hash() const override;
 
   /**

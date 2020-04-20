@@ -20,7 +20,7 @@ std::unique_ptr<AbstractExpression> SubqueryExpression::Copy() const {
   return expr;
 }
 
-int SubqueryExpression::DeriveDepth()  {
+int SubqueryExpression::DeriveDepth() {
   int current_depth = this->GetDepth();
   for (auto &select_elem : subselect_->GetSelectColumns()) {
     int select_depth = select_elem->DeriveDepth();

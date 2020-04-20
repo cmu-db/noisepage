@@ -12,9 +12,9 @@ std::unique_ptr<AbstractExpression> AggregateExpression::Copy() const {
 
 std::unique_ptr<AbstractExpression> AggregateExpression::CopyWithChildren(
     std::vector<std::unique_ptr<AbstractExpression>> &&children) const {
-auto expr = std::make_unique<AggregateExpression>(GetExpressionType(), std::move(children), IsDistinct());
-expr->SetMutableStateForCopy(*this);
-return expr;
+  auto expr = std::make_unique<AggregateExpression>(GetExpressionType(), std::move(children), IsDistinct());
+  expr->SetMutableStateForCopy(*this);
+  return expr;
 }
 
 void AggregateExpression::DeriveReturnValueType() {
@@ -48,4 +48,4 @@ std::vector<std::unique_ptr<AbstractExpression>> AggregateExpression::FromJson(c
   return exprs;
 }
 
-} // namespace terrier::parser
+}  // namespace terrier::parser

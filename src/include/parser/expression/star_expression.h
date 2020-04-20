@@ -20,8 +20,8 @@ class StarExpression : public AbstractExpression {
    * @returns this
    */
   std::unique_ptr<AbstractExpression> Copy() const override;
-    // TODO(Tianyu): This really should be a singleton object
-    // ^WAN: jokes on you there's mutable state now and it can't be hahahaha
+  // TODO(Tianyu): This really should be a singleton object
+  // ^WAN: jokes on you there's mutable state now and it can't be hahahaha
 
   /**
    * Creates a copy of the current AbstractExpression with new children implanted.

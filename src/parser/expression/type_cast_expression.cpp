@@ -11,7 +11,7 @@ std::unique_ptr<AbstractExpression> TypeCastExpression::Copy() const {
 }
 
 std::unique_ptr<AbstractExpression> TypeCastExpression::CopyWithChildren(
-    std::vector<std::unique_ptr<AbstractExpression>> &&children) const  {
+    std::vector<std::unique_ptr<AbstractExpression>> &&children) const {
   auto expr = std::make_unique<TypeCastExpression>(GetReturnValueType(), std::move(children));
   expr->SetMutableStateForCopy(*this);
   return expr;

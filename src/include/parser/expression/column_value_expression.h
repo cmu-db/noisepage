@@ -135,17 +135,16 @@ class ColumnValueExpression : public AbstractExpression {
     return Copy();
   }
 
-
   /**
    * Hashes the current ColumnValue expression.
    */
   common::hash_t Hash() const override;
 
   /**
-  * Logical equality check.
-  * @param rhs other
-  * @return true if the two expressions are logically equal
-  */
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two expressions are logically equal
+   */
   bool operator==(const AbstractExpression &rhs) const override;
 
   /**
