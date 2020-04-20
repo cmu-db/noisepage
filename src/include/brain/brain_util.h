@@ -44,6 +44,10 @@ class BrainUtil {
         return "DELETE";
       case ExecutionOperatingUnitType::PROJECTION:
         return "PROJECTION";
+      case ExecutionOperatingUnitType::OUTPUT:
+        return "OUTPUT";
+      case ExecutionOperatingUnitType::LIMIT:
+        return "LIMIT";
       case ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS:
         return "OP_INTEGER_PLUS_OR_MINUS";
       case ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY:
