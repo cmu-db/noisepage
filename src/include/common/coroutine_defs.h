@@ -54,6 +54,6 @@ namespace terrier::common {
   };
 
 
-  using PoolContextPool = common::ObjectPool<PoolContext, PoolContext::Allocator>;
+  using PoolContextPool = common::ObjectPool<common::PoolContext, common::PoolContext::Allocator>;
 
 }  // namespace terrier::common
