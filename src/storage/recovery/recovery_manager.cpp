@@ -128,6 +128,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
       f.read(buffer, record_batch_size);
       auto *msg = org::apache::arrow::flatbuf::GetMessage(buffer);
       auto *record_batch = msg->header_as_RecordBatch();
+      if (!record_batch) break;
       auto *record_buffers = record_batch->buffers();
 
       for (size_t i = 0; i < column_id_size; ++i) {
@@ -135,11 +136,11 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
         common::RawConcurrentBitmap *column_bitmap = data_table->accessor_.ColumnNullBitmap(block, col_id);
         byte *column_start = data_table->accessor_.ColumnStart(block, col_id);
         ReadDataBlock(f, reinterpret_cast<char *>(column_bitmap),
-                      reinterpret_cast<uintptr_t>(column_start) - reinterpret_cast<uintptr_t>(column_bitmap));
+                      (*record_buffers)[2 * i]->length());
 
         if (layout.IsVarlen(col_id)) {
-          int64_t offsets_length = (*record_buffers)[i]->offset() / sizeof(uint64_t);
-          int64_t values_length = (*record_buffers)[i]->length();
+          int64_t offsets_length = (*record_buffers)[2 * i + 1]->offset() / sizeof(uint64_t);
+          int64_t values_length = (*record_buffers)[2 * i + 1]->length();
           std::vector<uint64_t> offsets_array(offsets_length, 0);
           ReadDataBlock(f, reinterpret_cast<char *>(&offsets_array), offsets_length);
           byte *values_array = new byte[values_length];
@@ -151,7 +152,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
             *(reinterpret_cast<byte **>(column_start + j * sizeof(void *))) = varlen;
           }
         } else {
-          int32_t cur_buffer_len = (*record_buffers)[i]->length();
+          int32_t cur_buffer_len = (*record_buffers)[2 * i + 1]->length();
           byte *content = new byte[cur_buffer_len];
           ReadDataBlock(f, reinterpret_cast<char *>(content), cur_buffer_len);
           memcpy(column_start, content, cur_buffer_len);

@@ -863,15 +863,22 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
       auto recovered_sql_table = recovered_db_catalog->GetTable(common::ManagedPointer(recovery_txn), table_oid);
       EXPECT_TRUE(recovered_sql_table != nullptr);
 
+      // checking
+      auto initializer = storage::ProjectedRowInitializer::Create(GetBlockLayout(original_sql_table),
+                      StorageTestUtil::ProjectionListAllColumns(GetBlockLayout(original_sql_table)));
+      auto *buffer_one = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+      auto *buffer_two = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+      storage::ProjectedRow *row_one = initializer.InitializeRow(buffer_one);
+      storage::ProjectedRow *row_two = initializer.InitializeRow(buffer_two);
+
       auto original_it = original_sql_table->begin();
       for (auto it = recovered_sql_table->begin(); it != recovered_sql_table->end(); it++) {
-        recovery_manager.tuple_slot_map_[*original_it] = *it;
-        original_it ++;
+        original_sql_table->Select(common::ManagedPointer(original_txn), *original_it, row_one);
+        recovered_sql_table->Select(common::ManagedPointer(recovery_txn), *it, row_two);
+        EXPECT_TRUE( StorageTestUtil::ProjectionListEqualDeep(GetBlockLayout(original_sql_table), row_one, row_two));
       }
-      EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
-          GetBlockLayout(original_sql_table), original_sql_table, recovered_sql_table,
-          tested->GetTupleSlotsForTable(database_oid, table_oid), recovery_manager.tuple_slot_map_, txn_manager_.Get(),
-          recovery_txn_manager_.Get()));
+      delete[] buffer_one;
+      delete[] buffer_two;
       txn_manager_->Commit(original_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       recovery_txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     }
