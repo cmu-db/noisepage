@@ -208,6 +208,8 @@ if (NOT APPLE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -lnuma -ldl -Wno-unused-command-line-argument")
 endif ()
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lboost_coroutine -ldl -Wno-unused-command-line-argument")
+
 # CMAKE_CXX_FLAGS now fully assembled
 message(STATUS "CXX_ONLY_FLAGS: ${CXX_ONLY_FLAGS}")
 message(STATUS "CXX_COMMON_FLAGS: ${CXX_COMMON_FLAGS}")

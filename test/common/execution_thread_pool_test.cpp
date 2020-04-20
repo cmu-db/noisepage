@@ -192,13 +192,13 @@ TEST(ExecutionThreadPoolTests, TaskStealingCorrectnessTest) {
 #endif
 
     std::atomic<int16_t> order_count = 0;
-    common::SpinLatch order_latch;
+    tbb::spin_mutex order_latch;
     std::map<int16_t, common::numa_region_t> numa_order;
     std::promise<void> check_promises[num_numa_regions];
     for (int16_t i = 0; i < num_numa_regions; i++) {
       auto numa_hint UNUSED_ATTRIBUTE = static_cast<common::numa_region_t>(i);
       auto workload = [&, numa_hint] {
-        common::SpinLatch::ScopedSpinLatch l(&order_latch);
+        tbb::spin_mutex::scoped_lock l(order_latch);
         int16_t pos = order_count++;
         TERRIER_ASSERT(numa_order.find(pos) == numa_order.end(), "there should be no other node at this position");
         numa_order[pos] = numa_hint;
