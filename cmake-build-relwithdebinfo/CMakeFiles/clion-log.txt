@@ -1,4 +1,11 @@
 /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -G "CodeBlocks - Unix Makefiles" /Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier
+-- The CXX compiler identification is AppleClang 11.0.0.11000033
+-- Check for working CXX compiler: /Library/Developer/CommandLineTools/usr/bin/c++
+-- Check for working CXX compiler: /Library/Developer/CommandLineTools/usr/bin/c++ -- works
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
 -- Terrier version: 0.1.0 (full: '0.1.0-prototype')
 clang-tidy found at /usr/local/opt/llvm@8/bin/clang-tidy
 clang-format found at /usr/local/opt/llvm@8/bin/clang-format
@@ -24,9 +31,16 @@ Added static library dependency gflags: /Users/ejeppinger/Documents/CMU/cmu-db/p
 -- GBenchmark include dir: /Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/cmake-build-relwithdebinfo/gbenchmark_ep/src/gbenchmark_ep-install/include
 -- GBenchmark static library: /Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/cmake-build-relwithdebinfo/gbenchmark_ep/src/gbenchmark_ep-install/lib/libbenchmark.a
 Added static library dependency benchmark: /Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/cmake-build-relwithdebinfo/gbenchmark_ep/src/gbenchmark_ep-install/lib/libbenchmark.a
+-- Looking for C++ include pthread.h
+-- Looking for C++ include pthread.h - found
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
 -- Found jemalloc (include: /usr/local/include, library: /usr/local/lib/libjemalloc.dylib)
 -- Found libevent pthread (include: /usr/local/include, library: /usr/local/lib/libevent_pthreads.dylib)
 -- Found libevent (include: /usr/local/include, library: /usr/local/lib/libevent.dylib)
+-- Found TBB: /usr/local/include (found version "2020.1")  
+-- Found PQXX: /usr/local/lib/libpqxx.dylib
 -- Found LLVM 8.0.1
 -- CXX_ONLY_FLAGS: -std=c++17 -fPIC -mcx16 -march=native -fvisibility=hidden
 -- CXX_COMMON_FLAGS: -Wall -Werror -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-braced-scalar-init
@@ -34,6 +48,13 @@ Added static library dependency benchmark: /Users/ejeppinger/Documents/CMU/cmu-d
 -- CMAKE_CXX_FLAGS: -std=c++17 -fPIC -mcx16 -march=native -fvisibility=hidden -ggdb -O2 -DNDEBUG -Wall -Werror -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-braced-scalar-init
 -- CMAKE_C_FLAGS: -ggdb -O2 -DNDEBUG -Wall -Werror -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-braced-scalar-init
 -- Found cpplint executable at /Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/build-support/cpplint.py
+-- The C compiler identification is AppleClang 11.0.0.11000033
+-- Check for working C compiler: /Library/Developer/CommandLineTools/usr/bin/cc
+-- Check for working C compiler: /Library/Developer/CommandLineTools/usr/bin/cc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - failed
+-- Detecting C compile features
+-- Detecting C compile features - done
 -- Found Clang /usr/bin/clang++
 -- CLANG_IR_CXX_FLAGS: -std=c++17;;-mcx16;-march=native;-fvisibility=hidden;-ggdb;-O2;-DNDEBUG;-Wall;-Werror;-Wno-c++98-compat;-Wno-c++98-compat-pedantic;-Wno-braced-scalar-init;-emit-llvm;-c
 -- CLANG_IR_CXX_INCLUDES: -I/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/cmake-build-relwithdebinfo/googletest_ep-prefix/src/googletest_ep/include;-I/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/cmake-build-relwithdebinfo/gflags_ep-prefix/src/gflags_ep/include;-I/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/cmake-build-relwithdebinfo/gbenchmark_ep/src/gbenchmark_ep-install/include;-I/usr/local/include;-I/usr/local/Cellar/llvm@8/8.0.1_1/include;-I/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/third_party/flatbuffers/include;-I/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/src/include;-I/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/third_party;-I/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/test/include;-I/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/util/include;-I/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/benchmark/include;-I/Users/ejeppinger/Documents/CMU/cmu-db/p3/terrier/cmake-build-relwithdebinfo

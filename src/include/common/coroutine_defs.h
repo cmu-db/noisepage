@@ -10,7 +10,10 @@ namespace terrier::common {
 
   class PoolContext {
    public:
-    void SetFunction(const std::function<void(PoolContext *)> &f) { func_ = f; }
+    void SetFunction(const std::function<void(PoolContext *)> &f) {
+      TERRIER_ASSERT(func_ == nullptr, "function should be null");
+      func_ = f;
+    }
 
     void YieldToPool() {
       TERRIER_ASSERT(sink_ != nullptr, "must have initialized sink_ before yielding to it");
