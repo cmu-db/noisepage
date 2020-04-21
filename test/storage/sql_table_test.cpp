@@ -20,6 +20,19 @@ class SqlTableTests : public TerrierTest {
   void TearDown() override {}
 };
 
+static std::unique_ptr<catalog::Schema> ChangeColType(const catalog::Schema &schema, catalog::col_oid_t oid, type::TypeId type_id) {
+  auto columns = schema.GetColumns();
+  size_t i = 0;
+  for (; i < columns.size(); i++) {
+    if (columns[i].Oid() == oid) {
+      StorageTestUtil::SetType(&columns[i], type_id);
+      break;
+    }
+  }
+
+  return std::make_unique<catalog::Schema>(columns);
+}
+
 static std::unique_ptr<catalog::Schema> AddColumn(const catalog::Schema &schema, catalog::Schema::Column *column) {
   std::vector<catalog::Schema::Column> new_columns(schema.GetColumns());
   std::vector<catalog::col_oid_t> oids;
@@ -197,7 +210,7 @@ class RandomSqlTableTestObject {
       oids.push_back(col.Oid());
     }
     auto pri = table_->InitializerForProjectedRow(oids, layout_version);
-    schemas_.insert(std::make_pair(layout_version, std::unique_ptr<catalog::Schema>(std::move(schema))));
+    schemas_.insert(std::make_pair(layout_version, std::move(schema)));
     pris_.insert(std::make_pair(layout_version, pri));
     buffers_.insert(std::make_pair(layout_version, common::AllocationUtil::AllocateAligned(pri.ProjectedRowSize())));
   }
@@ -437,4 +450,51 @@ TEST_F(SqlTableTests, AddDropColumn) {
         test_table.GetProjectionMapForOids(vers2), {}, {}));
   }
 }
+
+
+
+
+// NOLINTNEXTLINE
+TEST_F(SqlTableTests, ChangeIntType) {
+  const uint16_t max_columns = 20;
+  const uint32_t num_inserts = 8;
+  uint64_t txn_ts = 0;
+
+  RandomSqlTableTestObject test_table(&block_store_, max_columns, &generator_, null_ratio_(generator_));
+
+  storage::layout_version_t vers1(1);
+  int8_t default_tiny_int = 15;
+  catalog::Schema::Column col("new_col", type::TypeId::TINYINT, true,
+                              parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(default_tiny_int)));
+  auto schema1 = AddColumn(test_table.GetSchema(storage::layout_version_t{0}), &col);
+  test_table.UpdateSchema(test_table.NewTransaction(transaction::timestamp_t{txn_ts}, &buffer_pool_),
+                          std::move(schema1), vers1);
+
+  // Insert with new schema
+  for (uint16_t i = 0; i < num_inserts; i++) {
+    test_table.InsertRandomTuple(transaction::timestamp_t(txn_ts), &generator_, &buffer_pool_, vers1);
+  }
+
+  // Update the schema by changeing the col type
+  byte smallint_val[type::TypeUtil::GetTypeSize(type::TypeId::SMALLINT)];
+  int16_t default_smallint = int16_t(default_tiny_int);
+  memcpy(smallint_val, &default_smallint, type::TypeUtil::GetTypeSize(type::TypeId::SMALLINT));
+  auto vers2 = vers1+1;
+  auto schema2 = ChangeColType(test_table.GetSchema(vers1), col.Oid(), type::TypeId::SMALLINT);
+  txn_ts++;
+  test_table.UpdateSchema(test_table.NewTransaction(transaction::timestamp_t{txn_ts}, &buffer_pool_),
+                          std::move(schema2), vers2);
+
+  // Select to check that changed column
+  for (const auto &inserted_tuple : test_table.InsertedTuples()) {
+    // Check added column default value
+    storage::ProjectedRow *stored =
+        test_table.Select(inserted_tuple, transaction::timestamp_t(txn_ts), &buffer_pool_, vers2);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListAtOidsEqual(stored, test_table.GetProjectionMapForOids(vers2),
+                                                           test_table.GetBlockLayout(vers2), {col.Oid()},
+                                                           {&smallint_val[0]}));
+  }
+}
+
+
 }  // namespace terrier::storage

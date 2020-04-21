@@ -308,7 +308,7 @@ class SqlTable {
    */
   template <class RowType>
   bool AlignHeaderToVersion(RowType *out_buffer, const DataTableVersion &tuple_version,
-                            const DataTableVersion &desired_version, col_id_t *cached_ori_header) const;
+                            const DataTableVersion &desired_version, col_id_t *cached_ori_header, AttrSizeMap *const size_map) const;
 
   /**
    * Fill the missing columns in the out_buffer with default values of those columns in the desired_version

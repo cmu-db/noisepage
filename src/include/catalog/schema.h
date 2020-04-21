@@ -237,6 +237,7 @@ class Schema {
     std::unique_ptr<parser::AbstractExpression> default_value_;
 
     void SetOid(col_oid_t oid) { oid_ = oid; }
+    void SetType(const type::TypeId id) {type_ = id; attr_size_ = type::TypeUtil::GetTypeSize(id);}
 
     friend class DatabaseCatalog;
     friend class postgres::Builder;

@@ -36,11 +36,12 @@ bool SqlTable::Select(const common::ManagedPointer<transaction::TransactionConte
   // the tuple exists in an older version.
   // TODO(schema-change): handle versions from add and/or drop column only
   col_id_t ori_header[out_buffer->NumColumns()];
+  AttrSizeMap size_map;
 
   auto desired_v = tables_.at(layout_version);
   auto tuple_v = tables_.at(tuple_version);
-  auto missing UNUSED_ATTRIBUTE = AlignHeaderToVersion(out_buffer, tuple_v, desired_v, &ori_header[0]);
-  auto result = tables_.at(tuple_version).data_table_->Select(txn, slot, out_buffer);
+  auto missing UNUSED_ATTRIBUTE = AlignHeaderToVersion(out_buffer, tuple_v, desired_v, &ori_header[0], &size_map);
+  auto result = tables_.at(tuple_version).data_table_->Select(txn, slot, out_buffer, &size_map);
 
   // copy back the original header
   std::memcpy(out_buffer->ColumnIds(), ori_header, sizeof(col_id_t) * out_buffer->NumColumns());
@@ -74,11 +75,12 @@ std::pair<bool, TupleSlot> SqlTable::Update(const common::ManagedPointer<transac
     result = tables_.at(layout_version).data_table_->Update(txn, curr_tuple, *(redo->Delta()));
   } else {
     // tuple in an older version, check if all modified columns are in the datatable version where the tuple is in
-
     col_id_t ori_header[redo->Delta()->NumColumns()];
+    AttrSizeMap size_map;
+
     auto desired_v = tables_.at(layout_version);
     auto tuple_v = tables_.at(tuple_version);
-    auto missing = AlignHeaderToVersion(redo->Delta(), tuple_v, desired_v, &ori_header[0]);
+    auto missing = AlignHeaderToVersion(redo->Delta(), tuple_v, desired_v, &ori_header[0], &size_map);
 
     if (!missing) {
       result = tuple_v.data_table_->Update(txn, redo->GetTupleSlot(), *(redo->Delta()));
@@ -154,7 +156,8 @@ void SqlTable::Scan(const terrier::common::ManagedPointer<transaction::Transacti
   for (layout_version_t i = tuple_version; i <= layout_version && out_buffer->NumTuples() < out_buffer->MaxTuples();
        i++) {
     auto tuple_v = tables_.at(i);
-    if (AlignHeaderToVersion(out_buffer, tuple_v, desired_v, &ori_header[0])) missing = true;
+    AttrSizeMap size_map;
+    if (AlignHeaderToVersion(out_buffer, tuple_v, desired_v, &ori_header[0], &size_map)) missing = true;
 
     if (i != tuple_version) *start_pos = tuple_v.data_table_->begin();
     tuple_v.data_table_->IncrementalScan(txn, start_pos, out_buffer, filled);
@@ -272,23 +275,33 @@ template void SqlTable::FillMissingColumns<ProjectedColumns::RowView>(ProjectedC
 
 template <class RowType>
 bool SqlTable::AlignHeaderToVersion(RowType *const out_buffer, const DataTableVersion &tuple_version,
-                                    const DataTableVersion &desired_version, col_id_t *cached_ori_header) const {
+                                    const DataTableVersion &desired_version, col_id_t *cached_ori_header, AttrSizeMap *const size_map) const {
   bool missing_col = false;
   // reserve the original header, aka intended column ids'
   std::memcpy(cached_ori_header, out_buffer->ColumnIds(), sizeof(col_id_t) * out_buffer->NumColumns());
 
   // for each column id in the intended version of datatable, change it to match the current schema version
   for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
-    TERRIER_ASSERT(out_buffer->ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
+    auto col_id =  out_buffer->ColumnIds()[i];
+    TERRIER_ASSERT(col_id != VERSION_POINTER_COLUMN_ID,
                    "Output buffer should not read the version pointer column.");
-    TERRIER_ASSERT(desired_version.column_id_to_oid_map_.count(out_buffer->ColumnIds()[i]) > 0, "col_id missing");
-    catalog::col_oid_t col_oid = desired_version.column_id_to_oid_map_.at(out_buffer->ColumnIds()[i]);
+    TERRIER_ASSERT(desired_version.column_id_to_oid_map_.count(col_id) > 0, "col_id missing");
+    // Mark missing columns
+    catalog::col_oid_t col_oid = desired_version.column_id_to_oid_map_.at(col_id);
     if (tuple_version.column_oid_to_id_map_.count(col_oid) > 0) {
-      out_buffer->ColumnIds()[i] = tuple_version.column_oid_to_id_map_.at(col_oid);
+      auto tuple_col_id = tuple_version.column_oid_to_id_map_.at(col_oid);
+      out_buffer->ColumnIds()[i] = tuple_col_id;
+
+      // If the physical stored attr has a larger size, we cannot copy the attribute with its size stored in the
+      // tupleaccessor, but with explicit smaller size of the desired projectedrow's attribute
+      // auto tuple_attr_size = tuple_version.layout_.AttrSize(tuple_col_id);
+      // auto pr_attr_size = desired_version.layout_.AttrSize(col_id);
+      // size_map->insert({col_id, std::make_pair(tuple_col_id, desired_version.layout_.AttrSize(col_id))});
     } else {
       missing_col = true;
       out_buffer->ColumnIds()[i] = IGNORE_COLUMN_ID;
     }
+
   }
   return missing_col;
 }
@@ -296,11 +309,11 @@ bool SqlTable::AlignHeaderToVersion(RowType *const out_buffer, const DataTableVe
 template bool SqlTable::AlignHeaderToVersion<ProjectedRow>(ProjectedRow *const out_buffer,
                                                            const DataTableVersion &tuple_version,
                                                            const DataTableVersion &desired_version,
-                                                           col_id_t *cached_ori_header) const;
+                                                           col_id_t *cached_ori_header, AttrSizeMap *const size_map) const;
 template bool SqlTable::AlignHeaderToVersion<ProjectedColumns::RowView>(ProjectedColumns::RowView *const out_buffer,
                                                                         const DataTableVersion &tuple_version,
                                                                         const DataTableVersion &desired_version,
-                                                                        col_id_t *cached_ori_header) const;
+                                                                        col_id_t *cached_ori_header, AttrSizeMap *const size_map) const;
 
 SqlTable::DataTableVersion SqlTable::CreateTable(
     const terrier::common::ManagedPointer<const terrier::catalog::Schema> schema,

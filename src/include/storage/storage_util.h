@@ -52,6 +52,10 @@ class StorageUtil {
   static void CopyAttrIntoProjection(const TupleAccessStrategy &accessor, TupleSlot from, RowType *to,
                                      uint16_t projection_list_offset);
 
+  template <class RowType>
+  static void CopyAttrIntoProjectionWithSize(const TupleAccessStrategy &accessor, TupleSlot from, RowType *to,
+                                     uint16_t projection_list_offset, std::pair<col_id_t, uint16_t> stored_col);
+
   /**
    * Copy an attribute from a ProjectedRow into a block.
    * @param accessor TupleAccessStrategy used to interact with the given block.
