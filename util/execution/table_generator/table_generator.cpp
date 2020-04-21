@@ -178,11 +178,13 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
         auto &other = table_meta->col_meta_[col_meta.clone_idx_];
         if (col_meta.type_ == other.type_) {
           column_data.emplace_back(column_data[col_meta.clone_idx_]);
-        } else if (col_meta.type_ == type::TypeId::INTEGER && other.type_ == type::TypeId::BIGINT) {
+        } else if (col_meta.type_ == type::TypeId::INTEGER &&
+                   (other.type_ == type::TypeId::BIGINT || other.type_ == type::TypeId::DECIMAL)) {
           auto copy = CloneColumnData<int64_t, int32_t>(column_data[col_meta.clone_idx_], num_vals);
           column_data.emplace_back(copy);
           alloc_buffers.emplace_back(copy);
-        } else if (col_meta.type_ == type::TypeId::BIGINT && other.type_ == type::TypeId::INTEGER) {
+        } else if ((col_meta.type_ == type::TypeId::BIGINT || col_meta.type_ == type::TypeId::DECIMAL) &&
+                   other.type_ == type::TypeId::INTEGER) {
           auto copy = CloneColumnData<int32_t, int64_t>(column_data[col_meta.clone_idx_], num_vals);
           column_data.emplace_back(copy);
           alloc_buffers.emplace_back(copy);
@@ -439,46 +441,54 @@ void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> ind
 
 std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerTableMetas() {
   std::vector<TableInsertMeta> table_metas;
-  std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
+  std::vector<std::vector<type::TypeId>> mixed_types = {{type::TypeId::INTEGER, type::TypeId::DECIMAL},
+                                                        {type::TypeId::INTEGER, type::TypeId::BIGINT}};
   std::vector<std::vector<uint32_t>> mixed_dist = {{0, 15}, {3, 12}, {7, 8}, {11, 4}, {15, 0}};
   std::vector<uint32_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
                                     2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
-  for (auto col_dist : mixed_dist) {
-    for (uint32_t row_num : row_nums) {
-      // Cardinality of the last column
-      std::vector<uint32_t> cardinalities;
-      // Generate different cardinalities exponentially
-      for (uint32_t i = 1; i < row_num; i *= 2) cardinalities.emplace_back(i);
-      cardinalities.emplace_back(row_num);
+  std::unordered_set<std::string> gen_tbl_names;
+  for (auto types : mixed_types) {
+    for (auto col_dist : mixed_dist) {
+      for (uint32_t row_num : row_nums) {
+        // Cardinality of the last column
+        std::vector<uint32_t> cardinalities;
+        // Generate different cardinalities exponentially
+        for (uint32_t i = 1; i < row_num; i *= 2) cardinalities.emplace_back(i);
+        cardinalities.emplace_back(row_num);
 
-      for (uint32_t cardinality : cardinalities) {
-        uint32_t num_cols = 0;
-        std::vector<ColumnInsertMeta> col_metas;
-        for (size_t col_idx = 0; col_idx < col_dist.size(); col_idx++) {
-          for (uint32_t j = 1; j <= col_dist[col_idx]; j++) {
-            auto type_name = type::TypeUtil::TypeIdToString(types[col_idx]);
-            std::transform(type_name.begin(), type_name.end(), type_name.begin(), ::tolower);
+        for (uint32_t cardinality : cardinalities) {
+          uint32_t num_cols = 0;
+          std::vector<ColumnInsertMeta> col_metas;
+          for (size_t col_idx = 0; col_idx < col_dist.size(); col_idx++) {
+            for (uint32_t j = 1; j <= col_dist[col_idx]; j++) {
+              auto type_name = type::TypeUtil::TypeIdToString(types[col_idx]);
+              std::transform(type_name.begin(), type_name.end(), type_name.begin(), ::tolower);
 
-            std::stringstream col_name;
-            col_name << type_name << j;
-            if (col_metas.empty()) {
-              col_metas.emplace_back(col_name.str(), types[col_idx], false, Dist::Rotate, 1, cardinality);
-            } else {
-              col_metas.emplace_back(col_name.str(), types[col_idx], false, 0);
+              std::stringstream col_name;
+              col_name << type_name << j;
+              if (col_metas.empty()) {
+                col_metas.emplace_back(col_name.str(), types[col_idx], false, Dist::Rotate, 1, cardinality);
+              } else {
+                col_metas.emplace_back(col_name.str(), types[col_idx], false, 0);
+              }
+            }
+
+            num_cols += col_dist[col_idx];
+          }
+
+          std::string tbl_name = GenerateMixedTableName(types, col_dist, row_num, cardinality);
+          for (size_t col_idx = 0; col_idx < col_dist.size(); col_idx++) {
+            if (col_dist[col_idx] == num_cols) {
+              tbl_name = GenerateTableName(types[col_idx], num_cols, row_num, cardinality);
+              break;
             }
           }
 
-          num_cols += col_dist[col_idx];
-        }
-
-        std::string tbl_name = GenerateMixedTableName(types, col_dist, row_num, cardinality);
-        for (size_t col_idx = 0; col_idx < col_dist.size(); col_idx++) {
-          if (col_dist[col_idx] == num_cols) {
-            tbl_name = GenerateTableName(types[col_idx], num_cols, row_num, cardinality);
-            break;
+          if (gen_tbl_names.find(tbl_name) == gen_tbl_names.end()) {
+            table_metas.emplace_back(tbl_name, row_num, col_metas);
+            gen_tbl_names.insert(tbl_name);
           }
         }
-        table_metas.emplace_back(tbl_name, row_num, col_metas);
       }
     }
   }
