@@ -216,7 +216,7 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
     out->WriteNoticeResponse("NOTICE:  we don't yet support that query type.");
   }
 
-  const auto fingerprint_result UNUSED_ATTRIBUTE = pg_query_fingerprint(query.c_str());
+  const auto fingerprint_result = pg_query_fingerprint(query.c_str());
   auto cached_statement = postgres_interpreter->LookupStatementInCache(fingerprint_result.hexdigest);
   if (cached_statement == nullptr) {
     // Not in the cache, add to cache
