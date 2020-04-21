@@ -308,7 +308,7 @@ class SqlTable {
    * @return whether there are columns in the desired schema version but not in the tuple version.
    */
   template <class RowType>
-  bool AlignHeaderToVersion(RowType *out_buffer, const DataTableVersion &tuple_version,
+  std::vector<std::pair<size_t, catalog::col_oid_t>> AlignHeaderToVersion(RowType *out_buffer, const DataTableVersion &tuple_version,
                             const DataTableVersion &desired_version, col_id_t *cached_orig_header) const;
 
   /**
@@ -318,7 +318,7 @@ class SqlTable {
    * @param desired_version desired schema version
    */
   template <class RowType>
-  void FillMissingColumns(RowType *out_buffer, const DataTableVersion &desired_version) const;
+  void FillMissingColumns(RowType *out_buffer, const std::vector<std::pair<size_t, catalog::col_oid_t>> &missingl_cols, layout_version_t tuple_version, layout_version_t layout_version) const;
 
   /**
    * Creates a new datatble version given the schema and version number
