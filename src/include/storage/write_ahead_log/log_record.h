@@ -106,7 +106,7 @@ class RedoRecord {
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
 
   /**
-   * @return the tuple slot changed by this redo record
+   * set the tuple slot changed by this redo record
    */
   void SetTupleSlot(const TupleSlot tuple_slot) { tuple_slot_ = tuple_slot; }
 

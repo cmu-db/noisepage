@@ -286,7 +286,7 @@ class StorageTestUtil {
   template <class RowType>
   static bool ProjectionListAtOidsEqual(const RowType *const row, const storage::ProjectionMap &oid_map,
                                         const storage::BlockLayout layout, std::vector<catalog::col_oid_t> oids,
-                                        std::vector<const byte *> default_values) {
+                                        std::vector<std::unique_ptr<std::vector<byte>>> &default_values) {
     // Check for each default value
     for (size_t i = 0; i < oids.size(); i++) {
       auto idx = oid_map.at(oids[i]);
@@ -295,7 +295,9 @@ class StorageTestUtil {
       // Check that the two have the same content bit-wise
       uint8_t attr_size = layout.AttrSize(col_id);
       const byte *row_content = row->AccessWithNullCheck(idx);
-      const byte *default_content = default_values[i];
+
+      const byte *default_content = default_values[i]->data();
+
       // both are null or neither is null.
       if (row_content == nullptr || default_content == nullptr) {
         EXPECT_EQ(row_content, default_content);
@@ -339,7 +341,7 @@ class StorageTestUtil {
           return false;
         }
       } else {  // Column is dropped
-        // a dropped column should not exists in the map
+        // a dropped column should not exist in the map
         EXPECT_EQ(oid_map2.find(oid1), oid_map2.end());
         if (oid_map2.find(oid1) != oid_map2.end()) {
           return false;

@@ -39,7 +39,7 @@ bool Payment::Execute(transaction::TransactionManager *const txn_manager, Databa
       txn->StageWrite(db->db_oid_, db->warehouse_table_oid_, warehouse_update_pr_initializer_);
   *reinterpret_cast<double *>(warehouse_update_redo->Delta()->AccessForceNotNull(0)) = w_ytd + args.h_amount_;
   warehouse_update_redo->SetTupleSlot(index_scan_results[0]);
-  bool UNUSED_ATTRIBUTE result = db->warehouse_table_->Update(common::ManagedPointer(txn), warehouse_update_redo).first;
+  bool UNUSED_ATTRIBUTE result = db->warehouse_table_->Update(common::ManagedPointer(txn), warehouse_update_redo);
   TERRIER_ASSERT(result, "Warehouse update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
   // Look up D_ID, W_ID in index
@@ -68,7 +68,7 @@ bool Payment::Execute(transaction::TransactionManager *const txn_manager, Databa
       txn->StageWrite(db->db_oid_, db->district_table_oid_, district_update_pr_initializer_);
   *reinterpret_cast<double *>(district_update_redo->Delta()->AccessForceNotNull(0)) = d_ytd + args.h_amount_;
   district_update_redo->SetTupleSlot(index_scan_results[0]);
-  result = db->district_table_->Update(common::ManagedPointer(txn), district_update_redo).first;
+  result = db->district_table_->Update(common::ManagedPointer(txn), district_update_redo);
   TERRIER_ASSERT(result, "District update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
   storage::TupleSlot customer_slot;
@@ -151,7 +151,7 @@ bool Payment::Execute(transaction::TransactionManager *const txn_manager, Databa
   *reinterpret_cast<int16_t *>(customer_update_tuple->AccessForceNotNull(c_payment_cnt_update_pr_offset_)) =
       static_cast<int16_t>(c_payment_cnt + 1);
   customer_update_redo->SetTupleSlot(customer_slot);
-  result = db->customer_table_->Update(common::ManagedPointer(txn), customer_update_redo).first;
+  result = db->customer_table_->Update(common::ManagedPointer(txn), customer_update_redo);
   TERRIER_ASSERT(result, "Customer update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
   const auto c_credit_str = c_credit.StringView();
@@ -176,7 +176,7 @@ bool Payment::Execute(transaction::TransactionManager *const txn_manager, Databa
     *reinterpret_cast<storage::VarlenEntry *>(c_data_update_redo->Delta()->AccessForceNotNull(0)) = varlen_entry;
 
     c_data_update_redo->SetTupleSlot(customer_slot);
-    result = db->customer_table_->Update(common::ManagedPointer(txn), c_data_update_redo).first;
+    result = db->customer_table_->Update(common::ManagedPointer(txn), c_data_update_redo);
     TERRIER_ASSERT(result, "Customer update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
   }
 

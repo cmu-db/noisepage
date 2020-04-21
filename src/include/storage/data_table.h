@@ -136,8 +136,8 @@ class DataTable {
    * reference col_id 0
    * @return true if tuple is visible to this txn and ProjectedRow has been populated, false otherwise
    */
-  bool Select(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot,
-              ProjectedRow *out_buffer, const AttrSizeMap *const size_map = nullptr) const;
+  bool Select(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot, ProjectedRow *out_buffer,
+              const AttrSizeMap *const size_map = nullptr) const;
 
   // TODO(Tianyu): Should this be updated in place or return a new iterator? Does the caller ever want to
   // save a point of scan and come back to it later?
@@ -249,12 +249,6 @@ class DataTable {
   const common::ManagedPointer<BlockStore> block_store_;
   const layout_version_t layout_version_;
   const TupleAccessStrategy accessor_;
-
-  // TODO(Schema-Change)
-  // Singly-linked list for tables with different version?
-  std::atomic<DataTable *> next_table_ = nullptr;
-  // Or pointer to the SqlTable which has information about different versions?
-  const SqlTable *sql_table_ = nullptr;
 
   // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
   // new one when the current one is full. Needless to say, we will need to revisit this when extending GC to handle

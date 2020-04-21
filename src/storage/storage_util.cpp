@@ -44,20 +44,24 @@ template void StorageUtil::CopyAttrIntoProjection<ProjectedRow>(const TupleAcces
 template void StorageUtil::CopyAttrIntoProjection<ProjectedColumns::RowView>(const TupleAccessStrategy &, TupleSlot,
                                                                              ProjectedColumns::RowView *, uint16_t);
 
-
 template <class RowType>
-void StorageUtil::CopyAttrIntoProjectionWithSize(const TupleAccessStrategy &accessor, const TupleSlot from, RowType *const to,
-                                             const uint16_t projection_list_offset, const std::pair<col_id_t, uint16_t> stored_col) {
-  byte *stored_attr = accessor.AccessWithNullCheck(from, stored_col.first);
-  std::memset(to->AccessWithNullCheck(projection_list_offset), 0, stored_col.second);
-  CopyWithNullCheck(stored_attr, to, stored_col.second, projection_list_offset);
+void StorageUtil::CopyAttrIntoProjectionWithSize(const TupleAccessStrategy &accessor, const TupleSlot from,
+                                                 RowType *const to, const uint16_t projection_list_offset,
+                                                 const uint8_t size) {
+  col_id_t col_id = to->ColumnIds()[projection_list_offset];
+  byte *stored_attr = accessor.AccessWithNullCheck(from, col_id);
+  uint8_t attr_size = accessor.GetBlockLayout().AttrSize(col_id);
+  // memset 0 for the full attr_size
+  if (attr_size < size) std::memset(to->AccessForceNotNull(projection_list_offset), 0, size);
+  CopyWithNullCheck(stored_attr, to, std::min(size, attr_size), projection_list_offset);
 }
 
-template void StorageUtil::CopyAttrIntoProjectionWithSize<ProjectedRow>(const TupleAccessStrategy &, TupleSlot, ProjectedRow *,
-                                                                uint16_t, std::pair<col_id_t, uint16_t>);
-template void StorageUtil::CopyAttrIntoProjectionWithSize<ProjectedColumns::RowView>(const TupleAccessStrategy &, TupleSlot,
-                                                                             ProjectedColumns::RowView *, uint16_t, std::pair<col_id_t,uint16_t>);
-
+template void StorageUtil::CopyAttrIntoProjectionWithSize<ProjectedRow>(const TupleAccessStrategy &, TupleSlot,
+                                                                        ProjectedRow *, uint16_t, uint8_t);
+template void StorageUtil::CopyAttrIntoProjectionWithSize<ProjectedColumns::RowView>(const TupleAccessStrategy &,
+                                                                                     TupleSlot,
+                                                                                     ProjectedColumns::RowView *,
+                                                                                     uint16_t, uint8_t);
 
 template <class RowType>
 void StorageUtil::CopyAttrFromProjection(const TupleAccessStrategy &accessor, const TupleSlot to, const RowType &from,

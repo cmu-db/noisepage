@@ -214,9 +214,10 @@ using DefaultValueMap = std::unordered_map<col_id_t, common::ManagedPointer<cons
 using ProjectionMap = std::unordered_map<catalog::col_oid_t, uint16_t>;
 
 /**
- * Used by storage to explicitly select an attribute with different size, stores a mapping from the desired projected row's projection_index to the projection_index of the tuple and the desired size to be copy
+ * Used by storage to explicitly select an attribute with different size, stores a mapping from the column_id to the
+ * actual size in the projected row
  */
-using AttrSizeMap = std::unordered_map<col_id_t , std::pair<col_id_t, uint16_t>>;
+using AttrSizeMap = std::unordered_map<col_id_t, uint8_t>;
 
 /**
  * Denote whether a record modifies the logical delete column, used when DataTable inspects deltas

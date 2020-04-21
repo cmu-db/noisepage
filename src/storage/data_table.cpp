@@ -282,7 +282,8 @@ bool DataTable::Delete(const common::ManagedPointer<transaction::TransactionCont
 
 template <class RowType>
 bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                 const TupleSlot slot, RowType *const out_buffer, const AttrSizeMap *const size_map) const {
+                                 const TupleSlot slot, RowType *const out_buffer,
+                                 const AttrSizeMap *const size_map) const {
   //  TERRIER_ASSERT(out_buffer->NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
   //                 "The output buffer never returns the version pointer columns, so it should have "
   //                 "fewer attributes.");
@@ -299,8 +300,7 @@ bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::Trans
     // can potentially happen, and chase the version chain before returning anyway,
     for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
       auto col_id = out_buffer->ColumnIds()[i];
-      TERRIER_ASSERT(col_id != VERSION_POINTER_COLUMN_ID,
-                     "Output buffer should not read the version pointer column.");
+      TERRIER_ASSERT(col_id != VERSION_POINTER_COLUMN_ID, "Output buffer should not read the version pointer column.");
       // TODO(Schem-Change): pre-set columns belonging to newer schema to null to facilitate future default value change
       if (out_buffer->ColumnIds()[i] == IGNORE_COLUMN_ID)
         StorageUtil::CopyWithNullCheck(nullptr, out_buffer, 0, i);
