@@ -56,7 +56,7 @@ void TableVectorIterator::Reset() {
 bool TableVectorIterator::ParallelScan(uint32_t db_oid, uint32_t table_oid, void *const query_state,
                                        ThreadStateContainer *const thread_states, const ScanFn scan_fn,
                                        const uint32_t min_grain_size) {
-  //TODO(Deepayan): Talk to Parallel Scan Group
+  // TODO(Deepayan): Talk to Parallel Scan Group
 
   return false;
 }

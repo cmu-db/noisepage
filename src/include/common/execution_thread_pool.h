@@ -238,9 +238,7 @@ class ExecutionThreadPool : DedicatedThreadOwner {
     }
   }
 
-  bool OnThreadRemoval(common::ManagedPointer<DedicatedThreadTask> dedicated_task) override {
-    return true;
-  }
+  bool OnThreadRemoval(common::ManagedPointer<DedicatedThreadTask> dedicated_task) override { return true; }
 
   void WaitForTask() {
     std::unique_lock<std::mutex> l(task_lock_);
