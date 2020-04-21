@@ -112,17 +112,8 @@ class OperatorNode : public AbstractOptimizerNode {
    */
   std::vector<common::ManagedPointer<AbstractOptimizerNode>> GetChildren() const override {
     std::vector<common::ManagedPointer<AbstractOptimizerNode>> result;
-    result.reserve(children_.size());
-    int count = 0;
-
-    for (const std::unique_ptr<AbstractOptimizerNode> &i : children_) {
-      OperatorNode *copy_node = reinterpret_cast<OperatorNode *>(i->Copy().release());
-      result.emplace_back(common::ManagedPointer<AbstractOptimizerNode>(copy_node));
-      if (txn_ != nullptr) {
-        txn_->RegisterCommitAction([=]() { delete copy_node; });
-        txn_->RegisterAbortAction([=]() { delete copy_node; });
-      }
-      count++;
+    for (const std::unique_ptr<AbstractOptimizerNode> &child : children_) {
+      result.emplace_back(common::ManagedPointer(child));
     }
     return result;
   }

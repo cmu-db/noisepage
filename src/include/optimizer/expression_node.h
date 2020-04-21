@@ -48,13 +48,8 @@ class ExpressionNode : public AbstractOptimizerNode {
   std::vector<common::ManagedPointer<AbstractOptimizerNode>> GetChildren() const override {
     std::vector<common::ManagedPointer<AbstractOptimizerNode>> result;
     result.reserve(children_.size());
-    for (auto &i : children_) {
-      ExpressionNode *copy_node = reinterpret_cast<ExpressionNode *>(i->Copy().release());
-      if (txn_ != nullptr) {
-        txn_->RegisterCommitAction([=]() { delete copy_node; });
-        txn_->RegisterAbortAction([=]() { delete copy_node; });
-      }
-      result.emplace_back(common::ManagedPointer<AbstractOptimizerNode>(copy_node));
+    for (auto &child : children_) {
+      result.emplace_back(common::ManagedPointer(child));
     }
     return result;
   }
