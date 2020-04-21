@@ -96,10 +96,7 @@ class CreateFunctionStatement : public SQLStatement {
         pl_type_(pl_type),
         as_type_(as_type) {}
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
-              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
-    v->Visit(common::ManagedPointer(this), sherpa);
-  }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   /**
    * @return true if this function should replace existing definitions

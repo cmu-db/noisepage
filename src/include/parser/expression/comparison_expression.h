@@ -53,13 +53,7 @@ class ComparisonExpression : public AbstractExpression {
     return expr;
   }
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
-              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
-    sherpa->CheckDesiredType(common::ManagedPointer(this).CastManagedPointerTo<AbstractExpression>());
-    sherpa->SetDesiredTypePair(GetChild(0), GetChild(1));
-    // Invoke the visitor pattern on the children.
-    v->Visit(common::ManagedPointer(this), sherpa);
-  }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 };
 
 DEFINE_JSON_DECLARATIONS(ComparisonExpression);
