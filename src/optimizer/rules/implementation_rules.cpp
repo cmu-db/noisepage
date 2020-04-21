@@ -41,8 +41,9 @@ void LogicalGetToPhysicalTableFreeScan::Transform(UNUSED_ATTRIBUTE common::Manag
                                                   std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                                                   UNUSED_ATTRIBUTE OptimizationContext *context) const {
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
-  auto result_plan = std::make_unique<OperatorNode>(TableFreeScan::Make(context->GetOptimizerContext()->GetTxn()),
-                                                    std::move(c), context->GetOptimizerContext()->GetTxn());
+  auto result_plan = std::make_unique<OperatorNode>(
+      TableFreeScan::Make().RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()), std::move(c),
+      context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(result_plan));
 }
 
@@ -75,9 +76,10 @@ void LogicalGetToPhysicalSeqScan::Transform(common::ManagedPointer<AbstractOptim
   auto preds = std::vector<AnnotatedExpression>(get->GetPredicates());
   auto is_update = get->GetIsForUpdate();
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
-  auto result_plan = std::make_unique<OperatorNode>(SeqScan::Make(db_oid, ns_oid, tbl_oid, std::move(preds), tbl_alias,
-                                                                  is_update, context->GetOptimizerContext()->GetTxn()),
-                                                    std::move(c), context->GetOptimizerContext()->GetTxn());
+  auto result_plan =
+      std::make_unique<OperatorNode>(SeqScan::Make(db_oid, ns_oid, tbl_oid, std::move(preds), tbl_alias, is_update)
+                                         .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                                     std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(result_plan));
 }
 
@@ -130,7 +132,8 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
           std::vector<AnnotatedExpression> preds = get->GetPredicates();
           auto op = std::make_unique<OperatorNode>(
               IndexScan::Make(db_oid, ns_oid, get->GetTableOid(), index, std::move(preds), is_update,
-                              planner::IndexScanType::AscendingOpenBoth, {}, context->GetOptimizerContext()->GetTxn()),
+                              planner::IndexScanType::AscendingOpenBoth, {})
+                  .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
               std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
           transformed->emplace_back(std::move(op));
         }
@@ -149,7 +152,8 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
       if (IndexUtil::SatisfiesPredicateWithIndex(accessor, get->GetTableOid(), index, preds, &scan_type, &bounds)) {
         auto op = std::make_unique<OperatorNode>(
             IndexScan::Make(db_oid, ns_oid, get->GetTableOid(), index, std::move(preds), is_update, scan_type,
-                            std::move(bounds), context->GetOptimizerContext()->GetTxn()),
+                            std::move(bounds))
+                .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
             std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
         transformed->emplace_back(std::move(op));
       }
@@ -188,9 +192,10 @@ void LogicalQueryDerivedGetToPhysicalQueryDerivedScan::Transform(
   auto input_child = input->GetChildren()[0];
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   c.emplace_back(input_child->Copy());
-  auto result_plan = std::make_unique<OperatorNode>(
-      QueryDerivedScan::Make(tbl_alias, std::move(expr_map), context->GetOptimizerContext()->GetTxn()), std::move(c),
-      context->GetOptimizerContext()->GetTxn());
+  auto result_plan =
+      std::make_unique<OperatorNode>(QueryDerivedScan::Make(tbl_alias, std::move(expr_map))
+                                         .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                                     std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(result_plan));
 }
 
@@ -222,9 +227,10 @@ void LogicalExternalFileGetToPhysicalExternalFileGet::Transform(
   auto quote = get->GetQuote();
   auto escape = get->GetEscape();
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
-  auto result_plan = std::make_unique<OperatorNode>(
-      ExternalFileScan::Make(format, filename, delimiter, quote, escape, context->GetOptimizerContext()->GetTxn()),
-      std::move(c), context->GetOptimizerContext()->GetTxn());
+  auto result_plan =
+      std::make_unique<OperatorNode>(ExternalFileScan::Make(format, filename, delimiter, quote, escape)
+                                         .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                                     std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(result_plan));
 }
 
@@ -254,10 +260,10 @@ void LogicalDeleteToPhysicalDelete::Transform(common::ManagedPointer<AbstractOpt
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto child = input->GetChildren()[0]->Copy();
   c.emplace_back(std::move(child));
-  auto result =
-      std::make_unique<OperatorNode>(Delete::Make(del->GetDatabaseOid(), del->GetNamespaceOid(), del->GetTableAlias(),
-                                                  del->GetTableOid(), context->GetOptimizerContext()->GetTxn()),
-                                     std::move(c), context->GetOptimizerContext()->GetTxn());
+  auto result = std::make_unique<OperatorNode>(
+      Delete::Make(del->GetDatabaseOid(), del->GetNamespaceOid(), del->GetTableAlias(), del->GetTableOid())
+          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+      std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(result));
 }
 
@@ -289,10 +295,11 @@ void LogicalUpdateToPhysicalUpdate::Transform(common::ManagedPointer<AbstractOpt
   c.emplace_back(std::move(child));
 
   std::vector<common::ManagedPointer<parser::UpdateClause>> cls = update_op->GetUpdateClauses();
-  auto result = std::make_unique<OperatorNode>(
-      Update::Make(update_op->GetDatabaseOid(), update_op->GetNamespaceOid(), update_op->GetTableAlias(),
-                   update_op->GetTableOid(), std::move(cls), context->GetOptimizerContext()->GetTxn()),
-      std::move(c), context->GetOptimizerContext()->GetTxn());
+  auto result =
+      std::make_unique<OperatorNode>(Update::Make(update_op->GetDatabaseOid(), update_op->GetNamespaceOid(),
+                                                  update_op->GetTableAlias(), update_op->GetTableOid(), std::move(cls))
+                                         .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                                     std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(result));
 }
 
@@ -327,7 +334,8 @@ void LogicalInsertToPhysicalInsert::Transform(common::ManagedPointer<AbstractOpt
   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> vals = *(insert_op->GetValues());
   auto result = std::make_unique<OperatorNode>(
       Insert::Make(insert_op->GetDatabaseOid(), insert_op->GetNamespaceOid(), insert_op->GetTableOid(), std::move(cols),
-                   std::move(vals), std::move(indexes), context->GetOptimizerContext()->GetTxn()),
+                   std::move(vals), std::move(indexes))
+          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(result));
 }
@@ -365,10 +373,10 @@ void LogicalInsertSelectToPhysicalInsertSelect::Transform(
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto child = input->GetChildren()[0]->Copy();
   c.emplace_back(std::move(child));
-  auto op = std::make_unique<OperatorNode>(
-      InsertSelect::Make(insert_op->GetDatabaseOid(), insert_op->GetNamespaceOid(), insert_op->GetTableOid(),
-                         std::move(indexes), context->GetOptimizerContext()->GetTxn()),
-      std::move(c), context->GetOptimizerContext()->GetTxn());
+  auto op = std::make_unique<OperatorNode>(InsertSelect::Make(insert_op->GetDatabaseOid(), insert_op->GetNamespaceOid(),
+                                                              insert_op->GetTableOid(), std::move(indexes))
+                                               .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                                           std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(op));
 }
 
@@ -403,9 +411,9 @@ void LogicalGroupByToPhysicalHashGroupBy::Transform(common::ManagedPointer<Abstr
   auto child = input->GetChildren()[0]->Copy();
   c.emplace_back(std::move(child));
 
-  auto result = std::make_unique<OperatorNode>(
-      HashGroupBy::Make(std::move(cols), std::move(having), context->GetOptimizerContext()->GetTxn()), std::move(c),
-      context->GetOptimizerContext()->GetTxn());
+  auto result = std::make_unique<OperatorNode>(HashGroupBy::Make(std::move(cols), std::move(having))
+                                                   .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                                               std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(result));
 }
 
@@ -436,8 +444,9 @@ void LogicalAggregateToPhysicalAggregate::Transform(common::ManagedPointer<Abstr
   auto child = input->GetChildren()[0]->Copy();
   c.emplace_back(std::move(child));
 
-  auto result = std::make_unique<OperatorNode>(Aggregate::Make(context->GetOptimizerContext()->GetTxn()), std::move(c),
-                                               context->GetOptimizerContext()->GetTxn());
+  auto result =
+      std::make_unique<OperatorNode>(Aggregate::Make().RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                                     std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(result));
 }
 
@@ -478,9 +487,9 @@ void LogicalInnerJoinToPhysicalInnerNLJoin::Transform(common::ManagedPointer<Abs
   std::vector<std::unique_ptr<AbstractOptimizerNode>> child;
   child.emplace_back(children[0]->Copy());
   child.emplace_back(children[1]->Copy());
-  auto result =
-      std::make_unique<OperatorNode>(InnerNLJoin::Make(std::move(join_preds), context->GetOptimizerContext()->GetTxn()),
-                                     std::move(child), context->GetOptimizerContext()->GetTxn());
+  auto result = std::make_unique<OperatorNode>(
+      InnerNLJoin::Make(std::move(join_preds)).RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+      std::move(child), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(result));
 }
 
@@ -534,8 +543,8 @@ void LogicalInnerJoinToPhysicalInnerHashJoin::Transform(
   child.emplace_back(children[1]->Copy());
   if (!left_keys.empty()) {
     auto result = std::make_unique<OperatorNode>(
-        InnerHashJoin::Make(std::move(join_preds), std::move(left_keys), std::move(right_keys),
-                            context->GetOptimizerContext()->GetTxn()),
+        InnerHashJoin::Make(std::move(join_preds), std::move(left_keys), std::move(right_keys))
+            .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
         std::move(child), context->GetOptimizerContext()->GetTxn());
     transformed->emplace_back(std::move(result));
   }
@@ -571,10 +580,10 @@ void LogicalLimitToPhysicalLimit::Transform(common::ManagedPointer<AbstractOptim
   auto child = input->GetChildren()[0]->Copy();
   c.emplace_back(std::move(child));
 
-  auto result_plan =
-      std::make_unique<OperatorNode>(Limit::Make(limit_op->GetOffset(), limit_op->GetLimit(), std::move(sorts),
-                                                 std::move(types), context->GetOptimizerContext()->GetTxn()),
-                                     std::move(c), context->GetOptimizerContext()->GetTxn());
+  auto result_plan = std::make_unique<OperatorNode>(
+      Limit::Make(limit_op->GetOffset(), limit_op->GetLimit(), std::move(sorts), std::move(types))
+          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+      std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(result_plan));
 }
 
@@ -605,7 +614,8 @@ void LogicalExportToPhysicalExport::Transform(common::ManagedPointer<AbstractOpt
 
   auto result_plan = std::make_unique<OperatorNode>(
       ExportExternalFile::Make(export_op->GetFormat(), std::move(file), export_op->GetDelimiter(),
-                               export_op->GetQuote(), export_op->GetEscape(), context->GetOptimizerContext()->GetTxn()),
+                               export_op->GetQuote(), export_op->GetEscape())
+          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(result_plan));
 }
@@ -631,7 +641,7 @@ void LogicalCreateDatabaseToPhysicalCreateDatabase::Transform(
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalCreateDatabase should have 0 children");
 
   auto op = std::make_unique<OperatorNode>(
-      CreateDatabase::Make(cdb_op->GetDatabaseName(), context->GetOptimizerContext()->GetTxn()),
+      CreateDatabase::Make(cdb_op->GetDatabaseName()).RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(op));
 }
@@ -657,7 +667,8 @@ void LogicalCreateFunctionToPhysicalCreateFunction::Transform(
       CreateFunction::Make(cf_op->GetDatabaseOid(), cf_op->GetNamespaceOid(), cf_op->GetFunctionName(),
                            cf_op->GetUDFLanguage(), cf_op->GetFunctionBody(), cf_op->GetFunctionParameterNames(),
                            cf_op->GetFunctionParameterTypes(), cf_op->GetReturnType(), cf_op->GetParamCount(),
-                           cf_op->IsReplace(), context->GetOptimizerContext()->GetTxn()),
+                           cf_op->IsReplace())
+          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(op));
 }
@@ -730,8 +741,8 @@ void LogicalCreateIndexToPhysicalCreateIndex::Transform(
                                                        false);  // is_immediate
 
   auto op = std::make_unique<OperatorNode>(
-      CreateIndex::Make(ci_op->GetNamespaceOid(), ci_op->GetTableOid(), ci_op->GetIndexName(), std::move(schema),
-                        context->GetOptimizerContext()->GetTxn()),
+      CreateIndex::Make(ci_op->GetNamespaceOid(), ci_op->GetTableOid(), ci_op->GetIndexName(), std::move(schema))
+          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(op));
 }
@@ -763,8 +774,8 @@ void LogicalCreateTableToPhysicalCreateTable::Transform(
   }
 
   auto op = std::make_unique<OperatorNode>(
-      CreateTable::Make(ct_op->GetNamespaceOid(), ct_op->GetTableName(), std::move(cols), std::move(fks),
-                        context->GetOptimizerContext()->GetTxn()),
+      CreateTable::Make(ct_op->GetNamespaceOid(), ct_op->GetTableName(), std::move(cols), std::move(fks))
+          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(op));
 }
@@ -787,7 +798,7 @@ void LogicalCreateNamespaceToPhysicalCreateNamespace::Transform(
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalCreateNamespace should have 0 children");
 
   auto op = std::make_unique<OperatorNode>(
-      CreateNamespace::Make(cn_op->GetNamespaceName(), context->GetOptimizerContext()->GetTxn()),
+      CreateNamespace::Make(cn_op->GetNamespaceName()).RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
 
   transformed->emplace_back(std::move(op));
@@ -813,8 +824,8 @@ void LogicalCreateTriggerToPhysicalCreateTrigger::Transform(
   auto op = std::make_unique<OperatorNode>(
       CreateTrigger::Make(ct_op->GetDatabaseOid(), ct_op->GetNamespaceOid(), ct_op->GetTableOid(),
                           ct_op->GetTriggerName(), ct_op->GetTriggerFuncName(), ct_op->GetTriggerArgs(),
-                          ct_op->GetTriggerColumns(), ct_op->GetTriggerWhen(), ct_op->GetTriggerType(),
-                          context->GetOptimizerContext()->GetTxn()),
+                          ct_op->GetTriggerColumns(), ct_op->GetTriggerWhen(), ct_op->GetTriggerType())
+          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
 
   transformed->emplace_back(std::move(op));
@@ -837,8 +848,8 @@ void LogicalCreateViewToPhysicalCreateView::Transform(common::ManagedPointer<Abs
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalCreateView should have 0 children");
 
   auto op = std::make_unique<OperatorNode>(
-      CreateView::Make(cv_op->GetDatabaseOid(), cv_op->GetNamespaceOid(), cv_op->GetViewName(), cv_op->GetViewQuery(),
-                       context->GetOptimizerContext()->GetTxn()),
+      CreateView::Make(cv_op->GetDatabaseOid(), cv_op->GetNamespaceOid(), cv_op->GetViewName(), cv_op->GetViewQuery())
+          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
 
   transformed->emplace_back(std::move(op));
@@ -862,7 +873,7 @@ void LogicalDropDatabaseToPhysicalDropDatabase::Transform(
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalDropDatabase should have 0 children");
 
   auto op = std::make_unique<OperatorNode>(
-      DropDatabase::Make(dd_op->GetDatabaseOID(), context->GetOptimizerContext()->GetTxn()),
+      DropDatabase::Make(dd_op->GetDatabaseOID()).RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(op));
 }
@@ -884,7 +895,7 @@ void LogicalDropTableToPhysicalDropTable::Transform(common::ManagedPointer<Abstr
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalDropTable should have 0 children");
 
   auto op = std::make_unique<OperatorNode>(
-      DropTable::Make(dt_op->GetTableOID(), context->GetOptimizerContext()->GetTxn()),
+      DropTable::Make(dt_op->GetTableOID()).RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(op));
 }
@@ -906,7 +917,7 @@ void LogicalDropIndexToPhysicalDropIndex::Transform(common::ManagedPointer<Abstr
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalDropIndex should have 0 children");
 
   auto op = std::make_unique<OperatorNode>(
-      DropIndex::Make(di_op->GetIndexOID(), context->GetOptimizerContext()->GetTxn()),
+      DropIndex::Make(di_op->GetIndexOID()).RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(op));
 }
@@ -929,8 +940,8 @@ void LogicalDropTriggerToPhysicalDropTrigger::Transform(
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalDropTrigger should have 0 children");
 
   auto op = std::make_unique<OperatorNode>(
-      DropTrigger::Make(dt_op->GetDatabaseOid(), dt_op->GetNamespaceOid(), dt_op->GetTriggerOid(), dt_op->IsIfExists(),
-                        context->GetOptimizerContext()->GetTxn()),
+      DropTrigger::Make(dt_op->GetDatabaseOid(), dt_op->GetNamespaceOid(), dt_op->GetTriggerOid(), dt_op->IsIfExists())
+          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(op));
 }
@@ -953,7 +964,7 @@ void LogicalDropNamespaceToPhysicalDropNamespace::Transform(
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalDropNamespace should have 0 children");
 
   auto op = std::make_unique<OperatorNode>(
-      DropNamespace::Make(dn_op->GetNamespaceOID(), context->GetOptimizerContext()->GetTxn()),
+      DropNamespace::Make(dn_op->GetNamespaceOID()).RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(op));
 }
@@ -975,8 +986,8 @@ void LogicalDropViewToPhysicalDropView::Transform(common::ManagedPointer<Abstrac
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalDropView should have 0 children");
 
   auto op = std::make_unique<OperatorNode>(
-      DropView::Make(dv_op->GetDatabaseOid(), dv_op->GetNamespaceOid(), dv_op->GetViewOid(), dv_op->IsIfExists(),
-                     context->GetOptimizerContext()->GetTxn()),
+      DropView::Make(dv_op->GetDatabaseOid(), dv_op->GetNamespaceOid(), dv_op->GetViewOid(), dv_op->IsIfExists())
+          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(op));
 }
@@ -998,8 +1009,8 @@ void LogicalAnalyzeToPhysicalAnalyze::Transform(common::ManagedPointer<AbstractO
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalAnalyze should have 0 children");
 
   auto op = std::make_unique<OperatorNode>(
-      Analyze::Make(logical_op->GetDatabaseOid(), logical_op->GetTableOid(), logical_op->GetColumns(),
-                    context->GetOptimizerContext()->GetTxn()),
+      Analyze::Make(logical_op->GetDatabaseOid(), logical_op->GetTableOid(), logical_op->GetColumns())
+          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
 
   transformed->emplace_back(std::move(op));

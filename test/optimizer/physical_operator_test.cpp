@@ -39,10 +39,10 @@ TEST(OperatorTests, TableFreeScanTest) {
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
-  Operator op1 = TableFreeScan::Make(txn_context);
+  Operator op1 = TableFreeScan::Make().RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op1.GetOpType(), OpType::TABLEFREESCAN);
 
-  Operator op2 = TableFreeScan::Make(txn_context);
+  Operator op2 = TableFreeScan::Make().RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
@@ -82,27 +82,38 @@ TEST(OperatorTests, SeqScanTest) {
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
 
   Operator seq_scan_01 = SeqScan::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                       std::vector<AnnotatedExpression>(), "table", false, txn_context);
+                                       std::vector<AnnotatedExpression>(), "table", false)
+                             .RegisterWithTxnContext(txn_context);
   Operator seq_scan_02 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(3), catalog::table_oid_t(3),
-                                       std::vector<AnnotatedExpression>(), "table", false, txn_context);
+                                       std::vector<AnnotatedExpression>(), "table", false)
+                             .RegisterWithTxnContext(txn_context);
   Operator seq_scan_03 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
-                                       std::vector<AnnotatedExpression>(), "table", false, txn_context);
+                                       std::vector<AnnotatedExpression>(), "table", false)
+                             .RegisterWithTxnContext(txn_context);
   Operator seq_scan_04 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                       std::vector<AnnotatedExpression>(), "tableTable", false, txn_context);
+                                       std::vector<AnnotatedExpression>(), "tableTable", false)
+                             .RegisterWithTxnContext(txn_context);
   Operator seq_scan_05 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                       std::vector<AnnotatedExpression>(), "table", true, txn_context);
+                                       std::vector<AnnotatedExpression>(), "table", true)
+                             .RegisterWithTxnContext(txn_context);
   Operator seq_scan_1 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                      std::vector<AnnotatedExpression>(), "table", false, txn_context);
+                                      std::vector<AnnotatedExpression>(), "table", false)
+                            .RegisterWithTxnContext(txn_context);
   Operator seq_scan_2 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                      std::vector<AnnotatedExpression>(), "table", false, txn_context);
+                                      std::vector<AnnotatedExpression>(), "table", false)
+                            .RegisterWithTxnContext(txn_context);
   Operator seq_scan_3 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                      std::vector<AnnotatedExpression>{annotated_expr_0}, "table", false, txn_context);
+                                      std::vector<AnnotatedExpression>{annotated_expr_0}, "table", false)
+                            .RegisterWithTxnContext(txn_context);
   Operator seq_scan_4 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                      std::vector<AnnotatedExpression>{annotated_expr_1}, "table", false, txn_context);
+                                      std::vector<AnnotatedExpression>{annotated_expr_1}, "table", false)
+                            .RegisterWithTxnContext(txn_context);
   Operator seq_scan_5 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                      std::vector<AnnotatedExpression>{annotated_expr_2}, "table", false, txn_context);
+                                      std::vector<AnnotatedExpression>{annotated_expr_2}, "table", false)
+                            .RegisterWithTxnContext(txn_context);
   Operator seq_scan_6 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                      std::vector<AnnotatedExpression>{annotated_expr_3}, "table", false, txn_context);
+                                      std::vector<AnnotatedExpression>{annotated_expr_3}, "table", false)
+                            .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(seq_scan_1.GetOpType(), OpType::SEQSCAN);
   EXPECT_EQ(seq_scan_1.GetContentsAs<SeqScan>()->GetDatabaseOID(), catalog::db_oid_t(1));
@@ -176,44 +187,48 @@ TEST(OperatorTests, IndexScanTest) {
   auto type = planner::IndexScanType::AscendingClosed;
 
   // different from index_scan_1 in dbOID
-  Operator index_scan_01 =
-      IndexScan::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
-                      catalog::index_oid_t(3), std::vector<AnnotatedExpression>(), false, type, {}, txn_context);
+  Operator index_scan_01 = IndexScan::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
+                                           catalog::index_oid_t(3), std::vector<AnnotatedExpression>(), false, type, {})
+                               .RegisterWithTxnContext(txn_context);
   // different from index_scan_1 in namespace OID
-  Operator index_scan_02 =
-      IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(3), catalog::table_oid_t(4),
-                      catalog::index_oid_t(3), std::vector<AnnotatedExpression>(), false, type, {}, txn_context);
+  Operator index_scan_02 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(3), catalog::table_oid_t(4),
+                                           catalog::index_oid_t(3), std::vector<AnnotatedExpression>(), false, type, {})
+                               .RegisterWithTxnContext(txn_context);
   // different from index_scan_1 in index OID
-  Operator index_scan_03 =
-      IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
-                      catalog::index_oid_t(4), std::vector<AnnotatedExpression>(), false, type, {}, txn_context);
+  Operator index_scan_03 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
+                                           catalog::index_oid_t(4), std::vector<AnnotatedExpression>(), false, type, {})
+                               .RegisterWithTxnContext(txn_context);
   // different from index_scan_1 in table alias
-  Operator index_scan_04 =
-      IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(5),
-                      catalog::index_oid_t(3), std::vector<AnnotatedExpression>(), false, type, {}, txn_context);
+  Operator index_scan_04 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(5),
+                                           catalog::index_oid_t(3), std::vector<AnnotatedExpression>(), false, type, {})
+                               .RegisterWithTxnContext(txn_context);
   // different from index_scan_1 in 'is for update'
-  Operator index_scan_05 =
-      IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
-                      catalog::index_oid_t(3), std::vector<AnnotatedExpression>(), true, type, {}, txn_context);
-  Operator index_scan_1 =
-      IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
-                      catalog::index_oid_t(3), std::vector<AnnotatedExpression>(), false, type, {}, txn_context);
-  Operator index_scan_2 =
-      IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
-                      catalog::index_oid_t(3), std::vector<AnnotatedExpression>(), false, type, {}, txn_context);
+  Operator index_scan_05 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
+                                           catalog::index_oid_t(3), std::vector<AnnotatedExpression>(), true, type, {})
+                               .RegisterWithTxnContext(txn_context);
+  Operator index_scan_1 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
+                                          catalog::index_oid_t(3), std::vector<AnnotatedExpression>(), false, type, {})
+                              .RegisterWithTxnContext(txn_context);
+  Operator index_scan_2 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
+                                          catalog::index_oid_t(3), std::vector<AnnotatedExpression>(), false, type, {})
+                              .RegisterWithTxnContext(txn_context);
   // different from index_scan_1 in predicates
-  Operator index_scan_3 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
-                                          catalog::index_oid_t(3), std::vector<AnnotatedExpression>{annotated_expr_0},
-                                          false, type, {}, txn_context);
-  Operator index_scan_4 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
-                                          catalog::index_oid_t(3), std::vector<AnnotatedExpression>{annotated_expr_1},
-                                          false, type, {}, txn_context);
-  Operator index_scan_5 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
-                                          catalog::index_oid_t(3), std::vector<AnnotatedExpression>{annotated_expr_2},
-                                          false, type, {}, txn_context);
-  Operator index_scan_6 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
-                                          catalog::index_oid_t(3), std::vector<AnnotatedExpression>{annotated_expr_3},
-                                          false, type, {}, txn_context);
+  Operator index_scan_3 =
+      IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
+                      catalog::index_oid_t(3), std::vector<AnnotatedExpression>{annotated_expr_0}, false, type, {})
+          .RegisterWithTxnContext(txn_context);
+  Operator index_scan_4 =
+      IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
+                      catalog::index_oid_t(3), std::vector<AnnotatedExpression>{annotated_expr_1}, false, type, {})
+          .RegisterWithTxnContext(txn_context);
+  Operator index_scan_5 =
+      IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
+                      catalog::index_oid_t(3), std::vector<AnnotatedExpression>{annotated_expr_2}, false, type, {})
+          .RegisterWithTxnContext(txn_context);
+  Operator index_scan_6 =
+      IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
+                      catalog::index_oid_t(3), std::vector<AnnotatedExpression>{annotated_expr_3}, false, type, {})
+          .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(index_scan_1.GetOpType(), OpType::INDEXSCAN);
   EXPECT_EQ(index_scan_1.GetContentsAs<IndexScan>()->GetDatabaseOID(), catalog::db_oid_t(1));
@@ -269,20 +284,20 @@ TEST(OperatorTests, ExternalFileScanTest) {
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
-  Operator ext_file_scan_1 =
-      ExternalFileScan::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\', txn_context);
-  Operator ext_file_scan_2 =
-      ExternalFileScan::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\', txn_context);
-  Operator ext_file_scan_3 =
-      ExternalFileScan::Make(parser::ExternalFileFormat::CSV, "file2.txt", ',', '"', '\\', txn_context);
-  Operator ext_file_scan_4 =
-      ExternalFileScan::Make(parser::ExternalFileFormat::BINARY, "file.txt", ',', '"', '\\', txn_context);
-  Operator ext_file_scan_5 =
-      ExternalFileScan::Make(parser::ExternalFileFormat::CSV, "file.txt", ' ', '"', '\\', txn_context);
-  Operator ext_file_scan_6 =
-      ExternalFileScan::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '\'', '\\', txn_context);
-  Operator ext_file_scan_7 =
-      ExternalFileScan::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '&', txn_context);
+  Operator ext_file_scan_1 = ExternalFileScan::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\')
+                                 .RegisterWithTxnContext(txn_context);
+  Operator ext_file_scan_2 = ExternalFileScan::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\')
+                                 .RegisterWithTxnContext(txn_context);
+  Operator ext_file_scan_3 = ExternalFileScan::Make(parser::ExternalFileFormat::CSV, "file2.txt", ',', '"', '\\')
+                                 .RegisterWithTxnContext(txn_context);
+  Operator ext_file_scan_4 = ExternalFileScan::Make(parser::ExternalFileFormat::BINARY, "file.txt", ',', '"', '\\')
+                                 .RegisterWithTxnContext(txn_context);
+  Operator ext_file_scan_5 = ExternalFileScan::Make(parser::ExternalFileFormat::CSV, "file.txt", ' ', '"', '\\')
+                                 .RegisterWithTxnContext(txn_context);
+  Operator ext_file_scan_6 = ExternalFileScan::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '\'', '\\')
+                                 .RegisterWithTxnContext(txn_context);
+  Operator ext_file_scan_7 = ExternalFileScan::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '&')
+                                 .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(ext_file_scan_1.GetOpType(), OpType::EXTERNALFILESCAN);
   EXPECT_EQ(ext_file_scan_1.GetName(), "ExternalFileScan");
@@ -344,13 +359,20 @@ TEST(OperatorTests, QueryDerivedScanTest) {
   alias_to_expr_map_5["constant expr"] = expr1;
   alias_to_expr_map_5["constant expr2"] = expr2;
 
-  Operator query_derived_scan_1 = QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_1), txn_context);
-  Operator query_derived_scan_2 = QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_2), txn_context);
-  Operator query_derived_scan_3 = QueryDerivedScan::Make(
-      "alias", std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>(), txn_context);
-  Operator query_derived_scan_4 = QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_3), txn_context);
-  Operator query_derived_scan_5 = QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_4), txn_context);
-  Operator query_derived_scan_6 = QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_5), txn_context);
+  Operator query_derived_scan_1 =
+      QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_1)).RegisterWithTxnContext(txn_context);
+  Operator query_derived_scan_2 =
+      QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_2)).RegisterWithTxnContext(txn_context);
+  Operator query_derived_scan_3 =
+      QueryDerivedScan::Make("alias",
+                             std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>())
+          .RegisterWithTxnContext(txn_context);
+  Operator query_derived_scan_4 =
+      QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_3)).RegisterWithTxnContext(txn_context);
+  Operator query_derived_scan_5 =
+      QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_4)).RegisterWithTxnContext(txn_context);
+  Operator query_derived_scan_6 =
+      QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_5)).RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(query_derived_scan_1.GetOpType(), OpType::QUERYDERIVEDSCAN);
   EXPECT_EQ(query_derived_scan_1.GetName(), "QueryDerivedScan");
@@ -388,10 +410,10 @@ TEST(OperatorTests, OrderByTest) {
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
-  Operator op1 = OrderBy::Make(txn_context);
+  Operator op1 = OrderBy::Make().RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op1.GetOpType(), OpType::ORDERBY);
 
-  Operator op2 = OrderBy::Make(txn_context);
+  Operator op2 = OrderBy::Make().RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
@@ -420,7 +442,7 @@ TEST(OperatorTests, LimitTest) {
   OrderByOrderingType sort_dir = OrderByOrderingType::ASC;
 
   // Check that all of our GET methods work as expected
-  Operator op1 = Limit::Make(offset, limit, {sort_expr}, {sort_dir}, txn_context);
+  Operator op1 = Limit::Make(offset, limit, {sort_expr}, {sort_dir}).RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op1.GetOpType(), OpType::LIMIT);
   EXPECT_EQ(op1.GetContentsAs<Limit>()->GetOffset(), offset);
   EXPECT_EQ(op1.GetContentsAs<Limit>()->GetLimit(), limit);
@@ -431,14 +453,14 @@ TEST(OperatorTests, LimitTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = Limit::Make(offset, limit, {sort_expr}, {sort_dir}, txn_context);
+  Operator op2 = Limit::Make(offset, limit, {sort_expr}, {sort_dir}).RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   size_t other_offset = 1111;
-  Operator op3 = Limit::Make(other_offset, limit, {sort_expr}, {sort_dir}, txn_context);
+  Operator op3 = Limit::Make(other_offset, limit, {sort_expr}, {sort_dir}).RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -479,13 +501,18 @@ TEST(OperatorTests, InnerNLJoinTest) {
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
 
-  Operator inner_nl_join_1 = InnerNLJoin::Make(std::vector<AnnotatedExpression>(), txn_context);
-  Operator inner_nl_join_2 = InnerNLJoin::Make(std::vector<AnnotatedExpression>(), txn_context);
-  Operator inner_nl_join_3 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0}, txn_context);
-  Operator inner_nl_join_4 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, txn_context);
-  Operator inner_nl_join_5 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2}, txn_context);
-  Operator inner_nl_join_6 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, txn_context);
-  Operator inner_nl_join_7 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3}, txn_context);
+  Operator inner_nl_join_1 = InnerNLJoin::Make(std::vector<AnnotatedExpression>()).RegisterWithTxnContext(txn_context);
+  Operator inner_nl_join_2 = InnerNLJoin::Make(std::vector<AnnotatedExpression>()).RegisterWithTxnContext(txn_context);
+  Operator inner_nl_join_3 =
+      InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0}).RegisterWithTxnContext(txn_context);
+  Operator inner_nl_join_4 =
+      InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}).RegisterWithTxnContext(txn_context);
+  Operator inner_nl_join_5 =
+      InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2}).RegisterWithTxnContext(txn_context);
+  Operator inner_nl_join_6 =
+      InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}).RegisterWithTxnContext(txn_context);
+  Operator inner_nl_join_7 =
+      InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3}).RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(inner_nl_join_1.GetOpType(), OpType::INNERNLJOIN);
   EXPECT_EQ(inner_nl_join_3.GetOpType(), OpType::INNERNLJOIN);
@@ -543,9 +570,9 @@ TEST(OperatorTests, LeftNLJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator left_nl_join_1 = LeftNLJoin::Make(x_1, txn_context);
-  Operator left_nl_join_2 = LeftNLJoin::Make(x_2, txn_context);
-  Operator left_nl_join_3 = LeftNLJoin::Make(x_3, txn_context);
+  Operator left_nl_join_1 = LeftNLJoin::Make(x_1).RegisterWithTxnContext(txn_context);
+  Operator left_nl_join_2 = LeftNLJoin::Make(x_2).RegisterWithTxnContext(txn_context);
+  Operator left_nl_join_3 = LeftNLJoin::Make(x_3).RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(left_nl_join_1.GetOpType(), OpType::LEFTNLJOIN);
   EXPECT_EQ(left_nl_join_3.GetOpType(), OpType::LEFTNLJOIN);
@@ -591,9 +618,9 @@ TEST(OperatorTests, RightNLJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator right_nl_join_1 = RightNLJoin::Make(x_1, txn_context);
-  Operator right_nl_join_2 = RightNLJoin::Make(x_2, txn_context);
-  Operator right_nl_join_3 = RightNLJoin::Make(x_3, txn_context);
+  Operator right_nl_join_1 = RightNLJoin::Make(x_1).RegisterWithTxnContext(txn_context);
+  Operator right_nl_join_2 = RightNLJoin::Make(x_2).RegisterWithTxnContext(txn_context);
+  Operator right_nl_join_3 = RightNLJoin::Make(x_3).RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(right_nl_join_1.GetOpType(), OpType::RIGHTNLJOIN);
   EXPECT_EQ(right_nl_join_3.GetOpType(), OpType::RIGHTNLJOIN);
@@ -639,9 +666,9 @@ TEST(OperatorTests, OuterNLJoin) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator outer_nl_join_1 = OuterNLJoin::Make(x_1, txn_context);
-  Operator outer_nl_join_2 = OuterNLJoin::Make(x_2, txn_context);
-  Operator outer_nl_join_3 = OuterNLJoin::Make(x_3, txn_context);
+  Operator outer_nl_join_1 = OuterNLJoin::Make(x_1).RegisterWithTxnContext(txn_context);
+  Operator outer_nl_join_2 = OuterNLJoin::Make(x_2).RegisterWithTxnContext(txn_context);
+  Operator outer_nl_join_3 = OuterNLJoin::Make(x_3).RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(outer_nl_join_1.GetOpType(), OpType::OUTERNLJOIN);
   EXPECT_EQ(outer_nl_join_3.GetOpType(), OpType::OUTERNLJOIN);
@@ -693,22 +720,24 @@ TEST(OperatorTests, InnerHashJoinTest) {
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
 
-  Operator inner_hash_join_1 = InnerHashJoin::Make(std::vector<AnnotatedExpression>(), {x_1}, {x_1}, txn_context);
-  Operator inner_hash_join_2 = InnerHashJoin::Make(std::vector<AnnotatedExpression>(), {x_1}, {x_1}, txn_context);
-  Operator inner_hash_join_3 =
-      InnerHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0}, {x_1}, {x_1}, txn_context);
-  Operator inner_hash_join_4 =
-      InnerHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_1}, txn_context);
-  Operator inner_hash_join_5 =
-      InnerHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2}, {x_2}, {x_1}, txn_context);
-  Operator inner_hash_join_6 =
-      InnerHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_2}, txn_context);
-  Operator inner_hash_join_7 =
-      InnerHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3}, {x_1}, {x_1}, txn_context);
-  Operator inner_hash_join_8 =
-      InnerHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_3}, {x_1}, txn_context);
-  Operator inner_hash_join_9 =
-      InnerHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_3}, txn_context);
+  Operator inner_hash_join_1 =
+      InnerHashJoin::Make(std::vector<AnnotatedExpression>(), {x_1}, {x_1}).RegisterWithTxnContext(txn_context);
+  Operator inner_hash_join_2 =
+      InnerHashJoin::Make(std::vector<AnnotatedExpression>(), {x_1}, {x_1}).RegisterWithTxnContext(txn_context);
+  Operator inner_hash_join_3 = InnerHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0}, {x_1}, {x_1})
+                                   .RegisterWithTxnContext(txn_context);
+  Operator inner_hash_join_4 = InnerHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_1})
+                                   .RegisterWithTxnContext(txn_context);
+  Operator inner_hash_join_5 = InnerHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2}, {x_2}, {x_1})
+                                   .RegisterWithTxnContext(txn_context);
+  Operator inner_hash_join_6 = InnerHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_2})
+                                   .RegisterWithTxnContext(txn_context);
+  Operator inner_hash_join_7 = InnerHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3}, {x_1}, {x_1})
+                                   .RegisterWithTxnContext(txn_context);
+  Operator inner_hash_join_8 = InnerHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_3}, {x_1})
+                                   .RegisterWithTxnContext(txn_context);
+  Operator inner_hash_join_9 = InnerHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_3})
+                                   .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(inner_hash_join_1.GetOpType(), OpType::INNERHASHJOIN);
   EXPECT_EQ(inner_hash_join_3.GetOpType(), OpType::INNERHASHJOIN);
@@ -772,9 +801,9 @@ TEST(OperatorTests, LeftHashJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator left_hash_join_1 = LeftHashJoin::Make(x_1, txn_context);
-  Operator left_hash_join_2 = LeftHashJoin::Make(x_2, txn_context);
-  Operator left_hash_join_3 = LeftHashJoin::Make(x_3, txn_context);
+  Operator left_hash_join_1 = LeftHashJoin::Make(x_1).RegisterWithTxnContext(txn_context);
+  Operator left_hash_join_2 = LeftHashJoin::Make(x_2).RegisterWithTxnContext(txn_context);
+  Operator left_hash_join_3 = LeftHashJoin::Make(x_3).RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(left_hash_join_1.GetOpType(), OpType::LEFTHASHJOIN);
   EXPECT_EQ(left_hash_join_3.GetOpType(), OpType::LEFTHASHJOIN);
@@ -820,9 +849,9 @@ TEST(OperatorTests, RightHashJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator right_hash_join_1 = RightHashJoin::Make(x_1, txn_context);
-  Operator right_hash_join_2 = RightHashJoin::Make(x_2, txn_context);
-  Operator right_hash_join_3 = RightHashJoin::Make(x_3, txn_context);
+  Operator right_hash_join_1 = RightHashJoin::Make(x_1).RegisterWithTxnContext(txn_context);
+  Operator right_hash_join_2 = RightHashJoin::Make(x_2).RegisterWithTxnContext(txn_context);
+  Operator right_hash_join_3 = RightHashJoin::Make(x_3).RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(right_hash_join_1.GetOpType(), OpType::RIGHTHASHJOIN);
   EXPECT_EQ(right_hash_join_3.GetOpType(), OpType::RIGHTHASHJOIN);
@@ -868,9 +897,9 @@ TEST(OperatorTests, OuterHashJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator outer_hash_join_1 = OuterHashJoin::Make(x_1, txn_context);
-  Operator outer_hash_join_2 = OuterHashJoin::Make(x_2, txn_context);
-  Operator outer_hash_join_3 = OuterHashJoin::Make(x_3, txn_context);
+  Operator outer_hash_join_1 = OuterHashJoin::Make(x_1).RegisterWithTxnContext(txn_context);
+  Operator outer_hash_join_2 = OuterHashJoin::Make(x_2).RegisterWithTxnContext(txn_context);
+  Operator outer_hash_join_3 = OuterHashJoin::Make(x_3).RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(outer_hash_join_1.GetOpType(), OpType::OUTERHASHJOIN);
   EXPECT_EQ(outer_hash_join_3.GetOpType(), OpType::OUTERHASHJOIN);
@@ -920,7 +949,8 @@ TEST(OperatorTests, InsertTest) {
   Operator op1 =
       Insert::Make(database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
                    std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values),
-                   std::vector<catalog::index_oid_t>(indexes), txn_context);
+                   std::vector<catalog::index_oid_t>(indexes))
+          .RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op1.GetOpType(), OpType::INSERT);
   EXPECT_EQ(op1.GetContentsAs<Insert>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.GetContentsAs<Insert>()->GetNamespaceOid(), namespace_oid);
@@ -934,7 +964,8 @@ TEST(OperatorTests, InsertTest) {
   Operator op2 =
       Insert::Make(database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
                    std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values),
-                   std::vector<catalog::index_oid_t>(indexes), txn_context);
+                   std::vector<catalog::index_oid_t>(indexes))
+          .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
@@ -946,7 +977,8 @@ TEST(OperatorTests, InsertTest) {
   Operator op3 =
       Insert::Make(database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
                    std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(other_values),
-                   std::vector<catalog::index_oid_t>(indexes), txn_context);
+                   std::vector<catalog::index_oid_t>(indexes))
+          .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -963,7 +995,8 @@ TEST(OperatorTests, InsertTest) {
   EXPECT_DEATH(
       Insert::Make(database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
                    std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(bad_values),
-                   std::vector<catalog::index_oid_t>(indexes), txn_context),
+                   std::vector<catalog::index_oid_t>(indexes))
+          .RegisterWithTxnContext(txn_context),
       "Mismatched");
   for (auto entry : bad_raw_values) delete entry;
 #endif
@@ -994,8 +1027,9 @@ TEST(OperatorTests, InsertSelectTest) {
   std::vector<catalog::index_oid_t> index_oids{721};
 
   // Check that all of our GET methods work as expected
-  Operator op1 = InsertSelect::Make(database_oid, namespace_oid, table_oid,
-                                    std::vector<catalog::index_oid_t>(index_oids), txn_context);
+  Operator op1 =
+      InsertSelect::Make(database_oid, namespace_oid, table_oid, std::vector<catalog::index_oid_t>(index_oids))
+          .RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op1.GetOpType(), OpType::INSERTSELECT);
   EXPECT_EQ(op1.GetContentsAs<InsertSelect>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.GetContentsAs<InsertSelect>()->GetNamespaceOid(), namespace_oid);
@@ -1004,16 +1038,18 @@ TEST(OperatorTests, InsertSelectTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = InsertSelect::Make(database_oid, namespace_oid, table_oid,
-                                    std::vector<catalog::index_oid_t>(index_oids), txn_context);
+  Operator op2 =
+      InsertSelect::Make(database_oid, namespace_oid, table_oid, std::vector<catalog::index_oid_t>(index_oids))
+          .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   catalog::db_oid_t other_database_oid(999);
-  Operator op3 = InsertSelect::Make(other_database_oid, namespace_oid, table_oid,
-                                    std::vector<catalog::index_oid_t>(index_oids), txn_context);
+  Operator op3 =
+      InsertSelect::Make(other_database_oid, namespace_oid, table_oid, std::vector<catalog::index_oid_t>(index_oids))
+          .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -1040,7 +1076,7 @@ TEST(OperatorTests, DeleteTest) {
   catalog::table_oid_t table_oid(789);
 
   // Check that all of our GET methods work as expected
-  Operator op1 = Delete::Make(database_oid, namespace_oid, "tbl", table_oid, txn_context);
+  Operator op1 = Delete::Make(database_oid, namespace_oid, "tbl", table_oid).RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op1.GetOpType(), OpType::DELETE);
   EXPECT_EQ(op1.GetContentsAs<Delete>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.GetContentsAs<Delete>()->GetNamespaceOid(), namespace_oid);
@@ -1048,14 +1084,14 @@ TEST(OperatorTests, DeleteTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = Delete::Make(database_oid, namespace_oid, "tbl", table_oid, txn_context);
+  Operator op2 = Delete::Make(database_oid, namespace_oid, "tbl", table_oid).RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   catalog::db_oid_t other_database_oid(999);
-  Operator op3 = Delete::Make(other_database_oid, namespace_oid, "tbl", table_oid, txn_context);
+  Operator op3 = Delete::Make(other_database_oid, namespace_oid, "tbl", table_oid).RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -1083,8 +1119,8 @@ TEST(OperatorTests, ExportExternalFileTest) {
   char escape = 'Z';
 
   // Check that all of our GET methods work as expected
-  Operator op1 =
-      ExportExternalFile::Make(parser::ExternalFileFormat::BINARY, file_name, delimiter, quote, escape, txn_context);
+  Operator op1 = ExportExternalFile::Make(parser::ExternalFileFormat::BINARY, file_name, delimiter, quote, escape)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op1.GetOpType(), OpType::EXPORTEXTERNALFILE);
   EXPECT_EQ(op1.GetContentsAs<ExportExternalFile>()->GetFilename(), file_name);
   EXPECT_EQ(op1.GetContentsAs<ExportExternalFile>()->GetFormat(), parser::ExternalFileFormat::BINARY);
@@ -1095,15 +1131,15 @@ TEST(OperatorTests, ExportExternalFileTest) {
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
   std::string file_name_copy = file_name;  // NOLINT
-  Operator op2 = ExportExternalFile::Make(parser::ExternalFileFormat::BINARY, file_name_copy, delimiter, quote, escape,
-                                          txn_context);
+  Operator op2 = ExportExternalFile::Make(parser::ExternalFileFormat::BINARY, file_name_copy, delimiter, quote, escape)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
-  Operator op3 =
-      ExportExternalFile::Make(parser::ExternalFileFormat::CSV, file_name, delimiter, quote, escape, txn_context);
+  Operator op3 = ExportExternalFile::Make(parser::ExternalFileFormat::CSV, file_name, delimiter, quote, escape)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -1134,7 +1170,8 @@ TEST(OperatorTests, UpdateTest) {
   catalog::table_oid_t table_oid(789);
 
   // Check that all of our GET methods work as expected
-  Operator op1 = Update::Make(database_oid, namespace_oid, "tbl", table_oid, {update_clause}, txn_context);
+  Operator op1 =
+      Update::Make(database_oid, namespace_oid, "tbl", table_oid, {update_clause}).RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op1.GetOpType(), OpType::UPDATE);
   EXPECT_EQ(op1.GetContentsAs<Update>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.GetContentsAs<Update>()->GetNamespaceOid(), namespace_oid);
@@ -1144,13 +1181,14 @@ TEST(OperatorTests, UpdateTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = Update::Make(database_oid, namespace_oid, "tbl", table_oid, {update_clause}, txn_context);
+  Operator op2 =
+      Update::Make(database_oid, namespace_oid, "tbl", table_oid, {update_clause}).RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
-  Operator op3 = Update::Make(database_oid, namespace_oid, "tbl", table_oid, {}, txn_context);
+  Operator op3 = Update::Make(database_oid, namespace_oid, "tbl", table_oid, {}).RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -1214,17 +1252,23 @@ TEST(OperatorTests, HashGroupByTest) {
   auto annotated_expr_4 = AnnotatedExpression(x_8, std::unordered_set<std::string>());
 
   Operator group_by_1_0 = HashGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
-                                            std::vector<AnnotatedExpression>{annotated_expr_0}, txn_context);
+                                            std::vector<AnnotatedExpression>{annotated_expr_0})
+                              .RegisterWithTxnContext(txn_context);
   Operator group_by_1_1 = HashGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
-                                            std::vector<AnnotatedExpression>{annotated_expr_1}, txn_context);
+                                            std::vector<AnnotatedExpression>{annotated_expr_1})
+                              .RegisterWithTxnContext(txn_context);
   Operator group_by_2_2 = HashGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_2},
-                                            std::vector<AnnotatedExpression>{annotated_expr_2}, txn_context);
+                                            std::vector<AnnotatedExpression>{annotated_expr_2})
+                              .RegisterWithTxnContext(txn_context);
   Operator group_by_3 = HashGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3},
-                                          std::vector<AnnotatedExpression>(), txn_context);
+                                          std::vector<AnnotatedExpression>())
+                            .RegisterWithTxnContext(txn_context);
   Operator group_by_7_4 = HashGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_7},
-                                            std::vector<AnnotatedExpression>{annotated_expr_4}, txn_context);
+                                            std::vector<AnnotatedExpression>{annotated_expr_4})
+                              .RegisterWithTxnContext(txn_context);
   Operator group_by_4 = HashGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>(),
-                                          std::vector<AnnotatedExpression>{annotated_expr_1}, txn_context);
+                                          std::vector<AnnotatedExpression>{annotated_expr_1})
+                            .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(group_by_1_1.GetOpType(), OpType::HASHGROUPBY);
   EXPECT_EQ(group_by_3.GetOpType(), OpType::HASHGROUPBY);
@@ -1313,17 +1357,23 @@ TEST(OperatorTests, SortGroupByTest) {
   auto annotated_expr_4 = AnnotatedExpression(x_8, std::unordered_set<std::string>());
 
   Operator group_by_1_0 = SortGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
-                                            std::vector<AnnotatedExpression>{annotated_expr_0}, txn_context);
+                                            std::vector<AnnotatedExpression>{annotated_expr_0})
+                              .RegisterWithTxnContext(txn_context);
   Operator group_by_1_1 = SortGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
-                                            std::vector<AnnotatedExpression>{annotated_expr_1}, txn_context);
+                                            std::vector<AnnotatedExpression>{annotated_expr_1})
+                              .RegisterWithTxnContext(txn_context);
   Operator group_by_2_2 = SortGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_2},
-                                            std::vector<AnnotatedExpression>{annotated_expr_2}, txn_context);
+                                            std::vector<AnnotatedExpression>{annotated_expr_2})
+                              .RegisterWithTxnContext(txn_context);
   Operator group_by_3 = SortGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3},
-                                          std::vector<AnnotatedExpression>(), txn_context);
+                                          std::vector<AnnotatedExpression>())
+                            .RegisterWithTxnContext(txn_context);
   Operator group_by_7_4 = SortGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_7},
-                                            std::vector<AnnotatedExpression>{annotated_expr_4}, txn_context);
+                                            std::vector<AnnotatedExpression>{annotated_expr_4})
+                              .RegisterWithTxnContext(txn_context);
   Operator group_by_4 = SortGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>(),
-                                          std::vector<AnnotatedExpression>{annotated_expr_1}, txn_context);
+                                          std::vector<AnnotatedExpression>{annotated_expr_1})
+                            .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(group_by_1_1.GetOpType(), OpType::SORTGROUPBY);
   EXPECT_EQ(group_by_3.GetOpType(), OpType::SORTGROUPBY);
@@ -1376,10 +1426,10 @@ TEST(OperatorTests, AggregateTest) {
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
-  Operator op1 = Aggregate::Make(txn_context);
+  Operator op1 = Aggregate::Make().RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op1.GetOpType(), OpType::AGGREGATE);
 
-  Operator op2 = Aggregate::Make(txn_context);
+  Operator op2 = Aggregate::Make().RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
@@ -1401,9 +1451,9 @@ TEST(OperatorTests, CreateDatabaseTest) {
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
-  Operator create_db_1 = CreateDatabase::Make("testdb", txn_context);
-  Operator create_db_2 = CreateDatabase::Make("testdb", txn_context);
-  Operator create_db_3 = CreateDatabase::Make("another_testdb", txn_context);
+  Operator create_db_1 = CreateDatabase::Make("testdb").RegisterWithTxnContext(txn_context);
+  Operator create_db_2 = CreateDatabase::Make("testdb").RegisterWithTxnContext(txn_context);
+  Operator create_db_3 = CreateDatabase::Make("another_testdb").RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(create_db_1.GetOpType(), OpType::CREATEDATABASE);
   EXPECT_EQ(create_db_3.GetOpType(), OpType::CREATEDATABASE);
@@ -1436,7 +1486,8 @@ TEST(OperatorTests, CreateFunctionTest) {
   Operator op1 =
       CreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {},
                            {"param"}, {parser::BaseFunctionParameter::DataType::INTEGER},
-                           parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false, txn_context);
+                           parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false)
+          .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(op1.GetOpType(), OpType::CREATEFUNCTION);
   EXPECT_EQ(op1.GetName(), "CreateFunction");
@@ -1455,69 +1506,80 @@ TEST(OperatorTests, CreateFunctionTest) {
   Operator op2 =
       CreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {},
                            {"param"}, {parser::BaseFunctionParameter::DataType::INTEGER},
-                           parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false, txn_context);
+                           parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false)
+          .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   Operator op3 =
       CreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(3), "function1", parser::PLType::PL_C, {},
                            {"param"}, {parser::BaseFunctionParameter::DataType::INTEGER},
-                           parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false, txn_context);
+                           parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false)
+          .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 != op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
   Operator op4 =
       CreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function4", parser::PLType::PL_C, {},
                            {"param"}, {parser::BaseFunctionParameter::DataType::INTEGER},
-                           parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false, txn_context);
+                           parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false)
+          .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op4);
   EXPECT_NE(op1.Hash(), op4.Hash());
 
   Operator op5 =
       CreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_PGSQL, {},
                            {"param"}, {parser::BaseFunctionParameter::DataType::INTEGER},
-                           parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false, txn_context);
+                           parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false)
+          .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
 
   Operator op6 =
       CreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C,
                            {"body", "body2"}, {"param"}, {parser::BaseFunctionParameter::DataType::INTEGER},
-                           parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false, txn_context);
+                           parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false)
+          .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op6);
   EXPECT_NE(op1.Hash(), op6.Hash());
 
-  Operator op7 = CreateFunction::Make(
-      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param1", "param2"},
-      {parser::BaseFunctionParameter::DataType::INTEGER, parser::BaseFunctionParameter::DataType::BOOLEAN},
-      parser::BaseFunctionParameter::DataType::BOOLEAN, 2, false, txn_context);
+  Operator op7 = CreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1",
+                                      parser::PLType::PL_C, {}, {"param1", "param2"},
+                                      {parser::BaseFunctionParameter::DataType::INTEGER,
+                                       parser::BaseFunctionParameter::DataType::BOOLEAN},
+                                      parser::BaseFunctionParameter::DataType::BOOLEAN, 2, false)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op7);
   EXPECT_NE(op1.Hash(), op7.Hash());
 
   Operator op8 =
       CreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {},
-                           {}, parser::BaseFunctionParameter::DataType::BOOLEAN, 0, false, txn_context);
+                           {}, parser::BaseFunctionParameter::DataType::BOOLEAN, 0, false)
+          .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op8);
   EXPECT_NE(op1.Hash(), op8.Hash());
 
   Operator op9 =
       CreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {},
                            {"param"}, {parser::BaseFunctionParameter::DataType::VARCHAR},
-                           parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false, txn_context);
+                           parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false)
+          .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op9);
   EXPECT_NE(op1.Hash(), op9.Hash());
 
   Operator op10 =
       CreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {},
                            {"param"}, {parser::BaseFunctionParameter::DataType::INTEGER},
-                           parser::BaseFunctionParameter::DataType::INTEGER, 1, false, txn_context);
+                           parser::BaseFunctionParameter::DataType::INTEGER, 1, false)
+          .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op10);
   EXPECT_NE(op1.Hash(), op10.Hash());
 
   Operator op11 =
       CreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {},
                            {"param"}, {parser::BaseFunctionParameter::DataType::INTEGER},
-                           parser::BaseFunctionParameter::DataType::BOOLEAN, 1, true, txn_context);
+                           parser::BaseFunctionParameter::DataType::BOOLEAN, 1, true)
+          .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op11);
   EXPECT_NE(op1.Hash(), op11.Hash());
 
@@ -1525,7 +1587,8 @@ TEST(OperatorTests, CreateFunctionTest) {
   EXPECT_DEATH(
       CreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {},
                            {"param", "PARAM"}, {parser::BaseFunctionParameter::DataType::INTEGER},
-                           parser::BaseFunctionParameter::DataType::BOOLEAN, 1, true, txn_context),
+                           parser::BaseFunctionParameter::DataType::BOOLEAN, 1, true)
+          .RegisterWithTxnContext(txn_context),
       "Mismatched");
 #endif
 
@@ -1553,8 +1616,9 @@ TEST(OperatorTests, CreateIndexTest) {
                                        parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)))},
       storage::index::IndexType::BWTREE, true, true, true, true);
 
-  Operator op1 = CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1",
-                                   std::move(idx_schema), txn_context);
+  Operator op1 =
+      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema))
+          .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(op1.GetOpType(), OpType::CREATEINDEX);
   EXPECT_EQ(op1.GetName(), "CreateIndex");
@@ -1573,8 +1637,9 @@ TEST(OperatorTests, CreateIndexTest) {
           catalog::IndexSchema::Column("col_1", type::TypeId::TINYINT, true,
                                        parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)))},
       storage::index::IndexType::BWTREE, true, true, true, true);
-  Operator op2 = CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1",
-                                   std::move(idx_schema_2), txn_context);
+  Operator op2 =
+      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_2))
+          .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
@@ -1583,8 +1648,9 @@ TEST(OperatorTests, CreateIndexTest) {
           catalog::IndexSchema::Column("col_1", type::TypeId::TINYINT, true,
                                        parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)))},
       storage::index::IndexType::BWTREE, true, true, true, true);
-  Operator op3 = CreateIndex::Make(catalog::namespace_oid_t(2), catalog::table_oid_t(1), "index_1",
-                                   std::move(idx_schema_3), txn_context);
+  Operator op3 =
+      CreateIndex::Make(catalog::namespace_oid_t(2), catalog::table_oid_t(1), "index_1", std::move(idx_schema_3))
+          .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op3 == op1);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -1593,8 +1659,9 @@ TEST(OperatorTests, CreateIndexTest) {
           catalog::IndexSchema::Column("col_1", type::TypeId::TINYINT, true,
                                        parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)))},
       storage::index::IndexType::BWTREE, true, true, true, true);
-  Operator op4 = CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_2",
-                                   std::move(idx_schema_4), txn_context);
+  Operator op4 =
+      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_2", std::move(idx_schema_4))
+          .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op4);
   EXPECT_NE(op1.Hash(), op4.Hash());
 
@@ -1603,8 +1670,9 @@ TEST(OperatorTests, CreateIndexTest) {
           catalog::IndexSchema::Column("col_1", type::TypeId::INTEGER, true,
                                        parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(1)))},
       storage::index::IndexType::BWTREE, true, true, true, true);
-  Operator op5 = CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1",
-                                   std::move(idx_schema_5), txn_context);
+  Operator op5 =
+      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_5))
+          .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
 
@@ -1615,8 +1683,9 @@ TEST(OperatorTests, CreateIndexTest) {
           catalog::IndexSchema::Column("col_2", type::TypeId::TINYINT, true,
                                        parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(1)))},
       storage::index::IndexType::BWTREE, true, true, true, true);
-  Operator op6 = CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1",
-                                   std::move(idx_schema_6), txn_context);
+  Operator op6 =
+      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_6))
+          .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op6);
   EXPECT_NE(op1.Hash(), op6.Hash());
 
@@ -1646,7 +1715,8 @@ TEST(OperatorTests, CreateTableTest) {
   Operator op1 = CreateTable::Make(catalog::namespace_oid_t(1), "Table_1",
                                    std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
                                        common::ManagedPointer<parser::ColumnDefinition>(col_def)},
-                                   std::vector<common::ManagedPointer<parser::ColumnDefinition>>{}, txn_context);
+                                   std::vector<common::ManagedPointer<parser::ColumnDefinition>>{})
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op1.GetOpType(), OpType::CREATETABLE);
   EXPECT_EQ(op1.GetName(), "CreateTable");
   EXPECT_EQ(op1.GetContentsAs<CreateTable>()->GetTableName(), "Table_1");
@@ -1659,21 +1729,24 @@ TEST(OperatorTests, CreateTableTest) {
   Operator op2 = CreateTable::Make(catalog::namespace_oid_t(1), "Table_1",
                                    std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
                                        common::ManagedPointer<parser::ColumnDefinition>(col_def)},
-                                   std::vector<common::ManagedPointer<parser::ColumnDefinition>>{}, txn_context);
+                                   std::vector<common::ManagedPointer<parser::ColumnDefinition>>{})
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   Operator op3 = CreateTable::Make(catalog::namespace_oid_t(2), "Table_1",
                                    std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
                                        common::ManagedPointer<parser::ColumnDefinition>(col_def)},
-                                   std::vector<common::ManagedPointer<parser::ColumnDefinition>>{}, txn_context);
+                                   std::vector<common::ManagedPointer<parser::ColumnDefinition>>{})
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
   Operator op4 = CreateTable::Make(catalog::namespace_oid_t(1), "Table_2",
                                    std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
                                        common::ManagedPointer<parser::ColumnDefinition>(col_def)},
-                                   std::vector<common::ManagedPointer<parser::ColumnDefinition>>{}, txn_context);
+                                   std::vector<common::ManagedPointer<parser::ColumnDefinition>>{})
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op4);
   EXPECT_NE(op1.Hash(), op4.Hash());
 
@@ -1681,13 +1754,15 @@ TEST(OperatorTests, CreateTableTest) {
                                    std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
                                        common::ManagedPointer<parser::ColumnDefinition>(col_def),
                                        common::ManagedPointer<parser::ColumnDefinition>(col_def)},
-                                   std::vector<common::ManagedPointer<parser::ColumnDefinition>>{}, txn_context);
+                                   std::vector<common::ManagedPointer<parser::ColumnDefinition>>{})
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
 
   Operator op6 = CreateTable::Make(catalog::namespace_oid_t(1), "Table_1",
                                    std::vector<common::ManagedPointer<parser::ColumnDefinition>>{},
-                                   std::vector<common::ManagedPointer<parser::ColumnDefinition>>{}, txn_context);
+                                   std::vector<common::ManagedPointer<parser::ColumnDefinition>>{})
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op6);
   EXPECT_NE(op1.Hash(), op6.Hash());
 
@@ -1699,7 +1774,8 @@ TEST(OperatorTests, CreateTableTest) {
   Operator op7 = CreateTable::Make(catalog::namespace_oid_t(1), "Table_2",
                                    std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
                                        common::ManagedPointer<parser::ColumnDefinition>(col_def_2)},
-                                   std::vector<common::ManagedPointer<parser::ColumnDefinition>>{}, txn_context);
+                                   std::vector<common::ManagedPointer<parser::ColumnDefinition>>{})
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op7);
   EXPECT_NE(op1.Hash(), op7.Hash());
 
@@ -1710,8 +1786,8 @@ TEST(OperatorTests, CreateTableTest) {
                                    std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
                                        common::ManagedPointer<parser::ColumnDefinition>(col_def)},
                                    std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
-                                       common::ManagedPointer<parser::ColumnDefinition>(foreign_def)},
-                                   txn_context);
+                                       common::ManagedPointer<parser::ColumnDefinition>(foreign_def)})
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op8);
   EXPECT_NE(op1.Hash(), op8.Hash());
   EXPECT_EQ(op8.GetContentsAs<CreateTable>()->GetForeignKeys().size(), 1);
@@ -1741,9 +1817,9 @@ TEST(OperatorTests, CreateNamespaceTest) {
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
-  Operator op1 = CreateNamespace::Make("testns", txn_context);
-  Operator op2 = CreateNamespace::Make("testns", txn_context);
-  Operator op3 = CreateNamespace::Make("another_testns", txn_context);
+  Operator op1 = CreateNamespace::Make("testns").RegisterWithTxnContext(txn_context);
+  Operator op2 = CreateNamespace::Make("testns").RegisterWithTxnContext(txn_context);
+  Operator op3 = CreateNamespace::Make("another_testns").RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(op1.GetOpType(), OpType::CREATENAMESPACE);
   EXPECT_EQ(op3.GetOpType(), OpType::CREATENAMESPACE);
@@ -1774,9 +1850,10 @@ TEST(OperatorTests, CreateTriggerTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   auto when = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
-  Operator op1 = CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                     "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
-                                     common::ManagedPointer<parser::AbstractExpression>(when), 0, txn_context);
+  Operator op1 =
+      CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1), "Trigger_1", {},
+                          {}, {catalog::col_oid_t(1)}, common::ManagedPointer<parser::AbstractExpression>(when), 0)
+          .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(op1.GetOpType(), OpType::CREATETRIGGER);
   EXPECT_EQ(op1.GetName(), "CreateTrigger");
@@ -1790,52 +1867,60 @@ TEST(OperatorTests, CreateTriggerTest) {
   EXPECT_EQ(op1.GetContentsAs<CreateTrigger>()->GetTriggerColumns(),
             std::vector<catalog::col_oid_t>{catalog::col_oid_t(1)});
 
-  Operator op2 = CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                     "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
-                                     common::ManagedPointer<parser::AbstractExpression>(when), 0, txn_context);
+  Operator op2 =
+      CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1), "Trigger_1", {},
+                          {}, {catalog::col_oid_t(1)}, common::ManagedPointer<parser::AbstractExpression>(when), 0)
+          .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
-  Operator op3 = CreateTrigger::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                     "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
-                                     common::ManagedPointer<parser::AbstractExpression>(when), 0, txn_context);
+  Operator op3 =
+      CreateTrigger::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::table_oid_t(1), "Trigger_1", {},
+                          {}, {catalog::col_oid_t(1)}, common::ManagedPointer<parser::AbstractExpression>(when), 0)
+          .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op3 == op1);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
-  Operator op4 = CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(1),
-                                     "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
-                                     common::ManagedPointer<parser::AbstractExpression>(when), 0, txn_context);
+  Operator op4 =
+      CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(1), "Trigger_1", {},
+                          {}, {catalog::col_oid_t(1)}, common::ManagedPointer<parser::AbstractExpression>(when), 0)
+          .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op4);
   EXPECT_NE(op4.Hash(), op3.Hash());
 
-  Operator op5 = CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(2),
-                                     "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
-                                     common::ManagedPointer<parser::AbstractExpression>(when), 0, txn_context);
+  Operator op5 =
+      CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(2), "Trigger_1", {},
+                          {}, {catalog::col_oid_t(1)}, common::ManagedPointer<parser::AbstractExpression>(when), 0)
+          .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
 
-  Operator op6 = CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                     "Trigger_2", {}, {}, {catalog::col_oid_t(1)},
-                                     common::ManagedPointer<parser::AbstractExpression>(when), 0, txn_context);
+  Operator op6 =
+      CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1), "Trigger_2", {},
+                          {}, {catalog::col_oid_t(1)}, common::ManagedPointer<parser::AbstractExpression>(when), 0)
+          .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op6);
   EXPECT_NE(op1.Hash(), op6.Hash());
 
   Operator op7 = CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                      "Trigger_1", {"func_name"}, {"func_arg"}, {catalog::col_oid_t(1)},
-                                     common::ManagedPointer<parser::AbstractExpression>(when), 0, txn_context);
+                                     common::ManagedPointer<parser::AbstractExpression>(when), 0)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op7);
   EXPECT_NE(op1.Hash(), op7.Hash());
 
   Operator op8 = CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                      "Trigger_1", {"func_name"}, {"func_arg"}, {catalog::col_oid_t(1)},
-                                     common::ManagedPointer<parser::AbstractExpression>(when), 0, txn_context);
+                                     common::ManagedPointer<parser::AbstractExpression>(when), 0)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op7 == op8);
   EXPECT_EQ(op7.Hash(), op8.Hash());
 
   Operator op9 =
       CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1), "Trigger_1",
                           {"func_name", "func_name"}, {"func_arg", "func_arg"}, {catalog::col_oid_t(1)},
-                          common::ManagedPointer<parser::AbstractExpression>(when), 0, txn_context);
+                          common::ManagedPointer<parser::AbstractExpression>(when), 0)
+          .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op9);
   EXPECT_FALSE(op7 == op9);
   EXPECT_NE(op1.Hash(), op9.Hash());
@@ -1843,20 +1928,23 @@ TEST(OperatorTests, CreateTriggerTest) {
 
   Operator op10 =
       CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1), "Trigger_1", {},
-                          {}, {}, common::ManagedPointer<parser::AbstractExpression>(when), 0, txn_context);
+                          {}, {}, common::ManagedPointer<parser::AbstractExpression>(when), 0)
+          .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op10 == op1);
   EXPECT_NE(op1.Hash(), op10.Hash());
 
   auto when_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(2));
-  Operator op11 = CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                      "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
-                                      common::ManagedPointer<parser::AbstractExpression>(when_2), 0, txn_context);
+  Operator op11 =
+      CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1), "Trigger_1", {},
+                          {}, {catalog::col_oid_t(1)}, common::ManagedPointer<parser::AbstractExpression>(when_2), 0)
+          .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op11 == op1);
   EXPECT_NE(op1.Hash(), op11.Hash());
 
-  Operator op12 = CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                      "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
-                                      common::ManagedPointer<parser::AbstractExpression>(when), 9, txn_context);
+  Operator op12 =
+      CreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1), "Trigger_1", {},
+                          {}, {catalog::col_oid_t(1)}, common::ManagedPointer<parser::AbstractExpression>(when), 9)
+          .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op12 == op1);
   EXPECT_NE(op1.Hash(), op12.Hash());
 
@@ -1881,34 +1969,39 @@ TEST(OperatorTests, CreateViewTest) {
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
-  Operator op1 = CreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view", nullptr, txn_context);
+  Operator op1 = CreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view", nullptr)
+                     .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(op1.GetOpType(), OpType::CREATEVIEW);
   EXPECT_EQ(op1.GetName(), "CreateView");
   EXPECT_EQ(op1.GetContentsAs<CreateView>()->GetViewName(), "test_view");
   EXPECT_EQ(op1.GetContentsAs<CreateView>()->GetViewQuery(), nullptr);
 
-  Operator op2 = CreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view", nullptr, txn_context);
+  Operator op2 = CreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view", nullptr)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
-  Operator op3 = CreateView::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), "test_view", nullptr, txn_context);
+  Operator op3 = CreateView::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), "test_view", nullptr)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
-  Operator op4 = CreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), "test_view", nullptr, txn_context);
+  Operator op4 = CreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), "test_view", nullptr)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op4);
   EXPECT_NE(op1.Hash(), op4.Hash());
 
-  Operator op5 =
-      CreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view_2", nullptr, txn_context);
+  Operator op5 = CreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view_2", nullptr)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
 
   auto stmt = new parser::SelectStatement(std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, true,
                                           nullptr, nullptr, nullptr, nullptr, nullptr);
   Operator op6 = CreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view",
-                                  common::ManagedPointer<parser::SelectStatement>(stmt), txn_context);
+                                  common::ManagedPointer<parser::SelectStatement>(stmt))
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op6);
   EXPECT_NE(op1.Hash(), op6.Hash());
   delete stmt;
@@ -1931,9 +2024,9 @@ TEST(OperatorTests, DropDatabaseTest) {
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
-  Operator op1 = DropDatabase::Make(catalog::db_oid_t(1), txn_context);
-  Operator op2 = DropDatabase::Make(catalog::db_oid_t(1), txn_context);
-  Operator op3 = DropDatabase::Make(catalog::db_oid_t(2), txn_context);
+  Operator op1 = DropDatabase::Make(catalog::db_oid_t(1)).RegisterWithTxnContext(txn_context);
+  Operator op2 = DropDatabase::Make(catalog::db_oid_t(1)).RegisterWithTxnContext(txn_context);
+  Operator op3 = DropDatabase::Make(catalog::db_oid_t(2)).RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(op1.GetOpType(), OpType::DROPDATABASE);
   EXPECT_EQ(op3.GetOpType(), OpType::DROPDATABASE);
@@ -1963,9 +2056,9 @@ TEST(OperatorTests, DropTableTest) {
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
-  Operator op1 = DropTable::Make(catalog::table_oid_t(1), txn_context);
-  Operator op2 = DropTable::Make(catalog::table_oid_t(1), txn_context);
-  Operator op3 = DropTable::Make(catalog::table_oid_t(2), txn_context);
+  Operator op1 = DropTable::Make(catalog::table_oid_t(1)).RegisterWithTxnContext(txn_context);
+  Operator op2 = DropTable::Make(catalog::table_oid_t(1)).RegisterWithTxnContext(txn_context);
+  Operator op3 = DropTable::Make(catalog::table_oid_t(2)).RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(op1.GetOpType(), OpType::DROPTABLE);
   EXPECT_EQ(op3.GetOpType(), OpType::DROPTABLE);
@@ -1995,9 +2088,9 @@ TEST(OperatorTests, DropIndexTest) {
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
-  Operator op1 = DropIndex::Make(catalog::index_oid_t(1), txn_context);
-  Operator op2 = DropIndex::Make(catalog::index_oid_t(1), txn_context);
-  Operator op3 = DropIndex::Make(catalog::index_oid_t(2), txn_context);
+  Operator op1 = DropIndex::Make(catalog::index_oid_t(1)).RegisterWithTxnContext(txn_context);
+  Operator op2 = DropIndex::Make(catalog::index_oid_t(1)).RegisterWithTxnContext(txn_context);
+  Operator op3 = DropIndex::Make(catalog::index_oid_t(2)).RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(op1.GetOpType(), OpType::DROPINDEX);
   EXPECT_EQ(op3.GetOpType(), OpType::DROPINDEX);
@@ -2027,9 +2120,9 @@ TEST(OperatorTests, DropNamespaceTest) {
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
-  Operator op1 = DropNamespace::Make(catalog::namespace_oid_t(1), txn_context);
-  Operator op2 = DropNamespace::Make(catalog::namespace_oid_t(1), txn_context);
-  Operator op3 = DropNamespace::Make(catalog::namespace_oid_t(2), txn_context);
+  Operator op1 = DropNamespace::Make(catalog::namespace_oid_t(1)).RegisterWithTxnContext(txn_context);
+  Operator op2 = DropNamespace::Make(catalog::namespace_oid_t(1)).RegisterWithTxnContext(txn_context);
+  Operator op3 = DropNamespace::Make(catalog::namespace_oid_t(2)).RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(op1.GetOpType(), OpType::DROPNAMESPACE);
   EXPECT_EQ(op3.GetOpType(), OpType::DROPNAMESPACE);
@@ -2059,8 +2152,8 @@ TEST(OperatorTests, DropTriggerTest) {
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
-  Operator op1 = DropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false,
-                                   txn_context);
+  Operator op1 = DropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false)
+                     .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(op1.GetOpType(), OpType::DROPTRIGGER);
   EXPECT_EQ(op1.GetName(), "DropTrigger");
@@ -2069,28 +2162,28 @@ TEST(OperatorTests, DropTriggerTest) {
   EXPECT_EQ(op1.GetContentsAs<DropTrigger>()->GetTriggerOid(), catalog::trigger_oid_t(1));
   EXPECT_FALSE(op1.GetContentsAs<DropTrigger>()->IsIfExists());
 
-  Operator op2 = DropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false,
-                                   txn_context);
+  Operator op2 = DropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
-  Operator op3 = DropTrigger::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false,
-                                   txn_context);
+  Operator op3 = DropTrigger::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 != op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
-  Operator op4 = DropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::trigger_oid_t(1), false,
-                                   txn_context);
+  Operator op4 = DropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::trigger_oid_t(1), false)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op4);
   EXPECT_NE(op1.Hash(), op4.Hash());
 
-  Operator op5 = DropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(2), false,
-                                   txn_context);
+  Operator op5 = DropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(2), false)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
 
-  Operator op6 = DropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), true,
-                                   txn_context);
+  Operator op6 = DropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), true)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op6);
   EXPECT_NE(op1.Hash(), op6.Hash());
 
@@ -2112,8 +2205,8 @@ TEST(OperatorTests, DropViewTest) {
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
-  Operator op1 =
-      DropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false, txn_context);
+  Operator op1 = DropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false)
+                     .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(op1.GetOpType(), OpType::DROPVIEW);
   EXPECT_EQ(op1.GetName(), "DropView");
@@ -2122,28 +2215,28 @@ TEST(OperatorTests, DropViewTest) {
   EXPECT_EQ(op1.GetContentsAs<DropView>()->GetViewOid(), catalog::view_oid_t(1));
   EXPECT_FALSE(op1.GetContentsAs<DropView>()->IsIfExists());
 
-  Operator op2 =
-      DropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false, txn_context);
+  Operator op2 = DropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
-  Operator op3 =
-      DropView::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false, txn_context);
+  Operator op3 = DropView::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 != op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
-  Operator op4 =
-      DropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::view_oid_t(1), false, txn_context);
+  Operator op4 = DropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::view_oid_t(1), false)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op4);
   EXPECT_NE(op1.Hash(), op4.Hash());
 
-  Operator op5 =
-      DropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(2), false, txn_context);
+  Operator op5 = DropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(2), false)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
 
-  Operator op6 =
-      DropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), true, txn_context);
+  Operator op6 = DropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), true)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op6);
   EXPECT_NE(op1.Hash(), op6.Hash());
 

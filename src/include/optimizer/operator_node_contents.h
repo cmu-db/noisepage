@@ -7,6 +7,7 @@
 #include "common/managed_pointer.h"
 #include "optimizer/abstract_optimizer_node_contents.h"
 #include "optimizer/optimizer_defs.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::optimizer {
 
@@ -251,6 +252,14 @@ class Operator : public AbstractOptimizerNodeContents {
    * @return true if the operator is physical, false otherwise
    */
   bool IsPhysical() const override;
+
+  /**
+   * Registers the operator with the provided transaction context, so that
+   *   its memory will be freed when the transaction commits or aborts.
+   * @param txn the transaction context it's registered to
+   * @return this operator (for easy chaining)
+   */
+  Operator RegisterWithTxnContext(transaction::TransactionContext *txn);
 };
 }  // namespace terrier::optimizer
 

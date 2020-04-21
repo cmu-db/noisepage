@@ -56,8 +56,9 @@ void UnnestMarkJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOptimiz
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   c.emplace_back(join_children[0]->Copy());
   c.emplace_back(join_children[1]->Copy());
-  auto output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(context->GetOptimizerContext()->GetTxn()),
-                                               std::move(c), context->GetOptimizerContext()->GetTxn());
+  auto output = std::make_unique<OperatorNode>(
+      LogicalInnerJoin::Make().RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()), std::move(c),
+      context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(output));
 }
 
@@ -97,8 +98,9 @@ void UnnestSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOptim
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   c.emplace_back(join_children[0]->Copy());
   c.emplace_back(join_children[1]->Copy());
-  auto output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(context->GetOptimizerContext()->GetTxn()),
-                                               std::move(c), context->GetOptimizerContext()->GetTxn());
+  auto output = std::make_unique<OperatorNode>(
+      LogicalInnerJoin::Make().RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()), std::move(c),
+      context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(output));
 }
 

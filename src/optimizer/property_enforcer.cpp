@@ -18,7 +18,7 @@ GroupExpression *PropertyEnforcer::EnforceProperty(GroupExpression *gexpr, Prope
 
 void PropertyEnforcer::Visit(const PropertySort *prop) {
   std::vector<group_id_t> child_groups(1, input_gexpr_->GetGroupID());
-  output_gexpr_ = new GroupExpression(OrderBy::Make(txn_), std::move(child_groups), txn_);
+  output_gexpr_ = new GroupExpression(OrderBy::Make().RegisterWithTxnContext(txn_), std::move(child_groups), txn_);
 }
 
 }  // namespace terrier::optimizer

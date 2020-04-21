@@ -45,7 +45,8 @@ std::unique_ptr<AbstractOptimizerNode> GroupBindingIterator::Next() {
   if (pattern_->Type() == OpType::LEAF) {
     current_item_index_ = num_group_items_;
     std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
-    return std::make_unique<OperatorNode>(LeafOperator::Make(group_id_, txn_), std::move(c), txn_);
+    return std::make_unique<OperatorNode>(LeafOperator::Make(group_id_).RegisterWithTxnContext(txn_), std::move(c),
+                                          txn_);
   }
 
   return current_iterator_->Next();

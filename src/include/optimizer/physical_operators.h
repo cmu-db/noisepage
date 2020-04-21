@@ -37,7 +37,7 @@ class TableFreeScan : public OperatorNodeContents<TableFreeScan> {
   /**
    * @return a TableFreeScan operator
    */
-  static Operator Make(transaction::TransactionContext *txn);
+  static Operator Make();
 
   /**
    * Copy
@@ -61,12 +61,11 @@ class SeqScan : public OperatorNodeContents<SeqScan> {
    * @param predicates predicates for get
    * @param table_alias alias of the table
    * @param is_for_update whether the scan is used for update
-   * @param txn transaction context for memory management
    * @return a SeqScan operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> &&predicates,
-                       std::string table_alias, bool is_for_update, transaction::TransactionContext *txn);
+                       std::string table_alias, bool is_for_update);
 
   /**
    * Copy
@@ -154,15 +153,13 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
    * @param is_for_update whether the scan is used for update
    * @param scan_type IndexScanType
    * @param bounds Bounds for IndexScan
-   * @param txn transaction context for memory management
    * @return an IndexScan operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
                        std::vector<AnnotatedExpression> &&predicates, bool is_for_update,
                        planner::IndexScanType scan_type,
-                       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds,
-                       transaction::TransactionContext *txn);
+                       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds);
 
   /**
    * Copy
@@ -269,11 +266,10 @@ class ExternalFileScan : public OperatorNodeContents<ExternalFileScan> {
    * @param delimiter character used as delimiter
    * @param quote character used for quotation
    * @param escape character used for escape sequences
-   * @param txn transaction context for memory management
    * @return an ExternalFileScan operator
    */
   static Operator Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
-                       char escape, transaction::TransactionContext *txn);
+                       char escape);
 
   /**
    * Copy
@@ -345,13 +341,11 @@ class QueryDerivedScan : public OperatorNodeContents<QueryDerivedScan> {
   /**
    * @param table_alias alias of the table
    * @param alias_to_expr_map map from table aliases to expressions of those tables
-   * @param txn transaction context for memory management
    * @return a QueryDerivedScan operator
    */
   static Operator Make(
       std::string table_alias,
-      std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map,
-      transaction::TransactionContext *txn);
+      std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map);
 
   /**
    * Copy
@@ -393,10 +387,9 @@ class QueryDerivedScan : public OperatorNodeContents<QueryDerivedScan> {
 class OrderBy : public OperatorNodeContents<OrderBy> {
  public:
   /**
-   * @param txn transaction context for memory management
    * @return an OrderBy operator
    */
-  static Operator Make(transaction::TransactionContext *txn);
+  static Operator Make();
 
   /**
    * Copy
@@ -418,13 +411,11 @@ class Limit : public OperatorNodeContents<Limit> {
    * @param limit number of rows to return
    * @param sort_columns columns on which to sort
    * @param sort_directions sorting order
-   * @param txn transaction context for memory management
    * @return a Limit operator
    */
   static Operator Make(size_t offset, size_t limit,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
-                       std::vector<optimizer::OrderByOrderingType> &&sort_directions,
-                       transaction::TransactionContext *txn);
+                       std::vector<optimizer::OrderByOrderingType> &&sort_directions);
 
   /**
    * Copy
@@ -493,10 +484,9 @@ class InnerNLJoin : public OperatorNodeContents<InnerNLJoin> {
  public:
   /**
    * @param join_predicates predicates for join
-   * @param txn transaction context for memory management
    * @return an InnerNLJoin operator
    */
-  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates, transaction::TransactionContext *txn);
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
 
   /**
    * Copy
@@ -527,11 +517,9 @@ class LeftNLJoin : public OperatorNodeContents<LeftNLJoin> {
  public:
   /**
    * @param join_predicate predicate for join
-   * @param txn transaction context for memory management
    * @return a LeftNLJoin operator
    */
-  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate,
-                       transaction::TransactionContext *txn);
+  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
 
   /**
    * Copy
@@ -562,11 +550,9 @@ class RightNLJoin : public OperatorNodeContents<RightNLJoin> {
  public:
   /**
    * @param join_predicate predicate for join
-   * @param txn transaction context for memory management
    * @return a RightNLJoin operator
    */
-  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate,
-                       transaction::TransactionContext *txn);
+  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
 
   /**
    * Copy
@@ -597,11 +583,9 @@ class OuterNLJoin : public OperatorNodeContents<OuterNLJoin> {
  public:
   /**
    * @param join_predicate predicate for join
-   * @param txn transaction context for memory management
    * @return a OuterNLJoin operator
    */
-  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate,
-                       transaction::TransactionContext *txn);
+  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
 
   /**
    * Copy
@@ -634,13 +618,11 @@ class InnerHashJoin : public OperatorNodeContents<InnerHashJoin> {
    * @param join_predicates predicates for join
    * @param left_keys left keys to join
    * @param right_keys right keys to join
-   * @param txn transaction context for memory management
    * @return an InnerNLJoin operator
    */
   static Operator Make(std::vector<AnnotatedExpression> &&join_predicates,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
-                       std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_keys,
-                       transaction::TransactionContext *txn);
+                       std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_keys);
 
   /**
    * Copy
@@ -691,11 +673,9 @@ class LeftHashJoin : public OperatorNodeContents<LeftHashJoin> {
  public:
   /**
    * @param join_predicate predicate for join
-   * @param txn transaction context for memory management
    * @return a LeftHashJoin operator
    */
-  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate,
-                       transaction::TransactionContext *txn);
+  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
 
   /**
    * Copy
@@ -726,11 +706,9 @@ class RightHashJoin : public OperatorNodeContents<RightHashJoin> {
  public:
   /**
    * @param join_predicate predicate for join
-   * @param txn transaction context for memory management
    * @return a RightHashJoin operator
    */
-  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate,
-                       transaction::TransactionContext *txn);
+  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
 
   /**
    * Copy
@@ -761,11 +739,9 @@ class OuterHashJoin : public OperatorNodeContents<OuterHashJoin> {
  public:
   /**
    * @param join_predicate predicate for join
-   * @param txn transaction context for memory management
    * @return a OuterHashJoin operator
    */
-  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate,
-                       transaction::TransactionContext *txn);
+  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
 
   /**
    * Copy
@@ -801,13 +777,12 @@ class Insert : public OperatorNodeContents<Insert> {
    * @param columns OIDs of columns to insert into
    * @param values expressions of values to insert
    * @param index_oids the OIDs of the indexes to insert into
-   * @param txn transaction context for memory management
    * @return an Insert operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
                        std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values,
-                       std::vector<catalog::index_oid_t> &&index_oids, transaction::TransactionContext *txn);
+                       std::vector<catalog::index_oid_t> &&index_oids);
 
   /**
    * Copy
@@ -892,12 +867,10 @@ class InsertSelect : public OperatorNodeContents<InsertSelect> {
    * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
    * @param index_oids the OIDs of the indexes to insert into
-   * @param txn transaction context for memory management
    * @return an InsertSelect operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, std::vector<catalog::index_oid_t> &&index_oids,
-                       transaction::TransactionContext *txn);
+                       catalog::table_oid_t table_oid, std::vector<catalog::index_oid_t> &&index_oids);
 
   /**
    * Copy
@@ -960,11 +933,10 @@ class Delete : public OperatorNodeContents<Delete> {
    * @param namespace_oid OID of the namespace
    * @param table_alias Alias of the table
    * @param table_oid OID of the table
-   * @param txn transaction context for memory management
    * @return an InsertSelect operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
-                       catalog::table_oid_t table_oid, transaction::TransactionContext *txn);
+                       catalog::table_oid_t table_oid);
 
   /**
    * Copy
@@ -1028,11 +1000,10 @@ class ExportExternalFile : public OperatorNodeContents<ExportExternalFile> {
    * @param delimiter character used as delimiter
    * @param quote character used for quotation
    * @param escape character used for escape sequences
-   * @param txn transaction context for memory management
    * @return an ExportExternalFile operator
    */
   static Operator Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
-                       char escape, transaction::TransactionContext *txn);
+                       char escape);
 
   /**
    * Copy
@@ -1107,13 +1078,11 @@ class Update : public OperatorNodeContents<Update> {
    * @param table_alias Table Alias
    * @param table_oid OID of the table
    * @param updates update clause
-   * @param txn transaction context for memory management
    * @return an Update operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
                        catalog::table_oid_t table_oid,
-                       std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates,
-                       transaction::TransactionContext *txn);
+                       std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates);
   /**
    * Copy
    * @returns copy of this
@@ -1183,11 +1152,10 @@ class HashGroupBy : public OperatorNodeContents<HashGroupBy> {
   /**
    * @param columns columns to group by
    * @param having expression of HAVING clause
-   * @param txn transaction context for memory management
    * @return a HashGroupBy operator
    */
   static Operator Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
-                       std::vector<AnnotatedExpression> &&having, transaction::TransactionContext *txn);
+                       std::vector<AnnotatedExpression> &&having);
 
   /**
    * Copy
@@ -1229,11 +1197,10 @@ class SortGroupBy : public OperatorNodeContents<SortGroupBy> {
   /**
    * @param columns columns to group by
    * @param having HAVING clause
-   * @param txn transaction context for memory management
    * @return a SortGroupBy operator
    */
   static Operator Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
-                       std::vector<AnnotatedExpression> &&having, transaction::TransactionContext *txn);
+                       std::vector<AnnotatedExpression> &&having);
 
   /**
    * Copy
@@ -1273,10 +1240,9 @@ class SortGroupBy : public OperatorNodeContents<SortGroupBy> {
 class Aggregate : public OperatorNodeContents<Aggregate> {
  public:
   /**
-   * @param txn transaction context for memory management
    * @return an Aggregate operator
    */
-  static Operator Make(transaction::TransactionContext *txn);
+  static Operator Make();
 
   /**
    * Copy
@@ -1295,10 +1261,9 @@ class CreateDatabase : public OperatorNodeContents<CreateDatabase> {
  public:
   /**
    * @param database_name Name of the database to be created
-   * @param txn transaction context for memory management
    * @return
    */
-  static Operator Make(std::string database_name, transaction::TransactionContext *txn);
+  static Operator Make(std::string database_name);
 
   /**
    * Copy
@@ -1331,13 +1296,11 @@ class CreateTable : public OperatorNodeContents<CreateTable> {
    * @param table_name Name of the table to be created
    * @param columns Vector of definitions of the columns in the new table
    * @param foreign_keys Vector of definitions of foreign key columns in the new table
-   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid, std::string table_name,
                        std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&columns,
-                       std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&foreign_keys,
-                       transaction::TransactionContext *txn);
+                       std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&foreign_keys);
 
   /**
    * Copy
@@ -1397,11 +1360,10 @@ class CreateIndex : public OperatorNodeContents<CreateIndex> {
    * @param table_oid OID of the table
    * @param index_name Name of the index
    * @param schema Index schema of the new index
-   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid, std::string index_name,
-                       std::unique_ptr<catalog::IndexSchema> &&schema, transaction::TransactionContext *txn);
+                       std::unique_ptr<catalog::IndexSchema> &&schema);
 
   /**
    * Copy
@@ -1461,10 +1423,9 @@ class CreateNamespace : public OperatorNodeContents<CreateNamespace> {
  public:
   /**
    * @param namespace_name Name of the namespace to be created
-   * @param txn transaction context for memory management
    * @return
    */
-  static Operator Make(std::string namespace_name, transaction::TransactionContext *txn);
+  static Operator Make(std::string namespace_name);
 
   /**
    * Copy
@@ -1497,12 +1458,10 @@ class CreateView : public OperatorNodeContents<CreateView> {
    * @param namespace_oid OID of the namespace
    * @param view_name Name of the view
    * @param view_query Query statement of the view
-   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string view_name,
-                       common::ManagedPointer<parser::SelectStatement> view_query,
-                       transaction::TransactionContext *txn);
+                       common::ManagedPointer<parser::SelectStatement> view_query);
 
   /**
    * Copy
@@ -1569,15 +1528,13 @@ class CreateTrigger : public OperatorNodeContents<CreateTrigger> {
    * @param trigger_columns OIDs of trigger columns
    * @param trigger_when Trigger when clause
    * @param trigger_type Type of the trigger
-   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, std::string trigger_name,
                        std::vector<std::string> &&trigger_funcnames, std::vector<std::string> &&trigger_args,
                        std::vector<catalog::col_oid_t> &&trigger_columns,
-                       common::ManagedPointer<parser::AbstractExpression> &&trigger_when, int16_t trigger_type,
-                       transaction::TransactionContext *txn);
+                       common::ManagedPointer<parser::AbstractExpression> &&trigger_when, int16_t trigger_type);
 
   /**
    * Copy
@@ -1689,10 +1646,9 @@ class DropDatabase : public OperatorNodeContents<DropDatabase> {
  public:
   /**
    * @param db_oid OID of the database to be dropped
-   * @param txn transaction context for memory management
    * @return
    */
-  static Operator Make(catalog::db_oid_t db_oid, transaction::TransactionContext *txn);
+  static Operator Make(catalog::db_oid_t db_oid);
 
   /**
    * Copy
@@ -1731,15 +1687,13 @@ class CreateFunction : public OperatorNodeContents<CreateFunction> {
    * @param return_type Return type of the user defined function
    * @param param_count Number of parameters of the user defined function
    * @param replace If this function should replace existing definitions
-   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        std::string function_name, parser::PLType language, std::vector<std::string> &&function_body,
                        std::vector<std::string> &&function_param_names,
                        std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
-                       parser::BaseFunctionParameter::DataType return_type, size_t param_count, bool replace,
-                       transaction::TransactionContext *txn);
+                       parser::BaseFunctionParameter::DataType return_type, size_t param_count, bool replace);
 
   /**
    * Copy
@@ -1861,10 +1815,9 @@ class DropTable : public OperatorNodeContents<DropTable> {
  public:
   /**
    * @param table_oid OID of the table to be dropped
-   * @param txn transaction context for memory management
    * @return
    */
-  static Operator Make(catalog::table_oid_t table_oid, transaction::TransactionContext *txn);
+  static Operator Make(catalog::table_oid_t table_oid);
 
   /**
    * Copy
@@ -1894,10 +1847,9 @@ class DropIndex : public OperatorNodeContents<DropIndex> {
  public:
   /**
    * @param index_oid OID of the index to be dropped
-   * @param txn transaction context for memory management
    * @return
    */
-  static Operator Make(catalog::index_oid_t index_oid, transaction::TransactionContext *txn);
+  static Operator Make(catalog::index_oid_t index_oid);
 
   /**
    * Copy
@@ -1927,10 +1879,9 @@ class DropNamespace : public OperatorNodeContents<DropNamespace> {
  public:
   /**
    * @param namespace_oid OID of namespace to drop
-   * @param txn transaction context for memory management
    * @return
    */
-  static Operator Make(catalog::namespace_oid_t namespace_oid, transaction::TransactionContext *txn);
+  static Operator Make(catalog::namespace_oid_t namespace_oid);
 
   /**
    * Copy
@@ -1963,11 +1914,10 @@ class DropTrigger : public OperatorNodeContents<DropTrigger> {
    * @param namespace_oid OID of namespace
    * @param trigger_oid OID of trigger to drop
    * @param if_exists existence flag
-   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::trigger_oid_t trigger_oid, bool if_exists, transaction::TransactionContext *txn);
+                       catalog::trigger_oid_t trigger_oid, bool if_exists);
 
   /**
    * Copy
@@ -2030,11 +1980,10 @@ class DropView : public OperatorNodeContents<DropView> {
    * @param namespace_oid OID of namespace
    * @param view_oid OID of view to drop
    * @param if_exists existence flag
-   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::view_oid_t view_oid, bool if_exists, transaction::TransactionContext *txn);
+                       catalog::view_oid_t view_oid, bool if_exists);
 
   /**
    * Copy
@@ -2096,11 +2045,10 @@ class Analyze : public OperatorNodeContents<Analyze> {
    * @param database_oid OID of the database
    * @param table_oid OID of the table
    * @param columns OIDs of Analyze columns
-   * @param txn transaction context for memory management
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
-                       std::vector<catalog::col_oid_t> &&columns, transaction::TransactionContext *txn);
+                       std::vector<catalog::col_oid_t> &&columns);
 
   /**
    * Copy

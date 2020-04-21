@@ -129,8 +129,9 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateSingleLayer) {
 
   // Create OperatorNode of JOIN <= (GET A, GET A)
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
-  Operator logical_get = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                          {}, "tbl", false, txn_context);
+  Operator logical_get =
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false)
+          .RegisterWithTxnContext(txn_context);
   std::unique_ptr<Operator> logical_get_contents = std::make_unique<Operator>(logical_get);
   std::unique_ptr<OperatorNode> left_get =
       std::make_unique<OperatorNode>(common::ManagedPointer<AbstractOptimizerNodeContents>(
@@ -146,7 +147,7 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateSingleLayer) {
   std::vector<std::unique_ptr<AbstractOptimizerNode>> jc;
   jc.emplace_back(std::move(left_get));
   jc.emplace_back(std::move(right_get));
-  Operator logical_inner_join = LogicalInnerJoin::Make(txn_context);
+  Operator logical_inner_join = LogicalInnerJoin::Make().RegisterWithTxnContext(txn_context);
   std::unique_ptr<Operator> logical_inner_join_contents = std::make_unique<Operator>(logical_inner_join);
   std::unique_ptr<AbstractOptimizerNode> join = std::make_unique<OperatorNode>(
       common::ManagedPointer(dynamic_cast<AbstractOptimizerNodeContents *>(logical_inner_join_contents.get())),
@@ -195,10 +196,10 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateMultiLayer) {
 
   // Create OperatorNode (A JOIN B) JOIN (A JOIN B)
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
-  auto left_get =
-      std::make_unique<OperatorNode>(LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2),
-                                                      catalog::table_oid_t(3), {}, "tbl", false, txn_context),
-                                     std::move(c), txn_context);
+  auto left_get = std::make_unique<OperatorNode>(
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false)
+          .RegisterWithTxnContext(txn_context),
+      std::move(c), txn_context);
   auto lg_copy = left_get->Copy();
 
   auto right_get = std::unique_ptr<OperatorNode>(dynamic_cast<OperatorNode *>(left_get->Copy().release()));
@@ -208,7 +209,8 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateMultiLayer) {
   std::vector<std::unique_ptr<AbstractOptimizerNode>> jc;
   jc.emplace_back(std::move(left_get));
   jc.emplace_back(std::move(right_get));
-  auto left_join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(txn_context), std::move(jc), txn_context);
+  auto left_join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make().RegisterWithTxnContext(txn_context),
+                                                  std::move(jc), txn_context);
   auto lj_copy = left_join->Copy();
 
   auto right_join = std::unique_ptr<OperatorNode>(dynamic_cast<OperatorNode *>(left_join->Copy().release()));
@@ -218,7 +220,9 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateMultiLayer) {
   std::vector<std::unique_ptr<AbstractOptimizerNode>> jjc;
   jjc.emplace_back(std::move(left_join));
   jjc.emplace_back(std::move(right_join));
-  auto join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(txn_context), std::move(jjc), txn_context)->Copy();
+  auto join = std::make_unique<OperatorNode>(LogicalInnerJoin::Make().RegisterWithTxnContext(txn_context),
+                                             std::move(jjc), txn_context)
+                  ->Copy();
 
   // RecordOptimizerNodeIntoGroup
   GroupExpression *join_g_expr;
@@ -272,7 +276,9 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicate) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
-  auto tbl_free = std::make_unique<OperatorNode>(TableFreeScan::Make(txn_context), std::move(c), txn_context)->Copy();
+  auto tbl_free = std::make_unique<OperatorNode>(TableFreeScan::Make().RegisterWithTxnContext(txn_context),
+                                                 std::move(c), txn_context)
+                      ->Copy();
 
   GroupExpression *tbl_free_gexpr;
   EXPECT_TRUE(context.RecordOptimizerNodeIntoGroup(common::ManagedPointer(tbl_free), &tbl_free_gexpr));
@@ -308,18 +314,18 @@ TEST_F(OptimizerContextTest, SimpleBindingTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
-  auto left_get =
-      std::make_unique<OperatorNode>(LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2),
-                                                      catalog::table_oid_t(3), {}, "tbl", false, txn_context),
-                                     std::move(c), txn_context);
+  auto left_get = std::make_unique<OperatorNode>(
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false)
+          .RegisterWithTxnContext(txn_context),
+      std::move(c), txn_context);
   auto right_get = std::unique_ptr<OperatorNode>(dynamic_cast<OperatorNode *>(left_get->Copy().release()));
   EXPECT_EQ(*left_get, *right_get);
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> jc;
   jc.emplace_back(std::move(left_get));
   jc.emplace_back(std::move(right_get));
-  std::unique_ptr<AbstractOptimizerNode> join =
-      std::make_unique<OperatorNode>(LogicalInnerJoin::Make(txn_context), std::move(jc), txn_context);
+  std::unique_ptr<AbstractOptimizerNode> join = std::make_unique<OperatorNode>(
+      LogicalInnerJoin::Make().RegisterWithTxnContext(txn_context), std::move(jc), txn_context);
 
   GroupExpression *gexpr = nullptr;
   EXPECT_TRUE(context.RecordOptimizerNodeIntoGroup(common::ManagedPointer(join), &gexpr));
@@ -368,18 +374,18 @@ TEST_F(OptimizerContextTest, SingleWildcardTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
-  auto left_get =
-      std::make_unique<OperatorNode>(LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2),
-                                                      catalog::table_oid_t(3), {}, "tbl", false, txn_context),
-                                     std::move(c), txn_context);
+  auto left_get = std::make_unique<OperatorNode>(
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false)
+          .RegisterWithTxnContext(txn_context),
+      std::move(c), txn_context);
   auto right_get = left_get->Copy();
   EXPECT_EQ(*left_get, *reinterpret_cast<OperatorNode *>(right_get.get()));
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> jc;
   jc.emplace_back(std::move(left_get));
   jc.emplace_back(std::move(right_get));
-  std::unique_ptr<AbstractOptimizerNode> join =
-      std::make_unique<OperatorNode>(LogicalInnerJoin::Make(txn_context), std::move(jc), txn_context);
+  std::unique_ptr<AbstractOptimizerNode> join = std::make_unique<OperatorNode>(
+      LogicalInnerJoin::Make().RegisterWithTxnContext(txn_context), std::move(jc), txn_context);
 
   GroupExpression *gexpr = nullptr;
   EXPECT_TRUE(context.RecordOptimizerNodeIntoGroup(common::ManagedPointer(join), &gexpr));
