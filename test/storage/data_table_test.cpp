@@ -407,7 +407,7 @@ TEST_F(DataTableTests, SimpleNumaTest) {
   }
 }
 
-TEST_F(DataTableTests, ConcurrentNumaTest) {
+TEST_F(DataTableTests, DISABLED_ConcurrentNumaTest) {
   const uint32_t num_iterations = 10;
   const uint32_t num_threads = std::thread::hardware_concurrency();
   const uint16_t max_columns = 20;
