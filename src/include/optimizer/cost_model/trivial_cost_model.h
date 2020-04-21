@@ -1,6 +1,5 @@
 #pragma once
 
-#include <unordered_map>
 #include "optimizer/cost_model/abstract_cost_model.h"
 #include "optimizer/group_expression.h"
 #include "optimizer/physical_operators.h"
@@ -31,67 +30,49 @@ class TrivialCostModel : public AbstractCostModel {
    * @param memo Memo object containing all relevant groups
    * @param gexpr GroupExpression to calculate cost for
    */
-  CostModelEstimate CalculateCost(transaction::TransactionContext *txn, Memo *memo, GroupExpression *gexpr) override {
+  double CalculateCost(transaction::TransactionContext *txn, Memo *memo, GroupExpression *gexpr) override {
     gexpr_ = gexpr;
     memo_ = memo;
     txn_ = txn;
     gexpr_->Op().Accept(common::ManagedPointer<OperatorVisitor>(this));
-    return CostModelEstimate(output_cost_, output_cardinalities_);
+    return output_cost_;
   };
 
   /**
    * Visit a SeqScan operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const SeqScan *op) override {
-    output_cost_ = 1.f;
-    output_cardinalities_[op->GetPlanNodeId()] = output_cost_;
-  }
+  void Visit(UNUSED_ATTRIBUTE const SeqScan *op) override { output_cost_ = 1.f; }
 
   /**
    * Visit a IndexScan operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const IndexScan *op) override {
-    output_cost_ = 0.f;
-    output_cardinalities_[op->GetPlanNodeId()] = output_cost_;
-  }
+  void Visit(UNUSED_ATTRIBUTE const IndexScan *op) override { output_cost_ = 0.f; }
 
   /**
    * Visit a QueryDerivedScan operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const QueryDerivedScan *op) override {
-    output_cost_ = 0.f;
-    output_cardinalities_[op->GetPlanNodeId()] = output_cost_;
-  }
+  void Visit(UNUSED_ATTRIBUTE const QueryDerivedScan *op) override { output_cost_ = 0.f; }
 
   /**
    * Visit a OrderBy operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const OrderBy *op) override {
-    output_cost_ = 0.f;
-    output_cardinalities_[op->GetPlanNodeId()] = output_cost_;
-  }
+  void Visit(UNUSED_ATTRIBUTE const OrderBy *op) override { output_cost_ = 0.f; }
 
   /**
    * Visit a Limit operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const Limit *op) override {
-    output_cost_ = 0.f;
-    output_cardinalities_[op->GetPlanNodeId()] = output_cost_;
-  }
+  void Visit(UNUSED_ATTRIBUTE const Limit *op) override { output_cost_ = 0.f; }
 
   /**
    * Visit a InnerNLJoin operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const InnerNLJoin *op) override {
-    output_cost_ = 0.f;
-    output_cardinalities_[op->GetPlanNodeId()] = output_cost_;
-  }
+  void Visit(UNUSED_ATTRIBUTE const InnerNLJoin *op) override { output_cost_ = 0.f; }
 
   /**
    * Visit a LeftNLJoin operator
@@ -115,10 +96,7 @@ class TrivialCostModel : public AbstractCostModel {
    * Visit a InnerHashJoin operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const InnerHashJoin *op) override {
-    output_cost_ = 1.f;
-    output_cardinalities_[op->GetPlanNodeId()] = output_cost_;
-  }
+  void Visit(UNUSED_ATTRIBUTE const InnerHashJoin *op) override { output_cost_ = 1.f; }
 
   /**
    * Visit a LeftHashJoin operator
@@ -166,28 +144,19 @@ class TrivialCostModel : public AbstractCostModel {
    * Visit a HashGroupBy operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const HashGroupBy *op) override {
-    output_cost_ = 0.f;
-    output_cardinalities_[op->GetPlanNodeId()] = output_cost_;
-  }
+  void Visit(UNUSED_ATTRIBUTE const HashGroupBy *op) override { output_cost_ = 0.f; }
 
   /**
    * Visit a SortGroupBy operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const SortGroupBy *op) override {
-    output_cost_ = 1.f;
-    output_cardinalities_[op->GetPlanNodeId()] = output_cost_;
-  }
+  void Visit(UNUSED_ATTRIBUTE const SortGroupBy *op) override { output_cost_ = 1.f; }
 
   /**
    * Visit a Aggregate operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const Aggregate *op) override {
-    output_cost_ = 0.f;
-    output_cardinalities_[op->GetPlanNodeId()] = output_cost_;
-  }
+  void Visit(UNUSED_ATTRIBUTE const Aggregate *op) override { output_cost_ = 0.f; }
 
  private:
   /**
@@ -209,11 +178,6 @@ class TrivialCostModel : public AbstractCostModel {
    * Computed output cost
    */
   double output_cost_ = 0;
-
-  /*
-   * Cardinalities for each plan node
-   */
-  std::unordered_map<plan_node_id_t, double> output_cardinalities_;
 };
 
 }  // namespace optimizer

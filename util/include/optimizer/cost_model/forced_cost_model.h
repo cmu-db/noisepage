@@ -1,6 +1,5 @@
 #pragma once
 
-#include <unordered_map>
 #include "optimizer/cost_model/abstract_cost_model.h"
 #include "optimizer/group_expression.h"
 #include "optimizer/physical_operators.h"
@@ -32,12 +31,12 @@ class ForcedCostModel : public AbstractCostModel {
    * @param memo Memo object containing all relevant groups
    * @param gexpr GroupExpression to calculate cost for
    */
-  CostModelEstimate CalculateCost(transaction::TransactionContext *txn, Memo *memo, GroupExpression *gexpr) override {
+  double CalculateCost(transaction::TransactionContext *txn, Memo *memo, GroupExpression *gexpr) override {
     gexpr_ = gexpr;
     memo_ = memo;
     txn_ = txn;
     gexpr_->Op().Accept(common::ManagedPointer<OperatorVisitor>(this));
-    return CostModelEstimate(output_cost_, output_cardinalities_);
+    return output_cost_;
   };
 
   /**
@@ -185,11 +184,6 @@ class ForcedCostModel : public AbstractCostModel {
    * Should pick hash join
    */
   bool pick_hash_join_ = false;
-
-  /*
-   * Cardinalities for each plan node
-   */
-  std::unordered_map<plan_node_id_t, double> output_cardinalities_;
 };
 
 }  // namespace optimizer
