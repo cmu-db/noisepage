@@ -100,7 +100,7 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
   // Bind + Transform
   auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn_), db_);
   auto *binder = new binder::BindNodeVisitor(common::ManagedPointer(accessor), db_);
-  binder->BindNameToNode(common::ManagedPointer(stmt_list.get()));
+  binder->BindNameToNode(common::ManagedPointer(stmt_list.get()), nullptr);
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
   auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);

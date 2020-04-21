@@ -62,10 +62,7 @@ class DropStatement : public TableRefStatement {
 
   ~DropStatement() override = default;
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v,
-              common::ManagedPointer<binder::BinderSherpa> sherpa) override {
-    v->Visit(common::ManagedPointer(this), sherpa);
-  }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   /** @return drop type */
   DropType GetDropType() { return type_; }

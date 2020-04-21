@@ -30,6 +30,10 @@ class FakeCommandFactory : public PostgresCommandFactory {
   }
 };
 
+/**
+ * This test should be refactored to use DBMain, since there's a bunch of redundant setup here. However we don't have a
+ * way to inject a new CommandFactory.
+ */
 class NetworkTests : public TerrierTest {
  protected:
   trafficcop::TrafficCop *tcop_;
@@ -45,6 +49,7 @@ class NetworkTests : public TerrierTest {
   std::unique_ptr<ConnectionHandleFactory> handle_factory_;
   common::DedicatedThreadRegistry thread_registry_ = common::DedicatedThreadRegistry(DISABLED);
   uint16_t port_ = 15721;
+  uint16_t connection_thread_count_ = 4;
   FakeCommandFactory fake_command_factory_;
   PostgresProtocolInterpreter::Provider protocol_provider_{
       common::ManagedPointer<PostgresCommandFactory>(&fake_command_factory_)};
@@ -73,9 +78,10 @@ class NetworkTests : public TerrierTest {
     spdlog::flush_every(std::chrono::seconds(1));
     try {
       handle_factory_ = std::make_unique<ConnectionHandleFactory>(common::ManagedPointer(tcop_));
-      server_ = std::make_unique<TerrierServer>(
-          common::ManagedPointer<ProtocolInterpreter::Provider>(&protocol_provider_),
-          common::ManagedPointer(handle_factory_.get()), common::ManagedPointer(&thread_registry_), port_);
+      server_ =
+          std::make_unique<TerrierServer>(common::ManagedPointer<ProtocolInterpreter::Provider>(&protocol_provider_),
+                                          common::ManagedPointer(handle_factory_.get()),
+                                          common::ManagedPointer(&thread_registry_), port_, connection_thread_count_);
       server_->RunServer();
     } catch (NetworkProcessException &exception) {
       NETWORK_LOG_ERROR("[LaunchServer] exception when launching server");
@@ -253,10 +259,10 @@ TEST_F(NetworkTests, LargePacketsTest) {
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, MultipleConnectionTest) {
   std::vector<std::unique_ptr<NetworkIoWrapper>> io_sockets;
-  io_sockets.reserve(CONNECTION_THREAD_COUNT * 2);
+  io_sockets.reserve(connection_thread_count_ * 2);
 
   for (size_t i = 0; i < 2; i++) {
-    for (size_t i = 0; i < CONNECTION_THREAD_COUNT * 2; i++) {
+    for (size_t i = 0; i < connection_thread_count_ * 2; i++) {
       auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
       EXPECT_NE(io_socket_unique_ptr, nullptr);
       io_sockets.emplace_back(std::move(io_socket_unique_ptr));
@@ -284,9 +290,9 @@ TEST_F(NetworkTests, DISABLED_RacerTest) {
   std::vector<size_t> thread_counts = {
       // clang-format off
       2,
-      CONNECTION_THREAD_COUNT,
-      CONNECTION_THREAD_COUNT * 2,
-      CONNECTION_THREAD_COUNT * 3
+      connection_thread_count_,
+      connection_thread_count_ * 2ul,
+      connection_thread_count_ * 3ul
       // clang-format on
   };
 

@@ -206,7 +206,7 @@ TEST_F(OperatorTransformerTest, SelectStatementSimpleTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
@@ -234,7 +234,7 @@ TEST_F(OperatorTransformerTest, InsertStatementSimpleTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(insert_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
 
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
@@ -279,7 +279,7 @@ TEST_F(OperatorTransformerTest, InsertStatementSelectTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(insert_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
@@ -323,7 +323,7 @@ TEST_F(OperatorTransformerTest, UpdateStatementSimpleTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(update_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
 
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
@@ -367,7 +367,7 @@ TEST_F(OperatorTransformerTest, SelectStatementAggregateTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
 
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
@@ -408,7 +408,7 @@ TEST_F(OperatorTransformerTest, SelectStatementDistinctTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
 
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
@@ -447,7 +447,7 @@ TEST_F(OperatorTransformerTest, SelectStatementOrderByTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
 
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
@@ -492,7 +492,7 @@ TEST_F(OperatorTransformerTest, SelectStatementLeftJoinTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
 
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
@@ -537,7 +537,7 @@ TEST_F(OperatorTransformerTest, SelectStatementRightJoinTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
 
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
@@ -582,7 +582,7 @@ TEST_F(OperatorTransformerTest, SelectStatementInnerJoinTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
 
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
@@ -627,7 +627,7 @@ TEST_F(OperatorTransformerTest, SelectStatementOuterJoinTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
 
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
@@ -677,7 +677,7 @@ TEST_F(OperatorTransformerTest, SelectStatementComplexTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
 
@@ -705,8 +705,7 @@ TEST_F(OperatorTransformerTest, SelectStatementMarkJoinTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
 
@@ -726,7 +725,7 @@ TEST_F(OperatorTransformerTest, SelectStatementStarNestedSelectTest) {
   OPTIMIZER_LOG_DEBUG("Checking STAR expression in nested select from.");
 
   std::string select_sql =
-      "SELECT * FROM A LEFT OUTER JOIN (SELECT * FROM B INNER JOIN A ON B1 = A1) AS C ON C.B2 = a.A1";
+      "SELECT * FROM A LEFT OUTER JOIN (SELECT * FROM B INNER JOIN A ON B1 = A1) AS C ON C.B1 = a.A1";
 
   std::string ref =
       "{\"Op\":\"LogicalLeftJoin\",\"Children\":"
@@ -737,7 +736,7 @@ TEST_F(OperatorTransformerTest, SelectStatementStarNestedSelectTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
 
@@ -763,7 +762,7 @@ TEST_F(OperatorTransformerTest, SelectStatementNestedColumnTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
 
@@ -780,7 +779,7 @@ TEST_F(OperatorTransformerTest, SelectStatementNestedColumnTest) {
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementDiffTableSameSchemaTest) {
   // Test select from different table instances from the same physical schema
-  std::string select_sql = "SELECT * FROM A, A as AA where A.a1 = AA.a2";
+  std::string select_sql = "SELECT * FROM A, A as AA where A.a1 = AA.a1";
 
   std::string ref =
       "{\"Op\":\"LogicalFilter\",\"Children\":"
@@ -790,7 +789,7 @@ TEST_F(OperatorTransformerTest, SelectStatementDiffTableSameSchemaTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
 
@@ -818,13 +817,14 @@ TEST_F(OperatorTransformerTest, SelectStatementSelectListAliasTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
 
   auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_),
                                                                                   optimizer_context, db_oid_);
+
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
 
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
@@ -842,7 +842,7 @@ TEST_F(OperatorTransformerTest, DeleteStatementWhereTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(delete_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
 
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
@@ -890,7 +890,7 @@ TEST_F(OperatorTransformerTest, AggregateComplexTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
 
@@ -918,7 +918,7 @@ TEST_F(OperatorTransformerTest, OperatorComplexTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
 
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
@@ -972,7 +972,7 @@ TEST_F(OperatorTransformerTest, SubqueryComplexTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
 
@@ -995,7 +995,7 @@ TEST_F(OperatorTransformerTest, CreateDatabaseTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
 
@@ -1052,7 +1052,7 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   auto ns_oid = accessor_->GetDefaultNamespace();
 
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
@@ -1210,7 +1210,7 @@ TEST_F(OperatorTransformerTest, CreateIndexTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   auto ns_oid = accessor_->GetDefaultNamespace();
   auto col_a1_oid = accessor_->GetSchema(table_a_oid_).GetColumn("a1").Oid();
   auto col_a2_oid = accessor_->GetSchema(table_a_oid_).GetColumn("a2").Oid();
@@ -1314,7 +1314,7 @@ TEST_F(OperatorTransformerTest, CreateFunctionTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   auto ns_oid = accessor_->GetDefaultNamespace();
 
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
@@ -1407,13 +1407,14 @@ TEST_F(OperatorTransformerTest, CreateNamespaceTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
 
   auto optimizer_context = common::ManagedPointer<optimizer::OptimizerContext>(&context);
   operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_),
                                                                                   optimizer_context, db_oid_);
+
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
 
   auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
@@ -1462,7 +1463,7 @@ TEST_F(OperatorTransformerTest, CreateViewTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   auto ns_oid = accessor_->GetDefaultNamespace();
 
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
@@ -1548,7 +1549,7 @@ TEST_F(OperatorTransformerTest, CreateTriggerTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   auto ns_oid = accessor_->GetDefaultNamespace();
   auto col_a1_oid = accessor_->GetSchema(table_a_oid_).GetColumn("a1").Oid();
 
@@ -1656,7 +1657,7 @@ TEST_F(OperatorTransformerTest, DropDatabaseTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
 
@@ -1712,7 +1713,7 @@ TEST_F(OperatorTransformerTest, DropTableTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
 
@@ -1767,7 +1768,7 @@ TEST_F(OperatorTransformerTest, DropIndexTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
 
@@ -1822,7 +1823,7 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereExistTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
 
@@ -1876,7 +1877,7 @@ TEST_F(OperatorTransformerTest, DropNamespaceIfExistsWhereNotExistTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
 
@@ -1930,7 +1931,7 @@ TEST_F(OperatorTransformerTest, DISABLED_DropTriggerIfExistsWhereNotExistTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
 
@@ -1984,7 +1985,7 @@ TEST_F(OperatorTransformerTest, DISABLED_DropViewIfExistsWhereNotExistTest) {
   auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
   auto statement = parse_tree->GetStatements()[0];
 
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
 
@@ -2037,7 +2038,7 @@ TEST_F(OperatorTransformerTest, AnalyzeTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   auto col_a1_oid = accessor_->GetSchema(table_a_oid_).GetColumn("a1").Oid();
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
@@ -2098,7 +2099,8 @@ TEST_F(OperatorTransformerTest, AnalyzeTest2) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
   optimizer::OptimizerContext context = optimizer::OptimizerContext(
       common::ManagedPointer<optimizer::AbstractCostModel>(new optimizer::TrivialCostModel()));
 
