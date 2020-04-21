@@ -173,7 +173,7 @@ class SqlTable {
    */
   // NOLINTNEXTLINE for STL name compability
   DataTable::SlotIterator begin() const {
-    TERRIER_ASSERT(tables_.size() > 0, "sqltable should have at least one underlying datatable");
+    TERRIER_ASSERT(!tables_.empty(), "sqltable should have at least one underlying datatable");
     return tables_.begin()->second.data_table_->begin();
   }
 
@@ -182,7 +182,7 @@ class SqlTable {
    */
   // NOLINTNEXTLINE for STL name compability
   DataTable::SlotIterator end() const {
-    TERRIER_ASSERT(tables_.size() > 0, "sqltable should have at least one underlying datatable");
+    TERRIER_ASSERT(!tables_.empty(), "sqltable should have at least one underlying datatable");
     return std::prev(tables_.end())->second.data_table_->end();
   }  // NOLINT for STL name compability
 
@@ -192,7 +192,7 @@ class SqlTable {
    */
   // NOLINTNEXTLINE for STL name compability
   DataTable::SlotIterator end(layout_version_t layout_version) const {
-    TERRIER_ASSERT(tables_.size() > 0, "sqltable should have at least one underlying datatable");
+    TERRIER_ASSERT(!tables_.empty(), "sqltable should have at least one underlying datatable");
     return tables_.at(layout_version).data_table_->end();
   }  // NOLINT for STL name compability
 
@@ -309,9 +309,11 @@ class SqlTable {
    * @return whether there are columns in the desired schema version but not in the tuple version.
    */
   template <class RowType>
-  bool AlignHeaderToVersion(RowType *out_buffer, const DataTableVersion &tuple_version,
-                            const DataTableVersion &desired_version, col_id_t *cached_ori_header,
-                            AttrSizeMap *const size_map) const;
+  std::vector<std::pair<size_t, catalog::col_oid_t>> AlignHeaderToVersion(RowType *out_buffer,
+                                                                          const DataTableVersion &tuple_version,
+                                                                          const DataTableVersion &desired_version,
+                                                                          col_id_t *cached_orig_header,
+                                                                          AttrSizeMap *const size_map) const;
 
   /**
    * Fill the missing columns in the out_buffer with default values of those columns in the desired_version
@@ -320,7 +322,8 @@ class SqlTable {
    * @param desired_version desired schema version
    */
   template <class RowType>
-  void FillMissingColumns(RowType *out_buffer, const DataTableVersion &desired_version) const;
+  void FillMissingColumns(RowType *out_buffer, const std::vector<std::pair<size_t, catalog::col_oid_t>> &missingl_cols,
+                          layout_version_t tuple_version, layout_version_t layout_version) const;
 
   /**
    * Creates a new datatble version given the schema and version number

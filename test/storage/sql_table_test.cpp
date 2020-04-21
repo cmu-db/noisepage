@@ -38,7 +38,7 @@ static std::unique_ptr<catalog::Schema> ChangeColType(const catalog::Schema &sch
 
 // given new columns without oids, add them to the end, and assign them oids larger than existing oids
 static std::unique_ptr<catalog::Schema> AddColumnsToEnd(const catalog::Schema &schema,
-                                                        std::vector<catalog::Schema::Column *> &new_columns) {
+                                                        const std::vector<catalog::Schema::Column *> &new_columns) {
   std::vector<catalog::Schema::Column> columns(schema.GetColumns());
 
   catalog::col_oid_t max_oid = columns.begin()->Oid();
@@ -64,9 +64,9 @@ static ByteVecPtr CastValue(T val, type::TypeId id) {
   return vals;
 }
 
-bool oids_unique(std::vector<catalog::Schema::Column> &columns) {
+bool OidsUnique(const std::vector<catalog::Schema::Column> &columns) {
   std::unordered_set<catalog::col_oid_t> oids;
-  for (auto col : columns) {
+  for (const auto &col : columns) {
     oids.insert(col.Oid());
   }
   return oids.size() == columns.size();
@@ -74,25 +74,27 @@ bool oids_unique(std::vector<catalog::Schema::Column> &columns) {
 
 // given new columns with oids, add them to the column vector so that the column vector is still sorted
 static std::unique_ptr<catalog::Schema> AddColumns(const catalog::Schema &schema,
-                                                   std::vector<catalog::Schema::Column> &new_columns) {
+                                                   const std::vector<catalog::Schema::Column> &new_columns) {
   std::vector<catalog::Schema::Column> columns(schema.GetColumns());
 
-  for (auto new_col : new_columns) {
+  for (const auto &new_col : new_columns) {
     columns.push_back(new_col);
   }
 
   struct {
-    bool operator()(catalog::Schema::Column a, catalog::Schema::Column b) const { return a.Oid() < b.Oid(); }
-  } columnLess;
-  std::sort(columns.begin(), columns.end(), columnLess);
+    bool operator()(const catalog::Schema::Column &a, const catalog::Schema::Column &b) const {
+      return a.Oid() < b.Oid();
+    }
+  } column_less;
+  std::sort(columns.begin(), columns.end(), column_less);
 
-  TERRIER_ASSERT(oids_unique(columns), "New column oids should not conflict with existing ones");
+  TERRIER_ASSERT(OidsUnique(columns), "New column oids should not conflict with existing ones");
   return std::make_unique<catalog::Schema>(columns);
 }
 
 // drop the columns with oids in the set drop_oids
 static std::unique_ptr<catalog::Schema> DropColumns(const catalog::Schema &schema,
-                                                    const std::unordered_set<catalog::col_oid_t> drop_oids) {
+                                                    const std::unordered_set<catalog::col_oid_t> &drop_oids) {
   auto old_columns = schema.GetColumns();
   std::vector<catalog::Schema::Column> columns;
 
@@ -520,6 +522,7 @@ TEST_F(SqlTableTests, InsertWithSchemaChange) {
         test_table.GetBlockLayout(new_version), &stored, test_table.GetProjectionMapForOids(new_version), add_cols,
         drop_cols));
   }
+  delete[] buffer;
 
   // update the first half of the tuples, under new version, these will migrate
   txn_ts++;
@@ -575,6 +578,7 @@ TEST_F(SqlTableTests, AddThenDropColumns) {
   int32_t default_int = 15719;
   std::vector<ByteVecPtr> default_values;
   int num_new_cols = 3;
+  default_values.reserve(num_new_cols);
   for (int i = 0; i < num_new_cols; i++) {
     default_values.push_back(CastValue(default_int + i, type::TypeId::INTEGER));
   }
@@ -591,6 +595,7 @@ TEST_F(SqlTableTests, AddThenDropColumns) {
   auto new_schema = AddColumnsToEnd(test_table.GetSchema(version), cols);
 
   std::vector<catalog::col_oid_t> oids;
+  oids.reserve(num_new_cols);
   for (auto col_ptr : cols) {
     oids.push_back(col_ptr->Oid());
   }
