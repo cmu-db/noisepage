@@ -138,8 +138,18 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
   common::ManagedPointer<parser::AbstractExpression> CopyWithChildren(
       std::vector<std::unique_ptr<parser::AbstractExpression>> children);
 
+  /**
+   * Registers this expression contents with the provided transaction context
+   *   so that copies can be managed by this transaction's lifetime (i.e.
+   *   copies get deallocated on commit/abort)
+   * @param txn the transaction context to register with
+   */
+  void RegisterWithTxnContext(transaction::TransactionContext *txn) { txn_ = txn; }
+
  private:
   common::ManagedPointer<parser::AbstractExpression> expr_{};
+
+  transaction::TransactionContext *txn_;
 };
 
 }  // namespace terrier::optimizer

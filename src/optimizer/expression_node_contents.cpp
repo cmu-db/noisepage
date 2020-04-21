@@ -14,6 +14,7 @@ namespace terrier::optimizer {
 
 common::ManagedPointer<parser::AbstractExpression> ExpressionNodeContents::CopyWithChildren(
     std::vector<std::unique_ptr<parser::AbstractExpression>> children) {
+  common::ManagedPointer<parser::AbstractExpression> result;
   auto type = GetExpType();
   switch (type) {
     case parser::ExpressionType::COMPARE_EQUAL:
@@ -27,15 +28,17 @@ common::ManagedPointer<parser::AbstractExpression> ExpressionNodeContents::CopyW
     case parser::ExpressionType::COMPARE_IN:
     case parser::ExpressionType::COMPARE_IS_DISTINCT_FROM: {
       // Create new expression with 2 new children of the same type
-      return common::ManagedPointer<parser::AbstractExpression>(
+      result = common::ManagedPointer<parser::AbstractExpression>(
           new parser::ComparisonExpression(type, std::move(children)));
+      break;
     }
 
     case parser::ExpressionType::CONJUNCTION_AND:
     case parser::ExpressionType::CONJUNCTION_OR: {
       // Create new expression with the new children
-      return common::ManagedPointer<parser::AbstractExpression>(
+      result = common::ManagedPointer<parser::AbstractExpression>(
           new parser::ConjunctionExpression(type, std::move(children)));
+      break;
     }
 
     case parser::ExpressionType::OPERATOR_PLUS:
@@ -50,15 +53,17 @@ common::ManagedPointer<parser::AbstractExpression> ExpressionNodeContents::CopyW
     case parser::ExpressionType::OPERATOR_EXISTS: {
       // Create new expression, preserving return value type
       type::TypeId ret = expr_->GetReturnValueType();
-      return common::ManagedPointer<parser::AbstractExpression>(
+      result = common::ManagedPointer<parser::AbstractExpression>(
           new parser::OperatorExpression(type, ret, std::move(children)));
+      break;
     }
 
     case parser::ExpressionType::STAR:
     case parser::ExpressionType::VALUE_CONSTANT:
     case parser::ExpressionType::VALUE_PARAMETER:
     case parser::ExpressionType::VALUE_TUPLE: {
-      return common::ManagedPointer<parser::AbstractExpression>(expr_->Copy());
+      result = common::ManagedPointer<parser::AbstractExpression>(expr_->Copy().release());
+      break;
     }
 
     case parser::ExpressionType::AGGREGATE_COUNT:
@@ -75,7 +80,8 @@ common::ManagedPointer<parser::AbstractExpression> ExpressionNodeContents::CopyW
         // If we updated the child, install the child
         expr_copy->SetChild(0, common::ManagedPointer<parser::AbstractExpression>(children[0]));
       }
-      return common::ManagedPointer<parser::AbstractExpression>(expr_copy);
+      result = common::ManagedPointer<parser::AbstractExpression>(expr_copy.release());
+      break;
     }
 
     case parser::ExpressionType::FUNCTION: {
@@ -85,14 +91,16 @@ common::ManagedPointer<parser::AbstractExpression> ExpressionNodeContents::CopyW
       for (size_t i = 0; i < num_children; i++) {
         expr_copy->SetChild(i, common::ManagedPointer<parser::AbstractExpression>(children[i]));
       }
-      return common::ManagedPointer<parser::AbstractExpression>(expr_copy);
+      result = common::ManagedPointer<parser::AbstractExpression>(expr_copy.release());
+      break;
     }
 
     // Rewriting for these 2 uses special matching patterns.
     // As such, when building as an output, we just copy directly.
     case parser::ExpressionType::ROW_SUBQUERY:
     case parser::ExpressionType::OPERATOR_CASE_EXPR: {
-      return common::ManagedPointer<parser::AbstractExpression>(expr_->Copy());
+      result = common::ManagedPointer<parser::AbstractExpression>(expr_->Copy().release());
+      break;
     }
 
     // These ExpressionTypes are never instantiated as a type
@@ -107,9 +115,17 @@ common::ManagedPointer<parser::AbstractExpression> ExpressionNodeContents::CopyW
     case parser::ExpressionType::HASH_RANGE:
     case parser::ExpressionType::OPERATOR_CAST:
     default: {
-      return common::ManagedPointer<parser::AbstractExpression>(expr_->Copy());
+      result = common::ManagedPointer<parser::AbstractExpression>(expr_->Copy().release());
+      break;
     }
   }
+  // Register the output with the transaction context
+  parser::AbstractExpression *result_ptr = result.Get();
+  if (txn_ != nullptr) {
+    txn_->RegisterCommitAction([=]() { delete result_ptr; });
+    txn_->RegisterAbortAction([=]() { delete result_ptr; });
+  }
+  return result;
 }
 
 void ExpressionNodeContents::Accept(common::ManagedPointer<OperatorVisitor> v) const { (void)v; }
