@@ -332,7 +332,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   auto update_tuple = update_redo->Delta();
   *reinterpret_cast<int32_t *>(update_tuple->AccessForceNotNull(0)) = 0;
   update_redo->SetTupleSlot(first_tuple_slot);
-  EXPECT_FALSE(sql_table->Update(common::ManagedPointer(second_txn), update_redo).first);
+  EXPECT_FALSE(sql_table->Update(common::ManagedPointer(second_txn), update_redo));
 
   // Commit first txn and abort the second
   txn_manager_->Commit(first_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -392,7 +392,7 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   auto update_tuple = update_redo->Delta();
   *reinterpret_cast<int32_t *>(update_tuple->AccessForceNotNull(0)) = 0;
   update_redo->SetTupleSlot(first_tuple_slot);
-  EXPECT_FALSE(sql_table->Update(common::ManagedPointer(second_txn), update_redo).first);
+  EXPECT_FALSE(sql_table->Update(common::ManagedPointer(second_txn), update_redo));
   EXPECT_FALSE(GetRedoBuffer(second_txn).HasFlushed());
 
   // Commit first txn and abort the second

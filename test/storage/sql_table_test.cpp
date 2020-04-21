@@ -33,7 +33,7 @@ static std::unique_ptr<catalog::Schema> AddColumnsToEnd(const catalog::Schema &s
   }
 
   // add the new columns, set their oids to be larger than all existing oids
-  for (int i = 0; i < new_columns.size(); i++) {
+  for (size_t i = 0; i < new_columns.size(); i++) {
     catalog::col_oid_t new_oid = max_oid + 1 + i;
     StorageTestUtil::SetOid(new_columns[i], new_oid);
     columns.push_back(*new_columns[i]);
