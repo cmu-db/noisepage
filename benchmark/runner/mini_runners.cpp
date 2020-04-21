@@ -257,7 +257,7 @@ static void GenJoinSelfArguments(benchmark::internal::Benchmark *b) {
       for (auto row : row_nums) {
         int64_t car = 1;
         while (car < row) {
-          if (row * row / car <= 1000000000) {
+          if (row * row / car <= 10000000) {
             if (type == type::TypeId::INTEGER) b->Args({col, 0, 15, 0, row, car});
             else if (type == type::TypeId::BIGINT) b->Args({0, col, 0, 15, row, car});
           }
@@ -275,7 +275,7 @@ static void GenJoinSelfArguments(benchmark::internal::Benchmark *b) {
   GENERATE_MIXED_ARGUMENTS(args);
   for (auto arg : args) {
     if (arg[4] != arg[5]) {
-      if (arg[4] * arg[4] / arg[5] > 1000000000) {
+      if (arg[4] * arg[4] / arg[5] > 10000000) {
         continue;
       }
     }
