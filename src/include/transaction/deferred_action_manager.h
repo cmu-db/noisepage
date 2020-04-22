@@ -163,7 +163,14 @@ class DeferredActionManager {
     // bool reinsert = false;
     auto curr_size = new_deferred_actions_.unsafe_size();
     while (processed != curr_size) {
-      if (new_deferred_actions_.try_pop(curr_action) && oldest_txn < curr_action.first) break;
+      // Try_pop would pop the front of the queue if there is at least element in queue,
+      // Since currently the deferred action queue only has one consumer, if the while loop condition is satifsfied
+      // try pop should always return true
+      bool has_item UNUSED_ATTRIBUTE = new_deferred_actions_.try_pop(curr_action);
+      TERRIER_ASSERT(has_item,
+                     "With single consumer of queue, we should be able to pop front when we have not processed every "
+                     "item in the queue.");
+      if (oldest_txn < curr_action.first) break;
       curr_action.second(oldest_txn);
       processed++;
     }
