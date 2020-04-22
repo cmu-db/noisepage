@@ -593,7 +593,7 @@ class DBMain {
      * @return self reference for chaining
      */
     Builder &SetUseQueryCache(const bool value) {
-      ues_query_cache_ = value;
+      use_query_cache_ = value;
       return *this;
     }
 
@@ -671,7 +671,7 @@ class DBMain {
       connection_thread_count_ =
           static_cast<uint16_t>(settings_manager->GetInt(settings::Param::connection_thread_count));
       optimizer_timeout_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::task_execution_timeout));
-      use_query_cache_ = settings_manager->GetInt(settings::Param::use_query_cache);
+      use_query_cache_ = settings_manager->GetBool(settings::Param::use_query_cache);
 
       return settings_manager;
     }
