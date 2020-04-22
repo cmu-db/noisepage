@@ -119,11 +119,15 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   // TODO(wz2): Populate actual num_rows/cardinality after #759
   // TODO(wz2): For OUTPUT, cardinality is just set to num_rows
   // TODO(wz2): For HASHJOIN_PROBE, # rows is number of probe, cardinality is # matched rows
-  size_t num_rows = 0;
-  auto cardinality = 0.0;
+  size_t num_rows = 1;
+  size_t cardinality = 1;
 
   num_rows *= scaling_factor;
   cardinality *= scaling_factor;
+
+  // For IDX_SCAN, num_rows is the number of tuples in the index (the same as the tuple number in the underlying table)
+  if (type == ExecutionOperatingUnitType::IDX_SCAN)
+    num_rows = static_cast<const planner::IndexScanPlanNode*>(plan)->GetTableNumTuple();
 
   auto itr_pair = pipeline_features_.equal_range(type);
   for (auto itr = itr_pair.first; itr != itr_pair.second; itr++) {

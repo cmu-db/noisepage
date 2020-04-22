@@ -220,6 +220,11 @@ class DataTable {
    */
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
 
+  /**
+   * @return a coarse estimation on the number of tuples in this table
+   */
+  uint64_t GetNumTuple() const { return accessor_.GetBlockLayout().NumSlots() * blocks_.size(); }
+
  private:
   // The ArrowSerializer needs access to its blocks.
   friend class ArrowSerializer;
