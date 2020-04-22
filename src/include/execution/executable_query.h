@@ -15,7 +15,8 @@ class AbstractPlanNode;
 
 namespace terrier::runner {
 class MiniRunners;
-}
+class MiniRunners_SEQ0_OutputRunners_Benchmark;
+}  // namespace terrier::runner
 
 namespace terrier::execution {
 
@@ -50,12 +51,13 @@ class ExecutableQuery {
                   common::ManagedPointer<exec::ExecutionContext> exec_ctx);
 
   /**
-   * Construct and compile an executable TPL program in the given filename
+   * Construct and compile an executable TPL program from file or source
    *
-   * @param filename The name of the file on disk to compile
+   * @param contents Name of the file or TPL program
    * @param exec_ctx context to execute
+   * @param is_file Whether load from file
    */
-  ExecutableQuery(const std::string &filename, common::ManagedPointer<exec::ExecutionContext> exec_ctx);
+  ExecutableQuery(const std::string &filename, common::ManagedPointer<exec::ExecutionContext> exec_ctx, bool is_file);
 
   /**
    *
@@ -106,5 +108,6 @@ class ExecutableQuery {
 
   // MiniRunners needs to set query_identifier
   friend class terrier::runner::MiniRunners;
+  friend class terrier::runner::MiniRunners_SEQ0_OutputRunners_Benchmark;
 };
 }  // namespace terrier::execution

@@ -130,10 +130,8 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
 
   auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
   auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{
-      brain::ExecutionOperatingUnitType::SEQ_SCAN,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY,
-  };
+      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY, brain::ExecutionOperatingUnitType::OUTPUT};
 
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
@@ -209,11 +207,9 @@ TEST_F(CompilerTest, SimpleSeqScanWithProjectionTest) {
 
   auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
   auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{
-      brain::ExecutionOperatingUnitType::SEQ_SCAN,
-      brain::ExecutionOperatingUnitType::PROJECTION,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY,
-  };
+      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::PROJECTION,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY,
+      brain::ExecutionOperatingUnitType::OUTPUT};
 
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
@@ -289,10 +285,8 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
 
   auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
   auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{
-      brain::ExecutionOperatingUnitType::SEQ_SCAN,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY,
-  };
+      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY, brain::ExecutionOperatingUnitType::OUTPUT};
 
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
@@ -349,7 +343,8 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
   EXPECT_EQ(pipeline->units_.size(), 1);
 
   auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
-  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN};
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN,
+                                                                brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
 
@@ -428,7 +423,8 @@ TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
   EXPECT_EQ(pipeline->units_.size(), 1);
 
   auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
-  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN};
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN,
+                                                                brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
 
@@ -506,7 +502,8 @@ TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
   EXPECT_EQ(pipeline->units_.size(), 1);
 
   auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
-  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN};
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN,
+                                                                brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
 
@@ -584,7 +581,8 @@ TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
   EXPECT_EQ(pipeline->units_.size(), 1);
 
   auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
-  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN};
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN,
+                                                                brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
 
@@ -662,7 +660,8 @@ TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
   EXPECT_EQ(pipeline->units_.size(), 1);
 
   auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
-  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN};
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN,
+                                                                brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
 
@@ -750,7 +749,8 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
       brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, brain::ExecutionOperatingUnitType::SEQ_SCAN,
       brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
       brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS};
-  auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE};
+  auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
+                                                                 brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
 }
@@ -1061,7 +1061,8 @@ TEST_F(CompilerTest, StaticDistinctAggregateTest) {
   auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
       brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
       brain::ExecutionOperatingUnitType::SEQ_SCAN};
-  auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE};
+  auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
+                                                                 brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
 }
@@ -1163,7 +1164,8 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
       brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
       brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, brain::ExecutionOperatingUnitType::SEQ_SCAN};
   auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
-                                                                 brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE};
+                                                                 brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+                                                                 brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
 }
@@ -1368,7 +1370,7 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
   auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{
       brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, brain::ExecutionOperatingUnitType::SEQ_SCAN,
       brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE};
+      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
 }
@@ -1556,7 +1558,7 @@ TEST_F(CompilerTest, MultiWayHashJoinTest) {
   auto exp_vec2 = std::vector<brain::ExecutionOperatingUnitType>{
       brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, brain::ExecutionOperatingUnitType::SEQ_SCAN,
       brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE};
+      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec2, exp_vec2));
@@ -1670,7 +1672,8 @@ TEST_F(CompilerTest, SimpleSortTest) {
       brain::ExecutionOperatingUnitType::SORT_BUILD, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
       brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, brain::ExecutionOperatingUnitType::SEQ_SCAN};
   auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{
-      brain::ExecutionOperatingUnitType::SORT_ITERATE, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS};
+      brain::ExecutionOperatingUnitType::SORT_ITERATE, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
+      brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
 }
@@ -2082,7 +2085,8 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
   auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
   auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
       brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, brain::ExecutionOperatingUnitType::SEQ_SCAN};
+      brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, brain::ExecutionOperatingUnitType::SEQ_SCAN,
+      brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
 }
 
@@ -2200,7 +2204,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
   auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
       brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
       brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, brain::ExecutionOperatingUnitType::IDXJOIN,
-      brain::ExecutionOperatingUnitType::SEQ_SCAN};
+      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
 }
 
@@ -2311,7 +2315,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
   auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
   auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
       brain::ExecutionOperatingUnitType::IDXJOIN, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
-      brain::ExecutionOperatingUnitType::SEQ_SCAN};
+      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
 }
 

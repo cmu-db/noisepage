@@ -66,6 +66,8 @@ class BrainUtil {
         return "OP_DECIMAL_COMPARE";
       case ExecutionOperatingUnitType::OP_BOOL_COMPARE:
         return "OP_BOOL_COMPARE";
+      case ExecutionOperatingUnitType::OUTPUT:
+        return "OUTPUT";
       default:
         UNREACHABLE("Undefined ExecutionOperatingUnitType encountered");
         break;
