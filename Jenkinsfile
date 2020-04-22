@@ -314,7 +314,7 @@ pipeline {
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=debug -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=OFF -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
                         sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=debug --loader-threads=4'
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=debug --loader-threads=4'
+                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=debug --loader-threads=1'
                         sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=debug --loader-threads=4'
                     }
                     post {
