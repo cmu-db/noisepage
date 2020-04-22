@@ -11,7 +11,7 @@ matrix:
       install:
         - brew unlink python@2
         - echo 'y' | ./script/installation/packages.sh
-        - export LLVM_DIR=/usr/local/Cellar/llvm@8/8.0.1_1
+        - export LLVM_DIR=/usr/local/Cellar/llvm@8/8.0.1_3
     - os: linux
       dist: trusty
       env:
