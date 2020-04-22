@@ -277,7 +277,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
                      query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
                  "CodegenAndRunPhysicalPlan called with invalid QueryType.");
 
-  if (portal->GetStatement()->GetExecutableQuery() != nullptr) {
+  if (portal->GetStatement()->GetExecutableQuery() != nullptr && use_query_cache_) {
     // We've already codegen'd this, move on...
     return {ResultType::COMPLETE, 0};
   }

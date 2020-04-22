@@ -44,16 +44,19 @@ class TrafficCop {
    * @param replication_log_provider if given, the tcop will forward replication logs to this provider
    * @param stats_storage for optimizer calls
    * @param optimizer_timeout for optimizer calls
+   * @param use_query_cache whether to cache physical plans and generated code for Extended Query protocol
    */
   TrafficCop(common::ManagedPointer<transaction::TransactionManager> txn_manager,
              common::ManagedPointer<catalog::Catalog> catalog,
              common::ManagedPointer<storage::ReplicationLogProvider> replication_log_provider,
-             common::ManagedPointer<optimizer::StatsStorage> stats_storage, uint64_t optimizer_timeout)
+             common::ManagedPointer<optimizer::StatsStorage> stats_storage, uint64_t optimizer_timeout,
+             bool use_query_cache)
       : txn_manager_(txn_manager),
         catalog_(catalog),
         replication_log_provider_(replication_log_provider),
         stats_storage_(stats_storage),
-        optimizer_timeout_(optimizer_timeout) {}
+        optimizer_timeout_(optimizer_timeout),
+        use_query_cache_(use_query_cache) {}
 
   virtual ~TrafficCop() = default;
 
@@ -185,6 +188,8 @@ class TrafficCop {
    */
   void SetOptimizerTimeout(const uint64_t optimizer_timeout) { optimizer_timeout_ = optimizer_timeout; }
 
+  bool UseQueryCache() const { return use_query_cache_; }
+
  private:
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   common::ManagedPointer<catalog::Catalog> catalog_;
@@ -192,6 +197,7 @@ class TrafficCop {
   common::ManagedPointer<storage::ReplicationLogProvider> replication_log_provider_;
   common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
   uint64_t optimizer_timeout_;
+  bool use_query_cache_;
 };
 
 }  // namespace terrier::trafficcop
