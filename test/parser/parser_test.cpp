@@ -54,6 +54,11 @@ TEST_F(ParserTestBase, AnalyzeTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(ParserTestBase, AlterTest) {
+  auto result = parser::PostgresParser::BuildParseTree("ALTER TABLE table_name ADD new_column column_defi;");
+}
+
+// NOLINTNEXTLINE
 TEST_F(ParserTestBase, NOOPTest) {
   auto result = parser::PostgresParser::BuildParseTree(";");
   EXPECT_EQ(result->GetStatements().size(), 0);

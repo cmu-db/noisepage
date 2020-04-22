@@ -172,6 +172,10 @@ std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(ParseResult *parse_r
       result = DeleteTransform(parse_result, reinterpret_cast<DeleteStmt *>(node));
       break;
     }
+    case T_AlterTableStmt: {
+      result = AlterTableTransform(parse_result, reinterpret_cast<AlterTableStmt *>(node));
+      break;
+    }
     default: {
       PARSER_LOG_DEBUG("NodeTransform: statement type {} unsupported", node->type);
       throw PARSER_EXCEPTION("NodeTransform: unsupported statement type");
@@ -1658,6 +1662,13 @@ std::unique_ptr<DeleteStatement> PostgresParser::DeleteTransform(ParseResult *pa
   auto table = RangeVarTransform(parse_result, root->relation_);
   auto where = WhereTransform(parse_result, root->where_clause_);
   result = std::make_unique<DeleteStatement>(std::move(table), where);
+  return result;
+}
+
+// Postgres.AlterTableStmt -> terrier.AlterTableStatement
+//TODO(SC)
+std::unique_ptr<AlterTableStatement> PostgresParser::AlterTableTransform(ParseResult *parse_result, AlterTableStmt *root) {
+  std::unique_ptr<AlterTableStatement> result;
   return result;
 }
 

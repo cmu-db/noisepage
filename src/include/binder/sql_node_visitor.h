@@ -21,6 +21,7 @@ class UpdateStatement;
 class CopyStatement;
 class AnalyzeStatement;
 class VariableSetStatement;
+class AlterTableStatement;
 class JoinDefinition;
 class TableRef;
 
@@ -141,6 +142,13 @@ class SqlNodeVisitor {
   virtual void Visit(common::ManagedPointer<parser::VariableSetStatement> node) {}
 
   /**
+   * Visitor pattern for AlterTableStatement
+   * @param node  node to be visited
+   */
+   // TODO(SC)
+  virtual void Visit(common::ManagedPointer<parser::AlterTableStatement> node) {}
+
+  /**
    * Visitor pattern for AggregateExpression
    * @param expr to be visited
    */
@@ -255,6 +263,8 @@ class SqlNodeVisitor {
    * @param node node to be visited
    */
   virtual void Visit(common::ManagedPointer<parser::TableRef> node) {}
+
+
 
   // END some sub query nodes inside SelectStatement
 };

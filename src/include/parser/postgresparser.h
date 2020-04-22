@@ -242,7 +242,11 @@ class PostgresParser {
 
   // EXECUTE helpers
   static std::vector<common::ManagedPointer<AbstractExpression>> ParamListTransform(ParseResult *parse_result,
+
                                                                                     List *root);
+
+  // ALTER TABLE statements
+  static std::unique_ptr<AlterTableStatement> AlterTableTransform(ParseResult *parse_result, AlterTableStmt *root);
 
   // EXPLAIN statements
   static std::unique_ptr<ExplainStatement> ExplainTransform(ParseResult *parse_result, ExplainStmt *root);
