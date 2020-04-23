@@ -117,18 +117,17 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
 
     // Convert RecordBatch
     std::list<RawBlock *> blocks;
-    while (!f.eof()) {
+    int32_t place_holder;
+    while (f.read(reinterpret_cast<char *>(&place_holder), sizeof(place_holder))) {
       RawBlock *block = new RawBlock();
       data_table->accessor_.InitializeRawBlock(data_table, block, data_table->layout_version_);
       // Read in the buffers in RecordBatch
       int32_t record_batch_size;
       f.read(reinterpret_cast<char *>(&record_batch_size), sizeof(record_batch_size));
-      f.read(reinterpret_cast<char *>(&record_batch_size), sizeof(record_batch_size));
       char *buffer = new char[record_batch_size];
       f.read(buffer, record_batch_size);
       auto *msg = org::apache::arrow::flatbuf::GetMessage(buffer);
       auto *record_batch = msg->header_as_RecordBatch();
-      if (!record_batch) break;
       auto *record_buffers = record_batch->buffers();
 
       for (size_t i = 0; i < column_id_size; ++i) {
