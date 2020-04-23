@@ -159,6 +159,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
       }
       blocks.push_back(block);
     }
+    f.close();
 
     // Create DataTable
     DataTable *new_data_table = new DataTable(block_store_, layout, data_table->layout_version_, blocks);
