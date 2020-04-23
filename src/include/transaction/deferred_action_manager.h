@@ -145,11 +145,10 @@ class DeferredActionManager {
   uint32_t ClearBacklog(timestamp_t oldest_txn) {
     uint32_t processed = 0;
     // Execute as many deferred actions as we can at this time from the backlog.
-    // Stop traversing
     // TODO(Tianyu): This will not work if somehow the timestamps we compare against has sign bit flipped.
     //  (for uncommiitted transactions, or on overflow)
     // Although that should never happen, we need to be aware that this might be a problem in the future.
-    while (!back_log_.empty() && oldest_txn >= back_log_.front().first) {
+    while (!back_log_.empty() && transaction::TransactionUtil::NewerThan(oldest_txn, back_log_.front().first)) {
       back_log_.front().second(oldest_txn);
       processed++;
       back_log_.pop();
@@ -170,7 +169,7 @@ class DeferredActionManager {
       TERRIER_ASSERT(has_item,
                      "With single consumer of queue, we should be able to pop front when we have not processed every "
                      "item in the queue.");
-      if (oldest_txn < curr_action.first) break;
+      if (!transaction::TransactionUtil::NewerThan(oldest_txn, curr_action.first)) break;
       curr_action.second(oldest_txn);
       processed++;
     }
