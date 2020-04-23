@@ -792,7 +792,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
                                               .SetInitialTableSize(1000)
                                               .SetTxnLength(5)
                                               .SetInsertUpdateSelectDeleteRatio({1.0, 0.0, 0.0, 0.0})
-                                              .SetVarlenAllowed(false)
+                                              .SetVarlenAllowed(true)
                                               .Build();
   auto *tested =
       new LargeSqlTableTestObject(config, txn_manager_.Get(), catalog_.Get(), block_store_.Get(), &generator_);

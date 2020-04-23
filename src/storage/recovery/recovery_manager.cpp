@@ -138,15 +138,16 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
                       (*record_buffers)[2 * i]->length());
 
         if (layout.IsVarlen(col_id)) {
-          int64_t offsets_length = (*record_buffers)[2 * i + 1]->offset() / sizeof(uint64_t);
-          int64_t values_length = (*record_buffers)[2 * i + 1]->length();
-          std::vector<uint64_t> offsets_array(offsets_length, 0);
-          ReadDataBlock(f, reinterpret_cast<char *>(&offsets_array), offsets_length);
+          uint64_t offsets_length = (*record_buffers)[2 * i + 1]->offset() / sizeof(uint64_t);
+          uint64_t values_length = (*record_buffers)[2 * i + 1]->length();
+          uint64_t *offsets_array = new uint64_t[offsets_length];
+          ReadDataBlock(f, reinterpret_cast<char *>(offsets_array), offsets_length);
           byte *values_array = new byte[values_length];
           ReadDataBlock(f, reinterpret_cast<char *>(values_array), values_length);
 
-          for (auto j = 0; j < offsets_length; j++) {
-            byte *varlen = new byte[offsets_array[j + 1] - offsets_array[j]];
+          for (auto j = 0; j < offsets_length - 1; j++) {
+            // TODO: need to replace with the proper memory allocation
+            byte *varlen = common::AllocationUtil::AllocateAligned(offsets_array[j + 1] - offsets_array[j]);
             memcpy(varlen, values_array + offsets_array[j], offsets_array[j + 1] - offsets_array[j]);
             *(reinterpret_cast<byte **>(column_start + j * sizeof(void *))) = varlen;
           }
@@ -166,7 +167,6 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
     table->table_.data_table_ = new_data_table;
   }
   txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  std::cout << "ok" << std::endl;
 }
 
 void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestamp_t txn_id, bool catalog_only) {
