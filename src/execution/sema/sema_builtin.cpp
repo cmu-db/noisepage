@@ -1124,7 +1124,7 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
   // Third argument is scanner function
   auto *scan_fn_type = call_args[2]->GetType()->SafeAs<ast::FunctionType>();
   if (scan_fn_type == nullptr) {
-    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[3]->GetType());
+    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[2]->GetType());
     return;
   }
 
