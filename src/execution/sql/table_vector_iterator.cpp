@@ -69,17 +69,19 @@ namespace {
 
 class ScanTask {
  public:
-  ScanTask(exec::ExecutionContext *exec_ctx, uint16_t table_id, void *const query_state,
-           ThreadStateContainer *const thread_state_container, TableVectorIterator::ScanFn scanner)
+  ScanTask(exec::ExecutionContext *exec_ctx, uint16_t table_id, uint32_t *col_oids, uint32_t num_oids,
+          TableVectorIterator::ScanFn scanner)
       : exec_ctx_(exec_ctx),
         table_id_(table_id),
-        query_state_(query_state),
+        col_oids_(col_oids),
+        num_oids_(num_oids),
+//        query_state_(query_state),
 //        thread_state_container_(thread_state_container),
         scanner_(scanner) {}
 
   void operator()(const tbb::blocked_range<uint32_t> &block_range) const {
     // Create the iterator over the specified block range
-    TableVectorIterator iter(exec_ctx_, table_id_, {}, 0, block_range.begin(), block_range.end());
+    TableVectorIterator iter(exec_ctx_, table_id_, col_oids_, num_oids_, block_range.begin(), block_range.end());
 
     // Initialize the table vector iterator
     if (!iter.Init()) {
@@ -90,19 +92,21 @@ class ScanTask {
 //    byte *thread_state = thread_state_container_->AccessThreadStateOfCurrentThread();
 
     // Call scanning function which should be passed at runtime
-    scanner_(query_state_, exec_ctx_, &iter);
+    scanner_(nullptr, exec_ctx_, &iter);
   }
 
  private:
   exec::ExecutionContext *exec_ctx_;
   uint16_t table_id_;
-  void *const query_state_;
+  uint32_t *col_oids_;
+  uint32_t num_oids_;
+//  void *const query_state_;
 //  ThreadStateContainer *const thread_state_container_;
   TableVectorIterator::ScanFn scanner_;
 };
 }  // namespace
 
-bool TableVectorIterator::ParallelScan(uint32_t table_oid, void *query_state, ThreadStateContainer *thread_states,
+bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids,
                                        const ScanFn scan_fn, exec::ExecutionContext *exec_ctx) {
 
   // Lookup table
@@ -123,7 +127,7 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, void *query_state, Th
   // partition the block list
   tbb::blocked_range<uint32_t> block_range(0, block_count, min_grain_size);
   // invoke parallel scan for multiple workers
-  tbb::parallel_for(block_range, ScanTask(exec_ctx, table_oid, query_state, thread_states, scan_fn));
+  tbb::parallel_for(block_range, ScanTask(exec_ctx, table_oid, col_oids, num_oids, scan_fn));
 
   return true;
 }

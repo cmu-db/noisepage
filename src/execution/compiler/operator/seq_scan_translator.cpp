@@ -28,10 +28,9 @@ SeqScanTranslator::SeqScanTranslator(const terrier::planner::SeqScanPlanNode *op
 bool SeqScanTranslator::IsParallelizable() { return true; }
 
 void SeqScanTranslator::Produce(FunctionBuilder *builder) {
-  SetOids(builder);
-  // TODO(Ron): Declare the tvi only for serial scan
   const bool declare_local_tvi = !pipeline_->IsParallel() || this != pipeline_->Root();
   if (declare_local_tvi) {
+    SetOids(builder);
     DeclareTVI(builder);
   }
 
@@ -99,8 +98,9 @@ util::RegionVector<ast::FieldDecl *> SeqScanTranslator::GetWorkerParams() {
 }
 
 void SeqScanTranslator::LaunchWork(FunctionBuilder *builder, ast::Identifier work_func) {
+  SetOids(builder);
   // Build and make the function call to IterateTableParallel()
-  ast::Expr *parallel_call = codegen_->IterateTableParallel(!op_->GetTableOid(), work_func);
+  ast::Expr *parallel_call = codegen_->IterateTableParallel(!op_->GetTableOid(), work_func, col_oids_);
   // add the function call to the calling function (main()  )
   builder->Append(codegen_->MakeStmt(parallel_call));
 }

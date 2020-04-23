@@ -1094,7 +1094,7 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
 }
 
 void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
-  if (!CheckArgCount(call, 3)) {
+  if (!CheckArgCount(call, 4)) {
     return;
   }
 
@@ -1122,14 +1122,14 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
   //  }
 
   // Third argument is scanner function
-  auto *scan_fn_type = call_args[1]->GetType()->SafeAs<ast::FunctionType>();
+  auto *scan_fn_type = call_args[2]->GetType()->SafeAs<ast::FunctionType>();
   if (scan_fn_type == nullptr) {
     GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[3]->GetType());
     return;
   }
 
   auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-  if (!IsPointerToSpecificBuiltin(call_args[2]->GetType(), exec_ctx_kind)) {
+  if (!IsPointerToSpecificBuiltin(call_args[3]->GetType(), exec_ctx_kind)) {
     ReportIncorrectCallArg(call, 2, GetBuiltinType(exec_ctx_kind)->PointerTo());
     return;
   }
