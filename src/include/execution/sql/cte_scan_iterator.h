@@ -47,7 +47,7 @@ class CteScanIterator {
   /**
    * Destructor
    */
-  ~CteScanIterator();
+  ~CteScanIterator(){}
 
   /**
    * This class cannot be copied or moved

@@ -1,5 +1,8 @@
 #include "execution/sql/cte_scan_iterator.h"
 #include "parser/expression/constant_value_expression.h"
+#include "transaction/transaction_context.h"
+#include "transaction/deferred_action_manager.h"
+
 
 namespace terrier::execution::sql {
 
@@ -24,6 +27,31 @@ namespace terrier::execution::sql {
   // Create the table in the catalog.
   catalog::Schema cte_table_schema(all_columns);
   cte_table_ = new storage::SqlTable(exec_ctx->GetAccessor()->GetBlockStore(), cte_table_schema);
+  auto cte_table_local = cte_table_;
+
+
+  // We are deferring it in both commit and abort because we need to delete the temp table regardless of transaction outcome.
+  // We use deferred actions to guarantee memory safety with the garbage collector.
+  // TODO(Rohan): explore API change to deferred actions for unconditional actions to avoid commit and abort actions
+    exec_ctx_->GetTxn()->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
+      deferred_action_manager->RegisterDeferredAction([=]() {
+        deferred_action_manager->RegisterDeferredAction([=]() {
+          // Defer an action upon commit to delete the table. Delete table will need a double deferral because there could
+          // be transactions not yet unlinked by the GC that depend on the table
+          delete cte_table_local;
+        });
+      });
+    });
+
+    exec_ctx_->GetTxn()->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
+      deferred_action_manager->RegisterDeferredAction([=]() {
+        deferred_action_manager->RegisterDeferredAction([=]() {
+          // Defer an action upon abort to delete the table. Delete table will need a double deferral because there could
+          // be transactions not yet unlinked by the GC that depend on the table
+          delete cte_table_local;
+        });
+      });
+    });
   }
 
   storage::ProjectedRow * CteScanIterator::GetInsertTempTablePR() {
