@@ -151,11 +151,11 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
             memcpy(varlen, values_array + offsets_array[j], offsets_array[j + 1] - offsets_array[j]);
             *(reinterpret_cast<byte **>(column_start + j * sizeof(void *))) = varlen;
           }
+          delete[] offsets_array;
+          delete[] values_array;
         } else {
           int32_t cur_buffer_len = (*record_buffers)[2 * i + 1]->length();
-          byte *content = new byte[cur_buffer_len];
-          ReadDataBlock(f, reinterpret_cast<char *>(content), cur_buffer_len);
-          memcpy(column_start, content, cur_buffer_len);
+          ReadDataBlock(f, reinterpret_cast<char *>(column_start), cur_buffer_len);
         }
       }
       blocks.push_back(block);
@@ -163,6 +163,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
     f.close();
 
     // Create DataTable
+    delete table->table_.data_table_;
     DataTable *new_data_table = new DataTable(block_store_, layout, data_table->layout_version_, blocks);
     table->table_.data_table_ = new_data_table;
   }
