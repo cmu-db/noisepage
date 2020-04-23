@@ -118,7 +118,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
     // Convert RecordBatch
     std::list<RawBlock *> blocks;
     int32_t place_holder;
-    while (f.read(reinterpret_cast<char *>(&place_holder), sizeof(place_holder))) {
+    while (f.read(reinterpret_cast<char *>(&place_holder), sizeof(place_holder)) && place_holder == -1) {
       RawBlock *block = new RawBlock();
       data_table->accessor_.InitializeRawBlock(data_table, block, data_table->layout_version_);
       // Read in the buffers in RecordBatch
@@ -138,16 +138,17 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
                       (*record_buffers)[2 * i]->length());
 
         if (layout.IsVarlen(col_id)) {
-          uint64_t offsets_length = (*record_buffers)[2 * i + 1]->offset() / sizeof(uint64_t);
-          uint64_t values_length = (*record_buffers)[2 * i + 1]->length();
+          uint64_t offsets_length = (*record_buffers)[2 * i + 1]->length() / sizeof(uint64_t);
+          uint64_t values_length = (*record_buffers)[2 * i + 2]->length();
           uint64_t *offsets_array = new uint64_t[offsets_length];
-          ReadDataBlock(f, reinterpret_cast<char *>(offsets_array), offsets_length);
+          ReadDataBlock(f, reinterpret_cast<char *>(offsets_array), offsets_length* sizeof(uint64_t));
           byte *values_array = new byte[values_length];
           ReadDataBlock(f, reinterpret_cast<char *>(values_array), values_length);
 
-          for (auto j = 0; j < offsets_length - 1; j++) {
+          for (auto j = 0u; j < offsets_length - 1; j++) {
             // TODO: need to replace with the proper memory allocation
-            byte *varlen = common::AllocationUtil::AllocateAligned(offsets_array[j + 1] - offsets_array[j]);
+            uint64_t size = offsets_array[j + 1] - offsets_array[j];
+            byte *varlen = common::AllocationUtil::AllocateAligned(size);
             memcpy(varlen, values_array + offsets_array[j], offsets_array[j + 1] - offsets_array[j]);
             *(reinterpret_cast<byte **>(column_start + j * sizeof(void *))) = varlen;
           }
