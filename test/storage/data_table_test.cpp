@@ -535,7 +535,7 @@ TEST_F(DataTableTests, ConcurrentNumaAwareScanTest) {
 
 #ifdef __APPLE__
     EXPECT_EQ(numa_regions.size(), 1);
-    EXPECT_EQ(numa_regions[0], stcommonorage::UNSUPPORTED_NUMA_REGION);
+    EXPECT_EQ(numa_regions[0], common::UNSUPPORTED_NUMA_REGION);
 #endif
 
     std::promise<void> numa_threads[numa_regions.size()];

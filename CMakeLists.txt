@@ -187,13 +187,13 @@ if (NOT APPLE)
     set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -lnuma -ldl")
 endif ()
 
-set(Boost_USE_STATIC_LIBS OFF)
-set(Boost_USE_MULTITHREAD ON)
-FIND_PACKAGE(Boost 1.42.0 REQUIRED COMPONENTS system thread regex)
-if (Boost_FOUND)
-    INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
-    LINK_DIRECTORIES(${Boost_LIBRARY_DIRS})
-endif (Boost_FOUND)
+#set(Boost_USE_STATIC_LIBS OFF)
+#set(Boost_USE_MULTITHREAD ON)
+#FIND_PACKAGE(Boost 1.42.0 REQUIRED COMPONENTS system thread regex)
+#if (Boost_FOUND)
+#    INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
+#    LINK_DIRECTORIES(${Boost_LIBRARY_DIRS})
+#endif (Boost_FOUND)
 
 # For any C code, use the same flags.
 set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS}")
@@ -208,7 +208,7 @@ if (NOT APPLE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -lnuma -ldl -Wno-unused-command-line-argument")
 endif ()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -lboost_coroutine -ldl -Wno-unused-command-line-argument")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -lboost_coroutine -lboost_context -lboost_system -ldl -Wno-unused-command-line-argument")
 
 # CMAKE_CXX_FLAGS now fully assembled
 message(STATUS "CXX_ONLY_FLAGS: ${CXX_ONLY_FLAGS}")

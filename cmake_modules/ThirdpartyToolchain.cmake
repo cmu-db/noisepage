@@ -275,9 +275,9 @@ find_package(PQXX REQUIRED)
 include_directories(SYSTEM ${PQXX_INCLUDE_DIRECTORIES})
 list(APPEND TERRIER_LINK_LIBS ${PQXX_LIBRARIES})
 
-find_package(Boost COMPONENTS system thread regex REQUIRED)
-include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
-list(APPEND TERRIER_LINK_LIBS ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
+#find_package(Boost COMPONENTS filesystem system thread regex fiber context REQUIRED)
+#include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+#list(APPEND TERRIER_LINK_LIBS ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
 
 # LLVM 8.0
 find_package(LLVM 8.0 REQUIRED CONFIG)
