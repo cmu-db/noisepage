@@ -23,7 +23,7 @@ namespace terrier::common {
 
     bool YieldToFunc() {
       TERRIER_ASSERT(func_ != nullptr, "must have called SetFunction before yielding to function");
-      TERRIER_ASSERT(sink_ != nullptr, "must have initialized sink_ before yielding to function");
+//      TERRIER_ASSERT(sink_ != nullptr, "must have initialized sink_ before yielding to function");
       TERRIER_ASSERT(in_, "in_ should always have yielded");
       in_();
       TERRIER_ASSERT(in_, "in_ should always have yielded");

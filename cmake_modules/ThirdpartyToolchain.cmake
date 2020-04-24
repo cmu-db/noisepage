@@ -275,7 +275,7 @@ find_package(PQXX REQUIRED)
 include_directories(SYSTEM ${PQXX_INCLUDE_DIRECTORIES})
 list(APPEND TERRIER_LINK_LIBS ${PQXX_LIBRARIES})
 
-find_package(Boost REQUIRED COMPONENTS filesystem system thread regex fiber context )
+find_package(Boost REQUIRED COMPONENTS system thread context)
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 list(APPEND TERRIER_LINK_LIBS ${Boost_LIBRARIES})
 
