@@ -789,7 +789,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
                                               .SetNumDatabases(1)
                                               .SetNumTables(1)
                                               .SetMaxColumns(5)
-                                              .SetInitialTableSize(1000)
+                                              .SetInitialTableSize(1)
                                               .SetTxnLength(5)
                                               .SetInsertUpdateSelectDeleteRatio({1.0, 0.0, 0.0, 0.0})
                                               .SetVarlenAllowed(false)
@@ -798,7 +798,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
       new LargeSqlTableTestObject(config, txn_manager_.Get(), catalog_.Get(), block_store_.Get(), &generator_);
 
   // Run workload
-  tested->SimulateOltp(100, 4);
+  tested->SimulateOltp(1, 1);
 
   // Create directory
   std::filesystem::create_directory(ckpt_path);
@@ -847,6 +847,8 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   recovery_manager.WaitForRecoveryToFinish();
 
   recovery_manager.RecoverFromCheckpoint(ckpt_path, db);
+
+
   // Check we recovered all the original tables
   for (auto &database : tested->GetTables()) {
     auto database_oid = database.first;
@@ -871,11 +873,16 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
       storage::ProjectedRow *row_one = initializer.InitializeRow(buffer_one);
       storage::ProjectedRow *row_two = initializer.InitializeRow(buffer_two);
 
-      auto original_it = original_sql_table->begin();
-      for (auto it = recovered_sql_table->begin(); it != recovered_sql_table->end(); it++) {
+      auto it = recovered_sql_table->begin();
+      for (auto original_it = original_sql_table->begin(); original_it != original_sql_table->end(); original_it++) {
+        if (it == recovered_sql_table->end()) {
+          EXPECT_TRUE(false);
+          break;
+        }
         original_sql_table->Select(common::ManagedPointer(original_txn), *original_it, row_one);
         recovered_sql_table->Select(common::ManagedPointer(recovery_txn), *it, row_two);
         EXPECT_TRUE( StorageTestUtil::ProjectionListEqualDeep(GetBlockLayout(original_sql_table), row_one, row_two));
+        it ++;
       }
       delete[] buffer_one;
       delete[] buffer_two;

@@ -129,7 +129,8 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
       auto *msg = org::apache::arrow::flatbuf::GetMessage(buffer);
       auto *record_batch = msg->header_as_RecordBatch();
       auto *record_buffers = record_batch->buffers();
-
+      auto *field_nodes = record_batch->nodes();
+      block->insert_head_ = (*field_nodes)[0]->length();
       for (size_t i = 0; i < column_id_size; ++i) {
         auto col_id = column_ids[i];
         common::RawConcurrentBitmap *column_bitmap = data_table->accessor_.ColumnNullBitmap(block, col_id);
@@ -164,8 +165,8 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
     f.close();
 
     // Create DataTable
-    delete table->table_.data_table_;
     DataTable *new_data_table = new DataTable(block_store_, layout, data_table->layout_version_, blocks);
+    delete table->table_.data_table_;
     table->table_.data_table_ = new_data_table;
   }
   txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -271,7 +272,7 @@ void RecoveryManager::ReplayRedoRecord(transaction::TransactionContext *txn, Log
     // Insert will always succeed
     auto new_tuple_slot = sql_table_ptr->Insert(common::ManagedPointer(txn), staged_record);
     UpdateIndexesOnTable(txn, staged_record->GetDatabaseOid(), staged_record->GetTableOid(), sql_table_ptr,
-                         new_tuple_slot, staged_record->Delta(), true /* insert */);
+                         new_tuple_slot, staged_record->Delta(), true /* inser */);
     TERRIER_ASSERT(staged_record->GetTupleSlot() == new_tuple_slot,
                    "Insert should update redo record with new tuple slot");
     // Create a mapping of the old to new tuple. The new tuple slot should be used for future updates and deletes.
