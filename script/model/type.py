@@ -59,6 +59,7 @@ class OpUnit(enum.IntEnum):
     SORT_ITERATE = 22,
     INSERT = 23,
     UPDATE = 24,
+    DELETE = 25,
 
 
 class ArithmeticFeature(enum.Enum):

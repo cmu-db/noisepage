@@ -207,7 +207,7 @@ TEST_F(CompilerTest, SimpleSeqScanWithProjectionTest) {
 
   auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
   auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{
-      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::PROJECTION,
+      brain::ExecutionOperatingUnitType::SEQ_SCAN,
       brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY,
       brain::ExecutionOperatingUnitType::OUTPUT};
 

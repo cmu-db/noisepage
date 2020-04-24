@@ -42,8 +42,6 @@ class BrainUtil {
         return "UPDATE";
       case ExecutionOperatingUnitType::DELETE:
         return "DELETE";
-      case ExecutionOperatingUnitType::PROJECTION:
-        return "PROJECTION";
       case ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS:
         return "OP_INTEGER_PLUS_OR_MINUS";
       case ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY:
