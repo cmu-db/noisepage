@@ -8,6 +8,7 @@
 #include "common/strong_typedef.h"
 #include "execution/ast/context.h"
 #include "execution/exec_defs.h"
+#include "execution/vm/module.h"
 
 namespace terrier::planner {
 class AbstractPlanNode;
@@ -92,6 +93,8 @@ class ExecutableQuery {
 
   // TPL bytecodes for this query.
   std::unique_ptr<vm::Module> tpl_module_ = nullptr;
+
+  std::function<int64_t(exec::ExecutionContext *)> main_;
 
   // Memory region and AST context from the code generation stage that need to stay alive as long as the TPL module will
   // be executed. Direct access to these objects is likely unneeded from this class, we just want to tie the life cycles
