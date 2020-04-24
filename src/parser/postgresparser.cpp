@@ -1666,9 +1666,57 @@ std::unique_ptr<DeleteStatement> PostgresParser::DeleteTransform(ParseResult *pa
 }
 
 // Postgres.AlterTableStmt -> terrier.AlterTableStatement
-//TODO(SC)
-std::unique_ptr<AlterTableStatement> PostgresParser::AlterTableTransform(ParseResult *parse_result, AlterTableStmt *root) {
-  std::unique_ptr<AlterTableStatement> result;
+// TODO(SC)
+std::unique_ptr<AlterTableStatement> PostgresParser::AlterTableTransform(ParseResult *parse_result,
+                                                                         AlterTableStmt *root) {
+  // Parse Table Info
+  RangeVar *relation = root->relation_;
+  auto table_name = relation->relname_ != nullptr ? relation->relname_ : "";
+  auto schema_name = relation->schemaname_ != nullptr ? relation->schemaname_ : "";
+  auto database_name = relation->catalogname_ != nullptr ? relation->catalogname_ : "";
+  std::unique_ptr<TableInfo> table_info = std::make_unique<TableInfo>(table_name, schema_name, database_name);
+
+  // Parse subcmds
+  TERRIER_ASSERT(root->cmds_->length > 0, "Alter table sub command must not be empty");
+  std::vector<AlterTableStatement::AlterTableCmd> cmds;
+  for (auto node = root->cmds_->head; node != nullptr; node = node->next) {
+    auto cmd = reinterpret_cast<AlterTableCmd *>(node->data.ptr_value);
+    TERRIER_ASSERT(cmd->type == T_AlterTableCmd, "Invlaid alter table cmd, failed to parse");
+    std::string col_name;
+    std::unique_ptr<AbstractExpression> default_val;
+    std::unique_ptr<ColumnDefinition> col_def;
+
+    switch (cmd->subtype) {
+      case AT_AddColumn:
+        col_def = ColumnDefTransform(parse_result, reinterpret_cast<ColumnDef *>(cmd->def)).col_;
+        col_name = col_def->GetColumnName();
+        cmds.emplace_back(std::move(col_def), std::move(col_name), cmd->missing_ok);
+        break;
+      case AT_ColumnDefault:
+        default_val = ConstTransform(parse_result, reinterpret_cast<A_Const *>(cmd->def));
+        col_name = std::string(cmd->name);
+        cmds.emplace_back(col_name, std::move(default_val));
+        break;
+      case AT_DropColumn:
+        col_name = std::string(cmd->name);
+        cmds.emplace_back(col_name, cmd->missing_ok);
+        break;
+      case AT_AlterColumnType:
+        // FIXME(xc): why cmd->def->colname_ might be 0x0 here???
+        {
+          auto raw_def = reinterpret_cast<ColumnDef *>(cmd->def);
+          if (raw_def->colname_ == nullptr) raw_def->colname_ = cmd->name;
+          col_def = ColumnDefTransform(parse_result, raw_def).col_;
+          col_name = col_def->GetColumnName();
+          cmds.emplace_back(std::move(col_def), std::move(col_name));
+        }
+        break;
+      default:
+        PARSER_LOG_AND_THROW("AlterTableTransform", "Action type", cmd->subtype);
+    }
+    // TODO(SC) parse name, behvaor, newowner?
+  }
+  auto result = std::make_unique<AlterTableStatement>(std::move(table_info), std::move(cmds), root->missing_ok_);
   return result;
 }
 

@@ -485,6 +485,12 @@ void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::Tran
   SqlNodeVisitor::Visit(node);
 }
 
+void BindNodeVisitor::Visit(common::ManagedPointer<parser::AlterTableStatement> node) {
+  // TODO(SC)
+  BINDER_LOG_TRACE("Visiting AlterTableStatement ...");
+  SqlNodeVisitor::Visit(node);
+}
+
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::UpdateStatement> node) {
   BINDER_LOG_TRACE("Visiting UpdateStatement ...");
   SqlNodeVisitor::Visit(node);

@@ -63,6 +63,7 @@ class QueryToOperatorTransformer : public binder::SqlNodeVisitor {
   void Visit(common::ManagedPointer<parser::TransactionStatement> op) override;
   void Visit(common::ManagedPointer<parser::UpdateStatement> op) override;
   void Visit(common::ManagedPointer<parser::VariableSetStatement> op) override;
+  void Visit(common::ManagedPointer<parser::AlterTableStatement> op) override;
 
   void Visit(common::ManagedPointer<parser::ComparisonExpression> expr) override;
   void Visit(common::ManagedPointer<parser::OperatorExpression> expr) override;

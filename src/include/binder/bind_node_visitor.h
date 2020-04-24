@@ -67,6 +67,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
   void Visit(common::ManagedPointer<parser::TransactionStatement> node) override;
   void Visit(common::ManagedPointer<parser::UpdateStatement> node) override;
   void Visit(common::ManagedPointer<parser::VariableSetStatement> node) override;
+  void Visit(common::ManagedPointer<parser::AlterTableStatement> node) override;
 
   void Visit(common::ManagedPointer<parser::AggregateExpression> expr) override;
   void Visit(common::ManagedPointer<parser::CaseExpression> expr) override;

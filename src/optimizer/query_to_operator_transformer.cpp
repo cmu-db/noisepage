@@ -509,6 +509,11 @@ void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<p
   OPTIMIZER_LOG_DEBUG("Transforming Transaction to operators ...");
 }
 
+// TODO(SC)
+void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::AlterTableStatement> op) {
+  OPTIMIZER_LOG_DEBUG("Transforming AlterTable to operators ...");
+}
+
 void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::UpdateStatement> op) {
   OPTIMIZER_LOG_DEBUG("Transforming UpdateStatement to operators ...");
   auto target_table = op->GetUpdateTable();
