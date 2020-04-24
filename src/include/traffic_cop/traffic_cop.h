@@ -188,6 +188,9 @@ class TrafficCop {
    */
   void SetOptimizerTimeout(const uint64_t optimizer_timeout) { optimizer_timeout_ = optimizer_timeout; }
 
+  /**
+   * @return true if query caching enabled, false otherwise
+   */
   bool UseQueryCache() const { return use_query_cache_; }
 
  private:
