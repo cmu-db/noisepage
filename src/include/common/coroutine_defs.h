@@ -57,7 +57,6 @@ namespace terrier::common {
     bool func_finished_ = false;
   };
 
-
   using PoolContextPool = ObjectPool<common::PoolContext, common::PoolContext::Allocator>;
 
 }  // namespace terrier::common
