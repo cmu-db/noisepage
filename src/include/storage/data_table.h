@@ -120,9 +120,8 @@ class DataTable {
    */
   DataTable(common::ManagedPointer<BlockStore> store, const BlockLayout &layout, layout_version_t layout_version);
 
-  DataTable(common::ManagedPointer<BlockStore> store, const BlockLayout &layout, layout_version_t layout_version,
-            const std::list<RawBlock *> &blocks);
-
+  DataTable(const common::ManagedPointer<BlockStore> store, const BlockLayout &layout,
+                       const layout_version_t layout_version, const std::list<RawBlock *> &blocks);
   /**
    * Destructs a DataTable, frees all its blocks and any potential varlen entries.
    */
@@ -297,6 +296,8 @@ class DataTable {
   // Compares and swaps the version pointer to be the undo record, only if its value is equal to the expected one.
   bool CompareAndSwapVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, UndoRecord *expected,
                                 UndoRecord *desired);
+  // Update position of insertion head
+  void UpdateInsertionHead(TupleSlot &result);
 
   // Allocates a new block to be used as insertion head.
   RawBlock *NewBlock();

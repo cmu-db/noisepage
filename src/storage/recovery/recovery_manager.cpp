@@ -119,10 +119,9 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
     std::list<RawBlock *> blocks;
     int32_t place_holder;
     // Create DataTable
-    DataTable *new_data_table = new DataTable(block_store_, layout, data_table->layout_version_, blocks);
     while (f.read(reinterpret_cast<char *>(&place_holder), sizeof(place_holder)) && place_holder == -1) {
       RawBlock *block = new RawBlock();
-      new_data_table->accessor_.InitializeRawBlock(new_data_table, block, data_table->layout_version_);
+      data_table->accessor_.InitializeRawBlock(data_table, block, data_table->layout_version_);
       // Read in the buffers in RecordBatch
       int32_t record_batch_size;
       f.read(reinterpret_cast<char *>(&record_batch_size), sizeof(record_batch_size));
@@ -136,8 +135,8 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
       for (size_t i = 0; i < column_id_size; ++i) {
         auto col_id = column_ids[i];
 //        common::RawConcurrentBitmap *column_bitmap = data_table->accessor_.ColumnNullBitmap(block, col_id);
-        common::RawConcurrentBitmap *column_bitmap = new_data_table->accessor_.ColumnNullBitmap(block, col_id);
-        byte *column_start = new_data_table->accessor_.ColumnStart(block, col_id);
+        common::RawConcurrentBitmap *column_bitmap = data_table->accessor_.ColumnNullBitmap(block, col_id);
+        byte *column_start = data_table->accessor_.ColumnStart(block, col_id);
         auto s = (*record_buffers)[2 * i]->length();
         ReadDataBlock(f, reinterpret_cast<char *>(column_bitmap),
                       s);
@@ -164,14 +163,11 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
           ReadDataBlock(f, reinterpret_cast<char *>(column_start), cur_buffer_len);
         }
       }
-      blocks.push_back(block);
+      data_table->blocks_.push_back(block);
     }
+    TupleSlot tmp;
+    data_table->UpdateInsertionHead(tmp);
     f.close();
-
-//    // Create DataTable
-//    DataTable *new_data_table = new DataTable(block_store_, layout, data_table->layout_version_, blocks);
-    delete table->table_.data_table_;
-    table->table_.data_table_ = new_data_table;
   }
   txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
