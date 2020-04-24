@@ -264,10 +264,11 @@ void SqlTable::FillMissingColumns(RowType *out_buffer,
     // Find the until a version has the required column, use the default value that is closest to the tuple version
     for (layout_version_t start_version = tuple_version + 1; start_version <= layout_version; start_version++) {
       auto curr_version = tables_.at(start_version);
+      // Not found in this version
       if (curr_version.default_value_map_.find(it.second) == curr_version.default_value_map_.end()) continue;
 
-      auto default_const = tables_.at(layout_version)
-                               .default_value_map_.at(it.second)
+      // Found the default value at curr_version
+      auto default_const = curr_version.default_value_map_.at(it.second)
                                .CastManagedPointerTo<const parser::ConstantValueExpression>()
                                ->GetValue();
       auto value_size = curr_version.schema_->GetColumn(it.second).AttrSize();
@@ -280,6 +281,7 @@ void SqlTable::FillMissingColumns(RowType *out_buffer,
         StorageUtil::CopyWithNullCheck(output, out_buffer, curr_version.schema_->GetColumn(it.second).AttrSize(),
                                        it.first);
         out_buffer->SetNotNull(it.first);
+        break;
       }
     }
   }

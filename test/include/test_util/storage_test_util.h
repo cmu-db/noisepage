@@ -361,6 +361,9 @@ class StorageTestUtil {
 
   static void SetOid(catalog::Schema::Column *col, catalog::col_oid_t oid) { col->SetOid(oid); }
   static void SetType(catalog::Schema::Column *col, const type::TypeId id) { col->SetType(id); }
+  static void SetDefaultValue(catalog::Schema::Column *col, std::unique_ptr<parser::AbstractExpression> default_value) {
+    col->default_value_.swap(default_value);
+  }
 
   template <class RowType1, class RowType2>
   static bool ProjectionListEqualDeep(const storage::BlockLayout &layout, const RowType1 *const one,

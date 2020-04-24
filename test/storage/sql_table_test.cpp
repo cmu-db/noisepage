@@ -36,6 +36,17 @@ static std::unique_ptr<catalog::Schema> ChangeColType(const catalog::Schema &sch
   return std::make_unique<catalog::Schema>(columns);
 }
 
+static std::unique_ptr<catalog::Schema> ChangeDefaultValue(const catalog::Schema &schema, const catalog::col_oid_t oid,
+                                                           std::unique_ptr<parser::AbstractExpression> default_value) {
+  std::vector<catalog::Schema::Column> columns(schema.GetColumns());
+  for (auto &col : columns) {
+    if (col.Oid() == oid) {
+      StorageTestUtil::SetDefaultValue(&col, std::move(default_value));
+    }
+  }
+
+  return std::make_unique<catalog::Schema>(columns);
+}
 // given new columns without oids, add them to the end, and assign them oids larger than existing oids
 static std::unique_ptr<catalog::Schema> AddColumnsToEnd(const catalog::Schema &schema,
                                                         const std::vector<catalog::Schema::Column *> &new_columns) {
@@ -686,6 +697,54 @@ TEST_F(SqlTableTests, ChangeIntType) {
     EXPECT_TRUE(StorageTestUtil::ProjectionListAtOidsEqual(stored, test_table.GetProjectionMapForOids(vers2),
                                                            test_table.GetBlockLayout(vers2), {col.Oid()},
                                                            default_vals));
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(SqlTableTests, MultiDefaultValue) {
+  const uint16_t max_columns = 8;
+  const uint32_t num_inserts = 8;
+  uint64_t txn_ts = 0;
+
+  RandomSqlTableTestObject test_table(&block_store_, max_columns, &generator_, null_ratio_(generator_));
+  // Insert some tuples
+  storage::layout_version_t vers0(0);
+  for (uint16_t i = 0; i < num_inserts; i++) {
+    test_table.InsertRandomTuple(transaction::timestamp_t(txn_ts), &generator_, &buffer_pool_, vers0);
+  }
+
+  // New Schema 1 - Add a column with default value
+  storage::layout_version_t vers1(1);
+  auto old_default_val = 15712;
+  txn_ts++;
+  catalog::Schema::Column col_to_add(
+      "new_col1", type::TypeId::INTEGER, false,
+      parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(old_default_val)));
+
+  auto schema1 = AddColumnsToEnd(test_table.GetSchema(vers0), {&col_to_add});
+  test_table.UpdateSchema(test_table.NewTransaction(transaction::timestamp_t(txn_ts), &buffer_pool_),
+                          std::move(schema1), vers1);
+
+  // New Schema 2 - Change the default value
+  auto new_val = 15412;
+  auto new_default_val =
+      std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetInteger(new_val));
+  auto schema2 = ChangeDefaultValue(test_table.GetSchema(vers1), col_to_add.Oid(), std::move(new_default_val));
+  storage::layout_version_t vers2(2);
+  txn_ts++;
+  test_table.UpdateSchema(test_table.NewTransaction(transaction::timestamp_t(txn_ts), &buffer_pool_),
+                          std::move(schema2), vers2);
+
+  // Select Should be the New Schema 1's Default Value
+  txn_ts++;
+  std::vector<ByteVecPtr> default_values;
+  default_values.push_back(CastValue(old_default_val, type::TypeId::INTEGER));
+  for (const auto &inserted_tuple : test_table.InsertedTuples()) {
+    storage::ProjectedRow *stored =
+        test_table.Select(inserted_tuple, transaction::timestamp_t(txn_ts), &buffer_pool_, vers2);
+    EXPECT_TRUE(StorageTestUtil::ProjectionListAtOidsEqual(stored, test_table.GetProjectionMapForOids(vers1),
+                                                           test_table.GetBlockLayout(vers1), {col_to_add.Oid()},
+                                                           default_values));
   }
 }
 
