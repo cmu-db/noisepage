@@ -27,7 +27,7 @@ class AlterTableStatement : public TableRefStatement {
      * @param col_name
      * @param if_exists IF EXISTS
      */
-    AlterTableCmd(std::unique_ptr<parser::ColumnDefinition> col_def, std::string col_name, bool if_exists)
+    AlterTableCmd(std::unique_ptr<ColumnDefinition> col_def, std::string col_name, bool if_exists)
         : type_(AlterType::AddColumn), col_name_(col_name), col_(std::move(col_def)), if_exists_(if_exists) {}
 
     /**
@@ -35,7 +35,7 @@ class AlterTableStatement : public TableRefStatement {
      * @param col_def
      * @param col_name
      */
-    AlterTableCmd(std::unique_ptr<parser::ColumnDefinition> col_def, std::string col_name)
+    AlterTableCmd(std::unique_ptr<ColumnDefinition> col_def, std::string col_name)
         : type_(AlterType::AlterColumnType), col_name_(col_name), col_(std::move(col_def)) {}
 
     /**
