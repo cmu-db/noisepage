@@ -126,7 +126,6 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipel
       return;
     }
     case terrier::planner::PlanNodeType::CTESCAN: {
-
       auto cte_scan_plan_node = reinterpret_cast<const terrier::planner::CteScanPlanNode *>(&op);
       if(cte_scan_plan_node->IsLeader()) {
         auto bottom_translator = TranslatorFactory::CteScanLeaderNodeTranslator(&op, codegen_);

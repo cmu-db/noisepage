@@ -45,7 +45,11 @@ class CteScanLeaderTranslator : public OperatorTranslator {
   void InitializeSetup(util::RegionVector<ast::Stmt *> *setup_stmts) override {}
 
   // Does nothing
-  void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
+  void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {
+    ast::Expr *cte_free_call = codegen_->OneArgCall(ast::Builtin::CteScanFree,
+        codegen_->GetStateMemberPtr(codegen_->GetCteScanIdentifier()));
+    teardown_stmts->emplace_back(codegen_->MakeStmt(cte_free_call));
+  }
 
   ast::Expr *GetOutput(uint32_t attr_idx) override {
     // TODO(Rohan): Need to fix this for non leader nodes

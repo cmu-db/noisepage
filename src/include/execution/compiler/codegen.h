@@ -594,8 +594,9 @@ class CodeGen {
    */
   ast::Expr *ZeroArgCall(ast::Builtin builtin);
 
+  /*Return the identifier for a cte scan iterator in tpl generated
+   * */
   ast::Identifier GetCteScanIdentifier() { return cte_scan_iterator_;}
-
  private:
   // Counter for the identifiers. Allows the creation of unique names.
   uint64_t id_count_{0};

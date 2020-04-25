@@ -127,6 +127,7 @@ namespace terrier::execution::vm {
   F(CteScanGetTableOid, OperandType::Local, OperandType::Local)                                                       \
   F(CteScanGetInsertTempTablePR, OperandType::Local, OperandType::Local)                                              \
   F(CteScanTableInsert, OperandType::Local, OperandType::Local)                                                       \
+  F(CteScanFree, OperandType::Local)                                                                                  \
                                                                                                                       \
                                                                                                                       \
   /* ProjectedColumns Iterator (PCI) */                                                                               \
