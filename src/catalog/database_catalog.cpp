@@ -354,12 +354,7 @@ void DatabaseCatalog::BootstrapPRIs() {
   const std::vector<col_oid_t> set_pg_proc_ptr_oids{postgres::PRO_CTX_PTR_COL_OID};
   pg_proc_ptr_pri_ = procs_->InitializerForProjectedRow(set_pg_proc_ptr_oids);
 }
-  // pg_constraint
-  const std::vector<col_oid_t> pg_constraint_all_oids{postgres::PG_CONSTRAINT_ALL_COL_OIDS.cbegin(),
-                                                 postgres::PG_CONSTRAINT_ALL_COL_OIDS.cend()};
-  pg_constraints_all_cols_pri_ = constraints_->InitializerForProjectedRow(pg_constraint_all_oids);
-  pg_constraints_all_cols_prm_ = constraints_->ProjectionMapForOids(pg_constraint_all_oids);
-}
+
 
 namespace_oid_t DatabaseCatalog::CreateNamespace(const common::ManagedPointer<transaction::TransactionContext> txn,
                                                  const std::string &name) {
@@ -963,6 +958,22 @@ const Schema &DatabaseCatalog::GetSchema(const common::ManagedPointer<transactio
   TERRIER_ASSERT(ptr_pair.first != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
   TERRIER_ASSERT(ptr_pair.second == postgres::ClassKind::REGULAR_TABLE, "Requested a table schema for a non-table");
   return *reinterpret_cast<Schema *>(ptr_pair.first);
+}
+
+bool DatabaseCatalog::DeleteConstraints(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                        const table_oid_t table) {
+  if (!TryLock(txn)) return false;
+  // Get the constraints
+  const auto con_oids = GetConstraints(txn, table);
+  // Delete all constraints
+  for (const auto con_oid : con_oids) {
+    auto result = DeleteConstraint(txn, con_oid);
+    if (!result) {
+      // write-write conflict. Someone beat us to this operation.
+      return false;
+    }
+  }
+  return true;
 }
 
 std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(
