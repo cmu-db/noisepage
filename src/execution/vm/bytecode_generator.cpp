@@ -2132,9 +2132,10 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::CteScanGetTable:
     case ast::Builtin::CteScanGetTableOid:
     case ast::Builtin::CteScanGetInsertTempTablePR:
-    case ast::Builtin::CteScanTableInsert: {
-      VisitBuiltinCteScanCall(call, builtin);
-      break;
+    case ast::Builtin::CteScanTableInsert:
+    case ast::Builtin::CteScanFree: {
+        VisitBuiltinCteScanCall(call, builtin);
+        break;
     }
     case ast::Builtin::TableIterParallel: {
       VisitBuiltinTableIterParallelCall(call);
@@ -3058,6 +3059,10 @@ void BytecodeGenerator::VisitBuiltinCteScanCall(ast::CallExpr *call, ast::Builti
     case ast::Builtin::CteScanGetTableOid: {
       LocalVar table_oid = ExecutionResult()->GetOrCreateDestination(call->GetType());
       Emitter()->Emit(Bytecode::CteScanGetTableOid, table_oid, iterator);
+      break;
+    }
+    case ast::Builtin::CteScanFree: {
+      Emitter()->Emit(Bytecode::CteScanFree, iterator);
       break;
     }
     default: {

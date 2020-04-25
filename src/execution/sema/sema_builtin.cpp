@@ -1947,6 +1947,20 @@ void Sema::CheckBuiltinCteScanCall(ast::CallExpr *call, ast::Builtin builtin) {
         call->SetType(GetBuiltinType(ast::BuiltinType::TupleSlot));
       }
       break;
+    case ast::Builtin::CteScanFree:
+    {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+      // First argument must be a pointer to a IndexIterator
+      auto *index_type = call->Arguments()[0]->GetType()->GetPointeeType();
+      if (index_type == nullptr || !index_type->IsSpecificBuiltin(ast::BuiltinType::CteScanIterator)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(ast::BuiltinType::CteScanIterator)->PointerTo());
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+    }
+      break;
     default:
       UNREACHABLE("Impossible Cte Scan call!");
   }
@@ -2466,7 +2480,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::CteScanGetTable:
     case ast::Builtin::CteScanGetTableOid:
     case ast::Builtin::CteScanGetInsertTempTablePR:
-    case ast::Builtin::CteScanTableInsert: {
+    case ast::Builtin::CteScanTableInsert:
+    case ast::Builtin::CteScanFree: {
       CheckBuiltinCteScanCall(call, builtin);
       break;
     }

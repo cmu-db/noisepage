@@ -280,7 +280,7 @@ VM_OP void OpCteScanGetTableOid(terrier::catalog::table_oid_t* table_oid, terrie
 VM_OP void OpCteScanGetInsertTempTablePR(terrier::storage::ProjectedRow ** projected_row,
     terrier::execution::sql::CteScanIterator *iter);
 VM_OP void OpCteScanTableInsert(terrier::storage::TupleSlot* tuple_slot, terrier::execution::sql::CteScanIterator *iter);
-
+VM_OP void OpCteScanFree(terrier::execution::sql::CteScanIterator *iter);
 
 // ---------------------------------------------------------
 // Projected Columns Iterator

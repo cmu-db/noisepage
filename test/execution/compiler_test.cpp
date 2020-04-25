@@ -1967,10 +1967,12 @@ TEST_F(CompilerTest, CTEBasicTest) {
     auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     auto schema = seq_scan_out.MakeSchema();
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(10));
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
         .SetColumnOids({cola_oid})
+        .SetScanPredicate(predicate)
         .SetIsForUpdateFlag(false)
         .SetNamespaceOid(NSOid())
         .SetTableOid(table_oid)
@@ -2498,11 +2500,15 @@ TEST_F(CompilerTest, SimpleCTEQueryAggregateTest) {
     seq_scan_out_2.AddOutput("colA", col1);
     seq_scan_out_2.AddOutput("colB", col2);
     auto schema = seq_scan_out_2.MakeSchema();
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(1000));
+
+
 
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan_2 = builder.SetOutputSchema(std::move(schema))
         .SetColumnOids({cola_oid, colb_oid})
+        .SetScanPredicate(predicate)
         .SetIsForUpdateFlag(false)
         .SetNamespaceOid(NSOid())
         .SetTableOid(table_oid)
