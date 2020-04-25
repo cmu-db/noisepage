@@ -166,7 +166,7 @@ void RecoveryManager::ReplayRedoRecord(transaction::TransactionContext *txn, Log
 
     bool result UNUSED_ATTRIBUTE = sql_table_ptr->Update(common::ManagedPointer(txn), staged_record);
     TERRIER_ASSERT(result, "Buffered changes should always succeed during commit");
-    // TODO: deal with the case in which tupleslot is migrated
+    // TODO(Schema-Change): deal with the case in which tupleslot is migrated
   }
 }
 

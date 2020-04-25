@@ -273,7 +273,7 @@ class StorageTestUtil {
 
   template <class RowType>
   static bool ProjectionListAtOidsNone(const RowType *const row, const storage::ProjectionMap &oid_map,
-                                       const storage::BlockLayout layout, std::vector<catalog::col_oid_t> oids) {
+                                       const storage::BlockLayout &layout, const std::vector<catalog::col_oid_t> &oids) {
     for (const auto &oid : oids) {
       EXPECT_EQ(oid_map.find(oid), oid_map.end());
       if (oid_map.find(oid) != oid_map.end()) {
@@ -285,11 +285,10 @@ class StorageTestUtil {
 
   template <class RowType>
   static bool ProjectionListAtOidsEqual(const RowType *const row, const storage::ProjectionMap &oid_map,
-                                        const storage::BlockLayout layout, std::vector<catalog::col_oid_t> oids,
-                                        std::vector<int> default_values) {
+                                        const storage::BlockLayout &layout, const std::vector<catalog::col_oid_t> &oids,
+                                        const std::vector<int> &default_values) {
     // Check for each default value
     for (size_t i = 0; i < oids.size(); i++) {
-
       auto idx = oid_map.at(oids[i]);
       storage::col_id_t col_id = row->ColumnIds()[idx];
 

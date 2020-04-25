@@ -22,7 +22,7 @@ class SqlTableTests : public TerrierTest {
 
 // given new columns without oids, add them to the end, and assign them oids larger than existing oids
 static std::unique_ptr<catalog::Schema> AddColumnsToEnd(const catalog::Schema &schema,
-    std::vector<catalog::Schema::Column*>& new_columns) {
+                                                        const std::vector<catalog::Schema::Column *> &new_columns) {
   std::vector<catalog::Schema::Column> columns(schema.GetColumns());
 
   catalog::col_oid_t max_oid = columns.begin()->Oid();
@@ -33,7 +33,7 @@ static std::unique_ptr<catalog::Schema> AddColumnsToEnd(const catalog::Schema &s
   }
 
   // add the new columns, set their oids to be larger than all existing oids
-  for (int i = 0; i < new_columns.size(); i++) {
+  for (size_t i = 0; i < new_columns.size(); i++) {
     catalog::col_oid_t new_oid = max_oid + 1 + i;
     StorageTestUtil::SetOid(new_columns[i], new_oid);
     columns.push_back(*new_columns[i]);
@@ -41,9 +41,9 @@ static std::unique_ptr<catalog::Schema> AddColumnsToEnd(const catalog::Schema &s
   return std::make_unique<catalog::Schema>(columns);
 }
 
-bool oids_unique(std::vector<catalog::Schema::Column>& columns) {
+bool OidsUnique(const std::vector<catalog::Schema::Column> &columns) {
   std::unordered_set<catalog::col_oid_t> oids;
-  for (auto col: columns) {
+  for (const auto &col : columns) {
     oids.insert(col.Oid());
   }
   return oids.size() == columns.size();
@@ -51,28 +51,25 @@ bool oids_unique(std::vector<catalog::Schema::Column>& columns) {
 
 // given new columns with oids, add them to the column vector so that the column vector is still sorted
 static std::unique_ptr<catalog::Schema> AddColumns(const catalog::Schema &schema,
-    std::vector<catalog::Schema::Column>& new_columns) {
+                                                   const std::vector<catalog::Schema::Column> &new_columns) {
   std::vector<catalog::Schema::Column> columns(schema.GetColumns());
 
-  for (auto new_col: new_columns) {
+  for (const auto &new_col : new_columns) {
     columns.push_back(new_col);
   }
 
   struct {
-    bool operator()(catalog::Schema::Column a, catalog::Schema::Column b) const
-    {
-      return a.Oid() < b.Oid();
-    }
-  } columnLess;
-  std::sort(columns.begin(), columns.end(), columnLess);
+    bool operator()(const catalog::Schema::Column &a, const catalog::Schema::Column &b) const { return a.Oid() < b.Oid(); }
+  } column_less;
+  std::sort(columns.begin(), columns.end(), column_less);
 
-  TERRIER_ASSERT(oids_unique(columns), "New column oids should not conflict with existing ones");
+  TERRIER_ASSERT(OidsUnique(columns), "New column oids should not conflict with existing ones");
   return std::make_unique<catalog::Schema>(columns);
 }
 
 // drop the columns with oids in the set drop_oids
 static std::unique_ptr<catalog::Schema> DropColumns(const catalog::Schema &schema,
-    const std::unordered_set<catalog::col_oid_t> drop_oids) {
+                                                    const std::unordered_set<catalog::col_oid_t> &drop_oids) {
   auto old_columns = schema.GetColumns();
   std::vector<catalog::Schema::Column> columns;
 
@@ -183,7 +180,7 @@ class RandomSqlTableTestObject {
 
   template <class Random>
   TupleSlot UpdateTuple(const storage::TupleSlot slot, const transaction::timestamp_t timestamp, Random *generator,
-      storage::RecordBufferSegmentPool *buffer_pool, storage::layout_version_t layout_version) {
+                        storage::RecordBufferSegmentPool *buffer_pool, storage::layout_version_t layout_version) {
     // generate a txn with an UndoRecord to populate on Insert
     auto *txn =
         new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(buffer_pool), DISABLED);
@@ -206,7 +203,9 @@ class RandomSqlTableTestObject {
     bool res = table_->Update(common::ManagedPointer(txn), update_redo, layout_version, &updated_slot);
 
     EXPECT_TRUE(res == true);
-    if (!res) { return TupleSlot(); }
+    if (!res) {
+      return TupleSlot();
+    }
 
     tuple_versions_[updated_slot].push_back({timestamp, update_tuple, layout_version});
     updated_slots_.push_back(updated_slot);
@@ -250,11 +249,11 @@ class RandomSqlTableTestObject {
   }
 
   bool Delete(const storage::TupleSlot slot, const transaction::timestamp_t timestamp,
-                                storage::RecordBufferSegmentPool *buffer_pool) {
+              storage::RecordBufferSegmentPool *buffer_pool) {
     auto *txn =
         new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(buffer_pool), DISABLED);
     txns_.emplace_back(txn);
-    txn -> StageDelete(catalog::db_oid_t{0}, catalog::table_oid_t{0}, slot);
+    txn->StageDelete(catalog::db_oid_t{0}, catalog::table_oid_t{0}, slot);
 
     return table_->Delete(common::ManagedPointer(txn), slot);
   }
@@ -364,10 +363,10 @@ TEST_F(SqlTableTests, InsertWithSchemaChange) {
   storage::layout_version_t new_version(1);
   txn_ts++;
   catalog::Schema::Column col1("new_col1", type::TypeId::INTEGER, false,
-                              parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(1)));
+                               parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(1)));
   catalog::Schema::Column col2("new_col2", type::TypeId::INTEGER, false,
-                              parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(2)));
-  std::vector<catalog::Schema::Column*> cols{&col1, &col2};
+                               parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(2)));
+  std::vector<catalog::Schema::Column *> cols{&col1, &col2};
 
   catalog::Schema::Column col_to_drop = test_table.GetSchema(version).GetColumns()[0];
   std::unordered_set<catalog::col_oid_t> drop_oids{col_to_drop.Oid()};
@@ -393,8 +392,8 @@ TEST_F(SqlTableTests, InsertWithSchemaChange) {
     std::unordered_set<catalog::col_oid_t> add_cols;
     std::unordered_set<catalog::col_oid_t> drop_cols;
     if (tuple_version.version_ != new_version) {
-      for (auto col: cols) {
-        add_cols.insert(col -> Oid());
+      for (auto col : cols) {
+        add_cols.insert(col->Oid());
       }
       drop_cols.insert(col_to_drop.Oid());
     }
@@ -451,8 +450,8 @@ TEST_F(SqlTableTests, InsertWithSchemaChange) {
     std::unordered_set<catalog::col_oid_t> add_cols;
     std::unordered_set<catalog::col_oid_t> drop_cols;
     if (ref.version_ != new_version) {
-      for (auto col: cols) {
-        add_cols.insert(col -> Oid());
+      for (auto col : cols) {
+        add_cols.insert(col->Oid());
       }
       drop_cols.insert(col_to_drop.Oid());
     }
@@ -461,12 +460,14 @@ TEST_F(SqlTableTests, InsertWithSchemaChange) {
         test_table.GetBlockLayout(new_version), &stored, test_table.GetProjectionMapForOids(new_version), add_cols,
         drop_cols));
   }
+  delete[] buffer;
 
   // update the first half of the tuples, under new version, these will migrate
   txn_ts++;
   for (uint32_t i = 1; i < num_inserts / 2; i++) {
     auto slot = test_table.InsertedTuples()[i];
-    auto updated_slot = test_table.UpdateTuple(slot, transaction::timestamp_t(txn_ts), &generator_, &buffer_pool_ , new_version);
+    auto updated_slot =
+        test_table.UpdateTuple(slot, transaction::timestamp_t(txn_ts), &generator_, &buffer_pool_, new_version);
     EXPECT_TRUE(slot != updated_slot);
   }
   EXPECT_EQ(test_table.UpdatedTuples().size(), num_inserts / 2 - 1);
@@ -515,20 +516,25 @@ TEST_F(SqlTableTests, AddThenDropColumns) {
   int32_t default_int = 15719;
   std::vector<int> default_values;
   int num_new_cols = 3;
+  default_values.reserve(num_new_cols);
   for (int i = 0; i < num_new_cols; i++) {
     default_values.push_back(default_int + i);
   }
-  catalog::Schema::Column col1("new_col1", type::TypeId::INTEGER, false,
-                              parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(default_values[0])));
-  catalog::Schema::Column col2("new_col2", type::TypeId::INTEGER, false,
-                              parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(default_values[1])));
-  catalog::Schema::Column col3("new_col3", type::TypeId::INTEGER, false,
-                               parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(default_values[2])));
-  std::vector<catalog::Schema::Column*> cols{&col1, &col2, &col3};
+  catalog::Schema::Column col1(
+      "new_col1", type::TypeId::INTEGER, false,
+      parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(default_values[0])));
+  catalog::Schema::Column col2(
+      "new_col2", type::TypeId::INTEGER, false,
+      parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(default_values[1])));
+  catalog::Schema::Column col3(
+      "new_col3", type::TypeId::INTEGER, false,
+      parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(default_values[2])));
+  std::vector<catalog::Schema::Column *> cols{&col1, &col2, &col3};
 
   auto new_schema = AddColumnsToEnd(test_table.GetSchema(version), cols);
 
   std::vector<catalog::col_oid_t> oids;
+  oids.reserve(num_new_cols);
   for (auto col_ptr : cols) {
     oids.push_back(col_ptr->Oid());
   }
@@ -558,7 +564,7 @@ TEST_F(SqlTableTests, AddThenDropColumns) {
   txn_ts++;
   storage::layout_version_t vers2(2);
 
-//  std::vector<catalog::Schema::Column*> new_cols;
+  //  std::vector<catalog::Schema::Column*> new_cols;
   new_schema = DropColumns(test_table.GetSchema(new_version), oids_set);
   test_table.UpdateSchema(test_table.NewTransaction(transaction::timestamp_t{txn_ts}, &buffer_pool_),
                           std::move(new_schema), vers2);
