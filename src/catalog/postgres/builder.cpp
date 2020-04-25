@@ -8,6 +8,9 @@
 #include "catalog/postgres/pg_attribute.h"
 #include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_constraint.h"
+#include "catalog/postgres/fk_constraint.h"
+#include "catalog/postgres/check_constraint.h"
+#include "catalog/postgres/exclusion_constraint.h"
 #include "catalog/postgres/pg_database.h"
 #include "catalog/postgres/pg_index.h"
 #include "catalog/postgres/pg_language.h"
@@ -227,14 +230,103 @@ Schema Builder::GetConstraintTableSchema() {
   columns.emplace_back("conindid", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
   columns.back().SetOid(CONINDID_COL_OID);
 
-  columns.emplace_back("confrelid", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("confrelid", type::TypeId::VARCHAR, true, MakeNull(type::TypeId::VARCHAR));
   columns.back().SetOid(CONFRELID_COL_OID);
 
-  columns.emplace_back("conbin", type::TypeId::BIGINT, false, MakeNull(type::TypeId::BIGINT));
+  columns.emplace_back("conuniquecol", type::TypeId::VARCHAR, true, MakeNull(type::TypeId::VARCHAR));
+  columns.back().SetOid(CONUNIQUE_COL_COL_OID);
+
+  columns.emplace_back("concheck", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(CONCHECK_COL_OID);
+
+  columns.emplace_back("conexclusion", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(CONEXCLUSION_COL_OID);
+
+  columns.emplace_back("conbin", type::TypeId::VARCHAR, true, MakeNull(type::TypeId::VARCHAR));
   columns.back().SetOid(CONBIN_COL_OID);
 
-  columns.emplace_back("consrc", type::TypeId::VARCHAR, 4096, false, MakeNull(type::TypeId::VARCHAR));
-  columns.back().SetOid(CONSRC_COL_OID);
+  return Schema(columns);
+}
+
+Schema Builder::GetFKConstraintTableSchema() {
+  std::vector<Schema::Column> columns;
+
+  columns.emplace_back("fkid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(FKID_COL_OID);
+
+  columns.emplace_back("fkconid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(FKCONID_COL_OID);
+
+  columns.emplace_back("fkreftable", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(FKREFTABLE_COL_OID);
+
+  columns.emplace_back("fkchildtable", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(FKCHILDTABLE_COL_OID);
+
+  columns.emplace_back("fkrefcol", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(FKREFCOL_COL_OID);
+
+  columns.emplace_back("fkchildcol", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(FKCHILDCOL_COL_OID);
+
+  columns.emplace_back("fkupdateaction", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
+  columns.back().SetOid(FKUPDATEACTION_COL_OID);
+
+  columns.emplace_back("fkdeleteaction", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
+  columns.back().SetOid(FKDELETEACTION_COL_OID);
+
+  return Schema(columns);
+}
+Schema Builder::GetCheckConstraintTableSchema() {
+  std::vector<Schema::Column> columns;
+
+  columns.emplace_back("checkid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(CHECKID_COL_OID);
+
+  columns.emplace_back("checkconid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(CHECKCONID_COL_OID);
+
+  columns.emplace_back("checkreftable", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(CHECKREFTABLE_COL_OID);
+
+  columns.emplace_back("checkchildtable", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(CHECKCHILDTABLE_COL_OID);
+
+  columns.emplace_back("checkrefcol", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(CHECKREFCOL_COL_OID);
+
+  columns.emplace_back("checkchildcol", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(CHECKCHILDCOL_COL_OID);
+
+  columns.emplace_back("checkbin", type::TypeId::BIGINT, false, MakeNull(type::TypeId::BIGINT));
+  columns.back().SetOid(CHECKBIN_COL_OID);
+
+  columns.emplace_back("checksrc", type::TypeId::VARCHAR, 4096, false, MakeNull(type::TypeId::VARCHAR));
+  columns.back().SetOid(CHECKSRC_COL_OID);
+
+  return Schema(columns);
+}
+
+Schema Builder::GetExclusionConstraintTableSchema() {
+  std::vector<Schema::Column> columns;
+
+  columns.emplace_back("exclusionid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(EXCLUSIONID_COL_OID);
+
+  columns.emplace_back("exclusionconid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(EXCLUSIONCONID_COL_OID);
+
+  columns.emplace_back("exclusionreftable", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(EXCLUSIONREFTABLE_COL_OID);
+
+  columns.emplace_back("exclusionchildtable", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(EXCLUSIONCHILDTABLE_COL_OID);
+
+  columns.emplace_back("exclusionrefcol", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(EXCLUSIONREFCOL_COL_OID);
+
+  columns.emplace_back("exclusionchildcol", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.back().SetOid(EXCLUSIONCHILDCOL_COL_OID);
 
   return Schema(columns);
 }
@@ -515,6 +607,45 @@ IndexSchema Builder::GetConstraintOidIndexSchema(db_oid_t db) {
 
   columns.emplace_back("conoid", type::TypeId::INTEGER, false,
                        parser::ColumnValueExpression(db, CONSTRAINT_TABLE_OID, CONOID_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(1));
+
+  // Primary
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
+
+  return schema;
+}
+
+IndexSchema Builder::GetFKConstraintOidIndexSchema(db_oid_t db) {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back("fkid", type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, FK_TABLE_OID, FKID_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(1));
+
+  // Primary
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
+
+  return schema;
+}
+
+IndexSchema Builder::GetCheckConstraintOidIndexSchema(db_oid_t db) {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back("checkid", type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, CHECK_TABLE_OID, CHECKID_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(1));
+
+  // Primary
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
+
+  return schema;
+}
+
+IndexSchema Builder::GetExclusionConstraintOidIndexSchema(db_oid_t db) {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back("exclusionid", type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, EXCLUSION_TABLE_OID, EXCLUSIONID_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary

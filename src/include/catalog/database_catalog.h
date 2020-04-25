@@ -171,7 +171,8 @@ class DatabaseCatalog {
    */
   std::vector<constraint_oid_t> GetConstraints(common::ManagedPointer<transaction::TransactionContext> txn,
                                                table_oid_t table);
-
+  bool DeleteConstraints(const common::ManagedPointer<transaction::TransactionContext> txn, const table_oid_t table);
+  bool DeleteConstraint(const common::ManagedPointer<transaction::TransactionContext> txn, constraint_oid_t constraint);
   /**
    * A list of all indexes on the given table
    * @param txn for the operation
@@ -474,6 +475,12 @@ class DatabaseCatalog {
   storage::index::Index *constraints_foreigntable_index_;
   storage::ProjectedRowInitializer pg_constraints_all_cols_pri_;
   storage::ProjectionMap pg_constraints_all_cols_prm_;
+  storage::SqlTable *fk_constraints_;
+  storage::index::Index *fk_constraints_oid_index_;
+  storage::SqlTable *check_constraints_;
+  storage::index::Index *check_constraints_oid_index_;
+  storage::SqlTable *exclusion_constraints_;
+  storage::index::Index *exclusion_constraints_oid_index_;
 
   storage::SqlTable *languages_;
   storage::index::Index *languages_oid_index_;

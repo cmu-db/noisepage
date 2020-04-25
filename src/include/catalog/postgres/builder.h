@@ -57,6 +57,18 @@ class Builder {
    * @return schema object for pg_constraints table
    */
   static Schema GetConstraintTableSchema();
+  /**
+   * @return schema object for pg_constraints table
+   */
+  static Schema GetFKConstraintTableSchema();
+  /**
+   * @return schema object for pg_constraints table
+   */
+  static Schema GetCheckConstraintTableSchema();
+  /**
+   * @return schema object for pg_constraints table
+   */
+  static Schema GetExclusionConstraintTableSchema();
 
   /**
    * @return schema object for index table
@@ -160,6 +172,21 @@ class Builder {
    * @return schema object for the oid index on pg_constraint
    */
   static IndexSchema GetConstraintOidIndexSchema(db_oid_t db);
+  /**
+   * @param db oid in which the indexed table exists
+   * @return schema object for the oid index on pg_constraint
+   */
+  static IndexSchema GetFKConstraintOidIndexSchema(db_oid_t db);
+  /**
+   * @param db oid in which the indexed table exists
+   * @return schema object for the oid index on pg_constraint
+   */
+  static IndexSchema GetCheckConstraintOidIndexSchema(db_oid_t db);
+  /**
+   * @param db oid in which the indexed table exists
+   * @return schema object for the oid index on pg_constraint
+   */
+  static IndexSchema GetExclusionConstraintOidIndexSchema(db_oid_t db);
 
   /**
    * @param db oid in which the indexed table exists

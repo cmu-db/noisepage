@@ -23,24 +23,26 @@ constexpr index_oid_t CONSTRAINT_FOREIGNTABLE_INDEX_OID = index_oid_t(67);
  * terrier-specific addtions (generally pointers to internal objects).
  */
 constexpr col_oid_t CONOID_COL_OID = col_oid_t(1);         // INTEGER (pkey)
-constexpr col_oid_t CONNAME_COL_OID = col_oid_t(2);        // VARCHAR
-constexpr col_oid_t CONNAMESPACE_COL_OID = col_oid_t(3);   // INTEGER (fkey: pg_namespace)
-constexpr col_oid_t CONTYPE_COL_OID = col_oid_t(4);        // CHAR
-constexpr col_oid_t CONDEFERRABLE_COL_OID = col_oid_t(5);  // BOOLEAN
-constexpr col_oid_t CONDEFERRED_COL_OID = col_oid_t(6);    // BOOLEAN
-constexpr col_oid_t CONVALIDATED_COL_OID = col_oid_t(7);   // BOOLEAN
-constexpr col_oid_t CONRELID_COL_OID = col_oid_t(8);       // INTEGER (fkey: pg_class)
-constexpr col_oid_t CONINDID_COL_OID = col_oid_t(9);       // INTEGER (fkey: pg_class)
-constexpr col_oid_t CONFRELID_COL_OID = col_oid_t(10);     // INTEGER (fkey: pg_class)
-constexpr col_oid_t CONBIN_COL_OID = col_oid_t(11);        // BIGINT (assumes 64-bit pointers)
-constexpr col_oid_t CONSRC_COL_OID = col_oid_t(12);        // VARCHAR
+constexpr col_oid_t CONNAME_COL_OID = col_oid_t(2);        // VARCHAR - name of the constraint
+constexpr col_oid_t CONNAMESPACE_COL_OID = col_oid_t(3);   // INTEGER (fkey: pg_namespace) - namespace of the constraint
+constexpr col_oid_t CONTYPE_COL_OID = col_oid_t(4);        // CHAR - type of the constraint, expressed in char defined below
+constexpr col_oid_t CONDEFERRABLE_COL_OID = col_oid_t(5);  // BOOLEAN - is the constraint deferrable
+constexpr col_oid_t CONDEFERRED_COL_OID = col_oid_t(6);    // BOOLEAN - has the constraint deferred by default?
+constexpr col_oid_t CONVALIDATED_COL_OID = col_oid_t(7);   // BOOLEAN - has the constraint been validated? currently can only be false for FK
+constexpr col_oid_t CONRELID_COL_OID = col_oid_t(8);       // INTEGER (fkey: pg_class) - table oid of the table this constraint is on
+constexpr col_oid_t CONINDID_COL_OID = col_oid_t(9);       // INTEGER (fkey: pg_class) - index oid of the table this constraint applies to
+constexpr col_oid_t CONFRELID_COL_OID = col_oid_t(10);     // VARCHAR - An array of comma separated fk_constraint_id that this foreign key contains, empty string for other constraints
+constexpr col_oid_t CONUNIQUE_COL_COL_OID = col_oid_t(11); // VARCHAR - An array of comma separated column id that unique applies to. empty string for other type 
+constexpr col_oid_t CONCHECK_COL_OID = col_oid_t(12);      // INTEGER (fkey) - row id for the check_constraint_id for the check constraint tof this table, 0 if other type of constraints  
+constexpr col_oid_t CONEXCLUSION_COL_OID = col_oid_t(13);  // INTEGER (fkey) - row id for the exclusion_constraint_id for the exclusion constraint tof this table, 0 if other type of constraints  
+constexpr col_oid_t CONBIN_COL_OID = col_oid_t(14);        // VARCHAR - the expression embedded
 
-constexpr uint8_t NUM_PG_CONSTRAINT_COLS = 12;
+constexpr uint8_t NUM_PG_CONSTRAINT_COLS = 14;
 
 constexpr std::array<col_oid_t, NUM_PG_CONSTRAINT_COLS> PG_CONSTRAINT_ALL_COL_OIDS = {
     CONOID_COL_OID,        CONNAME_COL_OID,     CONNAMESPACE_COL_OID, CONTYPE_COL_OID,
     CONDEFERRABLE_COL_OID, CONDEFERRED_COL_OID, CONVALIDATED_COL_OID, CONRELID_COL_OID,
-    CONINDID_COL_OID,      CONFRELID_COL_OID,   CONBIN_COL_OID,       CONSRC_COL_OID};
+    CONINDID_COL_OID,      CONFRELID_COL_OID,   CONUNIQUE_COL_COL_OID, CONCHECK_COL_OID, CONEXCLUSION_COL_OID, CONBIN_COL_OID};
 
 enum class ConstraintType : char {
   CHECK = 'c',
@@ -49,174 +51,9 @@ enum class ConstraintType : char {
   UNIQUE = 'u',
   TRIGGER = 't',
   EXCLUSION = 'x',
+  NOTNULL = 'n'
 };
 
-/*
- * Identify constraint type for lookup purposes
- */
-typedef enum ConstraintCategory {
-  CONSTRAINT_RELATION,
-  CONSTRAINT_DOMAIN,
-  CONSTRAINT_ASSERTION /* for future expansion */
-} ConstraintCategory;
-
-/**
- * The class datastructure for the pg_constraint
- * Including the attribute for characterizing a constraint on a table for a single column
- */
-class PG_Constraint {
- public:
-  constraint_oid_t oid_;         // oid of the constraint
-  namespace_oid_t namespace_id_; /* OID of namespace containing constraint */
-  ConstraintType type_;          // type of the constraint
-  table_oid_t table_id_;         // the table that this constraint applies to
-  col_oid_t col_id_;             // the column that this constraint applies to
-
-  // bool condeferrable_; /* deferrable constraint? */
-  // bool condeferred_;   /* deferred by default? */
-  // bool convalidated_;  /* constraint has been validated? */
-
-  /*
-   * conindid links to the index supporting the constraint, if any;
-   * otherwise it's 0.  This is used for unique, primary-key, and exclusion
-   * constraints, and less obviously for foreign-key constraints (where the
-   * index is a unique index on the referenced relation's referenced
-   * columns).  Notice that the index is on conrelid in the first case but
-   * confrelid in the second.
-   */
-  // index_oid_t conindid_; /* index supporting this constraint */
-
-  /*
-   * If this constraint is on a partition inherited from a partitioned
-   * table, this is the OID of the corresponding constraint in the parent.
-   */
-  // constraint_oid_t conparentid_;
-
-  /************************ Foreign Key specific ******************************/
-  // only applies to foreign keys, set to zero if other types of constraints
-
-  table_oid_t fk_ref_table_id_;  // id of the table this constraint refers to
-  col_oid_t fk_ref_col_id_;      // column that this constraint refers to
-  bool fk_update_cascade_;       // true if cascade on update
-  bool fk_delete_cascade_;       // true if cascade on deletion
-
-  /**
-   * default constructor for constraints other than FK constraint
-   * set fk related parameters to zero or false to occupy space
-   */
-  PG_Constraint(constraint_oid_t con_id, namespace_oid_t namespace_id, ConstraintType con_type,
-                table_oid_t con_table_id, col_oid_t col_id) {
-    oid_ = con_id;
-    namespace_id_ = namespace_id;
-    type_ = con_type;
-    table_id_ = con_table_id;
-    col_id_ = col_id;
-
-    // void FK attr
-    fk_ref_col_id_ = col_oid_t(0);
-    fk_ref_table_id_ = table_oid_t(0);
-    fk_update_cascade_ = false;
-    fk_delete_cascade_ = false;
-  }
-
-  /**
-   * Constructor for FK constraint
-   * requires all attribbutes including those for FK to be set
-   */
-  PG_Constraint(constraint_oid_t con_id, namespace_oid_t namespace_id, ConstraintType con_type,
-                table_oid_t con_table_id, col_oid_t col_id, table_oid_t ref_table, col_oid_t ref_col,
-                bool update_cascade, bool delete_cascade) {
-    oid_ = con_id;
-    namespace_id_ = namespace_id;
-    type_ = con_type;
-    table_id_ = con_table_id;
-    col_id_ = col_id;
-
-    // void FK attr
-    fk_ref_col_id_ = ref_col;
-    fk_ref_table_id_ = ref_table;
-    fk_update_cascade_ = update_cascade;
-    fk_delete_cascade_ = delete_cascade;
-  }
-};
-
-/**
- * Manager class for pg_constraints
- * responsible for creating and registering a constraint in the system
- *  create this when database start 
- */
-class PG_Constraint_Manager {
- public:
-  // <oid_, constraint> map to get constraint from its oid
-  std::unordered_map<constraint_oid_t, PG_Constraint *> con_id_map_;
-  // the current highest oid available to be assigned to the new one
-  constraint_oid_t cur_oid_;
-  // queue used to record voided constraint id to be assigned to new constraints
-  std::queue<constraint_oid_t> unused_con_oid_;
-
-  PG_Constraint_Manager() {
-    cur_oid_ = constraint_oid_t(1);  // starting with 1 as 0 is the default voided id
-  }
-  // create a new normal constraint
-  PG_Constraint *GetNewConstraint(namespace_oid_t namespace_id, ConstraintType con_type, table_oid_t con_table_id,
-                                  col_oid_t col_id) {
-    constraint_oid_t tmp_oid;
-    PG_Constraint *con;
-    latch_.Lock();
-    if (!unused_con_oid_.empty()) {
-      tmp_oid = unused_con_oid_.front();
-      unused_con_oid_.pop();
-    } else {
-      tmp_oid = cur_oid_;
-      cur_oid_++;
-    }
-    con = new PG_Constraint(tmp_oid, namespace_id, con_type, con_table_id, col_id);
-    con_id_map_.emplace(tmp_oid, con);
-    latch_.Unlock();
-    return con;
-  }
-
-  // create a new FK constraint
-  PG_Constraint *GetNewFKConstraint(namespace_oid_t namespace_id, ConstraintType con_type, table_oid_t con_table_id,
-                                    col_oid_t col_id, table_oid_t ref_table, col_oid_t ref_col, bool update_cascade,
-                                    bool delete_cascade) {
-    constraint_oid_t tmp_oid;
-    PG_Constraint *con;
-    latch_.Lock();
-    if (!unused_con_oid_.empty()) {
-      tmp_oid = unused_con_oid_.front();
-      unused_con_oid_.pop();
-    } else {
-      tmp_oid = cur_oid_;
-      cur_oid_++;
-    }
-    con = new PG_Constraint(tmp_oid, namespace_id, con_type, con_table_id, col_id, ref_table, ref_col, update_cascade,
-                            delete_cascade);
-    con_id_map_.emplace(tmp_oid, con);
-    latch_.Unlock();
-    return con;
-  }
-
-  // delete a constraint according to its oid
-  // return false if failed
-  // failed when constraint with current oid does not exists
-  bool DeleteConstraint(constraint_oid_t oid) {
-    PG_Constraint *con;
-    bool res = false;
-    latch_.Lock();
-    if (con_id_map_.count(oid) != 0) {
-      con = con_id_map_.at(oid);
-      con_id_map_.erase(oid);
-      unused_con_oid_.push(oid);
-      delete con;
-      res = true;
-    }
-    latch_.Unlock();
-    return res;
-  }
-
- private:
-  // the latch for protecting constraint manager access
-  mutable common::SpinLatch latch_;
-};
+// the delimiter for making oid array into varchar for storage
+const char VARCHAR_ARRAY_DELIMITER = ',';
 }  // namespace terrier::catalog::postgres
