@@ -635,6 +635,11 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     OpCteScanTableInsert(tuple_slot, iter);
     DISPATCH_NEXT();
   }
+  OP(CteScanFree) : {
+    auto iter = frame->LocalAt<sql::CteScanIterator *>(READ_LOCAL_ID());
+    OpCteScanFree(iter);
+    DISPATCH_NEXT();
+  }
 
 
   // -------------------------------------------------------

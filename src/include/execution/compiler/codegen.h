@@ -1382,8 +1382,9 @@ class CodeGen {
     return std::move(pipeline_operating_units_);
   }
 
+  /*Return the identifier for a cte scan iterator in tpl generated
+   * */
   ast::Identifier GetCteScanIdentifier() { return cte_scan_iterator_;}
-
  private:
   // Enter a new lexical scope.
   void EnterScope();

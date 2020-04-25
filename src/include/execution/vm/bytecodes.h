@@ -124,10 +124,12 @@ namespace terrier::execution::vm {
     OperandType::Local, OperandType::FunctionId)                                                                      \
                                                                                                                       \
   F(CteScanInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::UImm4)                      \
-  F(CteScanGetTable, OperandType::Local)                                                                              \
-  F(CteScanGetTableOid, OperandType::Local)                                                                           \
-  F(CteScanGetInsertTempTablePR, OperandType::Local)                                                                  \
-  F(CteScanTableInsert, OperandType::Local)                                                                           \
+  F(CteScanGetTable, OperandType::Local, OperandType::Local)                                                          \
+  F(CteScanGetTableOid, OperandType::Local, OperandType::Local)                                                       \
+  F(CteScanGetInsertTempTablePR, OperandType::Local, OperandType::Local)                                              \
+  F(CteScanTableInsert, OperandType::Local, OperandType::Local)                                                       \
+  F(CteScanFree, OperandType::Local)                                                                                  \
+                                                                                                                      \
                                                                                                                       \
   /* Vector Projection Iterator (VPI) */                                                                              \
   F(VPIInit, OperandType::Local, OperandType::Local)                                                                  \

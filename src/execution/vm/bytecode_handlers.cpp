@@ -72,6 +72,10 @@ void OpCteScanTableInsert(terrier::storage::TupleSlot* tuple_slot, terrier::exec
   *tuple_slot = iter->TableInsert();
 }
 
+void OpCteScanFree(terrier::execution::sql::CteScanIterator *iter) {
+  iter->~CteScanIterator();
+}
+
 
 // ---------------------------------------------------------
 // Filter Manager
