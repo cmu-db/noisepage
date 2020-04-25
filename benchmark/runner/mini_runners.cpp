@@ -253,6 +253,47 @@ static void GenScanArguments(benchmark::internal::Benchmark *b) {
  * 4 - row
  * 5 - cardinality
  */
+static void GenSortArguments(benchmark::internal::Benchmark *b) {
+  auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
+  auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
+  for (auto type : types) {
+    for (auto col : num_cols) {
+      for (auto row : row_nums) {
+        int64_t car = 1;
+        while (car < row) {
+          if (type == type::TypeId::INTEGER)
+            b->Args({col, 0, 15, 0, row, car});
+          else if (type == type::TypeId::DECIMAL)
+            b->Args({0, col, 0, 15, row, car});
+          car *= 2;
+        }
+
+        if (type == type::TypeId::INTEGER)
+          b->Args({col, 0, 15, 0, row, row});
+        else if (type == type::TypeId::DECIMAL)
+          b->Args({0, col, 0, 15, row, row});
+      }
+    }
+  }
+
+  std::vector<std::vector<int64_t>> args;
+  GENERATE_MIXED_ARGUMENTS(args);
+  for (auto arg : args) {
+    b->Args(arg);
+  }
+}
+
+/**
+ * Arg <0, 1, 2, 3, 4, 5>
+ * 0 - # integers to scan
+ * 1 - # big integers to scan
+ * 2 - # integers in table
+ * 3 - # big integers in table
+ * 4 - row
+ * 5 - cardinality
+ */
 static void GenAggregateArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
@@ -435,19 +476,13 @@ static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
  * 1 - Number of rows
  */
 static void GenInsertArguments(benchmark::internal::Benchmark *b) {
-  auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
-  auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
-  auto num_rows = {1, 10, 100, 1000, 2000, 5000, 10000, 20000, 50000, 100000};
+  auto types = {type::TypeId::INTEGER}; //, type::TypeId::BIGINT};
+  auto num_cols = {1, 3, 5, 7, 9};
+  auto num_rows = {1, 10, 100, 1000, 2000, 5000, 10000};
   for (auto type : types) {
     for (auto col : num_cols) {
       for (auto row : num_rows) {
-        int64_t car = 1;
-        while (car < row) {
-          b->Args({static_cast<int64_t>(type), col, row, car});
-          car *= 2;
-        }
-
-        b->Args({static_cast<int64_t>(type), col, row, row});
+        b->Args({static_cast<int64_t>(type), col, row});
       }
     }
   }
@@ -476,6 +511,30 @@ static void GenUpdateArguments(benchmark::internal::Benchmark *b) {
 
         b->Args({static_cast<int64_t>(type), col, row, row});
       }
+    }
+  }
+}
+
+/**
+ * Arg <0, 1, 2, 3>
+ * 0 - Type
+ * 1 - Number of columns
+ * 2 - Number of rows
+ * 3 - Cardinality
+ */
+static void GenDeleteArguments(benchmark::internal::Benchmark *b) {
+  auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
+  for (auto type : types) {
+    for (auto row : row_nums) {
+      int64_t car = 1;
+      while (car < row) {
+        b->Args({static_cast<int64_t>(type), row, car});
+        car *= 2;
+      }
+
+      b->Args({static_cast<int64_t>(type), row, row});
     }
   }
 }
@@ -608,10 +667,6 @@ class MiniRunners : public benchmark::Fixture {
       txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     else
       txn_manager_->Abort(txn);
-
-    auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
-    gc->PerformGarbageCollection();
-    gc->PerformGarbageCollection();
   }
 
   void BenchmarkIndexScan(type::TypeId type, int key_num, int num_rows, int lookup_size) {
@@ -693,10 +748,6 @@ class MiniRunners : public benchmark::Fixture {
     }
 
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-    auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
-    gc->PerformGarbageCollection();
-    gc->PerformGarbageCollection();
   }
 
   void BenchmarkArithmetic(brain::ExecutionOperatingUnitType type, size_t num_elem) {
@@ -776,10 +827,6 @@ class MiniRunners : public benchmark::Fixture {
     }
 
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-    auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
-    gc->PerformGarbageCollection();
-    gc->PerformGarbageCollection();
   }
 
  protected:
@@ -842,13 +889,9 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
 
     // pipeline
     output << "fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {\n";
-    for (auto i = 0; i < num_integers; i++) output << "\tvar outval" << i << " = @intToSql(" << (i + num_col) << ")\n";
-    for (auto i = num_integers; i < num_col; i++)
-      output << "\tvar outval" << i << " = @floatToSql(" << (i + num_col) << ".0)\n";
     output << "\tvar out: *Output\n";
     output << "\tfor(var it = 0; it < " << row_num << "; it = it + 1) {\n";
     output << "\t\tout = @ptrCast(*Output, @outputAlloc(execCtx))\n";
-    for (auto i = 0; i < num_col; i++) output << "\t\tout.col" << i << " = outval" << i << "\n";
     output << "\t}\n";
     output << "\t@outputFinalize(execCtx)\n";
     output << "}\n";
@@ -900,10 +943,6 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
     exec_query.Run(common::ManagedPointer(exec_ctx), mode);
 
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-    auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
-    gc->PerformGarbageCollection();
-    gc->PerformGarbageCollection();
   }
 
   metrics_manager_->Aggregate();
@@ -974,17 +1013,18 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ1_IndexScanRunners)(benchmark::State &state) 
   state.SetItemsProcessed(state.range(2));
 }
 
+/*
 BENCHMARK_REGISTER_F(MiniRunners, SEQ1_IndexScanRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
     ->Apply(GenIdxScanArguments);
+    */
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ1_InsertRunners)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(MiniRunners, SEQ5_InsertRunners)(benchmark::State &state) {
   auto type = static_cast<type::TypeId>(state.range(0));
   auto num_cols = state.range(1);
   auto num_rows = state.range(2);
-  auto num_car = state.range(3);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
@@ -1016,31 +1056,31 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ1_InsertRunners)(benchmark::State &state) {
       txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     }
 
-    std::stringstream query;
-    query << "INSERT INTO tmp_table VALUES ";
-
-    std::mt19937 generator{};
-    std::uniform_int_distribution<int> distribution(0, INT_MAX);
-    int64_t counter = 1;
-    for (uint32_t idx = 0; idx < num_rows; idx++) {
-      if (counter > num_car) {
-        counter = 1;
-      }
-
-      auto val = counter;
-      query << "(";
+    std::string tuple_row;
+    {
+      std::stringstream tuple;
+      tuple << "(";
       for (uint32_t i = 1; i <= num_cols; i++) {
-        query << val;
+        tuple << i;
         if (i != num_cols) {
-          query << ",";
+          tuple << ",";
         } else {
-          query << ") ";
+          tuple << ")";
         }
       }
-      counter++;
+      tuple_row = tuple.str();
+    }
 
+    // Hack to preallocate some memory
+    std::string reserves;
+    std::string query;
+    query.reserve(tuple_row.length() * num_rows + num_rows + 100);
+
+    query += "INSERT INTO tmp_table VALUES ";
+    for (uint32_t idx = 0; idx < num_rows; idx++) {
+      query += tuple_row;
       if (idx != num_rows - 1) {
-        query << ", ";
+        query += ", ";
       }
     }
 
@@ -1049,14 +1089,14 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ1_InsertRunners)(benchmark::State &state) {
 
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::INSERT, num_rows, tuple_size, num_cols, num_car);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::INSERT, num_rows, tuple_size, num_cols, num_rows);
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       metrics_manager_->RegisterThread();
-      BenchmarkSqlStatement(query.str(), &units, std::make_unique<optimizer::TrivialCostModel>(), true);
+      BenchmarkSqlStatement(query, &units, std::make_unique<optimizer::TrivialCostModel>(), true);
       metrics_manager_->Aggregate();
       metrics_manager_->UnregisterThread();
     }
@@ -1079,14 +1119,14 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ1_InsertRunners)(benchmark::State &state) {
   state.SetItemsProcessed(num_rows);
 }
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ1_InsertRunners)
+BENCHMARK_REGISTER_F(MiniRunners, SEQ5_InsertRunners)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->Iterations(1)
     ->Apply(GenInsertArguments);
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ2_UpdateRunners)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(MiniRunners, SEQ5_UpdateRunners)(benchmark::State &state) {
   auto type = static_cast<type::TypeId>(state.range(0));
   auto num_cols = state.range(1);
   auto num_rows = state.range(2);
@@ -1143,11 +1183,64 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_UpdateRunners)(benchmark::State &state) {
   state.SetItemsProcessed(num_rows);
 }
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ2_UpdateRunners)
+BENCHMARK_REGISTER_F(MiniRunners, SEQ5_UpdateRunners)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->Iterations(1)
     ->Apply(GenUpdateArguments);
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(MiniRunners, SEQ5_DeleteRunners)(benchmark::State &state) {
+  auto type = static_cast<type::TypeId>(state.range(0));
+  auto num_rows = state.range(1);
+  auto num_car = state.range(2);
+
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    // UPDATE [] SET [col] = random integer()
+    // This does not force a read from the underlying tuple more than getting the slot.
+    // Arguably, this approach has the least amount of "SEQ_SCAN" overhead and measures:
+    // - Iterating over entire table for the slot
+    // - Cost of "merging" updates with the undo/redos
+    std::stringstream query;
+    auto num_cols = 15;
+    query << "DELETE FROM " << execution::sql::TableGenerator::GenerateTableName(type, num_cols, num_rows, num_car);
+    auto type_size = type::TypeUtil::GetTypeSize(type);
+    auto tuple_size = type_size * num_cols;
+
+    brain::PipelineOperatingUnits units;
+    brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::DELETE, num_rows, tuple_size, num_cols, num_car);
+
+    // key_size and num_cols for SEQ_SCAN is 0 since just getting TupleSlot()
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, num_rows, 0, 0, num_car);
+    units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
+
+    uint64_t elapsed_ms;
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      metrics_manager_->RegisterThread();
+      BenchmarkSqlStatement(query.str(), &units, std::make_unique<optimizer::TrivialCostModel>(), false);
+      metrics_manager_->Aggregate();
+      metrics_manager_->UnregisterThread();
+    }
+
+    // Perform GC to do any cleanup...becuase the transaction aborted
+    auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
+    gc->PerformGarbageCollection();
+    gc->PerformGarbageCollection();
+
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+  }
+
+  state.SetItemsProcessed(num_rows);
+}
+
+BENCHMARK_REGISTER_F(MiniRunners, SEQ5_DeleteRunners)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->Iterations(1)
+    ->Apply(GenDeleteArguments);
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ2_SortRunners)(benchmark::State &state) {
@@ -1192,7 +1285,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_SortRunners)(benchmark::State &state) {
 BENCHMARK_REGISTER_F(MiniRunners, SEQ2_SortRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
-    ->Apply(GenScanArguments);
+    ->Apply(GenSortArguments);
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ3_HashJoinSelfRunners)(benchmark::State &state) {
@@ -1407,10 +1500,11 @@ void RunBenchmarkSequence(void) {
   //
   // As such: the following sequence is utilized
   // SEQ0: ArithmeticRunners
-  // SEQ1: SeqScan, IdxScan, Insert
-  // SEQ2: Sort, Update
+  // SEQ1: SeqScan, IdxScan
+  // SEQ2: Sort
   // SEQ3: HashJoin
   // SEQ4: Aggregate
+  // SEQ5: Insert, Update, Delete
 
   char buffer[32];
   const char *argv[2];
@@ -1418,7 +1512,7 @@ void RunBenchmarkSequence(void) {
   argv[1] = buffer;
 
   auto vm_modes = {terrier::execution::vm::ExecutionMode::Interpret, terrier::execution::vm::ExecutionMode::Compiled};
-  for (size_t i = 0; i < 5; i++) {
+  for (size_t i = 0; i < 6; i++) {
     for (auto mode : vm_modes) {
       terrier::runner::MiniRunners::mode = mode;
 
@@ -1426,10 +1520,6 @@ void RunBenchmarkSequence(void) {
       snprintf(buffer, sizeof(buffer), "--benchmark_filter=SEQ%lu", i);
       benchmark::Initialize(&argc, const_cast<char **>(argv));
       benchmark::RunSpecifiedBenchmarks();
-
-      auto gc = terrier::runner::db_main->GetStorageLayer()->GetGarbageCollector();
-      gc->PerformGarbageCollection();
-      gc->PerformGarbageCollection();
     }
 
     std::this_thread::sleep_for(std::chrono::seconds(2));

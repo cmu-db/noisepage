@@ -159,11 +159,11 @@ _Q11_P6 = [(OpUnit.SORT_ITERATE, [2500, 12, 2, 2500]),
 
 
 _SCAN_LINEITEM_P1 = [(OpUnit.SEQ_SCAN, [600000, 64, 10, 600000]),
-                     (OpUnit.OUTPUT, [600000, 64, 10, 600000]),
+                     (OpUnit.OUTPUT, [600000, 64, 10, 600000])
                      ]
 
 _SCAN_ORDERS_P1 = [(OpUnit.SEQ_SCAN, [150000, 4, 1, 150000]),
-                   (OpUnit.OUTPUT, [150000, 4, 1, 150000]),
+                   (OpUnit.OUTPUT, [150000, 4, 1, 150000])
                    ]
 
 # Map from the query pipeline identifier to the their opunit features

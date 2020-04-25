@@ -170,9 +170,11 @@ void OperatingUnitRecorder::VisitAbstractPlanNode(const planner::AbstractPlanNod
 void OperatingUnitRecorder::VisitAbstractScanPlanNode(const planner::AbstractScanPlanNode *plan) {
   VisitAbstractPlanNode(plan);
 
-  auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(plan->GetScanPredicate());
-  arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
-                                   std::make_move_iterator(features.end()));
+  if (plan->GetScanPredicate() != nullptr) {
+    auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(plan->GetScanPredicate());
+    arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
+                                     std::make_move_iterator(features.end()));
+  }
 }
 
 void OperatingUnitRecorder::Visit(const planner::SeqScanPlanNode *plan) {
@@ -438,11 +440,6 @@ void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) {
 void OperatingUnitRecorder::Visit(const planner::ProjectionPlanNode *plan) {
   VisitAbstractPlanNode(plan);
   RecordArithmeticFeatures(plan, 1);
-
-  // Copy outwards
-  auto num_keys = plan->GetOutputSchema()->GetColumns().size();
-  auto key_size = ComputeKeySizeOutputSchema(plan);
-  AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {

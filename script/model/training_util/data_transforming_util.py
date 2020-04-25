@@ -54,6 +54,7 @@ OPUNIT_MODELING_TRANSFORMER_MAP = {
     OpUnit.SORT_ITERATE: _tuple_num_linear_transformer,
     OpUnit.INSERT: _tuple_num_linear_transformer,
     OpUnit.UPDATE: _tuple_num_linear_transformer,
+    OpUnit.DELETE: _tuple_num_linear_transformer,
     OpUnit.OP_INTEGER_PLUS_OR_MINUS: _tuple_num_linear_transformer,
     OpUnit.OP_INTEGER_MULTIPLY: _tuple_num_linear_transformer,
     OpUnit.OP_INTEGER_DIVIDE: _tuple_num_linear_transformer,
