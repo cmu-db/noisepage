@@ -1,6 +1,5 @@
 #include "storage/recovery/recovery_manager.h"
 
-#include <catalog/postgres/pg_proc.h>
 #include <algorithm>
 #include <string>
 #include <unordered_map>
@@ -15,6 +14,7 @@
 #include "catalog/postgres/pg_index.h"
 #include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_namespace.h"
+#include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
 #include "storage/index/index_builder.h"
 #include "storage/write_ahead_log/log_io.h"
@@ -287,7 +287,6 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
                                  db_catalog_ptr->languages_name_index_->metadata_.GetSchema());
       break;
     }
-
     case (!catalog::postgres::PRO_TABLE_OID): {
       index_objects.emplace_back(db_catalog_ptr->procs_oid_index_,
                                  db_catalog_ptr->procs_oid_index_->metadata_.GetSchema());
@@ -400,6 +399,10 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
       // A delete into pg_index means we are dropping an index. In this case, we dont process the record because the
       // DeleteIndex catalog function will cleanup the entry in pg_index for us.
       return 0;  // No additional logs processed
+    }
+
+    case (!catalog::postgres::PRO_TABLE_OID): {
+      return ProcessSpecialCasePGProcRecord(txn, buffered_changes, start_idx);
     }
 
     default:
@@ -957,6 +960,40 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
     default:
       throw std::runtime_error("This oid does not belong to any catalog index");
   }
+}
+
+uint32_t RecoveryManager::ProcessSpecialCasePGProcRecord(
+    terrier::transaction::TransactionContext *txn,
+    std::vector<std::pair<terrier::storage::LogRecord *, std::vector<terrier::byte *>>> *buffered_changes,
+    uint32_t start_idx) {
+  auto *curr_record = buffered_changes->at(start_idx).first;
+
+  if (curr_record->RecordType() == LogRecordType::REDO) {
+    auto *redo_record = curr_record->GetUnderlyingRecordBodyAs<RedoRecord>();
+    if (IsInsertRecord(redo_record)) {
+      ReplayRedoRecord(txn, curr_record);
+    } else {
+      return 0;
+    }
+    TERRIER_ASSERT(redo_record->GetTableOid() == catalog::postgres::PRO_TABLE_OID,
+                   "This function must be only called with records modifying pg_proc");
+
+    // An insert into pg_proc is a special case because we need the catalog to actually create the necessary
+    // database catalog objects
+    TERRIER_ASSERT(IsInsertRecord(redo_record), "Special case on pg_proc should only be insert");
+    storage::SqlTable *pg_proc =
+        catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), redo_record->GetDatabaseOid())->procs_;
+    auto pr_map = pg_proc->ProjectionMapForOids(GetOidsForRedoRecord(pg_proc, redo_record));
+    catalog::proc_oid_t proc_oid(*(reinterpret_cast<uint32_t *>(
+        redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::PROOID_COL_OID]))));
+
+    auto result UNUSED_ATTRIBUTE =
+        catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), redo_record->GetDatabaseOid())
+            ->SetProcCtxPtr(common::ManagedPointer(txn), proc_oid, nullptr);
+    TERRIER_ASSERT(result, "Setting to null did not work");
+    return 0;  // No additional records processed
+  }
+  return 0;
 }
 
 const catalog::Schema &RecoveryManager::GetTableSchema(
