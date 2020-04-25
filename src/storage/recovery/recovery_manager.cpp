@@ -110,7 +110,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
     f.open(in_file, std::ios::binary);
 
     // Convert Schema
-    int32_t schema_size;
+    uint32_t schema_size;
     f.read(reinterpret_cast<char *>(&schema_size), sizeof(schema_size));
     f.read(reinterpret_cast<char *>(&schema_size), sizeof(schema_size));
     f.seekg(schema_size, std::ios::cur);
@@ -118,6 +118,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
     // Convert RecordBatch
     std::list<RawBlock *> blocks;
     int32_t place_holder;
+    TupleSlot place_holder_tuple_slot;
     // Create DataTable
     while (f.read(reinterpret_cast<char *>(&place_holder), sizeof(place_holder)) && place_holder == -1) {
       RawBlock *block = new RawBlock();
@@ -131,15 +132,17 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
       auto *record_batch = msg->header_as_RecordBatch();
       auto *record_buffers = record_batch->buffers();
       auto *field_nodes = record_batch->nodes();
-      block->insert_head_ = (*field_nodes)[0]->length();
+      auto insert_head = (*field_nodes)[0]->length();
+      for (size_t j = 0; j < insert_head; j ++) {
+        data_table->accessor_.Allocate(block, &place_holder_tuple_slot);
+      }
       for (size_t i = 0; i < column_id_size; ++i) {
         auto col_id = column_ids[i];
-//        common::RawConcurrentBitmap *column_bitmap = data_table->accessor_.ColumnNullBitmap(block, col_id);
         common::RawConcurrentBitmap *column_bitmap = data_table->accessor_.ColumnNullBitmap(block, col_id);
         byte *column_start = data_table->accessor_.ColumnStart(block, col_id);
         auto s = (*record_buffers)[2 * i]->length();
-        ReadDataBlock(f, reinterpret_cast<char *>(column_bitmap),
-                      s);
+        TERRIER_ASSERT(s == reinterpret_cast<uintptr_t>(column_start) - reinterpret_cast<uintptr_t>(column_bitmap), "bitmap length should match");
+        ReadDataBlock(f, reinterpret_cast<char *>(column_bitmap), s);
 
         if (layout.IsVarlen(col_id)) {
           uint64_t offsets_length = (*record_buffers)[2 * i + 1]->length() / sizeof(uint64_t);
@@ -165,8 +168,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
       }
       data_table->blocks_.push_back(block);
     }
-    TupleSlot tmp;
-    data_table->UpdateInsertionHead(tmp);
+    data_table->UpdateInsertionHead(place_holder_tuple_slot);
     f.close();
   }
   txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);

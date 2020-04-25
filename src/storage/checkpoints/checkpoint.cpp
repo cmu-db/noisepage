@@ -56,8 +56,6 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
 
     // copy data table
     std::list<RawBlock *> new_blocks(curr_data_table->blocks_);
-    storage::DataTable new_table(curr_data_table->block_store_, curr_data_table->GetBlockLayout(),
-                                 curr_data_table->layout_version_, new_blocks);
 
     const BlockLayout &layout = curr_data_table->GetBlockLayout();
     std::vector<type::TypeId> column_types;
