@@ -356,8 +356,8 @@ void DatabaseCatalog::BootstrapPRIs() {
   // pg_constraint 
   const std::vector<col_oid_t> pg_constraint_all_oids{postgres::PG_CONSTRAINT_ALL_COL_OIDS.cbegin(),
                                                  postgres::PG_CONSTRAINT_ALL_COL_OIDS.cend()};
-  pg_constraint_all_cols_pri_ = constraints_->InitializerForProjectedRow(pg_constraint_all_oids);
-  pg_constraint_all_cols_prm_ = constraints_->ProjectionMapForOids(pg_constraint_all_oids);
+  pg_constraints_all_cols_pri_ = constraints_->InitializerForProjectedRow(pg_constraint_all_oids);
+  pg_constraints_all_cols_prm_ = constraints_->ProjectionMapForOids(pg_constraint_all_oids);
 }
 
 namespace_oid_t DatabaseCatalog::CreateNamespace(const common::ManagedPointer<transaction::TransactionContext> txn,
