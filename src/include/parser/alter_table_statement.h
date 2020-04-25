@@ -74,7 +74,7 @@ class AlterTableStatement : public TableRefStatement {
     /**
      * @return  type of the command
      */
-    const AlterType GetType() const { return type_; }
+    const AlterType GetAlterType() const { return type_; }
 
     /**
      * @return column name
@@ -84,7 +84,7 @@ class AlterTableStatement : public TableRefStatement {
     /**
      * @return default expression
      */
-    common::ManagedPointer<AbstractExpression> GetDefaultValue() const {
+    common::ManagedPointer<AbstractExpression> GetDefaultExpression() const {
       return common::ManagedPointer(default_value_);
     }
 

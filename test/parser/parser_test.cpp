@@ -65,7 +65,7 @@ TEST_F(ParserTestBase, AlterTest) {
     const auto &cmds = alter_stmt->GetAlterTableCmds();
     EXPECT_EQ(cmds.size(), 1);
     auto &col = cmds[0].GetColumn();
-    EXPECT_EQ(cmds[0].GetType(), AlterTableStatement::AlterType::AddColumn);
+    EXPECT_EQ(cmds[0].GetAlterType(), AlterTableStatement::AlterType::AddColumn);
     EXPECT_FALSE(cmds[0].IsIfExists());
     EXPECT_EQ(col.GetColumnName(), "new_column");
     EXPECT_EQ(col.GetColumnType(), ColumnDefinition::DataType::INT);
@@ -84,7 +84,7 @@ TEST_F(ParserTestBase, AlterTest) {
     EXPECT_EQ(alter_stmt->IsIfExists(), true);
     const auto &cmds = alter_stmt->GetAlterTableCmds();
     EXPECT_EQ(cmds.size(), 1);
-    EXPECT_EQ(cmds[0].GetType(), AlterTableStatement::AlterType::DropColumn);
+    EXPECT_EQ(cmds[0].GetAlterType(), AlterTableStatement::AlterType::DropColumn);
     EXPECT_EQ(cmds[0].GetColumnName(), "old_column");
     EXPECT_TRUE(cmds[0].IsIfExists());
     EXPECT_TRUE(cmds[0].IsDropCascade());
@@ -96,12 +96,23 @@ TEST_F(ParserTestBase, AlterTest) {
         parser::PostgresParser::BuildParseTree("ALTER TABLE table_name ALTER COLUMN old_column SET DEFAULT 15721;");
     auto alter_stmt = result->GetStatement(0).CastManagedPointerTo<AlterTableStatement>();
     const auto &cmds = alter_stmt->GetAlterTableCmds();
-    EXPECT_EQ(cmds[0].GetType(), AlterTableStatement::AlterType::ColumnDefault);
-    auto default_expr = cmds[0].GetDefaultValue().CastManagedPointerTo<ConstantValueExpression>();
+    EXPECT_EQ(cmds[0].GetAlterType(), AlterTableStatement::AlterType::ColumnDefault);
+    auto default_expr = cmds[0].GetDefaultExpression().CastManagedPointerTo<ConstantValueExpression>();
     EXPECT_NE(default_expr, nullptr);
     EXPECT_EQ(cmds[0].GetColumnName(), "old_column");
     EXPECT_EQ(default_expr->GetValue().Type(), type::TypeId::INTEGER);
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(default_expr->GetValue()), 15721);
+  }
+  {
+    auto result =
+        parser::PostgresParser::BuildParseTree("ALTER TABLE table_name ALTER COLUMN old_column SET DEFAULT NULL;");
+    auto alter_stmt = result->GetStatement(0).CastManagedPointerTo<AlterTableStatement>();
+    const auto &cmds = alter_stmt->GetAlterTableCmds();
+    EXPECT_EQ(cmds[0].GetAlterType(), AlterTableStatement::AlterType::ColumnDefault);
+    auto default_expr = cmds[0].GetDefaultExpression().CastManagedPointerTo<ConstantValueExpression>();
+    EXPECT_NE(default_expr, nullptr);
+    EXPECT_EQ(cmds[0].GetColumnName(), "old_column");
+    EXPECT_EQ(default_expr->GetValue().Type(), type::TypeId::INVALID);
   }
 
   // Drop default
@@ -110,8 +121,8 @@ TEST_F(ParserTestBase, AlterTest) {
         parser::PostgresParser::BuildParseTree("ALTER TABLE table_name ALTER COLUMN old_column DROP DEFAULT;");
     auto alter_stmt = result->GetStatement(0).CastManagedPointerTo<AlterTableStatement>();
     const auto &cmds = alter_stmt->GetAlterTableCmds();
-    EXPECT_EQ(cmds[0].GetType(), AlterTableStatement::AlterType::ColumnDefault);
-    auto default_expr = cmds[0].GetDefaultValue().CastManagedPointerTo<ConstantValueExpression>();
+    EXPECT_EQ(cmds[0].GetAlterType(), AlterTableStatement::AlterType::ColumnDefault);
+    auto default_expr = cmds[0].GetDefaultExpression().CastManagedPointerTo<ConstantValueExpression>();
     EXPECT_EQ(default_expr, nullptr);
     EXPECT_EQ(cmds[0].GetColumnName(), "old_column");
     EXPECT_FALSE(cmds[0].IsDropCascade());
@@ -122,7 +133,7 @@ TEST_F(ParserTestBase, AlterTest) {
     auto result = parser::PostgresParser::BuildParseTree("ALTER TABLE table_name ALTER COLUMN old_column TYPE DOUBLE;");
     auto alter_stmt = result->GetStatement(0).CastManagedPointerTo<AlterTableStatement>();
     const auto &cmds = alter_stmt->GetAlterTableCmds();
-    EXPECT_EQ(cmds[0].GetType(), AlterTableStatement::AlterType::AlterColumnType);
+    EXPECT_EQ(cmds[0].GetAlterType(), AlterTableStatement::AlterType::AlterColumnType);
     auto &col = cmds[0].GetColumn();
     EXPECT_EQ(col.GetColumnName(), "old_column");
     EXPECT_EQ(col.GetColumnType(), ColumnDefinition::DataType::DOUBLE);
