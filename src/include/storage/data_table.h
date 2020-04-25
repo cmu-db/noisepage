@@ -161,6 +161,9 @@ class DataTable {
   void Scan(common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *start_pos,
             ProjectedColumns *out_buffer) const;
 
+  void IncrementalScan(common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *start_pos,
+                       ProjectedColumns *out_buffer, uint32_t filled) const;
+
   /**
    * @return the first tuple slot contained in the data table
    */

@@ -8,13 +8,16 @@
 #include "test_util/test_harness.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier {
+namespace terrier::storage {
 
-struct SqlTableTests : public TerrierTest {
+class SqlTableTests : public TerrierTest {
+ public:
   storage::BlockStore block_store_{100, 100};
   storage::RecordBufferSegmentPool buffer_pool_{100000, 10000};
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
+  void SetUp() override {}
+  void TearDown() override {}
 };
 
 static std::unique_ptr<catalog::Schema> AddColumn(const catalog::Schema &schema, catalog::Schema::Column *column) {
@@ -52,7 +55,53 @@ class RandomSqlTableTestObject {
 
   // TODO(Schema-Change): redos_ seems to be producing problem here.
   //  We should look into this function further
-  ~RandomSqlTableTestObject() = default;
+  ~RandomSqlTableTestObject() {
+    for (auto &it : buffers_) {
+      delete[] it.second;
+    }
+    for (auto &txn : txns_) {
+      txn->redo_buffer_.Finalize(false);
+    }
+  }
+
+  template <class Random>
+  void FillNullValue(storage::ProjectedRow *pr, const catalog::Schema &schema, const ColumnIdToOidMap &col_id_to_oid,
+                     const storage::BlockLayout &layout, Random *const generator) {
+    // Make sure we have a mix of inlined and non-inlined values
+    std::uniform_int_distribution<uint32_t> varlen_size(1, MAX_TEST_VARLEN_SIZE);
+
+    for (uint16_t pr_idx = 0; pr_idx < pr->NumColumns(); pr_idx++) {
+      auto col_id = pr->ColumnIds()[pr_idx];
+      auto col_oid = col_id_to_oid.at(col_id);
+      const auto &schema_col = schema.GetColumn(col_oid);
+
+      if (pr->IsNull(pr_idx) && !schema_col.Nullable()) {
+        // Ricky (Schema-Change):
+        // Some non null columns could be null. But the schema we generated have default values all being null, we just
+        // need to fill some random values here.
+        // Ideallly we want to do this while we populate the projectedrow, but that function has coupled with too many
+        // other parts
+
+        if (layout.IsVarlen(col_id)) {
+          uint32_t size = varlen_size(*generator);
+          if (size > storage::VarlenEntry::InlineThreshold()) {
+            byte *varlen = common::AllocationUtil::AllocateAligned(size);
+            StorageTestUtil::FillWithRandomBytes(size, varlen, generator);
+            // varlen entries always start off not inlined
+            *reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(pr_idx)) =
+                storage::VarlenEntry::Create(varlen, size, true);
+          } else {
+            byte buf[storage::VarlenEntry::InlineThreshold()];
+            StorageTestUtil::FillWithRandomBytes(size, buf, generator);
+            *reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(pr_idx)) =
+                storage::VarlenEntry::CreateInline(buf, size);
+          }
+        } else {
+          StorageTestUtil::FillWithRandomBytes(layout.AttrSize(col_id), pr->AccessForceNotNull(pr_idx), generator);
+        }
+      }
+    }
+  }
 
   template <class Random>
   storage::TupleSlot InsertRandomTuple(const transaction::timestamp_t timestamp, Random *generator,
@@ -70,8 +119,12 @@ class RandomSqlTableTestObject {
     auto layout = table_->GetBlockLayout(layout_version);
     StorageTestUtil::PopulateRandomRow(insert_tuple, layout, null_bias_, generator);
 
+    // Fill up the random bytes for non-nullable columns
+    FillNullValue(insert_tuple, GetSchema(layout_version), table_->GetColumnIdToOidMap(layout_version),
+                  table_->GetBlockLayout(layout_version), generator);
+
     redos_.emplace_back(insert_redo);
-    storage::TupleSlot slot = table_->Insert(common::ManagedPointer(txn), insert_redo);
+    storage::TupleSlot slot = table_->Insert(common::ManagedPointer(txn), insert_redo, layout_version);
     inserted_slots_.push_back(slot);
     tuple_versions_[slot].push_back({timestamp, insert_tuple, layout_version});
 
@@ -82,9 +135,10 @@ class RandomSqlTableTestObject {
     TERRIER_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
     auto &versions = tuple_versions_[slot];
     // search backwards so the first entry with smaller timestamp can be returned
-    for (auto i = static_cast<int64_t>(versions.size() - 1); i >= 0; i--)
+    for (auto i = static_cast<int64_t>(versions.size() - 1); i >= 0; i--) {
       if (transaction::TransactionUtil::NewerThan(timestamp, versions[i].ts_) || timestamp == versions[i].ts_)
         return versions[i];
+    }
     return {transaction::timestamp_t{transaction::INVALID_TXN_TIMESTAMP}, nullptr, storage::layout_version_t{0}};
   }
 
@@ -181,9 +235,9 @@ TEST_F(SqlTableTests, SimpleInsertSelect) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(SqlTableTests, DISABLED_SimpleAddColumnTest) {
+TEST_F(SqlTableTests, SimpleAddColumnTest) {
   const uint16_t max_columns = 20;
-  const uint32_t num_inserts = 100;
+  const uint32_t num_inserts = 8;
   uint64_t txn_ts = 0;
 
   storage::layout_version_t version(0);
@@ -214,20 +268,23 @@ TEST_F(SqlTableTests, DISABLED_SimpleAddColumnTest) {
   EXPECT_EQ(num_inserts, test_table.InsertedTuples().size());
   // Compare each inserted
   txn_ts++;
-  std::unordered_set<catalog::col_oid_t> add_cols;
-  std::unordered_set<catalog::col_oid_t> drop_cols{col.Oid()};
   for (const auto &inserted_tuple : test_table.InsertedTuples()) {
     storage::ProjectedRow *stored =
-        test_table.Select(inserted_tuple, transaction::timestamp_t(txn_ts), &buffer_pool_, version);
+        test_table.Select(inserted_tuple, transaction::timestamp_t(txn_ts), &buffer_pool_, new_version);
     auto tuple_version = test_table.GetReferenceVersionedTuple(inserted_tuple, transaction::timestamp_t(txn_ts));
     // TODO(Schema-change): we need to find a way to compare these 2 projected rows with different schema/blocklayout
     // with
     // other schema changes. e.g: change column type, add constrain.
+    std::unordered_set<catalog::col_oid_t> add_cols;
+    std::unordered_set<catalog::col_oid_t> drop_cols;
+    if (tuple_version.version_ != new_version) {
+      add_cols.insert(col.Oid());
+    }
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallowMatchSchema(
         test_table.GetBlockLayout(tuple_version.version_), tuple_version.pr_,
-        test_table.GetProjectionMapForOids(tuple_version.version_), test_table.GetBlockLayout(version), stored,
-        test_table.GetProjectionMapForOids(version), add_cols, drop_cols));
+        test_table.GetProjectionMapForOids(tuple_version.version_), test_table.GetBlockLayout(new_version), stored,
+        test_table.GetProjectionMapForOids(new_version), add_cols, drop_cols));
   }
 }
 
-}  // namespace terrier
+}  // namespace terrier::storage
