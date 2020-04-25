@@ -3,8 +3,10 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "binder/sql_node_visitor.h"
+#include "parser/create_statement.h"
 #include "parser/sql_statement.h"
 
 namespace terrier::parser {
@@ -27,35 +29,42 @@ class AlterTableStatement : public TableRefStatement {
      * @param col_name
      * @param if_exists IF EXISTS
      */
-    AlterTableCmd(std::unique_ptr<parser::ColumnDefinition> col_def, std::string col_name, bool if_exists)
-        : type_(AlterType::AddColumn), col_name_(col_name), col_(std::move(col_def)), if_exists_(if_exists) {}
+    AlterTableCmd(std::unique_ptr<ColumnDefinition> col_def, std::string col_name, bool if_exists)
+        : type_(AlterType::AddColumn),
+          col_name_(std::move(col_name)),
+          col_(std::move(col_def)),
+          if_exists_(if_exists) {}
 
     /**
      * Change Column Type
      * @param col_def
      * @param col_name
      */
-    AlterTableCmd(std::unique_ptr<parser::ColumnDefinition> col_def, std::string col_name)
-        : type_(AlterType::AlterColumnType), col_name_(col_name), col_(std::move(col_def)) {}
+    AlterTableCmd(std::unique_ptr<ColumnDefinition> col_def, std::string col_name)
+        : type_(AlterType::AlterColumnType), col_name_(std::move(col_name)), col_(std::move(col_def)) {}
 
     /**
-     * Change default value
+     * Set default value
      * @param col_name
      * @param default_value
      */
-    AlterTableCmd(std::string col_name, std::unique_ptr<AbstractExpression> default_value)
+    AlterTableCmd(std::string col_name, common::ManagedPointer<AbstractExpression> default_value, bool drop_cascade)
         : type_(AlterType::ColumnDefault),
-          col_name_(col_name),
+          col_name_(std::move(col_name)),
           col_(nullptr),
-          default_value_(std::move(default_value)) {}
+          drop_cascade_(drop_cascade),
+          default_value_(default_value) {}
 
     /**
      * Drop Column
      * @param col_name
      * @param if_exists
      */
-    AlterTableCmd(std::string col_name, bool if_exists)
-        : type_(AlterType::DropColumn), col_name_(col_name), if_exists_(if_exists) {}
+    AlterTableCmd(std::string col_name, bool if_exists, bool drop_cascade)
+        : type_(AlterType::DropColumn),
+          col_name_(std::move(col_name)),
+          if_exists_(if_exists),
+          drop_cascade_(drop_cascade) {}
 
     /**
      * @return column definition
@@ -84,6 +93,11 @@ class AlterTableStatement : public TableRefStatement {
      */
     bool IsIfExists() const { return if_exists_; }
 
+    /**
+     * @return If drop cascade
+     */
+    bool IsDropCascade() const { return drop_cascade_; }
+
    private:
     AlterType type_;
 
@@ -94,10 +108,13 @@ class AlterTableStatement : public TableRefStatement {
 
     // NOTE: Postgresql 9.6 has ADD COLUMN IF NOT EXISTS, but we are not supporting it yet.
     // Drop Column IF EXISTS
-    const bool if_exists_ = false;
+    bool if_exists_ = false;
 
-    // For Change default
-    std::unique_ptr<AbstractExpression> default_value_;
+    // Drop default value cascade or not
+    bool drop_cascade_ = false;
+
+    // For setting default
+    common::ManagedPointer<AbstractExpression> default_value_ = nullptr;
   };
 
   /**

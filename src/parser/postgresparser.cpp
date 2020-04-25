@@ -1683,7 +1683,7 @@ std::unique_ptr<AlterTableStatement> PostgresParser::AlterTableTransform(ParseRe
     auto cmd = reinterpret_cast<AlterTableCmd *>(node->data.ptr_value);
     TERRIER_ASSERT(cmd->type == T_AlterTableCmd, "Invlaid alter table cmd, failed to parse");
     std::string col_name;
-    std::unique_ptr<AbstractExpression> default_val;
+    common::ManagedPointer<AbstractExpression> default_val = nullptr;
     std::unique_ptr<ColumnDefinition> col_def;
 
     switch (cmd->subtype) {
@@ -1692,17 +1692,22 @@ std::unique_ptr<AlterTableStatement> PostgresParser::AlterTableTransform(ParseRe
         col_name = col_def->GetColumnName();
         cmds.emplace_back(std::move(col_def), std::move(col_name), cmd->missing_ok);
         break;
-      case AT_ColumnDefault:
-        default_val = ConstTransform(parse_result, reinterpret_cast<A_Const *>(cmd->def));
+      case AT_ColumnDefault: {
+        // Default values should be stored in
+        auto expr = ExprTransform(parse_result, cmd->def, nullptr);
+        default_val = common::ManagedPointer(expr);
         col_name = std::string(cmd->name);
-        cmds.emplace_back(col_name, std::move(default_val));
+        if (expr != nullptr) parse_result->AddExpression(std::move(expr));
+        cmds.emplace_back(col_name, default_val, cmd->behavior == DropBehavior::DROP_CASCADE);
         break;
+      }
       case AT_DropColumn:
         col_name = std::string(cmd->name);
-        cmds.emplace_back(col_name, cmd->missing_ok);
+        cmds.emplace_back(col_name, cmd->missing_ok, cmd->behavior == DropBehavior::DROP_CASCADE);
         break;
       case AT_AlterColumnType:
         // FIXME(xc): why cmd->def->colname_ might be 0x0 here???
+        // TODO(Ling): should we, for changing type, save only the col_name and the new type in the command .
         {
           auto raw_def = reinterpret_cast<ColumnDef *>(cmd->def);
           if (raw_def->colname_ == nullptr) raw_def->colname_ = cmd->name;
@@ -1714,7 +1719,7 @@ std::unique_ptr<AlterTableStatement> PostgresParser::AlterTableTransform(ParseRe
       default:
         PARSER_LOG_AND_THROW("AlterTableTransform", "Action type", cmd->subtype);
     }
-    // TODO(SC) parse name, behvaor, newowner?
+    // TODO(SC) parse name, behaviour, newowner?
   }
   auto result = std::make_unique<AlterTableStatement>(std::move(table_info), std::move(cmds), root->missing_ok_);
   return result;

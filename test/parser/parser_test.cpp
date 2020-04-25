@@ -66,7 +66,7 @@ TEST_F(ParserTestBase, AlterTest) {
     EXPECT_EQ(cmds.size(), 1);
     auto &col = cmds[0].GetColumn();
     EXPECT_EQ(cmds[0].GetType(), AlterTableStatement::AlterType::AddColumn);
-    EXPECT_EQ(cmds[0].IsIfExists(), false);
+    EXPECT_FALSE(cmds[0].IsIfExists());
     EXPECT_EQ(col.GetColumnName(), "new_column");
     EXPECT_EQ(col.GetColumnType(), ColumnDefinition::DataType::INT);
     auto default_expr = col.GetDefaultExpression().CastManagedPointerTo<ConstantValueExpression>();
@@ -75,9 +75,10 @@ TEST_F(ParserTestBase, AlterTest) {
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(default_expr->GetValue()), 15721);
   }
 
-  // Drop Column no cascade
+  // Drop Column cascade
   {
-    auto result = parser::PostgresParser::BuildParseTree("ALTER TABLE IF EXISTS table_name DROP IF EXISTS old_column;");
+    auto result =
+        parser::PostgresParser::BuildParseTree("ALTER TABLE IF EXISTS table_name DROP IF EXISTS old_column CASCADE;");
     auto alter_stmt = result->GetStatement(0).CastManagedPointerTo<AlterTableStatement>();
     EXPECT_EQ(alter_stmt->GetType(), StatementType::ALTER);
     EXPECT_EQ(alter_stmt->IsIfExists(), true);
@@ -85,7 +86,8 @@ TEST_F(ParserTestBase, AlterTest) {
     EXPECT_EQ(cmds.size(), 1);
     EXPECT_EQ(cmds[0].GetType(), AlterTableStatement::AlterType::DropColumn);
     EXPECT_EQ(cmds[0].GetColumnName(), "old_column");
-    EXPECT_EQ(cmds[0].IsIfExists(), true);
+    EXPECT_TRUE(cmds[0].IsIfExists());
+    EXPECT_TRUE(cmds[0].IsDropCascade());
   }
 
   // Change default
@@ -100,6 +102,19 @@ TEST_F(ParserTestBase, AlterTest) {
     EXPECT_EQ(cmds[0].GetColumnName(), "old_column");
     EXPECT_EQ(default_expr->GetValue().Type(), type::TypeId::INTEGER);
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(default_expr->GetValue()), 15721);
+  }
+
+  // Drop default
+  {
+    auto result =
+        parser::PostgresParser::BuildParseTree("ALTER TABLE table_name ALTER COLUMN old_column DROP DEFAULT;");
+    auto alter_stmt = result->GetStatement(0).CastManagedPointerTo<AlterTableStatement>();
+    const auto &cmds = alter_stmt->GetAlterTableCmds();
+    EXPECT_EQ(cmds[0].GetType(), AlterTableStatement::AlterType::ColumnDefault);
+    auto default_expr = cmds[0].GetDefaultValue().CastManagedPointerTo<ConstantValueExpression>();
+    EXPECT_EQ(default_expr, nullptr);
+    EXPECT_EQ(cmds[0].GetColumnName(), "old_column");
+    EXPECT_FALSE(cmds[0].IsDropCascade());
   }
 
   // Change type

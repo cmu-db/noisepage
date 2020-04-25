@@ -762,8 +762,7 @@ using AlterTableType = enum AlterTableType {
   AT_AlterConstraint,           /* alter constraint */
   AT_ValidateConstraint,        /* validate constraint */
   AT_ValidateConstraintRecurse, /* internal to commands/tablecmds.c */
-  AT_ProcessedConstraint,       /* pre-processed add constraint (local in
-                                 * parser/parse_utilcmd.c) */
+  AT_ProcessedConstraint,       /* pre-processed add constraint (local in parser/parse_utilcmd.c) */
   AT_AddIndexConstraint,        /* add constraint using existing index */
   AT_DropConstraint,            /* drop constraint */
   AT_DropConstraintRecurse,     /* internal to commands/tablecmds.c */
@@ -806,15 +805,12 @@ using AlterTableType = enum AlterTableType {
   AT_GenericOptions             /* OPTIONS (...) */
 };
 
-using AlterTableCmd = struct AlterTableCmd /* one subcommand of an ALTER TABLE */
-{
+using AlterTableCmd = struct AlterTableCmd {
   NodeTag type;
   AlterTableType subtype; /* Type of table alteration to apply */
-  char *name;             /* column, constraint, or trigger to act on,
-                           * or tablespace */
+  char *name;             /* column, constraint, or trigger to act on, or tablespace */
   Node *newowner;         /* RoleSpec */
-  Node *def;              /* definition of new column, index,
-                           * constraint, or parent table */
+  Node *def;              /* definition of new column, index, constraint, or parent table */
   DropBehavior behavior;  /* RESTRICT or CASCADE for DROP cases */
   bool missing_ok;        /* skip error if missing? */
 };
