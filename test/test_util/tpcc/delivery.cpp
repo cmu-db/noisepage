@@ -84,7 +84,7 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
     *reinterpret_cast<int8_t *>(order_update_redo->Delta()->AccessForceNotNull(0)) = args.o_carrier_id_;
     order_update_redo->SetTupleSlot(order_slot);
     bool update_result UNUSED_ATTRIBUTE =
-        db->order_table_->Update(common::ManagedPointer(txn), order_update_redo).first;
+        db->order_table_->Update(common::ManagedPointer(txn), order_update_redo);
     TERRIER_ASSERT(select_result,
                    "Order update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
@@ -126,7 +126,7 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
           txn->StageWrite(db->db_oid_, db->order_line_table_oid_, order_line_update_pr_initializer_);
       *reinterpret_cast<uint64_t *>(order_line_update_redo->Delta()->AccessForceNotNull(0)) = args.ol_delivery_d_;
       order_line_update_redo->SetTupleSlot(order_line_slot);
-      update_result = db->order_line_table_->Update(common::ManagedPointer(txn), order_line_update_redo).first;
+      update_result = db->order_line_table_->Update(common::ManagedPointer(txn), order_line_update_redo);
       TERRIER_ASSERT(update_result,
                      "Order Line update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
     }
@@ -154,7 +154,7 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
     *reinterpret_cast<double *>(customer_update_tuple->AccessForceNotNull(c_balance_pr_offset_)) += ol_amount_sum;
     (*reinterpret_cast<int16_t *>(customer_update_tuple->AccessForceNotNull(c_delivery_cnt_pr_offset_)))++;
     customer_update_redo->SetTupleSlot(index_scan_results[0]);
-    update_result = db->customer_table_->Update(common::ManagedPointer(txn), customer_update_redo).first;
+    update_result = db->customer_table_->Update(common::ManagedPointer(txn), customer_update_redo);
     TERRIER_ASSERT(update_result,
                    "Customer update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
   }

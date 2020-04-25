@@ -59,7 +59,7 @@ bool NewOrder::Execute(transaction::TransactionManager *const txn_manager, Datab
       txn->StageWrite(db->db_oid_, db->district_table_oid_, district_update_pr_initializer_);
   *reinterpret_cast<int32_t *>(district_update_redo->Delta()->AccessForceNotNull(0)) = d_next_o_id + 1;
   district_update_redo->SetTupleSlot(index_scan_results[0]);
-  bool UNUSED_ATTRIBUTE result = db->district_table_->Update(common::ManagedPointer(txn), district_update_redo).first;
+  bool UNUSED_ATTRIBUTE result = db->district_table_->Update(common::ManagedPointer(txn), district_update_redo);
   TERRIER_ASSERT(result, "District update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
   // Look up C_ID, D_ID, W_ID in index
@@ -217,7 +217,7 @@ bool NewOrder::Execute(transaction::TransactionManager *const txn_manager, Datab
     *reinterpret_cast<int16_t *>(stock_update_tuple->AccessForceNotNull(s_remote_cnt_update_pr_offset_)) =
         static_cast<int16_t>(item.remote_ ? s_remote_cnt + 1 : s_remote_cnt);
     stock_update_redo->SetTupleSlot(index_scan_results[0]);
-    result = db->stock_table_->Update(common::ManagedPointer(txn), stock_update_redo).first;
+    result = db->stock_table_->Update(common::ManagedPointer(txn), stock_update_redo);
     if (!result) {
       // This can fail due to remote orders
       txn_manager->Abort(txn);

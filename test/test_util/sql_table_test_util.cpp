@@ -59,7 +59,7 @@ void RandomSqlTableTransaction::RandomUpdate(Random *generator) {
   record->SetTupleSlot(updated);
   StorageTestUtil::PopulateRandomRow(record->Delta(), sql_table_ptr->tables_.begin()->second.layout_, 0.0, generator);
   auto result = sql_table_ptr->Update(common::ManagedPointer(txn_), record);
-  aborted_ = !result.first;
+  aborted_ = !result;
 }
 
 template <class Random>

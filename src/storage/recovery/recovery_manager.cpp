@@ -163,8 +163,10 @@ void RecoveryManager::ReplayRedoRecord(transaction::TransactionContext *txn, Log
     // Stage the write. This way the recovery operation is logged if logging is enabled
     auto staged_record = txn->StageRecoveryWrite(record);
     TERRIER_ASSERT(staged_record->GetTupleSlot() == new_tuple_slot, "Staged record must have the mapped tuple slot");
-    bool result UNUSED_ATTRIBUTE = sql_table_ptr->Update(common::ManagedPointer(txn), staged_record).first;
+
+    bool result UNUSED_ATTRIBUTE = sql_table_ptr->Update(common::ManagedPointer(txn), staged_record);
     TERRIER_ASSERT(result, "Buffered changes should always succeed during commit");
+    // TODO: deal with the case in which tupleslot is migrated
   }
 }
 
