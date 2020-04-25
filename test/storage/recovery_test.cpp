@@ -803,7 +803,6 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   // Create directory
   std::filesystem::create_directory(ckpt_path);
 
-//  auto ckpt_txn = txn_manager_->BeginTransaction();
   Checkpoint ckpt(catalog_, txn_manager_, deferred_action_manager_, gc_);
 
   // get db_oid
@@ -813,7 +812,6 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   }
 
   ckpt.TakeCheckpoint(ckpt_path, db);
-//  txn_manager_->Commit(ckpt_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   ShutdownAndRestartSystem();
 
   // Override the recovery DBMain to now log out

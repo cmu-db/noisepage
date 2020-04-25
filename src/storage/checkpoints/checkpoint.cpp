@@ -56,12 +56,14 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
 
     // copy data table
     std::list<RawBlock *> new_blocks(curr_data_table->blocks_);
+    storage::DataTable *new_table = new storage::DataTable(curr_data_table->block_store_, curr_data_table->GetBlockLayout(),
+                                 curr_data_table->layout_version_, new_blocks);
 
-    const BlockLayout &layout = curr_data_table->GetBlockLayout();
+    const BlockLayout &layout = new_table->GetBlockLayout();
     std::vector<type::TypeId> column_types;
     column_types.resize(layout.NumColumns());
-    for (RawBlock *block : curr_data_table->blocks_) {
-      auto &arrow_metadata = curr_data_table->accessor_.GetArrowBlockMetadata(block);
+    for (RawBlock *block : new_table->blocks_) {
+      auto &arrow_metadata = new_table->accessor_.GetArrowBlockMetadata(block);
       for (storage::col_id_t col_id : layout.AllColumns()) {
         if (layout.IsVarlen(col_id)) {
           arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::GATHERED_VARLEN;
@@ -80,7 +82,7 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
 
     // compact blocks into arrow format
     storage::BlockCompactor compactor;
-    for (RawBlock *block : curr_data_table->blocks_) {
+    for (RawBlock *block : new_table->blocks_) {
       compactor.PutInQueue(block);
       compactor.ProcessCompactionQueue(deferred_action_manager_.Get(), txn_manager_.Get());  // compaction pass
       gc_->PerformGarbageCollection();
@@ -89,7 +91,7 @@ void Checkpoint::WriteToDisk(const std::string &path, const std::unique_ptr<cata
     }
 
     // write to disk
-    storage::ArrowSerializer arrow_serializer(*curr_data_table);
+    storage::ArrowSerializer arrow_serializer(*new_table);
     arrow_serializer.ExportTable(out_file, &column_types);
   }
 }
