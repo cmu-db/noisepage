@@ -112,7 +112,8 @@ void InputColumnDeriver::Visit(const CteScan *op) {
     cols.push_back(expr);
   }
 
-  PT2 child_cols = PT2{cols};
+  PT2 child_cols = PT2{op->GetChildExpressions()};
+
   output_input_cols_ = std::make_pair(std::move(cols), std::move(child_cols));
 }
 

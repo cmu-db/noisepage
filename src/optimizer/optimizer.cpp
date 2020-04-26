@@ -16,6 +16,7 @@
 #include "optimizer/property_enforcer.h"
 #include "optimizer/rule.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/cte_scan_plan_node.h"
 
 namespace terrier::optimizer {
 
@@ -79,6 +80,8 @@ void Optimizer::ElectCTELeader(common::ManagedPointer<planner::AbstractPlanNode>
 
       if (leader == nullptr) {
         leader = plan;
+        auto cte_scan_plan_node = reinterpret_cast<planner::CteScanPlanNode *>(leader.Get());
+        cte_scan_plan_node->SetLeader();
       }
     } else {
       // Child bearing CTE node
@@ -88,6 +91,10 @@ void Optimizer::ElectCTELeader(common::ManagedPointer<planner::AbstractPlanNode>
         plan->MoveChildren(adopted_children);
         TERRIER_ASSERT(adopted_children.size() == 1, "CTE leader should have 1 child");
         leader->AddChild(std::move(adopted_children[0]));
+      } else {
+        leader = plan;
+        auto cte_scan_plan_node = reinterpret_cast<planner::CteScanPlanNode *>(leader.Get());
+        cte_scan_plan_node->SetLeader();
       }
     }
   } else {

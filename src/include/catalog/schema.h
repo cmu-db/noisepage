@@ -96,9 +96,9 @@ class Schema {
           nullable_(nullable),
           oid_(oid),
           default_value_(default_value.Copy()) {
-      TERRIER_ASSERT(attr_size_ == 1 || attr_size_ == 2 || attr_size_ == 4 || attr_size_ == 8,
-                     "This constructor is meant for non-VARLEN columns.");
-      TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
+      // TODO(Rohan,Gautam,Preetansh):We need to manually set this as we cannot get this from Output
+      // schema - so we need some other way to find it
+      max_varlen_size_ = 128;
     }
 
     /**

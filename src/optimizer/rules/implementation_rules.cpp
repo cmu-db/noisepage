@@ -988,8 +988,11 @@ void LogicalCteScanToPhysicalCteScan::Transform(common::ManagedPointer<OperatorN
   auto child = input->GetChildren()[0]->Copy();
   c.emplace_back(std::move(child));
 
+  auto logical_op = input->GetOp().As<LogicalCteScan>();
+
+
   auto result_plan = std::make_unique<OperatorNode>(
-      CteScan::Make(), std::move(c));
+      CteScan::Make(logical_op->GetExpressions()), std::move(c));
   transformed->emplace_back(std::move(result_plan));
 }
 
@@ -1015,9 +1018,10 @@ void LogicalCteScanToPhysicalEmptyCteScan::Transform(common::ManagedPointer<Oper
   TERRIER_ASSERT(input->GetChildren().size() == 0, "EmptyLogicalCteScan should have 0 child");
 
   std::vector<std::unique_ptr<OperatorNode>> c;
+  auto logical_op = input->GetOp().As<LogicalCteScan>();
 
   auto result_plan = std::make_unique<OperatorNode>(
-      CteScan::Make(), std::move(c));
+      CteScan::Make(logical_op->GetExpressions()), std::move(c));
   transformed->emplace_back(std::move(result_plan));
 }
 

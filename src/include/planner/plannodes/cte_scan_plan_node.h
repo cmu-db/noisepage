@@ -47,7 +47,7 @@ class CteScanPlanNode : public AbstractPlanNode {
 
    protected:
    private:
-    bool is_leader_;
+    bool is_leader_ = false;
   };
 
  private:
@@ -82,6 +82,8 @@ class CteScanPlanNode : public AbstractPlanNode {
   void Accept(common::ManagedPointer<PlanVisitor> v) const override { v->Visit(this); }
 
   bool IsLeader() const {return  is_leader_;}
+
+  void SetLeader() {is_leader_ = true;}
 
   nlohmann::json ToJson() const override;
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;

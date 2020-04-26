@@ -183,6 +183,7 @@ class QueryToOperatorTransformer : public binder::SqlNodeVisitor {
   const common::ManagedPointer<catalog::CatalogAccessor> accessor_;
   const catalog::db_oid_t db_oid_;
   std::string cte_table_name_;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> cte_expressions_;
 
   /**
    * A set of predicates the current operator generated, we use them to generate filter operator

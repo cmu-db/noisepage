@@ -72,6 +72,9 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
   if(op->GetSelectWith() != nullptr) {
     // SELECT statement has CTE, register CTE table name
     cte_table_name_ =  op->GetSelectWith()->GetAlias();
+    for(auto &elem: op->GetSelectWith()->GetSelect()->GetSelectColumns()) {
+      cte_expressions_.push_back(elem);
+    }
   }
 
   if (op->GetSelectTable() != nullptr) {
@@ -291,7 +294,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
     if (node->GetTableName() == cte_table_name_) {
       // CTE table referred
       auto cte_scan_expr = std::make_unique<OperatorNode>(
-          LogicalCteScan::Make(node->GetAlias()),
+          LogicalCteScan::Make(node->GetAlias(), cte_expressions_),
           std::vector<std::unique_ptr<OperatorNode>>{});
       output_expr_ = std::move(cte_scan_expr);;
     } else {
