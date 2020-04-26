@@ -1128,4 +1128,32 @@ void LogicalCteScanToPhysicalCteScan::Transform(common::ManagedPointer<OperatorN
   transformed->emplace_back(std::move(result_plan));
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// LogicalCteScanToPhysicalEmptyCteScan
+///////////////////////////////////////////////////////////////////////////////
+LogicalCteScanToPhysicalEmptyCteScan::LogicalCteScanToPhysicalEmptyCteScan() {
+  type_ = RuleType::CTESCAN_TO_PHYSICAL_EMPTY;
+
+  match_pattern_ = new Pattern(OpType::LOGICALCTESCAN);
+}
+
+bool LogicalCteScanToPhysicalEmptyCteScan::Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const {
+  (void)context;
+  (void)plan;
+  return true;
+}
+
+void LogicalCteScanToPhysicalEmptyCteScan::Transform(common::ManagedPointer<OperatorNode> input,
+                                                std::vector<std::unique_ptr<OperatorNode>> *transformed,
+                                                OptimizationContext *context) const {
+  (void)context;
+  TERRIER_ASSERT(input->GetChildren().size() == 0, "EmptyLogicalCteScan should have 0 child");
+
+  std::vector<std::unique_ptr<OperatorNode>> c;
+
+  auto result_plan = std::make_unique<OperatorNode>(
+      CteScan::Make(), std::move(c));
+  transformed->emplace_back(std::move(result_plan));
+}
+
 }  // namespace terrier::optimizer
