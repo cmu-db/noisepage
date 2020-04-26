@@ -486,9 +486,88 @@ void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::Tran
 }
 
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::AlterTableStatement> node) {
-  // TODO(SC)
   BINDER_LOG_TRACE("Visiting AlterTableStatement ...");
   SqlNodeVisitor::Visit(node);
+
+  TERRIER_ASSERT(context_ == nullptr, "ALTER TABLE should be a root.");
+  BinderContext context(nullptr);
+  context_ = common::ManagedPointer(&context);
+
+  ValidateDatabaseName(node->GetDatabaseName());
+
+  if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
+    if (node->IsIfExists()) return;
+    throw BINDER_EXCEPTION("Table does not exists");
+  }
+  context_->AddRegularTable(catalog_accessor_, db_oid_, node->GetNamespaceName(), node->GetTableName(),
+                            node->GetTableName());
+
+  auto tb_oid = catalog_accessor_->GetTableOid(node->GetTableName());
+
+  auto cmds = node->GetAlterTableCmds();
+
+  for (std::vector<parser::AlterTableStatement::AlterTableCmd>::iterator iter = cmds.begin(); iter != cmds.end(); iter++) {
+    auto alter_type = iter->GetAlterType();
+    switch (alter_type) {
+      case parser::AlterTableStatement::AlterType::AddColumn: {
+        // check if the column name already exists
+        if (BinderContext::ColumnInSchema(catalog_accessor_->GetSchema(tb_oid), iter->GetColumnName())) {
+          throw BINDER_EXCEPTION(("Column " + iter->GetColumnName() + " already exists in table").c_str());
+        }
+
+        auto &col = iter->GetColumn();
+        if (col.GetDefaultExpression() != nullptr) {
+          // The schema is authoritative on what the type of this default value should be.
+          sherpa_->SetDesiredType(col.GetDefaultExpression().CastManagedPointerTo<parser::AbstractExpression>(),
+                                  col.GetValueType());
+          col.GetDefaultExpression()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+        }
+        if (col.GetCheckExpression() != nullptr)
+          col.GetCheckExpression()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+        // TODO(Ling): add foreign key constraints to column?
+        break;
+      }
+      case parser::AlterTableStatement::AlterType::DropColumn:
+        // check if the column name already exists
+        if (!BinderContext::ColumnInSchema(catalog_accessor_->GetSchema(tb_oid), iter->GetColumnName())) {
+          if (iter->IsIfExists()) continue;
+          throw BINDER_EXCEPTION(("Column " + iter->GetColumnName() + " does not exist in table").c_str());
+        }
+        break;
+      case parser::AlterTableStatement::AlterType::ColumnDefault: {
+        // check if the column name already exists
+        if (!BinderContext::ColumnInSchema(catalog_accessor_->GetSchema(tb_oid), iter->GetColumnName())) {
+          throw BINDER_EXCEPTION(("Column " + iter->GetColumnName() + " does not exist in table").c_str());
+        }
+
+        auto binder_table_data = context_->GetTableMapping(node->GetTableName());
+        const auto &table_schema = std::get<2>(*binder_table_data);
+        const auto &existing_col = table_schema.GetColumn(iter->GetColumnName());
+        // Get the default value expression
+        auto default_val = iter->GetDefaultExpression();
+        if (default_val == nullptr) {
+          if (!existing_col.Nullable())
+            throw BINDER_EXCEPTION(
+                ("Column " + iter->GetColumnName() + " is not nullable; fail to drop column default.").c_str());
+
+          // set it to default null
+          std::unique_ptr<parser::AbstractExpression> expr = std::make_unique<parser::ConstantValueExpression>(
+              type::TransientValueFactory::GetNull(type::TypeId::INVALID));
+          iter->SetDefaultValueExpression(common::ManagedPointer(expr));
+          sherpa_->GetParseResult()->AddExpression(std::move(expr));
+        } else if (default_val->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT &&
+                   default_val.CastManagedPointerTo<parser::ConstantValueExpression>()->GetValue().Null()) {
+          throw BINDER_EXCEPTION(
+              ("Column " + iter->GetColumnName() + " is not nullable; fail to set column default to NULL.").c_str());
+        }
+        sherpa_->SetDesiredType(default_val.CastManagedPointerTo<parser::AbstractExpression>(), existing_col.Type());
+        default_val->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+        break;
+      }
+      case parser::AlterTableStatement::AlterType::AlterColumnType:
+        break;
+    }
+  }
 }
 
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::UpdateStatement> node) {

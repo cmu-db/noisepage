@@ -66,6 +66,10 @@ class AlterTableStatement : public TableRefStatement {
           if_exists_(if_exists),
           drop_cascade_(drop_cascade) {}
 
+    AlterTableCmd(const AlterTableCmd& alter_table_cmd) : type_(alter_table_cmd.type_), col_name_(alter_table_cmd.col_name_){
+      TERRIER_ASSERT(alter_table_cmd.GetAlterType() == AlterType::ColumnDefault, "This copy constructor is only used in SET/DROP default value.");
+    }
+
     /**
      * @return column definition
      */
@@ -99,18 +103,21 @@ class AlterTableStatement : public TableRefStatement {
     bool IsDropCascade() const { return drop_cascade_; }
 
    private:
+    friend class binder::BindNodeVisitor;
+
+    void SetDefaultValueExpression(common::ManagedPointer<AbstractExpression> expr) { default_value_ = expr; }
     AlterType type_;
 
     const std::string col_name_;
 
     // For Add Column
-    std::unique_ptr<ColumnDefinition> col_;
+    std::unique_ptr<ColumnDefinition> col_ = nullptr;
 
     // NOTE: Postgresql 9.6 has ADD COLUMN IF NOT EXISTS, but we are not supporting it yet.
     // Drop Column IF EXISTS
     bool if_exists_ = false;
 
-    // Drop default value cascade or not
+    // Drop column cascade or not
     bool drop_cascade_ = false;
 
     // For setting default
