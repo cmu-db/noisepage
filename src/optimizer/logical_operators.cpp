@@ -1228,8 +1228,9 @@ bool LogicalAnalyze::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalCteScan::Copy() const { return new LogicalCteScan(*this); }
 
-Operator LogicalCteScan::Make() {
+Operator LogicalCteScan::Make(std::string table_alias) {
   auto op = std::make_unique<LogicalCteScan>();
+  op->table_alias_ = std::move(table_alias);
   return Operator(std::move(op));
 }
 
