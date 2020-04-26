@@ -152,6 +152,14 @@ class QueryToOperatorTransformer : public binder::SqlNodeVisitor {
   static std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> ConstructSelectElementMap(
       const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list);
 
+  /**
+   * Perform DFS over the expression tree to find leftmost LogicalCTEScanNode and
+   * add the CTE query expression to the node.
+   * @param child_expr The expression to search the CTE node
+   * @return true if cte node was found
+   */
+  bool FindFirstCTEScanNode(common::ManagedPointer<OperatorNode> child_expr);
+
   /** The output logical operator AST */
   std::unique_ptr<OperatorNode> output_expr_;
 
@@ -161,6 +169,7 @@ class QueryToOperatorTransformer : public binder::SqlNodeVisitor {
   /** The catalog accessor object */
   const common::ManagedPointer<catalog::CatalogAccessor> accessor_;
   const catalog::db_oid_t db_oid_;
+  std::string cte_table_name_;
 
   /**
    * A set of predicates the current operator generated, we use them to generate filter operator
