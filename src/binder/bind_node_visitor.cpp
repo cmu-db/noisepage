@@ -544,7 +544,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::AlterTableStatement> 
         // Get the default value expression
         auto default_val = cmd.GetDefaultExpression();
         if (default_val->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT &&
-            default_val.CastManagedPointerTo<parser::ConstantValueExpression>()->GetValue().Null()) {
+            default_val.CastManagedPointerTo<parser::ConstantValueExpression>()->GetValue().Null() &&
+            !existing_col.Nullable()) {
           throw BINDER_EXCEPTION(
               ("Column " + cmd.GetColumnName() + " is not nullable; fail to set column default to NULL.").c_str());
         }
