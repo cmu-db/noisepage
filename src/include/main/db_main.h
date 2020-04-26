@@ -353,7 +353,7 @@ class DBMain {
         TERRIER_ASSERT(use_execution_ && execution_layer != DISABLED, "TrafficCopLayer needs ExecutionLayer.");
         traffic_cop = std::make_unique<trafficcop::TrafficCop>(
             txn_layer->GetTransactionManager(), catalog_layer->GetCatalog(), DISABLED,
-            common::ManagedPointer(stats_storage), optimizer_timeout_);
+            common::ManagedPointer(stats_storage), optimizer_timeout_, use_query_cache_);
       }
 
       std::unique_ptr<NetworkLayer> network_layer = DISABLED;
@@ -593,6 +593,15 @@ class DBMain {
      * @param value use component
      * @return self reference for chaining
      */
+    Builder &SetUseQueryCache(const bool value) {
+      use_query_cache_ = value;
+      return *this;
+    }
+
+    /**
+     * @param value use component
+     * @return self reference for chaining
+     */
     Builder &SetUseExecution(const bool value) {
       use_execution_ = value;
       return *this;
@@ -632,6 +641,7 @@ class DBMain {
     bool use_execution_ = false;
     bool use_traffic_cop_ = false;
     uint64_t optimizer_timeout_ = 5000;
+    bool use_query_cache_ = true;
     uint16_t network_port_ = 15721;
     uint16_t connection_thread_count_ = 4;
     bool use_network_ = false;
@@ -666,6 +676,7 @@ class DBMain {
       connection_thread_count_ =
           static_cast<uint16_t>(settings_manager->GetInt(settings::Param::connection_thread_count));
       optimizer_timeout_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::task_execution_timeout));
+      use_query_cache_ = settings_manager->GetBool(settings::Param::use_query_cache);
 
       metrics_pipeline_ = settings_manager->GetBool(settings::Param::metrics_pipeline);
       metrics_transaction_ = settings_manager->GetBool(settings::Param::metrics_transaction);
