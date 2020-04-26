@@ -28,7 +28,7 @@ namespace terrier::optimizer {
 
 QueryToOperatorTransformer::QueryToOperatorTransformer(
     const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor, const catalog::db_oid_t db_oid)
-    : accessor_(catalog_accessor), db_oid_(db_oid) {
+    : accessor_(catalog_accessor), db_oid_(db_oid), cte_table_name_("") {
   output_expr_ = nullptr;
 }
 
@@ -41,6 +41,25 @@ std::unique_ptr<OperatorNode> QueryToOperatorTransformer::ConvertToOpExpression(
   return std::move(output_expr_);
 }
 
+bool QueryToOperatorTransformer::FindFirstCTEScanNode(common::ManagedPointer<OperatorNode> child_expr) {
+  bool isAdded = false;
+
+  // TODO(preetang): Replace explicit string usage for operator name with reference to constant string
+  if (child_expr->GetOp().GetName() == "LogicalCteScan") {
+    // Leftmost LogicalCteScan found in tree
+    child_expr->PushChild(std::move(output_expr_));
+    isAdded = true;
+  } else {
+    auto children = child_expr->GetChildren();
+    for (auto &i : children) {
+      isAdded = FindFirstCTEScanNode(i);
+      if (isAdded)  break;
+    }
+  }
+
+  return isAdded;
+}
+
 void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStatement> op,
                                        common::ManagedPointer<binder::BinderSherpa> sherpa) {
   OPTIMIZER_LOG_DEBUG("Transforming SelectStatement to operators ...");
@@ -51,20 +70,16 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
   predicates_ = {};
 
   if(op->GetSelectWith() != nullptr) {
-    op->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-    auto cte_scan_expr = std::make_unique<OperatorNode>(
-        LogicalCteScan::Make(),
-        std::vector<std::unique_ptr<OperatorNode>>{});
-    cte_scan_expr->PushChild(std::move(output_expr_));
-    output_expr_ = std::move(cte_scan_expr);
+    // SELECT statement has CTE, register CTE table name
+    cte_table_name_ =  op->GetSelectWith()->GetAlias();
+  }
+
+  if (op->GetSelectTable() != nullptr) {
+    // SELECT with FROM
+    op->GetSelectTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
   } else {
-    if (op->GetSelectTable() != nullptr) {
-      // SELECT with FROM
-      op->GetSelectTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-    } else {
-      // SELECT without FROM
-      output_expr_ = std::make_unique<OperatorNode>(LogicalGet::Make(), std::vector<std::unique_ptr<OperatorNode>>{});
-    }
+    // SELECT without FROM
+    output_expr_ = std::make_unique<OperatorNode>(LogicalGet::Make(), std::vector<std::unique_ptr<OperatorNode>>{});
   }
 
   if (op->GetSelectCondition() != nullptr) {
@@ -152,7 +167,21 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
     output_expr_ = std::move(limit_expr);
   }
 
-  predicates_ = std::move(pre_predicates);
+  if(op->GetSelectWith() != nullptr) {
+    // Store the current logical tree in another expression
+    auto child_expr = std::move(output_expr_);
+
+    // Get the logical tree for the query which is used to compute the CTE table
+    op->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
+
+    // Add CTE table query to first LogicalCteScan found in tree
+    FindFirstCTEScanNode(common::ManagedPointer(child_expr));
+
+    // Replace the complete logical tree back
+    output_expr_ = std::move(child_expr);
+  }
+
+    predicates_ = std::move(pre_predicates);
 }
 
 void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::JoinDefinition> node,
@@ -259,11 +288,19 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
     // Single table
     if (node->GetList().size() == 1) node = node->GetList().at(0).Get();
 
-    // TODO(Ling): how should we determine the value of `is_for_update` field of logicalGet constructor?
-    output_expr_ = std::make_unique<OperatorNode>(
-        LogicalGet::Make(db_oid_, accessor_->GetDefaultNamespace(), accessor_->GetTableOid(node->GetTableName()), {},
-                         node->GetAlias(), false),
-        std::vector<std::unique_ptr<OperatorNode>>{});
+    if (node->GetTableName() == cte_table_name_) {
+      // CTE table referred
+      auto cte_scan_expr = std::make_unique<OperatorNode>(
+          LogicalCteScan::Make(node->GetAlias()),
+          std::vector<std::unique_ptr<OperatorNode>>{});
+      output_expr_ = std::move(cte_scan_expr);;
+    } else {
+      // TODO(Ling): how should we determine the value of `is_for_update` field of logicalGet constructor?
+      output_expr_ = std::make_unique<OperatorNode>(
+          LogicalGet::Make(db_oid_, accessor_->GetDefaultNamespace(), accessor_->GetTableOid(node->GetTableName()), {},
+                           node->GetAlias(), false),
+          std::vector<std::unique_ptr<OperatorNode>>{});
+    }
   }
 }
 
