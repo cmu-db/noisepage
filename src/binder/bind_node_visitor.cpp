@@ -30,7 +30,7 @@ namespace terrier::binder {
 
 BindNodeVisitor::BindNodeVisitor(const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor,
                                  const catalog::db_oid_t db_oid)
-    : catalog_accessor_(catalog_accessor), db_oid_(db_oid) {}
+    : catalog_accessor_(catalog_accessor), db_oid_(db_oid), cte_table_name_("") {}
 
 void BindNodeVisitor::BindNameToNode(common::ManagedPointer<parser::ParseResult> parse_result) {
   // TODO(Matt): something about the number of statements
@@ -48,11 +48,16 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
   context_ = common::ManagedPointer(&context);
 
   if(node->GetSelectWith() != nullptr) {
+    // Store CTE table name
+    TERRIER_ASSERT(cte_table_name_ == "", "cte table name should not be set.");
+    cte_table_name_ =  node->GetSelectWith()->GetAlias();
+
     node->GetSelectWith()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-  } else {
-    if (node->GetSelectTable() != nullptr)
-      node->GetSelectTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
   }
+
+  if (node->GetSelectTable() != nullptr)
+    node->GetSelectTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
+
 
   if (node->GetSelectCondition() != nullptr) {
     node->GetSelectCondition()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
@@ -128,12 +133,19 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node,
     // Multiple table
     for (auto &table : node->GetList())
       table->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
-  } else {
+  } else  {
     // Single table
-    if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
-      throw BINDER_EXCEPTION("Accessing non-existing table.");
+    if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID ) {
+      // table not in catalog, check if table referred is the cte table
+      if (node->GetTableName() != cte_table_name_) {
+        throw BINDER_EXCEPTION("Accessing non-existing table.");
+      } else {
+        // copy cte table's schema for this alias
+        context_->AddCTETable(node->GetTableName(), node->GetAlias());
+      }
+    } else {
+      context_->AddRegularTable(catalog_accessor_, node, db_oid_);
     }
-    context_->AddRegularTable(catalog_accessor_, node, db_oid_);
   }
 }
 
