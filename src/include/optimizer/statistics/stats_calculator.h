@@ -40,6 +40,12 @@ class StatsCalculator : public OperatorVisitor {
   void Visit(const LogicalQueryDerivedGet *op) override;
 
   /**
+   * Visit a LogicalCteScan
+   * @param op Operator being visited
+   */
+  void Visit(const LogicalCteScan *op) override;
+
+  /**
    * Visit a LogicalInnerJoin
    * @param op Operator being visited
    */

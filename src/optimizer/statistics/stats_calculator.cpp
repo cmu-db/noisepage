@@ -95,6 +95,17 @@ void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalQueryDerivedGet *op) {
   }
 }
 
+void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalCteScan *op) {
+  // TODO(preetang): Implement stats calculation for logical cte scan
+  auto root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
+  root_group->SetNumRows(0);
+  for (auto &col : required_cols_) {
+    TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
+    auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
+    root_group->AddStats(tv_expr->GetFullName(), CreateDefaultStats(tv_expr));
+  }
+}
+
 void StatsCalculator::Visit(const LogicalInnerJoin *op) {
   // Check if there's join condition
   TERRIER_ASSERT(gexpr_->GetChildrenGroupsSize() == 2, "Join must have two children");
