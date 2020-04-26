@@ -1693,8 +1693,14 @@ std::unique_ptr<AlterTableStatement> PostgresParser::AlterTableTransform(ParseRe
         cmds.emplace_back(std::move(col_def), std::move(col_name), cmd->missing_ok);
         break;
       case AT_ColumnDefault: {
-        // Default values should be stored in
-        auto expr = ExprTransform(parse_result, cmd->def, nullptr);
+        std::unique_ptr<AbstractExpression> expr;
+        if (cmd->def != nullptr) {
+          expr = ExprTransform(parse_result, cmd->def, nullptr);
+        } else {
+          // DROP DEFAULT is translated to SET DEFAULT NULL
+          auto v = type::TransientValueFactory::GetNull(type::TypeId::INVALID);
+          expr = std::make_unique<ConstantValueExpression>(std::move(v));
+        }
         default_val = common::ManagedPointer(expr);
         col_name = std::string(cmd->name);
         if (expr != nullptr) parse_result->AddExpression(std::move(expr));

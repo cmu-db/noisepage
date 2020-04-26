@@ -123,9 +123,9 @@ TEST_F(ParserTestBase, AlterTest) {
     const auto &cmds = alter_stmt->GetAlterTableCmds();
     EXPECT_EQ(cmds[0].GetAlterType(), AlterTableStatement::AlterType::ColumnDefault);
     auto default_expr = cmds[0].GetDefaultExpression().CastManagedPointerTo<ConstantValueExpression>();
-    EXPECT_EQ(default_expr, nullptr);
+    EXPECT_NE(default_expr, nullptr);
     EXPECT_EQ(cmds[0].GetColumnName(), "old_column");
-    EXPECT_FALSE(cmds[0].IsDropCascade());
+    EXPECT_EQ(default_expr->GetValue().Type(), type::TypeId::INVALID);
   }
 
   // Change type

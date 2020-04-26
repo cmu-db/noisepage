@@ -66,10 +66,6 @@ class AlterTableStatement : public TableRefStatement {
           if_exists_(if_exists),
           drop_cascade_(drop_cascade) {}
 
-    AlterTableCmd(const AlterTableCmd& alter_table_cmd) : type_(alter_table_cmd.type_), col_name_(alter_table_cmd.col_name_){
-      TERRIER_ASSERT(alter_table_cmd.GetAlterType() == AlterType::ColumnDefault, "This copy constructor is only used in SET/DROP default value.");
-    }
-
     /**
      * @return column definition
      */
@@ -105,7 +101,6 @@ class AlterTableStatement : public TableRefStatement {
    private:
     friend class binder::BindNodeVisitor;
 
-    void SetDefaultValueExpression(common::ManagedPointer<AbstractExpression> expr) { default_value_ = expr; }
     AlterType type_;
 
     const std::string col_name_;
@@ -133,7 +128,6 @@ class AlterTableStatement : public TableRefStatement {
   AlterTableStatement(std::unique_ptr<TableInfo> table, std::vector<AlterTableCmd> cmds, bool if_exist)
       : TableRefStatement(StatementType::ALTER, std::move(table)), cmds_(std::move(cmds)), if_exists_(if_exist) {}
 
-  // TODO(SC)
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   ~AlterTableStatement() override = default;
