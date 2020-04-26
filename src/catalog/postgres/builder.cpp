@@ -88,6 +88,9 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
   dbc->columns_ = new storage::SqlTable(block_store, Builder::GetColumnTableSchema());
   dbc->types_ = new storage::SqlTable(block_store, Builder::GetTypeTableSchema());
   dbc->constraints_ = new storage::SqlTable(block_store, Builder::GetConstraintTableSchema());
+  dbc->fk_constraints_ = new storage::SqlTable(block_store, Builder::GetFKConstraintTableSchema());
+  dbc->check_constraints_ = new storage::SqlTable(block_store, Builder::GetCheckConstraintTableSchema());
+  dbc->exclusion_constraints_ = new storage::SqlTable(block_store, Builder::GetExclusionConstraintTableSchema());
   dbc->languages_ = new storage::SqlTable(block_store, Builder::GetLanguageTableSchema());
   dbc->procs_ = new storage::SqlTable(block_store, Builder::GetProcTableSchema());
 
@@ -128,9 +131,16 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
       Builder::BuildLookupIndex(Builder::GetConstraintTableIndexSchema(oid), CONSTRAINT_TABLE_INDEX_OID);
   dbc->constraints_index_index_ =
       Builder::BuildLookupIndex(Builder::GetConstraintIndexIndexSchema(oid), CONSTRAINT_INDEX_INDEX_OID);
-  dbc->constraints_foreigntable_index_ =
-      Builder::BuildLookupIndex(Builder::GetConstraintForeignTableIndexSchema(oid), CONSTRAINT_FOREIGNTABLE_INDEX_OID);
-
+  // dbc->constraints_foreigntable_index_ =
+  //     Builder::BuildLookupIndex(Builder::GetConstraintForeignTableIndexSchema(oid), CONSTRAINT_FOREIGNTABLE_INDEX_OID);
+  dbc->fk_constraints_oid_index_ = 
+      Builder::BuildLookupIndex(Builder::GetFKConstraintOidIndexSchema(oid), FK_OID_INDEX_OID);
+  dbc->fk_constraints_constraint_oid_index_ = 
+      Builder::BuildLookupIndex(Builder::GetFKConstraintConstraintOidIndexSchema(oid), FK_CON_OID_INDEX_OID);
+  dbc->check_constraints_oid_index_ = 
+      Builder::BuildLookupIndex(Builder::GetCheckConstraintOidIndexSchema(oid), CHECK_OID_INDEX_OID);
+  dbc->exclusion_constraints_oid_index_ = 
+      Builder::BuildLookupIndex(Builder::GetExclusionConstraintOidIndexSchema(oid), EXCLUSION_OID_INDEX_OID);
   // Indexes on pg_language
   dbc->languages_oid_index_ =
       Builder::BuildUniqueIndex(Builder::GetLanguageOidIndexSchema(oid), LANGUAGE_OID_INDEX_OID);
@@ -230,10 +240,10 @@ Schema Builder::GetConstraintTableSchema() {
   columns.emplace_back("conindid", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
   columns.back().SetOid(CONINDID_COL_OID);
 
-  columns.emplace_back("confrelid", type::TypeId::VARCHAR, true, MakeNull(type::TypeId::VARCHAR));
+  columns.emplace_back("confrelid", type::TypeId::VARBINARY, true, MakeNull(type::TypeId::VARBINARY));
   columns.back().SetOid(CONFRELID_COL_OID);
 
-  columns.emplace_back("conuniquecol", type::TypeId::VARCHAR, true, MakeNull(type::TypeId::VARCHAR));
+  columns.emplace_back("conuniquecol", type::TypeId::VARBINARY, true, MakeNull(type::TypeId::VARBINARY));
   columns.back().SetOid(CONUNIQUE_COL_COL_OID);
 
   columns.emplace_back("concheck", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
@@ -628,6 +638,19 @@ IndexSchema Builder::GetFKConstraintOidIndexSchema(db_oid_t db) {
   return schema;
 }
 
+IndexSchema Builder::GetFKConstraintConstraintOidIndexSchema(db_oid_t db) {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back("fkid", type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, FK_TABLE_OID, FKCONID_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(1));
+
+  // not unique
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
+
+  return schema;
+}
+
 IndexSchema Builder::GetCheckConstraintOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
@@ -710,18 +733,18 @@ IndexSchema Builder::GetConstraintIndexIndexSchema(db_oid_t db) {
   return schema;
 }
 
-IndexSchema Builder::GetConstraintForeignTableIndexSchema(db_oid_t db) {
-  std::vector<IndexSchema::Column> columns;
+// IndexSchema Builder::GetConstraintForeignTableIndexSchema(db_oid_t db) {
+//   std::vector<IndexSchema::Column> columns;
 
-  columns.emplace_back("confrelid", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, CONSTRAINT_TABLE_OID, CONFRELID_COL_OID));
-  columns.back().SetOid(indexkeycol_oid_t(1));
+//   columns.emplace_back("confrelid", type::TypeId::INTEGER, false,
+//                        parser::ColumnValueExpression(db, CONSTRAINT_TABLE_OID, CONFRELID_COL_OID));
+//   columns.back().SetOid(indexkeycol_oid_t(1));
 
-  // Not unique
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
+//   // Not unique
+//   IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
 
-  return schema;
-}
+//   return schema;
+// }
 
 IndexSchema Builder::GetLanguageOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;

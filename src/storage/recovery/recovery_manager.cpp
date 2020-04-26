@@ -11,6 +11,9 @@
 #include "catalog/postgres/pg_attribute.h"
 #include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_constraint.h"
+#include "catalog/postgres/fk_constraint.h"
+#include "catalog/postgres/check_constraint.h"
+#include "catalog/postgres/exclusion_constraint.h"
 #include "catalog/postgres/pg_database.h"
 #include "catalog/postgres/pg_index.h"
 #include "catalog/postgres/pg_language.h"
@@ -255,8 +258,28 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
                                  db_catalog_ptr->constraints_namespace_index_->metadata_.GetSchema());
       index_objects.emplace_back(db_catalog_ptr->constraints_index_index_,
                                  db_catalog_ptr->constraints_index_index_->metadata_.GetSchema());
-      index_objects.emplace_back(db_catalog_ptr->constraints_foreigntable_index_,
-                                 db_catalog_ptr->constraints_foreigntable_index_->metadata_.GetSchema());
+      // index_objects.emplace_back(db_catalog_ptr->constraints_foreigntable_index_,
+      //                            db_catalog_ptr->constraints_foreigntable_index_->metadata_.GetSchema());
+      break;
+    }
+
+    case (!catalog::postgres::FK_TABLE_OID): {
+      index_objects.emplace_back(db_catalog_ptr->fk_constraints_oid_index_,
+                                 db_catalog_ptr->fk_constraints_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->fk_constraints_constraint_oid_index_,
+                                 db_catalog_ptr->fk_constraints_constraint_oid_index_->metadata_.GetSchema());
+      break;
+    }
+
+    case (!catalog::postgres::EXCLUSION_TABLE_OID): {
+      index_objects.emplace_back(db_catalog_ptr->exclusion_constraints_oid_index_,
+                                 db_catalog_ptr->exclusion_constraints_oid_index_->metadata_.GetSchema());
+      break;
+    }
+
+    case (!catalog::postgres::CHECK_TABLE_OID): {
+      index_objects.emplace_back(db_catalog_ptr->check_constraints_oid_index_,
+                                 db_catalog_ptr->check_constraints_oid_index_->metadata_.GetSchema());
       break;
     }
 
@@ -932,8 +955,24 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
       return db_catalog->constraints_index_index_;
     }
 
-    case (!catalog::postgres::CONSTRAINT_FOREIGNTABLE_INDEX_OID): {
-      return db_catalog->constraints_foreigntable_index_;
+    // case (!catalog::postgres::CONSTRAINT_FOREIGNTABLE_INDEX_OID): {
+    //   return db_catalog->constraints_foreigntable_index_;
+    // }
+    
+    case (!catalog::postgres::FK_OID_INDEX_OID): {
+      return db_catalog->fk_constraints_oid_index_;
+    }
+
+    case (!catalog::postgres::FK_CON_OID_INDEX_OID): {
+      return db_catalog->fk_constraints_constraint_oid_index_;
+    }
+
+    case (!catalog::postgres::CHECK_OID_INDEX_OID): {
+      return db_catalog->check_constraints_oid_index_;
+    }
+
+    case (!catalog::postgres::EXCLUSION_OID_INDEX_OID): {
+      return db_catalog->exclusion_constraints_oid_index_;
     }
 
     case (!catalog::postgres::LANGUAGE_OID_INDEX_OID): {

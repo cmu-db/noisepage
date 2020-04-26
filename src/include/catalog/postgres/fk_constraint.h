@@ -11,6 +11,7 @@ namespace terrier::catalog::postgres {
 
 constexpr table_oid_t FK_TABLE_OID = table_oid_t(91);
 constexpr index_oid_t FK_OID_INDEX_OID = index_oid_t(92);
+constexpr index_oid_t FK_CON_OID_INDEX_OID = index_oid_t(93);
 
 /*
  * Column names of the form "CON[name]_COL_OID" are present in the PostgreSQL
