@@ -79,14 +79,17 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
     output_expr_ = std::move(cte_scan_expr);
     // SELECT statement has CTE, register CTE table name
     cte_table_name_ =  op->GetSelectWith()->GetAlias();
-  } else {
-    if (op->GetSelectTable() != nullptr) {
-      // SELECT with FROM
-      op->GetSelectTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
-    } else {
-      // SELECT without FROM
-      output_expr_ = std::make_unique<OperatorNode>(LogicalGet::Make().RegisterWithTxnContext(txn_context),
+    for(auto &elem: op->GetSelectWith()->GetSelect()->GetSelectColumns()) {
+      cte_expressions_.push_back(elem);
     }
+  }
+
+  if (op->GetSelectTable() != nullptr) {
+    // SELECT with FROM
+    op->GetSelectTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>(), sherpa);
+  } else {
+    // SELECT without FROM
+    output_expr_ = std::make_unique<OperatorNode>(LogicalGet::Make(), std::vector<std::unique_ptr<OperatorNode>>{});
   }
 
   if (op->GetSelectCondition() != nullptr) {
@@ -311,7 +314,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
     if (node->GetTableName() == cte_table_name_) {
       // CTE table referred
       auto cte_scan_expr = std::make_unique<OperatorNode>(
-          LogicalCteScan::Make(node->GetAlias()),
+          LogicalCteScan::Make(node->GetAlias(), cte_expressions_),
           std::vector<std::unique_ptr<OperatorNode>>{});
       output_expr_ = std::move(cte_scan_expr);;
     } else {

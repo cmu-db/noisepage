@@ -1932,7 +1932,7 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
   /**
    * @return
    */
-  static Operator Make(std::string table_alias);
+  static Operator Make(std::string table_alias, std::vector<common::ManagedPointer<parser::AbstractExpression>> child_expressions);
 
   /**
    * Copy
@@ -1948,11 +1948,14 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
    */
   const std::string &GetTableAlias() const { return table_alias_; }
 
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetExpressions() {return child_expressions_;}
+
  private:
   /**
    * Alias of the table to get from
    */
   std::string table_alias_;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> child_expressions_;
 };
 
 }  // namespace terrier::optimizer
