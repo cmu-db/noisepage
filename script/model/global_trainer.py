@@ -166,7 +166,7 @@ class GlobalTrainer:
 # ==============================================
 if __name__ == '__main__':
     aparser = argparse.ArgumentParser(description='Global Trainer')
-    aparser.add_argument('--input_path', default='endtoend_isolated_input',
+    aparser.add_argument('--input_path', default='global_runner_input',
                          help='Input file path for the global runners')
     aparser.add_argument('--model_results_path', default='global_model_results',
                          help='Prediction results of the mini models')

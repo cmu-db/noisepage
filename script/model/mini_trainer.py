@@ -118,7 +118,7 @@ class MiniTrainer:
         self.model_map = {}
 
         # First get the data for all mini runners
-        for filename in glob.glob(os.path.join(self.input_path, '*.csv')):
+        for filename in sorted(glob.glob(os.path.join(self.input_path, '*.csv'))):
             print(filename)
             data_list = opunit_data.get_mini_runner_data(filename, self.model_map, self.stats_map)
             for data in data_list:
@@ -132,7 +132,8 @@ class MiniTrainer:
 # ==============================================
 if __name__ == '__main__':
     aparser = argparse.ArgumentParser(description='Mini Trainer')
-    aparser.add_argument('--input_path', default='mini_runner_input', help='Input file path for the mini runners')
+    aparser.add_argument('--input_path', default='mini_runner_input_cpp',
+                         help='Input file path for the mini runners')
     aparser.add_argument('--model_results_path', default='mini_runner_model_results',
                          help='Prediction results of the mini models')
     aparser.add_argument('--save_path', default='trained_model', help='Path to save the mini models')

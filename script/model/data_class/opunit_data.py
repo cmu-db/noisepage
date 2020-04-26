@@ -7,10 +7,11 @@ import os
 import copy
 import logging
 
+from data_class import data_util
 from info import data_info
 from util.io_util import write_csv_result
 
-from type import OpUnit, ArithmeticFeature
+from type import OpUnit
 
 
 def write_extended_data(output_path, symbol, index_value_list, data_map):
@@ -22,10 +23,12 @@ def write_extended_data(output_path, symbol, index_value_list, data_map):
         write_csv_result(output_path, key, value)
 
 
-def get_mini_runner_data(filename, model_map={}, predict_cache={}):
+def get_mini_runner_data(filename, model_map, predict_cache):
     """Get the training data from the mini runner
 
     :param filename: the input data file
+    :param model_map: the map from OpUnit to the mini model
+    :param predict_cache: cache for the mini model prediction
     :return: the list of Data for execution operating units
     """
 
@@ -50,15 +53,6 @@ def _default_get_mini_runner_data(filename):
     logging.info("Loaded file: {}".format(OpUnit[file_name]))
     return [OpUnitData(OpUnit[file_name], x, y)]
 
-def _convert_string_to_numeric(value):
-    if ';' in value:
-        return list(map(_convert_string_to_numeric, value.split(';')))
-
-    try:
-        return int(value)
-    except:
-        # Scientific notation
-        return int(float(value))
 
 def _execution_get_mini_runner_data(filename, model_map, predict_cache):
     # Get the mini runner data for the execution engine
@@ -71,9 +65,9 @@ def _execution_get_mini_runner_data(filename, model_map, predict_cache):
         next(reader)
         for line in reader:
             # drop query_id, pipeline_id, num_features, features_vector
-            record = [d for i,d in enumerate(line) if i > features_vector_index]
+            record = [d for i, d in enumerate(line) if i > features_vector_index]
             record.insert(data_info.EXECUTION_MODE_INDEX, line[execution_mode_index])
-            data = list(map(_convert_string_to_numeric, record))
+            data = list(map(data_util.convert_string_to_numeric, record))
             x_multiple = data[:data_info.RECORD_FEATURES_END]
             y_merged = np.array(data[-data_info.RECORD_METRICS_START:])
 
@@ -117,7 +111,7 @@ def _execution_get_mini_runner_data(filename, model_map, predict_cache):
         if opunit in data_info.ARITHMETIC_OPUNITS:
             compiled_values = copy.deepcopy(values)
             for v in compiled_values:
-                v[data_info.EXECUTION_MODE_INDEX] = 1 # mark as compiled
+                v[data_info.EXECUTION_MODE_INDEX] = 1  # mark as compiled
             values += compiled_values
 
         np_value = np.array(values)

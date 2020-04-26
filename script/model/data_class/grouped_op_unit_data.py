@@ -3,10 +3,11 @@ import numpy as np
 import copy
 import tqdm
 
+from data_class import data_util
 from info import data_info, query_info
 import global_model_config
 
-from type import Target, ConcurrentCountingMode
+from type import Target, ConcurrentCountingMode, OpUnit
 
 
 def get_grouped_op_unit_data(filename):
@@ -22,6 +23,9 @@ def get_grouped_op_unit_data(filename):
     if "execution" in filename:
         # Special handle of the execution data
         return _execution_get_grouped_op_unit_data(filename)
+    if "pipeline" in filename:
+        # Special handle of the pipeline execution data
+        return _pipeline_get_grouped_op_unit_data(filename)
 
     return _default_get_global_data(filename)
 
@@ -44,6 +48,38 @@ def _execution_get_grouped_op_unit_data(filename):
                     opunit_feature[1].append(mode)
                 line_data = list(map(int, line[2:]))
                 data_list.append(GroupedOpUnitData(line[0], opunit_features, np.array(line_data)))
+
+    return data_list
+
+
+def _pipeline_get_grouped_op_unit_data(filename):
+    # Get the global running data for the execution engine
+    execution_mode_index = data_info.RAW_EXECUTION_MODE_INDEX
+    features_vector_index = data_info.RAW_FEATURES_VECTOR_INDEX
+
+    data_list = []
+    with open(filename, "r") as f:
+        reader = csv.reader(f, delimiter=",", skipinitialspace=True)
+        next(reader)
+        for line in reader:
+            # drop query_id, pipeline_id, num_features, features_vector
+            record = [d for i,d in enumerate(line) if i > features_vector_index]
+            record.insert(data_info.EXECUTION_MODE_INDEX, line[execution_mode_index])
+            data = list(map(data_util.convert_string_to_numeric, record))
+            x_multiple = data[:data_info.RECORD_FEATURES_END]
+            metrics = np.array(data[-data_info.METRICS_OUTPUT_NUM:])
+
+            # Get the opunits located within
+            opunits = []
+            features = line[features_vector_index].split(';')
+            for idx, feature in enumerate(features):
+                if feature == 'LIMIT' or feature == 'PROJECTION':
+                    continue
+                opunit = OpUnit[feature]
+                x_loc = [v[idx] if type(v) == list else v for v in x_multiple]
+                opunits.append((opunit, x_loc))
+
+            data_list.append(GroupedOpUnitData("{}".format(opunits), opunits, np.array(metrics)))
 
     return data_list
 
