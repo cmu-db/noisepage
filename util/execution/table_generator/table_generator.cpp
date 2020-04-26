@@ -441,8 +441,7 @@ void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> ind
 
 std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerTableMetas() {
   std::vector<TableInsertMeta> table_metas;
-  std::vector<std::vector<type::TypeId>> mixed_types = {{type::TypeId::INTEGER, type::TypeId::DECIMAL},
-                                                        {type::TypeId::INTEGER, type::TypeId::BIGINT}};
+  std::vector<std::vector<type::TypeId>> mixed_types = {{type::TypeId::INTEGER, type::TypeId::DECIMAL}};
   std::vector<std::vector<uint32_t>> mixed_dist = {{0, 15}, {3, 12}, {7, 8}, {11, 4}, {15, 0}};
   std::vector<uint32_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
                                     2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
