@@ -336,21 +336,22 @@ static void GenJoinSelfArguments(benchmark::internal::Benchmark *b) {
     for (auto col : num_cols) {
       for (auto row : row_nums) {
         int64_t car = 1;
+        std::vector<int64_t> cars;
         while (car < row) {
           if (row * row / car <= 10000000) {
-            if (type == type::TypeId::INTEGER)
-              b->Args({col, 0, 15, 0, row, car});
-            else if (type == type::TypeId::BIGINT)
-              b->Args({0, col, 0, 15, row, car});
+            cars.push_back(car);
           }
 
           car *= 2;
         }
+        cars.push_back(row);
 
-        if (type == type::TypeId::INTEGER)
-          b->Args({col, 0, 15, 0, row, row});
-        else if (type == type::TypeId::BIGINT)
-          b->Args({0, col, 0, 15, row, row});
+        for (auto it = cars.rbegin(); it != cars.rend(); it++) {
+          if (type == type::TypeId::INTEGER)
+            b->Args({col, 0, 15, 0, row, *it});
+          else if (type == type::TypeId::BIGINT)
+            b->Args({0, col, 0, 15, row, *it});
+        }
       }
     }
   }
@@ -369,10 +370,11 @@ static void GenJoinSelfArguments(benchmark::internal::Benchmark *b) {
  * 8 - Matched cardinality
  */
 static void GenJoinNonSelfArguments(benchmark::internal::Benchmark *b) {
+  std::vector<std::vector<int64_t>> args;
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER};
-  std::vector<int64_t> row_nums = {1000000, 500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000,
-                                   1000,    500,    100,    50,     10,    7,     5,     3,    1};
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
       for (size_t i = 0; i < row_nums.size(); i++) {
@@ -384,12 +386,18 @@ static void GenJoinNonSelfArguments(benchmark::internal::Benchmark *b) {
 
           auto matched_car = row_nums[i];
           if (type == type::TypeId::INTEGER)
-            b->Args({col, 0, 15, 0, build_rows, build_car, probe_rows, probe_car, matched_car});
+            args.emplace_back(
+                std::vector<int64_t>({col, 0, 15, 0, build_rows, build_car, probe_rows, probe_car, matched_car}));
           else if (type == type::TypeId::BIGINT)
-            b->Args({0, col, 0, 15, build_rows, build_car, probe_rows, probe_car, matched_car});
+            args.emplace_back(
+                std::vector<int64_t>({0, col, 0, 15, build_rows, build_car, probe_rows, probe_car, matched_car}));
         }
       }
     }
+  }
+
+  for (auto arg : args) {
+    b->Args(arg);
   }
 }
 
@@ -401,14 +409,16 @@ static void GenJoinNonSelfArguments(benchmark::internal::Benchmark *b) {
  */
 static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
   auto types = {type::TypeId::INTEGER};
-  auto key_sizes = {1, 3, 5, 7, 9, 11, 13, 15};
+  auto key_sizes = {1, 2, 4, 8, 15};
   auto idx_sizes = {1, 10, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 500000, 1000000};
   std::vector<int64_t> lookup_sizes = {1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
   for (auto type : types) {
     for (auto key_size : key_sizes) {
       for (auto idx_size : idx_sizes) {
         for (auto lookup_size : lookup_sizes) {
-          b->Args({static_cast<int64_t>(type), key_size, idx_size, lookup_size});
+          if (lookup_size <= idx_size) {
+            b->Args({static_cast<int64_t>(type), key_size, idx_size, lookup_size});
+          }
         }
       }
     }
@@ -952,7 +962,7 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ1_1_SeqScanRunners)
     ->Apply(GenScanMixedArguments);
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ1_IndexScanRunners)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(MiniRunners, SEQ1_2_IndexScanRunners)(benchmark::State &state) {
   if (MiniRunners::mode != execution::vm::ExecutionMode::Interpret) {
     state.SetItemsProcessed(0);
     return;
@@ -969,7 +979,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ1_IndexScanRunners)(benchmark::State &state) 
   state.SetItemsProcessed(state.range(2));
 }
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ1_IndexScanRunners)
+BENCHMARK_REGISTER_F(MiniRunners, SEQ1_2_IndexScanRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
     ->Apply(GenIdxScanArguments);
@@ -1112,7 +1122,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ5_UpdateRunners)(benchmark::State &state) {
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::UPDATE, num_rows, tuple_size, num_cols, num_car);
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, num_rows, 15 * type_size, 15, num_car);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, num_rows, 1, type_size, num_car);
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
     uint64_t elapsed_ms;
@@ -1163,7 +1173,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ5_DeleteRunners)(benchmark::State &state) {
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::DELETE, num_rows, tuple_size, num_cols, num_car);
-    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, num_rows, tuple_size, num_cols, num_car);
+    pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::SEQ_SCAN, num_rows, 1, type_size, num_car);
     units.RecordOperatingUnit(execution::pipeline_id_t(0), std::move(pipe0_vec));
 
     uint64_t elapsed_ms;
@@ -1456,7 +1466,7 @@ void RunBenchmarkSequence(void) {
   // SEQ4: Aggregate
   // SEQ5: Insert, Update, Delete
   std::vector<std::vector<std::string>> filters = {
-      {"SEQ0"}, {"SEQ1_0", "SEQ1_1"}, {"SEQ2"}, {"SEQ3"}, {"SEQ4"}, {"SEQ5"},
+      {"SEQ0"}, {"SEQ1_0", "SEQ1_1", "SEQ1_2"}, {"SEQ2"}, {"SEQ3"}, {"SEQ4"}, {"SEQ5"},
   };
 
   char buffer[32];
