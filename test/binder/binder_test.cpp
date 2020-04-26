@@ -929,7 +929,6 @@ TEST_F(BinderCorrectnessTest, SimpleFunctionCallTest) {
   std::string query = "SELECT cot(1.0) FROM a;";
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(query);
-  auto statement = parse_tree->GetStatements()[0];
   binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
 
   auto select_stmt = parse_tree->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
@@ -942,8 +941,34 @@ TEST_F(BinderCorrectnessTest, SimpleFunctionCallTest) {
   query = "SELECT cot(1.0, 2.0) FROM a;";
 
   parse_tree = parser::PostgresParser::BuildParseTree(query);
-  statement = parse_tree->GetStatements()[0];
   EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr), BinderException);
+}
+
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, SimpleAddColumnTest) {
+  std::string query = "ALTER TABLE a ADD a_new INT DEFAULT 15721;";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(query);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+
+  EXPECT_EQ(statement->GetType(), parser::StatementType::ALTER);
+  auto alter_stmt = statement.CastManagedPointerTo<parser::AlterTableStatement>();
+  EXPECT_EQ(alter_stmt->GetTableName(), "a");
+  //  EXPECT_EQ(alter_stmt->GetDatabaseName(), default_database_name_);
+  EXPECT_EQ(alter_stmt->GetAlterTableCmds().size(), 1);
+  EXPECT_FALSE(alter_stmt->IsIfExists());
+
+  const auto &cmd = alter_stmt->GetAlterTableCmds()[0];
+  EXPECT_EQ(cmd.GetAlterType(), parser::AlterTableStatement::AlterType::AddColumn);
+  EXPECT_EQ(cmd.GetColumnName(), "a_new");
+  EXPECT_EQ(cmd.GetDefaultExpression(), nullptr);
+
+  auto &column = cmd.GetColumn();
+  EXPECT_EQ(column.GetColumnName(), "a_new");
+  auto default_val = std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetInteger(15721));
+  EXPECT_EQ(*(column.GetDefaultExpression()), *default_val);
+  EXPECT_EQ(column.GetValueType(), type::TypeId::INTEGER);
 }
 
 }  // namespace terrier
