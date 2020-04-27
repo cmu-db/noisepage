@@ -26,7 +26,7 @@ CteScanLeaderTranslator::CteScanLeaderTranslator(const terrier::planner::CteScan
   read_pci_(codegen_->NewIdentifier("read_pci")) {
 
   // ToDo(Gautam,Preetansh): Send the complete schema in the plan node.
-  auto & all_columns = op_->GetOutputSchema()->GetColumns();
+  auto & all_columns = op_->GetTableOutputSchema()->GetColumns();
   for(auto &col: all_columns) {
     all_types_.emplace_back(static_cast<int>(col.GetType()));
   }
@@ -147,7 +147,7 @@ void CteScanLeaderTranslator::GenTableInsert(FunctionBuilder *builder) {
 }
 
 void CteScanLeaderTranslator::FillPRFromChild(terrier::execution::compiler::FunctionBuilder *builder) {
-  const auto &cols = op_->GetOutputSchema()->GetColumns();
+  const auto &cols = op_->GetTableOutputSchema()->GetColumns();
 
   for (uint32_t i = 0; i < col_oids_.size(); i++) {
     const auto &table_col = cols[i];

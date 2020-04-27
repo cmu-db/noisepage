@@ -76,7 +76,8 @@ void Optimizer::ElectCTELeader(common::ManagedPointer<planner::AbstractPlanNode>
   if (plan->GetPlanNodeType() == planner::PlanNodeType::CTESCAN) {
     if ( plan->GetChildren().size()==0) {
       // Set cte schema
-      plan->SetOutputSchema(std::move(context_->GetCTESchema()->Copy()));
+      auto cte_scan_plan_node_set = reinterpret_cast<planner::CteScanPlanNode *>(plan.Get());
+      cte_scan_plan_node_set->SetTableOutputSchema(std::move(context_->GetCTESchema()->Copy()));
 
       if (leader == nullptr) {
         leader = plan;
@@ -156,10 +157,12 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   if (op->GetOp().GetType()==OpType::CTESCAN  && child_groups.size()>0) {
     TERRIER_ASSERT(child_groups.size() == 1, "CTE should not have more than 1 child.");
     if (plan->GetPlanNodeType() == planner::PlanNodeType::CTESCAN) {
-      context_->SetCTESchema(plan->GetOutputSchema());
+      auto cte_scan_plan_node = reinterpret_cast<planner::CteScanPlanNode *>(plan.get());
+      context_->SetCTESchema(cte_scan_plan_node->GetTableOutputSchema());
     } else if ((*plan->GetChildren().begin())->GetPlanNodeType() == planner::PlanNodeType::CTESCAN) {
       // CTE Scan node can be inside a Projection node
-      context_->SetCTESchema((*plan->GetChildren().begin())->GetOutputSchema());
+      auto cte_scan_plan_node = reinterpret_cast<planner::CteScanPlanNode *>(&(*plan->GetChildren().begin()->Get()));
+      context_->SetCTESchema((cte_scan_plan_node)->GetTableOutputSchema());
     }
   }
 
