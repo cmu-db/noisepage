@@ -19,7 +19,7 @@ void OutputBuffer::Finalize() {
   auto it = buffer_map_.find(this_id);
   size_t index = it->second.first;
   byte *tuples = it->second.second;
-  if (num_tuples_ > 0) {
+  if (num_tuples_[index] > 0) {
     common::SpinLatch::ScopedSpinLatch guard(&latch_);
     callback_(tuples, num_tuples_[index], tuple_size_);
     num_tuples_[index] = 0;
