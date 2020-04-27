@@ -240,6 +240,7 @@ class DataTable {
   friend class BlockCompactor;
   friend class Checkpoint;
   friend class RecoveryManager;
+  friend class RecoveryTests;
 
   const common::ManagedPointer<BlockStore> block_store_;
   const layout_version_t layout_version_;

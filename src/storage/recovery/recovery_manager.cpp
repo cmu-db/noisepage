@@ -101,9 +101,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
     const auto &layout = data_table->GetBlockLayout();
     const auto &column_ids = layout.AllColumns();
     auto column_id_size = column_ids.size();
-    data_table->blocks_latch_.Lock();
-    std::list<RawBlock *> tmp_blocks = data_table->blocks_;
-    data_table->blocks_latch_.Unlock();
+    data_table->blocks_.clear();
 
     // Find the file
     std::ifstream f;
@@ -136,18 +134,19 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
       for (size_t j = 0; j < insert_head; j ++) {
         data_table->accessor_.Allocate(block, &place_holder_tuple_slot);
       }
+      size_t cur_buffer_index = 0;
       for (size_t i = 0; i < column_id_size; ++i) {
         auto col_id = column_ids[i];
         common::RawConcurrentBitmap *column_bitmap = data_table->accessor_.ColumnNullBitmap(block, col_id);
         byte *column_start = data_table->accessor_.ColumnStart(block, col_id);
-        auto s = (*record_buffers)[2 * i]->length();
-        TERRIER_ASSERT(s == reinterpret_cast<uintptr_t>(column_start) - reinterpret_cast<uintptr_t>(column_bitmap), "bitmap length should match");
+        auto s = (*record_buffers)[cur_buffer_index ++]->length();
+        //TERRIER_ASSERT(s == reinterpret_cast<uintptr_t>(column_start) - reinterpret_cast<uintptr_t>(column_bitmap), "bitmap length should match");
         ReadDataBlock(f, reinterpret_cast<char *>(column_bitmap), s);
 
         if (layout.IsVarlen(col_id)) {
-          uint64_t offsets_length = (*record_buffers)[2 * i + 1]->length() / sizeof(uint64_t);
-          uint64_t values_length = (*record_buffers)[2 * i + 2]->length();
-          uint64_t *offsets_array = new uint64_t[offsets_length];
+          uint64_t offsets_length = (*record_buffers)[cur_buffer_index ++]->length() / sizeof(uint64_t);
+          uint64_t values_length = (*record_buffers)[cur_buffer_index ++]->length();
+          uint64_t *offsets_array = new uint64_t[offsets_length / sizeof(uint64_t)];
           ReadDataBlock(f, reinterpret_cast<char *>(offsets_array), offsets_length* sizeof(uint64_t));
           byte *values_array = new byte[values_length];
           ReadDataBlock(f, reinterpret_cast<char *>(values_array), values_length);
@@ -162,7 +161,7 @@ void RecoveryManager::RecoverFromCheckpoint(const std::string &path, catalog::db
           delete[] offsets_array;
           delete[] values_array;
         } else {
-          int32_t cur_buffer_len = (*record_buffers)[2 * i + 1]->length();
+          int32_t cur_buffer_len = (*record_buffers)[cur_buffer_index ++]->length();
           ReadDataBlock(f, reinterpret_cast<char *>(column_start), cur_buffer_len);
         }
       }

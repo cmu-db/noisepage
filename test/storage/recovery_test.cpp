@@ -239,6 +239,18 @@ class RecoveryTests : public TerrierTest {
     // DeferredAction
     db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; });
   }
+
+  std::list<RawBlock *> &GetBlocks(terrier::common::ManagedPointer<terrier::storage::SqlTable> table) {
+    return table->table_.data_table_->blocks_;
+  }
+
+  BlockLayout &GetLayout(terrier::common::ManagedPointer<terrier::storage::SqlTable> table) {
+    return table->table_.layout_;
+  }
+
+  TupleAccessStrategy GetAccessor(terrier::common::ManagedPointer<terrier::storage::SqlTable> table) {
+    return table->table_.data_table_->accessor_;
+  }
 };
 
 // This test inserts some tuples into a single table. It then recreates the test table from
@@ -789,9 +801,9 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
                                               .SetNumDatabases(1)
                                               .SetNumTables(1)
-                                              .SetMaxColumns(5)
+                                              .SetMaxColumns(5)g
                                               .SetInitialTableSize(1)
-                                              .SetTxnLength(5)
+                                              .SetTxnLength(1)
                                               .SetInsertUpdateSelectDeleteRatio({1.0, 0.0, 0.0, 0.0})
                                               .SetVarlenAllowed(false)
                                               .Build();
@@ -857,6 +869,7 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
   for (auto &database : tested->GetTables()) {
     auto database_oid = database.first;
     for (auto &table_oid : database.second) {
+
       // Get original sql table
       auto original_txn = txn_manager_->BeginTransaction();
       auto original_sql_table = catalog_->GetDatabaseCatalog(common::ManagedPointer(original_txn), database_oid)
@@ -868,6 +881,28 @@ TEST_F(RecoveryTests, CatalogOnlyTest) {
       EXPECT_TRUE(recovered_db_catalog != nullptr);
       auto recovered_sql_table = recovered_db_catalog->GetTable(common::ManagedPointer(recovery_txn), table_oid);
       EXPECT_TRUE(recovered_sql_table != nullptr);
+
+      /*
+      auto block1 = GetBlocks(original_sql_table).front();
+      auto block2 = GetBlocks(recovered_sql_table).front();
+      const auto &layout = GetLayout(original_sql_table);
+      const auto &column_ids = layout.AllColumns();
+
+      byte *column_start1 = GetAccessor(original_sql_table).ColumnStart(block1, column_ids[0]);
+      byte *column_start2 = GetAccessor(recovered_sql_table).ColumnStart(block2, column_ids[0]);
+
+      common::RawConcurrentBitmap *column_bitmap1 = GetAccessor(original_sql_table).ColumnNullBitmap(block1, column_ids[0]);
+      common::RawConcurrentBitmap *column_bitmap2 = GetAccessor(recovered_sql_table).ColumnNullBitmap(block2, column_ids[0]);
+
+
+
+      EXPECT_TRUE(!memcmp(column_start1, column_start2, 100));
+      for (auto k = 0; k < 100; k ++) {
+        printf("%d %hhx %hhx\n", k, *(column_start1 + k), *(column_start2 + k));
+      }
+      EXPECT_TRUE(!memcmp((char*)column_bitmap1, (char*)column_bitmap2, 1));
+      */
+
 
       // checking
       auto initializer = storage::ProjectedRowInitializer::Create(GetBlockLayout(original_sql_table),
