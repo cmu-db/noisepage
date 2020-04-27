@@ -52,10 +52,8 @@ class CteScanLeaderTranslator : public OperatorTranslator {
   }
 
   ast::Expr *GetOutput(uint32_t attr_idx) override {
-    // TODO(Rohan): Need to fix this for non leader nodes
-    auto output_expr = op_->GetOutputSchema()->GetColumn(attr_idx).GetExpr();
-    auto translator = TranslatorFactory::CreateExpressionTranslator(output_expr.Get(), codegen_);
-    return translator->DeriveExpr(this);
+    // should never reach here
+    TERRIER_ASSERT(false, "We should never reach here");
   }
 
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {
