@@ -151,7 +151,7 @@ class InputColumnDeriver : public OperatorVisitor {
 
   /**
    * Visit function to derive input/output columns for LeftSemiHashJoin
-   * @param op InnerHashJoin operator to visit
+   * @param op LeftSemiHashJoin operator to visit
    */
   void Visit(const LeftSemiHashJoin *op) override;
 

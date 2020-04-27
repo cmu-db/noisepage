@@ -142,7 +142,7 @@ class ChildPropertyDeriver : public OperatorVisitor {
 
   /**
    * Visitor function for LeftSemiHashJoin
-   * @param op OuterHashJoin operator to visit
+   * @param op LeftSemiHashJoin operator to visit
    */
   void Visit(const LeftSemiHashJoin *op) override;
   /**

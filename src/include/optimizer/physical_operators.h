@@ -733,7 +733,9 @@ class LeftSemiHashJoin : public OperatorNodeContents<LeftSemiHashJoin> {
  public:
   /**
    * @param join_predicates predicates for join
-   * @return an LeftSemiHashJoin operator
+   * @param left_keys left keys to join
+   * @param right_keys right keys to join
+   * @return a LeftSemiHashJoin operator
    */
   static Operator Make(std::vector<AnnotatedExpression> &&join_predicates,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
@@ -789,7 +791,7 @@ class LeftHashJoin : public OperatorNodeContents<LeftHashJoin> {
  public:
   /**
    * @param join_predicate predicate for join
-   * @return a RightHashJoin operator
+   * @return a LeftHashJoin operator
    */
   static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
 
