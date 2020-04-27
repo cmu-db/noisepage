@@ -60,6 +60,8 @@ RuleSet::RuleSet() {
 
   AddRule(RuleSetName::UNNEST_SUBQUERY, new RewritePullFilterThroughMarkJoin());
   AddRule(RuleSetName::UNNEST_SUBQUERY, new UnnestMarkJoinToInnerJoin());
+  AddRule(RuleSetName::UNNEST_SUBQUERY, new SingleJoinGetToInnerJoin());
+  AddRule(RuleSetName::UNNEST_SUBQUERY, new DependentSingleJoinToInnerJoin());
   AddRule(RuleSetName::UNNEST_SUBQUERY, new RewritePullFilterThroughAggregation());
 }
 
