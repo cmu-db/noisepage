@@ -52,7 +52,7 @@ class EXPORT OutputBuffer {
         id_(0),
         callback_(std::move(callback)) {}
 
-  void InsertIfAbsent(std::thread::id id) { 
+  void InsertIfAbsent(std::thread::id id) {
       if (buffer_map_.find(id) == buffer_map_.end()) {
         byte *tuples =
           reinterpret_cast<byte *>(memory_pool_->AllocateAligned(BATCH_SIZE * tuple_size_, alignof(uint64_t), true));

@@ -176,26 +176,29 @@ ast::Decl *Compiler::GenMainFunction() {
   // Make the function
   FunctionBuilder builder{codegen_, fn_name, std::move(params), ret_type};
 
+  // Step 0: Define the state variable.
+  ast::Identifier state = codegen_->GetStateVar();
+  ast::Expr *state_type = codegen_->MakeExpr(codegen_->GetStateType());
+  builder.Append(codegen_->DeclareVariable(state, state_type, nullptr));
+
+  // Step 1: Call setupFn(state, execCtx)
+  builder.Append(codegen_->ExecCall(codegen_->GetSetupFn()));
+
+  // Step 2: For each pipeline, call its function
   // TODO(Yuhong): Discuss when will have multiple pipelies and how to handle them
   for (const auto &pipeline : pipelines_) {
     if (pipeline->IsParallel()) {
       pipeline->Root()->LaunchWork(&builder, pipeline->GetWorkFunctionName());
     } else {
-      // Step 0: Define the state variable.
-      ast::Identifier state = codegen_->GetStateVar();
-      ast::Expr *state_type = codegen_->MakeExpr(codegen_->GetStateType());
-      builder.Append(codegen_->DeclareVariable(state, state_type, nullptr));
-
-      // Step 1: Call setupFn(state, execCtx)
-      builder.Append(codegen_->ExecCall(codegen_->GetSetupFn()));
-      // Step 2: For each pipeline, call its function
       builder.Append(codegen_->ExecCall(pipeline->GetWorkFunctionName()));
-      // Step 3: Call the teardown function
-      builder.Append(codegen_->ExecCall(codegen_->GetTeardownFn()));
     }
-    // Step 4: return a value of 0
-    builder.Append(codegen_->ReturnStmt(codegen_->IntLiteral(0)));
   }
+
+  // Step 3: Call the teardown function
+  builder.Append(codegen_->ExecCall(codegen_->GetTeardownFn()));
+
+  // Step 4: return a value of 0
+  builder.Append(codegen_->ReturnStmt(codegen_->IntLiteral(0)));
 
   return builder.Finish();
 }
