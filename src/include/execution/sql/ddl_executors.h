@@ -105,8 +105,16 @@ class DDLExecutors {
   static bool CreateIndex(common::ManagedPointer<catalog::CatalogAccessor> accessor, catalog::namespace_oid_t ns,
                           const std::string &name, catalog::table_oid_t table,
                           const catalog::IndexSchema &input_schema);
-  static bool CreateConstraint(common::ManagedPointer<catalog::CatalogAccessor> accessor, catalog::namespace_oid_t ns,
-                          const std::string &name, catalog::table_oid_t table,
-                          const catalog::IndexSchema &input_schema);
+  /**
+   * Loop through all the planNode constraint information, create the respect constraints
+   * By calling the access API accordingly
+   * @param accessor database catalog accessor
+   * @param table the table oid of the table the constraints is creating for
+   * @param plan_node the plan_node pointer that contains all the constraint info
+   * @return true if all constraints created successfully, false is any constraint was not successful, abort
+   */
+  static bool DDLExecutors::CreateConstraints(const common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                                              const terrier::catalog::Schema schema, const catalog::table_oid_t table,
+                                              const common::ManagedPointer<planner::CreateTablePlanNode> plan_node);
 };
 }  // namespace terrier::execution::sql

@@ -35,9 +35,21 @@ constexpr std::array<col_oid_t, NUM_FK_CONSTRAINT_COLS> FK_CONSTRAINT_ALL_COL_OI
 
 enum class FKActionType : char {
   NOACT = 'a', // no action
-  RES = 'r', // restrict
+  RESTRICTION = 'r', // restrict
   CASCADE = 'c', // cascade
   SETNULL = 'n', // set null
   SETDEFAULT = 'd', // set default
+  SETINVALID = 'i' // set invalid
 };
+
+constexpr std::unordered_map<terrier::parser::FKConstrActionType, FKActionType> FKCONSTACTION_FK_ACTION_MAP (
+  {
+    {terrier::parser::FKConstrActionType::INVALID, FKActionType::SETINVALID},
+    {terrier::parser::FKConstrActionType::NOACTION, FKActionType::NOACT},
+    {terrier::parser::FKConstrActionType::RESTRICT_, FKActionType::RESTRICTION},
+    {terrier::parser::FKConstrActionType::CASCADE, FKActionType::CASCADE},
+    {terrier::parser::FKConstrActionType::SETNULL, FKActionType::SETNULL},
+    {terrier::parser::FKConstrActionType::SETDEFAULT, FKActionType::SETDEFAULT}
+  }
+);
 }  // namespace terrier::catalog::postgres

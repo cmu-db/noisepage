@@ -97,10 +97,27 @@ bool CatalogAccessor::UpdateSchema(table_oid_t table, Schema *new_schema) const 
 
 const Schema &CatalogAccessor::GetSchema(table_oid_t table) const { return dbc_->GetSchema(txn_, table); }
 
-constraint_oid_t CatalogAccessor::CreateConstraints(namespace_oid_t ns, table_oid_t table, std::string name,
-                                         const IndexSchema &schema) const {
+// constraint_oid_t CatalogAccessor::CreateConstraints(namespace_oid_t ns, table_oid_t table, std::string name,
+//                                          const IndexSchema &schema) const {
+//   NormalizeObjectName(&name);
+//   return dbc_->CreateConstraints(txn_, ns, name, table, schema);
+// }
+
+constraint_oid_t CatalogAccessor::CreatePKConstraint(namespace_oid_t ns, table_oid_t table, std::string name,
+                                      std::vector<col_oid_t> &pk_cols) const {
   NormalizeObjectName(&name);
-  return dbc_->CreateConstraints(txn_, ns, name, table, schema);
+  return dbc_->CreatePKConstraint(txn_, ns, table, name, pk_cols);
+}
+constraint_oid_t CatalogAccessor::CreateFKConstraints(namespace_oid_t ns, table_oid_t src_table, table_oid_t sink_table,
+                                      std::string name, std::vector<col_oid_t> &src_cols,
+                                      std::vector<col_oid_t> &sink_cols) const {
+  NormalizeObjectName(&name);
+  return dbc_->CreateFKConstraint(txn_, ns, src_table, sink_table, name, src_cols, sink_cols);
+}
+constraint_oid_t CatalogAccessor::CreateUNIQUEConstraints(namespace_oid_t ns, table_oid_t table, std::string name,
+                                          std::vector<col_oid_t> &unique_cols) const {
+  NormalizeObjectName(&name);
+  return dbc_->CreateUNIQUEConstraint(txn_, ns, table, name, unique_cols);
 }
 
 std::vector<constraint_oid_t> CatalogAccessor::GetConstraints(table_oid_t table) const {

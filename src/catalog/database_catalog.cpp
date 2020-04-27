@@ -338,6 +338,7 @@ void DatabaseCatalog::BootstrapPRIs() {
                                                  postgres::PG_CONSTRAINT_ALL_COL_OIDS.cend()};
   pg_constraints_all_cols_pri_ = constraints_->InitializerForProjectedRow(pg_constraints_all_oids);
   pg_constraints_all_cols_prm_ = constraints_->ProjectionMapForOids(pg_constraints_all_oids);
+
   // pg_type
   const std::vector<col_oid_t> pg_type_all_oids{postgres::PG_TYPE_ALL_COL_OIDS.cbegin(),
                                                 postgres::PG_TYPE_ALL_COL_OIDS.cend()};
@@ -964,6 +965,89 @@ const Schema &DatabaseCatalog::GetSchema(const common::ManagedPointer<transactio
   return *reinterpret_cast<Schema *>(ptr_pair.first);
 }
 
+constraint_oid_t DatabaseCatalog::CreatePKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
+                           table_oid_t table,const std::string &name, std::vector<col_oid_t> &pk_cols) {
+  if (!TryLock(txn)) return INVALID_CONSTRAINT_OID;
+  const constraint_oid_t constraint_oid = static_cast<::terrier::catalog::constraint_oid_t>(next_oid_++);
+  // Insert metadata into pg_constraint
+  auto *const constraints_insert_redo =
+      txn->StageWrite(db_oid_, postgres::CONSTRAINT_TABLE_OID, pg_constraints_all_cols_pri_);
+  auto *const constraints_insert_pr = constraints_insert_redo->Delta();
+
+  // Write the constraint_oid into the PR
+  auto con_oid_offset = pg_constraints_all_cols_prm_[postgres::CONOID_COL_OID];
+  auto *con_oid_ptr = constraints_insert_pr->AccessForceNotNull(con_oid_offset);
+  *(reinterpret_cast<constraint_oid_t *>(con_oid_ptr)) = constraint_oid;
+
+  // Write the constraint_name into the PR
+  const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
+  auto con_name_offset = pg_constraints_all_cols_prm_[postgres::CONNAME_COL_OID];
+  auto con_name_ptr = constraints_insert_pr->AccessForceNotNull(con_name_offset);
+  *(reinterpret_cast<storage::VarlenEntry *>(con_name_ptr)) = name_varlen;
+
+  // Write the namespace_oid into the PR
+  const auto con_namespace_oid_offset = pg_constraints_all_cols_prm_[postgres::CONNAMESPACE_COL_OID];
+  auto *const con_namespace_oid_ptr = constraints_insert_pr->AccessForceNotNull(con_namespace_oid_offset);
+  *(reinterpret_cast<namespace_oid_t *>(con_namespace_oid_ptr)) = ns_oid;
+
+  // Write constraint_type
+  const auto con_type_oid_offset = pg_constraints_all_cols_prm_[postgres::CONTYPE_COL_OID];
+  auto *const con_type_oid_ptr = constraints_insert_pr->AccessForceNotNull(con_type_oid_offset);
+  if (schema.is_unique_) {
+    *(reinterpret_cast<char *>(con_type_oid_ptr)) = 'u';
+  } else {
+    *(reinterpret_cast<char *>(con_type_oid_ptr)) = 'p';
+  }
+
+  *(reinterpret_cast<bool *>(constraints_insert_pr->AccessForceNotNull(
+      pg_constraints_all_cols_prm_[postgres::CONDEFERRABLE_COL_OID]))) = false;
+  *(reinterpret_cast<bool *>(
+      constraints_insert_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONDEFERRED_COL_OID]))) = false;
+  *(reinterpret_cast<bool *>(
+      constraints_insert_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONVALIDATED_COL_OID]))) = true;
+
+  //  const auto con_relid_oid_offset = pg_constraints_all_cols_prm_[postgres::CONRELID_COL_OID];
+  //  auto *const con_relid_oid_ptr = constraints_insert_pr->AccessForceNotNull(con_relid_oid_offset);
+  //  *(reinterpret_cast<table_oid_t *>(con_relid_oid_ptr)) = table_oid;
+
+  // TODO: column order may need a fix
+  const auto con_indid_oid_offset = pg_constraints_all_cols_prm_[postgres::CONINDID_COL_OID];
+  auto *const con_indid_oid_ptr = constraints_insert_pr->AccessForceNotNull(con_indid_oid_offset);
+  *(reinterpret_cast<table_oid_t *>(con_indid_oid_ptr)) = table_oid;
+
+  // const auto con_findid_oid_offset = pg_constraints_all_cols_prm_[postgres::CONFRELID_COL_OID];
+  // auto *const con_findid_oid_ptr = constraints_insert_pr->AccessForceNotNull(con_findid_oid_offset);
+  // *(reinterpret_cast<constraint_oid_t *>(con_findid_oid_ptr)) = constraint_oid - 1;
+
+  // Insert into pg_constraint table
+  const auto constraint_tuple_slot = constraints_->Insert(txn, constraints_insert_redo);
+
+  // Now insert into the indexes on pg_constraint
+  // Get PR initializers and allocate a buffer from the largest one
+  const auto constraints_oid_index_init = constraints_oid_index_->GetProjectedRowInitializer();
+  const auto constraints_name_index_init = constraints_name_index_->GetProjectedRowInitializer();
+  auto *index_buffer = common::AllocationUtil::AllocateAligned(constraints_name_index_init.ProjectedRowSize());
+  // Insert into indexes_oid_index
+  auto *index_pr = constraints_oid_index_init.InitializeRow(index_buffer);
+  *(reinterpret_cast<constraint_oid_t *>(index_pr->AccessForceNotNull(0))) = constraint_oid;
+  if (!constraints_oid_index_->InsertUnique(txn, *index_pr, constraint_tuple_slot)) {
+    // There was an oid conflict and we need to abort.  Free the buffer and
+    // return INVALID_TABLE_OID to indicate the database was not created.
+    delete[] index_buffer;
+    return constraint_oid;
+  }
+  return INVALID_CONSTRAINT_OID;
+}
+constraint_oid_t DatabaseCatalog::CreateFKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
+                        table_oid_t src_table, table_oid_t sink_table, const std::string &name, std::vector<col_oid_t> &src_cols, std::vector<col_oid_t> &sink_cols) {
+  if (!TryLock(txn)) return INVALID_CONSTRAINT_OID;
+  const constraint_oid_t constraint_oid_t = static_cast<::terrier::catalog::constraint_oid_t>(next_oid_++);
+}
+constraint_oid_t DatabaseCatalog::CreateUNIQUEConstraint(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
+                        table_oid_t table, const std::string &name, std::vector<col_oid_t> &unique_cols) {
+  if (!TryLock(txn)) return INVALID_CONSTRAINT_OID;
+  const constraint_oid_t constraint_oid_t = static_cast<::terrier::catalog::constraint_oid_t>(next_oid_++);
+}
 bool DatabaseCatalog::DeleteConstraints(const common::ManagedPointer<transaction::TransactionContext> txn,
                                     const table_oid_t table) {
   if (!TryLock(txn)) return false;
