@@ -163,6 +163,12 @@ class DatabaseCatalog {
   bool CreateConstraintsEntry(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid,
                         table_oid_t table_oid, constraint_oid_t constraint_oid, const std::string &name,
                         const IndexSchema &schema);
+  constraint_oid_t CreatePKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
+                           table_oid_t table,const std::string &name, std::vector<col_oid_t> &pk_cols);
+  constraint_oid_t CreateFKConstraint(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
+                          table_oid_t src_table, table_oid_t sink_table, const std::string &name, std::vector<col_oid_t> &src_cols, std::vector<col_oid_t> &sink_cols);
+  constraint_oid_t CreateUNIQUEConstraint(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
+                          table_oid_t table, const std::string &name, std::vector<col_oid_t> &unique_cols);
   /**
    * A list of all constraints on this table
    * @param txn for the operation

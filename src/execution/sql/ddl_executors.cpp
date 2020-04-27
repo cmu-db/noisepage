@@ -93,13 +93,11 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
     // Create the index, and use its return value as overall success result
     result = result && CreateIndex(accessor, node->GetNamespaceOid(), unique_constraint.constraint_name_, table_oid,
                                    index_schema);
-    result = result && CreateConstraint(accessor, node->GetNamespaceOid(), unique_constraint.constraint_name_, table_oid,
-                                        index_schema);
   }
 
   // TODO(Matt): interpret other fields in CreateTablePlanNode when we support them in the Catalog:
   // foreign_keys_, con_checks_,
-
+  result = result && CreateConstraint(accessor, schema, table_oid, node);
   return result;
 }
 
@@ -160,16 +158,74 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   return true;
 }
 
-bool DDLExecutors::CreateConstraint(const common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                               const catalog::namespace_oid_t ns, const std::string &name,
-                               const catalog::table_oid_t table, const catalog::IndexSchema &input_schema) {
-  const auto constraint_oid = accessor->CreateConstraints(ns, table, name, input_schema);
-  if (constraint_oid == catalog::INVALID_CONSTRAINT_OID) {
-    // Catalog wasn't able to proceed, txn must now abort
-    return false;
+bool DDLExecutors::CreateConstraints(const common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                                     const terrier::catalog::Schema schema, const catalog::table_oid_t table,
+                                     const common::ManagedPointer<planner::CreateTablePlanNode> plan_node) {
+  catalog::constraint_oid_t constraint_oid;
+  catalog::namespace_oid_t ns = plan_node->GetNamespaceOid();
+  // try create PK constraint
+  if (plan_node->HasPrimaryKey()) {
+    const planner::PrimaryKeyInfo &pk_info = plan_node->GetPrimaryKey();
+    std::vector<catalog::col_oid_t> pk_cols;
+    pk_cols.reserve(pk_info.primary_key_cols_.size());
+    for (const auto &col_name : pk_info.primary_key_cols_) {
+      pk_cols.push_back(schema.GetColumn(col_name).Oid());
+    }
+    constraint_oid = accessor->CreatePKConstraint(ns, table, pk_info.constraint_name_, pk_cols);
+    if (constraint_oid == catalog::INVALID_CONSTRAINT_OID) {
+      // Catalog wasn't able to proceed, txn must now abort
+      return false;
+    }
   }
-  return true;
+  // try create all FK constraints
+  const std::vector<planner::ForeignKeyInfo> fks = plan_node->GetForeignKeys();
+  std::vector<catalog::col_oid_t> src_cols;
+  std::vector<catalog::col_oid_t> sink_cols;
+  catalog::table_oid_t src_table;
+  catalog::table_oid_t sink_table;
+  src_table = table;
+  for (const auto &fk : fks) {
+    src_cols.clear();
+    sink_cols.clear();
+    src_cols.reserve(fk.foreign_key_sources_.size());
+    sink_cols.reserve(fk.foreign_key_sinks_.size());
+    for (const auto &col_name : fk.foreign_key_sources_) {
+      src_cols.push_back(schema.GetColumn(col_name).Oid());
+    }
+    for (const auto &col_name : fk.foreign_key_sinks_) {
+      sink_cols.push_back(schema.GetColumn(col_name).Oid());
+    }
+    sink_table = accessor->GetTableOid(fk.sink_table_name_);
+    constraint_oid = accessor->CreateFKConstraint(ns, src_table, sink_table, fk.constraint_name_, src_cols, sink_cols);
+    if (constraint_oid == catalog::INVALID_CONSTRAINT_OID) {
+      // Catalog wasn't able to proceed, txn must now abort
+      return false;
+    }
+  }
+  // try create all UNIQUE constraints
+  const std::vector<planner::UniqueInfo> uks = plan_node->GetUniqueConstraints();
+  std::vector<catalog::col_oid_t> unique_cols;
+  for (const auto &uk : uks) {
+    unique_cols.clear();
+    unique_cols.reserve(uk.unique_cols_.size());
+    for (const auto &col_name : uk.unique_cols_) {
+      unique_cols.push_back(schema.GetColumn(col_name).Oid());
+    }
+    constraint_oid = accessor->CreateUNIQUEConstraint(ns, table, uk.constraint_name_, unique_cols);
+    if (constraint_oid == catalog::INVALID_CONSTRAINT_OID) {
+      // Catalog wasn't able to proceed, txn must now abort
+      return false;
+    }
+  }
+  // rtry create NOT NULL constraints
+  // TODO: (create not null constraints)
 
+  // try create all CHECK constraints
+  // TODO: (implement check constraint)
+
+  // try create all EXCLUSION constraints
+  // TODO: (Implement exclusion constraint)
+  return true;
 }
 
 }  // namespace terrier::execution::sql

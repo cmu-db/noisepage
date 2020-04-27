@@ -182,14 +182,22 @@ class CatalogAccessor {
   const Schema &GetSchema(table_oid_t table) const;
 
   /**
- * Given the constraint name and its specification, add it to the catalog
- * @param ns is the namespace in which the constraint will exist
- * @param table on which this constraint exists
- * @param name of the constraint
- * @param schema describing the new constraint
- * @return OID for the constraint, INVALID_CONSTRAINT_OID if the operation failed
- */
-  constraint_oid_t CreateConstraints(namespace_oid_t ns, table_oid_t table, std::string name, const IndexSchema &schema) const;
+   * Given the constraint name and its specification, add it to the catalog
+   * @param ns is the namespace in which the constraint will exist
+   * @param table on which this constraint exists
+   * @param name of the constraint
+   * @param schema describing the new constraint
+   * @return OID for the constraint, INVALID_CONSTRAINT_OID if the operation failed
+   */
+  // constraint_oid_t CreateConstraints(namespace_oid_t ns, table_oid_t table, std::string name, const IndexSchema
+  // &schema) const;
+  constraint_oid_t CreatePKConstraint(namespace_oid_t ns, table_oid_t table, std::string name,
+                                      std::vector<col_oid_t> &pk_cols) const;
+  constraint_oid_t CreateFKConstraints(namespace_oid_t ns, table_oid_t src_table, table_oid_t sink_table,
+                                       std::string name, std::vector<col_oid_t> &src_cols,
+                                       std::vector<col_oid_t> &sink_cols) const;
+  constraint_oid_t CreateUNIQUEConstraints(namespace_oid_t ns, table_oid_t table, std::string name,
+                                           std::vector<col_oid_t> &unique_cols) const;
 
   /**
    * A list of all constraints on this table
