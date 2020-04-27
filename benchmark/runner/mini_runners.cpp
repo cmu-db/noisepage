@@ -181,8 +181,8 @@ static void GenArithArguments(benchmark::internal::Benchmark *b) {
 static void GenOutputArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
-  std::vector<int64_t> row_nums = {1000000, 500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000,
-                                   1000,    500,    100,    50,     10,    7,     5,     3,    1};
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
       for (auto row : row_nums) {
@@ -215,8 +215,8 @@ static void GenOutputArguments(benchmark::internal::Benchmark *b) {
 static void GenScanArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
-  std::vector<int64_t> row_nums = {1000000, 500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000,
-                                   1000,    500,    100,    50,     10,    7,     5,     3,    1};
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
       for (auto row : row_nums) {
@@ -239,8 +239,8 @@ static void GenScanArguments(benchmark::internal::Benchmark *b) {
 }
 
 static void GenScanMixedArguments(benchmark::internal::Benchmark *b) {
-  std::vector<int64_t> row_nums = {1000000, 500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000,
-                                   1000,    500,    100,    50,     10,    7,     5,     3,    1};
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   std::vector<std::vector<int64_t>> args;
   GENERATE_MIXED_ARGUMENTS(args);
   for (auto arg : args) {
@@ -260,8 +260,8 @@ static void GenScanMixedArguments(benchmark::internal::Benchmark *b) {
 static void GenSortArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER};
-  std::vector<int64_t> row_nums = {1000000, 500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000,
-                                   1000,    500,    100,    50,     10,    7,     5,     3,    1};
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
       for (auto row : row_nums) {
@@ -295,8 +295,8 @@ static void GenSortArguments(benchmark::internal::Benchmark *b) {
 static void GenAggregateArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER};
-  std::vector<int64_t> row_nums = {1000000, 500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000,
-                                   1000,    500,    100,    50,     10,    7,     5,     3,    1};
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
       for (auto row : row_nums) {
@@ -330,8 +330,8 @@ static void GenAggregateArguments(benchmark::internal::Benchmark *b) {
 static void GenJoinSelfArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER};
-  std::vector<int64_t> row_nums = {1000000, 500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000,
-                                   1000,    500,    100,    50,     10,    7,     5,     3,    1};
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
       for (auto row : row_nums) {
@@ -346,7 +346,7 @@ static void GenJoinSelfArguments(benchmark::internal::Benchmark *b) {
         }
         cars.push_back(row);
 
-        for (auto it = cars.rbegin(); it != cars.rend(); it++) {
+        for (auto it = cars.begin(); it != cars.end(); it++) {
           if (type == type::TypeId::INTEGER)
             b->Args({col, 0, 15, 0, row, *it});
           else if (type == type::TypeId::BIGINT)
@@ -454,8 +454,8 @@ static void GenInsertArguments(benchmark::internal::Benchmark *b) {
 static void GenUpdateArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER};
-  std::vector<int64_t> row_nums = {1000000, 500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000,
-                                   1000,    500,    100,    50,     10,    7,     5,     3,    1};
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
       for (auto row : row_nums) {
@@ -480,8 +480,8 @@ static void GenUpdateArguments(benchmark::internal::Benchmark *b) {
  */
 static void GenDeleteArguments(benchmark::internal::Benchmark *b) {
   auto types = {type::TypeId::INTEGER};
-  std::vector<int64_t> row_nums = {1000000, 500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000,
-                                   1000,    500,    100,    50,     10,    7,     5,     3,    1};
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto row : row_nums) {
       int64_t car = 1;
