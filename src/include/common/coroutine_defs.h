@@ -13,7 +13,7 @@ namespace terrier::common {
    public:
     void SetFunction(const std::function<void(PoolContext *)> &f) {
       TERRIER_ASSERT(func_ == nullptr, "function should be null");
-      func_ = f;
+      this->func_ = std::move(f);
     }
 
     void YieldToPool() {
