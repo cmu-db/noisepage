@@ -25,7 +25,7 @@ class Portal {
    * text for Simple Query protocol per the spec.
    * @param statement statement that this Portal refers to
    */
-  explicit Portal(common::ManagedPointer<Statement> statement);
+  explicit Portal(const common::ManagedPointer<Statement> statement) : Portal(statement, {}, {FieldFormat::text}) {}
 
   /**
    * Constructor that doesnt have params or result_formats, i.e. Extended Query protocol
@@ -33,28 +33,31 @@ class Portal {
    * @param params params for this query
    * @param result_formats output formats for this query
    */
-  Portal(common::ManagedPointer<Statement> statement, std::vector<type::TransientValue> &&params,
-         std::vector<FieldFormat> &&result_formats);
+  Portal(const common::ManagedPointer<Statement> statement, std::vector<type::TransientValue> &&params,
+         std::vector<FieldFormat> &&result_formats)
+      : statement_(statement), params_(std::move(params)), result_formats_(std::move(result_formats)) {}
 
   /**
    * @return Statement that this Portal references
    */
-  common::ManagedPointer<Statement> GetStatement() const;
+  common::ManagedPointer<Statement> GetStatement() const { return statement_; }
 
   /**
    * @return the optimized physical plan for this query
    */
-  common::ManagedPointer<planner::AbstractPlanNode> PhysicalPlan() const;
+  common::ManagedPointer<planner::AbstractPlanNode> PhysicalPlan() const { return statement_->PhysicalPlan(); }
 
   /**
    * @return output formats for this query
    */
-  const std::vector<FieldFormat> &ResultFormats() const;
+  const std::vector<FieldFormat> &ResultFormats() const { return result_formats_; }
 
   /**
    * @return params for this query
    */
-  common::ManagedPointer<const std::vector<type::TransientValue>> Parameters();
+  common::ManagedPointer<const std::vector<type::TransientValue>> Parameters() {
+    return common::ManagedPointer(&params_);
+  }
 
  private:
   const common::ManagedPointer<network::Statement> statement_;
