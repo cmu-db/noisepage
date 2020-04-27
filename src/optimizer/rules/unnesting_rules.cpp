@@ -63,11 +63,13 @@ void UnnestMarkJoinToInnerJoin::Transform(common::ManagedPointer<OperatorNode> i
 /// SingleJoinGetToInnerJoin
 ///////////////////////////////////////////////////////////////////////////////
 UnnestSingleJoinToInnerJoin::UnnestSingleJoinToInnerJoin() {
-  type_ = RuleType::MARK_JOIN_GET_TO_INNER_JOIN;
+  type_ = RuleType::SINGLE_JOIN_GET_TO_INNER_JOIN;
 
   match_pattern_ = new Pattern(OpType::LOGICALSINGLEJOIN);
   match_pattern_->AddChild(new Pattern(OpType::LEAF));
-  match_pattern_->AddChild(new Pattern(OpType::LEAF));
+  auto right_child = new Pattern(OpType::LOGICALAGGREGATEANDGROUPBY);
+  right_child->AddChild(new Pattern(OpType::LEAF));
+  match_pattern_->AddChild(right_child);
 }
 
 RulePromise UnnestSingleJoinToInnerJoin::Promise(GroupExpression *group_expr) const {
