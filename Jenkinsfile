@@ -6,82 +6,82 @@ pipeline {
     }
     stages {
 
-//         stage('Check') {
-//             parallel {
-//                 stage('macos-10.14/AppleClang-1001.0.46.4 (Debug/format/lint/censored)') {
-//                     agent { label 'macos' }
-//                     environment {
-//                         LLVM_DIR="/usr/local/Cellar/llvm@8/8.0.1_1"
-//                     }
-//                     steps {
-//                         sh 'echo $NODE_NAME'
-//                         sh 'echo y | ./script/installation/packages.sh'
-//                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
-//                         sh 'mkdir build'
-//                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
-//                         sh 'cd build && timeout 1h make check-format'
-//                         sh 'cd build && timeout 1h make check-lint'
-//                         sh 'cd build && timeout 1h make check-censored'
-//                     }
-//                     post {
-//                         cleanup {
-//                             deleteDir()
-//                         }
-//                     }
-//                 }
-// 
-//                 stage('ubuntu-18.04/gcc-7.3.0 (Debug/format/lint/censored)') {
-//                     agent {
-//                         docker {
-//                             image 'ubuntu:bionic'
-//                         }
-//                     }
-//                     steps {
-//                         sh 'echo $NODE_NAME'
-//                         sh 'echo y | sudo ./script/installation/packages.sh'
-//                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
-//                         sh 'mkdir build'
-//                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
-//                         sh 'cd build && timeout 1h make check-format'
-//                         sh 'cd build && timeout 1h make check-lint'
-//                         sh 'cd build && timeout 1h make check-censored'
-//                     }
-//                     post {
-//                         cleanup {
-//                             deleteDir()
-//                         }
-//                     }
-//                 }
-// 
-//                 stage('ubuntu-18.04/clang-8.0.0 (Debug/format/lint/censored)') {
-//                     agent {
-//                         docker {
-//                             image 'ubuntu:bionic'
-//                         }
-//                     }
-//                     environment {
-//                         CC="/usr/bin/clang-8"
-//                         CXX="/usr/bin/clang++-8"
-//                     }
-//                     steps {
-//                         sh 'echo $NODE_NAME'
-//                         sh 'echo y | sudo ./script/installation/packages.sh'
-//                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
-//                         sh 'mkdir build'
-//                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
-//                         sh 'cd build && timeout 1h make check-format'
-//                         sh 'cd build && timeout 1h make check-lint'
-//                         sh 'cd build && timeout 1h make check-censored'
-//                     }
-//                     post {
-//                         cleanup {
-//                             deleteDir()
-//                         }
-//                     }
-//                 }
-//             }
-//         }
-// 
+        stage('Check') {
+            parallel {
+                stage('macos-10.14/AppleClang-1001.0.46.4 (Debug/format/lint/censored)') {
+                    agent { label 'macos' }
+                    environment {
+                        LLVM_DIR="/usr/local/Cellar/llvm@8/8.0.1_1"
+                    }
+                    steps {
+                        sh 'echo $NODE_NAME'
+                        sh 'echo y | ./script/installation/packages.sh'
+                        sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
+                        sh 'mkdir build'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
+                        sh 'cd build && timeout 1h make check-format'
+                        sh 'cd build && timeout 1h make check-lint'
+                        sh 'cd build && timeout 1h make check-censored'
+                    }
+                    post {
+                        cleanup {
+                            deleteDir()
+                        }
+                    }
+                }
+
+                stage('ubuntu-18.04/gcc-7.3.0 (Debug/format/lint/censored)') {
+                    agent {
+                        docker {
+                            image 'ubuntu:bionic'
+                        }
+                    }
+                    steps {
+                        sh 'echo $NODE_NAME'
+                        sh 'echo y | sudo ./script/installation/packages.sh'
+                        sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
+                        sh 'mkdir build'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
+                        sh 'cd build && timeout 1h make check-format'
+                        sh 'cd build && timeout 1h make check-lint'
+                        sh 'cd build && timeout 1h make check-censored'
+                    }
+                    post {
+                        cleanup {
+                            deleteDir()
+                        }
+                    }
+                }
+
+                stage('ubuntu-18.04/clang-8.0.0 (Debug/format/lint/censored)') {
+                    agent {
+                        docker {
+                            image 'ubuntu:bionic'
+                        }
+                    }
+                    environment {
+                        CC="/usr/bin/clang-8"
+                        CXX="/usr/bin/clang++-8"
+                    }
+                    steps {
+                        sh 'echo $NODE_NAME'
+                        sh 'echo y | sudo ./script/installation/packages.sh'
+                        sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
+                        sh 'mkdir build'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
+                        sh 'cd build && timeout 1h make check-format'
+                        sh 'cd build && timeout 1h make check-lint'
+                        sh 'cd build && timeout 1h make check-censored'
+                    }
+                    post {
+                        cleanup {
+                            deleteDir()
+                        }
+                    }
+                }
+            }
+        }
+
         stage('Test') {
             parallel {
                 stage('macos-10.14/AppleClang-1001.0.46.4 (Debug/ASAN/unittest)') {
@@ -98,11 +98,6 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
                         sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
                     }
                     post {
@@ -128,11 +123,6 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
                         sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
                     }
                     post {
@@ -228,11 +218,6 @@ pipeline {
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
                         sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
                         cleanup {
@@ -256,11 +241,6 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
                         sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
@@ -289,11 +269,6 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
                         sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
@@ -356,26 +331,26 @@ pipeline {
             }
         }
 
-//         stage('Microbenchmark') {
-//             agent { label 'benchmark' }
-//             steps {
-//                 sh 'echo $NODE_NAME'
-//                 sh 'echo y | sudo ./script/installation/packages.sh'
-//                 sh 'sudo apt-get -y install ccache'
-//                 sh 'mkdir build'
-//                 sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
-//                 // The micro_bench configuration has to be consistent because we currently check against previous runs with the same config
-//                 //  # of Threads: 4
-//                 //  WAL Path: Ramdisk
-//                 sh 'cd script/micro_bench && timeout 1h ./run_micro_bench.py --run --num-threads=4 --logfile-path=/mnt/ramdisk/benchmark.log'
-//                 archiveArtifacts 'script/micro_bench/*.json'
-//                 junit 'script/micro_bench/*.xml'
-//             }
-//             post {
-//                 cleanup {
-//                     deleteDir()
-//                 }
-//             }
-//         }
+        stage('Microbenchmark') {
+            agent { label 'benchmark' }
+            steps {
+                sh 'echo $NODE_NAME'
+                sh 'echo y | sudo ./script/installation/packages.sh'
+                sh 'sudo apt-get -y install ccache'
+                sh 'mkdir build'
+                sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
+                // The micro_bench configuration has to be consistent because we currently check against previous runs with the same config
+                //  # of Threads: 4
+                //  WAL Path: Ramdisk
+                sh 'cd script/micro_bench && timeout 1h ./run_micro_bench.py --run --num-threads=4 --logfile-path=/mnt/ramdisk/benchmark.log'
+                archiveArtifacts 'script/micro_bench/*.json'
+                junit 'script/micro_bench/*.xml'
+            }
+            post {
+                cleanup {
+                    deleteDir()
+                }
+            }
+        }
     }
 }
