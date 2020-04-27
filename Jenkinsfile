@@ -191,11 +191,6 @@ pipeline {
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
                     }
                     post {
                         cleanup {
