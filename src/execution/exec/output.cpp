@@ -6,13 +6,23 @@
 
 namespace terrier::execution::exec {
 
-OutputBuffer::~OutputBuffer() { memory_pool_->Deallocate(tuples_, BATCH_SIZE * tuple_size_); }
-
+OutputBuffer::~OutputBuffer() {
+  memory_pool_->Deallocate(num_tuples_, MAX_THREAD_SIZE * sizeof(uint32_t));
+  for (auto it = buffer_map_.begin(); it != buffer_map_.end(); it++) {
+    memory_pool_->Deallocate(it->second.second, BATCH_SIZE * tuple_size_);
+  }
+  // memory_pool_->Deallocate(tuples_, BATCH_SIZE * tuple_size_); }
+}
 void OutputBuffer::Finalize() {
+  std::thread::id this_id = std::this_thread::get_id();
+  InsertIfAbsent(this_id);
+  auto it = buffer_map_.find(this_id);
+  size_t index = it->second.first;
+  byte *tuples = it->second.second;
   if (num_tuples_ > 0) {
-    callback_(tuples_, num_tuples_, tuple_size_);
-    // Reset to zero.
-    num_tuples_ = 0;
+    common::SpinLatch::ScopedSpinLatch guard(&latch_);
+    callback_(tuples, num_tuples_[index], tuple_size_);
+    num_tuples_[index] = 0;
   }
 }
 

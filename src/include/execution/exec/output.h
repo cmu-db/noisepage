@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <tbb/concurrent_unordered_map.h>
 
 #include "catalog/catalog_defs.h"
 #include "catalog/schema.h"
@@ -25,7 +26,7 @@ namespace terrier::execution::exec {
 // Callback function
 // Params(): tuples, num_tuples, tuple_size;
 using OutputCallback = std::function<void(byte *, uint32_t, uint32_t)>;
-
+static constexpr const int MAX_THREAD_SIZE = 32;
 /**
  * A class that buffers the output and makes a callback for every batch.
  */
@@ -45,23 +46,39 @@ class EXPORT OutputBuffer {
    */
   explicit OutputBuffer(sql::MemoryPool *memory_pool, uint16_t num_cols, uint32_t tuple_size, OutputCallback callback)
       : memory_pool_(memory_pool),
-        num_tuples_(0),
+        num_tuples_(reinterpret_cast<uint32_t *>(
+            memory_pool->AllocateAligned(MAX_THREAD_SIZE * sizeof(uint32_t), alignof(uint32_t), true))),
         tuple_size_(tuple_size),
-        tuples_(
-            reinterpret_cast<byte *>(memory_pool->AllocateAligned(BATCH_SIZE * tuple_size, alignof(uint64_t), true))),
+        id_(0),
         callback_(std::move(callback)) {}
+
+  void InsertIfAbsent(std::thread::id id) { 
+      if (buffer_map_.find(id) == buffer_map_.end()) {
+        byte *tuples =
+          reinterpret_cast<byte *>(memory_pool_->AllocateAligned(BATCH_SIZE * tuple_size_, alignof(uint64_t), true));
+        int index = id_++;
+        TERRIER_ASSERT(index <= MAX_THREAD_SIZE, "Thread id is larger than MAX_THREAD_SIZE");
+        buffer_map_.insert(std::make_pair(id, std::make_pair(index, tuples)));
+      }
+  }
 
   /**
    * @return an output slot to be written to.
    */
   byte *AllocOutputSlot() {
-    if (num_tuples_ == BATCH_SIZE) {
-      callback_(tuples_, num_tuples_, tuple_size_);
-      num_tuples_ = 0;
+    std::thread::id this_id = std::this_thread::get_id();
+    InsertIfAbsent(this_id);
+    auto it = buffer_map_.find(this_id);
+    size_t index = it->second.first;
+    byte *tuples = it->second.second;
+    if (num_tuples_[index] == BATCH_SIZE) {
+      common::SpinLatch::ScopedSpinLatch guard(&latch_);
+      callback_(tuples, num_tuples_[index], tuple_size_);
+      num_tuples_[index] = 0;
     }
     // Return the current slot and advance to the to the next one.
-    num_tuples_++;
-    return tuples_ + tuple_size_ * (num_tuples_ - 1);
+    num_tuples_[index]++;
+    return tuples + tuple_size_ * (num_tuples_[index] - 1);
   }
 
   /**
@@ -76,10 +93,13 @@ class EXPORT OutputBuffer {
 
  private:
   sql::MemoryPool *memory_pool_;
-  uint32_t num_tuples_;
+  uint32_t *num_tuples_;
   uint32_t tuple_size_;
-  byte *tuples_;
+  std::atomic<int> id_;
+  //byte *tuples_;
   OutputCallback callback_;
+  tbb::concurrent_unordered_map<std::thread::id, std::pair<int, byte *>, std::hash<std::thread::id> > buffer_map_;
+  common::SpinLatch latch_;
 };
 
 /**
