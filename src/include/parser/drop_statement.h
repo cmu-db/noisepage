@@ -15,7 +15,7 @@ namespace parser {
 class DropStatement : public TableRefStatement {
  public:
   /** Drop statement type. */
-  enum class DropType { kDatabase, kTable, kSchema, kIndex, kView, kPreparedStatement, kTrigger };
+  enum class DropType { kDatabase, kTable, kSchema, kIndex, kView, kPreparedStatement, kTrigger, kSequence };
 
   /**
    * DROP DATABASE, DROP TABLE
@@ -60,6 +60,19 @@ class DropStatement : public TableRefStatement {
         type_(DropType::kTrigger),
         trigger_name_(std::move(trigger_name)) {}
 
+  /**
+   * DROP SEQUENCE
+   * TODO(zianke): this is a hack to get a different signature, type and sequence_increment are unnecessary. Refactor
+   * into subclass.
+   * @param table_info table information
+   * @param type kTrigger
+   * @param sequence_name sequence name
+   */
+  DropStatement(std::unique_ptr<TableInfo> table_info, DropType type, std::string sequence_name, int sequence_increment)
+      : TableRefStatement(StatementType::DROP, std::move(table_info)),
+        type_(DropType::kSequence),
+        sequence_name_(std::move(sequence_name)) {}
+
   ~DropStatement() override = default;
 
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
@@ -79,6 +92,9 @@ class DropStatement : public TableRefStatement {
   /** @return trigger name for [DROP TRIGGER] */
   std::string GetTriggerName() { return trigger_name_; }
 
+  /** @return sequence name for [DROP SEQUENCE] */
+  std::string GetSequenceName() { return sequence_name_; }
+
  private:
   const DropType type_;
 
@@ -93,6 +109,9 @@ class DropStatement : public TableRefStatement {
 
   // DROP TRIGGER
   const std::string trigger_name_;
+
+  // DROP SEQUENCE
+  const std::string sequence_name_;
 };
 
 }  // namespace parser

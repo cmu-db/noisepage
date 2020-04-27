@@ -214,6 +214,11 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const CreateTrigger *create_tr
   output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
 }
 
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const CreateSequence *create_sequence) {
+  // Operator does not provide any properties
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
+}
+
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const CreateView *create_view) {
   // Operator does not provide any properties
   output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
@@ -240,6 +245,11 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const DropNamespace *drop_name
 }
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const DropTrigger *drop_trigger) {
+  // Operator does not provide any properties
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
+}
+
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const DropSequence *drop_sequence) {
   // Operator does not provide any properties
   output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
 }

@@ -14,6 +14,7 @@
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
+#include "catalog/postgres/pg_sequence.h"
 #include "catalog/schema.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/column_value_expression.h"
@@ -87,6 +88,7 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
   dbc->constraints_ = new storage::SqlTable(block_store, Builder::GetConstraintTableSchema());
   dbc->languages_ = new storage::SqlTable(block_store, Builder::GetLanguageTableSchema());
   dbc->procs_ = new storage::SqlTable(block_store, Builder::GetProcTableSchema());
+  dbc->sequences_ = new storage::SqlTable(block_store, Builder::GetSequenceTableSchema());
 
   // Indexes on pg_namespace
   dbc->namespaces_oid_index_ =
@@ -113,6 +115,12 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
   dbc->types_name_index_ = Builder::BuildUniqueIndex(Builder::GetTypeNameIndexSchema(oid), TYPE_NAME_INDEX_OID);
   dbc->types_namespace_index_ =
       Builder::BuildLookupIndex(Builder::GetTypeNamespaceIndexSchema(oid), TYPE_NAMESPACE_INDEX_OID);
+
+  // Indexes on pg_sequence
+  dbc->sequences_oid_index_ =
+      Builder::BuildUniqueIndex(Builder::GetSequenceOidIndexSchema(oid), SEQUENCE_OID_INDEX_OID);
+  //dbc->sequences_name_index_ =
+    //  Builder::BuildUniqueIndex(Builder::GetSequenceNameIndexSchema(oid), SEQUENCE_NAME_INDEX_OID);
 
   // Indexes on pg_constraint
   dbc->constraints_oid_index_ =
@@ -195,6 +203,18 @@ Schema Builder::GetClassTableSchema() {
   columns.back().SetOid(REL_NEXTCOLOID_COL_OID);
 
   return Schema(columns);
+}
+
+Schema Builder::GetSequenceTableSchema() {
+    std::vector<Schema::Column> columns;
+
+    columns.emplace_back("seqoid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+    columns.back().SetOid(SEQOID_COL_OID);
+
+    columns.emplace_back("seqrelid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+    columns.back().SetOid(SEQRELID_COL_OID);
+
+    return Schema(columns);
 }
 
 Schema Builder::GetConstraintTableSchema() {
@@ -510,6 +530,32 @@ IndexSchema Builder::GetTypeNamespaceIndexSchema(db_oid_t db) {
   return schema;
 }
 
+IndexSchema Builder::GetSequenceOidIndexSchema(db_oid_t db) {
+    std::vector<IndexSchema::Column> columns;
+
+    columns.emplace_back("seqoid", type::TypeId::INTEGER, false,
+                         parser::ColumnValueExpression(db, SEQUENCE_TABLE_OID, SEQOID_COL_OID));
+    columns.back().SetOid(indexkeycol_oid_t(1));
+
+    // Primary
+    IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
+
+    return schema;
+}
+
+/*IndexSchema Builder::GetSequenceNameIndexSchema(db_oid_t db) {
+    std::vector<IndexSchema::Column> columns;
+
+    columns.emplace_back("seqname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
+                         parser::ColumnValueExpression(db, SEQUENCE_TABLE_OID, SEQNAME_COL_OID));
+    columns.back().SetOid(indexkeycol_oid_t(2));
+
+    // Unique, not primary
+    IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
+
+    return schema;
+}*/
+
 IndexSchema Builder::GetConstraintOidIndexSchema(db_oid_t db) {
   std::vector<IndexSchema::Column> columns;
 
@@ -617,6 +663,8 @@ IndexSchema Builder::GetLanguageNameIndexSchema(db_oid_t db) {
 
   return schema;
 }
+
+
 
 Schema Builder::GetProcTableSchema() {
   std::vector<Schema::Column> columns;

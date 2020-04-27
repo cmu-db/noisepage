@@ -1640,6 +1640,60 @@ class CreateTrigger : public OperatorNodeContents<CreateTrigger> {
 };
 
 /**
+ * Physical operator for CreateSequence
+ */
+class CreateSequence : public OperatorNodeContents<CreateSequence> {
+ public:
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param sequence_name Name of the sequence
+   * @return
+   */
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       std::string sequence_name);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNodeContents *Copy() const override;
+
+  bool operator==(const BaseOperatorNodeContents &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the database
+   */
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return sequence name
+   */
+  std::string GetSequenceName() const { return sequence_name_; }
+
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+  /**
+   * Name of the sequence
+   */
+  std::string sequence_name_;
+};
+
+/**
  * Physical operator for DropDatabase
  */
 class DropDatabase : public OperatorNodeContents<DropDatabase> {
@@ -1870,6 +1924,38 @@ class DropIndex : public OperatorNodeContents<DropIndex> {
    * OID of the table
    */
   catalog::index_oid_t index_oid_ = catalog::INVALID_INDEX_OID;
+};
+
+/**
+ * Physical operator for DropSequence
+ */
+class DropSequence : public OperatorNodeContents<DropSequence> {
+ public:
+  /**
+   * @param sequence_oid OID of the sequence to be dropped
+   * @return
+   */
+  static Operator Make(catalog::sequence_oid_t sequence_oid);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNodeContents *Copy() const override;
+
+  bool operator==(const BaseOperatorNodeContents &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return the OID of the sequence we want to drop
+   */
+  const catalog::sequence_oid_t &GetSequenceOID() const { return sequence_oid_; }
+
+ private:
+  /**
+   * OID of the sequence
+   */
+  catalog::sequence_oid_t sequence_oid_ = catalog::INVALID_SEQUENCE_OID;
 };
 
 /**

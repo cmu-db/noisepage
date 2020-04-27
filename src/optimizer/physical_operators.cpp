@@ -1,4 +1,3 @@
-#include "optimizer/physical_operators.h"
 #include <algorithm>
 #include <memory>
 #include <string>
@@ -6,7 +5,9 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+
 #include "common/macros.h"
+#include "optimizer/physical_operators.h"
 #include "optimizer/operator_visitor.h"
 #include "parser/expression/abstract_expression.h"
 
@@ -958,6 +959,36 @@ bool CreateTrigger::operator==(const BaseOperatorNodeContents &r) {
 }
 
 //===--------------------------------------------------------------------===//
+// CreateSequence
+//===--------------------------------------------------------------------===//
+BaseOperatorNodeContents *CreateSequence::Copy() const { return new CreateSequence(*this); }
+
+Operator CreateSequence::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                              std::string sequence_name) {
+  auto op = std::make_unique<CreateSequence>();
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  op->sequence_name_ = std::move(sequence_name);
+  return Operator(std::move(op));
+}
+
+common::hash_t CreateSequence::Hash() const {
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sequence_name_));
+  return hash;
+}
+
+bool CreateSequence::operator==(const BaseOperatorNodeContents &r) {
+  if (r.GetType() != OpType::CREATESEQUENCE) return false;
+  const CreateSequence &node = *dynamic_cast<const CreateSequence *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  return sequence_name_ == node.sequence_name_;
+}
+
+//===--------------------------------------------------------------------===//
 // CreateView
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *CreateView::Copy() const { return new CreateView(*this); }
@@ -1114,6 +1145,29 @@ bool DropIndex::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::DROPINDEX) return false;
   const DropIndex &node = *dynamic_cast<const DropIndex *>(&r);
   return node.index_oid_ == index_oid_;
+}
+
+//===--------------------------------------------------------------------===//
+// DropSequence
+//===--------------------------------------------------------------------===//
+BaseOperatorNodeContents *DropSequence::Copy() const { return new DropSequence(*this); }
+
+Operator DropSequence::Make(catalog::sequence_oid_t sequence_oid) {
+  auto op = std::make_unique<DropSequence>();
+  op->sequence_oid_ = sequence_oid;
+  return Operator(std::move(op));
+}
+
+common::hash_t DropSequence::Hash() const {
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sequence_oid_));
+  return hash;
+}
+
+bool DropSequence::operator==(const BaseOperatorNodeContents &r) {
+  if (r.GetType() != OpType::DROPSEQUENCE) return false;
+  const DropSequence &node = *dynamic_cast<const DropSequence *>(&r);
+  return node.sequence_oid_ == sequence_oid_;
 }
 
 //===--------------------------------------------------------------------===//
@@ -1302,6 +1356,8 @@ const char *OperatorNodeContents<CreateNamespace>::name = "CreateNamespace";
 template <>
 const char *OperatorNodeContents<CreateTrigger>::name = "CreateTrigger";
 template <>
+const char *OperatorNodeContents<CreateSequence>::name = "CreateSequence";
+template <>
 const char *OperatorNodeContents<CreateView>::name = "CreateView";
 template <>
 const char *OperatorNodeContents<DropDatabase>::name = "DropDatabase";
@@ -1313,6 +1369,8 @@ template <>
 const char *OperatorNodeContents<DropNamespace>::name = "DropNamespace";
 template <>
 const char *OperatorNodeContents<DropTrigger>::name = "DropTrigger";
+template <>
+const char *OperatorNodeContents<DropSequence>::name = "DropSequence";
 template <>
 const char *OperatorNodeContents<DropView>::name = "DropView";
 template <>
@@ -1378,6 +1436,8 @@ OpType OperatorNodeContents<CreateNamespace>::type = OpType::CREATENAMESPACE;
 template <>
 OpType OperatorNodeContents<CreateTrigger>::type = OpType::CREATETRIGGER;
 template <>
+OpType OperatorNodeContents<CreateSequence>::type = OpType::CREATESEQUENCE;
+template <>
 OpType OperatorNodeContents<CreateView>::type = OpType::CREATEVIEW;
 template <>
 OpType OperatorNodeContents<DropDatabase>::type = OpType::DROPDATABASE;
@@ -1389,6 +1449,8 @@ template <>
 OpType OperatorNodeContents<DropNamespace>::type = OpType::DROPNAMESPACE;
 template <>
 OpType OperatorNodeContents<DropTrigger>::type = OpType::DROPTRIGGER;
+template <>
+OpType OperatorNodeContents<DropSequence>::type = OpType::DROPSEQUENCE;
 template <>
 OpType OperatorNodeContents<DropView>::type = OpType::DROPVIEW;
 template <>

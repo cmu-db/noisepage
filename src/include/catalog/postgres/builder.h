@@ -54,6 +54,11 @@ class Builder {
   static Schema GetClassTableSchema();
 
   /**
+   * @return schema object for pg_sequence table
+   */
+  static Schema GetSequenceTableSchema();
+
+  /**
    * @return schema object for pg_constraints table
    */
   static Schema GetConstraintTableSchema();
@@ -154,6 +159,18 @@ class Builder {
    * @return schema object for the namespace index on pg_type
    */
   static IndexSchema GetTypeNamespaceIndexSchema(db_oid_t db);
+
+  /**
+   * @param db oid in which the indexed table exists
+   * @return schema object for the oid index on pg_constraint
+   */
+  static IndexSchema GetSequenceOidIndexSchema(db_oid_t db);
+
+  /**
+   * @param db oid in which the indexed table exists
+   * @return schema object for the namespace/name index on pg_constraint
+   */
+  //static IndexSchema GetSequenceNameIndexSchema(db_oid_t db);
 
   /**
    * @param db oid in which the indexed table exists

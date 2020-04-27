@@ -340,6 +340,11 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CreateStat
           std::vector<std::unique_ptr<OperatorNode>>{});
       break;
     }
+    case parser::CreateStatement::CreateType::kSequence:
+      create_expr = std::make_unique<OperatorNode>(
+          LogicalCreateSequence::Make(db_oid_, accessor_->GetDefaultNamespace(), op->GetSequenceName()),
+          std::vector<std::unique_ptr<OperatorNode>>{});
+      break;
     case parser::CreateStatement::CreateType::kSchema:
       create_expr = std::make_unique<OperatorNode>(LogicalCreateNamespace::Make(op->GetNamespaceName()),
                                                    std::vector<std::unique_ptr<OperatorNode>>{});
@@ -482,6 +487,11 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DropStatem
     case parser::DropStatement::DropType::kIndex:
       drop_expr = std::make_unique<OperatorNode>(LogicalDropIndex::Make(accessor_->GetIndexOid(op->GetIndexName())),
                                                  std::vector<std::unique_ptr<OperatorNode>>{});
+      break;
+    case parser::DropStatement::DropType::kSequence:
+      drop_expr =
+          std::make_unique<OperatorNode>(LogicalDropSequence::Make(accessor_->GetSequenceOid(op->GetSequenceName())),
+                                         std::vector<std::unique_ptr<OperatorNode>>{});
       break;
     case parser::DropStatement::DropType::kSchema:
       drop_expr =

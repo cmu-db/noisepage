@@ -210,6 +210,7 @@ class PostgresParser {
   static std::unique_ptr<SQLStatement> CreateIndexTransform(ParseResult *parse_result, IndexStmt *root);
   static std::unique_ptr<SQLStatement> CreateSchemaTransform(ParseResult *parse_result, CreateSchemaStmt *root);
   static std::unique_ptr<SQLStatement> CreateTriggerTransform(ParseResult *parse_result, CreateTrigStmt *root);
+  static std::unique_ptr<SQLStatement> CreateSequenceTransform(ParseResult *parse_result, CreateSeqStmt *root);
   static std::unique_ptr<SQLStatement> CreateViewTransform(ParseResult *parse_result, ViewStmt *root);
 
   // CREATE helpers
@@ -236,6 +237,7 @@ class PostgresParser {
   static std::unique_ptr<DropStatement> DropSchemaTransform(ParseResult *parse_result, DropStmt *root);
   static std::unique_ptr<DropStatement> DropTableTransform(ParseResult *parse_result, DropStmt *root);
   static std::unique_ptr<DropStatement> DropTriggerTransform(ParseResult *parse_result, DropStmt *root);
+  static std::unique_ptr<DropStatement> DropSequenceTransform(ParseResult *parse_result, DropStmt *root);
 
   // EXECUTE statements
   static std::unique_ptr<ExecuteStatement> ExecuteTransform(ParseResult *parse_result, ExecuteStmt *root);

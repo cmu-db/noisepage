@@ -9,6 +9,7 @@
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "catalog/postgres/pg_namespace.h"
+#include "catalog/postgres/pg_sequence.h"
 #include "main/db_main.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/constant_value_expression.h"
@@ -251,6 +252,45 @@ TEST_F(CatalogTests, NamespaceTest) {
   accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
   ns_oid = accessor->GetNamespaceOid("test_namespace");
   EXPECT_EQ(ns_oid, catalog::INVALID_NAMESPACE_OID);
+  txn_manager_->Abort(txn);
+}
+
+/*
+ * Create and delete a sequence
+ */
+// NOLINTNEXTLINE
+TEST_F(CatalogTests, SequenceTest) {
+  // Create a sequence and check that it's immediately visible
+  auto txn = txn_manager_->BeginTransaction();
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+  EXPECT_NE(accessor, nullptr);
+  auto sequence_oid = accessor->CreateSequence(accessor->GetDefaultNamespace(), "test_sequence");
+  EXPECT_NE(sequence_oid, catalog::INVALID_SEQUENCE_OID);
+  VerifyCatalogTables(*accessor);  // Check visibility to me
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+  sequence_oid = accessor->CreateSequence(accessor->GetDefaultNamespace(), "test_sequence");
+  EXPECT_EQ(sequence_oid, catalog::INVALID_SEQUENCE_OID);  // Should cause a name conflict
+  txn_manager_->Abort(txn);
+
+  // Get an accessor into the database and validate the catalog tables exist
+  // then delete it and verify an invalid OID is now returned for the lookup
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+  EXPECT_NE(accessor, nullptr);
+  VerifyCatalogTables(*accessor);  // Check visibility to me
+  sequence_oid = accessor->GetSequenceOid("test_sequence");
+  EXPECT_TRUE(accessor->DropSequence(sequence_oid));
+  sequence_oid = accessor->GetSequenceOid("test_sequence");
+  EXPECT_EQ(sequence_oid, catalog::INVALID_SEQUENCE_OID);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+  sequence_oid = accessor->GetSequenceOid("test_sequence");
+  EXPECT_EQ(sequence_oid, catalog::INVALID_SEQUENCE_OID);
   txn_manager_->Abort(txn);
 }
 

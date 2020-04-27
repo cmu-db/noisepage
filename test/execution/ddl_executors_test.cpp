@@ -11,10 +11,12 @@
 #include "planner/plannodes/create_database_plan_node.h"
 #include "planner/plannodes/create_index_plan_node.h"
 #include "planner/plannodes/create_namespace_plan_node.h"
+#include "planner/plannodes/create_sequence_plan_node.h"
 #include "planner/plannodes/create_table_plan_node.h"
 #include "planner/plannodes/drop_database_plan_node.h"
 #include "planner/plannodes/drop_index_plan_node.h"
 #include "planner/plannodes/drop_namespace_plan_node.h"
+#include "planner/plannodes/drop_sequence_plan_node.h"
 #include "planner/plannodes/drop_table_plan_node.h"
 #include "test_util/catalog_test_util.h"
 #include "test_util/test_harness.h"
@@ -308,6 +310,57 @@ TEST_F(DDLExecutorsTests, CreateIndexPlanNodeIndexNameConflict) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(DDLExecutorsTests, CreateSequencePlanNode) {
+  planner::CreateSequencePlanNode::Builder builder;
+  auto create_sequence_node =
+      builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID).SetSequenceName("foo").Build();
+  EXPECT_TRUE(execution::sql::DDLExecutors::CreateSequenceExecutor(
+      common::ManagedPointer<planner::CreateSequencePlanNode>(create_sequence_node),
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
+  auto sequence_oid = accessor_->GetSequenceOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
+  EXPECT_NE(sequence_oid, catalog::INVALID_SEQUENCE_OID);
+  // TODO(zianke): Check sequence_ptr
+  // auto sequence_ptr = accessor_->GetSequence(sequence_oid);
+  // EXPECT_NE(sequence_ptr, nullptr);
+  txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
+}
+
+// NOLINTNEXTLINE
+TEST_F(DDLExecutorsTests, CreateSequencePlanNodeAbort) {
+  planner::CreateSequencePlanNode::Builder builder;
+  auto create_sequence_node =
+      builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID).SetSequenceName("foo").Build();
+  EXPECT_TRUE(execution::sql::DDLExecutors::CreateSequenceExecutor(
+      common::ManagedPointer<planner::CreateSequencePlanNode>(create_sequence_node),
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
+  auto sequence_oid = accessor_->GetSequenceOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
+  EXPECT_NE(sequence_oid, catalog::INVALID_SEQUENCE_OID);
+  // TODO(zianke): Check sequence_ptr
+  // auto sequence_ptr = accessor_->GetSequence(sequence_oid);
+  // EXPECT_NE(sequence_ptr, nullptr);
+  txn_manager_->Abort(txn_);
+}
+
+// NOLINTNEXTLINE
+TEST_F(DDLExecutorsTests, CreateSequencePlanNodeNameConflict) {
+  planner::CreateSequencePlanNode::Builder builder;
+  auto create_sequence_node =
+      builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID).SetSequenceName("foo").Build();
+  EXPECT_TRUE(execution::sql::DDLExecutors::CreateSequenceExecutor(
+      common::ManagedPointer<planner::CreateSequencePlanNode>(create_sequence_node),
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
+  auto sequence_oid = accessor_->GetSequenceOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
+  EXPECT_NE(sequence_oid, catalog::INVALID_SEQUENCE_OID);
+  // TODO(zianke): Check sequence_ptr
+  // auto sequence_ptr = accessor_->GetSequence(sequence_oid);
+  // EXPECT_NE(sequence_ptr, nullptr);
+  EXPECT_FALSE(execution::sql::DDLExecutors::CreateSequenceExecutor(
+      common::ManagedPointer<planner::CreateSequencePlanNode>(create_sequence_node),
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
+  txn_manager_->Abort(txn_);
+}
+
+// NOLINTNEXTLINE
 TEST_F(DDLExecutorsTests, DropTablePlanNode) {
   planner::CreateTablePlanNode::Builder create_builder;
   auto create_table_node = create_builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
@@ -327,6 +380,29 @@ TEST_F(DDLExecutorsTests, DropTablePlanNode) {
   auto drop_table_node = drop_builder.SetTableOid(table_oid).Build();
   EXPECT_TRUE(execution::sql::DDLExecutors::DropTableExecutor(
       common::ManagedPointer<planner::DropTablePlanNode>(drop_table_node),
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
+
+  txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
+}
+
+// NOLINTNEXTLINE
+TEST_F(DDLExecutorsTests, DropSequencePlanNode) {
+  planner::CreateSequencePlanNode::Builder create_builder;
+  auto create_sequence_node =
+      create_builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID).SetSequenceName("foo").Build();
+  EXPECT_TRUE(execution::sql::DDLExecutors::CreateSequenceExecutor(
+      common::ManagedPointer<planner::CreateSequencePlanNode>(create_sequence_node),
+      common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
+  auto sequence_oid = accessor_->GetSequenceOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
+  EXPECT_NE(sequence_oid, catalog::INVALID_SEQUENCE_OID);
+  // TODO(zianke): Check sequence_ptr
+  // auto sequence_ptr = accessor_->GetSequence(sequence_oid);
+  // EXPECT_NE(sequence_ptr, nullptr);
+
+  planner::DropSequencePlanNode::Builder drop_builder;
+  auto drop_sequence_node = drop_builder.SetSequenceOid(sequence_oid).Build();
+  EXPECT_TRUE(execution::sql::DDLExecutors::DropSequenceExecutor(
+      common::ManagedPointer<planner::DropSequencePlanNode>(drop_sequence_node),
       common::ManagedPointer<catalog::CatalogAccessor>(accessor_)));
 
   txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);

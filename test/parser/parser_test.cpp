@@ -241,6 +241,14 @@ TEST_F(ParserTestBase, CreateTableTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(ParserTestBase, CreateSequenceTest) {
+  auto result = parser::PostgresParser::BuildParseTree("CREATE SEQUENCE foo;");
+  auto create_stmt = result->GetStatement(0).CastManagedPointerTo<CreateStatement>();
+
+  EXPECT_EQ(create_stmt->GetSequenceName(), "foo");
+}
+
+// NOLINTNEXTLINE
 TEST_F(ParserTestBase, CreateViewTest) {
   auto result = parser::PostgresParser::BuildParseTree("CREATE VIEW foo AS SELECT * FROM bar WHERE baz = 1;");
   auto create_stmt = result->GetStatement(0).CastManagedPointerTo<CreateStatement>();
@@ -281,6 +289,16 @@ TEST_F(ParserTestBase, DropIndexTest) {
   auto drop_stmt = result->GetStatement(0).CastManagedPointerTo<DropStatement>();
   EXPECT_EQ(drop_stmt->GetDropType(), DropStatement::DropType::kIndex);
   EXPECT_EQ(drop_stmt->GetIndexName(), "foo");
+}
+
+// NOLINTNEXTLINE
+TEST_F(ParserTestBase, DropSequenceTest) {
+  auto result = parser::PostgresParser::BuildParseTree("DROP SEQUENCE foo;");
+  EXPECT_EQ(result->GetStatements().size(), 1);
+
+  auto drop_stmt = result->GetStatement(0).CastManagedPointerTo<DropStatement>();
+  EXPECT_EQ(drop_stmt->GetDropType(), DropStatement::DropType::kSequence);
+  EXPECT_EQ(drop_stmt->GetSequenceName(), "foo");
 }
 
 // NOLINTNEXTLINE

@@ -265,6 +265,36 @@ class CatalogAccessor {
   common::ManagedPointer<storage::index::Index> GetIndex(index_oid_t index) const;
 
   /**
+   * Given a sequence name, resolve it to the corresponding OID
+   * @param name of the sequence
+   * @return OID of the sequence, INVALID_SEQUENCE_OID if the sequence was not found
+   */
+  sequence_oid_t GetSequenceOid(std::string name) const;
+
+  /**
+   * Given a sequence name and the owning namespace, resolve it to the corresponding OID
+   * @param ns in which to search for the sequence
+   * @param name of the sequence
+   * @return OID of the sequence, INVALID_SEQUENCE_OID if the sequence was not found
+   */
+  sequence_oid_t GetSequenceOid(namespace_oid_t ns, std::string name) const;
+
+  /**
+   * Given the sequence name and its specification, add it to the catalog
+   * @param ns is the namespace in which the sequence will exist
+   * @param name of the sequence
+   * @return OID for the sequence, INVALID_SEQUENCE_OID if the operation failed
+   */
+  sequence_oid_t CreateSequence(namespace_oid_t ns, std::string name) const;
+
+  /**
+   * Drop the corresponding sequence from the catalog.
+   * @param sequence to be dropped, this must be a valid oid from GetSequenceOid. Invalid input will trigger an assert
+   * @return whether the operation succeeded
+   */
+  bool DropSequence(sequence_oid_t sequence) const;
+
+  /**
    * Adds a language to the catalog (with default parameters for now) if
    * it doesn't exist in pg_language already
    * @param lanname name of language

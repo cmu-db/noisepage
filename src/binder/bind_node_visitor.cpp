@@ -191,6 +191,9 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CreateStatement> node
       if (node->GetTriggerWhen() != nullptr)
         node->GetTriggerWhen()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
       break;
+    case parser::CreateStatement::CreateType::kSequence:
+      ValidateDatabaseName(node->GetDatabaseName());
+      break;
     case parser::CreateStatement::CreateType::kSchema:
       // nothing for binder to handler
       break;
@@ -249,6 +252,12 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::DropStatement> node) 
       ValidateDatabaseName(node->GetDatabaseName());
       if (catalog_accessor_->GetIndexOid(node->GetIndexName()) == catalog::INVALID_INDEX_OID) {
         throw BINDER_EXCEPTION("Index does not exist");
+      }
+      break;
+    case parser::DropStatement::DropType::kSequence:
+      ValidateDatabaseName(node->GetDatabaseName());
+      if (catalog_accessor_->GetSequenceOid(node->GetSequenceName()) == catalog::INVALID_SEQUENCE_OID) {
+          throw BINDER_EXCEPTION("Sequence does not exist");
       }
       break;
     case parser::DropStatement::DropType::kTrigger:

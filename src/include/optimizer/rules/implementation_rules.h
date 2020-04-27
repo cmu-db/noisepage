@@ -597,6 +597,34 @@ class LogicalCreateTriggerToPhysicalCreateTrigger : public Rule {
 };
 
 /**
+ * Rule transforms Logical CreateSequence -> Physical CreateSequence
+ */
+class LogicalCreateSequenceToPhysicalCreateSequence : public Rule {
+ public:
+  /**
+   * Constructor
+   */
+  LogicalCreateSequenceToPhysicalCreateSequence();
+
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorNode to check
+   * @param context Current OptimizationContext executing under
+   * @returns Whether the input OperatorNode passes the check
+   */
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
+
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
+   * @param context Current OptimizationContext executing under
+   */
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
+                 OptimizationContext *context) const override;
+};
+
+/**
  * Rule transforms Logical CreateView -> Physical CreateView
  */
 class LogicalCreateViewToPhysicalCreateView : public Rule {
@@ -689,6 +717,34 @@ class LogicalDropIndexToPhysicalDropIndex : public Rule {
    * Constructor
    */
   LogicalDropIndexToPhysicalDropIndex();
+
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorNode to check
+   * @param context Current OptimizationContext executing under
+   * @returns Whether the input OperatorNode passes the check
+   */
+  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
+
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
+   * @param context Current OptimizationContext executing under
+   */
+  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
+                 OptimizationContext *context) const override;
+};
+
+/**
+ * Rule transforms Logical DropSequence -> Physical DropSequence
+ */
+class LogicalDropSequenceToPhysicalDropSequence : public Rule {
+ public:
+  /**
+   * Constructor
+   */
+  LogicalDropSequenceToPhysicalDropSequence();
 
   /**
    * Checks whether the given rule can be applied

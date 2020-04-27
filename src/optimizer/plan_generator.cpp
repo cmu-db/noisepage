@@ -22,6 +22,7 @@
 #include "planner/plannodes/create_function_plan_node.h"
 #include "planner/plannodes/create_index_plan_node.h"
 #include "planner/plannodes/create_namespace_plan_node.h"
+#include "planner/plannodes/create_sequence_plan_node.h"
 #include "planner/plannodes/create_table_plan_node.h"
 #include "planner/plannodes/create_trigger_plan_node.h"
 #include "planner/plannodes/create_view_plan_node.h"
@@ -30,6 +31,7 @@
 #include "planner/plannodes/drop_database_plan_node.h"
 #include "planner/plannodes/drop_index_plan_node.h"
 #include "planner/plannodes/drop_namespace_plan_node.h"
+#include "planner/plannodes/drop_sequence_plan_node.h"
 #include "planner/plannodes/drop_table_plan_node.h"
 #include "planner/plannodes/drop_trigger_plan_node.h"
 #include "planner/plannodes/drop_view_plan_node.h"
@@ -840,6 +842,14 @@ void PlanGenerator::Visit(const CreateTrigger *create_trigger) {
                      .Build();
 }
 
+void PlanGenerator::Visit(const CreateSequence *create_sequence) {
+  output_plan_ = planner::CreateSequencePlanNode::Builder()
+                     .SetDatabaseOid(create_sequence->GetDatabaseOid())
+                     .SetNamespaceOid(create_sequence->GetNamespaceOid())
+                     .SetSequenceName(create_sequence->GetSequenceName())
+                     .Build();
+}
+
 void PlanGenerator::Visit(const CreateView *create_view) {
   output_plan_ = planner::CreateViewPlanNode::Builder()
                      .SetDatabaseOid(create_view->GetDatabaseOid())
@@ -859,6 +869,10 @@ void PlanGenerator::Visit(const DropTable *drop_table) {
 
 void PlanGenerator::Visit(const DropIndex *drop_index) {
   output_plan_ = planner::DropIndexPlanNode::Builder().SetIndexOid(drop_index->GetIndexOID()).Build();
+}
+
+void PlanGenerator::Visit(const DropSequence *drop_sequence) {
+  output_plan_ = planner::DropSequencePlanNode::Builder().SetSequenceOid(drop_sequence->GetSequenceOID()).Build();
 }
 
 void PlanGenerator::Visit(const DropNamespace *drop_namespace) {

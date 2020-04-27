@@ -13,6 +13,7 @@
 #include "catalog/postgres/pg_index.h"
 #include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_namespace.h"
+#include "catalog/postgres/pg_sequence.h"
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
@@ -210,6 +211,20 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
   retval = SetIndexPointer(txn, postgres::CONSTRAINT_FOREIGNTABLE_INDEX_OID, constraints_foreigntable_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
+  // pg_sequence and associated indexes
+  retval = CreateTableEntry(txn, postgres::SEQUENCE_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_sequence",
+                              postgres::Builder::GetSequenceTableSchema());
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetTablePointer(txn, postgres::SEQUENCE_TABLE_OID, sequences_);
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+
+  retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::SEQUENCE_TABLE_OID,
+                              postgres::SEQUENCE_OID_INDEX_OID, "pg_sequences_oid_index",
+                              postgres::Builder::GetSequenceOidIndexSchema(db_oid_));
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetIndexPointer(txn, postgres::SEQUENCE_OID_INDEX_OID, sequences_oid_index_);
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+
   // pg_language and associated indexes
   retval = CreateTableEntry(txn, postgres::LANGUAGE_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_language",
                             postgres::Builder::GetLanguageTableSchema());
@@ -350,6 +365,16 @@ void DatabaseCatalog::BootstrapPRIs() {
 
   const std::vector<col_oid_t> set_pg_proc_ptr_oids{postgres::PRO_CTX_PTR_COL_OID};
   pg_proc_ptr_pri_ = procs_->InitializerForProjectedRow(set_pg_proc_ptr_oids);
+  // pg_sequence
+  const std::vector<col_oid_t> pg_sequence_all_oids{postgres::PG_SEQUENCE_ALL_COL_OIDS.cbegin(),
+                                              postgres::PG_SEQUENCE_ALL_COL_OIDS.cend()};
+  pg_sequence_all_cols_pri_ = sequences_->InitializerForProjectedRow(pg_sequence_all_oids);
+  pg_sequence_all_cols_prm_ = sequences_->ProjectionMapForOids(pg_sequence_all_oids);
+
+
+  const std::vector<col_oid_t> delete_sequence_oids{postgres::SEQOID_COL_OID, postgres::SEQRELID_COL_OID};
+  delete_sequence_pri_ = indexes_->InitializerForProjectedRow(delete_sequence_oids);
+  delete_sequence_prm_ = indexes_->ProjectionMapForOids(delete_sequence_oids);
 }
 
 namespace_oid_t DatabaseCatalog::CreateNamespace(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -1327,6 +1352,235 @@ std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const Index
   return index_objects;
 }
 
+sequence_oid_t DatabaseCatalog::CreateSequence(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                               const namespace_oid_t ns_oid, const std::string &name) {
+  if (!TryLock(txn)) return INVALID_SEQUENCE_OID;
+  const sequence_oid_t sequence_oid = static_cast<sequence_oid_t>(next_oid_++);
+  return CreateSequence(txn, ns_oid, sequence_oid, name) ? sequence_oid : INVALID_SEQUENCE_OID;
+}
+
+bool DatabaseCatalog::CreateSequence(common::ManagedPointer<transaction::TransactionContext> txn,
+                                     const namespace_oid_t ns_oid, sequence_oid_t sequence_oid,
+                                     const std::string &name) {
+  // First, insert into pg_class
+  auto *const class_insert_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, pg_class_all_cols_pri_);
+  auto *const class_insert_pr = class_insert_redo->Delta();
+
+  // Write the sequence_oid into the PR
+  auto sequence_oid_offset = pg_class_all_cols_prm_[postgres::RELOID_COL_OID];
+  auto *sequence_oid_ptr = class_insert_pr->AccessForceNotNull(sequence_oid_offset);
+  *(reinterpret_cast<sequence_oid_t *>(sequence_oid_ptr)) = sequence_oid;
+
+  const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
+
+  // Write the name into the PR
+  const auto name_offset = pg_class_all_cols_prm_[postgres::RELNAME_COL_OID];
+  auto *const name_ptr = class_insert_pr->AccessForceNotNull(name_offset);
+  *(reinterpret_cast<storage::VarlenEntry *>(name_ptr)) = name_varlen;
+
+  // Write the ns_oid into the PR
+  const auto ns_offset = pg_class_all_cols_prm_[postgres::RELNAMESPACE_COL_OID];
+  auto *const ns_ptr = class_insert_pr->AccessForceNotNull(ns_offset);
+  *(reinterpret_cast<namespace_oid_t *>(ns_ptr)) = ns_oid;
+
+  // Write the kind into the PR
+  const auto kind_offset = pg_class_all_cols_prm_[postgres::RELKIND_COL_OID];
+  auto *const kind_ptr = class_insert_pr->AccessForceNotNull(kind_offset);
+  *(reinterpret_cast<postgres::ClassKind *>(kind_ptr)) = postgres::ClassKind::SEQUENCE;
+
+  // Set schema to NULL because sequences don't need schema
+  const auto index_schema_ptr_offset = pg_class_all_cols_prm_[postgres::REL_SCHEMA_COL_OID];
+  class_insert_pr->SetNull(index_schema_ptr_offset);
+
+  // Set next_col_oid to NULL because sequences don't need col_oid
+  const auto next_col_oid_offset = pg_class_all_cols_prm_[postgres::REL_NEXTCOLOID_COL_OID];
+  class_insert_pr->SetNull(next_col_oid_offset);
+
+  // Set sequence_ptr to NULL because it gets set by execution layer after instantiation
+  const auto index_ptr_offset = pg_class_all_cols_prm_[postgres::REL_PTR_COL_OID];
+  class_insert_pr->SetNull(index_ptr_offset);
+
+  // Insert into pg_class table
+  const auto class_tuple_slot = classes_->Insert(txn, class_insert_redo);
+
+  // Now we insert into indexes on pg_class
+  // Get PR initializers allocate a buffer from the largest one
+  const auto class_oid_index_init = classes_oid_index_->GetProjectedRowInitializer();
+  const auto class_name_index_init = classes_name_index_->GetProjectedRowInitializer();
+  const auto class_ns_index_init = classes_namespace_index_->GetProjectedRowInitializer();
+  TERRIER_ASSERT((class_name_index_init.ProjectedRowSize() >= class_oid_index_init.ProjectedRowSize()) &&
+                     (class_name_index_init.ProjectedRowSize() >= class_ns_index_init.ProjectedRowSize()),
+                 "Index buffer must be allocated based on the largest PR initializer");
+  auto *index_buffer = common::AllocationUtil::AllocateAligned(class_name_index_init.ProjectedRowSize());
+
+  // Insert into oid_index
+  auto *index_pr = class_oid_index_init.InitializeRow(index_buffer);
+  *(reinterpret_cast<sequence_oid_t *>(index_pr->AccessForceNotNull(0))) = sequence_oid;
+  if (!classes_oid_index_->InsertUnique(txn, *index_pr, class_tuple_slot)) {
+    // There was an oid conflict and we need to abort.  Free the buffer and
+    // return INVALID_TABLE_OID to indicate the database was not created.
+    delete[] index_buffer;
+    return false;
+  }
+
+  // Insert into name_index
+  index_pr = class_name_index_init.InitializeRow(index_buffer);
+  *(reinterpret_cast<storage::VarlenEntry *>(index_pr->AccessForceNotNull(0))) = name_varlen;
+  *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(1))) = ns_oid;
+  if (!classes_name_index_->InsertUnique(txn, *index_pr, class_tuple_slot)) {
+    // There was a name conflict and we need to abort.  Free the buffer and
+    // return INVALID_TABLE_OID to indicate the database was not created.
+    delete[] index_buffer;
+    return false;
+  }
+
+  // Insert into namespace_index
+  index_pr = class_ns_index_init.InitializeRow(index_buffer);
+  *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(0))) = ns_oid;
+  const auto result UNUSED_ATTRIBUTE = classes_namespace_index_->Insert(txn, *index_pr, class_tuple_slot);
+  TERRIER_ASSERT(result, "Insertion into non-unique namespace index failed.");
+
+  // TODO(zianke): Next, insert sequence metadata into pg_sequence
+
+  auto *const sequences_insert_redo = txn->StageWrite(db_oid_, postgres::SEQUENCE_TABLE_OID, pg_sequence_all_cols_pri_);
+  auto *const sequences_insert_pr = sequences_insert_redo->Delta();
+  // Write the sequence_oid into the PR
+  sequence_oid_offset = pg_sequence_all_cols_prm_[postgres::SEQRELID_COL_OID];
+  sequence_oid_ptr = sequences_insert_pr->AccessForceNotNull(sequence_oid_offset);
+  *(reinterpret_cast<sequence_oid_t *>(sequence_oid_ptr)) = sequence_oid;
+
+  const auto tuple_slot = sequences_->Insert(txn, sequences_insert_redo);
+
+  // Next: Insert into oid index
+  auto oid_pri = sequences_oid_index_->GetProjectedRowInitializer();
+  byte *const buffer = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
+  index_pr = oid_pri.InitializeRow(buffer);
+  // Write the attributes in the ProjectedRow
+  *(reinterpret_cast<sequence_oid_t *>(index_pr->AccessForceNotNull(0))) = sequence_oid;
+  const bool UNUSED_ATTRIBUTE sequence_result = sequences_oid_index_->InsertUnique(txn, *index_pr, tuple_slot);
+  TERRIER_ASSERT(sequence_result, "Assigned sequence OID failed to be unique.");
+
+  return true;
+}
+
+bool DatabaseCatalog::DeleteSequence(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                     sequence_oid_t sequence) {
+  if (!TryLock(txn)) return false;
+  bool result;
+  // TODO(zianke): We should respect foreign key relations and attempt to delete the sequence's columns first
+  // auto result = DeleteColumns<SequenceSchema::Column, sequence_oid_t>(txn, sequence);
+  // if (!result) return false;
+
+  // Initialize PRs for pg_class
+  const auto class_oid_pri = classes_oid_index_->GetProjectedRowInitializer();
+
+  // Allocate buffer for largest PR
+  TERRIER_ASSERT(pg_class_all_cols_pri_.ProjectedRowSize() >= class_oid_pri.ProjectedRowSize(),
+                 "Buffer must be allocated for largest ProjectedRow size");
+  auto *const buffer = common::AllocationUtil::AllocateAligned(pg_class_all_cols_pri_.ProjectedRowSize());
+  auto *key_pr = class_oid_pri.InitializeRow(buffer);
+
+  // Find the entry using the index
+  *(reinterpret_cast<sequence_oid_t *>(key_pr->AccessForceNotNull(0))) = sequence;
+  std::vector<storage::TupleSlot> index_results;
+  classes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
+  TERRIER_ASSERT(
+      index_results.size() == 1,
+      "Incorrect number of results from index scan. Expect 1 because it's a unique index. 0 implies that function was "
+      "called with an oid that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense. "
+      "Was a DROP plan node reused twice? IF EXISTS should be handled in the Binder, rather than pushing logic here.");
+
+  // Select the tuple out of the table before deletion. We need the attributes to do index deletions later
+  auto *table_pr = pg_class_all_cols_pri_.InitializeRow(buffer);
+  result = classes_->Select(txn, index_results[0], table_pr);
+  TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
+
+  // Delete from pg_classes table
+  txn->StageDelete(db_oid_, postgres::CLASS_TABLE_OID, index_results[0]);
+  result = classes_->Delete(txn, index_results[0]);
+  if (!result) {
+    // write-write conflict. Someone beat us to this operation.
+    delete[] buffer;
+    return false;
+  }
+
+  // Get the attributes we need for pg_class indexes
+  sequence_oid_t sequence_oid = *(reinterpret_cast<const sequence_oid_t *const>(
+      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::RELOID_COL_OID])));
+  const namespace_oid_t ns_oid = *(reinterpret_cast<const namespace_oid_t *const>(
+      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::RELNAMESPACE_COL_OID])));
+  const storage::VarlenEntry name_varlen = *(reinterpret_cast<const storage::VarlenEntry *const>(
+      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::RELNAME_COL_OID])));
+
+  // TODO(zianke): schema_ptr and sequence_ptr currently empty
+  // auto *const schema_ptr = *(reinterpret_cast<const IndexSchema *const *const>(
+  //      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_SCHEMA_COL_OID])));
+  // auto *const sequence_ptr = *(reinterpret_cast<storage::index::Index *const *const>(
+  //      table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::REL_PTR_COL_OID])));
+
+  const auto class_oid_index_init = classes_oid_index_->GetProjectedRowInitializer();
+  const auto class_name_index_init = classes_name_index_->GetProjectedRowInitializer();
+  const auto class_ns_index_init = classes_namespace_index_->GetProjectedRowInitializer();
+
+  // Delete from classes_oid_index_
+  auto *index_pr = class_oid_index_init.InitializeRow(buffer);
+  *(reinterpret_cast<sequence_oid_t *const>(index_pr->AccessForceNotNull(0))) = sequence_oid;
+  classes_oid_index_->Delete(txn, *index_pr, index_results[0]);
+
+  // Delete from classes_name_index_
+  index_pr = class_name_index_init.InitializeRow(buffer);
+  *(reinterpret_cast<storage::VarlenEntry *const>(index_pr->AccessForceNotNull(0))) = name_varlen;
+  *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(1))) = ns_oid;
+  classes_name_index_->Delete(txn, *index_pr, index_results[0]);
+
+  // Delete from classes_namespace_index_
+  index_pr = class_ns_index_init.InitializeRow(buffer);
+  *(reinterpret_cast<namespace_oid_t *const>(index_pr->AccessForceNotNull(0))) = ns_oid;
+  classes_namespace_index_->Delete(txn, *index_pr, index_results[0]);
+
+  // TODO(zianke): Next we need to delete from pg_sequence
+  // Now we need to delete from pg_sequence and its indexes
+  const auto sequence_oid_pr = sequences_oid_index_->GetProjectedRowInitializer();
+  index_results.clear();
+  key_pr = sequence_oid_pr.InitializeRow(buffer);
+  *(reinterpret_cast<sequence_oid_t *>(key_pr->AccessForceNotNull(0))) = sequence;
+  sequences_oid_index_->ScanKey(*txn, *key_pr, &index_results);
+  table_pr = delete_sequence_pri_.InitializeRow(buffer);
+  result = sequences_->Select(txn, index_results[0], table_pr);
+  TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
+
+  TERRIER_ASSERT(sequence == *(reinterpret_cast<const sequence_oid_t *const>(
+          table_pr->AccessForceNotNull(delete_sequence_prm_[postgres::SEQOID_COL_OID]))),
+                   "sequence oid from pg_sequence did not match what was found by the index scan from the argument.");
+
+  // Delete from pg_sequence table
+  txn->StageDelete(db_oid_, postgres::SEQUENCE_TABLE_OID, index_results[0]);
+  result = sequences_->Delete(txn, index_results[0]);
+  TERRIER_ASSERT(
+          result,
+          "Delete from pg_sequence should always succeed as write-write conflicts are detected during delete from pg_class");
+
+  // Delete from sequences_oid_index
+  index_pr = sequence_oid_pr.InitializeRow(buffer);
+  *(reinterpret_cast<sequence_oid_t *const>(index_pr->AccessForceNotNull(0))) = sequence;
+  sequences_oid_index_->Delete(txn, *index_pr, index_results[0]);
+
+  // delete schema_ptr;
+  // delete sequence_ptr;
+  delete[] buffer;
+  return true;
+}
+
+sequence_oid_t DatabaseCatalog::GetSequenceOid(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                               namespace_oid_t ns, const std::string &name) {
+  const auto oid_pair = GetClassOidKind(txn, ns, name);
+  if (oid_pair.first == NULL_OID || oid_pair.second != postgres::ClassKind::SEQUENCE) {
+    // User called GetIndexOid on an object that doesn't have type INDEX
+    return INVALID_SEQUENCE_OID;
+  }
+  return sequence_oid_t(oid_pair.first);
+}
+
 void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::TransactionContext> txn) {
   std::vector<parser::AbstractExpression *> expressions;
   std::vector<Schema *> table_schemas;
@@ -1355,8 +1609,9 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
   while (table_iter != classes_->end()) {
     classes_->Scan(txn, &table_iter, pc);
     for (uint i = 0; i < pc->NumTuples(); i++) {
-      TERRIER_ASSERT(objects[i] != nullptr, "Pointer to objects in pg_class should not be nullptr");
-      TERRIER_ASSERT(schemas[i] != nullptr, "Pointer to schemas in pg_class should not be nullptr");
+      // TODO(zianke): Temporarily remove TERRIER_ASSERT
+      // TERRIER_ASSERT(objects[i] != nullptr, "Pointer to objects in pg_class should not be nullptr");
+      // TERRIER_ASSERT(schemas[i] != nullptr, "Pointer to schemas in pg_class should not be nullptr");
       switch (classes[i]) {
         case postgres::ClassKind::REGULAR_TABLE:
           table_schemas.emplace_back(reinterpret_cast<Schema *>(schemas[i]));
@@ -1365,6 +1620,9 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
         case postgres::ClassKind::INDEX:
           index_schemas.emplace_back(reinterpret_cast<IndexSchema *>(schemas[i]));
           indexes.emplace_back(reinterpret_cast<storage::index::Index *>(objects[i]));
+          break;
+        case postgres::ClassKind::SEQUENCE:
+          // TODO(zianke): Destructor of sequence
           break;
         default:
           throw std::runtime_error("Unimplemented destructor needed");

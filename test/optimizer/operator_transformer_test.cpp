@@ -33,12 +33,14 @@
 #include "planner/plannodes/create_function_plan_node.h"
 #include "planner/plannodes/create_index_plan_node.h"
 #include "planner/plannodes/create_namespace_plan_node.h"
+#include "planner/plannodes/create_sequence_plan_node.h"
 #include "planner/plannodes/create_table_plan_node.h"
 #include "planner/plannodes/create_trigger_plan_node.h"
 #include "planner/plannodes/create_view_plan_node.h"
 #include "planner/plannodes/drop_database_plan_node.h"
 #include "planner/plannodes/drop_index_plan_node.h"
 #include "planner/plannodes/drop_namespace_plan_node.h"
+#include "planner/plannodes/drop_sequence_plan_node.h"
 #include "planner/plannodes/drop_table_plan_node.h"
 #include "planner/plannodes/drop_trigger_plan_node.h"
 #include "planner/plannodes/drop_view_plan_node.h"
@@ -63,6 +65,7 @@ class OperatorTransformerTest : public TerrierTest {
   catalog::table_oid_t table_a_oid_;
   catalog::table_oid_t table_b_oid_;
   catalog::index_oid_t a_index_oid_;
+  catalog::sequence_oid_t sequence_oid_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   common::ManagedPointer<catalog::Catalog> catalog_;
   transaction::TransactionContext *txn_;
@@ -135,6 +138,13 @@ class OperatorTransformerTest : public TerrierTest {
     auto index = index_builder.Build();
 
     EXPECT_TRUE(accessor_->SetIndexPointer(a_index_oid_, index));
+    txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
+    accessor_.reset(nullptr);
+
+    // create sequence
+    txn_ = txn_manager_->BeginTransaction();
+    accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_);
+    sequence_oid_ = accessor_->CreateSequence(accessor_->GetDefaultNamespace(), "seq");
     txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
     accessor_.reset(nullptr);
   }
@@ -1485,6 +1495,62 @@ TEST_F(OperatorTransformerTest, CreateTriggerTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, CreateSequenceTest) {
+  std::string create_sql = "CREATE SEQUENCE seq_a;";
+  std::string ref = R"({"Op":"LogicalCreateSequence",})";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  auto ns_oid = accessor_->GetDefaultNamespace();
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
+
+  EXPECT_EQ(ref, info);
+
+  // Test logical create
+  auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalCreateSequence>();
+  EXPECT_EQ(logical_create->GetSequenceName(), "seq_a");
+  EXPECT_EQ(logical_create->GetNamespaceOid(), ns_oid);
+  EXPECT_EQ(logical_create->GetDatabaseOid(), db_oid_);
+
+  auto optree_ptr = common::ManagedPointer(operator_tree_);
+  auto *op_ctx = optimization_context_.get();
+  std::vector<std::unique_ptr<optimizer::OperatorNode>> transformed;
+
+  optimizer::LogicalCreateSequenceToPhysicalCreateSequence rule;
+  EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
+  rule.Transform(optree_ptr, &transformed, op_ctx);
+
+  auto op = transformed[0]->GetOp();
+  EXPECT_EQ(op.GetType(), optimizer::OpType::CREATESEQUENCE);
+  EXPECT_TRUE(op.IsPhysical());
+  EXPECT_EQ(op.GetName(), "CreateSequence");
+  auto ct = op.As<optimizer::CreateSequence>();
+  EXPECT_EQ(ct->GetSequenceName(), "seq_a");
+  EXPECT_EQ(ct->GetNamespaceOid(), ns_oid);
+  EXPECT_EQ(ct->GetDatabaseOid(), db_oid_);
+
+  optimizer::PlanGenerator plan_generator{};
+  optimizer::PropertySet property_set{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
+  std::vector<optimizer::ExprMap> children_expr_map{};
+
+  auto plan_node =
+      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                   output_cols, std::move(children_plans), std::move(children_expr_map));
+  EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::CREATE_SEQUENCE);
+  auto ctpn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::CreateSequencePlanNode>();
+  EXPECT_EQ(ctpn->GetSequenceName(), "seq_a");
+  EXPECT_EQ(ctpn->GetNamespaceOid(), ns_oid);
+  EXPECT_EQ(ctpn->GetDatabaseOid(), db_oid_);
+}
+
+// NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, DropDatabaseTest) {
   std::string drop_sql = "Drop DATABASE test_db;";
 
@@ -1631,6 +1697,55 @@ TEST_F(OperatorTransformerTest, DropIndexTest) {
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_INDEX);
   auto dipn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropIndexPlanNode>();
   EXPECT_EQ(dipn->GetIndexOid(), a_index_oid_);
+}
+
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, DropSequenceTest) {
+  std::string drop_sql = "DROP SEQUENCE seq;";
+  std::string ref = R"({"Op":"LogicalDropSequence",})";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(drop_sql);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree));
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
+
+  EXPECT_EQ(ref, info);
+
+  // Test logical drop sequence
+  auto logical_drop = operator_tree_->GetOp().As<optimizer::LogicalDropSequence>();
+  EXPECT_EQ(logical_drop->GetSequenceOID(), sequence_oid_);
+
+  auto optree_ptr = common::ManagedPointer(operator_tree_);
+  auto *op_ctx = optimization_context_.get();
+  std::vector<std::unique_ptr<optimizer::OperatorNode>> transformed;
+
+  optimizer::LogicalDropSequenceToPhysicalDropSequence rule;
+  EXPECT_TRUE(rule.Check(optree_ptr, op_ctx));
+  rule.Transform(optree_ptr, &transformed, op_ctx);
+
+  auto op = transformed[0]->GetOp();
+  EXPECT_EQ(op.GetType(), optimizer::OpType::DROPSEQUENCE);
+  EXPECT_TRUE(op.IsPhysical());
+  EXPECT_EQ(op.GetName(), "DropSequence");
+  auto ds = op.As<optimizer::DropSequence>();
+  EXPECT_EQ(ds->GetSequenceOID(), sequence_oid_);
+
+  optimizer::PlanGenerator plan_generator{};
+  optimizer::PropertySet property_set{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols{};
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols{};
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans{};
+  std::vector<optimizer::ExprMap> children_expr_map{};
+
+  auto plan_node =
+      plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
+                                   output_cols, std::move(children_plans), std::move(children_expr_map));
+  EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::DROP_SEQUENCE);
+  auto dspn = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::DropSequencePlanNode>();
+  EXPECT_EQ(dspn->GetSequenceOid(), sequence_oid_);
 }
 
 // NOLINTNEXTLINE

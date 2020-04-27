@@ -11,10 +11,12 @@
 #include "planner/plannodes/create_database_plan_node.h"
 #include "planner/plannodes/create_index_plan_node.h"
 #include "planner/plannodes/create_namespace_plan_node.h"
+#include "planner/plannodes/create_sequence_plan_node.h"
 #include "planner/plannodes/create_table_plan_node.h"
 #include "planner/plannodes/drop_database_plan_node.h"
 #include "planner/plannodes/drop_index_plan_node.h"
 #include "planner/plannodes/drop_namespace_plan_node.h"
+#include "planner/plannodes/drop_sequence_plan_node.h"
 #include "planner/plannodes/drop_table_plan_node.h"
 #include "storage/index/index_builder.h"
 #include "storage/sql_table.h"
@@ -106,6 +108,12 @@ bool DDLExecutors::CreateIndexExecutor(const common::ManagedPointer<planner::Cre
                      *(node->GetSchema()));
 }
 
+bool DDLExecutors::CreateSequenceExecutor(const common::ManagedPointer<planner::CreateSequencePlanNode> node,
+                                          const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
+  // Request permission from the Catalog to see if this a valid sequence name
+  return accessor->CreateSequence(node->GetNamespaceOid(), node->GetSequenceName()) != catalog::INVALID_SEQUENCE_OID;
+}
+
 bool DDLExecutors::DropDatabaseExecutor(const common::ManagedPointer<planner::DropDatabasePlanNode> node,
                                         const common::ManagedPointer<catalog::CatalogAccessor> accessor,
                                         const catalog::db_oid_t connection_db) {
@@ -134,6 +142,13 @@ bool DDLExecutors::DropIndexExecutor(const common::ManagedPointer<planner::DropI
                                      const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
   const bool result = accessor->DropIndex(node->GetIndexOid());
   // TODO(Matt): CASCADE?
+  return result;
+}
+
+bool DDLExecutors::DropSequenceExecutor(const common::ManagedPointer<planner::DropSequencePlanNode> node,
+                                        const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
+  const bool result = accessor->DropSequence(node->GetSequenceOid());
+  // TODO(zianke): CASCADE?
   return result;
 }
 

@@ -104,6 +104,8 @@ network::QueryType TrafficCopUtil::QueryTypeForStatement(const common::ManagedPo
           return network::QueryType::QUERY_CREATE_INDEX;
         case parser::CreateStatement::CreateType::kTrigger:
           return network::QueryType::QUERY_CREATE_TRIGGER;
+        case parser::CreateStatement::CreateType::kSequence:
+          return network::QueryType::QUERY_CREATE_SEQUENCE;
         case parser::CreateStatement::CreateType::kSchema:
           return network::QueryType::QUERY_CREATE_SCHEMA;
         case parser::CreateStatement::CreateType::kView:
@@ -127,6 +129,8 @@ network::QueryType TrafficCopUtil::QueryTypeForStatement(const common::ManagedPo
           return network::QueryType::QUERY_DROP_PREPARED_STATEMENT;
         case parser::DropStatement::DropType::kTrigger:
           return network::QueryType::QUERY_DROP_TRIGGER;
+        case parser::DropStatement::DropType::kSequence:
+          return network::QueryType::QUERY_DROP_SEQUENCE;
       }
     }
     case parser::StatementType::VARIABLE_SET:

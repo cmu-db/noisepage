@@ -1483,6 +1483,34 @@ TEST(OperatorTests, CreateTriggerTest) {
 }
 
 // NOLINTNEXTLINE
+TEST(OperatorTests, CreateSequenceTest) {
+  //===--------------------------------------------------------------------===//
+  // CreateSequence
+  //===--------------------------------------------------------------------===//
+  Operator op1 = CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1");
+
+  EXPECT_EQ(op1.GetType(), OpType::CREATESEQUENCE);
+  EXPECT_EQ(op1.GetName(), "CreateSequence");
+  EXPECT_EQ(op1.As<CreateSequence>()->GetSequenceName(), "Sequence_1");
+
+  Operator op2 = CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_1");
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 = CreateSequence::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), "Sequence_1");
+  EXPECT_FALSE(op3 == op1);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 = CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), "Sequence_1");
+  EXPECT_FALSE(op4 == op1);
+  EXPECT_NE(op1.Hash(), op4.Hash());
+
+  Operator op5 = CreateSequence::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "Sequence_2");
+  EXPECT_FALSE(op5 == op1);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+}
+
+// NOLINTNEXTLINE
 TEST(OperatorTests, CreateViewTest) {
   //===--------------------------------------------------------------------===//
   // CreateView
@@ -1573,6 +1601,26 @@ TEST(OperatorTests, DropIndexTest) {
   EXPECT_EQ(op1.GetName(), "DropIndex");
   EXPECT_EQ(op1.As<DropIndex>()->GetIndexOID(), catalog::index_oid_t(1));
   EXPECT_EQ(op3.As<DropIndex>()->GetIndexOID(), catalog::index_oid_t(2));
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_FALSE(op1 == op3);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+  EXPECT_NE(op1.Hash(), op3.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, DropSequenceTest) {
+  //===--------------------------------------------------------------------===//
+  // DropSequence
+  //===--------------------------------------------------------------------===//
+  Operator op1 = DropSequence::Make(catalog::sequence_oid_t(1));
+  Operator op2 = DropSequence::Make(catalog::sequence_oid_t(1));
+  Operator op3 = DropSequence::Make(catalog::sequence_oid_t(2));
+
+  EXPECT_EQ(op1.GetType(), OpType::DROPSEQUENCE);
+  EXPECT_EQ(op3.GetType(), OpType::DROPSEQUENCE);
+  EXPECT_EQ(op1.GetName(), "DropSequence");
+  EXPECT_EQ(op1.As<DropSequence>()->GetSequenceOID(), catalog::sequence_oid_t(1));
+  EXPECT_EQ(op3.As<DropSequence>()->GetSequenceOID(), catalog::sequence_oid_t(2));
   EXPECT_TRUE(op1 == op2);
   EXPECT_FALSE(op1 == op3);
   EXPECT_EQ(op1.Hash(), op2.Hash());

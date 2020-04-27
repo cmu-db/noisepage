@@ -1001,6 +1001,36 @@ bool LogicalCreateTrigger::operator==(const BaseOperatorNodeContents &r) {
 }
 
 //===--------------------------------------------------------------------===//
+// LogicalCreateSequence
+//===--------------------------------------------------------------------===//
+BaseOperatorNodeContents *LogicalCreateSequence::Copy() const { return new LogicalCreateSequence(*this); }
+
+Operator LogicalCreateSequence::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                                     std::string sequence_name) {
+  auto op = std::make_unique<LogicalCreateSequence>();
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  op->sequence_name_ = std::move(sequence_name);
+  return Operator(std::move(op));
+}
+
+common::hash_t LogicalCreateSequence::Hash() const {
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sequence_name_));
+  return hash;
+}
+
+bool LogicalCreateSequence::operator==(const BaseOperatorNodeContents &r) {
+  if (r.GetType() != OpType::LOGICALCREATESEQUENCE) return false;
+  const LogicalCreateSequence &node = *dynamic_cast<const LogicalCreateSequence *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  return sequence_name_ == node.sequence_name_;
+}
+
+//===--------------------------------------------------------------------===//
 // LogicalCreateView
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalCreateView::Copy() const { return new LogicalCreateView(*this); }
@@ -1101,6 +1131,29 @@ bool LogicalDropIndex::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetType() != OpType::LOGICALDROPINDEX) return false;
   const LogicalDropIndex &node = *dynamic_cast<const LogicalDropIndex *>(&r);
   return node.index_oid_ == index_oid_;
+}
+
+//===--------------------------------------------------------------------===//
+// LogicalDropSequence
+//===--------------------------------------------------------------------===//
+BaseOperatorNodeContents *LogicalDropSequence::Copy() const { return new LogicalDropSequence(*this); }
+
+Operator LogicalDropSequence::Make(catalog::sequence_oid_t sequence_oid) {
+  auto op = std::make_unique<LogicalDropSequence>();
+  op->sequence_oid_ = sequence_oid;
+  return Operator(std::move(op));
+}
+
+common::hash_t LogicalDropSequence::Hash() const {
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sequence_oid_));
+  return hash;
+}
+
+bool LogicalDropSequence::operator==(const BaseOperatorNodeContents &r) {
+  if (r.GetType() != OpType::LOGICALDROPSEQUENCE) return false;
+  const LogicalDropSequence &node = *dynamic_cast<const LogicalDropSequence *>(&r);
+  return node.sequence_oid_ == sequence_oid_;
 }
 
 //===--------------------------------------------------------------------===//
@@ -1285,6 +1338,8 @@ const char *OperatorNodeContents<LogicalCreateNamespace>::name = "LogicalCreateN
 template <>
 const char *OperatorNodeContents<LogicalCreateTrigger>::name = "LogicalCreateTrigger";
 template <>
+const char *OperatorNodeContents<LogicalCreateSequence>::name = "LogicalCreateSequence";
+template <>
 const char *OperatorNodeContents<LogicalCreateView>::name = "LogicalCreateView";
 template <>
 const char *OperatorNodeContents<LogicalDropDatabase>::name = "LogicalDropDatabase";
@@ -1296,6 +1351,8 @@ template <>
 const char *OperatorNodeContents<LogicalDropNamespace>::name = "LogicalDropNamespace";
 template <>
 const char *OperatorNodeContents<LogicalDropTrigger>::name = "LogicalDropTrigger";
+template <>
+const char *OperatorNodeContents<LogicalDropSequence>::name = "LogicalDropSequence";
 template <>
 const char *OperatorNodeContents<LogicalDropView>::name = "LogicalDropView";
 template <>
@@ -1357,6 +1414,8 @@ OpType OperatorNodeContents<LogicalCreateNamespace>::type = OpType::LOGICALCREAT
 template <>
 OpType OperatorNodeContents<LogicalCreateTrigger>::type = OpType::LOGICALCREATETRIGGER;
 template <>
+OpType OperatorNodeContents<LogicalCreateSequence>::type = OpType::LOGICALCREATESEQUENCE;
+template <>
 OpType OperatorNodeContents<LogicalCreateView>::type = OpType::LOGICALCREATEVIEW;
 template <>
 OpType OperatorNodeContents<LogicalDropDatabase>::type = OpType::LOGICALDROPDATABASE;
@@ -1368,6 +1427,8 @@ template <>
 OpType OperatorNodeContents<LogicalDropNamespace>::type = OpType::LOGICALDROPNAMESPACE;
 template <>
 OpType OperatorNodeContents<LogicalDropTrigger>::type = OpType::LOGICALDROPTRIGGER;
+template <>
+OpType OperatorNodeContents<LogicalDropSequence>::type = OpType::LOGICALDROPSEQUENCE;
 template <>
 OpType OperatorNodeContents<LogicalDropView>::type = OpType::LOGICALDROPVIEW;
 template <>

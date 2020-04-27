@@ -9,10 +9,12 @@ class CreateDatabasePlanNode;
 class CreateNamespacePlanNode;
 class CreateTablePlanNode;
 class CreateIndexPlanNode;
+class CreateSequencePlanNode;
 class DropDatabasePlanNode;
 class DropNamespacePlanNode;
 class DropTablePlanNode;
 class DropIndexPlanNode;
+class DropSequencePlanNode;
 }  // namespace terrier::planner
 
 namespace terrier::execution::exec {
@@ -70,6 +72,14 @@ class DDLExecutors {
   /**
    * @param node node to executed
    * @param accessor accessor to use for execution
+   * @return true if operation succeeded, false otherwise
+   */
+  static bool CreateSequenceExecutor(common::ManagedPointer<planner::CreateSequencePlanNode> node,
+                                     common::ManagedPointer<catalog::CatalogAccessor> accessor);
+
+  /**
+   * @param node node to executed
+   * @param accessor accessor to use for execution
    * @param connection_db database for the current connection
    * @return true if operation succeeded, false otherwise
    */
@@ -100,6 +110,14 @@ class DDLExecutors {
    */
   static bool DropIndexExecutor(common::ManagedPointer<planner::DropIndexPlanNode> node,
                                 common::ManagedPointer<catalog::CatalogAccessor> accessor);
+
+  /**
+   * @param node node to executed
+   * @param accessor accessor to use for execution
+   * @return true if operation succeeded, false otherwise
+   */
+  static bool DropSequenceExecutor(common::ManagedPointer<planner::DropSequencePlanNode> node,
+                                   common::ManagedPointer<catalog::CatalogAccessor> accessor);
 
  private:
   static bool CreateIndex(common::ManagedPointer<catalog::CatalogAccessor> accessor, catalog::namespace_oid_t ns,

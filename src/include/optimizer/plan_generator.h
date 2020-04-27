@@ -239,6 +239,12 @@ class PlanGenerator : public OperatorVisitor {
   void Visit(const CreateTrigger *create_trigger) override;
 
   /**
+   * Visit a CreateSequence operator
+   * @param create_sequence operator
+   */
+  void Visit(const CreateSequence *create_sequence) override;
+
+  /**
    * Visit a CreateView operator
    * @param create_view operator
    */
@@ -272,6 +278,12 @@ class PlanGenerator : public OperatorVisitor {
    * @param drop_trigger operator
    */
   void Visit(const DropTrigger *drop_trigger) override;
+
+  /**
+   * Visit a DropSequence operator
+   * @param drop_sequence operator
+   */
+  void Visit(const DropSequence *drop_sequence) override;
 
   /**
    * Visit a DropView operator

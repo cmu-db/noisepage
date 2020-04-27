@@ -390,6 +390,14 @@ using CreateTrigStmt = struct CreateTrigStmt {
   RangeVar *constrrel_; /* opposite relation, if RI trigger */
 };
 
+using CreateSeqStmt = struct CreateSeqStmt {
+  NodeTag type_;
+  RangeVar *sequence_; /* the sequence to create */
+  List *options_;
+  Oid ownerId_;        /* ID of owner, or InvalidOid for default */
+  bool if_not_exists_; /* just do nothing if it already exists? */
+};
+
 using ColumnDef = struct ColumnDef {
   NodeTag type_;
   char *colname_;        /* name of column */

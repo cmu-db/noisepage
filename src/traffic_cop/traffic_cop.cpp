@@ -142,7 +142,8 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
   TERRIER_ASSERT(
       query_type == network::QueryType::QUERY_CREATE_TABLE || query_type == network::QueryType::QUERY_CREATE_SCHEMA ||
           query_type == network::QueryType::QUERY_CREATE_INDEX || query_type == network::QueryType::QUERY_CREATE_DB ||
-          query_type == network::QueryType::QUERY_CREATE_VIEW || query_type == network::QueryType::QUERY_CREATE_TRIGGER,
+          query_type == network::QueryType::QUERY_CREATE_VIEW || query_type == network::QueryType::QUERY_CREATE_TRIGGER ||
+          query_type == network::QueryType::QUERY_CREATE_SEQUENCE,
       "ExecuteCreateStatement called with invalid QueryType.");
   switch (query_type) {
     case network::QueryType::QUERY_CREATE_TABLE: {
@@ -174,6 +175,14 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
       }
       break;
     }
+    case network::QueryType::QUERY_CREATE_SEQUENCE: {
+      if (execution::sql::DDLExecutors::CreateSequenceExecutor(
+              physical_plan.CastManagedPointerTo<planner::CreateSequencePlanNode>(), connection_ctx->Accessor())) {
+        out->WriteCommandComplete(query_type, 0);
+        return;
+      }
+      break;
+    }
     default: {
       return {ResultType::ERROR, "ERROR:  unsupported CREATE statement type"};
     }
@@ -191,7 +200,8 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
   TERRIER_ASSERT(
       query_type == network::QueryType::QUERY_DROP_TABLE || query_type == network::QueryType::QUERY_DROP_SCHEMA ||
           query_type == network::QueryType::QUERY_DROP_INDEX || query_type == network::QueryType::QUERY_DROP_DB ||
-          query_type == network::QueryType::QUERY_DROP_VIEW || query_type == network::QueryType::QUERY_DROP_TRIGGER,
+          query_type == network::QueryType::QUERY_DROP_VIEW || query_type == network::QueryType::QUERY_DROP_TRIGGER ||
+          query_type == network::QueryType::QUERY_DROP_SEQUENCE,
       "ExecuteDropStatement called with invalid QueryType.");
   switch (query_type) {
     case network::QueryType::QUERY_DROP_TABLE: {
@@ -220,6 +230,14 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
       if (execution::sql::DDLExecutors::DropNamespaceExecutor(
               physical_plan.CastManagedPointerTo<planner::DropNamespacePlanNode>(), connection_ctx->Accessor())) {
         return {ResultType::COMPLETE, 0};
+      }
+      break;
+    }
+    case network::QueryType::QUERY_DROP_SEQUENCE: {
+      if (execution::sql::DDLExecutors::DropSequenceExecutor(
+              physical_plan.CastManagedPointerTo<planner::DropSequencePlanNode>(), connection_ctx->Accessor())) {
+        out->WriteCommandComplete(query_type, 0);
+        return;
       }
       break;
     }

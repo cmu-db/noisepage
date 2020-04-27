@@ -10,6 +10,7 @@ class CreateIndexPlanNode;
 class CreateNamespacePlanNode;
 class CreateTablePlanNode;
 class CreateTriggerPlanNode;
+class CreateSequencePlanNode;
 class CreateViewPlanNode;
 class CSVScanPlanNode;
 class DeletePlanNode;
@@ -18,6 +19,7 @@ class DropIndexPlanNode;
 class DropNamespacePlanNode;
 class DropTablePlanNode;
 class DropTriggerPlanNode;
+class DropSequencePlanNode;
 class DropViewPlanNode;
 class ExportExternalFilePlanNode;
 class HashJoinPlanNode;
@@ -89,6 +91,12 @@ class PlanVisitor {
   virtual void Visit(UNUSED_ATTRIBUTE const CreateTriggerPlanNode *plan) {}
 
   /**
+   * Visit an CreateSequencePlanNode
+   * @param plan CreateSequencePlanNode
+   */
+  virtual void Visit(UNUSED_ATTRIBUTE const CreateSequencePlanNode *plan) {}
+
+  /**
    * Visit an CreateViewPlanNode
    * @param plan CreateViewPlanNode
    */
@@ -135,6 +143,12 @@ class PlanVisitor {
    * @param plan DropTriggerPlanNode
    */
   virtual void Visit(UNUSED_ATTRIBUTE const DropTriggerPlanNode *plan) {}
+
+  /**
+   * Visit an DropSequencePlanNode
+   * @param plan DropSequencePlanNode
+   */
+  virtual void Visit(UNUSED_ATTRIBUTE const DropSequencePlanNode *plan) {}
 
   /**
    * Visit an DropViewPlanNode

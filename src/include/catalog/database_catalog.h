@@ -12,6 +12,7 @@
 #include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
+#include "catalog/postgres/pg_sequence.h"
 #include "catalog/schema.h"
 #include "execution/udf/udf_context.h"
 #include "storage/index/index.h"
@@ -250,6 +251,45 @@ class DatabaseCatalog {
       common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
 
   /**
+   * Create the catalog entries for a new sequence.
+   * @param txn for the operation
+   * @param ns_oid  OID of the namespace under which the sequence will fall
+   * @param name of the new sequence
+   * @return OID of the new sequence or INVALID_SEQUENCE_OID if creation failed
+   */
+  sequence_oid_t CreateSequence(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid,
+                                const std::string &name);
+
+  /**
+   * Helper method to create sequence entries into pg_class and pg_sequence.
+   * @param txn txn for the operation
+   * @param ns_oid  OID of the namespace under which the sequence will fall
+   * @param sequence_oid OID for the sequence to create
+   * @param name name of the new sequence
+   * @return true if creation succeeded, false otherwise
+   */
+  bool CreateSequence(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns_oid,
+                      sequence_oid_t sequence_oid, const std::string &name);
+
+  /**
+   * Delete a sequence.
+   * @param txn for the operation
+   * @param sequence to be deleted
+   * @return true if the deletion succeeded, otherwise false.
+   */
+  bool DeleteSequence(common::ManagedPointer<transaction::TransactionContext> txn, sequence_oid_t sequence);
+
+  /**
+   * Resolve an sequence name to its OID
+   * @param txn for the operation
+   * @param ns OID for the namespace in which the sequence belongs
+   * @param name of the sequence
+   * @return OID of the sequence or INVALID_SEQUENCE_OID if it does not exist
+   */
+  sequence_oid_t GetSequenceOid(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
+                                const std::string &name);
+
+  /**
    * Creates a language entry into the pg_language table
    * @param txn transaction to use
    * @param lanname name of language to insert
@@ -482,6 +522,14 @@ class DatabaseCatalog {
   storage::ProjectionMap get_columns_prm_;
   storage::ProjectedRowInitializer delete_columns_pri_;
   storage::ProjectionMap delete_columns_prm_;
+
+  storage::SqlTable *sequences_;
+  storage::index::Index *sequences_oid_index_;
+  //storage::index::Index *sequences_name_index_;
+  storage::ProjectedRowInitializer pg_sequence_all_cols_pri_;
+  storage::ProjectionMap pg_sequence_all_cols_prm_;
+  storage::ProjectedRowInitializer delete_sequence_pri_;
+  storage::ProjectionMap delete_sequence_prm_;
 
   storage::SqlTable *types_;
   storage::index::Index *types_oid_index_;
