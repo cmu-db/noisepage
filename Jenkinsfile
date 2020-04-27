@@ -98,7 +98,11 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        // TODO Uncomment the junit test after we figure out to get the DBMS to start in Python if compiled in debug mode
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
                         sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
                     }
                     post {
@@ -124,7 +128,11 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        // TODO Uncomment the junit test after we figure out to get the DBMS to start in Python if compiled in debug mode
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
                         sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
                     }
                     post {
@@ -192,7 +200,11 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        // TODO Uncomment the junit test after we figure out to get the DBMS to start in Python if compiled in debug mode
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
                         sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
                     }
                     post {
@@ -215,6 +227,11 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j4'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
                         sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
@@ -239,7 +256,11 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        // FIXME
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
                         sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
@@ -268,7 +289,11 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        // FIXME
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
                         sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
                     }
                     post {
