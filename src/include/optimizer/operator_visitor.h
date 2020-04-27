@@ -442,6 +442,13 @@ class OperatorVisitor {
    * @param logical_analyze operator
    */
   virtual void Visit(const LogicalAnalyze *logical_analyze) {}
+
+
+  /**
+   * Visit a LogicalAlter operator
+   * @param logical_alter  logcial_alter operator
+   */
+  virtual void Visit(const LogicalAlter *logical_alter) {}
 };
 
 }  // namespace terrier::optimizer

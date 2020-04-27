@@ -1224,6 +1224,37 @@ bool LogicalAnalyze::operator==(const BaseOperatorNodeContents &r) {
 }
 
 //===--------------------------------------------------------------------===//
+// LogicalAlter
+//===--------------------------------------------------------------------===//
+BaseOperatorNodeContents *LogicalAlter::Copy() const { return new LogicalAlter(*this); }
+
+Operator LogicalAlter::Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
+                              std::vector<parser::AlterTableStatement::AlterTableCmd> &&cmds) {
+  auto op = std::make_unique<LogicalAlter>();
+  op->database_oid_ = database_oid;
+  op->table_oid_ = table_oid;
+  op->cmds_ = std::move(cmds);
+  return Operator(std::move(op));
+}
+
+common::hash_t LogicalAlter::Hash() const {
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
+  hash = common::HashUtil::CombineHashInRange(hash, cmds_.begin(), cmds_.end());
+  return hash;
+}
+
+bool LogicalAlter::operator==(const BaseOperatorNodeContents &r) {
+  if (r.GetType() != OpType::LOGICALALTER) return false;
+  const LogicalAlter &node = *dynamic_cast<const LogicalAlter *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (table_oid_ != node.table_oid_) return false;
+  if (cmds_ != node.cmds_) return false;
+  return true;
+}
+
+//===--------------------------------------------------------------------===//
 template <typename T>
 void OperatorNodeContents<T>::Accept(common::ManagedPointer<OperatorVisitor> v) const {
   v->Visit(reinterpret_cast<const T *>(this));
@@ -1300,6 +1331,8 @@ template <>
 const char *OperatorNodeContents<LogicalDropView>::name = "LogicalDropView";
 template <>
 const char *OperatorNodeContents<LogicalAnalyze>::name = "LogicalAnalyze";
+template <>
+const char *OperatorNodeContents<LogicalAlter>::name = "LogicalAlter";
 
 //===--------------------------------------------------------------------===//
 template <>
@@ -1372,6 +1405,8 @@ template <>
 OpType OperatorNodeContents<LogicalDropView>::type = OpType::LOGICALDROPVIEW;
 template <>
 OpType OperatorNodeContents<LogicalAnalyze>::type = OpType::LOGICALANALYZE;
+template <>
+OpType OperatorNodeContents<LogicalAlter>::type = OpType::LOGICALALTER;
 
 template <typename T>
 bool OperatorNodeContents<T>::IsLogical() const {

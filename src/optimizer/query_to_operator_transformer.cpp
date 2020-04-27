@@ -512,6 +512,14 @@ void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<p
 // TODO(SC)
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::AlterTableStatement> op) {
   OPTIMIZER_LOG_DEBUG("Transforming AlterTable to operators ...");
+  std::unique_ptr<OperatorNode> alter_expr;
+
+  // TODO(SC): what are the things needed? is db_oid needed?
+  alter_expr = std::make_unique<OperatorNode>(
+      LogicalAlter::Make(accessor_->GetDatabaseOid(op->GetDatabaseName()), accessor_->GetTableOid(op->GetTableName()),std::move(op->GetAlterTableCmds())),{}
+ ); // TODO(SC): FKs ?
+
+  output_expr_ = std::move(alter_expr);
 }
 
 void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::UpdateStatement> op) {

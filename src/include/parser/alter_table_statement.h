@@ -98,6 +98,37 @@ class AlterTableStatement : public TableRefStatement {
      */
     bool IsDropCascade() const { return drop_cascade_; }
 
+
+    /**
+     * Equiality check
+     * @param rhs  other
+     * @return true if the two commands are same
+     */
+    bool operator==(const AlterTableCmd &rhs) const {
+      if(type_ != rhs.type_)  return false;
+      if(col_name_ != rhs.col_name_) return false;
+      if(col_ != rhs.col_) return false;
+      if(if_exists_ != rhs.if_exists_) return false;
+      if(drop_cascade_ != rhs.drop_cascade_) return false;
+      if(default_value_ != rhs.default_value_) return false;
+      return true;
+    }
+
+    /**
+     * Hash
+     * @return hash of the cmd
+     */
+    common::hash_t Hash() const {
+      common::hash_t  hash = common::HashUtil::Hash(type_);
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(col_name_));
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(col_));
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(if_exists_));
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(drop_cascade_));
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(default_value_));
+
+      return hash;
+    }
+
    private:
     friend class binder::BindNodeVisitor;
 
@@ -149,5 +180,6 @@ class AlterTableStatement : public TableRefStatement {
   // ALTER TABLE IF EXISTS
   const bool if_exists_ = false;
 };
+
 
 }  // namespace terrier::parser

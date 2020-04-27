@@ -2006,4 +2006,58 @@ class LogicalAnalyze : public OperatorNodeContents<LogicalAnalyze> {
   std::vector<catalog::col_oid_t> columns_;
 };
 
+/**
+ * Logical operator for Alter Table
+ */
+class LogicalAlter : public OperatorNodeContents<LogicalAlter> {
+ public:
+  /**
+   * @param database_oid OID of the database
+   * @param table_oid OID of the table
+   * @param columns OIDs of Analyze columns
+   * @return
+   */
+  static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
+                       std::vector<parser::AlterTableStatement::AlterTableCmd> &&cmds);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNodeContents *Copy() const override;
+
+  bool operator==(const BaseOperatorNodeContents &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the database
+   */
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the table
+   */
+  const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
+
+  /**
+   * @return commands
+   */
+  std::vector<parser::AlterTableStatement::AlterTableCmd> GetCommands() const { return cmds_; }
+
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the target table
+   */
+  catalog::table_oid_t table_oid_;
+
+  /**
+   * Vector of commands
+   */
+  std::vector<parser::AlterTableStatement::AlterTableCmd> cmds_;
+};
 }  // namespace terrier::optimizer
